@@ -40,6 +40,9 @@ Segmenter::Segmenter()
   have_cloud = false;
 //   have_normals = false;
   have_saliencyMaps = false;
+
+  model_file_name = "./ST-TrainAll.model.txt";
+  scaling_file_name = "./ST-TrainAll.scalingparams.txt";
   
   ClassName = "Segmenter";
 }
@@ -184,11 +187,11 @@ void Segmenter::computeRelations()
 void Segmenter::graphBasedSegmentation()
 {
   svmPredictorSingle.setPredictProbability(true);
-  svmPredictorSingle.setModelFilename("./ST-TrainAll.model.txt");
+  svmPredictorSingle.setModelFilename(model_file_name);
   svmPredictorSingle.setSurfaces(surfaces);
   svmPredictorSingle.setRelations(validRelations);
   svmPredictorSingle.setType(1);
-  svmPredictorSingle.setScaling(true,"./ST-TrainAll.scalingparams.txt");
+  svmPredictorSingle.setScaling(true,scaling_file_name);
   svmPredictorSingle.compute();
   validRelations = svmPredictorSingle.getRelations();
   

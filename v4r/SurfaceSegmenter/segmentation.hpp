@@ -120,6 +120,8 @@ private:
   bool have_cloud;
   //bool have_normals;
   bool have_saliencyMaps;
+
+  std::string model_file_name, scaling_file_name;
   
   std::string ClassName;
 
@@ -142,7 +144,7 @@ private:
   
 public:
   Segmenter();
-  ~Segmenter();
+  virtual ~Segmenter();
   
   /** Run the pre-segmenter **/
   void segment();
@@ -151,6 +153,9 @@ public:
   void setPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr _pcl_cloud);
   //void setNormals(pcl::PointCloud<pcl::Normal>::Ptr _normals);
   void setSaliencyMaps(std::vector<cv::Mat> _saliencyMaps);
+
+  void setModelFilename(std::string _model_file_name);
+  void setScaling(std::string _scaling_file_name);
   
   inline std::vector<surface::SurfaceModel::Ptr> getSurfaces();
   inline std::vector<cv::Mat> getMasks();
@@ -158,6 +163,17 @@ public:
   inline TimeEstimates getTimeEstimates();
 
 };
+
+inline void Segmenter::setModelFilename(std::string _model_file_name)
+{
+  model_file_name = _model_file_name;
+
+}
+
+inline void Segmenter::setScaling(std::string _scaling_file_name)
+{
+  scaling_file_name = _scaling_file_name;
+}
 
 inline std::vector<surface::SurfaceModel::Ptr> Segmenter::getSurfaces()
 {
