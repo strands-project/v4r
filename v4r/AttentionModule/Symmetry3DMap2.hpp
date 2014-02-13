@@ -29,7 +29,7 @@ struct MiddlePoint {
 class Symmetry3DMap
 {
 private:
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
   pcl::PointCloud<pcl::Normal>::Ptr   normals;
   pcl::PointIndices::Ptr              indices;
   int                                 R;
@@ -40,17 +40,17 @@ private:
   bool                                pyramidMode;
   cv::Mat                             map;
   std::vector<float>                  cameraParametrs;
-  AttentionModule::PyramidParameters  pyramidParameters;
+  //AttentionModule::PyramidParameters  pyramidParameters;
   
   void createLookUpMap(cv::Mat &lookupMap);
   void checkParameters();
   void computeSingle();
-  void computePyramid();
+  //void computePyramid();
   
 public:
   Symmetry3DMap();
   
-  void setCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_);
+  void setCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_);
   void setNormals(pcl::PointCloud<pcl::Normal>::Ptr normals_);
   void setIndices(pcl::PointIndices::Ptr indices_);
   void setR(int R_);

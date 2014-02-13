@@ -250,7 +250,7 @@ int ColorSaliencyMap::calculateColorMap(cv::Mat &map_)
 
   //cv::blur(map,map,cv::Size(filter_size,filter_size));
 
-  //EPUtils::normalize(map,normalization_type);
+  EPUtils::normalize(map,normalization_type);
 
   map.copyTo(map_);
   return(AM_OK);

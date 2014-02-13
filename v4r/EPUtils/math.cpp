@@ -283,8 +283,8 @@ pcl::PointXYZ calculatePlaneNormal(pcl::PointXYZ p1, pcl::PointXYZ p2, pcl::Poin
 #endif
 
 void ProjectPointsOnThePlane(pcl::ModelCoefficients::ConstPtr coefficients,
-                             pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud,
-                             pcl::PointCloud<pcl::PointXYZ>::Ptr points_projected,
+                             pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud,
+                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_projected,
                              std::vector<float> &distances, pcl::PointIndices::Ptr indices, 
                              bool normalize = true)
 {
@@ -306,7 +306,7 @@ void ProjectPointsOnThePlane(pcl::ModelCoefficients::ConstPtr coefficients,
   float c = coefficients->values.at(2);
   float d = coefficients->values.at(3);
    
-  pcl::ProjectInliers<pcl::PointXYZ> proj;
+  pcl::ProjectInliers<pcl::PointXYZRGB> proj;
   proj.setModelType(pcl::SACMODEL_PLANE);
   proj.setInputCloud(cloud);
   proj.setIndices(indices);

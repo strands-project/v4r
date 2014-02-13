@@ -38,7 +38,7 @@ SET(SOURCE_H
   BoundaryRelationsBase.hpp
   BoundaryRelationsMeanDepth.hpp
   BoundaryRelationsMeanCurvature.hpp
-  BoundaryRelationsMeanColor.cpp
+  BoundaryRelationsMeanColor.hpp
 #   CEdgeExtractor.h
   ColorHistogram.h
   ContourNormalsDistance.hh
@@ -55,7 +55,7 @@ SET(SOURCE_H
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
 target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rSurfaceUtils v4rSurfaceModeling v4rPCLAddOns)# v4rSurfaceBoundary)# v4rvs3) 
-target_link_libraries(${PROJECT_NAME}  v4rTomGine)# v4rObjectModeling #v4rPCore)
+#target_link_libraries(${PROJECT_NAME}  v4rTomGine)# v4rObjectModeling #v4rPCore)
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 
 ENDIF(V4R_SURFACE_RELATIONS)

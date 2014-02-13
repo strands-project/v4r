@@ -18,16 +18,16 @@ IF(${PCL_FOUND})
   MESSAGE("PCL_LIBRARY_DIRS: ${PCL_LIBRARY_DIRS}")
 
   SET(SOURCE_CPP_PCL
-      SurfaceHeightMap.cpp
-      RelativeSurfaceOrientationMap.cpp
-      SurfaceCurvatureMap.cpp
-#       Symmetry3DMap2.cpp
+      #SurfaceHeightMap.cpp
+      #RelativeSurfaceOrientationMap.cpp
+      #SurfaceCurvatureMap.cpp
+      Symmetry3DMap2.cpp
   )
   SET(SOURCE_H_PCL
-      SurfaceHeightMap.hpp
-      RelativeSurfaceOrientationMap.hpp
-      SurfaceCurvatureMap.hpp
-#       Symmetry3DMap2.hpp
+      #SurfaceHeightMap.hpp
+      #RelativeSurfaceOrientationMap.hpp
+      #SurfaceCurvatureMap.hpp
+      Symmetry3DMap2.hpp
   )
 
 ENDIF(${PCL_FOUND})

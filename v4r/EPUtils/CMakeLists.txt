@@ -25,7 +25,7 @@ SET(SOURCE_CPP
     math.cpp
     connectedComponents.cpp
     drawUtils.cpp
-    debugUtils.cpp
+    #debugUtils.cpp
     timeUtils.cpp
    )
 SET(SOURCE_H
@@ -41,7 +41,7 @@ SET(SOURCE_H
     math.hpp
     connectedComponents.hpp
     drawUtils.hpp
-    debugUtils.hpp
+    #debugUtils.hpp
     timeUtils.hpp
    )
 

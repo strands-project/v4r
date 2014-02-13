@@ -22,7 +22,7 @@ SET(SOURCE_CPP
   BoundaryDetector.cpp
   ContourDetector.cpp
   FileSystem.cc
-  KinectData.cpp
+#  KinectData.cpp
   MaskDilationErosion.cpp
   SegmentEvaluation.cpp
   SurfaceModel.cpp
@@ -35,7 +35,7 @@ SET(SOURCE_H
   BoundaryDetector.h
   ContourDetector.h
   FileSystem.hh
-  KinectData.h
+#  KinectData.h
   MaskDilationErosion.h
   Relation.h
   SegmentEvaluation.h
@@ -47,7 +47,7 @@ SET(SOURCE_H
 IF(V4R_PCL_ADD_ONS)
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
-target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rPCLAddOns v4rKinectInterface v4rTomGine v4rPCLAddOns v4rEPUtils)
+target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rPCLAddOns v4rPCLAddOns v4rEPUtils)
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 
 ELSE(V4R_PCL_ADD_ONS)

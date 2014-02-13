@@ -18,9 +18,9 @@
 
 namespace AttentionModule {
   
-pcl::PointXYZ operator+(const pcl::PointXYZ p1, const pcl::PointXYZ p2) 
+pcl::PointXYZRGB operator+(const pcl::PointXYZRGB p1, const pcl::PointXYZRGB p2) 
 {
-  pcl::PointXYZ p;
+  pcl::PointXYZRGB p;
   p.x = p1.x + p2.x;
   p.y = p1.y + p2.y;
   p.z = p1.z + p2.z;
@@ -36,7 +36,7 @@ pcl::Normal operator+(const pcl::Normal n1, const pcl::Normal n2)
   return(n);
 }
 
-pcl::Normal PointsPair2Vector(const pcl::PointXYZ p1, const pcl::PointXYZ p2) 
+pcl::Normal PointsPair2Vector(const pcl::PointXYZRGB p1, const pcl::PointXYZRGB p2) 
 {
   pcl::Normal vect;
   vect.normal[0] = p1.x - p2.x;
@@ -54,7 +54,7 @@ float Distance2PlaneSigned(pcl::Normal vect, pcl::Normal norm)
 
 Symmetry3DMap::Symmetry3DMap()
 {
-  cloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>());
+  cloud = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>());
   normals = pcl::PointCloud<pcl::Normal>::Ptr(new pcl::PointCloud<pcl::Normal>());
   indices = pcl::PointIndices::Ptr(new pcl::PointIndices());
   normalizationType = EPUtils::NT_NONE;
@@ -66,7 +66,7 @@ Symmetry3DMap::Symmetry3DMap()
   cameraParametrs.clear();
 }
 
-void Symmetry3DMap::setCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_)
+void Symmetry3DMap::setCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_)
 {
   cloud = cloud_;
 }
@@ -135,9 +135,9 @@ void Symmetry3DMap::checkParameters()
 
 void Symmetry3DMap::compute()
 {
-  if(pyramidMode)
-    computePyramid();
-  else
+  //if(pyramidMode)
+  //  computePyramid();
+  //else
     computeSingle();
 }
 
@@ -178,7 +178,7 @@ void Symmetry3DMap::computeSingle()
     }
   
     pcl::PointCloud<pcl::Normal>::Ptr small_normals(new pcl::PointCloud<pcl::Normal>());
-    pcl::PointCloud<pcl::PointXYZ>::Ptr small_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr small_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
 
     for(unsigned int pi = 0; pi < shifts.size(); ++pi)
     {
@@ -215,7 +215,7 @@ void Symmetry3DMap::computeSingle()
       plane_normal = axis.at(axis_num);
       plane_normal = EPUtils::normalize(plane_normal);
 
-      pcl::PointXYZ point0 = cloud->points.at(indices->indices.at(idx));
+      pcl::PointXYZRGB point0 = cloud->points.at(indices->indices.at(idx));
      
       float a = plane_normal.normal[0];
       float b = plane_normal.normal[1];
@@ -229,7 +229,7 @@ void Symmetry3DMap::computeSingle()
       coefficients->values.at(2) = c;
       coefficients->values.at(3) = d;
     
-      pcl::PointCloud<pcl::PointXYZ>::Ptr points_projected (new pcl::PointCloud<pcl::PointXYZ>);
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_projected (new pcl::PointCloud<pcl::PointXYZRGB>);
       std::vector<float> distances;
       pcl::PointIndices::Ptr small_indices(new pcl::PointIndices());
       EPUtils::ProjectPointsOnThePlane(coefficients,small_cloud,points_projected,distances,small_indices,false);
@@ -238,7 +238,7 @@ void Symmetry3DMap::computeSingle()
   
       for(unsigned int pi = 0; pi < small_cloud->size(); ++pi)
       {
-        pcl::PointXYZ point_pi = small_cloud->points.at(pi);
+        pcl::PointXYZRGB point_pi = small_cloud->points.at(pi);
        
         pcl::Normal pip0 = PointsPair2Vector(point_pi,point0);
        
@@ -376,8 +376,7 @@ void Symmetry3DMap::computeSingle()
   map = (1.0/maxVal)*map;
 }
 
-void Symmetry3DMap::computePyramid()
-{
+/*void Symmetry3DMap::computePyramid()
   // create depth
   cv::Mat depth;
   EPUtils::PointCloud2Depth(depth,cloud,width,height,indices);
@@ -444,7 +443,7 @@ void Symmetry3DMap::computePyramid()
   // combine saliency maps
   combinePyramid(pyramidParameters);
   pyramidParameters.map.copyTo(map);
-}
+}*/
 
 /*boost::shared_ptr<pcl::visualization::PCLVisualizer> normalsVis (
     pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud, pcl::PointCloud<pcl::Normal>::ConstPtr normals)

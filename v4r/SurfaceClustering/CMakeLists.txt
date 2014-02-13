@@ -39,7 +39,8 @@ SET(SOURCE_H
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
-target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rRGBDSegment v4rTomGinePCL v4rEPUtils)
+#target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rRGBDSegment v4rTomGinePCL v4rEPUtils)
+target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rEPUtils)
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 
 ENDIF(V4R_SURFACE_CLUSTERING)
