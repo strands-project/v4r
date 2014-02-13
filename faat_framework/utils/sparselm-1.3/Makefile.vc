@@ -1,0 +1,202 @@
+#
+# NMAKE Makefile for the sparseLM library
+#
+# NMAKE reference is at http://msdn.microsoft.com/en-us/library/dd9y37ha.aspx
+
+CC=cl /nologo
+# YOU MIGHT WANT TO UNCOMMENT THE FOLLOWING LINE
+#MACH_CFLAGS=/GL /G7 /arch:SSE2 # special optimization: resp. whole program opt., Athlon/Pentium4 opt., SSE2 extensions
+
+SRCS=splm.c splm_crsm.c splm_ccsm.c splm_hessian.c splm_time.c splm_stm.c splm_misc.c
+OBJS=splm.obj splm_crsm.obj splm_ccsm.obj splm_hessian.obj splm_time.obj splm_stm.obj splm_misc.obj
+
+AR=lib /nologo
+MAKE=nmake /nologo
+
+
+############ Start of configuration options ############
+
+## read in available sparse solvers
+!include solvers.mk
+
+## header file paths
+SUITESPARSE_PATH=C:/spsolvers/SuiteSparse-3.4.0
+
+CSPARSE_INC=/I$(SUITESPARSE_PATH)/CSparse/Include
+LDL_INC=/I$(SUITESPARSE_PATH)/LDL/Include
+CHOLMOD_INC=/I$(SUITESPARSE_PATH)/CHOLMOD/Include
+PARDISO_INC=
+UMFPACK_INC=/I$(SUITESPARSE_PATH)/UMFPACK/Include
+SuperLU_INC=/I/usr/local/include/slu
+TAUCS_INC=
+SPOOLES_INC=/IC:/spsolvers/spooles.2.2/
+MUMPS_INC=/IC:/spsolvers/MUMPS_4.8.3/include/ /IC:/spsolvers/MUMPS_4.8.3/libseq
+UFconfig_INC=/I$(SUITESPARSE_PATH)/UFconfig/
+AMD_INC=/I$(SUITESPARSE_PATH)/AMD/Include/
+METIS_INC=
+MKL_INC=/I"C:/Program Files/Intel/MKL/10.2.2.025/include"
+
+######## No changes should be necessary beyond this point ########
+
+
+!if "$(HAVE_CSPARSE)"=="yes"
+CFL=$(CFL) /DHAVE_CSPARSE
+INCLUDES=$(INCLUDES) $(CSPARSE_INC)
+OBJS=$(OBJS) splm_csparse.obj
+SRCS=$(SRCS) splm_csparse.c
+NEED_UFconfig=no
+!endif
+
+!if "$(HAVE_LDL)"=="yes"
+CFL=$(CFL) /DHAVE_LDL
+INCLUDES=$(INCLUDES) $(LDL_INC)
+OBJS=$(OBJS) splm_ldlp.obj
+SRCS=$(SRCS) splm_ldlp.c
+NEED_UFconfig=yes
+NEED_AMD=yes
+!endif
+
+!if "$(HAVE_CHOLMOD)"=="yes"
+CFL=$(CFL) /DHAVE_CHOLMOD
+INCLUDES=$(INCLUDES) $(CHOLMOD_INC)
+OBJS=$(OBJS) splm_cholmod.obj
+SRCS=$(SRCS) splm_cholmod.c
+NEED_UFconfig=yes
+!endif
+
+!if "$(HAVE_MA57)"=="yes"
+CFL=$(CFL) /DHAVE_MA57
+OBJS=$(OBJS) splm_ma57.obj ma57.obj
+SRCS=$(SRCS) splm_ma57.c ma57.c
+NEED_METIS=yes
+!endif
+
+!if "$(HAVE_MA47)"=="yes"
+CFL=$(CFL) /DHAVE_MA47
+OBJS=$(OBJS) splm_ma47.obj ma47.obj
+SRCS=$(SRCS) splm_ma47.c ma47.c
+!endif
+
+!if "$(HAVE_MA27)"=="yes"
+CFL=$(CFL) /DHAVE_MA27
+OBJS=$(OBJS) splm_ma27.obj ma27.obj
+SRCS=$(SRCS) splm_ma27.c ma27.c
+!endif
+
+!if "$(HAVE_PARDISO)"=="yes"
+CFL=$(CFL) /DHAVE_PARDISO
+INCLUDES=$(INCLUDES) $(PARDISO_INC)
+OBJS=$(OBJS) splm_pardiso.obj
+SRCS=$(SRCS) splm_pardiso.c
+!endif
+
+!if "$(HAVE_SuperLU)"=="yes"
+CFL=$(CFL) /DHAVE_SuperLU
+INCLUDES=$(INCLUDES) $(SuperLU_INC)
+OBJS=$(OBJS) splm_superlu.obj
+SRCS=$(SRCS) splm_superlu.c
+!endif
+
+!if "$(HAVE_UMFPACK)"=="yes"
+CFL=$(CFL) /DHAVE_UMFPACK
+INCLUDES=$(INCLUDES) $(UMFPACK_INC)
+OBJS=$(OBJS) splm_umfpack.obj
+SRCS=$(SRCS) splm_umfpack.c
+NEED_UFconfig=yes
+!endif
+
+!if "$(HAVE_TAUCS)"=="yes"
+CFL=$(CFL) /DHAVE_TAUCS
+INCLUDES=$(INCLUDES) $(TAUCS_INC)
+OBJS=$(OBJS) splm_taucs.obj
+SRCS=$(SRCS) splm_taucs.c
+NEED_METIS=yes
+!endif
+
+!if "$(HAVE_SPOOLES)"=="yes"
+CFL=$(CFL) /DHAVE_SPOOLES
+INCLUDES=$(INCLUDES) $(SPOOLES_INC)
+OBJS=$(OBJS) splm_spooles.obj
+SRCS=$(SRCS) splm_spooles.c
+!endif
+
+!if "$(HAVE_MUMPS)"=="yes"
+CFL=$(CFL) /DHAVE_MUMPS
+INCLUDES=$(INCLUDES) $(MUMPS_INC)
+OBJS=$(OBJS) splm_mumps.obj
+SRCS=$(SRCS) splm_mumps.c
+!endif
+
+!if "$(HAVE_MA77)"=="yes"
+CFL=$(CFL) /DHAVE_MA77
+OBJS=$(OBJS) splm_ma77.obj
+SRCS=$(SRCS) splm_ma77.c
+NEED_METIS=yes
+!endif
+
+!if "$(HAVE_MKL)"=="yes"
+CFL=$(CFL) /DHAVE_MKL
+INCLUDES=$(INCLUDES) $(MKL_INC)
+OBJS=$(OBJS) splm_dss.obj
+SRCS=$(SRCS) splm_dss.c
+!endif
+
+
+!if "$(NEED_UFconfig)"=="yes"
+#CFL=$(CFL)
+INCLUDES=$(INCLUDES) $(UFconfig_INC)
+!endif
+
+######## ordering options ########
+!if "$(NEED_AMD)"=="yes"
+INCLUDES=$(INCLUDES) $(AMD_INC)
+!endif
+
+!if "$(NEED_METIS)"=="yes"
+CFL=$(CFL) /DUSE_METIS
+INCLUDES=$(INCLUDES) $(METIS_INC)
+!endif
+
+
+# /MD COMPILES WITH DYNAMIC LINK SUPPORT. FOR STATIC LINK, SUBSTITUTE WITH /MT
+# 'EHsc' is 'GX' in old visual studio versions
+CFLAGS=$(INCLUDES) /I. /MT /W3 /EHsc /O2 $(MACH_CFLAGS) $(CFL) /DUSE_ATA_QUADS /D_CRT_SECURE_NO_WARNINGS # /Wall
+
+## dependencies
+
+all: splm.lib dem
+
+splm.lib: $(OBJS)
+	$(AR) /out:splm.lib $(OBJS)
+
+splm.obj: splm.h splm_priv.h compiler.h
+splm_crsm.obj: splm.h compiler.h
+splm_ccsm.obj: splm.h compiler.h
+splm_hessian.obj: splm.h splm_priv.h compiler.h
+splm_time.obj: splm.h compiler.h
+splm_ldlp.obj: splm.h splm_priv.h  compiler.h
+splm_ma47.obj: splm.h splm_priv.h compiler.h
+splm_ma27.obj: splm.h splm_priv.h compiler.h
+splm_pardiso.obj: splm.h splm_priv.h
+splm_superlu.obj: splm.h splm_priv.h
+splm_taucs.obj: splm.h splm_priv.h
+splm_csparse.obj: compiler.h splm_priv.h
+splm_ma57.obj: splm.h compiler.h splm_priv.h
+splm_cholmod.obj: splm.h compiler.h splm_priv.h
+splm_umfpack.obj: splm.h compiler.h splm_priv.h
+splm_spooles.obj: splm.h compiler.h splm_priv.h
+splm_mumps.obj: splm.h compiler.h splm_priv.h
+splm_dss.obj: splm.h splm_priv.h
+splm_ma77.obj: splm.h compiler.h splm_priv.h
+
+
+dem:
+	$(MAKE) /f Makefile_demo.vc
+
+clean:
+	-del $(OBJS)
+	$(MAKE) /f Makefile_demo.vc clean
+
+cleanall: clean
+	-del splm.lib
+	$(MAKE) /f Makefile_demo.vc cleanall

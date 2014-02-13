@@ -1,0 +1,164 @@
+#
+# NMAKE Makefile for the sparseLM library demo
+#
+
+CC=cl /nologo
+# YOU MIGHT WANT TO UNCOMMENT THE FOLLOWING LINE
+#MACH_CFLAGS=/GL /G7 /arch:SSE2 # special optimization: resp. whole program opt., Athlon/Pentium4 opt., SSE2 extensions
+MSVCFLAGS=/MT /W3 /EHsc /O2
+
+CFLAGS=$(MSVCFLAGS) $(MACH_CFLAGS)
+LDFLAGS=/link /subsystem:console
+#LAPACKLIBS=/libpath:/opt/intel/mkl/8.0.1/lib/32/ mkl_solver.lib mkl_lapack.lib mkl_ia32.lib guide.lib f2c.lib # MKL 8.0.1 
+LAPACKLIBS=/libpath:C:/lapack/lib/ lapack.lib blas.lib f2c.lib # sometimes f2c.lib is equivalent to libF77.lib libI77.lib
+#LAPACKLIBS=lapack.lib goto2.lib pthread.lib f2c.lib # GotoBLAS
+
+LIBS=splm.lib
+SRCS=splmdemo.c
+OBJS=splmdemo.obj
+
+
+############ Start of configuration options ############
+
+## read in available sparse solvers
+!include solvers.mk
+
+# header files and libraries for sparseLM
+SPARSELM_INC=/I.
+SPARSELM_LIB=/libpath:.
+
+## libraries & file paths for sparse solver(s)
+SUITESPARSE_PATH=C:/spsolvers/SuiteSparse-3.4.0
+
+CSPARSE_LIB=/libpath:$(SUITESPARSE_PATH)/CSparse/Lib
+LDL_LIB=/libpath:$(SUITESPARSE_PATH)/LDL/Lib
+CHOLMOD_LIB=/libpath:$(SUITESPARSE_PATH)/CHOLMOD/Lib
+PARDISO_LIB=/libpath:"C:/Program Files/Intel/MKL/10.2.2.025/ia32/lib/"
+UMFPACK_LIB=/libpath:$(SUITESPARSE_PATH)/UMFPACK/Lib
+SuperLU_LIB=/libpath:/usr/local/include/slu
+TAUCS_LIB=/libpath:/usr/local/include/
+SPOOLES_LIB=/libpath:C:/spsolvers/spooles.2.2/ /libpath:C:/spsolvers/spooles.2.2/LinSol/srcST/
+MUMPS_LIB=/libpath:C:/spsolvers/MUMPS_4.8.3/lib /libpath:C:/spsolvers/MUMPS_4.8.3/libseq /libpath:C:/spsolvers/MUMPS_4.8.3/PORD/lib
+MA77_LIB=
+MKL_LIB=/libpath:/opt/intel/mkl/8.0.1/lib/32/
+UFconfig_LIB=/libpath:$(SUITESPARSE_PATH)/UFconfig/
+AMD_LIB=/libpath:$(SUITESPARSE_PATH)/AMD/Lib/
+COLAMD_LIB=/libpath:$(SUITESPARSE_PATH)/COLAMD/Lib/
+CCOLAMD_LIB=/libpath:$(SUITESPARSE_PATH)/CCOLAMD/Lib/
+CAMD_LIB=/libpath:$(SUITESPARSE_PATH)/CAMD/Lib/
+METIS_LIB=/libpath:/usr/local/lib/
+
+######## No changes should be necessary beyond this point ########
+
+
+!if "$(HAVE_CSPARSE)"=="yes"
+LDFL=$(LDFL) $(CSPARSE_LIB)
+LIBS=$(LIBS) csparse.lib
+NEED_UFconfig=no
+!endif
+
+!if "$(HAVE_LDL)"=="yes"
+LDFL=$(LDFL) $(LDL_LIB)
+LIBS=$(LIBS) ldl.lib
+NEED_UFconfig=yes
+NEED_AMD=yes
+!endif
+
+!if "$(HAVE_CHOLMOD)"=="yes"
+LDFL=$(LDFL) $(CHOLMOD_LIB)
+LIBS=$(LIBS) cholmod.lib
+NEED_UFconfig=yes
+NEED_AMD=yes
+NEED_METIS=yes
+!endif
+
+!if "$(HAVE_MA57)"=="yes"
+NEED_METIS=yes
+!endif
+
+!if "$(HAVE_MA47)"=="yes"
+!endif
+
+!if "$(HAVE_MA27)"=="yes"
+!endif
+
+!if "$(HAVE_PARDISO)"=="yes"
+LDFL=$(LDFL) $(PARDISO_LIB)
+LIBS=$(LIBS) mkl_solver.lib mkl_intel_c.lib mkl_sequential.lib mkl_core.lib # MKL's PARDISO
+!endif
+
+!if "$(HAVE_SuperLU)"=="yes"
+LDFL=$(LDFL) $(SuperLU_LIB)
+LIBS=$(LIBS) superlu_i386.lib
+!endif
+
+!if "$(HAVE_UMFPACK)"=="yes"
+LDFL=$(LDFL) $(UMFPACK_LIB)
+LIBS=$(LIBS) umfpack.lib
+NEED_UFconfig=yes
+!endif
+
+!if "$(HAVE_TAUCS)"=="yes"
+LDFL=$(LDFL) $(TAUCS_LIB)
+LIBS=$(LIBS) taucs.lib
+NEED_METIS=yes
+!endif
+
+!if "$(HAVE_SPOOLES)"=="yes"
+LDFL=$(LDFL) $(SPOOLES_LIB)
+LIBS=$(LIBS) Bridge.lib spooles.lib
+!endif
+
+!if "$(HAVE_MUMPS)"=="yes"
+LDFL=$(LDFL) $(MUMPS_LIB)
+LIBS=$(LIBS) dmumps.lib mumps_common.lib mpiseq.lib pord.lib
+NEED_METIS=yes
+!endif
+
+!if "$(HAVE_MA77)"=="yes"
+LDFL=$(LDFL) $(MA77_LIB)
+LIBS=$(LIBS) 
+NEED_METIS=yes
+!endif
+
+!if "$(HAVE_MKL)"=="yes"
+LDFL=$(LDFL) $(MKL_LIB)
+LIBS=$(LIBS) mkl_solver.lib mkl_lapack.lib mkl_ia32.lib guide.lib f2c.lib
+!endif
+
+
+!if "$(NEED_UFconfig)"=="yes"
+CFL=$(CFL)
+LDFL=$(LDFL) $(UFconfig_LIB)
+!endif
+
+######## ordering options ########
+!if "$(NEED_AMD)"=="yes"
+LDFL=$(LDFL) $(CCOLAMD_LIB) $(COLAMD_LIB) $(CAMD_LIB) $(AMD_LIB)
+LIBS=$(LIBS) ccolamd.lib colamd.lib camd.lib amd.lib
+!endif
+
+!if "$(NEED_METIS)"=="yes"
+LDFL=$(LDFL) $(METIS_LIB)
+LIBS=$(LIBS) metis.lib
+!endif
+
+
+## dependencies
+
+CFLAGS=$(CFLAGS) $(SPARSELM_INC)
+LDFLAGS=$(LDFLAGS) $(SPARSELM_LIB) $(LDFL)
+splmdemo.exe: $(OBJS)
+	$(CC) $(OBJS) $(LDFLAGS) /out:splmdemo.exe $(LIBS) $(LAPACKLIBS)
+
+clean:
+	-del $(OBJS)
+
+cleanall: clean
+	-del splmdemo.exe
+
+depend:
+	makedepend -f Makefile $(SRCS)
+
+# DO NOT DELETE THIS LINE -- make depend depends on it.
+

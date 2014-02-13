@@ -1,0 +1,64 @@
+#
+# Windows Makefile for MATLAB interface to sparseLM
+#
+
+
+# HAVE_LARGE_ARRAYS should be set to 'yes' if your matlab version is 7.3 (R2006b) or later.
+# Starting with this version, sparse matrix indices are 64 (rather than 32) bits long.
+# Your matlab's version can be determined by typing 'version' at the matlab prompt.
+#
+# More details are at http://www.mathworks.com/support/solutions/en/data/1-5C27B9/?solution=1-5C27B9
+#
+HAVE_LARGE_ARRAYS=no
+#HAVE_LARGE_ARRAYS=yes
+
+
+MEX=mex
+!if "$(HAVE_LARGE_ARRAYS)"=="yes"
+MEX=$(MEX) -largeArrayDims -DUSE_LARGEARRAYDIMS
+!endif
+
+
+MEXCFLAGS=-I.. -O #-g
+# WHEN USING LAPACK, CHANGE THE NEXT TWO LINES TO WHERE YOUR COMPILED LAPACK/BLAS & F2C LIBS ARE!
+LAPACKBLASLIBS_PATH=C:/lapack/lib/
+F2CLIBS_PATH=C:/lapack/lib/
+
+## libraries & file paths for sparse solver(s)
+SUITESPARSE_PATH=C:/spsolvers/SuiteSparse-3.4.0
+## metis library path
+METIS_PATH=C:/metis-4.0
+
+INTFACESRC=sparselm.c
+INTFACESOBJ=sparselm.mexw32
+UTILSRC=sparselm_spsolvr.c
+UTILOBJ=sparselm_spsolvr.mexw32
+# CURRENTLY, ONLY CHOLMOD IS SUPPORTED
+SPARSELIBS=$(SUITESPARSE_PATH)/CHOLMOD/Lib/cholmod.lib $(SUITESPARSE_PATH)/CCOLAMD/Lib/ccolamd.lib\
+$(SUITESPARSE_PATH)/COLAMD/Lib/colamd.lib $(SUITESPARSE_PATH)/CAMD/Lib/camd.lib $(SUITESPARSE_PATH)/AMD/Lib/amd.lib\
+$(METIS_PATH)/metis.lib
+
+
+SPLMLIB=../splm.lib
+LAPACKLIBS=$(LAPACKBLASLIBS_PATH)/lapack.lib $(LAPACKBLASLIBS_PATH)/blas.lib $(F2CLIBS_PATH)/f2c.lib # sometimes f2c.lib is equivalent to libF77.lib libI77.lib
+
+LIBS=$(SPLMLIB) $(SPARSELIBS) $(LAPACKLIBS)
+
+dummy: $(INTFACESOBJ) $(UTILOBJ)
+
+$(INTFACESOBJ): $(INTFACESRC) $(SPLMLIB)
+	$(MEX) $(MEXCFLAGS) $(INTFACESRC) $(LIBS)
+
+$(UTILOBJ): $(UTILSRC)
+	$(MEX) $(MEXCFLAGS) $(UTILSRC)
+
+clean:
+	-del $(INTFACESOBJ) $(UTILOBJ)
+
+realclean cleanall: clean
+
+depend:
+	makedepend -f Makefile $(INTFACESRC) $(UTILOBJ)
+
+# DO NOT DELETE THIS LINE -- make depend depends on it.
+

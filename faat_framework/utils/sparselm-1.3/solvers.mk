@@ -1,0 +1,16 @@
+# sparse solvers available
+
+HAVE_CHOLMOD=yes
+HAVE_CSPARSE=no
+HAVE_LDL=no
+HAVE_UMFPACK=no
+HAVE_MA57=no
+HAVE_MA47=no
+HAVE_MA27=no
+HAVE_PARDISO=no
+HAVE_SuperLU=no
+HAVE_TAUCS=no
+HAVE_SPOOLES=no
+HAVE_MUMPS=no
+HAVE_MKL=no
+HAVE_MA77=no

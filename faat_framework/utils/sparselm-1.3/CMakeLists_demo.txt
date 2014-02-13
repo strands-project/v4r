@@ -1,0 +1,204 @@
+# CMake file for splm's demo program
+
+######################### START OF CONFIGURATION OPTIONS #########################
+
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}) # location of splm.h
+
+IF(CMAKE_GENERATOR MATCHES "^Visual Studio *")
+  # get rid of CRT warnings
+  ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
+ENDIF(CMAKE_GENERATOR MATCHES "^Visual Studio *")
+
+# the directory where the lapack/blas/f2c libraries reside
+SET(LAPACKBLAS_DIR "/usr/lib" CACHE PATH "Path to lapack/blas libraries")
+#SET(LAPACKBLAS_DIR "C:\Program Files\Intel\MKL\10.2.2.025\ia32\lib" CACHE PATH "Path to lapack/blas libraries") # MKL
+SET(NEED_F2C 1 CACHE BOOL "Do we need either f2c or F77/I77?")
+# actual names for the lapack/blas/f2c libraries
+SET(LAPACKBLAS_LIB_NAMES "lapack;blas" CACHE STRING "The name of the lapack & blas libraries")
+#SET(LAPACKBLAS_LIB_NAMES "mkl_solver_sequential;mkl_intel_c;mkl_sequential;mkl_core" CACHE STRING "The name of the lapack library") # MKL
+IF(NEED_F2C)
+  SET(F2C_LIB_NAME f2c CACHE STRING "The name of the f2c or F77/I77 library")
+  # f2c is sometimes equivalent to libF77 & libI77
+  #SET(F2C_LIB_NAME "libF77;libI77" CACHE STRING "The name of the f2c or F77/I77 library")
+ELSE(NEED_F2C)
+  SET(F2C_LIB_NAME "" CACHE STRING "The name of the f2c or F77/I77 library")
+ENDIF(NEED_F2C)
+
+SET(LIBS splm)
+LINK_DIRECTORIES(${CMAKE_BINARY_DIR}) # location of the splm library
+#SET(SUITESPARSE_PATH, "C:\SuiteSparse-3.4.0") # already set in CMakeLists.txt
+
+# library file paths
+IF(HAVE_MKL)
+  SET(MKL_LIBDIR "C:/Program Files/Intel/MKL/10.2.2.025/ia32/lib/" CACHE PATH "Path to library files for the MKL library")
+ENDIF(HAVE_MKL)
+
+IF(HAVE_CHOLMOD)
+  SET(CHOLMOD_LIBDIR ${SUITESPARSE_PATH}/CHOLMOD/Lib CACHE PATH "Path to library files for the CHOLMOD library")
+ENDIF(HAVE_CHOLMOD)
+
+IF(HAVE_CSPARSE)
+  SET(CSPARSE_LIBDIR ${SUITESPARSE_PATH}/CSparse/Lib CACHE PATH "Path to library files for the CSparse library")
+ENDIF(HAVE_CSPARSE)
+
+IF(HAVE_LDL)
+  SET(LDL_LIBDIR ${SUITESPARSE_PATH}/LDL/Lib CACHE PATH "Path to library files for the LDL library")
+ENDIF(HAVE_LDL)
+
+IF(HAVE_UMFPACK)
+  SET(UMFPACK_LIBDIR ${SUITESPARSE_PATH}/UMFPACK/Lib CACHE PATH "Path to library files for the UMFPACK library")
+ENDIF(HAVE_UMFPACK)
+
+IF(HAVE_PARDISO)
+  IF(NOT HAVE_MKL)
+    SET(PARDISO_LIBDIR "C:/PARDISO/lib/" CACHE PATH "Path to library files for the PARDISO library")
+  ENDIF(NOT HAVE_MKL)
+ENDIF(HAVE_PARDISO)
+
+IF(HAVE_SUPERLU)
+  SET(SuperLU_LIBDIR "/usr/local/lib/slu" CACHE PATH "Path to library files for the SuperLU library")
+ENDIF(HAVE_SUPERLU)
+
+IF(HAVE_TAUCS)
+  SET(TAUCS_LIBDIR "/usr/local/lib" CACHE PATH "Path to library files for the TAUCS library") 
+ENDIF(HAVE_TAUCS)
+
+IF(HAVE_SPOOLES)
+  SET(SPOOLES_LIBDIR "C:/spsolvers/spooles.2.2/ C:/spsolvers/spooles.2.2/LinSol/srcST/" CACHE STRING "Paths to library files for the SPOOLES library")
+ENDIF(HAVE_SPOOLES)
+
+IF(HAVE_MUMPS)
+  SET(MUMPS_LIBDIR "C:/spsolvers/MUMPS_4.8.3/lib C:/spsolvers/MUMPS_4.8.3/libseq C:/spsolvers/MUMPS_4.8.3/PORD/lib" CACHE STRING "Path to library files for the MUMPS library")
+ENDIF(HAVE_MUMPS)
+
+IF(HAVE_MA77)
+  SET(MA77_LIBDIR ""CACHE PATH "Path to library files for the MA77 library")
+ENDIF(HAVE_MA77)
+
+IF(NEED_AMD)
+  SET(AMD_LIBDIR ${SUITESPARSE_PATH}/AMD/Lib/ CACHE PATH "Path to library files for the AMD library")
+ENDIF(NEED_AMD)
+
+IF(NEED_METIS)
+  SET(METIS_LIBDIR  "/usr/local/lib"  CACHE PATH "Path to library files for the METIS library")
+ENDIF(NEED_METIS)
+
+
+########################## NO CHANGES BEYOND THIS POINT ##########################
+
+LINK_DIRECTORIES(${LAPACKBLAS_DIR})
+
+# set library names and paths according to the available solvers
+IF(HAVE_CSPARSE)
+  LINK_DIRECTORIES(${CSPARSE_LIBDIR})
+  SET(CSPARSE_LIBS csparse CACHE STRING "Name for the CSparse library")
+ENDIF(HAVE_CSPARSE)
+
+IF(HAVE_LDL)
+  LINK_DIRECTORIES(${LDL_LIBDIR})
+  SET(LDL_LIBS ldl CACHE STRING "Name for the LDL library")
+  SET(NEED_UFconfig TRUE)
+  SET(NEED_AMD TRUE)
+ENDIF(HAVE_LDL)
+
+IF(HAVE_CHOLMOD)
+  LINK_DIRECTORIES(${CHOLMOD_LIBDIR})
+  SET(CHOLMOD_LIBS libcholmod CACHE STRING "Name for the CHOLMOD library")
+  SET(NEED_UFconfig TRUE)
+  SET(NEED_AMD TRUE)
+  SET(NEED_METIS TRUE)
+ENDIF(HAVE_CHOLMOD)
+
+IF(HAVE_MA57)
+  SET(NEED_METIS TRUE)
+ENDIF(HAVE_MA57)
+
+IF(HAVE_MA47)
+ENDIF(HAVE_MA47)
+
+IF(HAVE_MA27)
+ENDIF(HAVE_MA27)
+
+IF(HAVE_PARDISO)
+  IF(NOT HAVE_MKL)
+    LINK_DIRECTORIES(${PARDISO_LIBDIR})
+    SET(PARDISO_LIBS "" CACHE STRING "Name for the PARDISO library")
+  ENDIF(NOT HAVE_MKL)
+ENDIF(HAVE_PARDISO)
+
+IF(HAVE_SuperLU)
+  LINK_DIRECTORIES(${SuperLU_LIBDIR})
+  SET(SuperLU_LIBS superlu_i386 CACHE STRING "Name for the SuperLU library")
+ENDIF(HAVE_SuperLU)
+
+IF(HAVE_UMFPACK)
+  LINK_DIRECTORIES(${UMFPACK_LIBDIR})
+  SET(UMFPACK_LIBS umfpack CACHE STRING "Name for the UMFPACK library")
+  SET(NEED_UFconfig TRUE)
+ENDIF(HAVE_UMFPACK)
+
+IF(HAVE_TAUCS)
+  LINK_DIRECTORIES(${TAUCS_LIBDIR})
+  SET(TAUCS_LIBS taucs CACHE STRING "Name for the TAUCS library")
+  SET(NEED_METIS TRUE)
+ENDIF(HAVE_TAUCS)
+
+IF(HAVE_SPOOLES)
+  LINK_DIRECTORIES(${SPOOLES_LIBDIR})
+  SET(SPOOLES_LIBS "Bridge;spooles" CACHE STRING "Names for the SPOOLES libraries")
+ENDIF(HAVE_SPOOLES)
+
+IF(HAVE_MUMPS)
+  LINK_DIRECTORIES(${MUMPS_LIBDIR})
+  SET(MUMPS_LIBS "dmumps;mumps_common;mpiseq;pord" CACHE STRING "Names for the MUMPS libraries")
+  SET(NEED_METIS TRUE)
+ENDIF(HAVE_MUMPS)
+
+IF(HAVE_MA77)
+  LINK_DIRECTORIES(${MA77_LIBDIR})
+  SET(MA77_LIBS "" CACHE STRING "Names for the MA77 libraries")
+  SET(NEED_METIS TRUE)
+ENDIF(HAVE_MA77)
+
+IF(HAVE_MKL)
+  LINK_DIRECTORIES(${MKL_LIBDIR})
+  SET(MKL_LIBS "mkl_solver_sequential;mkl_intel_c;mkl_sequential;mkl_core" CACHE STRING "Names for the MKL libraries")
+ENDIF(HAVE_MKL)
+
+# ordering options
+IF(NEED_AMD)
+  LINK_DIRECTORIES(${AMD_LIBDIR})
+  SET(AMD_LIBS "libccolamd;libcolamd;libcamd;libamd" CACHE STRING "Names for the AMD libraries")
+ENDIF(NEED_AMD)
+
+IF(NEED_METIS)
+  LINK_DIRECTORIES(${METIS_LIBDIR})
+  SET(METIS_LIBS libmetis_CHOLMOD CACHE STRING "Name for the METIS library")
+ENDIF(NEED_METIS)
+
+# collect required libs
+SET(LIBS ${LIBS} ${CSPARSE_LIBS} ${LDL_LIBS} ${CHOLMOD_LIBS} ${PARDISO_LIBS} ${SuperLU_LIBS}
+${UMFPACK_LIBS} ${TAUCS_LIBS} ${SPOOLES_LIBS} ${MUMPS_LIBS} ${MA77_LIBS} ${MKL_LIBS} 
+${AMD_LIBS} ${METIS_LIBS}
+)
+
+IF(NEED_F2C)
+  SET(LIBS ${LIBS} ${LAPACKBLAS_LIB_NAMES} ${F2C_LIB_NAME})
+ELSE(NEED_F2C)
+  SET(LIBS ${LIBS} ${LAPACKBLAS_LIB_NAMES})
+ENDIF(NEED_F2C)
+
+ADD_EXECUTABLE(splmdemo splmdemo.c)
+TARGET_LINK_LIBRARIES(splmdemo ${LIBS})
+
+# collect library paths, for debugging purposes only
+SET(LIBDIRS ${CSPARSE_LIBDIR} ${LDL_LIBDIR} ${CHOLMOD_LIBDIR} ${PARDISO_LIBDIR}
+  ${SuperLU_LIBDIR} ${UMFPACK_LIBDIR} ${TAUCS_LIBDIR} ${SPOOLES_LIBDIR}
+  ${MUMPS_LIBDIR} ${MA77_LIBDIR} ${MKL_LIBDIR} ${AMD_LIBDIR} ${METIS_LIBDIR}
+)
+
+MESSAGE(STATUS "splmdemo will be linked against ${LIBS}")
+MESSAGE(STATUS "splmdemo library paths: ${LIBDIRS}")
+
+# make sure that the library is built before the demo
+ADD_DEPENDENCIES(splmdemo splm)
