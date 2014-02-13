@@ -289,7 +289,7 @@ main (int argc, char ** argv)
   labels.push_back(2);    // cabinet
 
   // load training data from files
-  ClassificationData trainingData;
+  RandomForest::ClassificationData trainingData;
   trainingData.LoadFromDirectory(classification_data_output_dir_, labels);
 
   // define Random Forest
@@ -300,7 +300,7 @@ main (int argc, char ** argv)
   //   int nFeaturesToTryAtEachNode
   //   float minInformationGain
   //   int nMinNumberOfPointsToSplit
-  Forest rf(10, 20 , 0.1, 200, 0.02, 5);
+  RandomForest::Forest rf(10, 20 , 0.1, 200, 0.02, 5);
 
   // train forest
   //   parameters:

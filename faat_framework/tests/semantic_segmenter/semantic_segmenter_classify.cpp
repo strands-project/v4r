@@ -132,7 +132,7 @@ main (int argc, char ** argv)
     vis.addPointCloud<pcl::PointXYZRGB> (keypoints, scene_handler, "keypoints", v2);
   }*/
 
-  Forest rf("myforest.txt");
+  RandomForest::Forest rf("myforest.txt");
 
   //classify each of the feature points
   pcl::PointCloud<pcl::PointXYZL>::Ptr labels_cloud (new pcl::PointCloud<pcl::PointXYZL>);

@@ -2,8 +2,8 @@ set(SUBSYS_NAME local_recognition_ply)
 set(SUBSYS_DESC "rec test")
 set(SUBSYS_DEPS_PCL recognition)
 
-set(V4R_FOUND false)
-find_package( V4R)
+set(V4R_FOUND 0)
+find_package(V4R)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 
                     ${CMAKE_CURRENT_SOURCE_DIR}/../3d_rec_framework/include 
@@ -71,10 +71,10 @@ target_link_libraries(ourcvfh_test ${PCL_LIBRARIES} ${OpenCV_LIBS} faat_pcl_reco
 
 IF(V4R_FOUND)
 
-  add_executable(train_semantic_segmenter semantic_segmenter/semantic_segmenter_training.cpp)  
+  add_executable(train_semantic_segmenter semantic_segmenter/semantic_segmenter_training.cpp)
   target_link_libraries(train_semantic_segmenter ${PCL_LIBRARIES} ${OpenCV_LIBS} v4rRandomForest faat_pcl_recognition faat_pcl_utils faat_pcl_3d_rec_framework boost_regex)
 
-  add_executable(classify_semantic_segmenter semantic_segmenter/semantic_segmenter_classify.cpp)  
+  add_executable(classify_semantic_segmenter semantic_segmenter/semantic_segmenter_classify.cpp)
   target_link_libraries(classify_semantic_segmenter ${PCL_LIBRARIES} ${OpenCV_LIBS} v4rRandomForest faat_pcl_recognition faat_pcl_utils faat_pcl_3d_rec_framework boost_regex)
 
 ENDIF(V4R_FOUND)
