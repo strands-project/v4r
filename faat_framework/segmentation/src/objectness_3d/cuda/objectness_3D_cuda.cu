@@ -583,7 +583,7 @@ namespace faat_pcl
           bb_shrinked.y = getY(idx) + max (static_cast<int> (floor ((getSY(idx) - bb_shrinked.sy) / 2.f)), 1);
           bb_shrinked.z = getZ(idx) + max (static_cast<int> (floor ((getSZ(idx) - bb_shrinked.sz) / 2.f)), 1);
 
-          float vol_shrinked = static_cast<float> (bb_shrinked.sx * bb_shrinked.sy * bb_shrinked.sz);
+          //float vol_shrinked = static_cast<float> (bb_shrinked.sx * bb_shrinked.sy * bb_shrinked.sz);
           int occupancy_val_inner = getRectangleFromCorner (rivs_occupancy + idx_vol, bb_shrinked.x, bb_shrinked.y,
                                                              bb_shrinked.z, bb_shrinked.sx, bb_shrinked.sy, bb_shrinked.sz, m_width, m_height);
 
