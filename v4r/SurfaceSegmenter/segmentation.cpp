@@ -580,13 +580,20 @@ timeEstimates.time_total = timeEstimationClass_All.getWorkTimeInNanoseconds();
 
 void Segmenter::createMasks()
 {
+  segmentedObjectsIndices.clear();
+
   masks.clear();
   cv::Mat mask = cv::Mat_<uchar>::zeros(pcl_cloud->height,pcl_cloud->width);
-  
+
+  int objNumber = 0;
+
   for(int i = 0; i < surfaces.size(); i++)
   {
     if(surfaces.at(i)->label == -1)
       continue;
+
+    if((surfaces.at(i)->label + 1) > objNumber)
+      objNumber = (surfaces.at(i)->label + 1);
     
     for(int j = 0; j < surfaces.at(i)->indices.size(); j++)
     {
@@ -594,6 +601,21 @@ void Segmenter::createMasks()
       int col = surfaces.at(i)->indices.at(j) % pcl_cloud->width;
       
       mask.at<uchar>(row,col) = (surfaces.at(i)->label + 1);
+    }
+  }
+
+  segmentedObjectsIndices.resize(objNumber);
+
+  for(int i = 0; i < mask.rows; ++i)
+  {
+    for(int j = 0; j < mask.cols; ++j)
+    {
+      int currentObject = mask.at<uchar>(i,j);
+      if(currentObject > 0)
+      {
+        int idx = i*(mask.cols) + j;
+        segmentedObjectsIndices.at(currentObject-1).push_back(idx);
+      }
     }
   }
   

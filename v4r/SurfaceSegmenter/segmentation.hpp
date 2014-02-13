@@ -115,6 +115,7 @@ private:
   std::vector<cv::Mat> saliencyMaps;
   
   std::vector<cv::Mat> masks;
+  std::vector<std::vector<int> > segmentedObjectsIndices;
   
   bool have_cloud;
   //bool have_normals;
@@ -153,6 +154,7 @@ public:
   
   inline std::vector<surface::SurfaceModel::Ptr> getSurfaces();
   inline std::vector<cv::Mat> getMasks();
+  inline std::vector<std::vector<int> > getSegmentedObjectsIndices();
   inline TimeEstimates getTimeEstimates();
 
 };
@@ -165,6 +167,11 @@ inline std::vector<surface::SurfaceModel::Ptr> Segmenter::getSurfaces()
 inline std::vector<cv::Mat> Segmenter::getMasks()
 {
   return(masks);
+}
+
+inline std::vector<std::vector<int> > Segmenter::getSegmentedObjectsIndices()
+{
+  return(segmentedObjectsIndices);
 }
 
 inline TimeEstimates Segmenter::getTimeEstimates()
