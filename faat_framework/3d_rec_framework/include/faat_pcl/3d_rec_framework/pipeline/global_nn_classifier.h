@@ -63,6 +63,8 @@ namespace faat_pcl
           int idx_models_;
           int idx_input_;
           double score_;
+
+          std::string model_name_;
         };
 
         struct sortIndexScores

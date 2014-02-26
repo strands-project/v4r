@@ -127,9 +127,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       std::sort (indices_scores.begin (), indices_scores.end (), sortIndexScoresOp);
       first_nn_category_ = flann_models_[indices_scores[0].idx_models_].first->class_;
 
-      std::map<std::string, int> category_map;
-      std::map<std::string, int>::iterator it;
+      std::map<std::string, double> category_map;
       int num_n = std::min (NN_, static_cast<int> (indices_scores.size ()));
+
+      std::map<std::string, double>::iterator it;
+      double normalization_term = 0;
 
       for (int i = 0; i < num_n; ++i)
       {
@@ -137,21 +139,39 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         it = category_map.find (cat);
         if (it == category_map.end ())
         {
-          category_map[cat] = 1;
+            category_map[cat] = 1;
+            //category_map[cat] = indices_scores[i].score_;   // is the confidence better if score is higher or lower?
         }
         else
         {
-          it->second++;
+            it->second++;
+            //it->second += indices_scores[i].score_;
         }
+        normalization_term += indices_scores[i].score_;
       }
 
+      //------ sort classification result by the confidence value---------
+      std::vector<index_score> final_indices_scores;
       for (it = category_map.begin (); it != category_map.end (); it++)
       {
         float prob = static_cast<float> (it->second) / static_cast<float> (num_n);
-        categories_.push_back (it->first);
-        confidences_.push_back (prob);
+        //float prob = static_cast<float> (it->second) / static_cast<float> (normalization_term);
+        //categories_.push_back (it->first);
+        //confidences_.push_back (prob);
+        index_score is;
+        is.model_name_ = it->first;
+        //is.idx_input_ = static_cast<int> (idx);
+        is.score_ = prob;
+        final_indices_scores.push_back (is);
       }
 
+      std::sort (final_indices_scores.begin (), final_indices_scores.end (), sortIndexScoresOp);
+
+      for (size_t i=final_indices_scores.size()-1; i > 0; i--)
+      {
+          categories_.push_back (final_indices_scores[i].model_name_);
+          confidences_.push_back (final_indices_scores[i].score_);
+      }
     }
     else
     {
@@ -235,3 +255,4 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     //initialize FLANN structure
     loadFeaturesAndCreateFLANN ();
   }
+
