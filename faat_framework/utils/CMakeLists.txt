@@ -14,6 +14,7 @@ set(utils_incs
   include/faat_pcl/${SUBSYS_NAME}/filesystem_utils.h
   include/faat_pcl/${SUBSYS_NAME}/pcl_opencv.h
   include/faat_pcl/${SUBSYS_NAME}/registration_utils.h
+  include/faat_pcl/${SUBSYS_NAME}/segmentation_utils.h
   include/faat_pcl/${SUBSYS_NAME}/EDT/3rdparty/propagation_distance_field.h
   include/faat_pcl/${SUBSYS_NAME}/EDT/3rdparty/distance_field.h
   include/faat_pcl/${SUBSYS_NAME}/EDT/3rdparty/voxel_grid.h
