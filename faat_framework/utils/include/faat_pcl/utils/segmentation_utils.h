@@ -50,8 +50,8 @@ namespace segmentation_utils
     std::vector<pcl::PointIndices> label_indices;
     std::vector<pcl::PointIndices> boundary_indices;
 
-    pcl::PlaneRefinementComparator<pcl::PointXYZRGB, pcl::Normal, pcl::Label>::Ptr ref_comp (
-                new pcl::PlaneRefinementComparator<pcl::PointXYZRGB,
+    typename pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label>::Ptr ref_comp (
+                new pcl::PlaneRefinementComparator<PointT,
                 pcl::Normal, pcl::Label> ());
     ref_comp->setDistanceThreshold (0.01f, true);
     ref_comp->setAngularThreshold (0.017453 * 10);
