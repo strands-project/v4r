@@ -24,6 +24,7 @@ endif()
 #PCL_SUBSYS_OPTION(build ${SUBSYS_NAME} ${SUBSYS_DESC} ${DEFAULT} ${REASON})
 #PCL_SUBSYS_DEPEND(build ${SUBSYS_NAME} DEPS ${SUBSYS_DEPS} EXT_DEPS vtk openni)
 
+include_directories (${OpenCV_INCLUDE_DIRS})
 include_directories (${CMAKE_CURRENT_BINARY_DIR})
 include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include 
                      ${CMAKE_CURRENT_SOURCE_DIR}/../utils/include
@@ -56,7 +57,10 @@ set(incs_pc_source include/faat_pcl/${SUBSYS_NAME}/pc_source/source.h
                    include/faat_pcl/${SUBSYS_NAME}/pc_source/partial_pcd_source.h
                    include/faat_pcl/${SUBSYS_NAME}/pc_source/registered_views_source.h
                    include/faat_pcl/${SUBSYS_NAME}/pc_source/model_only_source.h
-                   include/faat_pcl/${SUBSYS_NAME}/pc_source/registered_views_pp_source.h)
+                   include/faat_pcl/${SUBSYS_NAME}/pc_source/registered_views_pp_source.h
+                   include/faat_pcl/${SUBSYS_NAME}/pc_source/unregistered_views_source.h)
+
+set(incs_img_source include/faat_pcl/${SUBSYS_NAME}/img_source/source2d.h)
 
 set(impl_incs_pc_source include/faat_pcl/${SUBSYS_NAME}/pc_source/impl/partial_pcd_source.hpp)
                    
@@ -128,7 +132,7 @@ endif(MSVC)
 	 
 	 
 set(LIB_NAME ${PROJECT_NAME}_${SUBSYS_NAME})
-add_library(${LIB_NAME} ${srcs} ${incs_segmentation} ${impl_incs_pc_source} ${impl_incs_registration} ${impl_incs_pipeline} ${incs_ml} ${incs_utils} ${incs_fw} ${incs_fw_global} ${incs_fw_local} ${incc_tools_framework} ${incs_define} ${incs_registration} ${incs_pipelines} ${incs_pc_source})
+add_library(${LIB_NAME} ${srcs} ${incs_segmentation} ${impl_incs_pc_source} ${incs_img_source} ${impl_incs_registration} ${impl_incs_pipeline} ${incs_ml} ${incs_utils} ${incs_fw} ${incs_fw_global} ${incs_fw_local} ${incc_tools_framework} ${incs_define} ${incs_registration} ${incs_pipelines} ${incs_pc_source})
 
 target_link_libraries(${LIB_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils ${PROJECT_NAME}_recognition siftgpu boost_regex)
 

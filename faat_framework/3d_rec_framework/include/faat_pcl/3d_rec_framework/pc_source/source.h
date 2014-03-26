@@ -456,6 +456,25 @@ namespace faat_pcl
         return models_;
       }
 
+      void getFeaturesFromFile(std::string filename, std::vector<float> feature_vector)
+      {
+          if (!bf::exists (filename))
+          {
+              std::cout << "Cannot find a file under " << filename << ". Features cannot be loaded. " << std::endl;
+          }
+          else
+          {
+            //boost::numeric::ublas::matrix<double> m;
+            //std::ifstream s(filename);
+
+            //if (!s >> m)
+            //{
+            //    std::cout << "Failed to write to matrix" << std::endl;
+            //    return 1;
+            //}
+          }
+      }
+
       bool
       modelAlreadyTrained (ModelT m, std::string & base_dir, std::string & descr_name)
       {
@@ -485,6 +504,14 @@ namespace faat_pcl
       {
         std::stringstream dir;
         dir << base_dir << "/" << m.class_ << "/" << m.id_;
+        return dir.str ();
+      }
+
+      std::string
+      getModelClassDirectory (ModelT m, std::string & base_dir)
+      {
+        std::stringstream dir;
+        dir << base_dir << "/" << m.class_;
         return dir.str ();
       }
 

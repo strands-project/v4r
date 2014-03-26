@@ -139,6 +139,100 @@ namespace faat_pcl
           return true;
         }
 
+
+        bool
+        estimate (const cv::Mat_ < cv::Vec3b > colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, FeatureTPtr & signatures, std::vector<float> & scales)
+        {
+//          sift_keypoints_.indices.clear();
+//          if(indices_.indices.size() == 0)
+//          {
+//            indices_.indices.resize(in->points.size());
+//            for(size_t i=0; i < indices_.indices.size(); i++)
+//            {
+//              indices_.indices[i] = i;
+//            }
+//          }
+
+//          keypoints.reset(new pcl::PointCloud<PointInT>);
+
+//          pcl::PointCloud<int> mask_cloud;
+//          mask_cloud.width = in->width;
+//          mask_cloud.height = in->height;
+//          mask_cloud.points.resize(in->width * in->height);
+//          for(size_t i=0; i < mask_cloud.points.size(); i++)
+//            mask_cloud.points[i] = 0;
+
+          //for(size_t i=0; i < indices_.indices.size(); i++)
+          //  mask_cloud.points[indices_.indices[i]] = 1;
+
+          cv::Mat grayImage;
+          cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
+
+          cv::Mat descriptors;
+
+          SiftGPU *pSift = (SiftGPU*)&(*sift);
+
+          if (sift->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
+              throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
+
+            sift->VerifyContextGL();
+            if (sift->RunSIFT (grayImage.cols, grayImage.rows, grayImage.ptr<uchar> (0), GL_LUMINANCE, GL_UNSIGNED_BYTE))
+            {
+              int num = sift->GetFeatureNum ();
+              if (num > 0)
+              {
+                ks.resize(num);
+                descriptors = cv::Mat(num,128,CV_32F);
+                pSift->GetFeatureVector(&ks[0], descriptors.ptr<float>(0));
+              }
+              else std::cout<<"No SIFT found"<< std::endl;
+            }
+            else
+              throw std::runtime_error ("PSiftGPU::Detect: SiftGPU Error!");
+
+          //use indices_ to check if the keypoints and feature should be saved
+          //compute SIFT keypoints and SIFT features
+          //backproject sift keypoints to 3D and save in keypoints
+          //save signatures
+
+          scales.resize(ks.size());
+          signatures->resize (ks.size ());
+          signatures->width = static_cast<int> (ks.size ());
+          signatures->height = 1;
+          //keypoints->points.resize(ks.size());
+//          int kept = 0;
+          for(size_t i=0; i < ks.size(); i++)
+          {
+            //int u,v;
+//            v = (int)(ks[i].y+.5);
+//            u = (int)(ks[i].x+.5);
+//            if(u >= 0 && v >= 0 && u < mask_cloud.width && v < mask_cloud.height && mask_cloud.at(u,v))
+//            {
+//              if(pcl_isfinite(in->at(u,v).z) && pcl_isfinite(in->at(u,v).x) && pcl_isfinite(in->at(u,v).y))
+//              {
+                //keypoints->points[kept] = in->at(u,v);
+                //sift_keypoints_.indices.push_back(v * in->width + u);
+                //assert((v * in->width + u) < (in->points.size()));
+                for (int k = 0; k < 128; k++)
+                  signatures->points[i].histogram[k] = descriptors.at<float>(i,k);
+
+                scales[i] = ks[i].s;
+                //kept++;
+//              }
+//            }
+          }
+
+          //signatures->width = kept;
+          //signatures->resize(kept);
+          //keypoints->points.resize(kept);
+          //scales.resize(kept);
+
+          std::cout << "Number of SIFT features:" << ks.size() << std::endl;
+          indices_.indices.clear();
+
+          return true;
+        }
+
         SIFTLocalEstimation (cv::Ptr<SiftGPU> _sift = cv::Ptr<SiftGPU> ())
         {
           if (_sift.empty ())
