@@ -1,0 +1,9 @@
+sensor_msgs/PointCloud2 cloud
+---
+std_msgs/Int32MultiArray[] clusters_indices
+
+# classification result for clusters
+object_perception_msgs/classification[] class_results
+
+# centroid of the cluster
+geometry_msgs/Point32[] centroid

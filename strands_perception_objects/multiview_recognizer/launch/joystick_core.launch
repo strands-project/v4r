@@ -1,0 +1,42 @@
+<launch>
+  <!-- Joystick device path.
+  Default is /dev/js1. If an environment variable JOYSTICK_DEVICE
+  is set then this replaces the default. If the launch file is started with
+  the argument js:=blah then blah overides both the default and the environment. -->
+  <arg name="js" default="$(optenv JOYSTICK_DEVICE /dev/input/js0)" />
+  <arg name="topic" default="/camera/depth_registered/points" />
+  <arg name="models_dir" default="/home/thomas/willow_dataset/models/" />
+  <arg name="training_dir" default="/home/thomas/willow_dataset/sift_trained/" />
+  <arg name="gt_or_output_dir" default="" />
+  <arg name="visualize_output" default="false" />
+  <arg name="go_3d" default="false" />
+  <arg name="input_cloud_dir" default="" />
+  <arg name="icp_iterations" default="0" />
+  <arg name="mv_keypoints" default="0" />
+  <arg name="opt_type" default="0" />
+  <arg name="chop_z" default="1.5" />
+
+  <!-- Joystick driver node -->
+  <node pkg="joy" type="joy_node" name="joystick">
+		<param name="dev" value="$(arg js)" type="string"/>
+		<param name="autorepeat_rate" value="10.0" type="double"/>
+  </node>
+
+  <!-- Rumblepad control -->
+  <node pkg="scitos_teleop" type="rumble_control" name="teleop_joystick" output="screen" />
+  
+  <!-- Multiview recognizer -->
+  <node pkg="multiview_recognizer" type="multiview_recognizer_node" name="multiview_recognizer" output="screen" >
+       <param name="topic" value="$(arg topic)" type="string"/>
+       <param name="models_dir" value="$(arg models_dir)" type="string"/>
+       <param name="training_dir" value="$(arg training_dir)" type="string"/>
+       <param name="gt_or_output_dir" value="$(arg gt_or_output_dir)" type="string"/>
+       <param name="visualize_output" value="$(arg visualize_output)" type="bool"/>
+       <param name="go_3d" value="$(arg go_3d)" type="bool"/>
+       <param name="input_cloud_dir" value="$(arg input_cloud_dir)" type="string"/>
+       <param name="icp_iterations" value="$(arg icp_iterations)" type="int"/>
+       <param name="mv_keypoints" value="$(arg mv_keypoints)" type="int"/>
+       <param name="opt_type" value="$(arg opt_type)" type="int"/>
+       <param name="chop_z" value="$(arg chop_z)" type="double"/>
+  </node>
+</launch> 
