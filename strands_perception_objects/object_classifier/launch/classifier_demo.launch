@@ -1,0 +1,46 @@
+<launch>
+
+	<arg name="topic" default="/camera/depth_registered/points" />
+	<arg name="models_dir" default="/home/thomas/data/Cat200_ModelDatabase__small" />
+	<arg name="training_dir" default="/home/thomas/data/class_trained" />
+	<arg name="visualize_output" default="true" />
+	<arg name="descriptor_name" default="esf" />
+	<arg name="nn" default="50" />
+	<arg name="chop_z" default="1.4" />
+	<arg name="seg_type" default="0" />
+	<arg name="do_segmentation" default="true" />
+
+	<arg name="segmenation_models_filename" default="/home/thomas/Projects/thomas.faeulhammer/code/my_perception_catkin_ws/src/strands_perception_objects/object_rgbd_segmenter/data/ST-TrainAll.model.txt" />
+	<arg name="segmentation_scaling_filename" default="/home/thomas/Projects/thomas.faeulhammer/code/my_perception_catkin_ws/src/strands_perception_objects/object_rgbd_segmenter/data/ST-TrainAll.scalingparams.txt" />
+
+
+	<!-- classifier demo -->
+	<node pkg="object_classifier" type="object_classifier_demo_node" name="classifier_demo" output="screen">
+		<param name="topic" value="$(arg topic)" type="string"/>
+		<param name="visualize_output" value="$(arg visualize_output)" type="bool"/>
+		<param name="do_segmentation" value="$(arg do_segmentation)" type="bool"/>
+	</node>
+
+
+	<!-- classifier service -->
+	<node pkg="object_classifier" type="object_classifier_node" name="classifier_service" output="screen"  launch-prefix="xterm -e">
+		<param name="models_dir" value="$(arg models_dir)" type="string"/>
+		<param name="training_dir" value="$(arg training_dir)" type="string"/>
+		<param name="descriptor_name" value="$(arg descriptor_name)" type="string"/>
+		<param name="nn" value="$(arg nn)" type="int"/>
+		<param name="chop_z" value="$(arg chop_z)" type="double"/>
+	</node>
+
+	<!-- segmentation service -->
+	<node pkg="object_rgbd_segmenter" type="object_rgbd_segmenter_service" name="object_segmenter_service" output="screen" launch-prefix="xterm -e">
+		<param name="model_filename" value="$(arg segmenation_models_filename)" type="string"/>
+		<param name="scaling_filename" value="$(arg segmentation_scaling_filename)" type="string"/>
+		<param name="chop_z" value="$(arg chop_z)" type="double"/>
+	</node> 
+
+	<!-- pcl segmentation Service -->
+	<!-- <node pkg="pcl_object_segmenter" type="pcl_object_segmenter_service" name="object_segmenter_service" output="screen" launch-prefix="xterm -e">
+		<param name="seg_type" value="$(arg seg_type)" type="int"/>
+		<param name="chop_z" value="$(arg chop_z)" type="double"/>
+	</node> -->
+</launch>

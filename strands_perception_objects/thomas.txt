@@ -1,0 +1,7 @@
+strands_perception_objects
+==========================
+
+Everything related to the perception of objects
+thomas@romeo:~/Projects/thomas.faeulhammer/code/my_perception_catkin_ws/src/strands_perception_objects$ cat README_tmp.md 
+V4R_SURFACE_SEGMENTER = ON
+

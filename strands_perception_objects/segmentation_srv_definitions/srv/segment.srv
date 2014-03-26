@@ -1,0 +1,3 @@
+sensor_msgs/PointCloud2 cloud
+---
+std_msgs/Int32MultiArray[] clusters_indices
