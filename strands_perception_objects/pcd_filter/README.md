@@ -1,1 +1,0 @@
-this package filters points from a point cloud on a table plane and within a distance z\_dist from the camera. It saves the point indices as *.pcd file in the same folder as the input files adding a filename prefix object\_indices\_.
