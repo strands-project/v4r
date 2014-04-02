@@ -169,7 +169,7 @@ faat_pcl::rec_3d_framework::VoxelGridDistanceTransform<PointT>::compute ()
         float new_g = (g_avg * static_cast<float> (grid_[idx].n_) + gm) / static_cast<float> (grid_[idx].n_ + 1);
         float new_b = (b_avg * static_cast<float> (grid_[idx].n_) + bm) / static_cast<float> (grid_[idx].n_ + 1);
 
-        /*{
+        {
           int rgb = (static_cast<int> (new_r) << 16) | (static_cast<int> (new_g) << 8) | static_cast<int> (new_b);
           pcl::for_each_type<FieldListM> (
               pcl::SetIfFieldExists<typename CloudM::PointType, float>(grid_[idx].avg_, "rgb", rgb));
@@ -342,7 +342,7 @@ faat_pcl::rec_3d_framework::VoxelGridDistanceTransform<PointT>::visualizeGrid() 
     vis.addPointCloud<PointT> (cloud_free, random_handler, "free points");
   }
 
-  vis.addCoordinateSystem (100);
+  vis.addCoordinateSystem (100, 0);
   vis.spin ();
 }
 
