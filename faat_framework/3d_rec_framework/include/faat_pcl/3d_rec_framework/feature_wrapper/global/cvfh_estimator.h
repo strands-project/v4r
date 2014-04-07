@@ -9,12 +9,12 @@
 #define REC_FRAMEWORK_CVFH_ESTIMATOR_H_
 
 #include <faat_pcl/3d_rec_framework/defines/faat_3d_rec_framework_defines.h>
-#include <faat_pcl/apps/3d_rec_framework/feature_wrapper/global/global_estimator.h>
-#include <faat_pcl/apps/3d_rec_framework/feature_wrapper/normal_estimator.h>
+#include <faat_pcl/3d_rec_framework/feature_wrapper/global/global_estimator.h>
+#include <faat_pcl/3d_rec_framework/feature_wrapper/normal_estimator.h>
 #include <pcl/features/cvfh.h>
 #include <pcl/surface/mls.h>
 
-namespace pcl
+namespace faat_pcl
 {
   namespace rec_3d_framework
   {
@@ -65,7 +65,7 @@ namespace pcl
 
         pcl::MovingLeastSquares<PointInT, PointInT> mls;
         if(adaptative_MLS_) {
-          typename search::KdTree<PointInT>::Ptr tree;
+          typename pcl::search::KdTree<PointInT>::Ptr tree;
           Eigen::Vector4f centroid_cluster;
           pcl::compute3DCentroid (*in, centroid_cluster);
           float dist_to_sensor = centroid_cluster.norm();
