@@ -207,7 +207,7 @@ public:
         std::vector < std::string > folders;
         std::string start = "";
         bf::path dir = path_;
-        std::string ext = "jpg";
+        std::string ext_v[] = {"jpg", "JPG", "png", "PNG", "bmp", "BMP", "jpeg", "JPEG"};
 
         getFoldersInDirectory (dir, start, folders);
         std::cout << "There are " << folders.size() << " folders. " << std::endl;
@@ -217,23 +217,26 @@ public:
             std::stringstream class_path;
             class_path << path_ << "/" << folders[i];
             bf::path class_dir = class_path.str();
-            std::vector < std::string > filesInRelFolder;
-            getFilesInDirectory (class_dir, start, filesInRelFolder, ext);
-            std::cout << "There are " <<  filesInRelFolder.size() << " files in folder " << folders[i] << ". " << std::endl;
-
-            for (size_t kk = 0; kk < filesInRelFolder.size (); kk++)
+            for(size_t ext_id=0; ext_id < sizeof(ext_v)/sizeof(ext_v[0]); ext_id++)
             {
-                Model2DTPtr m(new Model2D());
-                m->class_ = folders[i];
-                m->id_ = filesInRelFolder[kk];
+                std::vector < std::string > filesInRelFolder;
+                getFilesInDirectory (class_dir, start, filesInRelFolder, ext_v[ext_id]);
+                std::cout << "There are " <<  filesInRelFolder.size() << " files in folder " << folders[i] << ". " << std::endl;
 
-                std::stringstream model_path;
-                model_path << class_path.str() << "/" << filesInRelFolder[kk];
-                std::string path_model = model_path.str ();
-                std::cout << "Calling loadOrGenerate path_model: " << path_model << ", m_class: " << m->class_ << ", m_id: " << m->id_ << std::endl;
-                loadOrGenerate (path_model, *m);
+                for (size_t kk = 0; kk < filesInRelFolder.size (); kk++)
+                {
+                    Model2DTPtr m(new Model2D());
+                    m->class_ = folders[i];
+                    m->id_ = filesInRelFolder[kk];
 
-                models_->push_back (m);
+                    std::stringstream model_path;
+                    model_path << class_path.str() << "/" << filesInRelFolder[kk];
+                    std::string path_model = model_path.str ();
+                    std::cout << "Calling loadOrGenerate path_model: " << path_model << ", m_class: " << m->class_ << ", m_id: " << m->id_ << std::endl;
+                    loadOrGenerate (path_model, *m);
+
+                    models_->push_back (m);
+                }
             }
         }
     }
