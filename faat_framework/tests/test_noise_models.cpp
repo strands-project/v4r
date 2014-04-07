@@ -151,7 +151,7 @@ main (int argc, char ** argv)
     vis.addPointCloud (filtered, handler, "filtered", v3);
   }
 
-  vis.addCoordinateSystem(0.2);
+  vis.addCoordinateSystem(0.2, 0);
   vis.spin();
 
   {
