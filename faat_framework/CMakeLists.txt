@@ -152,7 +152,7 @@ if(FAAT_PCL_USE_CUDA)
 
 endif(FAAT_PCL_USE_CUDA)
 
-add_subdirectory(tests)
+#add_subdirectory(tests)
 
 export(PACKAGE ${PROJECT_NAME})
 
