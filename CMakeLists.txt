@@ -1,5 +1,6 @@
-cmake_minimum_required ( VERSION 2.6 )
-PROJECT(v4r)
+cmake_minimum_required ( VERSION 2.8.3 )
+PROJECT(strandsv4r)
+find_package(catkin REQUIRED roscpp rospy)
 
 ###########################################
 ## Do not waste the top level cmake !!! ###
@@ -45,6 +46,9 @@ add_subdirectory(faat_framework)
 
 message(STATUS "V4R_LIBRARIES: " ${V4R_LIBRARIES})
 message(STATUS "V4R_LIBRARIES_PC: " ${V4R_LIBRARIES_PC})
+
+catkin_package()
+
 
 # install target
 configure_file(v4r.pc.in "${PROJECT_BINARY_DIR}/v4r.pc" @ONLY)
