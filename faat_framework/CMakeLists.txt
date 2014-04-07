@@ -3,8 +3,6 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project(FAAT_PCL)
 set(FAAT_PCL_VERSION 0.1)
 
-SET (CMAKE_BUILD_TYPE RelWithDebInfo)    
-
 MESSAGE(STATUS ${PCL_DIR})
 # Find modules
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
