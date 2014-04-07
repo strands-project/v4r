@@ -9,8 +9,8 @@
 #define REC_FRAMEWORK_CVFH_ESTIMATOR_H_
 
 #include <faat_pcl/3d_rec_framework/defines/faat_3d_rec_framework_defines.h>
-#include <pcl/apps/3d_rec_framework/feature_wrapper/global/global_estimator.h>
-#include <pcl/apps/3d_rec_framework/feature_wrapper/normal_estimator.h>
+#include <faat_pcl/apps/3d_rec_framework/feature_wrapper/global/global_estimator.h>
+#include <faat_pcl/apps/3d_rec_framework/feature_wrapper/normal_estimator.h>
 #include <pcl/features/cvfh.h>
 #include <pcl/surface/mls.h>
 
