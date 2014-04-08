@@ -32,10 +32,7 @@ Whenver the svn changed, you have to move these changes to git.
 Normal users of this repository just run `git pull`.
 Normal uses should never need to push to this repository.
 
+---
 
-
-This repository has been set up following the instructions at http://git-scm.com/book/en/Git-and-Other-Systems-Git-and-Subversion
-
-
-
+This repository has been set up following (some of) the instructions at [http://git-scm.com/book/en/Git-and-Other-Systems-Git-and-Subversion]
 
