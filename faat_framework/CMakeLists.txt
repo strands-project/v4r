@@ -10,28 +10,6 @@ set(CMAKE_MODULE_PATH ${PCL_DIR} ${CMAKE_MODULE_PATH})
 set(FAAT_PCL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 MESSAGE(STATUS ${CMAKE_MODULE_PATH})
 
-###########################################################################################
-# postfix, based on type
-SET(CMAKE_DEBUG_POSTFIX "d" CACHE STRING "postfix applied to debug build of libraries")
-SET(CMAKE_RELEASE_POSTFIX "" CACHE STRING "postfix applied to release build of libraries")
-SET(CMAKE_RELWITHDEBINFO_POSTFIX "rd" CACHE STRING "postfix applied to release-with-debug-information libraries")
-SET(CMAKE_MINSIZEREL_POSTFIX "s" CACHE STRING "postfix applied to minimium-size-build libraries")
-
-#decide on POSTFIX based on build type
-set(FAAT_PCL_POSTFIX "")
-message(STATUS POST_FIX ${CMAKE_BUILD_TYPE})
-IF(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
-    set(FAAT_PCL_POSTFIX "rd")
-ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
-
-IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(FAAT_PCL_POSTFIX "d")
-ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-
-IF(${CMAKE_BUILD_TYPE} STREQUAL "MinSizeRel")
-    set(FAAT_PCL_POSTFIX "s")
-ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "MinSizeRel")
-
 # Allow the developer to select if Dynamic or Static libraries are built
 OPTION(BUILD_SHARED_LIBS "Build Shared Libraries" ON)
 IF(BUILD_SHARED_LIBS)
@@ -133,10 +111,10 @@ set(CONF_INCLUDE_DIRS   ${PROJECT_SOURCE_DIR}/3d_rec_framework/include
                         ${PROJECT_SOURCE_DIR}/utils/
                         ${PROJECT_SOURCE_DIR}/utils/include)
 
-set(CONF_LIBRARY_DIRS   ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_utils${FAAT_PCL_POSTFIX}.so
-                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_registration${FAAT_PCL_POSTFIX}.so
-                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_recognition${FAAT_PCL_POSTFIX}.so
-                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_3d_rec_framework${FAAT_PCL_POSTFIX}.so)
+set(CONF_LIBRARY_DIRS   ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_utils.so
+                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_registration.so
+                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_recognition.so
+                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_3d_rec_framework.so)
 
 if(FAAT_PCL_USE_CUDA)
 	add_subdirectory(segmentation)
@@ -147,8 +125,8 @@ if(FAAT_PCL_USE_CUDA)
                                 ${PROJECT_SOURCE_DIR}/object_modelling/include)
 
         set(CONF_LIBRARY_DIRS   ${CONF_LIBRARY_DIRS}
-                                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_segmentation${FAAT_PCL_POSTFIX}.so
-                                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_object_modelling${FAAT_PCL_POSTFIX}.so)
+                                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_segmentation.so
+                                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_object_modelling.so)
 
 endif(FAAT_PCL_USE_CUDA)
 
@@ -157,9 +135,9 @@ endif(FAAT_PCL_USE_CUDA)
 export(PACKAGE ${PROJECT_NAME})
 
 #append external libraries in utils
-list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblevmar${FAAT_PCL_POSTFIX}.so)
-list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsplm${FAAT_PCL_POSTFIX}.so)
-list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsiftgpu${FAAT_PCL_POSTFIX}.so)
+list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblevmar.so)
+list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsplm.so)
+list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsiftgpu.so)
 
 configure_file(${PROJECT_NAME}Config.cmake.in
   "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
