@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-SET(V4R_SURFACE_SEGMENTER 0 CACHE BOOL "Surface segmenter framework" )
+SET(V4R_SURFACE_SEGMENTER 1 CACHE BOOL "Surface segmenter framework" )
 IF(V4R_SURFACE_SEGMENTER)
 
 IF(V4R_GRAPH_CUT)
