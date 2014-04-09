@@ -137,7 +137,7 @@ namespace faat_pcl
         }
 
         virtual bool
-        estimate (PointInTPtr & in, PointInTPtr & processed, typename pcl::PointCloud<FeatureT>::CloudVectorType & signatures,
+        estimate (const PointInTPtr & in, PointInTPtr & processed, typename pcl::PointCloud<FeatureT>::CloudVectorType & signatures,
                   std::vector<Eigen::Vector3f> & centroids)
         {
 

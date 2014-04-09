@@ -414,7 +414,7 @@ namespace faat_pcl
         }
 
         virtual bool
-        estimate (PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)=0;
+        estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)=0;
 
         void
         setNormalEstimator (boost::shared_ptr<PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > & ne)

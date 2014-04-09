@@ -32,7 +32,7 @@ namespace faat_pcl
 
       public:
         bool
-        estimate (PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
+        estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 
           if (!normal_estimator_)

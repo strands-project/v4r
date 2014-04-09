@@ -56,7 +56,7 @@ namespace faat_pcl
         }
 
         bool
-        estimate (PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
+        estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 
           sift_keypoints_.indices.clear();

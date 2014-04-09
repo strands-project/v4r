@@ -16,7 +16,7 @@ namespace PCLOpenCV
 
   template<class PointT>
   void
-  ConvertPCLCloud2Image (typename pcl::PointCloud<PointT>::Ptr &pcl_cloud, cv::Mat_<cv::Vec3b> &image)
+  ConvertPCLCloud2Image (const typename pcl::PointCloud<PointT>::Ptr &pcl_cloud, cv::Mat_<cv::Vec3b> &image)
   {
     unsigned pcWidth = pcl_cloud->width;
     unsigned pcHeight = pcl_cloud->height;

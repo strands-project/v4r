@@ -27,7 +27,7 @@ namespace faat_pcl
 
       public:
         void
-        estimate (PointInTPtr & in, PointInTPtr & processed,
+        estimate (const PointInTPtr & in, PointInTPtr & processed,
                   typename pcl::PointCloud<FeatureT>::CloudVectorType & signatures,
                   std::vector<Eigen::Vector3f> & centroids)
         {

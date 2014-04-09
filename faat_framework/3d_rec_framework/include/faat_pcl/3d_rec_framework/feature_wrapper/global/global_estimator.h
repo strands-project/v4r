@@ -28,7 +28,7 @@ namespace faat_pcl
 
       public:
         virtual bool
-        estimate (PointInTPtr & in, PointInTPtr & processed, std::vector<pcl::PointCloud<FeatureT>, Eigen::aligned_allocator<
+        estimate (const PointInTPtr & in, PointInTPtr & processed, std::vector<pcl::PointCloud<FeatureT>, Eigen::aligned_allocator<
             pcl::PointCloud<FeatureT> > > & signatures, std::vector<Eigen::Vector3f> & centroids)=0;
 
         virtual bool computedNormals() = 0;

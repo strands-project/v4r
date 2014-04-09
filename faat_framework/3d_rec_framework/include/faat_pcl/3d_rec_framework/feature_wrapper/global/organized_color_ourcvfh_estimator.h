@@ -98,7 +98,7 @@ namespace faat_pcl
             }
 
             bool
-            estimate (PointInTPtr & in, PointInTPtr & processed, typename pcl::PointCloud<FeatureT>::CloudVectorType & signatures,
+            estimate (const PointInTPtr & in, PointInTPtr & processed, typename pcl::PointCloud<FeatureT>::CloudVectorType & signatures,
                       std::vector<Eigen::Vector3f> & centroids)
             {
                 pcl::ScopeTime time_estimate("Organized OUR-CVFH color estimate");

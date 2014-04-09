@@ -31,7 +31,7 @@ namespace faat_pcl
 
       public:
         bool
-        estimate (PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
+        estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 
           if (!normal_estimator_)
@@ -90,7 +90,7 @@ namespace faat_pcl
         }
 
         bool
-        estimate (PointInTPtr & in,
+        estimate (const PointInTPtr & in,
                    pcl::PointCloud<pcl::Normal>::Ptr & normals,
                    std::vector<int> & indices,
                    FeatureTPtr & signatures)

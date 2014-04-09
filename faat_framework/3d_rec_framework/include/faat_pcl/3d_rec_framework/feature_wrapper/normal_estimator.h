@@ -26,7 +26,7 @@ namespace faat_pcl
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
 
         float
-        computeMeshResolution (PointInTPtr & input)
+        computeMeshResolution (const PointInTPtr & input)
         {
           typedef typename pcl::KdTree<PointInT>::Ptr KdTreeInPtr;
           KdTreeInPtr tree = boost::make_shared<pcl::KdTreeFLANN<PointInT> > (false);
@@ -138,7 +138,7 @@ namespace faat_pcl
         }
 
         void
-        estimate_organized(PointInTPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        estimate_organized(const PointInTPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals)
         {
             out = in;
             typedef typename pcl::NormalEstimationOMP<PointInT, pcl::Normal> NormalEstimator_;
@@ -156,7 +156,7 @@ namespace faat_pcl
         }
 
         void
-        estimate (PointInTPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        estimate (const PointInTPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals)
         {
           if (compute_mesh_resolution_)
           {

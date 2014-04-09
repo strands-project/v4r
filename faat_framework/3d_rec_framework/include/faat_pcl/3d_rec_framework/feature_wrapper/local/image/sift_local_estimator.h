@@ -43,7 +43,7 @@ namespace faat_pcl
         }
 
         bool
-        estimate (PointInTPtr & in, PointInTPtr & keypoints, FeatureTPtr & signatures, std::vector<float> & scales)
+        estimate (const PointInTPtr & in, PointInTPtr & keypoints, FeatureTPtr & signatures, std::vector<float> & scales)
         {
 
           sift_keypoints_.indices.clear();
@@ -256,7 +256,7 @@ namespace faat_pcl
           }
         }
 
-        bool estimate(PointInTPtr & in, FeatureTPtr & signatures)
+        bool estimate(const PointInTPtr & in, FeatureTPtr & signatures)
         {
           //fill keypoints with indices_, all points at indices_[i] should be valid
           std::vector<SiftGPU::SiftKeypoint> ks;
@@ -317,7 +317,7 @@ namespace faat_pcl
         }
 
         bool
-        estimate (PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
+        estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 
           sift_keypoints_.indices.clear();
@@ -411,7 +411,7 @@ namespace faat_pcl
         }
 
         void
-        setIndices (pcl::PointIndices & p_indices)
+        setIndices (const pcl::PointIndices & p_indices)
         {
           indices_ = p_indices;
         }
