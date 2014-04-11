@@ -1,0 +1,31 @@
+if(DEFINED  V4R_PCL_DIR)
+
+	message(STATUS "PCL_DIR:" ${PCL_DIR})
+	message(STATUS "V4R_PCL_DIR:" ${V4R_PCL_DIR})
+	set(PCL_DIR ${V4R_PCL_DIR})
+
+	unset(PCL_FOUND)
+	unset(PCL_LIBRARIES)
+	unset(PCL_INCLUDE_DIRS)
+	unset(PCL_LIBRARY_DIRS)
+	unset(PCL_DEFINITIONS)
+
+	set(all_components_in_pcl  common geometry kdtree octree search sample_consensus filters io 2d features ml segmentation keypoints registration recognition surface visualization outofcore people tracking stereo apps gpu_containers gpu_utils gpu_octree gpu_segmentation gpu_kinfu_large_scale gpu_kinfu gpu_features )
+	list(LENGTH all_components_in_pcl PCL_NUM_COMPONENTS)
+
+	foreach(component ${all_components_in_pcl})
+		string(TOUPPER "${component}" COMPONENT)
+		#MESSAGE(STATUS "component" ${component})
+		#MESSAGE(STATUS "PCL_${COMPONENT}_INCLUDE_DIR: " ${PCL_${COMPONENT}_INCLUDE_DIR})
+		if(DEFINED PCL_${COMPONENT}_INCLUDE_DIR)
+			#MESSAGE(STATUS "defined")
+			unset(PCL_${COMPONENT}_INCLUDE_DIR CACHE)
+			unset(PCL_${COMPONENT}_LIBRARIES CACHE)
+			unset(PCL_${COMPONENT}_LIBRARY_DIRS CACHE)
+			unset(PCL_${COMPONENT}_DEFINITIONS CACHE)
+		endif(DEFINED PCL_${COMPONENT}_INCLUDE_DIR)
+		#unset(PCL_${COMPONENT}_LIBRARIES)
+		#MESSAGE(STATUS "PCL_${COMPONENT}_INCLUDE_DIR: " ${PCL_${COMPONENT}_INCLUDE_DIR})
+	endforeach(component)
+
+endif(DEFINED  V4R_PCL_DIR)

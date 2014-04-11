@@ -1,36 +1,10 @@
 cmake_minimum_required ( VERSION 2.8.3 )
 PROJECT(strandsv4r)
-find_package(catkin REQUIRED roscpp rospy)
+find_package(catkin REQUIRED)
 
-message(STATUS "PCL_DIR:" ${PCL_DIR})
-message(STATUS "V4R_PCL_DIR:" ${V4R_PCL_DIR})
 
-set(PCL_DIR_BEFORE ${PCL_DIR})
-set(PCL_DIR ${V4R_PCL_DIR})
-
-unset(PCL_FOUND)
-unset(PCL_LIBRARIES)
-unset(PCL_INCLUDE_DIRS)
-unset(PCL_LIBRARY_DIRS)
-unset(PCL_DEFINITIONS)
-
-set(all_components_in_pcl  common geometry kdtree octree search sample_consensus filters io 2d features ml segmentation keypoints registration recognition surface visualization outofcore people tracking stereo apps gpu_containers gpu_utils gpu_octree gpu_segmentation gpu_kinfu_large_scale gpu_kinfu gpu_features )
-list(LENGTH all_components_in_pcl PCL_NUM_COMPONENTS)
-
-foreach(component ${all_components_in_pcl})
-	string(TOUPPER "${component}" COMPONENT)
-	#MESSAGE(STATUS "component" ${component})
-	#MESSAGE(STATUS "PCL_${COMPONENT}_INCLUDE_DIR: " ${PCL_${COMPONENT}_INCLUDE_DIR})
-	if(DEFINED PCL_${COMPONENT}_INCLUDE_DIR)
-		#MESSAGE(STATUS "defined")
-		unset(PCL_${COMPONENT}_INCLUDE_DIR CACHE)
-		unset(PCL_${COMPONENT}_LIBRARIES CACHE)
-		unset(PCL_${COMPONENT}_LIBRARY_DIRS CACHE)
-		unset(PCL_${COMPONENT}_DEFINITIONS CACHE)
-	endif(DEFINED PCL_${COMPONENT}_INCLUDE_DIR)
-	#unset(PCL_${COMPONENT}_LIBRARIES)
-	#MESSAGE(STATUS "PCL_${COMPONENT}_INCLUDE_DIR: " ${PCL_${COMPONENT}_INCLUDE_DIR})
-endforeach(component)
+#set(PCL_DIR_BEFORE ${PCL_DIR})
+include(use_v4r_pcl.cmake)
 
 ###########################################
 ## Do not waste the top level cmake !!! ###
@@ -77,7 +51,9 @@ add_subdirectory(faat_framework)
 message(STATUS "V4R_LIBRARIES: " ${V4R_LIBRARIES})
 message(STATUS "V4R_LIBRARIES_PC: " ${V4R_LIBRARIES_PC})
 
-catkin_package()
+catkin_package(
+	LIBRARIES ${FAAT_PCL_LIBRARIES} ${V4R_LIBRARIES}
+ )
 
 
 # install target
@@ -91,4 +67,4 @@ configure_file(
     IMMEDIATE @ONLY)
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
-set(PCL_DIR ${PCL_DIR_BEFORE})
+#set(PCL_DIR ${PCL_DIR_BEFORE})

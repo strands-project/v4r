@@ -71,10 +71,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebI
 endif()
 
 #put all exe files in /bin, dll and lib files in /lib
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-
+#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+#
 find_package( OpenCV 2.4 REQUIRED )
 
 find_package(PCL 1.7 REQUIRED COMPONENTS common io features segmentation geometry visualization recognition keypoints surface apps)
@@ -90,7 +90,7 @@ if(PCL_FOUND)
 endif(PCL_FOUND)
 
 include(cmake/pcl_find_cuda.cmake)
-set(FAAT_PCL_USE_CUDA 1)
+set(FAAT_PCL_USE_CUDA 0)
 
 IF(CUDA_FOUND)
   MESSAGE(STATUS "CUDA WAS INDEED FOUND!!")
