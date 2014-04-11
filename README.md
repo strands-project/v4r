@@ -21,7 +21,10 @@ At the moment, these frameworks need a particular PCL version to run. In order t
     
    ### IMPORTANT: DO NOT INSTALL PCL to avoid conflicts with other versions!
    
-   
+3.) tell catkin to use this pcl fork for packages dependent on this pcl_v4r_fork version:
+
+     catkin_make -DV4R_PCL_DIR=~/pcl_v4r_fork/build
+
 
 ## For maintainers
 
@@ -52,5 +55,6 @@ Normal uses should never need to push to this repository.
 ---
 
 This repository has been set up following (some of) the instructions at [http://git-scm.com/book/en/Git-and-Other-Systems-Git-and-Subversion]
+
 
 
