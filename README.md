@@ -21,7 +21,7 @@ At the moment, these frameworks need a particular PCL version to run. In order t
     
    ### IMPORTANT: DO NOT INSTALL PCL to avoid conflicts with other versions!
    
-3.) tell catkin to use pcl_v4r_fork for packages dependent on this particular pcl version:
+3.) tell catkin to use _pcl\_v4r\_fork_ for packages dependent on this particular pcl version:
 
      catkin_make -DV4R_PCL_DIR=~/pcl_v4r_fork/build
 
