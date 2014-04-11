@@ -5,6 +5,23 @@ This is the git mirror of ACIN's v4r library for STRANDS.
 It uses `git svn` to pull in the latest v4r strands branch from ACIN's svn server:
 https://repo.acin.tuwien.ac.at/v4r/stable/strandsv4r
 
+At the moment, these frameworks need a particular PCL version to run. In order to avoid conflicts with other pcl versions (i.e. the built-in ros-pcl version), please follow these steps:
+
+
+1.) check out PCL as follows into a local directory:
+
+     git clone https://github.com/arbeitor/pcl.git ~/pcl_v4r_fork --branch reconstruction_workshop
+
+2.)  build PCL
+    
+    mkdir ~/pcl_v4r_fork/build
+    cd ~/pcl_v4r_fork/build
+    cmake ..
+    make -j4
+    
+   ### IMPORTANT: DO NOT INSTALL PCL to avoid conflicts with other versions!
+   
+   
 
 ## For maintainers
 
@@ -35,4 +52,5 @@ Normal uses should never need to push to this repository.
 ---
 
 This repository has been set up following (some of) the instructions at [http://git-scm.com/book/en/Git-and-Other-Systems-Git-and-Subversion]
+
 
