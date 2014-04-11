@@ -139,11 +139,17 @@ list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblevmar.so)
 list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsplm.so)
 list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsiftgpu.so)
 
-configure_file(${PROJECT_NAME}Config.cmake.in
-  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
+#configure_file(${PROJECT_NAME}Config.cmake.in "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
+#configure_file(${PROJECT_NAME}ConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
 
-configure_file(${PROJECT_NAME}ConfigVersion.cmake.in
-  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
+configure_file(${PROJECT_NAME}Config.cmake.in "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../share/strandsv4r/cmake/${PROJECT_NAME}Config.cmake" @ONLY)
+configure_file(${PROJECT_NAME}ConfigVersion.cmake.in "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../share/strandsv4r/cmake/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
+  
+message(STATUS "faat libraries:" ${CONF_LIBRARY_DIRS})
+message(STATUS "faat include dirs:" ${CONF_INCLUDE_DIRS})
 
-message(STATUS "faat libraries:" ${FAAT_LIBRARIES})
-message(STATUS "faat include dirs:" ${FAAT_INCLUDE_DIRS})
+set(FAAT_PCL_LIBRARIES ${CONF_LIBRARY_DIRS} PARENT_SCOPE)
+set(FAAT_PCL_INCLUDE_DIRS ${CONF_INCLUDE_DIRS} PARENT_SCOPE)
+
+message(STATUS "faat libraries:" ${FAAT_PCL_LIBRARIES})
+message(STATUS "faat include dirs:" ${FAAT_PCL_INCLUDE_DIRS})

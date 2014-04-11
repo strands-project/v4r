@@ -48,12 +48,12 @@ include_directories(.)
 add_subdirectory(v4r)
 add_subdirectory(faat_framework)
 
-message(STATUS "V4R_LIBRARIES: " ${V4R_LIBRARIES})
-message(STATUS "V4R_LIBRARIES_PC: " ${V4R_LIBRARIES_PC})
+SET(V4R_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "includes dir" FORCE)
 
 catkin_package(
-	LIBRARIES ${FAAT_PCL_LIBRARIES} ${V4R_LIBRARIES}
- )
+	INCLUDE_DIRS ${FAAT_PCL_INCLUDE_DIRS} ${V4R_INCLUDE_DIR}
+	LIBRARIES ${FAAT_PCL_LIBRARIES} ${V4R_LIBS}
+)
 
 
 # install target
