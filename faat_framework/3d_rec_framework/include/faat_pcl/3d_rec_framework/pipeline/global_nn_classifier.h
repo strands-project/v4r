@@ -76,6 +76,15 @@ namespace faat_pcl
           }
         } sortIndexScoresOp;
 
+        struct sortIndexScoresDesc
+        {
+          bool
+          operator() (const index_score& d1, const index_score& d2)
+          {
+            return d1.score_ > d2.score_;
+          }
+        } sortIndexScoresOpDesc;
+
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
         typedef Distance<float> DistT;
         typedef Model<PointInT> ModelT;

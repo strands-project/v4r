@@ -167,9 +167,9 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         final_indices_scores.push_back (is);
       }
 
-      std::sort (final_indices_scores.begin (), final_indices_scores.end (), sortIndexScoresOp);
+      std::sort (final_indices_scores.begin (), final_indices_scores.end (), sortIndexScoresOpDesc);
 
-      for (size_t i=final_indices_scores.size()-1; i > 0; i--)
+      for (size_t i=0; i < final_indices_scores.size(); i++)
       {
           categories_.push_back (final_indices_scores[i].model_name_);
           confidences_.push_back (final_indices_scores[i].score_);
