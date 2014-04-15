@@ -33,7 +33,7 @@ set(srcs
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(${LIB_NAME} ${FOO_LIBRARY_TYPE} ${srcs} ${utils_incs})
-target_link_libraries(${LIB_NAME})
+target_link_libraries(${LIB_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable(NMBasedCloudIntegration tests/test_NMBasedCloudIntegration.cpp)
 target_link_libraries(NMBasedCloudIntegration ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils boost_regex)
