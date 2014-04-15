@@ -7,23 +7,28 @@ https://repo.acin.tuwien.ac.at/v4r/stable/strandsv4r
 
 At the moment, these frameworks need a particular PCL version to run. In order to avoid conflicts with other pcl versions (i.e. the built-in ros-pcl version), please follow these steps:
 
-
 1.) check out PCL as follows into a local directory:
 
-     git clone https://github.com/arbeitor/pcl.git ~/pcl_v4r_fork --branch reconstruction_workshop
+    git clone https://github.com/arbeitor/pcl.git ~/pcl_v4r_fork --branch reconstruction_workshop
 
 2.)  build PCL
-    
+
     mkdir ~/pcl_v4r_fork/build
     cd ~/pcl_v4r_fork/build
     cmake ..
     make -j4
-    
-   ### IMPORTANT: DO NOT INSTALL PCL to avoid conflicts with other versions!
-   
+
+**IMPORTANT: DO NOT INSTALL PCL to avoid conflicts with other versions!**
+
 3.) tell catkin to use _pcl\_v4r\_fork_ for packages dependent on this particular pcl version:
 
-     catkin_make -DV4R_PCL_DIR=~/pcl_v4r_fork/build
+    catkin_make -DV4R_PCL_DIR=~/pcl_v4r_fork/build
+
+
+## For users
+
+Normal users of this repository just run `git pull`.
+Normal uses should never need to push to this repository.
 
 
 ## For maintainers
@@ -31,30 +36,21 @@ At the moment, these frameworks need a particular PCL version to run. In order t
 ### Set up the svn git bridge
 Run all this NOT from within any of your regular git work spaces.
 
-> git svn clone https://repo.acin.tuwien.ac.at/v4r/stable/strandsv4r
-> cd strandsv4r
-> git checkout -b hydro-devel
-> git remote add origin https://github.com/strands-project/v4r.git
-> git push -u origin hydro-devel
+    git svn clone https://repo.acin.tuwien.ac.at/v4r/stable/strandsv4r
+    cd strandsv4r
+    git checkout -b hydro-devel
+    git remote add origin https://github.com/strands-project/v4r.git
+    git push -u origin hydro-devel
 
 ### Update
 Whenver the svn changed, you have to move these changes to git.
 
-> cd strandsv4r
-> git svn rebase
-> git push
+    cd strandsv4r
+    git svn rebase
+    git push
 
 **It is recommended that usually bugfixes etc for V4R are *not* committed directly to this repository, but rather are fixed in the upstream SVN repository**
-
-
-## For Users
-
-Normal users of this repository just run `git pull`.
-Normal uses should never need to push to this repository.
 
 ---
 
 This repository has been set up following (some of) the instructions at [http://git-scm.com/book/en/Git-and-Other-Systems-Git-and-Subversion]
-
-
-
