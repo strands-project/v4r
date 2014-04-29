@@ -209,6 +209,37 @@ template<typename ModelT, typename SceneT>
     return static_cast<mets::gol_type> (cost); //return the dual to our max problem
   }
 
+  template<typename ModelT, typename SceneT>
+  double
+  faat_pcl::GlobalHypothesesVerification<ModelT, SceneT>::getExplainedByIndices(std::vector<int> & indices, std::vector<float> & explained_values,
+                                 std::vector<double> & explained_by_RM, std::vector<int> & indices_to_update_in_RM_local)
+ {
+    float v=0;
+    int indices_to_update_count = 0;
+    for(size_t k=0; k < indices.size(); k++) {
+      if(explained_by_RM_[indices[k]] == 0) { //in X1, the point is not explained
+        if(explained_by_RM[indices[k]] == 0) { //in X2, this is the single hypothesis explaining the point so far
+          v += explained_values[k];
+          indices_to_update_in_RM_local[indices_to_update_count] = k;
+          indices_to_update_count++;
+        } else {
+          //in X2, there was a previous hypotheses explaining the point
+          //if the previous hypothesis was better, then reject this hypothesis for this point
+          if(explained_by_RM[indices[k]] >= explained_values[k]) {
+
+          } else {
+            //add the difference
+            v += explained_values[k] - explained_by_RM[indices[k]];
+            indices_to_update_in_RM_local[indices_to_update_count] = k;
+            indices_to_update_count++;
+          }
+        }
+      }
+    }
+
+    indices_to_update_in_RM_local.resize(indices_to_update_count);
+    return v;
+  }
 
 template<typename ModelT, typename SceneT>
   float

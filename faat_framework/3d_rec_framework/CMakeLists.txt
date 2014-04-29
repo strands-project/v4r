@@ -96,6 +96,7 @@ set(srcs src/pipeline/global_nn_classifier.cpp
          src/feature_wrapper/local/shot_local_estimator.cpp
          src/pc_source/mesh_source.cpp
          src/pc_source/partial_pcd_source.cpp
+         src/pc_source/model_only_source.cpp
          src/tools/openni_frame_source.cpp
          src/tools/or_evaluator.cpp
          src/registration/voxel_based_correspondence_estimation.cpp

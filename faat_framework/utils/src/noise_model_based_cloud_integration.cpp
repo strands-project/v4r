@@ -83,12 +83,38 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     {
         PointTPtr cloud(new pcl::PointCloud<PointT>);
         PointNormalTPtr normal_cloud(new pcl::PointCloud<pcl::Normal>);
-            faat_pcl::utils::miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
-
+        faat_pcl::utils::miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
         pcl::transformPointCloud(*input_clouds_used_[i], *cloud, transformations_to_global_[i]);
-        *big_cloud += *cloud;
-        weights_points_in_octree_.insert(weights_points_in_octree_.end(), noise_weights_[i].begin(), noise_weights_[i].end());
-        *octree_points_normals_ += *normal_cloud;
+
+        if (indices_.size() == 0)
+        {
+            *big_cloud += *cloud;
+            weights_points_in_octree_.insert(weights_points_in_octree_.end(), noise_weights_[i].begin(), noise_weights_[i].end());
+            *octree_points_normals_ += *normal_cloud;
+        }
+        else
+        {
+            pcl::copyPointCloud(*cloud, indices_[i], *cloud);
+            *big_cloud += *cloud;
+
+            for (int j=0;j<indices_[i].size();j++)
+            {
+                weights_points_in_octree_.push_back(noise_weights_[i][indices_[i][j]]);
+            }
+
+            PointNormalTPtr normal_cloud_filtered(new pcl::PointCloud<pcl::Normal>);
+            pcl::copyPointCloud(*normal_cloud, indices_[i], *normal_cloud_filtered);
+            *octree_points_normals_ += *normal_cloud_filtered;
+
+            std::cout << "input size: " << input_clouds_used_[i]->points.size() << std::endl;
+            std::cout << "filtered size: " << cloud->points.size() << std::endl;
+            std::cout << "bigcloud size: " << big_cloud->points.size() << std::endl;
+            std::cout << "noise weights size: " << noise_weights_[i].size() << std::endl;
+            std::cout << "weights octree size: " << weights_points_in_octree_.size() << std::endl;
+            std::cout << "normal cloud size: " << normal_cloud->points.size() << std::endl;
+            std::cout << "normal cloud filtered size: " << normal_cloud_filtered->points.size() << std::endl;
+            std::cout << std::endl;
+        }
     }
 
     std::vector<std::pair<int, int> > big_cloud_to_input_clouds;
@@ -96,11 +122,26 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     int idx = 0;
     for(size_t i=0; i < input_clouds_used_.size(); i++)
     {
-        for(size_t k=0; k < input_clouds_used_[i]->points.size(); k++, idx++)
+        if (indices_.size() == 0)
         {
-            big_cloud_to_input_clouds[idx] = std::make_pair((int)i, int(k));
+            for(size_t k=0; k < input_clouds_used_[i]->points.size(); k++, idx++)
+            {
+                big_cloud_to_input_clouds[idx] = std::make_pair((int)i, int(k));
+            }
+        }
+        else
+        {
+            std::cout << "input point size: " << input_clouds_used_[i]->points.size() << std::endl;
+            std::cout << "indices size: " << indices_[i].size() << std::endl;
+
+            for (int k=0;k<indices_[i].size();k++, idx++)
+            {
+                big_cloud_to_input_clouds[idx] = std::make_pair((int)i, int(indices_[i][k]));
+            }
         }
     }
+
+    std::cout << "created indices" << std::endl;
 
     //std::cout << big_cloud->points.size() << " " << weights_points_in_octree_.size() << std::endl;
 
@@ -232,8 +273,8 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         int used = 0;
         for(size_t k=0; k < indexVector.size(); k++)
         {
-            //if(weights_points_in_octree_[indexVector[k]] < min_weight_)
-            //continue;
+            if(weights_points_in_octree_[indexVector[k]] < min_weight_)
+                continue;
 
             p.getVector3fMap() = p.getVector3fMap() +  octree_->getInputCloud()->points[indexVector[k]].getVector3fMap();
             r += octree_->getInputCloud()->points[indexVector[k]].r;
@@ -270,6 +311,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     output->is_dense = output_normals_->is_dense = true;
 
     //finally mask input_clouds_ to know which points were actually used
+    /*
     for(size_t k=0; k < big_cloud->points.size(); k++)
     {
         if(!indices_big_cloud_keep[k])
@@ -281,7 +323,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
             input_clouds_used_[idx_c]->points[idx_p].z = bad_value;
         }
     }
-
+    */
     /*for(size_t i=1; i < input_clouds_.size(); i++)
     {
         PointTPtr cloud(new pcl::PointCloud<PointT>);

@@ -18,6 +18,8 @@ set(hv_incs
 set(hv_impl_incs
   include/faat_pcl/${SUBSYS_NAME}/impl/hv/hv_go.hpp
   include/faat_pcl/${SUBSYS_NAME}/impl/hv/hv_go_1.hpp
+  include/faat_pcl/${SUBSYS_NAME}/impl/hv/hv_go_opt.hpp
+include/faat_pcl/${SUBSYS_NAME}/impl/hv/occlusion_reasoning.hpp
 )
 
 set(srcs

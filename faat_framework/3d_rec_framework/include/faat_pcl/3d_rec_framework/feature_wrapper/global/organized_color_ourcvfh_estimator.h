@@ -46,6 +46,8 @@ namespace faat_pcl
             bool normals_set_;
             float normal_radius_;
             float resolution_;
+            pcl::PointIndices indices_;
+
         public:
 
             OrganizedColorOURCVFHEstimator ()
@@ -97,6 +99,23 @@ namespace faat_pcl
                 return organized_data_;
             }
 
+            bool acceptsIndices()
+            {
+                return true;
+            }
+
+            void
+            setIndices (pcl::PointIndices & p_indices)
+            {
+              indices_ = p_indices;
+            }
+
+            void
+            setIndices(std::vector<int> & p_indices)
+            {
+              indices_.indices = p_indices;
+            }
+
             bool
             estimate (const PointInTPtr & in, PointInTPtr & processed, typename pcl::PointCloud<FeatureT>::CloudVectorType & signatures,
                       std::vector<Eigen::Vector3f> & centroids)
@@ -109,6 +128,26 @@ namespace faat_pcl
                 if(!in->isOrganized())
                 {
                     PCL_WARN("OrganizedColorOURCVFHEstimator: input cloud not organized?!?");
+                }
+
+                if(indices_.indices.size() > 0)
+                {
+                    //set all points not belonging to indices_ to NaN
+                    std::vector<bool> set_to_nan(in->points.size(), true);
+                    for(size_t i=0; i < indices_.indices.size(); i++)
+                    {
+                        set_to_nan[indices_.indices[i]] = false;
+                    }
+
+                    for(size_t i=0; i < in->points.size(); i++)
+                    {
+                        if(set_to_nan[i])
+                        {
+                            in->points[i].x = in->points[i].y = in->points[i].z = std::numeric_limits<float>::quiet_NaN();
+                        }
+                    }
+
+                    std::cout << "indices size:" << indices_.indices.size() << std::endl;
                 }
 
                 if(!normals_set_)
@@ -463,6 +502,8 @@ namespace faat_pcl
                 //std::cout << "time final copying:" << time_final_copying << std::endl;
                 //std::cout << "time getting copying:" << time_getting_copying << std::endl;
                 std::cout << "Signatures.size()" << signatures.size() << std::endl;
+
+                indices_.indices.clear ();
                 return true;
             }
 

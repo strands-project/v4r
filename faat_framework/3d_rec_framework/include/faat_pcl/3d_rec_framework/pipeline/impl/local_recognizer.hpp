@@ -682,6 +682,22 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     if(save_hypotheses_)
     {
       pcl::ScopeTime t("Saving hypotheses...");
+
+      if(correspondence_distance_constant_weight_ != 1.f)
+      {
+          PCL_WARN("correspondence_distance_constant_weight_ activated! %f", correspondence_distance_constant_weight_);
+          //go through the object hypotheses and multiply the correspondences distances by the weight
+          //this is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
+          typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
+          for (it_map = object_hypotheses.begin (); it_map != object_hypotheses.end (); it_map++)
+          {
+              for(size_t k=0; k < (*it_map).second.correspondences_to_inputcloud->size(); k++)
+              {
+                  (*it_map).second.correspondences_to_inputcloud->at(k).distance *= correspondence_distance_constant_weight_;
+              }
+          }
+      }
+
       saved_object_hypotheses_ = object_hypotheses;
     }
     else

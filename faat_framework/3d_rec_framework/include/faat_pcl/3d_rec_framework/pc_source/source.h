@@ -55,9 +55,24 @@ namespace faat_pcl
       //typename boost::shared_ptr<VoxelGridDistanceTransform<PointT> > dist_trans_;
       typename boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > dist_trans_;
 
+      pcl::PointCloud<pcl::PointXYZL>::Ptr faces_cloud_labels_;
+      typename std::map<float, pcl::PointCloud<pcl::PointXYZL>::Ptr> voxelized_assembled_labels_;
+      bool flip_normals_based_on_vp_;
+
       Model()
       {
         centroid_computed_ = false;
+        flip_normals_based_on_vp_ = false;
+      }
+
+      bool getFlipNormalsBasedOnVP()
+      {
+          return flip_normals_based_on_vp_;
+      }
+
+      void setFlipNormalsBasedOnVP(bool b)
+      {
+          flip_normals_based_on_vp_ = b;
       }
 
       Eigen::Vector4f getCentroid()
@@ -90,6 +105,29 @@ namespace faat_pcl
         n3d.setSearchMethod (normals_tree);
         n3d.setInputCloud (assembled_);
         n3d.compute (*normals_assembled_);
+      }
+
+      pcl::PointCloud<pcl::PointXYZL>::Ptr
+      getAssembledSmoothFaces (float resolution)
+      {
+        if(resolution <= 0)
+          return faces_cloud_labels_;
+
+        typename std::map<float, pcl::PointCloud<pcl::PointXYZL>::Ptr>::iterator it = voxelized_assembled_labels_.find (resolution);
+        if (it == voxelized_assembled_labels_.end ())
+        {
+          pcl::PointCloud<pcl::PointXYZL>::Ptr voxelized (new pcl::PointCloud<pcl::PointXYZL>);
+          pcl::VoxelGrid<pcl::PointXYZL> grid_;
+          grid_.setInputCloud (faces_cloud_labels_);
+          grid_.setLeafSize (resolution, resolution, resolution);
+          grid_.setDownsampleAllData(true);
+          grid_.filter (*voxelized);
+
+          voxelized_assembled_labels_[resolution] = voxelized;
+          return voxelized;
+        }
+
+        return it->second;
       }
 
       PointTPtrConst

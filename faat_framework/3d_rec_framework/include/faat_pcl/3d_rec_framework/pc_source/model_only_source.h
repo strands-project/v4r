@@ -14,6 +14,9 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <faat_pcl/3d_rec_framework/defines/faat_3d_rec_framework_defines.h>
+#include <faat_pcl/3d_rec_framework/utils/vtk_model_sampling.h>
+#include <vtkTransformPolyDataFilter.h>
+#include <pcl/segmentation/supervoxel_clustering.h>
 
 namespace faat_pcl
 {
@@ -42,39 +45,80 @@ namespace faat_pcl
         using SourceT::getModelsInDirectory;
         using SourceT::model_scale_;
         using SourceT::load_into_memory_;
+        using SourceT::radius_normals_;
+        using SourceT::compute_normals_;
+        std::string ext_;
+
+        void computeFaces(ModelT & model);
 
       public:
         ModelOnlySource ()
         {
           load_into_memory_ = false;
+          ext_ = "pcd";
+        }
+
+        void setExtension(std::string e)
+        {
+            ext_ = e;
         }
 
         void
         loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model)
         {
-          std::stringstream pathmodel;
-          pathmodel << dir << "/" << model.class_ << "/" << model.id_;
-          bf::path trained_dir = pathmodel.str ();
+          if(ext_.compare("pcd") == 0)
+          {
+              std::stringstream full_model;
+              full_model << path_ << "/" << "/" << model.class_ << "/" << model.id_;
+              typename pcl::PointCloud<Full3DPointT>::Ptr modell (new pcl::PointCloud<Full3DPointT>);
+              typename pcl::PointCloud<Full3DPointT>::Ptr modell_voxelized (new pcl::PointCloud<Full3DPointT>);
+              pcl::io::loadPCDFile(full_model.str(), *modell);
 
+              float voxel_grid_size = 0.001f;
+              typename pcl::VoxelGrid<Full3DPointT> grid_;
+              grid_.setInputCloud (modell);
+              grid_.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
+              grid_.setDownsampleAllData (true);
+              grid_.filter (*modell_voxelized);
 
-          std::stringstream full_model;
-          full_model << path_ << "/" << "/" << model.class_ << "/" << model.id_;
-          typename pcl::PointCloud<Full3DPointT>::Ptr modell (new pcl::PointCloud<Full3DPointT>);
-          typename pcl::PointCloud<Full3DPointT>::Ptr modell_voxelized (new pcl::PointCloud<Full3DPointT>);
-          pcl::io::loadPCDFile(full_model.str(), *modell);
+              model.normals_assembled_.reset(new pcl::PointCloud<pcl::Normal>);
+              model.assembled_.reset (new pcl::PointCloud<PointInT>);
 
-          float voxel_grid_size = 0.003f;
-          typename pcl::VoxelGrid<Full3DPointT> grid_;
-          grid_.setInputCloud (modell);
-          grid_.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
-          grid_.setDownsampleAllData (true);
-          grid_.filter (*modell_voxelized);
+              pcl::copyPointCloud(*modell_voxelized, *model.assembled_);
+              pcl::copyPointCloud(*modell_voxelized, *model.normals_assembled_);
 
-          model.normals_assembled_.reset(new pcl::PointCloud<pcl::Normal>);
-          model.assembled_.reset (new pcl::PointCloud<PointInT>);
+              for(size_t kk=0; kk < model.normals_assembled_->points.size(); kk++)
+              {
+                  Eigen::Vector3f normal = model.normals_assembled_->points[kk].getNormalVector3fMap();
+                  normal.normalize();
+                  model.normals_assembled_->points[kk].getNormalVector3fMap() = normal;
+              }
 
-          pcl::copyPointCloud(*modell_voxelized, *model.assembled_);
-          pcl::copyPointCloud(*modell_voxelized, *model.normals_assembled_);
+              computeFaces(model);
+
+          }
+          else if(ext_.compare("ply") == 0)
+          {
+
+              typename pcl::PointCloud<PointInT>::Ptr model_cloud(new pcl::PointCloud<PointInT>());
+              uniform_sampling (model_path, 100000, *model_cloud, model_scale_);
+
+              float resolution = 0.001f;
+              pcl::VoxelGrid<PointInT> grid_;
+              grid_.setInputCloud (model_cloud);
+              grid_.setLeafSize (resolution, resolution, resolution);
+              grid_.setDownsampleAllData(true);
+
+              model.assembled_.reset (new pcl::PointCloud<PointInT>);
+              grid_.filter (*(model.assembled_));
+
+              if(compute_normals_)
+              {
+                std::cout << "Computing normals for ply models... " << radius_normals_ << std::endl;
+                model.computeNormalsAssembledCloud(radius_normals_);
+                model.setFlipNormalsBasedOnVP(true);
+              }
+          }
         }
 
         void
@@ -124,9 +168,8 @@ namespace faat_pcl
           std::vector < std::string > files;
           std::string start = "";
           bf::path dir = path_;
-          std::string ext = "pcd";
 
-          getFilesInDirectory (dir, start, files, ext);
+          getFilesInDirectory (dir, start, files, ext_);
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);

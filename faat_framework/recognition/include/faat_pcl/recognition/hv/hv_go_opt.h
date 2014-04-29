@@ -55,6 +55,7 @@ namespace faat_pcl
       float bad_information_;
       float outliers_weight_;
       pcl::PointCloud<pcl::Normal>::Ptr normals_;
+      pcl::PointCloud<pcl::Normal>::Ptr normals_from_visible_;
       int id_;
       float extra_weight_; //descriptor distance weight for instance
       float model_constraints_value_;
@@ -62,7 +63,20 @@ namespace faat_pcl
       float median_;
       float mean_;
       Eigen::MatrixXf color_mapping_;
+      float hyp_penalty_;
       std::string id_s_;
+      std::vector<Eigen::Vector3f> cloud_LAB_;
+      std::vector<Eigen::Vector3f> cloud_LAB_original_;
+      std::vector<Eigen::Vector3f> cloud_RGB_;
+      std::vector<float> cloud_GS_;
+      float min_contribution_; //based on the amount of explained points and the amount of information in the hypotheses
+      std::vector<float> normal_angle_histogram_;
+      std::vector<float> color_diff_histogram_;
+      float normal_entropy_;
+      float color_entropy_;
+      std::vector<int> cloud_indices_specified_;
+      float color_diff_trhough_specification_;
+      pcl::PointCloud<pcl::PointXYZL>::Ptr visible_labels_;
   };
 
   template<typename ModelT, typename SceneT> class GlobalHypothesesVerification_1;
@@ -233,17 +247,17 @@ namespace faat_pcl
     }
 
     size_t
-    hash () const
-    {
+    hash () const;
+    /*{
       return static_cast<size_t> (sol_size_ + sol_size_ * i_ + j_);
-    }
+    }*/
 
     bool
-    operator== (const mets::mana_move& m) const
-    {
+    operator== (const mets::mana_move& m) const;
+    /*{
       const replace_hyp_move& mm = dynamic_cast<const replace_hyp_move&> (m);
       return (mm.i_ == i_) && (mm.j_ == j_);
-    }
+    }*/
   };
 
   /*
@@ -306,20 +320,138 @@ namespace faat_pcl
     }
 
     size_t
-    hash () const
-    {
-      return static_cast<size_t> (index_);
-    }
+    hash () const;
 
     bool
-    operator== (const mets::mana_move& m) const
-    {
-      const move& mm = dynamic_cast<const move&> (m);
-      return mm.index_ == index_;
-    }
+    operator== (const mets::mana_move& m) const;
   };
 
   template<typename ModelT, typename SceneT>
+    class move_activate : public generic_move
+    {
+      int index_;
+    public:
+      move_activate (int i) :
+        index_ (i)
+      {
+      }
+
+      int
+      getIndex ()
+      {
+        return index_;
+      }
+
+      mets::gol_type
+      evaluate (const mets::feasible_solution& cs) const
+      {
+        //mets::copyable copyable = dynamic_cast<mets::copyable> (&cs);
+        SAModel<ModelT, SceneT> model;
+        model.copy_from (cs);
+        mets::gol_type cost = model.apply_and_evaluate (index_, true);
+        model.apply_and_evaluate (index_, false);
+        return cost;
+      }
+
+      mets::gol_type
+      apply_and_evaluate (mets::feasible_solution& cs)
+      {
+        SAModel<ModelT, SceneT>& model = dynamic_cast<SAModel<ModelT, SceneT>&> (cs);
+        return model.apply_and_evaluate (index_, true);
+      }
+
+      void
+      apply (mets::feasible_solution& s) const
+      {
+        SAModel<ModelT, SceneT>& model = dynamic_cast<SAModel<ModelT, SceneT>&> (s);
+        model.apply_and_evaluate (index_, true);
+      }
+
+      void
+      unapply (mets::feasible_solution& s) const
+      {
+        SAModel<ModelT, SceneT>& model = dynamic_cast<SAModel<ModelT, SceneT>&> (s);
+        model.unapply (index_, false);
+      }
+
+      mets::clonable*
+      clone () const
+      {
+        move_activate * m = new move_activate (index_);
+        return static_cast<mets::clonable*> (m);
+      }
+
+      size_t
+      hash () const;
+
+      bool
+      operator== (const mets::mana_move& m) const;
+    };
+
+    template<typename ModelT, typename SceneT>
+      class move_deactivate : public generic_move
+      {
+        int index_;
+        int problem_size_;
+      public:
+        move_deactivate (int i, int problem_size) :
+            index_ (i), problem_size_(problem_size)
+        {
+        }
+
+        int
+        getIndex ()
+        {
+          return index_;
+        }
+
+        mets::gol_type
+        evaluate (const mets::feasible_solution& cs) const
+        {
+          //mets::copyable copyable = dynamic_cast<mets::copyable> (&cs);
+          SAModel<ModelT, SceneT> model;
+          model.copy_from (cs);
+          mets::gol_type cost = model.apply_and_evaluate (index_, false);
+          model.apply_and_evaluate (index_, true);
+          return cost;
+        }
+
+        mets::gol_type
+        apply_and_evaluate (mets::feasible_solution& cs)
+        {
+          SAModel<ModelT, SceneT>& model = dynamic_cast<SAModel<ModelT, SceneT>&> (cs);
+          return model.apply_and_evaluate (index_, false);
+        }
+
+        void
+        apply (mets::feasible_solution& s) const
+        {
+          SAModel<ModelT, SceneT>& model = dynamic_cast<SAModel<ModelT, SceneT>&> (s);
+          model.apply_and_evaluate (index_, false);
+        }
+
+        void
+        unapply (mets::feasible_solution& s) const
+        {
+          SAModel<ModelT, SceneT>& model = dynamic_cast<SAModel<ModelT, SceneT>&> (s);
+          model.unapply (index_, true);
+        }
+
+        mets::clonable*
+        clone () const
+        {
+          move_deactivate * m = new move_deactivate (index_, problem_size_);
+          return static_cast<mets::clonable*> (m);
+        }
+
+        size_t
+        hash () const;
+
+        bool
+        operator== (const mets::mana_move& m) const;
+      };
+
+  /*template<typename ModelT, typename SceneT>
   class move_manager
   {
     bool use_replace_moves_;
@@ -360,7 +492,53 @@ namespace faat_pcl
 
     void
     refresh (mets::feasible_solution& s);
-  };
+  };*/
+
+    template<typename ModelT, typename SceneT>
+      class move_manager
+      {
+        bool use_replace_moves_;
+      public:
+        std::vector<generic_move*> moves_m;
+        boost::shared_ptr<std::map<std::pair<int, int>, bool> > intersections_;
+        typedef typename std::vector<generic_move*>::iterator iterator;
+        int problem_size_;
+        iterator
+        begin ()
+        {
+          return moves_m.begin ();
+        }
+        iterator
+        end ()
+        {
+          return moves_m.end ();
+        }
+
+        move_manager (int problem_size, bool rp_moves = true)
+        {
+          use_replace_moves_ = rp_moves;
+          problem_size_ = problem_size;
+
+          /*for (int ii = 0; ii != problem_size; ++ii)
+            moves_m.push_back (new move<ModelT, SceneT> (ii));*/
+        }
+
+        ~move_manager ()
+        {
+          // delete all moves
+          for (iterator ii = begin (); ii != end (); ++ii)
+            delete (*ii);
+        }
+
+        void
+        setExplainedPointIntersections (boost::shared_ptr<std::map<std::pair<int, int>, bool> > & intersections)
+        {
+          intersections_ = intersections;
+        }
+
+        void
+        refresh (mets::feasible_solution& s);
+      };
 
   template<typename ModelT, typename SceneT>
   class CostFunctionLogger : public mets::solution_recorder
@@ -368,6 +546,7 @@ namespace faat_pcl
     std::vector<float> costs_;
     std::vector<float> costs_each_time_evaluated_;
     int times_evaluated_;
+    boost::function<void (const std::vector<bool> &, float, int)> visualize_function_;
 
   public:
     CostFunctionLogger ();
@@ -377,6 +556,11 @@ namespace faat_pcl
     {
       times_evaluated_ = 0;
       costs_.resize (0);
+    }
+
+    void setVisualizeFunction(boost::function<void (const std::vector<bool> &, float, int)> & f)
+    {
+        visualize_function_ = f;
     }
 
     void
@@ -432,12 +616,17 @@ namespace faat_pcl
     accept (const mets::feasible_solution& sol)
     {
       const mets::evaluable_solution& s = dynamic_cast<const mets::evaluable_solution&> (sol);
-      if (s.cost_function () <= best_ever_m.cost_function ())
+      if (s.cost_function () < best_ever_m.cost_function ())
       {
         best_ever_m.copy_from (s);
         const SAModel<ModelT, SceneT>& ss = static_cast<const SAModel<ModelT, SceneT>&> (sol);
         costs_.push_back (ss.cost_);
         std::cout << "Move accepted:" << ss.cost_ << std::endl;
+
+        if(visualize_function_)
+        {
+            visualize_function_(ss.solution_, ss.cost_, times_evaluated_);
+        }
         return true;
       }
       return false;
@@ -490,13 +679,14 @@ namespace faat_pcl
 
     typedef GlobalHypothesesVerification_1<ModelT, SceneT> SAOptimizerT;
     SAOptimizerT * opt_;
-
+    int evaluated_possibilities_;
   public:
     HVGOBinaryOptimizer (mets::evaluable_solution& starting_point, mets::solution_recorder& recorder, move_manager<ModelT, SceneT>& moveman, int sol_length) :
       mets::abstract_search<move_manager<ModelT, SceneT> > (starting_point, recorder, moveman), sol_length_ (sol_length)
     {
       typedef mets::abstract_search<move_manager<ModelT, SceneT> > base_t;
       base_t::step_m = 0;
+      evaluated_possibilities_ = 0;
     }
 
     void

@@ -184,6 +184,15 @@ namespace faat_pcl
         int inst_;
       };
 
+      class RecognitionStatisticsResults
+      {
+        public:
+            float precision_;
+            float recall_;
+            float fscore_;
+            RecognitionStatistics rs_;
+      };
+
       /*
        * Class to perform generic evaluation of recognition algorithms on
        * given datasets following the appropiate conventions (see below).
@@ -213,9 +222,13 @@ namespace faat_pcl
           typename std::map<SceneId, boost::shared_ptr<std::vector<ModelTPtr> > > recognition_results_;
           typename std::map<SceneId, boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > > transforms_;
 
+          /*typename std::map<SceneId, boost::shared_ptr<std::vector<ModelTPtr> > > recognition_results_upper_bound_;
+          typename std::map<SceneId, boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > > transforms_upper_bound_;*/
+
           std::map<SceneId, std::map<std::string, std::vector<GTModelTPtr> > > gt_data_;
           std::map<SceneId, RecognitionStatistics> scene_statistics_;
           std::map<SceneId, PoseStatistics> pose_statistics_;
+          std::map<SceneId, bool> ignore_list_;
 
           typedef std::pair<float, bool> occ_tp;
           std::vector< occ_tp > occlusion_results_;
@@ -229,9 +242,22 @@ namespace faat_pcl
           bool replace_model_ext_;
           float max_occlusion_;
           bool use_max_occlusion_;
-
           bool checkLoaded();
+
+          RecognitionStatisticsResults rsr_;
         public:
+
+          void copyToDirectory(std::string & out_dir);
+
+          void getRecognitionStatisticsResults(RecognitionStatisticsResults & r)
+          {
+              r = rsr_;
+          }
+
+          void setIgnoreList(std::map<SceneId, bool> & list)
+          {
+              ignore_list_ = list;
+          }
 
           void useMaxOcclusion(bool s)
           {
@@ -286,6 +312,9 @@ namespace faat_pcl
           computeStatistics();
 
           void
+          computeStatisticsUpperBound ();
+
+          void
           visualizeGroundTruth(pcl::visualization::PCLVisualizer & vis, SceneId & s_id, int viewport = -1, bool clear=true, std::string cloud_name="gt_model_cloud");
 
           void
@@ -302,6 +331,8 @@ namespace faat_pcl
           void savePoseStatistics(std::string & out_file);
 
           void savePoseStatisticsRotation(std::string & out_file);
+
+          void saveRecognitionResults(std::string & out_dir);
 
           void
           setModelsDir (std::string & dir)

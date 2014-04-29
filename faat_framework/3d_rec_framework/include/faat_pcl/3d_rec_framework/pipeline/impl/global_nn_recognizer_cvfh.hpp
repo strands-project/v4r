@@ -749,6 +749,14 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           //pro view, compute signatures
           std::vector<pcl::PointCloud<FeatureT>, Eigen::aligned_allocator<pcl::PointCloud<FeatureT> > > signatures;
           std::vector < Eigen::Vector3f > centroids;
+
+          if(models->at(i)->indices_ && (models->at(i)->indices_->at (v).indices.size() > 0)
+                                     && micvfh_estimator_->acceptsIndices())
+          {
+            std::cout << "micvfh_estimator accepts indices:" << micvfh_estimator_->acceptsIndices() << " size:" << models->at(i)->indices_->at (v).indices.size() << std::endl;
+            micvfh_estimator_->setIndices(models->at(i)->indices_->at (v));
+          }
+
           micvfh_estimator_->estimate (view, processed, signatures, centroids);
 
           std::vector<bool> valid_trans;

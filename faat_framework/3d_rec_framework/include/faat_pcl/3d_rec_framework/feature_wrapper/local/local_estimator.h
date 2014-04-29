@@ -65,14 +65,19 @@ template<typename PointInT>
 class FAAT_3D_FRAMEWORK_API UniformSamplingExtractor : public KeypointExtractor<PointInT>
 {
 private:
+
+private:
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     bool filter_planar_;
-    using KeypointExtractor<PointInT>::input_;
-    using KeypointExtractor<PointInT>::radius_;
+    using faat_pcl::rec_3d_framework::KeypointExtractor<PointInT>::input_;
+    using faat_pcl::rec_3d_framework::KeypointExtractor<PointInT>::radius_;
     float sampling_density_;
     boost::shared_ptr<std::vector<std::vector<int> > > neighborhood_indices_;
     boost::shared_ptr<std::vector<std::vector<float> > > neighborhood_dist_;
     float max_distance_;
+    float threshold_planar_;
+    bool z_adaptative_;
+    bool force_unorganized_;
 
     void
     filterPlanar (PointInTPtr & input, pcl::PointCloud<int> & keypoints_cloud)
@@ -80,7 +85,7 @@ private:
         pcl::PointCloud<int> filtered_keypoints;
         //create a search object
         typename pcl::search::Search<PointInT>::Ptr tree;
-        if (input->isOrganized ())
+        if (input->isOrganized () && !force_unorganized_)
             tree.reset (new pcl::search::OrganizedNeighbor<PointInT> ());
         else
             tree.reset (new pcl::search::KdTree<PointInT> (false));
@@ -115,7 +120,14 @@ private:
                     PCL_ERROR("Eigen sum is not finite\n");
                 }
 
-                if ((fabs (eigenValues[0] - eigenValues[1]) < 1.5e-4) || (eigsum != 0 && fabs (eigenValues[0] / eigsum) > 1.e-2))
+                float t_planar = threshold_planar_;
+                if(z_adaptative_)
+                {
+                    t_planar *= (1 + (std::max(input->points[keypoints_cloud.points[i]].z,1.f) - 1.f));
+                }
+
+                //if ((fabs (eigenValues[0] - eigenValues[1]) < 1.5e-4) || (eigsum != 0 && fabs (eigenValues[0] / eigsum) > 1.e-2))
+                if ((fabs (eigenValues[0] - eigenValues[1]) < 1.5e-4) || (eigsum != 0 && fabs (eigenValues[0] / eigsum) > t_planar))
                 {
                     //region is not planar, add to filtered keypoint
                     keypoints_cloud.points[good] = keypoints_cloud.points[i];
@@ -138,6 +150,24 @@ public:
     UniformSamplingExtractor()
     {
         max_distance_ = std::numeric_limits<float>::infinity();
+        threshold_planar_ = 1.e-2;
+        z_adaptative_ = false;
+        force_unorganized_ = false;
+    }
+
+    void setForceUnorganized(bool b)
+    {
+        force_unorganized_ = b;
+    }
+
+    void zAdaptative(bool b)
+    {
+        z_adaptative_ = b;
+    }
+
+    void setThresholdPlanar(float t)
+    {
+        threshold_planar_ = t;
     }
 
     void setMaxDistance(float d)

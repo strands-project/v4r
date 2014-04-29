@@ -45,16 +45,435 @@
 #include <pcl/features/organized_edge_detection.h>
 #include <faat_pcl/utils/miscellaneous.h>
 #include <faat_pcl/3d_rec_framework/feature_wrapper/local/image/opencv_sift_local_estimator.h>
+#include "v4r/SurfaceSegmenter/segmentation.hpp"
 
 float VX_SIZE_ICP_ = 0.005f;
 bool PLAY_ = false;
 std::string go_log_file_ = "test.txt";
 float Z_DIST_ = 1.5f;
-std::string GT_DIR_;
+std::string GT_DIR_ = "";
 std::string MODELS_DIR_;
 std::string MODELS_DIR_FOR_VIS_;
 float model_scale = 1.f;
 bool use_HV = true;
+bool use_highest_plane_ = false;
+
+bool segmentation_plane_unorganized_ = false;
+
+//do a segmentation that instead of the table plane, returns all indices that are not planes
+template<typename PointT>
+void
+doSegmentation (typename pcl::PointCloud<PointT>::Ptr & xyz_points,
+                pcl::PointCloud<pcl::Normal>::Ptr & normal_cloud,
+                std::vector<pcl::PointIndices> & indices,
+                std::vector<int> & indices_above_plane,
+                bool use_highest_plane,
+                int seg = 0)
+{
+    Eigen::Vector4f table_plane;
+
+    std::cout << "Start segmentation..." << std::endl;
+    int min_cluster_size_ = 500;
+    int num_plane_inliers = 1000;
+
+    if(seg == 1)
+    {
+        pcl::apps::DominantPlaneSegmentation<PointT> dps;
+        dps.setInputCloud (xyz_points);
+        dps.setMaxZBounds (Z_DIST_);
+        dps.setObjectMinHeight (0.01);
+        dps.setMinClusterSize (min_cluster_size_);
+        dps.setWSize (9);
+        dps.setDistanceBetweenClusters (0.03f);
+        std::vector<typename pcl::PointCloud<PointT>::Ptr> clusters;
+        dps.setDownsamplingSize (0.01f);
+        dps.compute_full (clusters);
+
+        std::vector<pcl::PointIndices> indices_clusters;
+        dps.getIndicesClusters (indices_clusters);
+        dps.getTableCoefficients (table_plane);
+
+        std::cout << table_plane << std::endl;
+
+        for(size_t i=0; i < xyz_points->points.size(); i++)
+        {
+            Eigen::Vector3f xyz_p = xyz_points->points[i].getVector3fMap();
+            if (!pcl_isfinite (xyz_p[0]) || !pcl_isfinite (xyz_p[1]) || !pcl_isfinite (xyz_p[2]))
+                continue;
+
+            float val = xyz_p[0] * table_plane[0] + xyz_p[1] * table_plane[1] + xyz_p[2] * table_plane[2] + table_plane[3];
+            if(val > 0.01f)
+            {
+                indices_above_plane.push_back(i);
+            }
+        }
+
+        std::cout << indices_above_plane.size() << std::endl;
+
+        return;
+    }
+
+    pcl::OrganizedMultiPlaneSegmentation<PointT, pcl::Normal, pcl::Label> mps;
+    mps.setMinInliers (num_plane_inliers);
+    mps.setAngularThreshold (0.017453 * 2.f); // 2 degrees
+    mps.setDistanceThreshold (0.01); // 1cm
+    mps.setInputNormals (normal_cloud);
+    mps.setInputCloud (xyz_points);
+
+    std::vector<pcl::PlanarRegion<PointT>, Eigen::aligned_allocator<pcl::PlanarRegion<PointT> > > regions;
+    std::vector<pcl::ModelCoefficients> model_coefficients;
+    std::vector<pcl::PointIndices> inlier_indices;
+    pcl::PointCloud<pcl::Label>::Ptr labels (new pcl::PointCloud<pcl::Label>);
+    std::vector<pcl::PointIndices> label_indices;
+    std::vector<pcl::PointIndices> boundary_indices;
+    std::vector<bool> plane_labels;
+
+    typename pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label>::Ptr ref_comp (
+                new pcl::PlaneRefinementComparator<PointT,
+                pcl::Normal, pcl::Label> ());
+    ref_comp->setDistanceThreshold (0.01f, false);
+    ref_comp->setAngularThreshold (0.017453 * 2);
+    mps.setRefinementComparator (ref_comp);
+    mps.segmentAndRefine (regions, model_coefficients, inlier_indices, labels, label_indices, boundary_indices);
+
+    std::cout << "Number of planes found:" << model_coefficients.size () << std::endl;
+    if(model_coefficients.size() == 0)
+        return;
+
+    if(use_highest_plane)
+    {
+        int table_plane_selected = 0;
+        int max_inliers_found = -1;
+        std::vector<int> plane_inliers_counts;
+        plane_inliers_counts.resize (model_coefficients.size ());
+
+        for (size_t i = 0; i < model_coefficients.size (); i++)
+        {
+            Eigen::Vector4f table_plane = Eigen::Vector4f (model_coefficients[i].values[0], model_coefficients[i].values[1],
+                                                           model_coefficients[i].values[2], model_coefficients[i].values[3]);
+
+            std::cout << "Number of inliers for this plane:" << inlier_indices[i].indices.size () << std::endl;
+            int remaining_points = 0;
+            typename pcl::PointCloud<PointT>::Ptr plane_points (new pcl::PointCloud<PointT> (*xyz_points));
+            for (int j = 0; j < plane_points->points.size (); j++)
+            {
+                Eigen::Vector3f xyz_p = plane_points->points[j].getVector3fMap ();
+
+                if (!pcl_isfinite (xyz_p[0]) || !pcl_isfinite (xyz_p[1]) || !pcl_isfinite (xyz_p[2]))
+                    continue;
+
+                float val = xyz_p[0] * table_plane[0] + xyz_p[1] * table_plane[1] + xyz_p[2] * table_plane[2] + table_plane[3];
+
+                if (std::abs (val) > 0.01)
+                {
+                    plane_points->points[j].x = std::numeric_limits<float>::quiet_NaN ();
+                    plane_points->points[j].y = std::numeric_limits<float>::quiet_NaN ();
+                    plane_points->points[j].z = std::numeric_limits<float>::quiet_NaN ();
+                }
+                else
+                    remaining_points++;
+            }
+
+            plane_inliers_counts[i] = remaining_points;
+
+            if (remaining_points > max_inliers_found)
+            {
+                table_plane_selected = i;
+                max_inliers_found = remaining_points;
+            }
+        }
+
+        size_t itt = static_cast<size_t> (table_plane_selected);
+        table_plane = Eigen::Vector4f (model_coefficients[itt].values[0], model_coefficients[itt].values[1],
+                                       model_coefficients[itt].values[2], model_coefficients[itt].values[3]);
+
+        Eigen::Vector3f normal_table = Eigen::Vector3f (model_coefficients[itt].values[0], model_coefficients[itt].values[1],
+                                                        model_coefficients[itt].values[2]);
+
+        int inliers_count_best = plane_inliers_counts[itt];
+
+        //check that the other planes with similar normal are not higher than the table_plane_selected
+        for (size_t i = 0; i < model_coefficients.size (); i++)
+        {
+            Eigen::Vector4f model = Eigen::Vector4f (model_coefficients[i].values[0], model_coefficients[i].values[1], model_coefficients[i].values[2],
+                                                     model_coefficients[i].values[3]);
+
+            Eigen::Vector3f normal = Eigen::Vector3f (model_coefficients[i].values[0], model_coefficients[i].values[1], model_coefficients[i].values[2]);
+
+            int inliers_count = plane_inliers_counts[i];
+
+            std::cout << "Dot product is:" << normal.dot (normal_table) << std::endl;
+            if ((normal.dot (normal_table) > 0.95) && (inliers_count_best * 0.5 <= inliers_count))
+            {
+                //check if this plane is higher, projecting a point on the normal direction
+                std::cout << "Check if plane is higher, then change table plane" << std::endl;
+                std::cout << model[3] << " " << table_plane[3] << std::endl;
+                if (model[3] < table_plane[3])
+                {
+                    PCL_WARN ("Changing table plane...");
+                    table_plane_selected = i;
+                    table_plane = model;
+                    normal_table = normal;
+                    inliers_count_best = inliers_count;
+                }
+            }
+        }
+
+        table_plane = Eigen::Vector4f (model_coefficients[table_plane_selected].values[0], model_coefficients[table_plane_selected].values[1],
+                                       model_coefficients[table_plane_selected].values[2], model_coefficients[table_plane_selected].values[3]);
+
+        label_indices.resize(2);
+        //create two labels, 1 one for points belonging to or under the plane, 1 for points above the plane
+        for (int j = 0; j < xyz_points->points.size (); j++)
+        {
+            Eigen::Vector3f xyz_p = xyz_points->points[j].getVector3fMap ();
+
+            if (!pcl_isfinite (xyz_p[0]) || !pcl_isfinite (xyz_p[1]) || !pcl_isfinite (xyz_p[2]))
+                continue;
+
+            float val = xyz_p[0] * table_plane[0] + xyz_p[1] * table_plane[1] + xyz_p[2] * table_plane[2] + table_plane[3];
+
+            if (val >= 0.01f) //object
+            {
+                labels->points[j].label = 1;
+                label_indices[1].indices.push_back(j);
+            }
+            else //plane or below
+            {
+                labels->points[j].label = 0;
+                label_indices[0].indices.push_back(j);
+            }
+        }
+
+        plane_labels.resize (2, false);
+        plane_labels[0] = true;
+    }
+    else
+    {
+        label_indices.resize(inlier_indices.size() + 1);
+        plane_labels.resize (inlier_indices.size () + 1, false);
+
+        for (int j = 0; j < xyz_points->points.size (); j++)
+        {
+            labels->points[j].label = 0;
+        }
+
+        //filter out all big planes
+        int max_plane_inliers = 15000;
+        int l=1;
+        for (size_t i = 0; i < inlier_indices.size (); i++,l++)
+        {
+
+            if(inlier_indices[i].indices.size() > max_plane_inliers)
+            {
+                //its a big plane
+                plane_labels[l] = true;
+            }
+            else
+            {
+                //its a small plane (potentially an object)
+                plane_labels[l] = false;
+            }
+
+            for (size_t j = 0; j < inlier_indices[i].indices.size (); j++)
+            {
+                labels->points[inlier_indices[i].indices[j]].label = l;
+                label_indices[l].indices.push_back(inlier_indices[i].indices[j]);
+            }
+        }
+
+        for(size_t j=0; j < labels->points.size(); j++)
+        {
+            if(labels->points[j].label == 0)
+            {
+                label_indices[0].indices.push_back(j);
+            }
+        }
+    }
+
+    if(seg == 0) //connected component segmentation
+    {
+        //cluster..
+        typename pcl::EuclideanClusterComparator<PointT, pcl::Normal, pcl::Label>::Ptr
+                euclidean_cluster_comparator_ (
+                    new pcl::EuclideanClusterComparator<
+                    PointT,
+                    pcl::Normal,
+                    pcl::Label> ());
+
+        euclidean_cluster_comparator_->setInputCloud (xyz_points);
+        euclidean_cluster_comparator_->setLabels (labels);
+        euclidean_cluster_comparator_->setExcludeLabels (plane_labels);
+        euclidean_cluster_comparator_->setDistanceThreshold (0.035f, true);
+
+        pcl::PointCloud<pcl::Label> euclidean_labels;
+        std::vector<pcl::PointIndices> euclidean_label_indices;
+        pcl::OrganizedConnectedComponentSegmentation<PointT, pcl::Label> euclidean_segmentation (euclidean_cluster_comparator_);
+        euclidean_segmentation.setInputCloud (xyz_points);
+        euclidean_segmentation.segment (euclidean_labels, euclidean_label_indices);
+
+        for (size_t i = 0; i < euclidean_label_indices.size (); i++)
+        {
+            if (euclidean_label_indices[i].indices.size () >= min_cluster_size_)
+            {
+                indices.push_back (euclidean_label_indices[i]);
+                indices_above_plane.insert(indices_above_plane.end(), euclidean_label_indices[i].indices.begin(),
+                                                                      euclidean_label_indices[i].indices.end());
+            }
+        }
+    }
+    else if(seg == 2)
+    {
+
+        //use label_indices and plane_labels to set points to NaN
+        boost::shared_ptr<segmentation::Segmenter> segmenter_;
+
+        typename pcl::PointCloud<PointT>::Ptr scene_cloud(new pcl::PointCloud<PointT>(*xyz_points));
+        for(size_t i=0; i < xyz_points->points.size(); i++)
+        {
+            if(xyz_points->points[i].z > Z_DIST_)
+            {
+                scene_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN ();
+                scene_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN ();
+                scene_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN ();
+            }
+        }
+
+        for(size_t i=0; i < plane_labels.size(); i++)
+        {
+            if(!plane_labels[i])
+                continue; //is not a plane, do nothing
+
+            //if the label belongs to a plane, set indices to NaN
+            for(size_t k=0; k < label_indices[i].indices.size(); k++)
+            {
+                scene_cloud->points[label_indices[i].indices[k]].x
+                        = scene_cloud->points[label_indices[i].indices[k]].y
+                        = scene_cloud->points[label_indices[i].indices[k]].z
+                        = std::numeric_limits<float>::quiet_NaN ();
+            }
+        }
+
+
+        segmenter_.reset(new segmentation::Segmenter);
+        segmenter_->setModelFilename("data_rgbd_segmenter/ST-TrainAll.model.txt");
+        segmenter_->setScaling("data_rgbd_segmenter/ST-TrainAll.scalingparams.txt");
+        segmenter_->setUsePlanesNotNurbs(false);
+        segmenter_->setPointCloud(scene_cloud);
+        segmenter_->segment();
+
+        std::vector<std::vector<int> > clusters = segmenter_->getSegmentedObjectsIndices();
+
+        indices_above_plane.resize(0);
+        for (size_t i = 0; i < clusters.size (); i++)
+        {
+            if (clusters[i].size () >= min_cluster_size_)
+            {
+                pcl::PointIndices indx;
+                indx.indices = clusters[i];
+                indices.push_back (indx);
+
+                indices_above_plane.insert(indices_above_plane.end(), clusters[i].begin(), clusters[i].end());
+            }
+        }
+    }
+}
+
+//do a segmentation that instead of the table plane, returns all indices that are not planes
+template<typename PointT>
+void
+doSegmentation (typename pcl::PointCloud<PointT>::Ptr & xyz_points,
+                pcl::PointCloud<pcl::Normal>::Ptr & normal_cloud,
+                std::vector<pcl::PointIndices> & indices,
+                std::vector<int> & indices_above_plane)
+{
+    Eigen::Vector4f table_plane;
+
+    std::cout << "Start segmentation..." << std::endl;
+    int min_cluster_size_ = 500;
+
+    pcl::apps::DominantPlaneSegmentation<PointT> dps;
+    dps.setInputCloud (xyz_points);
+    dps.setMaxZBounds (Z_DIST_);
+    dps.setObjectMinHeight (0.01);
+    dps.setMinClusterSize (min_cluster_size_);
+    dps.setWSize (9);
+    dps.setDistanceBetweenClusters (0.03f);
+    std::vector<typename pcl::PointCloud<PointT>::Ptr> clusters;
+    dps.setDownsamplingSize (0.01f);
+    dps.compute_full (clusters);
+
+    std::vector<pcl::PointIndices> indices_clusters;
+    dps.getIndicesClusters (indices_clusters);
+    dps.getTableCoefficients (table_plane);
+
+    std::cout << table_plane << std::endl;
+
+    std::vector<int> below_plane;
+
+    for(size_t i=0; i < xyz_points->points.size(); i++)
+    {
+        Eigen::Vector3f xyz_p = xyz_points->points[i].getVector3fMap();
+        if (!pcl_isfinite (xyz_p[0]) || !pcl_isfinite (xyz_p[1]) || !pcl_isfinite (xyz_p[2]))
+            continue;
+
+        float val = xyz_p[0] * table_plane[0] + xyz_p[1] * table_plane[1] + xyz_p[2] * table_plane[2] + table_plane[3];
+        if(val > 0.01f)
+        {
+            indices_above_plane.push_back(i);
+        }
+        else
+        {
+            below_plane.push_back(i);
+        }
+    }
+
+    std::cout << indices_above_plane.size() << std::endl;
+
+    //use label_indices and plane_labels to set points to NaN
+    boost::shared_ptr<segmentation::Segmenter> segmenter_;
+
+    typename pcl::PointCloud<PointT>::Ptr scene_cloud(new pcl::PointCloud<PointT>(*xyz_points));
+    for(size_t i=0; i < xyz_points->points.size(); i++)
+    {
+        if(xyz_points->points[i].z > Z_DIST_)
+        {
+            scene_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN ();
+            scene_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN ();
+            scene_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN ();
+        }
+    }
+
+    for(size_t i=0; i < below_plane.size(); i++)
+    {
+            scene_cloud->points[below_plane[i]].x
+                    = scene_cloud->points[below_plane[i]].y
+                    = scene_cloud->points[below_plane[i]].z
+                    = std::numeric_limits<float>::quiet_NaN ();
+    }
+
+
+    segmenter_.reset(new segmentation::Segmenter);
+    segmenter_->setModelFilename("data_rgbd_segmenter/ST-TrainAll.model.txt");
+    segmenter_->setScaling("data_rgbd_segmenter/ST-TrainAll.scalingparams.txt");
+    segmenter_->setUsePlanesNotNurbs(false);
+    segmenter_->setPointCloud(scene_cloud);
+    segmenter_->segment();
+
+    {
+        std::vector<std::vector<int> > clusters = segmenter_->getSegmentedObjectsIndices();
+
+        for (size_t i = 0; i < clusters.size (); i++)
+        {
+            if (clusters[i].size () >= min_cluster_size_)
+            {
+                pcl::PointIndices indx;
+                indx.indices = clusters[i];
+                indices.push_back (indx);
+            }
+        }
+    }
+}
 
 template<typename PointT>
 void
@@ -65,27 +484,10 @@ doSegmentation (typename pcl::PointCloud<PointT>::Ptr & xyz_points,
                 int seg = 0)
 {
     std::cout << "Start segmentation..." << std::endl;
-
-    //typename pcl::PointCloud<PointT>::Ptr xyz_points_andy (new pcl::PointCloud<PointT>(*xyz_points));
-    /*pcl::PassThrough<PointT> pass_;
-  pass_.setFilterLimits (0.f, Z_DIST_);
-  pass_.setFilterFieldName ("z");
-  pass_.setInputCloud (xyz_points);
-  pass_.setKeepOrganized (true);
-  pass_.filter (*xyz_points_andy);*/
-
     int min_cluster_size_ = 500;
 
     if(seg == 0)
     {
-        /*pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
-    ne.setNormalEstimationMethod (ne.COVARIANCE_MATRIX);
-    ne.setMaxDepthChangeFactor (0.02f);
-    ne.setNormalSmoothingSize (20.0f);
-    ne.setBorderPolicy (pcl::IntegralImageNormalEstimation<PointT, pcl::Normal>::BORDER_POLICY_IGNORE);
-    ne.setInputCloud (xyz_points);
-    pcl::PointCloud<pcl::Normal>::Ptr normal_cloud (new pcl::PointCloud<pcl::Normal>);
-    ne.compute (*normal_cloud);*/
 
         int num_plane_inliers = 1000;
 
@@ -253,7 +655,7 @@ doSegmentation (typename pcl::PointCloud<PointT>::Ptr & xyz_points,
             }
         }
     }
-    else
+    else if(seg == 1)
     {
         pcl::apps::DominantPlaneSegmentation<PointT> dps;
         dps.setInputCloud (xyz_points);
@@ -267,6 +669,42 @@ doSegmentation (typename pcl::PointCloud<PointT>::Ptr & xyz_points,
         dps.compute_fast (clusters);
         dps.getIndicesClusters (indices);
         dps.getTableCoefficients (table_plane);
+    }
+    else if(seg == 2)
+    {
+
+        boost::shared_ptr<segmentation::Segmenter> segmenter_;
+
+        typename pcl::PointCloud<PointT>::Ptr scene_cloud(new pcl::PointCloud<PointT>(*xyz_points));
+        for(size_t i=0; i < xyz_points->points.size(); i++)
+        {
+            if(xyz_points->points[i].z > Z_DIST_)
+            {
+                scene_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN ();
+                scene_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN ();
+                scene_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN ();
+            }
+        }
+
+
+        segmenter_.reset(new segmentation::Segmenter);
+        segmenter_->setModelFilename("data_rgbd_segmenter/ST-TrainAll.model.txt");
+        segmenter_->setScaling("data_rgbd_segmenter/ST-TrainAll.scalingparams.txt");
+        segmenter_->setUsePlanesNotNurbs(false);
+        segmenter_->setPointCloud(scene_cloud);
+        segmenter_->segment();
+
+        std::vector<std::vector<int> > clusters = segmenter_->getSegmentedObjectsIndices();
+
+        for (size_t i = 0; i < clusters.size (); i++)
+        {
+            if (clusters[i].size () >= min_cluster_size_)
+            {
+                pcl::PointIndices indx;
+                indx.indices = clusters[i];
+                indices.push_back (indx);
+            }
+        }
     }
 }
 
@@ -350,6 +788,7 @@ std::string POSE_STATISTICS_ANGLE_OUTPUT_FILE_ = "pose_error.txt";
 bool use_histogram_specification_ = false;
 bool use_table_plane_ = true;
 bool non_organized_planes_ = true;
+std::string RESULTS_OUTPUT_DIR_ = "";
 
 template<typename PointT>
 void
@@ -358,15 +797,25 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
 {
 
 
+    bool gt_available = true;
+    if(GT_DIR_.compare("") == 0)
+    {
+        gt_available = false;
+    }
+
     faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<PointT> or_eval;
-    or_eval.setGTDir(GT_DIR_);
-    or_eval.setModelsDir(MODELS_DIR_);
-    or_eval.setModelFileExtension("pcd");
-    or_eval.setReplaceModelExtension(false);
-    or_eval.useMaxOcclusion(false);
-    or_eval.setMaxOcclusion(0.9f);
-    or_eval.setCheckPose(true);
-    or_eval.setMaxCentroidDistance(0.03f);
+
+    if(gt_available)
+    {
+        or_eval.setGTDir(GT_DIR_);
+        or_eval.setModelsDir(MODELS_DIR_);
+        or_eval.setModelFileExtension("pcd");
+        or_eval.setReplaceModelExtension(false);
+        or_eval.useMaxOcclusion(false);
+        or_eval.setMaxOcclusion(0.9f);
+        or_eval.setCheckPose(true);
+        or_eval.setMaxCentroidDistance(0.03f);
+    }
 
     boost::shared_ptr<faat_pcl::GlobalHypothesesVerification_1<PointT, PointT> > go (
                 new faat_pcl::GlobalHypothesesVerification_1<PointT,
@@ -439,9 +888,13 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
         }
 
         std::sort(files_to_recognize.begin(),files_to_recognize.end());
-        or_eval.setScenesDir(scene_file);
-        or_eval.setDataSource(local->getDataSource());
-        or_eval.loadGTData();
+
+        if(gt_available)
+        {
+            or_eval.setScenesDir(scene_file);
+            or_eval.setDataSource(local->getDataSource());
+            or_eval.loadGTData();
+        }
     }
     else
     {
@@ -470,8 +923,6 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
         boost::replace_all (file_to_recognize, ".pcd", "");
 
         std::string id_1 = file_to_recognize;
-        //size_t pos1 = id_1.find (".pcd");
-        //id_1 = id_1.substr (0, pos1);
 
         std::cout << "Scene is:" << id_1 << std::endl;
         if(Z_DIST_ > 0)
@@ -484,28 +935,7 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
             pass_.filter (*scene);
         }
 
-        //bilater filter test
-        if(BILATERAL_FILTER_)
-        {
-            pcl::FastBilateralFilter<PointT> fbf;
-            fbf.setInputCloud(scene);
-            fbf.setSigmaS(3.f);
-            fbf.setSigmaR(0.005f);
-            typename pcl::PointCloud<PointT>::Ptr scene_fbf (new pcl::PointCloud<PointT>());
-            fbf.filter(*scene_fbf);
-            scene = scene_fbf;
-        }
         pcl::PointCloud<pcl::Normal>::Ptr normal_cloud (new pcl::PointCloud<pcl::Normal>);
-
-
-        /*pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
-    ne.setNormalEstimationMethod (ne.COVARIANCE_MATRIX);
-    ne.setMaxDepthChangeFactor (0.02f);
-    ne.setNormalSmoothingSize (20.0f);
-    ne.setBorderPolicy (pcl::IntegralImageNormalEstimation<PointT, pcl::Normal>::BORDER_POLICY_IGNORE);
-    ne.setInputCloud (scene);
-    ne.compute (*normal_cloud);*/
-
         pcl::NormalEstimationOMP<PointT, pcl::Normal> ne;
         ne.setRadiusSearch(0.02f);
         ne.setInputCloud (scene);
@@ -530,10 +960,10 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
         }
 
         std::vector<pcl::PointIndices> indices;
-        Eigen::Vector4f table_plane;
+        //Eigen::Vector4f table_plane;
         std::vector<int> indices_above_plane;
 
-        if(use_table_plane_)
+        /*if(use_table_plane_)
         {
             doSegmentation<PointT>(scene, normal_cloud, indices, table_plane, seg);
 
@@ -582,7 +1012,35 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
 
             local->setSegmentation(indices);
             local->setIndices(indices_above_plane);
+        }*/
 
+        if(use_table_plane_)
+        {
+
+            if(segmentation_plane_unorganized_)
+            {
+                indices_above_plane.resize(0);
+                doSegmentation<PointT>(scene, normal_cloud, indices, indices_above_plane);
+            }
+            else
+            {
+                indices_above_plane.resize(0);
+                doSegmentation<PointT>(scene, normal_cloud, indices, indices_above_plane, use_highest_plane_, seg);
+            }
+
+            std::cout << indices_above_plane.size() << std::endl;
+            local->setSegmentation(indices);
+            local->setIndices(indices_above_plane);
+
+            /*pcl::visualization::PCLVisualizer vis("above plane");
+            vis.addPointCloud(scene, "scene");
+
+            typename pcl::PointCloud<PointT>::Ptr above_plane_cloud(new pcl::PointCloud<PointT>);
+            pcl::copyPointCloud(*scene, indices_above_plane, *above_plane_cloud);
+
+            pcl::visualization::PointCloudColorHandlerCustom<PointT> random_handler (above_plane_cloud, 255, 255, 0);
+            vis.addPointCloud<PointT> (above_plane_cloud, random_handler, "above plane");
+            vis.spin();*/
         }
 
         local->setSceneNormals(normal_cloud);
@@ -596,244 +1054,246 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
         //transforms models
         boost::shared_ptr < std::vector<ModelTPtr> > models = local->getModels ();
         boost::shared_ptr < std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms = local->getTransforms ();
-        std::vector<typename pcl::PointCloud<PointT>::ConstPtr> aligned_models;
-        std::vector<typename pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals;
-        aligned_models.resize (models->size ());
-        aligned_normals.resize (models->size ());
-
-        std::vector<std::string> model_ids;
-        for (size_t kk = 0; kk < models->size (); kk++)
-        {
-            ConstPointInTPtr model_cloud = models->at (kk)->getAssembled (parameters_for_go.go_resolution);
-            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models->at (kk)->getNormalsAssembled (parameters_for_go.go_resolution);
-
-            typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-            pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (kk));
-            aligned_models[kk] = model_aligned;
-
-            typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
-            faat_pcl::utils::miscellaneous::transformNormals(normal_cloud, normal_aligned, transforms->at (kk));
-            aligned_normals[kk] = normal_aligned;
-            model_ids.push_back(models->at (kk)->id_);
-        }
-
-        std::vector<bool> mask_hv;
-        if(use_HV && model_ids.size() > 0)
-        {
-            //compute edges
-            //compute depth discontinuity edges
-            pcl::OrganizedEdgeBase<PointT, pcl::Label> oed;
-            oed.setDepthDisconThreshold (0.02f); //at 1m, adapted linearly with depth
-            oed.setMaxSearchNeighbors(100);
-            oed.setEdgeType (pcl::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDING
-            | pcl::OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_OCCLUDED
-            | pcl::OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_NAN_BOUNDARY
-            );
-            oed.setInputCloud (occlusion_cloud);
-
-            pcl::PointCloud<pcl::Label>::Ptr labels (new pcl::PointCloud<pcl::Label>);
-            std::vector<pcl::PointIndices> indices2;
-            oed.compute (*labels, indices2);
-
-            pcl::PointCloud<pcl::PointXYZ>::Ptr occ_edges_full(new pcl::PointCloud<pcl::PointXYZ>);
-            occ_edges_full->points.resize(occlusion_cloud->points.size());
-            occ_edges_full->width = occlusion_cloud->width;
-            occ_edges_full->height = occlusion_cloud->height;
-            occ_edges_full->is_dense = occlusion_cloud->is_dense;
-
-            for(size_t ik=0; ik < occ_edges_full->points.size(); ik++)
-            {
-                occ_edges_full->points[ik].x =
-                occ_edges_full->points[ik].y =
-                occ_edges_full->points[ik].z = std::numeric_limits<float>::quiet_NaN();
-            }
-
-            for (size_t j = 0; j < indices2.size (); j++)
-            {
-              for (size_t i = 0; i < indices2[j].indices.size (); i++)
-              {
-                occ_edges_full->points[indices2[j].indices[i]].getVector3fMap() = occlusion_cloud->points[indices2[j].indices[i]].getVector3fMap();
-              }
-            }
-
-            go->setOcclusionEdges(occ_edges_full);
-            go->setSceneCloud (scene);
-            go->setNormalsForClutterTerm(normal_cloud);
-            go->setOcclusionCloud (occlusion_cloud);
-
-            //addModels
-            go->setRequiresNormals(true);
-            go->addNormalsClouds(aligned_normals);
-            go->addModels (aligned_models, true);
-
-            std::cout << "normal and models size:" << aligned_models.size() << " " << aligned_normals.size() << std::endl;
-            //append planar models
-            if(add_planes)
-            {
-                go->addPlanarModels(planes_found);
-                for(size_t kk=0; kk < planes_found.size(); kk++)
-                {
-                    std::stringstream plane_id;
-                    plane_id << "plane_" << kk;
-                    model_ids.push_back(plane_id.str());
-                }
-            }
-
-            go->setObjectIds(model_ids);
-            //verify
-            {
-                pcl::ScopeTime t("Go verify");
-                go->verify ();
-            }
-            go->getMask (mask_hv);
-        }
-        else
-        {
-            mask_hv.resize(aligned_models.size(), true);
-        }
-
-        std::vector<int> coming_from;
-        coming_from.resize(aligned_models.size() + planes_found.size());
-        for(size_t j=0; j < aligned_models.size(); j++)
-            coming_from[j] = 0;
-
-        for(size_t j=0; j < planes_found.size(); j++)
-            coming_from[aligned_models.size() + j] = 1;
-
-        //clear last round from the visualizer
-        vis.removePointCloud ("scene_cloud");
-        vis.removePointCloud ("scene_cloud_z_coloured");
-        vis.removeShape ("scene_text");
-        vis.removeAllShapes(v2);
-        vis.removeAllShapes(v1);
-        vis.removeAllPointClouds();
-
-        std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> outlier_clouds_;
-        std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> outlier_clouds_color, outlier_clouds_3d;
 
         if(use_HV)
         {
-            go->getOutliersForAcceptedModels(outlier_clouds_);
-            go->getOutliersForAcceptedModels(outlier_clouds_color, outlier_clouds_3d);
+            std::vector<typename pcl::PointCloud<PointT>::ConstPtr> aligned_models;
+            std::vector<typename pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals;
+            aligned_models.resize (models->size ());
+            aligned_normals.resize (models->size ());
 
-            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  go->getSmoothClustersRGBCloud();
-            if(smooth_cloud_)
+            std::vector<std::string> model_ids;
+            for (size_t kk = 0; kk < models->size (); kk++)
             {
-                pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
-                vis.addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", v3);
+                ConstPointInTPtr model_cloud = models->at (kk)->getAssembled (parameters_for_go.go_resolution);
+                pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models->at (kk)->getNormalsAssembled (parameters_for_go.go_resolution);
+
+                typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+                pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (kk));
+                aligned_models[kk] = model_aligned;
+
+                typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
+                faat_pcl::utils::miscellaneous::transformNormals(normal_cloud, normal_aligned, transforms->at (kk));
+                aligned_normals[kk] = normal_aligned;
+                model_ids.push_back(models->at (kk)->id_);
             }
-        }
 
-        {
-
-            //vis.addPointCloud(occ_edges_full, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(occ_edges_full, 255,0,0), "occlusion_edges", v5);
-            //vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 7, "occlusion_edges");
-
-            pcl::visualization::PointCloudColorHandlerRGBField<PointT> scene_handler (scene);
-            vis.addPointCloud<PointT> (scene, scene_handler, "scene_cloud_z_coloured", v5);
-        }
-
-        for(size_t kk=0; kk < planes_found.size(); kk++)
-        {
-            std::stringstream pname;
-            pname << "plane_" << kk;
-
-            pcl::visualization::PointCloudColorHandlerRandom<PointT> scene_handler(planes_found[kk].plane_cloud_);
-            vis.addPointCloud<PointT> (planes_found[kk].plane_cloud_, scene_handler, pname.str(), v1);
-
-            pname << "chull";
-            vis.addPolygonMesh (*planes_found[kk].convex_hull_, pname.str(), v1);
-        }
-
-        pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler (scene, 125, 125, 125);
-        vis.addPointCloud<PointT> (scene, scene_handler, "scene_cloud", v1);
-        vis.addText (files_to_recognize[i], 1, 30, 14, 1, 0, 0, "scene_text", v1);
-        if(local->isSegmentationRequired() && use_table_plane_)
-        {
-            //visualize segmentation
-            for (size_t c = 0; c < indices.size (); c++)
+            std::vector<bool> mask_hv;
+            if(use_HV && model_ids.size() > 0)
             {
-                /*if (indices[c].indices.size () < 500)
-          continue;*/
+                //compute edges
+                //compute depth discontinuity edges
+                pcl::OrganizedEdgeBase<PointT, pcl::Label> oed;
+                oed.setDepthDisconThreshold (0.02f); //at 1m, adapted linearly with depth
+                oed.setMaxSearchNeighbors(100);
+                oed.setEdgeType (pcl::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDING
+                | pcl::OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_OCCLUDED
+                | pcl::OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_NAN_BOUNDARY
+                );
+                oed.setInputCloud (occlusion_cloud);
 
-                std::stringstream name;
-                name << "cluster_" << c;
+                pcl::PointCloud<pcl::Label>::Ptr labels (new pcl::PointCloud<pcl::Label>);
+                std::vector<pcl::PointIndices> indices2;
+                oed.compute (*labels, indices2);
 
-                typename pcl::PointCloud<PointT>::Ptr cluster (new pcl::PointCloud<PointT>);
-                pcl::copyPointCloud (*scene, indices[c].indices, *cluster);
+                pcl::PointCloud<pcl::PointXYZ>::Ptr occ_edges_full(new pcl::PointCloud<pcl::PointXYZ>);
+                occ_edges_full->points.resize(occlusion_cloud->points.size());
+                occ_edges_full->width = occlusion_cloud->width;
+                occ_edges_full->height = occlusion_cloud->height;
+                occ_edges_full->is_dense = occlusion_cloud->is_dense;
 
-                pcl::visualization::PointCloudColorHandlerRandom<PointT> handler_rgb (cluster);
-                vis.addPointCloud<PointT> (cluster, handler_rgb, name.str (), v1);
-            }
-        }
-
-        or_eval.visualizeGroundTruth(vis, id_1, v4);
-
-        boost::shared_ptr<std::vector<ModelTPtr> > verified_models(new std::vector<ModelTPtr>);
-        boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > verified_transforms;
-        verified_transforms.reset(new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-
-        if(models)
-        {
-            vtkSmartPointer < vtkTransform > scale_models = vtkSmartPointer<vtkTransform>::New ();
-            scale_models->Scale(model_scale, model_scale, model_scale);
-
-            for (size_t j = 0; j < mask_hv.size (); j++)
-            {
-                std::stringstream name;
-                name << "cloud_" << j;
-
-                if(!mask_hv[j])
+                for(size_t ik=0; ik < occ_edges_full->points.size(); ik++)
                 {
-                    if(coming_from[j] == 0)
+                    occ_edges_full->points[ik].x =
+                    occ_edges_full->points[ik].y =
+                    occ_edges_full->points[ik].z = std::numeric_limits<float>::quiet_NaN();
+                }
+
+                for (size_t j = 0; j < indices2.size (); j++)
+                {
+                  for (size_t i = 0; i < indices2[j].indices.size (); i++)
+                  {
+                    occ_edges_full->points[indices2[j].indices[i]].getVector3fMap() = occlusion_cloud->points[indices2[j].indices[i]].getVector3fMap();
+                  }
+                }
+
+                go->setOcclusionEdges(occ_edges_full);
+                go->setSceneCloud (scene);
+                go->setNormalsForClutterTerm(normal_cloud);
+                go->setOcclusionCloud (occlusion_cloud);
+
+                //addModels
+                go->setRequiresNormals(true);
+                go->addNormalsClouds(aligned_normals);
+                go->addModels (aligned_models, true);
+
+                std::cout << "normal and models size:" << aligned_models.size() << " " << aligned_normals.size() << std::endl;
+                //append planar models
+                if(add_planes)
+                {
+                    go->addPlanarModels(planes_found);
+                    for(size_t kk=0; kk < planes_found.size(); kk++)
                     {
-                        ConstPointInTPtr model_cloud = models->at (j)->getAssembled (VX_SIZE_ICP_);
-                        typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-                        pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
-
-                        //pcl::visualization::PointCloudColorHandlerRandom<PointT> random_handler (model_aligned);
-                        pcl::visualization::PointCloudColorHandlerRGBField<PointT> random_handler (model_aligned);
-                        vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v6);
+                        std::stringstream plane_id;
+                        plane_id << "plane_" << kk;
+                        model_ids.push_back(plane_id.str());
                     }
-                    continue;
                 }
 
-                if(coming_from[j] == 0)
+                go->setObjectIds(model_ids);
+                //verify
                 {
-                    verified_models->push_back(models->at(j));
-                    verified_transforms->push_back(transforms->at(j));
-
-                    ConstPointInTPtr model_cloud = models->at (j)->getAssembled (0.002f);
-                    typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-                    pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
-
-                    std::cout << models->at (j)->id_ << std::endl;
-
-                    pcl::visualization::PointCloudColorHandlerRGBField<PointT> random_handler (model_aligned);
-                    vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v2);
-
-                    /*pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models->at (j)->getNormalsAssembled (0.002f);
-                    typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
-                    faat_pcl::utils::miscellaneous::transformNormals(normal_cloud, normal_aligned, transforms->at (j));
-
-                    name << "_normals";
-                    vis.addPointCloudNormals<PointT, pcl::Normal>(model_aligned, normal_aligned, 10, 0.01, name.str(), v2);*/
+                    pcl::ScopeTime t("Go verify");
+                    go->verify ();
                 }
-                else
-                {
-                    std::stringstream pname;
-                    pname << "plane_v2_" << j;
-
-                    pcl::visualization::PointCloudColorHandlerRandom<PointT> scene_handler(planes_found[j - models->size()].plane_cloud_);
-                    vis.addPointCloud<PointT> (planes_found[j - models->size()].plane_cloud_, scene_handler, pname.str(), v2);
-
-                    pname << "chull_v2";
-                    vis.addPolygonMesh (*planes_found[j - models->size()].convex_hull_, pname.str(), v2);
-                }
+                go->getMask (mask_hv);
             }
+            else
+            {
+                mask_hv.resize(aligned_models.size(), true);
+            }
+
+            std::vector<int> coming_from;
+            coming_from.resize(aligned_models.size() + planes_found.size());
+            for(size_t j=0; j < aligned_models.size(); j++)
+                coming_from[j] = 0;
+
+            for(size_t j=0; j < planes_found.size(); j++)
+                coming_from[aligned_models.size() + j] = 1;
+
+            //clear last round from the visualizer
+            vis.removePointCloud ("scene_cloud");
+            vis.removePointCloud ("scene_cloud_z_coloured");
+            vis.removeShape ("scene_text");
+            vis.removeAllShapes(v2);
+            vis.removeAllShapes(v1);
+            vis.removeAllPointClouds();
+
+            std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> outlier_clouds_;
+            std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> outlier_clouds_color, outlier_clouds_3d;
 
             if(use_HV)
             {
+                go->getOutliersForAcceptedModels(outlier_clouds_);
+                go->getOutliersForAcceptedModels(outlier_clouds_color, outlier_clouds_3d);
+
+                pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  go->getSmoothClustersRGBCloud();
+                if(smooth_cloud_)
+                {
+                    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
+                    vis.addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", v3);
+                }
+            }
+
+            {
+
+                //vis.addPointCloud(occ_edges_full, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(occ_edges_full, 255,0,0), "occlusion_edges", v5);
+                //vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 7, "occlusion_edges");
+
+                pcl::visualization::PointCloudColorHandlerRGBField<PointT> scene_handler (scene);
+                vis.addPointCloud<PointT> (scene, scene_handler, "scene_cloud_z_coloured", v5);
+            }
+
+            for(size_t kk=0; kk < planes_found.size(); kk++)
+            {
+                std::stringstream pname;
+                pname << "plane_" << kk;
+
+                pcl::visualization::PointCloudColorHandlerRandom<PointT> scene_handler(planes_found[kk].plane_cloud_);
+                vis.addPointCloud<PointT> (planes_found[kk].plane_cloud_, scene_handler, pname.str(), v6);
+
+                pname << "chull";
+                vis.addPolygonMesh (*planes_found[kk].convex_hull_, pname.str(), v6);
+            }
+
+            pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler (scene, 125, 125, 125);
+            vis.addPointCloud<PointT> (scene, scene_handler, "scene_cloud", v1);
+            vis.addText (files_to_recognize[i], 1, 30, 14, 1, 0, 0, "scene_text", v1);
+            if(local->isSegmentationRequired() && use_table_plane_)
+            {
+                //visualize segmentation
+                for (size_t c = 0; c < indices.size (); c++)
+                {
+                    /*if (indices[c].indices.size () < 500)
+              continue;*/
+
+                    std::stringstream name;
+                    name << "cluster_" << c;
+
+                    typename pcl::PointCloud<PointT>::Ptr cluster (new pcl::PointCloud<PointT>);
+                    pcl::copyPointCloud (*scene, indices[c].indices, *cluster);
+
+                    pcl::visualization::PointCloudColorHandlerRandom<PointT> handler_rgb (cluster);
+                    vis.addPointCloud<PointT> (cluster, handler_rgb, name.str (), v1);
+                }
+            }
+
+            if(gt_available)
+                or_eval.visualizeGroundTruth(vis, id_1, v4);
+
+            boost::shared_ptr<std::vector<ModelTPtr> > verified_models(new std::vector<ModelTPtr>);
+            boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > verified_transforms;
+            verified_transforms.reset(new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
+
+            if(models)
+            {
+                vtkSmartPointer < vtkTransform > scale_models = vtkSmartPointer<vtkTransform>::New ();
+                scale_models->Scale(model_scale, model_scale, model_scale);
+
+                for (size_t j = 0; j < mask_hv.size (); j++)
+                {
+                    std::stringstream name;
+                    name << "cloud_" << j;
+
+                    if(!mask_hv[j])
+                    {
+                        if(coming_from[j] == 0)
+                        {
+                            ConstPointInTPtr model_cloud = models->at (j)->getAssembled (VX_SIZE_ICP_);
+                            typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+                            pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
+
+                            //pcl::visualization::PointCloudColorHandlerRandom<PointT> random_handler (model_aligned);
+                            pcl::visualization::PointCloudColorHandlerRGBField<PointT> random_handler (model_aligned);
+                            vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v6);
+                        }
+                        continue;
+                    }
+
+                    if(coming_from[j] == 0)
+                    {
+                        verified_models->push_back(models->at(j));
+                        verified_transforms->push_back(transforms->at(j));
+
+                        ConstPointInTPtr model_cloud = models->at (j)->getAssembled (0.002f);
+                        typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+                        pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
+
+                        std::cout << models->at (j)->id_ << std::endl;
+
+                        pcl::visualization::PointCloudColorHandlerRGBField<PointT> random_handler (model_aligned);
+                        vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v2);
+
+                        /*pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models->at (j)->getNormalsAssembled (0.002f);
+                        typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
+                        faat_pcl::utils::miscellaneous::transformNormals(normal_cloud, normal_aligned, transforms->at (j));
+
+                        name << "_normals";
+                        vis.addPointCloudNormals<PointT, pcl::Normal>(model_aligned, normal_aligned, 10, 0.01, name.str(), v2);*/
+                    }
+                    else
+                    {
+                        std::stringstream pname;
+                        pname << "plane_v2_" << j;
+
+                        pcl::visualization::PointCloudColorHandlerRandom<PointT> scene_handler(planes_found[j - models->size()].plane_cloud_);
+                        vis.addPointCloud<PointT> (planes_found[j - models->size()].plane_cloud_, scene_handler, pname.str(), v2);
+
+                        pname << "chull_v2";
+                        vis.addPolygonMesh (*planes_found[j - models->size()].convex_hull_, pname.str(), v2);
+                    }
+                }
+
                 for (size_t j = 0; j < outlier_clouds_.size (); j++)
                 {
                     std::cout << outlier_clouds_3d[j]->points.size() << " " << outlier_clouds_color[j]->points.size() << std::endl;
@@ -851,7 +1311,7 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
                         name << "cloud_outliers" << j;
                         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> random_handler (outlier_clouds_3d[j], 255, 255, 0);
                         vis.addPointCloud<pcl::PointXYZ> (outlier_clouds_3d[j], random_handler, name.str (), v2);
-                        vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 8, name.str());
+                        vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, name.str());
                     }
 
                     {
@@ -859,37 +1319,44 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
                         name << "cloud_outliers_color" << j;
                         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> random_handler (outlier_clouds_color[j], 255, 0, 255);
                         vis.addPointCloud<pcl::PointXYZ> (outlier_clouds_color[j], random_handler, name.str (), v2);
-                        vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 8, name.str());
+                        vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, name.str());
                     }
                 }
             }
-        }
 
-        or_eval.addRecognitionResults(id_1, verified_models, verified_transforms);
+            if(gt_available)
+                or_eval.addRecognitionResults(id_1, verified_models, verified_transforms);
+
+        }
+        else
+        {
+            if(gt_available)
+                or_eval.addRecognitionResults(id_1, models, transforms);
+        }
 
         vis.setBackgroundColor(0.0,0.0,0.0);
         vis.addCoordinateSystem(0.1f, v5);
 
         if(PLAY_) {
-            vis.resetCamera();
-
-            Eigen::Vector4f centroid;
-            pcl::compute3DCentroid(*scene, centroid);
-            vis.setCameraPosition(0,0,0, centroid[0], centroid[1], centroid[2], 0, 0, 1);
-            vis.resetCamera();
-            vis.spinOnce (100.f, true);
+            vis.spinOnce (500.f, true);
         } else {
             vis.spin ();
         }
-
-        vis.saveScreenshot(screenshot_name);
     }
 
     double seconds_elapsed = total_time.getTimeSeconds();
-    or_eval.computeStatistics();
-    or_eval.saveStatistics(STATISTIC_OUTPUT_FILE_);
-    or_eval.savePoseStatistics(POSE_STATISTICS_OUTPUT_FILE_);
-    or_eval.savePoseStatisticsRotation(POSE_STATISTICS_ANGLE_OUTPUT_FILE_);
+    if(gt_available)
+    {
+        or_eval.computeStatistics();
+        or_eval.saveStatistics(STATISTIC_OUTPUT_FILE_);
+        or_eval.savePoseStatistics(POSE_STATISTICS_OUTPUT_FILE_);
+        or_eval.savePoseStatisticsRotation(POSE_STATISTICS_ANGLE_OUTPUT_FILE_);
+
+        if(RESULTS_OUTPUT_DIR_.compare("") != 0)
+            or_eval.saveRecognitionResults(RESULTS_OUTPUT_DIR_);
+
+        or_eval.computeStatistics();
+    }
 
     std::cout << "Total time:" << seconds_elapsed << std::endl;
     std::cout << "Average per scene:" << seconds_elapsed / static_cast<int>(files_to_recognize.size()) << std::endl;
@@ -925,6 +1392,13 @@ struct camPosConstraints
 /*
  * ./bin/mp_willow -pcd_file /home/aitor/data/willow_dataset/ -models_dir /home/aitor/data/willow/models -training_dir /home/aitor/data/mp_willow_trained/ -idx_flann_fn shot_flann.idx -go_require_normals 0 -GT_DIR /home/aitor/data/willow/willow_dataset_gt/ -tes_level 1 -model_scale 1 -icp_iterations 10 -pipelines_to_use shot_omp,sift -go_opt_type 0 -gc_size 3 -gc_threshold 0.01 -splits 32 -test_sampling_density 0.005 -icp_type 1 -training_dir_shot /home/aitor/data/willow/shot_trained/ -Z_DIST 1.5 -normalize_ourcvfh_bins 0 -detect_clutter 1 -go_resolution 0.005 -go_regularizer 1 -go_inlier_thres 0.01 -PLAY 0 -max_our_cvfh_hyp_ 20 -seg_type 0 -add_planes 1 -use_codebook 0 -load_views 1 -training_input_structure /home/aitor/data/willow/recognizer_structure/ -training_dir_sift /home/aitor/data/willow/sift_trained/ -knn_sift 10 -knn_shot 2
  */
+
+/*
+
+//only sift...
+  ./bin/mp_willow -pcd_file /home/aitor/data/willow_dataset/ -models_dir /home/aitor/data/willow/models/ -training_dir /home/aitor/data/willow/ourcvfh_organized -idx_flann_fn shot_flann.idx -go_require_normals 0 -GT_DIR /home/aitor/data/willow/willow_dataset_gt/ -tes_level 1 -model_scale 1 -icp_iterations 15 -pipelines_to_use sift -go_opt_type 0 -gc_size 5 -gc_threshold 0.015 -splits 512 -test_sampling_density 0.01 -icp_type 1 -training_dir_shot /home/aitor/data/willow/shot_trained -Z_DIST 1.5 -normalize_ourcvfh_bins 1 -detect_clutter 1 -go_resolution 0.005 -go_regularizer 2 -go_inlier_thres 0.01 -PLAY 1 -max_our_cvfh_hyp_ 20 -add_planes 1 -use_codebook 0 -load_views 0 -training_input_structure /home/aitor/data/willow/recognizer_structure/ -training_dir_sift /home/aitor/data/willow/sift_trained/ -use_cache 1 -gc_min_dist_cf 0 -seg_type 0 -gc_dot_threshold 0.2 -prune_by_cc 1 -go_use_supervoxels 0 -ransac_threshold_cg_ 0.01 -knn_sift 10 -debug_level 2 -knn_shot 10 -tes_level_our_cvfh 1 -output_dir_before_hv /home/aitor/data/willow/hypotheses_before_hv
+
+*/
 
 int
 main (int argc, char ** argv)
@@ -968,7 +1442,6 @@ main (int argc, char ** argv)
     bool normalize_ourcvfh_bins = false;
     int max_our_cvfh_hyp_ = 30;
     bool use_hough = false;
-    float ransac_threshold_cg_ = CG_THRESHOLD_;
     bool load_views = true;
     int seg_type = 0;
     bool add_planes = true;
@@ -987,11 +1460,18 @@ main (int argc, char ** argv)
     int our_cvfh_debug_level = 0;
     float ourcvfh_max_distance = 0.35f;
     bool check_normals_orientation = true;
-    bool shot_use_iss = true;
+    bool shot_use_iss = false;
+    bool gcg_use_graph_ = true;
+    float uke_max_distance_ = 1.5f;
+    float max_time_cliques_ms_ = 100;
 
     int max_taken_ = 5;
     std::string idx_flann_sift = "willow_sift.idx";
 
+    pcl::console::parse_argument (argc, argv, "-max_time_cliques_ms", max_time_cliques_ms_);
+    pcl::console::parse_argument (argc, argv, "-uke_max_distance", uke_max_distance_);
+    pcl::console::parse_argument (argc, argv, "-segmentation_plane_unorganized", segmentation_plane_unorganized_);
+    pcl::console::parse_argument (argc, argv, "-gcg_graph", gcg_use_graph_);
     pcl::console::parse_argument (argc, argv, "-non_organized_planes", non_organized_planes_);
     pcl::console::parse_argument (argc, argv, "-use_table_plane", use_table_plane_);
     pcl::console::parse_argument (argc, argv, "-idx_flann_sift", idx_flann_sift);
@@ -1031,6 +1511,9 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv, "-splits", splits);
     pcl::console::parse_argument (argc, argv, "-gc_size", CG_SIZE_);
     pcl::console::parse_argument (argc, argv, "-gc_threshold", CG_THRESHOLD_);
+
+    float ransac_threshold_cg_ = CG_THRESHOLD_;
+
     pcl::console::parse_argument (argc, argv, "-scene", scene);
     pcl::console::parse_argument (argc, argv, "-detect_clutter", detect_clutter);
     pcl::console::parse_argument (argc, argv, "-thres_hyp", thres_hyp_);
@@ -1062,6 +1545,9 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv, "-gc_min_dist_cf", min_dist_cf_);
     pcl::console::parse_argument (argc, argv, "-gc_dot_threshold", gc_dot_threshold_);
     pcl::console::parse_argument (argc, argv, "-stat_file", STATISTIC_OUTPUT_FILE_);
+
+    pcl::console::parse_argument (argc, argv, "-output_dir_before_hv", RESULTS_OUTPUT_DIR_);
+    pcl::console::parse_argument (argc, argv, "-use_highest_plane", use_highest_plane_);
 
     MODELS_DIR_FOR_VIS_ = path;
     pcl::console::parse_argument (argc, argv, "-models_dir_vis", MODELS_DIR_FOR_VIS_);
@@ -1127,6 +1613,8 @@ main (int argc, char ** argv)
     boost::shared_ptr<faat_pcl::rec_3d_framework::UniformSamplingExtractor<PointT> > uniform_keypoint_extractor ( new faat_pcl::rec_3d_framework::UniformSamplingExtractor<PointT>);
     uniform_keypoint_extractor->setSamplingDensity (0.01f);
     uniform_keypoint_extractor->setFilterPlanar (true);
+    uniform_keypoint_extractor->setThresholdPlanar(0.05);
+    uniform_keypoint_extractor->setMaxDistance(uke_max_distance_);
 
     boost::shared_ptr<faat_pcl::rec_3d_framework::KeypointExtractor<PointT> > keypoint_extractor;
     keypoint_extractor = boost::static_pointer_cast<faat_pcl::rec_3d_framework::KeypointExtractor<PointT> > (uniform_keypoint_extractor);
@@ -1167,7 +1655,7 @@ main (int argc, char ** argv)
     gcg_alg->setGCThreshold (CG_SIZE_);
     gcg_alg->setGCSize (CG_THRESHOLD_);
     gcg_alg->setRansacThreshold (ransac_threshold_cg_);
-    gcg_alg->setUseGraph(true);
+    gcg_alg->setUseGraph(gcg_use_graph_);
     gcg_alg->setVisualizeGraph(visualize_graph);
     gcg_alg->setPrune(cg_prune_hyp);
     gcg_alg->setDotDistance(gc_dot_threshold_);
@@ -1176,6 +1664,7 @@ main (int argc, char ** argv)
     gcg_alg->setMaxTaken(max_taken_); //std::numeric_limits<int>::max());
     gcg_alg->setSortCliques(true);
     gcg_alg->setCheckNormalsOrientation(check_normals_orientation);
+    gcg_alg->setMaxTimeForCliquesComputation(max_time_cliques_ms_);
 
     cast_cg_alg = boost::static_pointer_cast<pcl::CorrespondenceGrouping<PointT, PointT> > (gcg_alg);
     //TODO: Fix normals for SIFT, so we can use the other correspondence grouping (DONE)
@@ -1247,6 +1736,7 @@ main (int argc, char ** argv)
             local->setUseCodebook(use_codebook);
             local->initialize (static_cast<bool> (force_retrain));
             local->setKnn(knn_sift_);
+            local->setCorrespondenceDistanceConstantWeight(1.f);
             multi_recog->addRecognizer(cast_recog);
 
         }
@@ -1333,7 +1823,7 @@ main (int argc, char ** argv)
             source->setLoadIntoMemory(false);
             source->generate (training_dir_shot);*/
 
-            boost::shared_ptr<faat_pcl::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> >
+            /*boost::shared_ptr<faat_pcl::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> >
                     source (
                         new faat_pcl::rec_3d_framework::PartialPCDSource<
                         pcl::PointXYZRGBNormal,
@@ -1351,7 +1841,20 @@ main (int argc, char ** argv)
             source->generate (training_dir_shot);
 
             boost::shared_ptr<faat_pcl::rec_3d_framework::Source<pcl::PointXYZRGB> > cast_source;
-            cast_source = boost::static_pointer_cast<faat_pcl::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > (source);
+            cast_source = boost::static_pointer_cast<faat_pcl::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > (source);*/
+
+            boost::shared_ptr<faat_pcl::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> >
+                    source (
+                        new faat_pcl::rec_3d_framework::RegisteredViewsSource<
+                        pcl::PointXYZRGBNormal,
+                        pcl::PointXYZRGB,
+                        pcl::PointXYZRGB>);
+            source->setPath (path);
+            source->setModelStructureDir (training_input_structure);
+            source->generate (training_dir_shot);
+
+            boost::shared_ptr<faat_pcl::rec_3d_framework::Source<pcl::PointXYZRGB> > cast_source;
+            cast_source = boost::static_pointer_cast<faat_pcl::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > (source);
 
             if(use_hough)
             {
@@ -1414,7 +1917,8 @@ main (int argc, char ** argv)
         if (strs[i].compare ("rf_our_cvfh_color") == 0)
         {
 
-            boost::shared_ptr<faat_pcl::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> >
+
+            /*boost::shared_ptr<faat_pcl::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> >
                     source (
                         new faat_pcl::rec_3d_framework::PartialPCDSource<
                         pcl::PointXYZRGBNormal,
@@ -1434,6 +1938,20 @@ main (int argc, char ** argv)
 
             boost::shared_ptr<faat_pcl::rec_3d_framework::Source<pcl::PointXYZRGB> > cast_source;
             cast_source = boost::static_pointer_cast<faat_pcl::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > (source);
+            */
+
+            boost::shared_ptr<faat_pcl::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> >
+                    source (
+                        new faat_pcl::rec_3d_framework::RegisteredViewsSource<
+                        pcl::PointXYZRGBNormal,
+                        pcl::PointXYZRGB,
+                        pcl::PointXYZRGB>);
+            source->setPath (path);
+            source->setModelStructureDir (training_input_structure);
+            source->generate (training_dir);
+
+            boost::shared_ptr<faat_pcl::rec_3d_framework::Source<pcl::PointXYZRGB> > cast_source;
+            cast_source = boost::static_pointer_cast<faat_pcl::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > (source);
 
             //configure normal estimator
             boost::shared_ptr<faat_pcl::rec_3d_framework::PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;

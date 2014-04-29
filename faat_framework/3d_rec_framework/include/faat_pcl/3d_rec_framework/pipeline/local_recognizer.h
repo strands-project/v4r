@@ -139,6 +139,7 @@ namespace faat_pcl
           int knn_;
           float distance_same_keypoint_;
           float max_descriptor_distance_;
+          float correspondence_distance_constant_weight_;
 
           //load features from disk and create flann structure
           void
@@ -251,6 +252,12 @@ namespace faat_pcl
           knn_ = 1;
           distance_same_keypoint_ = 0.001f * 0.001f;
           max_descriptor_distance_ = std::numeric_limits<float>::infinity();
+          correspondence_distance_constant_weight_ = 1.f;
+        }
+
+        void setCorrespondenceDistanceConstantWeight(float w)
+        {
+            correspondence_distance_constant_weight_ = w;
         }
 
         void setMaxDescriptorDistance(float d)

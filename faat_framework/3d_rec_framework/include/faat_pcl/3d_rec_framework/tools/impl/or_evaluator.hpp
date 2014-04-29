@@ -12,6 +12,7 @@
 #include "pcl/octree/octree.h"
 #include "pcl/registration/icp.h"
 #include <pcl/common/angles.h>
+#include <faat_pcl/utils/filesystem_utils.h>
 
 template<typename ModelPointT, typename SceneId>
 faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::OREvaluator ()
@@ -289,6 +290,19 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
 
   for (size_t s = 0; s < scene_files.size (); s++)
   {
+
+
+    if(ignore_list_.size() > 0)
+    {
+        //std::cout << "ignore list is not zero, looking for:" << scene_files[s] << std::endl;
+        typename std::map<SceneId, bool>::iterator it_ignore_list;
+        it_ignore_list = ignore_list_.find(scene_files[s]);
+        if(it_ignore_list != ignore_list_.end())
+        {
+            continue;
+        }
+    }
+
     std::string scene_path (scene_files[s]);
 
     std::stringstream scene_ext;
@@ -296,13 +310,44 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
     boost::replace_all (scene_path, scene_ext.str(), "");
     std::cout << scene_path << std::endl;
 
+    std::string seq_id;
+    std::vector < std::string > strs_2;
+    boost::split (strs_2, scene_path, boost::is_any_of ("/\\"));
+    seq_id = strs_2[strs_2.size() - 1];
+
+    std::string dir_without_scene_name;
+
+    if(strs_2.size() > 1)
+    {
+        for(size_t j=0; j < (strs_2.size() - 1); j++)
+        {
+            dir_without_scene_name.append(strs_2[j]);
+            dir_without_scene_name.append("/");
+        }
+    }
+    else
+    {
+        dir_without_scene_name = "";
+    }
+
     for (size_t m = 0; m < model_files.size (); m++)
     {
 
       //std::stringstream ss;
       //ss << model_files[m] << "." << model_file_extension_;
 
-      for (size_t inst = 0; inst < 10; inst++)
+      std::stringstream ss;
+      ss << gt_dir_ << "/" << dir_without_scene_name;
+      bf::path model_file_path;
+      model_file_path = ss.str();
+      std::vector<std::string> paths;
+      std::stringstream pattern;
+      pattern << seq_id << "_" <<  model_files_wo_extension[m] << "_.*.txt";
+      //std::cout << model_file_path.string() << "-------" << pattern.str() << std::endl;
+      faat_pcl::utils::getFilesInDirectory(model_file_path, paths, pattern.str());
+      size_t max_inst = paths.size();
+
+      for (size_t inst = 0; inst < max_inst; inst++)
       {
         std::stringstream pose_file;
         pose_file << gt_dir_ << "/" << scene_path << "_" << model_files_wo_extension[m] << "_" << inst << ".txt";
@@ -310,14 +355,14 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
         bf::path pose_path = pose_file.str ();
         if (bf::exists (pose_path))
         {
-          std::cout << pose_file.str () << std::endl;
+          //std::cout << pose_file.str () << std::endl;
           GTModelTPtr model_inst(new GTModel<ModelPointT>);
           bool found = source_->getModelById(model_files[m], model_inst->model_);
           if(!found)
             std::cout << "Model id not found!!!" << model_files[m] << std::endl;
 
           readMatrixFromFile2(pose_file.str(), model_inst->transform_);
-          std::cout << model_inst->transform_ << std::endl;
+          //std::cout << model_inst->transform_ << std::endl;
           model_inst->inst_ = inst;
 
           std::stringstream occ_file;
@@ -560,6 +605,89 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::add
 
 template<typename ModelPointT, typename SceneId>
 void
+faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::saveRecognitionResults(std::string & out_dir)
+{
+    bf::path out_dir_path = out_dir;
+    if(!bf::exists(out_dir_path))
+    {
+        bf::create_directory(out_dir_path);
+    }
+
+    std::cout << "number of recognition results:" << recognition_results_.size () << std::endl;
+    //iterate over recognition results and compare to the corresponding gt_data_
+    typename std::map<SceneId, boost::shared_ptr<std::vector<ModelTPtr> > >::iterator results_it;
+    typename std::map<SceneId, boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > >::iterator results_transforms_it;
+
+    results_transforms_it = transforms_.begin();
+
+    for (results_it = recognition_results_.begin (); results_it != recognition_results_.end (); results_it++, results_transforms_it++)
+    {
+      typename std::pair<SceneId, boost::shared_ptr<std::vector<ModelTPtr> > > rr = *results_it;
+      typename std::pair<SceneId, boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > > rtrans = *results_transforms_it;
+      typename std::vector<ModelTPtr>::iterator recog_id;
+
+      std::map<std::string, int> instances_per_scene;
+      std::map<std::string, int>::iterator instances_per_scene_it;
+      std::string scene_name = rr.first;
+      int idx = 0;
+      for (recog_id = rr.second->begin (); (recog_id != rr.second->end ()); recog_id++, idx++)
+      {
+        std::string model_id = (*recog_id)->id_;
+        std::cout << "scene name: " << scene_name << std::endl;
+        std::cout << "model_id: " << model_id << std::endl;
+        std::cout << "idx:" << idx << " " << rtrans.second->size() << std::endl;
+        std::cout << rtrans.second->at(idx) << std::endl;
+
+        instances_per_scene_it = instances_per_scene.find((*recog_id)->id_);
+        int inst = 0;
+        if(instances_per_scene_it != instances_per_scene.end())
+        {
+            inst = ++instances_per_scene_it->second;
+        }
+        else
+        {
+            instances_per_scene.insert(std::make_pair(model_id, 0));
+        }
+
+        std::string seq_id;
+        std::vector < std::string > strs_2;
+        boost::split (strs_2, scene_name, boost::is_any_of ("/\\"));
+        seq_id = strs_2[0];
+
+        if(strs_2.size() > 1)
+        {
+            std::string dir_without_scene_name;
+            for(size_t j=0; j < (strs_2.size() - 1); j++)
+            {
+                dir_without_scene_name.append(strs_2[j]);
+                dir_without_scene_name.append("/");
+            }
+
+            std::stringstream dir;
+            dir << out_dir << "/" << dir_without_scene_name;
+            bf::path dir_sequence = dir.str();
+            bf::create_directories(dir_sequence);
+        }
+
+        if(!replace_model_ext_)
+        {
+            std::stringstream model_ext;
+            model_ext << "." << model_file_extension_;
+            boost::replace_all (model_id, model_ext.str(), "");
+        }
+
+        std::stringstream pose_file_name;
+        pose_file_name << out_dir << "/" << scene_name << "_" << model_id << "_" << inst << ".txt";
+        std::cout << pose_file_name.str() << std::endl;
+
+        writeMatrixToFile (pose_file_name.str (),  rtrans.second->at(idx));
+        //std::cout << model_id << " " << (*recog_id)->id_ << std::endl;
+      }
+    }
+}
+
+template<typename ModelPointT, typename SceneId>
+void
 faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::addRecognitionResults
                                     (SceneId & id,
                                     boost::shared_ptr<std::vector<ModelTPtr> > & results,
@@ -782,6 +910,275 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::com
       }
   }
 
+  float precision = static_cast<float>(TP) / static_cast<float>(TP + FP);
+  float recall = static_cast<float>(TP) / static_cast<float>(TP + FN);
+  float fscore = 2 * (precision * recall) / (precision + recall);
+  std::cout << "instances wiht pose information:" << instances << std::endl;
+  std::cout << "tp:" << TP << " fp:" << FP << " fn:" << FN << std::endl;
+  std::cout << "precision:" << precision << std::endl;
+  std::cout << "recall:" << recall  << std::endl;
+  std::cout << "fscore:" << fscore << std::endl;
+  std::cout << "Average centroid diff:" << avg_diff / static_cast<float>(instances) << " min,max:" << min_diff << "," << max_diff << "   " << min_diff_scene_id << "," << max_diff_scene_id << std::endl;
+
+  rsr_.precision_ = precision;
+  rsr_.recall_ = recall;
+  rsr_.fscore_ = fscore;
+  rsr_.rs_.TP_ = TP;
+  rsr_.rs_.FP_ = FP;
+  rsr_.rs_.FN_ = FN;
+}
+
+template<typename ModelPointT, typename SceneId>
+void
+faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::computeStatisticsUpperBound ()
+{
+  if (!checkLoaded ())
+    return;
+
+  if(!check_pose_)
+  {
+      computeStatistics();
+      return;
+  }
+
+  scene_statistics_.clear ();
+  pose_statistics_.clear ();
+  occlusion_results_.clear ();
+
+  std::cout << "number of recognition results:" << recognition_results_.size () << std::endl;
+  //iterate over recognition results and compare to the corresponding gt_data_
+  typename std::map<SceneId, boost::shared_ptr<std::vector<ModelTPtr> > >::iterator results_it;
+  typename std::map<SceneId, boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > >::iterator results_transforms_it;
+  typename std::map<SceneId, std::map<std::string, std::vector<GTModelTPtr> > >::iterator gt_data_main_iterator;
+  results_transforms_it = transforms_.begin();
+
+  typename std::map<SceneId, PoseStatistics>::iterator pose_iterator;
+
+  pcl::visualization::PCLVisualizer vis("upper bound visualizer");
+  int v1,v2;
+  vis.createViewPort(0,0,0.5,1,v1);
+  vis.createViewPort(0.5,0,1,1,v2);
+
+  for (results_it = recognition_results_.begin (); results_it != recognition_results_.end (); results_it++, results_transforms_it++)
+  {
+    typename std::pair<SceneId, boost::shared_ptr<std::vector<ModelTPtr> > > rr = *results_it;
+    typename std::pair<SceneId, boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > > rtrans = *results_transforms_it;
+    std::cout << rr.first << " " << rr.second->size () << std::endl;
+    gt_data_main_iterator = gt_data_.find (rr.first);
+    if (gt_data_main_iterator == gt_data_.end ())
+    {
+      std::cout << "ERROR: Scene id not found..." << rr.first << std::endl; //this should not happen
+      continue;
+    }
+
+    RecognitionStatistics rs;
+    rs.FN_ = rs.FP_ = rs.TP_ = 0;
+
+    //iterate over ground truth
+    typename std::map<std::string, std::vector<GTModelTPtr> >::iterator gt_scene_map_iterator; //first is model, second are model instances
+    gt_scene_map_iterator = gt_data_main_iterator->second.begin ();
+    std::vector<bool> rr_second_used (rr.second->size (), false);
+
+    vis.removeAllPointClouds();
+    int added_to_vis = 0;
+
+    while (gt_scene_map_iterator != gt_data_main_iterator->second.end ())
+    {
+
+      for (size_t i = 0; i < gt_scene_map_iterator->second.size (); i++) //model instances for GT data, select best!
+      {
+        ConstPointInTPtr model_cloud = gt_scene_map_iterator->second[i]->model_->getAssembled (0.001f);
+        typename pcl::PointCloud<ModelPointT>::Ptr model_aligned (new pcl::PointCloud<ModelPointT>);
+        Eigen::Matrix4f trans;
+        trans = gt_scene_map_iterator->second[i]->transform_;
+        pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
+        std::string model_id = gt_scene_map_iterator->second[i]->model_->id_;
+        float occlusion = gt_scene_map_iterator->second[i]->occlusion_;
+        Eigen::Vector4f centroid_gt =  gt_scene_map_iterator->second[i]->model_->getCentroid();
+        centroid_gt[3] = 1.f;
+        centroid_gt = trans * centroid_gt;
+        centroid_gt[3] = 0.f;
+
+        //is the model in the recognition results?
+        typename std::vector<ModelTPtr>::iterator recog_id;
+        bool model_found = false;
+        int idx_found = -1;
+        int idx = 0;
+        float best_pose_factor = -1.f;
+        float best_translation_diff = -1.f;
+        float best_angle_diff = -1.f;
+
+        //std::cout << "rr size:" << rr.second->size() << std::endl;
+        for (recog_id = rr.second->begin (); (recog_id != rr.second->end ()); recog_id++, idx++)
+        {
+          if (rr_second_used[idx])
+            continue;
+
+          //std::cout << model_id << " " << (*recog_id)->id_ << std::endl;
+          if (model_id.compare ((*recog_id)->id_) == 0)
+          {
+              //is pose correct? compare centroids and rotation
+              Eigen::Vector4f centroid_recog = (*recog_id)->getCentroid();
+              centroid_recog[3] = 1.f;
+              centroid_recog = rtrans.second->at(idx) * centroid_recog;
+              centroid_recog[3] = 0.f;
+              float diff = ( centroid_recog - centroid_gt).norm();
+
+              if(diff > max_centroid_diff_)
+              {
+                std::cout << "Id ok but rejected by centroid distances: " << model_id << " " << diff << " " << max_centroid_diff_ << std::endl;
+                continue;
+              }
+
+              //rotional error, how?
+              Eigen::Vector4f x,y,z;
+              x = y = z = Eigen::Vector4f::Zero();
+              x = Eigen::Vector4f::UnitX();
+              y = Eigen::Vector4f::UnitY();
+              z = Eigen::Vector4f::UnitZ();
+
+              Eigen::Vector4f x_gt,y_gt,z_gt;
+              Eigen::Vector4f x_eval,y_eval,z_eval;
+              x_gt = trans * x; y_gt = trans * y; z_gt = trans * z;
+              x_eval = rtrans.second->at(idx) * x;
+              y_eval = rtrans.second->at(idx) * y;
+              z_eval = rtrans.second->at(idx) * z;
+
+              float angle_x, angle_y, angle_z;
+              angle_x = std::abs(pcl::rad2deg(acos(x_eval.dot(x_gt))));
+              angle_y = std::abs(pcl::rad2deg(acos(y_eval.dot(y_gt))));
+              angle_z = std::abs(pcl::rad2deg(acos(z_eval.dot(z_gt))));
+
+              float angle = std::max(angle_x, std::max(angle_y, angle_z));
+
+              float pose_factor = ( 0.75f * ( (max_centroid_diff_ - diff) / max_centroid_diff_) + 0.25f * (std::max(0.f,180.f - angle)) / 180.f);
+              if(pose_factor > best_pose_factor)
+              {
+                  model_found = true;
+                  idx_found = idx;
+                  best_pose_factor = pose_factor;
+                  best_translation_diff = diff;
+                  best_angle_diff = angle_x;
+              }
+          }
+        }
+
+        if (model_found)
+        {
+          rs.TP_++;
+          rr_second_used[idx_found] = true;
+
+          occ_tp ot;
+          ot.first = occlusion;
+          ot.second = true;
+          occlusion_results_.push_back(ot);
+
+          //recognition_results_upper_bound_.insert(std::make_pair(gt_scene_map_iterator->first, rr.second->at(idx_found));
+          //transforms_upper_bound_.insert(std::make_pair(gt_scene_map_iterator->first, rtrans.second->at(idx_found));
+
+          {
+              ConstPointInTPtr model_cloud = rr.second->at(idx_found)->getAssembled (0.001f);
+              typename pcl::PointCloud<ModelPointT>::Ptr model_aligned (new pcl::PointCloud<ModelPointT>);
+              Eigen::Matrix4f trans;
+              trans = rtrans.second->at(idx_found);
+              pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
+
+              std::stringstream name;
+              name << "selected_" << added_to_vis;
+
+              pcl::visualization::PointCloudColorHandlerRandom<ModelPointT> scene_handler(model_aligned);
+
+              vis.addPointCloud<ModelPointT>(model_aligned, scene_handler, name.str(), v1);
+          }
+
+          std::stringstream name;
+          name << "gt_" << added_to_vis;
+
+          pcl::visualization::PointCloudColorHandlerRandom<ModelPointT> scene_handler(model_aligned);
+          vis.addPointCloud<ModelPointT>(model_aligned, scene_handler, name.str(), v2);
+
+          added_to_vis++;
+
+          if(check_pose_)
+          {
+              pose_iterator = pose_statistics_.find(rr.first);
+              if(pose_iterator == pose_statistics_.end())
+              {
+                  PoseStatistics p;
+                  p.centroid_distances_.push_back(best_translation_diff);
+                  p.rotation_error_.push_back(best_angle_diff);
+                  pose_statistics_.insert (std::pair<SceneId, PoseStatistics>(rr.first, p));
+              }
+              else
+              {
+                pose_iterator->second.centroid_distances_.push_back(best_translation_diff);
+                pose_iterator->second.rotation_error_.push_back(best_angle_diff);
+              }
+          }
+
+        }
+        else
+        {
+          if(use_max_occlusion_ && (occlusion > max_occlusion_))
+            continue;
+
+          occ_tp ot;
+          ot.first = occlusion;
+          ot.second = false;
+          occlusion_results_.push_back(ot);
+          rs.FN_++;
+        }
+      }
+
+      gt_scene_map_iterator++;
+    }
+
+    vis.spin();
+    rs.FP_ = rr.second->size () - rs.TP_;
+    std::cout << rs.TP_ << " " << rs.FP_ << " " << rs.FN_ << std::endl;
+    scene_statistics_.insert (std::pair<SceneId, RecognitionStatistics>(rr.first, rs));
+  }
+
+  std::cout << pose_statistics_.size() << " " << scene_statistics_.size() << std::endl;
+
+  int TP, FP, FN;
+  TP = FP = FN = 0;
+  typename std::map<SceneId, RecognitionStatistics>::iterator it_stats;
+  for(it_stats = scene_statistics_.begin(); it_stats != scene_statistics_.end(); it_stats++)
+  {
+    TP += it_stats->second.TP_;
+    FP += it_stats->second.FP_;
+    FN += it_stats->second.FN_;
+  }
+
+  float avg_diff = 0.f;
+  float max_diff = -1.f;
+  float min_diff = std::numeric_limits<float>::max();
+  int instances = 0;
+  SceneId max_diff_scene_id, min_diff_scene_id;
+
+  for(pose_iterator = pose_statistics_.begin(); pose_iterator != pose_statistics_.end(); pose_iterator++)
+  {
+      for(size_t i=0; i < pose_iterator->second.centroid_distances_.size(); i++, instances++)
+      {
+          avg_diff += pose_iterator->second.centroid_distances_[i];
+
+          if(max_diff < pose_iterator->second.centroid_distances_[i])
+          {
+            max_diff_scene_id = pose_iterator->first;
+          }
+
+          max_diff = std::max(max_diff, pose_iterator->second.centroid_distances_[i]);
+
+          min_diff = std::min(min_diff, pose_iterator->second.centroid_distances_[i]);
+          if(min_diff > pose_iterator->second.centroid_distances_[i])
+          {
+            min_diff_scene_id = pose_iterator->first;
+          }
+
+      }
+  }
+
   std::cout << "instances wiht pose information:" << instances << std::endl;
   std::cout << "tp:" << TP << " fp:" << FP << " fn:" << FN << std::endl;
   std::cout << "precision:" << static_cast<float>(TP) / static_cast<float>(TP + FP) << std::endl;
@@ -806,7 +1203,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::sav
     {
         //std::cout << it->second.TP_ << " " << it->second.FP_ << " " << it->second.FN_ << std::endl;
         total_hypotheses += it->second.TP_ + it->second.FP_ + it->second.FN_;
-        total_FP = it->second.FP_;
+        total_FP += it->second.FP_;
     }
 
     std::ofstream myfile;
@@ -1013,7 +1410,7 @@ getGroundTruthModelsAndPoses (SceneId & s_id,
     gt_data_main_iterator = gt_data_.find(s_id);
     if(gt_data_main_iterator == gt_data_.end())
     {
-        std::cout << "Scene id not found..." << s_id << std::endl;
+        std::cout << "Scene id not found... in getGroundTruthModelsAndPoses:" << s_id << " " << gt_data_.size() << std::endl;
         for(gt_data_main_iterator = gt_data_.begin(); gt_data_main_iterator != gt_data_.end(); gt_data_main_iterator++)
         {
             std::cout << "scene id in gt:" << gt_data_main_iterator->first << std::endl;
@@ -1159,6 +1556,94 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::vis
 
     std::cout << "added " << model_added << " models..." << std::endl;
   }
+}
+
+template<typename ModelPointT, typename SceneId>
+void
+faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::copyToDirectory(std::string & out_dir)
+{
+    typename std::map<SceneId, std::map<std::string, std::vector<GTModelTPtr> > >::iterator gt_data_main_iterator;
+    for(gt_data_main_iterator = gt_data_.begin(); gt_data_main_iterator != gt_data_.end(); gt_data_main_iterator++)
+    {
+        //check if directory exist, otherwise create it
+
+        typename std::map<std::string, std::vector<GTModelTPtr> >::iterator scene_map_iterator;
+        scene_map_iterator = gt_data_main_iterator->second.begin();
+
+        std::cout << gt_data_main_iterator->first << " " << std::endl;
+        std::string scene_name = gt_data_main_iterator->first;
+
+        std::string seq_id;
+        std::string scene_id;
+        std::vector < std::string > strs_2;
+        boost::split (strs_2, gt_data_main_iterator->first, boost::is_any_of ("/\\"));
+
+        if(strs_2.size() > 1)
+        {
+            std::string dir_without_scene_name;
+            for(size_t j=0; j < (strs_2.size() - 1); j++)
+            {
+                dir_without_scene_name.append(strs_2[j]);
+                dir_without_scene_name.append("/");
+            }
+
+            std::stringstream dir;
+            dir << out_dir << "/" << dir_without_scene_name;
+            bf::path dir_sequence = dir.str();
+            bf::create_directories(dir_sequence);
+
+            seq_id = dir_without_scene_name;
+            scene_id = strs_2[strs_2.size() - 1];
+        }
+        else
+        {
+            seq_id = "";
+            scene_id = strs_2[0];
+        }
+
+        while (scene_map_iterator != gt_data_main_iterator->second.end ())
+        {
+
+          std::cout << "scene_map_iterator->first:" << scene_map_iterator->first << " " << scene_map_iterator->second.size() << std::endl; //model id
+          std::string model_id = scene_map_iterator->first;
+
+          //check in directory the highest instance id for this model
+          std::stringstream ss;
+          ss << out_dir << "/" << seq_id;
+          bf::path model_file_path;
+          model_file_path = ss.str();
+
+          if(!replace_model_ext_)
+          {
+              std::stringstream model_ext;
+              model_ext << "." << model_file_extension_;
+              boost::replace_all (model_id, model_ext.str(), "");
+          }
+
+          std::vector<std::string> paths;
+          std::stringstream pattern;
+          pattern << scene_id << "_" <<  model_id << "_.*.txt";
+
+          faat_pcl::utils::getFilesInDirectory(model_file_path, paths, pattern.str());
+          int inst = static_cast<int>(paths.size());
+          std::cout << "current instances:" << inst << std::endl;
+
+          for(size_t i = 0; i < scene_map_iterator->second.size(); i++)
+          {
+
+            Eigen::Matrix4f trans;
+            trans = scene_map_iterator->second[i]->transform_;
+
+            std::stringstream pose_file_name;
+            pose_file_name << out_dir << "/" << scene_name << "_" << model_id << "_" << inst << ".txt";
+            //std::cout << pose_file_name.str() << std::endl;
+
+            writeMatrixToFile (pose_file_name.str (), trans);
+            inst++;
+          }
+          scene_map_iterator++;
+        }
+    }
 }
 
 #endif /* OR_EVALUATOR_HPP_ */

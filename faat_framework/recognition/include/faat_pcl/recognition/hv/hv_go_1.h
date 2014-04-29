@@ -134,6 +134,7 @@ namespace faat_pcl
       using faat_pcl::HypothesisVerification<ModelT, SceneT>::zbuffer_self_occlusion_resolution_;
       using faat_pcl::HypothesisVerification<ModelT, SceneT>::scene_cloud_;
       using faat_pcl::HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
+      using faat_pcl::HypothesisVerification<ModelT, SceneT>::zbuffer_scene_resolution_;
 
       template<typename PointT, typename NormalT>
         inline void
@@ -244,13 +245,14 @@ namespace faat_pcl
       pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
       bool ignore_color_even_if_exists_;
       std::vector<std::string> object_ids_;
-      float color_sigma_;
+      float color_sigma_ab_;
+      float color_sigma_l_;
       std::vector<float> extra_weights_;
 
-      float
+      double
       getModelConstraintsValue (typename pcl::PointCloud<ModelT>::Ptr & cloud)
       {
-        float under = 0;
+        double under = 0;
         for (int i = 0; i < model_constraints_.size (); i++)
         {
           under += model_constraints_[i] (cloud) * model_constraints_weights_[i];
@@ -270,23 +272,30 @@ namespace faat_pcl
       float res_occupancy_grid_;
       float w_occupied_multiple_cm_;
 
+      std::vector<double> duplicates_by_RM_weighted_;
+      std::vector<double> duplicates_by_RM_weighted_not_capped;
       std::vector<int> explained_by_RM_; //represents the points of scene_cloud_ that are explained by the recognition models
       std::vector<double> explained_by_RM_distance_weighted; //represents the points of scene_cloud_ that are explained by the recognition models
+      std::vector<int> explained_by_RM_model; //id of the model explaining the point
+      std::vector< std::stack<std::pair<int, float>, std::vector<std::pair<int, float> > > > previous_explained_by_RM_distance_weighted; //represents the points of scene_cloud_ that are explained by the recognition models
       std::vector<double> unexplained_by_RM_neighboorhods; //represents the points of scene_cloud_ that are not explained by the active hypotheses in the neighboorhod of the recognition models
       std::vector<boost::shared_ptr<RecognitionModel<ModelT> > > recognition_models_;
       //std::vector<size_t> indices_;
       std::vector<bool> valid_model_;
+
+      float duplicy_weight_test_;
+      float duplicity_curvature_max_;
 
       float clutter_regularizer_;
       bool detect_clutter_;
       float radius_neighborhood_GO_;
       float radius_normals_;
 
-      float previous_explained_value;
-      float previous_duplicity_;
+      double previous_explained_value;
+      double previous_duplicity_;
       int previous_duplicity_complete_models_;
-      float previous_bad_info_;
-      float previous_unexplained_;
+      double previous_bad_info_;
+      double previous_unexplained_;
 
       int max_iterations_; //max iterations without improvement
       SAModel<ModelT, SceneT> best_seen_;
@@ -316,32 +325,32 @@ namespace faat_pcl
       float curvature_threshold_;
       float cluster_tolerance_;
 
-      float
+      double
       getOccupiedMultipleW ()
       {
         return w_occupied_multiple_cm_;
       }
 
       void
-      setPreviousBadInfo (float f)
+      setPreviousBadInfo (double f)
       {
         previous_bad_info_ = f;
       }
 
-      float
+      double
       getPreviousBadInfo ()
       {
         return previous_bad_info_;
       }
 
       void
-      setPreviousExplainedValue (float v)
+      setPreviousExplainedValue (double v)
       {
         previous_explained_value = v;
       }
 
       void
-      setPreviousDuplicity (float v)
+      setPreviousDuplicity (double v)
       {
         previous_duplicity_ = v;
       }
@@ -353,24 +362,24 @@ namespace faat_pcl
       }
 
       void
-      setPreviousUnexplainedValue (float v)
+      setPreviousUnexplainedValue (double v)
       {
         previous_unexplained_ = v;
       }
 
-      float
+      double
       getPreviousUnexplainedValue ()
       {
         return previous_unexplained_;
       }
 
-      float
+      double
       getExplainedValue ()
       {
         return previous_explained_value;
       }
 
-      float
+      double
       getDuplicity ()
       {
         return previous_duplicity_;
@@ -388,44 +397,9 @@ namespace faat_pcl
         return active_hyp_penalty_;
       }
 
-      float
+      double
       getExplainedByIndices (std::vector<int> & indices, std::vector<float> & explained_values, std::vector<double> & explained_by_RM,
-                             std::vector<int> & indices_to_update_in_RM_local)
-      {
-        float v = 0;
-        int indices_to_update_count = 0;
-        for (size_t k = 0; k < indices.size (); k++)
-        {
-          if (explained_by_RM_[indices[k]] == 0)
-          { //in X1, the point is not explained
-            if (explained_by_RM[indices[k]] == 0)
-            { //in X2, this is the single hypothesis explaining the point so far
-              v += explained_values[k];
-              indices_to_update_in_RM_local[indices_to_update_count] = k;
-              indices_to_update_count++;
-            }
-            else
-            {
-              //in X2, there was a previous hypotheses explaining the point
-              //if the previous hypothesis was better, then reject this hypothesis for this point
-              if (explained_by_RM[indices[k]] >= explained_values[k])
-              {
-
-              }
-              else
-              {
-                //add the difference
-                v += explained_values[k] - explained_by_RM[indices[k]];
-                indices_to_update_in_RM_local[indices_to_update_count] = k;
-                indices_to_update_count++;
-              }
-            }
-          }
-        }
-
-        indices_to_update_in_RM_local.resize (indices_to_update_count);
-        return v;
-      }
+                             std::vector<int> & indices_to_update_in_RM_local);
 
       void
       getExplainedByRM (std::vector<double> & explained_by_rm)
@@ -434,12 +408,18 @@ namespace faat_pcl
       }
 
       void
+      getUnexplainedByRM (std::vector<double> & explained_by_rm)
+      {
+        explained_by_rm = unexplained_by_RM_neighboorhods;
+      }
+
+      void
       updateUnexplainedVector (std::vector<int> & unexplained_, std::vector<float> & unexplained_distances, std::vector<double> & unexplained_by_RM,
                                std::vector<int> & explained, std::vector<int> & explained_by_RM, float val)
       {
         {
 
-          float add_to_unexplained = 0.f;
+          double add_to_unexplained = 0.0;
 
           for (size_t i = 0; i < unexplained_.size (); i++)
           {
@@ -489,128 +469,28 @@ namespace faat_pcl
 
       void
       updateExplainedVector (std::vector<int> & vec, std::vector<float> & vec_float, std::vector<int> & explained_,
-                             std::vector<double> & explained_by_RM_distance_weighted, float sign);
-      /*{
-        float add_to_explained = 0.f;
-        float add_to_duplicity_ = 0;
-
-        for (size_t i = 0; i < vec.size (); i++)
-        {
-          bool prev_dup = explained_[vec[i]] > 1;
-          bool prev_explained = explained_[vec[i]] == 1;
-          float prev_explained_value = explained_by_RM_distance_weighted[vec[i]];
-
-          explained_[vec[i]] += static_cast<int> (sign);
-          explained_by_RM_distance_weighted[vec[i]] += vec_float[i] * sign;
-
-          //add_to_explained += vec_float[i] * sign;
-          if (explained_[vec[i]] == 1 && !prev_explained)
-          {
-            if (sign > 0)
-            {
-              add_to_explained += vec_float[i];
-            }
-            else
-            {
-              add_to_explained += explained_by_RM_distance_weighted[vec[i]];
-            }
-          }
-
-          //hypotheses being removed, now the point is not explained anymore and was explained before by this hypothesis
-          if ((sign < 0) && (explained_[vec[i]] == 0) && prev_explained)
-          {
-            //assert(prev_explained_value == vec_float[i]);
-            add_to_explained -= prev_explained_value;
-          }
-
-          //this hypothesis was added and now the point is not explained anymore, remove previous value
-          if ((sign > 0) && (explained_[vec[i]] == 2) && prev_explained)
-            add_to_explained -= prev_explained_value;
-
-          if ((explained_[vec[i]] > 1) && prev_dup)
-          { //its still a duplicate
-            add_to_duplicity_ += vec_float[i] * static_cast<int> (sign) / 2.f; //so, just add or remove one
-          }
-          else if ((explained_[vec[i]] == 1) && prev_dup)
-          { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
-            add_to_duplicity_ -= prev_explained_value / 2.f; //explained_by_RM_distance_weighted[vec[i]];
-          }
-          else if ((explained_[vec[i]] > 1) && !prev_dup)
-          { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
-            add_to_duplicity_ += explained_by_RM_distance_weighted[vec[i]]  / 2.f;
-          }
-        }
-
-        //update explained and duplicity values...
-        previous_explained_value += add_to_explained;
-        previous_duplicity_ += add_to_duplicity_;
-      }*/
+                             std::vector<double> & explained_by_RM_distance_weighted, float sign, int model_id);
 
       void
       updateCMDuplicity (std::vector<int> & vec, std::vector<int> & occupancy_vec, float sign);
-      /*{
-        int add_to_duplicity_ = 0;
-        for (size_t i = 0; i < vec.size (); i++)
-        {
-          bool prev_dup = occupancy_vec[vec[i]] > 1;
-          occupancy_vec[vec[i]] += static_cast<int> (sign);
-          if ((occupancy_vec[vec[i]] > 1) && prev_dup)
-          { //its still a duplicate, we are adding
-            add_to_duplicity_ += static_cast<int> (sign); //so, just add or remove one
-          }
-          else if ((occupancy_vec[vec[i]] == 1) && prev_dup)
-          { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
-            add_to_duplicity_ -= 2;
-          }
-          else if ((occupancy_vec[vec[i]] > 1) && !prev_dup)
-          { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
-            add_to_duplicity_ += 2;
-          }
-        }
 
-        previous_duplicity_complete_models_ += add_to_duplicity_;
-      }*/
+      double
+      getTotalExplainedInformation (std::vector<int> & explained_, std::vector<double> & explained_by_RM_distance_weighted, double * duplicity_);
 
-      float
-      getTotalExplainedInformation (std::vector<int> & explained_, std::vector<double> & explained_by_RM_distance_weighted, float * duplicity_);
-      /*{
-        float explained_info = 0;
-        float duplicity = 0;
-
-        for (size_t i = 0; i < explained_.size (); i++)
-        {
-          //if (explained_[i] > 0)
-          if (explained_[i] == 1) //only counts points that are explained once
-          {
-            //explained_info += explained_by_RM_distance_weighted[i] / 2.f; //what is the magic division by 2?
-            explained_info += explained_by_RM_distance_weighted[i];
-          }
-          if (explained_[i] > 1)
-          {
-            //duplicity += explained_by_RM_distance_weighted[i];
-            duplicity += explained_by_RM_distance_weighted[i] / 2.f;
-          }
-        }
-
-        *duplicity_ = duplicity;
-
-        return explained_info;
-      }*/
-
-      float
+      double
       getTotalBadInformation (std::vector<boost::shared_ptr<RecognitionModel<ModelT> > > & recog_models)
       {
-        float bad_info = 0;
+        double bad_info = 0;
         for (size_t i = 0; i < recog_models.size (); i++)
-          bad_info += recog_models[i]->outliers_weight_ * static_cast<float> (recog_models[i]->bad_information_);
+          bad_info += recog_models[i]->outliers_weight_ * static_cast<double> (recog_models[i]->bad_information_);
 
         return bad_info;
       }
 
-      float
+      double
       getUnexplainedInformationInNeighborhood (std::vector<double> & unexplained, std::vector<int> & explained)
       {
-        float unexplained_sum = 0.f;
+        double unexplained_sum = 0.f;
         for (size_t i = 0; i < unexplained.size (); i++)
         {
           if (unexplained[i] > 0 && explained[i] == 0)
@@ -620,10 +500,10 @@ namespace faat_pcl
         return unexplained_sum;
       }
 
-      float
+      double
       getModelConstraintsValueForActiveSolution (const std::vector<bool> & active)
       {
-        float bad_info = 0;
+        double bad_info = 0;
         for (size_t i = 0; i < recognition_models_.size (); i++)
         {
           if (active[i])
@@ -656,8 +536,11 @@ namespace faat_pcl
       void
       clear_structures ();
 
-      float
+      double
       countActiveHypotheses (const std::vector<bool> & sol);
+
+      double
+      countPointsOnDifferentPlaneSides (const std::vector<bool> & sol, bool print=false);
 
       boost::shared_ptr<CostFunctionLogger<ModelT,SceneT> > cost_logger_;
       bool initial_status_;
@@ -676,7 +559,7 @@ namespace faat_pcl
       computeHueHistogram (std::vector<Eigen::Vector3f> & hsv_values, Eigen::VectorXf & histogram);
 
       void
-      computeGSHistogram (std::vector<float> & hsv_values, Eigen::MatrixXf & histogram);
+      computeGSHistogram (std::vector<float> & hsv_values, Eigen::MatrixXf & histogram, int hist_size = 255);
 
       void
       convertToHSV (int ri, int gi, int bi, Eigen::Vector3f & hsv)
@@ -725,6 +608,47 @@ namespace faat_pcl
       typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
       boost::shared_ptr<pcl::octree::OctreePointCloudSearch<pcl::PointXYZ> > octree_occ_edges_;
       int min_contribution_;
+      bool LS_short_circuit_;
+      std::vector<std::vector<float> > points_one_plane_sides_;
+      bool use_points_on_plane_side_;
+
+      boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
+      int visualize_go_cues_;
+
+      void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval);
+
+      boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_go_cues_;
+
+      std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> models_smooth_faces_;
+
+      void specifyColor(int i, Eigen::MatrixXf & lookup, boost::shared_ptr<RecognitionModel<ModelT> > & recog_model);
+
+      std::vector<float> scene_curvature_;
+      std::vector<Eigen::Vector3f> scene_LAB_values_;
+      std::vector<Eigen::Vector3f> scene_RGB_values_;
+      std::vector<float> scene_GS_values_;
+      int color_space_;
+      float best_color_weight_;
+      bool visualize_accepted_;
+      typedef pcl::PointCloud<ModelT> CloudM;
+      typedef pcl::PointCloud<SceneT> CloudS;
+      typedef typename pcl::traits::fieldList<typename CloudS::PointType>::type FieldListS;
+      typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
+
+      float getCurvWeight(float p_curvature);
+
+      bool use_normals_from_visible_;
+      int max_threads_;
+
+      std::vector<std::string> ply_paths_;
+      std::vector<vtkSmartPointer <vtkTransform> > poses_ply_;
+
+      float t_cues_, t_opt_;
+      int number_of_visible_points_;
+
+      float d_weight_for_bad_normals_;
+      bool use_clutter_exp_;
+
     public:
       GlobalHypothesesVerification_1 () :
         faat_pcl::HypothesisVerification<ModelT, SceneT> ()
@@ -741,7 +665,8 @@ namespace faat_pcl
         w_occupied_multiple_cm_ = 2.f;
         use_conflict_graph_ = false;
         ignore_color_even_if_exists_ = true;
-        color_sigma_ = 50.f;
+        color_sigma_ab_ = 0.25f;
+        color_sigma_l_ = 0.5f;
         opt_type_ = 2;
         use_replace_moves_ = true;
         active_hyp_penalty_ = 0.f;
@@ -756,6 +681,107 @@ namespace faat_pcl
         occ_edges_available_ = false;
         use_histogram_specification_ = false;
         min_contribution_ = 0;
+        LS_short_circuit_ = false;
+        visualize_go_cues_ = 0; //0 - No visualization, 1 - accepted moves
+        use_points_on_plane_side_ = true;
+        color_space_ = 0;
+        visualize_accepted_ = false;
+        best_color_weight_ = 0.8f;
+
+        duplicy_weight_test_ = 1.f;
+        duplicity_curvature_max_ = 0.03f;
+        use_normals_from_visible_ = false;
+        max_threads_ = 1;
+        d_weight_for_bad_normals_ = 0.1f;
+        use_clutter_exp_ = false;
+      }
+
+      void setUseClutterExp(bool b)
+      {
+          use_clutter_exp_ = b;
+      }
+
+      void setWeightForBadNormals(float w)
+      {
+          d_weight_for_bad_normals_ = w;
+      }
+
+      int getNumberOfVisiblePoints()
+      {
+          return number_of_visible_points_;
+      }
+
+      float getCuesComputationTime()
+      {
+          return t_cues_;
+      }
+
+      float getOptimizationTime()
+      {
+          return t_opt_;
+      }
+
+      void setPlyPathsAndPoses(std::vector<std::string> & ply_paths_for_go, std::vector<vtkSmartPointer <vtkTransform> > & poses_ply)
+      {
+          ply_paths_ = ply_paths_for_go;
+          poses_ply_ = poses_ply;
+      }
+
+      void setMaxThreads(int t)
+      {
+          max_threads_ = t;
+      }
+
+      void setUseNormalsFromVisible(bool b)
+      {
+          use_normals_from_visible_ = b;
+      }
+
+      void setDuplicityWeightTest(float f)
+      {
+          duplicy_weight_test_ = f;
+      }
+
+      void setDuplicityMaxCurvature(float f)
+      {
+          duplicity_curvature_max_ = f;
+      }
+
+      void setBestColorWeight(float bcw)
+      {
+          best_color_weight_ = bcw;
+      }
+
+      void setVisualizeAccepted(bool b)
+      {
+          visualize_accepted_ = b;
+      }
+
+      //0 for LAB (specifying L), 1 for RGB (specifying all)
+      void setColorSpace(int cs)
+      {
+          std::cout << "called color space" << cs << std::endl;
+          color_space_ = cs;
+      }
+
+      void setUsePointsOnPlaneSides(bool b)
+      {
+          use_points_on_plane_side_ = b;
+      }
+
+      void setSmoothFaces(std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> & aligned_smooth_faces)
+      {
+          models_smooth_faces_ = aligned_smooth_faces;
+      }
+
+      void setVisualizeGoCues(int v)
+      {
+        visualize_go_cues_ = v;
+      }
+
+      void setLSShortCircuit(bool b)
+      {
+          LS_short_circuit_ = b;
       }
 
       void setDuplicityCMWeight(float w)
@@ -894,7 +920,14 @@ namespace faat_pcl
       void
       setColorSigma (float s)
       {
-        color_sigma_ = s;
+        color_sigma_ab_ = s;
+        color_sigma_l_ = s;
+      }
+
+      void setColorSigma(float s_l, float s_ab)
+      {
+          color_sigma_ab_ = s_ab;
+          color_sigma_l_ = s_l;
       }
 
       void

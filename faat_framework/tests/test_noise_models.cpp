@@ -124,8 +124,8 @@ main (int argc, char ** argv)
   std::vector<float> weights;
   nm.getWeights(weights);
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered;
-  nm.getFilteredCloud(filtered, w_t);
+  //pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered;
+  //nm.getFilteredCloud(filtered, w_t);
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr edges;
   nm.getDiscontinuityEdges(edges);
@@ -146,15 +146,15 @@ main (int argc, char ** argv)
     vis.addPointCloud (edges, handler, "edges", v2);
   }
 
-  {
+  /*{
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler (filtered);
     vis.addPointCloud (filtered, handler, "filtered", v3);
-  }
+  }*/
 
   vis.addCoordinateSystem(0.2, 0);
   vis.spin();
 
-  {
+  /*{
     cv::Mat_ < cv::Vec3b > colorImage;
     PCLOpenCV::ConvertPCLCloud2Image<pcl::PointXYZRGB> (filtered, colorImage);
     cv::namedWindow("test");
@@ -167,5 +167,5 @@ main (int argc, char ** argv)
     cv::namedWindow("original");
     cv::imshow("original", colorImage);
   }
-  cv::waitKey(0);
+  cv::waitKey(0);*/
 }

@@ -36,6 +36,7 @@ private:
     float final_resolution_;
     PointNormalTPtr output_normals_;
     std::vector<PointTPtr> input_clouds_used_;
+    std::vector<std::vector<int> > indices_;
 
 public:
     NMBasedCloudIntegration ();
@@ -82,6 +83,12 @@ public:
     setMinWeight(float m_w)
     {
         min_weight_ = m_w;
+    }
+
+    void
+    setIndices(std::vector<std::vector<int> > & indices)
+    {
+        indices_ = indices;
     }
 
     void

@@ -15,8 +15,9 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     for (size_t i = 0; i < models->size (); i++)
     {
       std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
-      std::string path_class = source_->getModelClassDirectory (*models->at (i), training_dir_);
-      std::cout << "I AM AT PATH: " << path << " for class directory: " << path_class << std::endl;
+      //std::string path_class = source_->getModelClassDirectory (*models->at (i), training_dir_);
+      //std::cout << "I AM AT PATH: " << path << " for class directory: " << path_class << std::endl;
+
       bf::path inside = path;
       bf::directory_iterator end_itr;
 

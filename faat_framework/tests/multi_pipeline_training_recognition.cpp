@@ -50,6 +50,7 @@ std::string MODELS_DIR_;
 std::string MODELS_DIR_FOR_VIS_;
 float model_scale = 1.f;
 bool use_HV = true;
+std::string RESULTS_OUTPUT_DIR_ = "";
 
 template<typename PointT>
 void
@@ -438,6 +439,7 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
   go->setRadiusNormals(parameters_for_go.radius_normals_go_);
   go->setRequiresNormals(parameters_for_go.require_normals);
   go->setInitialStatus(parameters_for_go.go_init);
+  go->setIgnoreColor(true);
 
   boost::shared_ptr<faat_pcl::HypothesisVerification<PointT, PointT> > cast_hv_alg;
   cast_hv_alg = boost::static_pointer_cast<faat_pcl::HypothesisVerification<PointT, PointT> > (go);
@@ -629,141 +631,149 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
       model_ids.push_back(models->at (kk)->id_);
     }
 
-    go->setSceneCloud (scene);
-    //addModels
-    go->addModels (aligned_models, true);
-    //append planar models
-    if(add_planes)
-    {
-      go->addPlanarModels(planes_found);
-      for(size_t kk=0; kk < planes_found.size(); kk++)
-      {
-        std::stringstream plane_id;
-        plane_id << "plane_" << kk;
-        model_ids.push_back(plane_id.str());
-      }
-    }
-
-    go->setObjectIds(model_ids);
-    //verify
-    go->verify ();
-    std::vector<bool> mask_hv;
-    go->getMask (mask_hv);
-
-    if(use_HV)
-    {
-      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  go->getSmoothClustersRGBCloud();
-      if(smooth_cloud_)
-      {
-        pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
-        vis.addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", v3);
-      }
-    }
-
-    std::vector<int> coming_from;
-    coming_from.resize(aligned_models.size() + planes_found.size());
-    for(size_t j=0; j < aligned_models.size(); j++)
-      coming_from[j] = 0;
-
-    for(size_t j=0; j < planes_found.size(); j++)
-      coming_from[aligned_models.size() + j] = 1;
-
-    or_eval.visualizeGroundTruth(vis, id_1, v4);
-
     boost::shared_ptr<std::vector<ModelTPtr> > verified_models(new std::vector<ModelTPtr>);
     boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > verified_transforms;
     verified_transforms.reset(new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
 
-    if(models)
+    if(use_HV)
     {
-      vtkSmartPointer < vtkTransform > scale_models = vtkSmartPointer<vtkTransform>::New ();
-      scale_models->Scale(model_scale, model_scale, model_scale);
-
-      for (size_t j = 0; j < mask_hv.size (); j++)
-      {
-        std::stringstream name;
-        name << "cloud_" << j;
-
-        if(!mask_hv[j])
+        go->setSceneCloud (scene);
+        //addModels
+        go->addModels (aligned_models, true);
+        //append planar models
+        if(add_planes)
         {
-          if(coming_from[j] == 0)
+          go->addPlanarModels(planes_found);
+          for(size_t kk=0; kk < planes_found.size(); kk++)
           {
-            ConstPointInTPtr model_cloud = models->at (j)->getAssembled (VX_SIZE_ICP_);
-            typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-            pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
+            std::stringstream plane_id;
+            plane_id << "plane_" << kk;
+            model_ids.push_back(plane_id.str());
+          }
+        }
 
-            pcl::visualization::PointCloudColorHandlerRandom<PointT> random_handler (model_aligned);
-            vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v6);
+        go->setObjectIds(model_ids);
+        //verify
+        go->verify ();
+        std::vector<bool> mask_hv;
+        go->getMask (mask_hv);
 
-            /*std::stringstream pathPly;
-            pathPly << MODELS_DIR_FOR_VIS_ << "/" << models->at (j)->id_ << ".ply";
-            vtkSmartPointer < vtkTransform > poseTransform = vtkSmartPointer<vtkTransform>::New ();
-            vtkSmartPointer < vtkMatrix4x4 > mat = vtkSmartPointer<vtkMatrix4x4>::New ();
-            for (size_t kk = 0; kk < 4; kk++)
+        if(use_HV)
+        {
+          pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  go->getSmoothClustersRGBCloud();
+          if(smooth_cloud_)
+          {
+            pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
+            vis.addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", v3);
+          }
+        }
+
+        std::vector<int> coming_from;
+        coming_from.resize(aligned_models.size() + planes_found.size());
+        for(size_t j=0; j < aligned_models.size(); j++)
+          coming_from[j] = 0;
+
+        for(size_t j=0; j < planes_found.size(); j++)
+          coming_from[aligned_models.size() + j] = 1;
+
+        or_eval.visualizeGroundTruth(vis, id_1, v4);
+
+        if(models)
+        {
+          vtkSmartPointer < vtkTransform > scale_models = vtkSmartPointer<vtkTransform>::New ();
+          scale_models->Scale(model_scale, model_scale, model_scale);
+
+          for (size_t j = 0; j < mask_hv.size (); j++)
+          {
+            std::stringstream name;
+            name << "cloud_" << j;
+
+            if(!mask_hv[j])
             {
-             for (size_t k = 0; k < 4; k++)
-             {
-               mat->SetElement (kk, k, transforms->at (j) (kk, k));
-             }
+              if(coming_from[j] == 0)
+              {
+                ConstPointInTPtr model_cloud = models->at (j)->getAssembled (VX_SIZE_ICP_);
+                typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+                pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
+
+                pcl::visualization::PointCloudColorHandlerRandom<PointT> random_handler (model_aligned);
+                vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v6);
+
+                /*std::stringstream pathPly;
+                pathPly << MODELS_DIR_FOR_VIS_ << "/" << models->at (j)->id_ << ".ply";
+                vtkSmartPointer < vtkTransform > poseTransform = vtkSmartPointer<vtkTransform>::New ();
+                vtkSmartPointer < vtkMatrix4x4 > mat = vtkSmartPointer<vtkMatrix4x4>::New ();
+                for (size_t kk = 0; kk < 4; kk++)
+                {
+                 for (size_t k = 0; k < 4; k++)
+                 {
+                   mat->SetElement (kk, k, transforms->at (j) (kk, k));
+                 }
+                }
+
+                    poseTransform->SetMatrix (mat);
+                    poseTransform->Modified ();
+                    poseTransform->Concatenate(scale_models);
+
+                    std::stringstream cluster_name;
+                    cluster_name << "_ply_model_" << j;
+                    vis.addModelFromPLYFile (pathPly.str (), poseTransform, cluster_name.str (), v3);*/
+                  }
+                  continue;
+                }
+
+                if(coming_from[j] == 0)
+                {
+                  verified_models->push_back(models->at(j));
+                  verified_transforms->push_back(transforms->at(j));
+
+                  ConstPointInTPtr model_cloud = models->at (j)->getAssembled (VX_SIZE_ICP_);
+                  typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+                  pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
+
+                  std::cout << models->at (j)->id_ << std::endl;
+
+                  pcl::visualization::PointCloudColorHandlerRandom<PointT> random_handler (model_aligned);
+                  vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v2);
+
+                  std::stringstream pathPly;
+                  pathPly << MODELS_DIR_FOR_VIS_ << "/" << models->at (j)->id_ << ".ply";
+                  vtkSmartPointer < vtkTransform > poseTransform = vtkSmartPointer<vtkTransform>::New ();
+                  vtkSmartPointer < vtkMatrix4x4 > mat = vtkSmartPointer<vtkMatrix4x4>::New ();
+                  for (size_t kk = 0; kk < 4; kk++)
+                  {
+                   for (size_t k = 0; k < 4; k++)
+                   {
+                     mat->SetElement (kk, k, transforms->at (j) (kk, k));
+                   }
+                  }
+
+                  poseTransform->SetMatrix (mat);
+                  poseTransform->Modified ();
+                  poseTransform->Concatenate(scale_models);
+
+                  std::stringstream cluster_name;
+                  cluster_name << "_ply_model_" << j;
+                  vis.addModelFromPLYFile (pathPly.str (), poseTransform, cluster_name.str (), v2);
+                }
+                else
+                {
+                  std::stringstream pname;
+                  pname << "plane_" << j;
+
+                  pcl::visualization::PointCloudColorHandlerRandom<pcl::PointXYZ> scene_handler(planes_found[j - models->size()].plane_cloud_);
+                  vis.addPointCloud<pcl::PointXYZ> (planes_found[j - models->size()].plane_cloud_, scene_handler, pname.str(), v2);
+
+                  pname << "chull";
+                  vis.addPolygonMesh (*planes_found[j - models->size()].convex_hull_, pname.str(), v2);
+                }
+              }
             }
-
-            poseTransform->SetMatrix (mat);
-            poseTransform->Modified ();
-            poseTransform->Concatenate(scale_models);
-
-            std::stringstream cluster_name;
-            cluster_name << "_ply_model_" << j;
-            vis.addModelFromPLYFile (pathPly.str (), poseTransform, cluster_name.str (), v3);*/
-          }
-          continue;
-        }
-
-        if(coming_from[j] == 0)
-        {
-          verified_models->push_back(models->at(j));
-          verified_transforms->push_back(transforms->at(j));
-
-          ConstPointInTPtr model_cloud = models->at (j)->getAssembled (VX_SIZE_ICP_);
-          typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-          pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
-
-          std::cout << models->at (j)->id_ << std::endl;
-
-          pcl::visualization::PointCloudColorHandlerRandom<PointT> random_handler (model_aligned);
-          vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v2);
-
-          std::stringstream pathPly;
-          pathPly << MODELS_DIR_FOR_VIS_ << "/" << models->at (j)->id_ << ".ply";
-          vtkSmartPointer < vtkTransform > poseTransform = vtkSmartPointer<vtkTransform>::New ();
-          vtkSmartPointer < vtkMatrix4x4 > mat = vtkSmartPointer<vtkMatrix4x4>::New ();
-          for (size_t kk = 0; kk < 4; kk++)
-          {
-           for (size_t k = 0; k < 4; k++)
-           {
-             mat->SetElement (kk, k, transforms->at (j) (kk, k));
-           }
-          }
-
-          poseTransform->SetMatrix (mat);
-          poseTransform->Modified ();
-          poseTransform->Concatenate(scale_models);
-
-          std::stringstream cluster_name;
-          cluster_name << "_ply_model_" << j;
-          vis.addModelFromPLYFile (pathPly.str (), poseTransform, cluster_name.str (), v2);
-        }
-        else
-        {
-          std::stringstream pname;
-          pname << "plane_" << j;
-
-          pcl::visualization::PointCloudColorHandlerRandom<pcl::PointXYZ> scene_handler(planes_found[j - models->size()].plane_cloud_);
-          vis.addPointCloud<pcl::PointXYZ> (planes_found[j - models->size()].plane_cloud_, scene_handler, pname.str(), v2);
-
-          pname << "chull";
-          vis.addPolygonMesh (*planes_found[j - models->size()].convex_hull_, pname.str(), v2);
-        }
-      }
+    }
+    else
+    {
+        verified_models = models;
+        verified_transforms = transforms;
     }
 
     or_eval.addRecognitionResults(id_1, verified_models, verified_transforms);
@@ -786,7 +796,11 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
     //go->writeToLog(logfile_stream, false);
   }
 
+  if(RESULTS_OUTPUT_DIR_.compare("") != 0)
+      or_eval.saveRecognitionResults(RESULTS_OUTPUT_DIR_);
+
   or_eval.computeStatistics();
+
   logfile_stream.close();
 }
 
@@ -899,6 +913,8 @@ main (int argc, char ** argv)
   MODELS_DIR_FOR_VIS_ = path;
   pcl::console::parse_argument (argc, argv, "-models_dir_vis", MODELS_DIR_FOR_VIS_);
   pcl::console::parse_argument (argc, argv, "-GT_DIR", GT_DIR_);
+  pcl::console::parse_argument (argc, argv, "-output_dir_before_hv", RESULTS_OUTPUT_DIR_);
+
   MODELS_DIR_ = path;
 
   std::cout << "VX_SIZE_ICP_" << VX_SIZE_ICP_ << std::endl;
@@ -956,7 +972,8 @@ main (int argc, char ** argv)
   boost::shared_ptr<faat_pcl::rec_3d_framework::UniformSamplingExtractor<pcl::PointXYZ> > uniform_keypoint_extractor ( new faat_pcl::rec_3d_framework::UniformSamplingExtractor<pcl::PointXYZ>);
   
   uniform_keypoint_extractor->setSamplingDensity (0.01f);
-  //uniform_keypoint_extractor->setSamplingDensity (0.005f);
+  uniform_keypoint_extractor->setThresholdPlanar(0.025);
+  uniform_keypoint_extractor->setMaxDistance(2.f);
   uniform_keypoint_extractor->setFilterPlanar (true);
 
   boost::shared_ptr<faat_pcl::rec_3d_framework::KeypointExtractor<pcl::PointXYZ> > keypoint_extractor;
@@ -993,9 +1010,11 @@ main (int argc, char ** argv)
     gcg_alg->setGCSize (CG_THRESHOLD_);
     gcg_alg->setRansacThreshold (ransac_threshold_cg_);
     gcg_alg->setUseGraph(true);
-    gcg_alg->setPrune(cg_prune_hyp);
-    gcg_alg->setDotDistance(1.f);
-    gcg_alg->setDistForClusterFactor(0.5f);
+    gcg_alg->setPrune(false);
+    gcg_alg->setDotDistance(0.25f);
+    gcg_alg->setDistForClusterFactor(0);
+    gcg_alg->setMaxTimeForCliquesComputation(100);
+    gcg_alg->setCheckNormalsOrientation(true);
     cast_cg_alg = boost::static_pointer_cast<pcl::CorrespondenceGrouping<pcl::PointXYZ, pcl::PointXYZ> > (gcg_alg);
   }
 
@@ -1123,12 +1142,26 @@ main (int argc, char ** argv)
       vfh_estimator.reset (new faat_pcl::rec_3d_framework::OURCVFHEstimator<pcl::PointXYZ, pcl::VFHSignature308>);
       vfh_estimator->setNormalEstimator (normal_estimator);
       vfh_estimator->setNormalizeBins (normalize_bins_);
-      vfh_estimator->setCVFHParams (0.13f, 0.0125f, 2.f);
-      vfh_estimator->setRefineClustersParam (2.5f);
+      //vfh_estimator->setCVFHParams (0.13f, 0.0125f, 2.f);
+      //vfh_estimator->setRefineClustersParam (2.5f);
       vfh_estimator->setAdaptativeMLS (false);
 
       vfh_estimator->setAxisRatio (1.f);
       vfh_estimator->setMinAxisValue (1.f);
+
+      {
+          //segmentation parameters for training
+          std::vector<float> eps_thresholds, cur_thresholds, clus_thresholds;
+          eps_thresholds.push_back (0.13);
+          cur_thresholds.push_back (0.0125f);
+          cur_thresholds.push_back (1.f);
+          clus_thresholds.push_back (10.f);
+
+          vfh_estimator->setRefineClustersParam (100.f);
+          vfh_estimator->setClusterToleranceVector (clus_thresholds);
+          vfh_estimator->setEpsAngleThresholdVector (eps_thresholds);
+          vfh_estimator->setCurvatureThresholdVector (cur_thresholds);
+      }
 
       //vfh_estimator->setCVFHParams (0.15f, 0.015f, 2.5f);
 
@@ -1158,7 +1191,7 @@ main (int argc, char ** argv)
         //segmentation parameters for recognition
         //vfh_estimator->setCVFHParams (0.15f, 0.015f, 2.5f);
 
-        std::vector<float> eps_thresholds, cur_thresholds, clus_thresholds;
+        /*std::vector<float> eps_thresholds, cur_thresholds, clus_thresholds;
         eps_thresholds.push_back (0.13);
         eps_thresholds.push_back (0.150f);
         eps_thresholds.push_back (0.1750f);
@@ -1170,8 +1203,21 @@ main (int argc, char ** argv)
         cur_thresholds.push_back (0.015f);
         //cur_thresholds.push_back (0.02f);
         //cur_thresholds.push_back (0.035f);
-        clus_thresholds.push_back (2.5f);
+        clus_thresholds.push_back (2.5f);*/
 
+        //segmentation parameters for training
+        std::vector<float> eps_thresholds, cur_thresholds, clus_thresholds;
+        eps_thresholds.push_back (0.13);
+        eps_thresholds.push_back (0.150f);
+        //eps_thresholds.push_back (0.1750f);
+        cur_thresholds.push_back (0.0125f);
+        cur_thresholds.push_back (0.015f);
+        //cur_thresholds.push_back (0.0175f);
+        cur_thresholds.push_back (1.f);
+        //clus_thresholds.push_back (2.5f);
+        clus_thresholds.push_back (10.f);
+
+        //vfh_estimator->setRefineClustersParam (100.f);
         vfh_estimator->setClusterToleranceVector (clus_thresholds);
         vfh_estimator->setEpsAngleThresholdVector (eps_thresholds);
         vfh_estimator->setCurvatureThresholdVector (cur_thresholds);

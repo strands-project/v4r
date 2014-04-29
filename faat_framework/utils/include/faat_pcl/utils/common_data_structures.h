@@ -14,6 +14,7 @@ namespace faat_pcl
     pcl::ModelCoefficients coefficients_;
     typename pcl::PointCloud<PointT>::Ptr plane_cloud_;
     pcl::PolygonMeshPtr convex_hull_;
+    typename pcl::PointCloud<PointT>::Ptr convex_hull_cloud_;
     typename pcl::PointCloud<PointT>::Ptr cloud_;
     pcl::PointIndices inliers_;
 

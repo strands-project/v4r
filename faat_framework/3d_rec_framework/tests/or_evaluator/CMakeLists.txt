@@ -16,6 +16,9 @@ target_link_libraries(gt_vs_gt ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_r
 add_executable(count_gt_objects_per_sequence count_gt_objects_per_sequence.cpp)
 target_link_libraries(count_gt_objects_per_sequence ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
 
+add_executable(merge_hypotheses merge_hypotheses.cpp)
+target_link_libraries(merge_hypotheses ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
+
 
 FIND_PACKAGE(Qt4)
 include(${QT_USE_FILE})

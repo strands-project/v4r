@@ -280,6 +280,12 @@ namespace faat_pcl
             ind_tgt_ = tgt;
       }
 
+      inline void
+      setSourceTargetCorrespondences(pcl::CorrespondencesPtr & corr)
+      {
+          source_target_corrs_user_ = corr;
+      }
+
       /** \brief Returns a pointer to the DefaultConvergenceCriteria used by the IterativeClosestPoint class.
         * This allows to check the convergence state after the align() method as well as to configure
         * DefaultConvergenceCriteria's parameters not available through the ICP API before the align()
@@ -591,6 +597,7 @@ namespace faat_pcl
       float inliers_threshold_;
 
       pcl::IndicesPtr ind_src_, ind_tgt_;
+      pcl::CorrespondencesPtr source_target_corrs_user_;
   };
 
   /** \brief @b IterativeClosestPointWithNormals is a special case of

@@ -28,15 +28,7 @@
 #include <faat_pcl/registration/registration_utils.h>
 #include <faat_pcl/utils/registration_utils.h>
 #include <faat_pcl/utils/pcl_opencv.h>
-
-struct IndexPoint
-{
-    int idx;
-};
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (IndexPoint,
-                                   (int, idx, idx)
-                                   )
+#include <faat_pcl/3d_rec_framework/feature_wrapper/local/image/sift_local_estimator.h>
 
 inline bool
 readMatrixFromFile2 (std::string file, Eigen::Matrix4f & matrix, int ignore = 0)
@@ -205,9 +197,54 @@ computeRGBEdges (typename pcl::PointCloud<PointT>::Ptr & cloud, std::vector<int>
     }
 }
 
+template<class PointT, class FeatureT>
+bool
+calcSIFTFeatures (typename pcl::PointCloud<PointT>::Ptr & cloud,
+                  typename pcl::PointCloud<PointT>::Ptr & keypoints,
+                  typename pcl::PointCloud<FeatureT>::Ptr & features,
+                  pcl::PointIndices & indices)
+{
+  boost::shared_ptr < faat_pcl::rec_3d_framework::SIFTLocalEstimation<PointT, FeatureT> > estimator;
+  estimator.reset (new faat_pcl::rec_3d_framework::SIFTLocalEstimation<PointT, FeatureT>);
+
+  features.reset(new pcl::PointCloud<FeatureT>);
+  typename pcl::PointCloud<PointT>::Ptr processed(new pcl::PointCloud<PointT>);
+  bool ret = estimator->estimate (cloud, processed, keypoints, features);
+  estimator->getKeypointIndices(indices);
+  return ret;
+}
+
+void
+nearestKSearch (flann::Index<flann::L1<float> > * index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+                flann::Matrix<float> &distances)
+{
+  flann::Matrix<float> p = flann::Matrix<float> (new float[descr_size], 1, descr_size);
+  memcpy (&p.ptr ()[0], &descr[0], p.cols * p.rows * sizeof(float));
+
+  index->knnSearch (p, indices, distances, k, flann::SearchParams (128));
+  delete[] p.ptr ();
+}
+
+template<typename Type>
+void
+convertToFLANN (typename pcl::PointCloud<Type>::Ptr & cloud, flann::Matrix<float> &data)
+{
+data.rows = cloud->points.size ();
+data.cols = sizeof(cloud->points[0].histogram) / sizeof(float); // number of histogram bins
+
+flann::Matrix<float> flann_data (new float[data.rows * data.cols], data.rows, data.cols);
+
+for (size_t i = 0; i < data.rows; ++i)
+  for (size_t j = 0; j < data.cols; ++j)
+  {
+    flann_data.ptr ()[i * data.cols + j] = cloud->points[i].histogram[j];
+  }
+
+data = flann_data;
+}
+
 //./bin/object_modelling_willow -pcd_files_dir /home/aitor/willow_challenge_ros_code/read_willow_data/train/object_15/ -Z_DIST 0.8 -num_plane_inliers 2000 -max_corresp_dist 0.01 -vx_size 0.003 -dt_size 0.003 -visualize 0 -fast_overlap 1 -aligned_output_dir /home/aitor/data/willow_structure/object_15.pcd -aligned_model_saved_to /home/aitor/data/willow_object_clouds/models_ml_new/object_15.pcd
 // ./bin/object_modelling_willow_unknown_poses -pcd_files_dir /media/DATA/models/frucht_molke_seq2/bin/ -Z_DIST 1 -low 100 -high 150 -iterations 15 -max_corresp_dist 0.05 -vis_final 1 -step 1 -vis_pairwise_ 0 -aligned_output_dir /media/DATA/models/frucht_molke_seq2_aligned
-
 int
 main (int argc, char ** argv)
 {
@@ -285,7 +322,9 @@ main (int argc, char ** argv)
     bool do_multiview = true;
     bool vis_segmented = false;
     float plane_threshold = 0.01f;
+    float ov_percentage_ = 0.5f;
 
+    pcl::console::parse_argument (argc, argv, "-ov_percentage_", ov_percentage_);
     pcl::console::parse_argument (argc, argv, "-w_t", w_t);
     pcl::console::parse_argument (argc, argv, "-max_angle", max_angle);
     pcl::console::parse_argument (argc, argv, "-lateral_sigma", lateral_sigma);
@@ -507,7 +546,7 @@ main (int argc, char ** argv)
             pcl::copyPointCloud(*normals, cedges, normals_edges_cloud);
 
             pcl::UniformSampling<PointType> keypoint_extractor;
-            keypoint_extractor.setRadiusSearch(0.02f);
+            keypoint_extractor.setRadiusSearch(0.01f);
             keypoint_extractor.setInputCloud (edges_cloud);
             pcl::PointCloud<int> keypoints_idxes_src;
             keypoint_extractor.compute (keypoints_idxes_src);
@@ -524,6 +563,49 @@ main (int argc, char ** argv)
             xyz_normals_[i].reset(new pcl::PointCloud<PointTInternal>);
             pcl::copyPointCloud(*edges_cloud, *xyz_normals_[i]);
             pcl::copyPointCloud(normals_edges_cloud, *xyz_normals_[i]);
+        }
+    }
+
+    //compute SIFT correspondences
+    typedef pcl::Histogram<128> FeatureT;
+    std::vector<pcl::PointCloud<FeatureT>::Ptr> sift_features;
+    std::vector<pcl::PointCloud<PointType>::Ptr> sift_keypoints;
+    std::vector<pcl::PointIndices> sift_keypoints_indices;
+    std::vector<std::map<int,int> > sift_keypoints_to_xyz_normals_;
+
+    sift_features.resize(clouds_.size());
+    sift_keypoints.resize(clouds_.size());
+    sift_keypoints_indices.resize(clouds_.size());
+    sift_keypoints_to_xyz_normals_.resize(clouds_.size());
+
+    for(size_t i=0; i < clouds_.size(); i++)
+    {
+        calcSIFTFeatures<PointType, FeatureT>(range_images_[i], sift_keypoints[i], sift_features[i], sift_keypoints_indices[i]);
+
+        //add keypoints to indices_views_[i] and to xyz_normals_[i]
+        int start = indices_views_[i]->size();
+        int good = 0;
+        for(size_t k=0; k < sift_keypoints[i]->points.size(); k++)
+        {
+
+            if(sift_keypoints[i]->points[k].z > Z_DIST_)
+                continue;
+
+            if(sift_keypoints[i]->points[k].x > -x_limits)
+                continue;
+
+            if(sift_keypoints[i]->points[k].x < x_limits)
+                continue;
+
+            int idx = start + good;
+            indices_views_[i]->push_back(idx);
+            pcl::PointXYZRGBNormal p;
+            p.getVector3fMap() = sift_keypoints[i]->points[k].getVector3fMap();
+            p.rgb = sift_keypoints[i]->points[k].rgb;
+            p.getNormalVector3fMap() = clouds_normals_[i]->points[sift_keypoints_indices[i].indices[k]].getNormalVector3fMap();
+            xyz_normals_[i]->points.push_back(p);
+            sift_keypoints_to_xyz_normals_[i].insert(std::make_pair((int)k,idx));
+            good++;
         }
     }
 
@@ -558,6 +640,33 @@ main (int argc, char ** argv)
 
         for(size_t i=1; i < clouds_.size(); i++)
         {
+
+            flann::Matrix<float> flann_data;
+            flann::Index<flann::L1<float> > *flann_index;
+            convertToFLANN<pcl::Histogram<128> > (sift_features[i], flann_data);
+            flann_index = new flann::Index<flann::L1<float> > (flann_data, flann::KDTreeIndexParams (4));
+            flann_index->buildIndex ();
+
+            int K = 1;
+            flann::Matrix<int> indices = flann::Matrix<int> (new int[K], 1, K);
+            flann::Matrix<float> distances = flann::Matrix<float> (new float[K], 1, K);
+
+            pcl::CorrespondencesPtr temp_correspondences (new pcl::Correspondences);
+            for (size_t keypointId = 0; keypointId < sift_keypoints[i - 1]->points.size (); keypointId++)
+            {
+              FeatureT searchFeature = sift_features[i - 1]->at (keypointId);
+              nearestKSearch (flann_index, searchFeature.histogram, 128, K, indices, distances);
+
+              std::map<int,int>::iterator it_query, it_target;
+              it_query = sift_keypoints_to_xyz_normals_[i - 1].find(keypointId);
+              it_target = sift_keypoints_to_xyz_normals_[i].find(indices[0][0]);
+              pcl::Correspondence corr;
+              corr.distance = distances[0][0];
+              corr.index_query = it_query->second;
+              corr.index_match = it_target->second;
+              temp_correspondences->push_back (corr);
+            }
+
             faat_pcl::IterativeClosestPointWithGC<PointTInternal, PointTInternal> icp;
             icp.setTransformationEpsilon (0.000001 * 0.000001);
             icp.setMinNumCorrespondences (3);
@@ -565,10 +674,11 @@ main (int argc, char ** argv)
             icp.setUseCG (use_cg_);
             icp.setSurvivalOfTheFittest (false);
             icp.setMaximumIterations(iterations);
-            icp.setOverlapPercentage(0.5);
+            icp.setOverlapPercentage(ov_percentage_);
             icp.setVisFinal(false);
             icp.setDtVxSize(dt_size);
             icp.setSourceAndTargetIndices(indices_views_[i], indices_views_[i - 1]);
+            icp.setSourceTargetCorrespondences(temp_correspondences);
             icp.setUseSHOT(use_shot_);
 
             icp.setRangeImages<PointType>(range_images_[i], range_images_[i-1], 525.f, 640, 480);

@@ -207,7 +207,7 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
 
       if(cg_algorithm_->getRequiresNormals())
       {
-        std::cout << "CG alg requires normals..." << ((*it_map).second.normals_pointcloud)->points.size() << " " << (scene_normals)->points.size() << std::endl;
+        //std::cout << "CG alg requires normals..." << ((*it_map).second.normals_pointcloud)->points.size() << " " << (scene_normals)->points.size() << std::endl;
         cg_algorithm_->setInputAndSceneNormals((*it_map).second.normals_pointcloud, scene_normals);
       }
       //we need to pass the keypoints_pointcloud and the specific object hypothesis
@@ -218,6 +218,7 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
 
       for (size_t i = 0; i < corresp_clusters.size (); i++)
       {
+        //std::cout << "size cluster:" << corresp_clusters[i].size() << std::endl;
         Eigen::Matrix4f best_trans;
         typename pcl::registration::TransformationEstimationSVD < PointInT, PointInT > t_est;
         t_est.estimateRigidTransformation (*(*it_map).second.correspondences_pointcloud, *keypoints_cloud, corresp_clusters[i], best_trans);

@@ -39,9 +39,16 @@ namespace faat_pcl
         int
         computeRangeDifferencesWhereObserved(PointCloudPtr & im1, PointCloudPtr & im2, std::vector<float> & range_diff);
 
+        int
+        computeRangeDifferencesWhereObservedWithIndicesBack(PointCloudPtr & im1, PointCloudPtr & im2, std::vector<float> & range_diff, std::vector<int> & indices);
+
         float computeFSV(PointCloudPtr &im1,
                            PointCloudPtr &im2,
                            Eigen::Matrix4f pose_2_to_1 = Eigen::Matrix4f::Identity());
+
+        float computeFSVWithNormals(PointCloudPtr &im1,
+                                    PointCloudPtr &im2,
+                                    pcl::PointCloud<pcl::Normal>::Ptr & normals);
 
         float computeOSV(PointCloudPtr &im1,
                            PointCloudPtr &im2,

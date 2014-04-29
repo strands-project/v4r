@@ -33,10 +33,10 @@ namespace faat_pcl
         using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
         using LocalEstimator<PointInT, FeatureT>::adaptative_MLS_;
         pcl::PointIndices indices_;
-        cv::Ptr<cv::FeatureDetector> detectorPtr_;
-        cv::Ptr<cv::DescriptorExtractor> descriptorPtr_;
+        //cv::Ptr<cv::FeatureDetector> detectorPtr_;
+        //cv::Ptr<cv::DescriptorExtractor> descriptorPtr_;
         pcl::PointIndices sift_keypoints_;
-        //cv::Ptr<cv::SIFT> sift_;
+        cv::Ptr<cv::SIFT> sift_;
 
       public:
 
@@ -50,9 +50,9 @@ namespace faat_pcl
           const double threshold = 0.03;
           const double edge_threshold = 10.0;
 
-          detectorPtr_ = new cv::SiftFeatureDetector(threshold, edge_threshold);
-          descriptorPtr_  = cv::DescriptorExtractor::create("SIFT");
-          //sift_ = new cv::SIFT(0, 0, 0.03, 20);
+          //detectorPtr_ = new cv::SiftFeatureDetector(threshold, edge_threshold);
+          //descriptorPtr_  = cv::DescriptorExtractor::create("SIFT");
+          sift_ = new cv::SIFT(0, 3, threshold, edge_threshold);
         }
 
         bool
@@ -90,10 +90,10 @@ namespace faat_pcl
           cv::Mat descriptors;
           std::vector<cv::KeyPoint> ks;
 
-          detectorPtr_->detect(grayImage, ks);
-          descriptorPtr_->compute(grayImage, ks, descriptors);
+          //detectorPtr_->detect(grayImage, ks);
+          //descriptorPtr_->compute(grayImage, ks, descriptors);
 
-          //(*sift_)(grayImage, cv::Mat(), ks, descriptors);
+          (*sift_)(grayImage, cv::Mat(), ks, descriptors, false);
 
           //use indices_ to check if the keypoints and feature should be saved
           //compute SIFT keypoints and SIFT features

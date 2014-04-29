@@ -67,6 +67,7 @@ namespace faat_pcl
     typedef boost::adjacency_matrix<boost::undirectedS, int, boost::property<edge_component_t, std::size_t> > GraphGGCG;
     void cleanGraph2(GraphGGCG & g, int gc_thres);
     void cleanGraph(GraphGGCG & g, int gc_thres);
+    float max_time_allowed_cliques_comptutation_;
 
     public:
       typedef pcl::PointCloud<PointModelT> PointCloud;
@@ -91,6 +92,13 @@ namespace faat_pcl
         max_taken_correspondence_ = 5;
         cliques_big_to_small_ = false;
         check_normals_orientation_ = true;
+        max_time_allowed_cliques_comptutation_ = std::numeric_limits<float>::infinity();
+      }
+
+      inline
+      void setMaxTimeForCliquesComputation(float t)
+      {
+          max_time_allowed_cliques_comptutation_ = t;
       }
 
       inline

@@ -65,6 +65,7 @@ main (int argc, char ** argv)
 
   pcl::visualization::PointCloudColorHandlerCustom < pcl::PointXYZ > handler_rgb ( model, 255, 0, 0 );
   vis.addPointCloud(model, handler_rgb, "model");
+  vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "model");
 
   float dist_model_12 = (p1.getVector3fMap() - p2.getVector3fMap()).norm();
   float dist_model_13 = (p1.getVector3fMap() - p3.getVector3fMap()).norm();
@@ -106,6 +107,7 @@ main (int argc, char ** argv)
 
       pcl::visualization::PointCloudColorHandlerCustom < pcl::PointXYZ > handler_rgb ( gc1, 125, 125, 125 );
       vis.addPointCloud(gc1, handler_rgb, "cube", v2);
+      vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cube");
       vis.spin();
       vis.removePointCloud("cube");
       gc1->points.clear();

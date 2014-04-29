@@ -266,7 +266,7 @@ faat_pcl::modelling::MergeSequences<ModelPointT>::compute(std::vector<std::pair<
         }
     }
 
-    std::cout << "initial poses:" << initial_poses.size() << std::endl;
+    std::cout << "initial poses:" << initial_poses.size() << " " << max_iterations_ << std::endl;
     //do ICP WITH GC using all initial poses
     faat_pcl::IterativeClosestPointWithGC<ModelPointT, ModelPointT> icp;
     icp.setTransformationEpsilon (0.000001 * 0.000001);
@@ -287,7 +287,8 @@ faat_pcl::modelling::MergeSequences<ModelPointT>::compute(std::vector<std::pair<
     convergence_criteria = icp.getConvergeCriteria ();
     convergence_criteria->setAbsoluteMSE (1e-12);
     convergence_criteria->setRelativeMSE(1e-12);
-    convergence_criteria->setMaximumIterationsSimilarTransforms (50);
+    convergence_criteria->setMaximumIterationsSimilarTransforms (max_iterations_);
+    convergence_criteria->setMaximumIterations(max_iterations_);
     convergence_criteria->setFailureAfterMaximumIterations (false);
     convergence_criteria->setTranslationThreshold (1e-15);
     convergence_criteria->setRotationThreshold (1.0 - 1e-15);

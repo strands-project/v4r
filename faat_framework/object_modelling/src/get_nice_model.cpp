@@ -205,6 +205,14 @@ faat_pcl::modelling::NiceModelFromSequence<ScanPointT, ModelPointT>::computeFrom
         octree_resolution_ = 0.002;
         getAveragedCloudFromOctree<pcl::PointXYZRGBNormal>(filtered_with_normals, filtered_big_cloud2, octree_resolution_, median_);
 
+        for(size_t i=0; i < filtered_big_cloud2->points.size(); i++)
+        {
+            Eigen::Vector3f normal = filtered_big_cloud2->points[i].getNormalVector3fMap();
+            normal.normalize();
+            filtered_big_cloud2->points[i].getNormalVector3fMap() = normal;
+            (filtered_big_cloud2->points[i].getNormalVector4fMap())[3] = 0.f;
+        }
+
         pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBNormal> handler (filtered_big_cloud2);
         vis.addPointCloud (filtered_big_cloud2, handler, "big_filtered_averaged", v3);
         //vis.addPointCloudNormals<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> (filtered_big_cloud2, filtered_big_cloud2, 10, 0.01, "normals", v3);
@@ -479,6 +487,14 @@ faat_pcl::modelling::NiceModelFromSequence<ScanPointT, ModelPointT>::compute()
 
     {
         getAveragedCloudFromOctree<pcl::PointXYZRGBNormal>(filtered_with_normals, filtered_big_cloud2, octree_resolution_, median_);
+
+        for(size_t i=0; i < filtered_big_cloud2->points.size(); i++)
+        {
+            Eigen::Vector3f normal = filtered_big_cloud2->points[i].getNormalVector3fMap();
+            normal.normalize();
+            filtered_big_cloud2->points[i].getNormalVector3fMap() = normal;
+            (filtered_big_cloud2->points[i].getNormalVector4fMap())[3] = 0.f;
+        }
 
         //center cloud
         Eigen::Vector4f centroid;

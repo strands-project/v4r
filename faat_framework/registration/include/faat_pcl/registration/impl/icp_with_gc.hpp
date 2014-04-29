@@ -811,6 +811,15 @@ faat_pcl::IterativeClosestPointWithGC<PointSource, PointTarget, Scalar>::compute
         }
     }
 
+    //extend source_target_corrs with correspondences given from outside
+    if(source_target_corrs_user_)
+    {
+        for(size_t k=0; k < source_target_corrs_user_->size(); k++)
+        {
+            source_target_corrs->push_back (source_target_corrs_user_->at(k));
+        }
+    }
+
     //std::cout << "going to compute distance transform..." << target_icp->points.size() << " " << dt_vx_size_ << std::endl;
 
     typename boost::shared_ptr<distance_field::PropagationDistanceField<PointTarget> > dist_trans;
@@ -994,8 +1003,13 @@ faat_pcl::IterativeClosestPointWithGC<PointSource, PointTarget, Scalar>::compute
             gcg_alg.setDotDistance (0.25f);
             gcg_alg.setRansacThreshold (ransac_threshold);
             gcg_alg.setDistForClusterFactor(0.f);
-            //gcg_alg.setRansacThreshold (-1);
+            gcg_alg.setMaxTaken(1);
+
+            gcg_alg.setCheckNormalsOrientation(false);
+            gcg_alg.setSortCliques(true);
+            gcg_alg.pruneByCC(false);
             gcg_alg.setUseGraph (true);
+            gcg_alg.setMaxTimeForCliquesComputation(100);
             gcg_alg.setPrune (false);
             gcg_alg.setSceneCloud (target_);
             gcg_alg.setInputCloud (input_transformed_local_);
@@ -1242,7 +1256,7 @@ faat_pcl::IterativeClosestPointWithGC<PointSource, PointTarget, Scalar>::compute
           }
 
           nodes_survived.resize(surv);
-          std::cout << "alive nodes:" << nodes_survived.size() << std::endl;
+          std::cout << "alive nodes:" << nodes_survived.size() << " " << nr_iterations_ << std::endl;
 
           std::vector<boost::shared_ptr<ICPNode> > nodes_survived_after_filtering;
 

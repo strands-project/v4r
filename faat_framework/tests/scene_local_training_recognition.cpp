@@ -36,6 +36,8 @@ std::string MODELS_DIR_;
 std::string MODELS_DIR_FOR_VIS_;
 float model_scale = 1.f;
 bool SHOW_GT_ = true;
+int use_hv = 1;
+std::string RESULTS_OUTPUT_DIR_ = "";
 
 inline void
 getScenesInDirectory (bf::path & dir, std::string & rel_path_so_far, std::vector<std::string> & relative_paths)
@@ -169,7 +171,8 @@ public:
   float require_normals;
   bool go_init;
   bool detect_clutter;
-
+  bool LS_short_circuit_;
+  int visualize_cues_;
   void
   writeParamsToFile (std::ofstream & of)
   {
@@ -214,7 +217,10 @@ template<typename PointT>
     go->setRadiusNormals (parameters_for_go.radius_normals_go_);
     go->setRequiresNormals (parameters_for_go.require_normals);
     go->setInitialStatus (parameters_for_go.go_init);
+    go->setLSShortCircuit(parameters_for_go.LS_short_circuit_);
+    go->setVisualizeGoCues(parameters_for_go.visualize_cues_);
     go->setHypPenalty(0.2f);
+    go->setMinContribution(100.f);
 
     boost::shared_ptr<faat_pcl::HypothesisVerification<PointT, PointT> > cast_hv_alg;
     cast_hv_alg = boost::static_pointer_cast<faat_pcl::HypothesisVerification<PointT, PointT> > (go);
@@ -343,173 +349,184 @@ template<typename PointT>
       boost::split (strs, files_to_recognize[i], boost::is_any_of ("/"));
       vis.addText (strs[strs.size() - 1], 1, 30, 18, 1, 0, 0, "scene_text", v1);
 
-      //visualize results
       boost::shared_ptr<std::vector<ModelTPtr> > models = local->getModels ();
       boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms = local->getTransforms ();
 
-      std::vector<typename pcl::PointCloud<PointT>::ConstPtr> aligned_models;
-      aligned_models.resize (models->size ());
-
-      for (size_t kk = 0; kk < models->size (); kk++)
+      if(use_hv)
       {
-       ConstPointInTPtr model_cloud = models->at (kk)->getAssembled (parameters_for_go.go_resolution);
-       typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-       pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (kk));
-       aligned_models[kk] = model_aligned;
+          //visualize results
+
+          std::vector<typename pcl::PointCloud<PointT>::ConstPtr> aligned_models;
+          aligned_models.resize (models->size ());
+
+          for (size_t kk = 0; kk < models->size (); kk++)
+          {
+           ConstPointInTPtr model_cloud = models->at (kk)->getAssembled (parameters_for_go.go_resolution);
+           typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+           pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (kk));
+           aligned_models[kk] = model_aligned;
+          }
+
+          go->setSceneCloud (scene);
+          //addModels
+          go->addModels (aligned_models, true);
+          //append planar models
+          go->addPlanarModels(planes_found);
+          //verify
+          go->verify ();
+          std::vector<bool> mask_hv;
+          go->getMask (mask_hv);
+
+          std::vector<int> coming_from;
+          coming_from.resize(aligned_models.size() + planes_found.size());
+          for(size_t j=0; j < aligned_models.size(); j++)
+           coming_from[j] = 0;
+
+          for(size_t j=0; j < planes_found.size(); j++)
+           coming_from[aligned_models.size() + j] = 1;
+
+          if(SHOW_GT_)
+          {
+            pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler(scene, 125,125,125);
+            vis.addPointCloud<PointT> (scene, scene_handler, "scene_cloud_v4", v4);
+            or_eval.visualizeGroundTruth(vis, id_1, v4, false);
+          }
+
+          pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  go->getSmoothClustersRGBCloud();
+          if(smooth_cloud_)
+          {
+            pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
+            vis.addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", v5);
+          }
+
+          boost::shared_ptr<std::vector<ModelTPtr> > verified_models(new std::vector<ModelTPtr>);
+          boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > verified_transforms;
+          verified_transforms.reset(new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
+
+          for (size_t j = 0; j < mask_hv.size (); j++)
+          {
+            if(!mask_hv[j])
+              continue;
+
+            std::stringstream name;
+            name << "cloud_" << j;
+
+            if(coming_from[j] == 0)
+            {
+
+              verified_models->push_back(models->at(j));
+              verified_transforms->push_back(transforms->at(j));
+
+              ConstPointInTPtr model_cloud = models->at (j)->getAssembled (0.001f);
+              typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+              pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
+
+              float r, g, b;
+              std::cout << models->at (j)->id_ << std::endl;
+              r = 255.0f;
+              g = 0.0f;
+              b = 0.0f;
+
+              if (models->at (j)->id_.compare ("Zoe") == 0)
+              {
+                r = 0.0f;
+                g = 255.0f;
+                b = 0.0f;
+              }
+              else if (models->at (j)->id_.compare ("Kid") == 0)
+              {
+                r = 0.0f;
+                g = 255.0f;
+                b = 255.0f;
+              }
+              else if (models->at (j)->id_.compare ("BigBird") == 0)
+              {
+                r = 255.0f;
+                g = 255.0f;
+                b = 0.f;
+              }
+              else if (models->at (j)->id_.compare ("Angel") == 0)
+              {
+                r = 0.0f;
+                g = 122.5f;
+                b = 122.5f;
+              }
+              else if (models->at (j)->id_.compare ("chef") == 0)
+              {
+                r = 0.0f;
+                g = 255.0f;
+                b = 0.0f;
+              }
+              else if (models->at (j)->id_.compare ("chicken") == 0)
+              {
+                r = 0.0f;
+                g = 255.0f;
+                b = 255.0f;
+              }
+              else if (models->at (j)->id_.compare ("para") == 0)
+              {
+                r = 255.0f;
+                g = 255.0f;
+                b = 0.f;
+              }
+              else if (models->at (j)->id_.compare ("rhino") == 0)
+              {
+                r = 255.0f;
+                g = 105.0f;
+                b = 180.f;
+              }
+
+              /*pcl::visualization::PointCloudColorHandlerCustom<PointT> random_handler (model_aligned, r, g, b);
+              vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v3);*/
+
+              std::stringstream pathPly;
+              pathPly << MODELS_DIR_FOR_VIS_ << "/" << models->at (j)->id_ << ".ply";
+              vtkSmartPointer < vtkTransform > poseTransform = vtkSmartPointer<vtkTransform>::New ();
+              vtkSmartPointer < vtkTransform > scale_models = vtkSmartPointer<vtkTransform>::New ();
+              scale_models->Scale(model_scale, model_scale, model_scale);
+
+              vtkSmartPointer < vtkMatrix4x4 > mat = vtkSmartPointer<vtkMatrix4x4>::New ();
+              for (size_t kk = 0; kk < 4; kk++)
+              {
+               for (size_t k = 0; k < 4; k++)
+               {
+                 mat->SetElement (kk, k, transforms->at (j) (kk, k));
+               }
+              }
+
+              poseTransform->SetMatrix (mat);
+              poseTransform->Modified ();
+              poseTransform->Concatenate(scale_models);
+
+              std::stringstream cluster_name;
+              cluster_name << "_ply_model_" << j;
+              vis.addModelFromPLYFile (pathPly.str (), poseTransform, cluster_name.str (), v3);
+            }
+            else
+            {
+              std::stringstream pname;
+              pname << "plane_" << j;
+
+              /*pcl::visualization::PointCloudColorHandlerRandom<pcl::PointXYZ> scene_handler(planes_found[j - models->size()].plane_cloud_);
+              vis.addPointCloud<pcl::PointXYZ> (planes_found[j - models->size()].plane_cloud_, scene_handler, pname.str(), v3);*/
+
+              pname << "chull";
+              vis.addPolygonMesh (*planes_found[j - models->size()].convex_hull_, pname.str(), v3);
+            }
+          }
+
+          or_eval.addRecognitionResults(id_1, verified_models, verified_transforms);
+
+          //log results into file
+          logfile_stream << files_to_recognize[i] << "\t";
+          go->writeToLog (logfile_stream, false);
+
+      }
+      else
+      {
+          or_eval.addRecognitionResults(id_1, models, transforms);
       }
 
-      go->setSceneCloud (scene);
-      //addModels
-      go->addModels (aligned_models, true);
-      //append planar models
-      go->addPlanarModels(planes_found);
-      //verify
-      go->verify ();
-      std::vector<bool> mask_hv;
-      go->getMask (mask_hv);
-
-      std::vector<int> coming_from;
-      coming_from.resize(aligned_models.size() + planes_found.size());
-      for(size_t j=0; j < aligned_models.size(); j++)
-       coming_from[j] = 0;
-
-      for(size_t j=0; j < planes_found.size(); j++)
-       coming_from[aligned_models.size() + j] = 1;
-
-      boost::shared_ptr<std::vector<ModelTPtr> > models_bhv = local->getModelsBeforeHV ();
-      boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_bhv = local->getTransformsBeforeHV ();
-
-      if(SHOW_GT_)
-      {
-        pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler(scene, 125,125,125);
-        vis.addPointCloud<PointT> (scene, scene_handler, "scene_cloud_v4", v4);
-        or_eval.visualizeGroundTruth(vis, id_1, v4, false);
-      }
-
-      pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  go->getSmoothClustersRGBCloud();
-      if(smooth_cloud_)
-      {
-        pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
-        vis.addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", v5);
-      }
-
-      boost::shared_ptr<std::vector<ModelTPtr> > verified_models(new std::vector<ModelTPtr>);
-      boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > verified_transforms;
-      verified_transforms.reset(new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-
-      for (size_t j = 0; j < mask_hv.size (); j++)
-      {
-        if(!mask_hv[j])
-          continue;
-
-        std::stringstream name;
-        name << "cloud_" << j;
-
-        if(coming_from[j] == 0)
-        {
-
-          verified_models->push_back(models->at(j));
-          verified_transforms->push_back(transforms->at(j));
-
-          ConstPointInTPtr model_cloud = models->at (j)->getAssembled (0.001f);
-          typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-          pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
-
-          float r, g, b;
-          std::cout << models->at (j)->id_ << std::endl;
-          r = 255.0f;
-          g = 0.0f;
-          b = 0.0f;
-
-          if (models->at (j)->id_.compare ("Zoe") == 0)
-          {
-            r = 0.0f;
-            g = 255.0f;
-            b = 0.0f;
-          }
-          else if (models->at (j)->id_.compare ("Kid") == 0)
-          {
-            r = 0.0f;
-            g = 255.0f;
-            b = 255.0f;
-          }
-          else if (models->at (j)->id_.compare ("BigBird") == 0)
-          {
-            r = 255.0f;
-            g = 255.0f;
-            b = 0.f;
-          }
-          else if (models->at (j)->id_.compare ("Angel") == 0)
-          {
-            r = 0.0f;
-            g = 122.5f;
-            b = 122.5f;
-          }
-          else if (models->at (j)->id_.compare ("chef") == 0)
-          {
-            r = 0.0f;
-            g = 255.0f;
-            b = 0.0f;
-          }
-          else if (models->at (j)->id_.compare ("chicken") == 0)
-          {
-            r = 0.0f;
-            g = 255.0f;
-            b = 255.0f;
-          }
-          else if (models->at (j)->id_.compare ("para") == 0)
-          {
-            r = 255.0f;
-            g = 255.0f;
-            b = 0.f;
-          }
-          else if (models->at (j)->id_.compare ("rhino") == 0)
-          {
-            r = 255.0f;
-            g = 105.0f;
-            b = 180.f;
-          }
-
-          /*pcl::visualization::PointCloudColorHandlerCustom<PointT> random_handler (model_aligned, r, g, b);
-          vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v3);*/
-
-          std::stringstream pathPly;
-          pathPly << MODELS_DIR_FOR_VIS_ << "/" << models->at (j)->id_ << ".ply";
-          vtkSmartPointer < vtkTransform > poseTransform = vtkSmartPointer<vtkTransform>::New ();
-          vtkSmartPointer < vtkTransform > scale_models = vtkSmartPointer<vtkTransform>::New ();
-          scale_models->Scale(model_scale, model_scale, model_scale);
-
-          vtkSmartPointer < vtkMatrix4x4 > mat = vtkSmartPointer<vtkMatrix4x4>::New ();
-          for (size_t kk = 0; kk < 4; kk++)
-          {
-           for (size_t k = 0; k < 4; k++)
-           {
-             mat->SetElement (kk, k, transforms->at (j) (kk, k));
-           }
-          }
-
-          poseTransform->SetMatrix (mat);
-          poseTransform->Modified ();
-          poseTransform->Concatenate(scale_models);
-
-          std::stringstream cluster_name;
-          cluster_name << "_ply_model_" << j;
-          vis.addModelFromPLYFile (pathPly.str (), poseTransform, cluster_name.str (), v3);
-        }
-        else
-        {
-          std::stringstream pname;
-          pname << "plane_" << j;
-
-          /*pcl::visualization::PointCloudColorHandlerRandom<pcl::PointXYZ> scene_handler(planes_found[j - models->size()].plane_cloud_);
-          vis.addPointCloud<pcl::PointXYZ> (planes_found[j - models->size()].plane_cloud_, scene_handler, pname.str(), v3);*/
-
-          pname << "chull";
-          vis.addPolygonMesh (*planes_found[j - models->size()].convex_hull_, pname.str(), v3);
-        }
-      }
-
-      or_eval.addRecognitionResults(id_1, verified_models, verified_transforms);
 
       for (size_t j = 0; j < models->size (); j++)
       {
@@ -577,163 +594,6 @@ template<typename PointT>
         pcl::visualization::PointCloudColorHandlerCustom<PointT> random_handler (model_aligned, r, g, b);
         vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v2);
       }
-      /*for (size_t j = 0; j < models->size (); j++)
-      {
-        std::stringstream name;
-        name << "cloud_" << j;
-
-        ConstPointInTPtr model_cloud = models->at (j)->getAssembled (0.001f);
-        typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-        pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
-
-        float r, g, b;
-        std::cout << models->at (j)->id_ << std::endl;
-        r = 255.0f;
-        g = 0.0f;
-        b = 0.0f;
-
-        if (models->at (j)->id_.compare ("Zoe") == 0)
-        {
-          r = 0.0f;
-          g = 255.0f;
-          b = 0.0f;
-        }
-        else if (models->at (j)->id_.compare ("Kid") == 0)
-        {
-          r = 0.0f;
-          g = 255.0f;
-          b = 255.0f;
-        }
-        else if (models->at (j)->id_.compare ("BigBird") == 0)
-        {
-          r = 255.0f;
-          g = 255.0f;
-          b = 0.f;
-        }
-        else if (models->at (j)->id_.compare ("Angel") == 0)
-        {
-          r = 0.0f;
-          g = 122.5f;
-          b = 122.5f;
-        }
-        else if (models->at (j)->id_.compare ("chef") == 0)
-        {
-          r = 0.0f;
-          g = 255.0f;
-          b = 0.0f;
-        }
-        else if (models->at (j)->id_.compare ("chicken") == 0)
-        {
-          r = 0.0f;
-          g = 255.0f;
-          b = 255.0f;
-        }
-        else if (models->at (j)->id_.compare ("para") == 0)
-        {
-          r = 255.0f;
-          g = 255.0f;
-          b = 0.f;
-        }
-        else if (models->at (j)->id_.compare ("rhino") == 0)
-        {
-          r = 255.0f;
-          g = 105.0f;
-          b = 180.f;
-        }
-
-        pcl::visualization::PointCloudColorHandlerCustom<PointT> random_handler (model_aligned, r, g, b);
-        vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v3);
-
-        std::stringstream pathPly;
-        pathPly << MODELS_DIR_FOR_VIS_ << "/" << models->at (j)->id_ << ".ply";
-        vtkSmartPointer < vtkTransform > poseTransform = vtkSmartPointer<vtkTransform>::New ();
-        vtkSmartPointer < vtkTransform > scale_models = vtkSmartPointer<vtkTransform>::New ();
-        scale_models->Scale(model_scale, model_scale, model_scale);
-
-        vtkSmartPointer < vtkMatrix4x4 > mat = vtkSmartPointer<vtkMatrix4x4>::New ();
-        for (size_t kk = 0; kk < 4; kk++)
-        {
-         for (size_t k = 0; k < 4; k++)
-         {
-           mat->SetElement (kk, k, transforms->at (j) (kk, k));
-         }
-        }
-
-        poseTransform->SetMatrix (mat);
-        poseTransform->Modified ();
-        poseTransform->Concatenate(scale_models);
-
-        std::stringstream cluster_name;
-        cluster_name << "_ply_model_" << j;
-        vis.addModelFromPLYFile (pathPly.str (), poseTransform, cluster_name.str (), v3);
-      }
-
-      for (size_t j = 0; j < models_bhv->size (); j++)
-      {
-        std::stringstream name;
-        name << "cloud_before_hv_" << j;
-
-        ConstPointInTPtr model_cloud = models_bhv->at (j)->getAssembled (0.003f);
-        typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-        pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_bhv->at (j));
-
-        float r, g, b;
-        r = 255.0f;
-        g = 0.0f;
-        b = 0.0f;
-
-        if (models_bhv->at (j)->id_.compare ("Zoe") == 0)
-        {
-          r = 0.0f;
-          g = 255.0f;
-          b = 0.0f;
-        }
-        else if (models_bhv->at (j)->id_.compare ("Kid") == 0)
-        {
-          r = 0.0f;
-          g = 255.0f;
-          b = 255.0f;
-        }
-        else if (models_bhv->at (j)->id_.compare ("BigBird") == 0)
-        {
-          r = 255.0f;
-          g = 255.0f;
-          b = 0.f;
-        }
-        else if (models_bhv->at (j)->id_.compare ("Angel") == 0)
-        {
-          r = 0.0f;
-          g = 122.5f;
-          b = 122.5f;
-        }
-        else if (models_bhv->at (j)->id_.compare ("chef") == 0)
-        {
-          r = 0.0f;
-          g = 255.0f;
-          b = 0.0f;
-        }
-        else if (models_bhv->at (j)->id_.compare ("chicken") == 0)
-        {
-          r = 0.0f;
-          g = 255.0f;
-          b = 255.0f;
-        }
-        else if (models_bhv->at (j)->id_.compare ("para") == 0)
-        {
-          r = 255.0f;
-          g = 255.0f;
-          b = 0.f;
-        }
-        else if (models_bhv->at (j)->id_.compare ("rhino") == 0)
-        {
-          r = 255.0f;
-          g = 105.0f;
-          b = 180.f;
-        }
-
-        pcl::visualization::PointCloudColorHandlerCustom<PointT> random_handler (model_aligned, r, g, b);
-        vis.addPointCloud<PointT> (model_aligned, random_handler, name.str (), v2);
-      }*/
 
       vis.setBackgroundColor (1.0, 1.0, 1.0);
       if (PLAY_)
@@ -767,13 +627,12 @@ template<typename PointT>
       }
 
       vis.removeAllPointClouds(v5);
-
-      //log results into file
-      logfile_stream << files_to_recognize[i] << "\t";
-      go->writeToLog (logfile_stream, false);
     }
 
     or_eval.computeStatistics();
+
+    if(RESULTS_OUTPUT_DIR_.compare("") != 0)
+        or_eval.saveRecognitionResults(RESULTS_OUTPUT_DIR_);
 
     logfile_stream.close ();
   }
@@ -784,16 +643,17 @@ int CG_SIZE_ = 3;
 float CG_THRESHOLD_ = 0.005f;
 
 /*
- ./bin/local_recognition_ply -models_dir /home/aitor/data/queens_dataset/pcd_models/ -pcd_file /home/aitor/data/queens_dataset/hard_scenes/ -training_dir /home/aitor/data/queens_dataset/trained_models -gc_size 5 -icp_type 1 -use_hv 1 -icp_iterations 10 -use_cache 1 -splits 32 -hv_method 0 -model_scale 1 -go_opt_type 0 -thres_hyp 0.5 -go_iterations 5000 -go_use_replace_moves 1 -go_resolution 0.005 -go_inlier_thres 0.01 -go_initial_temp 500 -idx_flann_fn queens_flann.idx -PLAY 1 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/queens_dataset/gt_or_format_all_with_occ/ -models_dir_vis /home/aitor/data/queens_dataset/models_for_visualization/ -gc_min_dist_cf 0 -gc_dot_threshold 0.25
- ./bin/local_recognition_ply -models_dir /home/aitor/data/Mians_dataset/models/ -pcd_file /home/aitor/data/Mians_dataset/scenes/pcl_scenes -training_dir /home/aitor/data/Mians_trained_models_voxelsize_0.003/ -gc_size 3 -icp_type 1 -use_hv 1 -icp_iterations 10 -use_cache 1 -splits 32 -hv_method 0 -model_scale 0.001 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 10000 -go_use_replace_moves 1 -go_resolution 0.005 -go_inlier_thres 0.005 -go_initial_temp 500 -idx_flann_fn mian_flann_new.idx -PLAY 1 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/Mians_dataset/gt_or_format_rhino_with_occ -models_dir_vis /home/aitor/data/Mians_dataset/models_with_rhino_vis/ -gc_min_dist_cf 0 -use_board 1 -rf_radius_hough 0.04 -gc_dot_threshold 1
- ./bin/local_recognition_ply -models_dir /home/aitor/data/Mians_dataset/models_with_rhino/ -pcd_file /home/aitor/data/Mians_dataset/scenes/pcl_scenes -training_dir /home/aitor/data/Mians_trained_models_voxelsize_0.003/ -gc_size 3 -icp_type 1 -use_hv 1 -icp_iterations 10 -use_cache 1 -splits 32 -hv_method 0 -model_scale 0.001 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 10000 -go_use_replace_moves 1 -go_resolution 0.005 -go_inlier_thres 0.005 -go_initial_temp 500 -idx_flann_fn mian_flann_with_rhino_new.idx -PLAY 1 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/Mians_dataset/gt_or_format_rhino_with_occ -models_dir_vis /home/aitor/data/Mians_dataset/models_with_rhino_vis/ -gc_min_dist_cf 0 -use_board 1 -rf_radius_hough 0.04 -gc_dot_threshold 1
- works on hard scenes (Arboricity 15) ./bin/local_recognition_ply -models_dir /home/aitor/data/Mians_dataset/models_with_rhino/ -pcd_file /home/aitor/data/Mians_dataset/scenes/hard_scenes/ -training_dir /home/aitor/data/Mians_trained_models_voxelsize_0.003/ -gc_size 3 -icp_type 1 -use_hv 1 -icp_iterations 10 -use_cache 1 -splits 32 -hv_method 0 -model_scale 0.001 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 10000 -go_use_replace_moves 1 -go_resolution 0.005 -go_inlier_thres 0.005 -go_initial_temp 500 -idx_flann_fn mian_flann_with_rhino_new.idx -PLAY 0 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/Mians_dataset/gt_or_format_rhino_with_occ -models_dir_vis /home/aitor/data/Mians_dataset/models_with_rhino_vis/ -gc_min_dist_cf 0 -use_board 0 -rf_radius_hough 0.04 -gc_dot_threshold 1
- works on the whole dataset ./bin/local_recognition_ply -models_dir /home/aitor/data/Mians_dataset/models_with_rhino/ -pcd_file /home/aitor/data/Mians_dataset/scenes/pcl_scenes -training_dir /home/aitor/data/Mians_trained_models_voxelsize_0.003/ -gc_size 3 -icp_type 1 -use_hv 1 -icp_iterations 10 -use_cache 1 -splits 32 -hv_method 0 -model_scale 0.001 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 10000 -go_use_replace_moves 1 -go_resolution 0.005 -go_inlier_thres 0.005 -go_initial_temp 500 -idx_flann_fn mian_flann_with_rhino_new.idx -PLAY 1 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/Mians_dataset/gt_or_format_rhino_with_occ -models_dir_vis /home/aitor/data/Mians_dataset/models_with_rhino_vis/ -gc_min_dist_cf 1 -use_board 0 -rf_radius_hough 0.04 -gc_dot_threshold 0.5
+Mian
+-----
+./bin/local_recognition_ply -models_dir /home/aitor/data/Mians_dataset/models_with_rhino/ -pcd_file /home/aitor/data/Mians_dataset/scenes/hard_scenes/ -training_dir /home/aitor/data/Mians_dataset/Mians_trained_models_voxelsize_0.003/ -gc_size 5 -icp_type 1 -use_hv 1 -icp_iterations 50 -use_cache 1 -splits 512 -hv_method 0 -model_scale 0.001 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 10000 -go_resolution 0.003 -go_inlier_thres 0.008 -go_initial_temp 500 -idx_flann_fn mian_flann_with_rhino_new.idx -PLAY 0 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/Mians_dataset/gt_or_format_rhino_with_occ -models_dir_vis /home/aitor/data/Mians_dataset/models_with_rhino_vis/ -gc_min_dist_cf 0.5 -use_board 0 -rf_radius_hough 0.04 -gc_dot_threshold 0.25 -visualize_graph 0 -LS_short_circuit 1 -go_use_replace_moves 0
+./bin/local_recognition_ply -models_dir /home/aitor/data/Mians_dataset/models/ -pcd_file /home/aitor/data/Mians_dataset/scenes/hard_scenes/ -training_dir /home/aitor/data/Mians_dataset/Mians_trained_models_voxelsize_0.003/ -gc_size 3 -icp_type 1 -use_hv 1 -icp_iterations 50 -use_cache 1 -splits 512 -hv_method 0 -model_scale 0.001 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 10000 -go_resolution 0.0025 -go_inlier_thres 0.005 -go_initial_temp 500 -idx_flann_fn mian_flann_without_rhino.idx -PLAY 0 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/Mians_dataset/gt_or_format_rhino_with_occ -models_dir_vis /home/aitor/data/Mians_dataset/models_with_rhino_vis/ -gc_min_dist_cf 0.5 -use_board 0 -rf_radius_hough 0.04 -gc_dot_threshold 0.25 -visualize_graph 0 -LS_short_circuit 0 -go_use_replace_moves 1 (works on the whole dataset)
+./bin/local_recognition_ply -models_dir /home/aitor/data/Mians_dataset/models_with_rhino/ -pcd_file /home/aitor/data/Mians_dataset/scenes/hard_scenes/ -training_dir /home/aitor/data/Mians_dataset/Mians_trained_models_voxelsize_0.003/ -gc_size 3 -icp_type 1 -use_hv 1 -icp_iterations 50 -use_cache 1 -splits 512 -hv_method 0 -model_scale 0.001 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 10000 -go_resolution 0.0025 -go_inlier_thres 0.005 -go_initial_temp 500 -idx_flann_fn mian_flann_with_rhino_new.idx -PLAY 0 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/Mians_dataset/gt_or_format_rhino_with_occ -models_dir_vis /home/aitor/data/Mians_dataset/models_with_rhino_vis/ -gc_min_dist_cf 0.5 -use_board 0 -rf_radius_hough 0.04 -gc_dot_threshold 0.25 -visualize_graph 0 -LS_short_circuit 0 -go_use_replace_moves 1
 
- ./bin/local_recognition_ply -models_dir /home/aitor/data/Mians_dataset/models_with_rhino/ -pcd_file /home/aitor/data/Mians_dataset/scenes/hard_scenes/ -training_dir /home/aitor/data/Mians_trained_models_voxelsize_0.003/ -gc_size 3 -icp_type 1 -use_hv 1 -icp_iterations 50 -use_cache 1 -splits 512 -hv_method 0 -model_scale 0.001 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 10000 -go_use_replace_moves 1 -go_resolution 0.005 -go_inlier_thres 0.005 -go_initial_temp 500 -idx_flann_fn mian_flann_with_rhino_new.idx -PLAY 0 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/Mians_dataset/gt_or_format_rhino_with_occ -models_dir_vis /home/aitor/data/Mians_dataset/models_with_rhino_vis/ -gc_min_dist_cf 0.5 -use_board 0 -rf_radius_hough 0.04 -gc_dot_threshold 0.25 -visualize_graph 0
- ./bin/local_recognition_ply -models_dir /home/aitor/data/Mians_dataset/models/ -pcd_file /home/aitor/data/Mians_dataset/scenes/hard_scenes/ -training_dir /home/aitor/data/Mians_trained_models_voxelsize_0.003/ -gc_size 3 -icp_type 1 -use_hv 1 -icp_iterations 50 -use_cache 1 -splits 512 -hv_method 0 -model_scale 0.001 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 10000 -go_use_replace_moves 1 -go_resolution 0.005 -go_inlier_thres 0.005 -go_initial_temp 500 -idx_flann_fn mian_flann_new.idx -PLAY 0 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/Mians_dataset/gt_or_format_rhino_with_occ -models_dir_vis /home/aitor/data/Mians_dataset/models_with_rhino_vis/ -gc_min_dist_cf 0.5 -use_board 0 -rf_radius_hough 0.04 -gc_dot_threshold 0.25 -visualize_graph 0
+Queens
+-----
+./bin/local_recognition_ply -models_dir /home/aitor/data/queens_dataset/pcd_models/ -pcd_file /home/aitor/data/queens_dataset/hard_scenes -training_dir /home/aitor/data/queens_dataset/trained_models -gc_size 3 -icp_type 1 -use_hv 1 -icp_iterations 10 -use_cache 1 -splits 32 -hv_method 0 -model_scale 1 -go_opt_type 0 -thres_hyp 0.2 -go_iterations 5000 -go_use_replace_moves 1 -go_resolution 0.005 -go_inlier_thres 0.01 -go_initial_temp 500 -idx_flann_fn queens_flann.idx -PLAY 0 -vx_size_icp 0.005 -go_require_normals 0 -go_init 0 -go_log_file test.txt -use_hough 0 -gc_threshold 0.01 -gc_ransac_threshold 0.01 -test_sampling_density 0.005 -force_retrain 0 -use_gc_graph 1 -desc_radius 0.04 -GT_DIR /home/aitor/data/queens_dataset/gt_or_format_all_with_occ/ -models_dir_vis /home/aitor/data/queens_dataset/models_for_visualization/ -gc_min_dist_cf 0 -gc_dot_threshold 0.5 -vis_cues_ 1
 
- */
+*/
 int
 main (int argc, char ** argv)
 {
@@ -808,7 +668,6 @@ main (int argc, char ** argv)
   int scene = -1;
   int detect_clutter = 1;
   int hv_method = 0;
-  int use_hv = 1;
   float thres_hyp_ = 0.2f;
   float desc_radius = 0.04f;
   int icp_type = 0;
@@ -833,7 +692,11 @@ main (int argc, char ** argv)
   bool use_board = false;
   float rf_radius_hough = 0.04f;
   bool visualize_graph = false;
+  bool LS_short_circuit_ = false;
+  int vis_cues_ = 0;
 
+  pcl::console::parse_argument (argc, argv, "-vis_cues_", vis_cues_);
+  pcl::console::parse_argument (argc, argv, "-LS_short_circuit", LS_short_circuit_);
   pcl::console::parse_argument (argc, argv, "-visualize_graph", visualize_graph);
   pcl::console::parse_argument (argc, argv, "-use_gc_graph", use_gc_graph);
   pcl::console::parse_argument (argc, argv, "-rf_radius_hough", rf_radius_hough);
@@ -882,6 +745,7 @@ main (int argc, char ** argv)
 
   pcl::console::parse_argument (argc, argv, "-models_dir_vis", MODELS_DIR_FOR_VIS_);
   pcl::console::parse_argument (argc, argv, "-GT_DIR", GT_DIR_);
+  pcl::console::parse_argument (argc, argv, "-output_dir_before_hv", RESULTS_OUTPUT_DIR_);
   MODELS_DIR_ = path;
 
   std::cout << "VX_SIZE_ICP_" << VX_SIZE_ICP_ << std::endl;
@@ -913,25 +777,10 @@ main (int argc, char ** argv)
     std::cout << "Number of models in directory is:" << files.size () << std::endl;
   }
 
-  /*struct go_params {
-   float go_resolution;
-   float go_iterations;
-   float go_inlier_thres;
-   float radius_clutter;
-   float regularizer;
-   float clutter_regularizer;
-   bool go_use_replace_moves;
-   int go_opt_type;
-   float init_temp;
-   float radius_normals_go_;
-   float require_normals;
-   bool go_init;
-   };*/
-
   parameters_for_go.radius_normals_go_ = radius_normals_go_;
-  parameters_for_go.radius_clutter = 0.05f;
-  parameters_for_go.clutter_regularizer = 5.f;
-  parameters_for_go.regularizer = 3.f;
+  parameters_for_go.radius_clutter = 0.03f;
+  parameters_for_go.clutter_regularizer = 10.f;
+  parameters_for_go.regularizer = 5.f;
   parameters_for_go.init_temp = init_temp;
   parameters_for_go.go_init = go_init;
   parameters_for_go.go_inlier_thres = go_inlier_thres;
@@ -941,7 +790,8 @@ main (int argc, char ** argv)
   parameters_for_go.go_resolution = go_resolution;
   parameters_for_go.go_use_replace_moves = go_use_replace_moves;
   parameters_for_go.detect_clutter = static_cast<bool> (detect_clutter);
-
+  parameters_for_go.LS_short_circuit_ = static_cast<bool> (LS_short_circuit_);
+  parameters_for_go.visualize_cues_ = vis_cues_;
   //configure mesh source
   boost::shared_ptr<faat_pcl::rec_3d_framework::MeshSource<pcl::PointXYZ> > mesh_source (new faat_pcl::rec_3d_framework::MeshSource<pcl::PointXYZ>);
   mesh_source->setPath (path);
@@ -1003,6 +853,7 @@ main (int argc, char ** argv)
     gcg_alg->setPrune(false);
     gcg_alg->setVisualizeGraph(visualize_graph);
     gcg_alg->setDotDistance(gc_dot_threshold_);
+    gcg_alg->setMaxTimeForCliquesComputation(100);
     cast_cg_alg = boost::static_pointer_cast<pcl::CorrespondenceGrouping<pcl::PointXYZ, pcl::PointXYZ> > (gcg_alg);
   }
 

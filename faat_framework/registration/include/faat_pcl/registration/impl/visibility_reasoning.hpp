@@ -10,6 +10,7 @@
 
 #include <faat_pcl/registration/visibility_reasoning.h>
 #include <pcl/common/transforms.h>
+#include <pcl/common/angles.h>
 
 template<typename PointT>
   int
@@ -47,6 +48,47 @@ template<typename PointT>
     range_diff.resize (keep);
     return keep;
   }
+
+  template<typename PointT>
+    int
+    faat_pcl::registration::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObservedWithIndicesBack (PointCloudPtr & im1, PointCloudPtr & im2,
+                                                                                                              std::vector<float> & range_diff,
+                                                                                                              std::vector<int> & indices)
+    {
+      float cx, cy;
+      cx = static_cast<float> (cx_) / 2.f; //- 0.5f;
+      cy = static_cast<float> (cy_) / 2.f; // - 0.5f;
+
+      range_diff.resize (im2->points.size ());
+      indices.resize (im2->points.size ());
+      int keep = 0;
+      for (size_t i = 0; i < im2->points.size (); i++)
+      {
+        if (!pcl_isfinite(im2->points[i].z))
+          continue;
+
+        float x = im2->points[i].x;
+        float y = im2->points[i].y;
+        float z = im2->points[i].z;
+        int u = static_cast<int> (focal_length_ * x / z + cx);
+        int v = static_cast<int> (focal_length_ * y / z + cy);
+
+        if (u >= cx_ || v >= cy_ || u < 0 || v < 0)
+          continue;
+
+        //Check if point depth (distance to camera) is greater than the (u,v) meaning that the point is not visible
+        if (!pcl_isfinite(im1->at(u,v).z))
+          continue;
+
+        range_diff[keep] = (im1->at (u, v).z - z);
+        indices[keep] = static_cast<int>(i);
+        keep++;
+      }
+
+      range_diff.resize (keep);
+      indices.resize (keep);
+      return keep;
+    }
 
 template<typename PointT>
 float
@@ -258,5 +300,49 @@ template<typename PointT>
     fsv_val = xfsv / (static_cast<float> (xfsv + xss));
     return fsv_val;
   }
+
+  template<typename PointT>
+    float
+    faat_pcl::registration::VisibilityReasoning<PointT>::computeFSVWithNormals (PointCloudPtr & im1,
+                                                                                PointCloudPtr & im2,
+                                                                                pcl::PointCloud<pcl::Normal>::Ptr & normals)
+    {
+      std::vector<float> range_diff_1_to_2;
+      std::vector<int> im2_indices_observed;
+      fsv_used_ = computeRangeDifferencesWhereObservedWithIndicesBack (im1, im2, range_diff_1_to_2, im2_indices_observed);
+
+      float tss, fsv_val;
+      float xss, xfsv;
+      tss = tss_;
+      xss = 0;
+      xfsv = 0;
+      for (size_t i = 0; i < range_diff_1_to_2.size (); i++)
+      {
+        if (std::abs (range_diff_1_to_2[i]) <= tss)
+        {
+          xss++;
+        }
+
+        if (range_diff_1_to_2[i] > tss)
+        {
+            Eigen::Vector3f normal_p = normals->points[im2_indices_observed[i]].getNormalVector3fMap();
+            Eigen::Vector3f normal_vp = Eigen::Vector3f::UnitZ() * -1.f;
+            normal_p.normalize ();
+            normal_vp.normalize ();
+
+            float dot = normal_vp.dot(normal_p);
+            float angle = pcl::rad2deg(acos(dot));
+            if (angle < 60.f)
+            {
+                xfsv++;
+            }
+        }
+      }
+
+      fsv_used_ = xss;
+
+      fsv_val = xfsv / (static_cast<float> (xfsv + xss));
+      return fsv_val;
+    }
 
 #endif /* VISIBILITY_REASONING_HPP_ */

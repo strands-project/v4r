@@ -80,7 +80,7 @@ namespace faat_pcl
             weights = weights_;
           }
 
-          void getFilteredCloud(PointTPtr & filtered, float w_t);
+          //void getFilteredCloud(PointTPtr & filtered, float w_t);
 
           void getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t);
 

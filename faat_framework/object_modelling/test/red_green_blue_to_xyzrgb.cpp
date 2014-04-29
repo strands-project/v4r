@@ -94,6 +94,7 @@ main (int argc, char ** argv)
 {
   std::string pcd_files_dir_, out_dir_;
   pcl::console::parse_argument (argc, argv, "-pcd_files_dir", pcd_files_dir_);
+  pcl::console::parse_argument (argc, argv, "-out_dir", out_dir_);
 
   std::vector<std::string> files;
   std::string start = "";
@@ -101,6 +102,12 @@ main (int argc, char ** argv)
   bf::path dir = pcd_files_dir_;
   faat_pcl::utils::getFilesInDirectory (dir, start, files, ext);
   std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
+
+  bf::path or_path = out_dir_;
+  if(!bf::exists(or_path))
+  {
+      bf::create_directory(or_path);
+  }
 
   typedef pcl::PointXYZRGB PointType;
   for(size_t i=0; i < files.size(); i++)
@@ -112,6 +119,35 @@ main (int argc, char ** argv)
     pcl::io::loadPCDFile(file_to_read.str(), RedGreenBlue);
     RGB = RedGreenBlue_to_RGB(RedGreenBlue);
 
-    pcl::io::savePCDFileBinary(file_to_read.str(), RGB);
+    std::cout << file_to_read.str() << std::endl;
+
+    std::string seq_id;
+    std::vector < std::string > strs_2;
+    boost::split (strs_2, files[i], boost::is_any_of ("/\\"));
+    seq_id = strs_2[0];
+
+    std::string dir_out = "";
+    if(strs_2.size() > 1)
+    {
+        std::string dir_without_scene_name;
+        for(size_t j=0; j < (strs_2.size() - 1); j++)
+        {
+            dir_without_scene_name.append(strs_2[j]);
+            dir_without_scene_name.append("/");
+        }
+
+        std::stringstream dir;
+        dir << out_dir_ << "/" << dir_without_scene_name;
+        bf::path dir_sequence = dir.str();
+        bf::create_directories(dir_sequence);
+        dir_out = dir.str();
+    }
+
+    std::stringstream file_to_write;
+    file_to_write << out_dir_ << "/" << files[i];
+
+    std::cout << "file to write:" << file_to_write.str() << std::endl;
+
+    pcl::io::savePCDFileBinary(file_to_write.str(), RGB);
   }
 }

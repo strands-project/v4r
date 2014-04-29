@@ -169,7 +169,7 @@ faat_pcl::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
   }
 }
 
-template<typename PointT>
+/*template<typename PointT>
 void
 faat_pcl::utils::noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr & filtered, float w_t)
 {
@@ -194,7 +194,7 @@ faat_pcl::utils::noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointT
       filtered->points[i].b = 0;
     }
   }
-}
+}*/
 
 template<typename PointT>
 void
@@ -239,4 +239,4 @@ faat_pcl::utils::noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovi
 }
 
 template class faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB>;
-//template class faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
+template class faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;

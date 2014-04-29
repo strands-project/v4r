@@ -16,8 +16,14 @@ message(STATUS "PCL LIBRARIES:" ${PCL_LIBRARIES})
 add_executable(${SUBSYS_NAME} scene_local_training_recognition.cpp)  
 target_link_libraries(${SUBSYS_NAME} ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
 
+add_executable(fix_test_glover fix_test_glover.cpp)
+target_link_libraries(fix_test_glover ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
+
 add_executable(eval_cg eval_correspondence_grouping.cpp)
 target_link_libraries(eval_cg ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
+
+add_executable(eval_hv_opt_strategies evaluate_hv_opt_strategies.cpp)
+target_link_libraries(eval_hv_opt_strategies ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework ${PROJECT_NAME}_registration)
 
 #add_executable(est_reg_views_source test_reg_views_source.cpp)  
 #target_link_libraries(est_reg_views_source ${PCL_LIBRARIES} ${OpenCV_LIBS} faat_pcl_recognition faat_pcl_utils faat_pcl_3d_rec_framework)
@@ -25,14 +31,14 @@ target_link_libraries(eval_cg ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PRO
 #add_executable(shrec_2013 shrec_2013.cpp)  
 #target_link_libraries(shrec_2013 ${PCL_LIBRARIES} faat_pcl_recognition faat_pcl_utils faat_pcl_3d_rec_framework)
 
-#add_executable(mit mit.cpp)  
-#target_link_libraries(mit ${PCL_LIBRARIES} faat_pcl_recognition faat_pcl_utils faat_pcl_3d_rec_framework)
+add_executable(mit mit.cpp)
+target_link_libraries(mit ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
+
+add_executable(mitGT_to_or_format mitGT_to_or_format.cpp)
+target_link_libraries(mitGT_to_or_format ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
 
 add_executable(mp_training_recognition multi_pipeline_training_recognition.cpp)  
 target_link_libraries(mp_training_recognition ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
-
-add_executable(mp_willow multi_pipeline_willow_dataset.cpp)
-target_link_libraries(mp_willow ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
 
 #add_executable(visualize_gt visualize_gt.cpp)
 #target_link_libraries(visualize_gt ${PCL_LIBRARIES} ${OpenCV_LIBS} faat_pcl_recognition faat_pcl_utils faat_pcl_3d_rec_framework)
@@ -78,9 +84,12 @@ IF(V4R_FOUND)
   add_executable(classify_semantic_segmenter semantic_segmenter/semantic_segmenter_classify.cpp)
   target_link_libraries(classify_semantic_segmenter ${PCL_LIBRARIES} ${OpenCV_LIBS} v4rRandomForest ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework boost_regex)
 
+  add_executable(mp_willow multi_pipeline_willow_dataset.cpp)
+  target_link_libraries(mp_willow ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework v4rSurfaceSegmenter v4rSurfaceUtils v4rTomGine)
+
 ENDIF(V4R_FOUND)
 
-add_subdirectory(retrieval_3d)
+#add_subdirectory(retrieval_3d)
 
 #FIND_PACKAGE(Qt4)
 #include(${QT_USE_FILE})

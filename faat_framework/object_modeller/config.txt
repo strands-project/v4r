@@ -1,0 +1,25 @@
+#renderer type (0=pcl, 1=tomGine)
+pipeline.renderer=1
+
+#registration type (0=checkerboard, 1=cameraTracker)
+pipeline.registrationType=0
+
+#stop after each visualization step
+pipeline.step=true
+
+pipeline.enableMultiview=true
+
+# a comment
+reader.pattern = .*cloud_.*.pcd
+reader.inputPath = /home/alex/Arbeitsflaeche/pcl/data/willow_dataset_training_models_gt/training_data/object_01.pcd/
+reader.step = 2
+
+pointCloudWriter.outputPath=/home/alex/Arbeitsflaeche/pcl/data/willow_dataset_training_models_gt/training_data/object_01.pcd/outgnw/
+indicesWriter.outputPath=/home/alex/Arbeitsflaeche/pcl/data/willow_dataset_training_models_gt/training_data/object_01.pcd/outgnw/
+posesWriter.outputPath=/home/alex/Arbeitsflaeche/pcl/data/willow_dataset_training_models_gt/training_data/object_01.pcd/outgnw/
+
+distanceFilter.zDist=1.0f
+cameraTracker.keyframesOnly=false
+checkerboardRegistration.boardSizes= 4,5;3,6
+
+nmBasedCloudIntegration.resolution=0.003f

@@ -47,7 +47,8 @@ namespace faat_pcl
     using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::extra_weights_;
     using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::scene_normals_;
     using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::ignore_color_even_if_exists_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::color_sigma_;
+    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::color_sigma_ab_;
+    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::color_sigma_l_;
     using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::recognition_models_;
     using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::computeRGBHistograms;
     using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::specifyRGBHistograms;

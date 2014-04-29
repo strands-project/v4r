@@ -41,6 +41,23 @@ namespace faat_pcl
           normals = normals_;
         }
 
+        virtual bool acceptsIndices()
+        {
+            return false;
+        }
+
+        virtual void
+        setIndices(pcl::PointIndices & p_indices)
+        {
+
+        }
+
+        virtual void
+        setIndices(std::vector<int> & p_indices)
+        {
+
+        }
+
     };
   }
 }

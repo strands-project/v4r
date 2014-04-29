@@ -190,6 +190,7 @@ main (int argc, char ** argv)
     float inliers_threshold = 0.01f;
     bool use_color = false;
     bool visualize = false;
+    int merge_icp_iterations_ = 50;
 
     std::string sequences;
     pcl::console::parse_argument (argc, argv, "-sequences", sequences);
@@ -198,6 +199,7 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv, "-output_path", output_path);
     pcl::console::parse_argument (argc, argv, "-use_color", use_color);
     pcl::console::parse_argument (argc, argv, "-visualize", visualize);
+    pcl::console::parse_argument (argc, argv, "-merge_icp_iterations", merge_icp_iterations_);
 
     std::vector<std::string> sequence_paths;
     boost::split (sequence_paths, sequences, boost::is_any_of (","));
@@ -214,13 +216,23 @@ main (int argc, char ** argv)
         faat_pcl::modelling::NiceModelFromSequence<pcl::PointXYZRGB, pcl::PointXYZRGBNormal> nice_model_;
         nice_model_.setInputDir(sequence_paths[i]);
         nice_model_.readSequence();
-        nice_model_.setVisualize(false);
+        nice_model_.setVisualize(visualize);
         nice_model_.setLateralSigma(0.001f);
         nice_model_.compute();
         pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr model = nice_model_.getModelCloud();
         partial_models_.push_back(model);
         nice_model_.getSequence(original_sequences[i]);
     }
+
+    /*for(size_t i=0; partial_models_.size(); i++)
+    {
+        for(size_t k=0; k < partial_models_[i]->points.size(); k++)
+        {
+            Eigen::Vector3f n = partial_models_[i]->points[k].getNormalVector3fMap();
+            n.normalize();
+            partial_models_[i]->points[k].getNormalVector3fMap() = n;
+        }
+    }*/
 
     typedef pcl::PointXYZRGBNormal ModelPointT;
 
@@ -289,7 +301,7 @@ main (int argc, char ** argv)
             merge_.setOverlap(overlap);
             merge_.setInputSource(model_cloud);
             merge_.setInputTarget(target_model);
-            merge_.setMaxIterations(50);
+            merge_.setMaxIterations(merge_icp_iterations_);
             merge_.setUseColor(use_color);
             merge_.compute(res);
 

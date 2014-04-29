@@ -429,6 +429,8 @@ main (int argc, char ** argv)
         transformNormals(valid_normals, normalclouds_aligned[i], trans);
     }
 
+    std::cout << "going to visualize cloud" << std::endl;
+
     pcl::visualization::PCLVisualizer vis ("");
     int v1,v2;
     vis.createViewPort(0,0,0.5,1,v1);
@@ -446,11 +448,15 @@ main (int argc, char ** argv)
         }
     }
 
+    std::cout << accumulated_cloud->points.size() << std::endl;
     pcl::visualization::PointCloudColorHandlerRGBField<PointType> handler_rgb (accumulated_cloud);
     vis.addPointCloud<PointType> (accumulated_cloud, handler_rgb, "accum", v1);
 
     if(visualize)
+    {
+        std::cout << "spinning" << std::endl;
         vis.spin();
+    }
     else
         vis.spinOnce();
 
