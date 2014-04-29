@@ -59,7 +59,7 @@ SET(SOURCE_H
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
-target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} siftgpu v4rKeypointTools)
+target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} v4rsiftgpu v4rKeypointTools)
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 
 ENDIF(V4R_KEYPOINT_BASE)
