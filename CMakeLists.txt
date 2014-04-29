@@ -45,6 +45,7 @@ add_definitions("-Wall -Wl,--no-undefined -fno-strict-aliasing -pthread")
 
 include_directories(.)
 
+add_subdirectory(v4rexternal)
 add_subdirectory(v4r)
 add_subdirectory(faat_framework)
 
@@ -66,6 +67,11 @@ LIST(APPEND STRANDSV4R_LIBSS "v4rSurfaceClustering")
 LIST(APPEND STRANDSV4R_LIBSS "v4rSurfaceRelations")
 LIST(APPEND STRANDSV4R_LIBSS "v4rsvm")
 LIST(APPEND STRANDSV4R_LIBSS "v4rSurfaceSegmenter")
+LIST(APPEND STRANDSV4R_LIBSS "v4rKeypointBase")
+LIST(APPEND STRANDSV4R_LIBSS "v4rKeypointCameraTracker")
+LIST(APPEND STRANDSV4R_LIBSS "v4rKeypointCameraTrackerPCL")
+LIST(APPEND STRANDSV4R_LIBSS "v4rKeypointTools")
+
 LIST(APPEND STRANDSV4R_LIBSS "FAAT_PCL_utils")
 LIST(APPEND STRANDSV4R_LIBSS "FAAT_PCL_registration")
 LIST(APPEND STRANDSV4R_LIBSS "FAAT_PCL_recognition")
