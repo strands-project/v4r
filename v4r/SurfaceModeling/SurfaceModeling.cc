@@ -39,7 +39,7 @@ void computePointProbs(std::vector<double> &errs, std::vector<double> &probs, do
 {
   double invSqrSigmaError = 1.0 / (sigmaError*sigmaError);
   probs.resize(errs.size());
-  for (int i = 0; i < errs.size(); i++)
+  for (unsigned int i = 0; i < errs.size(); i++)
   {
     probs.at(i) = std::exp(-( (errs.at(i)*errs.at(i) ) * invSqrSigmaError));
   }
@@ -52,7 +52,7 @@ double computeSavingsNormalized(int numParams, std::vector<double> &probs, doubl
   double savings = norm * (double) probs.size() - kappa1 * numParams;
   double err = 0.;
   
-  for (int i = 0; i < probs.size(); i++)
+  for (unsigned int i = 0; i < probs.size(); i++)
   {
     err += (1. - probs.at(i));
   }
@@ -69,7 +69,7 @@ double computeSavings(int numParams, std::vector<double> &probs, double kappa1, 
   double savings = probs.size() - kappa1 * (double) numParams;
   double err = 0.;
   
-  for (int i = 0; i < probs.size(); i++)
+  for (unsigned int i = 0; i < probs.size(); i++)
     err += (1. - probs[i]);
   
   savings -= kappa2 * err;
@@ -83,7 +83,7 @@ double computePlaneSavingsNormalized(int numParams, std::vector<double> &probs, 
   double savings = /*norm * (double) probs.size() 1.0 */ - kappa1 * numParams;
   double err = 0.;
   
-  for (int i = 0; i < probs.size(); i++)
+  for (unsigned int i = 0; i < probs.size(); i++)
     err += (1. - probs.at(i));
   
   double probs_size = 1./(double) probs.size();
@@ -146,7 +146,7 @@ void SurfaceModeling::computeLeastSquarePlane(SurfaceModel::Ptr plane)
     }
 
     // check orientation of normals and calculate probabilities
-    for (int i = 0; i < plane->indices.size(); i++)
+    for (unsigned int i = 0; i < plane->indices.size(); i++)
     {
 
       int idx = plane->indices.at(i);
@@ -204,7 +204,7 @@ void SurfaceModeling::fitNurbs(SurfaceModel::Ptr surface)
   nurbsFitter->getInteriorParams(surface->nurbs_params);
 
   // check orientation of normals and calculate probabilities
-  for (int i = 0; i < surface->normals.size(); i++)
+  for (unsigned int i = 0; i < surface->normals.size(); i++)
   {
     Eigen::Vector3d n = surface->normals.at(i);
     Eigen::Vector3f curPoint = cloud->points.at(surface->indices.at(surface->indices.size()/2)).getVector3fMap();
@@ -296,6 +296,7 @@ bool SurfaceModeling::tryMergeSurfaces(SurfaceModel::Ptr surf1, SurfaceModel::Pt
     mergedSurf.reset(new SurfaceModel());
     *mergedSurf = *surf1;
     surf2->addTo(*mergedSurf);
+    
     mergedSurf->type = MODEL_NURBS;
     fitNurbs(mergedSurf);
     mergedSurf->savings = computeSavingsNormalized(mergedSurf->nurbs.m_cv_count[0] * mergedSurf->nurbs.m_cv_count[1] * COSTS_NURBS_PARAMS,
@@ -340,7 +341,6 @@ bool SurfaceModeling::tryMergeSurfacesWithPlanes(SurfaceModel::Ptr surf1, Surfac
   
   mergedSurf->type = pcl::SACMODEL_PLANE;
   fitPlane(mergedSurf);
-
   mergedSurf->savings = computePlaneSavingsNormalized(0., mergedSurf->probs, mergedSurf->indices.size(), 0.003, 0.9);
 
   //@ep: why mergedSurf->indices.size() as the last argument and not surf1->indices.size()???
@@ -370,7 +370,7 @@ void SurfaceModeling::modelSelection()
   if(tryMergeNurbs)
   {
     #pragma omp parallel for
-    for (int i = 0; i < surfaces.size(); i++)
+    for (unsigned int i = 0; i < surfaces.size(); i++)
     {
       if((!(surfaces.at(i)->isNew)) || (!(surfaces.at(i)->selected)) || (!(surfaces.at(i)->valid)) || (surfaces.at(i)->type != pcl::SACMODEL_PLANE))//@ep: TODO back??? (surfaces.at(i)->type == MODEL_NURBS))
         continue;
@@ -394,7 +394,7 @@ void SurfaceModeling::modelSelection()
   // merge the surfaces from the best to the weakest connection
   std::sort(mergePairs.begin(),mergePairs.end(),cmpSavings);
   
-  for(int i = 0; i < mergePairs.size(); i++)
+  for(unsigned int i = 0; i < mergePairs.size(); i++)
   {
     // if we are neigbors of ourselves skip
     if(mergePairs.at(i).id1 == mergePairs.at(i).id2)
@@ -436,7 +436,7 @@ void SurfaceModeling::modelSelection()
       modifyNeighbours(mergePairs.at(i).id2,mergePairs.at(i).id1);
       modifyBoundary(mergePairs.at(i).id2,mergePairs.at(i).id1);
 
-      for(int j = i+1; j < mergePairs.size(); j++)
+      for(unsigned int j = i+1; j < mergePairs.size(); j++)
       {
 
         if(mergePairs.at(j).id1 == mergePairs.at(i).id2)
@@ -455,10 +455,11 @@ void SurfaceModeling::modelSelection()
 void SurfaceModeling::mergeWithPlanes(std::vector<MergedPair> &mergePairs)
 {
   // Merge first planes
-  for (int i = 0; i < surfaces.size(); i++)
+  #pragma omp parallel for shared(mergePairs)
+  for (unsigned int i = 0; i < surfaces.size(); i++)
   {
     // if we are interested in the plane and it is still not used
-    if (surfaces.at(i)->selected && surfaces.at(i)->valid)
+    if( (surfaces.at(i)->isNew) &&  (surfaces.at(i)->selected) && (surfaces.at(i)->valid) )
     {
       if(surfaces.at(i)->type != pcl::SACMODEL_PLANE)
         continue;
@@ -466,6 +467,9 @@ void SurfaceModeling::mergeWithPlanes(std::vector<MergedPair> &mergePairs)
       // go over all 3D neighbours
       for(std::set<unsigned>::iterator itr = surfaces.at(i)->neighbors3D.begin(); itr != surfaces.at(i)->neighbors3D.end(); itr++)
       {
+        if( (!(surfaces.at(*itr)->selected)) || (!(surfaces.at(*itr)->valid)) )
+          continue;
+        
         // select the neigbour
         if( surfaces.at(*itr)->type != pcl::SACMODEL_PLANE )
 	  continue;
@@ -484,6 +488,7 @@ void SurfaceModeling::mergeWithPlanes(std::vector<MergedPair> &mergePairs)
             #pragma omp critical
             {
               mergePairs.push_back(m);
+              cout << "Merge candidates: " << m.id1 << "-" << m.id2 << endl;
             }
           }
         }
@@ -496,7 +501,7 @@ void SurfaceModeling::mergeWithNurbs(std::vector<MergedPair> &mergePairs)
 {
   // go in a parallel fashion over all neighboring pairs and put them into the stack to merge
   #pragma omp parallel for shared(mergePairs)
-  for(int i = 0; i < surfaces.size(); i++) 
+  for(unsigned int i = 0; i < surfaces.size(); i++) 
   {
     // if surface is valid and selected
     if( (surfaces.at(i)->isNew) && (surfaces.at(i)->selected) && (surfaces.at(i)->valid) )
@@ -594,7 +599,7 @@ void SurfaceModeling::modifyNeighbours(int oldIdx, int newIdx)
 //   }
 }
 
-void SurfaceModeling::modifyBoundary(int oldIdx, int newIdx)
+void SurfaceModeling::modifyBoundary(unsigned int oldIdx, unsigned int newIdx)
 {
   //1. Erase boundary between merged surfaces
   // p1 < p2 ALWAYS!!!
@@ -613,7 +618,7 @@ void SurfaceModeling::modifyBoundary(int oldIdx, int newIdx)
   
   //2. Go over all surfaces and check if there is a boundary between the surface and deleted segment
   // if yes, then add this boundary to the new surface
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
     if( (i == oldIdx) || (i == newIdx) )
       continue;
@@ -679,7 +684,7 @@ void SurfaceModeling::createNeighbours()
   neigbouring_matrix3D = cv::Mat_<bool>(surfaces.size(),surfaces.size());
   neigbouring_matrix3D.setTo(false);
   
-  for(int i = 0; i < surfaces.size(); i++) 
+  for(unsigned int i = 0; i < surfaces.size(); i++) 
   {
     // go over all neighbors
     for(std::set<unsigned>::iterator itr = surfaces.at(i)->neighbors3D.begin(); itr != surfaces.at(i)->neighbors3D.end(); itr++) 
@@ -712,7 +717,7 @@ void SurfaceModeling::computePointError(SurfaceModel::Ptr surf)
     float c=surf->coeffs[2];
     float d=surf->coeffs[3];
 
-    for (int i = 0; i < surf->indices.size(); i++)
+    for (unsigned int i = 0; i < surf->indices.size(); i++)
     {
       // error is the distance to the plane
       Eigen::Vector3f curPoint = cloud->points.at(surf->indices.at(i)).getVector3fMap();
@@ -722,7 +727,7 @@ void SurfaceModeling::computePointError(SurfaceModel::Ptr surf)
   else 
   {
     // no error, if we do not have the model
-    for(int i = 0; i < surf->indices.size(); i++)
+    for(unsigned int i = 0; i < surf->indices.size(); i++)
     {
       surf->error.at(i) = 0.0f;
     }
@@ -740,7 +745,7 @@ void SurfaceModeling::initSurface(SurfaceModel::Ptr surface)
  */
 void SurfaceModeling::init()
 {
-  for (int i = 0; i < surfaces.size(); i++)
+  for (unsigned int i = 0; i < surfaces.size(); i++)
   {
     if(surfaces.at(i)->initialized)
       continue;
@@ -864,12 +869,12 @@ void SurfaceModeling::copySurfaces()
 //   }
 
   // copy surface normals to view
-  for(int s = 0; s < surfaces.size(); s++) 
+  for(unsigned int s = 0; s < surfaces.size(); s++) 
   {
     if( (!(surfaces.at(s)->valid)) || (!(surfaces.at(s)->selected)) )
       continue;
     
-    for(int i = 0; i < surfaces.at(s)->indices.size(); i++)
+    for(unsigned int i = 0; i < surfaces.at(s)->indices.size(); i++)
     {
       pcl::Normal n;
       n.normal_x = surfaces.at(s)->normals.at(i)[0];
@@ -975,16 +980,16 @@ void SurfaceModeling::printErrorsAndProbs(std::string file_name)
 {
   FILE *f = fopen(file_name.c_str(), "w");
   
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
-    for(int j = 0; j < surfaces.at(i)->error.size(); ++j)
+    for(unsigned int j = 0; j < surfaces.at(i)->error.size(); ++j)
     {
       fprintf(f,"%f ",surfaces.at(i)->error.at(j));
     }
     
     fprintf(f,"\n");
     
-    for(int j = 0; j < surfaces.at(i)->probs.size(); ++j)
+    for(unsigned int j = 0; j < surfaces.at(i)->probs.size(); ++j)
     {
       fprintf(f,"%f ",surfaces.at(i)->probs.at(j));
     }
@@ -1025,12 +1030,12 @@ void SurfaceModeling::printSurfaces(std::string file_name)
 {
   FILE *f = fopen(file_name.c_str(), "w");
   
-  for(int s = 0; s < surfaces.size(); ++s)
+  for(unsigned int s = 0; s < surfaces.size(); ++s)
   {
     if(!(surfaces.at(s)->valid))
       continue;
     
-    for(int i = 0; i < surfaces.at(s)->indices.size(); ++i)
+    for(unsigned int i = 0; i < surfaces.at(s)->indices.size(); ++i)
     {
       fprintf(f,"%d %f %f %f\n",surfaces.at(s)->indices.at(i),surfaces.at(s)->normals.at(i)[0],surfaces.at(s)->normals.at(i)[1],surfaces.at(s)->normals.at(i)[2]);
     }

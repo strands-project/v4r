@@ -139,7 +139,7 @@ private:
   //modify neighbors
   void modifyNeighbours(int oldIdx, int newIdx);
   //remove neighbors
-  void modifyBoundary(int oldIdx, int newIdx);
+  void modifyBoundary(unsigned int oldIdx, unsigned int newIdx);
   
   //create neighbors
   cv::Mat neigbouring_matrix2D, neigbouring_matrix3D;
