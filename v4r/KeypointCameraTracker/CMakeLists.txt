@@ -24,16 +24,17 @@ IF(NOT V4R_ARMARKER)
 ENDIF(NOT V4R_ARMARKER)
 
 PROJECT(v4rKeypointCameraTracker)
+
 SET(SOURCE_CPP
   CameraTrackerPnP.cc
   CameraTrackerRGBD.cc
   KeypointTracker.cc
   LoopClosingRT.cc
   Scene.cc
-  StructureFromMotionInitAR.cc
   Triangulation.cc
   View.cc
 )
+
 SET(SOURCE_H
   ARMarkerDetector.hh
   BundleAdjusterRT.hh
@@ -43,15 +44,21 @@ SET(SOURCE_H
   LoopClosingRT.hh
   ProjBundleAdjuster.hh
   Scene.cc
-  StructureFromMotionInitAR.hh
   Triangulation.hh
   View.hh
 )
 IF(V4R_ARMARKER)
   SET(SOURCE_CPP ${SOURCE_CPP}
     ARMarkerDetector.cc
+    StructureFromMotionInitAR.cc
   )
+  
+  SET(SOURCE_H ${SOURCE_H}
+  	StructureFromMotionInitAR.hh
+  )
+  	
 ENDIF(V4R_ARMARKER)
+
 IF(${Ceres_FOUND})
   SET(SOURCE_CPP ${SOURCE_CPP} 
     BundleAdjusterRT.cc
