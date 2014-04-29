@@ -74,7 +74,7 @@ void AssemblyRelations::setSurfaces(const std::vector<SurfaceModel::Ptr> _surfac
   surfaces = _surfaces;
   have_surfaces = true;
   
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
     if(surfaces.at(i)->contours.size() == 0)
       printf("[AssemblyRelations::setSurfaces] Error: No contour given for surface %u.\n", i);
 }
@@ -124,14 +124,14 @@ void AssemblyRelations::precalculateNormalRelations()
   normalsVar.clear();
   //@ep: TODO: make parallelization
 //   #pragma omp parallel for
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
     Eigen::Vector3d mean;
     mean[0]=0.;
     mean[1]=0.;
     mean[2]=0.;
     double var = 0;
-    for(int j = 0; j < surfaces.at(i)->normals.size(); j++)
+    for(unsigned int j = 0; j < surfaces.at(i)->normals.size(); j++)
     {
       mean += surfaces.at(i)->normals.at(j);
     }
@@ -139,7 +139,7 @@ void AssemblyRelations::precalculateNormalRelations()
     normalsMean.push_back(mean);
 
     // calculate variance
-    for(int j = 0; j < surfaces.at(i)->normals.size(); j++)
+    for(unsigned int j = 0; j < surfaces.at(i)->normals.size(); j++)
     {
       //@ep: we assume that all normals are oriented in the same direction
       double x = surfaces.at(i)->normals.at(j).dot(mean) / (surfaces.at(i)->normals.at(j).norm() * mean.norm());
@@ -214,7 +214,7 @@ void AssemblyRelations::compute()
 
     hist.resize(surfaces.size());
     #pragma omp parallel for
-    for(int i = 0; i < surfaces.size(); i++)
+    for(unsigned int i = 0; i < surfaces.size(); i++)
     {
       int nrHistBins = 4;
       double uvThreshold = 0.0f;
@@ -236,7 +236,7 @@ void AssemblyRelations::compute()
   {
     text.resize(surfaces.size());
     #pragma omp parallel for
-    for(int i = 0; i < surfaces.size(); i++)
+    for(unsigned int i = 0; i < surfaces.size(); i++)
     {
       text.at(i).reset( new Texture() );
 
@@ -256,7 +256,7 @@ void AssemblyRelations::compute()
   {
     fourier.resize(surfaces.size());
     #pragma omp parallel for
-    for(int i = 0; i < surfaces.size(); i++)
+    for(unsigned int i = 0; i < surfaces.size(); i++)
     {
       fourier.at(i).reset( new Fourier() );
 
@@ -281,7 +281,7 @@ void AssemblyRelations::compute()
 
     gabor.resize(surfaces.size());
     #pragma omp parallel for shared(permanentGabor)
-    for(int i = 0; i < surfaces.size(); i++)
+    for(unsigned int i = 0; i < surfaces.size(); i++)
     {
       gabor.at(i).reset( new Gabor() );
       *(gabor.at(i)) = *permanentGabor;
@@ -322,21 +322,21 @@ void AssemblyRelations::compute()
   relations.clear();
   relations.resize(surfaces.size());
   #pragma omp parallel for
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
-    for(int j = 0; j < surfaces.size(); j++)
+    for(unsigned int j = 0; j < surfaces.size(); j++)
     {
       relations.at(i).push_back(rel);
     }
   }
 
 //   #pragma omp parallel for
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
     if(!(surfaces.at(i)->selected))
       continue;
 
-    for(int j=i+1; j < surfaces.size(); j++)
+    for(unsigned int j=i+1; j < surfaces.size(); j++)
     {
       if(!(surfaces.at(j)->selected))
         continue;
@@ -496,15 +496,15 @@ void AssemblyRelations::compute()
   }
 
   // copy relations to view
-  for(int i=0; i<surfaces.size(); i++)
+  for(unsigned int i=0; i<surfaces.size(); i++)
   {
-    for(int j=i+1; j<surfaces.size(); j++)
+    for(unsigned int j=i+1; j<surfaces.size(); j++)
     {
       if(relations.at(i).at(j).valid)
       {
         surfaceRelations.push_back(relations.at(i).at(j));
         printf("r_as_l: [%u][%u]: ", relations.at(i).at(j).id_0, relations.at(i).at(j).id_1);
-        for(int ridx = 0; ridx < relations.at(i).at(j).rel_value.size(); ridx++)
+        for(unsigned int ridx = 0; ridx < relations.at(i).at(j).rel_value.size(); ridx++)
           printf("%4.3f ", relations.at(i).at(j).rel_value[ridx]);
         printf("\n");
       }

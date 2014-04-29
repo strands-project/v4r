@@ -50,10 +50,10 @@ void StructuralRelations::init()
   relations.resize(surfaces.size());
   
   #pragma omp parallel for
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
     relations.at(i).resize(surfaces.size());
-    for(int j = i+1; j < surfaces.size(); j++)
+    for(unsigned int j = i+1; j < surfaces.size(); j++)
     {
       Relation r;
       r.groundTruth = -1;
@@ -70,9 +70,9 @@ void StructuralRelations::init()
   
   // copy relations to view
   surfaceRelations.clear();
-  for(int i=0; i<surfaces.size(); i++)
+  for(unsigned int i=0; i<surfaces.size(); i++)
   {
-    for(int j=i+1; j<surfaces.size(); j++)
+    for(unsigned int j=i+1; j<surfaces.size(); j++)
     {
       surfaceRelations.push_back(relations.at(i).at(j));
 //       printf("r_st_l: [%u][%u]: ", relations.at(i).at(j).id_0, relations.at(i).at(j).id_1);
@@ -188,7 +188,7 @@ void StructuralRelations::projectPts2Model()
 {  
  
   #pragma omp parallel for
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
 
     if(!(surfaces.at(i)->isNew))
@@ -208,7 +208,7 @@ void StructuralRelations::projectPts2Model()
       proj.setIndices(surface_indices);
       proj.setModelCoefficients(mc);
       proj.filter(*new_cloud);
-      for (int j = 0; j < new_cloud->points.size(); j++)
+      for (unsigned int j = 0; j < new_cloud->points.size(); j++)
         (*cloud_model).points.at(surface_indices->indices.at(j)) = new_cloud->points.at(j);
     }
   }
@@ -229,7 +229,7 @@ void StructuralRelations::compute()
   {
   
     #pragma omp parallel for
-    for(int i = 0; i < surfaces.size(); i++)
+    for(unsigned int i = 0; i < surfaces.size(); i++)
     {
       int nrHistBins = 4;
       double uvThreshold = 0.0f;
@@ -250,7 +250,7 @@ void StructuralRelations::compute()
   if(usedRelations & R_TR)
   {
     #pragma omp parallel for
-    for(int i = 0; i < surfaces.size(); i++)
+    for(unsigned int i = 0; i < surfaces.size(); i++)
     {
       if( (!(surfaces.at(i)->selected)) || (!(surfaces.at(i)->isNew)) )
       {
@@ -269,7 +269,7 @@ void StructuralRelations::compute()
   if(usedRelations & R_FS)
   {
     #pragma omp parallel for
-    for(int i = 0; i < surfaces.size(); i++)
+    for(unsigned int i = 0; i < surfaces.size(); i++)
     {
       if( (!(surfaces.at(i)->selected)) || (!(surfaces.at(i)->isNew)) )
       {
@@ -296,7 +296,7 @@ void StructuralRelations::compute()
 //     permanentGabor->computeGaborFilters();
 
     #pragma omp parallel for shared(permanentGabor2)
-    for(int i = 0; i < surfaces.size(); i++)
+    for(unsigned int i = 0; i < surfaces.size(); i++)
     {
       if( (!(surfaces.at(i)->selected)) || (!(surfaces.at(i)->isNew)) )
       {
@@ -314,7 +314,7 @@ void StructuralRelations::compute()
 
   validRelations.clear();
   #pragma omp parallel for
-  for(int i = 0; i < surfaceRelations.size(); ++i)
+  for(unsigned int i = 0; i < surfaceRelations.size(); ++i)
   {   
     int p0 = surfaceRelations.at(i).id_0;
     int p1 = surfaceRelations.at(i).id_1;
@@ -489,12 +489,12 @@ void StructuralRelations::compute()
 //   surfaceRelations = newSurfaceRelations;
   
   // copy relations to view
-  for(int i=0; i<validRelations.size(); i++)
+  for(unsigned int i=0; i<validRelations.size(); i++)
   {
     if(validRelations.at(i).valid) 
     {
       printf("r_st_l: [%u][%u]: ", validRelations.at(i).id_0, validRelations.at(i).id_1);
-      for(int ridx = 0; ridx < validRelations.at(i).rel_value.size(); ridx++)
+      for(unsigned int ridx = 0; ridx < validRelations.at(i).rel_value.size(); ridx++)
         printf("%4.3f ", validRelations.at(i).rel_value[ridx]);
       printf("\n");
     }

@@ -46,6 +46,7 @@ public:
 	Motion		motion; ///> Mouse position in pixels if event is of type TMGL_Motion
 	Exposure	expose; ///> Exposure parameter if event is of type TMGL_Expose
 	
+  Event() : type(TMGL_None){}
 };
 
 } /* namespace */

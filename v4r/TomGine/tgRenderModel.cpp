@@ -181,7 +181,7 @@ void tgRenderModel::UpdateBufferObjectVertices(const std::vector<size_t>& vertex
       {
         GLint s;
         glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &s);
-        printf("[tgRenderModel::UpdateBufferObjectVertices] %d / %d\n", sizeof(tgVertex)*vi, s);
+        printf("[tgRenderModel::UpdateBufferObjectVertices] %lu / %d\n", sizeof(tgVertex)*vi, s);
         return;
       }
 

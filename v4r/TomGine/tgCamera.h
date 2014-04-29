@@ -209,6 +209,13 @@ public:
 	 *  @param	pov		Point to look at	 */
 	void LookAt(const vec3 &pov);
 
+  /** @brief Make camera look at a specific point
+   *  @param  pos   Position of camera
+   *  @param  pov		Point to look at
+   *  @param  up    Upward pointing vector
+   */
+  void LookAt(const vec3 &pos, const vec3 &pov, const vec3 &up);
+
 	/** @brief Convert transformations to extrinsic camera matrix. */
 	void ApplyTransform();
 	

@@ -52,9 +52,9 @@ ClusterNormalsToPlanes::~ClusterNormalsToPlanes()
 void ClusterNormalsToPlanes::createPatchImage()
 {
   patches = cv::Mat_<int>::zeros(height,width);
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
-    for(int j = 0; j < surfaces.at(i)->indices.size(); j++)
+    for(unsigned int j = 0; j < surfaces.at(i)->indices.size(); j++)
     {
       int row = Y(surfaces.at(i)->indices.at(j));
       int col = X(surfaces.at(i)->indices.at(j));
@@ -153,7 +153,7 @@ bool ClusterNormalsToPlanes::reasignPoints(std::vector< std::vector<int> > &reas
           continue;
         
         int surounding[surfaces.size()];
-        for(int s = 0; s < surfaces.size(); s++)
+        for(unsigned int s = 0; s < surfaces.size(); s++)
         {
           surounding[s] = 0;
         }
@@ -187,7 +187,7 @@ bool ClusterNormalsToPlanes::reasignPoints(std::vector< std::vector<int> > &reas
         // select the patch that is the closest to the point
         int max_neighbors = 0;
         int most_id = 0;
-        for(int nr = 0; nr < surfaces.size(); nr++)
+        for(unsigned int nr = 0; nr < surfaces.size(); nr++)
         {
           if(max_neighbors < surounding[nr])
           {
@@ -206,7 +206,7 @@ bool ClusterNormalsToPlanes::reasignPoints(std::vector< std::vector<int> > &reas
 
           // remove point from the old patch
           std::vector<int> surfaces_indices_copy;
-          for(int su = 0; su < surfaces.at(i)->indices.size(); su++)
+          for(unsigned int su = 0; su < surfaces.at(i)->indices.size(); su++)
           {
             if(surfaces.at(i)->indices.at(su) != idx)
             {
@@ -284,7 +284,7 @@ void ClusterNormalsToPlanes::pixelCheck()
   createPatchImage();
   countNeighbours(reassign_idxs,max_neighbours,max_nneighbours,1);
 
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
     if( (surfaces.at(i)->indices.size() - reassign_idxs.at(i).size()) < param.minPoints )
       reassign_idxs.at(i) = surfaces.at(i)->indices;
@@ -370,7 +370,7 @@ void ClusterNormalsToPlanes::calculateCloudAdaptiveParameters()
 //   FILE *f = fopen("adaptive.txt", "w");
   
   #pragma omp parallel for
-  for(int i=0; i < cloud->points.size(); i++)
+  for(unsigned int i=0; i < cloud->points.size(); i++)
   {
     if(isNaN(cloud->points.at(i)))
     {
@@ -410,7 +410,7 @@ void ClusterNormalsToPlanes::printCloudAdaptiveParams(std::string file_name)
 {
   FILE *f = fopen(file_name.c_str(), "w");
 
-  for(int i=0; i<p_adaptive_cosThrAngleNC.size(); i++) 
+  for(unsigned int i=0; i<p_adaptive_cosThrAngleNC.size(); i++) 
   {
     Eigen::Vector3f curPt = cloud->points.at(i).getVector3fMap();
     fprintf(f,"(%d,%d): %f,%f,%f -- %f %f \n",i%width,i/width,curPt[0],curPt[1],curPt[2],p_adaptive_cosThrAngleNC[i],p_adaptive_inlDist[i]);
@@ -714,7 +714,7 @@ void ClusterNormalsToPlanes::clusterNormals(int idx, std::vector<int> &pts, pcl:
     {
       EIGEN_ALIGN16 Eigen::Vector3f new_n = normals->points.at(pts.at(0)).getNormalVector3fMap();
       
-      for(int i = 1; i < pts.size(); i++)
+      for(unsigned int i = 1; i < pts.size(); i++)
         new_n += normals->points.at(pts.at(i)).getNormalVector3fMap();
       
       new_n.normalize();
@@ -729,7 +729,7 @@ void ClusterNormalsToPlanes::printMask(std::string file_name)
 {
   FILE *f = fopen(file_name.c_str(), "w");
 
-  for(int i = 0; i < mask.size(); i++) 
+  for(unsigned int i = 0; i < mask.size(); i++)
   {
     fprintf(f,"(%d,%d): %d \n",i%width,i/width,(mask.at(i) ? 0 : 1));
   }
@@ -742,7 +742,7 @@ void ClusterNormalsToPlanes::printSrtCurvature(std::string file_name)
 
   for(unsigned i = 0; i < srt_curvature.size(); i++)
   {
-    for(int j = 0; j < srt_curvature.at(i).size(); ++j)
+    for(unsigned int j = 0; j < srt_curvature.at(i).size(); ++j)
     {
       fprintf(f,"%f ",srt_curvature[i][j]);
     }
@@ -759,7 +759,7 @@ void ClusterNormalsToPlanes::printClusteredIndices(std::string file_name, int id
   
   fprintf(f,"%d: ",idx);
   
-  for(int i = 0; i < pts.size(); i++)
+  for(unsigned int i = 0; i < pts.size(); i++)
   {
     fprintf(f,"%d \n",pts.at(i));
   }
@@ -790,7 +790,7 @@ void ClusterNormalsToPlanes::clusterNormals()
   else
   {
     mask.resize(width*height,false);
-    for (int i = 0; i < indices.size(); i++)
+    for (unsigned int i = 0; i < indices.size(); i++)
     {
       int idx = indices.at(i);
       if(!isNaN(cloud->points.at(idx)))
@@ -803,7 +803,7 @@ void ClusterNormalsToPlanes::clusterNormals()
 //   printMask("mask.txt");
   
   // @ep: why 20? what does it mean?
-  for(int i = 0; i < srt_curvature.size(); i++)
+  for(unsigned int i = 0; i < srt_curvature.size(); i++)
   {
     srt_curvature.at(i).clear();
   }
@@ -870,10 +870,10 @@ void ClusterNormalsToPlanes::clusterNormals()
   {
     morePlanes = false;
     // we start from plane points
-    for(int i=0; i<srt_curvature.size(); i++)
+    for(unsigned int i=0; i<srt_curvature.size(); i++)
     {
       // for all points with the same curvature
-      for(int j=0; j<srt_curvature.at(i).size(); j++)
+      for(unsigned int j=0; j<srt_curvature.at(i).size(); j++)
       {
         int idx = srt_curvature.at(i).at(j);
         // not valid point -- > skip
@@ -951,7 +951,7 @@ void ClusterNormalsToPlanes::computeLeastSquarePlanes()
   pcl::SampleConsensusModelPlane<pcl::PointXYZRGB> lsPlane(cloud);
   Eigen::VectorXf coeffs(4);
 
-  for (int i = 0; i < surfaces.size(); i++)
+  for (unsigned int i = 0; i < surfaces.size(); i++)
   {
     if( (surfaces.at(i)->type == pcl::SACMODEL_PLANE) && (surfaces.at(i)->indices.size() > 4) )
     {
@@ -992,7 +992,7 @@ void ClusterNormalsToPlanes::computeLeastSquarePlanes()
  */
 void ClusterNormalsToPlanes::addNormals()
 {
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
     //@ep: TODO: this shouldn't be here!!!
     surfaces.at(i)->idx = i;
@@ -1002,7 +1002,7 @@ void ClusterNormalsToPlanes::addNormals()
     // no PLANE model
     if(surfaces.at(i)->type != pcl::SACMODEL_PLANE )
     {
-      for(int ni = 0; ni < surfaces.at(i)->indices.size(); ni++)
+      for(unsigned int ni = 0; ni < surfaces.at(i)->indices.size(); ni++)
       {
         Eigen::Vector3f nor = normals->points[surfaces[i]->indices[ni]].getNormalVector3fMap();
         surfaces.at(i)->normals.at(ni)[0] = nor[0];
@@ -1017,7 +1017,7 @@ void ClusterNormalsToPlanes::addNormals()
       coeffs[1] = surfaces.at(i)->coeffs[1];
       coeffs[2] = surfaces.at(i)->coeffs[2];
       
-      for (int j = 0; j < surfaces.at(i)->indices.size(); j++)
+      for (unsigned int j = 0; j < surfaces.at(i)->indices.size(); j++)
       {
         surfaces.at(i)->normals.at(j)[0] = coeffs[0];
         surfaces.at(i)->normals.at(j)[1] = coeffs[1];
@@ -1124,14 +1124,14 @@ void ClusterNormalsToPlanes::print(std::string file_name)
 {
   FILE *f = fopen(file_name.c_str(), "w");
   
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
     fprintf(f,"%d ",surfaces.at(i)->type);
     if(surfaces.at(i)->type != -1)
       fprintf(f,"%f %f %f ",surfaces.at(i)->coeffs[0],surfaces.at(i)->coeffs[1],surfaces.at(i)->coeffs[2]);
     fprintf(f,"\n");
     
-    for(int j = 0; j < surfaces.at(i)->indices.size(); ++j)
+    for(unsigned int j = 0; j < surfaces.at(i)->indices.size(); ++j)
     {
       fprintf(f,"%d %f %f %f\n",surfaces.at(i)->indices.at(j),surfaces.at(i)->normals.at(j)[0],surfaces.at(i)->normals.at(j)[1],surfaces.at(i)->normals.at(j)[2]);
     }

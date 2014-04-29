@@ -88,7 +88,7 @@ surface::meanVal BoundaryRelationsMeanColor::compute()
   double totalColorDistanceStdDev = 0.;
   std::vector<double> valuesColorDistance;
   valuesColorDistance.reserve(boundaryLength);
-  for(int i=0; i<boundary.size(); i++)
+  for(unsigned int i=0; i<boundary.size(); i++)
   {
     double p0Y, p0U, p0V, p1Y, p1U, p1V;
     

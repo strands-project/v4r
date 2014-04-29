@@ -352,9 +352,9 @@ void PointCloudXYZRGB2RGB(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, cv::Mat_
 
   image = cv::Mat_<cv::Vec3b>(height, width);
   
-  for (unsigned row = 0; row < height; row++)
+  for (int row = 0; row < height; row++)
   {
-    for (unsigned col = 0; col < width; col++)
+    for (int col = 0; col < width; col++)
     {
       cv::Vec3b &cvp = image.at<cv::Vec3b>(row,col);
       int position = row * width + col;
@@ -374,9 +374,9 @@ void PointCloudXYZRGBL2RGB(pcl::PointCloud<pcl::PointXYZRGBL>::Ptr cloud, cv::Ma
 
   image = cv::Mat::zeros(height,width,CV_8UC3);
   
-  for (unsigned row = 0; row < height; row++)
+  for (int row = 0; row < height; row++)
   {
-    for (unsigned col = 0; col < width; col++)
+    for (int col = 0; col < width; col++)
     {
       int position = row * width + col;
       const pcl::PointXYZRGBL pt = cloud->points.at(position);

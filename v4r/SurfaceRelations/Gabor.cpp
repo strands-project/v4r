@@ -161,6 +161,7 @@ void Gabor::computeGaborFilters()
       IplImage* temp_filter = cvCreateImage(cvGetSize(&temp_image), 8, 1);
       gabor.conv_img(&temp_image,temp_filter,CV_GABOR_MAG);
       gaborFilters.at(idx) = cv::Mat(temp_filter,true);
+      cvReleaseImage(&temp_filter);
     }
   }
   
@@ -225,7 +226,7 @@ void Gabor::compute()
   // calculate mean value
   for(int fi = 0; fi < filtersNumber; fi++) 
   {
-    for(int idx = 0; idx < indices->indices.size(); idx++)
+    for(unsigned int idx = 0; idx < indices->indices.size(); idx++)
     {
       int i = indices->indices.at(idx) / width;
       int j = indices->indices.at(idx) % width;
@@ -242,7 +243,7 @@ void Gabor::compute()
   // calculate standard deviation
   for(int fi = 0; fi < filtersNumber; fi++) 
   {
-    for(int idx = 0; idx < indices->indices.size(); idx++)
+    for(unsigned int idx = 0; idx < indices->indices.size(); idx++)
     {
       int i = indices->indices.at(idx) / width;
       int j = indices->indices.at(idx) % width;

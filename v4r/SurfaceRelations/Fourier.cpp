@@ -58,6 +58,8 @@ Fourier::~Fourier()
 {
   delete dft;
   delete used;
+  if(bins)
+      delete[] bins;
 }
 
 void Fourier::setInputImage(cv::Mat &_image)
@@ -103,12 +105,12 @@ void Fourier::setIndices(pcl::PointIndices::Ptr _indices)
   
   delete used;
   used = new bool[(indices->indices.size())*kmax];
-  for(int i = 0; i < (indices->indices.size())*kmax; i++)
+  for(unsigned int i = 0; i < (indices->indices.size())*kmax; i++)
     used[i] = false;
   
   delete dft;
   dft = new uchar[(indices->indices.size())*kmax];
-  for(int i = 0; i < (indices->indices.size())*kmax; i++)
+  for(unsigned int i = 0; i < (indices->indices.size())*kmax; i++)
     dft[i] = 0;
 }
 
@@ -121,12 +123,12 @@ void Fourier::setIndices(std::vector<int> &_indices)
   
   delete used;
   used = new bool[(indices->indices.size())*kmax];
-  for(int i = 0; i < (indices->indices.size())*kmax; i++)
+  for(unsigned int i = 0; i < (indices->indices.size())*kmax; i++)
     used[i] = false;
   
   delete dft;
   dft = new uchar[(indices->indices.size())*kmax];
-  for(int i = 0; i < (indices->indices.size())*kmax; i++)
+  for(unsigned int i = 0; i < (indices->indices.size())*kmax; i++)
     dft[i] = 0;
 }
 
@@ -172,12 +174,12 @@ void Fourier::setIndices(cv::Rect _rect)
   
   delete used;
   used = new bool[(indices->indices.size())*kmax];
-  for(int i = 0; i < (indices->indices.size())*kmax; i++)
+  for(unsigned int i = 0; i < (indices->indices.size())*kmax; i++)
     used[i] = false;
   
   delete dft;
   dft = new uchar[(indices->indices.size())*kmax];
-  for(int i = 0; i < (indices->indices.size())*kmax; i++)
+  for(unsigned int i = 0; i < (indices->indices.size())*kmax; i++)
     dft[i] = 0;
 }
 
@@ -210,7 +212,7 @@ void Fourier::compute()
     }
   }
    
-  for(int idx=0; idx<indices->indices.size(); idx++)
+   for(unsigned int idx=0; idx<indices->indices.size(); idx++)
   {
     int i = indices->indices.at(idx)/width;
     int j = indices->indices.at(idx)%width;
@@ -262,7 +264,7 @@ void Fourier::compute()
     }
   }
   
-  for(int idx=0; idx<indices->indices.size(); idx++)
+  for(unsigned int idx=0; idx<indices->indices.size(); idx++)
   {
     int i = indices->indices.at(idx)/width;
     int j = indices->indices.at(idx)%width;

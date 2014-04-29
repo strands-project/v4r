@@ -81,7 +81,7 @@ public:
   }
 
   /** @brief Set color of this render model */
-  void SetColor(int r, int g, int b, int a=255)
+  void SetColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a=255)
   {
     m_material.Color(float(r) / 255.0f, float(g) / 255.0f, float(b) / 255.0f, float(a) / 255.0f);
   }

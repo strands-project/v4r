@@ -32,7 +32,7 @@ ThreadDrawing(void* c)
   tgTomGineThread *tt = (tgTomGineThread*) c;
 
   TomGine::tgEngine* render = new TomGine::tgEngine(tt->m_width, tt->m_height, tt->m_depth_max, tt->m_depth_min,
-      tt->m_windowname.c_str(), tt->m_bfc, true);
+                                                    tt->m_windowname.c_str(), tt->m_bfc, true);
   render->Update();
 
   pthread_mutex_lock(&tt->dataMutex);
@@ -161,6 +161,9 @@ ThreadEventHandling(void* c)
         tt->m_stopTomGineThread = true;
       pthread_mutex_unlock(&tt->dataMutex);
 
+      if(tt->m_eventCallback)
+        tt->m_eventListner->EventFunction(event);
+
       pthread_mutex_lock(&tt->eventMutex);
       tt->m_eventlist.push_back(event);
 
@@ -172,11 +175,9 @@ ThreadEventHandling(void* c)
 
       if (tt->m_listenForEvents)
       {
-        //        if (event.type == TMGL_Press || event.type == TMGL_Release) {
         tt->m_listenEventList.push_front(event);
         if (tt->m_listenEventList.size() > tt->m_listenEventListSize) // avoid out-of-memory
           tt->m_listenEventList.resize(tt->m_listenEventListSize);
-        //        }
       }
       sem_post(&tt->renderSem);
       pthread_mutex_unlock(&tt->eventMutex);
@@ -206,6 +207,7 @@ void tgTomGineThread::init()
   m_renderingStopped = false;
   m_eventsStopped = false;
   m_clearcommand = GL_CLEAR_NONE;
+  m_clearindex = 0;
   m_clearColor = TomGine::vec3(0.0f, 0.0f, 0.0f);
   m_maxFPS = 0;
   m_FPS = false;
@@ -235,6 +237,7 @@ void tgTomGineThread::init()
   m_waitForZBuffer = false;
 
   m_listenEventListSize = 100;
+  m_eventCallback = false;
 
   m_engine = NULL;
 
@@ -250,9 +253,10 @@ void tgTomGineThread::init()
 
 tgTomGineThread::tgTomGineThread(int w, int h, std::string windowname, bool bfc, float depth_min, float depth_max) :
   m_width(w), m_height(h), m_depth_min(depth_min), m_depth_max(depth_max), m_bfc(bfc), m_windowname(windowname),
-      m_normal_length(0.1)
+  m_normal_length(0.1)
 {
   init();
+  Update();
 }
 
 tgTomGineThread::~tgTomGineThread()
@@ -278,10 +282,10 @@ void tgTomGineThread::GL_Clear()
 
   if (cc == GL_CLEAR_ALL || cc == GL_CLEAR_POINTCLOUDS)
   {
-    for (unsigned i = 0; i < this->m_pointclouds.size(); i++)
+    for (unsigned i = m_clearindex; i < this->m_pointclouds.size(); i++)
       if (m_pointclouds[i] != NULL)
         delete m_pointclouds[i];
-    m_pointclouds.clear();
+    m_pointclouds.resize(m_clearindex);
   }
   if (cc == GL_CLEAR_ALL || cc == GL_CLEAR_CAMERAS)
     m_cameras.clear();
@@ -314,22 +318,23 @@ void tgTomGineThread::GL_Clear()
   }
   if (cc == GL_CLEAR_ALL || cc == GL_CLEAR_MODELS_2D)
   {
-    for (size_t i = 0; i < m_models2D.size(); i++)
+    for (size_t i = m_clearindex; i < m_models2D.size(); i++)
       if (m_models2D[i] != NULL)
         delete m_models2D[i];
-    m_models2D.clear();
+    m_models2D.resize(m_clearindex);
   }
   if (cc == GL_CLEAR_ALL || cc == GL_CLEAR_MODELS_3D)
   {
-    for (size_t i = 0; i < m_models3D.size(); i++)
+    for (size_t i = m_clearindex; i < m_models3D.size(); i++)
       if (m_models3D[i] != NULL)
         delete m_models3D[i];
-    m_models3D.clear();
+    m_models3D.resize(m_clearindex);
   }
   if (cc == GL_CLEAR_ALL || cc == GL_CLEAR_MODEL_POINTERS)
   {
     m_modelpointers.clear();
   }
+  m_clearindex = 0;
 }
 
 void tgTomGineThread::PrintUsage()
@@ -553,7 +558,7 @@ void tgTomGineThread::GL_DrawModels3D(bool textured)
   {
     if (m_models3D[i] != NULL)
     {
-      m_models3D[i]->Draw(textured, tgRenderModel::DISPLAYLIST);
+      m_models3D[i]->Draw(textured);
       if (df.normals)
         m_models3D[i]->DrawNormals(m_normal_length);
     }
@@ -796,6 +801,14 @@ void tgTomGineThread::StartEventListener(unsigned max_events)
   pthread_mutex_unlock(&eventMutex);
 }
 
+void tgTomGineThread::RegisterEventListener(tgEventListener *listener)
+{
+  pthread_mutex_lock(&eventMutex);
+  this->m_eventListner = listener;
+  this->m_eventCallback = true;
+  pthread_mutex_unlock(&eventMutex);
+}
+
 void tgTomGineThread::StopEventListener()
 {
   pthread_mutex_lock(&eventMutex);
@@ -803,8 +816,11 @@ void tgTomGineThread::StopEventListener()
   pthread_mutex_unlock(&eventMutex);
 }
 
-void tgTomGineThread::GetEventQueue(std::list<Event> &events)
+void tgTomGineThread::GetEventQueue(std::list<Event> &events, bool waiting)
 {
+  if(waiting && this->m_listenEventList.empty())
+    sem_wait(&renderFinishedSem);
+
   pthread_mutex_lock(&eventMutex);
   events = this->m_listenEventList;
   this->m_listenEventList.clear();
@@ -830,7 +846,7 @@ bool tgTomGineThread::SelectModels(int x, int y, std::vector<int> &ids)
   pthread_mutex_lock(&dataMutex);
 
   // Get shortest distance to each model
-  std::vector<double> dist(m_models3D.size(), DBL_MAX);
+  //  std::vector<double> dist(m_models3D.size(), DBL_MAX);
   for (unsigned i = 0; i < m_models3D.size(); i++)
   {
     if (m_models3D[i] == NULL)
@@ -849,6 +865,58 @@ bool tgTomGineThread::SelectModels(int x, int y, std::vector<int> &ids)
   return intersection;
 }
 
+
+bool tgTomGineThread::SelectModels(int x, int y, const std::vector<int> &model_ids, int& id, double& z_min)
+{
+  if (this->m_renderingStopped)
+    return false;
+
+  bool intersection(false);
+  tgRay ray;
+  GetCamera().GetViewRay(x, y, ray.start, ray.dir);
+
+  pthread_mutex_lock(&dataMutex);
+
+  // Get shortest distance to each model that intersects
+  std::vector<double> dist(model_ids.size(), DBL_MAX);
+  for (unsigned i = 0; i < model_ids.size(); i++)
+  {
+    const int& idx = model_ids[i];
+    if (m_models3D[idx] == NULL)
+      continue;
+    std::vector<vec3> pl, nl;
+    std::vector<double> zl;
+    bool tmp_intersect = tgCollission::IntersectRayModel(pl, nl, zl, ray, *m_models3D[idx]);
+    intersection = (intersection || tmp_intersect);
+    if (tmp_intersect)
+    {
+      double z_min(DBL_MAX);
+      for (unsigned j = 0; j < zl.size(); j++)
+        if (zl[j] < z_min)
+          z_min = zl[j];
+
+      dist[i] = z_min;
+    }
+  }
+
+  // get closest model id
+  z_min = DBL_MAX;
+  if (intersection)
+  {
+    for (unsigned i = 0; i < dist.size(); i++)
+    {
+      if (dist[i] < z_min)
+      {
+        z_min = dist[i];
+        id = model_ids[i];
+      }
+    }
+  }
+  pthread_mutex_unlock(&dataMutex);
+
+  return intersection;
+}
+
 bool tgTomGineThread::SelectModel(int x, int y, int &id)
 {
   if (this->m_renderingStopped)
@@ -860,7 +928,7 @@ bool tgTomGineThread::SelectModel(int x, int y, int &id)
 
   pthread_mutex_lock(&dataMutex);
 
-  // Get shortest distance to each model
+  // Get shortest distance to each model that intersects
   std::vector<double> dist(m_models3D.size(), DBL_MAX);
   for (unsigned i = 0; i < m_models3D.size(); i++)
   {
@@ -901,9 +969,14 @@ bool tgTomGineThread::SelectModel(int x, int y, int &id)
 
 TomGine::tgCamera tgTomGineThread::GetCamera()
 {
-  sem_post(&renderSem);
-  sem_wait(&renderFinishedSem);
-  return this->m_engine->GetCamera();
+  //  sem_post(&renderSem);
+  //  sem_wait(&renderFinishedSem);
+  TomGine::tgCamera cam;
+  pthread_mutex_lock(&dataMutex);
+  if(this->m_engine!=NULL)
+    cam = this->m_engine->GetCamera();
+  pthread_mutex_unlock(&dataMutex);
+  return cam;
 }
 
 void tgTomGineThread::SetClearColor(float r, float g, float b)
@@ -1051,6 +1124,15 @@ void tgTomGineThread::SetInputSpeeds(float rotation, float translation, float zo
   pthread_mutex_lock(&dataMutex);
   m_inputSpeeds = vec3(rotation, translation, zoom);
   m_inputSpeedChanged = true;
+  pthread_mutex_unlock(&dataMutex);
+}
+
+void tgTomGineThread::GetInputSpeeds(float &rotation, float &translation, float &zoom)
+{
+  pthread_mutex_lock(&dataMutex);
+  rotation = m_inputSpeeds.x;
+  translation = m_inputSpeeds.y;
+  zoom = m_inputSpeeds.z;
   pthread_mutex_unlock(&dataMutex);
 }
 
@@ -1390,6 +1472,22 @@ void tgTomGineThread::SetModelPose(int id, const TomGine::tgPose &pose)
   pthread_mutex_unlock(&dataMutex);
 }
 
+
+void tgTomGineThread::SetModelColor(int id, uchar r, uchar g, uchar b)
+{
+  if (this->m_renderingStopped)
+    return;
+  pthread_mutex_lock(&dataMutex);
+  if (id < 0 || id >= (int) this->m_models3D.size())
+  {
+    pthread_mutex_unlock(&dataMutex);
+    printf("[tgTomGineThread::SetModelColor] Warning index out of bounds: %d.\n", id);
+    return;
+  }
+  this->m_models3D[id]->SetColor(r,g,b);
+  pthread_mutex_unlock(&dataMutex);
+}
+
 void tgTomGineThread::SetModel(int id, TomGine::tgModel *model)
 {
   if (this->m_renderingStopped)
@@ -1553,6 +1651,7 @@ void tgTomGineThread::Clear()
     return;
   pthread_mutex_lock(&dataMutex);
   m_clearcommand = GL_CLEAR_ALL;
+  m_clearindex = 0;
   sem_post(&renderSem);
   pthread_mutex_unlock(&dataMutex);
 
@@ -1566,10 +1665,14 @@ void tgTomGineThread::Clear()
 void tgTomGineThread::ClearPointClouds()
 {
   pthread_mutex_lock(&dataMutex);
-  for (unsigned i = 0; i < this->m_pointclouds.size(); i++)
-    if (m_pointclouds[i] != NULL)
-      delete m_pointclouds[i];
-  m_pointclouds.clear();
+  m_clearcommand = GL_CLEAR_POINTCLOUDS;
+  sem_post(&renderSem);
+  pthread_mutex_unlock(&dataMutex);
+
+  sem_wait(&clearFinishedSem);
+
+  pthread_mutex_lock(&dataMutex);
+  m_clearcommand = GL_CLEAR_NONE;
   pthread_mutex_unlock(&dataMutex);
 }
 
@@ -1624,25 +1727,58 @@ void tgTomGineThread::ClearLines3D()
 
 void tgTomGineThread::ClearModels()
 {
-  pthread_mutex_lock(&dataMutex);
-  m_models2D.clear();
-  m_models3D.clear();
-  m_modelpointers.clear();
-  pthread_mutex_unlock(&dataMutex);
+  ClearModels2D();
+  ClearModels3D();
+  ClearModelPointers();
 }
 
 void tgTomGineThread::ClearModels2D()
 {
   pthread_mutex_lock(&dataMutex);
-  m_models2D.clear();
+  m_clearcommand = GL_CLEAR_MODELS_2D;
+  sem_post(&renderSem);
+  pthread_mutex_unlock(&dataMutex);
+
+  sem_wait(&clearFinishedSem);
+
+  pthread_mutex_lock(&dataMutex);
+  m_clearcommand = GL_CLEAR_NONE;
   pthread_mutex_unlock(&dataMutex);
 }
 
 void tgTomGineThread::ClearModels3D()
 {
   pthread_mutex_lock(&dataMutex);
-  m_models3D.clear();
+  m_clearcommand = GL_CLEAR_MODELS_3D;
+  sem_post(&renderSem);
   pthread_mutex_unlock(&dataMutex);
+
+  sem_wait(&clearFinishedSem);
+
+  pthread_mutex_lock(&dataMutex);
+  m_clearcommand = GL_CLEAR_NONE;
+  pthread_mutex_unlock(&dataMutex);
+}
+
+void tgTomGineThread::ClearModels3DFrom(int id)
+{
+  pthread_mutex_lock(&dataMutex);
+  m_clearcommand = GL_CLEAR_MODELS_3D;
+  m_clearindex = id;
+  sem_post(&renderSem);
+  pthread_mutex_unlock(&dataMutex);
+
+  sem_wait(&clearFinishedSem);
+
+  pthread_mutex_lock(&dataMutex);
+  m_clearcommand = GL_CLEAR_NONE;
+  m_clearindex = 0;
+  pthread_mutex_unlock(&dataMutex);
+}
+
+void tgTomGineThread::ClearModelPointers()
+{
+  m_modelpointers.clear(); // vector of pointers cleared; the models are not deleted
 }
 
 void tgTomGineThread::DragDropModels(float speed)

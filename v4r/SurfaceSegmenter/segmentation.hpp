@@ -121,6 +121,8 @@ private:
   //bool have_normals;
   bool have_saliencyMaps;
 
+  bool use_planes;
+
   std::string model_file_name, scaling_file_name;
   
   std::string ClassName;
@@ -154,8 +156,10 @@ public:
   //void setNormals(pcl::PointCloud<pcl::Normal>::Ptr _normals);
   void setSaliencyMaps(std::vector<cv::Mat> _saliencyMaps);
 
-  void setModelFilename(std::string _model_file_name);
-  void setScaling(std::string _scaling_file_name);
+  inline void setUsePlanesNotNurbs(bool _use_planes);
+
+  inline void setModelFilename(std::string _model_file_name);
+  inline void setScaling(std::string _scaling_file_name);
   
   inline std::vector<surface::SurfaceModel::Ptr> getSurfaces();
   inline std::vector<cv::Mat> getMasks();
@@ -163,6 +167,11 @@ public:
   inline TimeEstimates getTimeEstimates();
 
 };
+
+inline void Segmenter::setUsePlanesNotNurbs(bool _use_planes)
+{
+  use_planes = _use_planes;
+}
 
 inline void Segmenter::setModelFilename(std::string _model_file_name)
 {

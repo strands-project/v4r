@@ -48,6 +48,7 @@ IF(V4R_PCL_ADD_ONS)
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
 target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rPCLAddOns v4rPCLAddOns v4rEPUtils v4rTomGine)
+
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 
 ELSE(V4R_PCL_ADD_ONS)

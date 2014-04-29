@@ -182,9 +182,11 @@ struct vec3 {
   inline vec3(const vec3 &v) : x(v.x), y(v.y), z(v.z) { }
   inline vec3(const vec4 &v);
 
-  inline void random(){ 	x = float(rand())/float(RAND_MAX);
-                          y = float(rand())/float(RAND_MAX);
-                                                z = float(rand())/float(RAND_MAX); }
+  inline const vec3& random(){ 	x = float(rand())/float(RAND_MAX);
+                                y = float(rand())/float(RAND_MAX);
+                                z = float(rand())/float(RAND_MAX);
+                                return *this;
+                             }
 
   inline int operator==(const vec3 &v) const { return (fabs(x - v.x) < epsilon && fabs(y - v.y) < epsilon && fabs(z - v.z) < epsilon);  }
   inline int operator!=(const vec3 &v) { return !(*this == v); }

@@ -72,7 +72,7 @@ void BoundaryRelationsBase::setNormals(pcl::PointCloud<pcl::Normal>::Ptr _normal
   if(!have_cloud)
     throw std::runtime_error("[BoundaryRelationsBase::setNormals] I suggest you first set the point cloud.");
   
-  if ( (_normals->height!=height) || (_normals->width!=width) )
+  if ( (_normals->height!=(unsigned int)height) || (_normals->width!=(unsigned int)width) )
     throw std::runtime_error("[BoundaryRelationsBase::setNormals] Invalid normals (not for this point cloud).");
 
   normals = _normals;

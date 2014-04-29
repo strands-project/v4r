@@ -71,6 +71,14 @@ struct tgVertex{
 struct tgFace{
   std::vector<unsigned> v;///< List of vertex-indices
   vec3 normal;			///< Normal vector of face
+  unsigned char color[4];
+  tgFace()
+  {
+    color[0] = 0;
+    color[1] = 0;
+    color[2] = 0;
+    color[3] = 255;
+  }
 };
 /** @brief Line defined by a starting and end point in 3D space. See glBegin(GL_LINE) in OpenGL spec. */
 struct tgLine{
@@ -111,8 +119,16 @@ struct tgRect2Di{
 };
 
 /** @brief Geometric representation of various primitives (triangles, quadrangles, lines, points, ...) */
-class tgModel{
+class tgModel
+{
 public:
+  enum Coloring
+  {
+    FULL_COLORING=0,
+    PER_FACE_COLORING=1,
+    PER_VERTEX_COLORING=2
+  } m_coloring;
+
   std::string name;
   std::vector<tgVertex>	m_vertices;				///< list of vertices
   std::vector<tgFace>		m_faces;				///< list of faces
@@ -125,10 +141,16 @@ public:
   float m_line_width;
   vec3 m_line_color;
   vec3 m_point_color;
-  bool m_per_vertex_colored;
 
-  tgModel() : m_point_size(1.0f), m_line_width(1.0f), m_line_color(1.0, 0.0, 0.0), m_point_color(1.0, 0.0, 0.0),
-    m_per_vertex_colored(false) {}
+  tgModel() :
+    m_coloring(FULL_COLORING),
+    m_point_size(1.0f),
+    m_line_width(1.0f),
+    m_line_color(1.0, 0.0, 0.0),
+    m_point_color(1.0, 0.0, 0.0)
+  {}
+
+
 
   //	virtual tgModel& operator+=(const tgModel& m);
   virtual void Merge(const tgModel &m);

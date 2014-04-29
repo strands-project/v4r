@@ -81,6 +81,7 @@ private:
   int m_width;
   int m_height;
   GLenum m_intFormat;
+  GLenum m_type;
   GLint m_tex_env_mode;
 
   // copying of a texture should be done with tgImageProcessor (deep copy)

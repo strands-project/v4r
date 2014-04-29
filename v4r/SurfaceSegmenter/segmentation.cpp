@@ -41,6 +41,8 @@ Segmenter::Segmenter()
 //   have_normals = false;
   have_saliencyMaps = false;
 
+  use_planes = false;
+
   model_file_name = "./ST-TrainAll.model.txt";
   scaling_file_name = "./ST-TrainAll.scalingparams.txt";
   
@@ -131,9 +133,17 @@ void Segmenter::initModelSurfaces()
 //   surfModeling->setNormals(normals);
   
   surfModeling->setMinSurfaceSize(50);
-  
-  surfModeling->setTryMergePlanes(false);
-  surfModeling->setTryMergeNurbs(true);
+
+  if(!use_planes)
+  {
+    surfModeling->setTryMergePlanes(false);
+    surfModeling->setTryMergeNurbs(true);
+  }
+  else
+  {
+    surfModeling->setTryMergePlanes(true);
+    surfModeling->setTryMergeNurbs(false);
+  }
 }
 
 void Segmenter::modelSurfaces()
@@ -227,11 +237,11 @@ bool Segmenter::checkSegmentation(cv::Mat &mask, int originalIndex, int salMapNu
 { 
   int label = surfaces.at(originalIndex)->label;
   cv::Mat new_mask = cv::Mat_<uchar>::zeros(mask.size());
-  for(int i = 0; i < surfaces.size(); i++)
+  for(size_t i = 0; i < surfaces.size(); i++)
   {
     if(surfaces.at(i)->label == label)
     {
-      for(int j = 0; j < surfaces.at(i)->indices.size(); j++)
+      for(size_t j = 0; j < surfaces.at(i)->indices.size(); j++)
       {
         int idx = surfaces.at(i)->indices.at(j);
         int row = idx / pcl_cloud->width;
@@ -265,7 +275,7 @@ bool Segmenter::checkSegmentation(cv::Mat &mask, int originalIndex, int salMapNu
   }
   else
   {
-    for(int i = 0; i < surfaces.size(); i++)
+    for(size_t i = 0; i < surfaces.size(); i++)
     {
       if(surfaces.at(i)->label == label)
       {
@@ -347,7 +357,7 @@ timeEstimates.times_maskCreation.resize(saliencyMaps.size());
 timeEstimates.times_neigboursUpdate.resize(saliencyMaps.size());
 timeEstimates.time_totalPerSegment.resize(saliencyMaps.size());
 
-  for(int i = 0; i < saliencyMaps.size(); ++i)
+  for(size_t i = 0; i < saliencyMaps.size(); ++i)
   {
 
 EPUtils::TimeEstimationClass timeEstimationClass_CustomLoopSegment(CLOCK_THREAD_CPUTIME_ID);
@@ -361,10 +371,10 @@ timeEstimationClass_CustomLoop.countingStart();
     view.sortPatches();
     surfaces = view.surfaces;
     
-    for(int i = 0; i < surfaces.size(); i++)
+    for(size_t j = 0; j < surfaces.size(); j++)
     {
-      surfaces.at(i)->selected = false;
-      surfaces.at(i)->isNew = false;
+      surfaces.at(j)->selected = false;
+      surfaces.at(j)->isNew = false;
     }
   
     int originalIndex = view.sortedSurfaces.at(0);
@@ -460,7 +470,7 @@ timeEstimates.times_maskCreation.at(salMapNumber) += timeEstimationClass_CustomL
 //     printf("After check object!");
 timeEstimationClass_CustomLocal.countingStart();
     std::vector<int> selected_surfaces;
-    for(int i = 0; i < surfaces.size(); ++i)
+    for(size_t i = 0; i < surfaces.size(); ++i)
     {
       if((surfaces.at(i)->selected) && (surfaces.at(i)->valid))
       {
@@ -470,7 +480,7 @@ timeEstimationClass_CustomLocal.countingStart();
       }
     }
 
-    for(int i = 0; i < selected_surfaces.size(); ++i)
+    for(size_t i = 0; i < selected_surfaces.size(); ++i)
     {
       int idx = selected_surfaces.at(i);
 //       printf("Surface %u is selected \n",idx);
@@ -590,7 +600,7 @@ void Segmenter::createMasks()
 
   int objNumber = 0;
 
-  for(int i = 0; i < surfaces.size(); i++)
+  for(size_t i = 0; i < surfaces.size(); i++)
   {
     if(surfaces.at(i)->label == -1)
       continue;
@@ -598,7 +608,7 @@ void Segmenter::createMasks()
     if((surfaces.at(i)->label + 1) > objNumber)
       objNumber = (surfaces.at(i)->label + 1);
     
-    for(int j = 0; j < surfaces.at(i)->indices.size(); j++)
+    for(size_t j = 0; j < surfaces.at(i)->indices.size(); j++)
     {
       int row = surfaces.at(i)->indices.at(j) / pcl_cloud->width;
       int col = surfaces.at(i)->indices.at(j) % pcl_cloud->width;

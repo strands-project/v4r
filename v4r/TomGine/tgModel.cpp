@@ -79,11 +79,10 @@ void tgModel::DrawFaces() const
 {
   glLineWidth(m_line_width); // for wire-frame mode
 
-  if(m_per_vertex_colored)
-    glEnable(GL_COLOR_MATERIAL);
-  else
+  if(m_coloring==FULL_COLORING)
     glDisable(GL_COLOR_MATERIAL);
-
+  else
+    glEnable(GL_COLOR_MATERIAL);
 
   for (size_t i = 0; i < m_faces.size(); i++)
   {
@@ -101,17 +100,22 @@ void tgModel::DrawFaces() const
       continue;
     }
 
+    if(m_coloring==PER_FACE_COLORING)
+      glColor4ub(f.color[0],f.color[1],f.color[2],f.color[3]);
+
     for (size_t j = 0; j < f.v.size(); j++)
     {
       const tgVertex& v = m_vertices[f.v[j]];
       glTexCoord2f(v.texCoord.x, v.texCoord.y);
       glNormal3f(v.normal.x, v.normal.y, v.normal.z);
-      if(m_per_vertex_colored)
+      if(m_coloring==PER_VERTEX_COLORING)
         glColor3ub(v.color[0], v.color[1], v.color[2]);
       glVertex3f(v.pos.x, v.pos.y, v.pos.z);
     }
     glEnd();
   }
+
+  glDisable(GL_COLOR_MATERIAL);
 }
 
 void tgModel::DrawLines() const

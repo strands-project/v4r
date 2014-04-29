@@ -146,7 +146,7 @@ void Texture::compute()
   }
   
   int texArea = 0;
-  for(int i=0; i<indices->indices.size(); i++) 
+  for(unsigned int i=0; i<indices->indices.size(); i++) 
   {
     int x = indices->indices.at(i) % width;
     int y = indices->indices.at(i) / width;

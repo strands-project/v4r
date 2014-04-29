@@ -80,7 +80,7 @@ surface::meanVal BoundaryRelationsMeanDepth::compute()
   double totalDepthStdDev = 0.;
   std::vector<double> valuesDepth;
   valuesDepth.reserve(boundaryLength);
-  for(int i=0; i<boundary.size(); i++)
+  for(unsigned int i=0; i<boundary.size(); i++)
   {
     pcl::PointXYZRGB p1 = cloud->points.at(boundary.at(i).idx1);
     pcl::PointXYZRGB p2 = cloud->points.at(boundary.at(i).idx2);

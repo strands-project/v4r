@@ -93,7 +93,7 @@ bool GraphCut::init()
   if(createAllRelations) 
   {
     int maxID = 0;
-    for(int i = 0; i < relations.size(); i++) 
+    for(unsigned int i = 0; i < relations.size(); i++) 
     {
       if(relations.at(i).id_0 > maxID)
         maxID = relations.at(i).id_0;
@@ -247,7 +247,7 @@ void GraphCut::process()
   graphCutGroups.clear();
   int cut_labels[surfaces.size()];             // cut-ids for all models
   std::set<int> graphCutLabels;                      // all graph cut labels
-  for(int i = 0; i < surfaces.size(); i++) {
+  for(unsigned int i = 0; i < surfaces.size(); i++) {
     
     cut_labels[i] = -1;
     
@@ -263,19 +263,19 @@ void GraphCut::process()
   std::set<int>::iterator it;
   for(it = graphCutLabels.begin(); it != graphCutLabels.end(); it++) {
     std::vector<int> cluster;
-    for(int i = 0; i< surfaces.size(); i++)
+    for(unsigned int i = 0; i< surfaces.size(); i++)
       if((*it == cut_labels[i]) && (cut_labels[i] >= 0))
         cluster.push_back(i);
     graphCutGroups.push_back(cluster);
   }
   
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
     surfaces.at(i)->label = -1;
   }
   
-  for(int i = 0; i < graphCutGroups.size(); i++)
-    for(int j = 0; j < graphCutGroups[i].size(); j++)
+  for(unsigned int i = 0; i < graphCutGroups.size(); i++)
+    for(unsigned int j = 0; j < graphCutGroups[i].size(); j++)
     {
       printf("[GraphCut::process] Surface %u is in groud %u:\n",graphCutGroups[i][j],i);
       surfaces[graphCutGroups[i][j]]->label = i;
@@ -283,15 +283,15 @@ void GraphCut::process()
   
   if(print) {
     printf("[GraphCut::process] Resulting groups:\n");
-    for(int i = 0; i < relations.size(); i++) {
+    for(unsigned int i = 0; i < relations.size(); i++) {
       if(relations[i].rel_probability[1] != 0.0)
         printf("  p(%u, %u) = %4.3f\n", relations[i].id_0, relations[i].id_1, relations[i].rel_probability[1]);
     }
     
     printf("[GraphCut::process] Resulting groups:\n");
-    for(int i = 0; i < graphCutGroups.size(); i++) {
+    for(unsigned int i = 0; i < graphCutGroups.size(); i++) {
       printf("  Group %u: ", i);
-      for(int j = 0; j < graphCutGroups[i].size(); j++)
+      for(unsigned int j = 0; j < graphCutGroups[i].size(); j++)
         printf("%u ", graphCutGroups[i][j]);
       printf("\n");
     }
@@ -335,7 +335,7 @@ void GraphCut::process2()
   std::sort(relations.begin(),relations.end(),smallerRelations);
   std::vector<bool> used_relations(relations.size(),false);
 
-  for(int i = 0; i < relations.size(); ++i)
+  for(unsigned int i = 0; i < relations.size(); ++i)
   {
 //     printf("%d--%d\n",relations.at(i).id_0,relations.at(i).id_1);
   }
@@ -343,7 +343,7 @@ void GraphCut::process2()
   std::vector<std::vector<int> > universe(surfaces.size());
   std::vector<float> threshold(surfaces.size());
 
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
     threshold.at(i) = THRESHOLD_CONSTANT;
     if(surfaces.at(i)->selected)
@@ -351,7 +351,7 @@ void GraphCut::process2()
   }
   
   // for each edge, in non-decreasing weight order...
-  for(int r_idx = 0; r_idx < relations.size(); r_idx++)
+  for(unsigned int r_idx = 0; r_idx < relations.size(); r_idx++)
   {
     if(used_relations.at(r_idx))
       continue;
@@ -370,12 +370,12 @@ void GraphCut::process2()
 
       //calculate the size of each universe
       int uni0_size = 0;
-      for(int i = 0; i < universe.at(id_0).size(); ++i)
+      for(unsigned int i = 0; i < universe.at(id_0).size(); ++i)
       {
         uni0_size += surfaces.at(universe.at(id_0).at(i))->indices.size();
       }
       int uni1_size = 0;
-      for(int i = 0; i < universe.at(id_1).size(); ++i)
+      for(unsigned int i = 0; i < universe.at(id_1).size(); ++i)
       {
         uni1_size += surfaces.at(universe.at(id_1).at(i))->indices.size();
       }
@@ -392,7 +392,7 @@ void GraphCut::process2()
 //         printf("Universe 1 will be added to universe 0\n");
 
         //id_1 --> id_0
-        for(int i = 0; i < universe.at(id_1).size(); ++i)
+        for(unsigned int i = 0; i < universe.at(id_1).size(); ++i)
         {
           universe.at(id_0).push_back(universe.at(id_1).at(i));
 //           printf("adding surface %d\n",universe.at(id_1).at(i));
@@ -401,7 +401,7 @@ void GraphCut::process2()
         threshold.at(id_0) = relations.at(r_idx).rel_probability[0] + THRESHOLD(universe.at(id_0).size(), THRESHOLD_CONSTANT);
         used_relations.at(r_idx) = true;
 
-        for(int i = 0; i < relations.size(); ++i)
+        for(unsigned int i = 0; i < relations.size(); ++i)
         {
           if(used_relations.at(i))
             continue;
@@ -411,7 +411,7 @@ void GraphCut::process2()
           if( (relations.at(i).id_0 == id_0) && (relations.at(i).id_1 != id_1) )
           {
             int new_id = relations.at(i).id_1;
-            for(int j = 0; j < relations.size(); ++j)
+            for(unsigned int j = 0; j < relations.size(); ++j)
             {
               if(used_relations.at(j))
                 continue;
@@ -431,7 +431,7 @@ void GraphCut::process2()
           else if( (relations.at(i).id_1 == id_0) && (relations.at(i).id_0 != id_1) )
           {
             int new_id = relations.at(i).id_0;
-            for(int j = 0; j < relations.size(); ++j)
+            for(unsigned int j = 0; j < relations.size(); ++j)
             {
               if(used_relations.at(j))
                 continue;
@@ -450,7 +450,7 @@ void GraphCut::process2()
           }
         }
 
-        for(int i = 0; i < relations.size(); ++i)
+        for(unsigned int i = 0; i < relations.size(); ++i)
         {
           if(used_relations.at(i))
             continue;
@@ -476,7 +476,7 @@ void GraphCut::process2()
 //         printf("Universe 0 will be added to universe 1\n");
 
         //id_0 --> id_1
-        for(int i = 0; i < universe.at(id_0).size(); ++i)
+        for(unsigned int i = 0; i < universe.at(id_0).size(); ++i)
         {
           universe.at(id_1).push_back(universe.at(id_0).at(i));
 //           printf("adding surface %d\n",universe.at(id_0).at(i));
@@ -485,7 +485,7 @@ void GraphCut::process2()
         threshold.at(id_1) = relations.at(r_idx).rel_probability[0] + THRESHOLD(universe.at(id_1).size(), THRESHOLD_CONSTANT);
         used_relations.at(r_idx) = true;
 
-        for(int i = 0; i < relations.size(); ++i)
+        for(unsigned int i = 0; i < relations.size(); ++i)
         {
           if(used_relations.at(i))
             continue;
@@ -495,7 +495,7 @@ void GraphCut::process2()
           if( (relations.at(i).id_0 == id_1) && (relations.at(i).id_1 != id_0) )
           {
             int new_id = relations.at(i).id_1;
-            for(int j = 0; j < relations.size(); ++j)
+            for(unsigned int j = 0; j < relations.size(); ++j)
             {
               if(used_relations.at(j))
                 continue;
@@ -515,7 +515,7 @@ void GraphCut::process2()
           else if( (relations.at(i).id_1 == id_1) && (relations.at(i).id_0 != id_0) )
           {
             int new_id = relations.at(i).id_0;
-            for(int j = 0; j < relations.size(); ++j)
+            for(unsigned int j = 0; j < relations.size(); ++j)
             {
               if(used_relations.at(j))
                 continue;
@@ -534,7 +534,7 @@ void GraphCut::process2()
           }
         }
 
-        for(int i = 0; i < relations.size(); ++i)
+        for(unsigned int i = 0; i < relations.size(); ++i)
         {
           if(used_relations.at(i))
             continue;
@@ -563,7 +563,7 @@ void GraphCut::process2()
   
   std::vector<int> universe_number(universe.size(),-1);
   int current_uni_number = 0;
-  for(int i = 0; i < universe.size(); ++i)
+  for(unsigned int i = 0; i < universe.size(); ++i)
   {
     if(universe.at(i).size() > 0)
     {
@@ -574,16 +574,16 @@ void GraphCut::process2()
 
 //   printf("And here!\n");
   
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
     surfaces.at(i)->label = -1;
   }
 
 //   printf("And here too!\n");
   
-  for(int i = 0; i < universe.size(); ++i)
+  for(unsigned int i = 0; i < universe.size(); ++i)
   {
-    for(int j = 0; j < universe.at(i).size(); ++j)
+    for(unsigned int j = 0; j < universe.at(i).size(); ++j)
     {
       int idx = universe.at(i).at(j);
       surfaces.at(idx)->label = universe_number.at(i);

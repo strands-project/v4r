@@ -627,6 +627,14 @@ void tgCamera::LookAt(const vec3 &pov)
   pvu2fsu();
 }
 
+void tgCamera::LookAt(const vec3 &pos, const vec3 &pov, const vec3& up)
+{
+  this->pos = pos;
+  this->view = pov;
+  this->up = up;
+  pvu2fsu();
+}
+
 //****************************************************************************
 // Movement
 void tgCamera::ApplyTransform()

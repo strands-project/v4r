@@ -47,6 +47,12 @@ typedef union
   long long_value;
 } tgRGBValue;
 
+class tgEventListener
+{
+public:
+  virtual void EventFunction(TomGine::Event) {}
+};
+
 /** @brief Running TomGine rendering engine in an enclosed thread. No OpenGL commands are allowed outside of this thread. */
 class tgTomGineThread
 {
@@ -81,6 +87,7 @@ class tgTomGineThread
 public:
   DrawFlags df;
   ClearCommand m_clearcommand;
+  int m_clearindex;
 
 protected:
 
@@ -106,6 +113,8 @@ protected:
   bool m_waitForZBuffer;
 
   unsigned m_listenEventListSize;
+  bool m_eventCallback;
+  tgEventListener* m_eventListner;
 
   TomGine::tgEngine *m_engine;
   std::string m_windowname;
@@ -217,12 +226,14 @@ public:
   /** @brief Starts listening for events that can be queried using GetEventQueue(...)
    *  @param max_events maximum number of events queued while listening */
   void StartEventListener(unsigned max_events);
+  void RegisterEventListener(tgEventListener* listener);
   /** @brief Stops listening for events */
   void StopEventListener();
   /** @brief Get current event queue recorded by event listener */
-  void GetEventQueue(std::list<Event> &events);
+  void GetEventQueue(std::list<Event> &events, bool waiting=false);
 
   bool SelectModels(int x, int y, std::vector<int> &ids);
+  bool SelectModels(int x, int y, const std::vector<int> &ids, int &id, double &z_min);
   bool SelectModel(int x, int y, int &id);
 
   /** @brief Returns the current camera */
@@ -258,6 +269,7 @@ public:
   bool GetImage(cv::Mat &_img);
   /** @brief Set speed of camera movement using the mouse (default 1.0,1.0,1.0). */
   void SetInputSpeeds(float rotation = 1.0f, float translation = 1.0f, float zoom = 1.0f);
+  void GetInputSpeeds(float &rotation, float &translation, float &zoom);
   /** @brief Set the length of normals */
   void SetNormalLength (float n);
   /** @brief Set the frame rate of the render engine
@@ -362,6 +374,7 @@ public:
   void SetModel2D(int id, const TomGine::tgTextureModel &model);
   void SetModel3D(int id, const TomGine::tgTextureModel &model);
   void SetModelPose(int id, const TomGine::tgPose &pose);
+  void SetModelColor(int id, uchar r, uchar g, uchar b);
   /** @brief  Sets the model pointer added with AddModel() to the model pointer specified.
    *  @param	id The id of the model returned by AddModel().
    *  @param  model The new model pointer. */
@@ -374,6 +387,9 @@ public:
    *  @param	id		The id of the point cloud.
    *  @param	pcl		The new point cloud.	 */
   void SetPointCloud(int id, cv::Mat_<cv::Vec4f> cloud);
+
+
+  void RemoveAllModel3DFrom(int id);
 
   /** @brief	Trigger rendering thread to update data and draw it to screen. */
   void Update();
@@ -410,6 +426,8 @@ public:
   virtual void ClearModels();
   virtual void ClearModels2D();
   virtual void ClearModels3D();
+  virtual void ClearModels3DFrom(int id);
+  virtual void ClearModelPointers();
 
   void DragDropModels(float speed);
 

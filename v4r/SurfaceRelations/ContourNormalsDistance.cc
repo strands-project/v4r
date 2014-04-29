@@ -65,7 +65,7 @@ bool ContourNormalsDistance::computeOctree(surface::SurfaceModel::Ptr &in1, surf
 //   std::cerr << "1" << std::endl;
   
   int contIdx1 = 0;
-  for(int i = 0; i < in1->contours.size(); ++i)
+  for(unsigned int i = 0; i < in1->contours.size(); ++i)
   {
     if(in1->contours.at(i).size() > in1->contours.at(contIdx1).size())
       contIdx1 = i;
@@ -74,7 +74,7 @@ bool ContourNormalsDistance::computeOctree(surface::SurfaceModel::Ptr &in1, surf
 //   std::cerr << "2" << std::endl;
   
   int contIdx2 = 0;
-  for(int i = 0; i < in2->contours.size(); ++i)
+  for(unsigned int i = 0; i < in2->contours.size(); ++i)
   {
     if(in2->contours.at(i).size() > in2->contours.at(contIdx2).size())
       contIdx2 = i;
@@ -126,7 +126,7 @@ bool ContourNormalsDistance::computeOctree(surface::SurfaceModel::Ptr &in1, surf
   int surf1NP = -1; 
   int surf2NP = -1;
   minDist = 10.0f;
-  for(int i = 0; i < surf2->contours.at(contIdx2).size(); i++)
+  for(unsigned int i = 0; i < surf2->contours.at(contIdx2).size(); i++)
   {
     pcl::PointXYZRGB searchPoint = cloud->points.at(surf2->contours.at(contIdx2).at(i));
     
@@ -414,7 +414,7 @@ float ContourNormalsDistance::calculateOclusion(surface::SurfaceModel::Ptr &in1,
   if(x_2D.size() == 0)
     return 0.0;
   
-  for(int m = 1; m < x_2D.size()-1; m++)
+  for(unsigned int m = 1; m < x_2D.size()-1; m++)
   {
     int index = getIdx(x_2D.at(m), y_2D.at(m));
     Eigen::Vector3f p3D_org = cloud->points.at(index).getVector3fMap();
