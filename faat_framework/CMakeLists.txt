@@ -109,7 +109,8 @@ set(CONF_INCLUDE_DIRS   ${PROJECT_SOURCE_DIR}/3d_rec_framework/include
                         ${PROJECT_SOURCE_DIR}/recognition/include
                         ${PROJECT_SOURCE_DIR}/registration/include
                         ${PROJECT_SOURCE_DIR}/utils/
-                        ${PROJECT_SOURCE_DIR}/utils/include)
+                        ${PROJECT_SOURCE_DIR}/utils/include
+                        ${PROJECT_SOURCE_DIR}/object_modelling/include)
 
 set(CONF_LIBRARY_DIRS   ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_utils.so
                         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_registration.so
@@ -151,5 +152,10 @@ message(STATUS "faat include dirs:" ${CONF_INCLUDE_DIRS})
 set(FAAT_PCL_LIBRARIES ${CONF_LIBRARY_DIRS} PARENT_SCOPE)
 set(FAAT_PCL_INCLUDE_DIRS ${CONF_INCLUDE_DIRS} PARENT_SCOPE)
 
+set(FAAT_PCL_LIBRARIES ${CONF_LIBRARY_DIRS})
+set(FAAT_PCL_INCLUDE_DIRS ${CONF_INCLUDE_DIRS})
+
 message(STATUS "faat libraries:" ${FAAT_PCL_LIBRARIES})
 message(STATUS "faat include dirs:" ${FAAT_PCL_INCLUDE_DIRS})
+
+add_subdirectory(object_modeller)
