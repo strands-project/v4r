@@ -1,4 +1,5 @@
-set(APPS_GRAB_PCD_QT 0 CACHE BOOL "Qt GUI grabing PCD files from Kinect-like sensors" )
+set(APPS_GRAB_PCD_QT 1 CACHE BOOL "Qt GUI grabing PCD files from Kinect-like sensors")
+
 if(APPS_GRAB_PCD_QT)
 
 project(grabPCDQt)
