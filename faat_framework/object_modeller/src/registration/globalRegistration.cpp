@@ -21,7 +21,7 @@ void GlobalRegistration::applyConfig(Config &config)
 
 }
 
-GlobalRegistration::GlobalRegistration()
+GlobalRegistration::GlobalRegistration(std::string config_name) : InOutModule(config_name)
 {
     views_overlap_ = 0.3f;
     fast_overlap = false;

@@ -23,6 +23,9 @@ private:
     std::vector<cv::Size> boardSizes;
 
 public:
+    CheckerboardRegistration(std::string config_name="checkerboardRegistration") : InOutModule(config_name)
+    {}
+
     virtual void applyConfig(Config &config);
 
     std::vector<Eigen::Matrix4f> process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> input);

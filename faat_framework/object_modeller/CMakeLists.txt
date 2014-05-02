@@ -33,6 +33,7 @@ set(lib_incs
     include/output/indicesWriter.h
     include/output/posesWriter.h
     include/output/renderer.h
+    include/output/pointCloudRenderer.h
     include/registration/cameraTracker.h
     include/registration/checkerboard.h
     include/registration/globalRegistration.h
@@ -62,6 +63,7 @@ set(lib_srcs
     src/output/pointCloudWriter.cpp
     src/output/indicesWriter.cpp
     src/output/posesWriter.cpp
+    src/output/pointCloudRenderer.cpp
     src/registration/cameraTracker.cpp
     src/registration/checkerboard.cpp
     src/registration/globalRegistration.cpp
@@ -80,7 +82,7 @@ set(lib_srcs
 )
 
 add_library(${LIB_NAME} SHARED ${lib_srcs} ${lib_incs})
-target_link_libraries(${LIB_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} ${FAAT_PCL_LIBRARIES} ${LIB_NAME} v4rKeypointCameraTrackerPCL v4rKeypointBase v4rKeypointCameraTracker v4rTomGine v4rTomGinePCL boost_system boost_filesystem boost_regex opencv_core opencv_highgui opencv_imgproc opencv_calib3d opencv_features2d opencv_nonfree opencv_video)
+target_link_libraries(${LIB_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} ${FAAT_PCL_LIBRARIES} ${LIB_NAME} v4rKeypointCameraTrackerPCL v4rKeypointBase v4rKeypointCameraTracker v4rTomGine v4rTomGinePCL boost_system boost_filesystem boost_regex opencv_core opencv_highgui opencv_imgproc opencv_calib3d opencv_features2d opencv_video)
 
 add_executable(${PROJECT_NAME} test/object_modeller_cmd.cpp)
-target_link_libraries(${PROJECT_NAME} ${LIB_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} ${FAAT_PCL_LIBRARIES} v4rKeypointCameraTrackerPCL v4rKeypointBase v4rKeypointCameraTracker v4rTomGine v4rTomGinePCL boost_system boost_filesystem boost_regex opencv_core opencv_highgui opencv_imgproc opencv_calib3d opencv_features2d opencv_nonfree opencv_video)
+target_link_libraries(${PROJECT_NAME} ${LIB_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} ${FAAT_PCL_LIBRARIES} v4rKeypointCameraTrackerPCL v4rKeypointBase v4rKeypointCameraTracker v4rTomGine v4rTomGinePCL boost_system boost_filesystem boost_regex opencv_core opencv_highgui opencv_imgproc opencv_calib3d opencv_features2d opencv_video)

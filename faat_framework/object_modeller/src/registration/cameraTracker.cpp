@@ -13,7 +13,7 @@ namespace registration
 
 void CameraTracker::applyConfig(Config &config)
 {
-    this->keyframesOnly = config.getBool("cameraTracker.keyframesOnly");
+    this->keyframesOnly = config.getBool(getConfigName(), "keyframesOnly");
 
 
     float rt_inl_dist = 0.005;    // rigid transformation RANSAC inlier dist[m]

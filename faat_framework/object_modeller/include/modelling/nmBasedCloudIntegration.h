@@ -13,7 +13,7 @@ namespace modelling
 {
 
 class NmBasedCloudIntegration :
-        public InOutModule<std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>,
+        public InOutModule<std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr>,
                            boost::tuples::tuple<
                                 std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>,
                                 std::vector<Eigen::Matrix4f>,
@@ -32,14 +32,14 @@ private:
     float w_t;
 
 public:
-    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> process(boost::tuples::tuple<
+    std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> process(boost::tuples::tuple<
                  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>,
                  std::vector<Eigen::Matrix4f>,
                  std::vector<std::vector<int> >,
                 std::vector<pcl::PointCloud<pcl::Normal>::Ptr>,
                 std::vector<std::vector<float> > > input);
 
-    NmBasedCloudIntegration();
+    NmBasedCloudIntegration(std::string config_name="nmBasedCloudIntegration");
 
     virtual void applyConfig(Config &config);
 

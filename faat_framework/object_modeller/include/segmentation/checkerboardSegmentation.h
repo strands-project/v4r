@@ -23,7 +23,8 @@ private:
     std::vector<cv::Size> boardSizes;
 
 public:
-    CheckerboardSegmentation(std::vector<cv::Size> boardSizes);
+    CheckerboardSegmentation(std::vector<cv::Size> boardSizes, std::string config_name="checkerboardSegmentation");
+
     std::vector<std::vector<int> > process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> input);
 
     std::string getName()

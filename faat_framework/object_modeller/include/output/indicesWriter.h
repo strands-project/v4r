@@ -17,8 +17,12 @@ class IndicesWriter : public OutModule<std::vector<std::vector<int> > >
 {
 private:
     std::string outputPath;
+    std::string pattern;
 
 public:
+    IndicesWriter(std::string config_name="indicesWriter") : OutModule(config_name)
+    {}
+
     virtual void applyConfig(Config &config);
 
     void process(std::vector<std::vector<int> > indices);

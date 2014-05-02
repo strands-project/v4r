@@ -16,9 +16,17 @@ namespace object_modeller
 namespace output
 {
 
-class Renderer : public OutModule<boost::tuples::tuple<std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>, std::string, bool> >
+class Renderer
 {
 public:
+
+    virtual void applyConfig(Config &config, std::string base_path) = 0;
+
+    virtual std::string getName() = 0;
+
+    virtual void renderPointClouds(std::vector<typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr> point_clouds, std::string name, bool step) = 0;
+    virtual void renderPointClouds(std::vector<typename pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> point_clouds, std::string name, bool step) = 0;
+
     virtual void renderMesh(pcl::PolygonMesh::Ptr, std::string, bool) = 0;
 };
 

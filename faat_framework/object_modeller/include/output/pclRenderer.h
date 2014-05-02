@@ -24,8 +24,21 @@ private:
 public:
     PclRenderer();
 
-    virtual void applyConfig(Config &config);
-    void process(boost::tuples::tuple<std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>, std::string, bool> input);
+    virtual void applyConfig(Config &config, std::string base_path);
+
+    template<class TPointType>
+    void renderPointCloudsImpl(std::vector<typename pcl::PointCloud<TPointType>::Ptr> point_clouds, std::string name, bool step);
+
+    virtual void renderPointClouds(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> point_clouds, std::string name, bool step)
+    {
+        renderPointCloudsImpl<pcl::PointXYZRGB>(point_clouds, name, step);
+    }
+
+    virtual void renderPointClouds(std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> point_clouds, std::string name, bool step)
+    {
+        renderPointCloudsImpl<pcl::PointXYZRGBNormal>(point_clouds, name, step);
+    }
+
     virtual void renderMesh(pcl::PolygonMesh::Ptr, std::string, bool);
 
     std::string getName()

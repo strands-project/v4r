@@ -20,6 +20,9 @@ class IntegralImageNormalEstimation :
                            std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> >
 {
 public:
+    IntegralImageNormalEstimation(std::string config_name="integralImageNormalEstimation") : InOutModule(config_name)
+    {}
+
     virtual void applyConfig(Config &config);
 
     std::vector<pcl::PointCloud<pcl::Normal>::Ptr> process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> input);

@@ -3,10 +3,10 @@
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
 
-#include <pcl/surface/mls.h>
 #include <pcl/surface/poisson.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/common/angles.h>
 
 namespace object_modeller
 {
@@ -18,34 +18,34 @@ void PoissonReconstruction::applyConfig(Config &config)
 
 }
 
-PoissonReconstruction::PoissonReconstruction()
+PoissonReconstruction::PoissonReconstruction(std::string config_name) : InOutModule(config_name)
 {
 }
 
-pcl::PolygonMesh::Ptr PoissonReconstruction::process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> input)
+pcl::PolygonMesh::Ptr PoissonReconstruction::process(std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> input)
 {
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud = input[0];
+    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud = input[0];
 
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZRGB>());
-    pcl::PassThrough<pcl::PointXYZRGB> filter;
+    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+    pcl::PassThrough<pcl::PointXYZRGBNormal> filter;
     filter.setInputCloud(cloud);
     filter.filter(*filtered);
 
     // cout << "begin moving least squares" << endl;
-    pcl::MovingLeastSquares<pcl::PointXYZRGB, pcl::PointXYZRGB> mls;
+    pcl::MovingLeastSquares<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal> mls;
     mls.setInputCloud(filtered);
     mls.setSearchRadius(0.01);
     mls.setPolynomialFit(true);
     mls.setPolynomialOrder(2);
-    mls.setUpsamplingMethod(pcl::MovingLeastSquares<pcl::PointXYZRGB, pcl::PointXYZRGB>::SAMPLE_LOCAL_PLANE);
+    mls.setUpsamplingMethod(pcl::MovingLeastSquares<pcl::PointXYZRGBNormal, pcl::PointXYZRGBNormal>::SAMPLE_LOCAL_PLANE);
     mls.setUpsamplingRadius(0.005);
     mls.setUpsamplingStepSize(0.003);
 
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_smoothed (new pcl::PointCloud<pcl::PointXYZRGB>());
+    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_smoothed (new pcl::PointCloud<pcl::PointXYZRGBNormal>());
     mls.process(*cloud_smoothed);
     // cout << "MLS complete" << endl;
 
-    pcl::NormalEstimationOMP<pcl::PointXYZRGB, pcl::Normal> ne;
+    pcl::NormalEstimationOMP<pcl::PointXYZRGBNormal, pcl::Normal> ne;
     ne.setNumberOfThreads(8);
     ne.setInputCloud(cloud_smoothed);
     ne.setRadiusSearch(0.01);

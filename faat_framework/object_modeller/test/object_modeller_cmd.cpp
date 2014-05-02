@@ -22,6 +22,7 @@
 #include "output/posesWriter.h"
 #include "output/meshRenderer.h"
 #include "output/renderer.h"
+#include "output/pointCloudRenderer.h"
 
 #include "util/transform.h"
 #include "util/mask.h"
@@ -48,7 +49,9 @@ int main(int argc, char *argv[] )
 {
     Config config = parseCommandLineArgs(argc, argv);
 
-    bool step = config.getBool("pipeline.step");
+    bool step = config.getBool("pipeline", "step");
+
+    std::cout << "pipeline step: " << step << std::endl;
 
     // input reader
     reader::FileReader reader;
@@ -62,7 +65,7 @@ int main(int argc, char *argv[] )
     util::MultiplyMatrix multiply;
 
     util::NormalEstimationOmp normal_estimation;
-    util::IntegralImageNormalEstimation normal_estimation_fast;
+    //util::IntegralImageNormalEstimation normal_estimation_fast;
     util::NguyenNoiseWeights weights_calculation;
 
     // registration
@@ -79,21 +82,24 @@ int main(int argc, char *argv[] )
     modelling::PoissonReconstruction poisson_reconstruction;
 
     //renderer
-    boost::shared_ptr<output::Renderer> renderer;
+    boost::shared_ptr<output::Renderer> base_renderer;
 
     //output
-    output::PointCloudWriter pointcloud_writer;
+    output::PointCloudWriter<pcl::PointXYZRGB> pointcloud_writer;
     output::IndicesWriter indices_writer;
     output::PosesWriter poses_writer;
+    output::PointCloudWriter<pcl::PointXYZRGBNormal> model_writer("modelWriter");
 
-    if (config.getInt("pipeline.renderer") == 0)
+    if (config.getInt("pipeline", "renderer") == 0)
     {
-        renderer.reset( new output::PclRenderer());
+        base_renderer.reset( new output::PclRenderer());
     } else {
-        renderer.reset( new output::TomGineRenderer());
+        base_renderer.reset( new output::TomGineRenderer());
     }
 
-    output::MeshRenderer mesh_renderer(renderer);
+    output::MeshRenderer mesh_renderer(base_renderer);
+    output::PointCloudRenderer<pcl::PointXYZRGB> renderer_xyz(base_renderer);
+    output::PointCloudRenderer<pcl::PointXYZRGBNormal> renderer_xyzn(base_renderer);
 
 
     // setup pipeline
@@ -108,7 +114,7 @@ int main(int argc, char *argv[] )
     registration::CameraTracker::ResultType *poses;
 
     // calculate poses
-    if (config.getInt("pipeline.registrationType") == 0)
+    if (config.getInt("pipeline", "registrationType") == 0)
     {
         // checkerboard
         poses = pipeline.addInOut(&checkerboard, pointclouds_filtered);
@@ -121,20 +127,20 @@ int main(int argc, char *argv[] )
 
     // apply poses and render result
     util::Transform::ResultType *pointclouds_transformed = pipeline.addInOut(&transform, pointclouds_filtered, poses);
-    pipeline.addOut(renderer.get(), pointclouds_transformed, new Result<std::string>("Registration Output"), new Result<bool>(step));
+    pipeline.addOut(&renderer_xyz, pointclouds_transformed, new Result<std::string>("Registration Output"), new Result<bool>(step));
 
     // segmentation
     segmentation::DominantPlaneExtraction::ResultType *indices = pipeline.addInOut(&dominant_plane_extraction, pointclouds_filtered);
 
     // filter indices and render result
     util::Mask<pcl::PointXYZRGB>::ResultType *pointclouds_segmented = pipeline.addInOut(&mask, pointclouds_transformed, indices);
-    pipeline.addOut(renderer.get(), pointclouds_segmented, new Result<std::string>("Segmentation output"), new Result<bool>(step));
+    pipeline.addOut(&renderer_xyz, pointclouds_segmented, new Result<std::string>("Segmentation output"), new Result<bool>(step));
 
     //global registration
-    if (config.getBool("pipeline.enableMultiview"))
+    if (config.getBool("pipeline", "enableMultiview"))
     {
         // estimate normals and weights
-        util::NormalEstimationOmp::ResultType *normals = pipeline.addInOut(&normal_estimation_fast, pointclouds_transformed);
+        util::NormalEstimationOmp::ResultType *normals = pipeline.addInOut(&normal_estimation, pointclouds_transformed);
         util::NguyenNoiseWeights::ResultType *weights = pipeline.addInOut(&weights_calculation, pointclouds_transformed, normals);
 
         normals = pipeline.addInOut(&mask_normals, normals, indices);
@@ -145,7 +151,7 @@ int main(int argc, char *argv[] )
         poses = pipeline.addInOut(&multiply, global_reg_poses, poses);
         pointclouds_segmented = pipeline.addInOut(&mask, pointclouds_filtered, indices);
         pointclouds_transformed = pipeline.addInOut(&transform, pointclouds_segmented, poses);
-        pipeline.addOut(renderer.get(), pointclouds_transformed, new Result<std::string>("Global registration output"), new Result<bool>(step));
+        pipeline.addOut(&renderer_xyz, pointclouds_transformed, new Result<std::string>("Global registration output"), new Result<bool>(step));
     }
 
     // estimate normals and weights
@@ -154,16 +160,17 @@ int main(int argc, char *argv[] )
 
     // nm based cloud integration
     modelling::NmBasedCloudIntegration::ResultType *model = pipeline.addInOut(&nm_based_cloud_integration, pointclouds_filtered, poses, indices, normals, weights);
-    pipeline.addOut(renderer.get(), model, new Result<std::string>("NM based cloud integration output"), new Result<bool>(step));
+    pipeline.addOut(&renderer_xyzn, model, new Result<std::string>("NM based cloud integration output"), new Result<bool>(step));
 
     // poisson reconstruction
-    modelling::PoissonReconstruction::ResultType *mesh = pipeline.addInOut(&poisson_reconstruction, model);
-    pipeline.addOut(&mesh_renderer, mesh, new Result<std::string>("Poisson reconstruction output"), new Result<bool>(step));
+    //modelling::PoissonReconstruction::ResultType *mesh = pipeline.addInOut(&poisson_reconstruction, model);
+    //pipeline.addOut(&mesh_renderer, mesh, new Result<std::string>("Poisson reconstruction output"), new Result<bool>(step));
 
     // output
     pipeline.addOut(&poses_writer, poses);
     pipeline.addOut(&indices_writer, indices);
-    pipeline.addOut(&pointcloud_writer, model);
+    pipeline.addOut(&pointcloud_writer, pointclouds_input);
+    pipeline.addOut(&model_writer, model);
 
     pipeline.process();
 

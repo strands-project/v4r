@@ -23,6 +23,9 @@ private:
     float maxDist;
 
 public:
+    DistanceFilter(std::string config_name="distanceFilter") : InOutModule(config_name)
+    {}
+
     virtual void applyConfig(Config &config);
 
     std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> input);

@@ -23,9 +23,10 @@ private:
     boost::shared_ptr<Renderer> baseRenderer;
 
 public:
+    MeshRenderer(boost::shared_ptr<Renderer> baseRenderer, std::string config_name="renderer");
 
     virtual void applyConfig(Config &config);
-    MeshRenderer(boost::shared_ptr<Renderer> baseRenderer);
+
     void process(boost::tuples::tuple<pcl::PolygonMesh::Ptr, std::string, bool> input);
 
     std::string getName()

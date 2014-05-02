@@ -18,7 +18,7 @@ namespace registration
 
 void CheckerboardRegistration::applyConfig(Config &config)
 {
-    this->boardSizes = config.getCvSizeList("checkerboardRegistration.boardSizes");
+    this->boardSizes = config.getCvSizeList(getConfigName(), "boardSizes");
 }
 
 std::vector<Eigen::Matrix4f> CheckerboardRegistration::process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> inputClouds)

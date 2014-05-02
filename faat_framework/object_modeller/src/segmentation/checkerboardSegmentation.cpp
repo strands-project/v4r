@@ -13,7 +13,7 @@ namespace object_modeller
 namespace segmentation
 {
 
-CheckerboardSegmentation::CheckerboardSegmentation(std::vector<cv::Size> boardSizes)
+CheckerboardSegmentation::CheckerboardSegmentation(std::vector<cv::Size> boardSizes, std::string config_name) : InOutModule(config_name)
 {
     this->boardSizes = boardSizes;
 }

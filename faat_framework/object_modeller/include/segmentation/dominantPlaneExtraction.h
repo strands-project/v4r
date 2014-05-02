@@ -22,7 +22,8 @@ private:
     float plane_threshold;
 
 public:
-    DominantPlaneExtraction();
+    DominantPlaneExtraction(std::string config_name="dominantPlaneExtraction");
+
     std::vector<std::vector<int> > process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> input);
 
     virtual void applyConfig(Config &config);

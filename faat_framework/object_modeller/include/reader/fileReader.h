@@ -20,6 +20,8 @@ private:
     int step;
 
 public:
+    FileReader(std::string config_name="reader") : InModule(config_name)
+    {}
 
     virtual std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> process();
 

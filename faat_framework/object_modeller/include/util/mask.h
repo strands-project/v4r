@@ -22,6 +22,12 @@ class Mask :
 private:
 
 public:
+    Mask(std::string config_name="mask") : InOutModule<std::vector<typename pcl::PointCloud<TPointType>::Ptr>,
+                                                        boost::tuples::tuple<
+                                                             std::vector<typename pcl::PointCloud<TPointType>::Ptr>,
+                                                             std::vector<std::vector<int> > > > (config_name)
+    {}
+
     std::vector<typename pcl::PointCloud<TPointType>::Ptr> process(boost::tuples::tuple<
                  std::vector<typename pcl::PointCloud<TPointType>::Ptr>,
                  std::vector<std::vector<int> > > input);

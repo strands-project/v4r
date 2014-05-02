@@ -35,11 +35,12 @@ private:
     bool depth_edges;
 
 public:
+    GlobalRegistration(std::string config_name="globalRegistration");
+
     std::vector<Eigen::Matrix4f> process(boost::tuples::tuple<
                                          std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>,
                                          std::vector<pcl::PointCloud<pcl::Normal>::Ptr>,
                                          std::vector<std::vector<float> > > pointClouds);
-    GlobalRegistration();
     virtual void applyConfig(Config &config);
 
     std::string getName()

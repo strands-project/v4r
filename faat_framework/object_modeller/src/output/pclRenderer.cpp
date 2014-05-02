@@ -17,7 +17,7 @@ void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event, void
     }
 }
 
-void PclRenderer::applyConfig(Config &config)
+void PclRenderer::applyConfig(Config &config, std::string base_path)
 {
 
 }
@@ -28,22 +28,19 @@ PclRenderer::PclRenderer()
     vis->registerKeyboardCallback (keyboardEventOccurred, (void*) &vis);
 }
 
-void PclRenderer::process(boost::tuples::tuple<std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>, std::string, bool> input)
+template<class TPointType>
+void PclRenderer::renderPointCloudsImpl(std::vector<typename pcl::PointCloud<TPointType>::Ptr> point_clouds, std::string text, bool step)
 {
-    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pointClouds = input.get<0>();
-    std::string text = input.get<1>();
-    bool step = input.get<2>();
-
     int v;
     vis->createViewPort(0,0,1,1,v);
     vis->removeAllPointClouds();
 
-    for (int i=0;i<pointClouds.size();i++)
+    for (int i=0;i<point_clouds.size();i++)
     {
-        pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler_rgb (pointClouds[i]);
+        pcl::visualization::PointCloudColorHandlerRGBField<TPointType> handler_rgb (point_clouds[i]);
         std::stringstream name;
         name << text << i;
-        vis->addPointCloud<pcl::PointXYZRGB> (pointClouds[i], handler_rgb, name.str(), v);
+        vis->addPointCloud<TPointType> (point_clouds[i], handler_rgb, name.str(), v);
     }
 
     if (step)

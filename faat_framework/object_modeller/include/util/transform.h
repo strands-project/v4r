@@ -22,6 +22,9 @@ class Transform :
 {
 
 public:
+    Transform(std::string config_name="transform") : InOutModule(config_name)
+    {}
+
     std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> process(boost::tuples::tuple<
                  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>,
                  std::vector<Eigen::Matrix4f> > input);

@@ -12,9 +12,9 @@ namespace reader
 
 void FileReader::applyConfig(Config &config)
 {
-    this->pattern   = config.getString("reader.pattern",   ".*cloud_.*.pcd");
-    this->inputPath = config.getString("reader.inputPath", "./");
-    this->step      = config.getInt   ("reader.step",      1);
+    this->pattern   = config.getString(getConfigName(), "pattern",   ".*cloud_.*.pcd");
+    this->inputPath = config.getString(getConfigName(), "inputPath", "./");
+    this->step      = config.getInt   (getConfigName(), "step",      1);
 }
 
 std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> FileReader::process()

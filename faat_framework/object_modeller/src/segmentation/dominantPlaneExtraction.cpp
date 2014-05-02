@@ -20,7 +20,7 @@ void DominantPlaneExtraction::applyConfig(Config &config)
 
 }
 
-DominantPlaneExtraction::DominantPlaneExtraction()
+DominantPlaneExtraction::DominantPlaneExtraction(std::string config_name) : InOutModule(config_name)
 {
     num_plane_inliers = 500;
     seg_type = 1;

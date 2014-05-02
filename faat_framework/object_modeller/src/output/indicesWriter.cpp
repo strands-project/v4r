@@ -26,7 +26,8 @@ namespace output
 
 void IndicesWriter::applyConfig(Config &config)
 {
-    this->outputPath = config.getString("indicesWriter.outputPath", "./out/");
+    this->outputPath = config.getString(getConfigName(), "outputPath", "./out");
+    this->pattern = config.getString(getConfigName(), "pattern", "object_indices_*.pcd");
 }
 
 void IndicesWriter::process(std::vector<std::vector<int> > indices)
@@ -37,11 +38,29 @@ void IndicesWriter::process(std::vector<std::vector<int> > indices)
     for(size_t k=0; k < indices.size(); k++)
     {
         std::vector<int> obj_indices_original = indices[k]; //registration_utils::maskToIndices(indices[k]);
-        std::stringstream temp;
-        temp << outputPath << "/object_indices_";
-        temp << setw( 8 ) << setfill( '0' ) << static_cast<int>(k) << ".pcd";
+
+        std::stringstream filename;
+        filename << outputPath << "/";
+
+        int wildcardIndex = pattern.find_first_of("*");
+
+        if (wildcardIndex != -1)
+        {
+            filename << pattern.substr(0, wildcardIndex);
+            filename << setw( 8 ) << setfill( '0' ) << static_cast<int>(k);
+            filename << pattern.substr(wildcardIndex + 1);
+        }
+        else
+        {
+            int wildcardIndex = pattern.find_last_of(".");
+
+            filename << pattern.substr(0, wildcardIndex);
+            filename << setw( 8 ) << setfill( '0' ) << static_cast<int>(k);
+            filename << pattern.substr(wildcardIndex);
+        }
+
         std::string scene_name;
-        temp >> scene_name;
+        filename >> scene_name;
         std::cout << scene_name << std::endl;
         pcl::PointCloud<IndexPoint> obj_indices_cloud;
         obj_indices_cloud.width = obj_indices_original.size();

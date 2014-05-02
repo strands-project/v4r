@@ -65,54 +65,71 @@ void Config::overrideParameter(std::string key, std::string value)
     parameters[key] = value;
 }
 
-std::string Config::getString(std::string key, std::string defaultValue)
+std::string Config::buildKey(std::string base_path, std::string key)
 {
-    if (parameters.count(key))
+    std::stringstream config_key;
+    config_key << base_path << "." << key;
+    return config_key.str();
+}
+
+std::string Config::getString(std::string base_path, std::string key, std::string defaultValue)
+{
+    std::string config_key = buildKey(base_path, key);
+
+    if (parameters.count(config_key))
     {
-        return parameters[key];
+        return parameters[config_key];
     }
 
     return defaultValue;
 }
 
-int Config::getInt(std::string key, int defaultValue)
+int Config::getInt(std::string base_path, std::string key, int defaultValue)
 {
-    if (parameters.count(key))
+    std::string config_key = buildKey(base_path, key);
+
+    if (parameters.count(config_key))
     {
-        return atoi(parameters[key].c_str());
+        return atoi(parameters[config_key].c_str());
     }
 
     return defaultValue;
 }
 
-float Config::getFloat(std::string key, float defaultValue)
+float Config::getFloat(std::string base_path, std::string key, float defaultValue)
 {
-    if (parameters.count(key))
+    std::string config_key = buildKey(base_path, key);
+
+    if (parameters.count(config_key))
     {
-        return atof(parameters[key].c_str());
+        return atof(parameters[config_key].c_str());
     }
 
     return defaultValue;
 }
 
-bool Config::getBool(std::string key, bool defaultValue)
+bool Config::getBool(std::string base_path, std::string key, bool defaultValue)
 {
-    if (parameters.count(key))
+    std::string config_key = buildKey(base_path, key);
+
+    if (parameters.count(config_key))
     {
-        return parameters[key] == "true";
+        return parameters[config_key] == "true";
     }
 
     return defaultValue;
 }
 
-std::vector<cv::Size> Config::getCvSizeList(std::string key)
+std::vector<cv::Size> Config::getCvSizeList(std::string base_path, std::string key2)
 {
+    std::string config_key = buildKey(base_path, key2);
+
     std::vector<cv::Size> result;
 
-    if (parameters.count(key))
+    if (parameters.count(config_key))
     {
         std::vector<std::string> sizes;
-        boost::algorithm::split(sizes, parameters[key], boost::algorithm::is_any_of(";"));
+        boost::algorithm::split(sizes, parameters[config_key], boost::algorithm::is_any_of(";"));
 
         for (unsigned int i=0;i<sizes.size();i++)
         {

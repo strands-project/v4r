@@ -10,7 +10,7 @@ namespace util
 
 void DistanceFilter::applyConfig(Config &config)
 {
-    this->maxDist = config.getFloat("distanceFilter.zDist", 2.0f);
+    this->maxDist = config.getFloat(getConfigName(), "zDist", 2.0f);
 }
 
 std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> DistanceFilter::process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pointClouds)

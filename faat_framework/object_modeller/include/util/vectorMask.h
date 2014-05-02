@@ -22,6 +22,12 @@ class VectorMask :
 private:
 
 public:
+    VectorMask(std::string config_name="vectorMask") : InOutModule<std::vector<std::vector<TType> >,
+                                                                    boost::tuples::tuple<
+                                                                         std::vector<std::vector<TType> >,
+                                                                         std::vector<std::vector<int> > > >(config_name)
+    {}
+
     std::vector<std::vector<TType> > process(boost::tuples::tuple<
                  std::vector<std::vector<TType> >,
                  std::vector<std::vector<int> > > input);

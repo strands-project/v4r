@@ -13,7 +13,7 @@ void MeshRenderer::applyConfig(Config &config)
 
 }
 
-MeshRenderer::MeshRenderer(boost::shared_ptr<Renderer> baseRenderer)
+MeshRenderer::MeshRenderer(boost::shared_ptr<Renderer> baseRenderer, std::string config_name) : OutModule(config_name)
 {
     this->baseRenderer = baseRenderer;
 }

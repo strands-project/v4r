@@ -24,6 +24,8 @@ private:
     kp::CameraTrackerRGBDPCL::Ptr camtracker;
     bool keyframesOnly;
 public:
+    CameraTracker(std::string config_name="cameraTracker") : InOutModule(config_name)
+    {}
 
     virtual void applyConfig(Config &config);
 

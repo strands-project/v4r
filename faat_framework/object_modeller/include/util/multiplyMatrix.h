@@ -22,6 +22,9 @@ private:
     std::vector<Eigen::Matrix4f> param;
 
 public:
+    MultiplyMatrix(std::string config_name="multiplyMatrix") : InOutModule(config_name)
+    {}
+
     virtual void applyConfig(Config &config);
 
     std::vector<Eigen::Matrix4f> process(boost::tuples::tuple<std::vector<Eigen::Matrix4f>, std::vector<Eigen::Matrix4f> > input);

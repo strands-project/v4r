@@ -16,7 +16,7 @@ namespace modelling
 
 void NmBasedCloudIntegration::applyConfig(Config &config)
 {
-    resolution = config.getFloat("nmBasedCloudIntegration.resolution",  0.001f);
+    resolution = config.getFloat(getConfigName(), "resolution",  0.001f);
     min_points_per_voxel = 0;
     final_resolution = resolution;
     depth_edges = true;
@@ -26,11 +26,11 @@ void NmBasedCloudIntegration::applyConfig(Config &config)
     w_t = 0.75f;
 }
 
-NmBasedCloudIntegration::NmBasedCloudIntegration()
+NmBasedCloudIntegration::NmBasedCloudIntegration(std::string config_name) : InOutModule(config_name)
 {
 }
 
-std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> NmBasedCloudIntegration::process(boost::tuples::tuple<
+std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> NmBasedCloudIntegration::process(boost::tuples::tuple<
              std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>,
              std::vector<Eigen::Matrix4f>,
              std::vector<std::vector<int> >,
@@ -43,7 +43,7 @@ std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> NmBasedCloudIntegration::pro
     std::vector<pcl::PointCloud<pcl::Normal>::Ptr> normals = input.get<3>();
     std::vector<std::vector<float> > weights = input.get<4>();
 
-    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> result;
+    std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> result;
 
     /*
     std::vector<std::vector<float> > weights_;
@@ -93,6 +93,7 @@ std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> NmBasedCloudIntegration::pro
     */
 
     // do nm based cloud integration
+    pcl::PointCloud<pcl::Normal>::Ptr out_normals(new pcl::PointCloud<pcl::Normal>());
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree(new pcl::PointCloud<pcl::PointXYZRGB>());
     faat_pcl::utils::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
     nmIntegration.setInputClouds(pointClouds);
@@ -105,8 +106,12 @@ std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> NmBasedCloudIntegration::pro
     nmIntegration.setFinalResolution(final_resolution);
     nmIntegration.setIndices(indices);
     nmIntegration.compute(octree);
+    nmIntegration.getOutputNormals(out_normals);
 
-    result.push_back(octree);
+    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr merged(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+    pcl::concatenateFields(*out_normals, *octree, *merged);
+
+    result.push_back(merged);
 
     return result;
 }
