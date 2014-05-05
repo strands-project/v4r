@@ -5,7 +5,7 @@ PROJECT(object_modeller)
 set(LIB_NAME "object_modeller_lib")
 
 find_package(PCL REQUIRED)
-find_package(V4R REQUIRED)
+#find_package(V4R REQUIRED)
 #find_package(FAAT_PCL REQUIRED)
 find_package(OpenCV)
 
