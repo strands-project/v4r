@@ -12,7 +12,8 @@ namespace output
 template<class TPointType>
 void PointCloudWriter<TPointType>::applyConfig(Config &config)
 {
-    this->outputPath =  config.getString(Module::getConfigName(), "outputPath", "./out/");
+    this->outputPath = config.getString(Module::getConfigName(), "outputPath",
+                                        config.getString("writer", "outputPath", "./out"));
     this->pattern =     config.getString(Module::getConfigName(), "pattern", "cloud_*.pcd");
 }
 
@@ -20,7 +21,7 @@ template<class TPointType>
 void PointCloudWriter<TPointType>::process(std::vector<typename pcl::PointCloud<TPointType>::Ptr> pointClouds)
 {
     boost::filesystem::path dir(this->outputPath);
-    boost::filesystem::create_directory(dir);
+    boost::filesystem::create_directories(dir);
 
     for(size_t k=0; k < pointClouds.size(); k++)
     {

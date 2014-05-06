@@ -11,14 +11,15 @@ namespace output
 
 void PosesWriter::applyConfig(Config &config)
 {
-    this->outputPath = config.getString(getConfigName(), "outputPath", "./out");
+    this->outputPath = config.getString(getConfigName(), "outputPath",
+                                        config.getString("writer", "outputPath", "./out"));
     this->pattern = config.getString(getConfigName(), "pattern", "pose_*.txt");
 }
 
 void PosesWriter::process(std::vector<Eigen::Matrix4f> poses)
 {
     boost::filesystem::path dir(this->outputPath);
-    boost::filesystem::create_directory(dir);
+    boost::filesystem::create_directories(dir);
 
     for(size_t k=0; k < poses.size(); k++)
     {
