@@ -39,6 +39,10 @@ void
 faat_pcl::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
 {
   models_.clear();
+  bool refine_planes_ = false;
+  float max_point_plane_distance_ = 0.015f;
+  float dist_threshold_refined_ = max_point_plane_distance_;
+  float degrees_between_points_ = 5.f;
 
   if(input_->isOrganized() && !force_unorganized)
   {
@@ -60,9 +64,9 @@ faat_pcl::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
 
     pcl::OrganizedMultiPlaneSegmentation<PointT, pcl::Normal, pcl::Label> mps;
     mps.setMinInliers (min_plane_inliers_);
-    mps.setAngularThreshold (0.017453 * 2.f); // 2 degrees
-    mps.setDistanceThreshold (0.01); // 1cm
-    mps.setMaximumCurvature(0.002);
+    mps.setAngularThreshold (0.017453 * degrees_between_points_); // 2 degrees
+    mps.setDistanceThreshold (max_point_plane_distance_); // 1cm
+    mps.setMaximumCurvature(0.01);
     mps.setInputNormals (normal_cloud);
     mps.setInputCloud (input_);
 
@@ -76,8 +80,8 @@ faat_pcl::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
     typename pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label>::Ptr ref_comp (
                                                                                              new pcl::PlaneRefinementComparator<PointT,
                                                                                                  pcl::Normal, pcl::Label> ());
-    ref_comp->setDistanceThreshold (0.01f, false);
-    ref_comp->setAngularThreshold (0.017453 * 2.f);
+    ref_comp->setDistanceThreshold (max_point_plane_distance_, true);
+    ref_comp->setAngularThreshold (0.017453 * degrees_between_points_);
     mps.setRefinementComparator (ref_comp);
     mps.segmentAndRefine (regions, model_coefficients, inlier_indices, labels, label_indices, boundary_indices);
     //mps.segment (model_coefficients, inlier_indices);
@@ -106,9 +110,9 @@ faat_pcl::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
           plane_j.normalize();
 
           //std::cout << "dot product:" << plane_i.dot(plane_j) << " diff:" << std::abs(model_coefficients[i].values[3] - model_coefficients[j].values[3]) << std::endl;
-          if(plane_i.dot(plane_j) > 0.95)
+          if(plane_i.dot(plane_j) > 0.9)
           {
-            if(std::abs(model_coefficients[i].values[3] - model_coefficients[j].values[3]) < 0.015)
+            if(std::abs(model_coefficients[i].values[3] - model_coefficients[j].values[3]) < max_point_plane_distance_)
             {
               boost::add_edge (static_cast<int>(i), static_cast<int>(j), mergeable_planes);
             }
@@ -180,68 +184,63 @@ faat_pcl::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
       pcl::copyPointCloud(*input_, inlier_indices[i], *pm.plane_cloud_);
       pm.inliers_ = inlier_indices[i];
 
-      //recompute coefficients based on distance to camera and normal?
-      Eigen::Vector4f centroid;
-      pcl::compute3DCentroid(*pm.plane_cloud_, centroid);
-      Eigen::Vector3f c(centroid[0],centroid[1],centroid[2]);
-
-      Eigen::MatrixXf M_w(inlier_indices[i].indices.size(), 3);
-
-      float sum_w = 0.f;
-      for(size_t k=0; k < inlier_indices[i].indices.size(); k++)
+      if(refine_planes_)
       {
-          float d_c = (pm.plane_cloud_->points[k].getVector3fMap()).norm();
-          float w_k = std::max(1.f - std::abs(1.f - d_c), 0.f);
-          //w_k = 1.f;
-          M_w.row(k) = w_k * (pm.plane_cloud_->points[k].getVector3fMap() - c);
-          sum_w += w_k;
-      }
+          //recompute coefficients based on distance to camera and normal?
+          Eigen::Vector4f centroid;
+          pcl::compute3DCentroid(*pm.plane_cloud_, centroid);
+          Eigen::Vector3f c(centroid[0],centroid[1],centroid[2]);
 
-      Eigen::Matrix3f scatter;
-      scatter.setZero ();
-      scatter = M_w.transpose() * M_w;
+          Eigen::MatrixXf M_w(inlier_indices[i].indices.size(), 3);
 
-      Eigen::JacobiSVD<Eigen::MatrixXf> svd(scatter, Eigen::ComputeFullV);
-      //std::cout << svd.matrixV() << std::endl;
-
-      Eigen::Vector3f n = svd.matrixV().col(2);
-      //flip normal if required
-      if(n.dot(c*-1) < 0)
-          n = n * -1.f;
-
-      float d = n.dot(c) * -1.f;
-      //std::cout << "normal:" << n << std::endl;
-      //std::cout << "d:" << d << std::endl;
-
-      pm.coefficients_.values[0] = n[0];
-      pm.coefficients_.values[1] = n[1];
-      pm.coefficients_.values[2] = n[2];
-      pm.coefficients_.values[3] = d;
-
-      pcl::PointIndices clean_inlier_indices;
-      float dist_threshold_ = 0.01f;
-
-      for(size_t k=0; k < inlier_indices[i].indices.size(); k++)
-      {
-          Eigen::Vector3f p = pm.plane_cloud_->points[k].getVector3fMap();
-          float val = n.dot(p) + d;
-
-          if(std::abs(val) <= dist_threshold_)
+          float sum_w = 0.f;
+          for(size_t k=0; k < inlier_indices[i].indices.size(); k++)
           {
-              clean_inlier_indices.indices.push_back(inlier_indices[i].indices[k]);
+              float d_c = (pm.plane_cloud_->points[k].getVector3fMap()).norm();
+              float w_k = std::max(1.f - std::abs(1.f - d_c), 0.f);
+              //w_k = 1.f;
+              M_w.row(k) = w_k * (pm.plane_cloud_->points[k].getVector3fMap() - c);
+              sum_w += w_k;
           }
+
+          Eigen::Matrix3f scatter;
+          scatter.setZero ();
+          scatter = M_w.transpose() * M_w;
+
+          Eigen::JacobiSVD<Eigen::MatrixXf> svd(scatter, Eigen::ComputeFullV);
+          //std::cout << svd.matrixV() << std::endl;
+
+          Eigen::Vector3f n = svd.matrixV().col(2);
+          //flip normal if required
+          if(n.dot(c*-1) < 0)
+              n = n * -1.f;
+
+          float d = n.dot(c) * -1.f;
+          //std::cout << "normal:" << n << std::endl;
+          //std::cout << "d:" << d << std::endl;
+
+          pm.coefficients_.values[0] = n[0];
+          pm.coefficients_.values[1] = n[1];
+          pm.coefficients_.values[2] = n[2];
+          pm.coefficients_.values[3] = d;
+
+          pcl::PointIndices clean_inlier_indices;
+
+          for(size_t k=0; k < inlier_indices[i].indices.size(); k++)
+          {
+              Eigen::Vector3f p = pm.plane_cloud_->points[k].getVector3fMap();
+              float val = n.dot(p) + d;
+
+              if(std::abs(val) <= dist_threshold_refined_)
+              {
+                  clean_inlier_indices.indices.push_back(inlier_indices[i].indices[k]);
+              }
+          }
+
+          pm.plane_cloud_.reset(new PointTCloud);
+          pcl::copyPointCloud(*input_, clean_inlier_indices, *pm.plane_cloud_);
+          pm.inliers_ = clean_inlier_indices;
       }
-
-      pm.plane_cloud_.reset(new PointTCloud);
-      pcl::copyPointCloud(*input_, clean_inlier_indices, *pm.plane_cloud_);
-      pm.inliers_ = clean_inlier_indices;
-
-      /*Eigen::Vector4f model_coeffs;
-      model_coeffs[0] = model_coefficients[i].values[0];
-      model_coeffs[1] = model_coefficients[i].values[1];
-      model_coeffs[2] = model_coefficients[i].values[2];
-      model_coeffs[3] = model_coefficients[i].values[3];
-      std::cout << model_coeffs << std::endl;*/
 
       pm.projectPlaneCloud(resolution_);
       //convex hull
@@ -264,12 +263,13 @@ faat_pcl::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
     std::cout << "Unorganized" << std::endl;
     // Create the filtering object: downsample the dataset using a leaf size of 1cm
     pcl::VoxelGrid<PointT> vg;
-    PointTCloudPtr cloud_filtered (new PointTCloud);
-    vg.setInputCloud (input_);
-    float leaf_size_ = 0.005f;
+    PointTCloudPtr cloud_filtered (new PointTCloud(*input_));
     float dist_threshold_ = 0.01f;
+
+    /*vg.setInputCloud (input_);
+    float leaf_size_ = 0.005f;
     vg.setLeafSize (leaf_size_, leaf_size_, leaf_size_);
-    vg.filter (*cloud_filtered);
+    vg.filter (*cloud_filtered);*/
     std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl;
 
     // Create the segmentation object for the planar model and set all the parameters
@@ -341,7 +341,16 @@ faat_pcl::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
       extract.setNegative (true);
       PointTCloudPtr cloud_f(new PointTCloud);
       extract.filter (*cloud_f);
-      *cloud_filtered = *cloud_f;
+      //*cloud_filtered = *cloud_f;
+
+      //testing
+      for(size_t kk=0; kk < inliers->indices.size(); kk++)
+      {
+          cloud_filtered->points[inliers->indices[kk]].x =
+          cloud_filtered->points[inliers->indices[kk]].y =
+          cloud_filtered->points[inliers->indices[kk]].z = std::numeric_limits<float>::quiet_NaN();
+      }
+
     }
 
     std::cout << "Number of planes found:" << models_.size() << "organized:" << static_cast<int>(input_->isOrganized() && !force_unorganized) << std::endl;
