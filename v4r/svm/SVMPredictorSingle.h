@@ -79,7 +79,7 @@ private:
   std::vector<double> feature_min;              ///< minimum feature value for scaling
   std::vector<bool> feature_scaled;
   
-  void checkSmallPatches(int max_size);
+  void checkSmallPatches(unsigned int max_size);
   double predict(std::vector<double> &val, std::vector<double> &prob);
   void scaleValues(std::vector<double> &val);
   

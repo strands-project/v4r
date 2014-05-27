@@ -1,10 +1,13 @@
 SET(V4R_SVM 1 CACHE BOOL "Support Vector Machine - based on libsvm." )
+SET(CMAKE_BUILD_TYPE "Debug")
+
 IF(V4R_SVM)
 
 PROJECT(v4rsvm)
 
 find_package(PCL REQUIRED)
-include_directories(${PCL_INCLUDE_DIRS})
+find_package(OpenCV 2.4 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
@@ -14,6 +17,7 @@ SET(SOURCE_CPP
   SVMPredictorSingle.cpp
   SVMScale.cpp
   SVMTrainModel.cpp
+  svmWrapper.cpp
 )
 
 SET(SOURCE_H
@@ -22,6 +26,7 @@ SET(SOURCE_H
   SVMPredictorSingle.h
   SVMScale.h
   SVMTrainModel.h
+  svmWrapper.h
 )
 
 SET(SOURCE_MODEL

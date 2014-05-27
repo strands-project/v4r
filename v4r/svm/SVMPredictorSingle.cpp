@@ -152,7 +152,7 @@ void SVMPredictorSingle::compute()
   
   //@ep: reallocate node structure according to the size of the feature vector
   
-  for(int i = 0; i < relations.size(); i++) 
+  for(unsigned int i = 0; i < relations.size(); i++) 
   {
 //     if(!(relations.at(i).valid))
 //       continue;
@@ -354,17 +354,17 @@ void SVMPredictorSingle::scaleValues(std::vector<double> &val)
 }
 
 /** HACK: We do not allow small patches to be connected to two big patches. **/
-void SVMPredictorSingle::checkSmallPatches(int max_size)
+void SVMPredictorSingle::checkSmallPatches(unsigned int max_size)
 {
-  for(int i = 0; i < surfaces.size(); i++) 
+  for(unsigned int i = 0; i < surfaces.size(); i++) 
   {
     if(surfaces.at(i)->indices.size() < max_size) 
     {
       int biggest = -1;
       double biggest_value = 0.0;
-      for(int j = 0; j < relations.size(); j++) 
+      for(unsigned int j = 0; j < relations.size(); j++) 
       {
-        if(relations.at(j).id_0 == i || relations.at(j).id_1 == i) 
+        if(relations.at(j).id_0 == (int)i || relations.at(j).id_1 == (int)i) 
 	{
           //@ep: this works only because we assume that there are always two classes and that we are using model with probabilitites
 	  //the probability that those patches are connected
