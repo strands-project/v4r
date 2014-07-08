@@ -38,6 +38,7 @@ SET(LIBRARY_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 SET(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
 set(V4R_BUILD 1)
+set(V4R_FAAT_TRUNK 0)
 
 #add_definitions(-DDEBUG) # this should be defined in each module individually [tm]
 add_definitions(-DLINUX)
@@ -47,7 +48,12 @@ include_directories(.)
 
 add_subdirectory(v4rexternal)
 add_subdirectory(v4r)
-add_subdirectory(faat_framework)
+
+IF(V4R_FAAT_TRUNK EQUAL 1)
+    add_subdirectory(faat_framework_trunk)
+ELSE(V4R_FAAT_TRUNK EQUAL 1)
+    add_subdirectory(faat_framework)
+ENDIF(V4R_FAAT_TRUNK EQUAL 1)
 
 SET(V4R_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "includes dir" FORCE)
 
