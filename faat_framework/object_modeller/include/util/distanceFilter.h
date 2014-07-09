@@ -21,6 +21,7 @@ class DistanceFilter :
 {
 private:
     float maxDist;
+    bool euclideanDistance;
 
 public:
     DistanceFilter(std::string config_name="distanceFilter") : InOutModule(config_name)

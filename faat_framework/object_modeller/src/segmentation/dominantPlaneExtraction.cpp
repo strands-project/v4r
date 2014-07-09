@@ -6,7 +6,7 @@
 
 #include <pcl/features/integral_image_normal.h>
 
-#include "seg_do_modelling.h"
+#include "faat_pcl/object_modelling/seg_do_modelling.h"
 
 #include <faat_pcl/utils/registration_utils.h>
 

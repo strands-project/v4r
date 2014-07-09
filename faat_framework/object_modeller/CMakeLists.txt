@@ -5,8 +5,13 @@ PROJECT(object_modeller)
 set(LIB_NAME "object_modeller_lib")
 
 find_package(PCL REQUIRED)
-#find_package(V4R REQUIRED)
-#find_package(FAAT_PCL REQUIRED)
+IF(V4R_FAAT_TRUNK)
+
+ELSE(V4R_FAAT_TRUNK)
+    find_package(V4R REQUIRED)
+    find_package(FAAT_PCL REQUIRED)
+ENDIF()
+
 find_package(OpenCV)
 
 include_directories(${PCL_INCLUDE_DIRS}
@@ -39,6 +44,7 @@ set(lib_incs
     include/registration/globalRegistration.h
     include/segmentation/dominantPlaneExtraction.h
     include/segmentation/checkerboardSegmentation.h
+    include/segmentation/notNaNSegmentation.h
     include/util/mask.h
     include/util/transform.h
     include/util/distanceFilter.h
@@ -69,6 +75,7 @@ set(lib_srcs
     src/registration/globalRegistration.cpp
     src/segmentation/dominantPlaneExtraction.cpp
     src/segmentation/checkerboardSegmentation.cpp
+    src/segmentation/notNaNSegmentation.cpp
     src/util/mask.cpp
     src/util/transform.cpp
     src/util/distanceFilter.cpp
@@ -82,7 +89,7 @@ set(lib_srcs
 )
 
 add_library(${LIB_NAME} SHARED ${lib_srcs} ${lib_incs})
-target_link_libraries(${LIB_NAME} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${FAAT_PCL_LIBRARIES} ${LIB_NAME} v4rKeypointCameraTrackerPCL v4rKeypointBase v4rKeypointCameraTracker v4rTomGine v4rTomGinePCL boost_system boost_filesystem boost_regex)
+target_link_libraries(${LIB_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} ${FAAT_PCL_LIBRARIES} ${LIB_NAME} v4rKeypointCameraTrackerPCL v4rKeypointBase v4rKeypointCameraTracker v4rTomGine v4rTomGinePCL boost_system boost_filesystem boost_regex opencv_core opencv_highgui opencv_imgproc opencv_calib3d opencv_features2d opencv_nonfree opencv_video)
 
 add_executable(${PROJECT_NAME} test/object_modeller_cmd.cpp)
-target_link_libraries(${PROJECT_NAME} ${LIB_NAME} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${FAAT_PCL_LIBRARIES} v4rKeypointCameraTrackerPCL v4rKeypointBase v4rKeypointCameraTracker v4rTomGine v4rTomGinePCL boost_system boost_filesystem boost_regex)
+target_link_libraries(${PROJECT_NAME} ${LIB_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} ${FAAT_PCL_LIBRARIES} v4rKeypointCameraTrackerPCL v4rKeypointBase v4rKeypointCameraTracker v4rTomGine v4rTomGinePCL boost_system boost_filesystem boost_regex opencv_core opencv_highgui opencv_imgproc opencv_calib3d opencv_features2d opencv_nonfree opencv_video)

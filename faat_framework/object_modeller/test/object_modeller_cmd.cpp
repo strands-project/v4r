@@ -14,6 +14,7 @@
 #include "registration/globalRegistration.h"
 
 #include "segmentation/dominantPlaneExtraction.h"
+#include "segmentation/notNaNSegmentation.h"
 
 #include "output/tgRenderer.h"
 #include "output/pclRenderer.h"
@@ -76,6 +77,7 @@ int main(int argc, char *argv[] )
 
     //segmentation
     segmentation::DominantPlaneExtraction dominant_plane_extraction;
+    segmentation::NotNaNSegmentation not_nan_segmentation;
 
     //modelling
     modelling::NmBasedCloudIntegration nm_based_cloud_integration;
@@ -110,6 +112,7 @@ int main(int argc, char *argv[] )
 
     // filter far points
     util::DistanceFilter::ResultType *pointclouds_filtered = pipeline.addInOut(&distance_filter, pointclouds_input);
+    pipeline.addOut(&renderer_xyz, pointclouds_filtered, new Result<std::string>("Filtered"), new Result<bool>(step));
 
     registration::CameraTracker::ResultType *poses;
 
@@ -130,7 +133,16 @@ int main(int argc, char *argv[] )
     pipeline.addOut(&renderer_xyz, pointclouds_transformed, new Result<std::string>("Registration Output"), new Result<bool>(step));
 
     // segmentation
-    segmentation::DominantPlaneExtraction::ResultType *indices = pipeline.addInOut(&dominant_plane_extraction, pointclouds_filtered);
+    segmentation::DominantPlaneExtraction::ResultType * indices;
+
+    if (config.getInt("pipeline", "segmentationType") == 0)
+    {
+        indices = pipeline.addInOut(&dominant_plane_extraction, pointclouds_filtered);
+    }
+    else
+    {
+        indices = pipeline.addInOut(&not_nan_segmentation, pointclouds_filtered);
+    }
 
     // filter indices and render result
     util::Mask<pcl::PointXYZRGB>::ResultType *pointclouds_segmented = pipeline.addInOut(&mask, pointclouds_transformed, indices);
