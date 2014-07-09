@@ -265,6 +265,7 @@ namespace faat_pcl
       bool use_super_voxels_;
       typedef typename pcl::NormalEstimation<SceneT, pcl::Normal> NormalEstimator_;
       pcl::PointCloud<pcl::PointXYZL>::Ptr clusters_cloud_;
+      int max_label_clusters_cloud_;
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr clusters_cloud_rgb_;
       pcl::PointCloud<pcl::Normal>::Ptr scene_normals_for_clutter_term_;
 

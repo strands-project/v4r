@@ -10,6 +10,7 @@
 
 #include <faat_pcl/3d_rec_framework/pipeline/multi_pipeline_recognizer.h>
 #include <faat_pcl/3d_rec_framework/feature_wrapper/normal_estimator.h>
+#include <faat_pcl/recognition/cg/multi_object_graph_CG.h>
 
 template<typename PointInT>
 void
@@ -192,40 +193,186 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
       }
     }
 
-    PCL_ERROR("set_save_hypotheses, doing correspondence grouping at MULTIpipeline level\n");
-    typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
-    for (it_map = object_hypotheses.begin (); it_map != object_hypotheses.end (); it_map++)
+    std::cout << "multi_object_CG:" << multi_object_correspondence_grouping_ << std::endl;
+    if(multi_object_correspondence_grouping_)
     {
-      if(it_map->second.correspondences_to_inputcloud->size() < 3)
-        continue;
+        PCL_ERROR("multi_object_correspondence_grouping\n");
+        std::cout << "Number of model hypotheses:" << object_hypotheses.size() << std::endl;
 
-      std::string id = it_map->second.model_->id_;
-      //std::cout << id << " " << it_map->second.correspondences_to_inputcloud->size() << std::endl;
-      std::vector < pcl::Correspondences > corresp_clusters;
-      cg_algorithm_->setSceneCloud (keypoints_cloud);
-      cg_algorithm_->setInputCloud ((*it_map).second.correspondences_pointcloud);
+        //merge all correspondences from the different objects
+        //gather all model and normals point clouds
 
-      if(cg_algorithm_->getRequiresNormals())
-      {
-        //std::cout << "CG alg requires normals..." << ((*it_map).second.normals_pointcloud)->points.size() << " " << (scene_normals)->points.size() << std::endl;
-        cg_algorithm_->setInputAndSceneNormals((*it_map).second.normals_pointcloud, scene_normals);
-      }
-      //we need to pass the keypoints_pointcloud and the specific object hypothesis
-      cg_algorithm_->setModelSceneCorrespondences ((*it_map).second.correspondences_to_inputcloud);
-      cg_algorithm_->cluster (corresp_clusters);
+        std::vector<pcl::PointCloud<pcl::Normal>::Ptr> models_normals;
+        std::vector<PointInTPtr> models_clouds;
+        std::vector<pcl::CorrespondencesPtr> models_to_scene_correspondences;
 
-      std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << " " << it_map->first << std::endl;
+        typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
+        std::vector<std::string> object_ids;
+        for (it_map = object_hypotheses.begin (); it_map != object_hypotheses.end (); it_map++)
+        {
+            if(it_map->second.correspondences_to_inputcloud->size() < 3)
+                continue;
 
-      for (size_t i = 0; i < corresp_clusters.size (); i++)
-      {
-        //std::cout << "size cluster:" << corresp_clusters[i].size() << std::endl;
-        Eigen::Matrix4f best_trans;
-        typename pcl::registration::TransformationEstimationSVD < PointInT, PointInT > t_est;
-        t_est.estimateRigidTransformation (*(*it_map).second.correspondences_pointcloud, *keypoints_cloud, corresp_clusters[i], best_trans);
+            models_normals.push_back((*it_map).second.normals_pointcloud);
+            models_clouds.push_back((*it_map).second.correspondences_pointcloud);
+            models_to_scene_correspondences.push_back((*it_map).second.correspondences_to_inputcloud);
 
-        models_->push_back ((*it_map).second.model_);
-        transforms_->push_back (best_trans);
-      }
+            object_ids.push_back(it_map->second.model_->id_);
+        }
+
+        faat_pcl::MultiObjectGraphGeometricConsistencyGrouping<PointInT, PointInT> mo_gcc;
+        mo_gcc.setDotDistance(0.25f);
+        mo_gcc.setGCSize(0.01);
+        mo_gcc.setGCThreshold(3);
+        mo_gcc.setSceneCloud(keypoints_cloud);
+        mo_gcc.setSceneNormals(scene_normals);
+        mo_gcc.setModelClouds(models_clouds);
+        mo_gcc.setInputNormals(models_normals);
+        mo_gcc.setFullSceneCloud(input_);
+        mo_gcc.setModelSceneCorrespondences(models_to_scene_correspondences);
+        mo_gcc.setObjectIds(object_ids);
+
+        std::vector < pcl::Correspondences > corresp_clusters;
+        mo_gcc.cluster (corresp_clusters);
+
+        std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << " " << it_map->first << std::endl;
+
+    }
+    else
+    {
+        PCL_ERROR("set_save_hypotheses, doing correspondence grouping at MULTIpipeline level\n");
+        typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
+        for (it_map = object_hypotheses.begin (); it_map != object_hypotheses.end (); it_map++)
+        {
+          if(it_map->second.correspondences_to_inputcloud->size() < 3)
+            continue;
+
+          std::string id = it_map->second.model_->id_;
+          //std::cout << id << " " << it_map->second.correspondences_to_inputcloud->size() << std::endl;
+          std::vector < pcl::Correspondences > corresp_clusters;
+          cg_algorithm_->setSceneCloud (keypoints_cloud);
+          cg_algorithm_->setInputCloud ((*it_map).second.correspondences_pointcloud);
+
+          if(cg_algorithm_->getRequiresNormals())
+          {
+            //std::cout << "CG alg requires normals..." << ((*it_map).second.normals_pointcloud)->points.size() << " " << (scene_normals)->points.size() << std::endl;
+            cg_algorithm_->setInputAndSceneNormals((*it_map).second.normals_pointcloud, scene_normals);
+          }
+          //we need to pass the keypoints_pointcloud and the specific object hypothesis
+          cg_algorithm_->setModelSceneCorrespondences ((*it_map).second.correspondences_to_inputcloud);
+          cg_algorithm_->cluster (corresp_clusters);
+
+          std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << " " << it_map->first << std::endl;
+
+          /*if(corresp_clusters.size() > 0)
+          {
+
+              Eigen::Matrix4f best_trans;
+              typename pcl::registration::TransformationEstimationSVD < PointInT, PointInT > t_est;
+              t_est.estimateRigidTransformation (*(*it_map).second.correspondences_pointcloud, *keypoints_cloud, corresp_clusters[0], best_trans);
+
+              Eigen::Matrix4f translate_y_camera;
+              translate_y_camera.setIdentity();
+              translate_y_camera(1,3) = -0.75;
+              best_trans = translate_y_camera * best_trans;
+
+              bool inverse=true;
+              if(inverse)
+                best_trans = best_trans.inverse().eval();
+
+              pcl::visualization::PCLVisualizer vis("correspondences");
+              int v1,v2;
+              vis.createViewPort(0,0,1,1,v1);
+              //vis.createViewPort(0.5,0,1,1,v2);
+              pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+              pcl::copyPointCloud(*input_, *scene_cloud);
+              PointInTPtr keypoints_cloud_trans(new pcl::PointCloud<PointInT>);
+              pcl::copyPointCloud(*keypoints_cloud, *keypoints_cloud_trans);
+
+              if(inverse)
+              {
+                  pcl::transformPointCloud(*scene_cloud, *scene_cloud, best_trans);
+                  pcl::transformPointCloud(*keypoints_cloud_trans, *keypoints_cloud_trans, best_trans);
+              }
+
+              vis.addPointCloud(scene_cloud, "scene cloud", v1);
+
+              //{
+              //    pcl::visualization::PointCloudColorHandlerCustom<PointInT> scene_handler(keypoints_cloud_trans, 255, 255, 0);
+              //    vis.addPointCloud(keypoints_cloud_trans, scene_handler, "scene keypoints", v1);
+              //    vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "scene keypoints");
+              //}
+
+              {
+                  ConstPointInTPtr model_cloud = it_map->second.model_->getAssembled (-1);
+                  PointInTPtr model_cloud_trans(new pcl::PointCloud<PointInT>(*model_cloud));
+
+                  if(!inverse)
+                    pcl::transformPointCloud(*model_cloud, *model_cloud_trans, best_trans);
+
+                  vis.addPointCloud(model_cloud_trans, "model");
+              }
+
+              PointInTPtr model_keypoints_trans(new pcl::PointCloud<PointInT>(*(*it_map).second.correspondences_pointcloud));
+
+              if(!inverse)
+                pcl::transformPointCloud(*(*it_map).second.correspondences_pointcloud, *model_keypoints_trans, best_trans);
+
+              //pcl::visualization::PointCloudColorHandlerCustom<PointInT> scene_handler(model_keypoints_trans, 255, 0, 0);
+              //vis.addPointCloud<PointInT>(model_keypoints_trans, scene_handler, "model keypoints", v1);
+
+              float avg_distance = 0;
+              for(size_t kk=0; kk < (*it_map).second.correspondences_to_inputcloud->size (); kk++)
+              {
+                  pcl::Correspondence c = (*it_map).second.correspondences_to_inputcloud->at(kk);
+                  avg_distance += c.distance;
+              }
+
+              avg_distance /= static_cast<float>((*it_map).second.correspondences_to_inputcloud->size ());
+
+              int step=1;
+              for(size_t kk=0; kk < (*it_map).second.correspondences_to_inputcloud->size (); kk+=step)
+              {
+                  pcl::Correspondence c = (*it_map).second.correspondences_to_inputcloud->at(kk);
+
+                  pcl::PointXYZ p1,p2;
+                  p1.getVector3fMap() = keypoints_cloud_trans->points[c.index_match].getVector3fMap();
+                  p2.getVector3fMap()  = model_keypoints_trans->points[c.index_query].getVector3fMap();
+
+                  std::stringstream name;
+                  name << "line_" << kk;
+                  vis.addLine(p1,p2, 255, 0, 0, name.str(), v1);
+              }
+
+              for(size_t kk=0; kk < corresp_clusters[0].size (); kk+=step)
+              {
+                  pcl::Correspondence c = corresp_clusters[0][kk];
+
+                  pcl::PointXYZ p1,p2;
+                  p1.getVector3fMap() = keypoints_cloud_trans->points[c.index_match].getVector3fMap();
+                  p2.getVector3fMap()  = model_keypoints_trans->points[c.index_query].getVector3fMap();
+
+                  std::stringstream name;
+                  name << "line_corresp_cluster" << kk;
+                  vis.addLine(p1,p2, 0, 0, 255, name.str(), v1);
+              }
+
+              vis.setBackgroundColor(1,1,1);
+              vis.addCoordinateSystem(0.2f);
+              vis.spin();
+          }*/
+
+          for (size_t i = 0; i < corresp_clusters.size (); i++)
+          {
+            //std::cout << "size cluster:" << corresp_clusters[i].size() << std::endl;
+            Eigen::Matrix4f best_trans;
+            typename pcl::registration::TransformationEstimationSVD < PointInT, PointInT > t_est;
+            t_est.estimateRigidTransformation (*(*it_map).second.correspondences_pointcloud, *keypoints_cloud, corresp_clusters[i], best_trans);
+
+            models_->push_back ((*it_map).second.model_);
+            transforms_->push_back (best_trans);
+          }
+        }
     }
   }
 

@@ -22,6 +22,8 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::ORE
   model_file_extension_ = "ply";
   check_pose_ = false;
   max_centroid_diff_ = 0.01f;
+  check_rotation_ = false;
+  max_rotation_ = 180;
   replace_model_ext_ = true;
   max_occlusion_ = 0.9f;
   use_max_occlusion_ = false;
@@ -810,10 +812,46 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::com
               y_eval = rtrans.second->at(idx) * y;
               z_eval = rtrans.second->at(idx) * z;
 
+              float dotx, doty, dotz;
+              dotx = x_eval.dot(x_gt);
+              doty = y_eval.dot(y_gt);
+              dotz = z_eval.dot(z_gt);
+
+              if(dotx >= 1.f)
+                  dotx = 0.9999f;
+
+              if(doty >= 1.f)
+                  doty = 0.9999f;
+
+              if(dotz >= 1.f)
+                  dotz = 0.9999f;
+
+              if(dotx <= -1.f)
+                  dotx = -0.9999f;
+
+              if(doty <= -1.f)
+                  doty = -0.9999f;
+
+              if(dotz <= -1.f)
+                  dotz = -0.9999f;
+
               float angle_x, angle_y, angle_z;
-              angle_x = std::abs(pcl::rad2deg(acos(x_eval.dot(x_gt))));
-              angle_y = std::abs(pcl::rad2deg(acos(y_eval.dot(y_gt))));
-              angle_z = std::abs(pcl::rad2deg(acos(z_eval.dot(z_gt))));
+              angle_x = std::abs(pcl::rad2deg(acos(dotx)));
+              angle_y = std::abs(pcl::rad2deg(acos(doty)));
+              angle_z = std::abs(pcl::rad2deg(acos(dotz)));
+
+              if(check_rotation_)
+              {
+                float avg_angle = (angle_x + angle_y + angle_z) / 3.f;
+                std::cout << "angles:" << angle_x << " " << angle_y << " " << angle_z << "avg:" << avg_angle << std::endl;
+                std::cout << "max rotation:" << max_rotation_ << std::endl;
+
+                if(avg_angle > max_rotation_)
+                {
+                    std::cout << "Id and centroid ok but rejected by rotation: " << model_id << " " << avg_angle << " " << max_rotation_ << std::endl;
+                    continue;
+                }
+              }
 
               float angle = std::max(angle_x, std::max(angle_y, angle_z));
 
@@ -1044,10 +1082,33 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::com
               y_eval = rtrans.second->at(idx) * y;
               z_eval = rtrans.second->at(idx) * z;
 
+              float dotx, doty, dotz;
+              dotx = x_eval.dot(x_gt);
+              doty = y_eval.dot(y_gt);
+              dotz = z_eval.dot(z_gt);
+
+              if(dotx >= 1.f)
+                  dotx = 0.9999f;
+
+              if(doty >= 1.f)
+                  doty = 0.9999f;
+
+              if(dotz >= 1.f)
+                  dotz = 0.9999f;
+
+              if(dotx <= -1.f)
+                  dotx = -0.9999f;
+
+              if(doty <= -1.f)
+                  doty = -0.9999f;
+
+              if(dotz <= -1.f)
+                  dotz = -0.9999f;
+
               float angle_x, angle_y, angle_z;
-              angle_x = std::abs(pcl::rad2deg(acos(x_eval.dot(x_gt))));
-              angle_y = std::abs(pcl::rad2deg(acos(y_eval.dot(y_gt))));
-              angle_z = std::abs(pcl::rad2deg(acos(z_eval.dot(z_gt))));
+              angle_x = std::abs(pcl::rad2deg(acos(dotx)));
+              angle_y = std::abs(pcl::rad2deg(acos(doty)));
+              angle_z = std::abs(pcl::rad2deg(acos(dotz)));
 
               float angle = std::max(angle_x, std::max(angle_y, angle_z));
 

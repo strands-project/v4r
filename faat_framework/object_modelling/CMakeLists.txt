@@ -8,6 +8,7 @@ set(om_incs
   #include/faat_pcl/${SUBSYS_NAME}/ggo.h
   include/faat_pcl/${SUBSYS_NAME}/merge_sequence.h
   include/faat_pcl/${SUBSYS_NAME}/get_nice_model.h
+  include/faat_pcl/${SUBSYS_NAME}/seg_do_modelling.h
 )
 
 set(om_impl_incs
@@ -66,14 +67,14 @@ target_link_libraries(stable_planes ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NA
 add_executable(merge_multiple test/merge_multiple_sequences.cpp)
 target_link_libraries(merge_multiple ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils ${PROJECT_NAME}_recognition ${PROJECT_NAME}_registration ${PROJECT_NAME}_object_modelling boost_regex)
 
-add_executable(object_modelling_willow_unknown_poses test/do_modelling_willow_unknown_initial_poses.cpp include/seg_do_modelling.h)
+add_executable(object_modelling_willow_unknown_poses test/do_modelling_willow_unknown_initial_poses.cpp)
 target_link_libraries(object_modelling_willow_unknown_poses ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils ${PROJECT_NAME}_recognition ${PROJECT_NAME}_registration ${PROJECT_NAME}_3d_rec_framework boost_regex)
 
-add_executable(multiview test/multiview.cpp include/seg_do_modelling.h)
+add_executable(multiview test/multiview.cpp)
 target_link_libraries(multiview ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils ${PROJECT_NAME}_recognition ${PROJECT_NAME}_registration boost_regex)
 
 add_executable(multiview_sv test/multiview_single_views.cpp)
 target_link_libraries(multiview_sv ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils ${PROJECT_NAME}_recognition ${PROJECT_NAME}_registration boost_regex)
 
-add_executable(visualize_directory test/visualize.cpp include/seg_do_modelling.h)
+add_executable(visualize_directory test/visualize.cpp)
 target_link_libraries(visualize_directory ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils ${PROJECT_NAME}_recognition ${PROJECT_NAME}_registration boost_regex)

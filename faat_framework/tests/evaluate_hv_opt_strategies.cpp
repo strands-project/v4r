@@ -21,6 +21,7 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/registration/icp.h>
 #include <pcl/registration/transformation_estimation_point_to_plane_lls.h>
+#include <pcl/common/angles.h>
 
 float VX_SIZE_ICP_ = 0.005f;
 bool PLAY_ = false;
@@ -239,6 +240,7 @@ struct results_and_parameters
 };
 
 float TRANSLATION_ERROR_ALLOWED_ = 0.03f;
+bool FILTER_DUPLICATES_ = false;
 
 template<typename PointTModel, typename PointT>
   faat_pcl::rec_3d_framework::or_evaluator::RecognitionStatisticsResults
@@ -531,6 +533,119 @@ template<typename PointTModel, typename PointT>
       if(use_hv)
       {
           //visualize results
+
+
+          if(FILTER_DUPLICATES_)
+          {
+
+              //filter equal hypotheses...
+              float max_centroid_diff_ = 0.01f;
+              float max_rotation_ = 5;
+
+              boost::shared_ptr<std::vector<ModelTPtr> > models_filtered;
+              boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_filtered;
+              models_filtered.reset(new std::vector<ModelTPtr>);
+              transforms_filtered.reset(new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
+
+              Eigen::Vector4f x,y,z;
+              x = y = z = Eigen::Vector4f::Zero();
+              x = Eigen::Vector4f::UnitX();
+              y = Eigen::Vector4f::UnitY();
+              z = Eigen::Vector4f::UnitZ();
+
+              for (size_t kk = 0; kk < models->size (); kk++)
+              {
+
+                  Eigen::Vector4f centroid_kk = models->at(kk)->getCentroid();
+                  centroid_kk[3] = 1.f;
+                  centroid_kk = transforms->at(kk) * centroid_kk;
+                  centroid_kk[3] = 0.f;
+                  std::string id_kk = models->at(kk)->id_;
+
+                  Eigen::Matrix4f trans = transforms->at(kk);
+                  Eigen::Vector4f x_gt,y_gt,z_gt;
+                  x_gt = trans * x; y_gt = trans * y; z_gt = trans * z;
+
+
+                  bool found = false;
+                  for(size_t jj=(kk+1); (jj < models->size() && !found); jj++)
+                  {
+
+                      std::string id_jj = models->at(jj)->id_;
+                      if(id_kk.compare(id_jj) != 0)
+                          continue;
+
+                      Eigen::Vector4f centroid_jj = models->at(jj)->getCentroid();
+                      centroid_jj[3] = 1.f;
+                      centroid_jj = transforms->at(jj) * centroid_jj;
+                      centroid_jj[3] = 0.f;
+
+                      //is pose correct? compare centroids and rotation
+
+                      float diff = ( centroid_jj - centroid_kk).norm();
+
+                      if(diff < max_centroid_diff_)
+                      {
+                        std::cout << "Hypotheses are similar" << std::endl;
+
+                        //rotional error, how?
+
+                        Eigen::Vector4f x_eval,y_eval,z_eval;
+                        x_eval = transforms->at(jj) * x;
+                        y_eval = transforms->at(jj) * y;
+                        z_eval = transforms->at(jj) * z;
+
+                        float dotx, doty, dotz;
+                        dotx = x_eval.dot(x_gt);
+                        doty = y_eval.dot(y_gt);
+                        dotz = z_eval.dot(z_gt);
+
+                        if(dotx >= 1.f)
+                            dotx = 0.9999f;
+
+                        if(doty >= 1.f)
+                            doty = 0.9999f;
+
+                        if(dotz >= 1.f)
+                            dotz = 0.9999f;
+
+                        if(dotx <= -1.f)
+                            dotx = -0.9999f;
+
+                        if(doty <= -1.f)
+                            doty = -0.9999f;
+
+                        if(dotz <= -1.f)
+                            dotz = -0.9999f;
+
+                        float angle_x, angle_y, angle_z;
+                        angle_x = std::abs(pcl::rad2deg(acos(dotx)));
+                        angle_y = std::abs(pcl::rad2deg(acos(doty)));
+                        angle_z = std::abs(pcl::rad2deg(acos(dotz)));
+
+                        float avg_angle = (angle_x + angle_y + angle_z) / 3.f;
+                        //std::cout << "angles:" << angle_x << " " << angle_y << " " << angle_z << "avg:" << avg_angle << std::endl;
+                        //std::cout << "max rotation:" << max_rotation_ << std::endl;
+
+                        if(avg_angle < max_rotation_)
+                        {
+                          found = true;
+                          continue;
+                        }
+                      }
+                  }
+
+                  if(!found)
+                  {
+                      models_filtered->push_back(models->at(kk));
+                      transforms_filtered->push_back(transforms->at(kk));
+                  }
+              }
+
+              std::cout << "models size:" << models->size() << " filtered size:" << models_filtered->size() << std::endl;
+              models = models_filtered;
+              transforms = transforms_filtered;
+          }
 
           std::vector<std::string> model_ids;
 
@@ -1316,6 +1431,8 @@ main (int argc, char ** argv)
   bool use_normals_from_visible = false;
   float weight_for_bad_normals = 0.1f;
 
+
+  pcl::console::parse_argument (argc, argv, "-filter_duplicates", FILTER_DUPLICATES_);
   pcl::console::parse_argument (argc, argv, "-weight_for_bad_normals", weight_for_bad_normals);
   pcl::console::parse_argument (argc, argv, "-radius_normals_go", radius_normals_go_);
   pcl::console::parse_argument (argc, argv, "-use_normals_from_visible", use_normals_from_visible);

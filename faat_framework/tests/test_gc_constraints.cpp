@@ -34,38 +34,33 @@ int
 main (int argc, char ** argv)
 {
 
-  float gc_size_ = 0.005f;
+  float gc_size_ = 0.0015f;
   pcl::PointCloud<pcl::PointXYZ>::Ptr model(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cube(new pcl::PointCloud<pcl::PointXYZ>);
 
-  generatePointCloudFilledCube(cube);
+  generatePointCloudFilledCube(cube, 0.005f);
 
   pcl::PointXYZ p1, p2, p3;
-  p1.getVector3fMap() = Eigen::Vector3f(0,0,0);
-  p2.getVector3fMap() = Eigen::Vector3f(0,0.3,0);
-  p3.getVector3fMap() = Eigen::Vector3f(0,0.2,0.2);
+  p1.getVector3fMap() = Eigen::Vector3f(0,-0.05,0.1);
+  p2.getVector3fMap() = Eigen::Vector3f(0,0.05,0.05);
+  p3.getVector3fMap() = Eigen::Vector3f(0,0,0);
 
   model->points.push_back(p1);
   model->points.push_back(p2);
   model->points.push_back(p3);
 
   pcl::visualization::PCLVisualizer vis("gc constraint");
-  int v1, v2;
-  v1 = v2 = 0;
-  vis.createViewPort(0,0,0.5,1.0, v1);
-  vis.createViewPort(0.5,0,1.0,1.0, v2);
+  int v1, v2, v3;
+  v1 = v2 = v3 = 0;
+  vis.createViewPort(0,0,0.4,1.0, v1);
+  //vis.createViewPort(0.33,0,0.66,1.0, v2);
+  vis.createViewPort(0.4,0,1.0,1.0, v3);
 
-  vis.addText3D ("p1", p1, 0.02, 0.0, 0.0, 1.0, "text_p1");
-  vis.addText3D ("p2", p2, 0.02, 0.0, 0.0, 1.0, "text_p2");
-  vis.addText3D ("p3", p3, 0.02, 0.0, 0.0, 1.0, "text_p3");
-
-  vis.addText("model", 10, 10, 16, 125, 125, 125, "text_model", v1);
-  vis.addText("scene", 10, 10, 16, 125, 125, 125, "text_scene", v2);
   vis.setBackgroundColor(255,255,255);
 
-  pcl::visualization::PointCloudColorHandlerCustom < pcl::PointXYZ > handler_rgb ( model, 255, 0, 0 );
+  pcl::visualization::PointCloudColorHandlerCustom < pcl::PointXYZ > handler_rgb ( model, 0, 255, 255 );
   vis.addPointCloud(model, handler_rgb, "model");
-  vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "model");
+  vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 14, "model");
 
   float dist_model_12 = (p1.getVector3fMap() - p2.getVector3fMap()).norm();
   float dist_model_13 = (p1.getVector3fMap() - p3.getVector3fMap()).norm();
@@ -80,8 +75,6 @@ main (int argc, char ** argv)
     }
 
     float dist_target_1_i = (p1.getVector3fMap() - cube->points[i].getVector3fMap()).norm();
-    float dist_target_2_i = (p2.getVector3fMap() - cube->points[i].getVector3fMap()).norm();
-    //float dist_target_3_i = (p3.getVector3fMap() - cube->points[i].getVector3fMap()).norm();
     if( std::abs(dist_model_12 - dist_target_1_i) < gc_size_)
     {
       //find a third point that fulfills the gc constraint with p1 and cube_i
@@ -105,14 +98,39 @@ main (int argc, char ** argv)
 
       std::cout << gc1->points.size() << std::endl;
 
-      pcl::visualization::PointCloudColorHandlerCustom < pcl::PointXYZ > handler_rgb ( gc1, 125, 125, 125 );
-      vis.addPointCloud(gc1, handler_rgb, "cube", v2);
-      vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cube");
+      pcl::visualization::PointCloudColorHandlerCustom < pcl::PointXYZ > handler_rgb ( gc1, 255, 0, 0 );
+
+      //vis.addPointCloud(gc1, handler_rgb, "cube", v2);
+      //vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "cube");
+
+      vis.addPointCloud(gc1, handler_rgb, "cube_v3", v3);
+      vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "cube_v3");
+
+      float gray_sphere = 0.85f;
+      vis.addSphere(p1, dist_model_13,gray_sphere,gray_sphere,gray_sphere, "sphere_1", v3);
+      vis.addSphere(p2, dist_model_23,gray_sphere,gray_sphere,gray_sphere, "sphere_2", v3);
+
+      p1.x += 0.01f;
+      p3.x += 0.01f;
+      p2.x += 0.01f;
+
+      p1.z -= 0.01f;
+      p3.z -= 0.01f;
+      p2.z -= 0.01f;
+
+      vis.addText3D ("p1", p1, 0.02, 0.0, 0.0, 1.0, "text_s1");
+      vis.addText3D ("p2", p2, 0.02, 0.0, 0.0, 1.0, "text_s2");
+      vis.addText3D ("p3", p3, 0.02, 0.0, 0.0, 1.0, "text_s3");
+
+
+      vis.addText("model", 10, 10, 16, 125, 125, 125, "text_model", v1);
+      vis.addText("scene", 10, 10, 16, 125, 125, 125, "text_scene", v3);
+
       vis.spin();
       vis.removePointCloud("cube");
+      //vis.addCoordinateSystem(0.2);
       gc1->points.clear();
     }
   }
-
 }
 

@@ -18,7 +18,7 @@
 
 #include <pcl/features/organized_edge_detection.h>
 #include <pcl/features/integral_image_normal.h>
-#include "seg_do_modelling.h"
+#include "faat_pcl/object_modelling/seg_do_modelling.h"
 #include <faat_pcl/registration/mv_lm_icp.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <faat_pcl/utils/filesystem_utils.h>

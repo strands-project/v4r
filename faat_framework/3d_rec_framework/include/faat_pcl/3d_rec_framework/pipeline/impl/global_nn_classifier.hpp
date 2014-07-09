@@ -116,6 +116,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
         //gather NN-search results
         double score = 0;
+        std::cout << "Looking for the first " << NN_ << " nearest neighbours. " << std::endl;
         for (int i = 0; i < NN_; ++i)
         {
           score = distances[0][i];
@@ -124,11 +125,14 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           is.idx_input_ = static_cast<int> (idx);
           is.score_ = score;
           indices_scores.push_back (is);
+          std::cout << i << ": " << indices[0][i] << " with score " << score << " and model id: " << flann_models_[indices_scores[i].idx_models_].first->class_ << "/" << flann_models_[indices_scores[i].idx_models_].first->id_ <<std::endl;
         }
       }
 
       std::sort (indices_scores.begin (), indices_scores.end (), sortIndexScoresOp);
       first_nn_category_ = flann_models_[indices_scores[0].idx_models_].first->class_;
+
+      std::cout << "first id: " << flann_models_[indices_scores[0].idx_models_].first->id_ << std::endl;
 
       std::map<std::string, double> category_map;
       int num_n = std::min (NN_, static_cast<int> (indices_scores.size ()));

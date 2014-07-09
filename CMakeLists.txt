@@ -38,7 +38,7 @@ SET(LIBRARY_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 SET(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
 set(V4R_BUILD 1)
-set(V4R_FAAT_TRUNK 0)
+set(V4R_FAAT_TRUNK 1)
 
 #add_definitions(-DDEBUG) # this should be defined in each module individually [tm]
 add_definitions(-DLINUX)

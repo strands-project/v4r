@@ -46,10 +46,19 @@ namespace faat_pcl
         typename boost::shared_ptr<faat_pcl::GraphGeometricConsistencyGrouping<PointInT, PointInT> > cg_algorithm_;
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
         bool normals_set_;
+
+        bool multi_object_correspondence_grouping_;
+
       public:
         MultiRecognitionPipeline () : Recognizer<PointInT>()
         {
             normals_set_ = false;
+            multi_object_correspondence_grouping_ = false;
+        }
+
+        void setMultiObjectCG(bool b)
+        {
+            multi_object_correspondence_grouping_ = b;
         }
 
         void initialize();

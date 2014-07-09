@@ -10,7 +10,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/../recognition/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/../registration/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/../utils/
-                    ${CMAKE_CURRENT_SOURCE_DIR}/../utils/include)
+                    ${CMAKE_CURRENT_SOURCE_DIR}/../utils/include
+                    ${PCL_SRC_DIR}/gpu/containers/include
+                    ${PCL_SRC_DIR}/gpu/octree/include
+                    ${PCL_SRC_DIR}/gpu/containers/include
+                    ${PCL_SRC_DIR}/gpu/octree/src/
+                    ${PCL_SRC_DIR}/gpu/utils/include/
+                    ${CUDA_TOOLKIT_INCLUDE})
 
 message(STATUS "PCL LIBRARIES:" ${PCL_LIBRARIES})
 add_executable(${SUBSYS_NAME} scene_local_training_recognition.cpp)  
@@ -25,17 +31,25 @@ target_link_libraries(eval_cg ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PRO
 add_executable(eval_hv_opt_strategies evaluate_hv_opt_strategies.cpp)
 target_link_libraries(eval_hv_opt_strategies ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework ${PROJECT_NAME}_registration)
 
+IF(FAAT_PCL_USE_CUDA EQUAL 1)
+    add_executable(GHV_gpu test_GHV_gpu.cpp)
+    target_link_libraries(GHV_gpu ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition_with_cuda ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework ${PROJECT_NAME}_registration)
+ENDIF()
+
+add_executable(learn_color_variances learn_color_variances.cpp)
+target_link_libraries(learn_color_variances ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework ${PROJECT_NAME}_registration)
+
 #add_executable(est_reg_views_source test_reg_views_source.cpp)  
 #target_link_libraries(est_reg_views_source ${PCL_LIBRARIES} ${OpenCV_LIBS} faat_pcl_recognition faat_pcl_utils faat_pcl_3d_rec_framework)
 
 #add_executable(shrec_2013 shrec_2013.cpp)  
 #target_link_libraries(shrec_2013 ${PCL_LIBRARIES} faat_pcl_recognition faat_pcl_utils faat_pcl_3d_rec_framework)
 
-add_executable(mit mit.cpp)
-target_link_libraries(mit ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
+#add_executable(mit mit.cpp)
+#target_link_libraries(mit ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
 
-add_executable(mitGT_to_or_format mitGT_to_or_format.cpp)
-target_link_libraries(mitGT_to_or_format ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
+#add_executable(mitGT_to_or_format mitGT_to_or_format.cpp)
+#target_link_libraries(mitGT_to_or_format ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
 
 add_executable(mp_training_recognition multi_pipeline_training_recognition.cpp)  
 target_link_libraries(mp_training_recognition ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
@@ -68,13 +82,16 @@ add_executable(linemod test_linemod.cpp)
 target_link_libraries(linemod ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils boost_regex)
 
 add_executable(test_gc_constraints test_gc_constraints.cpp)  
-target_link_libraries(test_gc_constraints ${PCL_LIBRARIES} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
+target_link_libraries(test_gc_constraints ${PCL_LIBRARIES})
 
 add_executable(linemod_framework test_linemod_3d_rec_framework.cpp)  
 target_link_libraries(linemod_framework ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework boost_regex)
 
 add_executable(ourcvfh_test ourcvfh_test)  
 target_link_libraries(ourcvfh_test ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
+
+add_executable(test_global_pipeline test_global_pipeline.cpp)
+target_link_libraries(test_global_pipeline ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
 
 IF(V4R_FOUND)
 
@@ -86,6 +103,12 @@ IF(V4R_FOUND)
 
   add_executable(mp_willow multi_pipeline_willow_dataset.cpp)
   target_link_libraries(mp_willow ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework v4rSurfaceSegmenter v4rSurfaceUtils v4rTomGine)
+
+  add_executable(local_recognition_test local_recognition_test.cpp)
+  target_link_libraries(local_recognition_test ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework v4rSurfaceSegmenter v4rSurfaceUtils v4rTomGine)
+
+  add_executable(test_supervoxels_classification test_classification_based_on_supervoxels.cpp)
+  target_link_libraries(test_supervoxels_classification ${PCL_LIBRARIES}  ${OpenCV_LIBS} ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework boost_regex v4rPCLAddOns v4rSurfaceSegmenter)
 
 ENDIF(V4R_FOUND)
 

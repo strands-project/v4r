@@ -754,6 +754,17 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::initialize ()
                 }
             }
         }
+
+        max_label_clusters_cloud_ = 0;
+        for(size_t i=0; i < clusters_cloud_->points.size(); i++)
+        {
+            if (clusters_cloud_->points[i].label > max_label_clusters_cloud_)
+            {
+                max_label_clusters_cloud_ = clusters_cloud_->points[i].label;
+            }
+        }
+
+        std::cout << "MAX LABEL clusters cloud:" << max_label_clusters_cloud_ << std::endl;
     }
 
     //compute scene LAB values
@@ -1280,10 +1291,10 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::getTotalExplainedInfor
             else if(multiple_assignment_penalize_by_one_ == 2)
             {
                 duplicity += duplicates_by_RM_weighted_[i];
-                if(duplicates_by_RM_weighted_[i] > 1)
+                /*if(duplicates_by_RM_weighted_[i] > 1)
                 {
                     PCL_WARN("duplicates_by_RM_weighted_[i] higher than one %f\n", duplicates_by_RM_weighted_[i]);
-                }
+                }*/
             }
             else
             {
@@ -1690,15 +1701,13 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::SAOptimize (std::vecto
 
     //mets::best_ever_solution best_recorder (best);
     cost_logger_.reset(new CostFunctionLogger<ModelT, SceneT>(*best));
+    mets::noimprove_termination_criteria noimprove (max_iterations_);
 
     if(visualize_go_cues_)
     {
-        visualize_cues_during_logger_ = boost::bind(&(faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues), this, _1, _2, _3);
         cost_logger_->setVisualizeFunction(visualize_cues_during_logger_);
-        vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
     }
 
-    mets::noimprove_termination_criteria noimprove (max_iterations_);
 
     switch(opt_type_)
     {
@@ -2106,6 +2115,12 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::verify ()
         t_cues_ = static_cast<float>(t.getTimeSeconds());
     }
 
+    if(visualize_go_cues_)
+    {
+        visualize_cues_during_logger_ = boost::bind(&(faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues), this, _1, _2, _3);
+        vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
+    }
+
     n_cc_ = 1;
     cc_.resize(1);
     cc_[0].resize(recognition_models_.size());
@@ -2131,7 +2146,70 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::verify ()
             //TODO: Check for trivial case...
             //TODO: Check also the number of hypotheses and use exhaustive enumeration if smaller than 10
             std::vector<bool> subsolution (cc_[c].size (), initial_status_);
+
             SAOptimize (cc_[c], subsolution);
+
+
+            //ATTENTION: just for the paper to visualize cues!!
+            if(visualize_go_cues_)
+            {
+
+                std::vector<bool> opt_subsolution = subsolution;
+                //deactivate two hypotheses and randomly activate two others
+                for(size_t k=0; k < 200; k++)
+                {
+
+                    srand((unsigned)time(NULL));
+                    boost::mt19937 generator(time(0));
+                    boost::uniform_01<boost::mt19937> gen(generator);
+
+                    int deactivated = 0;
+                    int max_deact = 2;
+                    for(size_t i=0; i < subsolution.size(); i++)
+                    {
+                        if(deactivated >= max_deact)
+                            break;
+
+                        if(subsolution[i])
+                        {
+                            float r = gen();
+                            std::cout << "randon number:" << r << std::endl;
+                            if(r > 0.9f)
+                            {
+                                subsolution[i] = false;
+                                deactivated++;
+                            }
+                        }
+                    }
+
+                    int act = 0;
+                    int max_act = 2;
+
+                    for (int i = 0; (i < max_act); i++)
+                    {
+                        int to_act = std::floor(gen() * subsolution.size());
+                        subsolution[to_act] = true;
+                        /*float r = gen();
+                        std::cout << "randon number:" << r << std::endl;
+                        if(r > 0.95f)
+                        {
+                            subsolution[i] = true;
+                            act++;
+                        }*/
+                    }
+
+                    //check results
+                    SAModel<ModelT, SceneT> model;
+                    clear_structures();
+                    fill_structures(cc_[c], subsolution, model);
+
+                    visualizeGOCues(subsolution, 0, 0);
+
+                    subsolution = opt_subsolution;
+                }
+
+            }
+
             for (size_t i = 0; i < subsolution.size (); i++)
             {
                 //mask_[indices_[cc_[c][i]]] = (subsolution[i]);
@@ -4001,6 +4079,8 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::computeClutterCue (boo
         std::pair<int, float> def_value = std::make_pair(-1, std::numeric_limits<float>::infinity());
         unexplained_points_per_model.resize(scene_cloud_downsampled_->points.size(), def_value);
 
+        std::vector<int> explained_per_label(max_label_clusters_cloud_ + 1, 0);
+
         for (int i = 0; i < static_cast<int> (recog_model->explained_.size ()); i++)
         {
             if (octree_scene_downsampled_->radiusSearch (scene_cloud_downsampled_->points[recog_model->explained_[i]], radius_neighborhood_GO_, nn_indices,
@@ -4025,6 +4105,20 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::computeClutterCue (boo
                         unexplained_points_per_model[sidx].first = recog_model->explained_[i];
                     }
                 }
+            }
+
+            //count the number of explained points for this hypothesis for specific labels
+            explained_per_label[clusters_cloud_->points[recog_model->explained_[i]].label]++;
+        }
+
+        std::vector<bool> penalize_with_smooth_segmentation(max_label_clusters_cloud_ + 1, false);
+
+        for(size_t i=0; i < explained_per_label.size(); i++)
+        {
+            if(explained_per_label[i] > 100)
+            {
+                penalize_with_smooth_segmentation[i] = true;
+                //PCL_WARN("penalize with smooth clutter... %d\n", explained_per_label[i]);
             }
         }
 
@@ -4069,8 +4163,10 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::computeClutterCue (boo
 
             if ( (clusters_cloud_->points[i].label != 0 || use_super_voxels_) &&
                  (clusters_cloud_->points[i].label == clusters_cloud_->points[sidx].label)
-                 && !is_planar_model) //ATTENTION!
+                 && !is_planar_model
+                 && penalize_with_smooth_segmentation[clusters_cloud_->points[i].label]) //ATTENTION!
             {
+                w = 1.f; //ATTENTION!
                 assert(clusters_cloud_->points[i].label != 0 || use_super_voxels_);
                 recog_model->unexplained_in_neighborhood_weights[p] = clutter_regularizer_ * w;
             }
@@ -4501,10 +4597,10 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues (const
     int viewport_smooth_seg_;
     int viewport_scene_cues_;
 
-    vis_go_cues_->createViewPort(0, 0, 0.5, 0.5, viewport_scene_and_hypotheses_);
+    vis_go_cues_->createViewPort(0, 0, 0.5, 0.5, viewport_scene_cues_);
     vis_go_cues_->createViewPort(0.5, 0, 1, 0.5, viewport_model_cues_);
     vis_go_cues_->createViewPort(0.5, 0.5, 1, 1, viewport_smooth_seg_);
-    vis_go_cues_->createViewPort(0, 0.5, 0.5, 1, viewport_scene_cues_);
+    vis_go_cues_->createViewPort(0, 0.5, 0.5, 1, viewport_scene_and_hypotheses_);
 
     std::string cost_str;
     std::ostringstream out;
@@ -4531,7 +4627,7 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues (const
     }
 
     //scene
-    pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_scene (scene_cloud_downsampled_, 125, 0, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_scene (scene_cloud_downsampled_, 200, 0, 0);
     vis_go_cues_->addPointCloud<SceneT> (scene_cloud_downsampled_, random_handler_scene, "scene_cloud", viewport_scene_and_hypotheses_);
 
     //smooth segmentation
@@ -4609,7 +4705,7 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues (const
     typename pcl::PointCloud<SceneT>::Ptr clutter_smooth (new pcl::PointCloud<SceneT> ());
     for (size_t j = 0; j < unexplained_by_RM_neighboorhods.size (); j++)
     {
-        if(unexplained_by_RM_neighboorhods[j] > 1.f && explained_by_RM_[j] == 0 && (clusters_cloud_->points[j].label != 0 || use_super_voxels_))
+        if(unexplained_by_RM_neighboorhods[j] >= (clutter_regularizer_ - 0.01f) && explained_by_RM_[j] == 0 && (clusters_cloud_->points[j].label != 0 || use_super_voxels_))
         {
             SceneT c_point;
             c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
@@ -4673,13 +4769,15 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues (const
 
             if(multiple_assignment_penalize_by_one_ == 1)
             {
-                c_point.r = c_point.g = c_point.b = curv_weight * duplicy_weight_test_ * 255;
+                c_point.r = c_point.g = c_point.b = 0;
+                c_point.g = curv_weight * duplicy_weight_test_ * 255;
             }
             else if(multiple_assignment_penalize_by_one_ == 2)
             {
                 if(show_weights_with_color_fading_)
                 {
-                    c_point.r = c_point.g = c_point.b = std::min(duplicates_by_RM_weighted_[j],1.0) * 255;
+                    c_point.r = c_point.g = c_point.b = 0;
+                    c_point.g = std::min(duplicates_by_RM_weighted_[j],1.0) * 255;
                 }
                 else
                 {
@@ -4690,7 +4788,8 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues (const
             }
             else
             {
-                c_point.r = c_point.g = c_point.b = 255;
+                c_point.r = c_point.g = c_point.b = 0;
+                c_point.g = 255;
             }
 
             duplicity_points->push_back (c_point);

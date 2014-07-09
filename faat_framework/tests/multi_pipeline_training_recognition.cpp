@@ -403,6 +403,8 @@ public:
   }
 };
 
+bool DO_SEGMENTATION_IF_NOT_REQUIRED_ = false;
+
 go_params parameters_for_go;
 
 template<typename PointT>
@@ -535,10 +537,17 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
     vis.addPointCloud<PointT> (scene, scene_handler, "scene_cloud", v1);
     vis.addText (files_to_recognize[i], 1, 30, 14, 1, 0, 0, "scene_text", v1);
 
+    pcl::PointCloud<pcl::Normal>::Ptr normal_cloud (new pcl::PointCloud<pcl::Normal>);
+    pcl::NormalEstimationOMP<PointT, pcl::Normal> ne;
+    ne.setRadiusSearch(0.02f);
+    ne.setInputCloud (scene);
+    ne.compute (*normal_cloud);
+
     //Multiplane segmentation
     faat_pcl::MultiPlaneSegmentation<PointT> mps;
     mps.setInputCloud(scene);
     mps.setMinPlaneInliers(1000);
+    mps.setNormals(normal_cloud);
     mps.setResolution(parameters_for_go.go_resolution);
 
     std::vector<faat_pcl::PlaneModel<PointT> > planes_found;
@@ -565,50 +574,55 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Mu
 
     vis.spinOnce();
 
-    std::vector<pcl::PointIndices> indices;
-    Eigen::Vector4f table_plane;
-    doSegmentation<PointT>(scene, indices, table_plane, seg);
-
-    if(local->isSegmentationRequired()) {
-      //visualize segmentation
-      for (size_t c = 0; c < indices.size (); c++)
-      {
-        /*if (indices[c].indices.size () < 500)
-          continue;*/
-
-        std::stringstream name;
-        name << "cluster_" << c;
-
-        typename pcl::PointCloud<PointT>::Ptr cluster (new pcl::PointCloud<PointT>);
-        pcl::copyPointCloud (*scene, indices[c].indices, *cluster);
-
-        pcl::visualization::PointCloudColorHandlerRandom<PointT> handler_rgb (cluster);
-        vis.addPointCloud<PointT> (cluster, handler_rgb, name.str (), v1);
-      }
-    }
-
-    //use table plane to define indices for the local pipeline as well...
-    std::vector<int> indices_above_plane;
-
+    if(DO_SEGMENTATION_IF_NOT_REQUIRED_ || local->isSegmentationRequired())
     {
-      for (int k = 0; k < scene->points.size (); k++)
-      {
-        Eigen::Vector3f xyz_p = scene->points[k].getVector3fMap ();
+        std::vector<pcl::PointIndices> indices;
+        Eigen::Vector4f table_plane;
+        doSegmentation<PointT>(scene, indices, table_plane, seg);
 
-        if (!pcl_isfinite (xyz_p[0]) || !pcl_isfinite (xyz_p[1]) || !pcl_isfinite (xyz_p[2]))
-          continue;
+        if(local->isSegmentationRequired()) {
+          //visualize segmentation
+          for (size_t c = 0; c < indices.size (); c++)
+          {
+            /*if (indices[c].indices.size () < 500)
+              continue;*/
 
-        float val = xyz_p[0] * table_plane[0] + xyz_p[1] * table_plane[1] + xyz_p[2] * table_plane[2] + table_plane[3];
+            std::stringstream name;
+            name << "cluster_" << c;
 
-        if (val >= 0.01)
-        {
-          indices_above_plane.push_back (static_cast<int> (k));
+            typename pcl::PointCloud<PointT>::Ptr cluster (new pcl::PointCloud<PointT>);
+            pcl::copyPointCloud (*scene, indices[c].indices, *cluster);
+
+            pcl::visualization::PointCloudColorHandlerRandom<PointT> handler_rgb (cluster);
+            vis.addPointCloud<PointT> (cluster, handler_rgb, name.str (), v1);
+          }
         }
-      }
+
+        //use table plane to define indices for the local pipeline as well...
+        std::vector<int> indices_above_plane;
+
+        {
+          for (int k = 0; k < scene->points.size (); k++)
+          {
+            Eigen::Vector3f xyz_p = scene->points[k].getVector3fMap ();
+
+            if (!pcl_isfinite (xyz_p[0]) || !pcl_isfinite (xyz_p[1]) || !pcl_isfinite (xyz_p[2]))
+              continue;
+
+            float val = xyz_p[0] * table_plane[0] + xyz_p[1] * table_plane[1] + xyz_p[2] * table_plane[2] + table_plane[3];
+
+            if (val >= 0.01)
+            {
+              indices_above_plane.push_back (static_cast<int> (k));
+            }
+          }
+        }
+
+        local->setSegmentation(indices);
+        local->setIndices(indices_above_plane);
     }
 
-    local->setSegmentation(indices);
-    local->setIndices(indices_above_plane);
+    local->setSceneNormals(normal_cloud);
     local->setInputCloud (scene);
     {
       pcl::ScopeTime ttt ("Recognition");
@@ -862,7 +876,9 @@ main (int argc, char ** argv)
   bool add_planes = true;
   bool cg_prune_hyp = false;
   bool use_codebook = false;
+  bool multi_object_CG = false;
 
+  pcl::console::parse_argument (argc, argv, "-multi_object_CG", multi_object_CG);
   pcl::console::parse_argument (argc, argv, "-use_codebook", use_codebook);
   pcl::console::parse_argument (argc, argv, "-cg_prune_hyp", cg_prune_hyp);
   pcl::console::parse_argument (argc, argv, "-seg_type", seg_type);
@@ -1001,21 +1017,21 @@ main (int argc, char ** argv)
   //gcg_alg->setRansacThreshold(ransac_threshold_cg_);
 
   cast_cg_alg = boost::static_pointer_cast<pcl::CorrespondenceGrouping<pcl::PointXYZ, pcl::PointXYZ> > (gcg_alg);
+  boost::shared_ptr<faat_pcl::GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > graph_cg_alg (
+                                                                                               new faat_pcl::GraphGeometricConsistencyGrouping<pcl::PointXYZ,
+                                                                                                   pcl::PointXYZ>);
 
   {
-    boost::shared_ptr<faat_pcl::GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > gcg_alg (
-                                                                                                 new faat_pcl::GraphGeometricConsistencyGrouping<pcl::PointXYZ,
-                                                                                                     pcl::PointXYZ>);
-    gcg_alg->setGCThreshold (CG_SIZE_);
-    gcg_alg->setGCSize (CG_THRESHOLD_);
-    gcg_alg->setRansacThreshold (ransac_threshold_cg_);
-    gcg_alg->setUseGraph(true);
-    gcg_alg->setPrune(false);
-    gcg_alg->setDotDistance(0.25f);
-    gcg_alg->setDistForClusterFactor(0);
-    gcg_alg->setMaxTimeForCliquesComputation(100);
-    gcg_alg->setCheckNormalsOrientation(true);
-    cast_cg_alg = boost::static_pointer_cast<pcl::CorrespondenceGrouping<pcl::PointXYZ, pcl::PointXYZ> > (gcg_alg);
+    graph_cg_alg->setGCThreshold (CG_SIZE_);
+    graph_cg_alg->setGCSize (CG_THRESHOLD_);
+    graph_cg_alg->setRansacThreshold (ransac_threshold_cg_);
+    graph_cg_alg->setUseGraph(true);
+    graph_cg_alg->setPrune(false);
+    graph_cg_alg->setDotDistance(0.25f);
+    graph_cg_alg->setDistForClusterFactor(0);
+    graph_cg_alg->setMaxTimeForCliquesComputation(100);
+    graph_cg_alg->setCheckNormalsOrientation(true);
+    cast_cg_alg = boost::static_pointer_cast<pcl::CorrespondenceGrouping<pcl::PointXYZ, pcl::PointXYZ> > (graph_cg_alg);
   }
 
 
@@ -1097,7 +1113,7 @@ main (int argc, char ** argv)
         local->setTrainingDir (training_dir_shot);
         local->setDescriptorName (desc_name);
         local->setFeatureEstimator (cast_estimator);
-        local->setCGAlgorithm (cast_cg_alg);
+        //local->setCGAlgorithm (cast_cg_alg);
 
         local->setUseCache (static_cast<bool> (use_cache));
         local->setVoxelSizeICP (VX_SIZE_ICP_);
@@ -1233,6 +1249,8 @@ main (int argc, char ** argv)
     }
   }
 
+  multi_recog->setCGAlgorithm (graph_cg_alg);
+  multi_recog->setMultiObjectCG(multi_object_CG);
   multi_recog->setVoxelSizeICP(VX_SIZE_ICP_);
   multi_recog->setICPType(icp_type);
   multi_recog->setICPIterations(icp_iterations);

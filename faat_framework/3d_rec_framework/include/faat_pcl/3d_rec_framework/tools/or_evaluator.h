@@ -238,7 +238,9 @@ namespace faat_pcl
 
           typename boost::shared_ptr<Source<ModelPointT> > source_;
           bool check_pose_;
+          bool check_rotation_;
           float max_centroid_diff_;
+          float max_rotation_;
           bool replace_model_ext_;
           float max_occlusion_;
           bool use_max_occlusion_;
@@ -273,7 +275,22 @@ namespace faat_pcl
               max_centroid_diff_ = f;
           }
 
-          void setCheckPose(bool f) { check_pose_ = f; };
+          void setCheckPose(bool f)
+          {
+              check_pose_ = f;
+          };
+
+          void setCheckRotation(bool f)
+          {
+              check_rotation_ = f;
+          }
+
+          //in degrees
+          void setMaxRotation(float f)
+          {
+                max_rotation_ = f;
+          }
+
           OREvaluator ();
 
           ~OREvaluator ()

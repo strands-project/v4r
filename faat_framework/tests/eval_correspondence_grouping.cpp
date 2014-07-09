@@ -147,6 +147,8 @@ sortFiles (const std::string & file1, const std::string & file2)
 }
 
 std::string STATISTIC_OUTPUT_FILE_ = "stats.txt";
+float MAX_TRANSLATION_ERROR_ = 0.01f;
+float MAX_ROTATION_ERROR = 15.f;
 
 template<typename PointT>
 void
@@ -159,6 +161,9 @@ recognizeAndVisualize (typename boost::shared_ptr<faat_pcl::rec_3d_framework::Re
     or_eval.setModelsDir(MODELS_DIR_);
     or_eval.setCheckPose(true);
     or_eval.setScenesDir(scene_file);
+    or_eval.setMaxCentroidDistance(MAX_TRANSLATION_ERROR_);
+    or_eval.setCheckRotation(true);
+    or_eval.setMaxRotation(MAX_ROTATION_ERROR);
 
     typename boost::shared_ptr<faat_pcl::rec_3d_framework::Source<PointT> > model_source_ = local->getDataSource ();
     typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointInTPtr;
@@ -460,7 +465,13 @@ main (int argc, char ** argv)
     bool visualize_graph = false;
     int cg_method = 0; //0-GGC, 1-IGC, 2-Hough
     bool prune_by_cc = false;
+    bool check_normals_orientation=true;
+    int max_taken = 5;
 
+    pcl::console::parse_argument (argc, argv, "-max_taken", max_taken);
+    pcl::console::parse_argument (argc, argv, "-check_normals_orientation", check_normals_orientation);
+    pcl::console::parse_argument (argc, argv, "-max_trans_error", MAX_TRANSLATION_ERROR_);
+    pcl::console::parse_argument (argc, argv, "-max_rotation_error", MAX_ROTATION_ERROR);
     pcl::console::parse_argument (argc, argv, "-prune_by_cc", prune_by_cc);
     pcl::console::parse_argument (argc, argv, "-cg_method", cg_method);
     pcl::console::parse_argument (argc, argv, "-visualize_graph", visualize_graph);
@@ -659,9 +670,12 @@ main (int argc, char ** argv)
             gcg_alg->setUseGraph(use_gc_graph);
             gcg_alg->setDistForClusterFactor(min_dist_cf_);
             gcg_alg->setPrune(false);
+            gcg_alg->setCheckNormalsOrientation(check_normals_orientation);
             gcg_alg->setVisualizeGraph(visualize_graph);
             gcg_alg->setDotDistance(gc_dot_threshold_);
             gcg_alg->setPrune(prune_by_cc);
+            gcg_alg->setMaxTimeForCliquesComputation(250);
+            gcg_alg->setMaxTaken(max_taken);
             cast_cg_alg = boost::static_pointer_cast<pcl::CorrespondenceGrouping<pcl::PointXYZ, pcl::PointXYZ> > (gcg_alg);
         }
 

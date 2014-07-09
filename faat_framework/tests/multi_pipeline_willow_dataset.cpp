@@ -1468,6 +1468,9 @@ main (int argc, char ** argv)
     int max_taken_ = 5;
     std::string idx_flann_sift = "willow_sift.idx";
 
+    bool multi_object_CG = false;
+
+    pcl::console::parse_argument (argc, argv, "-multi_object_CG", multi_object_CG);
     pcl::console::parse_argument (argc, argv, "-max_time_cliques_ms", max_time_cliques_ms_);
     pcl::console::parse_argument (argc, argv, "-uke_max_distance", uke_max_distance_);
     pcl::console::parse_argument (argc, argv, "-segmentation_plane_unorganized", segmentation_plane_unorganized_);
@@ -2056,6 +2059,7 @@ main (int argc, char ** argv)
     }
 
     multi_recog->setCGAlgorithm(gcg_alg);
+    multi_recog->setMultiObjectCG(multi_object_CG);
     multi_recog->setVoxelSizeICP(VX_SIZE_ICP_);
     multi_recog->setICPType(icp_type);
     multi_recog->setICPIterations(icp_iterations);

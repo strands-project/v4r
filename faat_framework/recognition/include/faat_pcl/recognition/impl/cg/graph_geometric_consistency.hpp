@@ -1172,7 +1172,7 @@ template<typename PointModelT, typename PointSceneT>
       std::vector< std::vector<int> > correspondence_to_instance;
       correspondence_to_instance.resize(model_scene_corrs_->size());
 
-      if (cliques_computation_possible_[c] /*&& (num_v_in_cc < 400) && (num_edges (connected_graph) < 8000) && arboricity < 10*/)
+      if (cliques_computation_possible_[c] && arboricity < 25 /*&& (num_v_in_cc < 400) && (num_edges (connected_graph) < 8000) && arboricity < 10*/)
       {
         //std::cout << "Using cliques" << std::endl;
         //std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;

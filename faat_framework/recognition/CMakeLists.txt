@@ -6,6 +6,22 @@ SET(FOO_LIBRARY_TYPE SHARED)
 
 SET(FAAT_PCL_HV_USE_GPU 0)
 
+if(FAAT_PCL_USE_CUDA)
+
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include
+                        ${CUDA_TOOLKIT_INCLUDE}
+                        ${PCL_SRC_DIR}/gpu/octree/include
+                        ${PCL_SRC_DIR}/gpu/containers/include
+                        ${PCL_SRC_DIR}/gpu/octree/src/
+                        ${PCL_SRC_DIR}/gpu/utils/include/)
+
+    cuda_add_library(${PROJECT_NAME}_cuda_recognition SHARED src/hv/cuda/ghv.cu include/faat_pcl/${SUBSYS_NAME}/hv/cuda/ghv.h)
+
+    add_library(${PROJECT_NAME}_recognition_with_cuda ${FOO_LIBRARY_TYPE} include/faat_pcl/${SUBSYS_NAME}/hv/ghv_cuda_wrapper.h src/hv/ghv_cuda_wrapper.cpp)
+    target_link_libraries(${PROJECT_NAME}_recognition_with_cuda ${PCL_LIBRARIES} ${PROJECT_NAME}_cuda_recognition pcl_gpu_containers pcl_gpu_octree)
+
+endif(FAAT_PCL_USE_CUDA)
+
 set(hv_incs
   include/faat_pcl/${SUBSYS_NAME}/hv/hv_go.h
   include/faat_pcl/${SUBSYS_NAME}/hv/hv_go_1.h
@@ -19,7 +35,7 @@ set(hv_impl_incs
   include/faat_pcl/${SUBSYS_NAME}/impl/hv/hv_go.hpp
   include/faat_pcl/${SUBSYS_NAME}/impl/hv/hv_go_1.hpp
   include/faat_pcl/${SUBSYS_NAME}/impl/hv/hv_go_opt.hpp
-include/faat_pcl/${SUBSYS_NAME}/impl/hv/occlusion_reasoning.hpp
+  include/faat_pcl/${SUBSYS_NAME}/impl/hv/occlusion_reasoning.hpp
 )
 
 set(srcs
@@ -28,15 +44,18 @@ set(srcs
   src/hv/hv_go_1.cpp
   src/hv/hv_go_opt.cpp
   src/cg/graph_geometric_consistency.cpp
+  src/cg/multi_object_graph_CG.cpp
 )
 
 set(cg_incs
   include/faat_pcl/${SUBSYS_NAME}/cg/graph_geometric_consistency.h
+  include/faat_pcl/${SUBSYS_NAME}/cg/multi_object_graph_CG.h
 )
 
 set(cg_impl_incs
   include/faat_pcl/${SUBSYS_NAME}/impl/cg/graph_geometric_consistency.hpp
   include/faat_pcl/${SUBSYS_NAME}/impl/cg/cliques.hpp
+  include/faat_pcl/${SUBSYS_NAME}/impl/cg/multi_object_graph_CG.hpp
 )
 
 add_definitions(-DFAAT_REC_EXPORTS)

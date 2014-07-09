@@ -88,7 +88,7 @@ main (int argc, char ** argv)
   vfh_estimator->setNormals(normal_cloud);
   vfh_estimator->setNormalizeBins (normalize_);
   vfh_estimator->setUseRFForColor (true);
-  vfh_estimator->setRefineClustersParam (100.f);
+  vfh_estimator->setRefineClustersParam (3.f);
   vfh_estimator->setInternalNormalRadiusAndResolution(0.02f, 0.001f);
   //vfh_estimator->setAdaptativeMLS (true);
 
@@ -107,7 +107,7 @@ main (int argc, char ** argv)
 
     //cur_thresholds.push_back (0.015f);
     //cur_thresholds.push_back (1.f);
-    clus_thresholds.push_back (10.f);
+    clus_thresholds.push_back (5.f);
 
     vfh_estimator->setClusterToleranceVector (clus_thresholds);
     vfh_estimator->setEpsAngleThresholdVector (eps_thresholds);
@@ -149,9 +149,20 @@ main (int argc, char ** argv)
   std::vector<pcl::PointIndices> cluster_indices;
   vfh_estimator->getClusterIndices(cluster_indices);
   pcl::visualization::PCLVisualizer vis("ourcvfh_test");
+  vis.setBackgroundColor(1,1,1);
   //pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler(processed);
   //vis.addPointCloud<PointT>(processed, handler, "processed_cloud");
   vis.addCoordinateSystem(0.1f);
+
+  float cw = 0.15f;
+  vis.addCube(0,cw,0,cw,0,cw, 255, 0, 0, "cube_1");
+  vis.addCube(0,cw,0,cw,-cw,0, 0, 255, 0, "cube_3");
+  vis.addCube(0,cw,-cw,0,0,cw, 0, 255, 255, "cube_4");
+  vis.addCube(0, cw,-cw,0,-cw,0, 0, 0, 255, "cube_2");
+  vis.addCube(-cw,0,-cw,0,-cw,0, 255, 255, 0, "cube_5");
+  vis.addCube(-cw,0,0,cw,-cw,0, 255, 0, 255, "cube_6");
+  vis.addCube(-cw,0,-cw,0,0, cw, 0, 0, 0, "cube_7");
+  vis.addCube(-cw,0,-0, cw,0, cw, 1.f, 0.35, 0, "cube_8");
 
   std::cout << cluster_indices.size() << " " << signatures.size() << std::endl;
 
