@@ -13,6 +13,7 @@ set(utils_incs
   include/faat_pcl/${SUBSYS_NAME}/depth_inpainting.h
   include/faat_pcl/${SUBSYS_NAME}/filesystem_utils.h
   include/faat_pcl/${SUBSYS_NAME}/pcl_opencv.h
+  include/faat_pcl/${SUBSYS_NAME}/pcl_visualization_utils.h
   include/faat_pcl/${SUBSYS_NAME}/registration_utils.h
   include/faat_pcl/${SUBSYS_NAME}/segmentation_utils.h
   include/faat_pcl/${SUBSYS_NAME}/EDT/3rdparty/propagation_distance_field.h
@@ -24,16 +25,19 @@ set(utils_incs
 add_definitions(-DFAAT_UTILS_EXPORTS)
 
 set(srcs
+  src/filesystem_utils.cpp
   src/integral_volume.cpp
   src/voxel_dist_transform.cpp
   src/EDT/3rdparty/propagation_distance_field.cpp
   src/noise_models.cpp
   src/noise_model_based_cloud_integration.cpp
+  src/pcl_visualization_utils.cpp
+  src/segmentation_utils.cpp
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(${LIB_NAME} ${FOO_LIBRARY_TYPE} ${srcs} ${utils_incs})
-target_link_libraries(${LIB_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(${LIB_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} boost_regex)
 
 add_executable(NMBasedCloudIntegration tests/test_NMBasedCloudIntegration.cpp)
 target_link_libraries(NMBasedCloudIntegration ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils boost_regex)

@@ -110,9 +110,9 @@ faat_pcl::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
 
       pcl::PointCloud<pcl::PointXYZ>::Ptr edge_cloud2 (new pcl::PointCloud<pcl::PointXYZ> (*edge_cloud));
 
-      for (int v = wsize2; v < (input_->width - wsize2); v++)
+      for (int v = wsize2; v < static_cast<int>(input_->width - wsize2); v++)
       {
-        for (int u = wsize2; u < (input_->height - wsize2); u++)
+        for (int u = wsize2; u < static_cast<int>(input_->height - wsize2); u++)
         {
           if (!pcl_isfinite(edge_cloud->at(v,u).z))
             continue;
