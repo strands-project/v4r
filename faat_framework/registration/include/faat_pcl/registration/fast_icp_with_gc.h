@@ -72,7 +72,8 @@ namespace faat_pcl
     class FastIterativeClosestPointWithGC
     {
 
-      typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
+        typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
+        typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
       typedef typename faat_pcl::registration::ICPNode<PointT> ICPNodeT;
       void
       visualizeICPNodes(std::vector<boost::shared_ptr<ICPNodeT> > & nodes,
@@ -240,13 +241,13 @@ namespace faat_pcl
           ransac_threshold_ = t;
         }
 
-        void setInitialPoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses)
+        void setInitialPoses(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses)
         {
           initial_poses_ = poses;
         }
 
-        void setInputAndTargetIndices(pcl::PointIndices & input,
-                                          pcl::PointIndices & target)
+        void setInputAndTargetIndices(const pcl::PointIndices & input,
+                                          const pcl::PointIndices & target)
         {
           input_indices_ = input;
           target_indices_ = target;
@@ -257,7 +258,7 @@ namespace faat_pcl
           standard_cg_ = b;
         }
 
-        float getFinalTransformation(Eigen::Matrix4f & matrix)
+        float getFinalTransformation(Eigen::Matrix4f & matrix) const
         {
           if(result_.size() == 0)
           {
@@ -295,12 +296,12 @@ namespace faat_pcl
           max_iterations_ = it;
         }
 
-        void setInputSource(PointTPtr & cloud)
+        void setInputSource(PointTPtr cloud)
         {
           input_ = cloud;
         }
 
-        void setInputTarget(PointTPtr & cloud)
+        void setInputTarget(PointTPtr cloud)
         {
           target_ = cloud;
         }

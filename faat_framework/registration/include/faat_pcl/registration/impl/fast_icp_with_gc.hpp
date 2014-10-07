@@ -222,7 +222,7 @@ namespace faat_pcl
       void
       FastIterativeClosestPointWithGC<PointT>::align (Eigen::Matrix4f initial_guess)
       {
-
+        assert(input_->width == 640 && input_->height == 480 && target_->width == 640 && target_->height == 480);
 #ifdef FAAT_PCL_FAST_ICP_VIS_FINAL
         pcl::visualization::PCLVisualizer survived_vis ("survived VIS...");
 #endif
@@ -261,7 +261,7 @@ namespace faat_pcl
           ind_tgt_cedges = indices_tgt_roi;
         }
 
-        PointTPtr src_keypoints (new pcl::PointCloud<PointT>);
+        PointTPtr src_keypoints  (new pcl::PointCloud<PointT>);
         PointTPtr tgt_keypoints (new pcl::PointCloud<PointT>);
 
         pcl::PointCloud<pcl::Normal>::Ptr normal_tgt_keypoints(new pcl::PointCloud<pcl::Normal>);

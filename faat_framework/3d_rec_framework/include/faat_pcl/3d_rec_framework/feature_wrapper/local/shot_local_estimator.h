@@ -31,8 +31,12 @@ namespace faat_pcl
         using LocalEstimator<PointInT, FeatureT>::adaptative_MLS_;
 
       public:
-        bool
-        estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
+        size_t getFeatureType() const
+        {
+          return SHOT;
+        }
+
+        bool estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 
           if (!normal_estimator_)

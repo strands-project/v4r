@@ -29,6 +29,9 @@ inline void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
                                                                   + transform (1, 2) * nt[2]);
         normals_aligned->points[k].normal_z = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1]
                                                                   + transform (2, 2) * nt[2]);
+
+        normals_aligned->points[k].curvature = normals_cloud->points[k].curvature;
+
     }
 }
 
@@ -49,6 +52,8 @@ inline void transformNormals(pcl::PointCloud<pcl::Normal>::ConstPtr & normals_cl
                                                                   + transform (1, 2) * nt[2]);
         normals_aligned->points[k].normal_z = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1]
                                                                   + transform (2, 2) * nt[2]);
+
+        normals_aligned->points[k].curvature = normals_cloud->points[k].curvature;
     }
 }
 

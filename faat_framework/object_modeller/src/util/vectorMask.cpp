@@ -11,12 +11,6 @@ namespace util
 {
 
 template <class TType>
-void VectorMask<TType>::applyConfig(Config &config)
-{
-
-}
-
-template <class TType>
 std::vector<std::vector<TType> > VectorMask<TType>::process(boost::tuples::tuple<
              std::vector<std::vector<TType> >,
              std::vector<std::vector<int> > > input)

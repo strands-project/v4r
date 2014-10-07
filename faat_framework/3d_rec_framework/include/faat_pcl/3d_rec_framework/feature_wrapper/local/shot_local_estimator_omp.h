@@ -33,6 +33,8 @@ namespace faat_pcl
         using LocalEstimator<PointInT, FeatureT>::neighborhood_dist_;
         using LocalEstimator<PointInT, FeatureT>::adaptative_MLS_;
         using LocalEstimator<PointInT, FeatureT>::normals_;
+        using LocalEstimator<PointInT, FeatureT>::keypoint_indices_;
+
         pcl::PointIndices indices_;
 
       public:
@@ -40,13 +42,18 @@ namespace faat_pcl
 		//~SHOTLocalEstimationOMP () {};
 
         void
-        setIndices (pcl::PointIndices & p_indices)
+        setIndices (const pcl::PointIndices & p_indices)
         {
           indices_ = p_indices;
         }
 
+        size_t getFeatureType() const
+        {
+            return SHOT;
+        }
+
         void
-        setIndices(std::vector<int> & p_indices)
+        setIndices(const std::vector<int> & p_indices)
         {
           indices_.indices = p_indices;
         }
@@ -173,11 +180,13 @@ namespace faat_pcl
               }
 
               keypoints->points[good] = keypoints->points[k];
+              keypoint_indices_.indices[good] = keypoint_indices_.indices[k];
 
               good++;
             }
           }
 
+          keypoint_indices_.indices.resize(good);
           keypoints->points.resize(good);
           keypoints->width = good;
           signatures->resize (good);

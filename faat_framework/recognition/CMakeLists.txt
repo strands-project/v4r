@@ -25,8 +25,10 @@ endif(FAAT_PCL_USE_CUDA)
 set(hv_incs
   include/faat_pcl/${SUBSYS_NAME}/hv/hv_go.h
   include/faat_pcl/${SUBSYS_NAME}/hv/hv_go_1.h
+  include/faat_pcl/${SUBSYS_NAME}/hv/ghv.h
   include/faat_pcl/${SUBSYS_NAME}/hv/hv_go_3D.h
   include/faat_pcl/${SUBSYS_NAME}/hv/hv_go_opt.h
+  include/faat_pcl/${SUBSYS_NAME}/hv/ghv_opt.h
   include/faat_pcl/${SUBSYS_NAME}/hv/hypotheses_verification.h
   include/faat_pcl/${SUBSYS_NAME}/hv/occlusion_reasoning.h
 )
@@ -34,7 +36,9 @@ set(hv_incs
 set(hv_impl_incs
   include/faat_pcl/${SUBSYS_NAME}/impl/hv/hv_go.hpp
   include/faat_pcl/${SUBSYS_NAME}/impl/hv/hv_go_1.hpp
+  include/faat_pcl/${SUBSYS_NAME}/impl/hv/ghv.hpp
   include/faat_pcl/${SUBSYS_NAME}/impl/hv/hv_go_opt.hpp
+  include/faat_pcl/${SUBSYS_NAME}/impl/hv/ghv_opt.hpp
   include/faat_pcl/${SUBSYS_NAME}/impl/hv/occlusion_reasoning.hpp
 )
 
@@ -42,7 +46,9 @@ set(srcs
   src/hv/hv_go.cpp
   src/hv/hv_go_3D.cpp
   src/hv/hv_go_1.cpp
+  src/hv/ghv.cpp
   src/hv/hv_go_opt.cpp
+  src/hv/ghv_opt.cpp
   src/cg/graph_geometric_consistency.cpp
   src/cg/multi_object_graph_CG.cpp
 )

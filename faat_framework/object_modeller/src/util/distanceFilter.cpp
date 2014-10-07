@@ -9,10 +9,12 @@ namespace object_modeller
 namespace util
 {
 
-void DistanceFilter::applyConfig(Config &config)
+void DistanceFilter::applyConfig(Config::Ptr &config)
 {
-    this->maxDist = config.getFloat(getConfigName(), "zDist", 2.0f);
-    this->euclideanDistance = config.getBool(getConfigName(), "euclideanDistance", false);
+    ConfigItem::applyConfig(config);
+
+    registerParameter("zDist", "Distance", &maxDist, 2.0f);
+    registerParameter("euclideanDistance", "Euclidean Distance", &euclideanDistance, false);
 }
 
 std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> DistanceFilter::process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pointClouds)
@@ -20,6 +22,8 @@ std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> DistanceFilter::process(std:
     std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> result;
 
     std::cout << "input cloud size: " << pointClouds.size() << std::endl;
+
+    std::cout << "running distance filter with " << maxDist << std::endl;
 
     for (size_t i = 0; i < pointClouds.size (); i++)
     {

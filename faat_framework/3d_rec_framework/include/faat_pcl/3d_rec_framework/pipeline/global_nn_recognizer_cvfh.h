@@ -215,7 +215,7 @@ namespace faat_pcl
         void
         getView (ModelT & model, int view_id, PointInTPtr & view);
 
-        int NN_;
+        size_t NN_;
 
         std::vector<float> descriptor_distances_;
         float accept_hypotheses_threshold_;
@@ -236,12 +236,12 @@ namespace faat_pcl
           normals_set_ = false;
         }
 
-        bool acceptsNormals()
+        bool acceptsNormals() const
         {
             return true;
         }
 
-        void setSceneNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        void setSceneNormals(pcl::PointCloud<pcl::Normal>::Ptr normals)
         {
             scene_normals_ = normals;
             normals_set_ = true;
@@ -256,18 +256,18 @@ namespace faat_pcl
         {
         }
 
-        void setMaxHyp(int t) {
+        void setMaxHyp(const int t) {
           OUR_CVFH_MAX_HYP_ = t;
         }
 
         void
-        setAcceptHypThreshold (float t)
+        setAcceptHypThreshold (const float t)
         {
           accept_hypotheses_threshold_ = t;
         }
 
         void
-        setMaxDescDistance (float t)
+        setMaxDescDistance (const float t)
         {
           max_desc_distance_ = t;
         }
@@ -279,33 +279,33 @@ namespace faat_pcl
         }
 
         void
-        setComputeScale (bool d)
+        setComputeScale (const bool d)
         {
           compute_scale_ = d;
         }
 
         void
-        setCategoriesToUseForRecognition (std::vector<std::string> & cats_to_use)
+        setCategoriesToUseForRecognition (const std::vector<std::string> cats_to_use)
         {
           categories_to_be_searched_.clear ();
           categories_to_be_searched_ = cats_to_use;
         }
 
         void
-        setUseSingleCategories (bool b)
+        setUseSingleCategories (const bool b)
         {
           use_single_categories_ = b;
         }
 
         void
-        setNoise (float n)
+        setNoise (const float n)
         {
           noisify_ = true;
           noise_ = n;
         }
 
         void
-        setNN (int nn)
+        setNN (const size_t nn)
         {
           NN_ = nn;
         }
@@ -321,7 +321,7 @@ namespace faat_pcl
          * \brief Sets the model data source_
          */
         void
-        setDataSource (typename boost::shared_ptr<Source<PointInT> > & source)
+        setDataSource (typename boost::shared_ptr<Source<PointInT> > source)
         {
           source_ = source;
         }
@@ -343,13 +343,13 @@ namespace faat_pcl
         }
 
         void
-        setDescriptorName (std::string & name)
+        setDescriptorName (const std::string name)
         {
           descr_name_ = name;
         }
 
         void
-        setTrainingDir (std::string & dir)
+        setTrainingDir (const std::string dir)
         {
           training_dir_ = dir;
         }
@@ -362,7 +362,7 @@ namespace faat_pcl
         recognize ();
 
         void
-        setUseCache (bool u)
+        setUseCache (const bool u)
         {
           use_cache_ = u;
         }

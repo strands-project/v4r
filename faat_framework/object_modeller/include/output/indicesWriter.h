@@ -21,9 +21,10 @@ private:
 
 public:
     IndicesWriter(std::string config_name="indicesWriter") : OutModule(config_name)
-    {}
-
-    virtual void applyConfig(Config &config);
+    {
+        registerParameter("outputPath", "Output path", &outputPath, std::string("./out"));
+        registerParameter("pattern", "Pattern", &pattern, std::string("object_indices_*.txt"));
+    }
 
     void process(std::vector<std::vector<int> > indices);
 

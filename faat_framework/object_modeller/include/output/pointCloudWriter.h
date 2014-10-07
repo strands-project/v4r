@@ -23,9 +23,10 @@ private:
 public:
     PointCloudWriter(std::string config_name="pointCloudWriter")
         : OutModule<std::vector<typename pcl::PointCloud<TPointType>::Ptr> >(config_name)
-    {}
-
-    virtual void applyConfig(Config &config);
+    {
+        ConfigItem::registerParameter("outputPath", "Output path", &outputPath, std::string("./out"));
+        ConfigItem::registerParameter("pattern", "Pattern", &pattern, std::string("cloud_*.pcd"));
+    }
 
     void process(std::vector<typename pcl::PointCloud<TPointType>::Ptr> input);
 

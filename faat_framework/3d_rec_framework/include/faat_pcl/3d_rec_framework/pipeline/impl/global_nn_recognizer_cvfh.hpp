@@ -406,7 +406,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
             //gather NN-search results
             double score = 0;
-            for (int i = 0; i < NN_; ++i)
+            for (size_t i = 0; i < NN_; ++i)
             {
               score = distances[0][i];
               index_score is;

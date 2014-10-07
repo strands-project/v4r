@@ -19,6 +19,7 @@ namespace faat_pcl
                                      float (j * ((i % 2) / 10.0 + 1)) / number_of_subwindows_per_view,
                                      float (j * ((i % 2) / 10.0 + 1)) / number_of_subwindows_per_view, viewportNr[number_of_subwindows_per_view * i + j]);
 
+            vis->removeAllShapes(viewportNr[i * number_of_subwindows_per_view + j]);
             std::stringstream window_id;
             window_id << "(" << i << ", " << j << ")";
             vis->addText (window_id.str (), 10, 10, window_id.str (), viewportNr[i * number_of_subwindows_per_view + j]);

@@ -77,9 +77,9 @@ main (int argc, char ** argv)
   std::string clouds_dir;
   int icp_iterations_ = 30;
   float max_corresp_dist_ = 0.1f;
-  bool use_cg = false;
-  bool survival_of_the_fittest = true;
-  bool point_to_plane_baseline = false;
+//  bool use_cg = false;
+//  bool survival_of_the_fittest = true;
+//  bool point_to_plane_baseline = false;
   float voxel_grid_size = 0.005f;
   float dt_size = voxel_grid_size;
   float data_scale = 1.f;
@@ -199,7 +199,7 @@ main (int argc, char ** argv)
       ror.filter(*filtered_edges);
 
       pcl::PointCloud<PointType>::Ptr points (new pcl::PointCloud<PointType>(*filtered_edges));
-      float curv_thres = 0.01f;
+//      float curv_thres = 0.01f;
       if(filtered_edges->points.size() > 0)
       {
         std::vector<int> pointIdxNKNSearch;

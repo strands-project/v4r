@@ -1,0 +1,19 @@
+Arduino setup
+
+* Download Arduino studio
+* Optional: set baudrate, nr of steps and pins in stepper.ino
+* Open stepper.ino and upload to arduino
+* Set serial port name in config.txt
+* Set reader type to 2
+* Run object_modeller
+
+
+Connections:
+
+Connect motor shield power supply to 12V DC (2A required)
+connect motor power (black tape) to motor shield A
+Encoder:
+Brown = VCC (white tape, white cable) to motor shield 5V
+Green = GND (yellow tape, white cable) to motor shield GND
+Blue = Sensor A (yellow tape, black cable) to motor shield pin 4
+Purple = Sensor B (white tape, black cable) to motor shield pin 7

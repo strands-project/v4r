@@ -12,6 +12,12 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::GHVCudaWrapper ()
 #ifdef VIS
     vis_.reset(new pcl::visualization::PCLVisualizer("GHV gpu"));
 #endif
+
+    outlier_regularizer_ = 2.f;
+    inlier_threshold = 0.008f;
+    clutter_regularizer_ = 5.f;
+    clutter_radius_ = 0.03f;
+    color_sigma_y_ = color_sigma_ab_ = 0.5f;
 }
 
 template<typename PointT>
@@ -437,6 +443,11 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::verify ()
 #endif
 
     faat_pcl::recognition_cuda::GHV ghv_;
+    ghv_.setclutterRadius(clutter_radius_);
+    ghv_.setOutlierWewight(outlier_regularizer_);
+    ghv_.setClutterWeight(clutter_regularizer_);
+    ghv_.setInlierThreshold(inlier_threshold);
+    ghv_.setColorSigmas(color_sigma_y_, color_sigma_ab_);
 
     {
         pcl::ScopeTime t("total time with smooth segmentation (CPU), upload, cues and optimization");

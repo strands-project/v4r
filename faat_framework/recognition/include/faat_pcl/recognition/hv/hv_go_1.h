@@ -325,6 +325,7 @@ namespace faat_pcl
       int min_points_;
       float curvature_threshold_;
       float cluster_tolerance_;
+      int multiple_assignment_penalize_by_one_;
 
       double
       getOccupiedMultipleW ()
@@ -695,6 +696,7 @@ namespace faat_pcl
         max_threads_ = 1;
         d_weight_for_bad_normals_ = 0.1f;
         use_clutter_exp_ = false;
+        multiple_assignment_penalize_by_one_ = 2;
       }
 
       void setUseClutterExp(bool b)

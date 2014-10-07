@@ -87,7 +87,7 @@ namespace faat_pcl
         }
 
         void
-        setIndices(std::vector<int> & indices)
+        setIndices(const std::vector<int> & indices)
         {
           only_on_indices_ = true;
           indices_.indices = indices;

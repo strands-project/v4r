@@ -10,23 +10,26 @@ namespace output
 {
 
 template<class TPointType>
-void PointCloudWriter<TPointType>::applyConfig(Config &config)
-{
-    this->outputPath = config.getString(Module::getConfigName(), "outputPath",
-                                        config.getString("writer", "outputPath", "./out"));
-    this->pattern =     config.getString(Module::getConfigName(), "pattern", "cloud_*.pcd");
-}
-
-template<class TPointType>
 void PointCloudWriter<TPointType>::process(std::vector<typename pcl::PointCloud<TPointType>::Ptr> pointClouds)
 {
-    boost::filesystem::path dir(this->outputPath);
+    std::stringstream _outputPath;
+    _outputPath << outputPath << "/";
+
+    int _activeSequence = OutModule<std::vector<typename pcl::PointCloud<TPointType>::Ptr> >::activeSequence;
+    int _nrInputSequences = OutModule<std::vector<typename pcl::PointCloud<TPointType>::Ptr> >::nrInputSequences;
+
+    if (_nrInputSequences > 1)
+    {
+        _outputPath << "seq_" << _activeSequence << "/";
+    }
+
+    boost::filesystem::path dir(_outputPath.str());
     boost::filesystem::create_directories(dir);
 
     for(size_t k=0; k < pointClouds.size(); k++)
     {
         std::stringstream filename;
-        filename << outputPath << "/";
+        filename << _outputPath.str();
 
         int wildcardIndex = pattern.find_first_of("*");
 

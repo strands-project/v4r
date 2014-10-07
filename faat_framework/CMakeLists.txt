@@ -3,12 +3,29 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project(FAAT_PCL)
 set(FAAT_PCL_VERSION 0.1)
 
+SET (CMAKE_BUILD_TYPE RelWithDebInfo)
+
 MESSAGE(STATUS ${PCL_DIR})
 # Find modules
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 set(CMAKE_MODULE_PATH ${PCL_DIR} ${CMAKE_MODULE_PATH})
 set(FAAT_PCL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 MESSAGE(STATUS ${CMAKE_MODULE_PATH})
+
+#decide on POSTFIX based on build type
+set(FAAT_PCL_POSTFIX "")
+#message(STATUS POST_FIX ${CMAKE_BUILD_TYPE})
+#IF(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+#    set(FAAT_PCL_POSTFIX "rd")
+#ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+
+#IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+#    set(FAAT_PCL_POSTFIX "d")
+#ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+
+#IF(${CMAKE_BUILD_TYPE} STREQUAL "MinSizeRel")
+#    set(FAAT_PCL_POSTFIX "s")
+#ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "MinSizeRel")
 
 # Allow the developer to select if Dynamic or Static libraries are built
 OPTION(BUILD_SHARED_LIBS "Build Shared Libraries" ON)
@@ -70,11 +87,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebI
   add_definitions("-DBOOST_DISABLE_ASSERTS -DEIGEN_NO_DEBUG")
 endif()
 
-#put all exe files in /bin, dll and lib files in /lib
-#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
-#
+IF(V4R_FAAT_TRUNK)
+
+ELSE(V4R_FAAT_TRUNK)
+    #put all exe files in /bin, dll and lib files in /lib
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+ENDIF()
+
 find_package( OpenCV 2.4 REQUIRED )
 
 find_package(PCL 1.7 REQUIRED COMPONENTS common io features segmentation geometry visualization recognition keypoints surface apps)
@@ -90,7 +111,13 @@ if(PCL_FOUND)
 endif(PCL_FOUND)
 
 include(cmake/pcl_find_cuda.cmake)
-set(FAAT_PCL_USE_CUDA 0)
+
+IF(V4R_FAAT_TRUNK)
+    SET(FAAT_PCL_USE_CUDA 0 CACHE BOOL "Compile FAAT PCL cuda parts")
+ELSE(V4R_FAAT_TRUNK)
+    SET(FAAT_PCL_USE_CUDA 1 CACHE BOOL "Compile FAAT PCL cuda parts")
+    SET(PCL_SRC_DIR /home/aitor/pcl_git_fork/pcl/ CACHE INTERNAL "PCL source directory")
+ENDIF()
 
 IF(CUDA_FOUND)
   MESSAGE(STATUS "CUDA WAS INDEED FOUND!!")
@@ -109,13 +136,12 @@ set(CONF_INCLUDE_DIRS   ${PROJECT_SOURCE_DIR}/3d_rec_framework/include
                         ${PROJECT_SOURCE_DIR}/recognition/include
                         ${PROJECT_SOURCE_DIR}/registration/include
                         ${PROJECT_SOURCE_DIR}/utils/
-                        ${PROJECT_SOURCE_DIR}/utils/include
-                        ${PROJECT_SOURCE_DIR}/object_modelling/include)
+                        ${PROJECT_SOURCE_DIR}/utils/include)
 
-set(CONF_LIBRARY_DIRS   ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_utils.so
-                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_registration.so
-                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_recognition.so
-                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_3d_rec_framework.so)
+set(CONF_LIBRARY_DIRS   ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_utils${FAAT_PCL_POSTFIX}.so
+                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_registration${FAAT_PCL_POSTFIX}.so
+                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_recognition${FAAT_PCL_POSTFIX}.so
+                        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_3d_rec_framework${FAAT_PCL_POSTFIX}.so)
 
 if(FAAT_PCL_USE_CUDA)
 	add_subdirectory(segmentation)
@@ -126,36 +152,51 @@ if(FAAT_PCL_USE_CUDA)
                                 ${PROJECT_SOURCE_DIR}/object_modelling/include)
 
         set(CONF_LIBRARY_DIRS   ${CONF_LIBRARY_DIRS}
-                                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_segmentation.so
-                                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_object_modelling.so)
-
+                                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_segmentation${FAAT_PCL_POSTFIX}.so
+                                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_object_modelling${FAAT_PCL_POSTFIX}.so
+                                ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${PROJECT_NAME}_recognition_with_cuda${FAAT_PCL_POSTFIX}.so)
 endif(FAAT_PCL_USE_CUDA)
 
-#add_subdirectory(tests)
+add_subdirectory(tests)
 
 export(PACKAGE ${PROJECT_NAME})
 
-#append external libraries in utils
-list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblevmar.so)
-list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsplm.so)
-list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsiftgpu.so)
+IF(V4R_FAAT_TRUNK)
+    #append external libraries in utils
+    list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblevmar.so)
+    list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsplm.so)
+    list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsiftgpu.so)
+    list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsiftpp.so)
 
-#configure_file(${PROJECT_NAME}Config.cmake.in "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
-#configure_file(${PROJECT_NAME}ConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
+    configure_file(${PROJECT_NAME}Config.cmake.in "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../share/strandsv4r/cmake/${PROJECT_NAME}Config.cmake" @ONLY)
+    configure_file(${PROJECT_NAME}ConfigVersion.cmake.in "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../share/strandsv4r/cmake/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
 
-configure_file(${PROJECT_NAME}Config.cmake.in "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../share/strandsv4r/cmake/${PROJECT_NAME}Config.cmake" @ONLY)
-configure_file(${PROJECT_NAME}ConfigVersion.cmake.in "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../share/strandsv4r/cmake/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
-  
-message(STATUS "faat libraries:" ${CONF_LIBRARY_DIRS})
-message(STATUS "faat include dirs:" ${CONF_INCLUDE_DIRS})
+    message(STATUS "faat libraries:" ${CONF_LIBRARY_DIRS})
+    message(STATUS "faat include dirs:" ${CONF_INCLUDE_DIRS})
 
-set(FAAT_PCL_LIBRARIES ${CONF_LIBRARY_DIRS} PARENT_SCOPE)
-set(FAAT_PCL_INCLUDE_DIRS ${CONF_INCLUDE_DIRS} PARENT_SCOPE)
+    set(FAAT_PCL_LIBRARIES ${CONF_LIBRARY_DIRS} PARENT_SCOPE)
+    set(FAAT_PCL_INCLUDE_DIRS ${CONF_INCLUDE_DIRS} PARENT_SCOPE)
 
-set(FAAT_PCL_LIBRARIES ${CONF_LIBRARY_DIRS})
-set(FAAT_PCL_INCLUDE_DIRS ${CONF_INCLUDE_DIRS})
+    set(FAAT_PCL_LIBRARIES ${CONF_LIBRARY_DIRS})
+    set(FAAT_PCL_INCLUDE_DIRS ${CONF_INCLUDE_DIRS})
 
-message(STATUS "faat libraries:" ${FAAT_PCL_LIBRARIES})
-message(STATUS "faat include dirs:" ${FAAT_PCL_INCLUDE_DIRS})
+    message(STATUS "faat libraries:" ${FAAT_PCL_LIBRARIES})
+    message(STATUS "faat include dirs:" ${FAAT_PCL_INCLUDE_DIRS})
 
-add_subdirectory(object_modeller)
+    #add_subdirectory(object_modeller)
+ELSE(V4R_FAAT_TRUNK)
+    #append external libraries in utils
+    list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/liblevmar${FAAT_PCL_POSTFIX}.so)
+    list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsplm${FAAT_PCL_POSTFIX}.so)
+    list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsiftgpu${FAAT_PCL_POSTFIX}.so)
+    list(APPEND CONF_LIBRARY_DIRS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libsiftpp.so)
+
+    configure_file(${PROJECT_NAME}Config.cmake.in
+      "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
+
+    configure_file(${PROJECT_NAME}ConfigVersion.cmake.in
+      "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake" @ONLY)
+
+    message(STATUS "faat libraries:" ${FAAT_LIBRARIES})
+    message(STATUS "faat include dirs:" ${FAAT_INCLUDE_DIRS})
+ENDIF()

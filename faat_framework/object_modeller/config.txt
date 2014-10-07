@@ -1,34 +1,44 @@
 #renderer type (0=pcl, 1=tomGine)
-pipeline.renderer=0
+renderer.type=1
 
-#registration type (0=checkerboard, 1=cameraTracker)
-pipeline.registrationType=1
+#registration type (0=checkerboard, 1=cameraTracker, 2=icp)
+registration.type=1
+
+#texture type (0=shading, 1=pcltexturemapper)
+texturing.type=1
 
 #stop after each visualization step
-pipeline.step=true
+pipeline.step=false
 
-pipeline.enableMultiview=true
+pipeline.enableMultiview=false
+
+#segmentation type (0=dominant plane, 1=not Nan)
+pipeline.segmentationType=0
 
 # a comment
 reader.pattern = .*cloud_.*.pcd
-reader.inputPath = /home/aitor/data/alex_modelling_tests/fire_extinguisher_input/
+reader.inputPath = /home/alex/Arbeitsflaeche/pcl/data/asus_box_simple/seq0/
+#reader.sequencePrefix = seq
 reader.step = 1
 
-writer.outputPath=/home/aitor/data/alex_modelling_tests/modeling_output/fire_extinguisher.pcd/
-#pointCloudWriter.outputPath=/home/aitor/data/alex_modelling_tests/modeling_output/fire_extinguisher.pcd/
+writer.outputPath=/home/alex/Arbeitsflaeche/pcl/data/asus_box_simple/out/
+
+#pointCloudWriter.outputPath=/home/alex/Arbeitsflaeche/pcl/data/willow_dataset_training_models_gt/training_data/object_01.pcd/outtest2/in/
 pointCloudWriter.pattern=cloud_*.pcd
 
-#indicesWriter.outputPath=/home/aitor/data/alex_modelling_tests/modeling_output/fire_extinguisher.pcd/
+#indicesWriter.outputPath=/home/alex/Arbeitsflaeche/pcl/data/willow_dataset_training_models_gt/training_data/object_01.pcd/outtest2/ind/
 indicesWriter.pattern=object_indices_*.pcd
 
-#posesWriter.outputPath=/home/aitor/data/alex_modelling_tests/modeling_output/fire_extinguisher.pcd/
+#posesWriter.outputPath=/home/alex/Arbeitsflaeche/pcl/data/willow_dataset_training_models_gt/training_data/object_01.pcd/outtest2/poses/
 posesWriter.pattern=pose_*.txt
 
-modelWriter.outputPath=/home/aitor/data/alex_modelling_tests/full_models/
-modelWriter.pattern=fire_extinguisher.pcd
+#modelWriter.outputPath=/home/alex/Arbeitsflaeche/pcl/data/willow_dataset_training_models_gt/training_data/object_01.pcd/out/
+modelWriter.pattern=model.pcd
 
 distanceFilter.zDist=1.0f
+distanceFilter.euclideanDistance=false
 cameraTracker.keyframesOnly=false
 checkerboardRegistration.boardSizes= 4,5;3,6
 
-nmBasedCloudIntegration.resolution=0.003f
+#nmBasedCloudIntegration.resolution=0.003f
+nmBasedCloudIntegration.resolution=0.006f

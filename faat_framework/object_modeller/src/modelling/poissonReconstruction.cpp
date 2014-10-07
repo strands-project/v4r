@@ -13,11 +13,6 @@ namespace object_modeller
 namespace modelling
 {
 
-void PoissonReconstruction::applyConfig(Config &config)
-{
-
-}
-
 PoissonReconstruction::PoissonReconstruction(std::string config_name) : InOutModule(config_name)
 {
 }
@@ -68,6 +63,7 @@ pcl::PolygonMesh::Ptr PoissonReconstruction::process(std::vector<pcl::PointCloud
     pcl::Poisson<pcl::PointXYZRGBNormal> poisson;
     poisson.setDepth(9);
     poisson.setInputCloud(cloud_smoothed_normals);
+
     pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh());
     poisson.reconstruct(*mesh);
 

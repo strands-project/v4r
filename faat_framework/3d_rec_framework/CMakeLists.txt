@@ -50,7 +50,8 @@ set(incs_fw_local include/faat_pcl/${SUBSYS_NAME}/feature_wrapper/local/local_es
                   include/faat_pcl/${SUBSYS_NAME}/feature_wrapper/local/shot_local_estimator_omp.h
                   include/faat_pcl/${SUBSYS_NAME}/feature_wrapper/local/image/image_local_estimator.h
                   include/faat_pcl/${SUBSYS_NAME}/feature_wrapper/local/image/sift_local_estimator.h
-                  include/faat_pcl/${SUBSYS_NAME}/feature_wrapper/local/image/opencv_sift_local_estimator.h)
+                  include/faat_pcl/${SUBSYS_NAME}/feature_wrapper/local/image/opencv_sift_local_estimator.h
+                  include/faat_pcl/${SUBSYS_NAME}/feature_wrapper/local/image/vedaldi_sift_local_estimator.h)
 
 set(incs_pc_source include/faat_pcl/${SUBSYS_NAME}/pc_source/source.h
                    include/faat_pcl/${SUBSYS_NAME}/pc_source/mesh_source.h
@@ -135,7 +136,7 @@ endif(MSVC)
 set(LIB_NAME ${PROJECT_NAME}_${SUBSYS_NAME})
 add_library(${LIB_NAME} ${srcs} ${incs_segmentation} ${impl_incs_pc_source} ${incs_img_source} ${impl_incs_registration} ${impl_incs_pipeline} ${incs_ml} ${incs_utils} ${incs_fw} ${incs_fw_global} ${incs_fw_local} ${incc_tools_framework} ${incs_define} ${incs_registration} ${incs_pipelines} ${incs_pc_source})
 
-target_link_libraries(${LIB_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils ${PROJECT_NAME}_recognition siftgpu boost_regex)
+target_link_libraries(${LIB_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_utils ${PROJECT_NAME}_recognition siftgpu siftpp boost_regex)
 
 #if(OPENNI_FOUND)
 #  target_link_libraries(${LIB_NAME} ${OPENNI_LIBRARIES})

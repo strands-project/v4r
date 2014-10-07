@@ -31,18 +31,18 @@ namespace faat_pcl
         using LocalEstimator<PointInT, FeatureT>::support_radius_;
         using LocalEstimator<PointInT, FeatureT>::normal_estimator_;
         using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
-        using LocalEstimator<PointInT, FeatureT>::adaptative_MLS_;
+          using LocalEstimator<PointInT, FeatureT>::adaptative_MLS_;
+          using LocalEstimator<PointInT, FeatureT>::keypoint_indices_;
         pcl::PointIndices indices_;
         //cv::Ptr<cv::FeatureDetector> detectorPtr_;
         //cv::Ptr<cv::DescriptorExtractor> descriptorPtr_;
-        pcl::PointIndices sift_keypoints_;
         cv::Ptr<cv::SIFT> sift_;
 
       public:
 
-        void getKeypointIndices(pcl::PointIndices & indices)
+        size_t getFeatureType() const
         {
-          indices = sift_keypoints_;
+            return SIFT;
         }
 
         OpenCVSIFTLocalEstimation ()
@@ -59,7 +59,7 @@ namespace faat_pcl
         estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 
-          sift_keypoints_.indices.clear();
+          keypoint_indices_.indices.clear();
           if(indices_.indices.size() == 0)
           {
             indices_.indices.resize(in->points.size());
@@ -126,7 +126,7 @@ namespace faat_pcl
               if(pcl_isfinite(in->at(u,v).z) && pcl_isfinite(in->at(u,v).x) && pcl_isfinite(in->at(u,v).y))
               {
                 keypoints->points[kept] = in->at(u,v);
-                sift_keypoints_.indices.push_back(v * in->width + u);
+                keypoint_indices_.indices.push_back(v * in->width + u);
                 assert((v * in->width + u) < (in->points.size()));
                 for (int k = 0; k < 128; k++)
                   signatures->points[kept].histogram[k] = descriptors.at<float>(i,k);
@@ -146,18 +146,18 @@ namespace faat_pcl
         }
 
         void
-        setIndices (pcl::PointIndices & p_indices)
+        setIndices (const pcl::PointIndices & p_indices)
         {
           indices_ = p_indices;
         }
 
         void
-        setIndices(std::vector<int> & p_indices)
+        setIndices(const std::vector<int> & p_indices)
         {
           indices_.indices = p_indices;
         }
 
-        bool acceptsIndices()
+        bool acceptsIndices() const
         {
           return true;
         }

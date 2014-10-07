@@ -27,11 +27,14 @@ private:
     float lateral_sigma;
 public:
     NguyenNoiseWeights(std::string config_name="nguyenNoiseWeights") : InOutModule(config_name)
-    {}
-
-    virtual void applyConfig(Config &config);
+    {
+        depth_edges = true;
+        max_angle = 60.f;
+        lateral_sigma = 0.002f;
+    }
 
     std::vector<std::vector<float> > process(boost::tuples::tuple<std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> , std::vector<pcl::PointCloud<pcl::Normal>::Ptr> > input);
+    std::vector<std::vector<float> > process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> & pointClouds , std::vector<pcl::PointCloud<pcl::Normal>::Ptr> & normal_clouds);
 
     std::string getName()
     {

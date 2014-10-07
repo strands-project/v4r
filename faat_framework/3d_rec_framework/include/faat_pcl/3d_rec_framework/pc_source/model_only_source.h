@@ -5,8 +5,8 @@
  *      Author: aitor
  */
 
-#ifndef FAAT_PCL_REC_FRAMEWORK_REG_VIEWS_SOURCE_H_
-#define FAAT_PCL_REC_FRAMEWORK_REG_VIEWS_SOURCE_H_
+#ifndef FAAT_PCL_REC_FRAMEWORK_MODEL_VIEWS_SOURCE_H_
+#define FAAT_PCL_REC_FRAMEWORK_MODEL_VIEWS_SOURCE_H_
 
 #include <faat_pcl/3d_rec_framework/pc_source/source.h>
 #include <pcl/io/io.h>

@@ -41,11 +41,26 @@ public:
                                          std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>,
                                          std::vector<pcl::PointCloud<pcl::Normal>::Ptr>,
                                          std::vector<std::vector<float> > > pointClouds);
-    virtual void applyConfig(Config &config);
+
+
+    std::vector<Eigen::Matrix4f> process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> & pointClouds,
+                                         std::vector<pcl::PointCloud<pcl::Normal>::Ptr> & normals,
+                                         std::vector<std::vector<float> > & weights);
+
 
     std::string getName()
     {
         return "Global registration";
+    }
+
+    void setMinOverlap(float f)
+    {
+        views_overlap_ = f;
+    }
+
+    void setMinDot(float f)
+    {
+        min_dot = f;
     }
 };
 

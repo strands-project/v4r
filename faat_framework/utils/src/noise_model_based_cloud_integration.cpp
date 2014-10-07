@@ -86,6 +86,16 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         faat_pcl::utils::miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
         pcl::transformPointCloud(*input_clouds_used_[i], *cloud, transformations_to_global_[i]);
 
+        /*float sum_curv = 0;
+        float sum_curv_orig = 0;
+        for(size_t k=0; k < normal_cloud->points.size(); k++)
+        {
+            sum_curv += normal_cloud->points[k].curvature;
+            sum_curv_orig += input_normals_[i]->points[k].curvature;
+        }
+
+        std::cout << sum_curv << " " << sum_curv_orig << std::endl;*/
+
         if (indices_.size() == 0)
         {
             *big_cloud += *cloud;
@@ -269,6 +279,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         r = g = b = 0;
         pcl::Normal n;
         n.getNormalVector3fMap() = Eigen::Vector3f::Zero();
+        n.curvature = 0.f;
 
         int used = 0;
         for(size_t k=0; k < indexVector.size(); k++)
@@ -285,12 +296,14 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
             Eigen::Vector3f normal = octree_points_normals_->points[indexVector[k]].getNormalVector3fMap();
             normal.normalize();
             n.getNormalVector3fMap() = n.getNormalVector3fMap() + normal;
-
+            n.curvature += octree_points_normals_->points[indexVector[k]].curvature;
             used++;
         }
 
         if(used == 0)
             continue;
+
+        //std::cout << "n.curvature" << n.curvature << std::endl;
 
         p.getVector3fMap() = p.getVector3fMap() / used;
         p.r = r / used;
@@ -298,8 +311,9 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         p.b = b / used;
         output->points[kept] = p;
 
-        n.getNormalVector3fMap() = n.getNormalVector3fMap() / static_cast<int>(indexVector.size());
+        n.getNormalVector3fMap() = n.getNormalVector3fMap() / used;
         n.getNormalVector3fMap()[3] = 0;
+        n.curvature /= used;
         output_normals_->points[kept] = n;
         kept++;
     }

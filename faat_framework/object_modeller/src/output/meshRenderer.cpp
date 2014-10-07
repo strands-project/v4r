@@ -24,7 +24,8 @@ void MeshRenderer::process(boost::tuples::tuple<pcl::PolygonMesh::Ptr, std::stri
     std::string text = input.get<1>();
     bool step = input.get<2>();
 
-    baseRenderer->renderMesh(mesh, text, step);
+    baseRenderer->addMesh(0, mesh);
+    baseRenderer->update();
 }
 
 }

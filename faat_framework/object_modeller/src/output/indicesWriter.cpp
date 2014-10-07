@@ -24,13 +24,6 @@ namespace object_modeller
 namespace output
 {
 
-void IndicesWriter::applyConfig(Config &config)
-{
-    this->outputPath = config.getString(getConfigName(), "outputPath",
-                                        config.getString("writer", "outputPath", "./out"));
-    this->pattern = config.getString(getConfigName(), "pattern", "object_indices_*.pcd");
-}
-
 void IndicesWriter::process(std::vector<std::vector<int> > indices)
 {
     boost::filesystem::path dir(this->outputPath);

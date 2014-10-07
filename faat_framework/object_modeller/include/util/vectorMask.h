@@ -32,8 +32,6 @@ public:
                  std::vector<std::vector<TType> >,
                  std::vector<std::vector<int> > > input);
 
-    virtual void applyConfig(Config &config);
-
     std::string getName()
     {
         return "Mask vector";

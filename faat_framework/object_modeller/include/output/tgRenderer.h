@@ -1,3 +1,4 @@
+#pragma once
 
 #include "outputModule.h"
 #include "rendererArgs.h"
@@ -27,24 +28,32 @@ public:
     TomGineRenderer()
     {
         win.reset(new TomGine::tgTomGineThreadPCL(800,600));
+        win->StartEventListener(1);
     }
 
-    virtual void applyConfig(Config &config, std::string base_path);
+    output::Renderer::Event waitForEvent();
 
-    template<class TPointType>
-    void renderPointCloudsImpl(std::vector<typename pcl::PointCloud<TPointType>::Ptr> point_clouds, std::string name, bool step);
-
-    virtual void renderPointClouds(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> point_clouds, std::string name, bool step)
+    virtual void pipelineStateChanged(State state, std::string activeStepName)
     {
-        renderPointCloudsImpl<pcl::PointXYZRGB>(point_clouds, name, step);
+        if (state == EventManager::PAUSED)
+        {
+            update();
+
+            Event e = waitForEvent();
+            trigger(e);
+        }
     }
 
-    virtual void renderPointClouds(std::vector<pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr> point_clouds, std::string name, bool step)
+    boost::shared_ptr<TomGine::tgModel> convert (pcl::PolygonMesh &mesh);
+
+    virtual void update();
+
+    virtual void updateImage() {}
+
+    virtual void enableRoiMode(Eigen::Vector3f *dim, Eigen::Vector3f *translation, Eigen::Quaternionf *rotation)
     {
-        renderPointCloudsImpl<pcl::PointXYZRGBNormal>(point_clouds, name, step);
-    }
 
-    virtual void renderMesh(pcl::PolygonMesh::Ptr, std::string, bool);
+    }
 
     std::string getName()
     {

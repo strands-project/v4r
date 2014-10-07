@@ -130,6 +130,11 @@ namespace faat_pcl
 
         }
 
+        size_t getFeatureType() const
+        {
+            return FPFH;
+        }
+
       };
   }
 }

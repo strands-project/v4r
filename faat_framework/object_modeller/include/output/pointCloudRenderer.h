@@ -43,7 +43,8 @@ public:
 
         std::cout << "Render; step= " << step << std::endl;
 
-        baseRenderer->renderPointClouds(pointClouds, text, step);
+        baseRenderer->addPointClouds(0, pointClouds);
+        baseRenderer->update();
     }
 
     std::string getName()

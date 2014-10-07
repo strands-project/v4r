@@ -58,9 +58,9 @@ namespace faat_pcl
         ModelTPtr model_;
         typename pcl::PointCloud<PointInT>::Ptr correspondences_pointcloud; //points in model coordinates
         pcl::PointCloud<pcl::Normal>::Ptr normals_pointcloud; //points in model coordinates
-        boost::shared_ptr<std::vector<float> > feature_distances_;
+//        boost::shared_ptr<std::vector<float> > feature_distances_;
         pcl::CorrespondencesPtr correspondences_to_inputcloud; //indices between correspondences_pointcloud and scene cloud
-        int num_corr_;
+//        int num_corr_;
         std::vector<int> indices_to_flann_models_;
     };
 
@@ -334,34 +334,52 @@ namespace faat_pcl
           recompute_hv_normals_ = true;
         }
 
-        virtual bool acceptsNormals()
+        virtual size_t getFeatureType() const
+        {
+            std::cout << "Get feature type is not implemented for this recognizer. " << std::endl;
+            return 0;
+        }
+
+        /*virtual void setISPK(typename pcl::PointCloud<FeatureT>::Ptr & signatures, PointInTPtr & p, PointInTPtr & keypoints)
+        {
+          std::cerr << "Set ISPK is not implemented for this type of feature estimator. " << std::endl;
+        }*/
+
+        virtual bool acceptsNormals() const
         {
             return false;
         }
 
         virtual void setSceneNormals(pcl::PointCloud<pcl::Normal>::Ptr & /*normals*/)
         {
-
+            PCL_WARN("Set scene normals is not implemented for this class.");
         }
 
         virtual void
-        setSaveHypotheses(bool b)
+        setSaveHypotheses(const bool b)
         {
-
+            PCL_WARN("Set save hypotheses is not implemented for this class.");
         }
 
         virtual
         void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses)
+        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses) const
         {
-
+            PCL_WARN("Get saved hypotheses is not implemented for this class.");
         }
 
         virtual
         void
-        getKeypointCloud(PointInTPtr & keypoint_cloud)
+        getKeypointCloud(PointInTPtr & keypoint_cloud) const
         {
+            PCL_WARN("Get keypoint cloud is not implemented for this class.");
+        }
 
+        virtual
+        void
+        getKeypointIndices(pcl::PointIndices & indices) const
+        {
+            PCL_WARN("Get keypoint indices is not implemented for this class.");
         }
 
         virtual void recognize () = 0;
@@ -373,62 +391,62 @@ namespace faat_pcl
         setHVAlgorithm (typename boost::shared_ptr<pcl::HypothesisVerification<PointInT, PointInT> > & alg) = 0;*/
 
         void
-        setHVAlgorithm (typename boost::shared_ptr<faat_pcl::HypothesisVerification<PointInT, PointInT> > & alg)
+        setHVAlgorithm (const typename boost::shared_ptr<const faat_pcl::HypothesisVerification<PointInT, PointInT> > & alg)
         {
           hv_algorithm_ = alg;
         }
 
         void
-        setInputCloud (const PointInTPtr & cloud)
+        setInputCloud (PointInTPtr & cloud)
         {
           input_ = cloud;
         }
 
         boost::shared_ptr<std::vector<ModelTPtr> >
-        getModels ()
+        getModels () const
         {
           return models_;
         }
 
         boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > >
-        getTransforms ()
+        getTransforms () const
         {
           return transforms_;
         }
 
         boost::shared_ptr<std::vector<ModelTPtr> >
-        getModelsBeforeHV ()
+        getModelsBeforeHV () const
         {
           return models_before_hv_;
         }
 
         boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > >
-        getTransformsBeforeHV ()
+        getTransformsBeforeHV () const
         {
           return transforms_before_hv_;
         }
 
         void
-        setICPIterations (int it)
+        setICPIterations (const int it)
         {
           ICP_iterations_ = it;
         }
 
-        void setICPType(int t) {
+        void setICPType(const int t) {
           icp_type_ = t;
         }
 
-        void setVoxelSizeICP(float s) {
+        void setVoxelSizeICP(const float s) {
           VOXEL_SIZE_ICP_ = s;
         }
 
-        virtual bool requiresSegmentation()
+        virtual bool requiresSegmentation() const
         {
           return requires_segmentation_;
         }
 
         virtual void
-        setIndices (std::vector<int> & indices) {
+        setIndices (const std::vector<int> & indices) {
           indices_ = indices;
         }
     };

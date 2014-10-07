@@ -25,15 +25,17 @@ private:
 
 public:
     DistanceFilter(std::string config_name="distanceFilter") : InOutModule(config_name)
-    {}
-
-    virtual void applyConfig(Config &config);
+    {
+        registerParameter("zDist", "Maximum Distance", &maxDist, 1.5f);
+    }
 
     std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> input);
 
+    virtual void applyConfig(Config::Ptr &config);
+
     std::string getName()
     {
-        return "Distance filter point clouds";
+        return "Distance filter";
     }
 };
 

@@ -16,11 +16,6 @@ namespace object_modeller
 namespace registration
 {
 
-void CheckerboardRegistration::applyConfig(Config &config)
-{
-    this->boardSizes = config.getCvSizeList(getConfigName(), "boardSizes");
-}
-
 std::vector<Eigen::Matrix4f> CheckerboardRegistration::process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> inputClouds)
 {
     std::vector<Eigen::Matrix4f> poses;
@@ -40,7 +35,7 @@ std::vector<Eigen::Matrix4f> CheckerboardRegistration::process(std::vector<pcl::
 
         imgSize = src_gray.size();
 
-
+        std::vector<cv::Size> boardSizes;
         std::vector<std::vector<cv::Point2f> > pointCloudBoardPoints;
 
         for (unsigned k=0;k<boardSizes.size();k++)

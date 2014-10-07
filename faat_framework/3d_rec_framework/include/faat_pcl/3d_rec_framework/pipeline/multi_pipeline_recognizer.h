@@ -10,6 +10,7 @@
 
 #include <faat_pcl/3d_rec_framework/defines/faat_3d_rec_framework_defines.h>
 #include <faat_pcl/3d_rec_framework/pipeline/recognizer.h>
+#include <faat_pcl/3d_rec_framework/pipeline/local_recognizer.h>
 #include <faat_pcl/recognition/cg/graph_geometric_consistency.h>
 
 namespace faat_pcl
@@ -49,29 +50,84 @@ namespace faat_pcl
 
         bool multi_object_correspondence_grouping_;
 
+        typename std::map<std::string, ObjectHypothesis<PointInT> > saved_object_hypotheses_;
+        boost::shared_ptr<std::map<std::string, ObjectHypothesis<PointInT> > > pObjectHypotheses_;
+        typename pcl::PointCloud<PointInT>::Ptr keypoints_cloud_;
+
+        pcl::PointIndices keypoint_indices_;
+
+        bool set_save_hypotheses_;
+
       public:
         MultiRecognitionPipeline () : Recognizer<PointInT>()
         {
             normals_set_ = false;
             multi_object_correspondence_grouping_ = false;
+            set_save_hypotheses_ = false;
         }
 
-        void setMultiObjectCG(bool b)
+        void setMultiObjectCG(const bool b)
         {
             multi_object_correspondence_grouping_ = b;
         }
 
+        void setSaveHypotheses(const bool set_save_hypotheses)
+        {
+            set_save_hypotheses_ = set_save_hypotheses;
+        }
+
+        void
+        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses) const
+        {
+          hypotheses = *pObjectHypotheses_;
+        }
+
+        void
+        getKeypointCloud(PointInTPtr & keypoint_cloud) const
+        {
+          keypoint_cloud = keypoints_cloud_;
+        }
+
+
+        void
+        getKeypointIndices(pcl::PointIndices & indices) const
+        {
+            indices.header = keypoint_indices_.header;
+            indices.indices = keypoint_indices_.indices;
+        }
+
         void initialize();
+
+        void correspondenceGrouping();
+
+        void getPoseRefinement(
+                boost::shared_ptr<std::vector<ModelTPtr> > models,
+                boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms);
 
         void recognize();
 
-        void addRecognizer(typename boost::shared_ptr<faat_pcl::rec_3d_framework::Recognizer<PointInT> > & rec)
+        void addRecognizer(const typename boost::shared_ptr<faat_pcl::rec_3d_framework::Recognizer<PointInT> > & rec)
         {
           recognizers_.push_back(rec);
         }
 
+        template <template<class > class Distance, typename FeatureT>
+        void setISPK(typename pcl::PointCloud<FeatureT>::Ptr & signatures, PointInTPtr & p, pcl::PointIndices & keypoint_indices, size_t feature_type)
+        {
+          for (size_t i=0; i < recognizers_.size(); i++)
+          {
+              std::cout << "Checking recognizer type: " << recognizers_[i]->getFeatureType() << std::endl;
+              if(recognizers_[i]->getFeatureType() == feature_type)
+              {
+                  typename boost::shared_ptr<faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > cast_local_recognizer;
+                  cast_local_recognizer = boost::static_pointer_cast<faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > (recognizers_[i]);
+                  cast_local_recognizer->setISPK(signatures, p, keypoint_indices);
+              }
+          }
+        }
+
         void
-        setCGAlgorithm (typename boost::shared_ptr<faat_pcl::GraphGeometricConsistencyGrouping<PointInT, PointInT> > & alg)
+        setCGAlgorithm (const typename boost::shared_ptr<faat_pcl::GraphGeometricConsistencyGrouping<PointInT, PointInT> > & alg)
         {
           cg_algorithm_ = alg;
         }
@@ -82,12 +138,12 @@ namespace faat_pcl
         getDataSource ();
 
         void
-        setSegmentation(std::vector<pcl::PointIndices> & ind)
+        setSegmentation(const std::vector<pcl::PointIndices> & ind)
         {
           segmentation_indices_ = ind;
         }
 
-        void setSceneNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        void setSceneNormals(pcl::PointCloud<pcl::Normal>::Ptr normals)
         {
             scene_normals_ = normals;
             normals_set_ = true;

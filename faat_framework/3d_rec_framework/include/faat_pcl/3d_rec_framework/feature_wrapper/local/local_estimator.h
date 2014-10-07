@@ -30,6 +30,7 @@ protected:
     typedef typename pcl::PointCloud<PointInT>::Ptr PointOutTPtr;
     typename pcl::PointCloud<PointInT>::Ptr input_;
     float radius_;
+    pcl::PointIndicesConstPtr keypoint_indices_;
 
 public:
 
@@ -59,6 +60,11 @@ public:
     {
         return false;
     }
+
+    void getKeypointsIndices (pcl::PointIndices::Ptr &keypoint_indices) const
+    {
+        *keypoint_indices = *keypoint_indices_;
+    }
 };
 
 template<typename PointInT>
@@ -71,6 +77,7 @@ private:
     bool filter_planar_;
     using faat_pcl::rec_3d_framework::KeypointExtractor<PointInT>::input_;
     using faat_pcl::rec_3d_framework::KeypointExtractor<PointInT>::radius_;
+    using KeypointExtractor<PointInT>::keypoint_indices_;
     float sampling_density_;
     boost::shared_ptr<std::vector<std::vector<int> > > neighborhood_indices_;
     boost::shared_ptr<std::vector<std::vector<float> > > neighborhood_dist_;
@@ -199,6 +206,14 @@ public:
         pcl::PointCloud<int> keypoints_idxes;
         keypoint_extractor.compute (keypoints_idxes);
 
+        pcl::PointIndicesPtr pIndicesPcl;
+        pIndicesPcl.reset(new pcl::PointIndices);
+        for (size_t i=0; i < keypoints_idxes.size(); i++)
+        {
+            pIndicesPcl->indices.push_back(keypoints_idxes.at(i));
+        }
+//        keypoint_indices_ = pIndicesPcl;
+
         if(pcl_isfinite(max_distance_))
         {
             int valid = 0;
@@ -226,6 +241,8 @@ public:
             indices[i] = keypoints_idxes.points[i];
 
         pcl::copyPointCloud (*input_, indices, *keypoints);
+        pIndicesPcl->indices = indices;
+        keypoint_indices_ = pIndicesPcl;
     }
 
     void
@@ -253,6 +270,7 @@ class FAAT_3D_FRAMEWORK_API SIFTKeypointExtractor : public KeypointExtractor<Poi
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     using KeypointExtractor<PointInT>::input_;
     using KeypointExtractor<PointInT>::radius_;
+    using KeypointExtractor<PointInT>::keypoint_indices_;
 
 public:
     void
@@ -267,6 +285,7 @@ public:
         sift3D.setInputCloud (input_);
         sift3D.setSearchSurface (input_);
         sift3D.compute (*intensity_keypoints);
+        keypoint_indices_ = sift3D.getKeypointsIndices();
         pcl::copyPointCloud (*intensity_keypoints, *keypoints);
     }
 };
@@ -278,6 +297,7 @@ class FAAT_3D_FRAMEWORK_API SIFTSurfaceKeypointExtractor : public KeypointExtrac
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
     using KeypointExtractor<PointInT>::input_;
     using KeypointExtractor<PointInT>::radius_;
+    using KeypointExtractor<PointInT>::keypoint_indices_;
 
     bool
     needNormals ()
@@ -317,6 +337,7 @@ public:
         sift3D.setInputCloud (input_cloud);
         sift3D.setSearchSurface (input_cloud);
         sift3D.compute (*intensity_keypoints);
+        keypoint_indices_ = sift3D.getKeypointsIndices();
         pcl::copyPointCloud (*intensity_keypoints, *keypoints);
     }
 };
@@ -329,6 +350,7 @@ class FAAT_3D_FRAMEWORK_API HarrisKeypointExtractor : public KeypointExtractor<P
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     using KeypointExtractor<PointInT>::input_;
     using KeypointExtractor<PointInT>::radius_;
+    using KeypointExtractor<PointInT>::keypoint_indices_;
     typename pcl::HarrisKeypoint3D<PointInT, pcl::PointXYZI>::ResponseMethod m_;
     float non_max_radius_;
     float threshold_;
@@ -390,6 +412,7 @@ public:
         harris.setRadiusSearch (non_max_radius_);
         harris.setMethod (m_);
         harris.compute (*intensity_keypoints);
+        keypoint_indices_ = harris.getKeypointsIndices();
 
         pcl::copyPointCloud (*intensity_keypoints, *keypoints);
     }
@@ -403,6 +426,7 @@ class FAAT_3D_FRAMEWORK_API ISSKeypointExtractor : public KeypointExtractor<Poin
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     using KeypointExtractor<PointInT>::input_;
     using KeypointExtractor<PointInT>::radius_;
+    using KeypointExtractor<PointInT>::keypoint_indices_;
     float non_max_radius_;
     float threshold_;
 
@@ -463,6 +487,7 @@ public:
         iss_detector.setNumberOfThreads (iss_threads_);
         iss_detector.setInputCloud (input_);
         iss_detector.compute (*keypoints);
+        keypoint_indices_ = iss_detector.getKeypointsIndices();
 
         /*typename pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_keypoints (new pcl::PointCloud<pcl::PointXYZI>);
 
@@ -489,6 +514,7 @@ class FAAT_3D_FRAMEWORK_API SUSANKeypointExtractor : public KeypointExtractor<Po
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     using KeypointExtractor<PointInT>::input_;
     using KeypointExtractor<PointInT>::radius_;
+    using KeypointExtractor<PointInT>::keypoint_indices_;
 
 public:
 
@@ -526,6 +552,7 @@ public:
         susan.setRadius (0.01f);
         susan.setRadiusSearch (0.01f);
         susan.compute (*intensity_keypoints);
+        keypoint_indices_ = susan.getKeypointsIndices();
 
         pcl::copyPointCloud (*intensity_keypoints, *keypoints);
     }
@@ -541,6 +568,7 @@ protected:
     typename boost::shared_ptr<PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator_;
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
     std::vector<typename boost::shared_ptr<KeypointExtractor<PointInT> > > keypoint_extractor_; //this should be a vector
+    pcl::PointIndices keypoint_indices_;
     float support_radius_;
 
     bool adaptative_MLS_;
@@ -554,6 +582,7 @@ protected:
     void
     computeKeypoints (PointInTPtr & cloud, PointInTPtr & keypoints, pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {
+        keypoint_indices_.indices.clear();
         keypoints.reset (new pcl::PointCloud<PointInT>);
         for (size_t i = 0; i < keypoint_extractor_.size (); i++)
         {
@@ -566,6 +595,10 @@ protected:
             PointInTPtr detected_keypoints;
             //std::vector<int> keypoint_indices;
             keypoint_extractor_[i]->compute (detected_keypoints);
+
+            pcl::PointIndicesPtr pKeypointPclIndices (new pcl::PointIndices);
+            keypoint_extractor_[i]->getKeypointsIndices(pKeypointPclIndices);
+            keypoint_indices_.indices.insert(keypoint_indices_.indices.end(), pKeypointPclIndices->indices.begin(), pKeypointPclIndices->indices.end());
             *keypoints += *detected_keypoints;
         }
     }
@@ -578,30 +611,41 @@ public:
         keypoint_extractor_.clear ();
     }
 
+
+    virtual size_t getFeatureType() const
+    {
+        return 0;
+    }
+
     void
-    setAdaptativeMLS (bool b)
+    setAdaptativeMLS (const bool b)
     {
         adaptative_MLS_ = b;
     }
 
-    virtual bool acceptsIndices()
+    virtual bool acceptsIndices() const
     {
         return false;
     }
 
-    virtual void getKeypointIndices(pcl::PointIndices & indices)
+    virtual void getKeypointIndices(pcl::PointIndices & indices) const
+    {
+        indices.indices = keypoint_indices_.indices;
+    }
+
+//    void getKeypointIndices(std::vector<int> &keypoint_indices) const
+//    {
+//        keypoint_indices = &keypoint_indices_;
+//    }
+
+    virtual void
+    setIndices(const pcl::PointIndices & p_indices)
     {
 
     }
 
     virtual void
-    setIndices(pcl::PointIndices & p_indices)
-    {
-
-    }
-
-    virtual void
-    setIndices(std::vector<int> & p_indices)
+    setIndices(const std::vector<int> & p_indices)
     {
 
     }
@@ -631,7 +675,7 @@ public:
     }
 
     void
-    setSupportRadius (float r)
+    setSupportRadius (const float r)
     {
         support_radius_ = r;
     }
@@ -642,7 +686,8 @@ public:
         return false;
     }
 
-    void getNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals) {
+    void getNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals) const
+    {
         normals = normals_;
     }
 

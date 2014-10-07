@@ -10,11 +10,6 @@ namespace object_modeller
 namespace util
 {
 
-void Transform::applyConfig(Config &config)
-{
-
-}
-
 std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> Transform::process(boost::tuples::tuple<
              std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>,
              std::vector<Eigen::Matrix4f> > input)

@@ -11,12 +11,6 @@ namespace util
 {
 
 template <class TPointType>
-void Mask<TPointType>::applyConfig(Config &config)
-{
-
-}
-
-template <class TPointType>
 std::vector<typename pcl::PointCloud<TPointType>::Ptr> Mask<TPointType>::process(boost::tuples::tuple<
              std::vector<typename pcl::PointCloud<TPointType>::Ptr>,
              std::vector<std::vector<int> > > input)

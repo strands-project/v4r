@@ -7,184 +7,112 @@
 #include "pipeline.h"
 #include "config.h"
 
-#include "reader/fileReader.h"
+#include "output/windowedPclRenderer.h"
 
-#include "registration/cameraTracker.h"
-#include "registration/checkerboard.h"
-#include "registration/globalRegistration.h"
-
-#include "segmentation/dominantPlaneExtraction.h"
-#include "segmentation/notNaNSegmentation.h"
-
-#include "output/tgRenderer.h"
-#include "output/pclRenderer.h"
-#include "output/pointCloudWriter.h"
-#include "output/indicesWriter.h"
-#include "output/posesWriter.h"
-#include "output/meshRenderer.h"
-#include "output/renderer.h"
-#include "output/pointCloudRenderer.h"
-
-#include "util/transform.h"
-#include "util/mask.h"
-#include "util/multiplyMatrix.h"
-#include "util/distanceFilter.h"
-#include "util/normalEstimationOmp.h"
-#include "util/integralImageNormalEstimation.h"
-#include "util/nguyenNoiseWeights.h"
-#include "util/vectorMask.h"
-
-#include "modelling/nmBasedCloudIntegration.h"
-#include "modelling/poissonReconstruction.h"
+#include "pipelineFactory.h"
 
 using namespace object_modeller;
 
 // helper methods
-Config parseCommandLineArgs(int argc, char **argv);
+Config::Ptr parseCommandLineArgs(int argc, char **argv);
 
+int runPipeline(Config::Ptr config);
+//int runMultiSequenceAlignment(Config::Ptr config);
 
 /******************************************************************
  * MAIN
  */
 int main(int argc, char *argv[] )
 {
-    Config config = parseCommandLineArgs(argc, argv);
+    Config::Ptr config = parseCommandLineArgs(argc, argv);
 
-    bool step = config.getBool("pipeline", "step");
+    //return runMultiSequenceAlignment(config);
+    return runPipeline(config);
+}
 
-    std::cout << "pipeline step: " << step << std::endl;
+/*
+int runMultiSequenceAlignment(Config &config)
+{
+    std::cout << "run sequence alignment" << std::endl;
 
-    // input reader
     reader::FileReader reader;
-
-    // point cloud utility
-    util::DistanceFilter distance_filter;
-    util::Transform transform;
+    reader::FileReader model_reader("modelreader");
+    reader::PoseReader pose_reader;
+    util::Transform t;
+    util::DistanceFilter filter;
+    util::MultiplyMatrixSingle multiplySingle;
+    util::ConvertPointCloud convert_pointcloud;
     util::Mask<pcl::PointXYZRGB> mask;
-    util::Mask<pcl::Normal> mask_normals;
-    util::VectorMask<float> mask_weights;
-    util::MultiplyMatrix multiply;
-
-    util::NormalEstimationOmp normal_estimation;
-    //util::IntegralImageNormalEstimation normal_estimation_fast;
-    util::NguyenNoiseWeights weights_calculation;
-
-    // registration
-    registration::CameraTracker camera_tracker;
-    registration::CheckerboardRegistration checkerboard;
-
-    registration::GlobalRegistration global_registration;
-
-    //segmentation
     segmentation::DominantPlaneExtraction dominant_plane_extraction;
-    segmentation::NotNaNSegmentation not_nan_segmentation;
-
-    //modelling
-    modelling::NmBasedCloudIntegration nm_based_cloud_integration;
-    modelling::PoissonReconstruction poisson_reconstruction;
-
-    //renderer
+    modelling::NmBasedCloudIntegrationMultiSeq nm_based_cloud_integration_ms;
+    multisequence::SiftFeatureMatcher siftFeatureMatcher;
     boost::shared_ptr<output::Renderer> base_renderer;
-
-    //output
-    output::PointCloudWriter<pcl::PointXYZRGB> pointcloud_writer;
-    output::IndicesWriter indices_writer;
-    output::PosesWriter poses_writer;
-    output::PointCloudWriter<pcl::PointXYZRGBNormal> model_writer("modelWriter");
-
-    if (config.getInt("pipeline", "renderer") == 0)
-    {
-        base_renderer.reset( new output::PclRenderer());
-    } else {
-        base_renderer.reset( new output::TomGineRenderer());
-    }
-
-    output::MeshRenderer mesh_renderer(base_renderer);
+    base_renderer.reset( new output::WindowedPclRenderer());
     output::PointCloudRenderer<pcl::PointXYZRGB> renderer_xyz(base_renderer);
     output::PointCloudRenderer<pcl::PointXYZRGBNormal> renderer_xyzn(base_renderer);
 
+    util::NormalEstimationOmp normal_estimation;
+    util::NguyenNoiseWeights weights_calculation;
 
-    // setup pipeline
-    Pipeline pipeline(config);
+    Pipeline pipeline(base_renderer.get(), config);
 
-    //read from file
     reader::FileReader::ResultType *pointclouds_input = pipeline.addIn(&reader);
+    reader::FileReader::ResultType *model = pipeline.addIn(&model_reader);
+    reader::PoseReader::ResultType *poses = pipeline.addIn(&pose_reader);
 
-    // filter far points
-    util::DistanceFilter::ResultType *pointclouds_filtered = pipeline.addInOut(&distance_filter, pointclouds_input);
-    pipeline.addOut(&renderer_xyz, pointclouds_filtered, new Result<std::string>("Filtered"), new Result<bool>(step));
+    util::DistanceFilter::ResultType *filtered = pipeline.addInOut(&filter, pointclouds_input);
+    pipeline.addOut(&renderer_xyz, filtered, new CustomResult<std::string>("initial "), new CustomResult<bool>(false));
 
-    registration::CameraTracker::ResultType *poses;
+    util::Transform::ResultType *transformed = pipeline.addInOut(&t, filtered, poses);
 
-    // calculate poses
-    if (config.getInt("pipeline", "registrationType") == 0)
-    {
-        // checkerboard
-        poses = pipeline.addInOut(&checkerboard, pointclouds_filtered);
-    }
-    else
-    {
-        // camera tracker
-        poses = pipeline.addInOut(&camera_tracker, pointclouds_filtered);
-    }
+    pipeline.addOut(&renderer_xyz, transformed, new CustomResult<std::string>("transformed"), new CustomResult<bool>(false));
 
-    // apply poses and render result
-    util::Transform::ResultType *pointclouds_transformed = pipeline.addInOut(&transform, pointclouds_filtered, poses);
-    pipeline.addOut(&renderer_xyz, pointclouds_transformed, new Result<std::string>("Registration Output"), new Result<bool>(step));
 
-    // segmentation
-    segmentation::DominantPlaneExtraction::ResultType * indices;
-
-    if (config.getInt("pipeline", "segmentationType") == 0)
-    {
-        indices = pipeline.addInOut(&dominant_plane_extraction, pointclouds_filtered);
-    }
-    else
-    {
-        indices = pipeline.addInOut(&not_nan_segmentation, pointclouds_filtered);
-    }
+    segmentation::DominantPlaneExtraction::ResultType *indices = pipeline.addInOut(&dominant_plane_extraction, filtered);
 
     // filter indices and render result
-    util::Mask<pcl::PointXYZRGB>::ResultType *pointclouds_segmented = pipeline.addInOut(&mask, pointclouds_transformed, indices);
-    pipeline.addOut(&renderer_xyz, pointclouds_segmented, new Result<std::string>("Segmentation output"), new Result<bool>(step));
+    util::Mask<pcl::PointXYZRGB>::ResultType *pointclouds_segmented = pipeline.addInOut(&mask, transformed, indices);
+    pipeline.addOut(&renderer_xyz, pointclouds_segmented, new CustomResult<std::string>("Segmentation output"), new CustomResult<bool>(false));
 
-    //global registration
-    if (config.getBool("pipeline", "enableMultiview"))
-    {
-        // estimate normals and weights
-        util::NormalEstimationOmp::ResultType *normals = pipeline.addInOut(&normal_estimation, pointclouds_transformed);
-        util::NguyenNoiseWeights::ResultType *weights = pipeline.addInOut(&weights_calculation, pointclouds_transformed, normals);
 
-        normals = pipeline.addInOut(&mask_normals, normals, indices);
-        weights = pipeline.addInOut(&mask_weights, weights, indices);
 
-        registration::GlobalRegistration::ResultType *global_reg_poses = pipeline.addInOut(&global_registration, pointclouds_segmented, normals, weights);
+    pipeline.addOut(&renderer_xyz, model, new CustomResult<std::string>("Model"), new CustomResult<bool>(false));
 
-        poses = pipeline.addInOut(&multiply, global_reg_poses, poses);
-        pointclouds_segmented = pipeline.addInOut(&mask, pointclouds_filtered, indices);
-        pointclouds_transformed = pipeline.addInOut(&transform, pointclouds_segmented, poses);
-        pipeline.addOut(&renderer_xyz, pointclouds_transformed, new Result<std::string>("Global registration output"), new Result<bool>(step));
-    }
+    util::ConvertPointCloud::ResultType *model2 = pipeline.addInOut(&convert_pointcloud, model);
 
-    // estimate normals and weights
-    util::NormalEstimationOmp::ResultType *normals = pipeline.addInOut(&normal_estimation, pointclouds_filtered);
-    util::NguyenNoiseWeights::ResultType *weights = pipeline.addInOut(&weights_calculation, pointclouds_filtered, normals);
+    pipeline.addOut(&renderer_xyzn, model2, new CustomResult<std::string>("SIFT feature matcher output"), new CustomResult<bool>(false));
 
-    // nm based cloud integration
-    modelling::NmBasedCloudIntegration::ResultType *model = pipeline.addInOut(&nm_based_cloud_integration, pointclouds_filtered, poses, indices, normals, weights);
-    pipeline.addOut(&renderer_xyzn, model, new Result<std::string>("NM based cloud integration output"), new Result<bool>(step));
+    multisequence::SiftFeatureMatcher::ResultType *multiseqPose = pipeline.addInOut(&siftFeatureMatcher, filtered, poses, indices, model2);
+    poses = pipeline.addInOut(&multiplySingle, poses, multiseqPose);
 
-    // poisson reconstruction
-    //modelling::PoissonReconstruction::ResultType *mesh = pipeline.addInOut(&poisson_reconstruction, model);
-    //pipeline.addOut(&mesh_renderer, mesh, new Result<std::string>("Poisson reconstruction output"), new Result<bool>(step));
+    util::NormalEstimationOmp::ResultType *normals = pipeline.addInOut(&normal_estimation, filtered);
+    util::NguyenNoiseWeights::ResultType *weights = pipeline.addInOut(&weights_calculation, filtered, normals);
 
-    // output
-    pipeline.addOut(&poses_writer, poses);
-    pipeline.addOut(&indices_writer, indices);
-    pipeline.addOut(&pointcloud_writer, pointclouds_input);
-    pipeline.addOut(&model_writer, model);
+    modelling::NmBasedCloudIntegration::ResultType *final = pipeline.addInOut(&nm_based_cloud_integration_ms, filtered, poses, indices, normals, weights);
+    pipeline.addOut(&renderer_xyzn, final, new CustomResult<std::string>("SIFT feature matcher output"), new CustomResult<bool>(true));
 
     pipeline.process();
+}
+*/
+
+static void loop(Pipeline::Ptr pipeline);
+
+void loop(Pipeline::Ptr pipeline)
+{
+    pipeline->process(true);
+}
+
+int runPipeline(Config::Ptr config)
+{
+    output::Renderer::Ptr renderer(new output::WindowedPclRenderer());
+
+    PipelineFactory factory;
+    Pipeline::Ptr pipeline = factory.create(factory.getPipelines().front(), config, renderer);
+
+
+    boost::thread *process_thread = new boost::thread(&loop, pipeline);
+    renderer->loop();
+    process_thread->join();
 
     return 0;
 }
@@ -192,7 +120,7 @@ int main(int argc, char *argv[] )
 /**
  * setup command line args
  */
-Config parseCommandLineArgs(int argc, char **argv)
+Config::Ptr parseCommandLineArgs(int argc, char **argv)
 {
     if (argc > 1)
     {
@@ -203,7 +131,8 @@ Config parseCommandLineArgs(int argc, char **argv)
 
         std::cout << "filename: " << configPath << std::endl;
 
-        Config config(configPath);
+        Config::Ptr config(new Config());
+        config->loadFromFile(configPath);
 
         for (int i=2;i<argc;i++)
         {
@@ -215,10 +144,10 @@ Config parseCommandLineArgs(int argc, char **argv)
 
             // std::cout << result[0] << " = " << result[1] << std::endl;
 
-            config.overrideParameter(result[0], result[1]);
+            config->overrideParameter(result[0], result[1]);
         }
 
-        config.printConfig();
+        config->printConfig();
 
         return config;
     }

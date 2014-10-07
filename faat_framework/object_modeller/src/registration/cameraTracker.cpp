@@ -6,34 +6,41 @@
 
 #include "v4r/KeypointTools/invPose.hpp"
 
+#include <pcl/visualization/pcl_visualizer.h>
+
 namespace object_modeller
 {
 namespace registration
 {
 
-void CameraTracker::applyConfig(Config &config)
+CameraTracker::CameraTracker(std::string config_name) : InOutModule(config_name)
 {
-    this->keyframesOnly = config.getBool(getConfigName(), "keyframesOnly");
+    registerParameter("keyframesOnly", "Keyframes Only", &keyframesOnly, false);
+    registerParameter("maxFeaturesTile", "Maximum Features Tile", &(kt_param.max_features_tile), 1000);
+    registerParameter("tiles", "Tiles", &(kt_param.tiles), 1);
+}
 
+void CameraTracker::applyConfig(Config::Ptr config)
+{
+    ConfigItem::applyConfig(config);
 
     float rt_inl_dist = 0.005;    // rigid transformation RANSAC inlier dist[m]
 
-    // setup parameters
-    kp::KeypointTracker::Parameter kt_param;      //---------- KeypointTracker parameter
-    kt_param.tiles = 1;                   // 3
-    kt_param.max_features_tile = 1000;    // 100
+    // setup parameters      //---------- KeypointTracker parameter
     kt_param.inl_dist = 7.;               // inlier dist for outlier rejection [px]
     kt_param.pecnt_prefilter = 0.02;
     kt_param.refineLK = true;             // refine keypoint location (LK)
     kt_param.refineMappedLK = false;      // refine keypoint location (map image, then LK)
     kt_param.min_total_matches = 10;      // minimum total number of mathches
-    kt_param.min_tiles_used = 3;          // minimum number of tiles with matches
+    kt_param.min_tiles_used = 1;          // minimum number of tiles with matches
     kt_param.affine_outl_rejection = true;
     kt_param.fast_pyr_levels = 2;
+
     kp::RigidTransformationRANSAC::Parameter rt_param; //----- RigidTransformationRANSAC parameter
     rt_param.inl_dist = rt_inl_dist;       // inlier dist RT-RANSAC [m]
     rt_param.eta_ransac = 0.01;
     rt_param.max_rand_trials = 10000;
+
     kp::LoopClosingRT::Parameter lc_param;     //------------- LoopClosingRT parameter
     lc_param.max_angle = 30;
     lc_param.min_total_score = 10.;
@@ -42,9 +49,9 @@ void CameraTracker::applyConfig(Config &config)
 
     kp::CameraTrackerRGBD::Parameter param;
     param.min_total_score = 10;         // minimum score (matches weighted with inv. inl. dist)
-    param.min_tiles_used = 3;           // minimum number of tiles with matches
+    param.min_tiles_used = 1;           // minimum number of tiles with matches
     param.angle_init_keyframe = 7.5;
-    param.detect_loops = true;
+    param.detect_loops = false;
     param.thr_image_motion = 0.25;      // new keyframe if the image mot. > 0.25*im. width
     param.log_clouds = true;
 
@@ -109,6 +116,28 @@ std::vector<Eigen::Matrix4f> CameraTracker::process(std::vector<pcl::PointCloud<
     */
 
     return poses;
+}
+
+bool CameraTracker::trackSingle(pcl::PointCloud<pcl::PointXYZRGB>::Ptr keyframe, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, bool &is_keyframe)
+{
+    Eigen::Matrix4f pose;
+
+    bool result = camtracker->trackPCL(*cloud, pose);
+
+    is_keyframe = camtracker->isKeyframe();
+
+    return result;
+}
+
+void CameraTracker::trackSingleFrame(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
+                                     Eigen::Matrix4f & pose,
+                                     bool & is_key_frame)
+{
+    pose = Eigen::Matrix4f::Identity();
+    camtracker->trackPCL(*cloud, pose);
+
+    is_key_frame = camtracker->isKeyframe();
+    std::cout << "finished tracking a frame" << std::endl;
 }
 
 }

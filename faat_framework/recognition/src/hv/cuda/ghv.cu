@@ -410,14 +410,18 @@ namespace faat_pcl
             const int * nn_sizes_; //size(visible_extended_points)
             const int * nn_; //size(visible_extended_points) * max_elems_
             float inliers_gaussian_;
+            float color_sigma_y_, color_sigma_;
             //mutable thrust::pair<int, int> * keys_; //only necessary if using chunks
             mutable int * keys_scene_;
             mutable int * keys_hyp_id_;
             int problem_size_;
 
-            computeInlierWeights(float inlier_thres=0.01f)
+            computeInlierWeights(float inlier_thres=0.01f,
+                                 float csy = 0.5f, float cs = 0.3f)
             {
                 inliers_gaussian_ = inlier_thres * inlier_thres;
+                color_sigma_y_ = csy;
+                color_sigma_ = cs;
             }
 
             __device__ __forceinline__ void operator()(int idx) const
@@ -452,8 +456,8 @@ namespace faat_pcl
                 float color_w = 1.f;
 
                 float sigma_y, sigma;
-                sigma_y = 0.5;
-                sigma = 0.3 * 0.3;
+                sigma_y = color_sigma_y_ * color_sigma_y_;
+                sigma = color_sigma_ * color_sigma_;
 
                 if(model_p.color_set_)
                 {
@@ -1552,7 +1556,7 @@ void faat_pcl::recognition_cuda::GHV::computeExplainedAndModelCues()
         int threads = 512;
         int blocks = divUp(inlier_weights.size(), threads);
 
-        computeInlierWeights ciw(inlier_threshold);
+        computeInlierWeights ciw(inlier_threshold, color_sigma_y_, color_sigma_ab_);
         ciw.indices_ = ii_dev_ptr;
         ciw.weights_ = iw_dev_ptr;
         ciw.scene_ = scene_downsampled_.ptr();
@@ -1848,7 +1852,7 @@ void faat_pcl::recognition_cuda::GHV::computeClutterCue()
 
     //get NN in radius search
     int max_results = 1000;
-    float radius_clutter = 0.04f;
+    float radius_clutter = clutter_radius_;
 
     pcl::gpu::NeighborIndices results;
 

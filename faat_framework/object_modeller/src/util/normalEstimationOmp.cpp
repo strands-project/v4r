@@ -8,11 +8,6 @@ namespace object_modeller
 namespace util
 {
 
-void NormalEstimationOmp::applyConfig(Config &config)
-{
-
-}
-
 std::vector<pcl::PointCloud<pcl::Normal>::Ptr> NormalEstimationOmp::process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pointClouds)
 {
 
@@ -27,6 +22,7 @@ std::vector<pcl::PointCloud<pcl::Normal>::Ptr> NormalEstimationOmp::process(std:
         pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
         ne.setSearchMethod (tree);
         ne.setRadiusSearch (0.02);
+        ne.setNumberOfThreads(6);
         ne.compute (*normal_cloud);
 
         normal_clouds.push_back(normal_cloud);

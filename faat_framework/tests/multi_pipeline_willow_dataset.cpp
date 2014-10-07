@@ -45,6 +45,7 @@
 #include <pcl/features/organized_edge_detection.h>
 #include <faat_pcl/utils/miscellaneous.h>
 #include <faat_pcl/3d_rec_framework/feature_wrapper/local/image/opencv_sift_local_estimator.h>
+#include <faat_pcl/3d_rec_framework/feature_wrapper/local/image/vedaldi_sift_local_estimator.h>
 #include "v4r/SurfaceSegmenter/segmentation.hpp"
 
 float VX_SIZE_ICP_ = 0.005f;
@@ -1754,6 +1755,62 @@ main (int argc, char ** argv)
 
             boost::shared_ptr<faat_pcl::rec_3d_framework::LocalEstimator<PointT, pcl::Histogram<128> > > cast_estimator;
             cast_estimator = boost::dynamic_pointer_cast<faat_pcl::rec_3d_framework::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > (estimator);
+
+            boost::shared_ptr<faat_pcl::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> >
+                    mesh_source (
+                        new faat_pcl::rec_3d_framework::RegisteredViewsSource<
+                        pcl::PointXYZRGBNormal,
+                        pcl::PointXYZRGB,
+                        pcl::PointXYZRGB>);
+            mesh_source->setPath (path);
+            mesh_source->setModelStructureDir (training_input_structure);
+            mesh_source->generate (training_dir_sift);
+
+            boost::shared_ptr<faat_pcl::rec_3d_framework::Source<PointT> > cast_source;
+            cast_source = boost::static_pointer_cast<faat_pcl::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (mesh_source);
+
+
+#define SIFT_FLANN_L1
+#ifdef SIFT_FLANN_L1
+            boost::shared_ptr<faat_pcl::rec_3d_framework::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > local;
+            local.reset(new faat_pcl::rec_3d_framework::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > (idx_flann_sift, "willow_sift_codebook.txt"));
+            cast_recog = boost::static_pointer_cast<faat_pcl::rec_3d_framework::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > (local);
+#endif
+
+#ifdef SIFT_FLANN_L2
+            boost::shared_ptr<faat_pcl::rec_3d_framework::LocalRecognitionPipeline<flann::L2, PointT, pcl::Histogram<128> > > local;
+            local.reset(new faat_pcl::rec_3d_framework::LocalRecognitionPipeline<flann::L2, PointT, pcl::Histogram<128> > (idx_flann_sift, "willow_sift_codebook.txt"));
+            cast_recog = boost::static_pointer_cast<faat_pcl::rec_3d_framework::LocalRecognitionPipeline<flann::L2, PointT, pcl::Histogram<128> > > (local);
+#endif
+            local->setDataSource (cast_source);
+            local->setTrainingDir (training_dir_sift);
+            local->setDescriptorName (desc_name);
+            local->setFeatureEstimator (cast_estimator);
+            local->setCGAlgorithm (cast_cg_alg);
+
+            local->setUseCache (static_cast<bool> (use_cache));
+            local->setVoxelSizeICP (VX_SIZE_ICP_);
+            local->setThresholdAcceptHyp (thres_hyp_);
+            local->setICPIterations (0);
+            local->setKdtreeSplits (splits);
+            local->setICPType(icp_type);
+            local->setUseCodebook(use_codebook);
+            local->initialize (static_cast<bool> (force_retrain));
+            local->setKnn(knn_sift_);
+            multi_recog->addRecognizer(cast_recog);
+
+        }
+
+        if (strs[i].compare ("sift_vedaldi") == 0)
+        {
+            desc_name = std::string ("sift_vedaldi");
+            std::string idx_flann_sift = "sift_vedaldi_willow.idx";
+
+            boost::shared_ptr<faat_pcl::rec_3d_framework::VedaldiSIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
+            estimator.reset (new faat_pcl::rec_3d_framework::VedaldiSIFTLocalEstimation<PointT, pcl::Histogram<128> >);
+
+            boost::shared_ptr<faat_pcl::rec_3d_framework::LocalEstimator<PointT, pcl::Histogram<128> > > cast_estimator;
+            cast_estimator = boost::dynamic_pointer_cast<faat_pcl::rec_3d_framework::VedaldiSIFTLocalEstimation<PointT, pcl::Histogram<128> > > (estimator);
 
             boost::shared_ptr<faat_pcl::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> >
                     mesh_source (

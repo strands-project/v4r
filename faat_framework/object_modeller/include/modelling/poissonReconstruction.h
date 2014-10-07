@@ -29,8 +29,6 @@ public:
 
     PoissonReconstruction(std::string config_name="poissonReconstruction");
 
-    virtual void applyConfig(Config &config);
-
     std::string getName()
     {
         return "Poisson Reconstruction";

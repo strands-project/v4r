@@ -199,6 +199,13 @@ main (int argc, char ** argv)
 
   }
 
+  /*{
+      pcl::visualization::PCLVisualizer vis("TEST TRANSFORMS");
+      pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler (big_cloud_from_transforms_no_filter_);
+      vis.addPointCloud (big_cloud_from_transforms_no_filter_, handler, "big_no_filter");
+      vis.spin();
+  }*/
+
   if(reverse)
   {
       std::reverse(occlusion_clouds.begin(), occlusion_clouds.end());
@@ -268,7 +275,7 @@ main (int argc, char ** argv)
   nmIntegration.getOutputNormals(big_normals);
   nmIntegration.getInputCloudsUsed(used_clouds);
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr big_cloud_from_masked (new pcl::PointCloud<pcl::PointXYZRGB>);
+  /*pcl::PointCloud<pcl::PointXYZRGB>::Ptr big_cloud_from_masked (new pcl::PointCloud<pcl::PointXYZRGB>);
 
   for(size_t i=0; i < used_clouds.size(); i++)
   {
@@ -278,7 +285,7 @@ main (int argc, char ** argv)
       *big_cloud_from_masked += *cloud;
   }
 
-  /*{
+  {
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler (big_cloud_from_masked);
     vis.addPointCloud (big_cloud_from_masked, handler, "big_from_clouds", v4);
   }*/
@@ -291,8 +298,11 @@ main (int argc, char ** argv)
   if(model_output_.compare("") != 0)
   {
       pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr filtered_with_normals_oriented (new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-      pcl::copyPointCloud(*octree_cloud, *filtered_with_normals_oriented);
-      pcl::copyPointCloud(*big_normals, *filtered_with_normals_oriented);
+
+      pcl::concatenateFields(*big_normals, *octree_cloud, *filtered_with_normals_oriented);
+
+      /*pcl::copyPointCloud(*octree_cloud, *filtered_with_normals_oriented);
+      pcl::copyPointCloud(*big_normals, *filtered_with_normals_oriented);*/
 
       pcl::io::savePCDFileBinary(model_output_, *filtered_with_normals_oriented);
   }

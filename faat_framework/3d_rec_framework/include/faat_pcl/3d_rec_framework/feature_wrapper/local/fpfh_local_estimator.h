@@ -30,6 +30,12 @@ namespace faat_pcl
         using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
 
       public:
+
+        size_t getFeatureType() const
+        {
+          return FPFH;
+        }
+
         bool
         estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {

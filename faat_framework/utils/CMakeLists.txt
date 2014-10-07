@@ -32,7 +32,7 @@ set(srcs
   src/noise_models.cpp
   src/noise_model_based_cloud_integration.cpp
   src/pcl_visualization_utils.cpp
-  src/segmentation_utils.cpp
+  #src/segmentation_utils.cpp
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -45,3 +45,4 @@ target_link_libraries(NMBasedCloudIntegration ${PCL_LIBRARIES} ${OpenCV_LIBS} ${
 add_subdirectory(levmar-2.6)
 add_subdirectory(sparselm-1.3)
 add_subdirectory(SiftGPU)
+add_subdirectory(siftpp)

@@ -128,6 +128,12 @@ namespace faat_pcl
           float cues_time_;
           float t_opt_;
 
+          float inlier_threshold;
+          float clutter_regularizer_;
+          float outlier_regularizer_;
+          float clutter_radius_;
+          float color_sigma_y_, color_sigma_ab_;
+
         public:
           GHVCudaWrapper();
 
@@ -138,6 +144,32 @@ namespace faat_pcl
                models_ = models;
                transforms_ = transforms;
                transforms_to_models_ = transforms_to_models;
+          }
+
+          void setColorSigmas(float cs_y, float cs_ab)
+          {
+              color_sigma_y_ = cs_y;
+              color_sigma_ab_ = cs_ab;
+          }
+
+          void setclutterRadius(float f)
+          {
+              clutter_radius_ = f;
+          }
+
+          void setInlierThreshold(float i)
+          {
+              inlier_threshold = i;
+          }
+
+          void setOutlierWewight(float i)
+          {
+              outlier_regularizer_ = i;
+          }
+
+          void setClutterWeight(float i)
+          {
+              clutter_regularizer_ = i;
           }
 
           void addModelNormals(std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> & models)

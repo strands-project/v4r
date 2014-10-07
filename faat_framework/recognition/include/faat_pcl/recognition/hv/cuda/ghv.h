@@ -144,6 +144,8 @@ class GHV
     float clutter_regularizer_;
     float outlier_regularizer_;
     bool detect_clutter_;
+    float clutter_radius_;
+    float color_sigma_y_, color_sigma_ab_;
 
     //output variables
     pcl::gpu::DeviceArray<float> angles_with_vp_;
@@ -167,7 +169,6 @@ class GHV
     std::vector< std::vector<float> > unexplained_points_weights_;
 
     std::vector<int> solution_global_;
-
     bool color_exists_;
 public:
     GHV()
@@ -177,6 +178,34 @@ public:
         clutter_regularizer_ = 5.f;
         detect_clutter_ = true;
         color_exists_ = false;
+        clutter_radius_ = 0.03f;
+        color_sigma_y_ = color_sigma_ab_ = 0.5f;
+    }
+
+    void setclutterRadius(float f)
+    {
+        clutter_radius_ = f;
+    }
+
+    void setInlierThreshold(float i)
+    {
+        inlier_threshold = i;
+    }
+
+    void setOutlierWewight(float i)
+    {
+        outlier_regularizer_ = i;
+    }
+
+    void setClutterWeight(float i)
+    {
+        clutter_regularizer_ = i;
+    }
+
+    void setColorSigmas(float cs_y, float cs_ab)
+    {
+        color_sigma_y_ = cs_y;
+        color_sigma_ab_ = cs_ab;
     }
 
     ~GHV()

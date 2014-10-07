@@ -9,8 +9,37 @@
 namespace object_modeller
 {
 
-Config::Config(std::string path)
+void Config::clear()
 {
+    parameters.clear();
+}
+
+
+void Config::saveToFile(std::string path)
+{
+    std::ofstream out(path.c_str());
+
+    if (out.is_open())
+    {
+        std::map<std::string, std::string>::iterator iter;
+
+        for (iter = parameters.begin(); iter != parameters.end(); ++iter)
+        {
+            out << iter->first << " = " << iter->second << std::endl;
+        }
+
+        out.close();
+    }
+    else
+    {
+        std::cout << "Could not write config file" << std::endl;
+    }
+}
+
+void Config::loadFromFile(std::string path)
+{
+    clear();
+
     std::ifstream in(path.c_str());
     std::string line;
 
@@ -48,6 +77,16 @@ Config::Config(std::string path)
     }
 }
 
+void Config::applyValues(Config *config)
+{
+    clear();
+
+    for(std::map<std::string, std::string>::iterator iter = config->parameters.begin(); iter != config->parameters.end(); ++iter)
+    {
+        parameters[iter->first] = iter->second;
+    }
+}
+
 void Config::printConfig()
 {
     std::cout << "Configuration: " << std::endl << std::endl;
@@ -65,11 +104,27 @@ void Config::overrideParameter(std::string key, std::string value)
     parameters[key] = value;
 }
 
+bool Config::hasParameter(std::string base_path, std::string key)
+{
+    std::string config_key = buildKey(base_path, key);
+
+    return parameters.count(config_key) > 0;
+}
+
 std::string Config::buildKey(std::string base_path, std::string key)
 {
     std::stringstream config_key;
     config_key << base_path << "." << key;
     return config_key.str();
+}
+
+std::string Config::get(std::string base_path, std::string key)
+{
+    std::string config_key = buildKey(base_path, key);
+
+    std::cout << "get config value " << config_key << " with vlaue " << parameters[config_key] << std::endl;
+
+    return parameters[config_key];
 }
 
 std::string Config::getString(std::string base_path, std::string key, std::string defaultValue)

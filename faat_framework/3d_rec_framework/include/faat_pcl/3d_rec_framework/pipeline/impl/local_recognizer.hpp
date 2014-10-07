@@ -2,6 +2,7 @@
 //#include <faat_pcl/3d_rec_framework/utils/vtk_model_sampling.h>
 #include <faat_pcl/3d_rec_framework/ml/unsupervised/3rdparty/fast_rnn.h>
 
+//#include <pcl/visualization/pcl_visualizer.h>
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
   faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
@@ -61,7 +62,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             pcl::io::loadPCDFile (dir_keypoints.str (), *keypoints);
             keypoints_cache_[pair_model_view] = keypoints;
 
-            if(cg_algorithm_ && cg_algorithm_->getRequiresNormals())
+            if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
             {
               std::stringstream dir_normals;
               dir_normals << path << "/normals_" << descr_model.view_id << ".pcd";
@@ -368,7 +369,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
               PCL_WARN("estimator does not need normals\n");
 
               //the cg alg require normals but the estimator did not compute them, compute them now
-              if(cg_algorithm_->getRequiresNormals())
+              if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
               {
                 PCL_ERROR("Need to compute normals due to the cg algorithm\n");
                 boost::shared_ptr<faat_pcl::rec_3d_framework::PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator;
@@ -456,7 +457,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
     {
       pcl::ScopeTime t("Compute keypoints and features");
-      if (signatures_ != 0 && processed_ != 0 && (signatures_->size () == keypoints_pointcloud->points.size ()))
+      if (signatures_ != 0 && processed_ != 0 && (signatures_->size () == keypoints_input_->points.size ()))
       {
         keypoints_pointcloud = keypoints_input_;
         signatures = signatures_;
@@ -486,12 +487,13 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         }
 
         processed_ = processed;
-
+        estimator_->getKeypointIndices(keypoint_indices_);
       }
       std::cout << "Number of keypoints:" << keypoints_pointcloud->points.size () << std::endl;
     }
 
     keypoint_cloud_ = keypoints_pointcloud;
+
     int size_feat = sizeof(signatures->points[0].histogram) / sizeof(float);
 
     //feature matching and object hypotheses
@@ -502,7 +504,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
       flann::Matrix<int> indices;
       flann::Matrix<float> distances;
-      int k = knn_;
+      size_t k = knn_;
       distances = flann::Matrix<float> (new float[k], 1, k);
       indices = flann::Matrix<int> (new int[k], 1, k);
 
@@ -536,7 +538,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         if(use_codebook_) {
           //indices[0][0] points to the codebook entry
           int cb_entry = indices[0][0];
-          int cb_entries = static_cast<int>(codebook_models_[cb_entry].clustered_indices_to_flann_models_.size());
+//          int cb_entries = static_cast<int>(codebook_models_[cb_entry].clustered_indices_to_flann_models_.size());
           //std::cout << "Codebook entries:" << cb_entries << " " << cb_entry << " " << codebook_models_.size() << std::endl;
           flann_models_indices = codebook_models_[cb_entry].clustered_indices_to_flann_models_;
           model_distances.reserve(flann_models_indices.size());
@@ -596,7 +598,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             model_id_for_scene_keypoint.push_back(flann_models_.at (flann_models_indices[ii]).model->id_);
           }
 
-          if(cg_algorithm_ && cg_algorithm_->getRequiresNormals())
+          if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
           {
             getNormals (*(flann_models_.at (flann_models_indices[ii]).model), flann_models_.at (flann_models_indices[ii]).view_id, normals_model_view_cloud);
             getIndicesToProcessedAndNormals (*(flann_models_.at (flann_models_indices[ii]).model), flann_models_.at (flann_models_indices[ii]).view_id, indices_from_keypoints_to_normals);
@@ -611,15 +613,15 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           {
             (*it_map).second.correspondences_pointcloud->points.push_back(model_keypoint);
             //if(estimator_->needNormals())
-            if(cg_algorithm_ && cg_algorithm_->getRequiresNormals())
+            if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
             {
               (*it_map).second.normals_pointcloud->points.push_back(model_view_normal);
             }
 
-            (*(*it_map).second.correspondences_to_inputcloud).push_back(pcl::Correspondence ((*it_map).second.num_corr_, static_cast<int> (idx), dist));
-            (*(*it_map).second.feature_distances_).push_back(dist);
+            (*(*it_map).second.correspondences_to_inputcloud).push_back(pcl::Correspondence ((*it_map).second.correspondences_pointcloud->points.size()-1, static_cast<int> (idx), dist));
+//            (*(*it_map).second.feature_distances_).push_back(dist);
             (*it_map).second.indices_to_flann_models_.push_back(flann_models_indices[ii]);
-            (*it_map).second.num_corr_++;
+//            (*it_map).second.num_corr_++;
           }
           else
           {
@@ -627,7 +629,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             ObjectHypothesis<PointInT> oh;
             oh.correspondences_pointcloud.reset (new pcl::PointCloud<PointInT> ());
             //if(estimator_->needNormals())
-            if(cg_algorithm_ && cg_algorithm_->getRequiresNormals())
+            if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
             {
               oh.normals_pointcloud.reset (new pcl::PointCloud<pcl::Normal> ());
               oh.normals_pointcloud->points.resize (1);
@@ -635,24 +637,24 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
               oh.normals_pointcloud->points[0] = model_view_normal;
             }
 
-            oh.feature_distances_.reset (new std::vector<float>);
+//            oh.feature_distances_.reset (new std::vector<float>);
             oh.correspondences_to_inputcloud.reset (new pcl::Correspondences ());
 
             oh.correspondences_pointcloud->points.resize (1);
             oh.correspondences_to_inputcloud->resize (1);
-            oh.feature_distances_->resize (1);
+//            oh.feature_distances_->resize (1);
             oh.indices_to_flann_models_.resize(1);
 
             oh.correspondences_pointcloud->points.reserve (signatures->points.size ());
             oh.correspondences_to_inputcloud->reserve (signatures->points.size ());
-            oh.feature_distances_->reserve (signatures->points.size ());
+//            oh.feature_distances_->reserve (signatures->points.size ());
             oh.indices_to_flann_models_.reserve(signatures->points.size ());
 
             oh.correspondences_pointcloud->points[0] = model_keypoint;
             oh.correspondences_to_inputcloud->at (0) = pcl::Correspondence (0, static_cast<int> (idx), dist);
-            oh.feature_distances_->at (0) = dist;
+//            oh.feature_distances_->at (0) = dist;
             oh.indices_to_flann_models_[0] = flann_models_indices[ii];
-            oh.num_corr_ = 1;
+//            oh.num_corr_ = 1;
             oh.model_ = flann_models_.at (flann_models_indices[ii]).model;
 
             object_hypotheses[oh.model_->id_] = oh;
@@ -666,13 +668,29 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
       typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
       for (it_map = object_hypotheses.begin(); it_map != object_hypotheses.end (); it_map++) {
-        ObjectHypothesis<PointInT> oh = (*it_map).second;
-        oh.correspondences_pointcloud->points.resize(oh.num_corr_);
-        if(cg_algorithm_ && cg_algorithm_->getRequiresNormals())
-          oh.normals_pointcloud->points.resize(oh.num_corr_);
 
-        oh.correspondences_to_inputcloud->resize(oh.num_corr_);
-        oh.feature_distances_->resize(oh.num_corr_);
+//          std::cout << "Showing local recognizer keypoints for " << it_map->first << std::endl;
+//                     pcl::visualization::PCLVisualizer viewer("Keypoint Viewer for local recognizer");
+//                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+//                     ConstPointInTPtr model_cloud_templated = it_map->second.model_->getAssembled (0.003f);
+//                     pcl::copyPointCloud(*model_cloud_templated, *model_cloud);
+//                     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler_rgb (model_cloud);
+//                     viewer.addPointCloud<pcl::PointXYZRGB>(model_cloud, handler_rgb, "scene");
+
+//                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pKeypointCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+//                     PointInTPtr pKeypointCloudTemplated = it_map->second.correspondences_pointcloud;
+//                     pcl::copyPointCloud(*pKeypointCloudTemplated, *pKeypointCloud);
+//                     viewer.addPointCloudNormals<pcl::PointXYZRGB,pcl::Normal>(pKeypointCloud, it_map->second.normals_pointcloud, 5, 0.04);
+//                     viewer.spin();
+
+        ObjectHypothesis<PointInT> oh = (*it_map).second;
+        size_t num_corr = oh.correspondences_to_inputcloud->size();
+        oh.correspondences_pointcloud->points.resize(num_corr);
+        if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
+          oh.normals_pointcloud->points.resize(num_corr);
+
+        oh.correspondences_to_inputcloud->resize(num_corr);
+//        oh.feature_distances_->resize(num_corr);
       }
 
       //std::cout << "Time nearest searches:" << time_nn / 1000.f << " ms" << std::endl;
@@ -706,7 +724,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
       {
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals(new pcl::PointCloud<pcl::Normal>);
-        if(cg_algorithm_->getRequiresNormals())
+        if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
         {
           pcl::PointCloud<pcl::Normal>::Ptr all_scene_normals;
 
@@ -742,7 +760,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           cg_algorithm_->setSceneCloud (keypoints_pointcloud);
           cg_algorithm_->setInputCloud ((*it_map).second.correspondences_pointcloud);
 
-          if(cg_algorithm_->getRequiresNormals())
+          if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
           {
             std::cout << "CG alg requires normals..." << ((*it_map).second.normals_pointcloud)->points.size() << " " << (scene_normals)->points.size() << std::endl;
             cg_algorithm_->setInputAndSceneNormals((*it_map).second.normals_pointcloud, scene_normals);

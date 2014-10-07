@@ -5,44 +5,54 @@
 
 #include <faat_pcl/utils/filesystem_utils.h>
 
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
 namespace object_modeller
 {
 namespace reader
 {
 
-void FileReader::applyConfig(Config &config)
+template<class TPointType>
+void FileReader<TPointType>::applyConfig(Config::Ptr config)
 {
-    this->pattern   = config.getString(getConfigName(), "pattern",   ".*cloud_.*.pcd");
-    this->inputPath = config.getString(getConfigName(), "inputPath", "./");
-    this->step      = config.getInt   (getConfigName(), "step",      1);
+    ConfigItem::applyConfig(config);
+
+    nrSequences = 1;
 }
 
-std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> FileReader::process()
+
+template<class TPointType>
+std::vector<typename pcl::PointCloud<TPointType>::Ptr> FileReader<TPointType>::process()
 {
+    std::string sequenceFolder = getSequenceFolder();
+
+    std::cout << "target folder " << sequenceFolder << std::endl;
+
     std::vector<std::string> files;
 
-    bf::path input_path = inputPath;
+    bf::path input_path = sequenceFolder;
 
     faat_pcl::utils::getFilesInDirectory(input_path, files, pattern);
 
-    std::cout << "Load pcd files from source dir: " << inputPath << std::endl;
+    std::cout << "Load pcd files from source dir: " << sequenceFolder << std::endl;
 
     for (size_t i = 0; i < files.size (); i++)
     {
         std::cout << "Load pcd file " << files[i] << std::endl;
 
-        files[i].insert(0, inputPath);
+        files[i].insert(0, sequenceFolder);
     }
 
     // sort files
     std::sort (files.begin (), files.end ());
 
     // load point clouds
-    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pointClouds;
+    std::vector<typename pcl::PointCloud<TPointType>::Ptr> pointClouds;
 
     for (size_t i = 0; i < files.size (); i+=step)
     {
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+        typename pcl::PointCloud<TPointType>::Ptr pointCloud (new pcl::PointCloud<TPointType>);
 
         printf("Load PCD file: %s\n", files[i].c_str());
 
@@ -53,6 +63,9 @@ std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> FileReader::process()
 
     return pointClouds;
 }
+
+template class FileReader<pcl::PointXYZRGB>;
+template class FileReader<pcl::PointXYZRGBNormal>;
 
 }
 }

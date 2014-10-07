@@ -7,24 +7,30 @@
 
 #include "result.h"
 #include "config.h"
+#include "multisequence.h"
 
 namespace object_modeller
 {
 
-class Module
+class VisualConfigBase;
+
+class Module : public ConfigItem
 {
-private:
-    std::string config_name;
+protected:
+    int activeSequence;
+    VisualConfigBase *visualConfig;
 public:
 
-    Module(std::string config_name) : config_name(config_name)
-    {}
+    Module(std::string config_name, VisualConfigBase *visualConfig = NULL);
 
-    virtual void applyConfig(Config &config) = 0;
-
-    std::string getConfigName()
+    VisualConfigBase *getVisualConfig()
     {
-        return config_name;
+        return visualConfig;
+    }
+
+    void setActiveSequence(int sequence)
+    {
+        this->activeSequence = sequence;
     }
 
     virtual std::string getName()

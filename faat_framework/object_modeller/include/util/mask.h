@@ -32,8 +32,6 @@ public:
                  std::vector<typename pcl::PointCloud<TPointType>::Ptr>,
                  std::vector<std::vector<int> > > input);
 
-    virtual void applyConfig(Config &config);
-
     std::string getName()
     {
         return "Mask point clouds";

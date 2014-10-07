@@ -14,7 +14,8 @@
 
 template<typename PointT>
   int
-  faat_pcl::registration::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObserved (PointCloudPtr & im1, PointCloudPtr & im2,
+  faat_pcl::registration::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObserved (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+                                                                                             const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                                                  std::vector<float> & range_diff)
   {
     float cx, cy;
@@ -51,7 +52,8 @@ template<typename PointT>
 
   template<typename PointT>
     int
-    faat_pcl::registration::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObservedWithIndicesBack (PointCloudPtr & im1, PointCloudPtr & im2,
+    faat_pcl::registration::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObservedWithIndicesBack (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+                                                                                                              const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                                                               std::vector<float> & range_diff,
                                                                                                               std::vector<int> & indices)
     {
@@ -92,7 +94,7 @@ template<typename PointT>
 
 template<typename PointT>
 float
-faat_pcl::registration::VisibilityReasoning<PointT>::computeFocalLength (int cx_, int cy_, PointCloudPtr & scene)
+faat_pcl::registration::VisibilityReasoning<PointT>::computeFocalLength (int cx_, int cy_, const typename pcl::PointCloud<PointT>::ConstPtr & scene)
 {
   float cx, cy;
   cx = static_cast<float> (cx_) / 2.f - 0.5f;
@@ -125,8 +127,8 @@ faat_pcl::registration::VisibilityReasoning<PointT>::computeFocalLength (int cx_
 
 template<typename PointT>
 void
-faat_pcl::registration::VisibilityReasoning<PointT>::computeRangeImage (int cx_, int cy_, float f_, PointCloudPtr & cloud,
-                                                                            PointCloudPtr & range_image)
+faat_pcl::registration::VisibilityReasoning<PointT>::computeRangeImage (int cx_, int cy_, float f_, const typename pcl::PointCloud<PointT>::ConstPtr & cloud,
+                                                                            typename pcl::PointCloud<PointT>::Ptr & range_image)
 {
   float cx, cy;
   cx = static_cast<float> (cx_) / 2.f; //- 0.5f;
@@ -212,22 +214,22 @@ faat_pcl::registration::VisibilityReasoning<PointT>::computeRangeImage (int cx_,
 }
 
 template<typename PointT>
-float faat_pcl::registration::VisibilityReasoning<PointT>::computeOSV(PointCloudPtr & im1,
-                                                                               PointCloudPtr & im2,
-                                                                               Eigen::Matrix4f pose_2_to_1)
+float faat_pcl::registration::VisibilityReasoning<PointT>::computeOSV(const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+                                                                      const typename pcl::PointCloud<PointT>::ConstPtr & im2,
+                                                                      Eigen::Matrix4f pose_2_to_1)
 {
   //check for OSV violation, a surface is observed by sensor2
   //and not observed by sensor1, even though it is in the FOV of sensor1
   PointCloudPtr im2_trans;
-  if (pose_2_to_1.isIdentity (0.00001f))
-  {
-    im2_trans = im2;
-  }
-  else
-  {
+//  if (pose_2_to_1.isIdentity (0.00001f))
+//  {
+//    im2_trans = im2;
+//  }
+//  else
+//  {
     im2_trans.reset (new pcl::PointCloud<PointT>);
     pcl::transformPointCloud (*im2, *im2_trans, pose_2_to_1);
-  }
+//  }
 
   float cx, cy;
   cx = static_cast<float> (cx_) / 2.f - 0.5f;
@@ -260,9 +262,9 @@ float faat_pcl::registration::VisibilityReasoning<PointT>::computeOSV(PointCloud
 
 template<typename PointT>
   float
-  faat_pcl::registration::VisibilityReasoning<PointT>::computeFSV (PointCloudPtr & im1,
-                                                                            PointCloudPtr & im2,
-                                                                            Eigen::Matrix4f pose_2_to_1)
+  faat_pcl::registration::VisibilityReasoning<PointT>::computeFSV (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+                                                                   const typename pcl::PointCloud<PointT>::ConstPtr & im2,
+                                                                   Eigen::Matrix4f pose_2_to_1)
   {
     std::vector<float> range_diff_1_to_2;
 
@@ -303,8 +305,8 @@ template<typename PointT>
 
   template<typename PointT>
     float
-    faat_pcl::registration::VisibilityReasoning<PointT>::computeFSVWithNormals (PointCloudPtr & im1,
-                                                                                PointCloudPtr & im2,
+    faat_pcl::registration::VisibilityReasoning<PointT>::computeFSVWithNormals (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+                                                                                const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                                 pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {
       std::vector<float> range_diff_1_to_2;

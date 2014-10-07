@@ -133,25 +133,25 @@ namespace faat_pcl
         }
 
         void
-        setSearchModel (std::string & id)
+        setSearchModel (const std::string & id)
         {
           search_model_ = id;
         }
 
         void
-        setThresholdAcceptHyp (float t)
+        setThresholdAcceptHyp (const float t)
         {
           threshold_accept_model_hypothesis_ = t;
         }
 
         void
-        setIndices (std::vector<int> & indices)
+        setIndices (const std::vector<int> &indices)
         {
           indices_ = indices;
         }
 
         void
-        setUseCache (bool u)
+        setUseCache (const bool u)
         {
           use_cache_ = u;
         }
@@ -160,13 +160,13 @@ namespace faat_pcl
          * \brief Sets the model data source_
          */
         void
-        setDataSource (typename boost::shared_ptr<Source<PointInT> > & source)
+        setDataSource (typename boost::shared_ptr<Source<PointInT> > source)
         {
           source_ = source;
         }
 
         typename boost::shared_ptr<Source<PointInT> >
-        getDataSource ()
+        getDataSource () 
         {
           return source_;
         }
@@ -175,7 +175,7 @@ namespace faat_pcl
          * \brief Sets the descriptor name
          */
         void
-        setDescriptorName (std::string & name)
+        setDescriptorName (const std::string name)
         {
           descr_name_ = name;
         }
@@ -184,7 +184,7 @@ namespace faat_pcl
          * \brief Filesystem dir where to keep the generated training data
          */
         void
-        setTrainingDir (std::string & dir)
+        setTrainingDir (const std::string dir)
         {
           training_dir_ = dir;
         }
@@ -195,7 +195,7 @@ namespace faat_pcl
          */
 
         void
-        initialize (bool force_retrain = false);
+        initialize (const bool force_retrain = false);
 
         /**
          * \brief Performs recognition and pose estimation on the input cloud

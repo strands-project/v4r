@@ -50,7 +50,7 @@ faat_pcl::GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx, typename pcl
   if(hyp_idx < 0 || hyp_idx > (recognition_models_.size() - 1))
     return false;
 
-  boost::shared_ptr<RecognitionModel<ModelT> > recog_model = recognition_models_[hyp_idx];
+  boost::shared_ptr<GHVRecognitionModel<ModelT> > recog_model = recognition_models_[hyp_idx];
   cloud.reset(new pcl::PointCloud<ModelT>(*visible_models_[hyp_idx]));
 
 
@@ -69,11 +69,10 @@ faat_pcl::GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx, typename pcl
   }
 }
 
-template<typename ModelT, typename SceneT>
+/*template<typename ModelT, typename SceneT>
 void
 faat_pcl::GO3D<ModelT, SceneT>::initialize ()
 {
-    occ_edges_available_ = false;
     //clear stuff
     recognition_models_.clear ();
     unexplained_by_RM_neighboorhods.clear ();
@@ -195,6 +194,45 @@ faat_pcl::GO3D<ModelT, SceneT>::initialize ()
       }
     }
 
+    if(!ignore_color_even_if_exists_)
+    {
+        bool exists_s;
+        float rgb_s;
+        scene_LAB_values_.resize(scene_cloud_downsampled_->points.size());
+        scene_RGB_values_.resize(scene_cloud_downsampled_->points.size());
+        scene_GS_values_.resize(scene_cloud_downsampled_->points.size());
+        for(size_t i=0; i < scene_cloud_downsampled_->points.size(); i++)
+        {
+            pcl::for_each_type<FieldListS> (
+                        pcl::CopyIfFieldExists<typename CloudS::PointType, float> (scene_cloud_downsampled_->points[i],
+                                                                                   "rgb", exists_s, rgb_s));
+
+            if (exists_s)
+            {
+
+                uint32_t rgb = *reinterpret_cast<int*> (&rgb_s);
+                unsigned char rs = (rgb >> 16) & 0x0000ff;
+                unsigned char gs = (rgb >> 8) & 0x0000ff;
+                unsigned char bs = (rgb) & 0x0000ff;
+
+                float LRefs, aRefs, bRefs;
+
+                RGB2CIELAB (rs, gs, bs, LRefs, aRefs, bRefs);
+                LRefs /= 100.0f; aRefs /= 120.0f; bRefs /= 120.0f;    //normalized LAB components (0<L<1, -1<a<1, -1<b<1)
+
+                scene_LAB_values_[i] = (Eigen::Vector3f(LRefs, aRefs, bRefs));
+
+                float rsf,gsf,bsf;
+                rsf = static_cast<float>(rs) / 255.f;
+                gsf = static_cast<float>(gs) / 255.f;
+                bsf = static_cast<float>(bs) / 255.f;
+                scene_RGB_values_[i] = (Eigen::Vector3f(rsf,gsf,bsf));
+
+                scene_GS_values_[i] = (rsf + gsf + bsf) / 3.f;
+            }
+        }
+    }
+
     //compute cues
     {
       valid_model_.resize(complete_models_.size (), true);
@@ -205,7 +243,7 @@ faat_pcl::GO3D<ModelT, SceneT>::initialize ()
         for (int i = 0; i < static_cast<int> (complete_models_.size ()); i++)
         {
           //create recognition model
-          recognition_models_[i].reset (new RecognitionModel<ModelT> ());
+          recognition_models_[i].reset (new GHVRecognitionModel<ModelT> ());
           if(!addModel(i, recognition_models_[i])) {
             valid_model_[i] = false;
             PCL_WARN("Model is not valid\n");
@@ -285,24 +323,15 @@ faat_pcl::GO3D<ModelT, SceneT>::initialize ()
     }
 
     {
-
-#ifdef FAAT_PCL_RECOGNITION_USE_GPU
-      computeClutterCueGPU();
-#else
-      {
-          pcl::ScopeTime tcues ("Computing clutter cues");
-          #pragma omp parallel for schedule(dynamic, 1) num_threads(omp_get_num_procs())
-              for (int j = 0; j < static_cast<int> (recognition_models_.size ()); j++)
-                computeClutterCue (recognition_models_[j]);
-      }
-#endif
+      pcl::ScopeTime tcues ("Computing clutter cues");
+      computeClutterCueAtOnce ();
     }
 
     points_explained_by_rm_.clear ();
     points_explained_by_rm_.resize (scene_cloud_downsampled_->points.size ());
     for (size_t j = 0; j < recognition_models_.size (); j++)
     {
-      boost::shared_ptr<RecognitionModel<ModelT> > recog_model = recognition_models_[j];
+      boost::shared_ptr<GHVRecognitionModel<ModelT> > recog_model = recognition_models_[j];
       for (size_t i = 0; i < recog_model->explained_.size (); i++)
       {
         points_explained_by_rm_[recog_model->explained_[i]].push_back (recog_model);
@@ -319,11 +348,11 @@ faat_pcl::GO3D<ModelT, SceneT>::initialize ()
 
       cc_[0].push_back (static_cast<int> (i));
     }
-  }
+  }*/
 
-template<typename ModelT, typename SceneT>
+/*template<typename ModelT, typename SceneT>
 bool
-faat_pcl::GO3D<ModelT, SceneT>::handlingNormals (boost::shared_ptr<RecognitionModel<ModelT> > & recog_model, int i, bool is_planar_model, int object_models_size)
+faat_pcl::GO3D<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, bool is_planar_model, int object_models_size)
 {
     //std::cout << visible_normal_models_.size() << " " << object_models_size << " " << complete_models_.size() << std::endl;
     if(visible_normal_models_.size() != object_models_size)
@@ -337,7 +366,9 @@ faat_pcl::GO3D<ModelT, SceneT>::handlingNormals (boost::shared_ptr<RecognitionMo
 
       //recompute normals and orient them properly based on visible_normal_models_[i]
       pcl::PointCloud<pcl::Normal>::ConstPtr model_normals = visible_normal_models_[i];
-      pcl::ScopeTime t("Using model normals and checking nans");
+      recog_model->normals_.reset (new pcl::PointCloud<pcl::Normal> (*model_normals));
+      //ATTENTION: tHIS was different...
+      //pcl::ScopeTime t("Using model normals and checking nans");
 
         //compute normals unless given (now do it always...)
         typename pcl::search::KdTree<ModelT>::Ptr normals_tree (new pcl::search::KdTree<ModelT>);
@@ -451,7 +482,7 @@ faat_pcl::GO3D<ModelT, SceneT>::handlingNormals (boost::shared_ptr<RecognitionMo
     }
 
     return true;
-}
+}*/
 
 template<typename ModelT, typename SceneT>
 void

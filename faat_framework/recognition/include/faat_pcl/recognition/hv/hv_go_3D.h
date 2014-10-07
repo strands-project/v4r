@@ -11,6 +11,7 @@
 #include <pcl/common/common.h>
 #include <pcl/pcl_macros.h>
 #include <faat_pcl/recognition/hv/hypotheses_verification.h>
+#include <faat_pcl/recognition/hv/ghv.h>
 #include "pcl/recognition/3rdparty/metslib/mets.hh"
 #include <pcl/features/normal_3d.h>
 #include <boost/graph/graph_traits.hpp>
@@ -18,77 +19,74 @@
 #include <map>
 #include <iostream>
 #include <fstream>
-#include <faat_pcl/recognition/hv/hv_go_1.h>
+//#include <faat_pcl/recognition/hv/hv_go_1.h>
 #include <pcl/common/time.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
 
 namespace faat_pcl
 {
   template<typename ModelT, typename SceneT>
-  class FAAT_REC_API GO3D : public faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>
+  //class FAAT_REC_API GO3D : public faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>
+  class FAAT_REC_API GO3D : public faat_pcl::GHV<ModelT, SceneT>
   {
     private:
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::mask_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::scene_cloud_downsampled_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::scene_downsampled_tree_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visible_models_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visible_normal_models_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visible_indices_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::complete_models_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::resolution_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::inliers_threshold_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::normals_set_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::requires_normals_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::occlusion_thres_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::zbuffer_self_occlusion_resolution_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::regularizer_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::object_ids_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::radius_normals_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::extra_weights_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::scene_normals_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::ignore_color_even_if_exists_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::color_sigma_ab_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::color_sigma_l_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::recognition_models_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::computeRGBHistograms;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::specifyRGBHistograms;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::computeYUVHistogram;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::unexplained_by_RM_neighboorhods;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::explained_by_RM_distance_weighted;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::explained_by_RM_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::complete_cloud_occupancy_by_RM_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::occ_edges_available_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::octree_scene_downsampled_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::use_super_voxels_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::radius_neighborhood_GO_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::detect_clutter_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::cc_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::n_cc_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::valid_model_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::cluster_tolerance_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::eps_angle_threshold_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::curvature_threshold_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::clusters_cloud_rgb_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::clusters_cloud_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::min_points_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::points_explained_by_rm_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::res_occupancy_grid_;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::extractEuclideanClustersSmooth;
-    using faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::complete_normal_models_;
+    using faat_pcl::GHV<ModelT, SceneT>::mask_;
+    using faat_pcl::GHV<ModelT, SceneT>::scene_cloud_downsampled_;
+    using faat_pcl::GHV<ModelT, SceneT>::scene_downsampled_tree_;
+    using faat_pcl::GHV<ModelT, SceneT>::visible_models_;
+    using faat_pcl::GHV<ModelT, SceneT>::visible_normal_models_;
+    using faat_pcl::GHV<ModelT, SceneT>::visible_indices_;
+    using faat_pcl::GHV<ModelT, SceneT>::complete_models_;
+    using faat_pcl::GHV<ModelT, SceneT>::resolution_;
+    using faat_pcl::GHV<ModelT, SceneT>::inliers_threshold_;
+    using faat_pcl::GHV<ModelT, SceneT>::normals_set_;
+    using faat_pcl::GHV<ModelT, SceneT>::requires_normals_;
+    using faat_pcl::GHV<ModelT, SceneT>::occlusion_thres_;
+    using faat_pcl::GHV<ModelT, SceneT>::zbuffer_self_occlusion_resolution_;
+    using faat_pcl::GHV<ModelT, SceneT>::regularizer_;
+    using faat_pcl::GHV<ModelT, SceneT>::object_ids_;
+    using faat_pcl::GHV<ModelT, SceneT>::radius_normals_;
+    using faat_pcl::GHV<ModelT, SceneT>::extra_weights_;
+    using faat_pcl::GHV<ModelT, SceneT>::scene_normals_;
+    using faat_pcl::GHV<ModelT, SceneT>::ignore_color_even_if_exists_;
+    using faat_pcl::GHV<ModelT, SceneT>::color_sigma_ab_;
+    using faat_pcl::GHV<ModelT, SceneT>::color_sigma_l_;
+    using faat_pcl::GHV<ModelT, SceneT>::recognition_models_;
+    using faat_pcl::GHV<ModelT, SceneT>::computeRGBHistograms;
+    using faat_pcl::GHV<ModelT, SceneT>::specifyRGBHistograms;
+    using faat_pcl::GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods;
+    using faat_pcl::GHV<ModelT, SceneT>::explained_by_RM_distance_weighted;
+    using faat_pcl::GHV<ModelT, SceneT>::explained_by_RM_;
+    using faat_pcl::GHV<ModelT, SceneT>::complete_cloud_occupancy_by_RM_;
+    using faat_pcl::GHV<ModelT, SceneT>::octree_scene_downsampled_;
+    using faat_pcl::GHV<ModelT, SceneT>::use_super_voxels_;
+    using faat_pcl::GHV<ModelT, SceneT>::radius_neighborhood_GO_;
+    using faat_pcl::GHV<ModelT, SceneT>::detect_clutter_;
+    using faat_pcl::GHV<ModelT, SceneT>::cc_;
+    using faat_pcl::GHV<ModelT, SceneT>::n_cc_;
+    using faat_pcl::GHV<ModelT, SceneT>::valid_model_;
+    using faat_pcl::GHV<ModelT, SceneT>::cluster_tolerance_;
+    using faat_pcl::GHV<ModelT, SceneT>::eps_angle_threshold_;
+    using faat_pcl::GHV<ModelT, SceneT>::curvature_threshold_;
+    using faat_pcl::GHV<ModelT, SceneT>::clusters_cloud_rgb_;
+    using faat_pcl::GHV<ModelT, SceneT>::clusters_cloud_;
+    using faat_pcl::GHV<ModelT, SceneT>::min_points_;
+    using faat_pcl::GHV<ModelT, SceneT>::points_explained_by_rm_;
+    using faat_pcl::GHV<ModelT, SceneT>::res_occupancy_grid_;
+    using faat_pcl::GHV<ModelT, SceneT>::extractEuclideanClustersSmooth;
+    using faat_pcl::GHV<ModelT, SceneT>::complete_normal_models_;
+    using faat_pcl::GHV<ModelT, SceneT>::scene_LAB_values_;
+    using faat_pcl::GHV<ModelT, SceneT>::scene_RGB_values_;
+    using faat_pcl::GHV<ModelT, SceneT>::scene_GS_values_;
+    using faat_pcl::GHV<ModelT, SceneT>::computeClutterCueAtOnce;
 
-    typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
-    typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
+    //typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
+    //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
     std::vector<Eigen::Matrix4f> absolute_poses_camera_to_global_;
     std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > occ_clouds_;
 
     static float sRGB_LUT[256];
     static float sXYZ_LUT[4000];
-
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    //float sRGB_LUT[256] = {- 1};
-
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    //float sXYZ_LUT[4000] = {- 1};
 
     //////////////////////////////////////////////////////////////////////////////////////////////
     void
@@ -158,10 +156,10 @@ namespace faat_pcl
     /*bool
     addModel (int i, boost::shared_ptr<RecognitionModel<ModelT> > & recog_model);*/
 
-      void initialize ();
+      //void initialize ();
 
-      bool
-      handlingNormals (boost::shared_ptr<RecognitionModel<ModelT> > & recog_model, int i, bool is_planar_model, int object_models_size);
+      /*bool
+      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, bool is_planar_model, int object_models_size);*/
 
     public:
       GO3D()
@@ -169,7 +167,7 @@ namespace faat_pcl
 
       }
 
-      void setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene_cloud_downsampled_GO3D,
+      /*void setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene_cloud_downsampled_GO3D,
                               typename pcl::PointCloud<pcl::Normal>::Ptr & scene_normals_go3D)
       {
           scene_cloud_downsampled_GO3D_ = scene_cloud_downsampled_GO3D;
@@ -179,7 +177,7 @@ namespace faat_pcl
       typename pcl::PointCloud<SceneT>::Ptr getSceneCloud()
       {
         return scene_cloud_downsampled_GO3D_;
-      }
+      }*/
 
       bool getInlierOutliersCloud(int hyp_idx, typename pcl::PointCloud<ModelT>::Ptr & cloud);
 

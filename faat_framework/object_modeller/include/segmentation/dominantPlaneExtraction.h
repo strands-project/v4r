@@ -20,13 +20,12 @@ private:
     int num_plane_inliers;
     int seg_type;
     float plane_threshold;
+    float test;
 
 public:
     DominantPlaneExtraction(std::string config_name="dominantPlaneExtraction");
 
     std::vector<std::vector<int> > process(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> input);
-
-    virtual void applyConfig(Config &config);
 
     std::string getName()
     {

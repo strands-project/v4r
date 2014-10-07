@@ -929,7 +929,6 @@ template<typename PointModelT, typename PointSceneT>
 
       for (size_t k = 0; k < model_scene_corrs_->size (); ++k)
       {
-
         int scene_index_k = model_scene_corrs_->at (k).index_match;
         int model_index_k = model_scene_corrs_->at (k).index_query;
         const Eigen::Vector3f& scene_point_k = scene_->at (scene_index_k).getVector3fMap ();

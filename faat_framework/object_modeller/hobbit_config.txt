@@ -1,0 +1,39 @@
+#renderer type (0=pcl, 1=tomGine)
+pipeline.renderer=1
+
+#registration type (0=checkerboard, 1=cameraTracker)
+pipeline.registrationType=0
+
+#stop after each visualization step
+pipeline.step=false
+
+pipeline.enableMultiview=false
+
+#segmentation type (0=dominant plane, 1=not Nan)
+pipeline.segmentationType=0
+
+# a comment
+reader.pattern = .*cloud_.*.pcd
+reader.inputPath = /home/alex/Arbeitsflaeche/pcl/data/willow_dataset_training_models_gt/training_data/object_13.pcd/
+reader.step = 2
+
+writer.outputPath=/media/DATA/hobbit/result_models/empty_turntable/
+
+pointCloudWriter.pattern=cloud_*.pcd
+indicesWriter.pattern=object_indices_*.pcd
+posesWriter.pattern=pose_*.txt
+
+modelWriter.outputPath=/media/DATA/hobbit/result_models/
+modelWriter.pattern=model.pcd
+
+distanceFilter.zDist=1.0f
+distanceFilter.euclideanDistance=false
+cameraTracker.keyframesOnly=false
+checkerboardRegistration.boardSizes= 4,5;3,6
+
+globalRegistration.views_overlap=0.5f
+
+nmBasedCloudIntegration.resolution=0.003f
+
+miscellaneous.turn_tablemodel=model
+miscellaneous.model_scale=0.001

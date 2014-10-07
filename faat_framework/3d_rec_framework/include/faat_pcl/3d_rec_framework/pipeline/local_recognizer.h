@@ -127,6 +127,7 @@ namespace faat_pcl
           PointInTPtr keypoints_input_;
           PointInTPtr processed_;
           typename pcl::PointCloud<FeatureT>::Ptr signatures_;
+          pcl::PointIndices keypoint_indices_;
 
           std::string cb_flann_index_fn_;
           std::string flann_index_fn_;
@@ -236,6 +237,12 @@ namespace faat_pcl
 
           }
 
+//          virtual void cgVerificationAndPoseEstimation(
+//                    PointInTPtr keypoints_pointcloud,
+//                    PointInTPtr processed,
+//                    pcl::PointCloud<pcl::Normal>::Ptr scene_normal,
+//                    std::map<std::string, ObjectHypothesis<PointInT> > &object_hypotheses);
+
       public:
 
         LocalRecognitionPipeline (std::string index_fn=std::string("index_flann.txt"),
@@ -253,6 +260,11 @@ namespace faat_pcl
           distance_same_keypoint_ = 0.001f * 0.001f;
           max_descriptor_distance_ = std::numeric_limits<float>::infinity();
           correspondence_distance_constant_weight_ = 1.f;
+        }
+
+        size_t getFeatureType() const
+        {
+            return estimator_->getFeatureType();
         }
 
         void setCorrespondenceDistanceConstantWeight(float w)
@@ -280,29 +292,40 @@ namespace faat_pcl
           knn_ = k;
         }
 
-        void setSaveHypotheses(bool set)
+        void setSaveHypotheses(const bool set)
         {
           save_hypotheses_ = set;
         }
 
         virtual
         void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses)
+        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses) const
         {
           hypotheses = saved_object_hypotheses_;
         }
 
         void
-        getKeypointCloud(PointInTPtr & keypoint_cloud)
+        getKeypointCloud(PointInTPtr & keypoint_cloud) const
         {
           keypoint_cloud = keypoint_cloud_;
         }
 
-        void setISPK(typename pcl::PointCloud<FeatureT>::Ptr & signatures, PointInTPtr & p, PointInTPtr & keypoints)
+        void getKeypointIndices(pcl::PointIndices & indices) const
         {
-          keypoints_input_ = keypoints;
+            indices.header = keypoint_indices_.header;
+            indices.indices = keypoint_indices_.indices;
+        }
+
+        void setISPK(typename pcl::PointCloud<FeatureT>::Ptr & signatures, PointInTPtr & p, pcl::PointIndices & keypoint_indices)
+        {  
+          keypoint_indices_.header = keypoint_indices.header;
+          keypoint_indices_.indices = keypoint_indices.indices;
+          keypoints_input_.reset(new pcl::PointCloud<PointInT>());
+          pcl::copyPointCloud(*p, keypoint_indices.indices, *keypoints_input_);
+          //keypoints_input_ = keypoints;
           signatures_ = signatures;
           processed_ = p;
+
         }
 
         void setUseCodebook(bool t) {
@@ -413,7 +436,7 @@ namespace faat_pcl
          * \brief Filesystem dir where to keep the generated training data
          */
         void
-        setTrainingDir (std::string & dir)
+        setTrainingDir (const std::string dir)
         {
           training_dir_ = dir;
         }

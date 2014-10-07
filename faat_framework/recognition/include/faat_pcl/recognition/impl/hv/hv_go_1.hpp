@@ -972,8 +972,6 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::initialize ()
     }*/
 }
 
-int multiple_assignment_penalize_by_one_ = 2;
-
 template<typename ModelT, typename SceneT>
 float
 faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::getCurvWeight(float p_curvature)
@@ -2677,7 +2675,7 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::handlingNormals (boost
         {
             //compute normals unless given (now do it always...)
 
-            std::cout << "compute normals, is planar model:" << is_planar_model << " " << radius_normals_ << std::endl;
+            //std::cout << "compute normals, is planar model:" << is_planar_model << " " << radius_normals_ << std::endl;
             typename pcl::search::KdTree<ModelT>::Ptr normals_tree (new pcl::search::KdTree<ModelT>);
             typedef typename pcl::NormalEstimationOMP<ModelT, pcl::Normal> NormalEstimator_;
             NormalEstimator_ n3d;
@@ -3347,6 +3345,7 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::addModel (int i, boost
 
                         if(color_space_ == 0 || color_space_ == 5 || color_space_ == 6)
                         {
+                            //std::cout << scene_LAB_values_.size() << " " << nn_indices[k] << std::endl;
                             yuvm = recog_model->cloud_LAB_[i];
                             yuvs = scene_LAB_values_[nn_indices[k]];
 
@@ -3745,6 +3744,13 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::addModel (int i, boost
 
                 scene_LAB_values.push_back(Eigen::Vector3f( LRefs, (aRefs + 1) / 2.f, (bRefs + 1) / 2.f));
             }*/
+        }
+
+        if( (d_weight * dotp * extra_weight > 1.f) || pcl_isnan(d_weight * dotp * extra_weight) || pcl_isinf(d_weight * dotp * extra_weight))
+        {
+            std::cout << d_weight * dotp * extra_weight << " " << d_weight << " " << dotp << " " << extra_weight << std::endl;
+            std::cout << scene_p_normal << std::endl;
+            std::cout << model_p_normal << std::endl;
         }
 
         assert((d_weight * dotp * extra_weight) <= 1.0001f);

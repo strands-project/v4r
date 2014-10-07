@@ -10,11 +10,6 @@ namespace object_modeller
 namespace util
 {
 
-void MultiplyMatrix::applyConfig(Config &config)
-{
-
-}
-
 std::vector<Eigen::Matrix4f> MultiplyMatrix::process(boost::tuples::tuple<std::vector<Eigen::Matrix4f>, std::vector<Eigen::Matrix4f> > in)
 {
     std::vector<Eigen::Matrix4f> input = in.get<0>();
@@ -34,6 +29,35 @@ std::vector<Eigen::Matrix4f> MultiplyMatrix::process(boost::tuples::tuple<std::v
     }
 
     std::cout << "process complete " << std::endl;
+
+    return result;
+}
+
+std::vector<Eigen::Matrix4f> MultiplyMatrixSingle::process(boost::tuples::tuple<std::vector<Eigen::Matrix4f>, Eigen::Matrix4f> in)
+{
+    std::vector<Eigen::Matrix4f> input = in.get<0>();
+    Eigen::Matrix4f param = in.get<1>();
+
+    std::vector<Eigen::Matrix4f> result;
+
+    std::cout << "process multiply single" << std::endl;
+
+    std::cout << "multiply matrix for seq " << activeSequence << " with " << std::endl;
+    std::cout << param << std::endl;
+
+    for (size_t i = 0; i < input.size (); i++)
+    {
+        std::cout << "multiply matrix single before: " << activeSequence << "/" <<  i << ": " << std::endl;
+        std::cout << input[i] << std::endl;
+
+        //std::cout << "process " << i << std::endl;
+        result.push_back(param * input[i]);
+
+        std::cout << "multiply matrix single after: " << activeSequence << "/" <<  i << ": " << std::endl;
+        std::cout << result[i] << std::endl;
+    }
+
+    //std::cout << "process complete " << std::endl;
 
     return result;
 }

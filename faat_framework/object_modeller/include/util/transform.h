@@ -29,8 +29,6 @@ public:
                  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>,
                  std::vector<Eigen::Matrix4f> > input);
 
-    virtual void applyConfig(Config &config);
-
     std::string getName()
     {
         return "Transform point clouds";

@@ -21,9 +21,10 @@ private:
 
 public:
     PosesWriter(std::string config_name="posesWriter") : OutModule(config_name)
-    {}
-
-    virtual void applyConfig(Config &config);
+    {
+        registerParameter("outputPath", "Output path", &outputPath, std::string("./out"));
+        registerParameter("pattern", "Pattern", &pattern, std::string("pose_*.txt"));
+    }
 
     void process(std::vector<Eigen::Matrix4f> poses);
     bool writeMatrixToFile (std::string file, Eigen::Matrix4f & matrix);
