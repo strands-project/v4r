@@ -186,7 +186,7 @@ namespace faat_pcl
             cv::imshow ("dImage (filled)", dImage);
             cv::waitKey (0);
 
-            generateCloudOnInterpolated (inpainted_cloud, dImage);
+            this->generateCloudOnInterpolated (inpainted_cloud, dImage);
           }
         };
 
@@ -296,7 +296,7 @@ namespace faat_pcl
             cv::imshow ("dImage (filled)", dImage);
             cv::waitKey (0);
 
-            generateCloudOnInterpolated (inpainted_cloud, dImage);
+            this->generateCloudOnInterpolated (inpainted_cloud, dImage);
           }
         };
     }

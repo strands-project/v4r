@@ -2115,9 +2115,8 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::verify ()
 
     if(visualize_go_cues_)
     {
-        visualize_cues_during_logger_ = boost::bind(&(faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues), this, _1, _2, _3);
-        vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
-    }
+//        visualize_cues_during_logger_ = boost::bind(&(faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues), this, _1, _2, _3);
+     }
 
     n_cc_ = 1;
     cc_.resize(1);
@@ -2201,7 +2200,7 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::verify ()
                     clear_structures();
                     fill_structures(cc_[c], subsolution, model);
 
-                    visualizeGOCues(subsolution, 0, 0);
+//                    visualizeGOCues(subsolution, 0, 0);
 
                     subsolution = opt_subsolution;
                 }
@@ -4588,238 +4587,241 @@ faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::computeClutterCueGPU (
 
 #endif
 
-template<typename ModelT, typename SceneT>
-void
-faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
-                                                                           float cost, int times_evaluated)
-{
-    std::cout << "visualizeGOCues:" << visualize_go_cues_ << std::endl;
+//template<typename ModelT, typename SceneT>
+//void
+//faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
+//                                                                           float cost, int times_evaluated)
+//{
+//    //std::cout << "visualizeGOCues:" << visualize_go_cues_ << std::endl;
 
-    vis_go_cues_->removeAllPointClouds();
-    vis_go_cues_->removeAllShapes();
+//    boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_go_cues_;
+//    vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
 
-    int viewport_scene_and_hypotheses_;
-    int viewport_model_cues_;
-    int viewport_smooth_seg_;
-    int viewport_scene_cues_;
+//    vis_go_cues_->removeAllPointClouds();
+//    vis_go_cues_->removeAllShapes();
 
-    vis_go_cues_->createViewPort(0, 0, 0.5, 0.5, viewport_scene_cues_);
-    vis_go_cues_->createViewPort(0.5, 0, 1, 0.5, viewport_model_cues_);
-    vis_go_cues_->createViewPort(0.5, 0.5, 1, 1, viewport_smooth_seg_);
-    vis_go_cues_->createViewPort(0, 0.5, 0.5, 1, viewport_scene_and_hypotheses_);
+//    int viewport_scene_and_hypotheses_;
+//    int viewport_model_cues_;
+//    int viewport_smooth_seg_;
+//    int viewport_scene_cues_;
 
-    std::string cost_str;
-    std::ostringstream out;
+//    vis_go_cues_->createViewPort(0, 0, 0.5, 0.5, viewport_scene_cues_);
+//    vis_go_cues_->createViewPort(0.5, 0, 1, 0.5, viewport_model_cues_);
+//    vis_go_cues_->createViewPort(0.5, 0.5, 1, 1, viewport_smooth_seg_);
+//    vis_go_cues_->createViewPort(0, 0.5, 0.5, 1, viewport_scene_and_hypotheses_);
 
-    out << "Cost: " << std::setprecision(2) << cost;
-    out << " , #Evaluations: " << times_evaluated;
-    cost_str = out.str();
+//    std::string cost_str;
+//    std::ostringstream out;
 
-    bool for_paper_ = true;
-    bool show_weights_with_color_fading_ = true;
+//    out << "Cost: " << std::setprecision(2) << cost;
+//    out << " , #Evaluations: " << times_evaluated;
+//    cost_str = out.str();
 
-    if(for_paper_)
-    {
-        vis_go_cues_->setBackgroundColor (1, 1, 1);
-    }
-    else
-    {
-        vis_go_cues_->setBackgroundColor (0, 0, 0);
-        vis_go_cues_->addText (cost_str, 1, 30, 16, 1, 1, 1, "cost_text", viewport_scene_and_hypotheses_);
-        vis_go_cues_->addText ("Model inliers & outliers", 1, 30, 16, 1, 1, 1, "inliers_outliers", viewport_model_cues_);
-        vis_go_cues_->addText ("Smooth segmentation", 1, 30, 16, 1, 1, 1, "smoot", viewport_smooth_seg_);
-        vis_go_cues_->addText ("Explained, multiple assignment & clutter", 1, 30, 16, 1, 1, 1, "scene_cues", viewport_scene_cues_);
+//    bool for_paper_ = true;
+//    bool show_weights_with_color_fading_ = true;
 
-    }
+//    if(for_paper_)
+//    {
+//        vis_go_cues_->setBackgroundColor (1, 1, 1);
+//    }
+//    else
+//    {
+//        vis_go_cues_->setBackgroundColor (0, 0, 0);
+//        vis_go_cues_->addText (cost_str, 1, 30, 16, 1, 1, 1, "cost_text", viewport_scene_and_hypotheses_);
+//        vis_go_cues_->addText ("Model inliers & outliers", 1, 30, 16, 1, 1, 1, "inliers_outliers", viewport_model_cues_);
+//        vis_go_cues_->addText ("Smooth segmentation", 1, 30, 16, 1, 1, 1, "smoot", viewport_smooth_seg_);
+//        vis_go_cues_->addText ("Explained, multiple assignment & clutter", 1, 30, 16, 1, 1, 1, "scene_cues", viewport_scene_cues_);
 
-    //scene
-    pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_scene (scene_cloud_downsampled_, 200, 0, 0);
-    vis_go_cues_->addPointCloud<SceneT> (scene_cloud_downsampled_, random_handler_scene, "scene_cloud", viewport_scene_and_hypotheses_);
+//    }
 
-    //smooth segmentation
-    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  getSmoothClustersRGBCloud();
-    if(smooth_cloud_)
-    {
-        pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
-        vis_go_cues_->addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", viewport_smooth_seg_);
-    }
+//    //scene
+//    pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_scene (scene_cloud_downsampled_, 200, 0, 0);
+//    vis_go_cues_->addPointCloud<SceneT> (scene_cloud_downsampled_, random_handler_scene, "scene_cloud", viewport_scene_and_hypotheses_);
 
-    //display active hypotheses
-    for(size_t i=0; i < active_solution.size(); i++)
-    {
-        if(active_solution[i])
-        {
-            //complete models
+//    //smooth segmentation
+//    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  getSmoothClustersRGBCloud();
+//    if(smooth_cloud_)
+//    {
+//        pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
+//        vis_go_cues_->addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", viewport_smooth_seg_);
+//    }
 
-            std::stringstream m;
-            m << "model_" << i;
+//    //display active hypotheses
+//    for(size_t i=0; i < active_solution.size(); i++)
+//    {
+//        if(active_solution[i])
+//        {
+//            //complete models
 
-            if(poses_ply_.size() == 0)
-            {
-                pcl::visualization::PointCloudColorHandlerCustom<ModelT> handler_model (complete_models_[i], 0, 255, 0);
-                vis_go_cues_->addPointCloud<ModelT> (complete_models_[i], handler_model, m.str(), viewport_scene_and_hypotheses_);
-            }
-            else
-            {
-                int model_id = i;
-                bool is_planar_model = false;
-                std::map<int, int>::iterator it1;
-                it1 = model_to_planar_model_.find(model_id);
-                if(it1 != model_to_planar_model_.end())
-                    is_planar_model = true;
+//            std::stringstream m;
+//            m << "model_" << i;
 
-                if(!is_planar_model)
-                {
-                    vis_go_cues_->addModelFromPLYFile (ply_paths_[i], poses_ply_[i], m.str (), viewport_scene_and_hypotheses_);
-                }
-                else
-                {
-                    vis_go_cues_->addPolygonMesh (*(planar_models_[it1->second].convex_hull_), m.str(), viewport_scene_and_hypotheses_);
-                }
-            }
+//            if(poses_ply_.size() == 0)
+//            {
+//                pcl::visualization::PointCloudColorHandlerCustom<ModelT> handler_model (complete_models_[i], 0, 255, 0);
+//                vis_go_cues_->addPointCloud<ModelT> (complete_models_[i], handler_model, m.str(), viewport_scene_and_hypotheses_);
+//            }
+//            else
+//            {
+//                int model_id = i;
+//                bool is_planar_model = false;
+//                std::map<int, int>::iterator it1;
+//                it1 = model_to_planar_model_.find(model_id);
+//                if(it1 != model_to_planar_model_.end())
+//                    is_planar_model = true;
 
-            //model inliers and outliers
-            std::stringstream cluster_name;
-            cluster_name << "visible" << i;
+//                if(!is_planar_model)
+//                {
+//                    vis_go_cues_->addModelFromPLYFile (ply_paths_[i], poses_ply_[i], m.str (), viewport_scene_and_hypotheses_);
+//                }
+//                else
+//                {
+//                    vis_go_cues_->addPolygonMesh (*(planar_models_[it1->second].convex_hull_), m.str(), viewport_scene_and_hypotheses_);
+//                }
+//            }
 
-            typename pcl::PointCloud<ModelT>::Ptr outlier_points (new pcl::PointCloud<ModelT> ());
-            for (size_t j = 0; j < recognition_models_[i]->outlier_indices_.size (); j++)
-            {
-                ModelT c_point;
-                c_point.getVector3fMap () = recognition_models_[i]->cloud_->points[recognition_models_[i]->outlier_indices_[j]].getVector3fMap ();
-                outlier_points->push_back (c_point);
-            }
+//            //model inliers and outliers
+//            std::stringstream cluster_name;
+//            cluster_name << "visible" << i;
 
-            pcl::visualization::PointCloudColorHandlerCustom<ModelT> random_handler (recognition_models_[i]->cloud_, 255, 90, 0);
-            vis_go_cues_->addPointCloud<ModelT> (recognition_models_[i]->cloud_, random_handler, cluster_name.str (), viewport_model_cues_);
+//            typename pcl::PointCloud<ModelT>::Ptr outlier_points (new pcl::PointCloud<ModelT> ());
+//            for (size_t j = 0; j < recognition_models_[i]->outlier_indices_.size (); j++)
+//            {
+//                ModelT c_point;
+//                c_point.getVector3fMap () = recognition_models_[i]->cloud_->points[recognition_models_[i]->outlier_indices_[j]].getVector3fMap ();
+//                outlier_points->push_back (c_point);
+//            }
 
-            cluster_name << "_outliers";
+//            pcl::visualization::PointCloudColorHandlerCustom<ModelT> random_handler (recognition_models_[i]->cloud_, 255, 90, 0);
+//            vis_go_cues_->addPointCloud<ModelT> (recognition_models_[i]->cloud_, random_handler, cluster_name.str (), viewport_model_cues_);
 
-            pcl::visualization::PointCloudColorHandlerCustom<ModelT> random_handler_out (outlier_points, 0, 94, 22);
-            vis_go_cues_->addPointCloud<ModelT> (outlier_points, random_handler_out, cluster_name.str (), viewport_model_cues_);
-        }
-    }
+//            cluster_name << "_outliers";
 
-    vis_go_cues_->setRepresentationToSurfaceForAllActors();
+//            pcl::visualization::PointCloudColorHandlerCustom<ModelT> random_handler_out (outlier_points, 0, 94, 22);
+//            vis_go_cues_->addPointCloud<ModelT> (outlier_points, random_handler_out, cluster_name.str (), viewport_model_cues_);
+//        }
+//    }
 
-    //display scene cues (explained points, multiply explained, clutter (smooth and normal)
-    vis_go_cues_->addPointCloud<SceneT> (scene_cloud_downsampled_, random_handler_scene, "scene_cloud_viewport", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "scene_cloud_viewport");
+//    vis_go_cues_->setRepresentationToSurfaceForAllActors();
 
-    //clutter...
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr clutter (new pcl::PointCloud<pcl::PointXYZRGB> ());
-    typename pcl::PointCloud<SceneT>::Ptr clutter_smooth (new pcl::PointCloud<SceneT> ());
-    for (size_t j = 0; j < unexplained_by_RM_neighboorhods.size (); j++)
-    {
-        if(unexplained_by_RM_neighboorhods[j] >= (clutter_regularizer_ - 0.01f) && explained_by_RM_[j] == 0 && (clusters_cloud_->points[j].label != 0 || use_super_voxels_))
-        {
-            SceneT c_point;
-            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
-            clutter_smooth->push_back (c_point);
-        }
-        else if (unexplained_by_RM_neighboorhods[j] > 0 && explained_by_RM_[j] == 0)
-        {
-            pcl::PointXYZRGB c_point;
-            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
+//    //display scene cues (explained points, multiply explained, clutter (smooth and normal)
+//    vis_go_cues_->addPointCloud<SceneT> (scene_cloud_downsampled_, random_handler_scene, "scene_cloud_viewport", viewport_scene_cues_);
+//    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "scene_cloud_viewport");
 
-            if(show_weights_with_color_fading_)
-            {
-                c_point.r = round(255.0 * unexplained_by_RM_neighboorhods[j]);
-                c_point.g = 40;
-                c_point.b = round(255.0 * unexplained_by_RM_neighboorhods[j]);
-            }
-            else
-            {
-                c_point.r = 255.0;
-                c_point.g = 40;
-                c_point.b = 255.0;
-            }
-            clutter->push_back (c_point);
-        }
-    }
+//    //clutter...
+//    pcl::PointCloud<pcl::PointXYZRGB>::Ptr clutter (new pcl::PointCloud<pcl::PointXYZRGB> ());
+//    typename pcl::PointCloud<SceneT>::Ptr clutter_smooth (new pcl::PointCloud<SceneT> ());
+//    for (size_t j = 0; j < unexplained_by_RM_neighboorhods.size (); j++)
+//    {
+//        if(unexplained_by_RM_neighboorhods[j] >= (clutter_regularizer_ - 0.01f) && explained_by_RM_[j] == 0 && (clusters_cloud_->points[j].label != 0 || use_super_voxels_))
+//        {
+//            SceneT c_point;
+//            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
+//            clutter_smooth->push_back (c_point);
+//        }
+//        else if (unexplained_by_RM_neighboorhods[j] > 0 && explained_by_RM_[j] == 0)
+//        {
+//            pcl::PointXYZRGB c_point;
+//            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
 
-    //explained
-    typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr explained_points (new pcl::PointCloud<pcl::PointXYZRGB> ());
-    //typename pcl::PointCloud<SceneT>::Ptr explained_points (new pcl::PointCloud<SceneT> ());
-    for (size_t j = 0; j < explained_by_RM_.size (); j++)
-    {
-        if (explained_by_RM_[j] == 1)
-        {
-            pcl::PointXYZRGB c_point;
+//            if(show_weights_with_color_fading_)
+//            {
+//                c_point.r = round(255.0 * unexplained_by_RM_neighboorhods[j]);
+//                c_point.g = 40;
+//                c_point.b = round(255.0 * unexplained_by_RM_neighboorhods[j]);
+//            }
+//            else
+//            {
+//                c_point.r = 255.0;
+//                c_point.g = 40;
+//                c_point.b = 255.0;
+//            }
+//            clutter->push_back (c_point);
+//        }
+//    }
 
-            //if(show_weights_with_color_fading_)
-            //{
-                c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
-                c_point.b = 100 + explained_by_RM_distance_weighted[j] * 155;
-                c_point.r = c_point.g = 0;
-            //}
-            //else
-            //{
-            //    c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
-            //    c_point.b = 255;
-            //    c_point.r = c_point.g = 0;
-            //}
-            explained_points->push_back (c_point);
-        }
-    }
+//    //explained
+//    typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr explained_points (new pcl::PointCloud<pcl::PointXYZRGB> ());
+//    //typename pcl::PointCloud<SceneT>::Ptr explained_points (new pcl::PointCloud<SceneT> ());
+//    for (size_t j = 0; j < explained_by_RM_.size (); j++)
+//    {
+//        if (explained_by_RM_[j] == 1)
+//        {
+//            pcl::PointXYZRGB c_point;
 
-    //duplicity
-    typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr duplicity_points (new pcl::PointCloud<pcl::PointXYZRGB> ());
-    for (size_t j = 0; j < explained_by_RM_.size (); j++)
-    {
-        if (explained_by_RM_[j] > 1)
-        {
-            pcl::PointXYZRGB c_point;
-            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
-            float curv_weight = getCurvWeight(scene_curvature_[j]);
+//            //if(show_weights_with_color_fading_)
+//            //{
+//                c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
+//                c_point.b = 100 + explained_by_RM_distance_weighted[j] * 155;
+//                c_point.r = c_point.g = 0;
+//            //}
+//            //else
+//            //{
+//            //    c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
+//            //    c_point.b = 255;
+//            //    c_point.r = c_point.g = 0;
+//            //}
+//            explained_points->push_back (c_point);
+//        }
+//    }
 
-            if(multiple_assignment_penalize_by_one_ == 1)
-            {
-                c_point.r = c_point.g = c_point.b = 0;
-                c_point.g = curv_weight * duplicy_weight_test_ * 255;
-            }
-            else if(multiple_assignment_penalize_by_one_ == 2)
-            {
-                if(show_weights_with_color_fading_)
-                {
-                    c_point.r = c_point.g = c_point.b = 0;
-                    c_point.g = std::min(duplicates_by_RM_weighted_[j],1.0) * 255;
-                }
-                else
-                {
-                    c_point.r = 0;
-                    c_point.g = 0;
-                    c_point.b = 0;
-                }
-            }
-            else
-            {
-                c_point.r = c_point.g = c_point.b = 0;
-                c_point.g = 255;
-            }
+//    //duplicity
+//    typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr duplicity_points (new pcl::PointCloud<pcl::PointXYZRGB> ());
+//    for (size_t j = 0; j < explained_by_RM_.size (); j++)
+//    {
+//        if (explained_by_RM_[j] > 1)
+//        {
+//            pcl::PointXYZRGB c_point;
+//            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
+//            float curv_weight = getCurvWeight(scene_curvature_[j]);
 
-            duplicity_points->push_back (c_point);
-        }
-    }
+//            if(multiple_assignment_penalize_by_one_ == 1)
+//            {
+//                c_point.r = c_point.g = c_point.b = 0;
+//                c_point.g = curv_weight * duplicy_weight_test_ * 255;
+//            }
+//            else if(multiple_assignment_penalize_by_one_ == 2)
+//            {
+//                if(show_weights_with_color_fading_)
+//                {
+//                    c_point.r = c_point.g = c_point.b = 0;
+//                    c_point.g = std::min(duplicates_by_RM_weighted_[j],1.0) * 255;
+//                }
+//                else
+//                {
+//                    c_point.r = 0;
+//                    c_point.g = 0;
+//                    c_point.b = 0;
+//                }
+//            }
+//            else
+//            {
+//                c_point.r = c_point.g = c_point.b = 0;
+//                c_point.g = 255;
+//            }
 
-    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> random_handler_clutter (clutter);
-    vis_go_cues_->addPointCloud<pcl::PointXYZRGB> (clutter, random_handler_clutter, "clutter", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "clutter");
+//            duplicity_points->push_back (c_point);
+//        }
+//    }
 
-    pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_clutter_smooth (clutter_smooth, 255, 255, 0);
-    vis_go_cues_->addPointCloud<SceneT> (clutter_smooth, random_handler_clutter_smooth, "clutter_smooth", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "clutter_smooth");
+//    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> random_handler_clutter (clutter);
+//    vis_go_cues_->addPointCloud<pcl::PointXYZRGB> (clutter, random_handler_clutter, "clutter", viewport_scene_cues_);
+//    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "clutter");
 
-    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> random_handler_explained (explained_points);
-    vis_go_cues_->addPointCloud<pcl::PointXYZRGB> (explained_points, random_handler_explained, "explained", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "explained");
+//    pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_clutter_smooth (clutter_smooth, 255, 255, 0);
+//    vis_go_cues_->addPointCloud<SceneT> (clutter_smooth, random_handler_clutter_smooth, "clutter_smooth", viewport_scene_cues_);
+//    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "clutter_smooth");
 
-    //pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_dup (duplicity_points, 200, 200, 200);
-    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> random_handler_dup (duplicity_points);
+//    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> random_handler_explained (explained_points);
+//    vis_go_cues_->addPointCloud<pcl::PointXYZRGB> (explained_points, random_handler_explained, "explained", viewport_scene_cues_);
+//    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "explained");
 
-    vis_go_cues_->addPointCloud<pcl::PointXYZRGB> (duplicity_points, random_handler_dup, "dup", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "dup");
-    vis_go_cues_->spin();
-}
+//    //pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_dup (duplicity_points, 200, 200, 200);
+//    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> random_handler_dup (duplicity_points);
+
+//    vis_go_cues_->addPointCloud<pcl::PointXYZRGB> (duplicity_points, random_handler_dup, "dup", viewport_scene_cues_);
+//    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "dup");
+//    vis_go_cues_->spin();
+//}
 
 #define PCL_INSTANTIATE_faatGoHV_1(T1,T2) template class FAAT_REC_API faat_pcl::GlobalHypothesesVerification_1<T1,T2>;

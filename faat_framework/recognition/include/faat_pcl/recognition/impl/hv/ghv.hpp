@@ -1909,7 +1909,7 @@ faat_pcl::GHV<ModelT, SceneT>::verify ()
 
     if(visualize_go_cues_)
     {
-        visualize_cues_during_logger_ = boost::bind(&(faat_pcl::GHV<ModelT, SceneT>::visualizeGOCues), this, _1, _2, _3);
+//        visualize_cues_during_logger_ = boost::bind(&(faat_pcl::GHV<ModelT, SceneT>::visualizeGOCues), this, _1, _2, _3);
         vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
     }
 

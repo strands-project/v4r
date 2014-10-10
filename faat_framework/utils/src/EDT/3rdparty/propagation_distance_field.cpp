@@ -348,7 +348,7 @@ void
 PropagationDistanceField<PointT>::getDerivatives (const PointT & p, Eigen::Vector3f & d)
 {
   int x,y,z;
-  bool valid = worldToGrid(p.x, p.y, p.z, x, y, z);
+  bool valid = this->worldToGrid(p.x, p.y, p.z, x, y, z);
   bool low_high = x < 1 || y < 1 || z < 1;
   if (!valid || low_high) {
     d[0] = d[1] = d[2] = std::numeric_limits<float>::quiet_NaN ();
@@ -414,7 +414,7 @@ PropagationDistanceField<PointT>::getCorrespondence(const PointT & p, int * idx,
 {
   //std::cout << "Called getCorrespondence on PropagationDistanceField" << std::endl;
   int x,y,z;
-  bool valid = worldToGrid(p.x, p.y, p.z, x, y, z);
+  bool valid = this->worldToGrid(p.x, p.y, p.z, x, y, z);
   if (!valid /*|| !isCellValid(x,y,z)*/) {
     *dist = std::numeric_limits<float>::max ();
     *idx = -1;
@@ -474,7 +474,7 @@ void PropagationDistanceField<PointT>::updatePointsInField(typename pcl::PointCl
     {
       // Convert to voxel coordinates
       int3 voxel_loc;
-      bool valid = worldToGrid(points->points[i].x, points->points[i].y, points->points[i].z, voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
+      bool valid = this->worldToGrid(points->points[i].x, points->points[i].y, points->points[i].z, voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
       if( valid )
       {
         if( iterative )
@@ -515,7 +515,7 @@ void PropagationDistanceField<PointT>::updatePointsInField(typename pcl::PointCl
     {
       // Convert to voxel coordinates
       int3 voxel_loc;
-      bool valid = worldToGrid(points->points[i].x, points->points[i].y, points->points[i].z, voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
+      bool valid = this->worldToGrid(points->points[i].x, points->points[i].y, points->points[i].z, voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
       if( valid )
       {
         object_voxel_locations_.insert(voxel_loc);
@@ -537,7 +537,7 @@ void PropagationDistanceField<PointT>::addPointsToField(typename pcl::PointCloud
       continue;
     // Convert to voxel coordinates
     int3 voxel_loc;
-    bool valid = worldToGrid(points->points[i].x, points->points[i].y, points->points[i].z,
+    bool valid = this->worldToGrid(points->points[i].x, points->points[i].y, points->points[i].z,
                               voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
 
     if( valid )

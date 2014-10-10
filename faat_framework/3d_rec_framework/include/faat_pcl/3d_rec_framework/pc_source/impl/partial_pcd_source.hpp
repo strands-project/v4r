@@ -53,7 +53,7 @@ faat_pcl::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPoi
 
     std::stringstream direc;
     direc << dir << "/" << model.class_ << "/" << model.id_;
-    createClassAndModelDirectories (dir, model.class_, model.id_);
+    this->createClassAndModelDirectories (dir, model.class_, model.id_);
 
     //create camera positions taking into account constraints
     vtkSmartPointer < vtkPlatonicSolidSource > ico = vtkSmartPointer<vtkPlatonicSolidSource>::New ();

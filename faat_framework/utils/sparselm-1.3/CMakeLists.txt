@@ -28,19 +28,19 @@ SET(HAVE_MUMPS 0 CACHE INTERNAL "Do we have the MUMPS library?")
 SET(HAVE_MA77 0 CACHE INTERNAL "Do we have the MA77 library?")
 
 # set SuiteSparse root directory, allowing changes to be reflected in the GUI
-IF(0)
-IF(HAVE_CHOLMOD OR HAVE_CSPARSE OR HAVE_LDL OR HAVE_UMFPACK)
-  IF(NOT SUITESPARSE_PATH)
-    SET(SUITESPARSE_PATH "/usr/local/SuiteSparse-3.4.0" CACHE PATH "Path to the SuiteSparse package" FORCE)
-  ENDIF(NOT SUITESPARSE_PATH)
-ENDIF(HAVE_CHOLMOD OR HAVE_CSPARSE OR HAVE_LDL OR HAVE_UMFPACK)
-ENDIF(0)
+#IF(0)
+#IF(HAVE_CHOLMOD OR HAVE_CSPARSE OR HAVE_LDL OR HAVE_UMFPACK)
+#  IF(NOT SUITESPARSE_PATH)
+#    SET(SUITESPARSE_PATH "/usr/local/SuiteSparse-3.4.0" CACHE PATH "Path to the SuiteSparse package" FORCE)
+#  ENDIF(NOT SUITESPARSE_PATH)
+#ENDIF(HAVE_CHOLMOD OR HAVE_CSPARSE OR HAVE_LDL OR HAVE_UMFPACK)
+#ENDIF(0)
 # until I find a way to set SUITESPARSE_PATH to some value in CMake's GUI
 # and then have this value be propagated to all paths depending on it (i.e.,
 # CHOLMOD_INCDIR, CHOLMOD_INCDIR, etc), it is defined to be empty.
-SET(SUITESPARSE_PATH "")
+#SET(SUITESPARSE_PATH "")
 
-include(${FAAT_PCL_SOURCE_DIR}/cmake/find_suitesparse.cmake)
+#include(${FAAT_PCL_SOURCE_DIR}/cmake/find_suitesparse.cmake)
 #find_package (SUITESPARSE) 
 #if (SUITESPARSE_FOUND )
 #  MESSAGE(STATUS "SUITESPARSE FOUND")

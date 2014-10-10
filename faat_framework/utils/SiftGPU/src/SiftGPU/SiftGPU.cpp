@@ -31,6 +31,7 @@
 #include <vector>
 #include <algorithm>
 #include <math.h>
+#include <unistd.h>
 
 #include <time.h>
 using namespace std;

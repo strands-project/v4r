@@ -20,8 +20,8 @@ add_executable(merge_hypotheses merge_hypotheses.cpp)
 target_link_libraries(merge_hypotheses ${PCL_LIBRARIES} ${OpenCV_LIBS} ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework)
 
 
-FIND_PACKAGE(Qt4)
-include(${QT_USE_FILE})
-QT4_WRAP_CPP(foo_MOC_SRCS main_window.h)
-add_executable(GT6DOF GT6DOF.cpp ${foo_MOC_SRCS} main_window.cpp)
-target_link_libraries(GT6DOF ${PCL_LIBRARIES} ${QT_LIBRARIES} QVTK ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework ${PROJECT_NAME}_registration)
+#FIND_PACKAGE(Qt4)
+#include(${QT_USE_FILE})
+#QT4_WRAP_CPP(foo_MOC_SRCS main_window.h)
+#add_executable(GT6DOF GT6DOF.cpp ${foo_MOC_SRCS} main_window.cpp)
+#target_link_libraries(GT6DOF ${PCL_LIBRARIES} ${QT_LIBRARIES} QVTK ${PROJECT_NAME}_recognition ${PROJECT_NAME}_utils ${PROJECT_NAME}_3d_rec_framework ${PROJECT_NAME}_registration)

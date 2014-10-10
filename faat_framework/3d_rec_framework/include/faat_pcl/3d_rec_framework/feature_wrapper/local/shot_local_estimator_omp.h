@@ -127,7 +127,7 @@ namespace faat_pcl
             }
           }
 
-          computeKeypoints(processed, keypoints, normals_);
+          this->computeKeypoints(processed, keypoints, normals_);
           std::cout << " " << normals_->points.size() << " " << processed->points.size() << std::endl;
 
           if (keypoints->points.size () == 0)

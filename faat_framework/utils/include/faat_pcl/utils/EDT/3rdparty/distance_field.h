@@ -127,7 +127,6 @@ protected:
   using VoxelGrid<T>::DIM_Y;
   using VoxelGrid<T>::DIM_Z;
   using VoxelGrid<T>::initializeVoxelGrid;
-  using VoxelGrid<T>::num_cells_;
   using VoxelGrid<T>::getLocationFromCell;
   using VoxelGrid<T>::ref;
   using VoxelGrid<T>::gridToWorld;

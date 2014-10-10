@@ -51,7 +51,7 @@ namespace faat_pcl
           normal_estimator_->estimate (in, processed, normals);
 
           //compute keypoints
-          computeKeypoints(processed, keypoints, normals);
+          this->computeKeypoints(processed, keypoints, normals);
           std::cout << " " << normals->points.size() << " " << processed->points.size() << std::endl;
 
           if (keypoints->points.size () == 0)

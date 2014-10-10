@@ -121,7 +121,6 @@ namespace distance_field
       using DistanceField<PropDistanceFieldVoxel, PointT>::DIM_Y;
       using DistanceField<PropDistanceFieldVoxel, PointT>::DIM_Z;
       using DistanceField<PropDistanceFieldVoxel, PointT>::initializeVoxelGrid;
-      using DistanceField<PropDistanceFieldVoxel, PointT>::num_cells_;
       using DistanceField<PropDistanceFieldVoxel, PointT>::getLocationFromCell;
       using DistanceField<PropDistanceFieldVoxel, PointT>::ref;
       using DistanceField<PropDistanceFieldVoxel, PointT>::gridToWorld;

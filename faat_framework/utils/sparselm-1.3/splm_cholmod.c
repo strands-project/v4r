@@ -22,7 +22,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <cholmod.h>
+#include <suitesparse/cholmod.h>
 
 
 #include "splm.h"

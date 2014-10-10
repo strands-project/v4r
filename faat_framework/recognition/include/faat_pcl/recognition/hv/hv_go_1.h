@@ -617,7 +617,7 @@ namespace faat_pcl
       boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
       int visualize_go_cues_;
 
-      void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval);
+//      void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval);
 
       boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_go_cues_;
 
