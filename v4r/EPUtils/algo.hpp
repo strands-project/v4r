@@ -5,6 +5,17 @@
 
 namespace EPUtils
 {
+//ep:begin: revision at 17-07-2014
+void filterGaussian(cv::Mat &input, cv::Mat &output, cv::Mat &mask);
+void buildDepthPyramid(cv::Mat &image, std::vector<cv::Mat> &pyramid, cv::Mat &mask, unsigned int levelNumber);
+void createPointCloudPyramid(std::vector<cv::Mat> &pyramidX, std::vector<cv::Mat> &pyramidY, std::vector<cv::Mat> &pyramidZ, 
+			     std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > &pyramidCloud);
+void createNormalPyramid(std::vector<cv::Mat> &pyramidNx, std::vector<cv::Mat> &pyramidNy, std::vector<cv::Mat> &pyramidNz, std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointCloud<pcl::Normal>::Ptr > &pyramidNormal);
+void createIndicesPyramid(std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointIndices::Ptr> &pyramidIndiceSets);
+void upscaleImage(cv::Mat &input, cv::Mat &output);
+void downscaleImage(cv::Mat &input, cv::Mat &output, unsigned int width, unsigned int height);
+void scaleImage(std::vector<cv::Mat> &inputPyramid, cv::Mat &input, cv::Mat &output, int inLevel, int outLevel);
+//ep:end: revision at 17-07-2014
   
 /**
  * checks if point in the polygon

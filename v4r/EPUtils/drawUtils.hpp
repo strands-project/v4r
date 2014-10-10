@@ -31,11 +31,13 @@ void drawSegmentationResults(cv::Mat &image, std::vector<cv::Point> &attentionPo
                              std::vector<cv::Mat> &binMasks, std::vector<std::vector<cv::Point> > &contours,
                              bool drawAttentionPoints, bool drawSegmentationResults);
 
+//revision
 /**
  * draws attention points
  * */
 void drawAttentionPoints(cv::Mat &image, std::vector<cv::Point> &attentionPoints,
                          unsigned int maxNumber = 0, bool connect_points = false);
+//end revision
 
 /**
  * draws path through the map

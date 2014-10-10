@@ -7,6 +7,8 @@
 #include <stdarg.h>
 #include <time.h>
 
+#define BOOST_FILESYSTEM_DEPRECATED
+
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem.hpp>
 

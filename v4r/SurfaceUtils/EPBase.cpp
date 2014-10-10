@@ -82,7 +82,7 @@ void EPBase::setNormals(const pcl::PointCloud<pcl::Normal>::Ptr &_normals)
     throw std::runtime_error(error_message);
   }
   
-  if ( (_normals->height!=height) || (_normals->width!=width) )
+  if ( (_normals->height!=(unsigned int)height) || (_normals->width!=(unsigned int)width) )
   {
     char* error_message = new char[200];
     sprintf(error_message,"[%c::setNormals()]: Invalid normals (not for this point cloud).",ClassName.c_str());

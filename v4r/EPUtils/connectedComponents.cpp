@@ -72,6 +72,63 @@ void extractConnectedComponents(cv::Mat map, std::vector<ConnectedComponent> &co
   }
 }
 
+void extractConnectedComponents(cv::Mat map, std::vector<ConnectedComponent> &connected_components, cv::Point attention_point, float th)
+{
+  assert(map.type() == CV_32FC1);
+  assert((th >= 0) && (th <= 1));
+  
+  cv::Mat map_copy;
+  map.copyTo(map_copy);
+  int i = attention_point.y;
+  int j = attention_point.x;
+  if(map_copy.at<float>(i,j) > th)
+  {
+    ConnectedComponent new_component;
+
+    new_component.points.push_back(cv::Point(j,i));
+    new_component.saliency_values.push_back(map_copy.at<float>(i,j));
+    new_component.average_saliency = map_copy.at<float>(i,j);
+
+    map_copy.at<float>(i,j) = 0;
+
+    std::vector<cv::Point> queue;
+    queue.push_back(cv::Point(j,i));
+
+    while(queue.size())
+    {
+      cv::Point cur_point = queue.back();
+      queue.pop_back();
+  
+      for(int p = 0; p < 8; ++p)
+      {
+        int new_x = cur_point.x + dx8[p];
+        int new_y = cur_point.y + dy8[p];
+	    
+        if((new_x < 0) || (new_y < 0) || (new_x >= map_copy.cols) || (new_y >= map_copy.rows))
+	  continue;
+	    
+	if(map_copy.at<float>(new_y,new_x) > th)
+        {
+	  new_component.points.push_back(cv::Point(new_x,new_y));
+	  new_component.saliency_values.push_back(map_copy.at<float>(new_y,new_x));
+	  new_component.average_saliency += map_copy.at<float>(new_y,new_x);
+	    
+	  map_copy.at<float>(new_y,new_x) = 0;
+	     
+	  queue.push_back(cv::Point(new_x,new_y));
+	}
+      }
+    }
+	
+    new_component.average_saliency /= new_component.points.size();
+
+    if(new_component.average_saliency > th)
+    {
+      connected_components.push_back(new_component);
+    }	
+  }
+}
+
 /*void extractConnectedComponents2(cv::Mat map, std::vector<ConnectedComponent> &connected_components, float th)
 {
   assert(map.type() == CV_32FC1);

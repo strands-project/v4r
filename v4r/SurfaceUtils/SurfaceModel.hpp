@@ -157,7 +157,7 @@ class SurfaceModel
 
     void addTo(SurfaceModel &model)
     {
-      for(int i = 0; i < indices.size(); i++)
+      for(unsigned int i = 0; i < indices.size(); i++)
       {
         model.indices.push_back(indices.at(i));
         model.normals.push_back(normals.at(i));

@@ -47,7 +47,7 @@ float calculateCosine(cv::Point3d v1, cv::Point3d v2)
 {
   Eigen::Vector3f v1_, v2_;
   v1_[0] = v1.x; v1_[1] = v1.y; v1_[2] = v1.z;
-  v2_[0] = v2.x; v1_[2] = v2.y; v2_[2] = v2.z;
+  v2_[0] = v2.x; v2_[1] = v2.y; v2_[2] = v2.z;
   return(calculateCosine(v1_,v2_));
 }
 
@@ -88,7 +88,7 @@ cv::Point3d crossProduct(cv::Point3d v1, cv::Point3d v2)
 {
   Eigen::Vector3f v1_, v2_;
   v1_[0] = v1.x; v1_[1] = v1.y; v1_[2] = v1.z;
-  v2_[0] = v2.x; v1_[2] = v2.y; v2_[2] = v2.z;
+  v2_[0] = v2.x; v2_[1] = v2.y; v2_[2] = v2.z;
   Eigen::Vector3f v_ = crossProduct(v1_,v2_);
   cv::Point3d v;
   v.x = v_[0]; v.y = v_[1]; v.z = v_[2];
@@ -148,7 +148,7 @@ float dotProduct(pcl::Normal v1, pcl::Normal v2)
 {
   Eigen::Vector3f v1_, v2_;
   v1_[0] = v1.normal[0]; v1_[1] = v1.normal[1]; v1_[2] = v1.normal[2];
-  v2_[0] = v2.normal[0]; v1_[2] = v2.normal[1]; v2_[2] = v2.normal[2];
+  v2_[0] = v2.normal[0]; v2_[1] = v2.normal[1]; v2_[2] = v2.normal[2];
   return(dotProduct(v1_,v2_));
 }
 
@@ -156,7 +156,7 @@ float dotProduct(pcl::PointXYZ v1, pcl::PointXYZ v2)
 {
   Eigen::Vector3f v1_, v2_;
   v1_[0] = v1.x; v1_[1] = v1.y; v1_[2] = v1.z;
-  v2_[0] = v2.x; v1_[2] = v2.y; v2_[2] = v2.z;
+  v2_[0] = v2.x; v2_[1] = v2.y; v2_[2] = v2.z;
   return(dotProduct(v1_,v2_));
 }
 
@@ -178,7 +178,7 @@ float calculateCosine(pcl::Normal v1, pcl::Normal v2)
 {
   Eigen::Vector3f v1_, v2_;
   v1_[0] = v1.normal[0]; v1_[1] = v1.normal[1]; v1_[2] = v1.normal[2];
-  v2_[0] = v2.normal[0]; v1_[2] = v2.normal[1]; v2_[2] = v2.normal[2];
+  v2_[0] = v2.normal[0]; v2_[1] = v2.normal[1]; v2_[2] = v2.normal[2];
   return(calculateCosine(v1_,v2_));
 }
 
@@ -186,7 +186,7 @@ float calculateCosine(pcl::PointXYZ v1, pcl::PointXYZ v2)
 {
   Eigen::Vector3f v1_, v2_;
   v1_[0] = v1.x; v1_[1] = v1.y; v1_[2] = v1.z;
-  v2_[0] = v2.x; v1_[2] = v2.y; v2_[2] = v2.z;
+  v2_[0] = v2.x; v2_[1] = v2.y; v2_[2] = v2.z;
   return(calculateCosine(v1_,v2_));
 }
 
@@ -212,7 +212,7 @@ pcl::Normal crossProduct(pcl::Normal v1, pcl::Normal v2)
 {
   Eigen::Vector3f v1_, v2_;
   v1_[0] = v1.normal[0]; v1_[1] = v1.normal[1]; v1_[2] = v1.normal[2];
-  v2_[0] = v2.normal[0]; v1_[2] = v2.normal[1]; v2_[2] = v2.normal[2];
+  v2_[0] = v2.normal[0]; v2_[1] = v2.normal[1]; v2_[2] = v2.normal[2];
   Eigen::Vector3f v_ = crossProduct(v1_,v2_);
   pcl::Normal v;
   v.normal[0] = v_[0]; v.normal[1] = v_[1]; v.normal[2] = v_[2];
@@ -223,7 +223,7 @@ pcl::PointXYZ crossProduct(pcl::PointXYZ v1, pcl::PointXYZ v2)
 {
   Eigen::Vector3f v1_, v2_;
   v1_[0] = v1.x; v1_[1] = v1.y; v1_[2] = v1.z;
-  v2_[0] = v2.x; v1_[2] = v2.y; v2_[2] = v2.z;
+  v2_[0] = v2.x; v2_[1] = v2.y; v2_[2] = v2.z;
   Eigen::Vector3f v_ = crossProduct(v1_,v2_);
   pcl::PointXYZ v;
   v.x = v_[0]; v.y = v_[1]; v.z = v_[2];

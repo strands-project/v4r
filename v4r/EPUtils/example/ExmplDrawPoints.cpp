@@ -6,7 +6,7 @@ int main(int argc, char** argv)
 {
   if(argc != 4)
   {
-    std::cerr << "Usage: attention_points_list image new_image" << std::endl;
+    std::cerr << "Usage: attention_points_list image new_image_name" << std::endl;
     return(0);
   }
   
@@ -20,7 +20,7 @@ int main(int argc, char** argv)
   // read labeling
   cv::Mat image = cv::imread(image_name,-1);
     
-  EPUtils::drawAttentionPoints(image,attentionPoints);
+  EPUtils::drawAttentionPoints(image,attentionPoints,10);
   
   cv::imwrite(new_image_name,image);
 

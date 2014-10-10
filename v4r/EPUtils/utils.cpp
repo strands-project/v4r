@@ -1,5 +1,3 @@
-#define BOOST_FILESYSTEM_VERSION 2
-
 #include "utils.hpp"
 
 namespace EPUtils
@@ -36,16 +34,16 @@ int readFiles(const std::string &directoryName, std::vector<std::string> &names)
     return(2);
 }
 
-void readPolygons(std::vector<std::vector<cv::Point> > &polygons, std::string &str)
+void readPolygons(std::vector<std::vector<cv::Point> > &polygons, std::string filename)
 {
   int x,y;
   std::ifstream indata;
 
-  indata.open(str.c_str()); // opens the file
+  indata.open(filename.c_str()); // opens the file
   if(!indata)
   {
     // file couldn't be opened
-    std::cerr << "ERROR: file " << str << " could not be opened." << std::endl;
+    printf("ERROR: file %s could not be opened.\n",filename.c_str());
     return;
   }
 
@@ -205,9 +203,9 @@ void readAttentionPoints(std::vector<std::vector<cv::Point> > &attentionPoints, 
   return;
 }
 
+//revision
 void readAttentionPoints(std::vector<cv::Point> &attentionPoints, std::string &str)
 {
-  std::string line;
   std::ifstream indata;
 
   // open the file
@@ -257,6 +255,7 @@ void writeAttentionPoints(std::vector<cv::Point> attentionPoints, std::string &s
   outdata.close();
   return;
 }
+//end revision
 
 void readAttentionPointsAndContours(std::vector<cv::Point> &attentionPoints,
                                     std::vector<std::vector<cv::Point> > &contours, std::string &str)
@@ -300,12 +299,16 @@ void readAttentionPointsAndContours(std::vector<cv::Point> &attentionPoints,
   return;
 }
 
-void readAnnotationsFromFile(std::vector<std::vector<cv::Point> > &polygons, std::string &annotationName)
+/**
+ * reads ground truth segmentation from the text file
+ * */
+//ep:begin revision 18-07-2014
+void readAnnotationsFromFile(std::vector<std::vector<cv::Point> > &polygons, std::string filename)
 {
   polygons.clear();
-  //polygons.reserve(50);
-  readPolygons(polygons,annotationName);
+  readPolygons(polygons,filename);
 }
+//ep:end revision 18-07-2014
 
 void saturation(cv::Mat &map, float max_value)
 {

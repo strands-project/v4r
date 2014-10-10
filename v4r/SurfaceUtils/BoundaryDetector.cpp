@@ -188,7 +188,7 @@ void BoundaryDetector::recursiveClustering(int x, int y, int id0, int id1, bool 
  */
 void BoundaryDetector::computeEdges()
 {
-  for(int i = 0; i < pre_corners.size(); i++)
+  for(unsigned int i = 0; i < pre_corners.size(); i++)
   {
     // if there is a corner at this point
     if(pre_corners.at(i).index != -1)
@@ -342,13 +342,13 @@ void BoundaryDetector::computeEdges()
 
 void BoundaryDetector::copyEdges()
 {
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
     surfaces.at(i)->edges.clear();
   }
   
   corners.clear();
-  for(int i = 0; i < pre_corners.size(); i++)
+  for(unsigned int i = 0; i < pre_corners.size(); i++)
   {
     //there is a corner
     if(pre_corners.at(i).index != -1)
@@ -365,7 +365,7 @@ void BoundaryDetector::copyEdges()
   // copy edges and edgels
   edges.clear();
   edgels.clear();
-  for(int i=0; i < bd_edges.size(); i++)
+  for(unsigned int i=0; i < bd_edges.size(); i++)
   {
     surface::Edge edge;
     int cornerIdx1 = bd_edges.at(i).corners[0];
@@ -394,7 +394,7 @@ void BoundaryDetector::copyEdges()
     surface::aEdge currentEdge = bd_edges.at(i);
     
     // copy the edgels
-    for(int j=0; j < currentEdge.edgels.size(); j++)
+    for(unsigned int j=0; j < currentEdge.edgels.size(); j++)
     {
 
       int edgelIdx = currentEdge.edgels.at(j);

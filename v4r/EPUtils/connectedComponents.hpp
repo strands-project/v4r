@@ -17,6 +17,7 @@ struct ConnectedComponent {
  * map is considered to be in the range 0..1 with type CV_32F
  * */
 void extractConnectedComponents(cv::Mat map, std::vector<ConnectedComponent> &connected_components, float th = 0.1);
+void extractConnectedComponents(cv::Mat map, std::vector<ConnectedComponent> &connected_components, cv::Point attention_point, float th = 0.1);
 
 /**
  * extracts connected components from the map using given threshold

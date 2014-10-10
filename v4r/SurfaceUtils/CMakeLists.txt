@@ -21,12 +21,8 @@ SET(SOURCE_CPP
   AddGroundTruth.cpp
   BoundaryDetector.cpp
   ContourDetector.cpp
-  FileSystem.cc
-#  KinectData.cpp
-  MaskDilationErosion.cpp
-  SegmentEvaluation.cpp
   SurfaceModel.cpp
-  Utils.cc
+  #Utils.cc
   EPBase.cpp
 )
 
@@ -34,21 +30,16 @@ SET(SOURCE_H
   AddGroundTruth.h
   BoundaryDetector.h
   ContourDetector.h
-  FileSystem.hh
-#  KinectData.h
-  MaskDilationErosion.h
   Relation.h
-  SegmentEvaluation.h
   SurfaceModel.hpp
-  Utils.hh
+  #Utils.hh
   EPBase.hpp
 )
 
 IF(V4R_PCL_ADD_ONS)
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
-target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rPCLAddOns v4rPCLAddOns v4rEPUtils v4rTomGine)
-
+target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rPCLAddOns v4rEPUtils v4rTomGine)
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 
 ELSE(V4R_PCL_ADD_ONS)

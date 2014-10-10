@@ -13,7 +13,9 @@ int  readFiles(const std::string &directoryName, std::vector<std::string> &names
 /**
  * reads coordinated of the polygons from the given file
  * */
-void readPolygons(std::vector<std::vector<cv::Point> > &polygons, std::string &str);
+//ep:begin revision 18-07-2014
+void readPolygons(std::vector<std::vector<cv::Point> > &polygons, std::string filename);
+//ep:end revision 18-07-2014
 
 /**
  * write coordinated of the polygons from the given file
@@ -29,6 +31,7 @@ void readRectangles(std::vector<cv::Rect> &rectangles, std::string &str);
  * */
 void readAttentionPoints(std::vector<std::vector<cv::Point> > &attentionPoints, std::string &str);
 
+//revision
 void readAttentionPoints(std::vector<cv::Point> &attentionPoints, std::string &str);
 /**
  * writes attention points to file
@@ -37,12 +40,15 @@ void writeAttentionPoints(std::vector<cv::Point> attentionPoints, std::string &s
 /**
  * reads attention points and contours from file
  * */
+//end revision
 void readAttentionPointsAndContours(std::vector<cv::Point> &attentionPoints,
                                     std::vector<std::vector<cv::Point> > &contours, std::string &str);
 /**
- * reads image annotations from file
+ * reads ground truth segmentation from the text file
  * */
-void readAnnotationsFromFile(std::vector<std::vector<cv::Point> > &polygons, std::string &annotationName);
+//ep:begin revision 18-07-2014
+void readAnnotationsFromFile(std::vector<std::vector<cv::Point> > &polygons, std::string filename);
+//ep:end revision 18-07-2014
 /**
  * saturates image
  * */

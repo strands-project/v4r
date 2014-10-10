@@ -157,6 +157,7 @@ void drawSegmentationResults(cv::Mat &image, std::vector<cv::Point> &attentionPo
   }
 }
 
+//revison
 void drawAttentionPoints(cv::Mat &image, std::vector<cv::Point> &attentionPoints, unsigned int maxNumber, bool connect_points)
 {
   cv::Point p;
@@ -174,7 +175,7 @@ void drawAttentionPoints(cv::Mat &image, std::vector<cv::Point> &attentionPoints
     // put text
     char text[4];
     sprintf(text,"%d",j);
-    cv::putText(image,text,cv::Point(p1.x,p1.y-5),cv::FONT_HERSHEY_SIMPLEX,1.0,cv::Scalar(r,g,b),3);
+    cv::putText(image,text,cv::Point(p1.x,p1.y-10),cv::FONT_HERSHEY_SIMPLEX,2.0,cv::Scalar(r,g,b),5);
     
     if (connect_points && (j > 0))
     {
@@ -182,11 +183,12 @@ void drawAttentionPoints(cv::Mat &image, std::vector<cv::Point> &attentionPoints
     }
 
     // draw attention point
-    cv::circle(image,p1,3,cv::Scalar(r,g,b),-1);
+    cv::circle(image,p1,10,cv::Scalar(r,g,b),-1);
 
     p = p1;
   }
 }
+//end revision
 
 void drawPath(cv::Mat &image, std::vector<cv::Point> &path, cv::Mat &mapx, cv::Mat &mapy)
 {

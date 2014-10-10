@@ -197,12 +197,14 @@ bool View::setPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr _cloud)
   patchImage.setTo(-1);
 
   havePatchImage = false;
+
+  return(true);
 }
 
 bool View::setSurfaces(std::vector<SurfaceModel::Ptr> _surfaces)
 {
   surfaces = _surfaces;
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
     surfaces.at(i)->neighbors2D.clear();
     surfaces.at(i)->neighbors3D.clear();
@@ -212,16 +214,17 @@ bool View::setSurfaces(std::vector<SurfaceModel::Ptr> _surfaces)
 
   ngbr2D_map.clear();
   ngbr3D_map.clear();
-  
+
+  return(true);
 }
 
 bool View::createPatchImage() 
 {
   patchImage.setTo(-1);
   
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
-    for(int j = 0; j < surfaces.at(i)->indices.size(); j++)
+    for(unsigned int j = 0; j < surfaces.at(i)->indices.size(); j++)
     {
 
       int x = (surfaces.at(i)->indices.at(j))%width;
@@ -240,7 +243,7 @@ void View::updatePatchImage(std::vector<int> addedTo)
   if(!havePatchImage)
     return;
   
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {    
     if(addedTo.at(i) >= 0)
     {
@@ -250,7 +253,7 @@ void View::updatePatchImage(std::vector<int> addedTo)
         new_i = addedTo.at(new_i);
       }
 
-      for(int j = 0; j < surfaces.at(i)->indices.size(); j++)
+      for(unsigned int j = 0; j < surfaces.at(i)->indices.size(); j++)
       {
         int x = (surfaces.at(i)->indices.at(j))%width;
         int y = (surfaces.at(i)->indices.at(j))/width;
@@ -295,12 +298,12 @@ void View::get2DNeighborsCurrent(cv::Mat &neighbors2D, cv::Mat &neighbors3D)
   int dr[4] = {-1,0,-1};
   int dc[4] = { 0,-1,-1};
   
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
     
 //     if( (!(surfaces.at(i)->newly_selected)) || (!(surfaces.at(i)->selected)) )
 //       continue;
-    for(int j = 0; j < surfaces.at(i)->indices.size(); j++)
+for(unsigned int j = 0; j < surfaces.at(i)->indices.size(); j++)
     {
       
       int c = (surfaces.at(i)->indices.at(j))%width;
@@ -390,16 +393,16 @@ void View::computeNeighbors()
   get2DNeighborsCurrent(neighbors2D,neighbors3D);
 // std::cerr << "2" << std::endl;
   
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
     surfaces.at(i)->neighbors2D.clear();
     surfaces.at(i)->neighbors3D.clear();
   }
   
   // because neigbors are symmetrcal it is enough to go only through the half
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
-    for(int j = 0; j < i; j++)
+    for(unsigned int j = 0; j < i; j++)
     {
       if(neighbors2D.at<bool>(i,j))
       {
@@ -442,7 +445,7 @@ bool compareSaliency(SurfaceModelPair sm1, SurfaceModelPair sm2)
 void View::sortPatches()
 {
   sortedSurfaces.resize(surfaces.size());
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
     surfaces.at(i)->saliency = 1;
     sortedSurfaces.at(i) = i;
@@ -456,7 +459,7 @@ void View::sortPatches()
   height = cloud->height;
   width = cloud->width;
   
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   { 
     if( (!(surfaces.at(i)->valid)) && (surfaces.at(i)->segmented_number == -1) )
     {
@@ -471,7 +474,7 @@ void View::sortPatches()
     }
    
     float saliency = 0;
-    for(int j = 0; j < surfaces.at(i)->indices.size(); ++j)
+    for(unsigned int j = 0; j < surfaces.at(i)->indices.size(); ++j)
     {
       int idx = surfaces.at(i)->indices.at(j);
       int x = idx % width;
@@ -485,7 +488,7 @@ void View::sortPatches()
   std::vector<SurfaceModelPair> surfacePairs;
   surfacePairs.resize(surfaces.size());
   
-  for(int i = 0; i < surfacePairs.size(); ++i)
+  for(unsigned int i = 0; i < surfacePairs.size(); ++i)
   {
     SurfaceModelPair surfaceModelPair;
     surfacePairs.at(i).surface = surfaces.at(i);
@@ -494,7 +497,7 @@ void View::sortPatches()
   
   sort(surfacePairs.begin(),surfacePairs.end(),compareSaliency);
   
-  for(int i = 0; i < surfacePairs.size(); ++i)
+  for(unsigned int i = 0; i < surfacePairs.size(); ++i)
   {
     sortedSurfaces.at(i) = surfacePairs.at(i).index;
   } 

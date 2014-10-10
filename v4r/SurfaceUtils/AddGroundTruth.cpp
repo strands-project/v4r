@@ -93,8 +93,8 @@ void AddGroundTruth::compute(int type)
   }
   
   // Label the surface patches according to labels of the point cloud
-  int maxObjects = 0;
-  for(int i = 0; i < cloud->points.size(); i++)
+  unsigned int maxObjects = 0;
+  for(unsigned int i = 0; i < cloud->points.size(); i++)
   {
     if(cloud->points.at(i).label > maxObjects)
     {
@@ -102,27 +102,29 @@ void AddGroundTruth::compute(int type)
     }
   }
   
-  std::cerr << "1:" << maxObjects << std::endl; 
+  //std::cerr << "1:" << maxObjects << std::endl; 
   
   // go over all surfaces
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
-    std::cerr << "2.1" << std::endl;
+    //std::cerr << "2.1" << std::endl;
+    if(!(surfaces.at(i)->selected))
+      continue;
     
     std::vector<int> nrPoints;
     nrPoints.resize(maxObjects+1);
     
-    for(int j = 0; j <= maxObjects; j++)
+    for(unsigned int j = 0; j <= maxObjects; j++)
     {
       nrPoints.at(j) = 0;
     }
     
-    std::cerr << "2.2" << std::endl;
+    //std::cerr << "2.2" << std::endl;
     
-    for(int j=0; j<surfaces.at(i)->indices.size(); j++)
+    for(unsigned int j=0; j<surfaces.at(i)->indices.size(); j++)
     {
       pcl::PointXYZRGBL p = cloud->points.at(surfaces.at(i)->indices.at(j));
-      if(p.label != -1)
+      if(p.label != 0)
       {
         nrPoints.at(p.label) += 1;
       }
@@ -132,11 +134,11 @@ void AddGroundTruth::compute(int type)
       }
     }  
       
-    std::cerr << "2.3" << std::endl;
+    //std::cerr << "2.3" << std::endl;
       
     int maxNrPoints = 0;
     int objectID = 0;
-    for(int j = 0; j <= maxObjects; j++) 
+    for(unsigned int j = 0; j <= maxObjects; j++) 
     {
       if(nrPoints.at(j) > maxNrPoints) 
       {
@@ -145,7 +147,7 @@ void AddGroundTruth::compute(int type)
       }
     }
 
-    std::cerr << "2.4" << std::endl;
+    //std::cerr << "2.4" << std::endl;
     
     if( (type == ALL_RELATIONS) || (type == STRUCTURAL_RELATIONS) ) 
       surfaces.at(i)->label = objectID;
@@ -154,11 +156,12 @@ void AddGroundTruth::compute(int type)
       surfaces.at(i)->label_ass = objectID;
   }
   
-  std::cerr << "2" << std::endl;
+  //std::cerr << "2" << std::endl;
     
   // Add ground truth to the relations
-  for(int i = 0; i < relations.size(); i++)
+  for(unsigned int i = 0; i < relations.size(); i++)
   {
+    //std::cerr << "11" << std::endl;
     if( (relations.at(i).type == STRUCTURAL_RELATIONS) && ( (type == ALL_RELATIONS) || (type == STRUCTURAL_RELATIONS) ) )
     { 
       int id_0_label = surfaces.at(relations.at(i).id_0)->label;

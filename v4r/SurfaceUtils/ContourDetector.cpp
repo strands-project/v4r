@@ -61,7 +61,7 @@ void ContourDetector::setSurfaces(const std::vector<SurfaceModel::Ptr> _surfaces
   pre_corners.resize(width * height);
   pre_edgels.resize(width * height);
 
-  for(int i = 0; i < surfaces.size(); i++)
+  for(unsigned int i = 0; i < surfaces.size(); i++)
   {
     surfaces.at(i)->contours.clear();
     surfaces.at(i)->edges.clear();
@@ -77,12 +77,12 @@ void ContourDetector::createPatchImage()
   
   if(width > 0)
   {
-    for(int i = 0; i < surfaces.size(); i++)
+    for(unsigned int i = 0; i < surfaces.size(); i++)
     {
       if(!(surfaces.at(i)->selected))
 	continue;
       
-      for(int j = 0; j < surfaces.at(i)->indices.size(); j++)
+      for(unsigned int j = 0; j < surfaces.at(i)->indices.size(); j++)
       {
         int x = X(surfaces.at(i)->indices.at(j));
 	int y = Y(surfaces.at(i)->indices.at(j));
@@ -356,7 +356,7 @@ void ContourDetector::compute()
         }
         
         // delete contour points from contours map!
-        for(int i = 0; i < new_contour.size(); i++)
+        for(unsigned int i = 0; i < new_contour.size(); i++)
         {
           contours(Y(new_contour.at(i)), X(new_contour.at(i))) = -1;
         }
@@ -374,11 +374,11 @@ void ContourDetector::printContours(std::string file_name)
 {
   FILE *f = fopen(file_name.c_str(), "w");
   
-  for(int i = 0; i < surfaces.size(); ++i)
+  for(unsigned int i = 0; i < surfaces.size(); ++i)
   {
-    for(int j = 0; j < surfaces.at(i)->contours.size(); ++j)
+    for(unsigned int j = 0; j < surfaces.at(i)->contours.size(); ++j)
     {
-      for(int k = 0; k < surfaces.at(i)->contours.at(j).size(); ++k)
+      for(unsigned int k = 0; k < surfaces.at(i)->contours.at(j).size(); ++k)
       {
         fprintf(f,"%d ",surfaces.at(i)->contours.at(j).at(k));
       }
