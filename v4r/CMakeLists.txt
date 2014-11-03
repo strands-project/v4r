@@ -1,6 +1,6 @@
 #add_subdirectory(Annotation)
 #add_subdirectory(utils)
-#add_subdirectory(armarker)
+add_subdirectory(armarker)
 #add_subdirectory(geometry)
 #add_subdirectory(huttenlocher)
 #add_subdirectory(fw)
