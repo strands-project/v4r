@@ -36,7 +36,6 @@
 
 #include <pcl/filters/project_inliers.h>
 #include <pcl/io/pcd_io.h>
-#include <pcl/surface/on_nurbs/sequential_fitter.h>
 
 #include "Relation.h"
 
@@ -45,6 +44,7 @@
 //#endif
 
 #include "v4r/EPUtils/EPUtils.hpp"
+#include <v4r/on_nurbs/sequential_fitter.h>
 
 namespace surface
 {

@@ -20,37 +20,64 @@
  *
  */
 
-#version 130
-
-in vec2 pos;
-
-
+#version 430
+in vec2 position;
+in vec2 TextureCoordinates;
 out vec4 color;
 
-uniform float depthScale;
-uniform float pointSize;
-uniform vec2 uv0;
 uniform vec2 f;
+uniform vec2 c;
+uniform float depthScale;
 uniform mat4 mvp;
+
+uniform bool diffuseShading;
+uniform vec3 lightPos;
+uniform vec3 lightDir;
+uniform vec3 diffuseLight;
+uniform vec3 diffuseColor;
 
 uniform sampler2D depthTex;
 uniform sampler2D rgbTex;
 
+vec3 computeNormal(in vec3 pos)
+{
+  float dR = -textureOffset(depthTex,TextureCoordinates,ivec2( 1, 0)).x*depthScale;
+  float dT = -textureOffset(depthTex,TextureCoordinates,ivec2( 0, 1)).x*depthScale;
+  float dL = -textureOffset(depthTex,TextureCoordinates,ivec2(-1, 0)).x*depthScale;
+  float dB = -textureOffset(depthTex,TextureCoordinates,ivec2( 0,-1)).x*depthScale;
+  vec3 posR=vec3( -(position.x+1-c.x)*dR/f.x, (position.y+0-c.y)*dR/f.y, dR );
+  vec3 posT=vec3( -(position.x+0-c.x)*dT/f.x, (position.y+1-c.y)*dT/f.y, dT );
+  vec3 posL=vec3( -(position.x-1-c.x)*dL/f.x, (position.y+0-c.y)*dL/f.y, dL );
+  vec3 posB=vec3( -(position.x+0-c.x)*dB/f.x, (position.y-1-c.y)*dB/f.y, dB );
+  vec3 vR = posR-pos;
+  vec3 vT = posT-pos;
+  vec3 vL = posL-pos;
+  vec3 vB = posB-pos;
+  vec3 n0 = normalize(cross(vR,vT));
+  vec3 n1 = normalize(cross(vT,vL));
+  vec3 n2 = normalize(cross(vL,vB));
+  vec3 n3 = normalize(cross(vB,vR));
+  return normalize((n0+n1+n2+n3)*0.25);
+//  return n0;
+}
 
-void main(){
+void main()
+{
+  float d = -texture(depthTex,TextureCoordinates).x*depthScale;
+  vec3 pos=vec3( -(position.x-c.x)*d/f.x, (position.y-c.y)*d/f.y, d );
 
-    vec2 texRes= textureSize(depthTex,0);
-    vec2 texPos=vec2(pos.x/texRes.x+(0.5/texRes.x),pos.y/texRes.y+(0.5/texRes.y));
-    float depth=-texture(depthTex,texPos).x*depthScale;
-    //depth=-1;
-    color=texture(rgbTex,texPos);
-    color.y=color.x;
-    color.z=color.x;
-    //color=vec4(0,1,0,1);
-    vec3 pos3=vec3(-(pos.x-uv0.x)*depth/f.x,(pos.y-uv0.y)*depth/f.y,depth);
-    //pos3=vec3(pos,0);
-    gl_Position = mvp*vec4(pos3,1);
+  if(diffuseShading)
+  {
+    vec3 n = computeNormal(pos);
+//    vec3 s = normalize(lightPos - pos);
+    color = vec4(diffuseLight * diffuseColor.rgb * max( dot(lightDir,n), 0.0 ), 1.0);
+  }
+  else
+  {
+    color=texture(rgbTex,TextureCoordinates);
+    color.g=color.r;
+    color.b=color.r;
+  }
 
-    gl_PointSize = pointSize;
-    //gl_Position.y=-gl_Position.y;
+  gl_Position = mvp*vec4(pos,1);
 }

@@ -35,7 +35,8 @@ private:
 
     bool initialized;
     GLuint VAO;
-    GLuint VBO;
+    GLuint posVBO;
+    GLuint texcoordVBO;
     GLuint IBO;
     GLSLProgram* programDotted;
     //there should be several uniforms for matrices and stuff
@@ -55,12 +56,15 @@ private:
     bool rgbChanged;
     glm::mat4 transform;
 
+    bool diffuseShading;
     glm::vec2 f;
     glm::vec2 uv0;
     float depthScale;
     glm::mat4 modelMat;
     float pointSize;
     double meanDepth;
+
+    void initBuffers();
 
 public:
 
@@ -70,7 +74,7 @@ public:
       * I hate to say it, but the destructor has to wait for removedWhileInContext to be finished
       */
     ~PointCloudProjected();
-    virtual void initInContext();
+    virtual void initInContext(Scene* scene);
     virtual void removedWhileInContext();
 
     //the object has the opportunity to draw itself
@@ -83,6 +87,8 @@ public:
     void setModelMat(glm::mat4 pos);
 
     double getMeanDepth(){ return meanDepth; }
+
+    void setDiffuse(bool v) { diffuseShading=v; }
 
 };
 }

@@ -24,7 +24,7 @@
 #include "GLWindow.h"
 #include "Scene.h"
 namespace tg {
-class SceneWindow : public Scene,public GLWindow{
+class SceneWindow : public GLWindow, public Scene{
 private:
 public:
     SceneWindow(GLuint width=800,GLuint height=600,std::string title=std::string("SceneWindow"),GLWindow* share=0);

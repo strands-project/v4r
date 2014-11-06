@@ -27,6 +27,7 @@
 #include "v4r/TomGine5/Scene.h"
 #include "v4r/TomGine5/GLSLProgram.h"
 
+#include <boost/thread.hpp>
 
 namespace tg{
 class Mesh : public SceneObject{
@@ -35,30 +36,31 @@ private:
     const aiScene* m_scene;
     unsigned int m_faceCount;
 
+    GLSLProgram* m_shader;
 
-    GLSLProgram m_program;
-    GLuint m_MVPUniform;//uniforms
-    GLuint m_projUniform;
-    GLuint m_modelViewUniform;
-    GLuint m_normalUniform;
-
+    glm::mat4 m_pose;
 
     GLuint m_VAO;
     GLuint m_posVBO;
     GLuint m_normalVBO;
     GLuint m_colorVBO;
-    GLuint m_indexVBO;
+    GLuint m_IBO;
 
     glm::vec3 m_center;
+
+    boost::mutex poseMutex;
+
 public:
     Mesh(std::string filePath);
     ~Mesh();
 
-    void initInContext();
+    void initInContext(Scene* scene);
     void removedWhileInContext();
 
     void draw(Scene* scene);
     glm::vec3 getCenter();
+
+    void setPose(const glm::mat4& pose);
 };
 
 }

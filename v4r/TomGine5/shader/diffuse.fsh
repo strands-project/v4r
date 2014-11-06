@@ -20,14 +20,11 @@
  *
  */
 
-#version 130
-in vec4 colorVar;
+#version 430
+in vec3 LightIntensity;
 out vec4 fragColor;
 
-
-void main(){
-
-    fragColor = vec4(colorVar);//.zyxw;
-    //fragColor =vec4(1,0,0,1);
-    //fragColor = vec4(c.z,c.y,c.x,c.w)
+void main()
+{
+    fragColor = vec4(LightIntensity, 1.0);
 }

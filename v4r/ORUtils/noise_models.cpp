@@ -5,10 +5,11 @@
  *      Author: aitor
  */
 
-#include "noise_models.h"
 #include <pcl/common/angles.h>
 #include <v4r/OREdgeDetector/organized_edge_detection.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include "noise_models.h"
+#include "organized_edge_detection.h"
 
 template<typename PointT>
 faat_pcl::utils::noise_models::NguyenNoiseModel<PointT>::NguyenNoiseModel ()

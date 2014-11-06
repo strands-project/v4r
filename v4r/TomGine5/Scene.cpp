@@ -28,12 +28,19 @@ Scene::Scene(){
     m_cam=0;
     m_clear=1;
     m_clearColor= glm::vec4(0);
+
+    // init shader
+    m_shadeDiffuse = new GLSLProgram();
+    m_shadeDiffuse->compileShader(std::string(TOMGINE_5_SHADER) + "diffuse.fsh");
+    m_shadeDiffuse->compileShader(std::string(TOMGINE_5_SHADER) + "diffuse.vsh");
+    m_shadeDiffuse->link();
+    tg::GLUtils::checkForOpenGLError("[Scene::Scene] init m_shadeDiffuse");
 }
 
 
 void Scene::addSceneObject(SceneObject *object)
 {
-    object->initInContext();
+    object->initInContext(this);
     m_objects.push_back(object);
 
 }

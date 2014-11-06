@@ -24,6 +24,7 @@
 #ifndef _SCENE_H_
 #define _SCENE_H_
 #include "SceneCam.h"
+#include "GLSLProgram.h"
 #include <list>
 namespace tg {
 class GLContext;
@@ -35,7 +36,7 @@ private:
 public:
     //besides the constructor OpenGL resources should be initialized inside the active
     //OpenGL context
-    virtual void initInContext() = 0;
+    virtual void initInContext(Scene* scene) = 0;
     virtual void removedWhileInContext() = 0;
 
     //the object has the opportunity to draw itself
@@ -51,6 +52,8 @@ protected:
     SceneCam* m_cam;
     glm::vec4 m_clearColor;
     bool m_clear;
+    GLSLProgram* m_shadeDiffuse;
+
 public:
     Scene();
     virtual ~Scene(){}
@@ -64,6 +67,7 @@ public:
     //virtual glm::ivec2 getResolution() = 0;
     virtual bool flipYAxis(){return false;}
 
+    GLSLProgram* GetShaderDiffuse() { return m_shadeDiffuse; }
 
     void setClearColor(GLfloat red,GLfloat green, GLfloat blue, GLfloat alpha){m_clearColor=glm::vec4(red,green,blue,alpha);}
     void setClear(bool clear){m_clear = clear;}

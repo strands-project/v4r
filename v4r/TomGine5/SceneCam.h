@@ -39,14 +39,25 @@ protected:
     glm::mat4 m_MVP;
 public:
     virtual void calcMat(glm::ivec2 res){}
-    virtual void applyMat(GLuint modelViewUniform,GLuint normalUniform,GLuint projectionUniform,GLuint MVPUniform);
 
+    virtual void applyMat(GLuint modelViewUniform,GLuint normalUniform,GLuint projectionUniform,GLuint MVPUniform);
+    void setProjection(glm::ivec2 res, glm::vec2 f, glm::vec2 c, glm::vec2 zrange);
+    void setProjection(const glm::mat4& p);
+    void setModelView(const glm::mat4& mv);
+    void print() const;
+
+    const glm::mat4& getModelView() const { return m_modelView; }
+    const glm::mat3& getNormalMatrix() const { return m_normal; }
+    const glm::mat4& getProjectionMatrix() const { return m_projection; }
+    const glm::mat4& getMVP() const { return m_MVP; }
 
     virtual void update(GLWindow* window){}
 
     virtual void keyCallback(GLWindow* window,int key,int scancode,int action,int mods){}
     virtual void cursorCallback(GLWindow* window,double x,double y){}
     virtual void mouseButtonCallback(GLWindow* window,int button, int action, int mod){}
+
+
 
 };
 
@@ -122,16 +133,18 @@ class OrbitCam : public SceneCam{
 
 private:
   glm::vec3 m_cor; // center of rotation
-  glm::mat4 m_extrinsic;
-  glm::mat4 m_intrinsic;
 
   bool curPosReset;
   glm::dvec2 cursorPos;
+  glm::mat4 m_modelView0;
 
 public:
   OrbitCam();
 
   void SetCOR(const glm::vec3& cor);
+
+  void SetExtrinsic(const glm::mat4& E);
+  void SetIntrinsic(const glm::mat4& I);
 
   void SetNearFar(const float& near, const float& far);
   float GetFar() const;

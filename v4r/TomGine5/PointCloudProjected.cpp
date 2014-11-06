@@ -32,6 +32,7 @@ PointCloudProjected::PointCloudProjected()
 
   this->rgbTex=0;
   this->rgbChanged=false;
+  this->diffuseShading=true;
   this->f=glm::vec2(600);
   this->uv0=glm::vec2(320,240);
   this->depthScale=1;
@@ -50,6 +51,7 @@ PointCloudProjected::PointCloudProjected(cv::Mat depth, cv::Mat rgb, glm::vec2 f
   this->rgbData=rgb;
   this->rgbTex=0;
   this->rgbChanged=true;
+  this->diffuseShading=true;
   this->f=f;
   this->uv0=uv0;
   this->depthScale = depthScale;
@@ -73,44 +75,93 @@ PointCloudProjected::~PointCloudProjected()
     delete programDotted;
     programDotted=0;
   }
-
-  //TODO: this is just a bugfix...... DIRTY
-  //rgbMutex.unlock();
-  //depthMutex.unlock();
 }
 
-void PointCloudProjected::initInContext()
+void PointCloudProjected::initBuffers()
 {
-  printf("[PointCloudProjected::initInContext] initCloudInContext\n");
-  fflush(stdout);
+  depthTex=new GLTexture2D(depthData);
+  depthTex->setFilter(GL_NEAREST,GL_NEAREST);
+  glm::ivec2 r(depthData.cols, depthData.rows);
+
+  //create VBO Data:
+  std::vector<glm::vec2> positions(r.x*r.y);
+  std::vector<glm::vec2> texcoords(r.x*r.y);
+
+  int i=0;
+  for(int m=0; m<r.y; m++)
+  {
+    for(int n=0; n<r.x; n++)
+    {
+      positions[i] = glm::vec2(float(n),float(m));
+      texcoords[i] = glm::vec2(float(n)/r.x,float(m)/r.y);
+      i++;
+    }
+  }
+
+  //upload vbo data:
+  glGenVertexArrays(1,&VAO);
+  glBindVertexArray(VAO);
+
+  glGenBuffers(1,&posVBO);
+  glBindBuffer(GL_ARRAY_BUFFER,posVBO);
+  glBufferData(GL_ARRAY_BUFFER,positions.size()*sizeof(glm::vec2),&positions[0],GL_STATIC_DRAW);
+  GLuint posLoc = programDotted->getAttribLocation("position");
+  glVertexAttribPointer(posLoc,2,GL_FLOAT,GL_FALSE,0,NULL);
+  glEnableVertexAttribArray(posLoc);
+
+  glGenBuffers(1,&texcoordVBO);
+  glBindBuffer(GL_ARRAY_BUFFER,texcoordVBO);
+  glBufferData(GL_ARRAY_BUFFER,texcoords.size()*sizeof(glm::vec2),&texcoords[0],GL_STATIC_DRAW);
+  GLuint texCoord = programDotted->getAttribLocation("TextureCoordinates");
+  glVertexAttribPointer(texCoord,2,GL_FLOAT,GL_FALSE,0,NULL);
+  glEnableVertexAttribArray(texCoord);
+
+  // create ibo data
+  glm::ivec2 ri(r.x-1,r.y-1); // it seems like the last 80 rows all have depth 0
+  polyCount=6*(ri.x)*(ri.y);
+  gridIndexData.resize(polyCount);
+  for(int m=0; m<(ri.y); m++){
+    for(int n=0; n<(ri.x); n++){
+      //create indices:
+      gridIndexData[(m*(ri.x)+n)*6+0] =  m    *(r.x) + n;
+      gridIndexData[(m*(ri.x)+n)*6+1] =  m    *(r.x) + n+1;
+      gridIndexData[(m*(ri.x)+n)*6+2] = (m+1) *(r.x) + n;
+
+      gridIndexData[(m*(ri.x)+n)*6+3] =  m    *(r.x) + n+1;
+      gridIndexData[(m*(ri.x)+n)*6+4] = (m+1) *(r.x) + n+1;
+      gridIndexData[(m*(ri.x)+n)*6+5] = (m+1) *(r.x) + n;
+    }
+  }
+
+  //upload ibo data:
+  glGenBuffers(1,&IBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,IBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,gridIndexData.size()*sizeof(GLuint),&gridIndexData[0],GL_STATIC_DRAW);
+
+  tg::GLUtils::checkForOpenGLError("[PointCloudProjected::draw]");
+  glBindVertexArray(0);
+}
+
+void PointCloudProjected::initInContext(Scene *scene)
+{
   //load shader
   this->programDotted=new GLSLProgram();
-
   programDotted->compileShader(std::string(TOMGINE_5_SHADER) + "projPointCloudDotted.fsh");
-  programDotted->bindFragDataLocation(0,"fragColor");
-
   programDotted->compileShader(std::string(TOMGINE_5_SHADER) + "projPointCloudDotted.vsh");
-
   programDotted->link();
-  programDotted->bindAttribLocation(0,"postion");
 
-  /*uniform float depthScale;
-    uniform float pointSize;
-    uniform vec2 uv0;
-    uniform vec2 f;
-    uniform mat4 mvp;
-
-    uniform sampler2D depthTex;
-    uniform sampler2D rgbTex;*/
-  //do the uniforms we already know:
+  // set uniforms
   programDotted->use();
+  programDotted->setUniform("f", f);
+  programDotted->setUniform("c", uv0);
   programDotted->setUniform("depthScale",depthScale);
   programDotted->setUniform("pointSize",pointSize);
-  programDotted->setUniform("uv0",uv0);
-  programDotted->setUniform("f",f);
-
   programDotted->setUniform("depthTex",0);
   programDotted->setUniform("rgbTex",1);
+  programDotted->setUniform("lightDir", glm::vec3(0,0,-1));
+  programDotted->setUniform("lightPos", glm::vec3(0,0,1));
+  programDotted->setUniform("diffuseLight", glm::vec3(1,1,1));
+  programDotted->setUniform("diffuseColor", glm::vec3(1,1,1));
 
   mvpUniform=programDotted->getUniformLocation("mvp");
   tg::GLUtils::checkForOpenGLError("[PointCloudProjected::initInContext]");
@@ -143,85 +194,12 @@ void PointCloudProjected::draw(Scene *scene)
     if(depthChanged)
     {
       depthMutex.lock();
+
       if(!depthTex)
-      {
-        depthTex=new GLTexture2D(depthData);
-        depthTex->setFilter(GL_NEAREST,GL_NEAREST);
-        glm::ivec2 r(depthData.rows, depthData.cols);
-
-        //create VBO Data:
-        std::vector<glm::vec2> vboData(r.x*r.y);
-//        glm::vec2* vboData=new glm::vec2[depthData.cols*depthData.rows];
-
-        printf("[PointCloudProjected::draw] %d %d  %d\n", r.x, r.y, r.x*r.y);
-
-        int i=0;
-        meanDepth = 0.0;
-        for(int m=0; m<r.y; m++){
-          for(int n=0; n<r.x; n++){
-
-            //vboData[i]=glm::vec2((float)m/(float)depthData.rows,(float)n/(float)depthData.cols);
-            vboData[i]=glm::vec2((float)n,(float)m);
-
-            i++;
-          }
-        }
-        meanDepth /= (i+1);
-
-        //upload vbo data:
-        glGenBuffers(1,&VBO);
-        glBindBuffer(GL_ARRAY_BUFFER,VBO);
-        glBufferData(GL_ARRAY_BUFFER,vboData.size()*sizeof(glm::vec2),&vboData[0],GL_STATIC_DRAW);
-
-        // create ibo data
-        polyCount=6*(r.x-1)*(r.y-1);
-        gridIndexData.resize(polyCount);
-        for(int m=0; m<(r.y-1); m++){
-          for(int n=0; n<(r.x-1); n++){
-            //create indices:
-            gridIndexData[(m*(r.x-1)+n)*6+0] =  m    *(r.x-1) + n;
-            gridIndexData[(m*(r.x-1)+n)*6+1] =  m    *(r.x-1) + n+1;
-            gridIndexData[(m*(r.x-1)+n)*6+2] = (m+1) *(r.x-1) + n;
-
-            gridIndexData[(m*(r.x-1)+n)*6+3] =  m    *(r.x-1) + n+1;
-            gridIndexData[(m*(r.x-1)+n)*6+4] = (m+1) *(r.x-1) + n+1;
-            gridIndexData[(m*(r.x-1)+n)*6+5] = (m+1) *(r.x-1) + n;
-          }
-        }
-
-        GLuint imax(-UINT_MAX), imin(UINT_MAX);
-        for(size_t i=0; i<gridIndexData.size(); i++)
-        {
-          GLuint& idx = gridIndexData[i];
-          if(idx>imax)
-            imax=idx;
-          if(idx<imin)
-            imin=idx;
-        }
-
-        printf("[PointCloudProjected::draw] max: %d  min: %d\n", imax, imin);
-
-
-        //upload ibo data:
-        glGenBuffers(1,&IBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,IBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,gridIndexData.size()*sizeof(GLuint),&gridIndexData[0],GL_STATIC_DRAW);
-
-        glGenVertexArrays(1,&VAO);
-        glBindVertexArray(VAO);
-
-        //bind data to shader:
-        programDotted->use();
-        GLuint posLoc = programDotted->getAttribLocation("pos");
-        glVertexAttribPointer(posLoc,2,GL_FLOAT,GL_FALSE,0,NULL);
-        glEnableVertexAttribArray(posLoc);
-        tg::GLUtils::checkForOpenGLError("[PointCloudProjected::draw]");
-        glBindVertexArray(0);
-
-      }else
-      {
+        initBuffers();
+      else
         depthTex->updateTexture(depthData);
-      }
+
       depthChanged=false;
       depthMutex.unlock();
     } // if(depthChanged)
@@ -229,16 +207,12 @@ void PointCloudProjected::draw(Scene *scene)
     if(rgbChanged)
     {
       rgbMutex.lock();
-      if(!rgbTex){
+
+      if(!rgbTex)
         rgbTex=new GLTexture2D(rgbData);
-        //rgbTex->imshow("rgbData");
-        //cv::Mat rgbdatafter= rgbTex->getData();
-        //cv::imshow("test rgbdata",rgbData);
-        //cv::imshow("test rgbdatafter",rgbdatafter);
-      }else{
+      else
         rgbTex->updateTexture(rgbData);
 
-      }
       rgbChanged=false;
       rgbMutex.unlock();
     } // if(rgbChanged)
@@ -252,12 +226,21 @@ void PointCloudProjected::draw(Scene *scene)
     glActiveTexture(GL_TEXTURE1);
     rgbTex->bind();
     programDotted->use();
-
-    tg::GLUtils::checkForOpenGLError("[PointCloudProjected::draw]");
     scene->getCam()->applyMat(-1,-1,-1,mvpUniform);
-    tg::GLUtils::checkForOpenGLError("[PointCloudProjected::draw]");
-    glDrawArrays(GL_POINTS,0,depthData.rows*depthData.cols);
-//    glDrawElements(GL_TRIANGLES,polyCount,GL_UNSIGNED_INT,&gridIndexData[0]);//GL_TRIANGLES
+
+    //    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+    programDotted->setUniform("diffuseShading", diffuseShading);
+
+    if(diffuseShading)
+    {
+      glDrawElements(GL_TRIANGLES,gridIndexData.size(),GL_UNSIGNED_INT,0);//GL_TRIANGLES
+    }
+    else
+    {
+      glPointSize(pointSize);
+      glDrawArrays(GL_POINTS,0,depthData.rows*depthData.cols);
+      glPointSize(1.0f);
+    }
 
     tg::GLUtils::checkForOpenGLError("[PointCloudProjected::draw]");
 
@@ -266,26 +249,10 @@ void PointCloudProjected::draw(Scene *scene)
 
 void PointCloudProjected::updateDepthData(cv::Mat data)
 {
-  double mind(DBL_MAX), maxd(-DBL_MAX);
-  for(int j=0; j<data.rows; j++)
-  {
-    for(int i=0; i<data.cols; i++)
-    {
-      double d = data.at<double>(i,j);
-      if(d<mind)
-        mind=d;
-      if(d>maxd)
-        maxd=d;
-    }
-  }
-  printf("PointCloudProjected::updateDepthData depth: %f %f\n", mind, maxd);
-
-
   depthMutex.lock();
   this->depthData=data.clone();
   this->depthChanged=true;
   depthMutex.unlock();
-
 }
 
 void PointCloudProjected::updateRGBData(cv::Mat data)

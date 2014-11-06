@@ -41,8 +41,8 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/filters/project_inliers.h>
-#include <pcl/surface/on_nurbs/sequential_fitter.h>
 
+#include <v4r/on_nurbs/sequential_fitter.h>
 #include "v4r/SurfaceUtils/SurfaceModel.hpp"
 #include "v4r/SurfaceUtils/EPBase.hpp"
 

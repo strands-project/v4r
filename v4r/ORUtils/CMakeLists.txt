@@ -17,6 +17,7 @@ SET(SOURCE_CPP
   noise_models.cpp
   pcl_visualization_utils.cpp
   segmentation_utils.cpp
+#  organized_edge_detection.cpp
 )
 
 SET(SOURCE_H
@@ -29,6 +30,7 @@ SET(SOURCE_H
   pcl_visualization_utils.h
   registration_utils.h
   segmentation_utils.h
+#  organized_edge_detection.h
 )
 
 

@@ -28,7 +28,7 @@ using namespace tg;
 
 
 SceneWindow::SceneWindow(GLuint width, GLuint height, std::string title, tg::GLWindow *share)
-    : GLWindow(width,height,title,share)
+    : GLWindow(width,height,title,share), Scene()
 {
 
 }

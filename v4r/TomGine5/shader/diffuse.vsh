@@ -20,24 +20,30 @@
  *
  */
 
-#version 130
+#version 430
 
-in vec3 pos;
-//in vec3 norm;
-in vec4 color;
+in vec3 VertexPosition;
+in vec3 VertexNormal;
+in vec4 ColorDiffuse;
 
+out vec3 LightIntensity;
+
+uniform vec4 LightPosition;
+uniform vec3 LightDiffuse;
 
 uniform mat4 ModelViewMatrix;
 uniform mat3 NormalMatrix;
 uniform mat4 ProjectionMatrix;
 uniform mat4 MVP;
 
-out vec4 colorVar;
+void main()
+{
+  vec3 tnorm = normalize(NormalMatrix * VertexNormal);
+  vec4 eyeCoords = ModelViewMatrix * vec4(VertexPosition,1.0);
+  vec3 s = normalize(vec3(LightPosition - eyeCoords));
 
-void main(){
+  // diffuse shading
+  LightIntensity = LightDiffuse * ColorDiffuse.rgb * max( dot(s,tnorm), 0.0 );
 
-    colorVar=color;
-    gl_Position =  vec4(pos*0.1,1);// + vec4(00,0,0.9,0);
-    gl_Position = MVP*vec4(pos,1);
-
+  gl_Position = MVP*vec4(VertexPosition,1.0);
 }

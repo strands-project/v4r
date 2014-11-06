@@ -6,6 +6,7 @@ SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 
 IF(V4R_EPUTILS)
 IF(V4R_SURFACE_UTILS)
+IF(V4R_ON_NURBS)
 
 PROJECT(v4rSurfaceClustering)
 
@@ -26,13 +27,17 @@ IF(${PCL_FOUND})
   )
 
   add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
-  target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rEPUtils v4rSurfaceUtils)
+  target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rEPUtils v4rSurfaceUtils v4ron_nurbs)
   v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 
 ELSE (${PCL_FOUND})
   MESSAGE("\nERROR: SurfaceClustering: Could not locate PCL. Skip V4R_SURFACE_CLUSTERING\n")
 ENDIF(${PCL_FOUND})
   
+ELSE(V4R_ON_NURBS)
+  MESSAGE(STATUS "********************************************\n v4r/SurfaceClustering: missing V4R_ON_NURBS\n   ********************************************\n")
+ENDIF(V4R_ON_NURBS)
+
 ELSE(V4R_SURFACE_UTILS)
   MESSAGE(STATUS "********************************************\n   v4r/SurfaceClustering: missing V4R_SURFACE_UTILS\n   ********************************************\n")
 ENDIF(V4R_SURFACE_UTILS)

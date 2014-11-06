@@ -84,8 +84,8 @@ set(SOURCE_SHADER
   shader/background.vsh
   shader/background.fsh
 
-  shader/mesh.vsh
-  shader/mesh.fsh
+  shader/diffuse.vsh
+  shader/diffuse.fsh
 
   shader/pyrBlur.vsh
   shader/pyrBlur.fsh
