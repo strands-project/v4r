@@ -44,8 +44,8 @@ include_directories(.)
 
 #add_subdirectory(apps)
 #add_subdirectory(ak)
-add_subdirectory(v4r)
 add_subdirectory(v4rexternal)
+add_subdirectory(v4r)
 
 message(STATUS "V4R_LIBRARIES: " ${V4R_LIBRARIES})
 message(STATUS "V4R_LIBRARIES_PC: " ${V4R_LIBRARIES_PC})
