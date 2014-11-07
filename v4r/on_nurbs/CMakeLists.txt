@@ -21,6 +21,7 @@ SET(SOURCE_CPP
 	fitting_curve_pdm.cpp
   fitting_cylinder_pdm.cpp
   fitting_sphere_pdm.cpp
+  #fitting_surface_depth.h
 	fitting_surface_pdm.cpp
 	fitting_surface_tdm.cpp
 	global_optimization_pdm.cpp
@@ -41,6 +42,7 @@ SET(SOURCE_H
 	fitting_curve_pdm.h
 	fitting_cylinder_pdm.h
   fitting_sphere_pdm.h
+  #fitting_surface_depth.cpp
 	fitting_surface_pdm.h
 	fitting_surface_tdm.h
 	global_optimization_pdm.h
