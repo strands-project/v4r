@@ -1,11 +1,10 @@
 # ACIN V4R mirror
 
-This is the git mirror of ACIN's v4r library for STRANDS.
+This is the git mirror of ACIN's v4r library.
 
-It uses `git svn` to pull in the latest v4r strands branch from ACIN's svn server:
-https://repo.acin.tuwien.ac.at/v4r/stable/strandsv4r
+It uses `git svn` to pull in the latest v4r stable branch from ACIN's svn server:
+https://repo.acin.tuwien.ac.at/v4r/stable/strands_v4r
 
-This repository does not depend anymore on a particular PCL version installed from trunk but has been successfully tested on the binary pcl version 1.7.2.
 
 ## For users
 
@@ -18,16 +17,16 @@ Normal uses should never need to push to this repository.
 ### Set up the svn git bridge
 Run all this NOT from within any of your regular git work spaces.
 
-    git svn clone https://repo.acin.tuwien.ac.at/v4r/stable/strandsv4r
-    cd strandsv4r
-    git checkout -b indigo-devel
-    git remote add origin https://github.com/strands-project/v4r.git
-    git push -u origin indigo-devel
+    git svn clone https://repo.acin.tuwien.ac.at/v4r/stable/strands_v4r
+    cd strands_v4r
+    git checkout -b hydro-devel
+    git remote add origin https://github.com/your-repo/v4r.git
+    git push -u origin hydro-devel
 
 ### Update
 Whenver the svn changed, you have to move these changes to git.
 
-    cd strandsv4r
+    cd strands_v4r
     git svn rebase
     git push
 
