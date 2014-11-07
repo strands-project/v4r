@@ -20,14 +20,17 @@ set(KEYPOINT_BASE_SHADER ${KEYPOINT_BASE_SHADER}/)
 add_definitions(-DKEYPOINT_BASE_SHADER="${KEYPOINT_BASE_SHADER}")
 message( STATUS "KEYPOINT_BASE_SHADER is ${KEYPOINT_BASE_SHADER}")
 
+find_file(OCV_NONFREE_HEADER opencv2/nonfree/features2d.hpp)
+IF(OCV_NONFREE_HEADER)
+  SET(HAVE_OPENCV_NONFREE 1)
+ENDIF()
+
 PROJECT(v4rKeypointBase)
 SET(SOURCE_CPP
   ComputeImGDescOrientations.cc
   ComputeImGradientDescriptors.cc
   Feature.cc
   FeatureDetector_K_HARRIS.cc
-  FeatureDetector_KD_CVSURF.cc
-  FeatureDetector_KD_CVSIFT.cc
   FeatureDetector_KD_SIFTGPU.cc
   FeatureDetector_D_FREAK.cc
   FeatureDetector_KD_ORB.cc
@@ -40,6 +43,12 @@ SET(SOURCE_CPP
   RefinePatchLocationLK.cc
   RefineProjectedPointLocationLK.cc
 )
+IF (HAVE_OPENCV_NONFREE)
+SET(SOURCE_CPP ${SOURCE_CPP}
+  FeatureDetector_KD_CVSURF.cc
+  FeatureDetector_KD_CVSIFT.cc
+)
+ENDIF(HAVE_OPENCV_NONFREE)
 IF (V4R_TOMGINE_5)
 SET(SOURCE_CPP ${SOURCE_CPP} RefineProjectedPointLocationLKGPU.cc)
 ENDIF(V4R_TOMGINE_5)
@@ -51,8 +60,6 @@ SET(SOURCE_H
   FeatureMatch.hh
   FeatureDetector.hh
   FeatureDetector_K_HARRIS.hh
-  FeatureDetector_KD_CVSURF.hh
-  FeatureDetector_KD_CVSIFT.hh
   FeatureDetector_KD_SIFTGPU.hh
   FeatureDetector_D_FREAK.hh
   FeatureDetector_KD_ORB.hh
@@ -67,6 +74,13 @@ SET(SOURCE_H
   RefineProjectedPointLocationLK.hh
   RefineProjectedPointLocationLKbase.hh
 )
+IF (HAVE_OPENCV_NONFREE)
+SET(SOURCE_H ${SOURCE_H}
+  FeatureDetector_KD_CVSURF.hh
+  FeatureDetector_KD_CVSIFT.hh
+)
+ENDIF(HAVE_OPENCV_NONFREE)
+
 IF (V4R_TOMGINE_5)
 SET(SOURCE_H ${SOURCE_H} RefineProjectedPointLocationLKGPU.hh)
 ENDIF(V4R_TOMGINE_5)

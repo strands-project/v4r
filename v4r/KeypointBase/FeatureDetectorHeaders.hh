@@ -10,8 +10,6 @@
 
 #include "FeatureDetector.hh"
 #include "FeatureDetector_K_HARRIS.hh"
-#include "FeatureDetector_KD_CVSURF.hh"
-#include "FeatureDetector_KD_CVSIFT.hh"
 #include "FeatureDetector_KD_SIFTGPU.hh"
 #include "FeatureDetector_D_FREAK.hh"
 #include "FeatureDetector_KD_ORB.hh"
