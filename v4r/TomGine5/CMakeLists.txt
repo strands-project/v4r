@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-set(V4R_TOMGINE_5 1 CACHE BOOL "OpenGL-GPU rendering, geometry and image processing library." )
+set(V4R_TOMGINE_5 0 CACHE BOOL "OpenGL-GPU rendering, geometry and image processing library." )
 
 IF(V4R_TOMGINE_5)
 
