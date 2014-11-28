@@ -1,0 +1,140 @@
+\documentclass[11pt,twoside,twocolumn,a4paper]{article}
+
+\usepackage{cvww}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Include other packages here, before hyperref.
+
+% If you comment hyperref and then uncomment it, you should delete
+% *.aux before re-running latex.  (Or just hit 'q' on the first latex
+% run, let it finish, and you should be clear).
+\usepackage[pagebackref=true,breaklinks=true,bookmarks=false]{hyperref}
+
+%\cvwwfinalcopy % *** Uncomment this line for the final submission
+
+\def\cvwwPaperID{****} % *** Enter the CVWW Paper ID here
+\def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
+
+% Pages are numbered in submission mode, and unnumbered in camera-ready
+\ifcvwwfinal\pagestyle{empty}\fi
+\begin{document}
+
+%%%%%%%%% TITLE
+\title{\LaTeX\ Author Guidelines for CVWW 2015 Proceedings}
+
+\author{First Author\\
+Institution1\\
+Institution1 address\\
+{\tt\small firstauthor@i1.org}
+% For a paper whose authors are all at the same institution,
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'',
+% just like the second author.
+% To save space, use either the email address or home page, not both
+\and
+Second Author\\
+Institution2\\
+First line of institution2 address\\
+{\small\url{http://www.author.org/~second}}
+}
+
+\maketitle
+\ifcvwwfinal\thispagestyle{fancy}\fi
+
+
+%%%%%%%%% ABSTRACT
+\begin{abstract}
+   This document gives a specification for the paper layout for submission to the Computer Vision Winter Workshop 2015. Additionally, 
+some guidelines for preparing the papers using \LaTeX\ are given. This document is written in accordance to the specification and guidelines, 
+and hence may be used as an example of how a paper should look like. 
+\end{abstract}
+
+%%%%%%%%% BODY TEXT
+
+\section{Introduction}
+
+Accepted papers will be published in the workshop proceedings.
+Authors will be given an opportunity to withdraw
+their paper from the proceedings so that no
+restrictions on submitting the work to other conferences
+and journals is imposed. If the paper is published
+in the workshop proceedings, it will also be
+available for download on our webpage.
+
+
+\subsection{Language}
+All manuscripts must be written in English. 
+
+\subsection{Paper length}
+The paper must not be longer than 8 pages including all figures and references. Pages beyond the eighth will be cut.
+
+\subsection{The ruler}
+The \LaTeX\ style defines a printed ruler which should be present in the version submitted for review. The ruler is provided in order that
+reviewers may comment on particular lines in the paper without circumlocution. The presence or absence of the ruler
+should not change the appearance of any other content on the page.  The camera ready copy should not contain a ruler. (Users should uncomment
+the \verb'\cvwwfinalcopy' command in the document preamble.) 
+
+\subsection{Page numbers}
+There should be no page numbering in the parts of the paper that will
+appear in the Proceedings, page numbers will be added by the editor.
+
+\subsection{Equations}
+Equations should be centered and numbered like this:
+\begin{equation}
+\Gamma_n(z) = \int_0^\infty t^{z-1} \exp(-t) dt.
+\end{equation}
+
+\subsection{Figures and Tables}
+Figures (such as Fig.~\ref{fig:total}) and tables (such as Tab.~\ref{tab:detail})
+should be numbered separately within the page\footnote{Example footnote.}.  All
+figures and tables must be given a caption, which should appear below
+the display. Captions should be centered below the display.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width = 0.8\columnwidth]{picture.pdf}
+    \caption{Example Figure.}
+    \label{fig:total}
+\end{figure}
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{l | c c c | c}
+        What      & Column1 & Column2 & Colum3 & Total\\ \hline\hline
+      Row1        &  1  & 2     & 3 & 6 \\
+      Row2 &   4  & 5     & 6 & 15 \\
+    \end{tabular}
+  \end{center}
+  \caption{Example Table.}
+  \label{tab:detail}
+\end{table}
+
+Example of a reference ~\cite{Authors06}.
+\subsection{Color}
+Color is valuable, and will be visible to readers of the electronic copy. However ensure that, when printed on a monochrome printer, no important information is lost by conversion to gray scale.
+
+\section{Submission Details}
+Your paper should be submitted using the CVWW 2015 submission system which will be accessible via the CVWW 2015 webpage at
+\texttt{http://cvww2015.icg.tugraz.at/}.
+
+%% ---------------------------------------------------------------------------
+
+\section{Conclusion}
+For any questions regarding the style guidelines please contact \href{mailto:cvww2015@icg.tugraz.at}{cvww2015@icg.tugraz.at}.
+Please do not forget to replace the asterisks in the example paper with your paper's own ID before uploading your file.
+You receive a paper ID by generating a new submission without adding a file.
+Submissions can be edited until the deadline.
+
+\section*{Acknowledgements}
+
+
+{\small
+\bibliographystyle{ieee}
+\bibliography{cvww_template}
+}
+
+\end{document}

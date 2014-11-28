@@ -1,0 +1,114 @@
+\documentclass[11pt,twoside,twocolumn,a4paper]{article}
+
+\usepackage{cvww}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Include other packages here, before hyperref.
+
+% If you comment hyperref and then uncomment it, you should delete
+% *.aux before re-running latex.  (Or just hit 'q' on the first latex
+% run, let it finish, and you should be clear).
+\usepackage[pagebackref=true,breaklinks=true,bookmarks=false]{hyperref}
+
+%\cvwwfinalcopy % *** Uncomment this line for the final submission
+
+\def\cvwwPaperID{****} % *** Enter the CVWW Paper ID here
+\def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
+
+% Pages are numbered in submission mode, and unnumbered in camera-ready
+\ifcvwwfinal\pagestyle{empty}\fi
+\begin{document}
+
+%%%%%%%%% TITLE
+\title{\LaTeX\ Author Guidelines for CVWW 2015 Proceedings}
+
+\author{First Author\\
+Institution1\\
+Institution1 address\\
+{\tt\small firstauthor@i1.org}
+% For a paper whose authors are all at the same institution,
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'',
+% just like the second author.
+% To save space, use either the email address or home page, not both
+\and
+Second Author\\
+Institution2\\
+First line of institution2 address\\
+{\small\url{http://www.author.org/~second}}
+}
+
+\maketitle
+\ifcvwwfinal\thispagestyle{fancy}\fi
+
+
+%%%%%%%%% ABSTRACT
+\begin{abstract}
+\input{abstract}
+\end{abstract}
+
+%%%%%%%%% BODY TEXT
+
+\section{Introduction}
+\input{introduction}
+
+\section{Related Work}
+\label{sec:related_work}
+\input{related_work}
+
+\section{Approach}
+\label{sec:approach}
+\input{approach}
+
+\section{Results}
+\label{sec:results}
+\input{results}
+
+\section{Conclusions}
+\input{conclusions}
+
+\subsection{Figures and Tables}
+Figures (such as Fig.~\ref{fig:total}) and tables (such as Tab.~\ref{tab:detail})
+should be numbered separately within the page\footnote{Example footnote.}.  All
+figures and tables must be given a caption, which should appear below
+the display. Captions should be centered below the display.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width = 0.8\columnwidth]{picture.pdf}
+    \caption{Example Figure.}
+    \label{fig:total}
+\end{figure}
+
+\begin{table}
+  \begin{center}
+    \begin{tabular}{l | c c c | c}
+        What      & Column1 & Column2 & Colum3 & Total\\ \hline\hline
+      Row1        &  1  & 2     & 3 & 6 \\
+      Row2 &   4  & 5     & 6 & 15 \\
+    \end{tabular}
+  \end{center}
+  \caption{Example Table.}
+  \label{tab:detail}
+\end{table}
+
+%% ---------------------------------------------------------------------------
+
+\section{Conclusion}
+\input{conclusions}
+Please do not forget to replace the asterisks in the example paper with your paper's own ID before uploading your file.
+You receive a paper ID by generating a new submission without adding a file.
+
+\section*{Acknowledgements}
+\input{acknowledgements}
+
+{\small
+\bibliographystyle{ieee}
+\bibliography{cvww_template}
+}
+
+\end{document}
