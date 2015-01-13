@@ -11,6 +11,7 @@
 #include <boost/random/normal_distribution.hpp>
 #include <pcl/common/time.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <v4r/ORUtils/filesystem_utils.h>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
@@ -37,7 +38,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
     dir << path << "/pose_" << view_id << ".txt";
 
-    PersistenceUtils::readMatrixFromFile2 (dir.str (), pose_matrix);
+    faat_pcl::utils::readMatrixFromFile( dir.str (), pose_matrix);
   }
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
@@ -69,7 +70,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     bf::path file_path = dir.str ();
     if (bf::exists (file_path))
     {
-      PersistenceUtils::readMatrixFromFile2 (dir.str (), pose_matrix);
+      faat_pcl::utils::readMatrixFromFile( dir.str (), pose_matrix);
       return true;
     }
     else
@@ -87,7 +88,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
     dir << path << "/centroid_" << view_id << "_" << d_id << ".txt";
 
-    PersistenceUtils::getCentroidFromFile (dir.str (), centroid);
+    faat_pcl::utils::getCentroidFromFile (dir.str (), centroid);
   }
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
@@ -188,7 +189,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             dir_pose << path << "/pose_" << descr_model.view_id << ".txt";
 
             Eigen::Matrix4f pose_matrix;
-            PersistenceUtils::readMatrixFromFile2 (dir_pose.str (), pose_matrix);
+            faat_pcl::utils::readMatrixFromFile (dir_pose.str (), pose_matrix);
             std::pair<std::string, int> pair_model_view = std::make_pair (models->at (i)->id_, descr_model.view_id);
             poses_cache_[pair_model_view] = pose_matrix;
 
@@ -771,11 +772,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
           std::stringstream path_pose;
           path_pose << path << "/pose_" << v << ".txt";
-          PersistenceUtils::writeMatrixToFile (path_pose.str (), models->at (i)->poses_->at (v));
+          faat_pcl::utils::writeMatrixToFile( path_pose.str (), models->at (i)->poses_->at (v));
 
           std::stringstream path_entropy;
           path_entropy << path << "/entropy_" << v << ".txt";
-          PersistenceUtils::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_->at (v));
+          faat_pcl::utils::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_->at (v));
 
           //save signatures and centroids to disk
           for (size_t j = 0; j < signatures.size (); j++)
@@ -785,7 +786,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
               std::stringstream path_centroid;
               path_centroid << path << "/centroid_" << v << "_" << j << ".txt";
               Eigen::Vector3f centroid (centroids[j][0], centroids[j][1], centroids[j][2]);
-              PersistenceUtils::writeCentroidToFile (path_centroid.str (), centroid);
+              faat_pcl::utils::writeCentroidToFile (path_centroid.str (), centroid);
 
               std::stringstream path_descriptor;
               path_descriptor << path << "/descriptor_" << v << "_" << j << ".pcd";
@@ -794,7 +795,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
               //save roll transform
               std::stringstream path_pose;
               path_pose << path << "/roll_trans_" << v << "_" << j << ".txt";
-              PersistenceUtils::writeMatrixToFile (path_pose.str (), transforms[j]);
+              faat_pcl::utils::writeMatrixToFile( path_pose.str (), transforms[j]);
             }
           }
         }

@@ -14,6 +14,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include "faat_3d_rec_framework_defines.h"
+#include <v4r/ORUtils/filesystem_utils.h>
 
 namespace faat_pcl
 {
@@ -113,7 +114,7 @@ namespace faat_pcl
               std::stringstream pose_file;
               pose_file << pathmodel.str () << "/" << file_replaced1;
               Eigen::Matrix4f pose;
-              PersistenceUtils::readMatrixFromFile2 (pose_file.str (), pose);
+              faat_pcl::utils::readMatrixFromFile( pose_file.str (), pose);
 
               //the recognizer assumes transformation from M to CC - i think!
               Eigen::Matrix4f pose_inv = pose.inverse();
@@ -395,10 +396,10 @@ namespace faat_pcl
               boost::replace_last (file_replaced1, ".pcd", ".txt");
 
               Eigen::Matrix4f pose;
-              PersistenceUtils::readMatrixFromFile2 (file_replaced1, pose);
+              faat_pcl::utils::readMatrixFromFile( file_replaced1, pose);
               std::stringstream path_pose;
               path_pose << direc.str () << "/pose_" << i << ".txt";
-              faat_pcl::rec_3d_framework::PersistenceUtils::writeMatrixToFile (path_pose.str (), pose);
+              faat_pcl::utils::writeMatrixToFile( path_pose.str (), pose);
             }
 
             loadOrGenerate (dir, model_path, model);

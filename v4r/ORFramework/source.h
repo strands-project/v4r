@@ -11,7 +11,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <pcl/io/pcd_io.h>
-#include "persistence_utils.h"
 #include <pcl/filters/voxel_grid.h>
 #include <v4rexternal/EDT/propagation_distance_field.h>
 #include <pcl/common/transforms.h>

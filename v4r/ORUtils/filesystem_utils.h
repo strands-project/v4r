@@ -46,6 +46,19 @@ namespace faat_pcl
 
     bool
     readMatrixFromFile (std::string file, Eigen::Matrix4f & matrix, int padding);
+
+    bool
+    writeCentroidToFile (std::string file, Eigen::Vector3f & centroid);
+
+    bool
+    getCentroidFromFile (std::string file, Eigen::Vector3f & centroid);
+
+    bool
+    writeFloatToFile (std::string file, float value);
+
+    bool
+    readFloatFromFile (std::string file, float& value);
+
   }
 }
 #endif /* FILESYSTEM_UTILS_H_ */

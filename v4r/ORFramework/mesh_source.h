@@ -16,6 +16,7 @@
 #include "vtk_model_sampling.h"
 #include <boost/function.hpp>
 #include <vtkTransformPolyDataFilter.h>
+#include <v4r/ORUtils/filesystem_utils.h>
 
 namespace faat_pcl
 {
@@ -124,7 +125,7 @@ namespace faat_pcl
             pose_file << pathmodel.str () << "/" << file_replaced1;
 
             Eigen::Matrix4f pose;
-            PersistenceUtils::readMatrixFromFile2 (pose_file.str (), pose);
+            faat_pcl::utils::readMatrixFromFile(pose_file.str (), pose);
 
             model.poses_->push_back (pose);
 
@@ -132,7 +133,7 @@ namespace faat_pcl
             std::stringstream entropy_file;
             entropy_file << pathmodel.str () << "/" << file_replaced2;
             float entropy = 0;
-            PersistenceUtils::readFloatFromFile (entropy_file.str (), entropy);
+            faat_pcl::utils::readFloatFromFile (entropy_file.str (), entropy);
             model.self_occlusions_->push_back (entropy);
 
           }
@@ -303,11 +304,11 @@ namespace faat_pcl
               std::stringstream path_pose;
               path_pose << direc.str () << "/pose_" << i << ".txt";
 
-              PersistenceUtils::writeMatrixToFile (path_pose.str (), model.poses_->at (i));
+              faat_pcl::utils::writeMatrixToFile( path_pose.str (), model.poses_->at (i));
 
               std::stringstream path_entropy;
               path_entropy << direc.str () << "/entropy_" << i << ".txt";
-              PersistenceUtils::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
+              faat_pcl::utils::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
             }
 
             loadOrGenerate (dir, model_path, model);

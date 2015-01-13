@@ -1,9 +1,10 @@
 SET(V4R_ORFRAMEWORK 1 CACHE BOOL "Recognition framework" )
 IF(V4R_ORFRAMEWORK)
 
+find_package(Boost REQUIRED COMPONENTS filesystem regex)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
-add_definitions(${PCL_DEFINITIONS})
+add_definitions(${PCL_DEFINITIONS} ${Boost_LIB_DIAGNOSTIC_DEFINITIONS})
 
 PROJECT(v4rORFramework)
 
@@ -98,7 +99,7 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_H_UTILS} ${SOURCE_CPP_UTILS} ${SOURC
                                    ${SOURCE_H_DATA_SOURCES} ${SOURCE_CPP_DATA_SOURCES} ${SOURCE_H_PIPELINES} ${SOURCE_CPP_PIPELINES}
                                    )
                                    
-target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} v4rEDT)
+target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} v4rEDT v4rORUtils ${Boost_LIBRARIES})
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H_UTILS} ${SOURCE_CPP_UTILS} ${SOURCE_H_FEATURES} ${SOURCE_CPP_FEATURES} ${SOURCE_H_DATA_SOURCES} ${SOURCE_CPP_DATA_SOURCES} ${SOURCE_H_PIPELINES} ${SOURCE_CPP_PIPELINES}")
 
 ENDIF(V4R_ORFRAMEWORK)

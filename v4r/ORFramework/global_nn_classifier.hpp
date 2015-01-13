@@ -6,6 +6,7 @@
  */
 
 #include "global_nn_classifier.h"
+#include <v4r/ORUtils/filesystem_utils.h>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
@@ -230,11 +231,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
           std::stringstream path_pose;
           path_pose << path << "/pose_" << v << ".txt";
-          PersistenceUtils::writeMatrixToFile (path_pose.str (), models->at (i)->poses_->at (v));
+          faat_pcl::utils::writeMatrixToFile( path_pose.str (), models->at (i)->poses_->at (v));
 
           std::stringstream path_entropy;
           path_entropy << path << "/entropy_" << v << ".txt";
-          PersistenceUtils::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_->at (v));
+          faat_pcl::utils::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_->at (v));
 
           //save signatures and centroids to disk
           for (size_t j = 0; j < signatures.size (); j++)
@@ -242,7 +243,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             std::stringstream path_centroid;
             path_centroid << path << "/centroid_" << v << "_" << j << ".txt";
             Eigen::Vector3f centroid (centroids[j][0], centroids[j][1], centroids[j][2]);
-            PersistenceUtils::writeCentroidToFile (path_centroid.str (), centroid);
+            faat_pcl::utils::writeCentroidToFile (path_centroid.str (), centroid);
 
             std::stringstream path_descriptor;
             path_descriptor << path << "/descriptor_" << v << "_" << j << ".pcd";
