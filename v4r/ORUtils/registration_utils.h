@@ -9,7 +9,7 @@
 #define REGISTRATION_UTILS_H_
 
 #include <pcl/octree/octree.h>
-#include <pcl/features/organized_edge_detection.h>
+#include <v4r/OREdgeDetector/organized_edge_detection.h>
 
 namespace registration_utils
 {

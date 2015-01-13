@@ -27,6 +27,12 @@ namespace faat_pcl
                            const std::string & pattern);
 
     void
+    getFoldersInDirectory (bf::path & dir,
+                           std::string & rel_path_so_far,
+                           std::vector<std::string> & relative_paths);
+
+
+    void
     getFilesInDirectoryRecursive (bf::path & path_with_views,
                                     std::string & rel_path_so_far,
                                     std::vector<std::string> & view_filenames,
