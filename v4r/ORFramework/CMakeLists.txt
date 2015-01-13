@@ -9,7 +9,6 @@ add_definitions(${PCL_DEFINITIONS} ${Boost_LIB_DIAGNOSTIC_DEFINITIONS})
 PROJECT(v4rORFramework)
 
 SET(SOURCE_H_UTILS
-  persistence_utils.h
   metrics.h
   vtk_model_sampling.h
   faat_3d_rec_framework_defines.h
