@@ -1,3 +1,4 @@
+SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 #add_subdirectory(Annotation)
 #add_subdirectory(utils)
 add_subdirectory(armarker)
