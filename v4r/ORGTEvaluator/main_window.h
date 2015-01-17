@@ -146,7 +146,7 @@ public:
    {
        for (size_t i = 0; i < single_scenes_.size (); i++)
        {
-           if( static_cast<int>(i) == selected_scene_)
+           if( i == selected_scene_)
            {
                std::stringstream cloud_name;
                cloud_name << "view_" << i;
