@@ -1136,3 +1136,4 @@ MainWindow::MainWindow(int argc, char *argv[])
   mainWindow_->show();
   app.exec();
 }
+

@@ -22,7 +22,7 @@
 #include "ghv_opt.h"
 #include <stack>
 #include <pcl/visualization/pcl_visualizer.h>
-#include "v4r/ORUtils/common_data_structures.h"
+#include <v4r/ORUtils/common_data_structures.h>
 
 #ifdef _MSC_VER
 #ifdef FAAT_REC_EXPORTS

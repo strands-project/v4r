@@ -263,3 +263,4 @@ private:
 };
 
 #endif /* AFFORDANCE_MANAGER_H_ */
+

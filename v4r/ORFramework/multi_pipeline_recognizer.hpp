@@ -65,8 +65,9 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
     pObjectHypotheses_.reset(new std::map<std::string, ObjectHypothesis<PointInT> >);
     typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map_oh;
     keypoints_cloud_.reset(new pcl::PointCloud<PointInT>);
+    keypoint_indices_.indices.clear();
 
-    for(size_t i=0; (i < recognizers_.size()); i++)
+    for(size_t i=0; i < recognizers_.size(); i++)
     {
         recognizers_[i]->setInputCloud(input_);
 
@@ -118,7 +119,7 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
                 typename pcl::PointCloud<PointInT>::Ptr keypoints_cloud_single(new pcl::PointCloud<PointInT>);
                 recognizers_[i]->getKeypointCloud(keypoints_cloud_single);
                 pcl::PointIndices keypoint_indices_single;
-                keypoint_indices_.indices.clear();
+//
                 recognizers_[i]->getKeypointIndices(keypoint_indices_single);
                 keypoint_indices_.header = keypoint_indices_single.header;
 
@@ -165,6 +166,10 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
 
                         *it_map_oh->second.correspondences_pointcloud += * it_map->second.correspondences_pointcloud;
                         *it_map_oh->second.normals_pointcloud += * it_map->second.normals_pointcloud;
+                        it_map_oh->second.indices_to_flann_models_.insert(
+                                    it_map_oh->second.indices_to_flann_models_.end(),
+                                       it_map->second.indices_to_flann_models_.begin(),
+                                       it_map->second.indices_to_flann_models_.end());
                     }
                 }
 

@@ -1,8 +1,6 @@
 SET(V4R_ORGT_EVALUATOR 1 CACHE BOOL "Ground-truth evaluator tools for object recognition" )
-SET(CMAKE_BUILD_TYPE Debug)
 
 IF(V4R_ORGT_EVALUATOR)
-
 
 find_package(Boost REQUIRED COMPONENTS filesystem regex)
 
@@ -32,6 +30,9 @@ v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 
 add_executable(create_images create_images.cpp)
 target_link_libraries(create_images v4rORUtils ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rORFramework ${PROJECT_NAME} ${Boost_LIBRARIES})
+
+add_executable(visualize_gt visualize_gt.cpp)
+target_link_libraries(visualize_gt v4rORUtils ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rORFramework ${PROJECT_NAME} ${Boost_LIBRARIES})
 
 FIND_PACKAGE(Qt4)
 include(${QT_USE_FILE})
