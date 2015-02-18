@@ -119,7 +119,6 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
                 typename pcl::PointCloud<PointInT>::Ptr keypoints_cloud_single(new pcl::PointCloud<PointInT>);
                 recognizers_[i]->getKeypointCloud(keypoints_cloud_single);
                 pcl::PointIndices keypoint_indices_single;
-//
                 recognizers_[i]->getKeypointIndices(keypoint_indices_single);
                 keypoint_indices_.header = keypoint_indices_single.header;
 

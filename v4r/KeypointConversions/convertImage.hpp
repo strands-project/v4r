@@ -19,7 +19,7 @@ namespace kp
 {
 
 
-void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image)
+inline void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image)
 {
   image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
 
@@ -36,6 +36,7 @@ void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image
     }
   }
 }
+
 
 
 

@@ -36,7 +36,7 @@ public:
     float min_displacement;   //0.1
     int max_iterations;       //10
     int max_residual;
-    float ncc_residual;
+    float ncc_residual;      // 0.3
     bool use_ncc;
     cv::Size patch_size;
     Parameter(float _step_factor=10., float _min_determinant=0.01, float _min_displacement=0.1, 

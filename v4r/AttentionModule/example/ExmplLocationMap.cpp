@@ -125,9 +125,9 @@ int main(int argc, char** argv)
     printf("[INFO]: Computation failed.\n");
   }
 
-  locationSaliencyMap.setLocation(AttentionModule::AM_CUSTOM);
+  locationSaliencyMap.setLocation(AttentionModule::AM_LOCATION_CUSTOM);
   locationSaliencyMap.setCenter(cv::Point(50,50));
-  printf("[INFO]: Computing location map AM_CUSTOM, cv::Point(50,50).\n");
+  printf("[INFO]: Computing location map AM_LOCATION_CUSTOM, cv::Point(50,50).\n");
   locationSaliencyMap.calculate();
   
   if(locationSaliencyMap.getMap(map))

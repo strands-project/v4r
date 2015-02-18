@@ -498,6 +498,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         estimator_->getKeypointIndices(keypoint_indices_);
       }
       std::cout << "Number of keypoints:" << keypoints_pointcloud->points.size () << std::endl;
+
+      for(size_t i=0; i<keypoints_pointcloud->points.size(); i++)
+      {
+          assert(pcl::isFinite(keypoints_pointcloud->points[i]));
+      }
     }
 
     keypoint_cloud_ = keypoints_pointcloud;

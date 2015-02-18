@@ -12,8 +12,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <Eigen/Dense>
-#include "v4r/KeypointCameraTracker/Scene.hh"
-#include "v4r/KeypointCameraTracker/View.hh"
+//#include "v4r/KeypointCameraTracker/Scene.hh"
+//#include "v4r/KeypointCameraTracker/View.hh"
 #include "v4r/KeypointTools/SmartPtr.hpp"
 #include "MultiViewPatchError.hpp"
 

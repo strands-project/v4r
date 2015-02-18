@@ -24,7 +24,8 @@ SET(SOURCE_CPP
 
 SET(SOURCE_H
   convertImage.hpp
-  convertCloudKP.hpp
+  convertCloud.hpp
+  convertNormals.hpp
 )
 
 #add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})

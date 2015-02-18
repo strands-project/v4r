@@ -1,10 +1,11 @@
-Copyright (c) 2013, Vienna University of Technology. All rights reserved.
+Copyright (c) 2014, Johann Prankl, All rights reserved.
 
 Author: Johann Prankl
 Email: prankl@acin.tuwien.ac.at
 
 Requirements
 - opencv
+- pcl
 - flann
 - eigen3
 

@@ -19,7 +19,7 @@ namespace kp
 {
 
 
-void convertImage(const DataMatrix2D<PointXYZRGB> &cloud, cv::Mat &image)
+inline void convertImage(const DataMatrix2D<PointXYZRGB> &cloud, cv::Mat &image)
 {
   if (cloud.rows<=1)
     throw std::runtime_error("[convertCloudToImage] Need an organized point cloud!");

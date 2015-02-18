@@ -57,7 +57,7 @@ inline int expSelect(int max)
 /**
  * getRandIdx
  */
-void getRandIdx(int size, int num, std::vector<int> &idx)
+inline void getRandIdx(int size, int num, std::vector<int> &idx)
 {
   int temp;
   idx.clear();
@@ -73,7 +73,7 @@ void getRandIdx(int size, int num, std::vector<int> &idx)
 /**
  * getExpRandIdx
  */
-void getExpRandIdx(int size, int num, std::vector<int> &idx)
+inline void getExpRandIdx(int size, int num, std::vector<int> &idx)
 {
   int temp;
   idx.clear();
