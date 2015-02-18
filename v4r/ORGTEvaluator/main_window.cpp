@@ -894,12 +894,10 @@ MainWindow::MainWindow(int argc, char *argv[])
   pcl::console::parse_argument (argc, argv, "-icp_scene_to_model", icp_scene_to_model_);
 
   std::vector<std::string> files;
-  std::string start = "";
-  std::string ext = std::string ("pcd");
   std::stringstream scene_folder_ss;
   scene_folder_ss << pcd_file_ << "/original_clouds/";
   bf::path dir = scene_folder_ss.str();
-  faat_pcl::utils::getFilesInDirectory( dir, start, files, ext);   // get scenes
+  faat_pcl::utils::getFilesInDirectory( dir, files, "", ".*.pcd", true);   // get scenes
   std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
 
   for (size_t i = 0; i < files.size (); i++)

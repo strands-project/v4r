@@ -244,10 +244,9 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
   std::vector<std::string> model_files_wo_extension;
 
   {
-    std::string start = "";
     std::string ext = scene_file_extension_;
     bf::path dir = scenes_dir_;
-    faat_pcl::utils::getFilesInDirectory  (dir, start, scene_files, ext);
+    faat_pcl::utils::getFilesInDirectory  (dir, scene_files, "", ext, true);
     std::cout << "Number of scenes:" << scene_files.size() << std::endl;
     for(size_t i=0; i < scene_files.size(); i++)
     {
@@ -257,10 +256,9 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
 
   //get models in models_dir
   {
-    std::string start = "";
     std::string ext = model_file_extension_;
     bf::path dir = models_dir_;
-    faat_pcl::utils::getFilesInDirectory (dir, start, model_files, ext);
+    faat_pcl::utils::getFilesInDirectory (dir, model_files, "", ext, true);
 
     std::stringstream model_ext;
     model_ext << "." << model_file_extension_;
@@ -497,10 +495,9 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cou
   std::vector<std::string> model_files_wo_extension;
 
   {
-    std::string start = "";
     std::string ext = scene_file_extension_;
     bf::path dir = scenes_dir_;
-    faat_pcl::utils::getFilesInDirectory( dir, start, scene_files, ext);
+    faat_pcl::utils::getFilesInDirectory( dir, scene_files, "", ext, true);
     std::cout << "Number of scenes:" << scene_files.size() << std::endl;
     for(size_t i=0; i < scene_files.size(); i++)
     {
@@ -510,10 +507,9 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cou
 
   //get models in models_dir
   {
-    std::string start = "";
     std::string ext = model_file_extension_;
     bf::path dir = models_dir_;
-    faat_pcl::utils::getFilesInDirectory(dir, start, model_files, ext);
+    faat_pcl::utils::getFilesInDirectory(dir, model_files, "", ext, true);
 
     std::stringstream model_ext;
     model_ext << "." << model_file_extension_;
@@ -1842,7 +1838,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cop
           std::stringstream pattern;
           pattern << scene_id << "_" <<  model_id << "_.*.txt";
 
-          faat_pcl::utils::getFilesInDirectory(model_file_path, paths, pattern.str());
+          faat_pcl::utils::getFilesInDirectory(model_file_path, paths, "", pattern.str(), false);
           int inst = static_cast<int>(paths.size());
           std::cout << "current instances:" << inst << std::endl;
 

@@ -41,10 +41,8 @@ namespace faat_pcl
         using SourceT::path_;
         using SourceT::models_;
         using SourceT::createTrainingDir;
-        using SourceT::getModelsInDirectory;
         using SourceT::model_scale_;
         using SourceT::load_into_memory_;
-        using SourceT::getViewsFilenames;
         using SourceT::createClassAndModelDirectories;
 
         std::string model_structure_; //directory with all the views, indices, poses, etc...
@@ -179,38 +177,7 @@ namespace faat_pcl
             pcl::copyPointCloud(*modell_voxelized, *model.normals_assembled_);
 
             //load views and poses
-            getViewsFilenames(trained_dir, model.view_filenames_, "view");
-            /*bf::directory_iterator end_itr;
-            for (bf::directory_iterator itr (trained_dir); itr != end_itr; ++itr)
-            {
-              //check if its a directory, then get models in it
-              if (!(bf::is_directory (*itr)))
-              {
-                //check that it is a ply file and then add, otherwise ignore..
-                std::vector < std::string > strs;
-                std::vector < std::string > strs_;
-
-#if BOOST_FILESYSTEM_VERSION == 3
-                std::string file = (itr->path ().filename ()).string();
-#else
-                std::string file = (itr->path ()).filename ();
-#endif
-
-                boost::split (strs, file, boost::is_any_of ("."));
-                boost::split (strs_, file, boost::is_any_of ("_"));
-
-                std::string extension = strs[strs.size () - 1];
-
-                if (extension == "pcd" && strs_[0] == "view")
-                {
-#if BOOST_FILESYSTEM_VERSION == 3
-                  model.view_filenames_.push_back ((itr->path ().filename ()).string());
-#else
-                  model.view_filenames_.push_back ((itr->path ()).filename ());
-#endif
-                }
-              }
-            }*/
+            faat_pcl::utils::getFilesInDirectory(trained_dir, model.view_filenames_, "", ".*view.*.pcd", false);
 
             if(load_into_memory_)
             {
@@ -243,7 +210,7 @@ namespace faat_pcl
             std::cout << direc_ms.str() << std::endl;
 
             bf::path dirr = direc_ms.str();
-            getViewsFilenames (dirr, view_filenames, view_prefix_);
+            faat_pcl::utils::getFilesInDirectory(dirr, view_filenames, "", ".*view_prefix_.*.pcd", false);
             std::cout << view_filenames.size () << std::endl;
 
             for (size_t i = 0; i < view_filenames.size (); i++)

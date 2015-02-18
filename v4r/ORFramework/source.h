@@ -258,53 +258,6 @@ namespace faat_pcl
       }
 
       void
-      getViewsFilenames (bf::path & path_with_views,
-                           std::vector<std::string> & view_filenames,
-                           const std::string & prefix)
-      {
-
-        std::stringstream filter_str;
-        filter_str << ".*" << prefix  << ".*.pcd";
-        const boost::regex my_filter( filter_str.str() );
-
-        int number_of_views = 0;
-        bf::directory_iterator end_itr;
-        for (bf::directory_iterator itr (path_with_views); itr != end_itr; ++itr)
-        {
-          if (!(bf::is_directory (*itr)))
-          {
-            std::vector < std::string > strs;
-            std::vector < std::string > strs_;
-
-#if BOOST_FILESYSTEM_VERSION == 3
-            std::string file = (itr->path ().filename ()).string();
-#else
-            std::string file = (itr->path ()).filename ();
-#endif
-
-            boost::smatch what;
-            if( !boost::regex_match( file, what, my_filter ) ) continue;
-
-            /*boost::split (strs, file, boost::is_any_of ("."));
-            boost::split (strs_, file, boost::is_any_of ("_"));
-
-            std::string extension = strs[strs.size () - 1];
-
-            if (extension == "pcd" && (strs_[0].compare (view_prefix_) == 0))
-            {*/
-#if BOOST_FILESYSTEM_VERSION == 3
-              view_filenames.push_back ((itr->path ().filename ()).string());
-#else
-              view_filenames.push_back ((itr->path ()).filename ());
-#endif
-
-              number_of_views++;
-            //}
-          }
-        }
-      }
-
-      void
       createClassAndModelDirectories (std::string & training_dir, std::string & class_str, std::string & id_str)
       {
         std::vector < std::string > strs;
@@ -380,52 +333,6 @@ namespace faat_pcl
         filter_duplicate_views_ = f;
         std::cout << "setting filter duplicate views to " << f << std::endl;
       }
-
-      void
-      getModelsInDirectory (bf::path & dir, std::string & rel_path_so_far, std::vector<std::string> & relative_paths, std::string & ext)
-      {
-        bf::directory_iterator end_itr;
-        for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
-        {
-          //check if its a directory, then get models in it
-          if (bf::is_directory (*itr))
-          {
-#if BOOST_FILESYSTEM_VERSION == 3
-            std::string so_far = rel_path_so_far + (itr->path ().filename ()).string() + "/";
-#else
-            std::string so_far = rel_path_so_far + (itr->path ()).filename () + "/";
-#endif
-
-            bf::path curr_path = itr->path ();
-            getModelsInDirectory (curr_path, so_far, relative_paths, ext);
-          }
-          else
-          {
-            //check that it is a ply file and then add, otherwise ignore..
-            std::vector < std::string > strs;
-#if BOOST_FILESYSTEM_VERSION == 3
-            std::string file = (itr->path ().filename ()).string();
-#else
-            std::string file = (itr->path ()).filename ();
-#endif
-
-            boost::split (strs, file, boost::is_any_of ("."));
-            std::string extension = strs[strs.size () - 1];
-
-            if (extension.compare (ext) == 0)
-            {
-#if BOOST_FILESYSTEM_VERSION == 3
-              std::string path = rel_path_so_far + (itr->path ().filename ()).string();
-#else
-              std::string path = rel_path_so_far + (itr->path ()).filename ();
-#endif
-
-              relative_paths.push_back (path);
-            }
-          }
-        }
-      }
-
       void
       voxelizeAllModels (float resolution)
       {

@@ -41,10 +41,8 @@ namespace faat_pcl
         using SourceT::path_;
         using SourceT::models_;
         using SourceT::createTrainingDir;
-        using SourceT::getModelsInDirectory;
         using SourceT::model_scale_;
         using SourceT::load_into_memory_;
-        using SourceT::getViewsFilenames;
         using SourceT::createClassAndModelDirectories;
 
         std::string model_structure_; //directory with all the views, indices, poses, etc...
@@ -124,7 +122,6 @@ namespace faat_pcl
           model.indices_.reset (new std::vector<pcl::PointIndices>);
 
             //load views and poses
-            //getViewsFilenames(pathmodel_bf, model.view_filenames_, "view");
             model.view_filenames_.push_back(model_path);
 
             if(load_into_memory_)

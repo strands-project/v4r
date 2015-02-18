@@ -51,10 +51,8 @@ recognizeAndVisualize (std::string & scene_file)
     if (bf::is_directory (input))
     {
         std::vector < std::string > files;
-        std::string start = "";
-        std::string ext = std::string ("pcd");
         bf::path dir = input;
-        faat_pcl::utils::getFilesInDirectory(dir, start, files, ext);
+        faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true);
         std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
         for (size_t i = 0; i < files.size (); i++)
         {
@@ -103,7 +101,6 @@ recognizeAndVisualize (std::string & scene_file)
 int
 main (int argc, char ** argv)
 {
-    std::string path = "";
     std::string pcd_file = "";
     pcl::console::parse_argument (argc, argv, "-pcd_file", pcd_file);
     pcl::console::parse_argument (argc, argv, "-models_dir", MODELS_DIR_);
@@ -132,10 +129,8 @@ main (int argc, char ** argv)
     else
     {
         std::vector < std::string > files;
-        std::string start = "";
-        std::string ext = std::string ("pcd");
         bf::path dir = models_dir_path;
-        faat_pcl::utils::getFilesInDirectory(dir, start, files, ext);
+        faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true);
         std::cout << "Number of models in directory is:" << files.size() << std::endl;
     }
 

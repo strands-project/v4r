@@ -20,50 +20,38 @@ namespace faat_pcl
 {
   namespace utils
   {
-
     void
-    getFilesInDirectory (bf::path & path_with_views,
-                           std::vector<std::string> & view_filenames,
-                           const std::string & pattern);
-
-    void
-    getFoldersInDirectory (bf::path & dir,
-                           std::string & rel_path_so_far,
+    getFoldersInDirectory (const bf::path & dir,
+                           const std::string & rel_path_so_far,
                            std::vector<std::string> & relative_paths);
 
-
     void
-    getFilesInDirectoryRecursive (bf::path & path_with_views,
-                                    std::string & rel_path_so_far,
-                                    std::vector<std::string> & view_filenames,
-                                    const std::string & pattern);
-
-    void
-    getFilesInDirectory (   bf::path & dir,
-                            std::string & rel_path_so_far,
+    getFilesInDirectory (   const bf::path & dir,
                             std::vector<std::string> & relative_paths,
-                            std::string & ext);
+                            const std::string & rel_path_so_far = std::string(""),
+                            const std::string & regex_pattern = std::string(""),
+                            bool recursive = true);
 
     bool
-    writeMatrixToFile (std::string file, Eigen::Matrix4f & matrix);
+    writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix);
 
     bool
-    readMatrixFromFile (std::string file, Eigen::Matrix4f & matrix);
+    readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix);
 
     bool
-    readMatrixFromFile (std::string file, Eigen::Matrix4f & matrix, int padding);
+    readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding);
 
     bool
-    writeCentroidToFile (std::string file, Eigen::Vector3f & centroid);
+    writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid);
 
     bool
-    getCentroidFromFile (std::string file, Eigen::Vector3f & centroid);
+    getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid);
 
     bool
-    writeFloatToFile (std::string file, float value);
+    writeFloatToFile (const std::string &file, const float value);
 
     bool
-    readFloatFromFile (std::string file, float& value);
+    readFloatFromFile (const std::string &file, float& value);
 
   }
 }

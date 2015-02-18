@@ -38,7 +38,6 @@ namespace faat_pcl
         using SourceT::path_;
         using SourceT::models_;
         using SourceT::createTrainingDir;
-        using SourceT::getModelsInDirectory;
         using SourceT::model_scale_;
         using SourceT::radius_normals_;
         using SourceT::compute_normals_;
@@ -54,7 +53,6 @@ namespace faat_pcl
       public:
 
         using SourceT::setFilterDuplicateViews;
-        using SourceT::getViewsFilenames;
 
         MeshSource () :
         SourceT ()
@@ -167,7 +165,7 @@ namespace faat_pcl
           {
             //load views, poses and self-occlusions
 
-            getViewsFilenames(trained_dir, model.view_filenames_, "view");
+              faat_pcl::utils::getFilesInDirectory(trained_dir, model.view_filenames_, "", ".*view_prefix_.*.pcd", false);
 
             /*std::vector < std::string > view_filenames;
             int number_of_views = 0;
@@ -331,7 +329,7 @@ namespace faat_pcl
           std::string start = "";
           std::string ext = std::string ("ply");
           bf::path dir = path_;
-          getModelsInDirectory (dir, start, files, ext);
+          faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.ply", false);
 
           models_.reset (new std::vector<ModelTPtr>);
 

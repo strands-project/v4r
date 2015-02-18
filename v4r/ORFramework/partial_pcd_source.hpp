@@ -41,7 +41,7 @@ faat_pcl::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPoi
   {
     //load views, poses and self-occlusions
 
-    getViewsFilenames(trained_dir, model.view_filenames_, "view");
+    faat_pcl::utils::getFilesInDirectory(trained_dir, model.view_filenames_, "", ".*view.*.pcd", false);
     std::sort(model.view_filenames_.begin(), model.view_filenames_.end());
     if(load_into_memory_)
     {

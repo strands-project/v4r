@@ -34,9 +34,7 @@ main (int argc, char ** argv)
 
     std::cout << "Visualizing all point clouds in folder " << path;
     std::vector < std::string > files_intern;
-    std::string start = "";
-    std::string ext = std::string ("pcd");
-    faat_pcl::utils::getFilesInDirectory (path_bf, start, files_intern, ext);
+    faat_pcl::utils::getFilesInDirectory (path_bf, files_intern, "", ".*.pcd");
     std::sort(files_intern.begin(), files_intern.end());
 
 

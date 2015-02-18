@@ -42,7 +42,6 @@ namespace faat_pcl
 
         using SourceT::path_;
         using SourceT::models_;
-        using SourceT::getModelsInDirectory;
         using SourceT::model_scale_;
         using SourceT::load_into_memory_;
         using SourceT::radius_normals_;

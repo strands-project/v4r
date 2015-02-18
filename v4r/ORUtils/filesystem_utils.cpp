@@ -1,43 +1,9 @@
 #include "filesystem_utils.h"
 
-void faat_pcl::utils::getFilesInDirectory(bf::path & path_with_views,
-                       std::vector<std::string> & view_filenames,
-                       const std::string & pattern)
-{
-
-  std::stringstream filter_str;
-  filter_str << pattern;
-  const boost::regex my_filter( filter_str.str() );
-
-  bf::directory_iterator end_itr;
-  for (bf::directory_iterator itr (path_with_views); itr != end_itr; ++itr)
-  {
-    if (!(bf::is_directory (*itr)))
-    {
-      std::vector < std::string > strs;
-      std::vector < std::string > strs_;
-
-#if BOOST_FILESYSTEM_VERSION == 3
-      std::string file = (itr->path ().filename ()).string();
-#else
-      std::string file = (itr->path ()).filename ();
-#endif
-
-      boost::smatch what;
-      if( !boost::regex_match( file, what, my_filter ) ) continue;
-
-#if BOOST_FILESYSTEM_VERSION == 3
-        view_filenames.push_back ((itr->path ().filename ()).string());
-#else
-        view_filenames.push_back ((itr->path ()).filename ());
-#endif
-    }
-  }
-}
-
-
 void
-faat_pcl::utils::getFoldersInDirectory (bf::path & dir, std::string & rel_path_so_far, std::vector<std::string> & relative_paths)
+faat_pcl::utils::getFoldersInDirectory (const bf::path & dir,
+                                        const std::string & rel_path_so_far,
+                                        std::vector<std::string> & relative_paths)
 {
   bf::directory_iterator end_itr;
   for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
@@ -56,12 +22,18 @@ faat_pcl::utils::getFoldersInDirectory (bf::path & dir, std::string & rel_path_s
 }
 
 
-void faat_pcl::utils::getFilesInDirectory (bf::path & dir, std::string & rel_path_so_far, std::vector<std::string> & relative_paths, std::string & ext)
+void faat_pcl::utils::getFilesInDirectory (const bf::path & dir,
+                                           std::vector<std::string> & relative_paths,
+                                           const std::string & rel_path_so_far,
+                                           const std::string & regex_pattern,
+                                           bool recursive)
 {
+  const boost::regex file_filter( regex_pattern );
+
   bf::directory_iterator end_itr;
   for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
   {
-    //check if its a directory, then get models in it
+    //check if its a directory, then get files in it
     if (bf::is_directory (*itr))
     {
 #if BOOST_FILESYSTEM_VERSION == 3
@@ -71,23 +43,24 @@ void faat_pcl::utils::getFilesInDirectory (bf::path & dir, std::string & rel_pat
 #endif
 
       bf::path curr_path = itr->path ();
-      getFilesInDirectory (curr_path, so_far, relative_paths, ext);
+      if (recursive)
+      {
+        getFilesInDirectory (curr_path, relative_paths, so_far, regex_pattern, recursive);
+      }
     }
     else
     {
-      //check that it is a ply file and then add, otherwise ignore..
-      std::vector<std::string> strs;
+      //check for correct file pattern (extension,..) and then add, otherwise ignore..
+
 #if BOOST_FILESYSTEM_VERSION == 3
       std::string file = (itr->path ().filename ()).string ();
 #else
       std::string file = (itr->path ()).filename ();
 #endif
 
-      boost::split (strs, file, boost::is_any_of ("."));
-      std::string extension = strs[strs.size () - 1];
+      boost::smatch what;
+      if( !boost::regex_match( file, what, file_filter ) ) continue;
 
-      if (extension.compare (ext) == 0)
-      {
 #if BOOST_FILESYSTEM_VERSION == 3
         std::string path = rel_path_so_far + (itr->path ().filename ()).string ();
 #else
@@ -95,61 +68,12 @@ void faat_pcl::utils::getFilesInDirectory (bf::path & dir, std::string & rel_pat
 #endif
 
         relative_paths.push_back (path);
-      }
     }
   }
 }
 
 
-void faat_pcl::utils::getFilesInDirectoryRecursive (bf::path & path_with_views,
-                                std::string & rel_path_so_far,
-                                std::vector<std::string> & view_filenames,
-                                const std::string & pattern)
-{
-
-  std::stringstream filter_str;
-  filter_str << pattern;
-  const boost::regex my_filter( filter_str.str() );
-
-  bf::directory_iterator end_itr;
-  for (bf::directory_iterator itr (path_with_views); itr != end_itr; ++itr)
-  {
-    if (!(bf::is_directory (*itr)))
-    {
-      std::vector < std::string > strs;
-      std::vector < std::string > strs_;
-
-#if BOOST_FILESYSTEM_VERSION == 3
-      std::string file = rel_path_so_far + (itr->path ().filename ()).string();
-#else
-      std::string file = rel_path_so_far + (itr->path ()).filename ();
-#endif
-
-      boost::smatch what;
-      if( !boost::regex_match( file, what, my_filter ) ) continue;
-
-#if BOOST_FILESYSTEM_VERSION == 3
-        view_filenames.push_back (file);
-#else
-        view_filenames.push_back (file);
-#endif
-    }
-    else
-    {
-#if BOOST_FILESYSTEM_VERSION == 3
-      std::string so_far = rel_path_so_far + (itr->path ().filename ()).string () + "/";
-#else
-      std::string so_far = rel_path_so_far + (itr->path ()).filename () + "/";
-#endif
-
-      bf::path curr_path = itr->path ();
-      getFilesInDirectoryRecursive (curr_path, so_far, view_filenames, pattern);
-    }
-  }
-}
-
-
-bool faat_pcl::utils::writeMatrixToFile (std::string file, Eigen::Matrix4f & matrix)
+bool faat_pcl::utils::writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
 {
   std::ofstream out (file.c_str ());
   if (!out)
@@ -172,7 +96,7 @@ bool faat_pcl::utils::writeMatrixToFile (std::string file, Eigen::Matrix4f & mat
   return true;
 }
 
-bool faat_pcl::utils::readMatrixFromFile (std::string file, Eigen::Matrix4f & matrix)
+bool faat_pcl::utils::readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix)
 {
 
   std::ifstream in;
@@ -192,7 +116,7 @@ bool faat_pcl::utils::readMatrixFromFile (std::string file, Eigen::Matrix4f & ma
   return true;
 }
 
-bool faat_pcl::utils::readMatrixFromFile (std::string file, Eigen::Matrix4f & matrix, int padding)
+bool faat_pcl::utils::readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding)
 {
 
   std::ifstream in;
@@ -213,7 +137,7 @@ bool faat_pcl::utils::readMatrixFromFile (std::string file, Eigen::Matrix4f & ma
 }
 
 bool
-faat_pcl::utils::writeCentroidToFile (std::string file, Eigen::Vector3f & centroid)
+faat_pcl::utils::writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid)
 {
   std::ofstream out (file.c_str ());
   if (!out)
@@ -229,7 +153,7 @@ faat_pcl::utils::writeCentroidToFile (std::string file, Eigen::Vector3f & centro
 }
 
 bool
-faat_pcl::utils::getCentroidFromFile (std::string file, Eigen::Vector3f & centroid)
+faat_pcl::utils::getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid)
 {
     std::ifstream in;
 
@@ -254,7 +178,7 @@ faat_pcl::utils::getCentroidFromFile (std::string file, Eigen::Vector3f & centro
 }
 
 bool
-faat_pcl::utils::writeFloatToFile (std::string file, float value)
+faat_pcl::utils::writeFloatToFile (const std::string &file, const float value)
 {
   std::ofstream out (file.c_str ());
   if (!out)
@@ -270,7 +194,7 @@ faat_pcl::utils::writeFloatToFile (std::string file, float value)
 }
 
 bool
-faat_pcl::utils::readFloatFromFile (std::string file, float& value)
+faat_pcl::utils::readFloatFromFile (const std::string &file, float& value)
 {
 
   std::ifstream in;
