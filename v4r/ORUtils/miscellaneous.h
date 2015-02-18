@@ -57,6 +57,33 @@ inline void transformNormals(pcl::PointCloud<pcl::Normal>::ConstPtr & normals_cl
     }
 }
 
+inline void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
+                             pcl::PointCloud<pcl::Normal>::Ptr & normals_aligned,
+                             std::vector<int> & indices,
+                             Eigen::Matrix4f & transform)
+{
+    normals_aligned.reset (new pcl::PointCloud<pcl::Normal>);
+    normals_aligned->points.resize (indices.size ());
+    normals_aligned->width = indices.size();
+    normals_aligned->height = 1;
+    for (size_t k = 0; k < indices.size(); k++)
+    {
+        Eigen::Vector3f nt (normals_cloud->points[indices[k]].normal_x,
+                            normals_cloud->points[indices[k]].normal_y,
+                            normals_cloud->points[indices[k]].normal_z);
+
+        normals_aligned->points[k].normal_x = static_cast<float> (transform (0, 0) * nt[0] + transform (0, 1) * nt[1]
+                                                                  + transform (0, 2) * nt[2]);
+        normals_aligned->points[k].normal_y = static_cast<float> (transform (1, 0) * nt[0] + transform (1, 1) * nt[1]
+                                                                  + transform (1, 2) * nt[2]);
+        normals_aligned->points[k].normal_z = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1]
+                                                                  + transform (2, 2) * nt[2]);
+
+        normals_aligned->points[k].curvature = normals_cloud->points[indices[k]].curvature;
+
+    }
+}
+
 inline void transformNormal(Eigen::Vector3f & nt,
                             Eigen::Vector3f & normal_out,
                             Eigen::Matrix4f & transform)

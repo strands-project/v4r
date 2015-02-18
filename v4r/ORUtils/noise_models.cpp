@@ -16,6 +16,8 @@ faat_pcl::utils::noise_models::NguyenNoiseModel<PointT>::NguyenNoiseModel ()
 {
   max_angle_ = 70.f;
   lateral_sigma_ = 0.002f;
+  pose_set_ = false;
+  pose_to_plane_RF_ = Eigen::Matrix4f::Identity();
 }
 
 template<typename PointT>
@@ -174,6 +176,16 @@ faat_pcl::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
       if(weights_[i] < 0.f)
       {
           weights_[i] = 0.f;
+      }
+      else
+      {
+          if(pose_set_)
+          {
+            Eigen::Vector4f p = input_->points[i].getVector4fMap();
+            p = pose_to_plane_RF_ * p;
+            weights_[i] *= 1.f - 0.25f * std::max(0.f, (0.01f - p[2]) / 0.01f);
+            //std::cout << p[2] << " " << 0.25f * std::max(0.f, 0.01f - p[2]) << std::endl;
+          }
       }
   }
 }

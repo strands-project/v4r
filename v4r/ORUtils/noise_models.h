@@ -30,8 +30,21 @@ namespace faat_pcl
           std::vector<float> weights_;
           pcl::PointIndices discontinuity_edges_;
           bool use_depth_edges_;
+          Eigen::Matrix4f pose_to_plane_RF_;
+          bool pose_set_;
+
         public:
           NguyenNoiseModel ();
+
+          //this is the pose used to align a cloud so that its aligned to the RF
+          //defined on a plane (z-axis corresponds to the plane normal) and
+          //the origin is on the plane
+
+          void setPoseToPlaneRF(Eigen::Matrix4f & pose)
+          {
+              pose_to_plane_RF_ = pose;
+              pose_set_ = true;
+          }
 
           void
           setInputCloud (PointTPtr & input)
@@ -91,3 +104,4 @@ namespace faat_pcl
 }
 
 #endif /* NOISE_MODELS_H_ */
+

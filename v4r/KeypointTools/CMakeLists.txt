@@ -21,8 +21,10 @@ SET(SOURCE_CPP
   Circle3D.cc
   ClusteringMeanShift.cc
   ClusteringRNN.cc
+  ClusterNormalsToPlanes.cc
   EuclideanClustering3f.cc
   ImageTransformRANSAC.cc
+  IsctRayPlane.cc
   PlaneEstimationRANSAC.cc
   RigidTransformationRANSAC.cc
   SearchKdTreeFLANN2f.cc
@@ -35,6 +37,7 @@ SET(SOURCE_H
   Clustering.hh
   ClusteringMeanShift.hh
   ClusteringRNN.hh
+  ClusterNormalsToPlanes.hh
   convertDataMatrix.hpp
   convertPose.hpp
   convertImage.hpp
@@ -47,6 +50,7 @@ SET(SOURCE_H
   Histogram.hpp
   Histogram2D.hpp
   ImageTransformRANSAC.hh
+  IsctRayPlane.hh
   invPose.hpp
   io_file.h
   Matrix.hpp

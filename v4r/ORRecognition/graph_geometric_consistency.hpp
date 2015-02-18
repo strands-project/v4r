@@ -3,7 +3,7 @@
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2012, Willow Garage, Inc.
- *  
+ *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -56,77 +56,77 @@
 bool
 gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
 {
-  return (i.distance < j.distance);
+    return (i.distance < j.distance);
 }
 
 struct Vertex
 {
-  int idx_;
-  size_t degree_;
+    int idx_;
+    size_t degree_;
 
-  bool
-  operator< (const Vertex & j) const
-  {
-    if (degree_ == j.degree_)
+    bool
+    operator< (const Vertex & j) const
     {
-      return (idx_ < j.idx_);
-    }
+        if (degree_ == j.degree_)
+        {
+            return (idx_ < j.idx_);
+        }
 
-    return degree_ > j.degree_;
-  }
+        return degree_ > j.degree_;
+    }
 };
 
 struct vertexDegreeSorter
 {
-  bool
-  operator() (const Vertex & i, const Vertex & j) const
-  {
-    return i < j;
-  }
+    bool
+    operator() (const Vertex & i, const Vertex & j) const
+    {
+        return i < j;
+    }
 };
 
 template<typename Graph>
-  class save_cliques
-  {
+class save_cliques
+{
 
-  public:
+public:
     /*save_cliques (std::size_t& max, std::size_t& maximum_clique, std::size_t& n_cliques, std::vector<std::vector<void *> *> & cliquess) :
      min_size (max), maximum (maximum_clique), n_cliques (n_cliques), cliques (cliquess)
      {
      }*/
 
     save_cliques (std::size_t& max, std::size_t& maximum_clique, std::size_t& n_cliques, std::vector<std::vector<int> *> & cliquess) :
-      min_size (max), maximum (maximum_clique), n_cliques (n_cliques), cliques (cliquess)
+        min_size (max), maximum (maximum_clique), n_cliques (n_cliques), cliques (cliquess)
     {
     }
 
     template<typename Clique, typename Graph2>
-      inline void
-      clique (const Clique& c, Graph2& g)
-      {
+    inline void
+    clique (const Clique& c, Graph2& g)
+    {
 
         if (c.size () >= min_size)
         {
-          BOOST_USING_STD_MAX();
-          maximum = std::max BOOST_PREVENT_MACRO_SUBSTITUTION (maximum, c.size());
+            BOOST_USING_STD_MAX();
+            maximum = std::max BOOST_PREVENT_MACRO_SUBSTITUTION (maximum, c.size());
 
-          //save clique...
-          typename Clique::const_iterator i, end = c.end ();
-          //std::vector<void *> * cc = new std::vector<void *> (c.size ());
-          std::vector<int> * cc = new std::vector<int> (c.size ());
-          cliques.push_back (cc);
-          size_t p;
-          for (i = c.begin (); i != end; ++i, ++p)
-          {
-            //cc->at (p) = static_cast<void *> (*i);
-            cc->at (p) = (*i);
-          }
+            //save clique...
+            typename Clique::const_iterator i, end = c.end ();
+            //std::vector<void *> * cc = new std::vector<void *> (c.size ());
+            std::vector<int> * cc = new std::vector<int> (c.size ());
+            cliques.push_back (cc);
+            size_t p;
+            for (i = c.begin (); i != end; ++i, ++p)
+            {
+                //cc->at (p) = static_cast<void *> (*i);
+                cc->at (p) = (*i);
+            }
 
-          n_cliques++;
+            n_cliques++;
         }
         else
         {
-          return;
+            return;
         }
 
         // Simply assert that each vertex in the clique is connected
@@ -139,26 +139,26 @@ template<typename Graph>
          }
          }
          }*/
-      }
+    }
 
     std::size_t& min_size;
     std::size_t& maximum;
     std::size_t& n_cliques;
     //std::vector<std::vector<void *> *> & cliques;
     std::vector<std::vector<int> *> & cliques;
-  };
+};
 
-  class FAATPCL_CliquesException: public std::exception
-  {
+class FAATPCL_CliquesException: public std::exception
+{
     virtual const char* what() const throw()
     {
-      return "My exception happened";
+        return "My exception happened";
     }
-  } myex;
+} myex;
 
 template<typename Graph>
-  class Tomita
-  {
+class Tomita
+{
     typedef std::set<typename boost::graph_traits<Graph>::vertex_descriptor> SetType;
     typedef std::vector<typename boost::graph_traits<Graph>::vertex_descriptor> VectorType;
     std::vector<VectorType *> cliques_found_;
@@ -173,150 +173,150 @@ template<typename Graph>
     void
     addClique (VectorType & clique)
     {
-      if (clique.size () >= min_clique_size_)
-      {
-        VectorType * vt = new VectorType (clique);
-        cliques_found_.push_back (vt);
-        for (size_t i = 0; i < clique.size (); i++)
+        if (clique.size () >= min_clique_size_)
         {
-          used_ntimes_in_cliques_[clique[i]]++;
-        }
+            VectorType * vt = new VectorType (clique);
+            cliques_found_.push_back (vt);
+            for (size_t i = 0; i < clique.size (); i++)
+            {
+                used_ntimes_in_cliques_[clique[i]]++;
+            }
 
-      }
+        }
     }
 
     void
     printSet (SetType & s)
     {
-      typename SetType::iterator vertexIt, vertexEnd;
-      SetType tmp;
+        typename SetType::iterator vertexIt, vertexEnd;
+        SetType tmp;
 
-      vertexIt = s.begin ();
-      vertexEnd = s.end ();
+        vertexIt = s.begin ();
+        vertexEnd = s.end ();
 
-      for (; vertexIt != vertexEnd; ++vertexIt)
-      {
-        std::cout << *vertexIt + 1 << " ";
-      }
+        for (; vertexIt != vertexEnd; ++vertexIt)
+        {
+            std::cout << *vertexIt + 1 << " ";
+        }
 
-      std::cout << std::endl;
+        std::cout << std::endl;
     }
     //_extend(nnbrs,cand,done,clique_so_far,cliques);
     void
     extend (SetType & cand, SetType & done, VectorType & clique_so_far)
     {
-      SetType small_cand, pivot_nbrs;
-      int maxconn = -1;
-      int num_cand = static_cast<int> (cand.size ());
+        SetType small_cand, pivot_nbrs;
+        int maxconn = -1;
+        int num_cand = static_cast<int> (cand.size ());
 
-      //iterate over done and compute maximum intersection between candidates and the adjacents of done (nnbrs)
-      typename SetType::iterator vertexIt, vertexEnd;
-      SetType tmp;
+        //iterate over done and compute maximum intersection between candidates and the adjacents of done (nnbrs)
+        typename SetType::iterator vertexIt, vertexEnd;
+        SetType tmp;
 
-      vertexIt = done.begin ();
-      vertexEnd = done.end ();
+        vertexIt = done.begin ();
+        vertexEnd = done.end ();
 
-      for (; vertexIt != vertexEnd; ++vertexIt)
-      {
-        std::set_intersection (cand.begin (), cand.end (), nnbrs[*vertexIt].begin (), nnbrs[*vertexIt].end (), std::inserter (tmp, tmp.begin ()));
-
-        if (static_cast<int> (tmp.size ()) > maxconn)
+        for (; vertexIt != vertexEnd; ++vertexIt)
         {
-          maxconn = static_cast<int> (tmp.size ());
-          pivot_nbrs = tmp;
-          if (maxconn == num_cand)
-          {
-            //All possible cliques already found
-            return;
-          }
+            std::set_intersection (cand.begin (), cand.end (), nnbrs[*vertexIt].begin (), nnbrs[*vertexIt].end (), std::inserter (tmp, tmp.begin ()));
+
+            if (static_cast<int> (tmp.size ()) > maxconn)
+            {
+                maxconn = static_cast<int> (tmp.size ());
+                pivot_nbrs = tmp;
+                if (maxconn == num_cand)
+                {
+                    //All possible cliques already found
+                    return;
+                }
+            }
+
+            tmp.clear ();
         }
 
-        tmp.clear ();
-      }
+        //same for candidates
+        vertexIt = cand.begin ();
+        vertexEnd = cand.end ();
 
-      //same for candidates
-      vertexIt = cand.begin ();
-      vertexEnd = cand.end ();
-
-      for (; vertexIt != vertexEnd; ++vertexIt)
-      {
-        std::set_intersection (cand.begin (), cand.end (), nnbrs[*vertexIt].begin (), nnbrs[*vertexIt].end (), std::inserter (tmp, tmp.begin ()));
-
-        if (static_cast<int> (tmp.size ()) > maxconn)
+        for (; vertexIt != vertexEnd; ++vertexIt)
         {
-          maxconn = static_cast<int> (tmp.size ());
-          pivot_nbrs = tmp;
+            std::set_intersection (cand.begin (), cand.end (), nnbrs[*vertexIt].begin (), nnbrs[*vertexIt].end (), std::inserter (tmp, tmp.begin ()));
+
+            if (static_cast<int> (tmp.size ()) > maxconn)
+            {
+                maxconn = static_cast<int> (tmp.size ());
+                pivot_nbrs = tmp;
+            }
+            tmp.clear ();
         }
-        tmp.clear ();
-      }
 
-      //      std::cout << "cand is:" << std::endl;
-      //      printSet(cand);
-      //
-      //      std::cout << "pivot_nbrs is:" << std::endl;
-      //      printSet(pivot_nbrs);
+        //      std::cout << "cand is:" << std::endl;
+        //      printSet(cand);
+        //
+        //      std::cout << "pivot_nbrs is:" << std::endl;
+        //      printSet(pivot_nbrs);
 
-      std::set_difference (cand.begin (), cand.end (), pivot_nbrs.begin (), pivot_nbrs.end (), std::inserter (small_cand, small_cand.begin ()));
-      vertexIt = small_cand.begin ();
-      vertexEnd = small_cand.end ();
+        std::set_difference (cand.begin (), cand.end (), pivot_nbrs.begin (), pivot_nbrs.end (), std::inserter (small_cand, small_cand.begin ()));
+        vertexIt = small_cand.begin ();
+        vertexEnd = small_cand.end ();
 
-      /*std::cout << "small_cand is:" << std::endl;
+        /*std::cout << "small_cand is:" << std::endl;
        printSet(small_cand);*/
 
-      for (; vertexIt != vertexEnd; ++vertexIt)
-      {
-        //std::cout << (*vertexIt+1) << std::endl;
-        cand.erase (*vertexIt);
-        clique_so_far.push_back (*vertexIt);
-        SetType new_cand, new_done;
-        std::set_intersection (cand.begin (), cand.end (), nnbrs[*vertexIt].begin (), nnbrs[*vertexIt].end (),
-                               std::inserter (new_cand, new_cand.begin ()));
-
-        std::set_intersection (done.begin (), done.end (), nnbrs[*vertexIt].begin (), nnbrs[*vertexIt].end (),
-                               std::inserter (new_done, new_done.begin ()));
-
-        if (new_done.size () == 0 && new_cand.size () == 0)
+        for (; vertexIt != vertexEnd; ++vertexIt)
         {
-          addClique (clique_so_far);
-        }
-        else if (new_done.size () == 0 && (new_cand.size () == 1))
-        {
-          if ((clique_so_far.size () + 1) >= min_clique_size_)
-          {
-            VectorType tt = clique_so_far;
-            tt.push_back (*(new_cand.begin ()));
-            addClique (tt);
-          }
-        }
-        else
-        {
-          float t_elapsed = static_cast<float>(time_elapsed_.getTime());
-          if(t_elapsed > max_time_allowed_)
-          {
-              max_time_reached_ = true;
+            //std::cout << (*vertexIt+1) << std::endl;
+            cand.erase (*vertexIt);
+            clique_so_far.push_back (*vertexIt);
+            SetType new_cand, new_done;
+            std::set_intersection (cand.begin (), cand.end (), nnbrs[*vertexIt].begin (), nnbrs[*vertexIt].end (),
+                    std::inserter (new_cand, new_cand.begin ()));
 
-              /*for (size_t p = 0; p < cliques_found_.size (); p++) //ATTENTION!
+            std::set_intersection (done.begin (), done.end (), nnbrs[*vertexIt].begin (), nnbrs[*vertexIt].end (),
+                    std::inserter (new_done, new_done.begin ()));
+
+            if (new_done.size () == 0 && new_cand.size () == 0)
+            {
+                addClique (clique_so_far);
+            }
+            else if (new_done.size () == 0 && (new_cand.size () == 1))
+            {
+                if ((clique_so_far.size () + 1) >= min_clique_size_)
+                {
+                    VectorType tt = clique_so_far;
+                    tt.push_back (*(new_cand.begin ()));
+                    addClique (tt);
+                }
+            }
+            else
+            {
+                float t_elapsed = static_cast<float>(time_elapsed_.getTime());
+                if(t_elapsed > max_time_allowed_)
+                {
+                    max_time_reached_ = true;
+
+                    /*for (size_t p = 0; p < cliques_found_.size (); p++) //ATTENTION!
                 delete cliques_found_[p];*/
 
-              return;
-          }
+                    return;
+                }
 
-          extend (new_cand, new_done, clique_so_far);
+                extend (new_cand, new_done, clique_so_far);
+            }
+
+            clique_so_far.erase (clique_so_far.begin () + (clique_so_far.size () - 1));
+            done.insert (*vertexIt);
+
         }
-
-        clique_so_far.erase (clique_so_far.begin () + (clique_so_far.size () - 1));
-        done.insert (*vertexIt);
-
-      }
     }
 
-  public:
+public:
 
     Tomita (size_t mins = 3)
     {
-      min_clique_size_ = mins;
-      max_time_allowed_ = std::numeric_limits<float>::infinity();
-      max_time_reached_ = false;
+        min_clique_size_ = mins;
+        max_time_allowed_ = std::numeric_limits<float>::infinity();
+        max_time_reached_ = false;
     }
 
     bool
@@ -334,47 +334,47 @@ template<typename Graph>
     void
     find_cliques (Graph & G, int num_v)
     {
-      SetType cand, done;
-      VectorType clique_so_far;
-      nnbrs.clear ();
-      used_ntimes_in_cliques_.clear ();
-      cliques_found_.clear ();
-      time_elapsed_.reset();
-      max_time_reached_ = false;
+        SetType cand, done;
+        VectorType clique_so_far;
+        nnbrs.clear ();
+        used_ntimes_in_cliques_.clear ();
+        cliques_found_.clear ();
+        time_elapsed_.reset();
+        max_time_reached_ = false;
 
-      typename boost::graph_traits<Graph>::vertex_iterator vertexIt, vertexEnd;
-      boost::tie (vertexIt, vertexEnd) = vertices (G);
-      nnbrs.resize (num_v);
+        typename boost::graph_traits<Graph>::vertex_iterator vertexIt, vertexEnd;
+        boost::tie (vertexIt, vertexEnd) = vertices (G);
+        nnbrs.resize (num_v);
 
-      int i = 0;
-      for (; vertexIt != vertexEnd; ++vertexIt, ++i)
-      {
-        typename boost::graph_traits<Graph>::adjacency_iterator vi, vi_end;
-        int k = 0;
-        for (boost::tie (vi, vi_end) = boost::adjacent_vertices (*vertexIt, G); vi != vi_end; ++vi, ++k)
+        int i = 0;
+        for (; vertexIt != vertexEnd; ++vertexIt, ++i)
         {
-          nnbrs[i].insert (*vi);
-          cand.insert (*vi);
+            typename boost::graph_traits<Graph>::adjacency_iterator vi, vi_end;
+            int k = 0;
+            for (boost::tie (vi, vi_end) = boost::adjacent_vertices (*vertexIt, G); vi != vi_end; ++vi, ++k)
+            {
+                nnbrs[i].insert (*vi);
+                cand.insert (*vi);
+            }
+
+            used_ntimes_in_cliques_[*vertexIt] = 0;
         }
 
-        used_ntimes_in_cliques_[*vertexIt] = 0;
-      }
-
-      extend (cand, done, clique_so_far);
+        extend (cand, done, clique_so_far);
     }
 
     int
     getNumCliquesFound ()
     {
-      return cliques_found_.size ();
+        return cliques_found_.size ();
     }
 
     void
     getCliques (std::vector<VectorType *> & cliques)
     {
-      cliques = cliques_found_;
+        cliques = cliques_found_;
     }
-  };
+};
 
 struct ExtendedClique
 {
@@ -389,7 +389,7 @@ struct ExtendedClique
 bool
 less_clique_vectors (const std::vector<long unsigned int> * a, const std::vector<long unsigned int> * b)
 {
-  return a->size () < b->size ();
+    return a->size () < b->size ();
 }
 
 bool
@@ -406,7 +406,7 @@ best_clique_vectors (const std::pair<float, std::vector<long unsigned int> *> a,
 
 bool
 best_extended_cliques (const ExtendedClique & a,
-                     const ExtendedClique & b)
+                       const ExtendedClique & b)
 {
     /*float a_value = static_cast<float>(a.correspondences_->size()) * 0.5f + a.avg_descriptor_distance_ * 0.25f + a.avg_pair_3D_distance_ * 0.25f;
     float b_value = static_cast<float>(b.correspondences_->size()) * 0.5f + b.avg_descriptor_distance_ * 0.25f + b.avg_pair_3D_distance_ * 0.25f;*/
@@ -440,27 +440,27 @@ template<typename PointModelT, typename PointSceneT>
 void
 faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph2(GraphGGCG & g, int gc_thres)
 {
-  typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
-  std::vector<typename boost::graph_traits<GraphGGCG>::vertex_descriptor> to_be_removed;
-  int iter = 0;
+    typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
+    std::vector<typename boost::graph_traits<GraphGGCG>::vertex_descriptor> to_be_removed;
+    int iter = 0;
 
-  do
-  {
-    to_be_removed.clear();
-    boost::tie (vertexIt, vertexEnd) = vertices (g);
-    for (; vertexIt != vertexEnd; ++vertexIt)
+    do
     {
-      int deg = static_cast<int>(boost::out_degree (*vertexIt, g));
-      if ((deg > 0) && (deg < (gc_thres - 1)))
-        to_be_removed.push_back (*vertexIt);
-    }
+        to_be_removed.clear();
+        boost::tie (vertexIt, vertexEnd) = vertices (g);
+        for (; vertexIt != vertexEnd; ++vertexIt)
+        {
+            int deg = static_cast<int>(boost::out_degree (*vertexIt, g));
+            if ((deg > 0) && (deg < (gc_thres - 1)))
+                to_be_removed.push_back (*vertexIt);
+        }
 
-    for (size_t i = 0; i < to_be_removed.size (); i++)
-      clear_vertex (to_be_removed[i], g);
+        for (size_t i = 0; i < to_be_removed.size (); i++)
+            clear_vertex (to_be_removed[i], g);
 
-    //std::cout << "edges:" << num_edges (g)  << " iteration:" << iter << std::endl;
-    iter++;
-  } while(to_be_removed.size() > 0);
+        //std::cout << "edges:" << num_edges (g)  << " iteration:" << iter << std::endl;
+        iter++;
+    } while(to_be_removed.size() > 0);
 }
 
 template<typename PointModelT, typename PointSceneT>
@@ -468,9 +468,9 @@ void
 faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph(GraphGGCG & g, int gc_thres)
 {
 
-  cleanGraph2(g, gc_thres);
+    cleanGraph2(g, gc_thres);
 
-  /*std::vector<typename boost::graph_traits<GraphGGCG>::vertex_descriptor> art_points;
+    /*std::vector<typename boost::graph_traits<GraphGGCG>::vertex_descriptor> art_points;
   do
   {
 
@@ -688,16 +688,16 @@ faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::visualize
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT>
-  void
-  faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
-  {
+void
+faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
+{
     //pcl::ScopeTime t_cluster("cluster correspondences");
     //pcl::StopWatch time_watch;
     //time_watch.reset();
 
     if(prune_)
     {
-      PCL_WARN("Prunning based on pose is activated...\n");
+        PCL_WARN("Prunning based on pose is activated...\n");
     }
 
     model_instances.clear ();
@@ -710,9 +710,9 @@ template<typename PointModelT, typename PointSceneT>
 
     if (!model_scene_corrs_)
     {
-      PCL_ERROR(
-          "[pcl::GeometricConsistencyGrouping::clusterCorrespondences()] Error! Correspondences not set, please set them before calling again this function.\n");
-      return;
+        PCL_ERROR(
+                    "[pcl::GeometricConsistencyGrouping::clusterCorrespondences()] Error! Correspondences not set, please set them before calling again this function.\n");
+        return;
     }
 
     //temp copy of scene cloud with the type cast to ModelT in order to use Ransac
@@ -724,7 +724,7 @@ template<typename PointModelT, typename PointSceneT>
     //float max_dist_model = 0.f;
 
     {
-      /*for (size_t k = 0; k < model_scene_corrs_->size (); ++k)
+        /*for (size_t k = 0; k < model_scene_corrs_->size (); ++k)
       {
 
         int model_index_k = model_scene_corrs_->at (k).index_query;
@@ -754,77 +754,77 @@ template<typename PointModelT, typename PointSceneT>
         }
       }*/
 
-      //std::cout << "max_dist_model is:" << max_dist_model << " " << gc_size_ << " " << gc_threshold_ << std::endl;
-      //max_dist_model += gc_size_;
+        //std::cout << "max_dist_model is:" << max_dist_model << " " << gc_size_ << " " << gc_threshold_ << std::endl;
+        //max_dist_model += gc_size_;
 
-      for (size_t k = 0; k < model_scene_corrs_->size (); ++k)
-      {
-        int scene_index_k = model_scene_corrs_->at (k).index_match;
-        int model_index_k = model_scene_corrs_->at (k).index_query;
-        const Eigen::Vector3f& scene_point_k = scene_->at (scene_index_k).getVector3fMap ();
-        const Eigen::Vector3f& model_point_k = input_->at (model_index_k).getVector3fMap ();
-        const Eigen::Vector3f& scene_normal_k = scene_normals_->at (scene_index_k).getNormalVector3fMap ();
-        const Eigen::Vector3f& model_normal_k = input_normals_->at (model_index_k).getNormalVector3fMap ();
-
-        for (size_t j = (k + 1); j < model_scene_corrs_->size (); ++j)
+        for (size_t k = 0; k < model_scene_corrs_->size (); ++k)
         {
-          int scene_index_j = model_scene_corrs_->at (j).index_match;
-          int model_index_j = model_scene_corrs_->at (j).index_query;
+            int scene_index_k = model_scene_corrs_->at (k).index_match;
+            int model_index_k = model_scene_corrs_->at (k).index_query;
+            const Eigen::Vector3f& scene_point_k = scene_->at (scene_index_k).getVector3fMap ();
+            const Eigen::Vector3f& model_point_k = input_->at (model_index_k).getVector3fMap ();
+            const Eigen::Vector3f& scene_normal_k = scene_normals_->at (scene_index_k).getNormalVector3fMap ();
+            const Eigen::Vector3f& model_normal_k = input_normals_->at (model_index_k).getNormalVector3fMap ();
 
-          //same scene or model point constraint
-          if(scene_index_j == scene_index_k || model_index_j == model_index_k)
-            continue;
+            for (size_t j = (k + 1); j < model_scene_corrs_->size (); ++j)
+            {
+                int scene_index_j = model_scene_corrs_->at (j).index_match;
+                int model_index_j = model_scene_corrs_->at (j).index_query;
 
-          const Eigen::Vector3f& scene_point_j = scene_->at (scene_index_j).getVector3fMap ();
-          const Eigen::Vector3f& model_point_j = input_->at (model_index_j).getVector3fMap ();
+                //same scene or model point constraint
+                if(scene_index_j == scene_index_k || model_index_j == model_index_k)
+                    continue;
 
-          const Eigen::Vector3f& scene_normal_j = scene_normals_->at (scene_index_j).getNormalVector3fMap ();
-          const Eigen::Vector3f& model_normal_j = input_normals_->at (model_index_j).getNormalVector3fMap ();
+                const Eigen::Vector3f& scene_point_j = scene_->at (scene_index_j).getVector3fMap ();
+                const Eigen::Vector3f& model_point_j = input_->at (model_index_j).getVector3fMap ();
 
-          Eigen::Vector3f dist_trg = model_point_k - model_point_j;
-          Eigen::Vector3f dist_ref = scene_point_k - scene_point_j;
+                const Eigen::Vector3f& scene_normal_j = scene_normals_->at (scene_index_j).getNormalVector3fMap ();
+                const Eigen::Vector3f& model_normal_j = input_normals_->at (model_index_j).getNormalVector3fMap ();
 
-          //minimum distance constraint
-          if ((dist_trg.norm () < min_dist_for_cluster) || (dist_ref.norm () < min_dist_for_cluster))
-            continue;
+                Eigen::Vector3f dist_trg = model_point_k - model_point_j;
+                Eigen::Vector3f dist_ref = scene_point_k - scene_point_j;
 
-          assert((dist_trg.norm () >= min_dist_for_cluster) && (dist_ref.norm () >= min_dist_for_cluster));
+                //minimum distance constraint
+                if ((dist_trg.norm () < min_dist_for_cluster) || (dist_ref.norm () < min_dist_for_cluster))
+                    continue;
 
-          double distance = fabs (dist_trg.norm () - dist_ref.norm());
-          double dot_distance = 0;
-          if (pcl_isnan(scene_normal_k.dot (scene_normal_j)) || pcl_isnan(model_normal_k.dot (model_normal_j)))
-            dot_distance = 0.f;
-          else
-          {
-            float dot_model = model_normal_k.dot (model_normal_j);
-            /*if(dot_model < 0)
+                assert((dist_trg.norm () >= min_dist_for_cluster) && (dist_ref.norm () >= min_dist_for_cluster));
+
+                double distance = fabs (dist_trg.norm () - dist_ref.norm());
+                double dot_distance = 0;
+                if (pcl_isnan(scene_normal_k.dot (scene_normal_j)) || pcl_isnan(model_normal_k.dot (model_normal_j)))
+                    dot_distance = 0.f;
+                else
+                {
+                    float dot_model = model_normal_k.dot (model_normal_j);
+                    /*if(dot_model < 0)
             {
               dot_distance = std::numeric_limits<double>::max();
             }
             else
             {*/
-            dot_distance = std::abs (scene_normal_k.dot (scene_normal_j) - dot_model);
-            //}
-          }
+                    dot_distance = std::abs (scene_normal_k.dot (scene_normal_j) - dot_model);
+                    //}
+                }
 
-          //Model normals should be consistently oriented! otherwise reject!
-          float dot_distance_model = model_normal_k.dot (model_normal_j);
-          if(dot_distance_model < -0.1f) continue;
+                //Model normals should be consistently oriented! otherwise reject!
+                float dot_distance_model = model_normal_k.dot (model_normal_j);
+                if(dot_distance_model < -0.1f) continue;
 
-          //gc constraint and dot_product constraint!
-          if ((distance < gc_size_) && (dot_distance <= thres_dot_distance_))
-          {
-            //max_model distance constraint
-            /*if(dist_ref.norm () > max_dist_model)
+                //gc constraint and dot_product constraint!
+                if ((distance < gc_size_) && (dot_distance <= thres_dot_distance_))
+                {
+                    //max_model distance constraint
+                    /*if(dist_ref.norm () > max_dist_model)
             {
               PCL_WARN("Max distance constraint\n");
               continue;
             }*/
 
-            boost::add_edge (k, j, correspondence_graph);
-          }
+                    boost::add_edge (k, j, correspondence_graph);
+                }
+            }
         }
-      }
     }
 
     /*{
@@ -885,7 +885,7 @@ template<typename PointModelT, typename PointSceneT>
     int n_cc = static_cast<int>(biconnected_components(correspondence_graph, components));
 
     if(n_cc < 1)
-      return;
+        return;
 
     std::vector<int> model_instances_kept_indices;
 
@@ -898,13 +898,13 @@ template<typename PointModelT, typename PointSceneT>
     boost::tie (edgeIt, edgeEnd) = edges (correspondence_graph);
     for (; edgeIt != edgeEnd; ++edgeIt)
     {
-      int c = components[*edgeIt];
-      unique_vertices_per_cc[c].insert(boost::source(*edgeIt, correspondence_graph));
-      unique_vertices_per_cc[c].insert(boost::target(*edgeIt, correspondence_graph));
+        int c = components[*edgeIt];
+        unique_vertices_per_cc[c].insert(boost::source(*edgeIt, correspondence_graph));
+        unique_vertices_per_cc[c].insert(boost::target(*edgeIt, correspondence_graph));
     }
 
     for(size_t i=0; i < unique_vertices_per_cc.size(); i++)
-      cc_sizes[i] = unique_vertices_per_cc[i].size();
+        cc_sizes[i] = unique_vertices_per_cc[i].size();
 
     //for (size_t i = 0; i < model_scene_corrs_->size (); i++)
     //cc_sizes[components[i]]++;
@@ -940,25 +940,26 @@ template<typename PointModelT, typename PointSceneT>
     }*/
 
     //std::cout << "Number of connected components over threshold..." << over_gc << std::endl;
+    std::cout << "Number of connected components..." << n_cc << std::endl;
     int analyzed_ccs = 0;
     std::vector<bool> cliques_computation_possible_;
     cliques_computation_possible_.resize(n_cc, use_graph_);
     for (int c = 0; c < n_cc; c++)
     {
-      //ignore if not enough vertices...
-      int num_v_in_cc = cc_sizes[c];
-      if (num_v_in_cc < gc_threshold_)
-      {
-        continue;
-      }
+        //ignore if not enough vertices...
+        int num_v_in_cc = cc_sizes[c];
+        if (num_v_in_cc < gc_threshold_)
+        {
+            continue;
+        }
 
-      analyzed_ccs++;
+        analyzed_ccs++;
 
-      //pcl::ScopeTime ttt("Processing connected component");
-      GraphGGCG connected_graph(correspondence_graph);
+        //pcl::ScopeTime ttt("Processing connected component");
+        GraphGGCG connected_graph(correspondence_graph);
 
-      //do i need to do this again?
-      /*{
+        //do i need to do this again?
+        /*{
         typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
         std::vector<typename boost::graph_traits<GraphGGCG>::vertex_iterator> to_be_removed;
         to_be_removed.resize(boost::num_vertices(connected_graph));
@@ -980,156 +981,157 @@ template<typename PointModelT, typename PointSceneT>
           clear_vertex (*(to_be_removed[i]), connected_graph);
       }*/
 
-      //iterate over edges and remove those not belonging to this biconnected component
-      typename boost::graph_traits<GraphGGCG>::edge_iterator edgeIt, edgeEnd;
-      boost::tie (edgeIt, edgeEnd) = edges (connected_graph);
-      for (; edgeIt != edgeEnd; ++edgeIt)
-      {
-        if (components[*edgeIt] != c)
+        //iterate over edges and remove those not belonging to this biconnected component
+        typename boost::graph_traits<GraphGGCG>::edge_iterator edgeIt, edgeEnd;
+        boost::tie (edgeIt, edgeEnd) = edges (connected_graph);
+        for (; edgeIt != edgeEnd; ++edgeIt)
         {
-          boost::remove_edge(*edgeIt, connected_graph);
-        }
-      }
-      //std::cout << "Num edges connnected component:" << boost::num_edges(connected_graph) << std::endl;
-      //visualizeGraph(connected_graph, "connected component");
-
-      float arboricity = num_edges (connected_graph) / static_cast<float>(num_v_in_cc - 1);
-      //std::cout << "arboricity:" << arboricity << " num_v:" << num_v_in_cc << " edges:" << num_edges (connected_graph) << std::endl;
-      std::vector<std::pair<int, int> > edges_used;
-      std::set<int> correspondences_used;
-
-      std::vector< std::vector<int> > correspondence_to_instance;
-      correspondence_to_instance.resize(model_scene_corrs_->size());
-
-      if (cliques_computation_possible_[c] && arboricity < 25 /*&& (num_v_in_cc < 400) && (num_edges (connected_graph) < 8000) && arboricity < 10*/)
-      {
-        //std::cout << "Using cliques" << std::endl;
-        //std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
-
-        std::vector<std::vector<long unsigned int> *> cliques;
-        {
-          //pcl::ScopeTime t ("tomita cliques...");
-          Tomita<GraphGGCG> tom (static_cast<size_t> (gc_threshold_));
-          tom.setMaxTimeAllowed(max_time_allowed_cliques_comptutation_);
-          tom.find_cliques (connected_graph, static_cast<int> (model_scene_corrs_->size ()));
-          if(tom.getMaxTimeReached())
-          {
-              PCL_ERROR("Max time reached during clique computation %f!!\n", max_time_allowed_cliques_comptutation_);
-              cliques_computation_possible_[c] = false;
-              c--;
-              analyzed_ccs--;
-
-              //free memory for cliques
-              tom.getCliques (cliques);
-              for (size_t p = 0; p < cliques.size (); p++)
-                delete cliques[p];
-
-              continue;
-          }
-          //std::cout << "Number of cliques found by tomita..." << tom.getNumCliquesFound () << std::endl;
-          tom.getCliques (cliques);
-        }
-
-        std::vector< ExtendedClique > extended_cliques;
-        std::vector<std::pair<float, std::vector<long unsigned int> * > > cliques_with_average_weight;
-        for(size_t k = 0; k < cliques.size(); k++)
-        {
-            float avg_dist = 0.f;
-            float max_dist_ = 0.03f; //3 centimeters
-            float far_away_average_weight_ = 0.f;
-
-            for(size_t jj=0; jj < cliques[k]->size(); jj++)
+            if (components[*edgeIt] != c)
             {
-                avg_dist += model_scene_corrs_->at(cliques[k]->at(jj)).distance;
+                boost::remove_edge(*edgeIt, connected_graph);
+            }
+        }
+        //std::cout << "Num edges connnected component:" << boost::num_edges(connected_graph) << std::endl;
+        //visualizeGraph(connected_graph, "connected component");
+
+        float arboricity = num_edges (connected_graph) / static_cast<float>(num_v_in_cc - 1);
+        //std::cout << "arboricity:" << arboricity << " num_v:" << num_v_in_cc << " edges:" << num_edges (connected_graph) << std::endl;
+        //std::vector<std::pair<int, int> > edges_used;
+        std::set<int> correspondences_used;
+
+        std::vector< std::vector<int> > correspondence_to_instance;
+        if(prune_by_CC_)
+            correspondence_to_instance.resize(model_scene_corrs_->size());
+
+        if (cliques_computation_possible_[c] && arboricity < 25 /*&& (num_v_in_cc < 400) && (num_edges (connected_graph) < 8000) && arboricity < 10*/)
+        {
+            //std::cout << "Using cliques" << std::endl;
+            //std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
+
+            std::vector<std::vector<long unsigned int> *> cliques;
+            {
+                //pcl::ScopeTime t ("tomita cliques...");
+                Tomita<GraphGGCG> tom (static_cast<size_t> (gc_threshold_));
+                tom.setMaxTimeAllowed(max_time_allowed_cliques_comptutation_);
+                tom.find_cliques (connected_graph, static_cast<int> (model_scene_corrs_->size ()));
+                if(tom.getMaxTimeReached())
+                {
+                    PCL_ERROR("Max time reached during clique computation %f!!\n", max_time_allowed_cliques_comptutation_);
+                    cliques_computation_possible_[c] = false;
+                    c--;
+                    analyzed_ccs--;
+
+                    //free memory for cliques
+                    tom.getCliques (cliques);
+                    for (size_t p = 0; p < cliques.size (); p++)
+                        delete cliques[p];
+
+                    continue;
+                }
+                //std::cout << "Number of cliques found by tomita..." << tom.getNumCliquesFound () << std::endl;
+                tom.getCliques (cliques);
             }
 
-            avg_dist /= static_cast<float>(cliques[k]->size());
-            cliques_with_average_weight.push_back(std::make_pair(avg_dist, cliques[k]));
-
-            float avg_3D_dist = 0.f;
-
-            for(size_t jj=0; jj < cliques[k]->size(); jj++)
+            std::vector< ExtendedClique > extended_cliques;
+            std::vector<std::pair<float, std::vector<long unsigned int> * > > cliques_with_average_weight;
+            for(size_t k = 0; k < cliques.size(); k++)
             {
+                float avg_dist = 0.f;
+                float max_dist_ = 0.03f; //3 centimeters
+                float far_away_average_weight_ = 0.f;
 
-                int scene_index_j = model_scene_corrs_->at (cliques[k]->at(jj)).index_match;
-                int model_index_j = model_scene_corrs_->at (cliques[k]->at(jj)).index_query;
-                const Eigen::Vector3f& scene_point_j = scene_->at (scene_index_j).getVector3fMap ();
-                const Eigen::Vector3f& model_point_j = input_->at (model_index_j).getVector3fMap ();
-
-                for(size_t kk=(jj+1); kk < cliques[k]->size(); kk++)
+                for(size_t jj=0; jj < cliques[k]->size(); jj++)
                 {
-                    //for each pair, average 3D distance
+                    avg_dist += model_scene_corrs_->at(cliques[k]->at(jj)).distance;
+                }
 
-                    int scene_index_k = model_scene_corrs_->at (cliques[k]->at(kk)).index_match;
-                    int model_index_k = model_scene_corrs_->at (cliques[k]->at(kk)).index_query;
+                avg_dist /= static_cast<float>(cliques[k]->size());
+                cliques_with_average_weight.push_back(std::make_pair(avg_dist, cliques[k]));
 
-                    const Eigen::Vector3f& scene_point_k = scene_->at (scene_index_k).getVector3fMap ();
-                    const Eigen::Vector3f& model_point_k = input_->at (model_index_k).getVector3fMap ();
+                float avg_3D_dist = 0.f;
 
-                    Eigen::Vector3f dist_trg = model_point_k - model_point_j;
-                    Eigen::Vector3f dist_ref = scene_point_k - scene_point_j;
+                for(size_t jj=0; jj < cliques[k]->size(); jj++)
+                {
 
-                    float distance_ref_norm = dist_ref.norm();
-                    float distance = fabs (dist_trg.norm () - dist_ref.norm());
-                    avg_3D_dist += distance;
+                    int scene_index_j = model_scene_corrs_->at (cliques[k]->at(jj)).index_match;
+                    int model_index_j = model_scene_corrs_->at (cliques[k]->at(jj)).index_query;
+                    const Eigen::Vector3f& scene_point_j = scene_->at (scene_index_j).getVector3fMap ();
+                    const Eigen::Vector3f& model_point_j = input_->at (model_index_j).getVector3fMap ();
 
-                    far_away_average_weight_ += std::min((distance_ref_norm / max_dist_), 1.f);
+                    for(size_t kk=(jj+1); kk < cliques[k]->size(); kk++)
+                    {
+                        //for each pair, average 3D distance
+
+                        int scene_index_k = model_scene_corrs_->at (cliques[k]->at(kk)).index_match;
+                        int model_index_k = model_scene_corrs_->at (cliques[k]->at(kk)).index_query;
+
+                        const Eigen::Vector3f& scene_point_k = scene_->at (scene_index_k).getVector3fMap ();
+                        const Eigen::Vector3f& model_point_k = input_->at (model_index_k).getVector3fMap ();
+
+                        Eigen::Vector3f dist_trg = model_point_k - model_point_j;
+                        Eigen::Vector3f dist_ref = scene_point_k - scene_point_j;
+
+                        float distance_ref_norm = dist_ref.norm();
+                        float distance = fabs (dist_trg.norm () - dist_ref.norm());
+                        avg_3D_dist += distance;
+
+                        far_away_average_weight_ += std::min((distance_ref_norm / max_dist_), 1.f);
+                    }
+                }
+
+                avg_3D_dist /= (static_cast<float>(cliques[k]->size()) * static_cast<float>(cliques[k]->size() - 1)) / 2.f;
+                far_away_average_weight_ /= (static_cast<float>(cliques[k]->size()) * static_cast<float>(cliques[k]->size() - 1)) / 2.f;
+
+                ExtendedClique ec;
+                ec.correspondences_ = cliques[k];
+                ec.avg_pair_3D_distance_ = avg_3D_dist;
+                ec.avg_descriptor_distance_ = avg_dist;
+                ec.avg_pair_3D_distance_unnormalized_ = avg_3D_dist;
+                ec.far_away_correspondences_weight_ = far_away_average_weight_;
+                extended_cliques.push_back(ec);
+            }
+
+            float max_avg_3D_dist = 0;
+            float max_avg_descriptor_dist = 0;
+            size_t max_clique_size = 0;
+
+            for(size_t k = 0; k < cliques.size(); k++)
+            {
+                if(extended_cliques[k].avg_pair_3D_distance_ > max_avg_3D_dist)
+                {
+                    max_avg_3D_dist = extended_cliques[k].avg_pair_3D_distance_;
+                }
+
+                if(extended_cliques[k].correspondences_->size() > max_clique_size)
+                {
+                    max_clique_size = extended_cliques[k].correspondences_->size();
+                }
+
+                if(extended_cliques[k].avg_descriptor_distance_ > max_avg_descriptor_dist)
+                {
+                    max_avg_descriptor_dist = extended_cliques[k].avg_descriptor_distance_;
                 }
             }
 
-            avg_3D_dist /= (static_cast<float>(cliques[k]->size()) * static_cast<float>(cliques[k]->size() - 1)) / 2.f;
-            far_away_average_weight_ /= (static_cast<float>(cliques[k]->size()) * static_cast<float>(cliques[k]->size() - 1)) / 2.f;
-
-            ExtendedClique ec;
-            ec.correspondences_ = cliques[k];
-            ec.avg_pair_3D_distance_ = avg_3D_dist;
-            ec.avg_descriptor_distance_ = avg_dist;
-            ec.avg_pair_3D_distance_unnormalized_ = avg_3D_dist;
-            ec.far_away_correspondences_weight_ = far_away_average_weight_;
-            extended_cliques.push_back(ec);
-        }
-
-        float max_avg_3D_dist = 0;
-        float max_avg_descriptor_dist = 0;
-        size_t max_clique_size = 0;
-
-        for(size_t k = 0; k < cliques.size(); k++)
-        {
-            if(extended_cliques[k].avg_pair_3D_distance_ > max_avg_3D_dist)
+            for(size_t k = 0; k < cliques.size(); k++)
             {
-                max_avg_3D_dist = extended_cliques[k].avg_pair_3D_distance_;
+                extended_cliques[k].avg_pair_3D_distance_ = 1.f - (extended_cliques[k].avg_pair_3D_distance_ / max_avg_3D_dist);
+                extended_cliques[k].avg_descriptor_distance_ = 1.f - (extended_cliques[k].avg_descriptor_distance_ / max_avg_descriptor_dist);
+                extended_cliques[k].normalized_clique_size_ = static_cast<float>(extended_cliques[k].correspondences_->size()) / static_cast<float>(max_clique_size);
             }
 
-            if(extended_cliques[k].correspondences_->size() > max_clique_size)
-            {
-                max_clique_size = extended_cliques[k].correspondences_->size();
-            }
+            //process cliques to remove similar ones...
+            //sort (cliques.begin (), cliques.end (), less_clique_vectors); //cliques are sorted in increasing order (smaller cliques first)
 
-            if(extended_cliques[k].avg_descriptor_distance_ > max_avg_descriptor_dist)
-            {
-                max_avg_descriptor_dist = extended_cliques[k].avg_descriptor_distance_;
-            }
-        }
-
-        for(size_t k = 0; k < cliques.size(); k++)
-        {
-            extended_cliques[k].avg_pair_3D_distance_ = 1.f - (extended_cliques[k].avg_pair_3D_distance_ / max_avg_3D_dist);
-            extended_cliques[k].avg_descriptor_distance_ = 1.f - (extended_cliques[k].avg_descriptor_distance_ / max_avg_descriptor_dist);
-            extended_cliques[k].normalized_clique_size_ = static_cast<float>(extended_cliques[k].correspondences_->size()) / static_cast<float>(max_clique_size);
-        }
-
-        //process cliques to remove similar ones...
-        //sort (cliques.begin (), cliques.end (), less_clique_vectors); //cliques are sorted in increasing order (smaller cliques first)
-
-        /*sort (cliques_with_average_weight.begin (), cliques_with_average_weight.end (), best_clique_vectors);
+            /*sort (cliques_with_average_weight.begin (), cliques_with_average_weight.end (), best_clique_vectors);
         for(size_t k = 0; k < cliques.size(); k++)
         {
             cliques[k] = cliques_with_average_weight[k].second;
         }*/
 
-        sort (extended_cliques.begin (), extended_cliques.end (), best_extended_cliques);
+            sort (extended_cliques.begin (), extended_cliques.end (), best_extended_cliques);
 
-        /*for(size_t k = 0; k < cliques.size(); k++)
+            /*for(size_t k = 0; k < cliques.size(); k++)
         {
             cliques[k] = extended_cliques[k].correspondences_;
             std::cout << extended_cliques[k].correspondences_->size() << " normed size:" << extended_cliques[k].normalized_clique_size_ << " 3d:" << extended_cliques[k].avg_pair_3D_distance_  << " descriptor:" << extended_cliques[k].avg_descriptor_distance_ << " AVG PAIR 3D (unnormalized):" << extended_cliques[k].avg_pair_3D_distance_unnormalized_ << " correspondences:"; //<< std::endl;
@@ -1141,105 +1143,115 @@ template<typename PointModelT, typename PointSceneT>
             std::cout << std::endl;
         }*/
 
-        std::vector<std::vector<long unsigned int> *>::iterator it;
-        std::vector<int> taken_corresps (model_scene_corrs_->size (), 0);
-        int max_taken = max_taken_correspondence_;
+            std::vector<std::vector<long unsigned int> *>::iterator it;
+            std::vector<int> taken_corresps (model_scene_corrs_->size (), 0);
+            int max_taken = max_taken_correspondence_;
 
-        if(!cliques_big_to_small_)
-          std::reverse (cliques.begin (), cliques.end ());
+            if(!cliques_big_to_small_)
+                std::reverse (cliques.begin (), cliques.end ());
 
-        for (it = cliques.begin (); it != cliques.end (); it++)
-        {
-          //std::cout << "clique size:" << (*it)->size () << std::endl;
-          //create a new clique based on how many time the correspondences in *it clique were used
-          std::vector<long unsigned int> * new_clique = new std::vector<long unsigned int>;
-          new_clique->reserve ((*it)->size ());
-          int used = 0;
-          for (size_t i = 0; i < (*it)->size (); i++)
-          {
-            if (taken_corresps[(**it)[i]] < max_taken)
+            for (it = cliques.begin (); it != cliques.end (); it++)
             {
-              new_clique->push_back ((**it)[i]); //(**it)
-              used++;
-            }
-          }
-
-          if (used >= gc_threshold_)
-          {
-            new_clique->resize (used);
-
-            //do ransac with these correspondences...
-            pcl::Correspondences temp_corrs, filtered_corrs;
-            temp_corrs.reserve (used);
-            for (size_t j = 0; j < new_clique->size (); j++)
-            {
-              assert(new_clique->at (j) < model_scene_corrs_->size());
-              temp_corrs.push_back (model_scene_corrs_->at (new_clique->at (j)));
-            }
-
-            corr_rejector.getRemainingCorrespondences (temp_corrs, filtered_corrs);
-
-            std::vector<int> inlier_indices;
-            corr_rejector.getInliersIndices (inlier_indices);
-
-            //check if corr_rejector.getBestTransformation () was not found already
-            bool found = poseExists (corr_rejector.getBestTransformation ());
-
-            if (((int)filtered_corrs.size () >= gc_threshold_) && !found && (inlier_indices.size() != 0))
-            {
-              Eigen::Matrix4f trans = corr_rejector.getBestTransformation ();
-
-              //check if the normals are ok after applying the transformation
-              bool all_wrong = check_normals_orientation_;
-
-              if(check_normals_orientation_)
-              {
-                  for(size_t j=0; j < filtered_corrs.size(); j++)
-                  {
-                    //transform normal
-                    const Eigen::Vector3f& model_normal = input_normals_->at (filtered_corrs[j].index_query).getNormalVector3fMap ();
-                    const Eigen::Vector3f& scene_normal = scene_normals_->at (filtered_corrs[j].index_match).getNormalVector3fMap ();
-                    if(!pcl_isfinite(model_normal[0]) || !pcl_isfinite(scene_normal[0]) ||
-                        !pcl_isfinite(model_normal[1]) || !pcl_isfinite(scene_normal[1]) ||
-                        !pcl_isfinite(model_normal[2]) || !pcl_isfinite(scene_normal[2]))
+                //std::cout << "clique size:" << (*it)->size () << std::endl;
+                //create a new clique based on how many time the correspondences in *it clique were used
+                std::vector<long unsigned int> * new_clique = new std::vector<long unsigned int>;
+                new_clique->reserve ((*it)->size ());
+                int used = 0;
+                for (size_t i = 0; i < (*it)->size (); i++)
+                {
+                    if (taken_corresps[(**it)[i]] < max_taken)
                     {
-                      continue;
+                        new_clique->push_back ((**it)[i]); //(**it)
+                        used++;
+                    }
+                }
+
+                if (used >= gc_threshold_)
+                {
+                    new_clique->resize (used);
+
+                    //do ransac with these correspondences...
+                    pcl::Correspondences temp_corrs, filtered_corrs;
+                    temp_corrs.reserve (used);
+                    for (size_t j = 0; j < new_clique->size (); j++)
+                    {
+                        assert(new_clique->at (j) < model_scene_corrs_->size());
+                        temp_corrs.push_back (model_scene_corrs_->at (new_clique->at (j)));
                     }
 
-                    Eigen::Vector3f nt;
-                    nt[0] = static_cast<float> (trans (0, 0) * model_normal[0] + trans (0, 1) * model_normal[1] + trans (0, 2) * model_normal[2]);
-                    nt[1] = static_cast<float> (trans (1, 0) * model_normal[0] + trans (1, 1) * model_normal[1] + trans (1, 2) * model_normal[2]);
-                    nt[2] = static_cast<float> (trans (2, 0) * model_normal[0] + trans (2, 1) * model_normal[1] + trans (2, 2) * model_normal[2]);
-                    if(nt.dot(scene_normal) >= (1.f - thres_dot_distance_))
-                      all_wrong = false;
+                    corr_rejector.getRemainingCorrespondences (temp_corrs, filtered_corrs);
 
-                  }
-              }
+                    std::vector<int> inlier_indices;
+                    corr_rejector.getInliersIndices (inlier_indices);
 
-              if(!all_wrong)
-              {
-                //PCL_INFO("Normals are consistent %d!!\n", static_cast<int>(all_nans));
-                found_transformations_.push_back (trans);
-                model_instances.push_back (filtered_corrs);
+                    //check if corr_rejector.getBestTransformation () was not found already
+                    bool found = poseExists (corr_rejector.getBestTransformation ());
 
-                //mark all inliers
-                for (size_t j = 0; j < inlier_indices.size (); j++)
-                {
-                  taken_corresps[new_clique->at (inlier_indices[j])]++;
-                  correspondence_to_instance[new_clique->at (inlier_indices[j])].push_back(model_instances.size() - 1);
-                }
+                    if (((int)filtered_corrs.size () >= gc_threshold_) && !found && (inlier_indices.size() != 0))
+                    {
+                        Eigen::Matrix4f trans = corr_rejector.getBestTransformation ();
 
-                for (size_t j = 0; j < inlier_indices.size (); j++)
-                {
-                  correspondences_used.insert(new_clique->at (inlier_indices[j]));
-                  for (size_t k = (j+1); k < inlier_indices.size (); k++)
-                  {
-                    edges_used.push_back(std::make_pair(new_clique->at (inlier_indices[j]),new_clique->at (inlier_indices[k])));
-                  }
-                }
-              }
+                        //check if the normals are ok after applying the transformation
+                        bool all_wrong = check_normals_orientation_;
 
-              /*found_transformations_.push_back (corr_rejector.getBestTransformation ());
+                        if(check_normals_orientation_)
+                        {
+                            for(size_t j=0; j < filtered_corrs.size(); j++)
+                            {
+                                //transform normal
+                                const Eigen::Vector3f& model_normal = input_normals_->at (filtered_corrs[j].index_query).getNormalVector3fMap ();
+                                const Eigen::Vector3f& scene_normal = scene_normals_->at (filtered_corrs[j].index_match).getNormalVector3fMap ();
+                                if(!pcl_isfinite(model_normal[0]) || !pcl_isfinite(scene_normal[0]) ||
+                                        !pcl_isfinite(model_normal[1]) || !pcl_isfinite(scene_normal[1]) ||
+                                        !pcl_isfinite(model_normal[2]) || !pcl_isfinite(scene_normal[2]))
+                                {
+                                    continue;
+                                }
+
+                                Eigen::Vector3f nt;
+                                nt[0] = static_cast<float> (trans (0, 0) * model_normal[0] + trans (0, 1) * model_normal[1] + trans (0, 2) * model_normal[2]);
+                                nt[1] = static_cast<float> (trans (1, 0) * model_normal[0] + trans (1, 1) * model_normal[1] + trans (1, 2) * model_normal[2]);
+                                nt[2] = static_cast<float> (trans (2, 0) * model_normal[0] + trans (2, 1) * model_normal[1] + trans (2, 2) * model_normal[2]);
+                                if(nt.dot(scene_normal) >= (1.f - thres_dot_distance_))
+                                    all_wrong = false;
+
+                            }
+                        }
+
+                        if(!all_wrong)
+                        {
+                            //PCL_INFO("Normals are consistent %d!!\n", static_cast<int>(all_nans));
+                            found_transformations_.push_back (trans);
+                            model_instances.push_back (filtered_corrs);
+
+                            //mark all inliers
+                            for (size_t j = 0; j < inlier_indices.size (); j++)
+                            {
+                                std::cout << "1" << inlier_indices[j] << std::endl;
+                                std::cout << "2" << new_clique->size() << std::endl;
+                                std::cout << "3" << new_clique->at (inlier_indices[j]) << std::endl;
+                                std::cout << "4" << taken_corresps.size() << std::endl;
+
+                                taken_corresps[new_clique->at (inlier_indices[j])]++;
+
+                                if(prune_by_CC_)
+                                    correspondence_to_instance[new_clique->at (inlier_indices[j])].push_back(model_instances.size() - 1);
+                            }
+
+                            if(prune_by_CC_)
+                            {
+                                for (size_t j = 0; j < inlier_indices.size (); j++)
+                                {
+                                    correspondences_used.insert(new_clique->at (inlier_indices[j]));
+                                    /*for (size_t k = (j+1); k < inlier_indices.size (); k++)
+                      {
+                        edges_used.push_back(std::make_pair(new_clique->at (inlier_indices[j]),new_clique->at (inlier_indices[k])));
+                      }*/
+                                }
+                            }
+                        }
+
+                        /*found_transformations_.push_back (corr_rejector.getBestTransformation ());
               model_instances.push_back (filtered_corrs);
 
               //mark all
@@ -1248,343 +1260,348 @@ template<typename PointModelT, typename PointSceneT>
                 taken_corresps[new_clique->at (inlier_indices[j])]++;
               }*/
 
-              delete new_clique;
-            }
-            else
-            {
-              delete new_clique;
-            }
-          }
-          else
-          {
-            delete new_clique;
-          }
-        }
-
-        for (size_t p = 0; p < cliques.size (); p++)
-          delete cliques[p];
-      }
-      else
-      {
-        //use iterative gc for simple cases with lots of correspondences...
-        PCL_WARN("Problem is too hard to solve it using cliques...\n");
-        std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
-
-        std::vector<size_t> consensus_set;
-        consensus_set.resize(model_scene_corrs_->size ());
-        std::vector<bool> taken_corresps (model_scene_corrs_->size (), false);
-        //std::vector<bool> taken_corresps (model_scene_corrs_->size (), true);
-        //using only the correspondences in the connected component
-        /*typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
-        boost::tie (vertexIt, vertexEnd) = vertices (correspondence_graph);
-        for (; vertexIt != vertexEnd; ++vertexIt)
-        {
-          if (components[*vertexIt] == c)
-          {
-            taken_corresps[*vertexIt] = false;
-          }
-        }*/
-
-        GraphGGCG connected_graph(correspondence_graph);
-        //iterate over edges and remove those not belonging to this biconnected component
-        typename boost::graph_traits<GraphGGCG>::edge_iterator edgeIt, edgeEnd;
-        boost::tie (edgeIt, edgeEnd) = edges (connected_graph);
-        for (; edgeIt != edgeEnd; ++edgeIt)
-        {
-          if (components[*edgeIt] != c)
-          {
-            boost::remove_edge(*edgeIt, connected_graph);
-          }
-        }
-
-        typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
-        boost::tie (vertexIt, vertexEnd) = vertices (connected_graph);
-        for (; vertexIt != vertexEnd; ++vertexIt)
-        {
-          if ( boost::out_degree(*vertexIt, connected_graph) < (gc_threshold_ - 1))
-            taken_corresps[*vertexIt] = true;
-        }
-
-        for (size_t i = 0; i < model_scene_corrs_->size (); ++i)
-        {
-          if (taken_corresps[i])
-            continue;
-
-          int consensus_size = 0;
-          consensus_set[consensus_size++] = i;
-
-          for (size_t j = 0; j < model_scene_corrs_->size (); ++j)
-          {
-            if (j != i && !taken_corresps[j])
-            {
-              //Let's check if j fits into the current consensus set
-              bool is_a_good_candidate = true;
-
-              for (int k = 0; k < consensus_size; ++k)
-              {
-                //check if edge (j, consensus_set[k] exists in the graph, if it does not, is_a_good_candidate = false!...
-                if (!(boost::edge (j, consensus_set[k], correspondence_graph).second))
-                {
-                  is_a_good_candidate = false;
-                  break;
-                }
-              }
-
-              if (is_a_good_candidate)
-                consensus_set[consensus_size++] = j;
-            }
-          }
-
-          if (consensus_size >= gc_threshold_)
-          {
-            pcl::Correspondences temp_corrs, filtered_corrs;
-            temp_corrs.reserve (consensus_size);
-            for (int j = 0; j < consensus_size; j++)
-            {
-              temp_corrs.push_back (model_scene_corrs_->at (consensus_set[j]));
-              //taken_corresps[consensus_set[j]] = true;
-            }
-
-            if (ransac_threshold_ > 0)
-            {
-              //pcl::ScopeTime tt("ransac filtering");
-              //ransac filtering
-              corr_rejector.getRemainingCorrespondences (temp_corrs, filtered_corrs);
-              //check if corr_rejector.getBestTransformation () was not found already
-              bool found = poseExists (corr_rejector.getBestTransformation ());
-
-              std::vector<int> inlier_indices;
-              corr_rejector.getInliersIndices (inlier_indices);
-
-              //save transformations for recognize
-              if ((filtered_corrs.size () >= gc_threshold_) && !found && (inlier_indices.size() != 0))
-              {
-                Eigen::Matrix4f trans = corr_rejector.getBestTransformation ();
-
-                //check if the normals are ok after applying the transformation
-                bool all_wrong = check_normals_orientation_;
-
-                if(check_normals_orientation_)
-                {
-                    for(size_t j=0; j < filtered_corrs.size(); j++)
-                    {
-                      //transform normal
-                      const Eigen::Vector3f& model_normal = input_normals_->at (filtered_corrs[j].index_query).getNormalVector3fMap ();
-                      const Eigen::Vector3f& scene_normal = scene_normals_->at (filtered_corrs[j].index_match).getNormalVector3fMap ();
-                      if(!pcl_isfinite(model_normal[0]) || !pcl_isfinite(scene_normal[0]) ||
-                          !pcl_isfinite(model_normal[1]) || !pcl_isfinite(scene_normal[1]) ||
-                          !pcl_isfinite(model_normal[2]) || !pcl_isfinite(scene_normal[2]))
-                      {
-                        continue;
-                      }
-
-                      Eigen::Vector3f nt;
-                      nt[0] = static_cast<float> (trans (0, 0) * model_normal[0] + trans (0, 1) * model_normal[1] + trans (0, 2) * model_normal[2]);
-                      nt[1] = static_cast<float> (trans (1, 0) * model_normal[0] + trans (1, 1) * model_normal[1] + trans (1, 2) * model_normal[2]);
-                      nt[2] = static_cast<float> (trans (2, 0) * model_normal[0] + trans (2, 1) * model_normal[1] + trans (2, 2) * model_normal[2]);
-                      if(nt.dot(scene_normal) >= (1.f - thres_dot_distance_))
-                        all_wrong = false;
-
+                        delete new_clique;
                     }
-                }
-
-                if(all_wrong)
-                {
-                  //PCL_ERROR("Normals are not consistent %d %d!!\n", static_cast<int>(all_wrong), static_cast<int>(all_nans));
-                  for (int j = 0; j < consensus_size; j++)
-                    taken_corresps[consensus_set[j]] = false;
+                    else
+                    {
+                        delete new_clique;
+                    }
                 }
                 else
                 {
-                  //PCL_INFO("Normals are consistent %d!!\n", static_cast<int>(all_nans));
-                  found_transformations_.push_back (trans);
-                  model_instances.push_back (filtered_corrs);
-
-                  //for (int j = 0; j < consensus_size; j++)
-                  //taken_corresps[consensus_set[j]] = true;
-
-                  //if (consensus_size > static_cast<int>(filtered_corrs.size ()))
-                  //{
-                    //free taken_corresps...
-                    //PCL_WARN("RANSAC rejected %d correspondences from a valid set of %d ... remaining... %d \n", consensus_set.size () - filtered_corrs.size(), consensus_set.size (), filtered_corrs.size());
-
-                  //mark all inliers
-                  for (size_t j = 0; j < inlier_indices.size (); j++)
-                  {
-                    taken_corresps[consensus_set[inlier_indices[j]]] = true;
-                    correspondence_to_instance[consensus_set[inlier_indices[j]]].push_back(model_instances.size() - 1);
-                  }
-
-                  for (size_t j = 0; j < inlier_indices.size (); j++)
-                  {
-                    correspondences_used.insert(consensus_set[inlier_indices[j]]);
-                    for (size_t k = (j+1); k < inlier_indices.size (); k++)
-                    {
-                      edges_used.push_back(std::make_pair(consensus_set[inlier_indices[j]],consensus_set[inlier_indices[k]]));
-                    }
-                  }
-                  //}
+                    delete new_clique;
                 }
-              }
-              else
-              {
-                //Free the correspondences so they can be used in another set...
-                //PCL_ERROR("Freeing %d correspondences from invalid set...\n", consensus_set.size ());
-                for (int j = 0; j < consensus_size; j++)
-                  taken_corresps[consensus_set[j]] = false;
-              }
             }
-            /*else
-            {
-              //found_transformations_.push_back (corr_rejector.getBestTransformation ());
-              model_instances.push_back (temp_corrs);
-              for (int j = 0; j < consensus_size; j++)
-                taken_corresps[consensus_set[j]] = true;
-            }*/
-          }
+
+            for (size_t p = 0; p < cliques.size (); p++)
+                delete cliques[p];
         }
-      }
+        else
+        {
+            //use iterative gc for simple cases with lots of correspondences...
+            PCL_WARN("Problem is too hard to solve it using cliques...\n");
+            std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
 
-      if(prune_by_CC_)
-      {
-          //pcl::ScopeTime t("final post-processing...");
-          GraphGGCG connected_graph_used_edges(connected_graph);
-          typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
-          std::vector<typename boost::graph_traits<GraphGGCG>::vertex_descriptor> to_be_removed;
-          boost::tie (vertexIt, vertexEnd) = vertices (connected_graph_used_edges);
-          for (; vertexIt != vertexEnd; ++vertexIt)
-          {
-            std::set<int>::iterator it;
-            it = correspondences_used.find(*vertexIt);
-            if (it == correspondences_used.end())
-              to_be_removed.push_back (*vertexIt);
-          }
-
-          for (size_t i = 0; i < to_be_removed.size (); i++)
-            clear_vertex (to_be_removed[i], connected_graph_used_edges);
-
-
-          //std::cout << "Used VS connected:" << num_edges(connected_graph_used_edges) << " " << num_edges(connected_graph) << std::endl;
-
-          {
-            boost::vector_property_map<int> components (boost::num_vertices (connected_graph_used_edges));
-            int n_cc = static_cast<int> (boost::connected_components (connected_graph_used_edges, &components[0]));
-
-            std::vector<int> cc_sizes;
-            cc_sizes.resize (n_cc, 0);
-            for (size_t i = 0; i < model_scene_corrs_->size (); i++)
-              cc_sizes[components[i]]++;
-
-            int ncc_overthres = 0;
-            for (int i = 0; i < n_cc; i++)
+            std::vector<size_t> consensus_set;
+            consensus_set.resize(model_scene_corrs_->size ());
+            std::vector<bool> taken_corresps (model_scene_corrs_->size (), false);
+            //std::vector<bool> taken_corresps (model_scene_corrs_->size (), true);
+            //using only the correspondences in the connected component
+            /*typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
+            boost::tie (vertexIt, vertexEnd) = vertices (correspondence_graph);
+            for (; vertexIt != vertexEnd; ++vertexIt)
             {
-              if(cc_sizes[i] >= gc_threshold_)
-                ncc_overthres++;
+              if (components[*vertexIt] == c)
+              {
+                taken_corresps[*vertexIt] = false;
+              }
+            }*/
+
+            GraphGGCG connected_graph(correspondence_graph);
+            //iterate over edges and remove those not belonging to this biconnected component
+            typename boost::graph_traits<GraphGGCG>::edge_iterator edgeIt, edgeEnd;
+            boost::tie (edgeIt, edgeEnd) = edges (connected_graph);
+            for (; edgeIt != edgeEnd; ++edgeIt)
+            {
+                if (components[*edgeIt] != c)
+                {
+                    boost::remove_edge(*edgeIt, connected_graph);
+                }
             }
 
-            //std::cout << "Number of connected components over threshold: " << ncc_overthres << std::endl;
-
-            //somehow now i need to do a Nonmax supression of the model_instances that are in the same CC
-            //gather instances that were generated with correspondences found in a specific CC
-            //correspondence_to_instance maps correspondences (vertices) to instance, we can use that i guess
-
-            for (int internal_c = 0; internal_c < n_cc; internal_c++)
+            typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
+            boost::tie (vertexIt, vertexEnd) = vertices (connected_graph);
+            for (; vertexIt != vertexEnd; ++vertexIt)
             {
-              //ignore if not enough vertices...
-              int num_v_in_cc = cc_sizes[internal_c];
-              if (num_v_in_cc < gc_threshold_)
-                continue;
+                if ( boost::out_degree(*vertexIt, connected_graph) < (gc_threshold_ - 1))
+                    taken_corresps[*vertexIt] = true;
+            }
 
-              std::set<int> instances_for_this_cc;
-              {
-                typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
-                boost::tie (vertexIt, vertexEnd) = vertices (connected_graph_used_edges);
+            for (size_t i = 0; i < model_scene_corrs_->size (); ++i)
+            {
+                if (taken_corresps[i])
+                    continue;
 
-                for (; vertexIt != vertexEnd; ++vertexIt)
+                int consensus_size = 0;
+                consensus_set[consensus_size++] = i;
+
+                for (size_t j = 0; j < model_scene_corrs_->size (); ++j)
                 {
-                  if (components[*vertexIt] == internal_c)
-                  {
-                    for(size_t k=0; k < correspondence_to_instance[*vertexIt].size(); k++)
+                    if (j != i && !taken_corresps[j])
                     {
-                      instances_for_this_cc.insert(correspondence_to_instance[*vertexIt][k]);
+                        //Let's check if j fits into the current consensus set
+                        bool is_a_good_candidate = true;
+
+                        for (int k = 0; k < consensus_size; ++k)
+                        {
+                            //check if edge (j, consensus_set[k] exists in the graph, if it does not, is_a_good_candidate = false!...
+                            if (!(boost::edge (j, consensus_set[k], connected_graph).second))
+                            {
+                                is_a_good_candidate = false;
+                                break;
+                            }
+                        }
+
+                        if (is_a_good_candidate)
+                            consensus_set[consensus_size++] = j;
                     }
-                  }
                 }
-              }
 
-              //std::cout << "instances in this cc:" << instances_for_this_cc.size() << std::endl;
-              std::set<int>::iterator it;
-              int max_size = 0;
-              //int max_idx = 0;
-              for(it = instances_for_this_cc.begin(); it != instances_for_this_cc.end(); it++)
-              {
-                //std::cout << *it << " " << model_instances[*it].size() << std::endl;
-                if(max_size <= static_cast<int>(model_instances[*it].size()))
+                if (consensus_size >= gc_threshold_)
                 {
-                  max_size = static_cast<int>(model_instances[*it].size());
-                  //max_idx = *it;
+                    pcl::Correspondences temp_corrs, filtered_corrs;
+                    temp_corrs.reserve (consensus_size);
+                    for (int j = 0; j < consensus_size; j++)
+                    {
+                        temp_corrs.push_back (model_scene_corrs_->at (consensus_set[j]));
+                        //taken_corresps[consensus_set[j]] = true;
+                    }
+
+                    if (ransac_threshold_ > 0)
+                    {
+                        pcl::ScopeTime tt("ransac filtering");
+                        //ransac filtering
+                        corr_rejector.getRemainingCorrespondences (temp_corrs, filtered_corrs);
+                        //check if corr_rejector.getBestTransformation () was not found already
+                        bool found = poseExists (corr_rejector.getBestTransformation ());
+
+                        std::vector<int> inlier_indices;
+                        corr_rejector.getInliersIndices (inlier_indices);
+
+                        //save transformations for recognize
+                        if ((filtered_corrs.size () >= gc_threshold_) && !found && (inlier_indices.size() != 0))
+                        {
+                            Eigen::Matrix4f trans = corr_rejector.getBestTransformation ();
+
+                            //check if the normals are ok after applying the transformation
+                            bool all_wrong = check_normals_orientation_;
+
+                            if(check_normals_orientation_)
+                            {
+                                for(size_t j=0; j < filtered_corrs.size(); j++)
+                                {
+                                    //transform normal
+                                    const Eigen::Vector3f& model_normal = input_normals_->at (filtered_corrs[j].index_query).getNormalVector3fMap ();
+                                    const Eigen::Vector3f& scene_normal = scene_normals_->at (filtered_corrs[j].index_match).getNormalVector3fMap ();
+                                    if(!pcl_isfinite(model_normal[0]) || !pcl_isfinite(scene_normal[0]) ||
+                                            !pcl_isfinite(model_normal[1]) || !pcl_isfinite(scene_normal[1]) ||
+                                            !pcl_isfinite(model_normal[2]) || !pcl_isfinite(scene_normal[2]))
+                                    {
+                                        continue;
+                                    }
+
+                                    Eigen::Vector3f nt;
+                                    nt[0] = static_cast<float> (trans (0, 0) * model_normal[0] + trans (0, 1) * model_normal[1] + trans (0, 2) * model_normal[2]);
+                                    nt[1] = static_cast<float> (trans (1, 0) * model_normal[0] + trans (1, 1) * model_normal[1] + trans (1, 2) * model_normal[2]);
+                                    nt[2] = static_cast<float> (trans (2, 0) * model_normal[0] + trans (2, 1) * model_normal[1] + trans (2, 2) * model_normal[2]);
+                                    if(nt.dot(scene_normal) >= (1.f - thres_dot_distance_))
+                                        all_wrong = false;
+
+                                }
+                            }
+
+                            if(all_wrong)
+                            {
+                                //PCL_ERROR("Normals are not consistent %d %d!!\n", static_cast<int>(all_wrong), static_cast<int>(all_nans));
+                                for (int j = 0; j < consensus_size; j++)
+                                    taken_corresps[consensus_set[j]] = false;
+                            }
+                            else
+                            {
+                                PCL_INFO("Normals are consistent, pushing filtered_corrs %d!!\n", static_cast<int>(filtered_corrs.size()));
+                                found_transformations_.push_back (trans);
+                                model_instances.push_back (filtered_corrs);
+
+                                //for (int j = 0; j < consensus_size; j++)
+                                //taken_corresps[consensus_set[j]] = true;
+
+                                //if (consensus_size > static_cast<int>(filtered_corrs.size ()))
+                                //{
+                                //free taken_corresps...
+                                //PCL_WARN("RANSAC rejected %d correspondences from a valid set of %d ... remaining... %d \n", consensus_set.size () - filtered_corrs.size(), consensus_set.size (), filtered_corrs.size());
+
+                                //mark all inliers
+                                for (size_t j = 0; j < inlier_indices.size (); j++)
+                                {
+                                    taken_corresps[consensus_set[inlier_indices[j]]] = true;
+
+                                    if(prune_by_CC_)
+                                        correspondence_to_instance[consensus_set[inlier_indices[j]]].push_back(model_instances.size() - 1);
+                                }
+
+                                if(prune_by_CC_)
+                                {
+                                    for (size_t j = 0; j < inlier_indices.size (); j++)
+                                    {
+                                        correspondences_used.insert(consensus_set[inlier_indices[j]]);
+                                        /*for (size_t k = (j+1); k < inlier_indices.size (); k++)
+                                        {
+                                          edges_used.push_back(std::make_pair(consensus_set[inlier_indices[j]],consensus_set[inlier_indices[k]]));
+                                        }*/
+                                    }
+                                }
+                                //}
+                            }
+                        }
+                        else
+                        {
+                            //Free the correspondences so they can be used in another set...
+                            //PCL_ERROR("Freeing %d correspondences from invalid set...\n", consensus_set.size ());
+                            for (int j = 0; j < consensus_size; j++)
+                                taken_corresps[consensus_set[j]] = false;
+                        }
+                    }
+                    /*else
+                    {
+                      //found_transformations_.push_back (corr_rejector.getBestTransformation ());
+                      model_instances.push_back (temp_corrs);
+                      for (int j = 0; j < consensus_size; j++)
+                        taken_corresps[consensus_set[j]] = true;
+                    }*/
                 }
-              }
-
-              //std::cout << std::endl;
-
-              float thres = 0.5f;
-              for(it = instances_for_this_cc.begin(); it != instances_for_this_cc.end(); it++)
-              {
-                int size = static_cast<int>(model_instances[*it].size());
-                if( (size) > (max_size * thres))
-                  model_instances_kept_indices.push_back(*it);
-              }
             }
-          }
+        }
 
-          /*if(visualize_graph_ && correspondences_used.size() > 0)
+        if(prune_by_CC_)
+        {
+            //pcl::ScopeTime t("final post-processing...");
+            GraphGGCG connected_graph_used_edges(connected_graph);
+            typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
+            std::vector<typename boost::graph_traits<GraphGGCG>::vertex_descriptor> to_be_removed;
+            boost::tie (vertexIt, vertexEnd) = vertices (connected_graph_used_edges);
+            for (; vertexIt != vertexEnd; ++vertexIt)
+            {
+                std::set<int>::iterator it;
+                it = correspondences_used.find(*vertexIt);
+                if (it == correspondences_used.end())
+                    to_be_removed.push_back (*vertexIt);
+            }
+
+            for (size_t i = 0; i < to_be_removed.size (); i++)
+                clear_vertex (to_be_removed[i], connected_graph_used_edges);
+
+
+            //std::cout << "Used VS connected:" << num_edges(connected_graph_used_edges) << " " << num_edges(connected_graph) << std::endl;
+
+            {
+                boost::vector_property_map<int> components (boost::num_vertices (connected_graph_used_edges));
+                int n_cc = static_cast<int> (boost::connected_components (connected_graph_used_edges, &components[0]));
+
+                std::vector<int> cc_sizes;
+                cc_sizes.resize (n_cc, 0);
+                for (size_t i = 0; i < model_scene_corrs_->size (); i++)
+                    cc_sizes[components[i]]++;
+
+                int ncc_overthres = 0;
+                for (int i = 0; i < n_cc; i++)
+                {
+                    if(cc_sizes[i] >= gc_threshold_)
+                        ncc_overthres++;
+                }
+
+                //std::cout << "Number of connected components over threshold: " << ncc_overthres << std::endl;
+
+                //somehow now i need to do a Nonmax supression of the model_instances that are in the same CC
+                //gather instances that were generated with correspondences found in a specific CC
+                //correspondence_to_instance maps correspondences (vertices) to instance, we can use that i guess
+
+                for (int internal_c = 0; internal_c < n_cc; internal_c++)
+                {
+                    //ignore if not enough vertices...
+                    int num_v_in_cc = cc_sizes[internal_c];
+                    if (num_v_in_cc < gc_threshold_)
+                        continue;
+
+                    std::set<int> instances_for_this_cc;
+                    {
+                        typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
+                        boost::tie (vertexIt, vertexEnd) = vertices (connected_graph_used_edges);
+
+                        for (; vertexIt != vertexEnd; ++vertexIt)
+                        {
+                            if (components[*vertexIt] == internal_c)
+                            {
+                                for(size_t k=0; k < correspondence_to_instance[*vertexIt].size(); k++)
+                                {
+                                    instances_for_this_cc.insert(correspondence_to_instance[*vertexIt][k]);
+                                }
+                            }
+                        }
+                    }
+
+                    //std::cout << "instances in this cc:" << instances_for_this_cc.size() << std::endl;
+                    std::set<int>::iterator it;
+                    int max_size = 0;
+                    //int max_idx = 0;
+                    for(it = instances_for_this_cc.begin(); it != instances_for_this_cc.end(); it++)
+                    {
+                        //std::cout << *it << " " << model_instances[*it].size() << std::endl;
+                        if(max_size <= static_cast<int>(model_instances[*it].size()))
+                        {
+                            max_size = static_cast<int>(model_instances[*it].size());
+                            //max_idx = *it;
+                        }
+                    }
+
+                    //std::cout << std::endl;
+
+                    float thres = 0.5f;
+                    for(it = instances_for_this_cc.begin(); it != instances_for_this_cc.end(); it++)
+                    {
+                        int size = static_cast<int>(model_instances[*it].size());
+                        if( (size) > (max_size * thres))
+                            model_instances_kept_indices.push_back(*it);
+                    }
+                }
+            }
+
+            /*if(visualize_graph_ && correspondences_used.size() > 0)
             visualizeGraph(connected_graph_used_edges, "used edges");*/
 
-      }
+        }
     }
 
     if(prune_by_CC_)
     {
-      for(size_t i=0; i < model_instances_kept_indices.size(); i++)
-      {
-        model_instances[i] = model_instances[model_instances_kept_indices[i]];
-        found_transformations_[i] = found_transformations_[model_instances_kept_indices[i]];
-      }
+        for(size_t i=0; i < model_instances_kept_indices.size(); i++)
+        {
+            model_instances[i] = model_instances[model_instances_kept_indices[i]];
+            found_transformations_[i] = found_transformations_[model_instances_kept_indices[i]];
+        }
 
-      model_instances.resize(model_instances_kept_indices.size());
-      found_transformations_.resize(model_instances_kept_indices.size());
+        model_instances.resize(model_instances_kept_indices.size());
+        found_transformations_.resize(model_instances_kept_indices.size());
     }
 
     //visualizeCorrespondences(*model_scene_corrs_);
 
-  }
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT>
-  bool
-  faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
-                                                                                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<
-                                                                                        Eigen::Matrix4f> > &transformations)
-  {
+bool
+faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<
+        Eigen::Matrix4f> > &transformations)
+{
     std::vector<pcl::Correspondences> model_instances;
     return (this->recognize (transformations, model_instances));
-  }
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT>
-  bool
-  faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
-                                                                                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<
-                                                                                        Eigen::Matrix4f> > &transformations,
-                                                                                    std::vector<pcl::Correspondences> &clustered_corrs)
-  {
+bool
+faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<
+        Eigen::Matrix4f> > &transformations,
+        std::vector<pcl::Correspondences> &clustered_corrs)
+{
     transformations.clear ();
     if (!this->initCompute ())
     {
-      PCL_ERROR(
-          "[faat_pcl::GraphGeometricConsistencyGrouping::recognize()] Error! Model cloud or Scene cloud not set, please set them before calling again this function.\n");
-      return (false);
+        PCL_ERROR(
+                    "[faat_pcl::GraphGeometricConsistencyGrouping::recognize()] Error! Model cloud or Scene cloud not set, please set them before calling again this function.\n");
+        return (false);
     }
 
     clusterCorrespondences (clustered_corrs);
@@ -1593,6 +1610,6 @@ template<typename PointModelT, typename PointSceneT>
 
     this->deinitCompute ();
     return (true);
-  }
+}
 
 #endif // FAAT_PCL_RECOGNITION_SI_GEOMETRIC_CONSISTENCY_IMPL_H_
