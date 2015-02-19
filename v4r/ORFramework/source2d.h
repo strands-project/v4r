@@ -52,24 +52,6 @@ public:
         load_into_memory_ = true;
     }
 
-    void
-    getFoldersInDirectory (bf::path & dir, std::string & rel_path_so_far, std::vector<std::string> & relative_paths)
-    {
-        bf::directory_iterator end_itr;
-        for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
-        {
-            //check if its a directory, else ignore
-            if (bf::is_directory (*itr))
-            {
-#if BOOST_FILESYSTEM_VERSION == 3
-                std::string path = rel_path_so_far + (itr->path ().filename ()).string();
-#else
-                std::string path = rel_path_so_far + (itr->path ()).filename ();
-#endif
-                relative_paths.push_back (path);
-            }
-        }
-    }
     boost::shared_ptr<std::vector<Model2DTPtr> >
     getModels ()
     {
