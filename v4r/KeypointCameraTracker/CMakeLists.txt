@@ -1,7 +1,7 @@
 SET(V4R_KEYPOINT_CAMERA_TRACKER 1 CACHE BOOL "Keypoint based camera tracker (monocular and stereo/ RGBD version)" )
 IF(V4R_KEYPOINT_CAMERA_TRACKER)
 
-FIND_PACKAGE (OpenCV)
+#FIND_PACKAGE (OpenCV)
 include_directories(${OPENCV_INCLUDE_DIRS})
 link_directories(${OPENCV_LIBRARY_DIRS})
 
@@ -24,17 +24,16 @@ IF(NOT V4R_ARMARKER)
 ENDIF(NOT V4R_ARMARKER)
 
 PROJECT(v4rKeypointCameraTracker)
-
 SET(SOURCE_CPP
   CameraTrackerPnP.cc
   CameraTrackerRGBD.cc
   KeypointTracker.cc
   LoopClosingRT.cc
   Scene.cc
+  StructureFromMotionInitAR.cc
   Triangulation.cc
   View.cc
 )
-
 SET(SOURCE_H
   ARMarkerDetector.hh
   BundleAdjusterRT.hh
@@ -44,21 +43,15 @@ SET(SOURCE_H
   LoopClosingRT.hh
   ProjBundleAdjuster.hh
   Scene.cc
+  StructureFromMotionInitAR.hh
   Triangulation.hh
   View.hh
 )
 IF(V4R_ARMARKER)
   SET(SOURCE_CPP ${SOURCE_CPP}
     ARMarkerDetector.cc
-    StructureFromMotionInitAR.cc
   )
-  
-  SET(SOURCE_H ${SOURCE_H}
-  	StructureFromMotionInitAR.hh
-  )
-  	
 ENDIF(V4R_ARMARKER)
-
 IF(${Ceres_FOUND})
   SET(SOURCE_CPP ${SOURCE_CPP} 
     BundleAdjusterRT.cc
@@ -70,16 +63,19 @@ ENDIF(${Ceres_FOUND})
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
 
-IF(${Ceres_FOUND})
-  target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
-ENDIF(${Ceres_FOUND})
+target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} v4rKeypointTools v4rKeypointBase)
 
-target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${CERES_LIBRARIES} v4rKeypointTools v4rKeypointBase)
+# in case of ceres is a static lib it must be linked to the executable
+IF(${Ceres_FOUND})
+get_target_property(LIBTYPE ${CERES_LIBRARIES} TYPE)
+IF("${LIBTYPE}" STREQUAL "SHARED_LIBRARY")
+  target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
+ENDIF("${LIBTYPE}" STREQUAL "SHARED_LIBRARY")
+ENDIF(${Ceres_FOUND})
 
 IF(V4R_ARMARKER)
   target_link_libraries(${PROJECT_NAME} v4rmarker)
 ENDIF(V4R_ARMARKER)
-
 
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 

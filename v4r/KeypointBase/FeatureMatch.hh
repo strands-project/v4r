@@ -28,6 +28,7 @@ public:
   FeatureMatch() {}
   FeatureMatch(int _partIdx, int _featureIdx, const cv::Point2f &_query_pt, float _distance) 
    : partIdx(_partIdx), featureIdx(_featureIdx), query_pt(_query_pt), distance(_distance) {}
+  virtual ~FeatureMatch(){}
 };
 
 }

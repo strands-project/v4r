@@ -323,9 +323,9 @@ void RotationMatrixToAngleAxis(
 
   // sqrt is guaranteed to give non-negative results, so we only
   // threshold above.
-  T sintheta = std::min(sqrt(angle_axis[0] * angle_axis[0] +
+  T sintheta = std::min(T(sqrt(angle_axis[0] * angle_axis[0] +
                              angle_axis[1] * angle_axis[1] +
-                             angle_axis[2] * angle_axis[2]) / kTwo,
+                             angle_axis[2] * angle_axis[2]) / kTwo),
                         kOne);
 
   // Use the arctan2 to get the right sign on theta
@@ -585,7 +585,7 @@ void AngleAxisRotatePoint(const T angle_axis[3], const T pt[3], T result[3]) {
   T sintheta;
   T costheta;
 
-  const T theta2 = DotProduct(angle_axis, angle_axis);
+  const T theta2 = kp::DotProduct(angle_axis, angle_axis);
   if (theta2 > 0.0) {
     // Away from zero, use the rodriguez formula
     //
@@ -604,8 +604,8 @@ void AngleAxisRotatePoint(const T angle_axis[3], const T pt[3], T result[3]) {
     costheta = cos(theta);
     sintheta = sin(theta);
     T w_cross_pt[3];
-    CrossProduct(w, pt, w_cross_pt);
-    T w_dot_pt = DotProduct(w, pt);
+    kp::CrossProduct(w, pt, w_cross_pt);
+    T w_dot_pt = kp::DotProduct(w, pt);
     for (int i = 0; i < 3; ++i) {
       result[i] = pt[i] * costheta +
           w_cross_pt[i] * sintheta +
@@ -627,7 +627,7 @@ void AngleAxisRotatePoint(const T angle_axis[3], const T pt[3], T result[3]) {
     // Switching to the Taylor expansion at zero helps avoid all sorts
     // of numerical nastiness.
     T w_cross_pt[3];
-    CrossProduct(angle_axis, pt, w_cross_pt);
+    kp::CrossProduct(angle_axis, pt, w_cross_pt);
     for (int i = 0; i < 3; ++i) {
       result[i] = pt[i] + w_cross_pt[i];
     }

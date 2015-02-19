@@ -1,253 +1,438 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "FrintropSaliencyMap.hpp"
 
 namespace AttentionModule
 {
 
-FrintropMapParameters::FrintropMapParameters()
+FrintropSaliencyMap::FrintropSaliencyMap():
+BaseMap()
 {
-  image = cv::Mat_<float>::zeros(0,0);
-  R = cv::Mat_<float>::zeros(0,0);
-  G = cv::Mat_<float>::zeros(0,0);
-  B = cv::Mat_<float>::zeros(0,0);
-  Y = cv::Mat_<float>::zeros(0,0);
-  I = cv::Mat_<float>::zeros(0,0);
-  normalization_type = EPUtils::NT_FRINTROP_NORM;
-  width = 0;
-  height = 0;
-  numberOfOrientations = 4;
-  // on intensity
-  pyramidIOn.combination_type = AM_FRINTROP;
-  pyramidIOn.start_level = 2;
-  pyramidIOn.max_level = 4;
-  pyramidIOn.normalization_type = EPUtils::NT_FRINTROP_NORM;
-  pyramidIOn.R.resize(2);
-  pyramidIOn.R.at(0)= 3;
-  pyramidIOn.R.at(1) = 7;
-  pyramidIOn.onSwitch = true;
-  // off intensity
-  pyramidIOff.combination_type = AM_FRINTROP;
-  pyramidIOff.start_level = 2;
-  pyramidIOff.max_level = 4;
-  pyramidIOff.normalization_type = EPUtils::NT_FRINTROP_NORM;
-  pyramidIOff.R.resize(2);
-  pyramidIOff.R.at(0)= 3;
-  pyramidIOff.R.at(1) = 7;
-  pyramidIOff.onSwitch = false;
-  // R pyramid
-  pyramidR.combination_type = AM_FRINTROP;
-  pyramidR.start_level = 2;
-  pyramidR.max_level = 4;
-  pyramidR.normalization_type = EPUtils::NT_FRINTROP_NORM;
-  pyramidR.R.resize(2);
-  pyramidR.R.at(0)= 3;
-  pyramidR.R.at(1) = 7;
-  pyramidR.onSwitch = true;
-  // G pyramid
-  pyramidG.combination_type = AM_FRINTROP;
-  pyramidG.start_level = 2;
-  pyramidG.max_level = 4;
-  pyramidG.normalization_type = EPUtils::NT_FRINTROP_NORM;
-  pyramidG.R.resize(2);
-  pyramidG.R.at(0)= 3;
-  pyramidG.R.at(1) = 7;
-  pyramidG.onSwitch = true;
-  // B pyramid
-  pyramidB.combination_type = AM_FRINTROP;
-  pyramidB.start_level = 2;
-  pyramidB.max_level = 4;
-  pyramidB.normalization_type = EPUtils::NT_FRINTROP_NORM;
-  pyramidB.R.resize(2);
-  pyramidB.R.at(0)= 3;
-  pyramidB.R.at(1) = 7;
-  pyramidB.onSwitch = true;
-  // Y pyramid
-  pyramidY.combination_type = AM_FRINTROP;
-  pyramidY.start_level = 2;
-  pyramidY.max_level = 4;
-  pyramidY.normalization_type = EPUtils::NT_FRINTROP_NORM;
-  pyramidY.R.resize(2);
-  pyramidY.R.at(0)= 3;
-  pyramidY.R.at(1) = 7;
-  pyramidY.onSwitch = true;
-  // orientations
-  pyramidO.resize(numberOfOrientations);
-  for(int i = 0; i < numberOfOrientations; ++ i)
-  {
-    pyramidO.at(i).combination_type = AM_SIMPLE;
-    pyramidO.at(i).start_level = 2;
-    pyramidO.at(i).max_level = 4;
-    pyramidO.at(i).normalization_type = EPUtils::NT_FRINTROP_NORM;
-  }
-  cv::Mat map = cv::Mat_<float>::zeros(0,0);
+  reset();
 }
 
-int CalculateFrintropMap(FrintropMapParameters &parameters)
+FrintropSaliencyMap::~FrintropSaliencyMap()
 {
-  if((( (parameters.width == 0) || (parameters.height == 0) ) && ( (parameters.map.rows == 0) || (parameters.map.cols == 0))) ||
-     (  (parameters.image.rows == 0) || (parameters.image.cols == 0) ))
+}
+
+void FrintropSaliencyMap::reset()
+{
+  BaseMap::reset();
+  numberOfOrientations = 4;
+
+  mapName = "FrintropSaliencyMap";
+}
+
+void FrintropSaliencyMap::print()
+{
+  BaseMap::print();
+  printf("[%s]: numberOfOrientations = %d\n",mapName.c_str(),numberOfOrientations);
+}
+
+void FrintropSaliencyMap::setNumberOfOrientations(int numberOfOrientations_)
+{
+  numberOfOrientations = numberOfOrientations_;
+  calculated = false;
+  printf("[INFO]: %s: numberOfOrientations: %d.\n",mapName.c_str(),numberOfOrientations);
+}
+
+int FrintropSaliencyMap::getNumberOfOrientations()
+{
+  return(numberOfOrientations);
+}
+
+int FrintropSaliencyMap::checkParameters()
+{
+  if(!haveImage)
   {
+    printf("[ERROR]: %s: No image set.\n",mapName.c_str());
+    return(AM_IMAGE);
+  }
+  
+  if( (width == 0) || (height == 0) || (image.rows == 0) || (image.cols == 0) )
+  {
+    printf("[ERROR]: %s: Seems like image is empty.\n",mapName.c_str());
+    return(AM_IMAGE);
+  }
+  
+  if((image.cols != width) || (image.rows != height))
+  {
+    printf("[ERROR]: %s: Problem with image sizes.\n",mapName.c_str());
     return(AM_IMAGE);
   }
 
-  if((parameters.width == 0) || (parameters.height == 0))
+  if(image.channels() != 3)
   {
-    parameters.height = parameters.map.rows;
-    parameters.width  = parameters.map.cols;
-  }
-  
-  if((parameters.image.cols != parameters.width) || (parameters.image.rows != parameters.height) || (parameters.image.channels() != 3))
-  {
+    printf("[ERROR]: %s: Image should have 3 channels.\n",mapName.c_str());
     return(AM_IMAGE);
   }
-
-  // on intensity
-  parameters.pyramidIOn.width = parameters.width;
-  parameters.pyramidIOn.height = parameters.height;
   
-  // off intensity
-  parameters.pyramidIOff.width = parameters.width;
-  parameters.pyramidIOff.height = parameters.height;
+  if(!haveMask)
+    mask = cv::Mat_<uchar>::ones(height,width);
   
-  // orientations
-  parameters.pyramidO.clear();
-  parameters.pyramidO.resize(parameters.numberOfOrientations);
-  for(int i = 0; i < parameters.numberOfOrientations; ++i)
+  if((mask.cols != width) || (mask.rows != height))
   {
-    parameters.pyramidO.at(i).width = parameters.width;
-    parameters.pyramidO.at(i).height = parameters.height;
-    parameters.pyramidO.at(i).combination_type = AM_SIMPLE;
-    parameters.pyramidO.at(i).start_level = 2;
-    parameters.pyramidO.at(i).max_level = 4;
-    parameters.pyramidO.at(i).normalization_type = EPUtils::NT_FRINTROP_NORM;
+    mask = cv::Mat_<uchar>::ones(height,width);
   }
-  
-  // R channel
-  parameters.pyramidR.width = parameters.width;
-  parameters.pyramidR.height = parameters.height;
-  // G channel
-  parameters.pyramidG.width = parameters.width;
-  parameters.pyramidG.height = parameters.height;
-  // B channel
-  parameters.pyramidB.width = parameters.width;
-  parameters.pyramidB.height = parameters.height;
-  // Y channels
-  parameters.pyramidY.width = parameters.width;
-  parameters.pyramidY.height = parameters.height;
-  
-  CreateColorChannels(parameters);
-  
-  createFeatureMaps(parameters);
-  
-  float maxIntensityValue = std::max(parameters.pyramidIOn.max_map_value,parameters.pyramidIOff.max_map_value);
-  cv::Mat intensity = parameters.pyramidIOn.map + parameters.pyramidIOff.map;
-  EPUtils::normalize(intensity,EPUtils::NT_NONE,maxIntensityValue);
-  EPUtils::normalize(intensity,parameters.normalization_type);
-  
-  cv::Mat orientation = cv::Mat_<float>::zeros(intensity.rows,intensity.cols);
-  float maxOrientationValue = 0;
-  for(int i = 0; i < parameters.numberOfOrientations; ++i)
-  {
-    maxOrientationValue = std::max(maxOrientationValue,parameters.pyramidO.at(i).max_map_value);
-    orientation = orientation + parameters.pyramidO.at(i).map;
-  }
-  EPUtils::normalize(orientation,EPUtils::NT_NONE,maxOrientationValue);
-  EPUtils::normalize(orientation,parameters.normalization_type);
-  
-  parameters.map = intensity + orientation;
-  
-  if(parameters.image.channels() > 1)
-  {
-    float maxColorValue = std::max(parameters.pyramidR.max_map_value,parameters.pyramidG.max_map_value);
-    maxColorValue = std::max(maxColorValue,parameters.pyramidB.max_map_value);
-    maxColorValue = std::max(maxColorValue,parameters.pyramidY.max_map_value);
-    cv::Mat color = parameters.pyramidR.map + parameters.pyramidG.map + parameters.pyramidB.map + parameters.pyramidY.map;
-    EPUtils::normalize(color,EPUtils::NT_NONE,maxColorValue);
-    EPUtils::normalize(color,parameters.normalization_type);
-    parameters.map = parameters.map + color;
-  }
-  
-  //EPUtils::normalize(parameters.map);
 
   return(AM_OK);
 }
 
-void CreateColorChannels(FrintropMapParameters &parameters)
+void FrintropSaliencyMap::createColorChannels()
 {
-  if(parameters.image.channels() > 1)
-    cv::cvtColor(parameters.image,parameters.I,CV_RGB2GRAY);
+  if(image.channels() > 1)
+    cv::cvtColor(image,I,CV_RGB2GRAY);
   else
-    parameters.image.copyTo(parameters.I);
+    image.copyTo(I);
   
-  parameters.I.convertTo(parameters.I,CV_32F,1.0f/255);
+  I.convertTo(I,CV_32F,1.0f/255);
   
-  if(parameters.image.channels() > 1)
+  if(image.channels() > 1)
   {
     ColorSaliencyMap colorSaliencyMap;
-    colorSaliencyMap.setImage(parameters.image);
-    colorSaliencyMap.setWidth(parameters.image.cols);
-    colorSaliencyMap.setHeight(parameters.image.rows);
+    colorSaliencyMap.setImage(image);
     colorSaliencyMap.setUseLAB(true);
     // red
     colorSaliencyMap.setColor(cv::Scalar(255,127));
-    colorSaliencyMap.calculateColorMap(parameters.R);
+    colorSaliencyMap.calculate();
+    if(!colorSaliencyMap.getMap(R))
+    {
+      printf("[INFO]: FrintropSaliencyMap:createColorChannels:R: computation failed.\n");
+      exit(0);
+    }
     // green
     colorSaliencyMap.setColor(cv::Scalar(0,127));
-    colorSaliencyMap.calculateColorMap(parameters.G);
+    colorSaliencyMap.calculate();
+    if(!colorSaliencyMap.getMap(G))
+    {
+      printf("[INFO]: FrintropSaliencyMap:createColorChannels:G: computation failed.\n");
+      exit(0);
+    }
     // blue
     colorSaliencyMap.setColor(cv::Scalar(127,0));
-    colorSaliencyMap.calculateColorMap(parameters.B);
+    colorSaliencyMap.calculate();
+    if(!colorSaliencyMap.getMap(B))
+    {
+      printf("[INFO]: FrintropSaliencyMap:createColorChannels:B: computation failed.\n");
+      exit(0);
+    }
     // yellow
     colorSaliencyMap.setColor(cv::Scalar(127,255));
-    colorSaliencyMap.calculateColorMap(parameters.Y);
+    colorSaliencyMap.calculate();
+    if(!colorSaliencyMap.getMap(Y))
+    {
+      printf("[INFO]: FrintropSaliencyMap:createColorChannels:Y: computation failed.\n");
+      exit(0);
+    }
   }
 }
 
-void createFeatureMaps(FrintropMapParameters &parameters)
-{
-  // intensity pyramid
-  cv::buildPyramid(parameters.I,parameters.pyramidIOn.pyramidImages,parameters.pyramidIOn.max_level);
-  combinePyramid(parameters.pyramidIOn);
+void FrintropSaliencyMap::initializePyramid(FrintropPyramid::Ptr pyramid, cv::Mat &IM, bool onSwitch_)
+{ 
+  pyramid->setStartLevel(2);//
+  pyramid->setMaxLevel(4);//
+  pyramid->setSMLevel(0);//
+  pyramid->setWidth(width);//
+  pyramid->setHeight(height);//
+  pyramid->setNormalizationType(normalization_type);//EPUtils::NT_FRINTROP_NORM
   
-  cv::buildPyramid(parameters.I,parameters.pyramidIOff.pyramidImages,parameters.pyramidIOff.max_level);
-  combinePyramid(parameters.pyramidIOff);
-    
-  // orientation pyramids
-  for (int o4 = 0; o4 < parameters.numberOfOrientations; ++o4)
+  std::vector<int> R;//
+  R.resize(2); R.at(0) = 3; R.at(1) = 7;//
+  pyramid->setR(R);//
+  pyramid->setOnSwitch(onSwitch_);//
+  
+  pyramid->setImage(IM);
+  pyramid->buildPyramid();
+  pyramid->print();
+}
+
+void FrintropSaliencyMap::initializePyramid(SimplePyramid::Ptr pyramid, cv::Mat &IM)
+{ 
+  pyramid->setStartLevel(2);//
+  pyramid->setMaxLevel(4);//
+  pyramid->setSMLevel(0);//
+  pyramid->setWidth(width);//
+  pyramid->setHeight(height);//
+  pyramid->setNormalizationType(normalization_type);//EPUtils::NT_FRINTROP_NORM;
+  
+  pyramid->setImage(IM);
+  pyramid->buildPyramid();
+  pyramid->print();
+}
+
+int FrintropSaliencyMap::calculate()
+{
+  calculated = false;
+
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+
+  printf("[INFO]: %s: Computation started.\n",mapName.c_str());
+  
+  createColorChannels();
+  
+  FrintropPyramid::Ptr pyramidIOn( new FrintropPyramid() );
+  initializePyramid(pyramidIOn,I,true);
+  
+  FrintropPyramid::Ptr pyramidIOff( new FrintropPyramid() );
+  initializePyramid(pyramidIOff,I,false);
+  
+  std::vector<SimplePyramid::Ptr> pyramidO;
+  pyramidO.resize(numberOfOrientations);
+  
+  for(int i = 0; i < numberOfOrientations; ++i)
   {
-    float angle = o4*180.0/parameters.numberOfOrientations;
-    cv::Mat gaborKernel0, gaborKernel90;
-    EPUtils::makeGaborFilter(gaborKernel0,gaborKernel90,angle);
+    pyramidO.at(i) = SimplePyramid::Ptr( new SimplePyramid() );
+    initializePyramid(pyramidO.at(i),I);
+  }
+  
+  FrintropPyramid::Ptr pyramidR( new FrintropPyramid() );
+  FrintropPyramid::Ptr pyramidG( new FrintropPyramid() );
+  FrintropPyramid::Ptr pyramidB( new FrintropPyramid() );
+  FrintropPyramid::Ptr pyramidY( new FrintropPyramid() );
+  
+  if(image.channels() > 1)
+  {
+    initializePyramid(pyramidR,R,true);
+    initializePyramid(pyramidG,G,true);
+    initializePyramid(pyramidB,B,true);
+    initializePyramid(pyramidY,Y,true); 
+  }
+  
+  rt_code = createFeatureMapsI(pyramidIOn);
+  if(rt_code != AM_OK)
+      return(rt_code);
+  rt_code = createFeatureMapsI(pyramidIOff);
+  if(rt_code != AM_OK)
+      return(rt_code);
+  
+  for(int i = 0; i < numberOfOrientations; ++ i)
+  {
+    float angle = i*180.0/numberOfOrientations;
+    rt_code = createFeatureMapsO(pyramidO.at(i),angle);
+    if(rt_code != AM_OK)
+      return(rt_code);
+  }
+  
+  if(image.channels() > 1)
+  {
+    rt_code = createFeatureMapsI(pyramidR);
+    if(rt_code != AM_OK)
+      return(rt_code);
+    rt_code = createFeatureMapsI(pyramidG);
+    if(rt_code != AM_OK)
+      return(rt_code);
+    rt_code = createFeatureMapsI(pyramidB);
+    if(rt_code != AM_OK)
+      return(rt_code);
+    rt_code = createFeatureMapsI(pyramidY);
+    if(rt_code != AM_OK)
+      return(rt_code);
+  }
+  
+  cv::Mat pyramidIOn_map;
+  if(!pyramidIOn->getMap(pyramidIOn_map))
+  {
+    printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+    return(AM_CUSTOM);
+  }
+  
+//   cv::imshow("pyramidIOn_map",pyramidIOn_map);
+//   cv::waitKey(-1);
+  
+  cv::Mat pyramidIOff_map;
+  if(!pyramidIOff->getMap(pyramidIOff_map))
+  {
+    printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+    return(AM_CUSTOM);
+  }
+  
+//   cv::imshow("pyramidIOff_map",pyramidIOff_map);
+//   cv::waitKey(-1);
+  
+  float maxIntensityValue = std::max(pyramidIOn->getMaxMapValue(),pyramidIOff->getMaxMapValue());
+  cv::Mat intensity = pyramidIOn_map + pyramidIOff_map;
+  EPUtils::normalize(intensity,EPUtils::NT_NONE,maxIntensityValue);
+  EPUtils::normalize(intensity,normalization_type);
+  
+  cv::Mat orientation;
+  float maxOrientationValue = 0;
+  for(int i = 0; i < numberOfOrientations; ++i)
+  {
+    maxOrientationValue = std::max(maxOrientationValue,pyramidO.at(i)->getMaxMapValue());
     
-    parameters.pyramidO.at(o4).pyramidImages.resize(parameters.pyramidIOn.pyramidImages.size());
-    parameters.pyramidO.at(o4).pyramidFeatures.resize(parameters.pyramidIOn.pyramidFeatures.size());
+    cv::Mat orientation_temp;
     
-    for(unsigned int i = 0; i < parameters.pyramidIOn.pyramidImages.size(); ++i)
+    if(!pyramidO.at(i)->getMap(orientation_temp))
     {
-      cv::Mat temp0, temp90;
-      cv::filter2D(parameters.pyramidIOn.pyramidImages.at(i),temp0,-1,gaborKernel0);
-      temp0 = cv::abs(temp0);
-      cv::filter2D(parameters.pyramidIOn.pyramidImages.at(i),temp90,-1,gaborKernel90);
-      temp90 = cv::abs(temp90);
-      cv::add(temp0,temp90,parameters.pyramidO.at(o4).pyramidImages.at(i));
-      parameters.pyramidO.at(o4).pyramidImages.at(i).copyTo(parameters.pyramidO.at(o4).pyramidFeatures.at(i));
+      printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+      return(AM_CUSTOM);
     }
     
-    combinePyramid(parameters.pyramidO.at(o4));
+    if(i==0)
+      orientation_temp.copyTo(orientation);
+    else
+      orientation = orientation + orientation_temp;
   }
-
-  // color pyramids
-  if(parameters.image.channels() > 1)
+  EPUtils::normalize(orientation,EPUtils::NT_NONE,maxOrientationValue);
+  EPUtils::normalize(orientation,normalization_type);
+  
+//   cv::imshow("orientation",orientation);
+//   cv::waitKey(-1);
+  
+  map = intensity + orientation;
+  
+  if(image.channels() > 1)
   {
-    cv::buildPyramid(parameters.R,parameters.pyramidR.pyramidImages,parameters.pyramidR.max_level);
-    cv::buildPyramid(parameters.G,parameters.pyramidG.pyramidImages,parameters.pyramidG.max_level);
-    cv::buildPyramid(parameters.B,parameters.pyramidB.pyramidImages,parameters.pyramidB.max_level);
-    cv::buildPyramid(parameters.Y,parameters.pyramidY.pyramidImages,parameters.pyramidY.max_level);
+    float maxColorValue = std::max(pyramidR->getMaxMapValue(),pyramidG->getMaxMapValue());
+    maxColorValue = std::max(maxColorValue,pyramidB->getMaxMapValue());
+    maxColorValue = std::max(maxColorValue,pyramidY->getMaxMapValue());
     
-    combinePyramid(parameters.pyramidR);
-    combinePyramid(parameters.pyramidG);
-    combinePyramid(parameters.pyramidB);
-    combinePyramid(parameters.pyramidY);
+    cv::Mat pyramidR_map;
+    if(!pyramidR->getMap(pyramidR_map))
+    {
+      printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+      return(AM_CUSTOM);
+    }
+    
+//     cv::imshow("pyramidR_map",pyramidR_map);
+//     cv::waitKey(-1);
+    
+    cv::Mat pyramidG_map;
+    if(!pyramidG->getMap(pyramidG_map))
+    {
+      printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+      return(AM_CUSTOM);
+    }
+    
+//     cv::imshow("pyramidG_map",pyramidG_map);
+//     cv::waitKey(-1);
+    
+    cv::Mat pyramidB_map;
+    if(!pyramidB->getMap(pyramidB_map))
+    {
+      printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+      return(AM_CUSTOM);
+    }
+    
+//     cv::imshow("pyramidB_map",pyramidB_map);
+//     cv::waitKey(-1);
+    
+    cv::Mat pyramidY_map;
+    if(!pyramidY->getMap(pyramidY_map))
+    {
+      printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+      return(AM_CUSTOM);
+    }
+    
+//     cv::imshow("pyramidY_map",pyramidY_map);
+//     cv::waitKey(-1);
+    
+    cv::Mat color = pyramidR_map + pyramidG_map + pyramidB_map + pyramidY_map;
+    EPUtils::normalize(color,EPUtils::NT_NONE,maxColorValue);
+    EPUtils::normalize(color,normalization_type);
+    map = map + color;
   }
+  
+//   cv::imshow("map",map);
+//   cv::waitKey(-1);
+  
+  EPUtils::normalize(map);
+  
+  calculated = true;
+
+  printf("[INFO]: %s: Computation finished.\n",mapName.c_str());  
+
+  return(AM_OK);
+}
+
+int FrintropSaliencyMap::createFeatureMapsI(FrintropPyramid::Ptr pyramid)
+{
+  for(unsigned int i = pyramid->getStartLevel(); i <= (unsigned int)pyramid->getMaxLevel(); ++i)
+  {
+    printf("[INFO]: %s: Computating feature map for level %d.\n",mapName.c_str(),i);
+
+    cv::Mat current_image;
+    if(!pyramid->getImage(i,current_image))
+    {
+      printf("[ERROR]: Something went wrong! Can't get image for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
+    
+    if(!pyramid->setFeatureMap(i,current_image))
+    {
+     printf("[ERROR]: Something went wrong! Can't set feature map for level %d!\n",i);
+     return(AM_CUSTOM);
+    }
+    
+    printf("[INFO]: %s: Feature map at level %d is set.\n",mapName.c_str(),i);
+  }
+  // combine saliency maps
+  pyramid->combinePyramid(true); 
+  
+  return(AM_OK);
+  
+}
+
+int FrintropSaliencyMap::createFeatureMapsO(SimplePyramid::Ptr pyramid, float angle)
+{
+  for(unsigned int i = pyramid->getStartLevel(); i <= (unsigned int)pyramid->getMaxLevel(); ++i)
+  {
+    printf("[INFO]: %s: Computating feature map for level %d.\n",mapName.c_str(),i);
+
+    cv::Mat current_image;
+    if(!pyramid->getImage(i,current_image))
+    {
+      printf("[ERROR]: Something went wrong! Can't get image for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
+    
+    cv::Mat gaborKernel0, gaborKernel90;
+    EPUtils::makeGaborFilter(gaborKernel0,gaborKernel90,angle);
+    cv::Mat temp0, temp90;
+    cv::filter2D(current_image,temp0,-1,gaborKernel0);
+    temp0 = cv::abs(temp0);
+    cv::filter2D(current_image,temp90,-1,gaborKernel90);
+    temp90 = cv::abs(temp90);
+    cv::Mat current_map;
+    cv::add(temp0,temp90,current_map);
+    
+    if(!pyramid->setFeatureMap(i,current_map))
+    {
+     printf("[ERROR]: Something went wrong! Can't set feature map for level %d!\n",i);
+     return(AM_CUSTOM);
+    }
+    
+    printf("[INFO]: %s: Feature map at level %d is set.\n",mapName.c_str(),i);
+  }
+  // combine saliency maps
+  pyramid->combinePyramid(true); 
+  
+  return(AM_OK);
+  
 }
 
 } //AttentionModule

@@ -82,6 +82,7 @@ class tgTomGineThread
     bool labels;
     bool models;
     bool normals;
+    bool textured;
   };
 
 public:
@@ -105,7 +106,7 @@ protected:
   bool m_loadImage;
   bool m_showCoordinateFrame; // show a coordinate frame
   bool m_camChanged;
-  bool m_tgCamChanged;
+//  bool m_tgCamChanged;
   bool m_inputSpeedChanged;
   bool m_rotCenterChanged;
   bool m_waitingForEvents;
@@ -126,7 +127,7 @@ protected:
   cv::Mat m_intrinsic; // intrinsic parameters of the camera
   cv::Mat m_extR, m_extT; // extrinsic camera
   cv::Mat1f m_zBuffer;
-  TomGine::tgCamera m_tgCamera;
+//  TomGine::tgCamera m_tgCamera;
   TomGine::vec3 m_rotCenter; // rotation center
   TomGine::vec3 m_inputSpeeds;
   TomGine::vec3 m_clearColor;
@@ -215,7 +216,7 @@ public:
   tgTomGineThread(int w, int h, std::string windowname = std::string("TomGine"), bool bfc = false,
       float depth_min = 0.01, float depth_max = 10.0);
   /** @brief Wait for all threads to finish, then destroy. */
-  ~tgTomGineThread();
+  virtual ~tgTomGineThread();
 
   void PrintUsage();
 
@@ -354,7 +355,15 @@ public:
    *  @param cloud Vector of points in OpenCV vector format. 4th entry is float-encoded RGBA color.
    *  @return Unique id of the point cloud added. */
   int AddPointCloud(const std::vector<cv::Vec4f> &cloud, float pointsize=1.0);
-
+  /** @brief Adds a point cloud to the scene.
+   *  @param cloud Vector of points in OpenCV vector format. 
+   *  @return Unique id of the point cloud added. */
+  int AddPointCloud(const cv::Mat_<cv::Vec3f> &cloud, uchar r, uchar g, uchar b, float pointsize);
+  /** @brief Adds a point cloud to the scene.
+   *  @param cloud Vector of points in OpenCV vector format. 
+   *  @param image colour values of the cloud
+   *  @return Unique id of the point cloud added. */
+  int AddPointCloud(const cv::Mat_<cv::Vec3f> &cloud, const cv::Mat_<cv::Vec3b> &image, float pointsize);
   /** @brief  Set a point in 2D to the scene.
    *  @param  x,y   position of the point. */
   void SetPoint2D(int id, float x, float y);

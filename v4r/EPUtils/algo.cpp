@@ -1,9 +1,375 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "algo.hpp"
 
 #include <Eigen/Dense>
 
 namespace EPUtils
 {
+
+void filterGaussian(cv::Mat &input, cv::Mat &output, cv::Mat &mask)
+{
+  float kernel[5] = {1.0,4.0,6.0,4.0,1.0};
+  
+  cv::Mat temp = cv::Mat_<float>::zeros(input.rows, input.cols);
+  
+  for(int i = 0; i < input.rows; ++i)
+  { 
+    for(int j = 0; j < input.cols; j = j+2)
+    {
+      if(mask.at<float>(i,j) > 0)
+      {
+      
+	float value = 0;
+        float kernel_sum = 0;
+      
+        for(int k = 0; k < 5; ++k)
+        {
+	  int jj = j + (k-2);
+	  if( (jj >=0) && (jj < input.cols) )
+	  {
+	    if(mask.at<float>(i,jj) > 0)
+	    {
+	      value += kernel[k] * input.at<float>(i,jj);
+	      kernel_sum += kernel[k];
+	    }
+	  }
+        }
+      
+        if(kernel_sum > 0)
+        {
+	  temp.at<float>(i,j) = value / kernel_sum;
+        }
+      }
+    }
+  }
+  
+  cv::Mat temp2 = cv::Mat_<float>::zeros(temp.rows, temp.cols);
+  
+  for(int i = 0; i < temp.rows; i = i+2)
+  { 
+    for(int j = 0; j < temp.cols; j = j+2)
+    {
+      
+      if(mask.at<float>(i,j) > 0)
+      {
+     
+	float value = 0;
+        float kernel_sum = 0;
+	
+        for(int k = 0; k < 5; ++k)
+        {
+	  int ii = i + (k-2);
+	  if( (ii >=0) && (ii < temp.rows) )
+	  {
+	    if(mask.at<float>(ii,j) > 0)
+	    {
+	      value += kernel[k] * temp.at<float>(ii,j);
+	      kernel_sum += kernel[k];
+	    }
+	  }
+        }
+      
+        if(kernel_sum > 0)
+        {
+	  temp2.at<float>(i,j) = value / kernel_sum;
+        }
+      }
+    }
+  }
+  
+  int new_width = input.cols / 2;
+  int new_height = input.rows / 2;
+  
+  cv::Mat mask_output = cv::Mat_<float>::zeros(new_height,new_width);
+  output = cv::Mat_<float>::zeros(new_height,new_width);
+  
+  for(int i = 0; i < new_height; ++i)
+  {
+    for(int j = 0; j < new_width; ++j)
+    {
+      if(mask.at<float>(2*i,2*j) > 0)
+      {
+	mask_output.at<float>(i,j) = 1.0;
+	output.at<float>(i,j) = temp2.at<float>(2*i,2*j);
+      }
+    }
+  }
+  
+  mask_output.copyTo(mask);
+}
+  
+void buildDepthPyramid(cv::Mat &image, std::vector<cv::Mat> &pyramid, cv::Mat &mask, unsigned int levelNumber)
+{
+  pyramid.resize(levelNumber+1);
+  image.copyTo(pyramid.at(0));
+  
+  cv::Mat oldMask;
+  mask.copyTo(oldMask);
+  
+  for(unsigned int i = 1; i <= levelNumber; ++i)
+  {
+    cv::Mat tempImage;
+    
+    filterGaussian(pyramid.at(i-1),tempImage,oldMask);    
+    tempImage.copyTo(pyramid.at(i));
+
+  }
+}
+
+void createPointCloudPyramid(std::vector<cv::Mat> &pyramidX, std::vector<cv::Mat> &pyramidY, std::vector<cv::Mat> &pyramidZ, 
+			     std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > &pyramidCloud)
+{
+  assert( pyramidX.size() == pyramidY.size() );
+  assert( pyramidX.size() == pyramidZ.size() );
+  assert( pyramidX.size() == pyramidIndices.size() );
+  
+  unsigned int num_levels = pyramidX.size();
+  
+  pyramidCloud.resize(num_levels);
+  
+  for(unsigned int idx = 0; idx < num_levels; ++idx)
+  {
+    assert( pyramidX.at(idx).rows == pyramidY.at(idx).rows );
+    assert( pyramidX.at(idx).cols == pyramidY.at(idx).cols );
+    assert( pyramidX.at(idx).rows == pyramidZ.at(idx).rows );
+    assert( pyramidX.at(idx).cols == pyramidZ.at(idx).cols );
+    assert( pyramidX.at(idx).rows == pyramidIndices.at(idx).rows );
+    assert( pyramidX.at(idx).cols == pyramidIndices.at(idx).cols );
+    
+    pyramidCloud.at(idx) = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>() );
+    
+    unsigned int cur_height = pyramidX.at(idx).rows;
+    unsigned int cur_width = pyramidX.at(idx).cols;
+    
+    pyramidCloud.at(idx)->points.resize(cur_height*cur_width);
+    pyramidCloud.at(idx)->width = cur_width;
+    pyramidCloud.at(idx)->height = cur_height;
+    
+//     cv::imshow("pyramidZ.at(idx)",pyramidZ.at(idx));
+//     cv::waitKey(-1);
+    
+    for(unsigned int i = 0 ; i < cur_height; ++i)
+    {
+      for(unsigned int j = 0; j < cur_width; ++j)
+      {	
+	pcl::PointXYZRGB p_cur;
+	
+	//std::cerr << "(" << pyramidIndices.at(idx).at<float>(i,j) << "-- " << pyramidX.at(idx).at<float>(i,j) << "," << pyramidY.at(idx).at<float>(i,j) << "," << pyramidZ.at(idx).at<float>(i,j) << ") ";
+	
+        //if(pyramidIndices.at(idx).at<float>(i,j) > 0)
+	//{
+	  p_cur.x = pyramidX.at(idx).at<float>(i,j);
+	  p_cur.y = pyramidY.at(idx).at<float>(i,j);
+	  p_cur.z = pyramidZ.at(idx).at<float>(i,j);
+	//}
+	//else
+// 	{
+// 	  p_cur.x = std::numeric_limits<float>::quiet_NaN();
+// 	  p_cur.y = std::numeric_limits<float>::quiet_NaN();
+// 	  p_cur.z = std::numeric_limits<float>::quiet_NaN();
+// 	}
+	
+	int p_idx = i*cur_width + j;
+	pyramidCloud.at(idx)->points.at(p_idx) = p_cur;
+      }
+    }
+    
+    //std::cerr <<  std::endl << std::endl;
+  
+//   cv::imshow("output",output);
+//   cv::waitKey(-1);
+    
+  }
+}
+
+void createNormalPyramid(std::vector<cv::Mat> &pyramidNx, std::vector<cv::Mat> &pyramidNy, std::vector<cv::Mat> &pyramidNz, std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointCloud<pcl::Normal>::Ptr > &pyramidNormal)
+{
+  assert( pyramidNx.size() == pyramidNy.size() );
+  assert( pyramidNx.size() == pyramidNz.size() );
+  assert( pyramidIndices.size() == pyramidNz.size() );
+  
+  unsigned int num_levels = pyramidNx.size();
+  
+  pyramidNormal.resize(num_levels);
+  
+  for(unsigned int idx = 0; idx < num_levels; ++idx)
+  {
+    assert( pyramidNx.at(idx).rows == pyramidNy.at(idx).rows );
+    assert( pyramidNx.at(idx).cols == pyramidNy.at(idx).cols );
+    assert( pyramidNx.at(idx).rows == pyramidNz.at(idx).rows );
+    assert( pyramidNx.at(idx).cols == pyramidNz.at(idx).cols );
+    assert( pyramidNx.at(idx).rows == pyramidIndices.at(idx).rows );
+    assert( pyramidNx.at(idx).cols == pyramidIndices.at(idx).cols );
+    
+    pyramidNormal.at(idx) = pcl::PointCloud<pcl::Normal>::Ptr(new pcl::PointCloud<pcl::Normal>() );
+    
+    unsigned int cur_height = pyramidNx.at(idx).rows;
+    unsigned int cur_width = pyramidNx.at(idx).cols;
+    
+    pyramidNormal.at(idx)->points.clear();
+    
+    for(unsigned int i = 0 ; i < cur_height; ++i)
+    {
+      for(unsigned int j = 0; j < cur_width; ++j)
+      {	
+        if(pyramidIndices.at(idx).at<float>(i,j) > 0)
+	{
+	  pcl::Normal p_cur;
+	  p_cur.normal[0] = pyramidNx.at(idx).at<float>(i,j);
+	  p_cur.normal[1] = pyramidNy.at(idx).at<float>(i,j);
+	  p_cur.normal[2] = pyramidNz.at(idx).at<float>(i,j);
+	  
+	  pyramidNormal.at(idx)->points.push_back(p_cur);
+	}
+      }
+    }
+    
+    pyramidNormal.at(idx)->width = pyramidNormal.at(idx)->points.size();
+    pyramidNormal.at(idx)->height = 1;
+    
+  }
+}
+
+void createIndicesPyramid(std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointIndices::Ptr> &pyramidIndiceSets)
+{
+  unsigned int num_levels = pyramidIndices.size();
+  
+  pyramidIndiceSets.resize(num_levels);
+  
+  for(unsigned int idx = 0; idx < num_levels; ++idx)
+  {
+    pyramidIndiceSets.at(idx) = pcl::PointIndices::Ptr(new pcl::PointIndices() );
+    
+    unsigned int cur_height = pyramidIndices.at(idx).rows;
+    unsigned int cur_width = pyramidIndices.at(idx).cols;
+    
+    pyramidIndiceSets.at(idx)->indices.clear();
+    
+    for(unsigned int i = 0 ; i < cur_height; ++i)
+    {
+      for(unsigned int j = 0; j < cur_width; ++j)
+      {	
+        if(pyramidIndices.at(idx).at<float>(i,j) > 0)
+	{
+	  int p_idx = i*cur_width + j;
+	  pyramidIndiceSets.at(idx)->indices.push_back(p_idx);
+	}
+      }
+    }
+    
+  }
+}
+
+void upscaleImage(cv::Mat &input, cv::Mat &output, unsigned int width, unsigned int height)
+{
+  assert( width >= (unsigned int)(2*input.cols) );
+  assert( height >= (unsigned int)(2*input.rows) );
+ 
+  output = cv::Mat_<float>::zeros(height, width);
+  
+  for(unsigned int i = 0; i < (unsigned int)input.rows; ++i)
+  {
+    for(unsigned int j = 0; j < (unsigned int)input.cols; ++j)
+    {
+      output.at<float>(2*i,2*j) = input.at<float>(i,j);
+    }
+  }
+  
+  //cv::imshow("output",output);
+  //cv::waitKey(-1);
+  
+  for(unsigned int i = 0; i < (unsigned int)output.rows; i=i+2)
+  {
+    for(unsigned int j = 1; j < (unsigned int)output.cols-1; j=j+2)
+    {
+      output.at<float>(i,j) = ( output.at<float>(i,j-1) + output.at<float>(i,j+1) ) / 2.0;
+    }
+  }
+  for(unsigned int i = 1; i < (unsigned int)output.rows-1; i=i+2)
+  {
+    for(unsigned int j = 0; j < (unsigned int)output.cols; j=j+2)
+    {
+      output.at<float>(i,j) = ( output.at<float>(i-1,j) + output.at<float>(i+1,j) ) / 2.0;
+    }
+  }
+  for(unsigned int i = 1; i < (unsigned int)output.rows-1; i=i+2)
+  {
+    for(unsigned int j = 1; j < (unsigned int)output.cols-1; j=j+2)
+    {
+      output.at<float>(i,j) = ( output.at<float>(i-1,j-1) + output.at<float>(i-1,j+1) + output.at<float>(i+1,j-1) + output.at<float>(i+1,j+1) ) / 4.0;
+    }
+  }
+}
+
+void downscaleImage(cv::Mat &input, cv::Mat &output, unsigned int width, unsigned int height)
+{
+  assert( 2*width <= (unsigned int)(input.cols) );
+  assert( 2*height <= (unsigned int)(input.rows) );
+  
+  output = cv::Mat_<float>::zeros(height, width);
+  
+  for(unsigned int i = 0; i < (unsigned int)output.rows; ++i)
+  {
+    for(unsigned int j = 0; j < (unsigned int)output.cols; ++j)
+    {
+      output.at<float>(i,j) = input.at<float>(2*i,2*j);
+    }
+  }
+}
+
+void scaleImage(std::vector<cv::Mat> &inputPyramid, cv::Mat &input, cv::Mat &output, int inLevel, int outLevel)
+{
+  assert(input.cols == inputPyramid.at(inLevel).cols);
+  assert(input.rows == inputPyramid.at(inLevel).rows);
+  
+  if( inLevel < outLevel )
+  {
+    input.copyTo(output);
+    for(int l = inLevel+1; l <= outLevel; ++l)
+    {
+      cv::Mat temp;
+      downscaleImage(output,temp,inputPyramid.at(l).cols,inputPyramid.at(l).rows);
+      temp.copyTo(output);
+    }
+  }
+  else if ( inLevel > outLevel )
+  {
+    input.copyTo(output);
+    for(int l = inLevel-1; l >= outLevel; --l)
+    {
+      cv::Mat temp;
+      upscaleImage(output,temp,inputPyramid.at(l).cols,inputPyramid.at(l).rows);
+      temp.copyTo(output);
+    }
+  }
+  else
+  {
+    input.copyTo(output);
+  }
+}
 
 bool inPoly(std::vector<cv::Point> &poly, cv::Point p)
 {

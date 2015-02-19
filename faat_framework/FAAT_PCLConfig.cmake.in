@@ -1,6 +1,0 @@
-# Compute paths
-get_filename_component(@PROJECT_NAME@_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-set(@PROJECT_NAME@_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
-
-# These are IMPORTED targets created by FooBarTargets.cmake
-set(@PROJECT_NAME@_LIBRARIES "@CONF_LIBRARY_DIRS@")

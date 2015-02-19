@@ -1,11 +1,10 @@
 SET(V4R_PCL_ADD_ONS 1 CACHE BOOL "PCL functions, utils and specific applications." )
 IF(V4R_PCL_ADD_ONS)
 
-FIND_PACKAGE (OpenCV QUIET)
-include_directories(${OPENCV_INCLUDE_DIRS})
-link_directories(${OPENCV_LIBRARY_DIRS})
+#FIND_PACKAGE (OpenCV QUIET)
+#include_directories(${OPENCV_INCLUDE_DIRS})
+#link_directories(${OPENCV_LIBRARY_DIRS})
 
-FIND_PACKAGE(PCL QUIET)
 IF(${PCL_FOUND})
   include_directories(${PCL_INCLUDE_DIRS})
   link_directories(${PCL_LIBRARY_DIRS})
@@ -13,6 +12,8 @@ IF(${PCL_FOUND})
 
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+
+  SET(CMAKE_BUILD_TYPE Release)
 
   PROJECT(v4rPCLAddOns)
 

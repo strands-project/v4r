@@ -1,98 +1,102 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "LocationMap.hpp"
 
 namespace AttentionModule
 {
 
-LocationSaliencyMap::LocationSaliencyMap()
+LocationSaliencyMap::LocationSaliencyMap():
+BaseMap()
 {
-  mask  = cv::Mat_<float>::zeros(0,0);
-  filter_size = 5;
-  map = cv::Mat_<float>::zeros(0,0);
-  width = 0;
-  height = 0;
+  reset();
+}
+
+LocationSaliencyMap::~LocationSaliencyMap()
+{
+}
+
+void LocationSaliencyMap::reset()
+{
+  BaseMap::reset();
   location = AM_CENTER;
-  getUpdate = false;
-  maskInUse = false;
+  center_point = cv::Point(0,0);
+
+  mapName = "LocationSaliencyMap";
 }
 
-LocationSaliencyMap::LocationSaliencyMap(int location_, int height_, int width_, int filter_size_, cv::Mat &mask_)
+void LocationSaliencyMap::print()
+{
+  BaseMap::print();
+  printf("[%s]: location           = %d\n",mapName.c_str(),location);
+  printf("[%s]: center_point       = (%d,%d)\n",mapName.c_str(),center_point.x,center_point.y);
+}
+
+void LocationSaliencyMap::setLocation(int location_)
 {
   location = location_;
-  height = height_;
-  width = width_;
-  filter_size = filter_size_;
-  getUpdate = false;
-  maskInUse = false;
-  mask_.copyTo(mask);
+  calculated = false;
+  printf("[INFO]: %s: location is set to: %d\n",mapName.c_str(),location);
 }
 
-LocationSaliencyMap::LocationSaliencyMap(int location_, int height_, int width_)
+void LocationSaliencyMap::setCenter(cv::Point _center_point)
 {
-  location = location_;
-  height = height_;
-  width = width_;
-  filter_size = 5;
-  getUpdate = false;
-  maskInUse = false;
-  mask  = cv::Mat_<float>::ones(height,width);
+  center_point = _center_point;
+  calculated = false;
+  printf("[INFO]: %s: center_point is set to: (%d,%d)\n",mapName.c_str(),center_point.x,center_point.y);
 }
 
-bool LocationSaliencyMap::updateMask(cv::Mat &new_mask_)
+int LocationSaliencyMap::checkParameters()
 {
-  assert ( (new_mask_.rows == height) && (new_mask_.cols == width) );
-  
-  //std::cerr << "MASK ARRIVED" << std::endl;
-  if(!getUpdate)
+  if( (width == 0) || (height == 0) )
   {
-    new_mask_.copyTo(mask);
-    getUpdate = true;
-    //std::cerr << "WE GOT THE MASK" << std::endl;
-    return(true);
-  }
-  else
-  {
-    getUpdate = false;
-    int counter = 0;
-    while(maskInUse)
-    {
-      counter++;
-    }
-    new_mask_.copyTo(mask);
-    getUpdate = true;
-    //std::cerr << "WE GOT THE MASK" << std::endl;
-    return(true);
-  }
-  return(true);
-}
-
-int LocationSaliencyMap::calculateLocationMap(cv::Mat &map_)
-{
-  if(( (width == 0) || (height == 0) ) && ( (map.rows == 0) || (map.cols == 0)))
-  {
+    printf("[ERROR]: %s: Seems like image is empty.\n",mapName.c_str());
     return(AM_IMAGE);
   }
-
-  if((width == 0) || (height == 0))
+  
+  if(!haveMask)
+    mask = cv::Mat_<uchar>::ones(height,width);
+  
+  if((mask.cols != width) || (mask.rows != height))
   {
-    height = map.rows;
-    width  = map.cols;
+    mask = cv::Mat_<uchar>::ones(height,width);
   }
   
-//   if((mask.cols != width) || (mask.rows != height))
-//   {
-//    mask = cv::Mat_<uchar>::ones(height,width);
-//   }
+  return(AM_OK);
   
-  cv::Mat used_mask = cv::Mat_<uchar>::ones(height,width);
-  
-  if(getUpdate)
-  {
-    maskInUse = true;
-    mask.copyTo(used_mask);
-    getUpdate = false;
-    maskInUse = false;
-  }
+}
 
+int LocationSaliencyMap::calculate()
+{
+  calculated = false;
+
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+
+  printf("[INFO]: %s: Computation started.\n",mapName.c_str());
+  
   cv::Point center;
   float a = 1;
   float b = 1;
@@ -103,35 +107,34 @@ int LocationSaliencyMap::calculateLocationMap(cv::Mat &map_)
       center = cv::Point(width/2,height/2);
       break;
     case AM_LEFT_CENTER:
-      center = cv::Point(width/8,height/2);
+      center = cv::Point(width/4,height/2);
       break;
     case AM_LEFT:
-      center = cv::Point(width/8,height/2);
+      center = cv::Point(width/4,height/4);
       b = 0;
       break;
     case AM_RIGHT_CENTER:
-      center = cv::Point(7*width/8,height/2);
+      center = cv::Point(4*width/4,height/2);
       break;
     case AM_RIGHT:
-      center = cv::Point(7*width/8,height/2);
+      center = cv::Point(3*width/4,3*height/2);
       b = 0;
       break;
     case AM_TOP_CENTER:
-      center = cv::Point(width/2,20/*height/4*/);
+      center = cv::Point(width/2,height/4);
       break;
     case AM_TOP:
-      center = cv::Point(width/2,20/*height/4*/);
+      center = cv::Point(width/2,height/4);
       a = 0;
       break;
     case AM_BOTTOM_CENTER:
-      center = cv::Point(width/2,7*height/8);
+      center = cv::Point(width/2,3*height/4);
       break;
     case AM_BOTTOM:
-      center = cv::Point(width/2,7*height/8);
+      center = cv::Point(width/2,3*height/4);
       a = 0;
       break;
-    case AM_CUSTOM:
-//       std::cerr << "here" << std::endl;
+    case AM_LOCATION_CUSTOM:
       center = center_point;
       break;
     default:
@@ -145,66 +148,24 @@ int LocationSaliencyMap::calculateLocationMap(cv::Mat &map_)
   {
     for(int c = 0; c < width; ++c)
     {
-//       if(getUpdate)
-//       {
-// 	maskInUse = true;
-//         mask.copyTo(used_mask);
-//         getUpdate = false;
-//         maskInUse = false;
-//       }
-//       if(used_mask.at<uchar>(r,c))
-//       {
+      if(mask.at<uchar>(r,c))
+      {
         float dx = c-center.x;
         dx = a*(dx/width);
         float dy = r-center.y;
         dy = b*(dy/height);
         float value = dx*dx + dy*dy;
-        map.at<float>(r,c) = exp(-200*value);
-//       }
+        map.at<float>(r,c) = exp(-11*value);
+      }
     }
   }
   
-  //cv::blur(map,map,cv::Size(filter_size,filter_size));
+  cv::blur(map,map,cv::Size(filter_size,filter_size));
 
-//   EPUtils::normalize(map);
+  EPUtils::normalize(map,normalization_type);
 
-//   cv::imshow("map",map);
-//   cv::waitKey(-1);
-
-  getUpdate = false;
-
-  map.copyTo(map_);
+  calculated = true;
+  printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
   return(AM_OK);
 }
-
-void LocationSaliencyMap::setMask(cv::Mat &mask_)
-{
-  mask_.copyTo(mask);
-}
-
-void LocationSaliencyMap::setFilterSize(int filter_size_)
-{
-  filter_size = filter_size_;
-}
-
-void LocationSaliencyMap::setWidth(int width_)
-{
-  width = width_;
-}
-
-void LocationSaliencyMap::setHeight(int height_)
-{
-  height = height_;
-}
-
-void LocationSaliencyMap::setLocation(int location_)
-{
-  location = location_;
-}
-
-void LocationSaliencyMap::setCenter(cv::Point _center_point)
-{
-  center_point = _center_point;
-}
-
 } //namespace AttentionModule

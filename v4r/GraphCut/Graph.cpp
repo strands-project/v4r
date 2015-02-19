@@ -1,10 +1,10 @@
 /**
  *  Copyright (C) 2012  
- *    Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
- *    1170 Vienn, Austria
+ *    1170 Vienna, Austria
  *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -101,7 +101,7 @@ void Graph::BuildFromSVM(std::vector<gc::Edge> &e, unsigned &num_edges, std::vec
   // Connectivity check for graph
   //@ep: create connected graph?
   bool find_sink = false;
-  int sink;
+  int sink = 0;
   for(unsigned i=0; i<surfaces.size(); i++)
   {
     if(!(surfaces.at(i)->selected)) 
@@ -116,7 +116,7 @@ void Graph::BuildFromSVM(std::vector<gc::Edge> &e, unsigned &num_edges, std::vec
     bool node_found = false;
     for(unsigned j=0; j<relations.size(); j++)
     {
-      if(relations[j].id_0 == sink && relations[j].id_1 == i)
+      if(relations[j].id_0 == sink && relations[j].id_1 == ((int)i))
       {
         node_found = true;
       }

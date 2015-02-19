@@ -10,7 +10,6 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
-#include <opencv2/nonfree/features2d.hpp>
 
 #include "FeatureDetector.hh"
 #include "PSiftGPU.hh"

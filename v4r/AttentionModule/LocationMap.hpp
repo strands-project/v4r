@@ -1,44 +1,65 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #ifndef LOCATION_MAP_HPP
 #define LOCATION_MAP_HPP
 
-#include "headers.hpp"
+#include "BaseMap.hpp"
 
 namespace AttentionModule
 {
 
 enum LocationTypes
 {
-  AM_CENTER      = 0,
-  AM_LEFT_CENTER,
-  AM_LEFT,
-  AM_RIGHT_CENTER,
-  AM_RIGHT,
-  AM_TOP_CENTER,
-  AM_TOP,
-  AM_BOTTOM_CENTER,
-  AM_BOTTOM,
-  AM_CUSTOM,
+  AM_CENTER       = 0,
+  AM_LEFT_CENTER     ,
+  AM_LEFT            ,
+  AM_RIGHT_CENTER    ,
+  AM_RIGHT           ,
+  AM_TOP_CENTER      ,
+  AM_TOP             ,
+  AM_BOTTOM_CENTER   ,
+  AM_BOTTOM          ,
+  AM_LOCATION_CUSTOM ,
 };
   
-class LocationSaliencyMap
+class LocationSaliencyMap: public BaseMap
 {
 public:
   
   LocationSaliencyMap();
-  LocationSaliencyMap(int location_, int height_, int width_, int filter_size_, cv::Mat &mask_);
-  LocationSaliencyMap(int location_, int height_, int width_);
+  ~LocationSaliencyMap();
   
-  void setMask(cv::Mat &mask_);
-  void setFilterSize(int filter_size_);
-  void setWidth(int width_);
-  void setHeight(int height_);
   void setLocation(int location_);
   void setCenter(cv::Point _center_point);
-  bool updateMask(cv::Mat &new_mask_);
 /**
  * calculates location map
  * */
-  int calculateLocationMap(cv::Mat &map);
+  virtual int calculate();
+  
+  virtual void reset();
+  virtual void print();
 
 private:
 
@@ -46,16 +67,11 @@ private:
  * parameters for location saliency map
  * */
 
-cv::Mat           mask;
-cv::Mat           new_mask;
-int               filter_size;
-int               width;
-int               height;
-int               location;
-cv::Mat           map;
-bool              getUpdate;
-bool              maskInUse;
-cv::Point         center_point;
+  int location;
+  cv::Point center_point;
+
+protected:
+  virtual int checkParameters();
 
 };
 

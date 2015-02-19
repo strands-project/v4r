@@ -22,20 +22,13 @@ using namespace std;
  * Constructor/Destructor
  */
 OptimizePointsMultiViewGD::OptimizePointsMultiViewGD(const Parameter &p)
- : param(p), have_im_pts(false), have_depth(false), have_points(false), 
-   have_normals(false), have_im_indices(false)
+ : have_im_pts(false), have_depth(false), have_points(false), 
+   have_normals(false), have_im_indices(false), param(p)
 {
   cos_view_ray_normal_offset = cos(param.view_ray_normal_offset*M_PI/180);
   mv_views.resize(1);
   mv_views[0].idx = 0;
-
-  im_pts.reset(new std::vector<cv::Point2f>);
-  depth.reset(new std::vector<double>);
-  points.reset(new std::vector<Eigen::Vector3f>);
-  normals.reset(new std::vector<Eigen::Vector3f>);
-  converged.reset(new std::vector<bool>);
-  im_indices.reset(new std::vector< std::vector<int> >);
-  view_rays.reset(new std::vector<Eigen::Vector3f>);
+  poses.resize(1);
 }
 
 OptimizePointsMultiViewGD::~OptimizePointsMultiViewGD()
@@ -127,30 +120,41 @@ bool OptimizePointsMultiViewGD::optimizeSequentialDim(MultiViewPatchError &mpe, 
 }
 
 /**
- * InitData
+ * initData
  */
-void OptimizePointsMultiViewGD::InitData(std::vector<cv::Point2f> &r_im_pts, std::vector<double> &r_depth, std::vector<Eigen::Vector3f> &r_points, std::vector<Eigen::Vector3f> &r_normals, std::vector<Eigen::Vector3f> &r_view_rays, std::vector< std::vector<int> > &r_im_indices)
+void OptimizePointsMultiViewGD::initData(const Eigen::Matrix4f &pose) 
 {
   if (!(have_im_pts && have_depth) && !have_points)
     throw std::runtime_error("[OptimizePointsMultiViewGD::InitData] Invalid data! You need ether 3D points or image points and the depth!"); 
 
-  r_view_rays.clear();
+  view_rays.clear();
+  
+  Eigen::Vector3f pt3, vr, t, inv_t;
+  Eigen::Matrix3f R, inv_R;
+  Eigen::Matrix4f inv_pose;
+
+  invPose(pose, inv_pose);
+  R = pose.topLeftCorner<3,3>();
+  t = pose.block<3,1>(0,3);
+  inv_R = inv_pose.topLeftCorner<3,3>();
+  inv_t = inv_pose.block<3,1>(0,3);
 
   if (have_im_pts && have_depth)
   {
-    if (r_im_pts.size() != r_depth.size())
-      throw std::runtime_error("[OptimizePointsMultiViewGD::InitData] Number of depth points != Number of image points!");
+    if (im_pts.size() != depth.size())
+      throw std::runtime_error("[OptimizePointsMultiViewGD::InitData] Number of depth points != number of image points!");
 
     // init 3d points
-    if (!have_points || r_points.size() != r_depth.size())
+    if (!have_points || points.size() != depth.size())
     {
-      r_view_rays.resize(r_im_pts.size());
-      r_points.resize(r_im_pts.size());
-      for (unsigned i=0; i<r_im_pts.size(); i++)
+      view_rays.resize(im_pts.size());
+      points.resize(im_pts.size());
+      for (unsigned i=0; i<im_pts.size(); i++)
       {
-        cv::Point2f &pt = r_im_pts[i];
-        r_view_rays[i] = -Eigen::Vector3f((pt.x-C(0,2))/C(0,0),(pt.y-C(1,2))/C(1,1),1.).normalized();
-        r_points[i] = -r_view_rays[i]*r_depth[i];
+        cv::Point2f &pt = im_pts[i];
+        vr = -Eigen::Vector3f((pt.x-C(0,2))/C(0,0),(pt.y-C(1,2))/C(1,1),1.).normalized();
+        view_rays[i] = inv_R * vr;
+        points[i] = inv_R*(-vr*depth[i]) + inv_t;
       }
     }
   }
@@ -158,51 +162,51 @@ void OptimizePointsMultiViewGD::InitData(std::vector<cv::Point2f> &r_im_pts, std
   if (have_points)
   {
     // init image points
-    if (!have_im_pts || r_im_pts.size()!=r_points.size())
+    if (!have_im_pts || im_pts.size()!=points.size())
     {
-      r_im_pts.resize(r_points.size());
-      for (unsigned i=0; i<r_points.size(); i++)
+      im_pts.resize(points.size());
+      for (unsigned i=0; i<points.size(); i++)
       {
-        Eigen::Vector3f &pt3 = r_points[i];
-        r_im_pts[i] = cv::Point2f(pt3[0]/pt3[2]*C(0,0)+C(0,2), pt3[1]/pt3[2]*C(1,1)+C(1,2));
+        pt3 = R*points[i] + t;
+        im_pts[i] = cv::Point2f(pt3[0]/pt3[2]*C(0,0)+C(0,2), pt3[1]/pt3[2]*C(1,1)+C(1,2));
       }
     }
     // init depth
-    if (!have_depth || r_depth.size()!=r_points.size())
+    if (!have_depth || depth.size()!=points.size())
     {
-      r_depth.resize(r_points.size());
-      for (unsigned i=0; i<r_points.size(); i++)
+      depth.resize(points.size());
+      for (unsigned i=0; i<points.size(); i++)
       {
-        r_depth[i] = r_points[i].norm();
+        depth[i] = (R*points[i]+t).norm();
       }
     }
   }
 
   // init view rays
-  if (r_view_rays.size()!=r_points.size())
+  if (view_rays.size()!=points.size())
   {
-    r_view_rays.resize(r_points.size());
-    for (unsigned i=0; i<r_points.size(); i++)
+    view_rays.resize(points.size());
+    for (unsigned i=0; i<points.size(); i++)
     {
-      r_view_rays[i] = -r_points[i].normalized();
+      view_rays[i] = -inv_R * ( (R*points[i]+t).normalized() );
     }
   }
 
   // init normals
-  if (!have_normals || r_normals.size()!=r_view_rays.size())
+  if (!have_normals || normals.size()!=view_rays.size())
   {
-    r_normals.resize(r_view_rays.size());
-    for (unsigned i=0; i<r_view_rays.size(); i++)
+    normals.resize(view_rays.size());
+    for (unsigned i=0; i<view_rays.size(); i++)
     {
-      r_normals[i] = r_view_rays[i];
+      normals[i] = view_rays[i];
     }
   }
 
   // clar visibility
-  if (!have_im_indices || r_im_indices.size()!=r_points.size())
+  if (!have_im_indices || im_indices.size()!=points.size())
   {
-    r_im_indices.clear();
-    r_im_indices.resize(r_points.size());
+    im_indices.clear();
+    im_indices.resize(points.size());
   }
 }
 
@@ -215,19 +219,19 @@ void OptimizePointsMultiViewGD::InitData(std::vector<cv::Point2f> &r_im_pts, std
 void OptimizePointsMultiViewGD::clearFrames()
 {
   mv_views.resize(1);
+  poses.resize(1);
 }
 
 /**
  * addFrame
  */
-int OptimizePointsMultiViewGD::addFrame(const cv::Mat_<unsigned char> &image, const Eigen::Matrix4f &delta_pose)
+int OptimizePointsMultiViewGD::addFrame(const cv::Mat_<unsigned char> &image, const Eigen::Matrix4f &pose)
 {
   mv_views.push_back(MVView());
   
   mv_views.back().idx = mv_views.size()-1;
   mv_views.back().image = image;
-  getR(delta_pose, mv_views.back().R);
-  getT(delta_pose, mv_views.back().t);
+  poses.push_back(pose);
 
   return mv_views.size()-2;
 }
@@ -235,7 +239,7 @@ int OptimizePointsMultiViewGD::addFrame(const cv::Mat_<unsigned char> &image, co
 /**
  * setImagePoints
  */
-void OptimizePointsMultiViewGD::setImagePoints(SmartPtr< std::vector<cv::Point2f> > &_im_pts) 
+void OptimizePointsMultiViewGD::setImagePoints(const std::vector<cv::Point2f> &_im_pts) 
 {
   im_pts=_im_pts;
   have_im_pts=true;
@@ -244,7 +248,7 @@ void OptimizePointsMultiViewGD::setImagePoints(SmartPtr< std::vector<cv::Point2f
 /**
  * setDepth
  */
-void OptimizePointsMultiViewGD::setDepth(SmartPtr< std::vector<double> > &_depth) 
+void OptimizePointsMultiViewGD::setDepth(const std::vector<double> &_depth) 
 {
   depth=_depth;
   have_depth=true;
@@ -253,7 +257,7 @@ void OptimizePointsMultiViewGD::setDepth(SmartPtr< std::vector<double> > &_depth
 /**
  * setPoints
  */
-void OptimizePointsMultiViewGD::setPoints(SmartPtr< std::vector<Eigen::Vector3f> > &_points) 
+void OptimizePointsMultiViewGD::setPoints(const std::vector<Eigen::Vector3f> &_points) 
 { 
   points=_points;
   have_points=true;
@@ -262,7 +266,7 @@ void OptimizePointsMultiViewGD::setPoints(SmartPtr< std::vector<Eigen::Vector3f>
 /**
  * setNormals
  */
-void OptimizePointsMultiViewGD::setNormals(SmartPtr< std::vector<Eigen::Vector3f> > &_normals) 
+void OptimizePointsMultiViewGD::setNormals(const std::vector<Eigen::Vector3f> &_normals) 
 {
   normals=_normals;
   have_normals=true;
@@ -271,67 +275,92 @@ void OptimizePointsMultiViewGD::setNormals(SmartPtr< std::vector<Eigen::Vector3f
 /**
  * setImageIndices
  */
-void OptimizePointsMultiViewGD::setImageIndices(SmartPtr< std::vector< std::vector<int> > > &_idx) 
+void OptimizePointsMultiViewGD::setImageIndices(const std::vector< std::vector<int> > &_idx) 
 {
   im_indices=_idx;
   have_im_indices=true;
 }
 
 /**
+ * initPoses
+ */
+void OptimizePointsMultiViewGD::initPoses(std::vector<MVView> &mv_views, std::vector<Eigen::Matrix4f> &poses)
+{
+  
+  Eigen::Matrix4f delta_pose, inv_pose;
+
+  invPose(poses[0], inv_pose);
+
+  mv_views[0].R.setIdentity();
+  mv_views[0].t.setZero();
+
+  for (unsigned i=1; i<mv_views.size(); i++)
+  {
+    delta_pose =  poses[i]*inv_pose;
+    getR(delta_pose,  mv_views[i].R);
+    getT(delta_pose,  mv_views[i].t);        
+  }
+}
+
+/**
  * optimize
  */
-void OptimizePointsMultiViewGD::optimize(const cv::Mat_<unsigned char> &image)
+void OptimizePointsMultiViewGD::optimize(const cv::Mat_<unsigned char> &image, const Eigen::Matrix4f &pose)
 {
   if (mv_views.size()<2)
     return;
 
-  std::vector<cv::Point2f> &r_im_pts = *im_pts;
-  std::vector<double> &r_depth = *depth;
-  std::vector<Eigen::Vector3f> &r_points = *points;
-  std::vector<Eigen::Vector3f> &r_normals = *normals;
-  std::vector<bool> &r_converged = *converged;
-  std::vector< std::vector<int> > &r_im_indices = *im_indices;
-  std::vector<Eigen::Vector3f> &r_view_rays = *view_rays;
-
-  InitData(r_im_pts, r_depth, r_points, r_normals, r_view_rays, r_im_indices);
-
-  r_converged.clear();
-  r_converged.resize(r_depth.size(), false);
-
+  // init data
+  poses[0] = pose;
   mv_views[0].image = image;
-  mv_views[0].R.setIdentity();
-  mv_views[0].t.setZero();
 
-  Eigen::Vector3d vrx, n_new;
+  initData(pose);
+  initPoses(mv_views, poses);
 
   MVPoint mv_point;
   Eigen::Vector3d rot;
   double ddepth;
+
+  Eigen::Vector3d vrx, n_new;
+  Eigen::Vector3f t, inv_t;
+  Eigen::Matrix3f R, inv_R;
+  Eigen::Matrix4f inv_pose;
+
+  invPose(pose, inv_pose);
+
+  R = pose.topLeftCorner<3,3>();
+  t = pose.block<3,1>(0,3);
+  inv_R = inv_pose.topLeftCorner<3,3>();
+  inv_t = inv_pose.block<3,1>(0,3);
+
   std::vector<unsigned char> patch0(param.patch_size.width*param.patch_size.height);
   std::vector<unsigned char> patch1(param.patch_size.width*param.patch_size.height);
   std::vector<MVView*> ptr_mv_views;
   std::vector<double> residuals;
 
+  converged.clear();
+  converged.resize(depth.size(), false);
+
   // optimize points
-  for (unsigned j=0; j<r_im_pts.size(); j++)
+  for (unsigned j=0; j<im_pts.size(); j++)
   {
-    const cv::Point2f &pt = r_im_pts[j];
+    const cv::Point2f &pt = im_pts[j];
 
     if (pt.x<param.patch_size.width || pt.y<param.patch_size.height || 
         pt.x>=image.cols-param.patch_size.width || 
         pt.y>=image.rows-param.patch_size.height)
       continue;
 
-    mv_point = MVPoint(pt, r_points[j], r_normals[j], r_view_rays[j]);
+    mv_point = MVPoint(pt, R*points[j]+t, R*normals[j], R*view_rays[j]);
 
     // select views (test visibility, test error)
     ptr_mv_views.clear();
     ptr_mv_views.push_back(&mv_views[0]);
     if (have_im_indices)
     {
-      for (unsigned i=0; i<r_im_indices[j].size(); i++)
+      for (unsigned i=0; i<im_indices[j].size(); i++)
       {
-        MVView *ptr_mvx = &mv_views[r_im_indices[j][i]+1];
+        MVView *ptr_mvx = &mv_views[im_indices[j][i]+1];
         vrx = ptr_mvx->R * mv_point.vr;
         if (mv_point.n.dot(vrx) > cos_view_ray_normal_offset)
           ptr_mv_views.push_back(ptr_mvx);
@@ -372,21 +401,21 @@ void OptimizePointsMultiViewGD::optimize(const cv::Mat_<unsigned char> &image)
     if(optimizeSequentialDim(mpe, rot, ddepth))
     {
       kp::AngleAxisRotatePoint(&rot[0], &mv_point.n[0], &n_new[0]);
-      r_depth[j] -= ddepth;
-      r_normals[j] = Eigen::Vector3f(n_new[0], n_new[1], n_new[2]);
-      r_points[j] = -r_view_rays[j]*r_depth[j];
+      depth[j] -= ddepth;
+      normals[j] = inv_R * n_new.cast<float>();
+      points[j] = inv_R * (-mv_point.vr.cast<float>()*depth[j]) + inv_t;
       
-      r_converged[j] = true;
+      converged[j] = true;
 
       mpe(rot, ddepth, residuals);
 
-      r_im_indices[j].clear();
-      for (unsigned i=0; i<residuals.size(); i++) {
+      im_indices[j].clear();
+      for (unsigned i=0; i<residuals.size(); i++) 
+      {
         if (residuals[i] > param.max_residual_optimized) {
-          r_converged[j] = false;
+          converged[j] = false;
           break;
-        }
-        else r_im_indices[j].push_back(ptr_mv_views[i]->idx-1);
+        } else im_indices[j].push_back(ptr_mv_views[i]->idx-1);
       }
     }
   }

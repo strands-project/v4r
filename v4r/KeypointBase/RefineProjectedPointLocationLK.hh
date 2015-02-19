@@ -15,6 +15,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "v4r/KeypointTools/SmartPtr.hpp"
+#include "RefineProjectedPointLocationLKbase.hh"
 
 
 
@@ -24,7 +25,7 @@ namespace kp
 /**
  * RefineProjectedPointLocationLK
  */
-class RefineProjectedPointLocationLK
+class RefineProjectedPointLocationLK : public RefineProjectedPointLocationLKbase
 {
 public:
   class Parameter
@@ -35,7 +36,7 @@ public:
     float min_displacement;   //0.1
     int max_iterations;       //10
     int max_residual;
-    float ncc_residual;
+    float ncc_residual;      // 0.3
     bool use_ncc;
     cv::Size patch_size;
     Parameter(float _step_factor=10., float _min_determinant=0.01, float _min_displacement=0.1, 
@@ -49,9 +50,9 @@ public:
 private:
   Parameter param;
 
-  cv::Mat_<double> intrinsic;
-  cv::Mat_<double> dist_coeffs;
-  Eigen::Matrix3f C;
+  cv::Mat_<double> src_intrinsic, tgt_intrinsic;
+  cv::Mat_<double> src_dist_coeffs, tgt_dist_coeffs;
+  Eigen::Matrix3f src_C, tgt_C;
 
 
   cv::Mat_<unsigned char> im_src, im_tgt;
@@ -60,6 +61,8 @@ private:
   Eigen::Matrix4f inv_pose_tgt, delta_pose;
   Eigen::Matrix3f R_tgt, delta_R;
   Eigen::Vector3f t_tgt, delta_t;
+
+  std::vector<float> residuals;
 
   void getIntensityDifference(const cv::Mat_<unsigned char> &im1, cv::Mat_<unsigned char> &im2, 
         const cv::Point2f &pt1, const cv::Point2f &pt2, int width, int height, cv::Mat_<float> &diff);
@@ -79,15 +82,18 @@ private:
 
 public:
   RefineProjectedPointLocationLK(const Parameter &p=Parameter());
-  ~RefineProjectedPointLocationLK();
+  virtual ~RefineProjectedPointLocationLK();
 
-  void setSourceImage(const cv::Mat_<unsigned char> &_im_src, const Eigen::Matrix4f &_pose_src);
-  void setTargetImage(const cv::Mat_<unsigned char> &_im_tgt, const Eigen::Matrix4f &_pose_tgt);
-  void refineImagePoints(const std::vector<Eigen::Vector3f> &pts, 
+  virtual void setSourceImage(const cv::Mat_<unsigned char> &_im_src, const Eigen::Matrix4f &_pose_src);
+  virtual void setTargetImage(const cv::Mat_<unsigned char> &_im_tgt, const Eigen::Matrix4f &_pose_tgt);
+  virtual void refineImagePoints(const std::vector<Eigen::Vector3f> &pts, 
         const std::vector<Eigen::Vector3f> &normals, 
         std::vector<cv::Point2f> &im_pts_tgt, std::vector<int> &converged);
 
-  void setCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs);
+  virtual const std::vector<float> &getResiduals()const {return residuals;}
+
+  virtual void setSourceCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs);
+  virtual void setTargetCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs);
 
   typedef SmartPtr< ::kp::RefineProjectedPointLocationLK> Ptr;
   typedef SmartPtr< ::kp::RefineProjectedPointLocationLK const> ConstPtr;

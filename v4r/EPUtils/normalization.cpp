@@ -1,3 +1,27 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "normalization.hpp"
 
 namespace EPUtils
@@ -78,7 +102,7 @@ void computeLocalMax(cv::Mat &image, int &numLocalMax, float &averageLocalMax, f
     }
   }
   
-  if (numLocalMax != 0)
+  if (numLocalMax > 0)
   {
     averageLocalMax /= numLocalMax;
   }
@@ -88,11 +112,13 @@ void computeLocalMax(cv::Mat &image, int &numLocalMax, float &averageLocalMax, f
 void normalizeNonMax(cv::Mat &map)
 {
   cv::normalize(map,map,0,1,cv::NORM_MINMAX);
+  //normalizeMin2Zero(map);
   int numLocalMax;
   float averageLocalMax;
   computeLocalMax(map,numLocalMax,averageLocalMax);
   float multiplier = (1-averageLocalMax)*(1-averageLocalMax);
   map = multiplier * map;
+  //normalizeMax2One(map);
 }
 
 void normalizeFrintrop(cv::Mat &map)
@@ -102,7 +128,8 @@ void normalizeFrintrop(cv::Mat &map)
   int numLocalMax;
   float averageLocalMax;
   computeLocalMax(map,numLocalMax,averageLocalMax,0.5*maxValue);
-  map = map / sqrt((float)numLocalMax);
+  if(numLocalMax > 0)
+    map = map / sqrt((float)numLocalMax);
 }
 
 void normalizeMin2Zero(cv::Mat &map)

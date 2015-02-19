@@ -19,14 +19,15 @@ class ScopeTime
 {
 public:
   std::string title;
+  bool print;
   boost::posix_time::ptime start;
 
-  inline ScopeTime (const char* _title) : title(std::string(_title))
+  inline ScopeTime (const char* _title, bool _print=true) : title(std::string(_title)), print(_print)
   {
     start = boost::posix_time::microsec_clock::local_time ();
   }
 
-  inline ScopeTime () : title(std::string(""))
+  inline ScopeTime () : title(std::string("")), print(true)
   {
     start = boost::posix_time::microsec_clock::local_time ();
   }
@@ -34,7 +35,7 @@ public:
   inline ~ScopeTime ()
   {
     double val = this->getTime ();
-    std::cout << title << ": " << val << "ms\n";
+    if (print) std::cout << title << ": " << val << "ms\n";
   }
 
   inline double getTime ()

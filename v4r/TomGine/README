@@ -23,6 +23,7 @@ Requirements
 	rt		(real-time clock)
 	freeglut3-dev
     libglew1.6-dev
+    X11, X11-xcb
 	libftgl2, libftgl-dev (render text in OpenGL)
 	libhighgui-dev (opencv - image file loading/saving)
 	

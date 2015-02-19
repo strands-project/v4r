@@ -141,11 +141,11 @@ void GLWindow::GetEventBlocking(Event &event)
 {
   XEvent xev;
   int keysyms_per_keycode_return;
+
   XNextEvent(dpy, &xev);
 
-  while (xev.type == ConfigureNotify || xev.type == MapNotify || xev.type == ReparentNotify) {
+  while (xev.type == ConfigureNotify || xev.type == MapNotify || xev.type == ReparentNotify)
     XNextEvent(dpy, &xev);
-  }
 
   if (xev.type == ClientMessage || xev.type == DestroyNotify || xev.type == UnmapNotify) {
     event.type = TMGL_Quit;

@@ -53,7 +53,7 @@ private:
 
 public:
   FeatureDetector(Type _type=UNDEF) : type(_type) {}
-  ~FeatureDetector() {}
+  virtual ~FeatureDetector() {}
 
   virtual void detect(const cv::Mat &image, std::vector<cv::KeyPoint> &keys, cv::Mat &descriptors) { 
     std::cout<<"[FeatureDetector::detect] Not implemented!]"<<std::endl; };

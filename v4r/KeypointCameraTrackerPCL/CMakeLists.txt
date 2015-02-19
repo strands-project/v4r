@@ -10,11 +10,10 @@ ELSE(${Ceres_FOUND})
   add_definitions(-DKP_NO_CERES_AVAILABLE)
 ENDIF(${Ceres_FOUND})
 
-FIND_PACKAGE (OpenCV)
+#FIND_PACKAGE (OpenCV)
 include_directories(${OPENCV_INCLUDE_DIRS})
 link_directories(${OPENCV_LIBRARY_DIRS})
 
-find_package(PCL REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})

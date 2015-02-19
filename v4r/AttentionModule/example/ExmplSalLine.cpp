@@ -1,13 +1,51 @@
-#include <time.h>
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
 
-#include "v4r/EPUtils/EPUtils.hpp"
+
+#include <opencv2/opencv.hpp>
+
 #include "v4r/AttentionModule/AttentionModule.hpp"
+#include "v4r/EPUtils/EPUtils.hpp"
+
+// This program shows the use of TJ to extract attention points
+
+void printUsage(const char *argv0)
+{
+  printf(
+    "Extracts attention points using TJ\n"
+    "usage: %s image.png saliency.png output.txt result.png\n"
+    "  image.png             ... color image\n"
+    "  saliency.png          ... saliency image\n"
+    "  points.txt            ... output text file with points\n"
+    "  result.png            ... output file name\n", argv0);
+  printf(" Example: %s 1 image.png saliency.png points.txt result.png\n",argv0);
+}
 
 int main(int argc, char** argv)
 {
-  if(argc != 4)
+  if(argc != 5)
   {
-    std::cerr << "Usage: image saliency_map output" << std::endl;
+    printUsage(argv[0]);
     return(0);
   }
   
@@ -16,6 +54,7 @@ int main(int argc, char** argv)
   std::string image_name(argv[1]);
   std::string saliency_map_name(argv[2]);
   std::string output_file_name(argv[3]);
+  std::string output_png_name(argv[4]);
     
   cv::Mat image = cv::imread(image_name,-1);
   cv::Mat map = cv::imread(saliency_map_name,-1);
@@ -34,6 +73,7 @@ int main(int argc, char** argv)
     
   for(unsigned int i = 0; i < connectedComponents.size(); ++ i)
   {
+    //std::cerr << i << " " << connectedComponents.size() << std::endl;
     cv::Mat mask = cv::Mat_<uchar>::zeros(image.rows,image.cols);
     EPUtils::drawConnectedComponent(connectedComponents.at(i),mask,cv::Scalar(1));
     //cv::imshow("mask",255*mask);
@@ -41,6 +81,7 @@ int main(int argc, char** argv)
       
     AttentionModule::SaliencyLine saliencyLineCurent;
     AttentionModule::PointSaliency pointSaliencyCurrent;
+    //std::cerr << "here 0" << std::endl;
     if(AttentionModule::extractSaliencyLine(mask,map,saliencyLineCurent))
     {
       //std::vector<cv::Point> saliencyLineCurent_points;
@@ -51,10 +92,13 @@ int main(int argc, char** argv)
       //cv::waitKey();
       
       saliencyLine.push_back(saliencyLineCurent);
+      //std::cerr << "here 1" << std::endl;
       AttentionModule::selectSaliencyCenterPoint(saliencyLineCurent,pointSaliencyCurrent);
-      
+      //std::cerr << "here 2" << std::endl;
       saliencyPoints.push_back(pointSaliencyCurrent);
+      
     }
+    //std::cerr << "here 3" << std::endl;
   }
     
   std::sort(saliencyPoints.begin(),saliencyPoints.end(),AttentionModule::saliencyPointsSort);
@@ -64,7 +108,9 @@ int main(int argc, char** argv)
   
   EPUtils::writeAttentionPoints(attentionPoints,output_file_name);
   
-  //EPUtils::drawAttentionPoints(image,attentionPoints);
+  EPUtils::drawAttentionPoints(image,attentionPoints,10);
+  
+  cv::imwrite(output_png_name,image);
   
   //cv::imshow("attention points", image);
   //cv::imshow("saliency map", map);

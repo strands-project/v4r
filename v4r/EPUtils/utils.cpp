@@ -1,4 +1,25 @@
-#define BOOST_FILESYSTEM_VERSION 2
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
 
 #include "utils.hpp"
 
@@ -36,16 +57,16 @@ int readFiles(const std::string &directoryName, std::vector<std::string> &names)
     return(2);
 }
 
-void readPolygons(std::vector<std::vector<cv::Point> > &polygons, std::string &str)
+void readPolygons(std::vector<std::vector<cv::Point> > &polygons, std::string filename)
 {
   int x,y;
   std::ifstream indata;
 
-  indata.open(str.c_str()); // opens the file
+  indata.open(filename.c_str()); // opens the file
   if(!indata)
   {
     // file couldn't be opened
-    std::cerr << "ERROR: file " << str << " could not be opened." << std::endl;
+    printf("ERROR: file %s could not be opened.\n",filename.c_str());
     return;
   }
 
@@ -205,9 +226,9 @@ void readAttentionPoints(std::vector<std::vector<cv::Point> > &attentionPoints, 
   return;
 }
 
+//revision
 void readAttentionPoints(std::vector<cv::Point> &attentionPoints, std::string &str)
 {
-  std::string line;
   std::ifstream indata;
 
   // open the file
@@ -257,6 +278,7 @@ void writeAttentionPoints(std::vector<cv::Point> attentionPoints, std::string &s
   outdata.close();
   return;
 }
+//end revision
 
 void readAttentionPointsAndContours(std::vector<cv::Point> &attentionPoints,
                                     std::vector<std::vector<cv::Point> > &contours, std::string &str)
@@ -300,12 +322,16 @@ void readAttentionPointsAndContours(std::vector<cv::Point> &attentionPoints,
   return;
 }
 
-void readAnnotationsFromFile(std::vector<std::vector<cv::Point> > &polygons, std::string &annotationName)
+/**
+ * reads ground truth segmentation from the text file
+ * */
+//ep:begin revision 18-07-2014
+void readAnnotationsFromFile(std::vector<std::vector<cv::Point> > &polygons, std::string filename)
 {
   polygons.clear();
-  //polygons.reserve(50);
-  readPolygons(polygons,annotationName);
+  readPolygons(polygons,filename);
 }
+//ep:end revision 18-07-2014
 
 void saturation(cv::Mat &map, float max_value)
 {

@@ -1,3 +1,27 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "convertions.hpp"
 
 namespace EPUtils
@@ -6,7 +30,7 @@ namespace EPUtils
 #ifndef NOT_USE_PCL
   
 //
-void Depth2PointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::PointIndices::Ptr indices, const cv::Mat depth, 
+void Depth2PointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, pcl::PointIndices::Ptr indices, const cv::Mat depth, 
                       const std::vector<float> cameraParametrs, cv::Mat mask, float th)
 {
   if( mask.empty() )
@@ -42,9 +66,9 @@ void Depth2PointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::PointIndic
       float z_ir = depth.at<float>(i,j);
       if(z_ir < th)
       {
-        pcl::PointXYZ point(std::numeric_limits<float>::quiet_NaN(),
-                            std::numeric_limits<float>::quiet_NaN(),
-                            std::numeric_limits<float>::quiet_NaN());
+        pcl::PointXYZRGB point(std::numeric_limits<float>::quiet_NaN(),
+                               std::numeric_limits<float>::quiet_NaN(),
+                               std::numeric_limits<float>::quiet_NaN());
         cloud->points.push_back(point);
         continue; 
       }
@@ -52,7 +76,7 @@ void Depth2PointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::PointIndic
       float x_ir = ((j - cx) / fx) * z_ir;
       float y_ir = ((i - cy) / fy) * z_ir;
 
-      pcl::PointXYZ point(x_ir,y_ir,z_ir);
+      pcl::PointXYZRGB point(x_ir,y_ir,z_ir);
       cloud->points.push_back(point);
       int idx = i*(depth.cols)+j;
       indices->indices.push_back(idx);
@@ -63,69 +87,9 @@ void Depth2PointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, pcl::PointIndic
   cloud->height = 1;
 }
 
-//
-void ColorAndDepth2PointCloud(pcl::PointCloud<pcl::PointXYZRGBL>::Ptr cloud, const cv::Mat depth, const cv::Mat color,
-                              const std::vector<float> cameraParametrs, float th)
-{
-  // check types
-  assert(color.type() == CV_8UC3);
-  assert(depth.type() == CV_32FC1);
-  assert(color.size() == depth.size());
-  
-  float cx, cy, fx, fy;
-  fx = cameraParametrs.at(0);
-  fy = cameraParametrs.at(1);
-  cx = cameraParametrs.at(2);
-  cy = cameraParametrs.at(3);
-
-  cloud->points.clear();
-  cloud->is_dense = false;
-  cloud->width = depth.cols;
-  cloud->height = depth.rows;
-  cloud->points.reserve (cloud->width * cloud->height);
-  
-  for(int i = 0; i < depth.rows; ++i)
-  {
-    for(int j = 0; j < depth.cols; ++j)
-    {
-      float z_ir = depth.at<float>(i,j);
-      
-      uchar rr = color.at<uchar>(i,3*j+2);//(r,3*c+2)
-      uchar gg = color.at<uchar>(i,3*j+1);
-      uchar bb = color.at<uchar>(i,3*j+0);
-      
-      pcl::PointXYZRGBL point;
-      
-      if(z_ir < th)
-      {
-	point.x = std::numeric_limits<float>::quiet_NaN();
-        point.y = std::numeric_limits<float>::quiet_NaN();
-        point.z = std::numeric_limits<float>::quiet_NaN();
-      }
-      else
-      {
-        float x_ir = ((j - cx) / fx) * z_ir;
-        float y_ir = ((i - cy) / fy) * z_ir;
-	
-	point.x = x_ir;
-        point.y = y_ir;
-        point.z = z_ir;
-      }
-
-      point.r = rr;
-      point.g = gg;
-      point.b = bb;
-      
-      point.label = 0;
-      
-      cloud->points.push_back(point);
-    }
-  }
-}
-
-//
-void PointCloud2Depth(cv::Mat &depth, pcl::PointCloud<pcl::PointXYZRGBL>::ConstPtr cloud,
-                      int width, int height, pcl::PointIndices::Ptr indices, float th)
+//ep:begin: revision at 17-07-2014
+void pointCloud_2_depth(cv::Mat &depth, pcl::PointCloud<pcl::PointXYZRGBL>::ConstPtr cloud,
+                        unsigned int width, unsigned int height, pcl::PointIndices::Ptr indices, float th)
 {
   if( (indices->indices.size()) == 0 )
   {
@@ -137,8 +101,10 @@ void PointCloud2Depth(cv::Mat &depth, pcl::PointCloud<pcl::PointXYZRGBL>::ConstP
   }
   
   // check types
-  assert(indices->indices.size() <= cloud->size());
-  assert(width*height == cloud->size());
+  assert( indices->indices.size() <= cloud->size() );
+  assert( (width*height) == cloud->size() );
+  assert( cloud->width == width );
+  assert( cloud->height == height );
     
   depth = cv::Mat_<float>::zeros(height,width);
 
@@ -166,8 +132,85 @@ void PointCloud2Depth(cv::Mat &depth, pcl::PointCloud<pcl::PointXYZRGBL>::ConstP
   }
 }
 
-void PointCloud2Depth(cv::Mat &depth, pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud,
-                      int width, int height, pcl::PointIndices::Ptr indices, float th)
+void pointCloud_2_depth(cv::Mat &depth, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud,
+                        unsigned int width, unsigned int height, pcl::PointIndices::Ptr indices, float th)
+{
+  if( (indices->indices.size()) == 0 )
+  {
+    indices->indices.resize(cloud->size());
+    for(unsigned int i = 0; i < cloud->size(); ++i)
+    {
+      indices->indices.at(i) = i;
+    }
+  }
+  
+  // check types
+  assert( indices->indices.size() <= cloud->size() );
+  assert( (width*height) == cloud->size() );
+  assert( cloud->width == width );
+  assert( cloud->height == height );
+    
+  depth = cv::Mat_<float>::zeros(height,width);
+
+  for(unsigned int i = 0; i < indices->indices.size(); ++i)
+  {
+    int idx = indices->indices.at(i);
+    
+    if(std::isnan(cloud->points.at(idx).x) ||
+       std::isnan(cloud->points.at(idx).y) ||
+       std::isnan(cloud->points.at(idx).z))
+    {
+      continue;
+    }
+    
+    float z_ir = cloud->points.at(idx).z;
+
+    if(z_ir < th)
+    {
+      continue;
+    }
+
+    int r = idx / width;
+    int c = idx % width;
+    depth.at<float>(r,c) = z_ir;
+  }
+}
+
+void pointCloud_2_rgb(cv::Mat &RGB, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud_xyzrgb,
+                      unsigned int width, unsigned int height, pcl::PointIndices::Ptr indices)
+{
+  if( (indices->indices.size()) == 0 )
+  {
+    indices->indices.resize(cloud_xyzrgb->size());
+    for(unsigned int i = 0; i < cloud_xyzrgb->size(); ++i)
+    {
+      indices->indices.at(i) = i;
+    }
+  }
+  
+  // check types
+  assert( indices->indices.size() <= cloud_xyzrgb->size() );
+  assert( (width*height) == cloud_xyzrgb->size() );
+  assert( cloud_xyzrgb->width == width );
+  assert( cloud_xyzrgb->height == height );
+    
+  RGB = cv::Mat::zeros(height,width,CV_8UC3);
+
+  for(unsigned int i = 0; i < indices->indices.size(); ++i)
+  {
+    int idx = indices->indices.at(i);
+    
+    int r = idx / width;
+    int c = idx % width;
+    
+    RGB.at<uchar>(r,3*c+2) = cloud_xyzrgb->points.at(idx).r;
+    RGB.at<uchar>(r,3*c+1) = cloud_xyzrgb->points.at(idx).g;
+    RGB.at<uchar>(r,3*c+0) = cloud_xyzrgb->points.at(idx).b;
+  }
+}
+
+void pointCloud_2_channels(cv::Mat &xchannel, cv::Mat &ychannel, cv::Mat &zchannel, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud,
+                         unsigned int width, unsigned int height, pcl::PointIndices::Ptr indices, float th)
 {
   if( (indices->indices.size()) == 0 )
   {
@@ -180,21 +223,25 @@ void PointCloud2Depth(cv::Mat &depth, pcl::PointCloud<pcl::PointXYZ>::ConstPtr c
   
   // check types
   assert(indices->indices.size() <= cloud->size());
-  assert(width*height == cloud->size());
+  assert((size_t)(width*height) == cloud->size());
   
-  depth = cv::Mat_<float>::zeros(height,width);
+  xchannel = cv::Mat_<float>::zeros(height,width);
+  ychannel = cv::Mat_<float>::zeros(height,width);
+  zchannel = cv::Mat_<float>::zeros(height,width);
   
   for(unsigned int i = 0; i < indices->indices.size(); ++i)
   {
     int idx = indices->indices.at(i);
     
     if(std::isnan(cloud->points.at(idx).x) ||
-      std::isnan(cloud->points.at(idx).y) ||
-      std::isnan(cloud->points.at(idx).z))
+       std::isnan(cloud->points.at(idx).y) ||
+       std::isnan(cloud->points.at(idx).z))
     {
       continue;
     }
-    
+
+    float x_ir = cloud->points.at(idx).x;
+    float y_ir = cloud->points.at(idx).y;
     float z_ir = cloud->points.at(idx).z;
     
     if(z_ir < th)
@@ -204,12 +251,39 @@ void PointCloud2Depth(cv::Mat &depth, pcl::PointCloud<pcl::PointXYZ>::ConstPtr c
     
     int r = idx / width;
     int c = idx % width;
-    depth.at<float>(r,c) = z_ir;
-  }
+    xchannel.at<float>(r,c) = x_ir;
+    ychannel.at<float>(r,c) = y_ir;
+    zchannel.at<float>(r,c) = z_ir;
+  }  
 }
 
-//
-void PointCloud2Disparity(cv::Mat &disparity, pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud, 
+void normals_2_channels(cv::Mat &xnormals, cv::Mat &ynormals, cv::Mat &znormals, pcl::PointCloud<pcl::Normal>::ConstPtr normals,
+                      unsigned int width, unsigned int height, pcl::PointIndices::Ptr indices)
+{
+  // check types
+  assert(indices->indices.size() == normals->points.size());
+  
+  xnormals = cv::Mat_<float>::zeros(height,width);
+  ynormals = cv::Mat_<float>::zeros(height,width);
+  znormals = cv::Mat_<float>::zeros(height,width);
+  
+  for(unsigned int i = 0; i < indices->indices.size(); ++i)
+  {
+    int idx = indices->indices.at(i);
+    
+    float x_n = normals->points.at(i).normal[0];
+    float y_n = normals->points.at(i).normal[1];
+    float z_n = normals->points.at(i).normal[2];
+    
+    int r = idx / width;
+    int c = idx % width;
+    xnormals.at<float>(r,c) = x_n;
+    ynormals.at<float>(r,c) = y_n;
+    znormals.at<float>(r,c) = z_n;
+  }  
+}
+
+void pointCloud_2_disparity(cv::Mat &disparity, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud, 
                           int width, int height, pcl::PointIndices::Ptr indices, float f, float b, float th)
 {
   if( (indices->indices.size()) == 0 )
@@ -223,7 +297,7 @@ void PointCloud2Disparity(cv::Mat &disparity, pcl::PointCloud<pcl::PointXYZ>::Co
   
   // check types
   assert(indices->indices.size() <= cloud->size());
-  assert(width*height == cloud->size());
+  assert((size_t)(width*height) == cloud->size());
   
   cv::Scalar defaultDisparityValue(255);
   disparity = cv::Mat(height,width,CV_32FC1,defaultDisparityValue);
@@ -258,135 +332,290 @@ void PointCloud2Disparity(cv::Mat &disparity, pcl::PointCloud<pcl::PointXYZ>::Co
     disparity.at<float>(r,c) = disp;
   }
 }
-
+//ep:end: revision at 17-07-2014
 
 //
-void Indices2Mask(cv::Mat &mask, int width, int height, pcl::PointIndices::Ptr indices)
+void indices_2_image(cv::Mat &mask, unsigned int width, unsigned int height, pcl::PointIndices::Ptr indices)
 {
   if( (indices->indices.size()) == 0 )
   {
     indices->indices.resize(width*height);
-    for(int i = 0; i < width*height; ++i)
+    for(unsigned int i = 0; i < width*height; ++i)
     {
       indices->indices.at(i) = i;
     }
   }
   
   // check types
-  assert(indices->indices.size() <= width*height);
+  assert(indices->indices.size() <= (size_t)(width*height));
   
-  mask = cv::Mat_<uchar>::zeros(height,width);
+  mask = cv::Mat_<float>::zeros(height,width);
 
   for(unsigned int i = 0; i < indices->indices.size(); ++i)
   {
     int idx = indices->indices.at(i);
     int r = idx / width;
     int c = idx % width;
-    mask.at<uchar>(r,c) = 255;
+    mask.at<float>(r,c) = 255;
   }
 }
 
-//
-void PointCloudXYZ2PointCloudXYZRGB(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_xyzrgb, 
-                                    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, cv::Mat image)
+//ep:begin: revision at 17-07-2014
+void pointCloudXYZimageRGB_2_cloudXYZRGB(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_xyzrgb, 
+                                         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz, cv::Mat &RGB, unsigned int width, unsigned int height)
 {
   // check types
-  assert(cloud->points.size() == image.rows*image.cols);
-  
-  cloud_xyzrgb->points.resize(cloud->points.size());
-  
-  int width = image.cols;
-  int height = image.rows;
-  
+  assert( cloud_xyz->height == (unsigned int)RGB.rows );
+  assert( cloud_xyz->width  == (unsigned int)RGB.cols );
+  assert( cloud_xyz->height == height );
+  assert( cloud_xyz->width  == width );
+
+  cloud_xyzrgb->points.resize(cloud_xyz->points.size());
   cloud_xyzrgb->width = width;
   cloud_xyzrgb->height = height;
   
-  for(int r = 0; r < height; ++r)
+  for(unsigned int i = 0; i < height; ++i)
   {
-    for(int c = 0; c < width; ++c)
+    for(unsigned int j = 0; j < width; ++j)
     {
-      int index = r*width + c;
+      int position = i*width + j;
       
-      cloud_xyzrgb->points.at(index).x = cloud->points.at(index).x;
-      cloud_xyzrgb->points.at(index).y = cloud->points.at(index).y;
-      cloud_xyzrgb->points.at(index).z = cloud->points.at(index).z;
+      cloud_xyzrgb->points.at(position).x = cloud_xyz->points.at(position).x;
+      cloud_xyzrgb->points.at(position).y = cloud_xyz->points.at(position).y;
+      cloud_xyzrgb->points.at(position).z = cloud_xyz->points.at(position).z;
       
-      uint8_t r_col = image.at<uchar>(r,3*c+2);
-      uint8_t g_col = image.at<uchar>(r,3*c+1);
-      uint8_t b_col = image.at<uchar>(r,3*c+0);
-      uint32_t rgb = ((uint32_t)r_col << 16 | (uint32_t)g_col << 8 | (uint32_t)b_col);
-      cloud_xyzrgb->points.at(index).rgb = *reinterpret_cast<float*>(&rgb);
+      cloud_xyzrgb->points.at(position).r = RGB.at<uchar>(i,3*j+2);
+      cloud_xyzrgb->points.at(position).g = RGB.at<uchar>(i,3*j+1);
+      cloud_xyzrgb->points.at(position).b = RGB.at<uchar>(i,3*j+0);
     }
   }
 }
 
-//
-void PointCloudXYZRGB2PointCloudXYZ(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, 
-                                    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyzrgb)
+void depthRGB_2_cloudXYZRGB(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_xyzrgb, const cv::Mat &depth, const cv::Mat &RGB,
+                            const std::vector<float> &cameraParametrs, unsigned int width, unsigned int height, float th)
 {
-  cloud->points.resize(cloud_xyzrgb->points.size());
+  // check types
+  assert(RGB.type() == CV_8UC3);
+  assert(depth.type() == CV_32FC1);
+  assert(RGB.size() == depth.size());
+  assert( (unsigned int)depth.rows == height );
+  assert( (unsigned int)depth.cols == width );
   
-  int width = cloud_xyzrgb->width;
-  int height = cloud_xyzrgb->height;
+  float cx, cy, fx, fy;
+  fx = cameraParametrs.at(0);
+  fy = cameraParametrs.at(1);
+  cx = cameraParametrs.at(2);
+  cy = cameraParametrs.at(3);
+
+  cloud_xyzrgb->points.clear();
+  cloud_xyzrgb->is_dense = false;
+  cloud_xyzrgb->width = depth.cols;
+  cloud_xyzrgb->height = depth.rows;
+  cloud_xyzrgb->points.resize (cloud_xyzrgb->width * cloud_xyzrgb->height);
   
+  for(unsigned int i = 0; i < height; ++i)
+  {
+    for(unsigned int j = 0; j < width; ++j)
+    {
+      float z_ir = depth.at<float>(i,j);
+      
+      uchar rr = RGB.at<uchar>(i,3*j+2);//(r,3*c+2)
+      uchar gg = RGB.at<uchar>(i,3*j+1);
+      uchar bb = RGB.at<uchar>(i,3*j+0);
+      
+      pcl::PointXYZRGB point;
+      
+      if(z_ir < th)
+      {
+	point.x = std::numeric_limits<float>::quiet_NaN();
+        point.y = std::numeric_limits<float>::quiet_NaN();
+        point.z = std::numeric_limits<float>::quiet_NaN();
+      }
+      else
+      {
+        float x_ir = ((j - cx) / fx) * z_ir;
+        float y_ir = ((i - cy) / fy) * z_ir;
+	
+	point.x = x_ir;
+        point.y = y_ir;
+        point.z = z_ir;
+      }
+
+      point.r = rr;
+      point.g = gg;
+      point.b = bb;
+      
+      int idx = i*width + j;
+      cloud_xyzrgb->points.at(idx) = point;
+    }
+  }
+}
+
+void pointCloudXYZRGB_2_cloudXYZimageRGB(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_xyzrgb, 
+                                         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz, cv::Mat &RGB, unsigned int width, unsigned int height)
+{
+  assert( height == cloud_xyzrgb->height );
+  assert( width == cloud_xyzrgb->width );
+  assert( width*height == cloud_xyzrgb->points.size() );
+
+  //cloud_xyz = pcl::PointCloud<pcl::PointXYZ>::Ptr( new pcl::PointCloud<pcl::PointXYZ>() );
+  cloud_xyz->points.resize(cloud_xyzrgb->points.size());
+  cloud_xyz->width = width;
+  cloud_xyz->height = height;
+  
+  RGB = cv::Mat::zeros(height,width,CV_8UC3);
+  
+  for (unsigned int i = 0; i < height; i++)
+  {
+    for (unsigned int j = 0; j < width; j++)
+    {
+      int position = i * width + j;
+      const pcl::PointXYZRGB pt = cloud_xyzrgb->points.at(position);
+      
+      cloud_xyz->points.at(position).x = pt.x;
+      cloud_xyz->points.at(position).y = pt.y;
+      cloud_xyz->points.at(position).z = pt.z;
+      
+      RGB.at<uchar>(i,3*j+2) = pt.r;
+      RGB.at<uchar>(i,3*j+1) = pt.g;
+      RGB.at<uchar>(i,3*j+0) = pt.b;
+    }
+  }
+}
+
+void pointCloudXYZimageRGBimageL_2_cloudXYZRGBL(pcl::PointCloud<pcl::PointXYZRGBL>::Ptr cloud_xyzrgbl, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz,
+						cv::Mat &RGB, cv::Mat &L, unsigned int width, unsigned int height)
+{
+  assert( cloud_xyz->height == (unsigned int)RGB.rows );
+  assert( cloud_xyz->width  == (unsigned int)RGB.cols );
+  assert( cloud_xyz->height == (unsigned int)L.rows );
+  assert( cloud_xyz->width  == (unsigned int)L.cols );
+  assert( cloud_xyz->height == height );
+  assert( cloud_xyz->width  == width );
+
+  //cloud_xyzrgbl = pcl::PointCloud<pcl::PointXYZRGBL>::Ptr( new pcl::PointCloud<pcl::PointXYZRGBL>() );
+  cloud_xyzrgbl->points.resize(cloud_xyz->points.size());
+  cloud_xyzrgbl->width = width;
+  cloud_xyzrgbl->height = height;
+  
+  for (unsigned int i = 0; i < height; i++)
+  {
+    for (unsigned int j = 0; j < width; j++)
+    {
+      int position = i * width + j;
+      
+      cloud_xyzrgbl->points.at(position).x = cloud_xyz->points.at(position).x;
+      cloud_xyzrgbl->points.at(position).y = cloud_xyz->points.at(position).y;
+      cloud_xyzrgbl->points.at(position).z = cloud_xyz->points.at(position).z;
+      
+      cloud_xyzrgbl->points.at(position).r = RGB.at<uchar>(i,3*j+2);
+      cloud_xyzrgbl->points.at(position).g = RGB.at<uchar>(i,3*j+1);
+      cloud_xyzrgbl->points.at(position).b = RGB.at<uchar>(i,3*j+0);
+      
+      cloud_xyzrgbl->points.at(position).label = L.at<uchar>(i,j);
+    }
+  }
+}
+
+void pointCloudXYZRGBL_2_cloudXYZimageRGBlableL(pcl::PointCloud<pcl::PointXYZRGBL>::Ptr cloud_xyzrgbl, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz, 
+						cv::Mat &RGB, cv::Mat &L, unsigned int width, unsigned int height)
+{
+  assert( height == cloud_xyzrgbl->height );
+  assert( width == cloud_xyzrgbl->width );
+  assert( width*height == cloud_xyzrgbl->points.size() );
+
+  //cloud_xyz = pcl::PointCloud<pcl::PointXYZ>::Ptr( new pcl::PointCloud<pcl::PointXYZ>() );
+  cloud_xyz->points.resize(cloud_xyzrgbl->points.size());
+  cloud_xyz->width = width;
+  cloud_xyz->height = height;
+  
+  RGB = cv::Mat::zeros(height,width,CV_8UC3);
+  L   = cv::Mat::zeros(height,width,CV_8UC1);
+  
+  for (unsigned int i = 0; i < height; i++)
+  {
+    for (unsigned int j = 0; j < width; j++)
+    {
+      int position = i * width + j;
+      const pcl::PointXYZRGBL pt = cloud_xyzrgbl->points.at(position);
+      
+      cloud_xyz->points.at(position).x = pt.x;
+      cloud_xyz->points.at(position).y = pt.y;
+      cloud_xyz->points.at(position).z = pt.z;
+      
+      RGB.at<uchar>(i,3*j+2) = pt.r;
+      RGB.at<uchar>(i,3*j+1) = pt.g;
+      RGB.at<uchar>(i,3*j+0) = pt.b;
+      
+      L.at<uchar>(i,j) = pt.label;
+    }
+  }
+}
+
+void pointCloudXYZRGBimageL_2_cloudXYZRGBL(pcl::PointCloud<pcl::PointXYZRGBL>::Ptr cloud_xyzrgbl, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_xyzrgb,
+					   cv::Mat &L, unsigned int width, unsigned int height)
+{
+  assert( cloud_xyzrgb->height == (unsigned int)L.rows );
+  assert( cloud_xyzrgb->width  == (unsigned int)L.cols );
+  assert( cloud_xyzrgb->height == height );
+  assert( cloud_xyzrgb->width  == width );
+
+  cloud_xyzrgbl->points.resize(cloud_xyzrgb->points.size());
+  cloud_xyzrgbl->width = width;
+  cloud_xyzrgbl->height = height;
+  
+  for (unsigned int i = 0; i < height; i++)
+  {
+    for (unsigned int j = 0; j < width; j++)
+    {
+      int position = i * width + j;
+      
+      cloud_xyzrgbl->points.at(position).x = cloud_xyzrgb->points.at(position).x;
+      cloud_xyzrgbl->points.at(position).y = cloud_xyzrgb->points.at(position).y;
+      cloud_xyzrgbl->points.at(position).z = cloud_xyzrgb->points.at(position).z;
+      
+      cloud_xyzrgbl->points.at(position).r = cloud_xyzrgb->points.at(position).r;
+      cloud_xyzrgbl->points.at(position).g = cloud_xyzrgb->points.at(position).g;
+      cloud_xyzrgbl->points.at(position).b = cloud_xyzrgb->points.at(position).b;
+      
+      cloud_xyzrgbl->points.at(position).label = L.at<uchar>(i,j);
+    }
+  }
+}
+
+void pointCloudXYZRGBL_2_cloudXYZRGBlableL(pcl::PointCloud<pcl::PointXYZRGBL>::Ptr cloud_xyzrgbl, pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_xyzrgb, 
+					   cv::Mat &L, unsigned int width, unsigned int height)
+{
+  assert( height == cloud_xyzrgbl->height );
+  assert( width == cloud_xyzrgbl->width );
+  assert( width*height == cloud_xyzrgbl->points.size() );
+
+  cloud_xyzrgb->points.resize(cloud_xyzrgbl->points.size());
   cloud_xyzrgb->width = width;
   cloud_xyzrgb->height = height;
   
-  for(int r = 0; r < height; ++r)
-  {
-    for(int c = 0; c < width; ++c)
-    {
-      int index = r*width + c;
-      
-      cloud->points.at(index).x = cloud_xyzrgb->points.at(index).x;
-      cloud->points.at(index).y = cloud_xyzrgb->points.at(index).y;
-      cloud->points.at(index).z = cloud_xyzrgb->points.at(index).z;
-    }
-  }
-}
-
-void PointCloudXYZRGB2RGB(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, cv::Mat_<cv::Vec3b> &image)
-{
-  int height = cloud->height;
-  int width = cloud->width;
-
-  image = cv::Mat_<cv::Vec3b>(height, width);
+  L   = cv::Mat::zeros(height,width,CV_8UC1);
   
-  for (int row = 0; row < height; row++)
+  for (unsigned int i = 0; i < height; i++)
   {
-    for (int col = 0; col < width; col++)
+    for (unsigned int j = 0; j < width; j++)
     {
-      cv::Vec3b &cvp = image.at<cv::Vec3b>(row,col);
-      int position = row * width + col;
-      const pcl::PointXYZRGB pt = cloud->points.at(position);
+      int position = i * width + j;
+      const pcl::PointXYZRGBL pt = cloud_xyzrgbl->points.at(position);
       
-      cvp[2] = pt.r;
-      cvp[1] = pt.g;
-      cvp[0] = pt.b;
+      cloud_xyzrgb->points.at(position).x = pt.x;
+      cloud_xyzrgb->points.at(position).y = pt.y;
+      cloud_xyzrgb->points.at(position).z = pt.z;
+      
+      cloud_xyzrgb->points.at(position).r = pt.r;
+      cloud_xyzrgb->points.at(position).g = pt.g;
+      cloud_xyzrgb->points.at(position).b = pt.b;
+      
+      L.at<uchar>(i,j) = pt.label;
     }
   }
 }
-
-void PointCloudXYZRGBL2RGB(pcl::PointCloud<pcl::PointXYZRGBL>::Ptr cloud, cv::Mat &image)
-{
-  int height = cloud->height;
-  int width = cloud->width;
-
-  image = cv::Mat::zeros(height,width,CV_8UC3);
-  
-  for (int row = 0; row < height; row++)
-  {
-    for (int col = 0; col < width; col++)
-    {
-      int position = row * width + col;
-      const pcl::PointXYZRGBL pt = cloud->points.at(position);
-      
-      image.at<uchar>(row,3*col+2) = pt.r;
-      image.at<uchar>(row,3*col+1) = pt.g;
-      image.at<uchar>(row,3*col+0) = pt.b;
-    }
-  }
-}
+//ep:end: revision at 17-07-2014
 
 //
 void binMasksFromClusters(std::vector<cv::Mat> &binMasks, std::vector<pcl::PointIndices::ConstPtr> clusters)

@@ -50,11 +50,11 @@ SET(SOURCE_H
   SiftGPU.h
 )
 
-add_library(v4rsiftgpu SHARED ${SOURCE_CPP})
-target_link_libraries(v4rsiftgpu GLEW glut IL GL X11)
+add_library(siftgpu SHARED ${SOURCE_CPP})
+target_link_libraries(siftgpu GLEW glut IL GL X11)
 
 install(DIRECTORY DESTINATION include/v4rexternal/SiftGPU/src/SiftGPU)
-install(TARGETS v4rsiftgpu LIBRARY DESTINATION lib)
+install(TARGETS siftgpu LIBRARY DESTINATION lib)
 install(FILES ${SOURCE_H} DESTINATION include/v4rexternal/SiftGPU/src/SiftGPU)
 
 #add_subdirectory(demo)

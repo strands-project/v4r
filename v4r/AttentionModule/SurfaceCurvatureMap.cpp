@@ -1,186 +1,173 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "SurfaceCurvatureMap.hpp"
 
 namespace AttentionModule
 {
 
-SurfaceCurvatureMapParameters::SurfaceCurvatureMapParameters()
+SurfaceCurvatureMap::SurfaceCurvatureMap():
+BaseMap()  
 {
-  //cloud = NULL;
-  //indices = NULL
-  //normals = NULL;
-  
-  normalization_type = EPUtils::NT_NONE_REAL;
-  filter_size = 5;
-  mask = cv::Mat_<float>::zeros(0,0);
-  map = cv::Mat_<uchar>::zeros(0,0);
-  width = 0;
-  height = 0;
-  curvatureType = AM_CONVEX;
-  cameraParametrs.clear();
+  reset();
 }
 
-int CalculateSurfaceCurvatureMap(SurfaceCurvatureMapParameters &parameters)
+SurfaceCurvatureMap::~SurfaceCurvatureMap()
 {
-  if(parameters.cloud == NULL)
+}
+
+void SurfaceCurvatureMap::reset()
+{
+  BaseMap::reset();
+  
+  curvatureType = AM_CONVEX;
+
+  mapName = "SurfaceCurvatureMap";
+}
+
+void SurfaceCurvatureMap::print()
+{
+  BaseMap::print();
+  printf("[%s]: curvatureType      = %d\n",mapName.c_str(),curvatureType);
+}
+
+int SurfaceCurvatureMap::checkParameters()
+{
+
+  if(!haveCloud)
   {
+    printf("[ERROR]: %s: Seems like there is no cloud.\n",mapName.c_str());
     return(AM_POINTCLOUD);
   }
   
-  if(parameters.indices == NULL)
+  if(!haveIndices)
   {
+    printf("[ERROR]: %s: Seems like there are no indices.\n",mapName.c_str());
     return(AM_POINTCLOUD);
   }
-
-  if(parameters.normals == NULL)
+  
+  if(!haveNormals)
   {
+    printf("[ERROR]: %s: Seems like there are no normals.\n",mapName.c_str());
     return(AM_NORMALCLOUD);
   }
-
-  if(parameters.indices->indices.size() != parameters.normals->size())
+  
+  if(indices->indices.size() != normals->points.size())
   {
+    printf("[ERROR]: %s: Seems like there is different number of indices and normals.\n",mapName.c_str());
     return(AM_DIFFERENTSIZES);
   }
-
-  if(( (parameters.width == 0) || (parameters.height == 0) ) && ( (parameters.map.rows == 0) || (parameters.map.cols == 0) ))
+  
+  if( (width == 0) || (height == 0) )
   {
+    printf("[ERROR]: %s: Seems like image size is wrong.\n",mapName.c_str());
     return(AM_IMAGE);
   }
-
-  if((parameters.width == 0) || (parameters.height == 0))
+  
+  if(!haveMask)
+    mask = cv::Mat_<uchar>::ones(height,width);
+  
+  if((mask.cols != width) || (mask.rows != height))
   {
-    parameters.height = parameters.map.rows;
-    parameters.width  = parameters.map.cols;
-  }
-
-  if((parameters.mask.cols != parameters.width) || (parameters.mask.rows != parameters.height))
-  {
-    parameters.mask = cv::Mat_<uchar>::ones(parameters.height,parameters.width);
+    mask = cv::Mat_<uchar>::ones(height,width);
   }
   
-  parameters.map = cv::Mat_<float>::zeros(parameters.height,parameters.width);
+  return(AM_OK);
+}
 
-  float curvatureCoefficient = getCurvatureCoefficient(parameters.curvatureType);
+void SurfaceCurvatureMap::setCurvatureType(int curvatureType_)
+{
+  curvatureType = curvatureType_;
+  calculated = false;
+  printf("[INFO]: %s: curvatureType: %d.\n",mapName.c_str(),curvatureType);
+}
+
+int SurfaceCurvatureMap::getCurvatureType()
+{
+  return(curvatureType);
+}
+
+int SurfaceCurvatureMap::calculate()
+{
+  calculated = false;
+
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
   
-  for(unsigned int pi = 0; pi < parameters.indices->indices.size(); ++pi)
+  printf("[INFO]: %s: Computation started.\n",mapName.c_str());
+  
+  float curvatureCoefficient = getCurvatureCoefficient(curvatureType);
+
+  curvatureMap(normals,indices,width,height,curvatureCoefficient,map);
+
+  cv::blur(map,map,cv::Size(filter_size,filter_size));
+
+  refineMap();
+  
+  EPUtils::normalize(map,normalization_type);
+  calculated = true;
+  printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
+
+  return(AM_OK);
+}
+
+void SurfaceCurvatureMap::curvatureMap(pcl::PointCloud<pcl::Normal>::Ptr normals_cur, pcl::PointIndices::Ptr indices_cur, int image_width, int image_height, 
+		                      float curvatureCoefficient, cv::Mat &map_cur)
+{
+  map_cur = cv::Mat_<float>::zeros(image_height,image_width);
+  
+  for(unsigned int pi = 0; pi < indices_cur->indices.size(); ++pi)
   {
-    int idx = parameters.indices->indices.at(pi);
-    int r = idx / parameters.width;
-    int c = idx % parameters.width;
+    int idx = indices_cur->indices.at(pi);
+    int r = idx / image_width;
+    int c = idx % image_width;
     
-    if(parameters.mask.at<uchar>(r,c))
+    //if(mask.at<uchar>(r,c))
     {
-      float nx = parameters.normals->points.at(pi).normal[0];
-      float ny = parameters.normals->points.at(pi).normal[1];
-      float nz = parameters.normals->points.at(pi).normal[2];
+      float nx = normals_cur->points.at(pi).normal[0];
+      float ny = normals_cur->points.at(pi).normal[1];
+      float nz = normals_cur->points.at(pi).normal[2];
 
       if(std::isnan(nx) || std::isnan(ny) || std::isnan(nz))
       {
         continue;
       }
       
-      float value = parameters.normals->points.at(pi).curvature;
+      float value = normals_cur->points.at(pi).curvature;
       float t1 = 1.0-curvatureCoefficient;
       float t2 = curvatureCoefficient;
       value = t1*value + t2*(1.0-value);
       
-      parameters.map.at<float>(r,c) = value;
+      map_cur.at<float>(r,c) = value;
     }
   }
-
-  int filter_size = parameters.filter_size;
-  cv::blur(parameters.map,parameters.map,cv::Size(filter_size,filter_size));
-
-  EPUtils::normalize(parameters.map,parameters.normalization_type);
-
-  return(AM_OK);
 }
 
-int CalculateSurfaceCurvatureMapPyramid(SurfaceCurvatureMapParameters &parameters)
+float SurfaceCurvatureMap::getCurvatureCoefficient(int curvatureType_)
 {
-  if(parameters.cloud == NULL)
-  {
-    return(AM_POINTCLOUD);
-  }
-  
-  if(parameters.indices == NULL)
-  {
-    return(AM_POINTCLOUD);
-  }
-  
-  // set values of the input image
-  if(( (parameters.width == 0) || (parameters.height == 0) ) && ( (parameters.map.rows == 0) || (parameters.map.cols == 0) ))
-  {
-    return(AM_IMAGE);
-  }
-
-  if((parameters.width == 0) || (parameters.height == 0))
-  {
-    parameters.height = parameters.map.rows;
-    parameters.width  = parameters.map.cols;
-  }
-  
-  if(parameters.cameraParametrs.size() != 4)
-  {
-    return(AM_CAMERAPARAMETRS);
-  }
-  
-  // create depth
-  cv::Mat depth;
-  EPUtils::PointCloud2Depth(depth,parameters.cloud,parameters.width,parameters.height,parameters.indices);
-  
-  // calculate puramid with saliency maps
-  int max_level = parameters.pyramidParameters.max_level + 1;
-  parameters.pyramidParameters.pyramidImages.clear();
-  cv::buildPyramid(depth,parameters.pyramidParameters.pyramidImages,max_level);
-  parameters.pyramidParameters.pyramidFeatures.clear();
-  parameters.pyramidParameters.pyramidFeatures.resize(parameters.pyramidParameters.pyramidImages.size());
-  
-  for(int i = parameters.pyramidParameters.start_level; i <= parameters.pyramidParameters.max_level; ++i)
-  {
-    int scalingFactor = pow(2.0f,i);
-    std::vector<float> cameraParametrs;
-    cameraParametrs.resize(4);
-    cameraParametrs.at(0) = parameters.cameraParametrs.at(0)/scalingFactor;
-    cameraParametrs.at(1) = parameters.cameraParametrs.at(1)/scalingFactor;
-    cameraParametrs.at(2) = parameters.cameraParametrs.at(2)/scalingFactor;
-    cameraParametrs.at(3) = parameters.cameraParametrs.at(3)/scalingFactor;
-    
-    // start creating parameters
-    SurfaceCurvatureMapParameters parameters_current;
-    parameters_current.width = parameters.pyramidParameters.pyramidImages.at(i).cols;
-    parameters_current.height = parameters.pyramidParameters.pyramidImages.at(i).rows;
-    
-    // create scaled point cloud
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::PointIndices::Ptr indices(new pcl::PointIndices());
-    EPUtils::Depth2PointCloud(cloud,indices,parameters.pyramidParameters.pyramidImages.at(i),cameraParametrs);
-    
-    parameters_current.cloud = cloud;
-    parameters_current.indices = indices;
-    
-    //calculate point cloud normals
-    pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
-    if(!pclAddOns::ComputePointNormals<pcl::PointXYZ>(parameters_current.cloud,parameters_current.indices,normals))
-    {
-      return(AM_NORMALCLOUD);
-    }
-    
-    parameters_current.normals = normals;
-    
-    CalculateSurfaceCurvatureMap(parameters_current);
-    parameters_current.map.copyTo(parameters.pyramidParameters.pyramidFeatures.at(i));
-  }
-
-  // combine saliency maps
-  combinePyramid(parameters.pyramidParameters);
-  parameters.pyramidParameters.map.copyTo(parameters.map);
-  
-  return(0);
-}
-
-float getCurvatureCoefficient(int curvatureType)
-{
-  switch(curvatureType)
+  switch(curvatureType_)
   {
     case AM_FLAT:
       return(1.0);

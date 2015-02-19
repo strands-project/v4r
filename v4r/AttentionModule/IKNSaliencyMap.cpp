@@ -1,144 +1,316 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "IKNSaliencyMap.hpp"
 
 namespace AttentionModule
 {
-
-IKNMapParameters::IKNMapParameters()
+  
+IKNSaliencyMap::IKNSaliencyMap():
+BaseMap()
 {
-  image = cv::Mat_<float>::zeros(0,0);
-  R = cv::Mat_<float>::zeros(0,0);
-  G = cv::Mat_<float>::zeros(0,0);
-  B = cv::Mat_<float>::zeros(0,0);
-  Y = cv::Mat_<float>::zeros(0,0);
-  I = cv::Mat_<float>::zeros(0,0);
-  normalization_type = EPUtils::NT_NONMAX;
-  width = 0;
-  height = 0;
+  reset();
+}
+
+IKNSaliencyMap::~IKNSaliencyMap()
+{
+}
+
+void IKNSaliencyMap::reset()
+{
+  BaseMap::reset();
   weightOfColor = 1;
   weightOfIntensities = 1;
   weightOfOrientations = 1;
   numberOfOrientations = 4;
-  pyramidI.combination_type = AM_ITTI;
-  pyramidI.start_level = 0;
-  pyramidI.max_level = 8;
-  pyramidI.normalization_type = EPUtils::NT_NONMAX;
-  pyramidRG.combination_type = AM_ITTI;
-  pyramidRG.start_level = 0;
-  pyramidRG.max_level = 8;
-  pyramidRG.normalization_type = EPUtils::NT_NONMAX;
-  pyramidBY.combination_type = AM_ITTI;
-  pyramidBY.start_level = 0;
-  pyramidBY.max_level = 8;
-  pyramidBY.normalization_type = EPUtils::NT_NONMAX;
-  pyramidO.resize(numberOfOrientations);
-  for(int i = 0; i < numberOfOrientations; ++ i)
-  {
-    pyramidO.at(i).combination_type = AM_ITTI;
-    pyramidO.at(i).start_level = 0;
-    pyramidO.at(i).max_level = 8;
-    pyramidO.at(i).normalization_type = EPUtils::NT_NONMAX;
-  }
-  
-  cv::Mat map = cv::Mat_<float>::zeros(0,0);
+
+  mapName = "IKNSaliencyMap";
 }
 
-int CalculateIKNMap(IKNMapParameters &parameters)
+void IKNSaliencyMap::print()
 {
-  if((( (parameters.width == 0) || (parameters.height == 0) ) && ( (parameters.map.rows == 0) || (parameters.map.cols == 0))) ||
-     (  (parameters.image.rows == 0) || (parameters.image.cols == 0) ))
-  {
-    return(AM_IMAGE);
-  }
+  BaseMap::print();
+  printf("[%s]: weightOfColor        = %d\n",mapName.c_str(),weightOfColor);
+  printf("[%s]: weightOfIntensities  = %d\n",mapName.c_str(),weightOfIntensities);
+  printf("[%s]: weightOfOrientations = %d\n",mapName.c_str(),weightOfOrientations);
+  printf("[%s]: numberOfOrientations = %d\n",mapName.c_str(),numberOfOrientations);
+}
 
-  if((parameters.width == 0) || (parameters.height == 0))
+void IKNSaliencyMap::setWeights(int weightOfColor_, int weightOfIntensities_, int weightOfOrientations_)
+{
+  weightOfColor = weightOfColor_;
+  weightOfIntensities = weightOfIntensities_;
+  weightOfOrientations = weightOfOrientations_;
+  calculated = false;
+  printf("[INFO]: %s: weightOfColor: %d.\n",mapName.c_str(),weightOfColor);
+  printf("[INFO]: %s: weightOfIntensities: %d.\n",mapName.c_str(),weightOfIntensities);
+  printf("[INFO]: %s: weightOfOrientations: %d.\n",mapName.c_str(),weightOfOrientations);
+}
+
+void IKNSaliencyMap::getWeights(int &weightOfColor_, int &weightOfIntensities_, int &weightOfOrientations_)
+{
+  weightOfColor_ = weightOfColor;
+  weightOfIntensities_ = weightOfIntensities;
+  weightOfOrientations_ = weightOfOrientations;
+}
+
+void IKNSaliencyMap::setNumberOfOrientations(int numberOfOrientations_)
+{
+  numberOfOrientations = numberOfOrientations_;
+  calculated = false;
+  printf("[INFO]: %s: numberOfOrientations: %d.\n",mapName.c_str(),numberOfOrientations);
+}
+
+int IKNSaliencyMap::getNumberOfOrientations()
+{
+  return(numberOfOrientations);
+}
+
+int IKNSaliencyMap::checkParameters()
+{
+  if(!haveImage)
   {
-    parameters.height = parameters.map.rows;
-    parameters.width  = parameters.map.cols;
+    printf("[ERROR]: %s: No image set.\n",mapName.c_str());
+    return(AM_IMAGE);
   }
   
-  if((parameters.image.cols != parameters.width) || (parameters.image.rows != parameters.height) || (parameters.image.channels() != 3))
+  if( (width == 0) || (height == 0) || (image.rows == 0) || (image.cols == 0) )
   {
+    printf("[ERROR]: %s: Seems like image is empty.\n",mapName.c_str());
+    return(AM_IMAGE);
+  }
+  
+  if((image.cols != width) || (image.rows != height))
+  {
+    printf("[ERROR]: %s: Problem with image sizes.\n",mapName.c_str());
     return(AM_IMAGE);
   }
 
-  if((parameters.weightOfColor == 0) || (parameters.weightOfIntensities  == 0) || (parameters.weightOfOrientations == 0))
+  if(image.channels() != 3)
+  {
+    printf("[ERROR]: %s: Image should have 3 channels.\n",mapName.c_str());
+    return(AM_IMAGE);
+  }
+  
+  if((weightOfColor <= 0) || (weightOfIntensities  <= 0) || (weightOfOrientations <= 0))
   {
     return(AM_PARAMETERS);
   }
-
-  // set intenstity pyramid
-  parameters.pyramidI.width = parameters.width;
-  parameters.pyramidI.height = parameters.height;
-  checkLevels(parameters.pyramidI);
-  // set RG pyramid
-  parameters.pyramidRG.width = parameters.width;
-  parameters.pyramidRG.height = parameters.height;
-  checkLevels(parameters.pyramidRG);
-  // set BY pyramid
-  parameters.pyramidBY.width = parameters.width;
-  parameters.pyramidBY.height = parameters.height;
-  checkLevels(parameters.pyramidBY);
-  // set orientation pyramid
-  parameters.pyramidO.clear();
-  parameters.pyramidO.resize(parameters.numberOfOrientations);
-  for(int i = 0; i < parameters.numberOfOrientations; ++i)
+  
+  if(!haveMask)
+    mask = cv::Mat_<uchar>::ones(height,width);
+  
+  if((mask.cols != width) || (mask.rows != height))
   {
-    parameters.pyramidO.at(i).width = parameters.width;
-    parameters.pyramidO.at(i).height = parameters.height;
-    parameters.pyramidO.at(i).combination_type = AM_ITTI;
-    parameters.pyramidO.at(i).start_level = 0;
-    parameters.pyramidO.at(i).max_level = 8;
-    parameters.pyramidO.at(i).normalization_type = EPUtils::NT_NONMAX;
-    checkLevels(parameters.pyramidO.at(i));
+    mask = cv::Mat_<uchar>::ones(height,width);
   }
-  
-  // create channels
-  CreateColorChannels(parameters);
-  
-  // create feature maps
-  createFeatureMaps(parameters);
-
-  float totalWeight = parameters.weightOfColor + parameters.weightOfIntensities + parameters.weightOfOrientations;
-  
-  cv::Mat intensity = parameters.weightOfIntensities*parameters.pyramidI.map/totalWeight;
-  
-  cv::Mat orientation = cv::Mat_<float>::zeros(intensity.rows,intensity.cols);
-  
-  for(int i = 0; i < parameters.numberOfOrientations; ++i)
-  {
-    orientation = orientation + parameters.pyramidO.at(i).map;
-  }
-  EPUtils::normalize(orientation,parameters.normalization_type);
-  orientation = parameters.weightOfOrientations*orientation/totalWeight;
-  
-  cv::Mat color;
-  color = parameters.pyramidRG.map + parameters.pyramidBY.map;
-  EPUtils::normalize(color,parameters.normalization_type);
-  color = parameters.weightOfColor*color/totalWeight;
-  
-  parameters.map = intensity + color + orientation;
 
   return(AM_OK);
 }
 
-void CreateColorChannels(IKNMapParameters &parameters)
+void IKNSaliencyMap::initializePyramid(IttiPyramid::Ptr pyramid, cv::Mat &IM, bool changeSign_)
 {
-  parameters.I = cv::Mat_<float>::zeros(parameters.height,parameters.width);
-  parameters.R = cv::Mat_<float>::zeros(parameters.height,parameters.width);
-  parameters.G = cv::Mat_<float>::zeros(parameters.height,parameters.width);
-  parameters.B = cv::Mat_<float>::zeros(parameters.height,parameters.width);
-  parameters.Y = cv::Mat_<float>::zeros(parameters.height,parameters.width);
+  pyramid->setStartLevel(0);//
+  pyramid->setMaxLevel(8);//
+  pyramid->setSMLevel(4);//
+  pyramid->setWidth(width);//
+  pyramid->setHeight(height);//
+  pyramid->setNormalizationType(normalization_type);//EPUtils::NT_NONMAX
+  pyramid->setLowestC(2);//
+  pyramid->setHighestC(4);//
+  pyramid->setSmallestCS(3);//
+  pyramid->setLargestCS(4);//
+  
+  pyramid->setChangeSign(changeSign_);
+  
+  pyramid->setImage(IM);
+  pyramid->buildPyramid();
+  pyramid->print();
+}
+
+int IKNSaliencyMap::calculate()
+{
+  calculated = false;
+
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+
+  printf("[INFO]: %s: Computation started.\n",mapName.c_str());
+
+  createColorChannels();
+  
+  //----
+  // I
+  IttiPyramid::Ptr pyramidI( new IttiPyramid() );
+  initializePyramid(pyramidI,I);
+  
+  // R
+  IttiPyramid::Ptr pyramidR( new IttiPyramid() );
+  initializePyramid(pyramidR,R);
+  
+  // G
+  IttiPyramid::Ptr pyramidG( new IttiPyramid() );
+  initializePyramid(pyramidG,G);
+  
+  // B
+  IttiPyramid::Ptr pyramidB( new IttiPyramid() );
+  initializePyramid(pyramidB,B);
+  
+  // Y
+  IttiPyramid::Ptr pyramidY( new IttiPyramid() );
+  initializePyramid(pyramidY,Y);
+  
+  // O
+  std::vector<IttiPyramid::Ptr> pyramidO;
+  pyramidO.resize(numberOfOrientations);
+  for(int i = 0; i < numberOfOrientations; ++ i)
+  {
+    pyramidO.at(i) = IttiPyramid::Ptr( new IttiPyramid() );
+    initializePyramid(pyramidO.at(i),I);
+  }
+  
+  // create feature maps
+  rt_code = createFeatureMapsI(pyramidI);
+  if(rt_code != AM_OK)
+    return(rt_code);
+    
+  for(int i = 0; i < numberOfOrientations; ++ i)
+  {
+    float angle = i*180.0/numberOfOrientations;
+    rt_code = createFeatureMapsO(pyramidO.at(i),angle);
+    if(rt_code != AM_OK)
+      return(rt_code);
+  }
+  
+  rt_code = createFeatureMapsRG(pyramidR,pyramidG);
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  rt_code = createFeatureMapsRG(pyramidB,pyramidY);
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+//   for(unsigned int i = pyramidG->getStartLevel(); i <= (unsigned int)pyramidG->getMaxLevel(); ++i)
+//   {
+//     cv::Mat tempG;
+//     if(pyramidG->getImage(i,tempG))
+//     {
+//       cv::imshow("G",tempG);
+//       cv::waitKey(-1);
+//     }
+//   }
+  
+  float totalWeight = weightOfColor + weightOfIntensities + weightOfOrientations;
+  
+  cv::Mat intensity;
+  if(!pyramidI->getMap(intensity))
+  {
+    printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+    return(AM_CUSTOM);
+  }
+  intensity = weightOfIntensities*intensity/totalWeight;
+  
+//   cv::imshow("intensity",intensity);
+//   cv::waitKey(-1);
+  
+  cv::Mat orientation;
+  for(int i = 0; i < numberOfOrientations; ++i)
+  {
+    cv::Mat orientation_temp;
+    
+    if(!pyramidO.at(i)->getMap(orientation_temp))
+    {
+      printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+      return(AM_CUSTOM);
+    }
+    
+    if(i==0)
+      orientation_temp.copyTo(orientation);
+    else
+      orientation = orientation + orientation_temp;
+  }
+  EPUtils::normalize(orientation,normalization_type);
+  orientation = weightOfOrientations*orientation/totalWeight;
+  
+//   cv::imshow("orientation",orientation);
+//   cv::waitKey(-1);
+  
+  cv::Mat colorRG;
+  if(!pyramidR->getMap(colorRG))
+  {
+    printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+    return(AM_CUSTOM);
+  }
+  
+//   cv::imshow("colorRG",colorRG);
+//   cv::waitKey(-1);
+  
+  cv::Mat colorBY;
+  if(!pyramidB->getMap(colorBY))
+  {
+    printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+    return(AM_CUSTOM);
+  }
+  
+//   cv::imshow("colorBY",colorBY);
+//   cv::waitKey(-1);
+  
+  cv::Mat color = colorRG + colorBY;
+  EPUtils::normalize(color,normalization_type);
+  color = weightOfColor*color/totalWeight;
+  
+//   cv::imshow("color",color);
+//   cv::waitKey(-1);
+  
+  map = intensity + color + orientation;
+  
+  calculated = true;
+  
+  printf("[INFO]: %s: Computation finished.\n",mapName.c_str());
+
+  return(AM_OK);
+}
+
+void IKNSaliencyMap::createColorChannels()
+{
+  I = cv::Mat_<float>::zeros(height,width);
+  R = cv::Mat_<float>::zeros(height,width);
+  G = cv::Mat_<float>::zeros(height,width);
+  B = cv::Mat_<float>::zeros(height,width);
+  Y = cv::Mat_<float>::zeros(height,width);
 
   float rr,gg,bb;
   float Imax = 0;
   
-  for(int r = 0; r < parameters.height; ++r)
+  for(int r = 0; r < height; ++r)
   {
-    for (int c = 0; c < parameters.width; c++)
+    for (int c = 0; c < width; c++)
     {
-      rr = parameters.image.at<uchar>(r,3*c+2);
-      gg = parameters.image.at<uchar>(r,3*c+1);
-      bb = parameters.image.at<uchar>(r,3*c+0);
+      rr = image.at<uchar>(r,3*c+2);
+      gg = image.at<uchar>(r,3*c+1);
+      bb = image.at<uchar>(r,3*c+0);
       
       rr /= 255;
       gg /= 255;
@@ -151,13 +323,13 @@ void CreateColorChannels(IKNMapParameters &parameters)
     }
   }
 
-  for(int r = 0; r < parameters.height; ++r)
+  for(int r = 0; r < height; ++r)
   {
-    for (int c = 0; c < parameters.width; c++)
+    for (int c = 0; c < width; c++)
     {
-      rr = parameters.image.at<uchar>(r,3*c+2);
-      gg = parameters.image.at<uchar>(r,3*c+1);
-      bb = parameters.image.at<uchar>(r,3*c+0);
+      rr = image.at<uchar>(r,3*c+2);
+      gg = image.at<uchar>(r,3*c+1);
+      bb = image.at<uchar>(r,3*c+0);
       
       rr /= 255;
       gg /= 255;
@@ -185,69 +357,116 @@ void CreateColorChannels(IKNMapParameters &parameters)
         dY /= dI;
       }
 
-      parameters.I.at<float>(r,c) = dI;
-      parameters.R.at<float>(r,c) = dR;
-      parameters.G.at<float>(r,c) = dG;
-      parameters.B.at<float>(r,c) = dB;
-      parameters.Y.at<float>(r,c) = dY;
+      I.at<float>(r,c) = dI;
+      R.at<float>(r,c) = dR;
+      G.at<float>(r,c) = dG;
+      B.at<float>(r,c) = dB;
+      Y.at<float>(r,c) = dY;
     }
   }
 }
 
-void createFeatureMaps(IKNMapParameters &parameters)
+int IKNSaliencyMap::createFeatureMapsI(IttiPyramid::Ptr pyramid)
 {
-  // intensity pyramid
-  cv::buildPyramid(parameters.I,parameters.pyramidI.pyramidImages,parameters.pyramidI.max_level);
-  combinePyramid(parameters.pyramidI);
-    
-  // orientation pyramids
-  for (int o4 = 0; o4 < parameters.numberOfOrientations; ++o4)
+  for(unsigned int i = pyramid->getStartLevel(); i <= (unsigned int)pyramid->getMaxLevel(); ++i)
   {
-    float angle = o4*180.0/parameters.numberOfOrientations;
+    printf("[INFO]: %s: Computating feature map for level %d.\n",mapName.c_str(),i);
+
+    cv::Mat current_image;
+    if(!pyramid->getImage(i,current_image))
+    {
+      printf("[ERROR]: Something went wrong! Can't get image for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
+    
+    if(!pyramid->setFeatureMap(i,current_image))
+    {
+     printf("[ERROR]: Something went wrong! Can't set feature map for level %d!\n",i);
+     return(AM_CUSTOM);
+    }
+    
+    printf("[INFO]: %s: Feature map at level %d is set.\n",mapName.c_str(),i);
+  }
+  // combine saliency maps
+  pyramid->combinePyramid(true); 
+  
+  return(AM_OK);
+  
+}
+  
+int IKNSaliencyMap::createFeatureMapsO(IttiPyramid::Ptr pyramid, float angle)
+{
+  for(unsigned int i = pyramid->getStartLevel(); i <= (unsigned int)pyramid->getMaxLevel(); ++i)
+  {
+    printf("[INFO]: %s: Computating feature map for level %d.\n",mapName.c_str(),i);
+
+    cv::Mat current_image;
+    if(!pyramid->getImage(i,current_image))
+    {
+      printf("[ERROR]: Something went wrong! Can't get image for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
+    
     cv::Mat gaborKernel0, gaborKernel90;
     EPUtils::makeGaborFilter(gaborKernel0,gaborKernel90,angle);
+    cv::Mat temp0, temp90;
+    cv::filter2D(current_image,temp0,-1,gaborKernel0);
+    temp0 = cv::abs(temp0);
+    cv::filter2D(current_image,temp90,-1,gaborKernel90);
+    temp90 = cv::abs(temp90);
+    cv::Mat current_map;
+    cv::add(temp0,temp90,current_map);
     
-    parameters.pyramidO.at(o4).pyramidImages.resize(parameters.pyramidI.pyramidImages.size());
-    
-    for(unsigned int i = 0; i < parameters.pyramidI.pyramidImages.size(); ++i)
+    if(!pyramid->setFeatureMap(i,current_map))
     {
-      cv::Mat temp0, temp90;
-      cv::filter2D(parameters.pyramidI.pyramidImages.at(i),temp0,-1,gaborKernel0);
-      temp0 = cv::abs(temp0);
-      cv::filter2D(parameters.pyramidI.pyramidImages.at(i),temp90,-1,gaborKernel90);
-      temp90 = cv::abs(temp90);
-      cv::add(temp0,temp90,parameters.pyramidO.at(o4).pyramidImages.at(i));
+     printf("[ERROR]: Something went wrong! Can't set feature map for level %d!\n",i);
+     return(AM_CUSTOM);
     }
     
-    combinePyramid(parameters.pyramidO.at(o4));
+    printf("[INFO]: %s: Feature map at level %d is set.\n",mapName.c_str(),i);
   }
-
-  // color pyramids
-  std::vector<cv::Mat> pyramidR;
-  cv::buildPyramid(parameters.R,pyramidR,parameters.pyramidI.max_level);
+  // combine saliency maps
+  pyramid->combinePyramid(true); 
   
-  std::vector<cv::Mat> pyramidG;
-  cv::buildPyramid(parameters.G,pyramidG,parameters.pyramidI.max_level);
-
-  std::vector<cv::Mat> pyramidB;
-  cv::buildPyramid(parameters.B,pyramidB,parameters.pyramidI.max_level);
-
-  std::vector<cv::Mat> pyramidY;
-  cv::buildPyramid(parameters.Y,pyramidY,parameters.pyramidI.max_level);
-
-  parameters.pyramidRG.pyramidImages.resize(pyramidR.size());
-  parameters.pyramidRG.changeSign = true;
-  parameters.pyramidBY.pyramidImages.resize(pyramidR.size());
-  parameters.pyramidBY.changeSign = true;
+  return(AM_OK);
   
-  for(unsigned int i = 0; i < parameters.pyramidRG.pyramidImages.size(); ++i)
-  {
-    parameters.pyramidRG.pyramidImages.at(i) = pyramidR.at(i) - pyramidG.at(i);
-    parameters.pyramidBY.pyramidImages.at(i) = pyramidB.at(i) - pyramidY.at(i);
-  }
-  
-  combinePyramid(parameters.pyramidRG);
-  combinePyramid(parameters.pyramidBY);
 }
+  
+int IKNSaliencyMap::createFeatureMapsRG(IttiPyramid::Ptr pyramidR, IttiPyramid::Ptr pyramidG)
+{
+  for(unsigned int i = pyramidR->getStartLevel(); i <= (unsigned int)pyramidR->getMaxLevel(); ++i)
+  {
+    printf("[INFO]: %s::createFeatureMapsRG: Computating feature map for level %d.\n",mapName.c_str(),i);
+
+    cv::Mat current_imageR;
+    if(!pyramidR->getImage(i,current_imageR))
+    {
+      printf("[ERROR]: createFeatureMapsRG: Something went wrong! Can't get image for level %d (pyramid 1)!\n",i);
+      return(AM_CUSTOM);
+    }
+    
+    cv::Mat current_imageG;
+    if(!pyramidG->getImage(i,current_imageG))
+    {
+      printf("[ERROR]: createFeatureMapsRG: Something went wrong! Can't get image for level %d (pyramid 2)!\n",i);
+      return(AM_CUSTOM);
+    }
+    
+    cv::Mat current_map = current_imageR - current_imageG;
+    
+    if(!pyramidR->setFeatureMap(i,current_map))
+    {
+     printf("[ERROR]: createFeatureMapsRG: Something went wrong! Can't set feature map for level %d!\n",i);
+     return(AM_CUSTOM);
+    }
+    
+    printf("[INFO]: %s: Feature map at level %d is set.\n",mapName.c_str(),i);
+  }
+  // combine saliency maps
+  pyramidR->combinePyramid(true); 
+  
+  return(AM_OK);
+  
+} 
 
 } //AttentionModule

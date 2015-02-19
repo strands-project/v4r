@@ -98,6 +98,9 @@ public:
 		float zNear;
 		float zFar;
 
+    mat4 cv2intrinsic();
+    mat4 cv2extrinsic();
+
     // Writes the parameters to a stream.
     friend std::ostream& operator << (std::ostream& os, Parameter& param);
 

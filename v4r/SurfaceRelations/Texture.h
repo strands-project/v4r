@@ -1,10 +1,10 @@
 /**
  *  Copyright (C) 2012  
- *    Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
- *    1170 Vienn, Austria
+ *    1170 Vienna, Austria
  *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify

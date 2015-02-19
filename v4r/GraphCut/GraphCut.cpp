@@ -1,10 +1,10 @@
 /**
  *  Copyright (C) 2012  
- *    Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
- *    1170 Vienn, Austria
+ *    1170 Vienna, Austria
  *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -458,13 +458,13 @@ void GraphCut::process2()
           if(relations.at(i).id_0 == id_1)
           {
 //             printf("relation %d (%d--%d) was moved to relation ",i,relations.at(i).id_0,relations.at(i).id_1);
-            relations.at(i).id_0 == id_0;
+            relations.at(i).id_0 = id_0;
 //             printf("(%d--%d)\n",i,relations.at(i).id_0,relations.at(i).id_1);
           }
           else if(relations.at(i).id_1 == id_1)
           {
 //             printf("relation %d (%d--%d) was moved to relation ",i,relations.at(i).id_0,relations.at(i).id_1);
-            relations.at(i).id_1 == id_0;
+            relations.at(i).id_1 = id_0;
 //             printf("(%d--%d)\n",i,relations.at(i).id_0,relations.at(i).id_1);
           }
           
@@ -542,13 +542,13 @@ void GraphCut::process2()
           if(relations.at(i).id_0 == id_0)
           {
 //             printf("relation %d (%d--%d) was moved to relation ",i,relations.at(i).id_0,relations.at(i).id_1);
-            relations.at(i).id_0 == id_1;
+            relations.at(i).id_0 = id_1;
 //             printf("(%d--%d)\n",i,relations.at(i).id_0,relations.at(i).id_1);
           }
           else if(relations.at(i).id_1 == id_0)
           {
 //             printf("relation %d (%d--%d) was moved to relation ",i,relations.at(i).id_0,relations.at(i).id_1);
-            relations.at(i).id_1 == id_1;
+            relations.at(i).id_1 = id_1;
 //             printf("(%d--%d)\n",i,relations.at(i).id_0,relations.at(i).id_1);
           }
 

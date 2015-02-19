@@ -7,7 +7,6 @@ project(v4rTomGinePCL)
 # create tomgine include directory name
 string(REGEX REPLACE "v4r" "" TOMGINE_INCLUDE_NAME ${PROJECT_NAME})
 
-find_package(PCL 1.6 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})

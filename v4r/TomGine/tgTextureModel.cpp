@@ -110,6 +110,14 @@ tgTextureModel::operator=(const tgTextureModel &m)
   return *this;
 }
 
+void tgTextureModel::Clear()
+{
+  tgModel::Clear();
+  m_tex_cv.clear();
+  m_face_tex_id.clear();
+  sync = false;
+}
+
 void tgTextureModel::Draw(bool textured, RenderMode rmode)
 {
   DrawFaces(textured, rmode);

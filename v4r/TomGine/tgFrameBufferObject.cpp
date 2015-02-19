@@ -26,27 +26,31 @@
 
 using namespace TomGine;
 
-tgFrameBufferObject::tgFrameBufferObject(unsigned w, unsigned h, GLint colorInternal, GLint depthInternal)
+tgFrameBufferObject::tgFrameBufferObject(unsigned w, unsigned h,
+                                         GLint colorInternal, GLint depthInternal)
 {
 
   m_width = w;
   m_height = h;
 
-  texColor.Bind();
-  texColor.Load(NULL, m_width, m_height, colorInternal, GL_RGBA, GL_UNSIGNED_BYTE);
-  tgCheckError("[main] fbo_tex");
+  texColor.assign(1, new tgTexture2D());
+  texDepth = new tgTexture2D();
 
-  texDepth.Bind();
-  texDepth.Load(NULL, m_width, m_height, depthInternal, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE);
-  tgCheckError("[main] fbo_depth_tex");
+  texColor[0]->Bind();
+  texColor[0]->Load(NULL, m_width, m_height, colorInternal, GL_RGBA, GL_UNSIGNED_BYTE);
+  tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] fbo_tex");
+
+  texDepth->Bind();
+  texDepth->Load(NULL, m_width, m_height, depthInternal, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE);
+  tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] fbo_depth_tex");
 
   glGenFramebuffers(1, &m_fbo_id);
   Bind();
 
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColor.GetTextureID(), 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texColor[0]->GetTextureID(), 0);
   tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] attach color texture");
 
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texDepth.GetTextureID(), 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texDepth->GetTextureID(), 0);
   tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] attach depth texture");
 
   Unbind();
@@ -60,15 +64,63 @@ tgFrameBufferObject::tgFrameBufferObject(unsigned w, unsigned h, GLint colorInte
   }
   glDisable(GL_TEXTURE_2D);
 }
+
+tgFrameBufferObject::tgFrameBufferObject(unsigned w, unsigned h,
+                                         std::vector<GLint>& colorInternal, GLint depthInternal)
+{
+
+  m_width = w;
+  m_height = h;
+
+  for(size_t i=0; i<colorInternal.size(); i++)
+  {
+    texColor.push_back(new tgTexture2D());
+    texColor[i]->Bind();
+    texColor[i]->Load(NULL, m_width, m_height, colorInternal[i], GL_RGBA, GL_UNSIGNED_BYTE);
+  }
+  tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] fbo_tex");
+
+  texDepth = new tgTexture2D();
+  texDepth->Bind();
+  texDepth->Load(NULL, m_width, m_height, depthInternal, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE);
+  tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] fbo_depth_tex");
+
+  glGenFramebuffers(1, &m_fbo_id);
+  Bind();
+
+  std::vector<GLenum> drawBuffers;
+  for(size_t i=0; i<texColor.size(); i++)
+  {
+    drawBuffers.push_back(GL_COLOR_ATTACHMENT0+i);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, GL_TEXTURE_2D, texColor[i]->GetTextureID(), 0);
+  }
+  tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] attach color texture");
+
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texDepth->GetTextureID(), 0);
+  tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] attach depth texture");
+
+  glDrawBuffers(drawBuffers.size(), &drawBuffers[0]);
+
+  Unbind();
+
+  if (tgCheckFBError(GL_FRAMEBUFFER, "[tgFrameBufferObject::tgFrameBufferObject]") != GL_FRAMEBUFFER_COMPLETE
+      || tgCheckError("[tgFrameBufferObject::tgFrameBufferObject]") != GL_NO_ERROR)
+  {
+    std::string errmsg =
+        std::string("[tgFrameBufferObject::tgFrameBufferObject] Error generating frame buffer objects");
+    throw std::runtime_error(errmsg.c_str());
+  }
+  glDisable(GL_TEXTURE_2D);
+}
+
 tgFrameBufferObject::~tgFrameBufferObject()
 {
   if (glIsFramebuffer(m_fbo_id))
     glDeleteFramebuffers(1, &m_fbo_id);
-}
 
-void tgFrameBufferObject::Clear()
-{
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  for(size_t i=0; i<texColor.size(); i++)
+    delete texColor[i];
+  delete texDepth;
 }
 
 void tgFrameBufferObject::Bind()
@@ -82,22 +134,22 @@ void tgFrameBufferObject::Unbind()
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void tgFrameBufferObject::SaveColor(const char* filename)
-{
-  texColor.Bind();
-  cv::Mat img(m_height, m_width, CV_8UC3);
-  glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, img.data);
-  glDisable(GL_TEXTURE_2D);
-  tgCheckError("[tgFrameBufferObject::SaveColor]");
-  cv::imwrite(filename, img);
-}
+//void tgFrameBufferObject::SaveColor(const char* filename)
+//{
+//  texColor[0]->Bind();
+//  cv::Mat img(m_height, m_width, CV_8UC3);
+//  glGetTexImage(GL_TEXTURE_2D, 0, GL_BGR, GL_UNSIGNED_BYTE, img.data);
+//  glDisable(GL_TEXTURE_2D);
+//  tgCheckError("[tgFrameBufferObject::SaveColor]");
+//  cv::imwrite(filename, img);
+//}
 
-void tgFrameBufferObject::SaveDepth(const char* filename)
-{
-  texDepth.Bind();
-  cv::Mat img(m_height, m_width, CV_8U);
-  glGetTexImage(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, img.data);
-  glDisable(GL_TEXTURE_2D);
-  tgCheckError("[tgFrameBufferObject::SaveDepth]");
-  cv::imwrite(filename, img);
-}
+//void tgFrameBufferObject::SaveDepth(const char* filename)
+//{
+//  texDepth->Bind();
+//  cv::Mat img(m_height, m_width, CV_8U);
+//  glGetTexImage(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, img.data);
+//  glDisable(GL_TEXTURE_2D);
+//  tgCheckError("[tgFrameBufferObject::SaveDepth]");
+//  cv::imwrite(filename, img);
+//}

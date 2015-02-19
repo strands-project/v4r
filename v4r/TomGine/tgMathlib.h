@@ -25,6 +25,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
 
 namespace TomGine{
 
@@ -169,6 +170,20 @@ inline vec2 param2polar(const vec2 &vp)
     }
   }
   return r;
+}
+
+inline std::ostream& operator<<(std::ostream& os, vec2& v)
+{
+  os << v.data[0] << " ";
+  os << v.data[1] << " ";
+  return os;
+}
+
+inline std::istream& operator>>(std::istream& is, vec2& v)
+{
+  is >> v.data[0];
+  is >> v.data[1];
+  return is;
 }
 
 /*****************************************************************************/
@@ -367,6 +382,22 @@ inline vec3 hsv2rgb(const vec3 &hsv)
   return vec3(nr,ng,nb);
 }
 
+inline std::ostream& operator<<(std::ostream& os, vec3& v)
+{
+  os << v.data[0] << " ";
+  os << v.data[1] << " ";
+  os << v.data[2] << " ";
+  return os;
+}
+
+inline std::istream& operator>>(std::istream& is, vec3& v)
+{
+  is >> v.data[0];
+  is >> v.data[1];
+  is >> v.data[2];
+  return is;
+}
+
 
 /*****************************************************************************/
 /* vec4                                                                      */
@@ -454,6 +485,24 @@ inline vec4 saturate(const vec4 &v) {
   if(ret.w < 0.0) ret.w = 0.0;
   else if(ret.w > 1.0f) ret.w = 1.0f;
   return ret;
+}
+
+inline std::ostream& operator<<(std::ostream& os, vec4& v)
+{
+  os << v.data[0] << " ";
+  os << v.data[1] << " ";
+  os << v.data[2] << " ";
+  os << v.data[3] << " ";
+  return os;
+}
+
+inline std::istream& operator>>(std::istream& is, vec4& v)
+{
+  is >> v.data[0];
+  is >> v.data[1];
+  is >> v.data[2];
+  is >> v.data[3];
+  return is;
 }
 
 /*****************************************************************************/
@@ -709,6 +758,34 @@ inline vec3 vec3::operator*(const mat3 &m) const
   return vec3(x * m.data[0] + y * m.data[1] + z * m.data[2],
       x * m.data[3] + y * m.data[4] + z * m.data[5],
       x * m.data[6] + y * m.data[7] + z * m.data[8]);
+}
+
+inline std::ostream& operator<<(std::ostream& os, mat3& m)
+{
+  os << m.data[0] << " ";
+  os << m.data[3] << " ";
+  os << m.data[6] << " ";
+  os << m.data[1] << " ";
+  os << m.data[4] << " ";
+  os << m.data[7] << " ";
+  os << m.data[2] << " ";
+  os << m.data[5] << " ";
+  os << m.data[8] << " ";
+  return os;
+}
+
+inline std::istream& operator>>(std::istream& is, mat3& m)
+{
+  is >> m.data[0];
+  is >> m.data[3];
+  is >> m.data[6];
+  is >> m.data[1];
+  is >> m.data[4];
+  is >> m.data[7];
+  is >> m.data[2];
+  is >> m.data[5];
+  is >> m.data[8];
+  return is;
 }
 
 /*****************************************************************************/
@@ -1031,6 +1108,48 @@ inline mat3::mat3(const mat4 &m) {
   data[2] = m[2]; data[5] = m[6]; data[8] = m[10];
 }
 
+inline std::ostream& operator<<(std::ostream& os, mat4& m)
+{
+  os << m.data[0] << " ";
+  os << m.data[4] << " ";
+  os << m.data[8] << " ";
+  os << m.data[12] << " ";
+  os << m.data[1] << " ";
+  os << m.data[5] << " ";
+  os << m.data[9] << " ";
+  os << m.data[13] << " ";
+  os << m.data[2] << " ";
+  os << m.data[6] << " ";
+  os << m.data[10] << " ";
+  os << m.data[14] << " ";
+  os << m.data[3] << " ";
+  os << m.data[7] << " ";
+  os << m.data[11] << " ";
+  os << m.data[15] << " ";
+  return os;
+}
+
+inline std::istream& operator>>(std::istream& is, mat4& m)
+{
+  is >> m.data[0];
+  is >> m.data[4];
+  is >> m.data[8];
+  is >> m.data[12];
+  is >> m.data[1];
+  is >> m.data[5];
+  is >> m.data[9];
+  is >> m.data[13];
+  is >> m.data[2];
+  is >> m.data[6];
+  is >> m.data[10];
+  is >> m.data[14];
+  is >> m.data[3];
+  is >> m.data[7];
+  is >> m.data[11];
+  is >> m.data[15];
+  return is;
+}
+
 /*****************************************************************************/
 /* quat                                                                      */
 struct quat {
@@ -1046,11 +1165,11 @@ struct quat {
     float trace = m[0] + m[4] + m[8];
     if(trace > 0.0) {
       float s = sqrt(trace + 1.0f);
-      q[3] = 0.5f * s;
+      data[3] = 0.5f * s;
       s = 0.5f / s;
-      q[0] = (m[5] - m[7]) * s;
-      q[1] = (m[6] - m[2]) * s;
-      q[2] = (m[1] - m[3]) * s;
+      data[0] = (m[5] - m[7]) * s;
+      data[1] = (m[6] - m[2]) * s;
+      data[2] = (m[1] - m[3]) * s;
     } else {
       static int next[3] = { 1, 2, 0 };
       int i = 0;
@@ -1059,11 +1178,11 @@ struct quat {
       int j = next[i];
       int k = next[j];
       float s = sqrt(m[3 * i + i] - m[3 * j + j] - m[3 * k + k] + 1.0f);
-      q[i] = 0.5f * s;
+      data[i] = 0.5f * s;
       if(s != 0) s = 0.5f / s;
-      q[3] = (m[3 * j + k] - m[3 * k + j]) * s;
-      q[j] = (m[3 * i + j] + m[3 * j + i]) * s;
-      q[k] = (m[3 * i + k] + m[3 * k + i]) * s;
+      data[3] = (m[3 * j + k] - m[3 * k + j]) * s;
+      data[j] = (m[3 * i + j] + m[3 * j + i]) * s;
+      data[k] = (m[3 * i + k] + m[3 * k + i]) * s;
     }
   }
 
@@ -1154,9 +1273,27 @@ struct quat {
     struct {
       float x,y,z,w;
     };
-    float q[4];
+    float data[4];
   };
 };
+
+inline std::ostream& operator<<(std::ostream& os, quat& q)
+{
+  os << q.data[0] << " ";
+  os << q.data[1] << " ";
+  os << q.data[2] << " ";
+  os << q.data[3] << " ";
+  return os;
+}
+
+inline std::istream& operator>>(std::istream& is, quat& q)
+{
+  is >> q.data[0];
+  is >> q.data[1];
+  is >> q.data[2];
+  is >> q.data[3];
+  return is;
+}
 
 } // namespace TomGine
 

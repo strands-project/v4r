@@ -420,6 +420,24 @@ void ConvertPCLClouds2CvMats(const std::vector<pcl::PointCloud<pcl::PointXYZRGB>
   }
 }
 
+void ConvertPCLCloud2Depth(const pcl::PointCloud<pcl::PointXYZRGBL>::Ptr &cloud, Eigen::VectorXd& depth)
+{
+  depth.resize(cloud->size());
+
+  for(unsigned r=0; r < cloud->height; r++)
+  {
+    for(unsigned c=0; c < cloud->width; c++)
+    {
+      const Eigen::Vector3f& p = cloud->at(c,r).getVector3fMap();
+
+//      if( pcl_isfinite(p(2)) )
+        depth(r*cloud->width + c) = p(2); // set directly to nan
+//      else
+//        depth(r*cloud->width + c) = p.norm(); // set to depth
+    }
+  }
+}
+
 void ConvertPCLCloud2Image(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pcl_cloud, cv::Mat_<cv::Vec3b> &image)
 {
   unsigned pcWidth = pcl_cloud->width;
@@ -458,6 +476,60 @@ void ConvertPCLCloud2Image(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pc
       cvp[0] = pt.r;
       cvp[1] = pt.g;
       cvp[2] = pt.b;
+    }
+  }
+}
+
+void ConvertPCLCloud2Image(const pcl::PointCloud<pcl::PointXYZRGBL>::ConstPtr &pcl_cloud,
+                           cv::Mat_<cv::Vec3b> &image,
+                           bool use_labels_for_coloring)
+{
+  unsigned pcWidth = pcl_cloud->width;
+  unsigned pcHeight = pcl_cloud->height;
+  unsigned position = 0;
+
+  image = cv::Mat_<cv::Vec3b>(pcHeight, pcWidth);
+  image.setTo(cv::Vec3b(0,0,0)); // set background black
+
+  std::vector<cv::Vec3b> colormap;
+
+  for (unsigned row = 0; row < pcHeight; row++)
+  {
+    for (unsigned col = 0; col < pcWidth; col++)
+    {
+      cv::Vec3b &cvp = image.at<cv::Vec3b> (row, col);
+      position = row * pcWidth + col;
+      const pcl::PointXYZRGBL &pt = pcl_cloud->points[position];
+
+      if(use_labels_for_coloring)
+      {
+        if(isnan(pt.z))
+          continue;     // background is always black
+
+        while(pt.label>=colormap.size()) // if there is no color for this label (first occurance)
+        {
+          // fill up colormap with random colors until colormap.size = pt.label+1
+          cv::Vec3b c;
+          do
+          {
+            c[0] = 30 + rand() % 225; // some offset to visually distinguish from black background
+            c[1] = 30 + rand() % 225;
+            c[2] = 30 + rand() % 225;
+          }while(find(colormap.begin(),colormap.end(),c)!=colormap.end()); // if c is already in colormap: repeat
+
+          colormap.push_back(c);
+        }
+
+        cvp(0) = colormap[pt.label](0);
+        cvp(1) = colormap[pt.label](1);
+        cvp(2) = colormap[pt.label](2);
+      }
+      else
+      {
+        cvp[0] = pt.b;
+        cvp[1] = pt.g;
+        cvp[2] = pt.r;
+      }
     }
   }
 }

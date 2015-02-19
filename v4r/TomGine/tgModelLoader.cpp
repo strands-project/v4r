@@ -87,9 +87,9 @@ tgModelLoader::LoadPly (tgModel &model, const char* filename)
 
   int num_vertices = 0;
   int num_faces = 0;
-  PlyVertex* plyvertexlist = 0;
-  PlyFace* plyfacelist = 0;
-  PlyEdge* plyedgelist = 0;
+  std::vector<PlyVertex> plyvertexlist;
+  std::vector<PlyFace> plyfacelist;
+  std::vector<PlyEdge> plyedgelist;
   vector<string> texFilenames;
   string strFilename = expandName (filename);
 
@@ -132,9 +132,9 @@ tgModelLoader::LoadPly (tgModel &model, const char* filename)
                                {(char*)"nz", PLY_FLOAT, PLY_FLOAT, offsetof(PlyVertex,nz), 0, 0, 0, 0},
                                {(char*)"u", PLY_FLOAT, PLY_FLOAT, offsetof(PlyVertex,s), 0, 0, 0, 0},
                                {(char*)"v", PLY_FLOAT, PLY_FLOAT, offsetof(PlyVertex,t), 0, 0, 0, 0},
-                               {(char*)"diffuse_red", PLY_UCHAR, PLY_UCHAR, offsetof(PlyVertex,r), 0, 0, 0, 0},
-                               {(char*)"diffuse_green", PLY_UCHAR, PLY_UCHAR, offsetof(PlyVertex,g), 0, 0, 0, 0},
-                               {(char*)"diffuse_blue", PLY_UCHAR, PLY_UCHAR, offsetof(PlyVertex,b), 0, 0, 0, 0}};
+                               {(char*)"red", PLY_UCHAR, PLY_UCHAR, offsetof(PlyVertex,r), 0, 0, 0, 0},
+                               {(char*)"green", PLY_UCHAR, PLY_UCHAR, offsetof(PlyVertex,g), 0, 0, 0, 0},
+                               {(char*)"blue", PLY_UCHAR, PLY_UCHAR, offsetof(PlyVertex,b), 0, 0, 0, 0}};
 
   // list of property information for a face
   PlyProperty face_props[] = { /* list of property information for a vertex */
@@ -156,7 +156,8 @@ tgModelLoader::LoadPly (tgModel &model, const char* filename)
     {
       // allocate memory for vertices
       num_vertices = num_elems;
-      plyvertexlist = (PlyVertex*)malloc (sizeof(PlyVertex) * num_vertices);
+
+      plyvertexlist.resize(num_vertices);
 
       // setup property specification for elements
       for (j = 0; j < nprops; j++)
@@ -178,7 +179,7 @@ tgModelLoader::LoadPly (tgModel &model, const char* filename)
     {
       // allocate memory for faces
       num_faces = num_elems;
-      plyfacelist = (PlyFace*)malloc (sizeof(PlyFace) * num_faces);
+      plyfacelist.resize(num_faces);
 
       // setup property specification for elements
       for (j = 0; j < nprops && j < 1; j++)
@@ -198,7 +199,7 @@ tgModelLoader::LoadPly (tgModel &model, const char* filename)
     if (equal_strings ((char*)"edge", elem_name))
     {
       // allocate memory for edges
-      plyedgelist = (PlyEdge*)malloc (sizeof(PlyEdge) * num_elems);
+      plyedgelist.resize(num_elems);
 
       // setup property specification for elements
       for (j = 0; j < nprops && j < 2; j++)
@@ -251,15 +252,6 @@ tgModelLoader::LoadPly (tgModel &model, const char* filename)
   }
 
   // 	model.ComputeFaceNormals();
-
-  // **********************************************
-  // Clean up
-  if (plyvertexlist)
-    free (plyvertexlist);
-  if (plyfacelist)
-    free (plyfacelist);
-  if (plyedgelist)
-    free (plyedgelist);
 
   return true;
 }

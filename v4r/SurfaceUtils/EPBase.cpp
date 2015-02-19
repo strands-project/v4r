@@ -1,11 +1,11 @@
 /**
- *  Copyright (C) 2012
- *    Ekaterina Potapova
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
  *    1170 Vienna, Austria
- *    potapova(at)acin.tuwien.ac.at
+ *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ void EPBase::setInputCloud(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &_cloud)
   if ( (_cloud->height<=1) || (_cloud->width<=1) || (!_cloud->isOrganized()) )
   {
     char* error_message = new char[200];
-    sprintf(error_message,"[%c::setInputCloud()]: Invalid point cloud (height must be > 1; width must be > 1; point cloud should be organized).",ClassName.c_str());
+    sprintf(error_message,"[%s::setInputCloud()]: Invalid point cloud (height must be > 1; width must be > 1; point cloud should be organized).",ClassName.c_str());
     throw std::runtime_error(error_message);
   }
 
@@ -78,14 +78,14 @@ void EPBase::setNormals(const pcl::PointCloud<pcl::Normal>::Ptr &_normals)
   if(!have_cloud)
   {
     char* error_message = new char[200];
-    sprintf(error_message,"[%c::setNormals()]: I suggest you first set the point cloud.",ClassName.c_str());
+    sprintf(error_message,"[%s::setNormals()]: I suggest you first set the point cloud.",ClassName.c_str());
     throw std::runtime_error(error_message);
   }
   
-  if ( (_normals->height!=height) || (_normals->width!=width) )
+  if ( (_normals->height!=(unsigned int)height) || (_normals->width!=(unsigned int)width) )
   {
     char* error_message = new char[200];
-    sprintf(error_message,"[%c::setNormals()]: Invalid normals (not for this point cloud).",ClassName.c_str());
+    sprintf(error_message,"[%s::setNormals()]: Invalid normals (not for this point cloud).",ClassName.c_str());
     throw std::runtime_error(error_message);
   }
 
@@ -98,7 +98,7 @@ void EPBase::setIndices(const pcl::PointIndices::Ptr &_indices)
   if(!have_cloud)
   {
     char* error_message = new char[200];
-    sprintf(error_message,"[%c::setNormals()]: I suggest you first set the point cloud.",ClassName.c_str());
+    sprintf(error_message,"[%s::setNormals()]: I suggest you first set the point cloud.",ClassName.c_str());
     throw std::runtime_error(error_message);
   }
   
@@ -111,7 +111,7 @@ void EPBase::setIndices(const std::vector<int> &_indices)
   if(!have_cloud)
   {
     char* error_message = new char[200];
-    sprintf(error_message,"[%c::setNormals()]: I suggest you first set the point cloud.",ClassName.c_str());
+    sprintf(error_message,"[%s::setNormals()]: I suggest you first set the point cloud.",ClassName.c_str());
     throw std::runtime_error(error_message);
   }
   
@@ -122,7 +122,7 @@ void EPBase::setIndices(const std::vector<int> &_indices)
 void EPBase::compute()
 {
   char* error_message = new char[200];
-  sprintf(error_message,"[%c::setNormals()]: Why do you call me? I am just the base class!.",ClassName.c_str());
+  sprintf(error_message,"[%s::setNormals()]: Why do you call me? I am just the base class!.",ClassName.c_str());
   throw std::runtime_error(error_message);
 }
 

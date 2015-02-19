@@ -7,8 +7,8 @@
 
 #include "CameraTrackerRGBDPCL.hh"
 //#include "v4r/KeypointTools/getImageKPtoCV.hpp"
-#include "v4r/KeypointConversions/getImagePCLtoCV.hpp"
-#include "v4r/KeypointConversions/convertCloudKP.hpp"
+#include "v4r/KeypointConversions/convertImage.hpp"
+#include "v4r/KeypointConversions/convertCloud.hpp"
 #include <opencv2/highgui/highgui.hpp>
 
 
@@ -38,7 +38,7 @@ CameraTrackerRGBDPCL::~CameraTrackerRGBDPCL()
  */
 bool CameraTrackerRGBDPCL::trackPCL(pcl::PointCloud<pcl::PointXYZRGB> &cloud, Eigen::Matrix4f &pose, const cv::Mat_<unsigned char> &mask)
 {
-  kp::convertCloudPCLtoKP(cloud, kp_cloud);
+  kp::convertCloud(cloud, kp_cloud);
 
   return track(kp_cloud, pose, mask);
 }
@@ -60,7 +60,7 @@ void CameraTrackerRGBDPCL::operate(const std::vector< pcl::PointCloud<pcl::Point
   for (unsigned i=0; i<clouds.size(); i++)
   {
     if (!dbg.empty()) {
-       kp::getImagePCLtoCV(*clouds[i], dbg);
+       kp::convertImage(*clouds[i], dbg);
     }
 
     trackPCL(*clouds[i], poses[i]);
