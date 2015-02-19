@@ -80,8 +80,6 @@ recognizeAndVisualize (std::string & scene_dir)
 
         for (size_t i = 0; i < scene_files.size (); i++)
         {
-            std::cout << "Evaluating scene: " << scene_files[i] << std::endl;
-            continue;
             std::vector<std::string> strs;
             boost::split (strs, scene_files[i], boost::is_any_of ("."));
             std::string scene_file_wo_ext = strs[0];
