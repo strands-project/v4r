@@ -80,6 +80,8 @@ recognizeAndVisualize (std::string & scene_dir)
 
         for (size_t i = 0; i < scene_files.size (); i++)
         {
+            std::cout << "Evaluating scene: " << scene_files[i] << std::endl;
+            continue;
             std::vector<std::string> strs;
             boost::split (strs, scene_files[i], boost::is_any_of ("."));
             std::string scene_file_wo_ext = strs[0];
@@ -109,6 +111,7 @@ recognizeAndVisualize (std::string & scene_dir)
                     std::string times_text ("times.txt");
                     if (!std::strcmp(model_name.c_str(), times_text.c_str()))
                     {
+                        std::cout << "skipping this one" << std::endl;
                         continue;
                     }
                     model_name = model_name.substr(0,found) + ".pcd";
@@ -275,170 +278,6 @@ recognizeAndVisualize (std::string & scene_dir)
         PCL_ERROR("You should pass a directory\n");
         return;
     }
-
-    //    for(size_t i=0; i < files_to_recognize.size(); i++)
-    //    {
-    //        typename pcl::PointCloud<PointT>::Ptr scene (new pcl::PointCloud<PointT>);
-    //        pcl::io::loadPCDFile (files_to_recognize[i], *scene);
-
-    //        std::string gt_name = files_to_recognize[i];
-    //        std::cout << SCENES_DIR << " gt_name:" << gt_name << std::endl;
-    //        boost::replace_all(gt_name, SCENES_DIR, "");
-    //        std::vector<std::string> strs;
-    //        boost::split (strs, gt_name, boost::is_any_of ("\\/"));
-
-    //        std::string scene_name = strs[strs.size() - 1];
-    //        boost::replace_all(scene_name, ".pcd", "");
-
-    //        {
-    //            std::stringstream rel_path;
-    //            rel_path << scene_images_path << "/";
-    //            for(size_t k=0; k < (strs.size() - 1); k++)
-    //            {
-    //                rel_path << strs[k] << "/";
-    //                bf::path p = rel_path.str();
-    //                if(!bf::exists(p))
-    //                {
-    //                    bf::create_directory(p);
-    //                }
-    //            }
-
-    //            std::cout << rel_path.str() << "/" << scene_name << ".jpg" << std::endl;
-
-    //            std::stringstream image_path;
-    //            image_path << rel_path.str() << "/" << scene_name << ".jpg";
-
-
-    //            cv::Mat_ < cv::Vec3b > colorImage;
-    //            PCLOpenCV::ConvertPCLCloud2Image<PointT> (scene, colorImage);
-    //            cv::imwrite(image_path.str(), colorImage);
-    //        }
-
-    //        std::string file_to_recognize(files_to_recognize[i]);
-    //        boost::replace_all (file_to_recognize, scene_dir, "");
-    //        boost::replace_all (file_to_recognize, ".pcd", "");
-    //        std::string id_1 = file_to_recognize;
-
-    //        pcl::PointCloud<pcl::PointXYZRGB>::Ptr gt_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-    //        or_eval.getGroundTruthPointCloud(id_1, gt_cloud); //maybe add model resolution here
-
-    //        //transform gt_cloud to organized point cloud and then to image
-    //        pcl::PointCloud<pcl::PointXYZRGB>::Ptr gt_cloud_organized(new pcl::PointCloud<pcl::PointXYZRGB>);
-    //        gt_cloud_organized->width = scene->width;
-    //        gt_cloud_organized->height = scene->height;
-    //        gt_cloud_organized->is_dense = scene->is_dense;
-    //        gt_cloud_organized->points.resize(scene->points.size());
-    //        for(size_t kk=0; kk < gt_cloud_organized->points.size(); kk++)
-    //        {
-    //            gt_cloud_organized->points[kk].x = gt_cloud_organized->points[kk].y = gt_cloud_organized->points[kk].z =
-    //                    std::numeric_limits<float>::quiet_NaN();
-
-    //            gt_cloud_organized->points[kk].r = gt_cloud_organized->points[kk].g = gt_cloud_organized->points[kk].b = 255;
-    //        }
-
-    //        float f = 525.f;
-    //        float cx = (static_cast<float> (scene->width) / 2.f - 0.5f);
-    //        float cy = (static_cast<float> (scene->height) / 2.f - 0.5f);
-
-    //        int ws2 = 1;
-    //        for (size_t kk = 0; kk < gt_cloud->points.size (); kk++)
-    //        {
-    //          float x = gt_cloud->points[kk].x;
-    //          float y = gt_cloud->points[kk].y;
-    //          float z = gt_cloud->points[kk].z;
-    //          int u = static_cast<int> (f * x / z + cx);
-    //          int v = static_cast<int> (f * y / z + cy);
-
-    //          for(int uu = (u-ws2); uu < (u+ws2); uu++)
-    //          {
-    //              for(int vv = (v-ws2); vv < (v+ws2); vv++)
-    //              {
-    //                  //Not out of bounds
-    //                    if ((uu >= static_cast<int> (scene->width)) ||
-    //                        (vv >= static_cast<int> (scene->height)) || (uu < 0) || (vv < 0))
-    //                      continue;
-
-    //                    float z_oc = gt_cloud_organized->at (uu, vv).z;
-
-    //                    if(pcl_isnan(z_oc))
-    //                    {
-    //                        gt_cloud_organized->at (uu, vv) = gt_cloud->points[kk];
-    //                    }
-    //                    else
-    //                    {
-    //                        if(z < z_oc)
-    //                        {
-    //                            gt_cloud_organized->at (uu, vv) = gt_cloud->points[kk];
-    //                        }
-    //                    }
-    //              }
-    //          }
-
-    //          /*//Not out of bounds
-    //          if ((u >= static_cast<int> (scene->width)) ||
-    //              (v >= static_cast<int> (scene->height)) || (u < 0) || (v < 0))
-    //            continue;
-
-    //          float z_oc = gt_cloud_organized->at (u, v).z;
-
-    //          if(pcl_isnan(z_oc))
-    //          {
-    //              gt_cloud_organized->at (u, v) = gt_cloud->points[kk];
-    //          }
-    //          else
-    //          {
-    //              if(z < z_oc)
-    //              {
-    //                  gt_cloud_organized->at (u, v) = gt_cloud->points[kk];
-    //              }
-    //          }*/
-    //        }
-
-    //        {
-    //            std::stringstream rel_path;
-    //            rel_path << scene_images_gt_path << "/";
-    //            for(size_t k=0; k < (strs.size() - 1); k++)
-    //            {
-    //                rel_path << strs[k] << "/";
-    //                bf::path p = rel_path.str();
-    //                if(!bf::exists(p))
-    //                {
-    //                    bf::create_directory(p);
-    //                }
-    //            }
-
-    //            std::cout << rel_path.str() << "/" << scene_name << ".jpg" << std::endl;
-
-    //            std::stringstream image_path;
-    //            image_path << rel_path.str() << "/" << scene_name << ".jpg";
-
-
-    //            cv::Mat_ < cv::Vec3b > colorImage;
-    //            PCLOpenCV::ConvertPCLCloud2Image<PointT> (gt_cloud_organized, colorImage);
-    //            /*cv::namedWindow("image");
-    //            cv::imshow("image", colorImage);
-    //            cv::waitKey(0);*/
-    //            cv::imwrite(image_path.str(), colorImage);
-    //        }
-
-    //        {
-    //            vis.removeAllPointClouds();
-
-    //            {
-    //                pcl::visualization::PointCloudColorHandlerRGBField<PointT> scene_handler (scene);
-    //                vis.addPointCloud<PointT> (scene, scene_handler, "scene_cloud_z_coloured", v1);
-    //                pcl::visualization::PointCloudColorHandlerRGBField<PointT> scene_handlerGT (gt_cloud_organized);
-    //                vis.addPointCloud<PointT> (gt_cloud_organized, scene_handlerGT, "gt1", v1);
-    //            }
-
-    //            {
-    //                pcl::visualization::PointCloudColorHandlerRGBField<PointT> scene_handler (gt_cloud_organized);
-    //                vis.addPointCloud<PointT> (gt_cloud_organized, scene_handler, "gt", v2);
-    //            }
-
-    //            vis.spin ();
-    //        }
-    //    }
 }
 
 int
@@ -468,13 +307,6 @@ main (int argc, char ** argv)
     {
         PCL_ERROR("Models dir path %s does not exist, use -models_dir [dir] option\n", MODELS_DIR_.c_str());
         return -1;
-    }
-    else
-    {
-        std::vector < std::string > files;
-        bf::path dir = models_dir_path;
-        faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true);
-        std::cout << "Number of models in directory is:" << files.size() << std::endl;
     }
     recognizeAndVisualize<PointT> (SCENES_DIR);
 }

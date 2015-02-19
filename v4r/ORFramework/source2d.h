@@ -9,6 +9,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <vector>
+#include <v4r/ORUtils/filesystem_utils.h>
 
 
 namespace bf = boost::filesystem;
@@ -69,44 +70,6 @@ public:
             }
         }
     }
-
-    void
-    getFilesInDirectory (bf::path & dir, std::string & rel_path_so_far, std::vector<std::string> & relative_paths, std::string & ext)
-    {
-        bf::directory_iterator end_itr;
-        for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
-        {
-            //check if its a directory, then ignore
-            if (bf::is_directory (*itr))
-            {
-
-            }
-            else
-            {
-                std::vector < std::string > strs;
-#if BOOST_FILESYSTEM_VERSION == 3
-                std::string file = (itr->path ().filename ()).string();
-#else
-                std::string file = (itr->path ()).filename ();
-#endif
-
-                boost::split (strs, file, boost::is_any_of ("."));
-                std::string extension = strs[strs.size () - 1];
-
-                if (extension.compare (ext) == 0)
-                {
-#if BOOST_FILESYSTEM_VERSION == 3
-                    std::string path = rel_path_so_far + (itr->path ().filename ()).string();
-#else
-                    std::string path = rel_path_so_far + (itr->path ()).filename ();
-#endif
-
-                    relative_paths.push_back (path);
-                }
-            }
-        }
-    }
-
     boost::shared_ptr<std::vector<Model2DTPtr> >
     getModels ()
     {
@@ -205,11 +168,10 @@ public:
 
         //get models in directory
         std::vector < std::string > folders;
-        std::string start = "";
         bf::path dir = path_;
-        std::string ext_v[] = {"jpg", "JPG", "png", "PNG", "bmp", "BMP", "jpeg", "JPEG"};
+        //std::string ext_v[] = {"jpg", "JPG", "png", "PNG", "bmp", "BMP", "jpeg", "JPEG"};
 
-        getFoldersInDirectory (dir, start, folders);
+        faat_pcl::utils::getFoldersInDirectory (dir, "", folders);
         std::cout << "There are " << folders.size() << " folders. " << std::endl;
 
         for (size_t i = 0; i < folders.size (); i++)
@@ -217,10 +179,10 @@ public:
             std::stringstream class_path;
             class_path << path_ << "/" << folders[i];
             bf::path class_dir = class_path.str();
-            for(size_t ext_id=0; ext_id < sizeof(ext_v)/sizeof(ext_v[0]); ext_id++)
-            {
+//            for(size_t ext_id=0; ext_id < sizeof(ext_v)/sizeof(ext_v[0]); ext_id++)
+//            {
                 std::vector < std::string > filesInRelFolder;
-                getFilesInDirectory (class_dir, start, filesInRelFolder, ext_v[ext_id]);
+                faat_pcl::utils::getFilesInDirectory (class_dir, filesInRelFolder, "", ".*\\.(jpg|JPG|png|PNG|jpeg|JPEG|bmp|BMP)", false);
                 std::cout << "There are " <<  filesInRelFolder.size() << " files in folder " << folders[i] << ". " << std::endl;
 
                 for (size_t kk = 0; kk < filesInRelFolder.size (); kk++)
@@ -237,7 +199,7 @@ public:
 
                     models_->push_back (m);
                 }
-            }
+//            }
         }
     }
 };

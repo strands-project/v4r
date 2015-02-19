@@ -17,6 +17,7 @@
 #include "vtk_model_sampling.h"
 #include <vtkTransformPolyDataFilter.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
+#include <v4r/ORUtils/filesystem_utils.h>
 
 namespace faat_pcl
 {
@@ -119,44 +120,6 @@ namespace faat_pcl
               }
           }
         }
-
-        void
-        getFilesInDirectory (bf::path & dir, std::string & rel_path_so_far, std::vector<std::string> & relative_paths, std::string & ext)
-        {
-          bf::directory_iterator end_itr;
-          for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
-          {
-            //check if its a directory, then ignore
-            if (bf::is_directory (*itr))
-            {
-
-            }
-            else
-            {
-              std::vector < std::string > strs;
-#if BOOST_FILESYSTEM_VERSION == 3
-              std::string file = (itr->path ().filename ()).string();
-#else
-              std::string file = (itr->path ()).filename ();
-#endif
-
-              boost::split (strs, file, boost::is_any_of ("."));
-              std::string extension = strs[strs.size () - 1];
-
-              if (extension.compare (ext) == 0)
-              {
-#if BOOST_FILESYSTEM_VERSION == 3
-                std::string path = rel_path_so_far + (itr->path ().filename ()).string();
-#else
-                std::string path = rel_path_so_far + (itr->path ()).filename ();
-#endif
-
-                relative_paths.push_back (path);
-              }
-            }
-          }
-        }
-
         /**
          * \brief Creates the model representation of the training set, generating views if needed
          */
@@ -165,10 +128,9 @@ namespace faat_pcl
         {
           //get models in directory
           std::vector < std::string > files;
-          std::string start = "";
           bf::path dir = path_;
 
-          getFilesInDirectory (dir, start, files, ext_);
+          faat_pcl::utils::getFilesInDirectory (dir, files, "", ".*.pcd", false);
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);

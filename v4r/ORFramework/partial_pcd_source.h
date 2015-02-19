@@ -143,21 +143,21 @@ namespace faat_pcl
           f_ = f;
         }
 
-        bool
-        isleafDirectory (bf::path & path)
-        {
-          bf::directory_iterator end_itr;
-          bool no_dirs_inside = true;
-          for (bf::directory_iterator itr (path); itr != end_itr; ++itr)
-          {
-            if (bf::is_directory (*itr))
-            {
-              no_dirs_inside = false;
-            }
-          }
+//        bool
+//        isleafDirectory (bf::path & path)
+//        {
+//          bf::directory_iterator end_itr;
+//          bool no_dirs_inside = true;
+//          for (bf::directory_iterator itr (path); itr != end_itr; ++itr)
+//          {
+//            if (bf::is_directory (*itr))
+//            {
+//              no_dirs_inside = false;
+//            }
+//          }
 
-          return no_dirs_inside;
-        }
+//          return no_dirs_inside;
+//        }
 
         /**
          * \brief Creates the model representation of the training set, generating views if needed
@@ -172,7 +172,7 @@ namespace faat_pcl
           //get models in directory
           std::vector < std::string > files;
           bf::path dir = path_;
-          faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true );
+          faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", false );
 
           models_.reset (new std::vector<ModelTPtr>);
 

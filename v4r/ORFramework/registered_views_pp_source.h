@@ -253,7 +253,7 @@ namespace faat_pcl
             bf::path model_dir = model_path;
 
             //read all views...compute voxel grid sizes
-            faat_pcl::utils::getFilesInDirectory( (model_dir, view_filenames, "", ".*.pcd", false);
+            faat_pcl::utils::getFilesInDirectory( (model_dir, view_filenames, "", ".*.pcd", true);
             std::cout << view_filenames.size () << " " << model_dir.string() << std::endl;
             std::sort(view_filenames.begin(), view_filenames.end());
             std::vector<typename pcl::PointCloud<PointInT>::Ptr> view_clouds;
@@ -642,21 +642,21 @@ namespace faat_pcl
           }
         }
 
-        bool
-        isleafDirectory (bf::path & path)
-        {
-          bf::directory_iterator end_itr;
-          bool no_dirs_inside = true;
-          for (bf::directory_iterator itr (path); itr != end_itr; ++itr)
-          {
-            if (bf::is_directory (*itr))
-            {
-              no_dirs_inside = false;
-            }
-          }
+//        bool
+//        isleafDirectory (bf::path & path)
+//        {
+//          bf::directory_iterator end_itr;
+//          bool no_dirs_inside = true;
+//          for (bf::directory_iterator itr (path); itr != end_itr; ++itr)
+//          {
+//            if (bf::is_directory (*itr))
+//            {
+//              no_dirs_inside = false;
+//            }
+//          }
 
-          return no_dirs_inside;
-        }
+//          return no_dirs_inside;
+//        }
 
         /**
          * \brief Creates the model representation of the training set, generating views if needed
@@ -669,9 +669,8 @@ namespace faat_pcl
 
           //get models in directory
           std::vector < std::string > files;
-          std::string start = "";
           bf::path dir = path_;
-          faat_pcl::utils::getFilesInDirectoryRecursive(dir, start, files);
+          faat_pcl::utils::getFilesInDirectory(dir, files, "", "", true);
 
           models_.reset (new std::vector<ModelTPtr>);
 

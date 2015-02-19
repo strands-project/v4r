@@ -167,42 +167,6 @@ namespace faat_pcl
 
               faat_pcl::utils::getFilesInDirectory(trained_dir, model.view_filenames_, "", ".*view_prefix_.*.pcd", false);
 
-            /*std::vector < std::string > view_filenames;
-            int number_of_views = 0;
-            bf::directory_iterator end_itr;
-            for (bf::directory_iterator itr (trained_dir); itr != end_itr; ++itr)
-            {
-              //check if its a directory, then get models in it
-              if (!(bf::is_directory (*itr)))
-              {
-                //check that it is a ply file and then add, otherwise ignore..
-                std::vector < std::string > strs;
-                std::vector < std::string > strs_;
-
-#if BOOST_FILESYSTEM_VERSION == 3
-                std::string file = (itr->path ().filename ()).string();
-#else
-                std::string file = (itr->path ()).filename ();
-#endif
-
-                boost::split (strs, file, boost::is_any_of ("."));
-                boost::split (strs_, file, boost::is_any_of ("_"));
-
-                std::string extension = strs[strs.size () - 1];
-
-                if (extension == "pcd" && strs_[0] == "view")
-                {
-#if BOOST_FILESYSTEM_VERSION == 3
-                  view_filenames.push_back ((itr->path ().filename ()).string());
-#else
-                  view_filenames.push_back ((itr->path ()).filename ());
-#endif
-
-                  number_of_views++;
-                }
-              }
-            }*/
-
             if(load_into_memory_)
             {
               loadInMemorySpecificModel(dir, model);
@@ -326,10 +290,8 @@ namespace faat_pcl
 
           //get models in directory
           std::vector < std::string > files;
-          std::string start = "";
-          std::string ext = std::string ("ply");
           bf::path dir = path_;
-          faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.ply", false);
+          faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.ply", true);
 
           models_.reset (new std::vector<ModelTPtr>);
 

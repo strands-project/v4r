@@ -14,6 +14,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include "faat_3d_rec_framework_defines.h"
+#include <v4r/ORUtils/filesystem_utils.h>
 
 
 namespace faat_pcl
@@ -139,78 +140,21 @@ namespace faat_pcl
             }
         }
 
-        bool
-        isleafDirectory (bf::path & path)
-        {
-          bf::directory_iterator end_itr;
-          bool no_dirs_inside = true;
-          for (bf::directory_iterator itr (path); itr != end_itr; ++itr)
-          {
-            if (bf::is_directory (*itr))
-            {
-              no_dirs_inside = false;
-            }
-          }
+//        bool
+//        isleafDirectory (bf::path & path)
+//        {
+//          bf::directory_iterator end_itr;
+//          bool no_dirs_inside = true;
+//          for (bf::directory_iterator itr (path); itr != end_itr; ++itr)
+//          {
+//            if (bf::is_directory (*itr))
+//            {
+//              no_dirs_inside = false;
+//            }
+//          }
 
-          return no_dirs_inside;
-        }
-
-        void
-        getFilesInDirectory (bf::path & dir, std::string & rel_path_so_far, std::vector<std::string> & relative_paths, std::string & ext)
-        {
-          bf::directory_iterator end_itr;
-          for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
-          {
-            //check if its a directory, then ignore
-            if (bf::is_directory (*itr))
-            {
-
-            }
-            else
-            {
-              std::vector < std::string > strs;
-#if BOOST_FILESYSTEM_VERSION == 3
-              std::string file = (itr->path ().filename ()).string();
-#else
-              std::string file = (itr->path ()).filename ();
-#endif
-
-              boost::split (strs, file, boost::is_any_of ("."));
-              std::string extension = strs[strs.size () - 1];
-
-              if (extension.compare (ext) == 0)
-              {
-#if BOOST_FILESYSTEM_VERSION == 3
-                std::string path = rel_path_so_far + (itr->path ().filename ()).string();
-#else
-                std::string path = rel_path_so_far + (itr->path ()).filename ();
-#endif
-
-                relative_paths.push_back (path);
-              }
-            }
-          }
-        }
-
-
-        void
-        getFoldersInDirectory (bf::path & dir, std::string & rel_path_so_far, std::vector<std::string> & relative_paths)
-        {
-          bf::directory_iterator end_itr;
-          for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
-          {
-            //check if its a directory, else ignore
-            if (bf::is_directory (*itr))
-            {
-#if BOOST_FILESYSTEM_VERSION == 3
-              std::string path = rel_path_so_far + (itr->path ().filename ()).string();
-#else
-              std::string path = rel_path_so_far + (itr->path ()).filename ();
-#endif
-              relative_paths.push_back (path);
-            }
-          }
-        }
+//          return no_dirs_inside;
+//        }
 
         /**
          * \brief Creates the model representation of the training set, generating views if needed
@@ -225,11 +169,9 @@ namespace faat_pcl
 
           //get models in directory
           std::vector < std::string > folders;
-          std::string start = "";
           bf::path dir = path_;
-          std::string ext = "pcd";
 
-          getFoldersInDirectory (dir, start, folders);
+          faat_pcl::utils::getFoldersInDirectory (dir, "", folders);
           std::cout << "There are " << folders.size() << " folders. " << std::endl;
 
           for (size_t i = 0; i < folders.size (); i++)
@@ -238,7 +180,7 @@ namespace faat_pcl
               class_path << path_ << "/" << folders[i];
               bf::path class_dir = class_path.str();
               std::vector < std::string > filesInRelFolder;
-              getFilesInDirectory (class_dir, start, filesInRelFolder, ext);
+              faat_pcl::utils::getFilesInDirectory (class_dir, filesInRelFolder, "", ".*.pcd", false);
               std::cout << "There are " <<  filesInRelFolder.size() << " files in folder " << folders[i] << ". " << std::endl;
 
               for (size_t kk = 0; kk < filesInRelFolder.size (); kk++)
@@ -265,53 +207,6 @@ namespace faat_pcl
                   models_->push_back (m);
               }
           }
-          /*getFilesInDirectory (dir, start, files, ext);
-          std::cout << "There are " <<  files.size() << " files. " <<std::endl;
-
-          models_.reset (new std::vector<ModelTPtr>);
-
-          for (size_t i = 0; i < files.size (); i++)
-          {
-            ModelTPtr m(new ModelT());
-
-            std::vector < std::string > strs;
-            boost::split (strs, files[i], boost::is_any_of ("/\\"));
-            std::string name = strs[strs.size () - 1];
-
-            if (strs.size () == 1)
-            {
-              m->id_ = strs[0];
-            }
-            else
-            {
-              std::stringstream ss;
-              for (int i = 0; i < static_cast<int> (strs.size ()); i++)
-              {
-                ss << strs[i];
-                if (i != (static_cast<int> (strs.size ()) - 1))
-                  ss << "/";
-              }
-
-              std::cout << "Model class: " << ss.str() << std::endl;
-              std::cout << "Model id: " << strs[strs.size () - 1] << std::endl;
-              m->class_ = ss.str ();
-              m->id_ = strs[strs.size () - 1];
-            }
-
-            std::cout << m->class_ << " . " << m->id_ << std::endl;
-            //check which of them have been trained using training_dir and the model_id_
-            //load views, poses and self-occlusions for those that exist
-            //generate otherwise
-
-            std::stringstream model_path;
-            model_path << path_ << "/" << files[i];
-            std::string path_model = model_path.str ();
-            loadOrGenerate (training_dir, path_model, *m);
-
-            models_->push_back (m);
-
-            //std::cout << files[i] << std::endl;
-          }*/
         }
       };
   }

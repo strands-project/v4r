@@ -9,7 +9,7 @@
 #include <stdio.h>
 //#include <pcl/point_types.h>
 #include <pcl/gpu/containers/device_array.h>
-#include "/home/thomas/Projects/pcl/gpu/octree/src/internal.hpp"
+//#include <pcl/gpu/octree/src/internal.hpp>
 
 #define cudaCheckErrors(msg) \
     do { \
