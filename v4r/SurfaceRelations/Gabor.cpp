@@ -1,4 +1,27 @@
 /**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1170 Vienna, Austria
+ *    ari(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+/**
  * @file Gabor.cpp
  * @author Richtsfeld
  * @date December 2011
@@ -117,9 +140,9 @@ void Gabor::setIndices(cv::Rect _rect)
   }
   
   indices.reset(new pcl::PointIndices);
-  for(unsigned r = _rect.y; r < (_rect.y+_rect.height); r++)
+  for(int r = _rect.y; r < (_rect.y+_rect.height); r++)
   {
-    for(unsigned c = _rect.x; c < (_rect.x+_rect.width); c++)
+    for(int c = _rect.x; c < (_rect.x+_rect.width); c++)
     {
       indices->indices.push_back(r*width+c);
     }
@@ -180,41 +203,6 @@ void Gabor::compute()
     printf("[Gabor::compute]: Error: No gabor filters available.\n");
     return;
   }
-  
-//   std::vector<cv::Mat> gaborFilters;
-//   gaborFilters.resize(filtersNumber);
-    
-//   //orientation
-//   for(int ori = 0; ori < N; ori++) 
-//   {
-//     //scale
-//     for(int scale = M_min; scale <= M_max; scale++) 
-//     {
-//       int idx = ori*abs(M_max - M_min +1) + (scale-M_min);
-//       
-//       double orientation = (((double)(PI*ori))/N);  
-//       CvGabor gabor;
-//       gabor.Init(orientation,scale,Sigma,F);
-//       //@ep: BUG this is not optimal at all, we should either compute gabor filter once, or only for each patch
-//       //@ep: TODO figure out what type to use
-//       IplImage temp_image = image;
-//       IplImage* temp_filter = cvCreateImage(cvGetSize(&temp_image), 8, 1);
-//       gabor.conv_img(&temp_image,temp_filter,CV_GABOR_MAG);
-//       gaborFilters.at(idx) = cv::Mat(temp_filter,true);
-//     }
-//   }
-
-//   // Dilation of masks
-//   //@ep:TODO remove it or rewrite it
-//   if(useDilation) {
-//     printf("[Gabor::compare] Start of dilation: %u\n", dilationSize);
-//     MaskDilationErosion erosion;
-//     erosion.setImageSize(ipl_gray_image->width, ipl_gray_image->height);
-//     erosion.setSize(dilation_size);
-//     erosion.compute(mask_0);
-//     erosion.compute(mask_1);
-//     printf("[Gabor::compare] End of erosion!\n");
-//   }
   
   featureVector.resize(2*filtersNumber);
   

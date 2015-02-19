@@ -1,6 +1,6 @@
 /**
  *  Copyright (C) 2012  
- *    Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
@@ -162,9 +162,9 @@ void Fourier::setIndices(cv::Rect _rect)
   printf("[Fourier] _rect = %d,%d,%d,%d.\n",_rect.x,_rect.y,_rect.x+_rect.width,_rect.y+_rect.height);
   
   indices.reset(new pcl::PointIndices);
-  for(unsigned r = _rect.y; r < (_rect.y+_rect.height); r++)
+  for(int r = _rect.y; r < (_rect.y+_rect.height); r++)
   {
-    for(unsigned c = _rect.x; c < (_rect.x+_rect.width); c++)
+    for(int c = _rect.x; c < (_rect.x+_rect.width); c++)
     {
       indices->indices.push_back(r*width+c);
     }
@@ -266,8 +266,8 @@ void Fourier::compute()
   
   for(unsigned int idx=0; idx<indices->indices.size(); idx++)
   {
-    int i = indices->indices.at(idx)/width;
-    int j = indices->indices.at(idx)%width;
+    //int i = indices->indices.at(idx)/width;
+    //int j = indices->indices.at(idx)%width;
 
     for(int k=0; k<kmax; k++) 
     {  

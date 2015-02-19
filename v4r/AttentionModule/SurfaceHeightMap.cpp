@@ -1,182 +1,242 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "SurfaceHeightMap.hpp"
 #include <sys/time.h>
 
 namespace AttentionModule
 {
 
-SurfaceHeightSaliencyMap::SurfaceHeightSaliencyMap()
+SurfaceHeightSaliencyMap::SurfaceHeightSaliencyMap():
+BaseMap()
 {
-  //cloud = NULL;
-  //indices = NULL;
-  //coefficients = NULL;
+  reset();
+}
+
+SurfaceHeightSaliencyMap::~SurfaceHeightSaliencyMap()
+{
+}
+
+void SurfaceHeightSaliencyMap::reset()
+{
+  BaseMap::reset();
   
+  coefficients = pcl::ModelCoefficients::Ptr(new pcl::ModelCoefficients());
   distance_from_top = 0;
-  normalization_type = EPUtils::NT_NONE_REAL;
-  filter_size = 5;
   max_distance = 0.005;
-  map = cv::Mat_<float>::zeros(0,0);
-  mask = cv::Mat_<uchar>::zeros(0,0);
-  width = 0;
-  height = 0;
   heightType = AM_TALL;
-  cameraParametrs.clear();
-  getUpdate = false;
-  maskInUse = false;
+  
+  haveModelCoefficients = false;
+  
+  mapName = "SurfaceHeightSaliencyMap";
 }
 
-void SurfaceHeightSaliencyMap::setCloud(pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud_)
+void SurfaceHeightSaliencyMap::print()
 {
-  cloud = cloud_;
-}
-
-void SurfaceHeightSaliencyMap::setIndices(pcl::PointIndices::Ptr indices_)
-{
-  indices = indices_;
+  BaseMap::print();
+  printf("[%s]: coefficients       [ ",mapName.c_str());
+  for(size_t i = 0; i < coefficients->values.size(); ++i)
+  {
+    printf("%f, ",coefficients->values.at(i));
+  }
+  printf("]\n");
+  printf("[%s]: distance_from_top  = %f\n",mapName.c_str(),distance_from_top);
+  printf("[%s]: max_distance       = %f\n",mapName.c_str(),max_distance);
+  printf("[%s]: heightType         = %d\n",mapName.c_str(),heightType);
 }
 
 void SurfaceHeightSaliencyMap::setModelCoefficients(pcl::ModelCoefficients::Ptr coefficients_)
 {
   coefficients = coefficients_;
+  haveModelCoefficients = true;
+  calculated = false;
+  printf("[INFO]: %s: model coefficients are [ ",mapName.c_str());
+  for(size_t i = 0; i < coefficients->values.size(); ++i)
+  {
+    printf("%f, ",coefficients->values.at(i));
+  }
+  printf("]\n");
 }
 
 void SurfaceHeightSaliencyMap::setDistanceFromTop(float distance_from_top_)
 {
   distance_from_top = distance_from_top_;
-}
-
-void SurfaceHeightSaliencyMap::setNormalizationType(int normalization_type_)
-{
-  normalization_type = normalization_type_;
-}
-
-void SurfaceHeightSaliencyMap::setFilterSize(int filter_size_)
-{
-  filter_size = filter_size_;
+  calculated = false;
+  printf("[INFO]: %s: distance_from_top is set to: %f\n",mapName.c_str(),distance_from_top);
 }
 
 void SurfaceHeightSaliencyMap::setMaxDistance(int max_distance_)
 {
   max_distance = max_distance_;
-}
-
-void SurfaceHeightSaliencyMap::setWidth(int width_)
-{
-  width = width_;
-}
-
-void SurfaceHeightSaliencyMap::setHeight(int height_)
-{
-  height = height_;
+  calculated = false;
+  printf("[INFO]: %s: max_distance is set to: %f\n",mapName.c_str(),max_distance);
 }
 
 void SurfaceHeightSaliencyMap::setHeightType(int heightType_)
 {
   heightType = heightType_;
+  calculated = false;
+  printf("[INFO]: %s: heightType is set to: %d\n",mapName.c_str(),heightType);
 }
 
-void SurfaceHeightSaliencyMap::setMask(cv::Mat &mask_)
+bool SurfaceHeightSaliencyMap::getModelCoefficients(pcl::ModelCoefficients::Ptr &coefficients_)
 {
-  mask.copyTo(mask);
-}
-
-void SurfaceHeightSaliencyMap::setCameraParameters(std::vector<float> &cameraParametrs_)
-{
-  cameraParametrs = cameraParametrs_;
-}
-
-bool SurfaceHeightSaliencyMap::updateMask(cv::Mat &new_mask_)
-{
-  assert ( (new_mask_.rows == height) && (new_mask_.cols == width) );
+  if(!haveModelCoefficients)
+    return(false);
   
-  //std::cerr << "MASK ARRIVED" << std::endl;
-  if(!getUpdate)
-  {
-    new_mask_.copyTo(mask);
-    getUpdate = true;
-    //std::cerr << "WE GOT THE MASK" << std::endl;
-    return(true);
-  }
-  else
-  {
-    getUpdate = false;
-    int counter = 0;
-    while(maskInUse)
-    {
-      counter++;
-    }
-    new_mask_.copyTo(mask);
-    getUpdate = true;
-    //std::cerr << "WE GOT THE MASK" << std::endl;
-    return(true);
-  }
+  coefficients_ = coefficients;
   return(true);
-  
 }
 
-int SurfaceHeightSaliencyMap::calculateSurfaceHeightMap(cv::Mat &map_)
+float SurfaceHeightSaliencyMap::getDistanceFromTop()
 {
-  //unsigned long long lasttime;
-  //unsigned long long currenttime;
-  //unsigned long long timediff;
-  //struct timeval tv;
-  //gettimeofday(&tv, NULL);
-  //lasttime = (unsigned) (tv.tv_sec * 1000) + (unsigned) (tv.tv_usec / 1000.0); //convert to milliseconds
-  
-  if(cloud == NULL)
-  {
-    return(AM_POINTCLOUD);
-  }
-  
-  if(indices == NULL)
-  {
-    return(AM_POINTCLOUD);
-  }
-  
-  if(coefficients == NULL)
-  {
-    return(AM_POINTCLOUD);
-  }
+  return(distance_from_top);
+}
 
-  if(( (width == 0) || (height == 0) ) && ( (map.rows == 0) || (map.cols == 0) ))
+int SurfaceHeightSaliencyMap::getMaxDistance()
+{
+  return(max_distance);
+}
+
+int SurfaceHeightSaliencyMap::getHeightType()
+{
+  return(heightType);
+}
+
+int SurfaceHeightSaliencyMap::checkParameters()
+{
+  if(!haveCloud)
   {
+    printf("[ERROR]: %s: Seems like there is no cloud.\n",mapName.c_str());
+    return(AM_POINTCLOUD);
+  }
+  
+  if(!haveIndices)
+  {
+    printf("[ERROR]: %s: Seems like there are no indices.\n",mapName.c_str());
+    return(AM_POINTCLOUD);
+  }
+  
+  if(!haveModelCoefficients)
+  {
+    printf("[ERROR]: %s: Seems like there are no coefficients.\n",mapName.c_str());
+    return(AM_POINTCLOUD);
+  }
+  
+  if( (width == 0) || (height == 0) )
+  {
+    printf("[ERROR]: %s: Seems like image size is wrong.\n",mapName.c_str());
     return(AM_IMAGE);
   }
-
-  if((width == 0) || (height == 0))
-  {
-    height = map.rows;
-    width  = map.cols;
-  }
-
+  
   if(coefficients->values.size() != 4)
   {
+    printf("[ERROR]: %s: Wrong number of coefficients, this shouldn't happent (there is a check before!) --> BUG.\n",mapName.c_str());
     return(AM_PLANECOEFFICIENTS);
   }
-  
-  //if((mask.cols != width) || (mask.rows != height))
-  //{
-  //  mask = cv::Mat_<uchar>::ones(height,width);
-  //}
-  
-  cv::Mat used_mask = cv::Mat_<uchar>::ones(height,width);
-  
-  // update the mask
-  if(getUpdate)
-  {
-    maskInUse = true;
-    mask.copyTo(used_mask);
-    getUpdate = false;
-    maskInUse = false;
-  }
 
+  if(!haveMask)
+    mask = cv::Mat_<uchar>::ones(height,width);
+  
+  if((mask.cols != width) || (mask.rows != height))
+  {
+    mask = cv::Mat_<uchar>::ones(height,width);
+  }
+  
+  return(AM_OK);
+}
+
+int SurfaceHeightSaliencyMap::calculate()
+{
+  switch(heightType)
+  {
+    case AM_SHORT:
+      return(calculateHeightMap());
+    case AM_TALL:
+      return(calculateHeightMap());
+    case AM_DISTANCE:
+      return(calculatePointDistanceMap());
+    default:
+      return(calculatePointDistanceMap());
+  }
+  return(calculatePointDistanceMap());
+}
+
+int SurfaceHeightSaliencyMap::calculateHeightMap()
+{
+  calculated = false;
+  
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+
+  float heightCoefficient = getHeightCoefficient(heightType);
+  if(heightCoefficient < 0)
+  {
+    printf("[ERROR]: %s: Sorry, but you can select between TALL and SHORT types of height map ONLY!\n",mapName.c_str());
+    return(AM_OK);
+  }
+  
+  printf("[INFO]: %s: Computation started.\n",mapName.c_str());
+  
+  calculateHeightMap(cloud,indices,width,height,heightCoefficient,map);
+
+  cv::blur(map,map,cv::Size(filter_size,filter_size));
+
+  refineMap();
+  
+  EPUtils::normalize(map,normalization_type);
+  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  
+  calculated = true;
+  printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
+  return(AM_OK);
+}
+
+void SurfaceHeightSaliencyMap::calculateHeightMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cur, pcl::PointIndices::Ptr indices_cur, int image_width, int image_height, 
+						  float heightCoefficient, cv::Mat &map_cur)
+{
+//   for(int i = 0; i < cloud_cur->points.size(); ++i)
+//   {
+//     std::cerr << "(" << cloud_cur->points.at(i).x << "," << cloud_cur->points.at(i).y << "," << cloud_cur->points.at(i).z << ") ";
+//   }
+//   std::cerr << std::endl << std::endl;
+  
   // calculate projections on the plane
-  pcl::PointCloud<pcl::PointXYZ>::Ptr points_projected (new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_projected (new pcl::PointCloud<pcl::PointXYZRGB>());
   std::vector<float> distances;
   // calculate coordinates of the projections and normalized distances to the plane
-  EPUtils::ProjectPointsOnThePlane(coefficients,cloud,points_projected,distances,indices);
+  EPUtils::ProjectPointsOnThePlane(coefficients,cloud_cur,points_projected,distances,indices_cur);
 
+  if(cloud_cur->points.size() < 10)
+  {
+    map_cur = cv::Mat_<float>::zeros(image_height,image_width);
+    return;
+  }
+  
   // create kd-tree to search for neighbouring points
-  pcl::search::KdTree<pcl::PointXYZ> kdtree;
+  pcl::search::KdTree<pcl::PointXYZRGB> kdtree;
   kdtree.setInputCloud(points_projected);
 
   std::vector<int> pointIdxRadiusSearch;
@@ -189,14 +249,8 @@ int SurfaceHeightSaliencyMap::calculateSurfaceHeightMap(cv::Mat &map_)
   std::vector<bool> used_points;
   used_points.resize(distances.size(),false);
 
-  float radius = 0.09;
-  float shift_from_plane = 0.2;
-  
-  //gettimeofday(&tv, NULL);
-  //currenttime = (unsigned) (tv.tv_sec * 1000) + (unsigned) (tv.tv_usec / 1000.0); //convert to milliseconds
-  //timediff = currenttime - lasttime;
-  //std::cerr << "Non incremental time = " << timediff << std::endl;
-  //lasttime = currenttime;
+  float radius = 0.009;
+  float shift_from_plane = 0.05;
   
   for(unsigned int i = 0; i < used_points.size(); ++i)
   {
@@ -205,26 +259,13 @@ int SurfaceHeightSaliencyMap::calculateSurfaceHeightMap(cv::Mat &map_)
       continue;
     }
     
-    if(getUpdate)
-    {
-      maskInUse = true;
-      mask.copyTo(used_mask);
-      getUpdate = false;
-      maskInUse = false;
-    }
-    int idx = indices->indices.at(i);
-    int c = idx % width;
-    int r = idx / width;
-    if(!(used_mask.at<uchar>(r,c)))
-    {
-      continue;
-    }
-    
     pointIdxRadiusSearch.clear();
     pointRadiusSquaredDistance.clear();
       
-    pcl::PointXYZ searchPoint = points_projected->points.at(i);
-      
+    pcl::PointXYZRGB searchPoint = points_projected->points.at(i);
+//     std::cerr << searchPoint << std::endl;
+    //std::cerr << cloud->points.at(indices_cur->indices.at(i)) << std::endl;
+    
     // if we found points close to the given point
     if(kdtree.radiusSearch(searchPoint,radius,pointIdxRadiusSearch,pointRadiusSquaredDistance))
     {
@@ -264,25 +305,13 @@ int SurfaceHeightSaliencyMap::calculateSurfaceHeightMap(cv::Mat &map_)
     }
   }
 
-  map = cv::Mat_<float>::zeros(height,width);
+  map_cur = cv::Mat_<float>::zeros(image_height,image_width);
   
-  float heightCoefficient = getHeightCoefficient(heightType);
   for(unsigned int i = 0; i < max_distance.size(); ++i)
   {
-    if(getUpdate)
-    {
-      maskInUse = true;
-      mask.copyTo(used_mask);
-      getUpdate = false;
-      maskInUse = false;
-    }
-    int idx = indices->indices.at(i);
-    int c = idx % width;
-    int r = idx / width;
-    if(!(used_mask.at<uchar>(r,c)))
-    {
-      continue;
-    }
+    int idx = indices_cur->indices.at(i);
+    int c = idx % image_width;
+    int r = idx / image_width;
     
     float value = (max_distance.at(i)-shift_from_plane)/(1.0-shift_from_plane);
     //float value = max_distance.at(i);
@@ -291,64 +320,44 @@ int SurfaceHeightSaliencyMap::calculateSurfaceHeightMap(cv::Mat &map_)
       float t1 = 1.0-heightCoefficient;
       float t2 = heightCoefficient;
       value = t1*value + t2*(1-value);
-      map.at<float>(r,c) = value;
+      map_cur.at<float>(r,c) = value;
     }
     else
     {
-      map.at<float>(r,c) = 0;
+      map_cur.at<float>(r,c) = 0;
     }
   }
+}
 
-  //cv::blur(map,map,cv::Size(filter_size,filter_size));
+int SurfaceHeightSaliencyMap::calculatePointDistanceMap()
+{
+  calculated = false;
 
-  //EPUtils::normalize(map,normalization_type);
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
   
-  getUpdate = false;
+  printf("[INFO]: %s: Computation started.\n",mapName.c_str());
+
+  rt_code = calculatePointDistanceMap(cloud,indices,width,height,map);
+  if(rt_code != AM_OK)
+    return(rt_code);
+
+  cv::blur(map,map,cv::Size(filter_size,filter_size));
   
-  map.copyTo(map_);
+  refineMap();
   
-  //gettimeofday(&tv, NULL);
-  //currenttime = (unsigned) (tv.tv_sec * 1000) + (unsigned) (tv.tv_usec / 1000.0); //convert to milliseconds
-  //timediff = currenttime - lasttime;
-  //std::cerr << "Incremental time = " << timediff << std::endl;
+  EPUtils::normalize(map,normalization_type);
+  //EPUtils::normalize(map,EPUtils::NT_NONE);
   
+  calculated = true;
+  printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
   return(AM_OK);
 }
 
-int SurfaceHeightSaliencyMap::calculateSurfaceDistanceMap(cv::Mat &map_)
+int SurfaceHeightSaliencyMap::calculatePointDistanceMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cur, pcl::PointIndices::Ptr indices_cur, int image_width, int image_height, 
+						         cv::Mat &map_cur)
 {
-
-  if(cloud == NULL)
-  {
-    return(AM_POINTCLOUD);
-  }
-  
-  if(indices == NULL)
-  {
-    return(AM_POINTCLOUD);
-  }
-  
-  if(coefficients == NULL)
-  {
-    return(AM_POINTCLOUD);
-  }
-
-  if(( (width == 0) || (height == 0) ) && ( (map.rows == 0) || (map.cols == 0) ))
-  {
-    return(AM_IMAGE);
-  }
-
-  if((width == 0) || (height == 0))
-  {
-    height = map.rows;
-    width  = map.cols;
-  }
-
-  if(coefficients->values.size() != 4)
-  {
-    return(AM_PLANECOEFFICIENTS);
-  }
-
   // Retrieve Ground Plane Coefficients
   float a = coefficients->values.at(0);
   float b = coefficients->values.at(1);
@@ -356,144 +365,312 @@ int SurfaceHeightSaliencyMap::calculateSurfaceDistanceMap(cv::Mat &map_)
   float d = coefficients->values.at(3);
 
   float max_dist = 0;
-  cv::Mat distance_map = cv::Mat_<float>::zeros(height,width);
+  cv::Mat distance_map = cv::Mat_<float>::zeros(image_height,image_width);
 
-  for(unsigned int pi = 0; pi < indices->indices.size(); ++pi)
+  for(unsigned int pi = 0; pi < indices_cur->indices.size(); ++pi)
   {
-    int index = indices->indices.at(pi);
-    pcl::PointXYZ current_point = cloud->points.at(index);
+    int index = indices_cur->indices.at(pi);
+    pcl::PointXYZRGB current_point = cloud_cur->points.at(index);
 
     float dist = pcl::pointToPlaneDistance(current_point,a,b,c,d);
 
     if(dist > max_dist)
       max_dist = dist;
 
-    int xx = index % width;
-    int yy = index / width;
+    int xx = index % image_width;
+    int yy = index / image_width;
     distance_map.at<float>(yy,xx) = dist;
   }
 
   if(max_dist < max_distance)
   {
-    return(AM_POINTCLOUD);
+    map_cur = cv::Mat_<float>::zeros(image_height,image_width);
+    return(AM_OK);
   }
 
   float d0 = distance_from_top * max_dist;
   float a_param = -1.0/((max_dist-d0)*(max_dist-d0));
   float b_param = 2.0/(max_dist-d0);
 
-  map = cv::Mat_<float>::zeros(height,width);
+  map_cur = cv::Mat_<float>::zeros(image_height,image_width);
 
-  for(int r = 0; r < height; ++r)
+  for(int r = 0; r < image_height; ++r)
   {
-    for(int c = 0; c < width; ++c)
+    for(int c = 0; c < image_width; ++c)
     {
       float dist = distance_map.at<float>(r,c);
       if(dist > 0)
       {
-        map.at<float>(r,c) = (a_param * dist * dist + b_param * dist);
+        map_cur.at<float>(r,c) = (a_param * dist * dist + b_param * dist);
 
-        if(map.at<float>(r,c) < 0)
+        if(map_cur.at<float>(r,c) < 0)
         {
-          map.at<float>(r,c) = 0;
+          map_cur.at<float>(r,c) = 0;
         }
       }
     }
   }
+  
+  return(AM_OK);
+}
 
-  cv::blur(map,map,cv::Size(filter_size,filter_size));
+int SurfaceHeightSaliencyMap::calculatePyramidSimple()
+{
+  calculated = false;
 
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  printf("[INFO]: %s: Computation Simple pyramid started.\n",mapName.c_str());
+  
+  SimplePyramid::Ptr pyramid( new SimplePyramid() );
+  
+  pyramid->setStartLevel(0);
+  pyramid->setMaxLevel(4);
+  pyramid->setSMLevel(0);
+  pyramid->setWidth(width);
+  pyramid->setHeight(height);
+  pyramid->setNormalizationType(normalization_type);
+  pyramid->setCombinationType(combination_type);
+  
+  pyramid->setCloud(cloud);
+  pyramid->setIndices(indices);
+  pyramid->setNormals(normals);
+  
+  pyramid->buildDepthPyramid();
+  pyramid->print();
+
+  rt_code = combinePyramid(pyramid);
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  refineMap();
+  
+  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  
+  calculated = true;
+  printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
+  return(AM_OK);
+}
+
+int SurfaceHeightSaliencyMap::calculatePyramidItti()
+{
+  calculated = false;
+
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  printf("[INFO]: %s: Computation Itti pyramid started.\n",mapName.c_str());
+  
+  IttiPyramid::Ptr pyramid( new IttiPyramid() );
+  
+  pyramid->setSMLevel(0);
+  pyramid->setWidth(width);
+  pyramid->setHeight(height);
+  pyramid->setNormalizationType(normalization_type);
+  pyramid->setCombinationType(combination_type);
+  
+  pyramid->setLowestC(2);
+  pyramid->setHighestC(4);
+  pyramid->setSmallestCS(3);
+  pyramid->setLargestCS(4);
+  
+  pyramid->setChangeSign(false);
+  
+  pyramid->setCloud(cloud);
+  pyramid->setIndices(indices);
+  pyramid->setNormals(normals);
+  
+  pyramid->buildDepthPyramid();
+  pyramid->print();
+
+  rt_code = combinePyramid(pyramid);
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  refineMap();
+  
+  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  
+  calculated = true;
+  printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
+  return(AM_OK);
+}
+
+int SurfaceHeightSaliencyMap::calculatePyramidFrintrop()
+{
+  calculated = false;
+
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  printf("[INFO]: %s: Computation Frintrop pyramid started.\n",mapName.c_str());
+  
+  //ON pyramid
+  
+  FrintropPyramid::Ptr pyramid( new FrintropPyramid() );
+  
+  pyramid->setStartLevel(2);
+  pyramid->setMaxLevel(4);
+  pyramid->setSMLevel(0);
+  pyramid->setWidth(width);
+  pyramid->setHeight(height);
+  pyramid->setNormalizationType(normalization_type);
+  pyramid->setCombinationType(combination_type);
+  
+  std::vector<int> R;
+  R.resize(2); R.at(0) = 3; R.at(1) = 7;
+  pyramid->setR(R);
+  pyramid->setOnSwitch(true);
+  
+  pyramid->setCloud(cloud);
+  pyramid->setIndices(indices);
+  pyramid->setNormals(normals);
+  
+  pyramid->buildDepthPyramid();
+  pyramid->print();
+
+  rt_code = combinePyramid(pyramid);
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  cv::Mat map_on;
+  map.copyTo(map_on);
+  
+  float maxIntensityValue = pyramid->getMaxMapValue();
+  
+  //OFF pyramid
+  pyramid->setOnSwitch(false);
+  
+  rt_code = combinePyramid(pyramid);
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  cv::Mat map_off;
+  map.copyTo(map_off);
+  
+  maxIntensityValue = std::max(maxIntensityValue,pyramid->getMaxMapValue());
+  map = map_on + map_off;
+  EPUtils::normalize(map,EPUtils::NT_NONE,maxIntensityValue);
   EPUtils::normalize(map,normalization_type);
-  map.copyTo(map_);
-
+  
+  refineMap();
+  
+  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  
+  calculated = true;
+  printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
   return(AM_OK);
 }
-
-int SurfaceHeightSaliencyMap::calculateSurfaceHeightMapPyramid(cv::Mat &map_)
+  
+int SurfaceHeightSaliencyMap::combinePyramid(BasePyramid::Ptr pyramid)
 {
-  if(cloud == NULL)
+  for(unsigned int i = pyramid->getStartLevel(); i <= (unsigned int)pyramid->getMaxLevel(); ++i)
   {
-    return(AM_POINTCLOUD);
-  }
-  
-  if(indices == NULL)
-  {
-    return(AM_POINTCLOUD);
-  }
-  
-  // set values of the input image
-  if(( (width == 0) || (height == 0) ) && ( (map.rows == 0) || (map.cols == 0) ))
-  {
-    return(AM_IMAGE);
-  }
+    printf("[INFO]: %s: Computating feature map for level %d.\n",mapName.c_str(),i);
 
-  if((width == 0) || (height == 0))
-  {
-    height = map.rows;
-    width  = map.cols;
-  }
-  
-  if(cameraParametrs.size() != 4)
-  {
-    return(AM_CAMERAPARAMETRS);
-  }
-  
-  // create depth
-  cv::Mat depth;
-  EPUtils::PointCloud2Depth(depth,cloud,width,height,indices);
-  
-  // calculate puramid with saliency maps
-  int max_level = pyramidParameters.max_level + 1;
-  pyramidParameters.pyramidImages.clear();
-  cv::buildPyramid(depth,pyramidParameters.pyramidImages,max_level);
-  pyramidParameters.pyramidFeatures.clear();
-  pyramidParameters.pyramidFeatures.resize(pyramidParameters.pyramidImages.size());
-  
-  for(int i = pyramidParameters.start_level; i <= pyramidParameters.max_level; ++i)
-  {
-    int scalingFactor = pow(2.0f,i);
-    std::vector<float> cameraParametrsCur;
-    cameraParametrsCur.resize(4);
-    cameraParametrsCur.at(0) = cameraParametrs.at(0)/scalingFactor;
-    cameraParametrsCur.at(1) = cameraParametrs.at(1)/scalingFactor;
-    cameraParametrsCur.at(2) = cameraParametrs.at(2)/scalingFactor;
-    cameraParametrsCur.at(3) = cameraParametrs.at(3)/scalingFactor;
-    
     // start creating parameters
-    SurfaceHeightSaliencyMap parameters_current;
-    parameters_current.setWidth(pyramidParameters.pyramidImages.at(i).cols);
-    parameters_current.setHeight(pyramidParameters.pyramidImages.at(i).rows);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr current_cloud;
+    if(!pyramid->getCloud(i,current_cloud))
+    {
+      printf("[ERROR]: Something went wrong! Can't get cloud for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
     
-    // create scaled point cloud
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudCur(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::PointIndices::Ptr indicesCur(new pcl::PointIndices());
-    EPUtils::Depth2PointCloud(cloudCur,indicesCur,pyramidParameters.pyramidImages.at(i),cameraParametrsCur);
+    pcl::PointIndices::Ptr current_indices;
+    if(!pyramid->getIndices(i,current_indices))
+    {
+      printf("[ERROR]: Something went wrong! Can't get indices for level %d!\n",i);
+      return(AM_CUSTOM);
+    }    
     
-    parameters_current.setCloud(cloudCur);
-    parameters_current.setIndices(indicesCur);
-    parameters_current.setModelCoefficients(coefficients);
+    int current_width = pyramid->getWidth(i);
+    if(current_width <= 0)
+    {
+      printf("[ERROR]: Something went wrong! Can't get width for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
     
-    parameters_current.calculateSurfaceHeightMap(pyramidParameters.pyramidFeatures.at(i));
+    int current_height = pyramid->getHeight(i);
+    if(current_height <= 0)
+    {
+      printf("[ERROR]: Something went wrong! Can't get height for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
+    
+//     cv::Mat depth;
+//     EPUtils::pointCloud_2_depth(depth,current_cloud,current_width,current_height,current_indices);
+//     cv::imshow("depth",depth);
+//     cv::waitKey(-1);
+    
+    cv::Mat current_map;
+    if( (heightType == AM_SHORT) || (heightType == AM_TALL) )
+    {
+      float heightCoefficient = getHeightCoefficient(heightType);
+      if(heightCoefficient < 0)
+      {
+        printf("[ERROR]: %s: Sorry, but you can select between TALL and SHORT types of height map ONLY for level %d!\n",mapName.c_str(),i);
+        return(AM_OK);
+      }
+      calculateHeightMap(current_cloud,current_indices,current_width,current_height,heightCoefficient,current_map);
+    }
+    else if (heightType == AM_DISTANCE)
+    {
+      int rt_code = calculatePointDistanceMap(current_cloud,current_indices,current_width,current_height,current_map);
+      if(rt_code != AM_OK)
+      {
+        return(rt_code);
+      }
+    }
+    else
+    {  
+      printf("[ERROR]: Something went wrong! Can't find height type for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
+    
+//     cv::imshow("current_map",current_map);
+//     cv::Mat upscaled_current_map;
+//     EPUtils::upscalePyramid(current_map,upscaled_current_map);
+//     cv::imshow("current_map",upscaled_current_map);
+//     cv::waitKey(-1);
+    
+    if(!pyramid->setFeatureMap(i,current_map))
+    {
+     printf("[ERROR]: Something went wrong! Can't set feature map for level %d!\n",i);
+     return(AM_CUSTOM);
+    }
+    
+    printf("[INFO]: %s: Feature map at level %d is set.\n",mapName.c_str(),i);
   }
-
   // combine saliency maps
-  combinePyramid(pyramidParameters);
-  pyramidParameters.map.copyTo(map);
+  pyramid->combinePyramid();
   
-  map.copyTo(map_);
+  if(!pyramid->getMap(map))
+  {
+    printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+    return(AM_CUSTOM);
+  }
+  
   return(AM_OK);
 }
 
-float SurfaceHeightSaliencyMap::getHeightCoefficient(int heightType)
+float SurfaceHeightSaliencyMap::getHeightCoefficient(int heightType_)
 {
-  switch(heightType)
+  switch(heightType_)
   {
     case AM_SHORT:
       return(1.0);
     case AM_TALL:
       return(0.0);
+    case AM_DISTANCE:
+      return(-1.0);
+    default:
+      return(-1.0);
   }
-  return(0.0);
+  return(-1.0);
 }
 
 } //namespace AttentionModule

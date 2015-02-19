@@ -1,3 +1,26 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
 #ifndef PCL_PREPROCESSING_XYZRC_HPP
 #define PCL_PREPROCESSING_XYZRC_HPP
 
@@ -25,6 +48,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <pcl/common/pca.h>
+#include <pcl/filters/project_inliers.h>
+#include <pcl/surface/concave_hull.h>
+#include <pcl/filters/crop_hull.h>
 
 #ifndef EIGEN_MAKE_ALIGNED_OPERATOR_NEW
  #define EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -39,22 +65,25 @@ enum PCL_SELFMADE_EXCEPTIONS
   SEGMENT      ,
   NORMALS      ,
   CURVATURE    ,
+  CONVEXHULL   ,
 };
 
+//ep:begin revision 17-07-2014
 template <class T>
 bool readPointCloud(std::string filename, typename pcl::PointCloud<T>::Ptr &cloud)
 {
   if (cloud.get() == 0)
-    cloud.reset(new pcl::PointCloud<T>);
+    cloud.reset(new pcl::PointCloud<T> ());
 
   if (pcl::io::loadPCDFile<T> (filename,*cloud) == -1)
   {
-    std::cerr << "[ERROR] Couldn't read point cloud." << std::endl;
+    printf("[ERROR] Couldn't read point cloud %s.\n",filename.c_str());
     return false;
   }
 
   return(true);
 }
+//ep:end revision 17-07-2014
 
 template <class T>
 bool FilterPointCloud(typename pcl::PointCloud<T>::ConstPtr cloud, 
@@ -204,16 +233,82 @@ bool ComputePointNormals(typename pcl::PointCloud<T>::ConstPtr cloud,
     // calculate the min value of the 
     ne.setViewPoint(0.0,0.0,0.0);
     ne.compute(*cloud_normal);
-
+    
     if (!cloud_normal->size()) 
     {
       throw NORMALS;
     }
+    
   } 
   catch (...) 
   {
     return (false);
   }
+  
+  return (true);
+}
+
+template <class T>
+bool ConvexHullExtract(typename pcl::PointCloud<T>::ConstPtr cloud,
+                       pcl::PointIndices::ConstPtr plane_indices,
+		       pcl::PointIndices::ConstPtr objects_indices,
+		       pcl::PointIndices::Ptr object_in_the_hull_indices,
+                       pcl::ModelCoefficients::Ptr coefficients) 
+{
+  try {
+    
+//     if (!cloud->size()) 
+//     {
+//       throw CONVEXHULL;
+//     }
+    
+    // Project plane the model inliers
+    pcl::ProjectInliers<pcl::PointXYZRGB> proj;
+    
+    proj.setModelType (pcl::SACMODEL_PLANE);
+    proj.setIndices (plane_indices);
+    proj.setInputCloud (cloud);
+    proj.setModelCoefficients (coefficients);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_projected (new pcl::PointCloud<pcl::PointXYZRGB>);
+    proj.filter (*plane_projected);
+    
+    // Create a Convex Hull representation of the projected inliers
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::ConvexHull<pcl::PointXYZRGB> chull;
+    std::vector<pcl::Vertices> polygons;
+    chull.setInputCloud (plane_projected);
+    chull.reconstruct (*cloud_hull,polygons);
+    
+    //project objects
+    proj.setModelType (pcl::SACMODEL_PLANE);
+    proj.setIndices (objects_indices);
+    proj.setInputCloud (cloud);
+    proj.setModelCoefficients (coefficients);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_projected (new pcl::PointCloud<pcl::PointXYZRGB>);
+    proj.filter (*cloud_projected);
+    
+    pcl::CropHull<pcl::PointXYZRGB> cropHull;
+    cropHull.setInputCloud(cloud_projected);
+    cropHull.setHullCloud(cloud_hull);
+    cropHull.setHullIndices(polygons);
+    cropHull.setDim(2); 
+    cropHull.setCropOutside(true);
+
+    std::vector<int> indices_check;
+    cropHull.filter(indices_check);
+    
+    object_in_the_hull_indices->indices.resize(indices_check.size());
+    for(unsigned int i = 0; i < indices_check.size(); ++i)
+    {
+      object_in_the_hull_indices->indices.at(i) = objects_indices->indices.at(indices_check.at(i));
+    }
+
+  } 
+  catch (...) 
+  {
+    return (false);
+  }
+  
   return (true);
 }
 

@@ -8,7 +8,9 @@ tgPCL2TomGine::convert (pcl::PolygonMesh &mesh)
 {
   tgModel model;
   pcl::PointCloud<pcl::PointXYZ> cloud;
-  pcl::fromROSMsg (mesh.cloud, cloud);
+
+  pcl::fromPCLPointCloud2(mesh.cloud, cloud);
+//  pcl::fromROSMsg (mesh.cloud, cloud);
 
   for (size_t i = 0; i < cloud.size (); i++)
   {

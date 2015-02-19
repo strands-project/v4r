@@ -1,84 +1,82 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "OrientationMap.hpp"
 
 namespace AttentionModule
 {
 
-OrientationSaliencyMap::OrientationSaliencyMap()
+OrientationSaliencyMap::OrientationSaliencyMap():
+BaseMap()
 {
-  image = cv::Mat_<float>::zeros(0,0);
-  mask  = cv::Mat_<float>::zeros(0,0);
+  reset();
+}
+
+OrientationSaliencyMap::~OrientationSaliencyMap()
+{
+}
+
+void OrientationSaliencyMap::reset()
+{
+  BaseMap::reset();
   angle = 0;
   max_sum = 1;
   bandwidth = 2;
-  filter_size = 5;
-  map = cv::Mat_<float>::zeros(0,0);
-  width = 0;
-  height = 0;
-  getUpdate = false;
-  maskInUse = false;
+
+  mapName = "OrientationSaliencyMap";
 }
 
-void OrientationSaliencyMap::setImage(cv::Mat &image_)
+void OrientationSaliencyMap::print()
 {
-  image_.copyTo(image);
-}
-
-void OrientationSaliencyMap::setMask(cv::Mat &mask_)
-{
-  mask_.copyTo(mask);
+  BaseMap::print();
+  printf("[%s]: angle              = %f\n",mapName.c_str(),angle);
+  printf("[%s]: max_sum            = %f\n",mapName.c_str(),max_sum);
+  printf("[%s]: bandwidth          = %f\n",mapName.c_str(),bandwidth);
 }
 
 void OrientationSaliencyMap::setAngle(float angle_)
 {
   angle = angle_;
+  calculated = false;
+  printf("[INFO]: %s: angle: %f.\n",mapName.c_str(),angle);
 }
 
 void OrientationSaliencyMap::setBandwidth(float bandwidth_)
 {
   bandwidth = bandwidth_;
+  calculated = false;
+  printf("[INFO]: %s: bandwidth: %f.\n",mapName.c_str(),bandwidth);
 }
 
-void OrientationSaliencyMap::setFilterSize(int filter_size_)
+float OrientationSaliencyMap::getAngle()
 {
-  filter_size = filter_size_;
+  return(angle);
 }
 
-void OrientationSaliencyMap::setWidth(int width_)
+float OrientationSaliencyMap::getBandwidth()
 {
-  width = width_;
-}
-
-void OrientationSaliencyMap::setHeight(int height_)
-{
-  height = height_;
-}
-
-bool OrientationSaliencyMap::updateMask(cv::Mat &new_mask_)
-{
-  assert ( (new_mask_.rows == height) && (new_mask_.cols == width) );
-  
-  //std::cerr << "MASK ARRIVED" << std::endl;
-  if(!getUpdate)
-  {
-    new_mask_.copyTo(mask);
-    getUpdate = true;
-    //std::cerr << "WE GOT THE MASK" << std::endl;
-    return(true);
-  }
-  else
-  {
-    getUpdate = false;
-    int counter = 0;
-    while(maskInUse)
-    {
-      counter++;
-    }
-    new_mask_.copyTo(mask);
-    getUpdate = true;
-    //std::cerr << "WE GOT THE MASK" << std::endl;
-    return(true);
-  }
-  return(true);
+  return(bandwidth);
 }
 
 float OrientationSaliencyMap::getMaxSum()
@@ -86,42 +84,75 @@ float OrientationSaliencyMap::getMaxSum()
   return(max_sum);
 }
 
-int OrientationSaliencyMap::calculateOrientationMap(cv::Mat &map_)
+int OrientationSaliencyMap::checkParameters()
 {
-  if((( (width == 0) || (height == 0) ) && ( (map.rows == 0) || (map.cols == 0))) ||
-     (  (image.rows == 0) || (image.cols == 0) ))
+  if(!haveImage)
   {
+    printf("[ERROR]: %s: No image set.\n",mapName.c_str());
+    return(AM_IMAGE);
+  }
+  
+  if( (width == 0) || (height == 0) || (image.rows == 0) || (image.cols == 0) )
+  {
+    printf("[ERROR]: %s: Seems like image is empty.\n",mapName.c_str());
+    return(AM_IMAGE);
+  }
+  
+  if((image.cols != width) || (image.rows != height))
+  {
+    printf("[ERROR]: %s: Problem with image sizes.\n",mapName.c_str());
     return(AM_IMAGE);
   }
 
-  if((width == 0) || (height == 0))
+  if(image.channels() != 3)
   {
-    height = image.rows;
-    width  = image.cols;
-  }
-  
-  if((image.cols != width) || (image.rows != height) || (image.channels() != 3))
-  {
+    printf("[ERROR]: %s: Image should have 3 channels.\n",mapName.c_str());
     return(AM_IMAGE);
   }
   
-  cv::blur(image,image,cv::Size(filter_size,filter_size));
-  // convert to grey
-  image.convertTo(image,CV_32F,1.0f/255);
+  if(!haveMask)
+    mask = cv::Mat_<uchar>::ones(height,width);
+  
+  if((mask.cols != width) || (mask.rows != height))
+  {
+    mask = cv::Mat_<uchar>::ones(height,width);
+  }
+
+  return(AM_OK);
+}
+
+int OrientationSaliencyMap::calculate()
+{
+  calculated = false;
+
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+
+  printf("[INFO]: %s: Computation started.\n",mapName.c_str());
+  
+  cv::Mat image_cur;
+  image.copyTo(image_cur);
+  image_cur.convertTo(image_cur,CV_32F,1.0f/255);
   cv::Mat image_gray;
-  cv::cvtColor(image,image_gray,CV_BGR2GRAY); // TODO: fix this
+  cv::cvtColor(image_cur,image_gray,CV_BGR2GRAY);
   
-  cv::Mat used_mask = cv::Mat_<uchar>::ones(height,width);
+  cv::blur(image_gray,image_gray,cv::Size(filter_size,filter_size));
   
-  if(getUpdate)
-  {
-    maskInUse = true;
-    mask.copyTo(used_mask);
-    getUpdate = false;
-    maskInUse = false;
-  }
+  orientationMap(image_gray,width,height,angle,max_sum,bandwidth,map);
+  
+  cv::blur(map,map,cv::Size(filter_size,filter_size));
 
-  map = cv::Mat_<float>::zeros(height,width);
+  EPUtils::normalize(map,normalization_type);
+
+  calculated = true;
+  printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
+  return(AM_OK);
+}
+
+void OrientationSaliencyMap::orientationMap(cv::Mat &image_cur, int image_width, int image_height, float angle, float max_sum, float bandwidth, cv::Mat &map_cur)
+{
+  map_cur = cv::Mat_<float>::zeros(image_height,image_width);
   
   //create Gabor kernel
   cv::Mat gaborKernel;
@@ -130,126 +161,224 @@ int OrientationSaliencyMap::calculateOrientationMap(cv::Mat &map_)
   assert (gaborKernel.rows % 2 == 1);
   int gaborFilerSize = gaborKernel.rows / 2;
   
-  //for(int r = gaborFilerSize; r < height-gaborFilerSize; ++r)
-  for(int r = 0; r < height; ++r)
+  for(int r = 0; r < image_height; ++r)
   {
-    if(getUpdate)
-    {
-      maskInUse = true;
-      mask.copyTo(used_mask);
-      getUpdate = false;
-      maskInUse = false;
-    }
     //for(int c = gaborFilerSize; c < width-gaborFilerSize; ++c)
-    for(int c = 0; c < width; ++c)
+    for(int c = 0; c < image_width; ++c)
     {
-      if(used_mask.at<uchar>(r,c))
+      float value = 0;
+      for(int j = r-gaborFilerSize; j <= r+gaborFilerSize; ++j) // rows
       {
-	float value = 0;
-	for(int j = r-gaborFilerSize; j <= r+gaborFilerSize; ++j) // rows
+	int yy = j;
+	if(j < 0)
 	{
-	  int yy = j;
-	  if(j < 0)
-	  {
-	    yy = -j;
-	  }
-	  if(j >= height)
-	  {
-	    yy = height-(j-height+1)-1;
-	  }
-	  /*if(j >= height)
-	    continue;*/
-	  
-	  for(int i = c-gaborFilerSize; i <= c+gaborFilerSize; ++i) // cols
-	  {
-	    int xx = i;
-	    if(i < 0)
-	    {
-	      xx = -i;
-	    }
-	    if(i >= width)
-	    {
-	      xx = width-(i-width+1)-1;
-	    }
-	    
-	    value += image_gray.at<float>(yy,xx)*gaborKernel.at<float>(j-(r-gaborFilerSize),(i-(c-gaborFilerSize)));
-	  }
+	  yy = -j;
 	}
-	
-	//value = value > 0 ? value : -value;
-	//value = sqrt(value/max_sum);
-	//value = value/max_sum;
-	
-	map.at<float>(r,c) = value;
+	if(j >= image_height)
+	{
+	  yy = image_height-(j-image_height+1)-1;
+	}
+	  
+	for(int i = c-gaborFilerSize; i <= c+gaborFilerSize; ++i) // cols
+	{
+	  int xx = i;
+	  if(i < 0)
+	  {
+	    xx = -i;
+	  }
+	  if(i >= image_width)
+	  {
+	    xx = image_width-(i-image_width+1)-1;
+	  }
+	    
+	  value += image_cur.at<float>(yy,xx)*gaborKernel.at<float>(j-(r-gaborFilerSize),(i-(c-gaborFilerSize)));
+        }
       }
+
+      map_cur.at<float>(r,c) = value;
+      
     }
   }
   
-  //cv::minMaxLoc(map,min,max);
-  
-  getUpdate = false;
-  
-  map = cv::abs(map);
-  map = map / max_sum;
-  cv::sqrt(map,map);
-  
-  double min, max;
-  cv::minMaxLoc(map,&min,&max);
-  std::cerr << "min = " << min << std::endl;
-  std::cerr << "max = " << max << std::endl;
-  //std::cerr << "max_sum = " << max_sum << std::endl;
-  
-  //cv::blur(map,map,cv::Size(filter_size,filter_size));
-  //EPUtils::normalize(map,normalization_type);
+  map_cur = cv::abs(map_cur);
+  map_cur = map_cur / max_sum;
+  cv::sqrt(map_cur,map_cur);
 
-  map.copyTo(map_);
+  return;
+}
+
+int OrientationSaliencyMap::calculatePyramidSimple()
+{
+  calculated = false;
+
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  printf("[INFO]: %s: Computation Simple pyramid started.\n",mapName.c_str());
+  
+  SimplePyramid::Ptr pyramid( new SimplePyramid() );
+  
+  pyramid->setStartLevel(0);
+  pyramid->setMaxLevel(6);
+  pyramid->setSMLevel(0);
+  pyramid->setWidth(width);
+  pyramid->setHeight(height);
+  pyramid->setNormalizationType(normalization_type);
+  
+  cv::Mat image_cur;
+  image.copyTo(image_cur);
+  image_cur.convertTo(image_cur,CV_32F,1.0f/255);
+  cv::Mat image_gray;
+  cv::cvtColor(image_cur,image_gray,CV_BGR2GRAY);
+  
+  pyramid->setImage(image_gray);
+  pyramid->buildPyramid();
+  pyramid->print();
+
+  combinePyramid(pyramid);
+  
+  calculated = true;
+  printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
   return(AM_OK);
 }
 
-int OrientationSaliencyMap::calculateOrientationMapPyramid(cv::Mat &map_)
+int OrientationSaliencyMap::calculatePyramidItti()
 {
-  if((( (width == 0) || (height == 0) ) && ( (map.rows == 0) || (map.cols == 0))) ||
-     (  (image.rows == 0) || (image.cols == 0) ))
-  {
-    return(AM_IMAGE);
-  }
+  calculated = false;
 
-  if((width == 0) || (height == 0))
-  {
-    height = map.rows;
-    width  = map.cols;
-  }
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
   
-  if((image.cols != width) || (image.rows != height) || (image.channels() != 3))
-  {
-    return(AM_IMAGE);
-  }
+  printf("[INFO]: %s: Computation Itti pyramid started.\n",mapName.c_str());
   
-  // calculate puramid with saliency maps
-  int max_level = pyramidParameters.max_level + 1;
-  pyramidParameters.pyramidImages.clear();
-  cv::buildPyramid(image,pyramidParameters.pyramidImages,max_level);
-  pyramidParameters.pyramidFeatures.clear();
-  pyramidParameters.pyramidFeatures.resize(pyramidParameters.pyramidImages.size());
+  IttiPyramid::Ptr pyramid( new IttiPyramid() );
   
-  for(int i = pyramidParameters.start_level; i <= pyramidParameters.max_level; ++i)
+  pyramid->setSMLevel(0);
+  pyramid->setWidth(width);
+  pyramid->setHeight(height);
+  pyramid->setNormalizationType(normalization_type);
+  
+  pyramid->setLowestC(2);
+  pyramid->setHighestC(4);
+  pyramid->setSmallestCS(3);
+  pyramid->setLargestCS(4);
+  
+  pyramid->setChangeSign(false);
+  
+  cv::Mat image_cur;
+  image.copyTo(image_cur);
+  image_cur.convertTo(image_cur,CV_32F,1.0f/255);
+  cv::Mat image_gray;
+  cv::cvtColor(image_cur,image_gray,CV_BGR2GRAY);
+  
+  pyramid->setImage(image_gray);
+  pyramid->buildPyramid();
+  pyramid->print();
+
+  combinePyramid(pyramid);
+  
+  calculated = true;
+  printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
+  return(AM_OK);
+}
+
+int OrientationSaliencyMap::calculatePyramidFrintrop()
+{
+  calculated = false;
+
+  int rt_code = checkParameters();
+  if(rt_code != AM_OK)
+    return(rt_code);
+  
+  printf("[INFO]: %s: Computation Frintrop pyramid started.\n",mapName.c_str());
+  
+  FrintropPyramid::Ptr pyramid( new FrintropPyramid() );
+  
+  pyramid->setStartLevel(0);
+  pyramid->setMaxLevel(6);
+  pyramid->setSMLevel(0);
+  pyramid->setWidth(width);
+  pyramid->setHeight(height);
+  pyramid->setNormalizationType(normalization_type);
+  
+  std::vector<int> R;
+  R.resize(2); R.at(0) = 3; R.at(1) = 7;
+  pyramid->setR(R);
+  pyramid->setOnSwitch(true);
+  
+  cv::Mat image_cur;
+  image.copyTo(image_cur);
+  image_cur.convertTo(image_cur,CV_32F,1.0f/255);
+  cv::Mat image_gray;
+  cv::cvtColor(image_cur,image_gray,CV_BGR2GRAY);
+  
+  pyramid->setImage(image_gray);
+  pyramid->buildPyramid();
+  pyramid->print();
+
+  combinePyramid(pyramid);
+  
+  calculated = true;
+  printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
+  return(AM_OK);
+}
+
+int OrientationSaliencyMap::combinePyramid(BasePyramid::Ptr pyramid)
+{
+  for(unsigned int i = pyramid->getStartLevel(); i <= (unsigned int)pyramid->getMaxLevel(); ++i)
   {
+    printf("[INFO]: %s: Computating feature map for level %d.\n",mapName.c_str(),i);
+
     // start creating parameters
-    OrientationSaliencyMap parameters_current;
-    parameters_current.setWidth(pyramidParameters.pyramidImages.at(i).cols);
-    parameters_current.setHeight(pyramidParameters.pyramidImages.at(i).rows);
-    parameters_current.setImage(pyramidParameters.pyramidImages.at(i));
-    parameters_current.setAngle(angle);
-    parameters_current.setBandwidth(bandwidth); 
+    cv::Mat current_image;
+    if(!pyramid->getImage(i,current_image))
+    {
+      printf("[ERROR]: Something went wrong! Can't get image for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
     
-    parameters_current.calculateOrientationMap(pyramidParameters.pyramidFeatures.at(i)); 
+    int current_width = pyramid->getWidth(i);
+    if(current_width <= 0)
+    {
+      printf("[ERROR]: Something went wrong! Can't get width for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
+    
+    int current_height = pyramid->getHeight(i);
+    if(current_height <= 0)
+    {
+      printf("[ERROR]: Something went wrong! Can't get height for level %d!\n",i);
+      return(AM_CUSTOM);
+    }
+    
+    cv::Mat current_map;
+    
+    orientationMap(current_image,current_width,current_height,angle,max_sum,bandwidth,current_map);
+    
+//     cv::imshow("current_image",current_image);
+//     cv::imshow("current_map",current_map);
+//     cv::waitKey(-1);
+    
+    if(!pyramid->setFeatureMap(i,current_map))
+    {
+     printf("[ERROR]: Something went wrong! Can't set feature map for level %d!\n",i);
+     return(AM_CUSTOM);
+    }
+    
+    printf("[INFO]: %s: Feature map at level %d is set.\n",mapName.c_str(),i);
   }
   // combine saliency maps
-  combinePyramid(pyramidParameters);
-  pyramidParameters.map.copyTo(map);
+  pyramid->combinePyramid(true);
   
-  map.copyTo(map_);
-  return(0);
+  if(!pyramid->getMap(map))
+  {
+    printf("[ERROR]: Something went wrong! Can't get saliency map from the pyramid!\n");
+    return(AM_CUSTOM);
+  }
+  
+  return(AM_OK);
 }
 
 } //namespace AttentionModule

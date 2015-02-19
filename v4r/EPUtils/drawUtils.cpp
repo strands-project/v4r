@@ -1,3 +1,27 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "drawUtils.hpp"
 
 namespace EPUtils
@@ -32,6 +56,35 @@ void drawSegmentationMasks(cv::Mat &image, std::vector<cv::Mat> &masks, int line
     int b = rand() % 256;
 
     drawSegmentationMask(image,masks.at(i),cv::Scalar(r,g,b),line_width);
+  }
+}
+
+void drawSegmentationResults(cv::Mat &image, cv::Point p1, cv::Mat &masks, bool drawAttentionPoints,
+                             bool drawSegmentationResults, int num)
+{
+  cv::Scalar color;
+  // draw contour
+  int r = rand() % 256;
+  int g = rand() % 256;
+  int b = rand() % 256;
+    
+  color = cv::Scalar(r,g,b);
+  
+  if(drawSegmentationResults)
+  {
+    std::vector<std::vector<cv::Point> > contours;
+    cv::findContours(masks,contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_NONE);
+    cv::drawContours(image,contours,0,color,3);
+  }
+  
+  if(drawAttentionPoints)
+  {
+    // put text
+    char text[4];
+    sprintf(text,"%d",num);
+    cv::putText(image,text,cv::Point(p1.x,p1.y-5),cv::FONT_HERSHEY_SIMPLEX,1.0,cv::Scalar(0,0,0),2);//colors.at(j),2);
+    // draw attention point
+    cv::circle(image,p1,5,color,-1);
   }
 }
 
@@ -157,6 +210,7 @@ void drawSegmentationResults(cv::Mat &image, std::vector<cv::Point> &attentionPo
   }
 }
 
+//revison
 void drawAttentionPoints(cv::Mat &image, std::vector<cv::Point> &attentionPoints, unsigned int maxNumber, bool connect_points)
 {
   cv::Point p;
@@ -174,7 +228,7 @@ void drawAttentionPoints(cv::Mat &image, std::vector<cv::Point> &attentionPoints
     // put text
     char text[4];
     sprintf(text,"%d",j);
-    cv::putText(image,text,cv::Point(p1.x,p1.y-5),cv::FONT_HERSHEY_SIMPLEX,1.0,cv::Scalar(r,g,b),3);
+    cv::putText(image,text,cv::Point(p1.x,p1.y-10),cv::FONT_HERSHEY_SIMPLEX,2.0,cv::Scalar(r,g,b),5);
     
     if (connect_points && (j > 0))
     {
@@ -182,11 +236,12 @@ void drawAttentionPoints(cv::Mat &image, std::vector<cv::Point> &attentionPoints
     }
 
     // draw attention point
-    cv::circle(image,p1,3,cv::Scalar(r,g,b),-1);
+    cv::circle(image,p1,10,cv::Scalar(r,g,b),-1);
 
     p = p1;
   }
 }
+//end revision
 
 void drawPath(cv::Mat &image, std::vector<cv::Point> &path, cv::Mat &mapx, cv::Mat &mapy)
 {

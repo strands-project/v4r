@@ -45,14 +45,16 @@ public:
     int min_tiles_used;          // minimum number of tiles with matches
     bool affine_outl_rejection;
     int fast_pyr_levels;
-    Parameter(int _tiles=3, int _max_features_tile=100, float _inl_dist=7., float _pecnt_prefilter=0.02, 
+    Parameter(int _tiles=3, int _max_features_tile=100, float _inl_dist=7., float _pecnt_prefilter=0.02,
         bool _refineLK=true, bool _refineMappedLK=false, 
         int _min_total_matches=10, int _min_tiles_used=3, 
         bool _affine_outl_rejection=true, int _fast_pyr_levels=2)
       : tiles(_tiles), max_features_tile(_max_features_tile), inl_dist(_inl_dist), pecnt_prefilter(_pecnt_prefilter),
         refineLK(_refineLK), refineMappedLK(_refineMappedLK),
         min_total_matches(_min_total_matches), min_tiles_used(_min_tiles_used), 
-        affine_outl_rejection(_affine_outl_rejection), fast_pyr_levels(_fast_pyr_levels) {}
+        affine_outl_rejection(_affine_outl_rejection), fast_pyr_levels(_fast_pyr_levels)
+    {
+    }
   };
 
 private:

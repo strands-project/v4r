@@ -79,6 +79,13 @@ struct tgFace{
     color[2] = 0;
     color[3] = 255;
   }
+  void Color(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
+  {
+    color[0] = r;
+    color[1] = g;
+    color[2] = b;
+    color[3] = a;
+  }
 };
 /** @brief Line defined by a starting and end point in 3D space. See glBegin(GL_LINE) in OpenGL spec. */
 struct tgLine{
@@ -149,6 +156,7 @@ public:
     m_line_color(1.0, 0.0, 0.0),
     m_point_color(1.0, 0.0, 0.0)
   {}
+  virtual ~tgModel() {}
 
 
 

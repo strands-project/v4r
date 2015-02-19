@@ -1,3 +1,27 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "TJ.hpp"
 
 namespace AttentionModule
@@ -161,6 +185,10 @@ std::vector<int> findEndPoints(SaliencyLine saliencyLine)
       endPoints.push_back(i);
     }
   }
+  
+  if(!(endPoints.size()))
+    endPoints.push_back(0);
+  
   return(endPoints);
 }
 
@@ -244,15 +272,14 @@ void modifySymmetryLine(SaliencyLine saliencyLine, std::vector<bool> &usedPoints
   std::vector<JunctionNode> nodes = saliencyLine.getPoints();
   
   usedPoints.resize(saliencyLine.getPointsNumber(),true);
-  //for(int i = 0; i < saliencyLine.getPointsNumber(); ++i)
-  //{
-  //  usedPoints.at(i) = true;
-  //}
   
   for(unsigned int i = 0; i < segments.size(); ++i)
   {
     std::vector<int> segmentCurrent = segments.at(i);
     std::vector<int> endPoints = findEndPoints(saliencyLine,segmentCurrent);
+    
+    if(endPoints.size() <= 0)
+      continue;
     
     unsigned int nodesToDeleteNum = (unsigned int)(segmentCurrent.size() - (int)(th*(segmentCurrent.size())));
     unsigned int j  = 0;
@@ -267,9 +294,15 @@ void modifySymmetryLine(SaliencyLine saliencyLine, std::vector<bool> &usedPoints
         {
 	  if(usedPoints.at(currentEdges.at(l)))
 	  {
+	    usedPoints.at(currentEdges.at(l)) = false;
 	    endPoints.at(k) = currentEdges.at(l);
 	    j++;
 	    break;
+	  }
+	  else if( (l+1) == currentEdges.size() )
+	  {
+// 	    std::cerr << "!" << std::endl;
+	    j++;
 	  }
         }
       }
@@ -287,35 +320,53 @@ void selectSaliencyCenterPoint(SaliencyLine saliencyLine, PointSaliency &center)
   
   if(isTJunction)
   {
+//     std::cerr << "1!"<< std::endl;
     centerIdx = tjunctionPointsIdx.at(0);
     for(unsigned int i = 1; i < tjunctionPointsIdx.size(); ++i)
     {
+//       std::cerr << i << " " << tjunctionPointsIdx.size() << std::endl;
       if(nodes.at(centerIdx).type < nodes.at(tjunctionPointsIdx.at(i)).type)
       {
+// 	std::cerr << "2!"<< std::endl;
 	centerIdx = tjunctionPointsIdx.at(i);
       }
+//       std::cerr << "3!"<< std::endl;
     }
   }
   else
   {
+//     std::cerr << "4!"<< std::endl;
     std::vector<int> endPoints = findEndPoints(saliencyLine);
+//     std::cerr << "5!"<< std::endl;
     centerIdx = endPoints.at(0);
+//     std::cerr << "7!"<< std::endl;
     unsigned int nodesToDeleteNum = nodes.size()/2;
+//     std::cerr << "8!"<< std::endl;
     std::vector<bool> usedPoints(nodes.size(),true);
+//     std::cerr << "9!"<< std::endl;
     
     unsigned int j  = 0;
     while(j < nodesToDeleteNum)
     {
+//       std::cerr << j << "(" << nodesToDeleteNum << ")" << std::endl;
       usedPoints.at(centerIdx) = false;
       std::vector<int> currentEdges = getEdges(nodes,centerIdx);
       for(unsigned int k = 0; k < currentEdges.size(); ++k)
       {
+// 	std::cerr << k << ":" << currentEdges.size() << std::endl;
 	if(usedPoints.at(currentEdges.at(k)))
 	{
 	  centerIdx = currentEdges.at(k);
+	  usedPoints.at(centerIdx) = false;
 	  j++;
 	  break;
 	}
+	else if( (k+1) == currentEdges.size() )
+	{
+// 	  std::cerr << "!" << std::endl;
+	  j++;
+	}
+// 	std::cerr << "6!"<< std::endl;
       }
     }
   }
@@ -337,7 +388,7 @@ void createSimpleLine(SaliencyLine saliencyLine, std::vector<cv::Point> &points)
   }
 }
 
-bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine)
+bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine, unsigned int th)
 {
   cv::Mat skeleton;
   EPUtils::Skeleton(mask,skeleton);
@@ -345,7 +396,7 @@ bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine)
   //cv::imshow("skeleton",255*skeleton);
   //cv::waitKey();
   
-  if(!calculateSaliencyLine(skeleton,map,saliencyLine))
+  if(!calculateSaliencyLine(skeleton,map,saliencyLine, th))
   {
     return false;
   }

@@ -55,7 +55,7 @@ public:
 class MultiViewPatchError
 {
 public:
-  bool dbg;
+//  bool dbg;
 
   const std::vector<MVView*> &mv_views;
   const MVPoint &mv_point;
@@ -78,7 +78,7 @@ public:
     const Eigen::Matrix3d &_C, const Eigen::Matrix3d &_invC,
     int _patch_rows=21, int _patch_cols=21, 
     unsigned char *_patch0=0, unsigned char *_patch1=0)
-  : dbg(false), mv_views(_mv_views), mv_point(_mv_point), 
+  : /*dbg(false),*/ mv_views(_mv_views), mv_point(_mv_point), 
     C(_C), invC(_invC),
     rows(_patch_rows), cols(_patch_cols),
     patch0(_patch0), patch1(_patch1), own_patch0(false), own_patch1(false)
@@ -157,7 +157,7 @@ public:
         //err = (double)distanceL1b(patch0, patch1, rows*cols);
         err = 1.-distanceNCCb(patch0, patch1, rows*cols);
 
-if (dbg) std::cout<<err<<" ";
+//if (dbg) std::cout<<err<<" ";
         residual += ( err );
         cnt++;
       }
@@ -180,7 +180,7 @@ if (dbg) std::cout<<err<<" ";
                   const double &depth,         // delta depth
                   std::vector<double> &residuals) 
   {
-    double d, err;
+    double d;
     Eigen::Matrix<double,3,3,Eigen::RowMajor> H, T(Eigen::Matrix<double,3,3,Eigen::RowMajor>::Identity());
     Eigen::Vector3d pt, n;
     

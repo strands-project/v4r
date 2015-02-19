@@ -1,3 +1,27 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "MSR.hpp"
 
 namespace AttentionModule
@@ -10,16 +34,31 @@ void winnerToImgCoords(cv::Point& p_new, cv::Point& p, int mapLevel)
   p_new.x = (int)(x * (pow(2,mapLevel-1)));
   p_new.y = (int)(y * (pow(2,mapLevel-1)));
 }
-  
-void detectMSR(std::vector<cv::Point> &centers, cv::Mat map_, float th)
+
+void defaultParamsMSR(MRSParams &params)
+{
+  params.th = 0.25;
+  params.mapLevel = 5;
+  params.useMorphologyOpenning = false;
+}
+
+void detectMSR(std::vector<cv::Point> &centers, cv::Mat map_, MRSParams params)
 {
   assert(map_.type() == CV_32FC1);
   
   cv::Mat map, temp;
   map_.copyTo(temp);
   
-  int mapLevel = 5;
-  cv::resize(temp,map,cv::Size(map_.cols/(pow(2,mapLevel-1)),map_.rows/(pow(2,mapLevel-1))));
+  // perform morphological operations if necessary
+  if(params.useMorphologyOpenning)
+  {
+    // calculate the size of the kernel
+    int kernel_size = pow(2,params.mapLevel-1);
+    cv::Mat element = cv::Mat_<uchar>::ones(kernel_size,kernel_size);
+    cv::erode(map_,temp,element);
+  }
+  
+  cv::resize(temp,map,cv::Size(map_.cols/(pow(2,params.mapLevel-1)),map_.rows/(pow(2,params.mapLevel-1))));
   
   double maxVal=0;
   cv::Point maxLoc;
@@ -27,11 +66,12 @@ void detectMSR(std::vector<cv::Point> &centers, cv::Mat map_, float th)
   
   while(maxVal > 0)
   {
+    
     cv::Point maxLoc_new;
-    winnerToImgCoords(maxLoc_new,maxLoc,mapLevel);
+    winnerToImgCoords(maxLoc_new,maxLoc,params.mapLevel);
     centers.push_back(maxLoc_new);
     
-    float maxValTh = (1-th)*maxVal;
+    float maxValTh = (1-params.th)*maxVal;
     
     std::list<cv::Point> points;
     points.push_back(maxLoc);
@@ -74,8 +114,8 @@ void detectMSR(std::vector<cv::Point> &centers, cv::Mat map_, float th)
     }
     cv::minMaxLoc(map,0,&maxVal,0,&maxLoc);
     
-    //cv::imshow("map",map);
-    //cv::waitKey();
+//     cv::imshow("map",map);
+//     cv::waitKey();
   }
 }
 

@@ -2,16 +2,21 @@ cmake_minimum_required(VERSION 2.8)
 
 set(V4R_TOMGINE 1 CACHE BOOL "OpenGL-GPU rendering, geometry and image processing library." )
 IF(V4R_TOMGINE)
+set(TG_NO_EVENT_HANDLING 0 CACHE BOOL "Disable threaded event handling (workaround GUI update bug Ubuntu 14.04)")
 project(v4rTomGine)
 add_definitions(-DLINUX)
 add_definitions(-DGL_GLEXT_PROTOTYPES)
+
+IF(TG_NO_EVENT_HANDLING)
+add_definitions(-DTG_NO_EVENT_HANDLING)
+endif(TG_NO_EVENT_HANDLING)
 
 # find dependent packages
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GL REQUIRED gl)
 pkg_search_module(GLU REQUIRED glu)
 
-find_package(OpenCV REQUIRED)
+#find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 if(NOT GL_FOUND)
@@ -38,8 +43,8 @@ ENDIF(ENABLE_FTGL_FONTS)
 string(REGEX REPLACE "v4r" "" TOMGINE_INCLUDE_NAME ${PROJECT_NAME})
 
 set(SOURCE_CPP 
-	GLXWindow.cpp
-	GLXWindowGetEvent.cpp
+  GLXCBWindow.cpp
+  GLXCBWindowGetEvent.cpp
 	ply.c
 	tgCamera.cpp
 	tgCollission.cpp
@@ -99,7 +104,7 @@ set(SOURCE_H
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${GL_LIBRARIES} ${GLU_LIBRARIES} pthread X11 rt)
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${GL_LIBRARIES} ${GLU_LIBRARIES} pthread X11 X11-xcb xcb rt)
 if(ENABLE_FTGL_FONTS)
 target_link_libraries(${PROJECT_NAME} ${FTGL_LIBRARIES})
 endif(ENABLE_FTGL_FONTS)

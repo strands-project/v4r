@@ -1,10 +1,10 @@
 /**
  *  Copyright (C) 2012  
- *    Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
- *    1170 Vienn, Austria
+ *    1170 Vienna, Austria
  *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -20,6 +20,15 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
+
+/**
+ * @file SurfaceModeling.cc
+ * @author Richtsfeld
+ * @date October 2012
+ * @version 0.1
+ * @brief Models patches using NURBS.
+ */
+
 
 #include <cstdio>
 #include "SurfaceModeling.hh"
@@ -97,7 +106,7 @@ double computePlaneSavingsNormalized(int numParams, std::vector<double> &probs, 
  * Constructor/Destructor
  */
 SurfaceModeling::SurfaceModeling(Parameter p) :
-  EPBase(), haveIntr(false), haveExtr(false), param(p), tryMergePlanes(false), tryMergeNurbs(true), msCheck(true)
+  EPBase(), tryMergePlanes(false), tryMergeNurbs(true), msCheck(true), haveIntr(false), haveExtr(false), param(p)
 {
   have_surfaces = false;
   filter_by_size = false;
@@ -548,7 +557,7 @@ void SurfaceModeling::modifyNeighbours(int oldIdx, int newIdx)
   surfaces.at(newIdx)->neighbors3D.erase(itr_toremove3D);
   for(std::set<unsigned>::iterator itr = surfaces.at(oldIdx)->neighbors3D.begin(); itr != surfaces.at(oldIdx)->neighbors3D.end(); itr++)
   {
-    if((*itr) != newIdx)
+    if((*itr) != ((unsigned int)newIdx))
     {
       surfaces.at(newIdx)->neighbors3D.insert(*itr);
       std::set<unsigned>::iterator itr_tochange3D = surfaces.at(*itr)->neighbors3D.find(oldIdx);
@@ -561,7 +570,7 @@ void SurfaceModeling::modifyNeighbours(int oldIdx, int newIdx)
   surfaces.at(newIdx)->neighbors2D.erase(itr_toremove2D);
   for(std::set<unsigned>::iterator itr = surfaces.at(oldIdx)->neighbors2D.begin(); itr != surfaces.at(oldIdx)->neighbors2D.end(); itr++)
   {
-    if((*itr) != newIdx)
+    if((*itr) != ((unsigned int)newIdx))
     {
       surfaces.at(newIdx)->neighbors2D.insert(*itr);
       std::set<unsigned>::iterator itr_tochange2D = surfaces.at(*itr)->neighbors2D.find(oldIdx);

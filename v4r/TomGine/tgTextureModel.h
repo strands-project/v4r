@@ -48,9 +48,11 @@ public:
   tgTextureModel(const tgTextureModel &m);
   tgTextureModel(const tgRenderModel &m);
   tgTextureModel(const tgModel &m);
-  ~tgTextureModel();
+  virtual ~tgTextureModel();
 
   tgTextureModel& operator=(const tgTextureModel &m);
+
+  virtual void Clear();
 
   /** @brief Calls DrawTexFaces if a texture is available, otherwise use tgRenderModel::DrawFaces */
   virtual void Draw(bool textured = true, RenderMode rmode = RENDERNORMAL);

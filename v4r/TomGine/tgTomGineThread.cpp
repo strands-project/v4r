@@ -225,11 +225,12 @@ void tgTomGineThread::init()
   df.labels = true;
   df.models = true;
   df.normals = false;
+  df.textured = true;
 
   m_loadImage = false;
   m_showCoordinateFrame = false;
   m_camChanged = false;
-  m_tgCamChanged = false;
+//  m_tgCamChanged = false;
   m_inputSpeedChanged = false;
   m_rotCenterChanged = false;
   m_waitingForEvents = false;
@@ -248,7 +249,9 @@ void tgTomGineThread::init()
   pthread_mutex_init(&eventMutex, NULL);
   pthread_mutex_init(&dataMutex, NULL);
   pthread_create(&thread_gl, NULL, ThreadDrawing, this);
+  #ifndef TG_NO_EVENT_HANDLING
   pthread_create(&thread_event, NULL, ThreadEventHandling, this);
+  #endif
 }
 
 tgTomGineThread::tgTomGineThread(int w, int h, std::string windowname, bool bfc, float depth_min, float depth_max) :
@@ -366,7 +369,8 @@ bool tgTomGineThread::KeyHandler(Event &event)
     else if (event.input == TMGL_f)
       m_showCoordinateFrame = !m_showCoordinateFrame;
     else if (event.input == TMGL_c)
-      df.cameras = !df.cameras;
+      df.textured = !df.textured;
+//      df.cameras = !df.cameras;
     else if (event.input == TMGL_d)
       df.points = !df.points;
     else if (event.input == TMGL_i)
@@ -637,7 +641,7 @@ void tgTomGineThread::GL_Snapshot(const std::string &filename)
   TomGine::tgTexture2D tex;
   tex.CopyTexImage2D(m_width, m_height, GL_RGB);
   tex.Save(filename.c_str());
-  printf("[tgTomGineThread::GL_Snapshot] Saved image to '%s'\n", filename.c_str());
+//  printf("[tgTomGineThread::GL_Snapshot] Saved image to '%s'\n", filename.c_str());
   sem_post(&snapshotSem);
 }
 
@@ -679,14 +683,14 @@ void tgTomGineThread::GL_Update(TomGine::tgEngine *render)
     tgCheckError("[tgTomGineThread::GL_Update] SetCamera (cv):");
 #endif
   }
-  if (m_tgCamChanged)
-  {
-    render->SetCamera(m_tgCamera);
-    m_tgCamChanged = false;
-#ifdef DEBUG
-    tgCheckError("[tgTomGineThread::GL_Update] SetCamera (tg):");
-#endif
-  }
+  //  if (m_tgCamChanged)
+  //  {
+  //    render->SetCamera(m_tgCamera);
+  //    m_tgCamChanged = false;
+  //#ifdef DEBUG
+  //    tgCheckError("[tgTomGineThread::GL_Update] SetCamera (tg):");
+  //#endif
+  //  }
   if (m_inputSpeedChanged)
   {
     render->SetSpeeds(m_inputSpeeds.x, m_inputSpeeds.y, m_inputSpeeds.z);
@@ -733,7 +737,7 @@ void tgTomGineThread::GL_Draw(TomGine::tgEngine *render)
   render->Activate3D();
 
   if (df.models)
-    GL_DrawModels3D(!render->GetWireframeMode());
+    GL_DrawModels3D(!render->GetWireframeMode() && df.textured);
 
   if (df.pointclouds)
     GL_DrawPointCloud();
@@ -1013,8 +1017,10 @@ void tgTomGineThread::SetCamera(cv::Mat &R, cv::Mat &t)
 void tgTomGineThread::SetCamera(const TomGine::tgCamera &cam)
 {
   pthread_mutex_lock(&dataMutex);
-  m_tgCamera = cam;
-  m_tgCamChanged = true;
+  //  m_tgCamera = cam;
+  //  m_tgCamChanged = true;
+  if(this->m_engine!=NULL)
+    this->m_engine->SetCamera(cam);
   pthread_mutex_unlock(&dataMutex);
 }
 
@@ -1034,23 +1040,26 @@ void tgTomGineThread::SetCameraDefault()
 
 void tgTomGineThread::LookAt(const TomGine::vec3& p)
 {
-  m_tgCamera = this->GetCamera();
+  TomGine::tgCamera cam = this->GetCamera();
 
   pthread_mutex_lock(&dataMutex);
+  if(this->m_engine!=NULL)
+  {
+    // set extrinsic
+    cam.LookAt(p);
+    cam.ApplyTransform();
 
-  // set extrinsic
-  m_tgCamera.LookAt(p);
-  m_tgCamera.ApplyTransform();
+    // check if point is within z-range
+    vec3 view_ray = cam.GetPos() - p;
+    float z = view_ray.length();
+    if(z >= cam.GetZFar())
+      cam.SetZRange(cam.GetZNear(), 2.0f*z);
+    if(z <= cam.GetZNear())
+      cam.SetZRange(z*0.5f, cam.GetZFar());
 
-  // check if point is within z-range
-  vec3 view_ray = m_tgCamera.GetPos() - p;
-  float z = view_ray.length();
-  if(z >= m_tgCamera.GetZFar())
-    m_tgCamera.SetZRange(m_tgCamera.GetZNear(), z);
-  if(z <= m_tgCamera.GetZNear())
-    m_tgCamera.SetZRange(z, m_tgCamera.GetZFar());
-
-  m_tgCamChanged = true;
+    this->m_engine->SetCamera(cam);
+    //  m_tgCamChanged = true;
+  }
   pthread_mutex_unlock(&dataMutex);
 }
 
@@ -1365,6 +1374,53 @@ int tgTomGineThread::AddPointCloud(const std::vector<cv::Vec4f> &cloud, float po
     cpt.color[0] = color.Red;
     cpt.color[1] = color.Green;
     cpt.color[2] = color.Blue;
+    cpt.pos = vec3(pt[0], pt[1], pt[2]);
+    tg_cloud->m_colorpoints.push_back(cpt);
+  }
+  pthread_mutex_lock(&dataMutex);
+  this->m_pointclouds.push_back(tg_cloud);
+  int id = (this->m_pointclouds.size() - 1);
+  pthread_mutex_unlock(&dataMutex);
+  return id;
+}
+
+int tgTomGineThread::AddPointCloud(const cv::Mat_<cv::Vec3f> &cloud, uchar r, uchar g, uchar b, float pointsize)
+{ 
+  tgModel* tg_cloud = new tgModel;
+  tg_cloud->m_point_size = pointsize;
+
+  for (int i = 0; i < cloud.rows*cloud.cols; i++)
+  {
+    TomGine::tgColorPoint cpt;
+    const cv::Vec3f &pt = cloud(i);
+    if (pt[2]>=1000) continue;
+    cpt.color[0] = r;
+    cpt.color[1] = g;
+    cpt.color[2] = b;
+    cpt.pos = vec3(pt[0], pt[1], pt[2]); 
+    tg_cloud->m_colorpoints.push_back(cpt);
+  }
+  pthread_mutex_lock(&dataMutex);
+  this->m_pointclouds.push_back(tg_cloud);
+  int id = (this->m_pointclouds.size() - 1);
+  pthread_mutex_unlock(&dataMutex);
+  return id;
+}
+
+int tgTomGineThread::AddPointCloud(const cv::Mat_<cv::Vec3f> &cloud, const cv::Mat_<cv::Vec3b> &image, float pointsize)
+{ 
+  tgModel* tg_cloud = new tgModel;
+  tg_cloud->m_point_size = pointsize;
+  
+  for (int i = 0; i < cloud.rows*cloud.cols && i < image.rows*image.cols; i++)
+  {
+    TomGine::tgColorPoint cpt;
+    const cv::Vec3f &pt = cloud(i);
+    const cv::Vec3b &col = image(i);
+    if (pt[2]>=1000) continue;
+    cpt.color[0] = col[2];
+    cpt.color[1] = col[1];
+    cpt.color[2] = col[0];
     cpt.pos = vec3(pt[0], pt[1], pt[2]);
     tg_cloud->m_colorpoints.push_back(cpt);
   }

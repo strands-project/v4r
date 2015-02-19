@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef PLY_STRUCTURE
-#define PLY_STRUCTURE
+#ifndef TOMGINE_PLY_STRUCTURE
+#define TOMGINE_PLY_STRUCTURE
 
 namespace TomGine{
   
@@ -29,17 +29,26 @@ struct PlyVertex {
 	float x,y,z;                // spatial position
 	float nx, ny, nz;           // normal vector
 	float s, t;
-	unsigned char r, g, b;      // color
+  unsigned char r, g, b;      // color
+  PlyVertex() :
+    x(0.0f),y(0.0f),z(0.0f),
+    nx(0.0f),ny(0.0f),nz(0.0f),
+    s(0.0f),t(0.0f),
+    r(255),g(255),b(255)
+  {}
+
 };
 
 struct PlyFace {
 	unsigned short nverts;      // number of vertices used for the face (Quad=4, Triangle=3)
 	unsigned int* v;            // pointer to memory holding the vertex-index list
+  PlyFace() : nverts(0), v(NULL) {}
 };
 
 struct PlyEdge {
 	unsigned short start;       // start vertex index
 	unsigned short end;         // end vertex index
+  PlyEdge(): start(0), end(0){}
 };
 
 }

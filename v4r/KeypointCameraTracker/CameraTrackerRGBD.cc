@@ -6,7 +6,7 @@
  */
 
 #include "CameraTrackerRGBD.hh"
-#include "v4r/KeypointTools/getImageKPtoCV.hpp"
+#include "v4r/KeypointTools/convertImage.hpp"
 #include "v4r/KeypointTools/invPose.hpp"
 
 
@@ -252,7 +252,7 @@ bool CameraTrackerRGBD::track(const DataMatrix2D<PointXYZRGB> &cloud, Eigen::Mat
   double score, dist_px;
   std::vector<double> score_per_tile; 
 
-  getImageKPtoCV(cloud, image); 
+  convertImage(cloud, image); 
   cv::cvtColor( image, im_gray, CV_RGB2GRAY );
 
   if (thr_image_motion_px < 0) thr_image_motion_px = param.thr_image_motion*double(image.cols);

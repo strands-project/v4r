@@ -24,7 +24,7 @@ namespace kp
 /**
  * writePose
  */
-void writePose(const std::string &filename, const std::string &label, const Eigen::Matrix4f &pose)
+inline void writePose(const std::string &filename, const std::string &label, const Eigen::Matrix4f &pose)
 {
   std::ofstream out(filename.c_str(), std::ios::out); //ios::app
   if (label.size()!=0) out<<label<<' ';
@@ -37,7 +37,7 @@ void writePose(const std::string &filename, const std::string &label, const Eige
 /**
  * readPose
  */
-bool readPose(const std::string &filename, std::string &label, Eigen::Matrix4f &pose)
+inline bool readPose(const std::string &filename, std::string &label, Eigen::Matrix4f &pose)
 {
   std::ifstream in(filename.c_str(), std::ios::in);
   if (in.is_open())

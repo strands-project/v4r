@@ -1,10 +1,10 @@
 /**
  *  Copyright (C) 2012  
- *    Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
- *    1170 Vienn, Austria
+ *    1170 Vienna, Austria
  *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -119,9 +119,9 @@ void Texture::setIndices(cv::Rect _rect)
   printf("[ColorHistogram] _rect = %d,%d,%d,%d.\n",_rect.x,_rect.y,_rect.x+_rect.width,_rect.y+_rect.height);
   
   indices.reset(new pcl::PointIndices);
-  for(unsigned r = _rect.y; r < (_rect.y+_rect.height); r++)
+  for(int r = _rect.y; r < (_rect.y+_rect.height); r++)
   {
-    for(unsigned c = _rect.x; c < (_rect.x+_rect.width); c++)
+    for(int c = _rect.x; c < (_rect.x+_rect.width); c++)
     {
       indices->indices.push_back(r*width+c);
     }

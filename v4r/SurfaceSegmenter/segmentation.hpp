@@ -1,6 +1,6 @@
 /**
  *  Copyright (C) 2012  
- *    Ekaterina Potapova
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
@@ -49,25 +49,20 @@
 #include "v4r/SurfaceClustering/ClusterNormalsToPlanes.hh"
 #include "v4r/SurfaceModeling/SurfaceModeling.hh"
 
-//#include "v4r/SurfaceUtils/AddGroundTruth.h"
-#include "v4r/SurfaceRelations/BoundaryRelationsMeanDepth.hpp"
-#include "v4r/SurfaceRelations/BoundaryRelationsMeanCurvature.hpp"
-#include "v4r/SurfaceRelations/BoundaryRelationsMeanColor.hpp"
+#include "v4r/SurfaceUtils/AddGroundTruth.h"
 #include "v4r/SurfaceRelations/StructuralRelations.h"
 //#include "v4r/SurfaceRelations/AssemblyRelations.h"
 
 //#include "v4r/SurfaceUtils/ContourDetector.h"
 //#include "v4r/SurfaceUtils/BoundaryDetector.h"
 
-//#include "v4r/svm/SVMFileCreator.h"
-#include "v4r/svm/SVMScale.h"
+#include "v4r/svm/SVMFileCreator.h"
 #include "v4r/svm/SVMPredictorSingle.h"
-//#include "v4r/svm/SVMTrainModel.h"
 
 #include "v4r/GraphCut/GraphCut.h"
 
 #include "v4r/EPUtils/EPUtils.hpp"
-#include "v4r/AttentionModule/AttentionModule.hpp"
+//#include "v4r/AttentionModule/AttentionModule.hpp"
 
 namespace segmentation
 {
@@ -101,6 +96,7 @@ class Segmenter
 private:
   
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_cloud;                 ///< original pcl point cloud
+  pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pcl_cloud_l;              ///< labeled pcl point cloud
   pcl::PointCloud<pcl::Normal>::Ptr normals;
   surface::ClusterNormalsToPlanes::Ptr clusterNormals;
   std::vector<surface::SurfaceModel::Ptr> surfaces;
@@ -111,13 +107,15 @@ private:
   surface::StructuralRelations structuralRelations;
   svm::SVMPredictorSingle svmPredictorSingle;
   gc::GraphCut graphCut;
-  svm::SVMScale svmScale;
   std::vector<cv::Mat> saliencyMaps;
   
   std::vector<cv::Mat> masks;
   std::vector<std::vector<int> > segmentedObjectsIndices;
   
+  surface::View view;
+  
   bool have_cloud;
+  bool have_cloud_l;
   //bool have_normals;
   bool have_saliencyMaps;
 
@@ -128,6 +126,11 @@ private:
   std::string ClassName;
 
   TimeEstimates timeEstimates;
+  
+  //only for training
+  surface::AddGroundTruth addGroundTruth;
+  svm::SVMFileCreator svmFileCreator;
+  std::string train_ST_file_name, train_AS_file_name;
 
 public:
 
@@ -151,9 +154,16 @@ public:
   /** Run the pre-segmenter **/
   void segment();
   void attentionSegment();
+  //void attentionSegment(int &objNumber);
+  
+  void attentionSegmentInit();
+  bool attentionSegmentNext();
+  
+  //only for training
+  void createTrainFile();
   
   void setPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr _pcl_cloud);
-  //void setNormals(pcl::PointCloud<pcl::Normal>::Ptr _normals);
+  void setPointCloud(pcl::PointCloud<pcl::PointXYZRGBL>::Ptr _pcl_cloud_l);
   void setSaliencyMaps(std::vector<cv::Mat> _saliencyMaps);
 
   inline void setUsePlanesNotNurbs(bool _use_planes);
@@ -165,6 +175,10 @@ public:
   inline std::vector<cv::Mat> getMasks();
   inline std::vector<std::vector<int> > getSegmentedObjectsIndices();
   inline TimeEstimates getTimeEstimates();
+  
+  //only for training
+  inline void setTrainSTFilename(std::string _train_ST_file_name);
+  inline void setTrainASFilename(std::string _train_AS_file_name);
 
 };
 
@@ -177,6 +191,16 @@ inline void Segmenter::setModelFilename(std::string _model_file_name)
 {
   model_file_name = _model_file_name;
 
+}
+
+inline void Segmenter::setTrainSTFilename(std::string _train_ST_file_name)
+{
+  train_ST_file_name = _train_ST_file_name;
+}
+
+inline void Segmenter::setTrainASFilename(std::string _train_AS_file_name)
+{
+  train_AS_file_name = _train_AS_file_name;
 }
 
 inline void Segmenter::setScaling(std::string _scaling_file_name)

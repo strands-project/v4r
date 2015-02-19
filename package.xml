@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>strandsv4r</name>
+  <name>strands_v4r</name>
   <version>0.0.0</version>
   <description>The strandsv4r package</description>
 
@@ -44,11 +44,16 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
-  <build_depend>libsuitesparse-metis-dev</build_depend>
-  <build_depend>libglm-dev</build_depend>
+  <!-- <build_depend>libsuitesparse-metis-dev</build_depend> -->
+  <build_depend>libsuitesparse-dev</build_depend>
+  <build_depend>libpcl-all-dev</build_depend>
+  <build_depend>libpcl-apps-dev</build_depend> 
+  <build_depend>libopenni-dev</build_depend>
+ <!--  <build_depend>libglm-dev</build_depend> this did not work in trusty and indigo -->
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
-
+  <run_depend>libpcl-all-dev</run_depend>
+  <run_depend>libpcl-apps-dev</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

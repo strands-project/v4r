@@ -12,6 +12,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <Eigen/Dense>
+#include "SmartPtr.hpp"
 
 
 namespace kp
@@ -102,6 +103,9 @@ public:
           const std::vector<Eigen::Vector2f,Eigen::aligned_allocator<Eigen::Vector2f> > &src_pts,
           const std::vector<Eigen::Vector2f,Eigen::aligned_allocator<Eigen::Vector2f> > &tgt_pts,
           Eigen::Matrix3f &transform, std::vector<int> &inliers);
+
+  typedef SmartPtr< ::kp::ImageTransformRANSAC> Ptr;
+  typedef SmartPtr< ::kp::ImageTransformRANSAC const> ConstPtr;
 };
 
 

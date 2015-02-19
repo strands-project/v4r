@@ -13,6 +13,7 @@
 #include "v4r/KeypointTools/Vector.hpp"
 #include <opencv2/highgui/highgui.hpp>
 
+#include <omp.h>
 
 
 namespace kp 
@@ -167,13 +168,13 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
     throw std::runtime_error("[RefineProjectedPointLocationLK::optimize] No data available!");
 
   cv::Point2f delta, err;
-  cv::Mat_<unsigned char> patch(param.patch_size);
+  cv::Mat_<unsigned char> patch;
   cv::Mat_<float> patch_dx, patch_dy, diff, sum_dx, sum_dy;
   cv::Mat_<unsigned char> roi_patch, patch1, patch2;
   cv::Mat_<float> roi_dx, roi_dy;
   float gxx, gxy, gyy;
 
-  Eigen::Matrix<float,3,3,Eigen::RowMajor> H, T(Eigen::Matrix<float,3,3,Eigen::RowMajor>::Identity());
+  Eigen::Matrix<float,3,3,Eigen::RowMajor> H, T;
   Eigen::Vector3f n, pt3;
   double d;
 
@@ -185,12 +186,17 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
   delta_R = delta_pose.topLeftCorner<3,3>();
   delta_t = delta_pose.block<3,1>(0,3);
 
-  bool have_dist = !dist_coeffs.empty();
+  bool have_dist = !tgt_dist_coeffs.empty();
   im_pts_tgt.resize(pts.size());
   converged.resize(pts.size());
+  residuals.resize(pts.size());
 
+  #pragma omp parallel for private(d, pt3, n, T, H, gxx, gxy, gyy, roi_dx, roi_dy, roi_patch, patch1, patch2, patch_dx, patch_dy, diff, sum_dx, sum_dy, patch, delta, err)
   for (unsigned i=0; i<pts.size(); i++)
   {
+    T.setIdentity();
+    patch = cv::Mat_<unsigned char>(param.patch_size);
+
     converged[i] = 1;
 
     pt3 = R_tgt*pts[i] + t_tgt;
@@ -199,14 +205,14 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
     cv::Point2f &pt_im = im_pts_tgt[i];
 
     if (have_dist)
-      kp::projectPointToImage(&pt3[0], intrinsic.ptr<double>(), dist_coeffs.ptr<double>(), &pt_im.x);
-    else kp::projectPointToImage(&pt3[0], intrinsic.ptr<double>(), &pt_im.x);
+      kp::projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), tgt_dist_coeffs.ptr<double>(), &pt_im.x);
+    else kp::projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), &pt_im.x);
 
     T(0,2) = pt_im.x - (int)patch.cols/2;
     T(1,2) = pt_im.y - (int)patch.rows/2;
     d = n.transpose()*pt3;
     H = delta_R + 1./d*delta_t*n.transpose();
-    H = C * H * C.inverse() * T;
+    H = src_C * H * tgt_C.inverse() * T;
 
     warpPatchHomography( (const unsigned char*)im_src.ptr(), im_src.rows, im_src.cols,
                          (float*)H.data(), (unsigned char*)patch.ptr(), patch.rows, patch.cols);
@@ -258,8 +264,10 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
           getIntensityDifference(im_tgt, roi_patch, pt_im, pt_patch, roi_patch.cols, roi_patch.rows, diff);
 
           cv::Scalar sum = cv::sum(abs(diff));
+          float residual = sum[0]/(roi_patch.rows*roi_patch.cols);
+          residuals[i] = residual;
 
-          if (sum[0]/(roi_patch.rows*roi_patch.cols) > param.max_residual)
+          if (residual > param.max_residual)
             converged[i] = -3;
         }
         else
@@ -268,6 +276,7 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
           getPatchInterpolated(roi_patch, pt_patch, patch2, roi_patch.cols, roi_patch.rows);
           
           float ncc = distanceNCCb(patch1.ptr(), patch2.ptr(), roi_patch.rows*roi_patch.cols);
+          residuals[i] = ncc;
           
           if (1.-ncc > param.ncc_residual)
             converged[i] = -3;
@@ -304,28 +313,53 @@ void RefineProjectedPointLocationLK::setTargetImage(const cv::Mat_<unsigned char
 
 
 /**
- * setCameraParameter
+ * setSourceCameraParameter
  */
-void RefineProjectedPointLocationLK::setCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs)
+void RefineProjectedPointLocationLK::setSourceCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs)
 {
-  dist_coeffs = cv::Mat_<double>();
+  src_dist_coeffs = cv::Mat_<double>();
 
   if (_intrinsic.type() != CV_64F)
-    _intrinsic.convertTo(intrinsic, CV_64F);
-  else intrinsic = _intrinsic;
+    _intrinsic.convertTo(src_intrinsic, CV_64F);
+  else src_intrinsic = _intrinsic;
 
   if (!_dist_coeffs.empty())
   {
-    dist_coeffs = cv::Mat_<double>::zeros(1,8);
+    src_dist_coeffs = cv::Mat_<double>::zeros(1,8);
     for (int i=0; i<_dist_coeffs.cols*_dist_coeffs.rows && i<8; i++)
-      dist_coeffs(0,i) = _dist_coeffs.at<double>(0,i);
+      src_dist_coeffs(0,i) = _dist_coeffs.at<double>(0,i);
   }
 
-  C = Eigen::Matrix3f::Identity();
-  C(0,0) = intrinsic(0,0);
-  C(1,1) = intrinsic(1,1);
-  C(0,2) = intrinsic(0,2);
-  C(1,2) = intrinsic(1,2);
+  src_C = Eigen::Matrix3f::Identity();
+  src_C(0,0) = src_intrinsic(0,0);
+  src_C(1,1) = src_intrinsic(1,1);
+  src_C(0,2) = src_intrinsic(0,2);
+  src_C(1,2) = src_intrinsic(1,2);
+}
+
+/**
+ * setTargetCameraParameter
+ */
+void RefineProjectedPointLocationLK::setTargetCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs)
+{
+  tgt_dist_coeffs = cv::Mat_<double>();
+
+  if (_intrinsic.type() != CV_64F)
+    _intrinsic.convertTo(tgt_intrinsic, CV_64F);
+  else tgt_intrinsic = _intrinsic;
+
+  if (!_dist_coeffs.empty())
+  {
+    tgt_dist_coeffs = cv::Mat_<double>::zeros(1,8);
+    for (int i=0; i<_dist_coeffs.cols*_dist_coeffs.rows && i<8; i++)
+      tgt_dist_coeffs(0,i) = _dist_coeffs.at<double>(0,i);
+  }
+
+  tgt_C = Eigen::Matrix3f::Identity();
+  tgt_C(0,0) = tgt_intrinsic(0,0);
+  tgt_C(1,1) = tgt_intrinsic(1,1);
+  tgt_C(0,2) = tgt_intrinsic(0,2);
+  tgt_C(1,2) = tgt_intrinsic(1,2);
 }
 
 

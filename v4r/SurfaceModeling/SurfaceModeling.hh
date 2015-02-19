@@ -1,11 +1,11 @@
 /**
  *  Copyright (C) 2012  
- *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
  *    1170 Vienna, Austria
- *    potapova(at)acin.tuwien.ac.at
+ *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,14 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
+/**
+ * @file SurfaceModeling.hh
+ * @author Richtsfeld
+ * @date October 2012
+ * @version 0.1
+ * @brief Models patches using NURBS.
+ */
+
 #ifndef SURFACE_SURFACEMODELING_HH
 #define SURFACE_SURFACEMODELING_HH
 
@@ -33,8 +41,8 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/filters/project_inliers.h>
-#include <pcl/surface/on_nurbs/sequential_fitter.h>
 
+#include <v4r/on_nurbs/sequential_fitter.h>
 #include "v4r/SurfaceUtils/SurfaceModel.hpp"
 #include "v4r/SurfaceUtils/EPBase.hpp"
 

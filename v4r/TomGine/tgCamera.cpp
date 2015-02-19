@@ -44,6 +44,60 @@ tgCamera::Parameter::Parameter()
   zFar = 4.0f;
 }
 
+mat4 tgCamera::Parameter::cv2intrinsic()
+{
+  // intrinsic parameters
+  // transform the coordinate system of computer vision to OpenGL
+  //   Vision: origin is in the up left corner, x-axis pointing right, y-axis pointing down
+  //   OpenGL: origin is in the middle, x-axis pointing right, y-axis pointing up
+  float _fx = 2.0f * fx / width; // scale range from [0 ... 640] to [0 ... 2]
+  float _fy = 2.0f * fy / height; // scale range from [0 ... 480] to [0 ... 2]
+  float _cx = 1.0 - (2.0f * cx / width); // move coordinates from left to middle of image: [0 ... 2] -> [-1 ... 1] (not negative z value at w-division)
+  float _cy = (2.0f * cy / height) - 1.0f; // flip and move coordinates from top to middle of image: [0 ... 2] -> [-1 ... 1] (not negative z value at w-division)
+  float _z1 = (zFar + zNear) / (zNear - zFar); // entries for clipping planes
+  float _z2 = 2.0f * zFar * zNear / (zNear - zFar); // look up for gluPerspective
+
+  // intrinsic matrix
+  mat4 intrinsic;
+  intrinsic[0] = _fx;  intrinsic[4] = 0;  intrinsic[8] = _cx;  intrinsic[12] = 0;
+  intrinsic[1] = 0;  intrinsic[5] = _fy;  intrinsic[9] = _cy;  intrinsic[13] = 0;
+  intrinsic[2] = 0;  intrinsic[6] = 0;  intrinsic[10] = _z1;  intrinsic[14] = _z2;
+  intrinsic[3] = 0;  intrinsic[7] = 0;  intrinsic[11] = -1;  intrinsic[15] = 0;
+  // last row assigns w=-z which inverts cx and cy at w-division
+
+  return intrinsic;
+}
+
+mat4 tgCamera::Parameter::cv2extrinsic()
+{
+  // computer vision camera coordinates to OpenGL camera coordinates transform
+  // rotate PI about x-axis
+  mat4 cv2gl;
+  cv2gl[0] = 1.0;  cv2gl[4] = 0.0;   cv2gl[8] = 0.0;   cv2gl[12] = 0.0;
+  cv2gl[1] = 0.0;  cv2gl[5] = -1.0;  cv2gl[9] = 0.0;   cv2gl[13] = 0.0;
+  cv2gl[2] = 0.0;  cv2gl[6] = 0.0;   cv2gl[10] = -1.0; cv2gl[14] = 0.0;
+  cv2gl[3] = 0.0;  cv2gl[7] = 0.0;   cv2gl[11] = 0.0;  cv2gl[15] = 1.0;
+
+  // extrinsic parameters
+  // look up comments in tools/hardware/video/src/slice/Video.ice
+  // p = R^T*(w - t) = (R^T, -R^T*t) * (w,1)
+  mat4 extrinsic;
+  extrinsic[0] = rot[0];  extrinsic[4] = rot[3];  extrinsic[8] = rot[6];  extrinsic[12] = 0.0;
+  extrinsic[1] = rot[1];  extrinsic[5] = rot[4];  extrinsic[9] = rot[7];  extrinsic[13] = 0.0;
+  extrinsic[2] = rot[2];  extrinsic[6] = rot[5];  extrinsic[10] = rot[8]; extrinsic[14] = 0.0;
+  extrinsic[3] = 0.0;   extrinsic[7] = 0.0;   extrinsic[11] = 0.0;  extrinsic[15] = 1.0;
+
+  // 	extrinsic = extrinsic.transpose();							// R^T
+  //  vec4 tp = vec4(t.x, t.y, t.z, 1.0);
+//  vec4 tp = -(extrinsic * vec4(pos.x, pos.y, pos.z, 1.0)); // -R^T*t
+  extrinsic[12] = pos.x;
+  extrinsic[13] = pos.y;
+  extrinsic[14] = pos.z;
+  extrinsic = cv2gl * extrinsic;
+
+  return extrinsic;
+}
+
 namespace TomGine
 {
 std::ostream& operator << (std::ostream& os, tgCamera::Parameter& param)

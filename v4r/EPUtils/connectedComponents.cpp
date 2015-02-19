@@ -1,3 +1,27 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+
 #include "connectedComponents.hpp"
 
 namespace EPUtils
@@ -69,6 +93,63 @@ void extractConnectedComponents(cv::Mat map, std::vector<ConnectedComponent> &co
 	
       }
     }
+  }
+}
+
+void extractConnectedComponents(cv::Mat map, std::vector<ConnectedComponent> &connected_components, cv::Point attention_point, float th)
+{
+  assert(map.type() == CV_32FC1);
+  assert((th >= 0) && (th <= 1));
+  
+  cv::Mat map_copy;
+  map.copyTo(map_copy);
+  int i = attention_point.y;
+  int j = attention_point.x;
+  if(map_copy.at<float>(i,j) > th)
+  {
+    ConnectedComponent new_component;
+
+    new_component.points.push_back(cv::Point(j,i));
+    new_component.saliency_values.push_back(map_copy.at<float>(i,j));
+    new_component.average_saliency = map_copy.at<float>(i,j);
+
+    map_copy.at<float>(i,j) = 0;
+
+    std::vector<cv::Point> queue;
+    queue.push_back(cv::Point(j,i));
+
+    while(queue.size())
+    {
+      cv::Point cur_point = queue.back();
+      queue.pop_back();
+  
+      for(int p = 0; p < 8; ++p)
+      {
+        int new_x = cur_point.x + dx8[p];
+        int new_y = cur_point.y + dy8[p];
+	    
+        if((new_x < 0) || (new_y < 0) || (new_x >= map_copy.cols) || (new_y >= map_copy.rows))
+	  continue;
+	    
+	if(map_copy.at<float>(new_y,new_x) > th)
+        {
+	  new_component.points.push_back(cv::Point(new_x,new_y));
+	  new_component.saliency_values.push_back(map_copy.at<float>(new_y,new_x));
+	  new_component.average_saliency += map_copy.at<float>(new_y,new_x);
+	    
+	  map_copy.at<float>(new_y,new_x) = 0;
+	     
+	  queue.push_back(cv::Point(new_x,new_y));
+	}
+      }
+    }
+	
+    new_component.average_saliency /= new_component.points.size();
+
+    if(new_component.average_saliency > th)
+    {
+      connected_components.push_back(new_component);
+    }	
   }
 }
 

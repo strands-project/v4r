@@ -1,5 +1,5 @@
 
-set(V4R_CALIBRATION_RGBD 1 CACHE BOOL "Calibration modules of v4r" )
+set(V4R_CALIBRATION_RGBD 0 CACHE BOOL "Calibration modules of v4r" )
 if(V4R_CALIBRATION_RGBD)
 
 project(v4rCalibrationRGBD)

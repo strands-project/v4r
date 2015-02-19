@@ -17,7 +17,7 @@ namespace kp
 {
 
 template<typename T>
-void copyFromCvMat(const cv::Mat_<T> &src, DataMatrix2D<T> &dst)
+void copyDataMatrix(const cv::Mat_<T> &src, DataMatrix2D<T> &dst)
 {
   dst.clear();
   dst.reserve(src.rows, src.cols);
@@ -27,7 +27,7 @@ void copyFromCvMat(const cv::Mat_<T> &src, DataMatrix2D<T> &dst)
 }
 
 template<typename T1, typename T2>
-void convertFromCvMat(const cv::Mat_<T1> &src, DataMatrix2D<T2> &dst)
+void convertDataMatrix(const cv::Mat_<T1> &src, DataMatrix2D<T2> &dst)
 {
   dst.resize(src.rows, src.cols);
 

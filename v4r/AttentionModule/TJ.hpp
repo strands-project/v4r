@@ -1,3 +1,26 @@
+/**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1040 Vienna, Austria
+ *    potapova(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
 #ifndef TJ_HPP
 #define TJ_HPP
 
@@ -62,7 +85,7 @@ void breakIntoSegments(SaliencyLine saliencyLine, std::vector<std::vector<int> >
 void modifySymmetryLine(SaliencyLine saliencyLine, std::vector<bool> &usedPoints, float th = 0.5);
 void selectSaliencyCenterPoint(SaliencyLine saliencyLine, PointSaliency &center);
 void createSimpleLine(SaliencyLine saliencyLine, std::vector<cv::Point> &points);
-bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine);
+bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine, unsigned int th = 10);
 void createAttentionPoints(std::vector<PointSaliency> saliencyPoints, std::vector<cv::Point> &attentionPoints);
 
 inline bool saliencyPointsSort (PointSaliency p1, PointSaliency p2) { return (p1.saliency>p2.saliency); }

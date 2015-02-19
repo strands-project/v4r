@@ -153,13 +153,19 @@ void ConvertPCLClouds2CvMats(const std::vector<pcl::PointCloud<pcl::PointXYZRGB>
     bool random_colors = false);
 
 /**
+ * @brief Convert point cloud to vector of depth values (dense, i.e. ordering preserving)
+ */
+void ConvertPCLCloud2Depth(const pcl::PointCloud<pcl::PointXYZRGBL>::Ptr &pcl_cloud, Eigen::VectorXd& depth);
+
+/**
  * @brief Convert point cloud to image. Only for dense point clouds with correct header.
  * @param cloud Point cloud to be transformed.
  * @param image Image as openCV matrix with 3b-vectors
  */
 void ConvertPCLCloud2Image(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud, cv::Mat_<cv::Vec3b> &image);
 void ConvertPCLCloud2Image(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud, cv::Mat_<cv::Vec3b> &image);
-
+void ConvertPCLCloud2Image(const pcl::PointCloud<pcl::PointXYZRGBL>::ConstPtr &pcl_cloud, cv::Mat_<cv::Vec3b> &image,
+                           bool use_labels_for_coloring=true);
 /**
  * @brief Convert a cv::Mat (float, uchar) image to a grey-level rgb-image.
  * @param mat_image Float-image

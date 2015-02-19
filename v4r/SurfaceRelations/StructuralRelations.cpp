@@ -1,11 +1,11 @@
 /**
  *  Copyright (C) 2012  
- *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
  *    1170 Vienna, Austria
- *    potapova(at)acin.tuwien.ac.at
+ *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -84,7 +84,8 @@ void StructuralRelations::init()
   pcl::copyPointCloud(*cloud, *cloud_model);
 
   // for the texture
-  EPUtils::PointCloudXYZRGB2RGB(cloud,matImage);
+  //EPUtils::PointCloudXYZRGB2RGB(cloud,matImage);
+  EPUtils::pointCloud_2_rgb(matImage,cloud,cloud->width,cloud->height);
   
   double lowThreshold = 5.;
   double highThreshold = 140.;

@@ -1,11 +1,11 @@
 /**
  *  Copyright (C) 2012  
- *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
  *    1170 Vienna, Austria
- *    potapova(at)acin.tuwien.ac.at
+ *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
-
 
 #include "ClusterNormalsToPlanes.hh"
 
@@ -286,7 +285,7 @@ void ClusterNormalsToPlanes::pixelCheck()
 
   for(unsigned int i = 0; i < surfaces.size(); i++)
   {
-    if( (surfaces.at(i)->indices.size() - reassign_idxs.at(i).size()) < param.minPoints )
+    if( (surfaces.at(i)->indices.size() - reassign_idxs.at(i).size()) < ((unsigned int)param.minPoints) )
       reassign_idxs.at(i) = surfaces.at(i)->indices;
     else
       reassign_idxs.at(i).clear();
@@ -1138,6 +1137,31 @@ void ClusterNormalsToPlanes::print(std::string file_name)
     fprintf(f,"\n");
   }
   fclose(f);
+}
+
+void ClusterNormalsToPlanes::showSurfaces(cv::Mat &kImage)
+{
+  // create color image
+  kImage = cv::Mat_<cv::Vec3b>::zeros(height,width);
+  for(unsigned int i = 0; i < surfaces.size(); i++)
+  {
+    uchar r = std::rand()%255;
+    uchar g = std::rand()%255;
+    uchar b = std::rand()%255;
+    
+    if(!(surfaces.at(i)->selected))
+      continue;
+    
+    for(unsigned int j = 0; j < surfaces.at(i)->indices.size(); j++)
+    {
+      int row = surfaces.at(i)->indices.at(j) / cloud->width;
+      int col = surfaces.at(i)->indices.at(j) % cloud->width;
+      cv::Vec3b &cvp = kImage.at<cv::Vec3b> (row, col);
+      cvp[0] = r;
+      cvp[1] = g;
+      cvp[2] = b;
+    }
+  }
 }
 
 } //-- THE END --

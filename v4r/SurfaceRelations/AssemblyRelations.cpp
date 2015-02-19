@@ -190,7 +190,8 @@ void AssemblyRelations::compute()
 
   // for the texture
   cv::Mat_<cv::Vec3b> matImage;
-  EPUtils::PointCloudXYZRGB2RGB(cloud, matImage);
+  //EPUtils::PointCloudXYZRGB2RGB(cloud, matImage);
+  EPUtils::pointCloud_2_rgb(matImage,cloud,cloud->width,cloud->height);
   double lowThreshold = 5.;
   double highThreshold = 140.;
   int kernel_size = 3;

@@ -37,6 +37,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <X11/Xlib.h>
+#include <X11/Xlib-xcb.h> /* for XGetXCBConnection, link with libX11-xcb */
+#include <xcb/xcb.h>
 #include <X11/Xutil.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
@@ -109,10 +111,10 @@ private:
   Colormap cmap;
   XSetWindowAttributes swa;
   Window glWin;
-  Window btWin;
   Atom wmDelete;
   GLXContext glc;
   XWindowAttributes gwa;
+  xcb_connection_t* connection;
   bool threaded;
 #endif
 

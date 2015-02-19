@@ -1,4 +1,27 @@
 /**
+ *  Copyright (C) 2012  
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
+ *    Automation and Control Institute
+ *    Vienna University of Technology
+ *    Gusshausstraße 25-29
+ *    1170 Vienna, Austria
+ *    ari(at)acin.tuwien.ac.at
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see http://www.gnu.org/licenses/
+ */
+
+/**
  * @file ColorHistogram.cpp
  * @author Andreas Richtsfeld
  * @date June 2011
@@ -92,9 +115,9 @@ void ColorHistogram::setIndices(cv::Rect _rect)
   printf("[ColorHistogram] _rect = %d,%d,%d,%d.\n",_rect.x,_rect.y,_rect.x+_rect.width,_rect.y+_rect.height);
   
   indices.reset(new pcl::PointIndices);
-  for(unsigned r = _rect.y; r < (_rect.y+_rect.height); r++)
+  for(int r = _rect.y; r < (_rect.y+_rect.height); r++)
   {
-    for(unsigned c = _rect.x; c < (_rect.x+_rect.width); c++)
+    for(int c = _rect.x; c < (_rect.x+_rect.width); c++)
     {
       indices->indices.push_back(r*width+c);
     }
@@ -172,7 +195,7 @@ bool ColorHistogram::buildHistogram3D()
   }
 
   int noCol = 0;
-  for(int i=0; i<indices->indices.size(); i++)
+  for(size_t i=0; i<indices->indices.size(); i++)
   {
     //@ep: is PointXYZRGB::r correct?
     //pcl::RGBValue color = ....   // out of date! instead use PointXYZRGB::r directly
