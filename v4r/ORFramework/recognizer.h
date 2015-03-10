@@ -387,6 +387,11 @@ namespace faat_pcl
         virtual typename boost::shared_ptr<Source<PointInT> >
         getDataSource () = 0;
 
+        virtual void reinitialize()
+        {
+
+        }
+
         /*virtual void
         setHVAlgorithm (typename boost::shared_ptr<pcl::HypothesisVerification<PointInT, PointInT> > & alg) = 0;*/
 

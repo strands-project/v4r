@@ -688,6 +688,13 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     }
   }
 
+  template<template<class > class Distance, typename PointInT, typename FeatureT>
+    void
+    faat_pcl::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::reinitialize ()
+    {
+        PCL_WARN("Reinitialize GlobalNNCVFHRecognizer, NOT IMPLEMENTED!\n");
+    }
+
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
   faat_pcl::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::initialize (bool force_retrain)

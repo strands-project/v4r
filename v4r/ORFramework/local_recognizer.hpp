@@ -238,6 +238,23 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     index->knnSearch (p, indices, distances, k, flann::SearchParams (kdtree_splits_));
   }
 
+
+template<template<class > class Distance, typename PointInT, typename FeatureT>
+  void
+  faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize ()
+  {
+      PCL_WARN("Reinitialize LocalRecognitionPipeline\n");
+
+      flann_models_.clear();
+      poses_cache_.clear();
+      keypoints_cache_.clear();
+      normals_cache_.clear();
+
+      source_->generate(training_dir_);
+
+      initialize(false);
+  }
+
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
   faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::initialize (bool force_retrain)

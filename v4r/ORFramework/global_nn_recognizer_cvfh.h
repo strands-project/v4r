@@ -317,6 +317,9 @@ namespace faat_pcl
         void
         initialize (bool force_retrain = false);
 
+        void
+        reinitialize ();
+
         /**
          * \brief Sets the model data source_
          */

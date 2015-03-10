@@ -28,6 +28,16 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::initialize()
 
 template<typename PointInT>
 void
+faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize()
+{
+    for(size_t i=0; i < recognizers_.size(); i++)
+    {
+        recognizers_[i]->reinitialize();
+    }
+}
+
+template<typename PointInT>
+void
 faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::getPoseRefinement(
         boost::shared_ptr<std::vector<ModelTPtr> > models,
         boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms)

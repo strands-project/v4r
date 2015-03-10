@@ -98,6 +98,8 @@ namespace faat_pcl
 
         void initialize();
 
+        void reinitialize();
+
         void correspondenceGrouping();
 
         void getPoseRefinement(

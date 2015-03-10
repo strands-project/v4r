@@ -454,6 +454,10 @@ namespace faat_pcl
         void
         initialize (bool force_retrain = false);
 
+
+        void
+        reinitialize ();
+
         /**
          * \brief Performs recognition and pose estimation on the input cloud
          */
