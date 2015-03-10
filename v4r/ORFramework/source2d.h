@@ -9,7 +9,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <vector>
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 
 
 namespace bf = boost::filesystem;
@@ -153,7 +153,7 @@ public:
         bf::path dir = path_;
         //std::string ext_v[] = {"jpg", "JPG", "png", "PNG", "bmp", "BMP", "jpeg", "JPEG"};
 
-        faat_pcl::utils::getFoldersInDirectory (dir, "", folders);
+        v4r::utils::getFoldersInDirectory (dir, "", folders);
         std::cout << "There are " << folders.size() << " folders. " << std::endl;
 
         for (size_t i = 0; i < folders.size (); i++)
@@ -164,7 +164,7 @@ public:
 //            for(size_t ext_id=0; ext_id < sizeof(ext_v)/sizeof(ext_v[0]); ext_id++)
 //            {
                 std::vector < std::string > filesInRelFolder;
-                faat_pcl::utils::getFilesInDirectory (class_dir, filesInRelFolder, "", ".*\\.(jpg|JPG|png|PNG|jpeg|JPEG|bmp|BMP)", false);
+                v4r::utils::getFilesInDirectory (class_dir, filesInRelFolder, "", ".*\\.(jpg|JPG|png|PNG|jpeg|JPEG|bmp|BMP)", false);
                 std::cout << "There are " <<  filesInRelFolder.size() << " files in folder " << folders[i] << ". " << std::endl;
 
                 for (size_t kk = 0; kk < filesInRelFolder.size (); kk++)

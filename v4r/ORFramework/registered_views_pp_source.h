@@ -22,7 +22,7 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/registration/icp.h>
 #include <pcl/registration/lum.h>
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 
 namespace faat_pcl
 {
@@ -253,7 +253,7 @@ namespace faat_pcl
             bf::path model_dir = model_path;
 
             //read all views...compute voxel grid sizes
-            faat_pcl::utils::getFilesInDirectory( (model_dir, view_filenames, "", ".*.pcd", true);
+            v4r::utils::getFilesInDirectory( (model_dir, view_filenames, "", ".*.pcd", true);
             std::cout << view_filenames.size () << " " << model_dir.string() << std::endl;
             std::sort(view_filenames.begin(), view_filenames.end());
             std::vector<typename pcl::PointCloud<PointInT>::Ptr> view_clouds;
@@ -670,7 +670,7 @@ namespace faat_pcl
           //get models in directory
           std::vector < std::string > files;
           bf::path dir = path_;
-          faat_pcl::utils::getFilesInDirectory(dir, files, "", "", true);
+          v4r::utils::getFilesInDirectory(dir, files, "", "", true);
 
           models_.reset (new std::vector<ModelTPtr>);
 

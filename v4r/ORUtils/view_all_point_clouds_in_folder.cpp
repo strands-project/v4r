@@ -5,7 +5,7 @@
  *      Author: thomas f.
  */
 
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 #include <pcl/console/parse.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/cloud_viewer.h>
@@ -34,7 +34,7 @@ main (int argc, char ** argv)
 
     std::cout << "Visualizing all point clouds in folder " << path;
     std::vector < std::string > files_intern;
-    faat_pcl::utils::getFilesInDirectory (path_bf, files_intern, "", ".*.pcd", true);
+    v4r::utils::getFilesInDirectory (path_bf, files_intern, "", ".*.pcd", true);
     std::sort(files_intern.begin(), files_intern.end());
 
 

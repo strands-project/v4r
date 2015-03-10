@@ -88,6 +88,8 @@ namespace pcl
        *  \param[in] data Set of points.     */
       static Eigen::Vector3d
       computeMean (const vector_vec3d &data);
+      static Eigen::Vector3d
+      computeMean (const vector_vec3d &data, const std::vector<int>& indices);
       /** \brief Compute the mean of a set of points
        *  \param[in] data Set of points.     */
       static Eigen::Vector2d
@@ -113,11 +115,16 @@ namespace pcl
 
       /** \brief PCA - principal-component-analysis
        *  \param[in] data Set of points.
+       *  \param[in] indices Indices for point cloud.
        *  \param[out] mean The mean of the set of points.
        *  \param[out] eigenvectors Matrix containing column-wise the eigenvectors of the set of points.
        *  \param[out] eigenvalues The eigenvalues of the set of points with respect to the eigenvectors. */
       static void
       pca (const vector_vec3d &data, Eigen::Vector3d &mean, Eigen::Matrix3d &eigenvectors,
+           Eigen::Vector3d &eigenvalues);
+      static void
+      pca (const vector_vec3d &data, const std::vector<int>& indices,
+           Eigen::Vector3d &mean, Eigen::Matrix3d &eigenvectors,
            Eigen::Vector3d &eigenvalues);
 
       /** \brief PCA - principal-component-analysis

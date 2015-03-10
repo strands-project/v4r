@@ -8,7 +8,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <v4r/ORFramework/model_only_source.h>
 #include <v4r/ORGTEvaluator/or_evaluator.h>
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 
 std::string go_log_file_ = "test.txt";
 std::string GT_DIR_;
@@ -52,7 +52,7 @@ recognizeAndVisualize (std::string & scene_file)
     {
         std::vector < std::string > files;
         bf::path dir = input;
-        faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true);
+        v4r::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true);
         std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
         for (size_t i = 0; i < files.size (); i++)
         {
@@ -130,7 +130,7 @@ main (int argc, char ** argv)
     {
         std::vector < std::string > files;
         bf::path dir = models_dir_path;
-        faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true);
+        v4r::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true);
         std::cout << "Number of models in directory is:" << files.size() << std::endl;
     }
 

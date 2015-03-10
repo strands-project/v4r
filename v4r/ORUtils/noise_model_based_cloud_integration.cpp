@@ -18,6 +18,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::NMBasedCloudIntegration ()
     octree_resolution_ = 0.005f;
     min_weight_ = 0.9f;
     min_points_per_voxel_ = 0;
+    threshold_ss_ = 0.003f;
 }
 
 template<typename PointT>
@@ -61,7 +62,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
                 //adapt weight based on distance
                 float capped_dist = std::min(std::max(start_dist, dist), max_distance_); //[start,end]
                 float w =  1.f - (capped_dist - start_dist) / (max_distance_ - start_dist);
-                noise_weights_[i][k] *=  w;
+                //noise_weights_[i][k] *=  w;
             }
         }
     }
@@ -70,7 +71,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     float cx_, cy_;
     cx_ = 320;
     cy_ = 240;
-    float threshold_ss = 0.003f;
+    //float threshold_ss = 0.003f;
     int width, height;
     width = input_clouds_[0]->width;
     height = input_clouds_[0]->height;
@@ -153,7 +154,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
 
     std::cout << "created indices" << std::endl;
 
-    //std::cout << big_cloud->points.size() << " " << weights_points_in_octree_.size() << std::endl;
+    std::cout << big_cloud->points.size() << " " << weights_points_in_octree_.size() << std::endl;
 
     std::vector<bool> indices_big_cloud_keep(big_cloud->points.size(), true);
 
@@ -161,6 +162,8 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     {
         PointTPtr organized_cloud = input_clouds_used_[i];
         Eigen::Matrix4f global_to_cloud = transformations_to_global_[i].inverse ();
+        int infront_or_behind = 0;
+        int rejected = 0;
 
         for(size_t k=0; k < big_cloud->points.size(); k++)
         {
@@ -199,17 +202,31 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
             assert(idx_org < noise_weights_[i].size());
 
             //Check if point depth (distance to camera) is greater than the (u,v)
-            if(p[2] < (z_oc - threshold_ss))
+            //std::cout << std::abs(p[2] - z_oc) << std::endl;
+            if(std::abs(p[2] - z_oc) > threshold_ss_)
+            {
+                //in front or behind
+                infront_or_behind++;
+                //std::cout << weights_points_in_octree_[k] << " " << noise_weights_[i][idx_org] << std::endl;
+                if(weights_points_in_octree_[k] < noise_weights_[i][idx_org])
+                {
+                    indices_big_cloud_keep[k] = false; //FIX THIS
+                    rejected++;
+                }
+            }
+
+            /*if(p[2] < (z_oc - threshold_ss_))
             {
                 //in front
                 if(weights_points_in_octree_[k] < noise_weights_[i][idx_org])
                 {
-                    //indices_big_cloud_keep[k] = false; FIX THIS
+                    indices_big_cloud_keep[k] = false; //FIX THIS
                 }
-            }
+            }*/
         }
 
         std::cout << "iteration " << i << " finished..." << std::endl;
+        std::cout << infront_or_behind << " " << rejected << " " << big_cloud->points.size() << std::endl;
     }
 
     {
@@ -224,6 +241,8 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
                 kept++;
             }
         }
+
+        std::cout << kept << " " << indices_kept.size() << std::endl;
 
         indices_kept.resize(kept);
         pcl::copyPointCloud(*big_cloud, indices_kept, *big_cloud_filtered);
@@ -252,6 +271,8 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     output_normals_->points.resize(weights_points_in_octree_.size());
 
     int kept = 0;
+    int total_used = 0;
+
     for (it2 = octree_->leaf_begin(); it2 != it2_end; ++it2)
     {
         ++leaf_node_counter;
@@ -281,42 +302,82 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         n.getNormalVector3fMap() = Eigen::Vector3f::Zero();
         n.curvature = 0.f;
 
+        bool average_ = false;
         int used = 0;
-        for(size_t k=0; k < indexVector.size(); k++)
+
+        if(average_)
         {
-            if(weights_points_in_octree_[indexVector[k]] < min_weight_)
+            for(size_t k=0; k < indexVector.size(); k++)
+            {
+                if(weights_points_in_octree_[indexVector[k]] < min_weight_)
+                    continue;
+
+                p.getVector3fMap() = p.getVector3fMap() +  octree_->getInputCloud()->points[indexVector[k]].getVector3fMap();
+                r += octree_->getInputCloud()->points[indexVector[k]].r;
+                g += octree_->getInputCloud()->points[indexVector[k]].g;
+                b += octree_->getInputCloud()->points[indexVector[k]].b;
+
+
+                Eigen::Vector3f normal = octree_points_normals_->points[indexVector[k]].getNormalVector3fMap();
+                normal.normalize();
+                n.getNormalVector3fMap() = n.getNormalVector3fMap() + normal;
+                n.curvature += octree_points_normals_->points[indexVector[k]].curvature;
+                used++;
+            }
+
+            if(used == 0)
                 continue;
 
-            p.getVector3fMap() = p.getVector3fMap() +  octree_->getInputCloud()->points[indexVector[k]].getVector3fMap();
-            r += octree_->getInputCloud()->points[indexVector[k]].r;
-            g += octree_->getInputCloud()->points[indexVector[k]].g;
-            b += octree_->getInputCloud()->points[indexVector[k]].b;
+            total_used += used;
 
+            //std::cout << "n.curvature" << n.curvature << std::endl;
 
-            Eigen::Vector3f normal = octree_points_normals_->points[indexVector[k]].getNormalVector3fMap();
-            normal.normalize();
-            n.getNormalVector3fMap() = n.getNormalVector3fMap() + normal;
-            n.curvature += octree_points_normals_->points[indexVector[k]].curvature;
-            used++;
+            p.getVector3fMap() = p.getVector3fMap() / used;
+            p.r = r / used;
+            p.g = g / used;
+            p.b = b / used;
+
+            n.getNormalVector3fMap() = n.getNormalVector3fMap() / used;
+            n.getNormalVector3fMap()[3] = 0;
+            n.curvature /= used;
+        }
+        else
+        {
+            //take the max only
+            float max_weight = 0.f;
+
+            for(size_t k=0; k < indexVector.size(); k++)
+            {
+                if(weights_points_in_octree_[indexVector[k]] < min_weight_)
+                    continue;
+
+                if(weights_points_in_octree_[indexVector[k]] < max_weight)
+                    continue;
+
+                p.getVector3fMap() = octree_->getInputCloud()->points[indexVector[k]].getVector3fMap();
+                p.r = octree_->getInputCloud()->points[indexVector[k]].r;
+                p.g = octree_->getInputCloud()->points[indexVector[k]].g;
+                p.b = octree_->getInputCloud()->points[indexVector[k]].b;
+
+                n.getNormalVector3fMap() = octree_points_normals_->points[indexVector[k]].getNormalVector3fMap();
+                n.curvature = octree_points_normals_->points[indexVector[k]].curvature;
+                used++;
+
+                max_weight = weights_points_in_octree_[indexVector[k]];
+            }
+
+            if(used == 0)
+                continue;
+
+            total_used++;
         }
 
-        if(used == 0)
-            continue;
-
-        //std::cout << "n.curvature" << n.curvature << std::endl;
-
-        p.getVector3fMap() = p.getVector3fMap() / used;
-        p.r = r / used;
-        p.g = g / used;
-        p.b = b / used;
         output->points[kept] = p;
-
-        n.getNormalVector3fMap() = n.getNormalVector3fMap() / used;
-        n.getNormalVector3fMap()[3] = 0;
-        n.curvature /= used;
         output_normals_->points[kept] = n;
         kept++;
     }
+
+    std::cout << "Number of points in final model:" << kept << " used:" << total_used << std::endl;
 
     output->points.resize(kept);
     output_normals_->points.resize(kept);

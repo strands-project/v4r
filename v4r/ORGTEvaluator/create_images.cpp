@@ -9,7 +9,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <v4r/ORFramework/model_only_source.h>
 #include <v4r/ORUtils/pcl_opencv.h>
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 
 // ./create_images -models_dir /media/Data/datasets/TUW/models/ -GT_DIR /home/thomas/Projects/thomas.faeulhammer/eval/set_00015_0_mv/ -pcd_file /media/Data/datasets/TUW/test_set/set_00015/ -output_dir_images /media/Data/datasets/TUW/annotated_images_tmp
 
@@ -70,12 +70,12 @@ recognizeAndVisualize (std::string & scene_dir)
     {
         std::vector < std::string > scene_files;
         bf::path dir = scene_dir_bf;
-        faat_pcl::utils::getFilesInDirectory( dir, scene_files, "", ".*.pcd", true);
+        v4r::utils::getFilesInDirectory( dir, scene_files, "", ".*.pcd", true);
         std::cout << "Number of scenes in directory is:" << scene_files.size () << std::endl;
 
         std::vector < std::string > gt_files;
         bf::path gt_dir_bf = GT_DIR_;
-        faat_pcl::utils::getFilesInDirectory( gt_dir_bf, gt_files, "", ".*.txt", true);
+        v4r::utils::getFilesInDirectory( gt_dir_bf, gt_files, "", ".*.txt", true);
         pcl::visualization::PCLVisualizer gt_output_sv ("gt_output_sv", true);
 
         for (size_t i = 0; i < scene_files.size (); i++)
@@ -120,7 +120,7 @@ recognizeAndVisualize (std::string & scene_dir)
                     std::stringstream gt_full_file_path_ss;
                     gt_full_file_path_ss << GT_DIR_ << "/" << gt_files[pose_file_id];
                     Eigen::Matrix4f transform;
-                    faat_pcl::utils::readMatrixFromFile(gt_full_file_path_ss.str(), transform);
+                    v4r::utils::readMatrixFromFile(gt_full_file_path_ss.str(), transform);
 
                     typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled(0.003f);
                     typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());

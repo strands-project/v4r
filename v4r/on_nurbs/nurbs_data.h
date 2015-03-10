@@ -54,6 +54,7 @@ namespace pcl
     typedef std::vector<Eigen::Vector2i, Eigen::aligned_allocator<Eigen::Vector2i> > vector_vec2i;
     typedef std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > vector_vec2d;
     typedef std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > vector_vec3d;
+    typedef std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > vector_vec4d;
 
     /** \brief Data structure for NURBS surface fitting
      * (FittingSurface, FittingSurfaceTDM, FittingCylinder, GlobalOptimization, GlobalOptimizationTDM) */
@@ -173,6 +174,7 @@ namespace pcl
       std::vector<double> interior_param; ///>> output
       vector_vec2d interior_line_start; ///>> output
       vector_vec2d interior_line_end; ///>> output
+      std::vector<unsigned> interior_line_flag; ///>> output
       vector_vec2d interior_normals; ///>> output
 
       std::vector<double> interior_weight;

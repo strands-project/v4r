@@ -40,7 +40,7 @@ public:
     bool use_ncc;
     cv::Size patch_size;
     Parameter(float _step_factor=10., float _min_determinant=0.01, float _min_displacement=0.1, 
-      int _max_iterations=10, int _max_residual=15., float _ncc_residual=0.3, 
+      int _max_iterations=10, int _max_residual=15., float _ncc_residual=0.3,
       bool _use_ncc=true, const cv::Size &_patch_size=cv::Size(15,15))
     : step_factor(_step_factor), min_determinant(_min_determinant), min_displacement(_min_displacement),
       max_iterations(_max_iterations), max_residual(_max_residual), ncc_residual(_ncc_residual),

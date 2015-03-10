@@ -14,7 +14,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include "faat_3d_rec_framework_defines.h"
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 
 
 namespace faat_pcl
@@ -171,7 +171,7 @@ namespace faat_pcl
           std::vector < std::string > folders;
           bf::path dir = path_;
 
-          faat_pcl::utils::getFoldersInDirectory (dir, "", folders);
+          v4r::utils::getFoldersInDirectory (dir, "", folders);
           std::cout << "There are " << folders.size() << " folders. " << std::endl;
 
           for (size_t i = 0; i < folders.size (); i++)
@@ -180,7 +180,7 @@ namespace faat_pcl
               class_path << path_ << "/" << folders[i];
               bf::path class_dir = class_path.str();
               std::vector < std::string > filesInRelFolder;
-              faat_pcl::utils::getFilesInDirectory (class_dir, filesInRelFolder, "", ".*.pcd", false);
+              v4r::utils::getFilesInDirectory (class_dir, filesInRelFolder, "", ".*.pcd", false);
               std::cout << "There are " <<  filesInRelFolder.size() << " files in folder " << folders[i] << ". " << std::endl;
 
               for (size_t kk = 0; kk < filesInRelFolder.size (); kk++)

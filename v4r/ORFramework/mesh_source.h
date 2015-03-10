@@ -16,7 +16,7 @@
 #include "vtk_model_sampling.h"
 #include <boost/function.hpp>
 #include <vtkTransformPolyDataFilter.h>
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 
 namespace faat_pcl
 {
@@ -123,7 +123,7 @@ namespace faat_pcl
             pose_file << pathmodel.str () << "/" << file_replaced1;
 
             Eigen::Matrix4f pose;
-            faat_pcl::utils::readMatrixFromFile(pose_file.str (), pose);
+            v4r::utils::readMatrixFromFile(pose_file.str (), pose);
 
             model.poses_->push_back (pose);
 
@@ -131,7 +131,7 @@ namespace faat_pcl
             std::stringstream entropy_file;
             entropy_file << pathmodel.str () << "/" << file_replaced2;
             float entropy = 0;
-            faat_pcl::utils::readFloatFromFile (entropy_file.str (), entropy);
+            v4r::utils::readFloatFromFile (entropy_file.str (), entropy);
             model.self_occlusions_->push_back (entropy);
 
           }
@@ -165,7 +165,7 @@ namespace faat_pcl
           {
             //load views, poses and self-occlusions
 
-              faat_pcl::utils::getFilesInDirectory(trained_dir, model.view_filenames_, "", ".*view_prefix_.*.pcd", false);
+              v4r::utils::getFilesInDirectory(trained_dir, model.view_filenames_, "", ".*view_prefix_.*.pcd", false);
 
             if(load_into_memory_)
             {
@@ -266,11 +266,11 @@ namespace faat_pcl
               std::stringstream path_pose;
               path_pose << direc.str () << "/pose_" << i << ".txt";
 
-              faat_pcl::utils::writeMatrixToFile( path_pose.str (), model.poses_->at (i));
+              v4r::utils::writeMatrixToFile( path_pose.str (), model.poses_->at (i));
 
               std::stringstream path_entropy;
               path_entropy << direc.str () << "/entropy_" << i << ".txt";
-              faat_pcl::utils::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
+              v4r::utils::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
             }
 
             loadOrGenerate (dir, model_path, model);
@@ -291,7 +291,7 @@ namespace faat_pcl
           //get models in directory
           std::vector < std::string > files;
           bf::path dir = path_;
-          faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.ply", true);
+          v4r::utils::getFilesInDirectory(dir, files, "", ".*.ply", true);
 
           models_.reset (new std::vector<ModelTPtr>);
 

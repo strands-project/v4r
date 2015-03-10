@@ -281,7 +281,7 @@ FittingSurfaceIM::assemble (bool inverse_mapping)
     const pcl::PointXYZRGB &pt = cloud_ref.at (m_indices[i]);
     Eigen::Vector2i params (px, py);
 
-    if (pcl_isnan (pt.z) || pt.z == 0.0)
+    if (pcl_isnan (pt.z))
       throw std::runtime_error ("[FittingSurfaceIM::assemble] Error, not a number (pt.z)");
 
     if (inverse_mapping)

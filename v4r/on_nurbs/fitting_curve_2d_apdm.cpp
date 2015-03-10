@@ -142,13 +142,12 @@ void
 FittingCurve2dAPDM::assemble (const Parameter &parameter)
 {
   std::vector<double> elements = getElementVector (m_nurbs);
-  unsigned cp_res = std::max<unsigned> (1, parameter.closest_point_resolution);
 
   int cp_red = m_nurbs.m_order - 2;
   int ncp = m_nurbs.m_cv_count - 2 * cp_red;
   int nCageReg = m_nurbs.m_cv_count - 2 * cp_red;
   int nInt = int (m_data->interior.size ());
-  int nClosestP = int (elements.size ()) * cp_res;
+  int nClosestP = int (elements.size ());
 
   double wInt = 1.0;
   if (!m_data->interior_weight.empty ())
@@ -167,7 +166,7 @@ FittingCurve2dAPDM::assemble (const Parameter &parameter)
   if (wInt > 0.0)
     assembleInterior (wInt, parameter.interior_sigma2, parameter.rScale, row);
 
-  assembleClosestPoints (elements, parameter.closest_point_weight, parameter.closest_point_sigma2, cp_res, row);
+  assembleClosestPoints (elements, parameter.closest_point_weight, parameter.closest_point_sigma2, 1, row);
 
   if (wCageReg > 0.0)
     addCageRegularisation (wCageReg, row, elements, parameter.smooth_concavity);
@@ -530,6 +529,32 @@ FittingCurve2dAPDM::initCPsNurbsCurve2D (int order, const vector_vec2d &cps)
 
     nurbs.GetCV (cp_red - j, cp);
     nurbs.SetCV (nurbs.CVCount () - 1 - j, cp);
+  }
+
+  return nurbs;
+}
+
+ON_NurbsCurve
+FittingCurve2dAPDM::initNurbsCurve2DSorted (int order, const vector_vec2d &sorted_data, int ncps)
+{
+  if(sorted_data.size()<3)
+    throw std::runtime_error("[FittingCurve2dAPDM::initNurbsCurve2DSorted] Error not enough data points (<3).\n");
+
+  size_t step = sorted_data.size() / ncps;
+  if(step==0)
+  {
+    printf("[FittingCurve2dAPDM::initNurbsCurve2DSorted] Error, not enough data points for desired number of control points.");
+    ncps = 3;
+    step = sorted_data.size() / ncps;
+  }
+
+  ON_NurbsCurve nurbs = ON_NurbsCurve (2, false, order, ncps);
+  nurbs.MakePeriodicUniformKnotVector (1.0 / (ncps - order + 1));
+
+  for (int j = 0; j < ncps; j++)
+  {
+    const Eigen::Vector2d& p = sorted_data[j*step];
+    nurbs.SetCV (j, ON_3dPoint(p(0), p(1), 0.0));
   }
 
   return nurbs;
@@ -1046,7 +1071,8 @@ FittingCurve2dAPDM::findClosestElementMidPoint (const ON_NurbsCurve &nurbs, cons
 
   // evaluate elements
   std::vector<double> elements = pcl::on_nurbs::FittingCurve2dAPDM::getElementVector (nurbs);
-  double seg = 1.0 / (nurbs.Order () - 1);
+  unsigned sub_steps = 2 * nurbs.Order();
+  double seg = 1.0 / (sub_steps - 1);
 
   for (unsigned i = 0; i < elements.size () - 1; i++)
   {
@@ -1054,7 +1080,7 @@ FittingCurve2dAPDM::findClosestElementMidPoint (const ON_NurbsCurve &nurbs, cons
     double &xi1 = elements[i + 1];
     double dxi = xi1 - xi0;
 
-    for (unsigned j = 0; j < nurbs.Order (); j++)
+    for (unsigned j = 0; j < sub_steps; j++)
     {
       double xi = xi0 + (seg * j) * dxi;
 
@@ -1089,7 +1115,8 @@ FittingCurve2dAPDM::findClosestElementMidPoint (const ON_NurbsCurve &nurbs, cons
   double points[2];
 
   double d_shortest (DBL_MAX);
-  double seg = 1.0 / (nurbs.Order () - 1);
+  unsigned sub_steps = 2 * nurbs.Order();
+  double seg = 1.0 / (sub_steps - 1);
 
   for (unsigned i = 0; i < elements.size () - 1; i++)
   {
@@ -1097,7 +1124,7 @@ FittingCurve2dAPDM::findClosestElementMidPoint (const ON_NurbsCurve &nurbs, cons
     double &xi1 = elements[i + 1];
     double dxi = xi1 - xi0;
 
-    for (unsigned j = 0; j < nurbs.Order (); j++)
+    for (unsigned j = 0; j < sub_steps; j++)
     {
       double xi = xi0 + (seg * j) * dxi;
 

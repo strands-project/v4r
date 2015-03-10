@@ -101,7 +101,11 @@ namespace faat_pcl
         double
         findMaxima (double min_threshold, std::vector<double> & maxima_values, std::vector<std::vector<int> > &maxima_voter_ids);
 
-      protected:
+        void reserveVoterIdsVector(int n_matches, float percentage=0.1f);
+
+        void reserveVoterIdsVectorFixedSize(int size_per_bin);
+
+        protected:
 
         /** \brief Minimum coordinate in the Hough Space. */
         Eigen::Vector3d min_coord_;
@@ -124,6 +128,9 @@ namespace faat_pcl
 
         /** \brief List of voters for each bin. */
         boost::unordered_map<int, std::vector<int> > voter_ids_;
+
+        std::vector<std::vector<int> > voter_ids_vector_;
+        std::vector< int > voter_ids_vector_size_;
     };
   }
 

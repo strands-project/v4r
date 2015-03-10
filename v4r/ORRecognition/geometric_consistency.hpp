@@ -89,6 +89,8 @@ faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
 
   for (size_t i = 0; i < model_scene_corrs_->size (); ++i)
   {
+    std::cout << "Processing correspondence:" << i << " from " << model_scene_corrs_->size () << std::endl;
+
     if (taken_corresps[i])
       continue;
 
@@ -117,6 +119,7 @@ faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
           dist_trg = model_point_k - model_point_j;
 
           double distance = fabs (dist_ref.norm () - dist_trg.norm ());
+          //std::cout << "distance:" << distance << " " << gc_size_ << std::endl;
 
           if (distance > gc_size_)
           {
@@ -132,6 +135,8 @@ faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
     
     if (static_cast<int> (consensus_set.size ()) > gc_threshold_)
     {
+
+      std::cout << "consensus set:" << consensus_set.size() << std::endl;
       pcl::Correspondences temp_corrs, filtered_corrs;
       for (size_t j = 0; j < consensus_set.size (); j++)
       {
