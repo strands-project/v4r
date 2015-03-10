@@ -58,6 +58,12 @@ faat_pcl::recognition::HoughSpace3D::HoughSpace3D (const Eigen::Vector3d &min_co
     bin_count_[i] = static_cast<int> (ceil ((max_coord[i] - min_coord_[i]) / bin_size_[i]));
   }
 
+  for (int i = 0; i < 3; ++i)
+  {
+    std::cout << bin_count_[i] << " ";
+  }
+  std::cout << std::endl;
+
   partial_bin_products_[0] = 1;
   for (int i=1; i<=3; ++i)
     partial_bin_products_[i] = bin_count_[i-1]*partial_bin_products_[i-1];
@@ -66,6 +72,12 @@ faat_pcl::recognition::HoughSpace3D::HoughSpace3D (const Eigen::Vector3d &min_co
 
   hough_space_.clear ();
   hough_space_.resize (total_bins_count_, 0.0);
+
+  voter_ids_vector_.clear();
+  voter_ids_vector_.resize(total_bins_count_);
+
+  voter_ids_vector_size_.clear();
+  voter_ids_vector_size_.resize(total_bins_count_, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,7 +88,32 @@ faat_pcl::recognition::HoughSpace3D::reset ()
   hough_space_.resize (total_bins_count_, 0.0);
 
   voter_ids_.clear ();
+  voter_ids_vector_.clear();
+  voter_ids_vector_.resize(total_bins_count_);
+
+  voter_ids_vector_size_.clear();
+  voter_ids_vector_size_.resize(total_bins_count_, 0);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void
+faat_pcl::recognition::HoughSpace3D::reserveVoterIdsVector(int n_matches, float percentage)
+{
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void
+faat_pcl::recognition::HoughSpace3D::reserveVoterIdsVectorFixedSize(int size_per_bin)
+{
+    for(size_t i=0; i < voter_ids_vector_.size(); i++)
+    {
+        voter_ids_vector_[i].resize(size_per_bin);
+        //voter_ids_vector_[i].reserve(size_per_bin);
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int
@@ -196,7 +233,19 @@ faat_pcl::recognition::HoughSpace3D::voteInt (const Eigen::Vector3d &single_vote
     if (!invalid)
     {
       hough_space_[final_bin_index] += weight * interp_weight[n];
-      voter_ids_[final_bin_index].push_back (voter_id);
+
+      //voter_ids_[final_bin_index].push_back (voter_id);
+
+      //voter_ids_vector_[final_bin_index].push_back (voter_id);
+      voter_ids_vector_[final_bin_index][voter_ids_vector_size_[final_bin_index]++] = voter_id;
+
+      //lazy allocation
+      int size_vec = static_cast<int>(voter_ids_vector_[final_bin_index].size());
+      if(voter_ids_vector_size_[final_bin_index] >= size_vec)
+      {
+        voter_ids_vector_[final_bin_index].resize(size_vec + 50);
+      }
+
     }
   }
 
@@ -207,6 +256,7 @@ faat_pcl::recognition::HoughSpace3D::voteInt (const Eigen::Vector3d &single_vote
 double
 faat_pcl::recognition::HoughSpace3D::findMaxima (double min_threshold, std::vector<double> &maxima_values, std::vector<std::vector<int> > &maxima_voter_ids)
 {
+
   // If min_threshold between -1 and 0 use it as a percentage of maximum vote
   if (min_threshold < 0)
   {
@@ -261,8 +311,13 @@ faat_pcl::recognition::HoughSpace3D::findMaxima (double min_threshold, std::vect
 
     if (is_maximum)
     {
+
+      //If using voter_ids_vector_size_, then resize voter_ids_vector_ accordingly
+      voter_ids_vector_[i].resize(voter_ids_vector_size_[i]);
+
       maxima_values.push_back (hough_space_[i]);
-      maxima_voter_ids.push_back ( voter_ids_[i] );
+      //maxima_voter_ids.push_back ( voter_ids_[i] );
+      maxima_voter_ids.push_back ( voter_ids_vector_[i] );
     }
   }
 

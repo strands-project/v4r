@@ -20,7 +20,7 @@
 #include <vtkTransformFilter.h>
 #include "pcl/recognition/hv/occlusion_reasoning.h"
 #include "pcl/recognition/impl/hv/occlusion_reasoning.hpp"
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 #include "faat_3d_rec_framework_defines.h"
 
 namespace faat_pcl
@@ -171,8 +171,7 @@ namespace faat_pcl
 
           //get models in directory
           std::vector < std::string > files;
-          bf::path dir = path_;
-          faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", false );
+          v4r::utils::getFilesInDirectory(path_, files, "", ".*.pcd", false );
 
           models_.reset (new std::vector<ModelTPtr>);
 

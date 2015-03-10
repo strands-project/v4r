@@ -8,7 +8,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <v4r/ORFramework/model_only_source.h>
 #include <v4r/ORGTEvaluator/or_evaluator.h>
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 
 std::string go_log_file_ = "test.txt";
 std::string GT_DIR_;
@@ -45,14 +45,11 @@ recognizeAndVisualize (std::string & scene_file)
     vis.addText ("Ground truth", 1, 30, 18, 1, 0, 0, "gt_text", v2);
     vis.addText ("Scene", 1, 30, 18, 1, 0, 0, "scene_texttt", v1);
 
-    bf::path input = scene_file;
     std::vector<std::string> files_to_recognize;
 
-    if (bf::is_directory (input))
+    std::vector < std::string > files;
+    if (v4r::utils::getFilesInDirectory(scene_file, files, "", ".*.pcd", true) != -1)
     {
-        std::vector < std::string > files;
-        bf::path dir = input;
-        faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true);
         std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
         for (size_t i = 0; i < files.size (); i++)
         {
@@ -120,17 +117,14 @@ main (int argc, char ** argv)
         return -1;
     }
 
-    bf::path models_dir_path = MODELS_DIR_;
-    if (!bf::exists (models_dir_path))
+    std::vector < std::string > files;
+    if ( v4r::utils::getFilesInDirectory(MODELS_DIR_, files, "", ".*.pcd", true) == -1)
     {
         PCL_ERROR("Models dir path %s does not exist, use -models_dir [dir] option\n", MODELS_DIR_.c_str());
         return -1;
     }
     else
     {
-        std::vector < std::string > files;
-        bf::path dir = models_dir_path;
-        faat_pcl::utils::getFilesInDirectory(dir, files, "", ".*.pcd", true);
         std::cout << "Number of models in directory is:" << files.size() << std::endl;
     }
 

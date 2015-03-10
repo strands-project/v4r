@@ -47,6 +47,7 @@
 //#include <pcl/sample_consensus/sac_model_registration.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/board.h>
+#include <pcl/common/time.h>
 
 
 template<typename PointModelT, typename PointSceneT, typename PointModelRfT, typename PointSceneRfT>
@@ -117,15 +118,32 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
   centroid /= static_cast<float> (input_->size ());
 
   // compute model votes
+  Eigen::Vector3f diff;
   for (size_t i = 0; i < input_->size (); ++i)
   {
-    Eigen::Vector3f x_ax ((*input_rf_)[i].x_axis[0], (*input_rf_)[i].x_axis[1], (*input_rf_)[i].x_axis[2]);
-    Eigen::Vector3f y_ax ((*input_rf_)[i].y_axis[0], (*input_rf_)[i].y_axis[1], (*input_rf_)[i].y_axis[2]);
-    Eigen::Vector3f z_ax ((*input_rf_)[i].z_axis[0], (*input_rf_)[i].z_axis[1], (*input_rf_)[i].z_axis[2]);
 
-    model_votes_[i].x () = x_ax.dot (centroid - input_->at (i).getVector3fMap ());
+    /*Eigen::Vector3f x_ax ((*input_rf_)[i].x_axis[0], (*input_rf_)[i].x_axis[1], (*input_rf_)[i].x_axis[2]);
+    Eigen::Vector3f y_ax ((*input_rf_)[i].y_axis[0], (*input_rf_)[i].y_axis[1], (*input_rf_)[i].y_axis[2]);
+    Eigen::Vector3f z_ax ((*input_rf_)[i].z_axis[0], (*input_rf_)[i].z_axis[1], (*input_rf_)[i].z_axis[2]);*/
+
+    Eigen::Map<const Eigen::Vector3f> x_ax((*input_rf_)[i].x_axis);
+    Eigen::Map<const Eigen::Vector3f> y_ax((*input_rf_)[i].y_axis);
+    Eigen::Map<const Eigen::Vector3f> z_ax((*input_rf_)[i].z_axis);
+
+    /*Eigen::Vector3f x_ax,y_ax,z_ax;
+    memcpy(x_ax.data(), &((*input_rf_)[i].x_axis), sizeof(float) * 3);
+    memcpy(y_ax.data(), &((*input_rf_)[i].y_axis), sizeof(float) * 3);
+    memcpy(z_ax.data(), &((*input_rf_)[i].z_axis), sizeof(float) * 3);*/
+
+    diff = centroid - input_->at (i).getVector3fMap ();
+
+    model_votes_[i].x () = x_ax.dot (diff);
+    model_votes_[i].y () = y_ax.dot (diff);
+    model_votes_[i].z () = z_ax.dot (diff);
+
+    /*model_votes_[i].x () = x_ax.dot (centroid - input_->at (i).getVector3fMap ());
     model_votes_[i].y () = y_ax.dot (centroid - input_->at (i).getVector3fMap ());
-    model_votes_[i].z () = z_ax.dot (centroid - input_->at (i).getVector3fMap ());
+    model_votes_[i].z () = z_ax.dot (centroid - input_->at (i).getVector3fMap ());*/
   }
 
   needs_training_ = false;
@@ -138,6 +156,7 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
 {
   if (needs_training_)
   {
+    pcl::ScopeTime t("Training");
     if (!train ())//checks input and input_rf
       return (false);
   }
@@ -187,6 +206,7 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
   float max_distance = -std::numeric_limits<float>::max ();
 
   // Calculating 3D Hough space dimensions and vote position for each match
+  pcl::StopWatch t;
   for (int i=0; i< n_matches; ++i)
   {
     int scene_index = model_scene_corrs_->at (i).index_match;
@@ -195,16 +215,22 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
     const Eigen::Vector3f& scene_point = scene_->at (scene_index).getVector3fMap ();
     const PointSceneRfT&   scene_point_rf = scene_rf_->at (scene_index);
     
-    Eigen::Vector3f scene_point_rf_x (scene_point_rf.x_axis[0], scene_point_rf.x_axis[1], scene_point_rf.x_axis[2]);
+    Eigen::Map<const Eigen::Vector3f> scene_point_rf_x(scene_point_rf.x_axis);
+    Eigen::Map<const Eigen::Vector3f> scene_point_rf_y(scene_point_rf.y_axis);
+    Eigen::Map<const Eigen::Vector3f> scene_point_rf_z(scene_point_rf.z_axis);
+
+    /*Eigen::Vector3f scene_point_rf_x (scene_point_rf.x_axis[0], scene_point_rf.x_axis[1], scene_point_rf.x_axis[2]);
     Eigen::Vector3f scene_point_rf_y (scene_point_rf.y_axis[0], scene_point_rf.y_axis[1], scene_point_rf.y_axis[2]);
-    Eigen::Vector3f scene_point_rf_z (scene_point_rf.z_axis[0], scene_point_rf.z_axis[1], scene_point_rf.z_axis[2]);
+    Eigen::Vector3f scene_point_rf_z (scene_point_rf.z_axis[0], scene_point_rf.z_axis[1], scene_point_rf.z_axis[2]);*/
 
     //const Eigen::Vector3f& model_point = input_->at (model_index).getVector3fMap ();
+
     const Eigen::Vector3f& model_point_vote = model_votes_[model_index];
 
-    scene_votes[i].x () = scene_point_rf_x[0] * model_point_vote.x () + scene_point_rf_y[0] * model_point_vote.y () + scene_point_rf_z[0] * model_point_vote.z () + scene_point.x ();
-    scene_votes[i].y () = scene_point_rf_x[1] * model_point_vote.x () + scene_point_rf_y[1] * model_point_vote.y () + scene_point_rf_z[1] * model_point_vote.z () + scene_point.y ();
-    scene_votes[i].z () = scene_point_rf_x[2] * model_point_vote.x () + scene_point_rf_y[2] * model_point_vote.y () + scene_point_rf_z[2] * model_point_vote.z () + scene_point.z ();
+    //todo: maybe this can be optimized
+    scene_votes[i].x () = scene_point_rf_x[0] * model_point_vote[0] + scene_point_rf_y[0] * model_point_vote[1] + scene_point_rf_z[0] * model_point_vote[2] + scene_point.x ();
+    scene_votes[i].y () = scene_point_rf_x[1] * model_point_vote[0] + scene_point_rf_y[1] * model_point_vote[1] + scene_point_rf_z[1] * model_point_vote[2] + scene_point.y ();
+    scene_votes[i].z () = scene_point_rf_x[2] * model_point_vote[0] + scene_point_rf_y[2] * model_point_vote[1] + scene_point_rf_z[2] * model_point_vote[2] + scene_point.z ();
 
     if (scene_votes[i].x () < d_min.x ()) 
       d_min.x () = scene_votes[i].x (); 
@@ -228,27 +254,37 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
     }
   }
 
-  // Hough Voting
+  std::cout << d_min << std::endl;
+  std::cout << d_max << std::endl;
+
+  std::cout << "vote position" << t.getTime() << std::endl;
+
   hough_space_.reset (new faat_pcl::recognition::HoughSpace3D (d_min, bin_size, d_max));
+  hough_space_->reserveVoterIdsVectorFixedSize(10);
 
-  for (int i = 0; i < n_matches; ++i)
   {
-    double weight = 1.0;
-    if (use_distance_weight_ && max_distance != 0)
-    {
-      weight = 1.0 - (model_scene_corrs_->at (i).distance / max_distance);
-    }
-    if (use_interpolation_)
-    {
-      hough_space_->voteInt (scene_votes[i], weight, i);
-    } 
-    else
-    {
-      hough_space_->vote (scene_votes[i], weight, i);
-    }
-  }
+      pcl::ScopeTime t("hough voting intern");
+      // Hough Voting
 
-  hough_space_initialized_ = true;
+      for (int i = 0; i < n_matches; ++i)
+      {
+        double weight = 1.0;
+        if (use_distance_weight_ && max_distance != 0)
+        {
+          weight = 1.0 - (model_scene_corrs_->at (i).distance / max_distance);
+        }
+        if (use_interpolation_)
+        {
+          hough_space_->voteInt (scene_votes[i], weight, i);
+        }
+        else
+        {
+          hough_space_->vote (scene_votes[i], weight, i);
+        }
+      }
+
+      hough_space_initialized_ = true;
+  }
 
   return (true);
 }
@@ -260,16 +296,25 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
   model_instances.clear ();
   found_transformations_.clear ();
 
-  if (!hough_space_initialized_ && !houghVoting ())
   {
-    return;
+      pcl::ScopeTime t("hough voting..");
+      if (!hough_space_initialized_ && !houghVoting ())
+      {
+        return;
+      }
   }
 
   // Finding max bins and voters
   std::vector<double> max_values;
   std::vector<std::vector<int> > max_ids;
 
-  hough_space_->findMaxima (hough_threshold_, max_values, max_ids);
+  {
+      pcl::ScopeTime t("findMaxima");
+      hough_space_->findMaxima (hough_threshold_, max_values, max_ids);
+  }
+
+  std::cout << "Found " << max_values.size() << " doing RANSAC" << std::endl;
+  pcl::ScopeTime t_ransac("Ransac and hypotheses generation...");
 
   // Insert maximas into result vector, after Ransac correspondence rejection
   // Temp copy of scene cloud with the type cast to ModelT in order to use Ransac
@@ -277,25 +322,42 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
   pcl::copyPointCloud<PointSceneT, PointModelT> (*scene_, *temp_scene_cloud_ptr);
 
   pcl::registration::CorrespondenceRejectorSampleConsensus<PointModelT> corr_rejector;
-  corr_rejector.setMaximumIterations (10000);
+  corr_rejector.setMaximumIterations (1000);
   corr_rejector.setInlierThreshold (hough_bin_size_);
   corr_rejector.setInputSource (input_);
   corr_rejector.setInputTarget (temp_scene_cloud_ptr);
 
+  found_transformations_.reserve(max_values.size());
+  model_instances.resize(max_values.size());
+
+  //TODO: having to copy correspondences back and forth seems really stupid... and is slow!!
+  //we should rewrite anyway the ransac part so that we dont need to duplicate keypoints in the one to many correspondences case.
+
+  int correct = 0;
   for (size_t j = 0; j < max_values.size (); ++j)
   {
-    pcl::Correspondences temp_corrs, filtered_corrs;
+    pcl::Correspondences temp_corrs;
+    temp_corrs.reserve(max_ids[j].size ());
+
     for (size_t i = 0; i < max_ids[j].size (); ++i)
     {
       temp_corrs.push_back (model_scene_corrs_->at (max_ids[j][i]));
     }
     // RANSAC filtering
-    corr_rejector.getRemainingCorrespondences (temp_corrs, filtered_corrs);
-    // Save transformations for recognize
-    found_transformations_.push_back (corr_rejector.getBestTransformation ());
+    model_instances[correct].clear(); //just to be sure...
+    corr_rejector.getRemainingCorrespondences (temp_corrs, model_instances[correct]);
+    //std::cout << filtered_corrs.size() << " " << temp_corrs.size() << " " << hough_threshold_ << " " << hough_bin_size_ << std::endl;
 
-    model_instances.push_back (filtered_corrs);
+    if(static_cast<int>(model_instances[correct].size()) >= hough_threshold_)
+    {
+        // Save transformations for recognize
+        found_transformations_.push_back (corr_rejector.getBestTransformation ());
+        correct++;
+    }
   }
+
+  model_instances.resize(correct);
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

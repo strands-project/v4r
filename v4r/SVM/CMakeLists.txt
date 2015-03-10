@@ -1,5 +1,4 @@
 SET(V4R_SVM 1 CACHE BOOL "Support Vector Machine - based on libsvm." )
-SET(CMAKE_BUILD_TYPE "Debug")
 
 IF(V4R_SVM)
 

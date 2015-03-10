@@ -10,45 +10,45 @@ include_directories(${EIGEN3_INCLUDE_DIRS})
 PROJECT(v4ron_nurbs)
 
 SET(SOURCE_CPP
-	closing_boundary.cpp
-	fitting_curve_2d_apdm.cpp
-	fitting_curve_2d_asdm.cpp
-	fitting_curve_2d_atdm.cpp
-	fitting_curve_2d_pdm.cpp
-	fitting_curve_2d_sdm.cpp
-	fitting_curve_2d_tdm.cpp
-	fitting_curve_2d.cpp
-	fitting_curve_pdm.cpp
+        closing_boundary.cpp
+        fitting_curve_2d_apdm.cpp
+        fitting_curve_2d_asdm.cpp
+        fitting_curve_2d_atdm.cpp
+        fitting_curve_2d_pdm.cpp
+        fitting_curve_2d_sdm.cpp
+        fitting_curve_2d_tdm.cpp
+        fitting_curve_2d.cpp
+        fitting_curve_pdm.cpp
   fitting_cylinder_pdm.cpp
   fitting_sphere_pdm.cpp
   #fitting_surface_depth.h
-	fitting_surface_pdm.cpp
-	fitting_surface_tdm.cpp
-	global_optimization_pdm.cpp
-	global_optimization_tdm.cpp
+        fitting_surface_pdm.cpp
+        fitting_surface_tdm.cpp
+        global_optimization_pdm.cpp
+        global_optimization_tdm.cpp
   nurbs_tools.cpp
   sparse_mat.cpp
 )
 
 SET(SOURCE_H
-	closing_boundary.h
-	fitting_curve_2d_apdm.h
-	fitting_curve_2d_asdm.h
-	fitting_curve_2d_atdm.h
-	fitting_curve_2d_pdm.h
-	fitting_curve_2d_sdm.h
-	fitting_curve_2d_tdm.h
-	fitting_curve_2d.h
-	fitting_curve_pdm.h
-	fitting_cylinder_pdm.h
+        closing_boundary.h
+        fitting_curve_2d_apdm.h
+        fitting_curve_2d_asdm.h
+        fitting_curve_2d_atdm.h
+        fitting_curve_2d_pdm.h
+        fitting_curve_2d_sdm.h
+        fitting_curve_2d_tdm.h
+        fitting_curve_2d.h
+        fitting_curve_pdm.h
+        fitting_cylinder_pdm.h
   fitting_sphere_pdm.h
   #fitting_surface_depth.cpp
-	fitting_surface_pdm.h
-	fitting_surface_tdm.h
-	global_optimization_pdm.h
-	global_optimization_tdm.h
-	nurbs_data.h
-	nurbs_solve.h
+        fitting_surface_pdm.h
+        fitting_surface_tdm.h
+        global_optimization_pdm.h
+        global_optimization_tdm.h
+        nurbs_data.h
+        nurbs_solve.h
   nurbs_tools.h
   sparse_mat.h
 )

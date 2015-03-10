@@ -10,7 +10,7 @@
 
 #include "partial_pcd_source.h"
 #include <pcl/common/angles.h>
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
@@ -41,7 +41,7 @@ faat_pcl::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPoi
   {
     //load views, poses and self-occlusions
 
-    faat_pcl::utils::getFilesInDirectory(trained_dir, model.view_filenames_, "", ".*view.*.pcd", false);
+    v4r::utils::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view.*.pcd", false);
     std::sort(model.view_filenames_.begin(), model.view_filenames_.end());
     if(load_into_memory_)
     {
@@ -610,7 +610,7 @@ faat_pcl::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPoi
 
       std::stringstream path_pose;
       path_pose << direc.str () << "/pose_" << std::setfill ('0') << std::setw (8) << i << ".txt";
-      faat_pcl::utils::writeMatrixToFile( path_pose.str (), final_mat);
+      v4r::utils::writeMatrixToFile( path_pose.str (), final_mat);
 
       /*std::stringstream path_entropy;
       path_entropy << direc.str () << "/entropy_" << i << ".txt";
@@ -765,7 +765,7 @@ faat_pcl::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPoi
   pose_file << pathmodel.str () << "/" << file_replaced1;
 
   Eigen::Matrix4f pose;
-  faat_pcl::utils::readMatrixFromFile( pose_file.str (), pose);
+  v4r::utils::readMatrixFromFile( pose_file.str (), pose);
 
   model.poses_->push_back (pose);
 
@@ -847,7 +847,7 @@ faat_pcl::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPoi
     std::cout << pose_file.str() << std::endl;
 
     Eigen::Matrix4f pose;
-    faat_pcl::utils::readMatrixFromFile( pose_file.str (), pose);
+    v4r::utils::readMatrixFromFile( pose_file.str (), pose);
 
     std::cout << pose << std::endl;
     model.poses_->push_back (pose);
@@ -856,7 +856,7 @@ faat_pcl::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPoi
     std::stringstream entropy_file;
     entropy_file << pathmodel.str () << "/" << file_replaced2;
     float entropy = 0;
-    faat_pcl::utils::readFloatFromFile (entropy_file.str (), entropy);
+    v4r::utils::readFloatFromFile (entropy_file.str (), entropy);
     model.self_occlusions_->push_back (entropy);
 
     if(gen_organized_)

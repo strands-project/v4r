@@ -122,6 +122,10 @@ namespace pcl
         dims = static_cast<unsigned>(m_feig.cols());
       }
 
+      inline unsigned rows(){ return m_feig.rows(); }
+      inline unsigned cols(){ return m_xeig.rows(); }
+      inline unsigned dims(){ return m_feig.cols(); }
+
     private:
       bool m_quiet;
       SparseMat m_Ksparse;

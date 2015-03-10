@@ -1,6 +1,8 @@
 #include "tgTomGineThreadPCL.h"
 #include "tgPCL2TomGine.h"
 #include <pcl/ros/conversions.h>
+#include <pcl/pcl_base.h>
+#include <pcl/common/centroid.h>
 
 #include <iostream>
 
@@ -204,10 +206,15 @@ tgTomGineThreadPCL::AddPointCloudPCL (const pcl::PointCloud<pcl::PointXYZRGBL> &
   tg_cloud->m_point_size = point_size;
   std::map<int, tgRGBValue> colors;
   std::map<int, bool> labels;
+  std::map<int, pcl::PointIndices> indices;
 
   for (size_t i = 0; i < cloud.size (); i++)
   {
     const pcl::PointXYZRGBL &pt = cloud.at (i);
+
+    if(isnan(pt.x) || isnan(pt.y) || isnan(pt.z))
+      continue;
+
     if (colors.count (pt.label) == 0)
     {
       vec3 c;
@@ -217,31 +224,27 @@ tgTomGineThreadPCL::AddPointCloudPCL (const pcl::PointCloud<pcl::PointXYZRGBL> &
       colors[pt.label].Blue = (short)(255.0 * c.z);
     }
 
-    if (labels.count (pt.label) == 0)
-      if (!isnan (pt.x))
-      {
-        labels[pt.label] = true;
-        std::ostringstream os;
-        os << pt.label;
-        this->AddLabel3D (os.str (), 14, pt.x, pt.y, pt.z);
-      }
+    indices[pt.label].indices.push_back(i);
 
     TomGine::tgColorPoint cpt;
-    //    if (pt.label == 0)
-    //    {
-    //      cpt.color[0] = pt.r;
-    //      cpt.color[1] = pt.g;
-    //      cpt.color[2] = pt.b;
-    //    }
-    //    else
-    //    {
     cpt.color[0] = pt.r * blending + colors[pt.label].Red * (1.0f - blending);
     cpt.color[1] = pt.g * blending + colors[pt.label].Green * (1.0f - blending);
     cpt.color[2] = pt.b * blending + colors[pt.label].Blue * (1.0f - blending);
-    //    }
     cpt.pos = vec3 (pt.x, pt.y, pt.z);
     tg_cloud->m_colorpoints.push_back (cpt);
   }
+
+  std::map<int, pcl::PointIndices>::iterator it;
+  Eigen::Vector4f centroid;
+  for(it=indices.begin(); it!=indices.end(); ++it)
+  {
+    pcl::compute3DCentroid(cloud, it->second.indices, centroid);
+
+    std::ostringstream os;
+    os << it->first;
+    this->AddLabel3D (os.str (), 14, centroid(0), centroid(1), centroid(2));
+  }
+
 
   pthread_mutex_lock (&dataMutex);
   this->m_pointclouds.push_back (tg_cloud);

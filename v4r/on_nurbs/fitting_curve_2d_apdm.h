@@ -62,12 +62,12 @@ namespace pcl
           double smoothness;
           double closest_point_weight;
           double closest_point_sigma2;
-          unsigned closest_point_resolution;
+//          unsigned closest_point_resolution(0);
           double smooth_concavity;
           double rScale;
           Parameter () :
             interior_sigma2 (0.1), smoothness (0.1), closest_point_weight (0.1), closest_point_sigma2 (0.1),
-                closest_point_resolution (0), smooth_concavity (1.0), rScale (1.0)
+                smooth_concavity (1.0), rScale (1.0)
           {
           }
         };
@@ -153,6 +153,14 @@ namespace pcl
          *  \return B-Spline curve. */
         static ON_NurbsCurve
         initCPsNurbsCurve2D (int order, const vector_vec2d &cps);
+
+        /** \brief Initialize a closed B-Spline curve with sorted (consecutive) point data.
+         *  \param[in] order polynomial order of the curve.
+         *  \param[in] data consecutive sorted 2D point-cloud
+         *  \param[in] ncps number of control points
+         *  \return B-Spline curve. */
+        static ON_NurbsCurve
+        initNurbsCurve2DSorted (int order, const vector_vec2d &sorted_data, int ncps);
 
         /** \brief Initialize a closed B-Spline curve using the bounding circle of the point-cloud.
          *  \param[in] order polynomial order of the curve.

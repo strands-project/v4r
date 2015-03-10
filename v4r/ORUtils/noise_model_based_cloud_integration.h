@@ -37,6 +37,7 @@ private:
     PointNormalTPtr output_normals_;
     std::vector<PointTPtr> input_clouds_used_;
     std::vector<std::vector<int> > indices_;
+    float threshold_ss_;
 
 public:
     NMBasedCloudIntegration ();
@@ -44,6 +45,11 @@ public:
     void getInputCloudsUsed(std::vector<PointTPtr> & input_clouds_used)
     {
         input_clouds_used = input_clouds_used_;
+    }
+
+    void setThresholdSameSurface(float f)
+    {
+        threshold_ss_ = f;
     }
 
     void getOutputNormals(PointNormalTPtr & output)

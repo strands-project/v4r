@@ -206,6 +206,20 @@ NurbsTools::computeMean (const vector_vec3d &data)
   return u;
 }
 
+Eigen::Vector3d
+NurbsTools::computeMean (const vector_vec3d &data, const std::vector<int>& indices)
+{
+  Eigen::Vector3d u(0.0, 0.0, 0.0);
+
+  size_t s = indices.size ();
+  double ds = 1.0 / s;
+
+  for (size_t i = 0; i < indices.size(); i++)
+    u += (data[indices[i]] * ds);
+
+  return u;
+}
+
 Eigen::Vector2d
 NurbsTools::computeMean (const vector_vec2d &data)
 {
@@ -318,7 +332,8 @@ NurbsTools::computeRScale (const Eigen::Vector3d &_min, const Eigen::Vector3d &_
 }
 
 void
-NurbsTools::pca (const vector_vec3d &data, Eigen::Vector3d &mean, Eigen::Matrix3d &eigenvectors,
+NurbsTools::pca (const vector_vec3d &data,
+                 Eigen::Vector3d &mean, Eigen::Matrix3d &eigenvectors,
                  Eigen::Vector3d &eigenvalues)
 {
   if (data.empty ())
@@ -335,6 +350,45 @@ NurbsTools::pca (const vector_vec3d &data, Eigen::Vector3d &mean, Eigen::Matrix3
 
   for (unsigned i = 0; i < s; i++)
     Q.col (i) << (data[i] - mean);
+
+  Eigen::Matrix3d C = Q * Q.transpose ();
+
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver (C);
+  if (eigensolver.info () != Success)
+  {
+    printf ("[NurbsTools::pca] Can not find eigenvalues.\n");
+    abort ();
+  }
+
+  for (int i = 0; i < 3; ++i)
+  {
+    eigenvalues (i) = eigensolver.eigenvalues () (2 - i);
+    if (i == 2)
+      eigenvectors.col (2) = eigenvectors.col (0).cross (eigenvectors.col (1));
+    else
+      eigenvectors.col (i) = eigensolver.eigenvectors ().col (2 - i);
+  }
+}
+
+void
+NurbsTools::pca (const vector_vec3d &data, const std::vector<int>& indices,
+                 Eigen::Vector3d &mean, Eigen::Matrix3d &eigenvectors,
+                 Eigen::Vector3d &eigenvalues)
+{
+  if (data.empty ())
+  {
+    printf ("[NurbsTools::pca] Error, data is empty\n");
+    abort ();
+  }
+
+  mean = computeMean(data, indices);
+
+  size_t s = indices.size();
+
+  Eigen::MatrixXd Q(3, s);
+
+  for (size_t i = 0; i < indices.size(); i++)
+    Q.col (i) << (data[indices[i]] - mean);
 
   Eigen::Matrix3d C = Q * Q.transpose ();
 

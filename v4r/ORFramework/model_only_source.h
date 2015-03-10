@@ -17,7 +17,7 @@
 #include "vtk_model_sampling.h"
 #include <vtkTransformPolyDataFilter.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
-#include <v4r/ORUtils/filesystem_utils.h>
+#include <v4r/utils/filesystem_utils.h>
 
 namespace faat_pcl
 {
@@ -128,9 +128,8 @@ namespace faat_pcl
         {
           //get models in directory
           std::vector < std::string > files;
-          bf::path dir = path_;
 
-          faat_pcl::utils::getFilesInDirectory (dir, files, "", ".*.pcd", false);
+          v4r::utils::getFilesInDirectory (path_, files, "", ".*.pcd", false);
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);
