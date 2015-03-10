@@ -3,13 +3,14 @@
 
 using namespace v4r;
 
-void
-utils::getFoldersInDirectory (const bf::path & dir,
+int
+utils::getFoldersInDirectory (const std::string & dir,
                               const std::string & rel_path_so_far,
                               std::vector<std::string> & relative_paths)
 {
+    bf::path dir_bf = dir;
     bf::directory_iterator end_itr;
-    for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
+    for (bf::directory_iterator itr (dir_bf); itr != end_itr; ++itr)
     {
         //check if its a directory, else ignore
         if (bf::is_directory (*itr))
@@ -22,33 +23,47 @@ utils::getFoldersInDirectory (const bf::path & dir,
             relative_paths.push_back (path);
         }
     }
+    return relative_paths.size();
 }
 
-
-void utils::getFilesInDirectory (const bf::path & dir,
+int utils::getFilesInDirectory (const std::string &dir,
                                  std::vector<std::string> & relative_paths,
                                  const std::string & rel_path_so_far,
                                  const std::string & regex_pattern,
                                  bool recursive)
 {
+    bf::path dir_bf = dir;
+    if ( !bf::is_directory ( dir_bf ) ) {
+        std::cerr << dir << " is not a directory!" << std::endl;
+        return -1;
+    }
     const boost::regex file_filter( regex_pattern );
 
     bf::directory_iterator end_itr;
-    for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
+    for (bf::directory_iterator itr (dir_bf); itr != end_itr; ++itr)
     {
         //check if its a directory, then get files in it
         if (bf::is_directory (*itr))
         {
 #if BOOST_FILESYSTEM_VERSION == 3
-            std::string so_far = rel_path_so_far + (itr->path ().filename ()).string () + "/";
+#ifdef _WIN32
+            std::string so_far = rel_path_so_far + (itr->path ().filename ()).string () + "\\";
 #else
-            std::string so_far = rel_path_so_far + (itr->path ()).filename () + "/";
+            std::string so_far = rel_path_so_far + (itr->path ().filename ()).string () + "/";
 #endif
 
-            bf::path curr_path = itr->path ();
+#else
+#ifdef _WIN32
+            std::string so_far = rel_path_so_far + (itr->path ().filename ()) + "\\";
+#else
+            std::string so_far = rel_path_so_far + (itr->path ().filename ()) + "/";
+#endif
+#endif
+
             if (recursive)
             {
-                getFilesInDirectory (curr_path, relative_paths, so_far, regex_pattern, recursive);
+                if( getFilesInDirectory (itr->path().string(), relative_paths, so_far, regex_pattern, recursive) == -1)
+                    return -1;
             }
         }
         else
@@ -57,22 +72,17 @@ void utils::getFilesInDirectory (const bf::path & dir,
 
 #if BOOST_FILESYSTEM_VERSION == 3
             std::string file = (itr->path ().filename ()).string ();
-#else
-            std::string file = (itr->path ()).filename ();
-#endif
-
-            boost::smatch what;
-            if( !boost::regex_match( file, what, file_filter ) ) continue;
-
-#if BOOST_FILESYSTEM_VERSION == 3
             std::string path = rel_path_so_far + (itr->path ().filename ()).string ();
 #else
+            std::string file = (itr->path ()).filename ();
             std::string path = rel_path_so_far + (itr->path ()).filename ();
 #endif
-
-            relative_paths.push_back (path);
+            boost::smatch what;
+            if( boost::regex_match( file, what, file_filter ) )
+                relative_paths.push_back (path);
         }
     }
+    return relative_paths.size();
 }
 
 
@@ -214,4 +224,14 @@ utils::readFloatFromFile (const std::string &file, float& value)
     value = static_cast<float> (atof (linebuf));
 
     return true;
+}
+
+
+bool utils::existsFile ( const std::string &rFile ) {
+    bf::path dir_path = rFile;
+    if ( bf::exists ( dir_path ) && bf::is_regular_file(dir_path)) {
+        return true;
+    } else {
+        return false;
+    }
 }

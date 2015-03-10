@@ -64,18 +64,13 @@ recognizeAndVisualize (std::string & scene_dir)
     std::string test = "irrelevant";
     source->generate (test);
 
-    bf::path scene_dir_bf = scene_dir;
-
-    if (bf::is_directory (scene_dir_bf))
+    std::vector < std::string > scene_files;
+    if (v4r::utils::getFilesInDirectory( scene_dir, scene_files, "", ".*.pcd", true) != -1)
     {
-        std::vector < std::string > scene_files;
-        bf::path dir = scene_dir_bf;
-        v4r::utils::getFilesInDirectory( dir, scene_files, "", ".*.pcd", true);
         std::cout << "Number of scenes in directory is:" << scene_files.size () << std::endl;
 
         std::vector < std::string > gt_files;
-        bf::path gt_dir_bf = GT_DIR_;
-        v4r::utils::getFilesInDirectory( gt_dir_bf, gt_files, "", ".*.txt", true);
+        v4r::utils::getFilesInDirectory( GT_DIR_, gt_files, "", ".*.txt", true);
         pcl::visualization::PCLVisualizer gt_output_sv ("gt_output_sv", true);
 
         for (size_t i = 0; i < scene_files.size (); i++)

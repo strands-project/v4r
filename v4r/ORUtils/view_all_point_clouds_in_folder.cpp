@@ -24,19 +24,15 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv, "-path", path);
     pcl::console::parse_argument (argc, argv, "-rows", i_rows);
     size_t rows = static_cast<size_t>(i_rows);
-    bf::path path_bf = path;
 
-    if(!bf::exists(path_bf))
+    std::cout << "Visualizing all point clouds in folder " << path;
+    std::vector < std::string > files_intern;
+    if (v4r::utils::getFilesInDirectory (path, files_intern, "", ".*.pcd", true) == -1)
     {
         std::cerr << "Given path: " << path << " does not exist. " << std::endl;
         return -1;
     }
-
-    std::cout << "Visualizing all point clouds in folder " << path;
-    std::vector < std::string > files_intern;
-    v4r::utils::getFilesInDirectory (path_bf, files_intern, "", ".*.pcd", true);
     std::sort(files_intern.begin(), files_intern.end());
-
 
     pcl::visualization::PCLVisualizer vis;
     size_t cols = std::ceil(files_intern.size()/ static_cast<float> (rows));

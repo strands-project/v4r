@@ -896,8 +896,7 @@ MainWindow::MainWindow(int argc, char *argv[])
   std::vector<std::string> files;
   std::stringstream scene_folder_ss;
   scene_folder_ss << pcd_file_ << "/original_clouds/";
-  bf::path dir = scene_folder_ss.str();
-  v4r::utils::getFilesInDirectory( dir, files, "", ".*.pcd", true);   // get scenes
+  v4r::utils::getFilesInDirectory( scene_folder_ss.str(), files, "", ".*.pcd", true);   // get scenes
   std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
 
   for (size_t i = 0; i < files.size (); i++)

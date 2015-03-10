@@ -22,10 +22,11 @@ namespace v4r
   {
 
     public:
-    static void
-    getFoldersInDirectory (const bf::path & dir,
-                           const std::string & rel_path_so_far,
-                           std::vector<std::string> & relative_paths);
+      static int
+      getFoldersInDirectory (const std::string & dir,
+                             const std::string & rel_path_so_far,
+                             std::vector<std::string> & relative_paths);
+
 
 
     /** Returns a the name of files in a folder </br>
@@ -35,9 +36,10 @@ namespace v4r
     * @param rel_path_so_far
     * @param regex_pattern examples "(.*)bmp",  "(.*)$"
     * @param recursive (true if files in subfolders should be returned as well)
+    * @return number of files in folder (-1 in case directory name is not valid)
     */
-    static void
-    getFilesInDirectory (   const bf::path & dir,
+    static int
+    getFilesInDirectory (   const std::string & dir,
                             std::vector<std::string> & relative_paths,
                             const std::string & rel_path_so_far = std::string(""),
                             const std::string & regex_pattern = std::string(""),
@@ -63,6 +65,13 @@ namespace v4r
 
     static bool
     readFloatFromFile (const std::string &file, float& value);
+
+
+    /** checks if a file exists
+    * @param rFile
+    * @return true if file exsits
+    */
+    static bool existsFile ( const std::string &rFile );
 
   };
 }

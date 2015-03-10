@@ -128,9 +128,8 @@ namespace faat_pcl
         {
           //get models in directory
           std::vector < std::string > files;
-          bf::path dir = path_;
 
-          v4r::utils::getFilesInDirectory (dir, files, "", ".*.pcd", false);
+          v4r::utils::getFilesInDirectory (path_, files, "", ".*.pcd", false);
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);

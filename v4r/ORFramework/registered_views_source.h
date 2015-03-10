@@ -177,7 +177,7 @@ namespace faat_pcl
             pcl::copyPointCloud(*modell_voxelized, *model.normals_assembled_);
 
             //load views and poses
-            v4r::utils::getFilesInDirectory(trained_dir, model.view_filenames_, "", ".*view.*.pcd", false);
+            v4r::utils::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view.*.pcd", false);
 
             if(load_into_memory_)
             {
@@ -209,13 +209,12 @@ namespace faat_pcl
             std::cout << model_structure_ << std::endl;
             std::cout << direc_ms.str() << std::endl;
 
-            bf::path dirr = direc_ms.str();
             std::stringstream view_prefix;
             view_prefix << ".*" << view_prefix_ << ".*.pcd";
 
             std::string vp = view_prefix.str();
 
-            v4r::utils::getFilesInDirectory(dirr, view_filenames, "", vp, false);
+            v4r::utils::getFilesInDirectory(direc_ms.str(), view_filenames, "", vp, false);
             std::cout << "Number of views" << model.class_ << " " << model.id_ << view_filenames.size () << std::endl;
 
             for (size_t i = 0; i < view_filenames.size (); i++)
@@ -407,9 +406,7 @@ namespace faat_pcl
 
           //get models in directory
           std::vector < std::string > files;
-          bf::path dir = path_;
-
-          v4r::utils::getFilesInDirectory (dir, files, "", ".*.pcd",  false);
+          v4r::utils::getFilesInDirectory (path_, files, "", ".*.pcd",  false);
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);

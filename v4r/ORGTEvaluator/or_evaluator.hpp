@@ -246,8 +246,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
 
   {
     std::string ext = scene_file_extension_;
-    bf::path dir = scenes_dir_;
-    v4r::utils::getFilesInDirectory  (dir, scene_files, "", ext, true);
+    v4r::utils::getFilesInDirectory  (scenes_dir_, scene_files, "", ext, true);
     std::cout << "Number of scenes:" << scene_files.size() << std::endl;
     for(size_t i=0; i < scene_files.size(); i++)
     {
@@ -258,8 +257,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
   //get models in models_dir
   {
     std::string ext = model_file_extension_;
-    bf::path dir = models_dir_;
-    v4r::utils::getFilesInDirectory (dir, model_files, "", ext, true);
+    v4r::utils::getFilesInDirectory (models_dir_, model_files, "", ext, true);
 
     std::stringstream model_ext;
     model_ext << "." << model_file_extension_;
@@ -337,13 +335,10 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
 
       std::stringstream ss;
       ss << gt_dir_ << "/" << dir_without_scene_name;
-      bf::path model_file_path;
-      model_file_path = ss.str();
       std::vector<std::string> paths;
       std::stringstream pattern;
       pattern << seq_id << "_" <<  model_files_wo_extension[m] << "_.*.txt";
-      //std::cout << model_file_path.string() << "-------" << pattern.str() << std::endl;
-      v4r::utils::getFilesInDirectory(model_file_path, paths, "", pattern.str(), true);
+      v4r::utils::getFilesInDirectory(ss.str(), paths, "", pattern.str(), true);
       size_t max_inst = paths.size();
 
       for (size_t inst = 0; inst < max_inst; inst++)
@@ -499,8 +494,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cou
     std::string ext = scene_file_extension_;
     std::stringstream regex_ext_ss;
     regex_ext_ss << ".*." << ext;
-    bf::path dir = scenes_dir_;
-    v4r::utils::getFilesInDirectory( dir, scene_files, "", regex_ext_ss.str(), true);
+    v4r::utils::getFilesInDirectory( scenes_dir_, scene_files, "", regex_ext_ss.str(), true);
     std::cout << "Number of scenes:" << scene_files.size() << std::endl;
     for(size_t i=0; i < scene_files.size(); i++)
     {
@@ -513,8 +507,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cou
     std::string ext = model_file_extension_;
     std::stringstream regex_ext_ss;
     regex_ext_ss << ".*." << ext;
-    bf::path dir = models_dir_;
-    v4r::utils::getFilesInDirectory(dir, model_files, "", regex_ext_ss.str(), true);
+    v4r::utils::getFilesInDirectory(models_dir_, model_files, "", regex_ext_ss.str(), true);
 
     std::stringstream model_ext;
     model_ext << "." << model_file_extension_;
@@ -1829,8 +1822,6 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cop
           //check in directory the highest instance id for this model
           std::stringstream ss;
           ss << out_dir << "/" << seq_id;
-          bf::path model_file_path;
-          model_file_path = ss.str();
 
           if(!replace_model_ext_)
           {
@@ -1843,7 +1834,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cop
           std::stringstream pattern;
           pattern << scene_id << "_" <<  model_id << "_.*.txt";
 
-          v4r::utils::getFilesInDirectory(model_file_path, paths, "", pattern.str(), true);
+          v4r::utils::getFilesInDirectory(ss.str(), paths, "", pattern.str(), true);
           int inst = static_cast<int>(paths.size());
           std::cout << "current instances:" << inst << std::endl;
 

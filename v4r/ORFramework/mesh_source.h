@@ -142,7 +142,6 @@ namespace faat_pcl
         {
           std::stringstream pathmodel;
           pathmodel << dir << "/" << model.class_ << "/" << model.id_;
-          bf::path trained_dir = pathmodel.str ();
 
           model.views_.reset (new std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>);
           model.poses_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
@@ -161,12 +160,8 @@ namespace faat_pcl
           vis.addPointCloudNormals<PointInT, pcl::Normal>(model.assembled_, model.normals_assembled_, 50, 0.02, "normals");
           vis.spin();*/
 
-          if (bf::exists (trained_dir))
+          if (v4r::utils::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view_prefix_.*.pcd", false) != -1)
           {
-            //load views, poses and self-occlusions
-
-              v4r::utils::getFilesInDirectory(trained_dir, model.view_filenames_, "", ".*view_prefix_.*.pcd", false);
-
             if(load_into_memory_)
             {
               loadInMemorySpecificModel(dir, model);
@@ -290,8 +285,7 @@ namespace faat_pcl
 
           //get models in directory
           std::vector < std::string > files;
-          bf::path dir = path_;
-          v4r::utils::getFilesInDirectory(dir, files, "", ".*.ply", true);
+          v4r::utils::getFilesInDirectory(path_, files, "", ".*.ply", true);
 
           models_.reset (new std::vector<ModelTPtr>);
 

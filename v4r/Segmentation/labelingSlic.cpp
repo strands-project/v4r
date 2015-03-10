@@ -346,13 +346,9 @@ int main(int argc, char *argv[])
     pcl::console::parse_argument (argc, argv, "-img_path", img_path);
 
     bf::path img_path_bf = img_path;
-    if (bf::is_directory(img_path_bf))
+    std::vector < std::string > files_intern;
+    if (v4r::utils::getFilesInDirectory(img_path, files_intern, "", ".*\\.(jpg|JPG|png|PNG|jpeg|JPEG|bmp|BMP|pcd|PCD)", true) != -1)
     {
-        std::cout << "Loading files from directory " << img_path << std::endl;
-
-        std::vector < std::string > files_intern;
-        v4r::utils::getFilesInDirectory(img_path_bf, files_intern, "", ".*\\.(jpg|JPG|png|PNG|jpeg|JPEG|bmp|BMP|pcd|PCD)", true);
-
         for(size_t file_id=0; file_id < files_intern.size(); file_id++)
         {
             std::stringstream image_path_ss;
