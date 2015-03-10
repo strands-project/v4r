@@ -42,4 +42,4 @@
 #include "geometric_consistency.h"
 #include "geometric_consistency.hpp"
 
-PCL_INSTANTIATE_PRODUCT(GeometricConsistencyGrouping, ((pcl::PointXYZ)(pcl::PointXYZI)(pcl::PointXYZRGBA))((pcl::PointXYZ)(pcl::PointXYZI)(pcl::PointXYZRGBA)))
+PCL_INSTANTIATE_PRODUCT(GeometricConsistencyGrouping, ((pcl::PointXYZ)(pcl::PointXYZI)(pcl::PointXYZRGBA)(pcl::PointXYZRGB))((pcl::PointXYZ)(pcl::PointXYZI)(pcl::PointXYZRGBA)(pcl::PointXYZRGB)))

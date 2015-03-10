@@ -5,8 +5,7 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-
-OPTION(BUILD_GPU "Build the GPU-related subsystems" 1)
+SET(BUILD_GPU 0 CACHE BOOL "build gpu for recognition module")
 
 PROJECT(v4rORRecognition)
 

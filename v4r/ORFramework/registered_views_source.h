@@ -210,8 +210,13 @@ namespace faat_pcl
             std::cout << direc_ms.str() << std::endl;
 
             bf::path dirr = direc_ms.str();
-            faat_pcl::utils::getFilesInDirectory(dirr, view_filenames, "", ".*view_prefix_.*.pcd", false);
-            std::cout << view_filenames.size () << std::endl;
+            std::stringstream view_prefix;
+            view_prefix << ".*" << view_prefix_ << ".*.pcd";
+
+            std::string vp = view_prefix.str();
+
+            faat_pcl::utils::getFilesInDirectory(dirr, view_filenames, "", vp, false);
+            std::cout << "Number of views" << model.class_ << " " << model.id_ << view_filenames.size () << std::endl;
 
             for (size_t i = 0; i < view_filenames.size (); i++)
             {
