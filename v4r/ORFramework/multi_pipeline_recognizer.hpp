@@ -34,6 +34,8 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize()
     {
         recognizers_[i]->reinitialize();
     }
+
+    initialize();
 }
 
 template<typename PointInT>

@@ -1227,10 +1227,10 @@ faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCo
                             //mark all inliers
                             for (size_t j = 0; j < inlier_indices.size (); j++)
                             {
-                                std::cout << "1" << inlier_indices[j] << std::endl;
+                                /*std::cout << "1" << inlier_indices[j] << std::endl;
                                 std::cout << "2" << new_clique->size() << std::endl;
                                 std::cout << "3" << new_clique->at (inlier_indices[j]) << std::endl;
-                                std::cout << "4" << taken_corresps.size() << std::endl;
+                                std::cout << "4" << taken_corresps.size() << std::endl;*/
 
                                 taken_corresps[new_clique->at (inlier_indices[j])]++;
 
@@ -1359,7 +1359,7 @@ faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCo
 
                     if (ransac_threshold_ > 0)
                     {
-                        pcl::ScopeTime tt("ransac filtering");
+                        //pcl::ScopeTime tt("ransac filtering");
                         //ransac filtering
                         corr_rejector.getRemainingCorrespondences (temp_corrs, filtered_corrs);
                         //check if corr_rejector.getBestTransformation () was not found already
@@ -1408,7 +1408,7 @@ faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCo
                             }
                             else
                             {
-                                PCL_INFO("Normals are consistent, pushing filtered_corrs %d!!\n", static_cast<int>(filtered_corrs.size()));
+                                //PCL_INFO("Normals are consistent, pushing filtered_corrs %d!!\n", static_cast<int>(filtered_corrs.size()));
                                 found_transformations_.push_back (trans);
                                 model_instances.push_back (filtered_corrs);
 
