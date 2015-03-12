@@ -49,11 +49,13 @@
   <build_depend>libpcl-all-dev</build_depend>
   <build_depend>libpcl-apps-dev</build_depend> 
   <build_depend>libopenni-dev</build_depend>
+  <build_depend>libatlas-base-dev</build_depend>
  <!--  <build_depend>libglm-dev</build_depend> this did not work in trusty and indigo -->
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>libpcl-all-dev</run_depend>
   <run_depend>libpcl-apps-dev</run_depend>
+  <run_depend>libatlas-base-dev</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
