@@ -22,6 +22,12 @@ namespace v4r
   {
 
     public:
+      /** Returns folder names in a folder </br>
+      * @param dir
+      * @param rel_path_so_far
+      * @param relative_paths
+      * @return number of folders in folder
+      */
       static int
       getFoldersInDirectory (const std::string & dir,
                              const std::string & rel_path_so_far,
@@ -29,8 +35,7 @@ namespace v4r
 
 
 
-    /** Returns a the name of files in a folder </br>
-    * '(.*)bmp'
+    /** Returns file names in a folder </br>
     * @param dir
     * @param relative_paths
     * @param rel_path_so_far
