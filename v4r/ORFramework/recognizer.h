@@ -392,6 +392,11 @@ namespace faat_pcl
 
         }
 
+        virtual void reinitialize(std::vector<std::string> & load_ids)
+        {
+
+        }
+
         /*virtual void
         setHVAlgorithm (typename boost::shared_ptr<pcl::HypothesisVerification<PointInT, PointInT> > & alg) = 0;*/
 

@@ -250,6 +250,32 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       keypoints_cache_.clear();
       normals_cache_.clear();
 
+      std::vector<std::string> load_ids;
+      load_ids.clear();
+      source_->setModelList(load_ids);
+      source_->generate(training_dir_);
+
+      initialize(false);
+  }
+
+  template<template<class > class Distance, typename PointInT, typename FeatureT>
+  void
+  faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize(std::vector<std::string> & load_ids)
+  {
+      PCL_WARN("Reinitialize LocalRecognitionPipeline with list of load_ids\n");
+      std::cout << "List of models being loaded:" << load_ids.size() << std::endl;
+
+      for(size_t i=0; i < load_ids.size(); i++)
+      {
+        std::cout << " ---------- " << load_ids[i] << std::endl;
+      }
+
+      flann_models_.clear();
+      poses_cache_.clear();
+      keypoints_cache_.clear();
+      normals_cache_.clear();
+
+      source_->setModelList(load_ids);
       source_->generate(training_dir_);
 
       initialize(false);
