@@ -100,6 +100,8 @@ namespace faat_pcl
 
         void reinitialize();
 
+        void reinitialize(std::vector<std::string> & load_ids);
+
         void correspondenceGrouping();
 
         void getPoseRefinement(

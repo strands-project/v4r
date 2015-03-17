@@ -438,6 +438,11 @@ namespace faat_pcl
             }
 
             std::cout << m->class_ << " . " << m->id_ << std::endl;
+
+            //check if the model has to be loaded according to the list
+            if(!this->modelIdInList(m->id_))
+                continue;
+
             //check which of them have been trained using training_dir and the model_id_
             //load views, poses and self-occlusions for those that exist
             //generate otherwise

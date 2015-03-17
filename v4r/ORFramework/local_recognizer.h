@@ -458,6 +458,9 @@ namespace faat_pcl
         void
         reinitialize ();
 
+        void
+        reinitialize(std::vector<std::string> & load_ids);
+
         /**
          * \brief Performs recognition and pose estimation on the input cloud
          */

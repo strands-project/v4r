@@ -229,6 +229,9 @@ namespace faat_pcl
       bool compute_normals_;
       bool load_into_memory_;
 
+      //List of model ids that will be loaded
+      std::vector<std::string> model_list_to_load_;
+
       void
       getIdAndClassFromFilename (std::string & filename, std::string & id, std::string & classname)
       {
@@ -285,6 +288,28 @@ namespace faat_pcl
         load_views_ = true;
         compute_normals_ = false;
         load_into_memory_ = true;
+        model_list_to_load_.clear();
+      }
+
+      bool modelIdInList(std::string & id)
+      {
+          if(model_list_to_load_.empty())
+              return true;
+
+          for(size_t i=0; i < model_list_to_load_.size(); i++)
+          {
+              if(id.compare(model_list_to_load_[i]) == 0)
+              {
+                  return true;
+              }
+          }
+
+          return false;
+      }
+
+      void setModelList(std::vector<std::string> & list)
+      {
+          model_list_to_load_ = list;
       }
 
       void
