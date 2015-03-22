@@ -39,13 +39,19 @@ void tgTextureModel::syncTextures()
   for (unsigned i = 0; i < m_tex_cv.size(); i++)
   {
     tgTexture2D *tex = new tgTexture2D();
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     if (!m_tex_cv[i].empty())
     {
       if (!m_tex_cv[i].isContinuous())
         printf("[tgTextureModel::syncTextures] Warning, data of texture not memory aligned\n");
 
-      tex->SetTexEnvMode(GL_MODULATE);
+      if(i>=m_tex_env_mode.size())
+        tex->SetTexEnvMode(GL_MODULATE);
+      else
+        tex->SetTexEnvMode(m_tex_env_mode[i]);
+
       tex->Load(m_tex_cv[i].data, m_tex_cv[i].cols, m_tex_cv[i].rows, GL_RGB, GL_BGR, GL_UNSIGNED_BYTE);
     }
 
@@ -74,6 +80,7 @@ tgTextureModel::tgTextureModel(const tgTextureModel &m) :
     m.m_tex_cv[i].copyTo(this->m_tex_cv[i]);
 
   this->m_face_tex_id = m.m_face_tex_id;
+  this->m_tex_env_mode = m.m_tex_env_mode;
 }
 
 tgTextureModel::tgTextureModel(const tgRenderModel &m) :
@@ -196,7 +203,7 @@ void tgTextureModel::DrawFaces(bool textured, RenderMode rmode)
     m_pose.Deactivate();
   } else
   {
-    tgRenderModel::DrawFaces(true, rmode);
+    tgRenderModel::DrawFaces(rmode);
   }
 }
 

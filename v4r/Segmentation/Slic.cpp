@@ -12,7 +12,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <omp.h>
 #include "Slic.h"
-#include "v4r/KeypointTools/ScopeTime.hpp"
 
 namespace v4r
 {
@@ -89,6 +88,58 @@ void Slic::convertRGBtoLAB(const cv::Mat_<cv::Vec3b> &im_rgb, cv::Mat_<cv::Vec3d
       lab[2] = 200.0*(fy-fz);
     }
   }
+}
+
+/**
+ * convertRGBtoLAB
+ */
+void Slic::convertRGBtoLAB(double r, double g, double b, double &labL, double &labA, double &labB)
+{
+  double R, G, B;
+  double X, Y, Z, xr, yr, zr;
+  double fx, fy, fz;
+
+  double epsilon = 0.008856;  //actual CIE standard
+  double kappa   = 903.3;   //actual CIE standard
+
+  const double inv_Xr = 1./0.950456; //reference white
+  //const double inv_Yr = 1./1.0;    //reference white
+  const double inv_Zr = 1./1.088754; //reference white
+  const double inv_255 = 1./255;
+  const double inv_12 = 1./12.92;
+  const double inv_1 = 1./1.055;
+  const double inv_3 = 1./3.0;
+  const double inv_116 = 1./116.0;
+
+  R = r*inv_255;
+  G = g*inv_255;
+  B = b*inv_255;
+
+  if(R <= 0.04045)  r = R*inv_12;
+  else        r = pow((R+0.055)*inv_1,2.4);
+  if(G <= 0.04045)  g = G*inv_12;
+  else        g = pow((G+0.055)*inv_1,2.4);
+  if(B <= 0.04045)  b = B*inv_12;
+  else        b = pow((B+0.055)*inv_1,2.4);
+
+  X = r*0.4124564 + g*0.3575761 + b*0.1804375;
+  Y = r*0.2126729 + g*0.7151522 + b*0.0721750;
+  Z = r*0.0193339 + g*0.1191920 + b*0.9503041;
+
+  xr = X*inv_Xr;
+  yr = Y;//*inv_Yr;
+  zr = Z*inv_Zr;
+
+  if(xr > epsilon)  fx = pow(xr, inv_3);
+  else        fx = (kappa*xr + 16.0)*inv_116;
+  if(yr > epsilon)  fy = pow(yr, inv_3);
+  else        fy = (kappa*yr + 16.0)*inv_116;
+  if(zr > epsilon)  fz = pow(zr, inv_3);
+  else        fz = (kappa*zr + 16.0)*inv_116;
+
+  labL = 116.0*fy-16.0;
+  labA = 500.0*(fx-fy);
+  labB = 200.0*(fy-fz);
 }
 
 /**

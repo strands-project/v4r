@@ -19,6 +19,8 @@
 #include "KeypointPoseDetector.hh"
 #include "v4r/KeypointTools/SmartPtr.hpp"
 #include "v4r/KeypointBase/FeatureDetector_KD_FAST_IMGD.hh"
+#include "v4r/KeypointBase/CodebookMatcher.hh"
+#include "KeypointObjectRecognizerR2.hh"
 
 namespace kp
 {
@@ -44,15 +46,17 @@ public:
     LKPoseTracker::Parameter lk_param;
     ProjLKPoseTrackerR2::Parameter kt_param;
     FeatureDetector_KD_FAST_IMGD::Parameter det_param;
+    KeypointObjectRecognizerR2::Parameter or_param;
     Parameter( double _conf_reinit=0.05, bool _do_inc_pyr_lk=true,
       double _min_conf=0.3, int _min_conf_cnt=3,
       const KeypointPoseDetector::Parameter &_kd_param = KeypointPoseDetector::Parameter(),
       const LKPoseTracker::Parameter &_lk_param = LKPoseTracker::Parameter(),
       const ProjLKPoseTrackerR2::Parameter &_kt_param = ProjLKPoseTrackerR2::Parameter(),
-      const FeatureDetector_KD_FAST_IMGD::Parameter &_det_param = FeatureDetector_KD_FAST_IMGD::Parameter(250, 1.44, 2, 17, 2) ) 
+      const FeatureDetector_KD_FAST_IMGD::Parameter &_det_param = FeatureDetector_KD_FAST_IMGD::Parameter(250, 1.44, 2, 17, 2),
+      const KeypointObjectRecognizerR2::Parameter &_or_param=KeypointObjectRecognizerR2::Parameter())
     : conf_reinit(_conf_reinit), do_inc_pyr_lk(_do_inc_pyr_lk),
       min_conf(_min_conf), min_conf_cnt(_min_conf_cnt),
-      kd_param(_kd_param), lk_param(_lk_param), kt_param(_kt_param), det_param(_det_param) { }
+      kd_param(_kd_param), lk_param(_lk_param), kt_param(_kt_param), det_param(_det_param), or_param(_or_param) { }
   };
 
   
@@ -75,6 +79,9 @@ private:
   KeypointPoseDetector::Ptr kpDetector;
   ProjLKPoseTrackerR2::Ptr projTracker;
   LKPoseTracker::Ptr lkTracker;
+  KeypointObjectRecognizerR2::Ptr kpRecognizer;
+
+//  CodebookMatcher::Ptr cbMatcher;
 
   double viewPointChange(const Eigen::Vector3f &pt, const Eigen::Matrix4f &inv_pose1,
                          const Eigen::Matrix4f &inv_pose2);
@@ -84,6 +91,7 @@ private:
 
 public:
   cv::Mat dbg;
+  CodebookMatcher::Ptr cbMatcher;
 
   ObjectTrackerMono(const ObjectTrackerMono::Parameter &p=ObjectTrackerMono::Parameter());
   ~ObjectTrackerMono();
@@ -91,6 +99,7 @@ public:
   void setCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs);
   void setObjectCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs);
   void setObjectModel(const Object::Ptr &_model);
+  void reset();
 
   bool track(const cv::Mat &image, Eigen::Matrix4f &pose, double &out_conf);
 

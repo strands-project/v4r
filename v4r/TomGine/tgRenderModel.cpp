@@ -255,10 +255,10 @@ void tgRenderModel::Draw()
   m_pose.Deactivate();
 }
 
-void tgRenderModel::DrawFaces(bool lighting, RenderMode rmode)
+void tgRenderModel::DrawFaces(RenderMode rmode)
 {
 
-  if (lighting) {
+  if (m_coloring==FULL_COLORING) {
     m_material.Activate();
   } else {
     glDisable(GL_LIGHTING);
@@ -285,10 +285,6 @@ void tgRenderModel::DrawFaces(bool lighting, RenderMode rmode)
 
   }
   m_pose.Deactivate();
-
-  if (lighting) {
-    m_material.Deactivate();
-  }
 }
 
 void tgRenderModel::DrawNormals(float normal_length)

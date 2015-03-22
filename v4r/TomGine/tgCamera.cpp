@@ -659,6 +659,13 @@ void tgCamera::RotateY(float fAngle)
   fsu2pvu();
 }
 
+void tgCamera::Rotate(vec3 axis, float angle)
+{
+  f.rotate(angle, axis);
+  s.rotate(angle, axis);
+  u.rotate(angle, axis);
+}
+
 //void tgCamera::RotateZ(float fAngle){
 //	printf("tgCamera.RotateZ not implemented! \n");
 //}
@@ -670,9 +677,7 @@ void tgCamera::Orbit(vec3 vPoint, vec3 vAxis, float fAngle)
   d.rotate(fAngle, vAxis);
   pos = vPoint + d;
 
-  f.rotate(fAngle, vAxis);
-  s.rotate(fAngle, vAxis);
-  u.rotate(fAngle, vAxis);
+  Rotate(vAxis, fAngle);
 }
 
 void tgCamera::LookAt(const vec3 &pov)

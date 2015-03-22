@@ -69,7 +69,6 @@ void main()
   if(diffuseShading)
   {
     vec3 n = computeNormal(pos);
-//    vec3 s = normalize(lightPos - pos);
     color = vec4(diffuseLight * diffuseColor.rgb * max( dot(lightDir,n), 0.0 ), 1.0);
   }
   else

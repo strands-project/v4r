@@ -113,19 +113,28 @@ void FittingSurfaceDepthIM::initSurface(int order, int cps_width, int cps_height
   double ddx = double(m_roi.width+1)  / (m_nurbs.KnotCount(0) - 2*(order-2) - 1);
   double ddy = double(m_roi.height+1) / (m_nurbs.KnotCount(1) - 2*(order-2) - 1);
 
-  m_nurbs.MakeClampedUniformKnotVector (0, ddx);
-  m_nurbs.MakeClampedUniformKnotVector (1, ddy);
+  m_nurbs.MakeClampedUniformKnotVector(0, ddx);
+  m_nurbs.MakeClampedUniformKnotVector(1, ddy);
 
   for (int i = 0; i < m_nurbs.KnotCount(0); i++)
   {
-    double k = m_nurbs.Knot (0, i);
-    m_nurbs.SetKnot (0, i, k + m_roi.x-1);
+    double k = m_nurbs.Knot(0, i) + m_roi.x - 1;
+    m_nurbs.SetKnot(0, i, k);
   }
 
   for (int i = 0; i < m_nurbs.KnotCount(1); i++)
   {
-    double k = m_nurbs.Knot (1, i);
-    m_nurbs.SetKnot (1, i, k + m_roi.y-1);
+    double k = m_nurbs.Knot(1, i) + m_roi.y - 1;
+    m_nurbs.SetKnot(1, i, k);
+  }
+
+  // flip (such that normals point towards camera
+  int nk = m_nurbs.KnotCount(1);
+  for (int i = 0; i < (nk>>1); i++)
+  {
+    double k = m_nurbs.Knot(1, i);
+    m_nurbs.SetKnot (1, i, m_nurbs.Knot(1, nk-i-1));
+    m_nurbs.SetKnot (1, nk-i-1, k);
   }
 
   m_b = Eigen::VectorXd(m_nurbs.CVCount(),1);

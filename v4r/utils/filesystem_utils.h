@@ -35,7 +35,8 @@ namespace v4r
 
 
 
-    /** Returns file names in a folder </br>
+    /** Returns a the name of files in a folder </br>
+    * '(.*)bmp'
     * @param dir
     * @param relative_paths
     * @param rel_path_so_far

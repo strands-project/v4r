@@ -11,7 +11,7 @@
 #include <pcl/common/common.h>
 #include <v4r/ORRecognition/hypotheses_verification.h>
 #include "source.h"
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include "recognizer.h"
 #include <pcl/recognition/linemod/line_rgbd.h>
 #include <pcl/visualization/pcl_visualizer.h>

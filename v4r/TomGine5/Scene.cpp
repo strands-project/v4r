@@ -29,6 +29,11 @@ Scene::Scene(){
     m_clear=1;
     m_clearColor= glm::vec4(0);
 
+
+}
+
+void Scene::initInThread()
+{
     // init shader
     m_shadeDiffuse = new GLSLProgram();
     m_shadeDiffuse->compileShader(std::string(TOMGINE_5_SHADER) + "diffuse.fsh");
@@ -42,7 +47,6 @@ void Scene::addSceneObject(SceneObject *object)
 {
     object->initInContext(this);
     m_objects.push_back(object);
-
 }
 
 void Scene::removeSceneObject(SceneObject *object)

@@ -26,6 +26,7 @@ SET(SOURCE_CPP
   ArticulatedObject.cc
   HomographyDetector.cc
   io.cc
+  KeypointObjectRecognizerR2.cc
   KeypointPoseDetector.cc
   KeypointPoseDetectorRT.cc
   KeypointSlamRGBD2.cc
@@ -53,6 +54,7 @@ SET(SOURCE_H
   ArticulatedObject_serialization.hpp
   HomographyDetector.hh
   io.hh
+  KeypointObjectRecognizerR2.hh
   KeypointPoseDetector.hh
   KeypointPoseDetectorRT.hh
   KeypointSlamRGBD2.hh

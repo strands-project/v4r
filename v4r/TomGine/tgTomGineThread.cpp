@@ -267,6 +267,8 @@ tgTomGineThread::~tgTomGineThread()
   m_stopTomGineThread = true;
   sem_post(&renderSem);
   sem_post(&renderFinishedSem);
+  sem_post(&clearFinishedSem);
+  sem_post(&snapshotSem);
 
   pthread_join(thread_gl, NULL);
   pthread_join(thread_event, NULL);
@@ -422,7 +424,7 @@ void tgTomGineThread::GL_DrawCameras()
 
 void tgTomGineThread::GL_DrawPointCloud()
 {
-  //  glEnable (GL_POINT_SMOOTH);
+  glDisable (GL_POINT_SMOOTH);
 
   for (unsigned i = 0; i < this->m_pointclouds.size(); i++)
   {
@@ -760,6 +762,36 @@ void tgTomGineThread::GL_Draw(TomGine::tgEngine *render)
 }
 
 /***************************** PUBLIC *****************************/
+
+Event tgTomGineThread::WaitForEvent(Type type)
+{
+  Event event;
+  bool valid = false;
+  while (!valid && !this->m_renderingStopped)
+  {
+    pthread_mutex_lock(&eventMutex);
+    m_waitingForEvents = true;
+    pthread_mutex_unlock(&eventMutex);
+
+    sem_wait(&renderFinishedSem);
+    pthread_mutex_lock(&eventMutex);
+    m_waitingForEvents = false;
+    while (!m_waitingeventlist.empty())
+    {
+      event = m_waitingeventlist.front();
+      m_waitingeventlist.pop_front();
+
+      if (event.type == type)
+        valid = true;
+    }
+    pthread_mutex_unlock(&eventMutex);
+  }
+
+  if (!valid)
+    event.type = TMGL_None;
+
+  return event;
+}
 
 Event tgTomGineThread::WaitForEvent(Type type, Input input)
 {
@@ -1333,24 +1365,46 @@ int tgTomGineThread::AddModel(TomGine::tgModel *model)
   return id;
 }
 
-int tgTomGineThread::AddPointCloud(cv::Mat_<cv::Vec4f> cloud, float pointsize)
+int tgTomGineThread::AddPointCloud(const std::vector<TomGine::vec3> &cloud, TomGine::vec3 color, float pointsize)
+{
+  tgModel* tg_cloud = new tgModel;
+  tg_cloud->m_point_size = pointsize;
+  tg_cloud->m_colorpoints.resize(cloud.size());
+
+  for (size_t i = 0; i < cloud.size(); i++)
+  {
+      TomGine::tgColorPoint& cpt = tg_cloud->m_colorpoints[i];
+      const TomGine::vec3 &pt = cloud[i];
+      cpt.color[0] = static_cast<unsigned char>(255*color.x);
+      cpt.color[1] = static_cast<unsigned char>(255*color.y);
+      cpt.color[2] = static_cast<unsigned char>(255*color.z);
+      cpt.pos = vec3(pt[0], pt[1], pt[2]);
+  }
+  pthread_mutex_lock(&dataMutex);
+  this->m_pointclouds.push_back(tg_cloud);
+  int id = (this->m_pointclouds.size() - 1);
+  pthread_mutex_unlock(&dataMutex);
+  return id;
+}
+
+int tgTomGineThread::AddPointCloud(const cv::Mat_<cv::Vec4f>& cloud, float pointsize)
 {
   tgRGBValue color;
   tgModel* tg_cloud = new tgModel;
   tg_cloud->m_point_size = pointsize;
+  tg_cloud->m_colorpoints.resize(cloud.rows*cloud.cols);
 
   for (int i = 0; i < cloud.rows; i++)
   {
     for (int j = 0; j < cloud.cols; j++)
     {
-      TomGine::tgColorPoint cpt;
-      cv::Vec4f &pt = cloud(i, j);
+      TomGine::tgColorPoint& cpt = tg_cloud->m_colorpoints[i*cloud.cols + j];
+      const cv::Vec4f &pt = cloud(i, j);
       color.float_value = pt[3];
       cpt.color[0] = color.Red;
       cpt.color[1] = color.Green;
       cpt.color[2] = color.Blue;
       cpt.pos = vec3(pt[0], pt[1], pt[2]);
-      tg_cloud->m_colorpoints.push_back(cpt);
     }
   }
   pthread_mutex_lock(&dataMutex);
@@ -1365,17 +1419,17 @@ int tgTomGineThread::AddPointCloud(const std::vector<cv::Vec4f> &cloud, float po
   tgRGBValue color;
   tgModel* tg_cloud = new tgModel;
   tg_cloud->m_point_size = pointsize;
+  tg_cloud->m_colorpoints.resize(cloud.size());
 
   for (unsigned i = 0; i < cloud.size(); i++)
   {
-    TomGine::tgColorPoint cpt;
+    TomGine::tgColorPoint& cpt = tg_cloud->m_colorpoints[i];
     const cv::Vec4f &pt = cloud[i];
     color.float_value = pt[3];
     cpt.color[0] = color.Red;
     cpt.color[1] = color.Green;
     cpt.color[2] = color.Blue;
     cpt.pos = vec3(pt[0], pt[1], pt[2]);
-    tg_cloud->m_colorpoints.push_back(cpt);
   }
   pthread_mutex_lock(&dataMutex);
   this->m_pointclouds.push_back(tg_cloud);
@@ -1388,17 +1442,16 @@ int tgTomGineThread::AddPointCloud(const cv::Mat_<cv::Vec3f> &cloud, uchar r, uc
 { 
   tgModel* tg_cloud = new tgModel;
   tg_cloud->m_point_size = pointsize;
+  tg_cloud->m_colorpoints.resize(cloud.rows*cloud.cols);
 
   for (int i = 0; i < cloud.rows*cloud.cols; i++)
   {
-    TomGine::tgColorPoint cpt;
+    TomGine::tgColorPoint& cpt = tg_cloud->m_colorpoints[i];
     const cv::Vec3f &pt = cloud(i);
-    if (pt[2]>=1000) continue;
     cpt.color[0] = r;
     cpt.color[1] = g;
     cpt.color[2] = b;
-    cpt.pos = vec3(pt[0], pt[1], pt[2]); 
-    tg_cloud->m_colorpoints.push_back(cpt);
+    cpt.pos = vec3(pt[0], pt[1], pt[2]);
   }
   pthread_mutex_lock(&dataMutex);
   this->m_pointclouds.push_back(tg_cloud);
@@ -1411,18 +1464,18 @@ int tgTomGineThread::AddPointCloud(const cv::Mat_<cv::Vec3f> &cloud, const cv::M
 { 
   tgModel* tg_cloud = new tgModel;
   tg_cloud->m_point_size = pointsize;
+  int s = std::min<int>(cloud.rows*cloud.cols, image.rows*image.cols);
+  tg_cloud->m_colorpoints.resize(s);
   
-  for (int i = 0; i < cloud.rows*cloud.cols && i < image.rows*image.cols; i++)
+  for (int i = 0; i < s; i++)
   {
-    TomGine::tgColorPoint cpt;
+    TomGine::tgColorPoint& cpt = tg_cloud->m_colorpoints[i];
     const cv::Vec3f &pt = cloud(i);
     const cv::Vec3b &col = image(i);
-    if (pt[2]>=1000) continue;
     cpt.color[0] = col[2];
     cpt.color[1] = col[1];
     cpt.color[2] = col[0];
     cpt.pos = vec3(pt[0], pt[1], pt[2]);
-    tg_cloud->m_colorpoints.push_back(cpt);
   }
   pthread_mutex_lock(&dataMutex);
   this->m_pointclouds.push_back(tg_cloud);
@@ -1458,9 +1511,68 @@ void tgTomGineThread::SetPoint3D(int id, float x, float y, float z)
     printf("[tgTomGineThread::SetPoint3D] Warning index out of bounds: %d.\n", id);
     return;
   }
-  this->m_points3D[id].pos.x = x;
-  this->m_points3D[id].pos.y = y;
-  this->m_points3D[id].pos.z = z;
+  m_points3D[id].pos.x = x;
+  m_points3D[id].pos.y = y;
+  m_points3D[id].pos.z = z;
+  pthread_mutex_unlock(&dataMutex);
+}
+
+void tgTomGineThread::SetLine2D(int id,
+                                float x1, float y1, float x2, float y2,
+                                uchar r, uchar g, uchar b, float width)
+{
+  if (this->m_renderingStopped)
+    return;
+
+  pthread_mutex_lock(&dataMutex);
+  if (id < 0 || id >= (int) this->m_lines2D.size())
+  {
+    pthread_mutex_unlock(&dataMutex);
+    printf("[tgTomGineThread::SetLine2D] Warning index out of bounds: %d.\n", id);
+    return;
+  }
+  m_lines2D[id] = TomGine::tgLine(vec3(x1, y1, 0.0), vec3(x2, y2, 0.0));
+  m_lineCols2D[id] = vec3(float(r) / 255.0f, float(g) / 255.0f, float(b) / 255.0f);
+  m_lineWidth2D[id] = width;
+  pthread_mutex_unlock(&dataMutex);
+}
+
+void tgTomGineThread::SetLine3D(int id,
+                                float x1, float y1, float z1, float x2, float y2, float z2,
+                                uchar r, uchar g, uchar b, float width)
+{
+  if (this->m_renderingStopped)
+    return;
+
+  pthread_mutex_lock(&dataMutex);
+  if (id < 0 || id >= (int) this->m_lines3D.size())
+  {
+    pthread_mutex_unlock(&dataMutex);
+    printf("[tgTomGineThread::SetLine3D] Warning index out of bounds: %d.\n", id);
+    return;
+  }
+  m_lines3D[id] = TomGine::tgLine(vec3(x1, y1, z1), vec3(x2, y2, z2));
+  m_lineCols3D[id] = vec3(float(r) / 255.0f, float(g) / 255.0f, float(b) / 255.0f);
+  m_lineWidth3D[id] = width;
+  pthread_mutex_unlock(&dataMutex);
+}
+
+void tgTomGineThread::SetLine3D(int id, const TomGine::tgLine& line,
+                                uchar r, uchar g, uchar b, float width)
+{
+  if (this->m_renderingStopped)
+    return;
+
+  pthread_mutex_lock(&dataMutex);
+  if (id < 0 || id >= (int) this->m_lines3D.size())
+  {
+    pthread_mutex_unlock(&dataMutex);
+    printf("[tgTomGineThread::SetLine3D] Warning index out of bounds: %d.\n", id);
+    return;
+  }
+  m_lines3D[id] = line;
+  m_lineCols3D[id] = vec3(float(r) / 255.0f, float(g) / 255.0f, float(b) / 255.0f);
+  m_lineWidth3D[id] = width;
   pthread_mutex_unlock(&dataMutex);
 }
 
@@ -1665,6 +1777,7 @@ void tgTomGineThread::StartRecording(std::string path, unsigned fps)
 {
   if (this->m_renderingStopped)
     return;
+
   SetFrameRate(fps);
   pthread_mutex_lock(&dataMutex);
   m_recorderFrame = 0;
@@ -1676,8 +1789,9 @@ void tgTomGineThread::StartRecording(std::string path, unsigned fps)
 
 void tgTomGineThread::StopRecording()
 {
-  if (this->m_renderingStopped)
+  if(this->m_renderingStopped)
     return;
+
   SetFrameRate(0);
   pthread_mutex_lock(&dataMutex);
   m_record = false;
@@ -1688,6 +1802,7 @@ void tgTomGineThread::GetDepthBuffer(cv::Mat1f &z, TomGine::tgCamera &cam)
 {
   if (this->m_renderingStopped)
     return;
+
   pthread_mutex_lock(&dataMutex);
   this->m_waitForZBuffer = true;
   sem_post(&renderSem);
@@ -1705,6 +1820,7 @@ void tgTomGineThread::Clear()
 {
   if (this->m_renderingStopped)
     return;
+
   pthread_mutex_lock(&dataMutex);
   m_clearcommand = GL_CLEAR_ALL;
   m_clearindex = 0;
@@ -1720,6 +1836,9 @@ void tgTomGineThread::Clear()
 
 void tgTomGineThread::ClearPointClouds()
 {
+  if(m_renderingStopped)
+    return;
+
   pthread_mutex_lock(&dataMutex);
   m_clearcommand = GL_CLEAR_POINTCLOUDS;
   sem_post(&renderSem);
@@ -1783,6 +1902,9 @@ void tgTomGineThread::ClearLines3D()
 
 void tgTomGineThread::ClearModels()
 {
+  if(m_renderingStopped)
+    return;
+
   ClearModels2D();
   ClearModels3D();
   ClearModelPointers();
@@ -1790,6 +1912,9 @@ void tgTomGineThread::ClearModels()
 
 void tgTomGineThread::ClearModels2D()
 {
+  if(m_renderingStopped)
+    return;
+
   pthread_mutex_lock(&dataMutex);
   m_clearcommand = GL_CLEAR_MODELS_2D;
   sem_post(&renderSem);
@@ -1804,6 +1929,9 @@ void tgTomGineThread::ClearModels2D()
 
 void tgTomGineThread::ClearModels3D()
 {
+  if(m_renderingStopped)
+    return;
+
   pthread_mutex_lock(&dataMutex);
   m_clearcommand = GL_CLEAR_MODELS_3D;
   sem_post(&renderSem);
@@ -1818,6 +1946,9 @@ void tgTomGineThread::ClearModels3D()
 
 void tgTomGineThread::ClearModels3DFrom(int id)
 {
+  if(m_renderingStopped)
+    return;
+
   pthread_mutex_lock(&dataMutex);
   m_clearcommand = GL_CLEAR_MODELS_3D;
   m_clearindex = id;
@@ -1839,6 +1970,9 @@ void tgTomGineThread::ClearModelPointers()
 
 void tgTomGineThread::DragDropModels(float speed)
 {
+  if(m_renderingStopped)
+    return;
+
   this->StartEventListener(100);
   bool stopDragDrop(false);
   while (!this->Stopped() && !stopDragDrop)

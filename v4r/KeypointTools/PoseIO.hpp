@@ -52,6 +52,23 @@ inline bool readPose(const std::string &filename, std::string &label, Eigen::Mat
   return false;
 }
 
+/**
+ * readPose
+ */
+inline bool readPose(const std::string &filename, Eigen::Matrix4f &pose)
+{
+  std::ifstream in(filename.c_str(), std::ios::in);
+  if (in.is_open())
+  {
+    for (unsigned v=0; v<4; v++)
+      for (unsigned u=0; u<4; u++)
+        in>>pose(v,u);
+    in.close();
+    return true;
+  }
+  return false;
+}
+
 }
 
 #endif

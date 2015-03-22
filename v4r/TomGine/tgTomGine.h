@@ -46,4 +46,24 @@
 #include "tgTimer.h"
 #include "tgTomGineThread.h"
 
+namespace TomGine{
+
+static void cut_file_name(std::string full_file_name, std::string& file_name, std::string& path)
+{
+  size_t c_slash_idx = full_file_name.find_last_of("/\\");
+  size_t c_dot_idx = full_file_name.find_last_of(".");
+  if(c_slash_idx == std::string::npos)
+    c_slash_idx = 0;
+  else
+    c_slash_idx++;
+  if(c_dot_idx == std::string::npos || c_dot_idx < c_slash_idx)
+    c_dot_idx = full_file_name.size();
+  file_name = full_file_name.substr(c_slash_idx,c_dot_idx-c_slash_idx);
+  path = full_file_name.substr(0, c_slash_idx);
+  if(c_slash_idx==0)
+    path= "./";
+}
+
+}
+
 #endif

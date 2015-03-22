@@ -8,7 +8,7 @@
 #ifndef REC_FRAMEWORK_IMAGE_LOCAL_ESTIMATOR_H_
 #define REC_FRAMEWORK_IMAGE_LOCAL_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 
 namespace faat_pcl
 {

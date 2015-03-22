@@ -16,14 +16,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author simon.schreiberhuber
+ * @author simon.schreiberhuber, thomas.moerwald
  *
  */
 #ifndef _MESH_H_
 #define _MESH_H_
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
+#include <assimp/mesh.h>
 #include "v4r/TomGine5/Scene.h"
 #include "v4r/TomGine5/GLSLProgram.h"
 
@@ -32,8 +31,8 @@
 namespace tg{
 class Mesh : public SceneObject{
 private:
-    Assimp::Importer m_importer;
-    const aiScene* m_scene;
+    aiMesh* m_mesh;
+//    const aiScene* m_scene;
     unsigned int m_faceCount;
 
     GLSLProgram* m_shader;
@@ -51,6 +50,7 @@ private:
     boost::mutex poseMutex;
 
 public:
+    Mesh();
     Mesh(std::string filePath);
     ~Mesh();
 
@@ -61,6 +61,11 @@ public:
     glm::vec3 getCenter();
 
     void setPose(const glm::mat4& pose);
+
+    aiMesh* getAssimpMesh(){ return m_mesh; }
+    void ExportAssimpMesh(std::string filename);
+
+    static void ExportToPLY(const aiMesh *mesh, std::string filename);
 };
 
 }

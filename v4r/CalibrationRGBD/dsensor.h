@@ -47,7 +47,9 @@ public:
     CDepthColorSensor(const CDepthColorCam& cam);
 
     //! Open a PrimeSense device by number.
-    bool OpenDevice(int i, int stream=openni::SENSOR_COLOR);
+    bool OpenDevice(int i,
+                    int stream=openni::SENSOR_COLOR,
+                    openni::ImageRegistrationMode img_reg_mode=openni::IMAGE_REGISTRATION_OFF);
 
     //! Closes the active device and all streams associated with it.
     bool CloseDevice();

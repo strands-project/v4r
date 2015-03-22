@@ -220,6 +220,9 @@ public:
 
   void PrintUsage();
 
+  /** @brief Blocks and waits for a specific event type.
+   *  @param type Event type to wait for (e.g. TMGL_Release, TMGL_Press, TMGL_Motion) */
+  TomGine::Event WaitForEvent(Type type);
   /** @brief Blocks and waits for a specific event.
    *  @param type Event type to wait for (e.g. TMGL_Release, TMGL_Press, TMGL_Motion)
    *  @param input Event input to wait for (e.g. TMGL_Button1, TMGL_a, TMGL_Escape) */
@@ -347,10 +350,14 @@ public:
    *  @param model	The pointer to a tgModel.
    *  @return	Unique id of the model added.*/
   int AddModel(TomGine::tgModel *model);
+  /** @brief Adds a point cloud to the scene.
+   *  @param cloud Vector of points in TomGine vector format.
+   *  @return Unique id of the point cloud added. */
+  int AddPointCloud(const std::vector<TomGine::vec3> &cloud, TomGine::vec3 color=TomGine::vec3(1,1,1), float pointsize=1.0);
   /** @brief Adds a colored point cloud to the scene.
    *  @param cloud Cloud of points in OpenCV vector format. 4th entry is float-encoded RGBA color.
    *  @return Unique id of the point cloud added. */
-  int AddPointCloud(cv::Mat_<cv::Vec4f> cloud, float pointsize=1.0);
+  int AddPointCloud(const cv::Mat_<cv::Vec4f> &cloud, float pointsize=1.0);
   /** @brief Adds a colored point cloud to the scene.
    *  @param cloud Vector of points in OpenCV vector format. 4th entry is float-encoded RGBA color.
    *  @return Unique id of the point cloud added. */
@@ -370,6 +377,26 @@ public:
   /** @brief  Set a point in 3D to the scene.
    *  @param  x,y,z   position of the point. */
   void SetPoint3D(int id, float x, float y, float z);
+  /** @brief  Set a line in 2D to the scene.
+   *  @param  x1,y1  Start point of the line.
+   *  @param  x2,y2  End point of the line.
+   *  @param  r,g,b   Color of the line.
+   *  @param  width   Width of the line in pixel.  */
+  void SetLine2D(int id, float x1, float y1, float x2, float y2, uchar r = 255, uchar g = 0, uchar b = 0,
+      float width = 1.0f);
+  /** @brief	Set a line in 3D to the scene.
+   *  @param	x1,y1,z1	Start point of the line.
+   *  @param 	x2,y2,z2	End point of the line.
+   *  @param	r,g,b		Color of the line.
+   *  @param	width		Width of the line in pixel.	 */
+  void SetLine3D(int id, float x1, float y1, float z1, float x2, float y2, float z2, uchar r = 255,
+      uchar g = 0, uchar b = 0, float width = 1.0f);
+  /** @brief	Set a line in 3D to the scene.
+   *  @param	x1,y1,z1	Start point of the line.
+   *  @param 	x2,y2,z2	End point of the line.
+   *  @param	r,g,b		Color of the line.
+   *  @param	width		Width of the line in pixel.	 */
+  void SetLine3D(int id, const TomGine::tgLine& line, uchar r = 255, uchar g = 0, uchar b = 0, float width = 1.0f);
   /** @brief Sets a label in 2D to the scene.
    *  @param text Character string of the label
    *  @param size The font size in points

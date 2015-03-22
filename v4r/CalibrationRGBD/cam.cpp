@@ -291,6 +291,16 @@ Vec3f CCam::UnProject(const Vec2i& u) const {
 
 }
 
+Vec3f CCam::UnProjectLocalDistorted(const Vec2i& u) const
+{
+  Vec3f xd;
+  xd[0] = (1/m_f[0])*((float)u[0]-m_c[0]);
+  xd[1] = (1/m_f[1])*((float)u[1]-m_c[1]);
+  xd[2] = 1.0f;
+
+  return xd;
+}
+
 Vec3f CCam::UnProjectLocal(const Vec2i& u) const {
 
   /* CAVEAT: Distortion model is usually not invertible. Here we use

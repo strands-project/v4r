@@ -53,7 +53,7 @@
 #include <pcl/registration/correspondence_estimation.h>
 
 #include <v4rexternal/EDT/propagation_distance_field.h>
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 
 namespace faat_pcl
 {

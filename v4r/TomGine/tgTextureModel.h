@@ -41,7 +41,9 @@ public: //todo PRIVATE !!!
 
 public:
   std::vector<cv::Mat3b> m_tex_cv;          ///< Textures of the model as cv::Mat3b
+  std::vector<GLint> m_tex_env_mode;        ///< Texture environment mode for each texture
   std::vector<unsigned> m_face_tex_id;      ///< index of tgTexture2D in m_textures for each face in tgModel::m_face
+
 
   /** @brief constructors and copy-constructors */
   tgTextureModel();

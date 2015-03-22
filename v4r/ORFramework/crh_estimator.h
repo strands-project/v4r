@@ -8,7 +8,7 @@
 #ifndef REC_FRAMEWORK_CRH_ESTIMATOR_H_
 #define REC_FRAMEWORK_CRH_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include "global_estimator.h"
 #include "normal_estimator.h"
 #include <pcl/features/crh.h>

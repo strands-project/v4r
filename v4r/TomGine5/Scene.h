@@ -57,6 +57,7 @@ protected:
 public:
     Scene();
     virtual ~Scene(){}
+    void initInThread();
     virtual void setCam(SceneCam* cam){m_cam=cam;}
     SceneCam* getCam(){return m_cam;}
     virtual void addSceneObject(SceneObject* object);

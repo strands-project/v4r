@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 2.6)
 SET(V4R_SEGMENTATION 1 CACHE BOOL "Segmentation algorithms" )
 IF(V4R_SEGMENTATION)
 
@@ -9,8 +10,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS} -std=c++0x)
 
-find_package(PkgConfig REQUIRED)
-pkg_search_module(EIGEN3 REQUIRED eigen3)
+find_package(Eigen3 REQUIRED eigen3)
 include_directories(${EIGEN3_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
 find_package(OpenMP)
@@ -34,16 +34,6 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${Boost_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${Boost_LIBRARIES})
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
-
-
-add_executable(slicLabeling labelingSlic.cpp)
-target_link_libraries(slicLabeling
-        ${OpenCV_LIBS}
-        ${PCL_LIBRARIES}
-        ${PROJECT_NAME}
-        ${Boost_LIBRARIES}
-        v4rUtils
-)
 
 ENDIF(V4R_SEGMENTATION)
 

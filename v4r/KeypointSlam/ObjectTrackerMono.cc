@@ -4,7 +4,6 @@
  * Copyright (c) 2014, Johann Prankl, All rights reserved.
  * @author Johann Prankl (prankl@acin.tuwien.ac.at)
  *
- * TODO: We should store the camera parameter of the learning camera!!!!!!
  */
 
 #include "ObjectTrackerMono.hh"
@@ -35,6 +34,7 @@ ObjectTrackerMono::ObjectTrackerMono(const ObjectTrackerMono::Parameter &p)
   kpDetector.reset(new KeypointPoseDetector(param.kd_param,det,estDesc));
   projTracker.reset(new ProjLKPoseTrackerR2(param.kt_param));
   lkTracker.reset(new LKPoseTracker(param.lk_param));
+  kpRecognizer.reset(new KeypointObjectRecognizerR2(param.or_param,det,estDesc));
 }
 
 ObjectTrackerMono::~ObjectTrackerMono()
@@ -56,72 +56,6 @@ double ObjectTrackerMono::viewPointChange(const Eigen::Vector3f &pt, const Eigen
 
   return a;
 }
-
-/**
- * addKeyframe
- */
-//bool ObjectTrackerMono::addKeyframe(const ObjectView &view, const Eigen::Matrix4f &delta_pose, const Eigen::Matrix4f &view_pose, const Eigen::Matrix4f &pose, int width, int height, double conf)
-//{
-//  bool add_kf = false;
-
-//  if (view.cam_points.size()<4)
-//  {
-//    //cout<<"[ObjectTrackerMono::addKeyframe] add keyframes no points!"<<endl;
-//    return true;
-//  }
-
-//  if (conf_cnt<param.min_conf_cnt)
-//  {
-//    //cout<<"[ObjectTrackerMono::addKeyframe] do not add keyframe (conf_cnt<param.min_conf_cnt)"<<endl;
-//    return false;
-//  }
-
-//  if (conf < param.add_keyframe_conf)
-//    return true;
-
-//  // check angle deviation
-//  Eigen::Matrix4f inv1, inv2;
-
-//  invPose(view_pose,inv1);
-//  invPose(pose, inv2);
-
-//  double angle = viewPointChange(view.center, inv1, inv2);
-//  //cout<<"[ObjectTrackerMono::addKeyframe] angle="<<angle*180./M_PI<<endl;
-
-//  if (angle > rad_add_keyframe_angle)
-//    return true;
-
-//  // check viewpoint overlap
-//  Eigen::Vector2f im_pt;
-//  Eigen::Vector3f pt3;
-//  bool have_dist = !dist_coeffs.empty();
-//  int cnt = 0.;
-
-//  Eigen::Matrix3f R = delta_pose.topLeftCorner<3, 3>();
-//  Eigen::Vector3f t = delta_pose.block<3,1>(0, 3);
-
-//  for (unsigned i=0; i<view.cam_points.size(); i++)
-//  {
-//    pt3 = R*view.cam_points[i] + t;
-
-//    if (have_dist)
-//      projectPointToImage(&pt3[0], intrinsic.ptr<double>(), dist_coeffs.ptr<double>(), &im_pt[0]);
-//    else projectPointToImage(&pt3[0], intrinsic.ptr<double>(), &im_pt[0]);
-
-//    if (im_pt[0]>=0 && im_pt[0]<width && im_pt[1]>=0 && im_pt[1]<height)
-//    {
-//      cnt++;
-//    }
-//  }
-  
-//  //cout<<"[ObjectTrackerMono::addKeyframe] overlap="<<double(cnt) / double(view.cam_points.size())<<endl;
-//  if (double(cnt) / double(view.cam_points.size()) < param.add_keyframe_view_overlap)
-//    return true;
-
-//  //cout<<"[ObjectTrackerMono::addKeyframe] add keyframe: "<<add_kf<<endl;
-
-//  return add_kf;
-//}
 
 /**
  * @brief ObjectTrackerMono::updateView
@@ -158,6 +92,8 @@ void ObjectTrackerMono::updateView(const Eigen::Matrix4f &pose, const Object &mo
     projTracker->setModel(view, model.cameras[view->camera_id]);
     lkTracker->setModel(view);
   }
+  //--
+  //cout<<idx<<endl;
 }
 
 /**
@@ -169,17 +105,73 @@ void ObjectTrackerMono::updateView(const Eigen::Matrix4f &pose, const Object &mo
  */
 double ObjectTrackerMono::reinit(const cv::Mat_<unsigned char> &im, Eigen::Matrix4f &pose, ObjectView::Ptr &view)
 {
-  view = model->views[rand()%model->views.size()];
+//--
+//  std::vector< std::pair<int, int> > view_rank;
+//  std::vector< cv::KeyPoint > keys;
+//  cv::Mat descs;
 
-  kpDetector->setModel(view);
-  projTracker->setModel(view, model->cameras[view->camera_id]);
-  lkTracker->setModel(view);
+//  kp::FeatureDetector::Ptr detector(new FeatureDetector_KD_FAST_IMGD(param.det_param));
+//  kp::FeatureDetector::Ptr descEstimator = detector;
 
-  return kpDetector->detect(im, pose);
+//  detector->detect(im, keys);
+//  descEstimator->extract(im, keys, descs);
+
+//  { kp::ScopeTime t("cbMatcher->queryViewRank");
+//  cbMatcher->queryViewRank(descs, view_rank);
+//  }
+
+//  for (unsigned i=0; i<view_rank.size(); i++)
+//    cout<<view_rank[i].first<<" ";
+//  cout<<endl;
+
+//  if (view_rank.size()>0)
+//  { view = model->views[view_rank[0].first]; cout<<"view: "<<view_rank[0].first; }
+//  else return 0.;
+// --
+
+  // use object recognizer
+  if (model->haveCodebook())
+  {
+    int view_idx;
+    double conf = kpRecognizer->detect(im, pose, view_idx);
+
+    if (view_idx != -1)
+    {
+      view = model->views[view_idx];
+      kpDetector->setModel(view);
+      projTracker->setModel(view, model->cameras[view->camera_id]);
+      lkTracker->setModel(view);
+    }
+
+    return conf;
+  }
+  else
+  {
+    // random sample views and try to reinit
+    view = model->views[rand()%model->views.size()];
+
+    kpDetector->setModel(view);
+    projTracker->setModel(view, model->cameras[view->camera_id]);
+    lkTracker->setModel(view);
+
+    return kpDetector->detect(im, pose);
+  }
 }
 
 
 /***************************************************************************************/
+
+/**
+ * @brief ObjectTrackerMono::reset
+ */
+void ObjectTrackerMono::reset()
+{
+  conf = 0;
+  conf_cnt = 0;
+  not_conf_cnt = 1000;
+  view.reset(new ObjectView(0));
+}
+
 
 /**
  * @brief ObjectTrackerMono::track
@@ -260,6 +252,7 @@ void ObjectTrackerMono::setCameraParameter(const cv::Mat &_intrinsic, const cv::
   kpDetector->setCameraParameter(intrinsic, dist_coeffs);
   lkTracker->setCameraParameter(intrinsic, dist_coeffs);
   projTracker->setTargetCameraParameter(intrinsic, dist_coeffs);
+  kpRecognizer->setCameraParameter(intrinsic, dist_coeffs);
 }
 
 /**
@@ -293,6 +286,8 @@ void ObjectTrackerMono::setObjectCameraParameter(const cv::Mat &_intrinsic, cons
  */
 void ObjectTrackerMono::setObjectModel(const Object::Ptr &_model)
 {
+  reset();
+
   model = _model;
 
   // set camera parameter
@@ -322,6 +317,13 @@ void ObjectTrackerMono::setObjectModel(const Object::Ptr &_model)
       setObjectCameraParameter(cam, dcoeffs);
     }
   }
+
+  if (model->haveCodebook())
+  {
+    // TODO: set codebook and gererate flann
+    // pRecognizer->set....
+  }
+  //kpRecognizer->setModel(model);
 }
 
 }

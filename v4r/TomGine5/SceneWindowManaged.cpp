@@ -111,6 +111,8 @@ void SceneWindowManaged::initInThread()
   window = new SceneWindow(width,height,title,share);
   OpenGLInit();
 
+  Scene::initInThread();
+
   //after we are done, we should notify the waiting constructor
   //printf("before unlocking\n");
   //fflush(stdout);

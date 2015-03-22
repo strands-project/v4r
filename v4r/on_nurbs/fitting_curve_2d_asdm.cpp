@@ -369,16 +369,19 @@ FittingCurve2dASDM::assembleInterior (double wInt, double sigma2, double rScale,
     if (p < m_data->interior_weight_function.size ())
       wFunction = m_data->interior_weight_function[p];
 
-    m_data->interior_line_start.push_back (pt);
-    m_data->interior_line_end.push_back (pcp);
-    m_data->interior_line_flag.push_back(0);
+
 
     double w (wInt);
     if (z (2) > 0.0 && wFunction)
       w = wInt * exp (-(error * error) * ds);
 
     if (w > 1e-6) // avoids ill-conditioned matrix
+    {
       addPointConstraint (m_data->interior_param[p], m_data->interior[p], n_prev, t_prev, rho_prev, d, w, row);
+      m_data->interior_line_start.push_back (pt);
+      m_data->interior_line_end.push_back (pcp);
+      m_data->interior_line_flag.push_back(0);
+    }
   }
 
   //  printf("[FittingCurve2dASDM::assembleInterior] d>0: %d d<0: %d\n", i1, i2);
@@ -495,9 +498,9 @@ FittingCurve2dASDM::assembleClosestPoints (const std::vector<double> &elements, 
     if (w > 0.0)
     {
       addPointConstraint (xi, p2, n_prev, t_prev, rho_prev, d, w, row);
-//      m_data->interior_line_start.push_back(p1);
-//      m_data->interior_line_end.push_back(p2);
-//      m_data->interior_line_flag.push_back(1);
+      m_data->interior_line_start.push_back(p1);
+      m_data->interior_line_end.push_back(p2);
+      m_data->interior_line_flag.push_back(1);
     }
 
   }

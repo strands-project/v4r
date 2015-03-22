@@ -22,6 +22,8 @@
 #ifndef _POINT_CLOUD_PROJECTED_
 #define _POINT_CLOUD_PROJECTED_
 
+#include <assimp/mesh.h>
+
 #include "Scene.h"
 #include "GLTexture.h"
 #include "GLSLProgram.h"
@@ -42,6 +44,8 @@ private:
     //there should be several uniforms for matrices and stuff
     GLuint mvpUniform;//uniform of modelview projection matrix
 
+    std::vector<glm::vec2> positions;
+    std::vector<glm::vec2> texcoords;
     GLuint polyCount;
     std::vector<GLuint> gridIndexData;
 
@@ -58,7 +62,7 @@ private:
 
     bool diffuseShading;
     glm::vec2 f;
-    glm::vec2 uv0;
+    glm::vec2 c;
     float depthScale;
     glm::mat4 modelMat;
     float pointSize;
@@ -69,7 +73,7 @@ private:
 public:
 
     PointCloudProjected();
-    PointCloudProjected(cv::Mat depth,cv::Mat rgb,glm::vec2 f,glm::vec2 uv0,float depthScale=1);
+    PointCloudProjected(cv::Mat depth,cv::Mat rgb,glm::vec2 f,glm::vec2 c,float depthScale=1);
     /**
       * I hate to say it, but the destructor has to wait for removedWhileInContext to be finished
       */
@@ -89,6 +93,8 @@ public:
     double getMeanDepth(){ return meanDepth; }
 
     void setDiffuse(bool v) { diffuseShading=v; }
+
+    void getMesh(aiMesh *mesh);
 
 };
 }

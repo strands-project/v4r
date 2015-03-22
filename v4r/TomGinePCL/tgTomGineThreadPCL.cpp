@@ -253,6 +253,72 @@ tgTomGineThreadPCL::AddPointCloudPCL (const pcl::PointCloud<pcl::PointXYZRGBL> &
   return id;
 }
 
+void
+tgTomGineThreadPCL::SetPointCloudPCL(int id, const pcl::PointCloud<pcl::PointXYZRGBL> &cloud, float point_size, float blending)
+{
+  if (this->m_renderingStopped)
+    return;
+
+  pthread_mutex_lock (&dataMutex);
+  if (id < 0 || id >= (int)this->m_pointclouds.size())
+  {
+    pthread_mutex_unlock (&dataMutex);
+    printf("[tgTomGineThread::SetModel2D] Warning index out of bounds: %d.\n", id);
+    return;
+  }
+  pthread_mutex_unlock (&dataMutex);
+
+  tgModel* tg_cloud = new tgModel;
+  tg_cloud->m_point_size = point_size;
+  std::map<int, tgRGBValue> colors;
+  std::map<int, bool> labels;
+  std::map<int, pcl::PointIndices> indices;
+
+  for (size_t i = 0; i < cloud.size (); i++)
+  {
+    const pcl::PointXYZRGBL &pt = cloud.at (i);
+
+    if(isnan(pt.x) || isnan(pt.y) || isnan(pt.z))
+      continue;
+
+    if (colors.count (pt.label) == 0)
+    {
+      vec3 c;
+      c.random ();
+      colors[pt.label].Red = (short)(255.0 * c.x);
+      colors[pt.label].Green = (short)(255.0 * c.y);
+      colors[pt.label].Blue = (short)(255.0 * c.z);
+    }
+
+    indices[pt.label].indices.push_back(i);
+
+    TomGine::tgColorPoint cpt;
+    cpt.color[0] = pt.r * blending + colors[pt.label].Red * (1.0f - blending);
+    cpt.color[1] = pt.g * blending + colors[pt.label].Green * (1.0f - blending);
+    cpt.color[2] = pt.b * blending + colors[pt.label].Blue * (1.0f - blending);
+    cpt.pos = vec3 (pt.x, pt.y, pt.z);
+    tg_cloud->m_colorpoints.push_back (cpt);
+  }
+
+  std::map<int, pcl::PointIndices>::iterator it;
+  Eigen::Vector4f centroid;
+  for(it=indices.begin(); it!=indices.end(); ++it)
+  {
+    pcl::compute3DCentroid(cloud, it->second.indices, centroid);
+
+    std::ostringstream os;
+    os << it->first;
+    this->AddLabel3D (os.str (), 14, centroid(0), centroid(1), centroid(2));
+  }
+
+
+  pthread_mutex_lock (&dataMutex);
+  if (m_pointclouds[id] != NULL)
+    delete m_pointclouds[id];
+  m_pointclouds[id] = tg_cloud;
+  pthread_mutex_unlock (&dataMutex);
+}
+
 int
 tgTomGineThreadPCL::AddPointCloudPCL (const pcl::PointCloud<pcl::PointNormal> &cloud, float normal_scale, short r,
                                       short g, short b)

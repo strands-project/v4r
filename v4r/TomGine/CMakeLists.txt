@@ -103,7 +103,7 @@ set(SOURCE_H
 	ub3Image.h
 )
 
-add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP})
+add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP} ${SOURCE_H})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${GL_LIBRARIES} ${GLU_LIBRARIES} pthread X11 X11-xcb xcb rt)
 if(ENABLE_FTGL_FONTS)
 target_link_libraries(${PROJECT_NAME} ${FTGL_LIBRARIES})

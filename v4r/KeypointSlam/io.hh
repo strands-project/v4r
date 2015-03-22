@@ -30,7 +30,7 @@ public:
   io() {};
 
   /** write **/
-  static void write(const std::string &file, const ArticulatedObject::Ptr &model);
+  static bool write(const std::string &file, const ArticulatedObject::Ptr &model);
 
   /** read **/
   static bool read(const std::string &file, ArticulatedObject::Ptr &model);

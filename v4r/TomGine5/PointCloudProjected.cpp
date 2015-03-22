@@ -34,13 +34,13 @@ PointCloudProjected::PointCloudProjected()
   this->rgbChanged=false;
   this->diffuseShading=true;
   this->f=glm::vec2(600);
-  this->uv0=glm::vec2(320,240);
+  this->c=glm::vec2(320,240);
   this->depthScale=1;
   this->pointSize=2;
   this->meanDepth = 0.0;
 }
 
-PointCloudProjected::PointCloudProjected(cv::Mat depth, cv::Mat rgb, glm::vec2 f, glm::vec2 uv0, float depthScale)
+PointCloudProjected::PointCloudProjected(cv::Mat depth, cv::Mat rgb, glm::vec2 f, glm::vec2 c, float depthScale)
 {
   initialized=false;
   this->programDotted=0;
@@ -53,7 +53,7 @@ PointCloudProjected::PointCloudProjected(cv::Mat depth, cv::Mat rgb, glm::vec2 f
   this->rgbChanged=true;
   this->diffuseShading=true;
   this->f=f;
-  this->uv0=uv0;
+  this->c=c;
   this->depthScale = depthScale;
   this->pointSize=2;
 }
@@ -79,13 +79,14 @@ PointCloudProjected::~PointCloudProjected()
 
 void PointCloudProjected::initBuffers()
 {
+//  printf("[PointCloudProjected::initBuffers] res: %d %d\n", depthData.cols, depthData.rows);
   depthTex=new GLTexture2D(depthData);
-  depthTex->setFilter(GL_NEAREST,GL_NEAREST);
+//  depthTex->setFilter(GL_NEAREST,GL_NEAREST);
   glm::ivec2 r(depthData.cols, depthData.rows);
 
   //create VBO Data:
-  std::vector<glm::vec2> positions(r.x*r.y);
-  std::vector<glm::vec2> texcoords(r.x*r.y);
+  positions.resize(r.x*r.y);
+  texcoords.resize(r.x*r.y);
 
   int i=0;
   for(int m=0; m<r.y; m++)
@@ -117,7 +118,7 @@ void PointCloudProjected::initBuffers()
   glEnableVertexAttribArray(texCoord);
 
   // create ibo data
-  glm::ivec2 ri(r.x-1,r.y-1); // it seems like the last 80 rows all have depth 0
+  glm::ivec2 ri(r.x-1,r.y-1);
   polyCount=6*(ri.x)*(ri.y);
   gridIndexData.resize(polyCount);
   for(int m=0; m<(ri.y); m++){
@@ -153,7 +154,7 @@ void PointCloudProjected::initInContext(Scene *scene)
   // set uniforms
   programDotted->use();
   programDotted->setUniform("f", f);
-  programDotted->setUniform("c", uv0);
+  programDotted->setUniform("c", c);
   programDotted->setUniform("depthScale",depthScale);
   programDotted->setUniform("pointSize",pointSize);
   programDotted->setUniform("depthTex",0);
@@ -267,4 +268,50 @@ void PointCloudProjected::updateRGBData(cv::Mat data)
 void PointCloudProjected::setModelMat(glm::mat4 pos)
 {
   this->modelMat = pos;
+}
+
+void PointCloudProjected::getMesh(aiMesh* mesh)
+{
+  depthMutex.lock();
+
+  if(depthData.empty())
+    throw std::runtime_error("[PointCloudProjected::getMesh] Error, no depth data available.");
+  if(positions.empty())
+    throw std::runtime_error("[PointCloudProjected::getMesh] Error, positions not initialized.");
+  if(gridIndexData.empty())
+    throw std::runtime_error("[PointCloudProjected::getMesh] Error, indices not initialized.");
+
+  // vertices
+  mesh->mNumVertices = positions.size();
+  mesh->mVertices = new aiVector3D[mesh->mNumVertices];
+  for(size_t i=0; i< mesh->mNumVertices; i++)
+  {
+    aiVector3D& v = mesh->mVertices[i];
+    const glm::vec2& u = positions[i];
+
+    if(u.x<0||u.x>=depthData.cols || u.y<0||u.y>=depthData.rows)
+      throw std::runtime_error("[PointCloudProjected::getMesh] Error, index out of bounds.");
+
+    v.z = depthData.at<float>(u.y, u.x);
+    v.x = v.z * (u.x - c.x)/f.x;
+    v.y = v.z * (u.y - c.y)/f.y;
+  }
+
+  // faces
+  if(gridIndexData.size() % 3)
+    throw std::runtime_error("[PointCloudProjected::getMesh] Error, indices not dividable by 3 (triangles).");
+
+  mesh->mNumFaces = gridIndexData.size() / 3;
+  mesh->mFaces = new aiFace[mesh->mNumFaces];
+  for(size_t i=0; i<mesh->mNumFaces; i++)
+  {
+    aiFace& face= mesh->mFaces[i];
+    face.mNumIndices = 3;
+    face.mIndices = new unsigned int[3];
+    face.mIndices[0] = gridIndexData[3*i+0];
+    face.mIndices[1] = gridIndexData[3*i+1];
+    face.mIndices[2] = gridIndexData[3*i+2];
+  }
+
+  depthMutex.unlock();
 }

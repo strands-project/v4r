@@ -672,6 +672,7 @@ FittingCurve2dAPDM::assembleInterior (double wInt, double sigma2, double rScale,
   m_data->interior_normals.clear ();
   m_data->interior_line_start.clear ();
   m_data->interior_line_end.clear ();
+  m_data->interior_line_flag.clear();
 
   for (int p = 0; p < nInt; p++)
   {
@@ -713,11 +714,6 @@ FittingCurve2dAPDM::assembleInterior (double wInt, double sigma2, double rScale,
       w = wInt * exp (-(error * error) * ds);
     }
 
-    {
-      m_data->interior_line_start.push_back (pcp);
-      m_data->interior_line_end.push_back (pt);
-    }
-
     //      w = 0.5 * wInt * exp(-(error * error) * ds);
 
     // evaluate if this point is the closest point
@@ -726,7 +722,12 @@ FittingCurve2dAPDM::assembleInterior (double wInt, double sigma2, double rScale,
     //      w = 2.0 * wInt;
 
     if (w > 1e-6) // avoids ill-conditioned matrix
+    {
       addPointConstraint (m_data->interior_param[p], m_data->interior[p], w, row);
+      m_data->interior_line_start.push_back (pcp);
+      m_data->interior_line_end.push_back (pt);
+      m_data->interior_line_flag.push_back(0);
+    }
     else
     {
       //      m_solver.K(row, 0, 0.0);
@@ -816,8 +817,9 @@ FittingCurve2dAPDM::assembleClosestPoints (const std::vector<double> &elements, 
       if (w > 0.0)
       {
         addPointConstraint (xi, p2, w, row);
-        //      m_data->interior_line_start.push_back(p1);
-        //      m_data->interior_line_end.push_back(p2);
+        m_data->interior_line_start.push_back(p1);
+        m_data->interior_line_end.push_back(p2);
+        m_data->interior_line_flag.push_back(1);
       }
     }
   }

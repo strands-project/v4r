@@ -8,7 +8,7 @@
 #ifndef REC_FRAMEWORK_COLOR_OURCVFH_ESTIMATOR_H_
 #define REC_FRAMEWORK_COLOR_OURCVFH_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include "ourcvfh_estimator.h"
 #include "normal_estimator.h"
 #include <pcl/common/transforms.h>
