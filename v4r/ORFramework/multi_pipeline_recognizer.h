@@ -8,7 +8,7 @@
 #ifndef MULTI_PIPELINE_RECOGNIZER_H_
 #define MULTI_PIPELINE_RECOGNIZER_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include "recognizer.h"
 #include "local_recognizer.h"
 #include "v4r/ORRecognition/graph_geometric_consistency.h"

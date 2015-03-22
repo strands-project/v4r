@@ -11,7 +11,6 @@ PROJECT(v4rORFramework)
 SET(SOURCE_H_UTILS
   metrics.h
   vtk_model_sampling.h
-  faat_3d_rec_framework_defines.h
   voxel_based_correspondence_estimation.h
   multiplane_segmentation.h
   voxel_based_correspondence_estimation.hpp
@@ -98,7 +97,7 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_H_UTILS} ${SOURCE_CPP_UTILS} ${SOURC
                                    ${SOURCE_H_DATA_SOURCES} ${SOURCE_CPP_DATA_SOURCES} ${SOURCE_H_PIPELINES} ${SOURCE_CPP_PIPELINES}
                                    )
                                    
-target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} v4rEDT v4rUtils ${Boost_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} v4rEDT v4rUtils v4rORUtils ${Boost_LIBRARIES})
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H_UTILS} ${SOURCE_CPP_UTILS} ${SOURCE_H_FEATURES} ${SOURCE_CPP_FEATURES} ${SOURCE_H_DATA_SOURCES} ${SOURCE_CPP_DATA_SOURCES} ${SOURCE_H_PIPELINES} ${SOURCE_CPP_PIPELINES}")
 
 ENDIF(V4R_ORFRAMEWORK)

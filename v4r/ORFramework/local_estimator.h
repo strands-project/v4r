@@ -9,7 +9,7 @@
 #define REC_FRAMEWORK_LOCAL_ESTIMATOR_H_
 
 #include "normal_estimator.h"
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include "pcl/keypoints/uniform_sampling.h"
 #include <pcl/surface/mls.h>
 #include <pcl/keypoints/harris_3d.h>

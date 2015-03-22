@@ -44,8 +44,6 @@ private:
   void getSeeds(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint> &seeds, const int &step);
   void enforceLabelConnectivity(cv::Mat_<int> &labels, cv::Mat_<int> &out_labels, int& numlabels, const int& K);
 
-  static void convertRGBtoLAB(const cv::Mat_<cv::Vec3b> &im_rgb, cv::Mat_<cv::Vec3d> &im_lab);
-
 public:
 	Slic();
 	~Slic();
@@ -64,6 +62,9 @@ public:
   /** draw the contours **/
   void drawContours(cv::Mat_<cv::Vec3b> &im_rgb, const cv::Mat_<int> &labels, int r=-1, int g=-1, int b=-1);
 
+
+  static void convertRGBtoLAB(const cv::Mat_<cv::Vec3b> &im_rgb, cv::Mat_<cv::Vec3d> &im_lab);
+  static void convertRGBtoLAB(const double r, const double g, const double b, double &labL, double &labA, double &labB);
 
 };
 

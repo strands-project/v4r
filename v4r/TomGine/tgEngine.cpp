@@ -486,6 +486,8 @@ void tgEngine::LoadBackgroundImage(unsigned char* image_data, int width, int hei
     m_image = new tgTexture2D();
 
   glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   m_image->Load(image_data, width, height, GL_RGB, format, GL_UNSIGNED_BYTE);
   m_image_show = true;
   m_image_flip = flip;

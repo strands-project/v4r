@@ -44,7 +44,7 @@ namespace on_nurbs{
 
 
 template <class PointT>
-class FittingSurfaceDepthPCA : public FittingSurfaceDepth, public PCA<PointT>
+class FittingSurfaceDepthPCA : public FittingSurfaceDepth
 {
 public:
   typedef PCLBase <PointT> Base;
@@ -54,70 +54,59 @@ public:
   typedef typename Base::PointIndicesPtr PointIndicesPtr;
   typedef typename Base::PointIndicesConstPtr PointIndicesConstPtr;
 
-  using PCA<PointT>::input_;
-  using PCA<PointT>::indices_;
-  using Base::initCompute;
-  using FittingSurfaceDepth::operator delete;
-  using Base::operator delete;
   using FittingSurfaceDepth::getSurface;
 
-  FittingSurfaceDepthPCA() : order_(3), cps_x_(3), cps_y_(3), nurbs_done_(false){}
+  FittingSurfaceDepthPCA() : order_(3), cps_x_(3), cps_y_(3), nurbs_done_(false), proj_done_(false){}
 
-  inline void
-  setInputCloud (const PointCloudConstPtr &cloud)
-  {
-    PCA<PointT>::setInputCloud (cloud);
-    nurbs_done_ = false;
-  }
+  void setInputCloud(const PointCloudConstPtr &cloud);
 
-  inline void
-  setIndices (const IndicesPtr &indices)
-  {
-    PCA<PointT>::setInputCloud(input_); // hack to set PCA<PointT>::compute_done_ = false
-    PCA<PointT>::setIndices(indices);
-    nurbs_done_ = false;
-  }
+  virtual void setIndices(const IndicesPtr &indices);
 
-  void
-  setIndices (const PointIndicesConstPtr &indices)
-  {
-    PCA<PointT>::setInputCloud(input_); // hack to set PCA<PointT>::compute_done_ = false
-    PCA<PointT>::setIndices(indices);
-    nurbs_done_ = false;
-  }
+  virtual void setIndices(const IndicesConstPtr &indices);
 
-  inline void
-  setParameter(int order, int cps_x, int cps_y)
-  {
-    order_ = order;
-    cps_x_ = cps_x;
-    cps_y_ = cps_y;
-    nurbs_done_ = false;
-  }
+  virtual void setIndices(const PointIndicesConstPtr &indices);
 
-  inline ON_NurbsSurface&
-  getSurface ()
-  {
-    if (!nurbs_done_)
-      initCompute();
-    if (!nurbs_done_)
-      PCL_THROW_EXCEPTION (InitFailedException,
-                           "[pcl::on_nurbs::FittingSurfaceDepthPCA::getNurbsSurface] FittingSurfaceDepthPCA ON_NurbsSurface failed");
-    return m_nurbs;
-  }
+  virtual void setIndices(size_t row_start, size_t col_start, size_t nb_rows, size_t nb_cols);
 
-  ON_NurbsSurface
-  getSurface3D();
+  void setParameter(int order, int cps_x, int cps_y);
+
+  void flipEigenSpace();
+
+  void project (const PointT& input, PointT& projection);
+
+  void reconstruct(const PointT& projection, PointT& input);
+
+  Eigen::Vector4f getMean();
+
+  Eigen::Matrix3f getEigenVectors();
+
+  ON_NurbsSurface& getSurface();
+
+  ON_NurbsSurface getSurface3D();
+
+  Eigen::VectorXd getError ();
+
+  const ROI& getROI();
+
+  const PointCloud& getProjectedCloud();
 
 private:
-  inline bool
-  initCompute ();
+  bool computePCA();
+  bool computeProjection();
+  bool computeNurbsSurface();
 
+  Eigen::MatrixXd points_;
   pcl::PCA<PointT> pca;
+  Eigen::Matrix3f eigenvectors_;
+  Eigen::Vector4f mean_;
+  PointCloud cloud_pc_;
+  ROI roi_pc_;
   int order_;
   int cps_x_;
   int cps_y_;
+  bool pca_done_;
   bool nurbs_done_;
+  bool proj_done_;
 };
 
 } // namespace on_nurbs

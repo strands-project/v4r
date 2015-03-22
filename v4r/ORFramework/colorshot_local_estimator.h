@@ -8,7 +8,7 @@
 #ifndef FAAT_PCL_REC_FRAMEWORK_COLORSHOT_LOCAL_ESTIMATOR_H_
 #define FAAT_PCL_REC_FRAMEWORK_COLORSHOT_LOCAL_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include "local_estimator.h"
 #include "normal_estimator.h"
 #include <pcl/features/shot.h>

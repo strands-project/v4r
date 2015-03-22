@@ -8,7 +8,7 @@
 #ifndef FAAT_PCL_REC_FRAMEWORK_GLOBAL_PIPELINE_H_
 #define FAAT_PCL_REC_FRAMEWORK_GLOBAL_PIPELINE_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include <flann/flann.h>
 #include <pcl/common/common.h>
 #include "source.h"

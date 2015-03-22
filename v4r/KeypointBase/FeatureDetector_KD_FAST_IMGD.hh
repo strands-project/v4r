@@ -11,6 +11,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include "FeatureDetector.hh"
 #include "ComputeImGradientDescriptors.hh"
+#include "FeatureSelection.hh"
 
 
 
@@ -29,13 +30,16 @@ public:
     int patchSize;
     int tiles;
     ComputeImGradientDescriptors::Parameter gdParam;
+    bool do_feature_selection;
 
     Parameter(int _nfeatures=1000, float _scaleFactor=1.44, 
       int _nlevels=2, int _patchSize=17, int _tiles=1,
-      const ComputeImGradientDescriptors::Parameter &_gdParam=ComputeImGradientDescriptors::Parameter()) 
+      const ComputeImGradientDescriptors::Parameter &_gdParam=ComputeImGradientDescriptors::Parameter(),
+      bool _do_feature_selection=false)
     : nfeatures(_nfeatures), scaleFactor(_scaleFactor), 
       nlevels(_nlevels), patchSize(_patchSize), tiles(_tiles),
-      gdParam(_gdParam) {}
+      gdParam(_gdParam),
+      do_feature_selection(_do_feature_selection) {}
   };
 
 private:
@@ -51,6 +55,8 @@ private:
 
   cv::Ptr<cv::ORB> orb;
   ComputeImGradientDescriptors::Ptr imGDesc;
+
+  FeatureSelection::Ptr fs;
 
   inline void getExpandedRect(int u, int v, int rows, int cols, cv::Rect &rect);
 

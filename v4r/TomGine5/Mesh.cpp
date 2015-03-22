@@ -24,58 +24,52 @@
 #include <iostream>
 #include <vector>
 
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+#include <iostream>
+#include <fstream>
 
 using namespace tg;
 
-
-Mesh::Mesh(std::string filePath){
-
-  m_scene = m_importer.ReadFile(filePath,0);
-
-  if(!m_scene){
-    fprintf(stderr,"[Mesh::constructor] %s",m_importer.GetErrorString());
-    return;
-  }
-
-  if(m_scene->HasAnimations()){
-//    printf("[Mesh::Mesh] wooohooo!!! animatiions\n");
-  }
-  if(m_scene->HasCameras()){
-//    printf("[Mesh::Mesh] wohoooo! cameras\n");
-  }
-  if(m_scene->HasLights()){
-//    printf("[Mesh::Mesh] lights!!\n");
-  }
-  if(m_scene->HasMaterials()){
-//    printf("[Mesh::Mesh] materials:%d!\n",m_scene->mNumMaterials);
-    for(int i=0;i<(int)m_scene->mNumMaterials;i++){
-      aiMaterial* material = m_scene->mMaterials[i];
-
-      aiString name;
-      material->Get(AI_MATKEY_NAME,name);
-
-      //material->
-
-//      printf("[Mesh::Mesh] material%d name:%s\n",i,name.C_Str());
-    }
-  }
-  if(m_scene->HasMeshes()){
-//    printf("meshes:%d!!\n",m_scene->mNumMeshes);
-    for(int i=0;i<(int)m_scene->mNumMeshes;i++)
-    {
-      aiMesh* mesh = m_scene->mMeshes[i];
-      printf("[Mesh::Mesh] faces %d, vertices %d, bones %d, animMeshes %d \n",mesh->mNumFaces,mesh->mNumVertices,mesh->mNumBones,mesh->mNumAnimMeshes);
-    }
-
-  }
-  if(m_scene->HasTextures())
-  {
-//    printf("[Mesh::Mesh] textures!!!\n");
-  }
+Mesh::Mesh()
+{
+  m_mesh = new aiMesh();
 }
 
-Mesh::~Mesh(){
+Mesh::Mesh(std::string filePath)
+{
+  Assimp::Importer importer;
+  const aiScene* scene = importer.ReadFile(filePath,0);
 
+  if(!scene)
+  {
+    printf("[Mesh::Mesh] %s",importer.GetErrorString());
+    throw std::runtime_error("[Mesh::constructor] Error loading file.");
+  }
+
+  if(!scene->HasMeshes())
+  {
+    printf("[Mesh::Mesh] Error, file '%s' does not contain a mesh.", filePath.c_str());
+    throw std::runtime_error("[Mesh::Mesh] Error, file does not contain a mesh.");
+  }
+
+  m_mesh = new aiMesh();
+  (*m_mesh) = (*scene->mMeshes[0]);
+
+  //  if(scene->HasMeshes())
+  //  {
+  //    for(int i=0;i<(int)scene->mNumMeshes;i++)
+  //    {
+  //      aiMesh* mesh = scene->mMeshes[i];
+  //      printf("[Mesh::Mesh] faces %d, vertices %d, bones %d, animMeshes %d \n",mesh->mNumFaces,mesh->mNumVertices,mesh->mNumBones,mesh->mNumAnimMeshes);
+  //    }
+  //  }
+
+}
+
+Mesh::~Mesh()
+{
+  delete m_mesh;
 }
 
 void Mesh::initInContext(Scene *scene)
@@ -87,70 +81,63 @@ void Mesh::initInContext(Scene *scene)
   glBindVertexArray(m_VAO);
 
   // init mesh data
-  if(m_scene->HasMeshes()){
-    if(m_scene->mNumMeshes==1){
-      aiMesh* mesh = m_scene->mMeshes[0];
-      if(mesh->HasPositions())
-      {
-        glGenBuffers(1,&m_posVBO);
-        glBindBuffer(GL_ARRAY_BUFFER,m_posVBO);
-        glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec3)*mesh->mNumVertices,mesh->mVertices,GL_STATIC_DRAW);
-        m_center=glm::vec3(0);
-        for(unsigned int i=0;i<mesh->mNumVertices;i++)
-          m_center += glm::vec3(mesh->mVertices[i].x,mesh->mVertices[i].y,mesh->mVertices[i].z);
-        m_center =m_center/(float)mesh->mNumVertices;
-        tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] positions");
-      }
-      if(mesh->HasNormals())
-      {
-        glGenBuffers(1,&m_normalVBO);
-        glBindBuffer(GL_ARRAY_BUFFER,m_normalVBO);
-        glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec3)*mesh->mNumVertices,mesh->mNormals,GL_STATIC_DRAW);
-        tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] normals");
-      }
-      if(mesh->HasVertexColors(0))
-      {
-        glGenBuffers(1,&m_colorVBO);
-        glBindBuffer(GL_ARRAY_BUFFER,m_colorVBO);
-        glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec4)*mesh->mNumVertices,mesh->mColors[0],GL_STATIC_DRAW);
-        tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] colors");
-      }
-      else
-      {
-        std::vector<glm::vec4> color(mesh->mNumVertices, glm::vec4(1.0));
-        glGenBuffers(1,&m_colorVBO);
-        glBindBuffer(GL_ARRAY_BUFFER,m_colorVBO);
-        glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec4)*mesh->mNumVertices,&color[0],GL_STATIC_DRAW);
-        tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] colors");
-      }
-      if(mesh->HasFaces())
-      {
-        glGenBuffers(1,&m_IBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_IBO);
-
-        std::vector<GLuint> indexBufferData;
-        m_faceCount=0;
-        for(unsigned int i=0;i<mesh->mNumFaces;i++)
-        {
-          const aiFace& face = mesh->mFaces[i];
-          if(face.mNumIndices==3)
-          {
-            indexBufferData.push_back(face.mIndices[0]);
-            indexBufferData.push_back(face.mIndices[1]);
-            indexBufferData.push_back(face.mIndices[2]);
-            m_faceCount++;
-            //printf("%d,%d,%d\n",indexBufferData[i*3+0],indexBufferData[i*3+1],indexBufferData[i*3+2]);
-          }
-        }
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(GLuint)*indexBufferData.size(),&indexBufferData[0],GL_STATIC_DRAW);
-        tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] colors");
-      }
-
-    }else{
-      fprintf(stderr,"[Mesh::initInContext] More than one mesh is not supportet (yet)! \n");
-      return;
-    }
+  if(m_mesh->HasPositions())
+  {
+    glGenBuffers(1,&m_posVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,m_posVBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec3)*m_mesh->mNumVertices,m_mesh->mVertices,GL_STATIC_DRAW);
+    m_center=glm::vec3(0);
+    for(unsigned int i=0;i<m_mesh->mNumVertices;i++)
+      m_center += glm::vec3(m_mesh->mVertices[i].x,m_mesh->mVertices[i].y,m_mesh->mVertices[i].z);
+    m_center =m_center/(float)m_mesh->mNumVertices;
+    tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] positions");
   }
+  if(m_mesh->HasNormals())
+  {
+    glGenBuffers(1,&m_normalVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,m_normalVBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec3)*m_mesh->mNumVertices,m_mesh->mNormals,GL_STATIC_DRAW);
+    tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] normals");
+  }
+  if(m_mesh->HasVertexColors(0))
+  {
+    glGenBuffers(1,&m_colorVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,m_colorVBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec4)*m_mesh->mNumVertices,m_mesh->mColors[0],GL_STATIC_DRAW);
+    tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] colors");
+  }
+  else
+  {
+    std::vector<glm::vec4> color(m_mesh->mNumVertices, glm::vec4(1.0));
+    glGenBuffers(1,&m_colorVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,m_colorVBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec4)*m_mesh->mNumVertices,&color[0],GL_STATIC_DRAW);
+    tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] colors");
+  }
+  if(m_mesh->HasFaces())
+  {
+    glGenBuffers(1,&m_IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,m_IBO);
+
+    std::vector<GLuint> indexBufferData;
+    m_faceCount=0;
+    for(unsigned int i=0;i<m_mesh->mNumFaces;i++)
+    {
+      const aiFace& face = m_mesh->mFaces[i];
+      if(face.mNumIndices==3)
+      {
+        indexBufferData.push_back(face.mIndices[0]);
+        indexBufferData.push_back(face.mIndices[1]);
+        indexBufferData.push_back(face.mIndices[2]);
+        m_faceCount++;
+        //printf("%d,%d,%d\n",indexBufferData[i*3+0],indexBufferData[i*3+1],indexBufferData[i*3+2]);
+      }
+    }
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(GLuint)*indexBufferData.size(),&indexBufferData[0],GL_STATIC_DRAW);
+    tg::GLUtils::checkForOpenGLError("[Mesh::initInContext] colors");
+  }
+
+
 
   GLuint posLoc =   m_shader->getAttribLocation("VertexPosition");
   GLuint normLoc =  m_shader->getAttribLocation("VertexNormal");
@@ -195,7 +182,7 @@ void Mesh::draw(Scene *scene)
   m_shader->setUniform("MVP", MVP);
 
   glm::vec4 lightpos = glm::vec4(0.0,0.0,0.0,1.0);  // light-source attached to camera
-//  glm::vec4 lightpos = cam_modelview * glm::vec4(0.0,0.0,0.0,1.0);  // light-source in world coordinates
+  //  glm::vec4 lightpos = cam_modelview * glm::vec4(0.0,0.0,0.0,1.0);  // light-source in world coordinates
   glm::vec3 lightdiff(1.0,1.0,1.0);
   m_shader->setUniform("LightPosition", lightpos);
   m_shader->setUniform("LightDiffuse", lightdiff);
@@ -217,4 +204,59 @@ void Mesh::setPose(const glm::mat4& pose)
   poseMutex.lock();
   m_pose = pose;
   poseMutex.unlock();
+}
+
+void Mesh::ExportAssimpMesh(std::string filename)
+{
+  printf("[Mesh::ExportAssimpMesh] Error, function not implemented.\n");
+//  aiScene scene;
+//  scene.mRootNode = new aiNode();
+
+//  scene.mMeshes = new aiMesh*[1];
+//  scene.mNumMeshes = 1;
+//  scene.mMeshes[0] = m_mesh;
+
+//  scene.mRootNode->mMeshes = new unsigned[1];
+//  scene.mRootNode->mMeshes[0] = 0;
+//  scene.mRootNode->mNumMeshes = 1;
+
+//  Assimp::Exporter exporter;
+//  exporter.Export(&scene, ".ply", filename);
+}
+
+void Mesh::ExportToPLY(const aiMesh *mesh, std::string filename)
+{
+  std::ofstream file;
+  file.open(filename.c_str());
+
+  if(!file.is_open())
+    throw std::runtime_error("[Mesh::ExportToPLY] Error cannot open file.");
+
+  file << "ply" << std::endl;
+  file << "format ascii 1.0" << std::endl;
+  file << "comment Created by TomGine 5" << std::endl;
+  file << "element vertex " << mesh->mNumVertices << std::endl;
+  file << "property float x" << std::endl;
+  file << "property float y" << std::endl;
+  file << "property float z" << std::endl;
+  file << "element face " << mesh->mNumFaces << std::endl;
+  file << "property list uchar uint vertex_indices" << std::endl;
+  file << "end_header" << std::endl;
+
+  for(unsigned i=0; i<mesh->mNumVertices; i++)
+  {
+    const aiVector3D& v = mesh->mVertices[i];
+    file <<  v.x << " " << v.y << " " << v.z << std::endl;
+  }
+
+  for(unsigned i=0; i<mesh->mNumFaces; i++)
+  {
+    const aiFace& face = mesh->mFaces[i];
+    file << face.mNumIndices;
+    for(unsigned j=0; j<face.mNumIndices; j++)
+      file << " " << face.mIndices[j];
+    file << std::endl;
+  }
+
+  file.close();
 }

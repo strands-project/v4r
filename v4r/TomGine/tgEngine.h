@@ -245,8 +245,8 @@ public:
   }
 
   /** @brief Get point cloud of current view in world coordinates. */
-  void GetPointCloud(cv::Mat_<cv::Vec4f> &points, bool world_coords);
-  void GetPointCloud(std::vector<vec4> &points, bool organized = false, bool world_coords = true);
+  static void GetPointCloud(cv::Mat_<cv::Vec4f> &points, bool world_coords);
+  static void GetPointCloud(std::vector<vec4> &points, bool organized = false, bool world_coords = true);
 
   /** @brief Get 3D point of nearest surface at image position (x,y) */
   vec3 Get3DPointFrom2D(int x, int y);

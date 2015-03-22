@@ -9,7 +9,7 @@
 #define FAAT_PCL_REC_FRAMEWORK_SIFT_ESTIMATOR_H_
 
 #include "local_estimator.h"
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include <pcl/io/pcd_io.h>
 #include <v4rexternal/SiftGPU/src/SiftGPU/SiftGPU.h>
 #include <GL/glut.h>

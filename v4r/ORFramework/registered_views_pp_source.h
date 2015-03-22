@@ -8,7 +8,7 @@
 #ifndef FAAT_PCL_REC_FRAMEWORK_REG_VIEWS_WITH_PP_SOURCE_H_
 #define FAAT_PCL_REC_FRAMEWORK_REG_VIEWS_WITH_PP_SOURCE_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include "source.h"
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>

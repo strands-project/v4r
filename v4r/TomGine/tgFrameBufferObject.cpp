@@ -21,7 +21,8 @@
  */
 #include "tgFrameBufferObject.h"
 #include "tgError.h"
-#include <opencv2/highgui/highgui.hpp>
+#include "tgMathlib.h"
+//#include <opencv2/highgui/highgui.hpp>
 #include <stdexcept>
 
 using namespace TomGine;
@@ -41,7 +42,7 @@ tgFrameBufferObject::tgFrameBufferObject(unsigned w, unsigned h,
   tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] fbo_tex");
 
   texDepth->Bind();
-  texDepth->Load(NULL, m_width, m_height, depthInternal, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE);
+  texDepth->Load(NULL, m_width, m_height, depthInternal, GL_DEPTH_COMPONENT, GL_FLOAT);
   tgCheckError("[tgFrameBufferObject::tgFrameBufferObject] fbo_depth_tex");
 
   glGenFramebuffers(1, &m_fbo_id);
@@ -132,6 +133,99 @@ void tgFrameBufferObject::Bind()
 void tgFrameBufferObject::Unbind()
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void tgFrameBufferObject::GetPointCloud(cv::Mat4f &points, bool world_coords)
+{
+  // get values of rendering pipeline
+  mat4 proj, model;
+  GLint view[4];
+  glGetFloatv(GL_PROJECTION_MATRIX, proj);
+  glGetFloatv(GL_MODELVIEW_MATRIX, model);
+  glGetIntegerv(GL_VIEWPORT, view);
+
+  cv::Vec4f cvp;
+  cvp[0] = NAN;
+  cvp[1] = NAN;
+  cvp[2] = NAN;
+  cvp[3] = NAN;
+  points.setTo(cvp);
+
+  float depth_range[2];
+  glGetFloatv(GL_DEPTH_RANGE, depth_range);
+
+  mat3 Rt(model.transpose());
+  vec3 t(model[12], model[13], model[14]);
+
+  const float &fx = proj[0];
+  const float &fy = proj[5];
+  const float &cx = proj[8];
+  const float &cy = proj[9];
+  const float &z1 = proj[10];
+  const float &z2 = proj[14];
+  const float &dNear = depth_range[0];
+  const float &dFar = depth_range[1];
+  const int &width = view[2];
+  const int &height = view[3];
+
+  float zFar = z2 / (z1 + 1.0f);
+  float zNear = z2 * zFar / (z2 - 2.0f * zFar);
+
+  cv::Mat4b color(m_height,m_width);
+  cv::Mat1f depth(m_height,m_width);
+
+  texColor[0]->Bind();
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, color.data);
+
+  texDepth->Bind();
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, GL_FLOAT, depth.data);
+
+  // parse depth values and create 3D points in world coordinates
+  for (int j = 0; j < depth.rows; j++)
+  {
+    for (int i = 0; i < depth.cols; i++)
+    {
+      int winY = j;
+      if (world_coords)
+        winY = height - j - 1; // inverse y coordinates
+
+      int idx = (depth.rows - j - 1) * depth.cols + i; // depthbuffer index
+      const float &z_b = depth(idx);
+      const cv::Vec4b &c = color(idx);
+      RGBValue col;
+      col.r = c(0);
+      col.g = c(1);
+      col.b = c(2);
+      col.a = c(3);
+
+
+      if (z_b > dNear && z_b < dFar) // depth range check
+      {
+
+        float z_n = 2.0 * z_b - 1.0; // normalized depth
+
+        // transform to camera coordinates
+        float z = 2.0 * zNear * zFar / (zFar + zNear - z_n * (zFar - zNear));
+        float x = (2.0 * float(i) / width - 1.0f + cx) * z / fx;
+        float y = (2.0 * float(winY) / height - 1.0f + cy) * z / fy;
+
+        vec4 p(x, y, z, 1);
+        if (world_coords) // transform to world coordinates
+        {
+          p.z = -p.z;
+          p = Rt * (p - t);
+        }
+
+        cvp[0] = p.x;
+        cvp[1] = p.y;
+        cvp[2] = p.z;
+        cvp[3] = col.float_value;
+
+        points(j, i) = cvp;
+
+      }
+    }
+  }
 }
 
 //void tgFrameBufferObject::SaveColor(const char* filename)

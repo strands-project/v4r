@@ -494,6 +494,34 @@ void tgModel::ComputeBoundingSphere(vec3 &_min, vec3 &_max)
 
 }
 
+void tgModel::ReplaceQuadsWithTriangles()
+{
+  // faces
+  std::vector<TomGine::tgFace> faces;
+  for(size_t i=0; i<m_faces.size(); i++)
+  {
+    const TomGine::tgFace& f = m_faces[i];
+    if(f.v.size()==3)
+      faces.push_back(f);
+
+    if(f.v.size()==4)
+    {
+      TomGine::tgFace f1 ,f2;
+      f1.v.push_back(f.v[0]);
+      f1.v.push_back(f.v[1]);
+      f1.v.push_back(f.v[2]);
+
+      f2.v.push_back(f.v[0]);
+      f2.v.push_back(f.v[2]);
+      f2.v.push_back(f.v[3]);
+
+      faces.push_back(f1);
+      faces.push_back(f2);
+    }
+  }
+  m_faces = faces;
+}
+
 void tgModel::Clear()
 {
   m_vertices.clear();

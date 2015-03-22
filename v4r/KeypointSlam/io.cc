@@ -14,11 +14,16 @@ namespace kp
 /** 
  * write 
  */
-void io::write(const std::string &file, const ArticulatedObject::Ptr &model)
+bool io::write(const std::string &file, const ArticulatedObject::Ptr &model)
 {
+  if (model.get()==0)
+    return false;
+
   std::ofstream ofs(file.c_str());
   boost::archive::binary_oarchive oa(ofs);
   oa << model;
+
+  return true;
 }
 
 /** 
@@ -26,6 +31,8 @@ void io::write(const std::string &file, const ArticulatedObject::Ptr &model)
  */
 bool io::read(const std::string &file, ArticulatedObject::Ptr &model)
 {
+  model.reset(new ArticulatedObject());
+
   std::ifstream ifs(file.c_str());
   if (ifs.is_open())
   {

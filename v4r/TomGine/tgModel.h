@@ -132,8 +132,9 @@ public:
   enum Coloring
   {
     FULL_COLORING=0,
-    PER_FACE_COLORING=1,
-    PER_VERTEX_COLORING=2
+    FULL_COLORING_NO_LIGHTING=1,
+    PER_FACE_COLORING=2,
+    PER_VERTEX_COLORING=3
   } m_coloring;
 
   std::string name;
@@ -223,6 +224,8 @@ public:
   /** @brief Compute bounding sphere which contains all vertices.*/
   virtual void ComputeBoundingSphere();
   virtual void ComputeBoundingSphere(vec3 &_min, vec3 &_max);
+
+  virtual void ReplaceQuadsWithTriangles();
 
   /** @brief Clears data of model (m_vertices and m_faces). */
   virtual void Clear();

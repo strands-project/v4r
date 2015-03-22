@@ -1,5 +1,5 @@
 #include "linemod3d_recognizer.h"
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include <v4r/ORUtils/pcl_opencv.h>
 #include <pcl/common/angles.h>
 //add functions

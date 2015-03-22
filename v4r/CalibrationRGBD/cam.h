@@ -91,6 +91,8 @@ public:
    */
     cv::Vec3f UnProject(const cv::Vec2i& u) const;
 
+    cv::Vec3f UnProjectLocalDistorted(const cv::Vec2i& u) const;
+
   /*! \brief Converts a pixel into a viewing direction (in camera coordinates).
    *
    * \param[in] u location w.r.t. the pixel coordinate system

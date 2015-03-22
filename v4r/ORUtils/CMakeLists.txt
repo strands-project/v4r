@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 2.6)
 SET(V4R_ORUTILS 1 CACHE BOOL "Utils for object recognition and classification" )
 IF(V4R_ORUTILS)
 
@@ -22,7 +23,6 @@ SET(SOURCE_CPP
 )
 
 SET(SOURCE_VIEWER_CPP
-  view_all_point_clouds_in_folder.cpp
 )
 
 SET(SOURCE_H
@@ -34,6 +34,7 @@ SET(SOURCE_H
   pcl_visualization_utils.h
   registration_utils.h
   segmentation_utils.h
+  faat_3d_rec_framework_defines.h
 #  organized_edge_detection.h
 )
 
@@ -42,9 +43,6 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
 target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rOREdgeDetector ${Boost_LIBRARIES})
 
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
-
-add_executable(view_all_point_clouds_in_folder ${SOURCE_VIEWER_CPP})
-target_link_libraries(view_all_point_clouds_in_folder ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} ${PROJECT_NAME}  v4rUtils ${Boost_LIBRARIES})
 
 
 ENDIF(V4R_ORUTILS)

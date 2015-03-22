@@ -107,7 +107,7 @@ public:
   /** @brief Draws the faces of the render model. Applies pose, material and lighting.
    *  @param lighting		Enable/Disable OpenGL lighting calculations.
    *  @param rmode		Rendering mode (NORMAL, DISPLAYLIST, BUFFEROBJECT; see RenderMode) */
-  void DrawFaces(bool lighting = true, RenderMode rmode = RENDERNORMAL);
+  void DrawFaces(RenderMode rmode = RENDERNORMAL);
 
   /** @brief Draws vertex normals of the model.
    *  @param length The length of the normal vector. */

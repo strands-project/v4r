@@ -9,7 +9,7 @@
 #define REC_FRAMEWORK_VFH_ESTIMATOR_H_
 
 #include "global_estimator.h"
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include "normal_estimator.h"
 #include <pcl/features/vfh.h>
 

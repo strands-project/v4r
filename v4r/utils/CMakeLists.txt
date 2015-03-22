@@ -1,4 +1,5 @@
-SET(V4R_UTILS 1 CACHE BOOL "Add description here." )
+cmake_minimum_required(VERSION 2.6)
+SET(V4R_UTILS 1 CACHE BOOL "Utility functions." )
 IF(V4R_UTILS)
 
 PROJECT(v4rUtils)

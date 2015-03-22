@@ -117,7 +117,7 @@ CDepthColorSensor::CDepthColorSensor(const CDepthColorCam& cam):
 
 }
 
-bool CDepthColorSensor::OpenDevice(int i, int stream) {
+bool CDepthColorSensor::OpenDevice(int i, int stream, ImageRegistrationMode img_reg_mode) {
 
   Array<DeviceInfo> devicelist;
   OpenNI::enumerateDevices(&devicelist);
@@ -137,7 +137,7 @@ bool CDepthColorSensor::OpenDevice(int i, int stream) {
   }
 
   // set registration property, we will do this manually
-  m_device.setImageRegistrationMode(IMAGE_REGISTRATION_OFF);
+  m_device.setImageRegistrationMode(img_reg_mode);
 
   // open streams
   if(stream==SENSOR_COLOR){

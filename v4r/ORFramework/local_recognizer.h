@@ -12,7 +12,7 @@
 #include <pcl/common/common.h>
 #include "source.h"
 #include "local_estimator.h"
-#include "faat_3d_rec_framework_defines.h"
+#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include <v4r/ORRecognition/correspondence_grouping.h>
 #include <v4r/ORRecognition/hypotheses_verification.h>
 #include "recognizer.h"

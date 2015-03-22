@@ -14,7 +14,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <omp.h>
-#include "v4r/KeypointTools/ScopeTime.hpp"
 #include "pcl/features/integral_image_normal.h"
 
 namespace v4r

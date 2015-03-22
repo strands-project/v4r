@@ -27,6 +27,7 @@ ENDIF()
 
 PROJECT(v4rKeypointBase)
 SET(SOURCE_CPP
+  CodebookMatcher.cc
   ComputeImGDescOrientations.cc
   ComputeImGradientDescriptors.cc
   Feature.cc
@@ -34,6 +35,7 @@ SET(SOURCE_CPP
   FeatureDetector_D_FREAK.cc
   FeatureDetector_KD_ORB.cc
   FeatureDetector_KD_FAST_IMGD.cc
+  FeatureSelection.cc
   ImGradientDescriptor.cc
   ImGDescOrientation.cc
   LinkedKeypoint.cc
@@ -58,6 +60,7 @@ SET(SOURCE_CPP ${SOURCE_CPP}
 ENDIF(EXT_SIFTGPU)
 
 SET(SOURCE_H
+  CodebookMatcher.hh
   ComputeImGDescOrientations.hh
   ComputeImGradientDescriptors.hh
   Feature.hh
@@ -67,6 +70,7 @@ SET(SOURCE_H
   FeatureDetector_D_FREAK.hh
   FeatureDetector_KD_ORB.hh
   FeatureDetector_KD_FAST_IMGD.hh
+  FeatureSelection.hh
   ImGradientDescriptor.hh
   ImGDescOrientation.hh
   LinkedKeypoint.hh

@@ -24,6 +24,7 @@
 #define TG_FRAMEBUFFEROBJECT
 
 #include "tgTexture.h"
+#include <opencv2/core/core.hpp>
 
 namespace TomGine {
 
@@ -58,6 +59,8 @@ public:
   void Bind();
   /** @brief Deactivates the frame buffer object. OpenGL renders to the screen and not to the texture storage. */
   void Unbind();
+
+  void GetPointCloud(cv::Mat4f &points, bool world_coords);
 
 //  /** @brief Save color buffer (texColor) to a file. */
 //  void SaveColor(const char* filename);

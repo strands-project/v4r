@@ -76,7 +76,7 @@ public:
     void draw();
 
 
-
+    bool isRunning(){ return running; }
 
 
 

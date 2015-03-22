@@ -27,6 +27,12 @@ endif(NOT GL_FOUND)
 pkg_search_module(GLFW REQUIRED glfw3)
 include_directories(${GLFW_INCLUDE_DIRS})
 
+#find Assimp
+pkg_search_module(ASSIMP REQUIRED assimp)
+include_directories(${ASSIMP_INCLUDE_DIRS})
+link_directories(${ASSIMP_LIBRARY_DIRS})
+add_definitions(${ASSIMP_DEFINITIONS})
+
 
 add_definitions(-DLINUX)
 add_definitions(-DGL_GLEXT_PROTOTYPES)
@@ -99,7 +105,8 @@ set(SOURCE_SHADER
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_CPP} ${SOURCE_SHADER})
-target_link_libraries(${PROJECT_NAME} ${GL_LIBRARIES} ${OPENCV_LIBRARIES} glfw GLEW X11 xcb rt assimp boost_thread boost_system )#:/usr/lib/libGLEW.so.1.10.0)# i don't get it done better
+target_link_libraries(${PROJECT_NAME} ${GL_LIBRARIES} ${OPENCV_LIBRARIES} ${ASSIMP_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} glfw GLEW X11 xcb rt boost_thread boost_system )#:/usr/lib/libGLEW.so.1.10.0)# i don't get it done better
 
 if(${V4R_BUILD})
 

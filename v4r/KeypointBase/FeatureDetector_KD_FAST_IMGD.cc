@@ -27,6 +27,8 @@ FeatureDetector_KD_FAST_IMGD::FeatureDetector_KD_FAST_IMGD(const Parameter &_p)
   orb = new cv::ORB(param.nfeatures, param.scaleFactor, param.nlevels, param.patchSize, 0, 2, cv::ORB::HARRIS_SCORE, param.patchSize);
 
   imGDesc.reset(new ComputeImGradientDescriptors(param.gdParam));
+
+  fs.reset( new FeatureSelection(FeatureSelection::Parameter(2.,0.5)) );
 }
 
 FeatureDetector_KD_FAST_IMGD::~FeatureDetector_KD_FAST_IMGD()
@@ -95,6 +97,14 @@ void FeatureDetector_KD_FAST_IMGD::extract(const cv::Mat &image, std::vector<cv:
   else im_gray = image;  
 
   imGDesc->compute(im_gray, keys, descriptors);
+
+  if (param.do_feature_selection)
+  {
+    fs->dbg = image; 
+    //cout<<"[FeatureDetector_KD_FAST_IMGD::extract] num detected: "<<keys.size()<<", "<<descriptors.rows<<endl;
+    fs->compute(keys, descriptors); 
+    //cout<<"[FeatureDetector_KD_FAST_IMGD::extract] num selected: "<<keys.size()<<", "<<descriptors.rows<<endl;
+  }
 }
 
 

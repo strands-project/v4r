@@ -30,6 +30,7 @@ include(openmp.cmake)
 include(opencv.cmake)
 include(pcl.cmake)
 include(v4rutils.cmake)
+include(FindSuiteSparse.cmake)
 
 SET(LIBRARY_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 SET(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/bin")
@@ -85,6 +86,7 @@ LIST(APPEND STRANDSV4R_LIBSS "v4rORRecognition")
 LIST(APPEND STRANDSV4R_LIBSS "v4rORRegistration")
 LIST(APPEND STRANDSV4R_LIBSS "v4rSegmentation")
 LIST(APPEND STRANDSV4R_LIBSS "v4rRegistration")
+LIST(APPEND STRANDSV4R_LIBSS "v4rOCTopDownSegmenter")
 
 set(STRANDSV4R_LIBS ${STRANDSV4R_LIBSS} CACHE STRING "STRANDSV4R LIBS" FORCE)
 

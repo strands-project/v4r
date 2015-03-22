@@ -29,10 +29,36 @@
 
 namespace TomGine {
 
-void GLWindow::init(unsigned int width, unsigned int height, const char* name, bool threaded,
-                    bool stereo)
+GLWindow::GLWindow() : windowless(true)
 {
+  //http://sidvind.com/wiki/Opengl/windowless
+  GLint attr[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
 
+  // open display
+  if ( ! (dpy = XOpenDisplay(NULL)) ) {
+    fprintf(stderr, "cannot connect to X server\n\n");
+      exit(1);
+  }
+  // get root window
+  root = DefaultRootWindow(dpy);
+
+  // get visual matching attr
+  if( ! (vi = glXChooseVisual(dpy, 0, attr)) ) {
+       fprintf(stderr, "no appropriate visual found\n\n");
+       exit(1);
+  }
+  // create a context using the root window
+  if ( ! (glc = glXCreateContext(dpy, vi, NULL, GL_TRUE)) ){
+      fprintf(stderr, "failed to create context\n\n");
+      exit(1);
+  }
+  glXMakeCurrent(dpy, root, glc);
+  // try it out, remember to *NOT* render to the default framebuffer!
+}
+
+GLWindow::GLWindow(unsigned int width, unsigned int height, const char* name, bool threaded,
+                   bool stereo) : windowless(false)
+{
   XInitThreads();
 
   dpy = XOpenDisplay(NULL);
@@ -101,38 +127,38 @@ void GLWindow::init(unsigned int width, unsigned int height, const char* name, b
   glXSwapBuffers(dpy, glWin);
 }
 
-void GLWindow::quit()
+GLWindow::~GLWindow()
 {
   glXMakeCurrent(dpy, None, NULL);
 #ifdef GLX_FONT
-  glDeleteLists(font_base, 256);
-  XFreeFont(dpy, font_info);
+  if(!windowless)
+  {
+    glDeleteLists(font_base, 256);
+    XFreeFont(dpy, font_info);
+  }
 #endif
   glXDestroyContext(dpy, glc);
-  XFlush(dpy);
-  XDestroyWindow(dpy, glWin);
-  XFreeColormap(dpy, cmap);
+  if(!windowless)
+  {
+    XFlush(dpy);
+    XDestroyWindow(dpy, glWin);
+    XFreeColormap(dpy, cmap);
+  }
   XCloseDisplay(dpy);
-}
-
-GLWindow::GLWindow(unsigned int width, unsigned int height, const char* name, bool threaded,
-                   bool stereo)
-{
-  init(width, height, name, threaded, stereo);
-}
-GLWindow::~GLWindow()
-{
-  quit();
 }
 
 void GLWindow::Activate()
 {
-  glXMakeCurrent(dpy, glWin, glc);
+  if(windowless)
+    glXMakeCurrent(dpy, root, glc);
+  else
+    glXMakeCurrent(dpy, glWin, glc);
 }
 
 void GLWindow::Update()
 {
-  glXSwapBuffers(dpy, glWin);
+  if(!windowless)
+    glXSwapBuffers(dpy, glWin);
 }
 
 } /* namespace */

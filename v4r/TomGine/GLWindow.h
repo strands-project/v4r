@@ -65,11 +65,15 @@ class GLWindow
 {
 
 public:
+
+  /** @brief Construction of an OpenGL context (no window) */
+  GLWindow();
+
   /** @brief Construction of an OpenGL Window (Rendering Context)
    *   @param width Window and OpenGL viewport width in pixel
    *   @param height Window and OpenGL viewport height in pixel
    *   @param name Caption of the window in the titel bar */
-  GLWindow(unsigned width = 320, unsigned height = 240, const char* name = "GLWindow",
+  GLWindow(unsigned width, unsigned height, const char* name = "GLWindow",
       bool threaded = false, bool stereo = false);
   ~GLWindow();
 
@@ -116,11 +120,8 @@ private:
   XWindowAttributes gwa;
   xcb_connection_t* connection;
   bool threaded;
+  bool windowless;
 #endif
-
-  void init(unsigned int width, unsigned int height, const char* name, bool threaded = false,
-      bool stereo = false);
-  void quit();
 
 };
 
