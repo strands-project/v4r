@@ -446,13 +446,13 @@ int v4rOCTopDownSegmenter::MVMumfordShahPreSegmenter<PointT>::extractSVBoundarie
         }
     }
 
-    pcl::visualization::PCLVisualizer vis_boundary("boundaries");
+    /*pcl::visualization::PCLVisualizer vis_boundary("boundaries");
     vis_boundary.addPointCloud(cloud_);
 
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> handler(boundary_points, 255, 0, 0);
     vis_boundary.addPointCloud<pcl::PointXYZ>(boundary_points, handler, "BOUNDARIES");
     vis_boundary.addCoordinateSystem(0.3f);
-    vis_boundary.spin();
+    vis_boundary.spin();*/
 
     return n_boundaries;
 }
