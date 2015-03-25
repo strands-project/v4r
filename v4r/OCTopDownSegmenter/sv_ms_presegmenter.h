@@ -63,6 +63,8 @@ namespace v4rOCTopDownSegmenter
 
             void createLabelCloud(std::vector<boost::shared_ptr<Region<PointT> > > & regions);
 
+            void createSegmnentationIndices(std::vector<boost::shared_ptr<Region<PointT> > > & regions);
+
             float nyu_; //boundary length penalizer
             float lambda_; //model complexity penalizer
             float sigma_; //color regularizer
@@ -94,6 +96,7 @@ namespace v4rOCTopDownSegmenter
 
             std::string save_impath_;
             pcl::PointCloud<pcl::PointXYZL>::Ptr labeled_cloud_;
+            std::vector<std::vector<int> > segmentation_indices_;
 
             //supervoxels parameters
             float supervoxel_seed_resolution_;
@@ -202,6 +205,11 @@ namespace v4rOCTopDownSegmenter
                 normal_importance_ = normal;
             }
 
+            void getSegmentationIndices(std::vector<std::vector<int> > & indices)
+            {
+                indices = segmentation_indices_;
+            }
+
             void getLabelCloud(pcl::PointCloud<pcl::PointXYZL>::Ptr & labeled)
             {
                 labeled.reset(new pcl::PointCloud<pcl::PointXYZL>(*labeled_cloud_));
@@ -254,6 +262,26 @@ namespace v4rOCTopDownSegmenter
             {
                 use_SLIC_RGBD_ = b;
             }
+    };
+
+    class Triangulation
+    {
+    public:
+        static void
+        createIndices (std::vector<pcl::Vertices> &vertices, unsigned vidx, unsigned segX, unsigned segY);
+
+        static void
+        createVertices (pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud,
+                        float x0, float y0, float z0,
+                        float width, float height,
+                        unsigned segX, unsigned segY);
+
+        static void
+        NurbsSurface2PolygonMesh(const ON_NurbsSurface &nurbs,
+                                 pcl::PolygonMesh &mesh,
+                                 unsigned resolution=32);
+
+
     };
 }
 

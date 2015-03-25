@@ -12,6 +12,8 @@
 
 //#define VIS_MERGE
 //#define VIS_CC
+//#define VIS_PROJECTED_REGIONS
+//#define VIS_SEGMENTATION
 
 #ifdef VIS_MERGE
 pcl::visualization::PCLVisualizer vis_merge("merging");
@@ -26,7 +28,10 @@ v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::SVMumfordShahPreSegmen
     alpha_ = 1.f;
 
     label_colors_.clear();
+
+#ifdef VIS_SEGMENTATION
     vis_segmentation_.reset(new pcl::visualization::PCLVisualizer ("segmentation"));
+#endif
 
 #ifdef VIS_CC
     vis_cc.reset(new pcl::visualization::PCLVisualizer ("connected components"));
@@ -178,19 +183,14 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::visualizeSegmenta
             pcl::IndicesPtr ind;
             ind.reset(new std::vector<int>(regions[i]->indices_));
 
-            pcl::PCA<PointT> basis;
-            basis.setInputCloud(cloud_);
-            basis.setIndices(ind);
-
             // #################### PLANE PROJECTION #########################
             typename pcl::PointCloud<PointT>::Ptr proj_cloud(new pcl::PointCloud<PointT>);
-            basis.project(pcl::PointCloud<PointT>(*cloud_,*ind), *proj_cloud);
+            regions[i]->pca_bspline_->project(pcl::PointCloud<PointT>(*cloud_,*ind), *proj_cloud);
 
             ON_NurbsSurface& bspline = regions[i]->bspline_model_;
 
-
             // evaluate error and curvature for each point
-            Eigen::VectorXd curvatures(proj_cloud->size(), 1);
+//            Eigen::VectorXd curvatures(proj_cloud->size(), 1);
             int nder = 2; // number of derivatives
             int nvals = bspline.Dimension()*(nder+1)*(nder+2)/2;
             double P[nvals];
@@ -205,7 +205,7 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::visualizeSegmenta
                 // positions
                 PointT p1, p2;
                 p1.x = P[0];    p1.y = P[1];    p1.z = P[2];
-                basis.reconstruct(p1,p2);
+                regions[i]->pca_bspline_->reconstruct(p1,p2);
                 cloud_cc->at(regions[i]->indices_[j]).getVector3fMap() = p2.getVector3fMap();
 
                 // 1st derivatives (for normals)
@@ -242,6 +242,22 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::visualizeSegmenta
                     max_curvature = c;
                 }
             }
+
+            for(int v=0; v<bspline.CVCount(1); v++)
+            {
+              for(int u=0; u<bspline.CVCount(0); u++)
+              {
+                ON_3dPoint cp;
+                bspline.GetCV(u,v,cp);
+
+                PointT p1,p2;
+                p1.x = cp.x; p1.y = cp.y; p1.z=cp.z;
+                regions[i]->pca_bspline_->reconstruct(p1,p2);
+                cp = ON_3dPoint(p2.x, p2.y, p2.z);
+                bspline.SetCV(u,v,cp);
+              }
+            }
+
         }
     }
 
@@ -280,6 +296,23 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::visualizeSegmenta
         vis_curv.addPointCloud(curvature_cloud, handler, "curvature", v2);
         vis_curv.spin();
         vis_curv.addPointCloud(cloud_, "test", v1);
+        vis_curv.spin();
+
+        // visualize B-spline
+        for(size_t i=0; i < regions.size(); i++)
+        {
+            if(!regions[i]->valid_)
+                continue;
+            if( ( regions[i]->current_model_type_ == BSPLINE_MODEL_TYPE_3x3 || regions[i]->current_model_type_ == BSPLINE_MODEL_TYPE_5x5) && regions[i]->bspline_model_defined_)
+            {
+                ON_NurbsSurface& bspline = regions[i]->bspline_model_;
+                pcl::PolygonMesh mesh;
+                std::stringstream ss;
+                ss << "bspline_" << i;
+                Triangulation::NurbsSurface2PolygonMesh(bspline, mesh);
+                vis_curv.addPolygonMesh (mesh, ss.str(), v1);
+            }
+        }
         vis_curv.spin();
     }
     //vis_segmentation_->spin();
@@ -365,6 +398,10 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::projectRegionsOnI
  std::string append)
 {
 
+#ifndef VIS_PROJECTED_REGIONS
+    return;
+#endif
+
     int max_label = regions.size();
     if((int)label_colors_.size() != max_label)
     {
@@ -446,6 +483,20 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::projectRegionsOnI
 
 /// END VISUALIZATION FUNCTIONS
 
+template<typename PointT>
+void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::createSegmnentationIndices
+(std::vector<boost::shared_ptr<Region<PointT> > > & regions)
+{
+    segmentation_indices_.clear();
+
+    for(size_t i=0; i < regions.size(); i++)
+    {
+        if(!regions[i]->valid_)
+            continue;
+
+        segmentation_indices_.push_back(regions[i]->indices_);
+    }
+}
 
 template<typename PointT>
 void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::createLabelCloud
@@ -601,8 +652,8 @@ int v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::extractSVBoundarie
         }
     }
 
-    cv::imshow("boundaries", boundaries);
-    cv::waitKey(0);
+    /*cv::imshow("boundaries", boundaries);
+    cv::waitKey(0);*/
 
     return n_boundaries;
 }
@@ -1265,7 +1316,7 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::process()
         j_ = it->first % (int)adjacent_.size();
         float min_nyu = it->second;
 
-        if(elems_range > 1)
+        /*if(elems_range > 1)
         {
             std::cout << "elements in range START:" << elems_range << std::endl;
             std::cout << min_nyu << std::endl;
@@ -1277,7 +1328,7 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::process()
                 int jj_ = it_range->first % (int)adjacent_.size();
                 std::cout << ii_ << " " << jj_ << " " << it_range->second << std::endl;
             }
-        }
+        }*/
 
         /// remove this pair from candidate set
         sorted_merge_candidates.erase(sorted_merge_candidates.begin());
@@ -1572,6 +1623,8 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::process()
     /// pixelwise refinement (fix erroneous oversegmented boundaries)
     if(pixelwise_refinement_)
     {
+
+#ifdef VIS_SEGMENTATION
         if(!cloud_->isOrganized())
         {
             std::cout << "!cloud_->isOrganized()" << std::endl;
@@ -1579,15 +1632,19 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::process()
             visualizeSegmentation(regions, 0);
             vis_segmentation_->spin();
         }
+#endif
 
         refinement(regions);
 
+#ifdef VIS_SEGMENTATION
         if(!cloud_->isOrganized())
         {
             vis_segmentation_->removeAllPointClouds();
             visualizeSegmentation(regions, 0);
             vis_segmentation_->spin();
         }
+#endif
+
     }
 
 #ifdef VIS_CC
@@ -1595,6 +1652,7 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::process()
 #endif
     projectRegionsOnImage(regions, "_4");
 
+#ifdef VIS_SEGMENTATION
     //int v1,v2;
     //vis_segmentation_->createViewPort(0,0,1,0.5,v1);
     //vis_segmentation_->createViewPort(0,0.5,1,1,v2);
@@ -1607,8 +1665,10 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::process()
     vis_segmentation_->removeAllPointClouds();
     visualizeRegions(regions, 0);
     vis_segmentation_->spin();
+#endif
 
     createLabelCloud(regions);
+    createSegmnentationIndices(regions);
 }
 
 template<typename PointT>
@@ -1981,6 +2041,92 @@ void v4rOCTopDownSegmenter::SVMumfordShahPreSegmenter<PointT>::fillPixelMoves(st
             }
         }
     }
+}
+
+void
+v4rOCTopDownSegmenter::Triangulation::createIndices (std::vector<pcl::Vertices> &vertices, unsigned vidx, unsigned segX, unsigned segY)
+{
+  for (unsigned j = 0; j < segY; j++)
+  {
+    for (unsigned i = 0; i < segX; i++)
+    {
+      unsigned i0 = vidx + (segX + 1) * j + i;
+      unsigned i1 = vidx + (segX + 1) * j + i + 1;
+      unsigned i2 = vidx + (segX + 1) * (j + 1) + i + 1;
+      unsigned i3 = vidx + (segX + 1) * (j + 1) + i;
+
+      pcl::Vertices v1;
+      v1.vertices.push_back (i0);
+      v1.vertices.push_back (i1);
+      v1.vertices.push_back (i2);
+      vertices.push_back (v1);
+
+      pcl::Vertices v2;
+      v2.vertices.push_back (i0);
+      v2.vertices.push_back (i2);
+      v2.vertices.push_back (i3);
+      vertices.push_back (v2);
+    }
+  }
+}
+
+void
+v4rOCTopDownSegmenter::Triangulation::createVertices (pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, float x0, float y0, float z0, float width,
+                                                      float height, unsigned segX, unsigned segY)
+{
+  pcl::PointXYZ v;
+  float dx = width / float (segX);
+  float dy = height / float (segY);
+
+  for (unsigned j = 0; j <= segY; j++)
+  {
+    for (unsigned i = 0; i <= segX; i++)
+    {
+      v.x = x0 + float (i) * dx;
+      v.y = y0 + float (j) * dy;
+      v.z = z0;
+      cloud->push_back (v);
+    }
+  }
+}
+
+void
+v4rOCTopDownSegmenter::Triangulation::NurbsSurface2PolygonMesh (const ON_NurbsSurface &nurbs,
+                                                                 pcl::PolygonMesh &mesh,
+                                                                 unsigned resolution)
+{
+  // copy knots
+  if (nurbs.KnotCount (0) <= 1 || nurbs.KnotCount (1) <= 1)
+  {
+    printf ("[Triangulation::NurbsSurface2PolygonMesh] Warning: ON knot vector empty.\n");
+    return;
+  }
+
+  double x0 = nurbs.Knot (0, 0);
+  double x1 = nurbs.Knot (0, nurbs.KnotCount (0) - 1);
+  double w = x1 - x0;
+  double y0 = nurbs.Knot (1, 0);
+  double y1 = nurbs.Knot (1, nurbs.KnotCount (1) - 1);
+  double h = y1 - y0;
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+  mesh.polygons.clear ();
+  createVertices (cloud, float (x0), float (y0), 0.0f, float (w), float (h), resolution, resolution);
+  createIndices (mesh.polygons, 0, resolution, resolution);
+
+  for (unsigned i = 0; i < cloud->size (); i++)
+  {
+    pcl::PointXYZ &v = cloud->at (i);
+
+    double point[9];
+    nurbs.Evaluate (v.x, v.y, 1, 3, point);
+
+    v.x = float (point[0]);
+    v.y = float (point[1]);
+    v.z = float (point[2]);
+  }
+
+  toPCLPointCloud2 (*cloud, mesh.cloud);
 }
 
 

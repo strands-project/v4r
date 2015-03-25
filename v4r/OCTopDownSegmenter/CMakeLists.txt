@@ -32,7 +32,7 @@ SET(SOURCE_H_PRESEGMENTER
 add_definitions(-DDEBUG)
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_H_PRESEGMENTER} ${SOURCE_CPP_PRESEGMENTER})
-target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} v4ron_nurbs)
+target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} v4ron_nurbs v4rSegmentation)
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H_PRESEGMENTER} ${SOURCE_CPP_PRESEGMENTER}")
 
 #add_executable(app_test app_test.cpp)
