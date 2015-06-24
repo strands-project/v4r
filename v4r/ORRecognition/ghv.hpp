@@ -1262,8 +1262,8 @@ faat_pcl::GHV<ModelT, SceneT>::getTotalExplainedInformation (std::vector<int> & 
 
 template<typename ModelT, typename SceneT>
 double
-faat_pcl::GHV<ModelT, SceneT>::getExplainedByIndices(std::vector<int> & indices, std::vector<float> & explained_values,
-                                                     std::vector<double> & explained_by_RM, std::vector<int> & indices_to_update_in_RM_local)
+faat_pcl::GHV<ModelT, SceneT>::getExplainedByIndices(const std::vector<int> & indices, const std::vector<float> & explained_values,
+                                                     const std::vector<double> & explained_by_RM, std::vector<int> & indices_to_update_in_RM_local)
 {
     float v=0;
     int indices_to_update_count = 0;
