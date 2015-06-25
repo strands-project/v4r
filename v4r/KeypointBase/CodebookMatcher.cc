@@ -117,6 +117,85 @@ void CodebookMatcher::createCodebook()
 }
 
 /**
+ * @brief CodebookMatcher::createCodebook
+ * @param _cb_centers
+ * @param _cb_entries
+ */
+void CodebookMatcher::createCodebook(cv::Mat &_cb_centers, std::vector< std::vector< std::pair<int,int> > > &_cb_entries)
+{
+  kp::ScopeTime t("CodebookMatcher::createCodebook");
+
+  // rnn clustering
+  kp::DataMatrix2Df centers;
+  std::vector<std::vector<int> > clusters;
+
+  rnn.param.dist_thr = param.thr_desc_rnn;
+  rnn.cluster(descs);
+  rnn.getClusters(clusters);
+  rnn.getCenters(centers);
+
+  cb_entries.clear();
+  cb_entries.resize(clusters.size());
+  cb_centers = cv::Mat_<float>(clusters.size(), centers.cols);
+
+  for (unsigned i=0; i<clusters.size(); i++)
+  {
+    for (unsigned j=0; j<clusters[i].size(); j++)
+      cb_entries[i].push_back(vk_indices[clusters[i][j]]);
+
+    cv::Mat_<float>(1,centers.cols,&centers(i,0)).copyTo(cb_centers.row(i));
+  }
+
+  cout<<"codbeook.size()="<<clusters.size()<<"/"<<descs.rows<<endl;
+
+  // create flann for matching
+  { kp::ScopeTime t("create FLANN");
+  matcher = new cv::FlannBasedMatcher();
+  matcher->add(std::vector<cv::Mat>(1,cb_centers));
+  matcher->train();
+  }
+
+  // return codebook
+  cb_centers.copyTo(_cb_centers);
+  _cb_entries = cb_entries;
+
+  // once the codebook is created clear the temp containers
+  rnn = ClusteringRNN();
+  descs = DataMatrix2Df();
+  vk_indices = std::vector< std::pair<int,int> >();
+  cb_centers.release();
+}
+
+/**
+ * @brief CodebookMatcher::setCodebook
+ * @param _cb_centers
+ * @param _cb_entries
+ */
+void CodebookMatcher::setCodebook(const cv::Mat &_cb_centers, const std::vector< std::vector< std::pair<int,int> > > &_cb_entries)
+{
+  cb_centers = _cb_centers;
+  cb_entries = _cb_entries;
+
+  max_view_index = 0;
+
+  for (unsigned i=0; i<cb_entries.size(); i++)
+    for (unsigned j=0; j<cb_entries[i].size(); j++)
+      if (cb_entries[i][j].first > max_view_index)
+        max_view_index = cb_entries[i][j].first;
+
+  max_view_index++;
+
+  // create flann for matching
+  { kp::ScopeTime t("create FLANN");
+  matcher = new cv::FlannBasedMatcher();
+  matcher->add(std::vector<cv::Mat>(1,cb_centers));
+  matcher->train();
+  }
+
+
+}
+
+/**
  * @brief CodebookMatcher::queryViewRank
  * @param descriptors
  * @param view_rank <view_index, rank_number>  sorted better first
@@ -175,7 +254,7 @@ void CodebookMatcher::queryMatches(const cv::Mat &descriptors, std::vector< std:
     if (cb_matches[i].size()>1)
     {
       cv::DMatch &ma0 = cb_matches[i][0];
-      if (ma0.distance/cb_matches[i][1].distance < param.nnr)
+      if (ma0.distance < param.max_dist && ma0.distance/cb_matches[i][1].distance < param.nnr)
       {
         std::vector< cv::DMatch > &ms = matches[ma0.queryIdx];
         const std::vector< std::pair<int,int> > &occs = cb_entries[ma0.trainIdx];

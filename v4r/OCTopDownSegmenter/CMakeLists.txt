@@ -35,11 +35,11 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_H_PRESEGMENTER} ${SOURCE_CPP_PRESEGM
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} v4ron_nurbs v4rSegmentation)
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H_PRESEGMENTER} ${SOURCE_CPP_PRESEGMENTER}")
 
-#add_executable(app_test app_test.cpp)
-#target_link_libraries(app_test ${PCL_LIBRARIES} ${OpenCV_LIBS} v4rOCTopDownSegmenter v4ron_nurbs v4rORUtils v4rSegmentation boost_regex )
+add_executable(app_test app_test.cpp)
+target_link_libraries(app_test ${PCL_LIBRARIES} ${OpenCV_LIBS} v4rOCTopDownSegmenter v4ron_nurbs v4rORUtils v4rSegmentation boost_regex )
 
-#add_executable(pcd2detph pcd2depth.cpp)
-#target_link_libraries(pcd2detph ${PCL_LIBRARIES} ${OpenCV_LIBS} boost_regex )
+add_executable(pcd2detph pcd2depth.cpp)
+target_link_libraries(pcd2detph ${PCL_LIBRARIES} ${OpenCV_LIBS} boost_regex )
 
 ENDIF(V4R_OCTOPDOWN_SEGMENTER)
 

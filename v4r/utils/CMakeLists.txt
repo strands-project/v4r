@@ -25,7 +25,7 @@ include_directories(${EIGEN_INCLUDE_DIRS})
 add_library(${PROJECT_NAME} SHARED ${UTILS_CPP} ${UTILS_H})
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 
-v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
+v4r_add_library(${PROJECT_NAME} "${UTILS_H}")
 
 #INSTALL(FILES ${UTILS_H} DESTINATION include/v4r/utils)
 #INSTALL(TARGETS v4rutils LIBRARY DESTINATION lib/)

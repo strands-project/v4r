@@ -35,6 +35,7 @@ SET(SOURCE_H
   registration_utils.h
   segmentation_utils.h
   faat_3d_rec_framework_defines.h
+  miscellaneous.h
 #  organized_edge_detection.h
 )
 

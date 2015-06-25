@@ -142,8 +142,25 @@ void FeatureSelection::compute(std::vector<cv::KeyPoint> &keys, cv::Mat &descrip
 
 //cv::imwrite("log/dbg.png",tmp);
 
+
   tmp_descs.copyTo(descriptors);
   keys = tmp_keys;
+
+  // mark near by points
+  /*pts.clear();
+  pts.reserve(keys.size(),2);
+
+  for (unsigned i=0; i<keys.size(); i++)
+    pts.push_back(&keys[i].pt.x, 2);
+
+  rnn.cluster(pts);
+  rnn.getClusters(pts_clusters);
+
+  for (unsigned i=0; i<pts_clusters.size(); i++)
+  {
+    for (unsigned j=1; j<pts_clusters[i].size(); j++)
+      keys[pts_clusters[i][j]].response = -1;
+  }*/
 }
 
 

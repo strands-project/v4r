@@ -137,7 +137,7 @@ public:
   virtual ~Object() {}
 
   /** check if a codebook is available **/
-  inline bool haveCodebook() {return !cb_centers.empty(); }
+  inline bool haveCodebook() {return !cb_centers.empty() && cb_centers.rows==(int)cb_entries.size(); }
 
   /** add a new global 3d point **/
   inline unsigned addPt(const Eigen::Vector3f &pt, const Eigen::Vector3f &n=Eigen::Vector3f(std::numeric_limits<double>::quiet_NaN(),std::numeric_limits<double>::quiet_NaN(),std::numeric_limits<double>::quiet_NaN())) {
@@ -198,6 +198,7 @@ public:
   /* add a new object view */
   ObjectView &addObjectView(const Eigen::Matrix4f &_pose, const cv::Mat_<unsigned char> &im=cv::Mat_<unsigned char>()) {
     views.push_back( ObjectView::Ptr(new ObjectView(this, cameras.size())) );
+    views.back()->idx = views.size()-1;
     cameras.push_back(_pose);
     if (im.empty()) views.back()->image=cv::Mat_<unsigned char>();
     else im.copyTo(views.back()->image);
@@ -207,6 +208,7 @@ public:
   void addObjectView(kp::ObjectView::Ptr & view, const Eigen::Matrix4f &_pose) {
     view->object = this;
     view->camera_id = cameras.size();
+    view->idx = views.size();
     views.push_back( view );
     cameras.push_back(_pose);
     /*if (im.empty()) views.back()->image=cv::Mat_<unsigned char>();

@@ -27,7 +27,7 @@ using namespace std;
  */
 ObjectTrackerMono::ObjectTrackerMono(const ObjectTrackerMono::Parameter &p)
  : param(p), conf(0.), conf_cnt(0), not_conf_cnt(1000)
-{ 
+{
   view.reset(new ObjectView(0));
   FeatureDetector::Ptr estDesc(new FeatureDetector_KD_FAST_IMGD(param.det_param));
   FeatureDetector::Ptr det = estDesc;//(new FeatureDetector_K_HARRIS());// = estDesc;
@@ -130,7 +130,7 @@ double ObjectTrackerMono::reinit(const cv::Mat_<unsigned char> &im, Eigen::Matri
 // --
 
   // use object recognizer
-  if (model->haveCodebook())
+  if (model->haveCodebook() && param.use_codebook)
   {
     int view_idx;
     double conf = kpRecognizer->detect(im, pose, view_idx);
@@ -190,11 +190,12 @@ bool ObjectTrackerMono::track(const cv::Mat &image, Eigen::Matrix4f &pose, doubl
   else image.copyTo(im_gray);
 
   if (!dbg.empty()) projTracker->dbg = dbg;
-  if (!dbg.empty()) kpDetector->dbg = dbg;
+  //if (!dbg.empty()) kpDetector->dbg = dbg;
   //if (!dbg.empty()) lkTracker->dbg = dbg;
+  if (!dbg.empty()) kpRecognizer->dbg = dbg;
 
   // do refinement
-  if (not_conf_cnt>=param.min_conf_cnt)
+  if (not_conf_cnt>=param.min_not_conf_cnt)
   {
     conf = reinit(im_gray, pose, view);
   }
@@ -318,12 +319,10 @@ void ObjectTrackerMono::setObjectModel(const Object::Ptr &_model)
     }
   }
 
-  if (model->haveCodebook())
+  if (model->haveCodebook() && param.use_codebook)
   {
-    // TODO: set codebook and gererate flann
-    // pRecognizer->set....
+    kpRecognizer->setModel(model);
   }
-  //kpRecognizer->setModel(model);
 }
 
 }

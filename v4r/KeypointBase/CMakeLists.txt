@@ -79,6 +79,7 @@ SET(SOURCE_H
   RefinePatchLocationLK.hh
   RefineProjectedPointLocationLK.hh
   RefineProjectedPointLocationLKbase.hh
+  FeatureDetectorHeaders.hh
 )
 IF (HAVE_OPENCV_NONFREE)
 SET(SOURCE_H ${SOURCE_H}

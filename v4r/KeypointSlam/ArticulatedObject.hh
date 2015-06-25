@@ -89,11 +89,12 @@ public:
 class ArticulatedObject : public Object, public PartMotion6D
 {
 public:
+  std::string version;
   std::vector< std::vector< Eigen::VectorXd > > part_parameter; // parameter for articulated scenes (objects)
 
   std::vector<Part::Ptr> parts;         // the first part is the object itself
 
-  ArticulatedObject() {};
+  ArticulatedObject() : version(std::string("1.0")) {};
 
   /* clear */
   void clearArticulatedObject();

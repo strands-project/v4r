@@ -31,7 +31,7 @@ public:
   public:
     float thr_image_px;
     float thr_desc;
-    Parameter(float _thr_image_px=1., float _thr_desc=0.55)
+    Parameter(float _thr_image_px=1.5, float _thr_desc=0.55)
     : thr_image_px(_thr_image_px), thr_desc(_thr_desc) {}
   };
 

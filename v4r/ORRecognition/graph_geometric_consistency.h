@@ -145,13 +145,15 @@ namespace faat_pcl
 
         for(size_t t=0; t < found_transformations_.size(); t++)
         {
-          Eigen::Vector3f trans_found = found_transformations_[t].block<3,1>(0,3);
+          Eigen::Matrix4f transf_tmp = found_transformations_[t];
+          Eigen::Vector3f trans_found = transf_tmp.block<3,1>(0,3);
           if((trans - trans_found).norm() < gc_size_)
           {
             found = true;
             break;
 
-            Eigen::Quaternionf quat_found(found_transformations_[t].block<3,3>(0,0));
+            Eigen::Matrix4f trans_tmp = found_transformations_[t];
+            Eigen::Quaternionf quat_found(trans_tmp.block<3,3>(0,0));
             quat_found.normalize();
             Eigen::Quaternionf quat_prod = quat_found * quat_conj;
             double angle = acos(quat_prod.z());

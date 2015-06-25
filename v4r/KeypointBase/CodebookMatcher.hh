@@ -32,8 +32,9 @@ public:
   public:
     float thr_desc_rnn;
     float nnr;
-    Parameter(float _thr_desc_rnn=0.55, float _nnr=0.9)
-    : thr_desc_rnn(_thr_desc_rnn), nnr(_nnr) {}
+    float max_dist;
+    Parameter(float _thr_desc_rnn=0.55, float _nnr=0.92, float _max_dist=.7)
+    : thr_desc_rnn(_thr_desc_rnn), nnr(_nnr), max_dist(_max_dist) {}
   };
 
 private:
@@ -60,6 +61,8 @@ public:
   void clear();
   void addView(const cv::Mat &descriptors, int view_idx);
   void createCodebook();
+  void createCodebook(cv::Mat &_cb_centers, std::vector< std::vector< std::pair<int,int> > > &_cb_entries);
+  void setCodebook(const cv::Mat &_cb_centers, const std::vector< std::vector< std::pair<int,int> > > &_cb_entries);
   void queryViewRank(const cv::Mat &descriptors, std::vector< std::pair<int, int> > &view_rank);
   void queryMatches(const cv::Mat &descriptors, std::vector< std::vector< cv::DMatch > > &matches);
 

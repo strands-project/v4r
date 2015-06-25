@@ -1,5 +1,5 @@
-SET(V4R_KEYPOINT_CONVERTIONS 1 CACHE BOOL "Convertions of pcl/ opencv/ keypoint data types" )
-IF(V4R_KEYPOINT_CONVERTIONS)
+SET(V4R_KEYPOINT_CONVERSIONS 1 CACHE BOOL "Convertions of pcl/ opencv/ keypoint data types" )
+IF(V4R_KEYPOINT_CONVERSIONS)
 
 #FIND_PACKAGE (OpenCV)
 include_directories(${OPENCV_INCLUDE_DIRS})
@@ -18,7 +18,7 @@ find_package(OpenMP)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
-PROJECT(v4rKeypointConvertions)
+PROJECT(v4rKeypointConversions)
 SET(SOURCE_CPP
 )
 
@@ -30,7 +30,7 @@ SET(SOURCE_H
 
 #add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
 #target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rKeypointTools)
-#v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
+v4r_add_headers(${PROJECT_NAME} "${SOURCE_H}")
 
-ENDIF(V4R_KEYPOINT_CONVERTIONS)
+ENDIF(V4R_KEYPOINT_CONVERSIONS)
 
