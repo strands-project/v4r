@@ -20,7 +20,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <Eigen/Dense>
 #include "v4rexternal/SiftGPU/src/SiftGPU/SiftGPU.h"
-#include "v4r/PCore/PMath.hh"
+//#include "v4r/PCore/PMath.hh"
 #include "v4r/KeypointTools/DataMatrix2D.hpp"
 
 
@@ -54,6 +54,7 @@ private:
 
 
   inline float Distance128(float d1[128], float d2[128]);
+  inline float sqr(const float &a) { return a*a; }
 
 
 protected:
@@ -107,7 +108,7 @@ inline float PSiftGPU::Distance128(float d1[128], float d2[128])
   float sqrDist=0.;
 
   for (unsigned i=0; i<128; i++)
-    sqrDist += PMath::Sqr(d1[i]-d2[i]);
+    sqrDist += sqr(d1[i]-d2[i]);
 
   return sqrt(sqrDist);
 }

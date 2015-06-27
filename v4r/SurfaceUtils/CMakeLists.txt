@@ -38,7 +38,6 @@ IF(${PCL_FOUND})
   )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
-
 add_dependencies(${PROJECT_NAME} v4rPCLAddOns v4rEPUtils v4rTomGine v4ron_nurbs)
 target_link_libraries(${PROJECT_NAME} ${OPENCV_LIBRARIES} ${PCL_LIBRARIES} v4rPCLAddOns v4rEPUtils v4rTomGine v4ron_nurbs)
 v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")

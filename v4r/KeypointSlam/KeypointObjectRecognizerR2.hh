@@ -41,7 +41,7 @@ public:
     int nb_ransac_points;
     int use_n_views;
     CodebookMatcher::Parameter cb_param;
-    Parameter(double _inl_dist=2, double _eta_ransac=0.01, unsigned _max_rand_trials=5000,
+    Parameter(double _inl_dist=3, double _eta_ransac=0.01, unsigned _max_rand_trials=5000,
       int _pnp_method=cv::P3P, int _nb_ransac_points=4, int _use_n_views=3,
       const CodebookMatcher::Parameter &_cb_param=CodebookMatcher::Parameter())
     : inl_dist(_inl_dist), eta_ransac(_eta_ransac), max_rand_trials(_max_rand_trials),

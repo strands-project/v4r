@@ -56,6 +56,7 @@ SET(SOURCE_H
   Matrix.hpp
   normalizedCrossCorrelation.hpp
   opencv_serialization.hpp
+  pair_serialization.hpp
   PointTypes.hpp
   PoseIO.hpp
   PlaneEstimationRANSAC.hh

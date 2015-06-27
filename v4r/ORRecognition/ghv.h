@@ -304,7 +304,7 @@ namespace faat_pcl
       float cluster_tolerance_;
 
       double
-      getOccupiedMultipleW ()
+      getOccupiedMultipleW () const
       {
         return w_occupied_multiple_cm_;
       }
@@ -316,7 +316,7 @@ namespace faat_pcl
       }
 
       double
-      getPreviousBadInfo ()
+      getPreviousBadInfo () const
       {
         return previous_bad_info_;
       }
@@ -346,47 +346,47 @@ namespace faat_pcl
       }
 
       double
-      getPreviousUnexplainedValue ()
+      getPreviousUnexplainedValue () const
       {
         return previous_unexplained_;
       }
 
       double
-      getExplainedValue ()
+      getExplainedValue () const
       {
         return previous_explained_value;
       }
 
       double
-      getDuplicity ()
+      getDuplicity () const
       {
         return previous_duplicity_;
       }
 
       int
-      getDuplicityCM ()
+      getDuplicityCM () const
       {
         return previous_duplicity_complete_models_;
       }
 
       float
-      getHypPenalty ()
+      getHypPenalty () const
       {
         return active_hyp_penalty_;
       }
 
       double
-      getExplainedByIndices (std::vector<int> & indices, std::vector<float> & explained_values, std::vector<double> & explained_by_RM,
+      getExplainedByIndices (const std::vector<int> & indices, const std::vector<float> & explained_values, const std::vector<double> & explained_by_RM,
                              std::vector<int> & indices_to_update_in_RM_local);
 
       void
-      getExplainedByRM (std::vector<double> & explained_by_rm)
+      getExplainedByRM (std::vector<double> & explained_by_rm) const
       {
         explained_by_rm = explained_by_RM_distance_weighted;
       }
 
       void
-      getUnexplainedByRM (std::vector<double> & explained_by_rm)
+      getUnexplainedByRM (std::vector<double> & explained_by_rm) const
       {
         explained_by_rm = unexplained_by_RM_neighboorhods;
       }
@@ -466,7 +466,7 @@ namespace faat_pcl
       }
 
       double
-      getUnexplainedInformationInNeighborhood (std::vector<double> & unexplained, std::vector<int> & explained)
+      getUnexplainedInformationInNeighborhood (const std::vector<double> & unexplained, const std::vector<int> & explained)
       {
         double unexplained_sum = 0.f;
         for (size_t i = 0; i < unexplained.size (); i++)
