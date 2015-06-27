@@ -22,6 +22,7 @@
 #include <v4r/utils/filesystem_utils.h>
 
 #include <pcl/filters/statistical_outlier_removal.h>
+#include <v4r/ORUtils/pcl_opencv.h>
 
 void denoisePoint(Eigen::Vector3f p, Eigen::Vector3f n,
                     float sigma_c, float sigma_s,
@@ -102,6 +103,95 @@ void bilateral_filter(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
 //./app_test -pcd_file /media/DATA/OSD-0.2/pcd/test51.pcd -z_dist 1.3 -sigma_s 0.005 -sigma_c 0.001 -kernel_width 3 -seg_type 1 -bf 1 -nyu 0.035 -vis_each_move 0
 //./app_test -pcd_file /media/aitor14/DATA/OSD-0.2/pcd/test59.pcd -z_dist 1.3 -sigma_s 0.005 -sigma_c 0.001 -kernel_width 3 -seg_type 1 -bf 1 -nyu 0.00015 -vis_each_move 0 -rgbd_plus_labels_file /media/aitor14/DATA/OSD-0.2/results_rgbd_plus_labels/test59.pcd -refinement 1 -lambda 0 -sv_res 0.004 -sv_seed 0.04 -sigma 0
 
+void visualizeOutput(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & scene,
+                     std::vector< std::vector<int> > & clusters)
+{
+    std::vector<uint32_t> label_colors_;
+
+    int max_label = clusters.size();
+    if((int)label_colors_.size() != max_label)
+    {
+        label_colors_.reserve (max_label + 1);
+        srand (static_cast<unsigned int> (time (0)));
+        while ((int)label_colors_.size () <= max_label )
+        {
+            uint8_t r = static_cast<uint8_t>( (rand () % 256));
+            uint8_t g = static_cast<uint8_t>( (rand () % 256));
+            uint8_t b = static_cast<uint8_t>( (rand () % 256));
+            label_colors_.push_back (static_cast<uint32_t>(r) << 16 | static_cast<uint32_t>(g) << 8 | static_cast<uint32_t>(b));
+        }
+    }
+
+    if(scene->isOrganized())
+    {
+        cv::Mat_<cv::Vec3b> image;
+        PCLOpenCV::ConvertPCLCloud2Image<pcl::PointXYZRGB>(scene, image);
+
+        cv::Mat image_clone = image.clone();
+
+        float factor = 0.05f;
+
+        for(size_t i=0; i < clusters.size(); i++)
+        {
+            for(size_t j=0; j < clusters[i].size(); j++)
+            {
+                int r, c;
+                int idx = clusters[i][j];
+                r = idx / scene->width;
+                c = idx % scene->width;
+
+                uint32_t rgb = label_colors_[i];
+                unsigned char rs = (rgb >> 16) & 0x0000ff;
+                unsigned char gs = (rgb >> 8) & 0x0000ff;
+                unsigned char bs = (rgb) & 0x0000ff;
+
+                cv::Vec3b im = image.at<cv::Vec3b>(r,c);
+                image.at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)(im[0] * factor + bs * (1 - factor)),
+                        (unsigned char)(im[1] * factor + gs * (1 - factor)),
+                        (unsigned char)(im[2] * factor + rs * (1 - factor)));
+            }
+        }
+
+        cv::Mat collage = cv::Mat(image.rows, image.cols * 2, CV_8UC3);
+        collage.setTo(cv::Vec3b(0,0,0));
+
+        for(unsigned int r=0; r < scene->height; r++)
+        {
+            for(unsigned int c=0; c < scene->width; c++)
+            {
+                collage.at<cv::Vec3b>(r,c) = image_clone.at<cv::Vec3b>(r,c);
+            }
+        }
+
+        collage(cv::Range(0, collage.rows), cv::Range(collage.cols/2, collage.cols)) = image + cv::Scalar(cv::Vec3b(0, 0, 0));
+
+        cv::imshow("regions", collage);
+        cv::waitKey(0);
+    }
+    else
+    {
+
+        //same thing with point cloud
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cc(new pcl::PointCloud<pcl::PointXYZRGB>(*scene));
+        for(size_t i=0; i < clusters.size(); i++)
+        {
+            for(size_t j=0; j < clusters[i].size(); j++)
+            {
+                cloud_cc->at(clusters[i][j]).rgb = label_colors_[i];
+            }
+        }
+
+        pcl::visualization::PCLVisualizer vis("regions");
+        vis.addPointCloud(cloud_cc);
+        vis.spin();
+    }
+}
+
+/// Command line
+/// Unorganized cloud
+/// ./app_test -pcd_file /home/aitor14/Downloads/room1/models/modelname.pcd -z_dist 1.3 -sigma_s 0.005 -sigma_c 0.005 -kernel_width 3 -seg_type 1 -bf 1 -nyu 0.015 -vis_each_move 0 -max_mt 1 -refinement 0 -lambda 0.00001 -sv_res 0.02 -sv_seed 0.2 -filter_cloud 1
+/// Organized
+/// ./app_test -pcd_file /media/aitor14/DATA/OSD-0.2/pcd/test58.pcd -z_dist 1.3 -sigma_s 0.005 -sigma_c 0.005 -kernel_width 3 -seg_type 1 -bf 1 -nyu 0.01 -vis_each_move 0 -max_mt 1 -refinement 1 -lambda 0.000025
 int
 main (int argc, char ** argv)
 {
@@ -335,6 +425,10 @@ main (int argc, char ** argv)
                   pcl::io::savePCDFileBinary(rgbd_plus_labels_file, *cloud_and_labels);
               }
           }
+
+          std::vector<std::vector<int> > segmentation_indices;
+          pre_segmenter.getSegmentationIndices(segmentation_indices);
+          visualizeOutput(cloud, segmentation_indices);
       }
       else
       {
@@ -371,6 +465,10 @@ main (int argc, char ** argv)
 
               pcl::io::savePCDFileBinary(rgbd_plus_labels_file, *cloud_and_labels);
           }
+
+          std::vector<std::vector<int> > segmentation_indices;
+          pre_segmenter.getSegmentationIndices(segmentation_indices);
+          visualizeOutput(cloud, segmentation_indices);
       }
   }
 

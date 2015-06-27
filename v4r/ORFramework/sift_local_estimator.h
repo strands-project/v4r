@@ -269,7 +269,6 @@ public:
         ks.resize(indices_.indices.size());
         for(size_t i=0; i < indices_.indices.size(); i++)
         {
-            int u,v;
             ks[i].y = (float)(indices_.indices[i] / in->width);
             ks[i].x = (float)(indices_.indices[i] % in->width);
             ks[i].s = 1.f;

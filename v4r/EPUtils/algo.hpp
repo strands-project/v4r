@@ -127,7 +127,7 @@ void get3DNeighbors(const cv::Mat &patches, cv::Mat &neighbors, int patchesNumbe
   neighbors.setTo(false);
   
   int width = patches.cols;
-  int height = patches.rows;
+//  int height = patches.rows;
   
   //@ep TODO: uncomment?
 //   int dr[4] = {-1,-1, 0, 1};

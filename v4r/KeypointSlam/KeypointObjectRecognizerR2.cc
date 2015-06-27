@@ -120,6 +120,7 @@ void KeypointObjectRecognizerR2::ransacSolvePnP(const std::vector<cv::Point3f> &
   std::vector<cv::Point3f> model_pts(param.nb_ransac_points);
   std::vector<cv::Point2f> query_pts(param.nb_ransac_points);
   cv::Mat_<double> R(3,3), rvec, tvec, sv_rvec, sv_tvec;
+  inliers.clear();
 
   while (pow(1. - pow(eps,param.nb_ransac_points), k) >= param.eta_ransac && k < (int)param.max_rand_trials)
   {
@@ -197,7 +198,6 @@ double KeypointObjectRecognizerR2::detect(const cv::Mat &image, Eigen::Matrix4f 
   // get matches
   detector->detect(im_gray, keys);
   descEstimator->extract(im_gray, keys, descs);
-cout<<"descs.rows="<<descs.rows<<endl;
 
   cbMatcher->queryMatches(descs, matches);
 
@@ -228,11 +228,10 @@ cout<<"descs.rows="<<descs.rows<<endl;
         model_pts.push_back(cv::Point3f(pt[0],pt[1],pt[2]));
         query_pts.push_back(keys[ma0.queryIdx].pt);
         view_indices.push_back(ma0.imgIdx);
-        if (!dbg.empty()) cv::circle(dbg, query_pts.back(), 2, CV_RGB(0,0,0));
+        if (!dbg.empty()) cv::circle(dbg, query_pts.back(), 3, CV_RGB(255,255,255), -1);
       }
     }
   }
-  cout<<"Recognizer model_pts.size()="<<model_pts.size()<<endl;
 
   if (int(query_pts.size())<4) return 0.;
 
@@ -242,7 +241,9 @@ cout<<"descs.rows="<<descs.rows<<endl;
   view_votes.assign(use_views.size(),0);
 
   for (unsigned i=0; i<inliers.size(); i++)
+  {
     view_votes[view_indices[inliers[i]]]++;
+  }
 
   for (unsigned i=0; i<view_votes.size(); i++)
   {
@@ -256,7 +257,7 @@ cout<<"descs.rows="<<descs.rows<<endl;
   // debug draw
   if (!dbg.empty()) {
     for (unsigned i=0; i<inliers.size(); i++)
-      cv::circle(dbg, query_pts[inliers[i]], 2, CV_RGB(0,255,0), -1);
+      cv::circle(dbg, query_pts[inliers[i]], 3, CV_RGB(0,255,0), -1);
   }
 
   int norm = (inliers.size()>200?inliers.size():200);    // that's a hard coded valued for normalization
@@ -272,13 +273,20 @@ void KeypointObjectRecognizerR2::setModel(const Object::Ptr &_model)
 {  
   model=_model; 
 
-  // create codebook
-  cbMatcher->clear();
+  if (model->haveCodebook())
+  {
+    cbMatcher->setCodebook(model->cb_centers, model->cb_entries);
+  }
+  else
+  {
+    // create codebook
+    cbMatcher->clear();
 
-  for (unsigned i=0; i<model->views.size(); i++)
-    cbMatcher->addView(model->views[i]->descs, i);
+    for (unsigned i=0; i<model->views.size(); i++)
+      cbMatcher->addView(model->views[i]->descs, i);
 
-  cbMatcher->createCodebook();
+    cbMatcher->createCodebook();
+  }
 }
 
 

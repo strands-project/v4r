@@ -32,7 +32,7 @@ namespace v4r
                 using PartialModelRegistrationBase<PointT>::getCloud;
                 using PartialModelRegistrationBase<PointT>::getIndices;
                 using PartialModelRegistrationBase<PointT>::getPose;
-                using PartialModelRegistrationBase<PointT>::PointCloudTPtr;
+                using typename PartialModelRegistrationBase<PointT>::PointCloudTPtr;
                 using PartialModelRegistrationBase<PointT>::getNormal;
 
                 void mergeTriangles(pcl::PolygonMesh::Ptr & mesh_out,

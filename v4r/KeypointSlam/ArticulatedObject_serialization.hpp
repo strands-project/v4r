@@ -91,6 +91,8 @@ namespace boost{namespace serialization{
     ar & o.camera_parameter;
     ar & o.views;
     ar & o.points;
+    ar & o.cb_centers;
+    ar & o.cb_entries;
   }
 
   template <class Archive>
@@ -101,6 +103,8 @@ namespace boost{namespace serialization{
     ar & o.camera_parameter;
     ar & o.views;
     ar & o.points;
+    ar & o.cb_centers;
+    ar & o.cb_entries;
 
     for (unsigned i=0; i<o.views.size(); i++)
       o.views[i]->object = &o;
@@ -227,6 +231,7 @@ namespace boost{namespace serialization{
   template<class Archive>
   void save(Archive & ar, const ::kp::ArticulatedObject::Ptr &o, const unsigned int version)
   {
+    ar & o->version;
     ar & boost::serialization::base_object<kp::Object> ( *o );
     ar & boost::serialization::base_object<kp::PartMotion6D> ( *o );
     ar & o->part_parameter;
@@ -245,6 +250,7 @@ namespace boost{namespace serialization{
   {
     o.reset(new kp::ArticulatedObject());
 
+    ar & o->version;
     ar & boost::serialization::base_object<kp::Object> ( *o );
     ar & boost::serialization::base_object<kp::PartMotion6D> ( *o );
     ar & o->part_parameter;
