@@ -107,7 +107,7 @@ public:
   KeypointSlamRGBD2(const KeypointSlamRGBD2::Parameter &p=KeypointSlamRGBD2::Parameter());
   ~KeypointSlamRGBD2();
 
-  bool track(const cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, Eigen::Matrix4f &pose, double &conf, int &cam_id);
+  bool track(cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, Eigen::Matrix4f &pose, double &conf, int &cam_id);
 
   void setKeyframe(int idx, Eigen::Matrix4f &pose);
   int getKeyframe() { return (view.get()==0?-1:view->idx); }

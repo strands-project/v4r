@@ -138,7 +138,7 @@ bool KeypointSlamRGBD2::addKeyframe(const ObjectView &view, const Eigen::Matrix4
  * @return camera id
  */
 //int cnt_reinit=0;
-bool KeypointSlamRGBD2::track(const cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, Eigen::Matrix4f &pose, double &conf, int &cam_id)
+bool KeypointSlamRGBD2::track(cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, Eigen::Matrix4f &pose, double &conf, int &cam_id)
 {
   //kp::ScopeTime t("tracking");
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
@@ -215,6 +215,11 @@ bool KeypointSlamRGBD2::track(const cv::Mat &image, const DataMatrix2D<Eigen::Ve
       cam_id = om->addLinkHyp2(im_gray,cloud,pose, new_kf_2nd_frame, tracked_view_idx, im_pts);
     else cam_id = om->addProjections(cloud, pose, tracked_view_idx, im_pts);
   }
+
+  // Draw the points on the original
+  kpTracker->getProjections(im_pts);
+  for (std::vector<std::pair<int,cv::Point2f> >::iterator pt = im_pts.begin() ; pt != im_pts.end(); ++pt)
+    cv::circle(image, (*pt).second, 5, cv::Scalar( 0, 0, 255 ));
 
   return (conf_cnt>param.min_conf_cnt);
 }
