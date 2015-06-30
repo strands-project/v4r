@@ -40,7 +40,7 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize()
 
 template<typename PointInT>
 void
-faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize(std::vector<std::string> & load_ids)
+faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize(const std::vector<std::string> & load_ids)
 {
     for(size_t i=0; i < recognizers_.size(); i++)
     {

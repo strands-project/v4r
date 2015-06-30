@@ -1,5 +1,5 @@
 #include "svmWrapper.h"
-
+#include <iostream>
 
 bool myfunction (data i,data j) { return (i.y<j.y); }
 

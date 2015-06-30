@@ -260,7 +260,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
   template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize(std::vector<std::string> & load_ids)
+  faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize(const std::vector<std::string> & load_ids)
   {
       PCL_WARN("Reinitialize LocalRecognitionPipeline with list of load_ids\n");
       std::cout << "List of models being loaded:" << load_ids.size() << std::endl;
