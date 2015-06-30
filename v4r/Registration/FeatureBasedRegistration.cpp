@@ -12,6 +12,7 @@
 #include <pcl/octree/impl/octree_base.hpp>
 #include <v4r/ORUtils/miscellaneous.h>
 
+
 template<class PointT>
 v4r::Registration::FeatureBasedRegistration<PointT>::FeatureBasedRegistration()
 {
