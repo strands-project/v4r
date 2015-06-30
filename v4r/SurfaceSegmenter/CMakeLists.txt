@@ -30,6 +30,7 @@ IF(${PCL_FOUND})
 
   add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
   target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
+  add_dependencies(${PROJECT_NAME} v4rSurfaceUtils v4rSurfaceClustering v4rEPUtils v4rSurfaceModeling v4rSurfaceRelations v4rsvm v4rGraphCut rt)
   target_link_libraries(${PROJECT_NAME} v4rSurfaceUtils v4rSurfaceClustering v4rEPUtils v4rSurfaceModeling v4rSurfaceRelations v4rsvm v4rGraphCut rt)
   v4r_add_library(${PROJECT_NAME} "${SOURCE_H}")
 
