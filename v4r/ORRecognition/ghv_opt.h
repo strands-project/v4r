@@ -516,7 +516,10 @@ namespace faat_pcl
       mets::solution_recorder (), best_ever_m (best)
     {
       times_evaluated_ = 0;
-      costs_.resize (0);
+      costs_.resize (1);
+      costs_[0] = 0.f;
+
+      // costs_.resize (0); before merge it was like this ---> What is correct?
     }
 
     void setVisualizeFunction(boost::function<void (const std::vector<bool> &, float, int)> & f)
@@ -527,6 +530,7 @@ namespace faat_pcl
     void
     writeToLog (std::ofstream & of)
     {
+      const GHVSAModel<ModelT, SceneT>& ss = static_cast<const GHVSAModel<ModelT, SceneT>&> (best_ever_m);
       of << times_evaluated_ << "\t\t";
       of << costs_.size () << "\t\t";
       of << costs_[costs_.size () - 1] << std::endl;
@@ -585,6 +589,7 @@ namespace faat_pcl
 
         if(visualize_function_)
         {
+            std::cout << "Going to visuailze cues when logging..." << std::endl;
             visualize_function_(ss.solution_, ss.cost_, times_evaluated_);
         }
         return true;

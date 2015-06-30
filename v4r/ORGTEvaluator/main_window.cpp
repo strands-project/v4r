@@ -279,7 +279,7 @@ void MainWindow::lock_with_icp()
             *merged_cloud += *cloud;
         }
     }
-    faat_pcl::utils::miscellaneous::voxelGridWithOctree(merged_cloud, *scene_merged_cloud_, 0.003f);
+    v4r::ORUtils::miscellaneous::voxelGridWithOctree(merged_cloud, *scene_merged_cloud_, 0.003f);
 
     QString icp_iter_str = icp_iter_te_->toPlainText();
     bool *okay = new bool();

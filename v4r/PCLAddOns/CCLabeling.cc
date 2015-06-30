@@ -29,7 +29,7 @@
 
 
 #include "CCLabeling.hh"
-
+#include <limits>
 
 namespace pclA
 {

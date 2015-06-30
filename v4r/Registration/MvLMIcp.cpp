@@ -651,7 +651,7 @@ v4r::Registration::MvLMIcp<PointT>::compute()
         if(normals_.size() == clouds_.size())
         {
             normals_transformed_with_ip_[i].reset(new pcl::PointCloud<pcl::Normal>());
-            faat_pcl::utils::miscellaneous::transformNormals(normals_[i], normals_transformed_with_ip_[i], poses_[i]);
+            v4r::ORUtils::miscellaneous::transformNormals(normals_[i], normals_transformed_with_ip_[i], poses_[i]);
         }
     }
 
