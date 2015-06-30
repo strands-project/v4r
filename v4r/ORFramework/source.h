@@ -307,7 +307,7 @@ namespace faat_pcl
           return false;
       }
 
-      void setModelList(std::vector<std::string> & list)
+      void setModelList(const std::vector<std::string> & list)
       {
           model_list_to_load_ = list;
       }

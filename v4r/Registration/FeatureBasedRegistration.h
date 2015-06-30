@@ -1,10 +1,11 @@
 #ifndef V4R_REGISTRATION_FBR
 #define V4R_REGISTRATION_FBR
 
-#define PCL_NO_PRECOMPILE
+//#define PCL_NO_PRECOMPILE
 //#include <pcl/point_types.h>
 //#include <pcl/point_cloud.h>
 #include <pcl/common/common.h>
+#include <pcl/search/kdtree.h>
 #include "PartialModelRegistrationBase.h"
 
 #include <flann/flann.h>
@@ -67,12 +68,6 @@ namespace v4r
                 int gc_threshold_;
                 int kdtree_splits_;
 
-                void
-                nearestKSearch (flann::Index<DistT> * index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances)
-                {
-                    index->knnSearch (p, indices, distances, k, flann::SearchParams (kdtree_splits_));
-                }
-
             public:
 
                 FeatureBasedRegistration();
@@ -92,8 +87,21 @@ namespace v4r
                 {
                     gc_threshold_ = t;
                 }
+
+
         };
     }
 }
 
+
+namespace v4r
+{
+    namespace Registration
+    {
+        template<typename PointType, typename DistType> void convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index);
+
+        void nearestKSearch ( boost::shared_ptr< flann::Index<flann::L1<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+                                flann::Matrix<float> &distances );
+    }
+}
 #endif

@@ -392,7 +392,7 @@ namespace faat_pcl
 
         }
 
-        virtual void reinitialize(std::vector<std::string> & load_ids)
+        virtual void reinitialize(const std::vector<std::string> & load_ids)
         {
 
         }

@@ -11,17 +11,17 @@
 #include <pcl/common/common.h>
 #include <pcl/pcl_macros.h>
 #include "hypotheses_verification.h"
-//#include "pcl/recognition/3rdparty/metslib/mets.hh"
+//#include <pcl/recognition/3rdparty/metslib/mets.hh>
 #include "v4rexternal/metslib/mets.hh"
 #include <pcl/features/normal_3d.h>
+#include <pcl/visualization/cloud_viewer.h>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <map>
+#include <stack>
 #include <iostream>
 #include <fstream>
 #include "ghv_opt.h"
-#include <stack>
-#include <pcl/visualization/pcl_visualizer.h>
 #include <v4r/ORUtils/common_data_structures.h>
 
 #ifdef _MSC_VER
@@ -90,9 +90,13 @@ namespace faat_pcl
         float vy = y;
         float vz = z / 1.08883f;
 
-        vx = sXYZ_LUT[std::min(4000-1, int(vx*4000))];
-        vy = sXYZ_LUT[std::min(4000-1, int(vy*4000))];
-        vz = sXYZ_LUT[std::min(4000-1, int(vz*4000))];
+        assert(int(vx*4000) < 4000);
+        assert(int(vy*4000) < 4000);
+        assert(int(vz*4000) < 4000);
+
+        vx = sXYZ_LUT[int(vx*4000)];
+        vy = sXYZ_LUT[int(vy*4000)];
+        vz = sXYZ_LUT[int(vz*4000)];
 
         L = 116.0f * vy - 16.0f;
         if (L > 100)
@@ -303,6 +307,12 @@ namespace faat_pcl
       float curvature_threshold_;
       float cluster_tolerance_;
 
+      //mahalanobis stuff
+      Eigen::MatrixXf inv_covariance_;
+      Eigen::VectorXf mean_;
+      float stddev_threshold_;
+      bool use_mahalanobis_;
+
       double
       getOccupiedMultipleW () const
       {
@@ -376,23 +386,25 @@ namespace faat_pcl
       }
 
       double
-      getExplainedByIndices (const std::vector<int> & indices, const std::vector<float> & explained_values, const std::vector<double> & explained_by_RM,
+      getExplainedByIndices (const std::vector<int> & indices,
+                             const std::vector<float> & explained_values,
+                             const std::vector<double> & explained_by_RM,
                              std::vector<int> & indices_to_update_in_RM_local);
 
       void
-      getExplainedByRM (std::vector<double> & explained_by_rm) const
+      getExplainedByRM (std::vector<double> & explained_by_rm)
       {
         explained_by_rm = explained_by_RM_distance_weighted;
       }
 
       void
-      getUnexplainedByRM (std::vector<double> & explained_by_rm) const
+      getUnexplainedByRM (std::vector<double> & explained_by_rm)
       {
         explained_by_rm = unexplained_by_RM_neighboorhods;
       }
 
       void
-      updateUnexplainedVector (std::vector<int> & unexplained_, std::vector<float> & unexplained_distances, std::vector<double> & unexplained_by_RM,
+      updateUnexplainedVector (const std::vector<int> & unexplained_, const std::vector<float> & unexplained_distances, std::vector<double> & unexplained_by_RM,
                                std::vector<int> & explained, std::vector<int> & explained_by_RM, float val)
       {
         {
@@ -446,14 +458,14 @@ namespace faat_pcl
       }
 
       void
-      updateExplainedVector (std::vector<int> & vec, std::vector<float> & vec_float, std::vector<int> & explained_,
+      updateExplainedVector (const std::vector<int> & vec, const std::vector<float> & vec_float, std::vector<int> & explained_,
                              std::vector<double> & explained_by_RM_distance_weighted, float sign, int model_id);
 
       void
-      updateCMDuplicity (std::vector<int> & vec, std::vector<int> & occupancy_vec, float sign);
+      updateCMDuplicity (const std::vector<int> & vec, std::vector<int> & occupancy_vec, float sign);
 
       double
-      getTotalExplainedInformation (std::vector<int> & explained_, std::vector<double> & explained_by_RM_distance_weighted, double * duplicity_);
+      getTotalExplainedInformation (const std::vector<int> & explained_, const std::vector<double> & explained_by_RM_distance_weighted, double &duplicity_);
 
       double
       getTotalBadInformation (std::vector<boost::shared_ptr<GHVRecognitionModel<ModelT> > > & recog_models)
@@ -466,7 +478,7 @@ namespace faat_pcl
       }
 
       double
-      getUnexplainedInformationInNeighborhood (const std::vector<double> & unexplained, const std::vector<int> & explained)
+      getUnexplainedInformationInNeighborhood (std::vector<double> & unexplained, std::vector<int> & explained)
       {
         double unexplained_sum = 0.f;
         for (size_t i = 0; i < unexplained.size (); i++)
@@ -500,14 +512,14 @@ namespace faat_pcl
       bool initial_status_;
 
       void
-      computeRGBHistograms (std::vector<Eigen::Vector3f> & rgb_values, Eigen::MatrixXf & rgb,
+      computeRGBHistograms (const std::vector<Eigen::Vector3f> & rgb_values, Eigen::MatrixXf & rgb,
                                int dim = 3, float min = 0.f, float max = 255.f, bool soft = false);
 
       void
       specifyRGBHistograms (Eigen::MatrixXf & src, Eigen::MatrixXf & dst, Eigen::MatrixXf & lookup, int dim = 3);
 
       void
-      computeGSHistogram (std::vector<float> & hsv_values, Eigen::MatrixXf & histogram, int hist_size = 255);
+      computeGSHistogram (const std::vector<float> & hsv_values, Eigen::MatrixXf & histogram, int hist_size = 255);
 
       std::vector<faat_pcl::PlaneModel<ModelT> > planar_models_;
       std::map<int, int> model_to_planar_model_;
@@ -558,6 +570,13 @@ namespace faat_pcl
       bool use_clutter_exp_;
       int multiple_assignment_penalize_by_one_;
 
+      //compute mahalanobis distance
+      float mahalanobis(Eigen::VectorXf & mu, Eigen::VectorXf & x, Eigen::MatrixXf & inv_cov)
+      {
+          float product = (x - mu).transpose() * inv_cov * (x - mu);
+          return sqrt(product);
+      }
+
     public:
       GHV () :
         faat_pcl::HypothesisVerification<ModelT, SceneT> ()
@@ -603,6 +622,19 @@ namespace faat_pcl
         d_weight_for_bad_normals_ = 0.1f;
         use_clutter_exp_ = false;
         scene_and_normals_set_from_outside_ = false;
+        use_mahalanobis_ = false;
+      }
+
+      void setMeanAndCovariance(Eigen::VectorXf & mean, Eigen::MatrixXf & cov)
+      {
+          use_mahalanobis_ = true;
+          mean_ = mean;
+          inv_covariance_ = cov;
+      }
+
+      void setStdDevThreshold(float t)
+      {
+        stddev_threshold_ = t;
       }
 
       void setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene,

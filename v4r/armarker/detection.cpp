@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
 #include "AR/ar.h"
 #include <set>
 #include <wordexp.h>
+#include <vector>
 using namespace V4R;
 
 std::string expandName ( const std::string &fileString ) {
@@ -143,9 +144,9 @@ int MarkerDetection::computePose(const cv::Mat& cameraMatrix, const cv::Mat& dis
     if ((cameraMatrix.rows != 3) ||  (cameraMatrix.cols != 3)) {
         CV_Error( CV_StsUnsupportedFormat, "cameraMatrix must be 3x3" );
     }
-    cv::vector<cv::Point3d> corners3D;
+    std::vector<cv::Point3d> corners3D;
     corners3D.reserve(mMarker.size());
-    cv::vector<cv::Point2d> corners2D;
+    std::vector<cv::Point2d> corners2D;
     corners2D.reserve(mMarker.size());
     std::set< int> usedMarker;
     group_conficence = 0;

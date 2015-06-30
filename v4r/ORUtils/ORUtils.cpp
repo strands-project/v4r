@@ -1,24 +1,70 @@
-#ifndef FAAT_PCL_UTILS_MISCELLANEOUS_H_
-#define FAAT_PCL_UTILS_MISCELLANEOUS_H_
+#include "ORUtils.h"
 
-#include <pcl/common/common.h>
+#include <v4r/KeypointConversions/convertCloud.hpp>
+#include <v4r/KeypointConversions/convertNormals.hpp>
+#include <v4r/KeypointTools/ZAdaptiveNormals.hh>
+
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/octree/octree_pointcloud_pointvector.h>
 #include <pcl/octree/impl/octree_iterator.hpp>
 
+
+
 namespace v4r
 {
-namespace ORUtils
-{
-namespace miscellaneous
-{
 
-void computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
-                    pcl::PointCloud<pcl::Normal>::Ptr &normals,
-                    int method);
+template <typename PointT>
+void ORUtils<PointT>::computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
+                    pcl::PointCloud<pcl::Normal> &normals,
+                    int method)
+{
+    std::cout << "Computing normals..." << std::endl;
+    if(method== 0)
+    {
+        pcl::NormalEstimationOMP<PointT, pcl::Normal> n3d;
+        n3d.setRadiusSearch (0.02f);
+        n3d.setInputCloud (cloud);
+        n3d.compute (normals);
+    }
+    else if(method == 1)
+    {
+        pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
+        ne.setNormalEstimationMethod (ne.AVERAGE_3D_GRADIENT);
+        ne.setMaxDepthChangeFactor(0.02f);
+        ne.setNormalSmoothingSize(15.f);//20.0f);
+        ne.setDepthDependentSmoothing(false);//param.normals_depth_dependent_smoothing);
+        ne.setInputCloud(cloud);
+        ne.setViewPoint(0,0,0);
+        ne.compute(normals);
+    }
+    else //if(normal_method_ == 2)
+    {
 
-inline void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
+        kp::ZAdaptiveNormals::Parameter n_param;
+        n_param.adaptive = true;
+        kp::ZAdaptiveNormals nest(n_param);
+
+        kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new kp::DataMatrix2D<Eigen::Vector3f>() );
+        kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals_tmp( new kp::DataMatrix2D<Eigen::Vector3f>() );
+        kp::convertCloud(*cloud, *kp_cloud);
+        nest.compute(*kp_cloud, *kp_normals_tmp);
+        kp::convertNormals(*kp_normals_tmp, normals);
+    }
+
+    // Normalize normals to unit length
+    for ( size_t normal_pt_id = 0; normal_pt_id < normals.points.size(); normal_pt_id++)
+    {
+        Eigen::Vector3f n1 = normals.points[normal_pt_id].getNormalVector3fMap();
+        n1.normalize();
+        normals.points[normal_pt_id].normal_x = n1(0);
+        normals.points[normal_pt_id].normal_y = n1(1);
+        normals.points[normal_pt_id].normal_z = n1(2);
+    }
+}
+
+
+void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
                       pcl::PointCloud<pcl::Normal>::Ptr & normals_aligned,
                       Eigen::Matrix4f & transform)
 {
@@ -40,8 +86,7 @@ inline void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
 
     }
 }
-
-inline void transformNormals(pcl::PointCloud<pcl::Normal>::ConstPtr & normals_cloud,
+static void transformNormals(pcl::PointCloud<pcl::Normal>::ConstPtr & normals_cloud,
                       pcl::PointCloud<pcl::Normal>::Ptr & normals_aligned,
                       Eigen::Matrix4f & transform)
 {
@@ -63,7 +108,7 @@ inline void transformNormals(pcl::PointCloud<pcl::Normal>::ConstPtr & normals_cl
     }
 }
 
-inline void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
+static void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
                              pcl::PointCloud<pcl::Normal>::Ptr & normals_aligned,
                              std::vector<int> & indices,
                              Eigen::Matrix4f & transform)
@@ -90,7 +135,7 @@ inline void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
     }
 }
 
-inline void transformNormal(Eigen::Vector3f & nt,
+static void transformNormal(Eigen::Vector3f & nt,
                             Eigen::Vector3f & normal_out,
                             Eigen::Matrix4f & transform)
 {
@@ -99,7 +144,7 @@ inline void transformNormal(Eigen::Vector3f & nt,
     normal_out[2] = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1] + transform (2, 2) * nt[2]);
 }
 
-inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
+static void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
                          pcl::PointCloud<pcl::PointXYZRGB> & voxel_grided,
                          float resolution)
 {
@@ -150,7 +195,7 @@ inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
 }
 
 }
-}
-}
 
-#endif
+template void v4r::ORUtils<pcl::PointXYZRGB>::computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
+                                               pcl::PointCloud<pcl::Normal> &normals,
+                                               int method);
