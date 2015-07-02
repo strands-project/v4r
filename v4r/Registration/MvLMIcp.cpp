@@ -113,7 +113,7 @@ private:
     //view indices considered for this block
     int h_;
     int k_;
-    std::vector<int> * param_blocks_sizes_;
+    std::vector<short int> * param_blocks_sizes_;
 
 public:
 
