@@ -1,0 +1,17 @@
+# - Config file for the FooBar package
+# It defines the following variables
+#  @PROJECT_NAME@_INCLUDE_DIRS - include directories for FooBar
+#  @PROJECT_NAME@_LIBRARIES    - libraries to link against
+#  @PROJECT_NAME@_EXECUTABLE   - the bar executable
+ 
+# Compute paths
+get_filename_component(@PROJECT_NAME@_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(@PROJECT_NAME@_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+ 
+# Our library dependencies (contains definitions for IMPORTED targets)
+# if(NOT TARGET foo AND NOT @PROJECT_NAME@_BINARY_DIR)
+#   include("${@PROJECT_NAME@_CMAKE_DIR}/@PROJECT_NAME@Targets.cmake")
+# endif()
+ 
+# These are IMPORTED targets created by FooBarTargets.cmake
+set(@PROJECT_NAME@_LIBRARIES @EXPORT_LIBS@)
