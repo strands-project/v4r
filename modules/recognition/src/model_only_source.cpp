@@ -1,4 +1,4 @@
-#include "model_only_source.h"
+#include <v4r/recognition/model_only_source.h>
 
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/copy.hpp>

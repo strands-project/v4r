@@ -5,7 +5,7 @@
  *      Author: aitor
  */
 
-#include "multiplane_segmentation.hpp"
+#include "v4r/recognition/impl/multiplane_segmentation.hpp"
 
 template class faat_pcl::MultiPlaneSegmentation<pcl::PointXYZ>;
 template class faat_pcl::MultiPlaneSegmentation<pcl::PointXYZRGB>;

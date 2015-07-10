@@ -12,7 +12,7 @@
 #include <boost/algorithm/string.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/voxel_grid.h>
-#include <v4rexternal/EDT/propagation_distance_field.h>
+#include <3rdparty/EDT/propagation_distance_field.h>
 #include <pcl/common/transforms.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <boost/regex.hpp>
@@ -62,7 +62,7 @@ namespace faat_pcl
         flip_normals_based_on_vp_ = false;
       }
 
-      bool getFlipNormalsBasedOnVP()
+      bool getFlipNormalsBasedOnVP() const
       {
           return flip_normals_based_on_vp_;
       }
@@ -114,11 +114,11 @@ namespace faat_pcl
         if (it == voxelized_assembled_labels_.end ())
         {
           pcl::PointCloud<pcl::PointXYZL>::Ptr voxelized (new pcl::PointCloud<pcl::PointXYZL>);
-          pcl::VoxelGrid<pcl::PointXYZL> grid_;
-          grid_.setInputCloud (faces_cloud_labels_);
-          grid_.setLeafSize (resolution, resolution, resolution);
-          grid_.setDownsampleAllData(true);
-          grid_.filter (*voxelized);
+          pcl::VoxelGrid<pcl::PointXYZL> grid;
+          grid.setInputCloud (faces_cloud_labels_);
+          grid.setLeafSize (resolution, resolution, resolution);
+          grid.setDownsampleAllData(true);
+          grid.filter (*voxelized);
 
           voxelized_assembled_labels_[resolution] = voxelized;
           return voxelized;
@@ -137,11 +137,11 @@ namespace faat_pcl
         if (it == voxelized_assembled_.end ())
         {
           PointTPtr voxelized (new pcl::PointCloud<PointT>);
-          pcl::VoxelGrid<PointT> grid_;
-          grid_.setInputCloud (assembled_);
-          grid_.setLeafSize (resolution, resolution, resolution);
-          grid_.setDownsampleAllData(true);
-          grid_.filter (*voxelized);
+          pcl::VoxelGrid<PointT> grid;
+          grid.setInputCloud (assembled_);
+          grid.setLeafSize (resolution, resolution, resolution);
+          grid.setDownsampleAllData(true);
+          grid.filter (*voxelized);
 
           PointTPtrConst voxelized_const (new pcl::PointCloud<PointT> (*voxelized));
           voxelized_assembled_[resolution] = voxelized_const;
@@ -171,11 +171,11 @@ namespace faat_pcl
             assembled_with_normals->points[i].getNormalVector4fMap() = normals_assembled_->points[i].getNormalVector4fMap();
           }
 
-          pcl::VoxelGrid<pcl::PointNormal> grid_;
-          grid_.setInputCloud (assembled_with_normals);
-          grid_.setLeafSize (resolution, resolution, resolution);
-          grid_.setDownsampleAllData(true);
-          grid_.filter (*voxelized);
+          pcl::VoxelGrid<pcl::PointNormal> grid;
+          grid.setInputCloud (assembled_with_normals);
+          grid.setLeafSize (resolution, resolution, resolution);
+          grid.setDownsampleAllData(true);
+          grid.filter (*voxelized);
 
           pcl::PointCloud<pcl::Normal>::Ptr voxelized_const (new pcl::PointCloud<pcl::Normal> ());
           voxelized_const->points.resize(voxelized->points.size());
@@ -233,7 +233,7 @@ namespace faat_pcl
       std::vector<std::string> model_list_to_load_;
 
       void
-      getIdAndClassFromFilename (std::string & filename, std::string & id, std::string & classname)
+      getIdAndClassFromFilename (const std::string & filename, std::string & id, std::string & classname)
       {
 
         std::vector < std::string > strs;
@@ -253,7 +253,7 @@ namespace faat_pcl
       }
 
       void
-      createTrainingDir (std::string & training_dir)
+      createTrainingDir (const std::string & training_dir)
       {
         bf::path trained_dir = training_dir;
         if (!bf::exists (trained_dir))
@@ -261,7 +261,7 @@ namespace faat_pcl
       }
 
       void
-      createClassAndModelDirectories (std::string & training_dir, std::string & class_str, std::string & id_str)
+      createClassAndModelDirectories (const std::string & training_dir, const std::string & class_str, const std::string & id_str)
       {
         std::vector < std::string > strs;
         boost::split (strs, class_str, boost::is_any_of ("/\\"));
@@ -291,7 +291,7 @@ namespace faat_pcl
         model_list_to_load_.clear();
       }
 
-      bool modelIdInList(std::string & id)
+      bool isModelIdInList(const std::string & id)
       {
           if(model_list_to_load_.empty())
               return true;
@@ -307,7 +307,7 @@ namespace faat_pcl
           return false;
       }
 
-      void setModelList(std::vector<std::string> & list)
+      void setModelList(const std::vector<std::string> & list)
       {
           model_list_to_load_ = list;
       }
@@ -379,7 +379,7 @@ namespace faat_pcl
        * \brief Get the generated model
        */
       boost::shared_ptr<std::vector<ModelTPtr> >
-      getModels ()
+      getModels () const
       {
         return models_;
       }
@@ -423,7 +423,7 @@ namespace faat_pcl
         return models_;
       }
 
-      void getFeaturesFromFile(std::string filename, std::vector<float> feature_vector)
+      void getFeaturesFromFile(const std::string &filename, const std::vector<float> &feature_vector)
       {
           if (!bf::exists (filename))
           {
@@ -443,7 +443,7 @@ namespace faat_pcl
       }
 
       bool
-      modelAlreadyTrained (ModelT m, std::string & base_dir, std::string & descr_name)
+      isModelAlreadyTrained (const ModelT m, const std::string & base_dir, const std::string & descr_name)
       {
         std::stringstream dir;
         dir << base_dir << "/" << m.class_ << "/" << m.id_ << "/" << descr_name;
@@ -459,7 +459,7 @@ namespace faat_pcl
       }
 
       std::string
-      getModelDescriptorDir (ModelT m, std::string & base_dir, std::string & descr_name)
+      getModelDescriptorDir (const ModelT m, const std::string & base_dir, const std::string & descr_name)
       {
         std::stringstream dir;
         dir << base_dir << "/" << m.class_ << "/" << m.id_ << "/" << descr_name;
@@ -467,7 +467,7 @@ namespace faat_pcl
       }
 
       std::string
-      getModelDirectory (ModelT m, std::string & base_dir)
+      getModelDirectory (const ModelT m, const std::string & base_dir)
       {
         std::stringstream dir;
         dir << base_dir << "/" << m.class_ << "/" << m.id_;
@@ -475,7 +475,7 @@ namespace faat_pcl
       }
 
       std::string
-      getModelClassDirectory (ModelT m, std::string & base_dir)
+      getModelClassDirectory (const ModelT m, const std::string & base_dir)
       {
         std::stringstream dir;
         dir << base_dir << "/" << m.class_;
@@ -483,7 +483,7 @@ namespace faat_pcl
       }
 
       void
-      removeDescDirectory (ModelT m, std::string & base_dir, std::string & descr_name)
+      removeDescDirectory (const ModelT m, const std::string & base_dir, const std::string & descr_name)
       {
         std::string dir = getModelDescriptorDir (m, base_dir, descr_name);
 
@@ -493,7 +493,7 @@ namespace faat_pcl
       }
 
       void
-      setPath (std::string & path)
+      setPath (const std::string & path)
       {
         path_ = path;
       }

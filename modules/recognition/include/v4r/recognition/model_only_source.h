@@ -13,11 +13,11 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
+#include "v4r/common/faat_3d_rec_framework_defines.h"
 #include "vtk_model_sampling.h"
 #include <vtkTransformPolyDataFilter.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
-#include <v4r/utils/filesystem_utils.h>
+#include <v4r/common/io/filesystem_utils.h>
 
 namespace faat_pcl
 {

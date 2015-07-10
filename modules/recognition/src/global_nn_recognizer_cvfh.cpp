@@ -5,8 +5,8 @@
  *      Author: aitor
  */
 
-#include "global_nn_recognizer_cvfh.hpp"
-#include "metrics.h"
+#include <v4r/recognition/impl/global_nn_recognizer_cvfh.hpp>
+#include <v4r/recognition/metrics.h>
 
 POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<367>,
     (float[367], histogram, histogram367)

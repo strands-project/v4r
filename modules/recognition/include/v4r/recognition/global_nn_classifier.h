@@ -8,11 +8,11 @@
 #ifndef FAAT_PCL_REC_FRAMEWORK_GLOBAL_PIPELINE_H_
 #define FAAT_PCL_REC_FRAMEWORK_GLOBAL_PIPELINE_H_
 
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 #include <flann/flann.h>
 #include <pcl/common/common.h>
 #include "source.h"
-#include "global_estimator.h"
+#include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/common/features/global_estimator.h>
 
 namespace faat_pcl
 {
@@ -28,16 +28,16 @@ namespace faat_pcl
       setNN (int nn) = 0;
 
       virtual void
-      getCategory (std::vector<std::string> & categories) = 0;
+      getCategory (std::vector<std::string> & categories) const = 0;
 
       virtual void
-      getConfidence (std::vector<float> & conf) = 0;
+      getConfidence (std::vector<float> & conf) const = 0;
 
       virtual void
       classify () = 0;
 
       virtual void
-      setIndices (std::vector<int> & indices) = 0;
+      setIndices (const std::vector<int> & indices) = 0;
 
       virtual void
       setInputCloud (const PointInTPtr & cloud) = 0;
@@ -160,13 +160,13 @@ namespace faat_pcl
         }
 
         void
-        getCategory (std::vector<std::string> & categories)
+        getCategory (std::vector<std::string> & categories) const
         {
           categories = categories_;
         }
 
         void
-        getConfidence (std::vector<float> & conf)
+        getConfidence (std::vector<float> & conf) const
         {
           conf = confidences_;
         }
@@ -189,7 +189,7 @@ namespace faat_pcl
          * \brief Sets the model data source_
          */
         void
-        setDataSource (typename boost::shared_ptr<Source<PointInT> > & source)
+        setDataSource (const typename boost::shared_ptr<Source<PointInT> > & source)
         {
           source_ = source;
         }
@@ -199,13 +199,13 @@ namespace faat_pcl
          */
 
         void
-        setFeatureEstimator (typename boost::shared_ptr<GlobalEstimator<PointInT, FeatureT> > & feat)
+        setFeatureEstimator (const typename boost::shared_ptr<GlobalEstimator<PointInT, FeatureT> > & feat)
         {
           estimator_ = feat;
         }
 
         void
-        setIndices (std::vector<int> & indices)
+        setIndices (const std::vector<int> & indices)
         {
           indices_ = indices;
         }
@@ -220,13 +220,13 @@ namespace faat_pcl
         }
 
         void
-        setDescriptorName (std::string & name)
+        setDescriptorName (const std::string & name)
         {
           descr_name_ = name;
         }
 
         void
-        setTrainingDir (std::string & dir)
+        setTrainingDir (const std::string & dir)
         {
           training_dir_ = dir;
         }

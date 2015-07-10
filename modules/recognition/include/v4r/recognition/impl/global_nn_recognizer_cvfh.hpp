@@ -5,13 +5,13 @@
  *      Author: aitor
  */
 
-#include "global_nn_recognizer_cvfh.h"
+#include <v4r/recognition/global_nn_recognizer_cvfh.h>
 #include <pcl/registration/icp.h>
 #include <boost/random.hpp>
 #include <boost/random/normal_distribution.hpp>
 #include <pcl/common/time.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <v4r/utils/filesystem_utils.h>
+#include <v4r/common/io/filesystem_utils.h>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
@@ -43,8 +43,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   bool
-  faat_pcl::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getRollPose (ModelT & model, int view_id, int d_id,
-                                                                                            Eigen::Matrix4f & pose_matrix)
+  faat_pcl::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getRollPose (const ModelT & model, int view_id, int d_id,
+                                                                                            Eigen::Matrix4f & pose_matrix) const
   {
 
     /*if (use_cache_)
@@ -81,8 +81,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  faat_pcl::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getCentroid (ModelT & model, int view_id, int d_id,
-                                                                                            Eigen::Vector3f & centroid)
+  faat_pcl::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getCentroid (const ModelT &model, int view_id, int d_id,
+                                                                                            Eigen::Vector3f & centroid) const
   {
     std::stringstream dir;
     std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
@@ -93,7 +93,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  faat_pcl::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getView (ModelT & model, int view_id, PointInTPtr & view)
+  faat_pcl::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getView (const ModelT & model, int view_id, PointInTPtr & view) const
   {
     view.reset (new pcl::PointCloud<PointInT>);
     std::stringstream dir;
@@ -715,7 +715,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
     for (size_t i = 0; i < models->size (); i++)
     {
-      if (!source_->modelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
+      if (!source_->isModelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
       {
         if(!source_->getLoadIntoMemory())
           source_->loadInMemorySpecificModel(training_dir_, *(models->at (i)));

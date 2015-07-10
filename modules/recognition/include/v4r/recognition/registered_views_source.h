@@ -13,8 +13,8 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
-#include <v4r/utils/filesystem_utils.h>
+#include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/common/io/filesystem_utils.h>
 
 namespace faat_pcl
 {
@@ -417,7 +417,7 @@ namespace faat_pcl
 
             std::vector < std::string > strs;
             boost::split (strs, files[i], boost::is_any_of ("/\\"));
-            std::string name = strs[strs.size () - 1];
+//            std::string name = strs[strs.size () - 1];
 
             if (strs.size () == 1)
             {
@@ -440,7 +440,7 @@ namespace faat_pcl
             std::cout << m->class_ << " . " << m->id_ << std::endl;
 
             //check if the model has to be loaded according to the list
-            if(!this->modelIdInList(m->id_))
+            if(!this->isModelIdInList(m->id_))
                 continue;
 
             //check which of them have been trained using training_dir and the model_id_

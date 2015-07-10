@@ -5,7 +5,7 @@
  *      Author: aitor
  */
 
-#include "voxel_based_correspondence_estimation.hpp"
+#include "v4r/recognition/impl/voxel_based_correspondence_estimation.hpp"
 
 template class faat_pcl::rec_3d_framework::VoxelBasedCorrespondenceEstimation<pcl::PointXYZ, pcl::PointXYZ >;
 template class faat_pcl::rec_3d_framework::VoxelBasedCorrespondenceEstimation<pcl::PointXYZRGB, pcl::PointXYZRGB >;

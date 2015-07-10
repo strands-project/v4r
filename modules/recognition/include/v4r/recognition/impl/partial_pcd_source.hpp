@@ -8,9 +8,9 @@
 #ifndef FAAT_PCL_PARTIAL_PCD_SOURCE_HPP_
 #define FAAT_PCL_PARTIAL_PCD_SOURCE_HPP_
 
-#include "partial_pcd_source.h"
+#include <v4r/recognition/partial_pcd_source.h>
 #include <pcl/common/angles.h>
-#include <v4r/utils/filesystem_utils.h>
+#include <v4r/common/io/filesystem_utils.h>
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void

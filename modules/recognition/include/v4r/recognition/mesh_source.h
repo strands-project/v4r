@@ -9,14 +9,14 @@
 #define FAAT_PCL_REC_FRAMEWORK_MESH_SOURCE_H_
 
 #include "source.h"
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
+#include "v4r/common/faat_3d_rec_framework_defines.h"
 #include <pcl/apps/render_views_tesselated_sphere.h>
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
 #include "vtk_model_sampling.h"
 #include <boost/function.hpp>
 #include <vtkTransformPolyDataFilter.h>
-#include <v4r/utils/filesystem_utils.h>
+#include <v4r/common/io/filesystem_utils.h>
 
 namespace faat_pcl
 {

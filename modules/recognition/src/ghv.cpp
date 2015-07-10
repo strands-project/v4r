@@ -36,8 +36,8 @@
 
 #include <pcl/point_types.h>
 #include <pcl/impl/instantiate.hpp>
-#include "ghv.h"
-#include "ghv.hpp"
+#include "v4r/recognition/ghv.h"
+#include "v4r/recognition/impl/ghv.hpp"
 
 template<typename ModelT, typename SceneT> float faat_pcl::GHV<ModelT, SceneT>::sRGB_LUT[256] = {- 1};
 template<typename ModelT, typename SceneT> float faat_pcl::GHV<ModelT, SceneT>::sXYZ_LUT[4000] = {- 1};

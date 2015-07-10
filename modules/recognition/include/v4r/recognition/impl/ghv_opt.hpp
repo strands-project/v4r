@@ -5,7 +5,7 @@
  *      Author: aitor
  */
 
-#include "ghv_opt.h"
+#include <v4r/recognition/ghv_opt.h>
 #include <numeric>
 
 template<typename ModelT, typename SceneT>

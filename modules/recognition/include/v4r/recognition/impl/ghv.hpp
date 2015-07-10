@@ -35,7 +35,7 @@
  */
 
 #include <pcl/visualization/pcl_visualizer.h>
-#include "ghv.h"
+#include <v4r/recognition/ghv.h>
 #include <functional>
 #include <numeric>
 #include <pcl/common/time.h>

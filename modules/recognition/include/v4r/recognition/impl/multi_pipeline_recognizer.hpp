@@ -8,8 +8,8 @@
 #ifndef MULTI_PIPELINE_RECOGNIZER_HPP_
 #define MULTI_PIPELINE_RECOGNIZER_HPP_
 
-#include "multi_pipeline_recognizer.h"
-#include "normal_estimator.h"
+#include <v4r/recognition/multi_pipeline_recognizer.h>
+#include <v4r/common/normal_estimator.h>
 //#include "multi_object_graph_CG.h"
 //#include <pcl/visualization/pcl_visualizer.h>
 
@@ -40,7 +40,7 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize()
 
 template<typename PointInT>
 void
-faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize(std::vector<std::string> & load_ids)
+faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize(const std::vector<std::string> & load_ids)
 {
     for(size_t i=0; i < recognizers_.size(); i++)
     {
@@ -106,8 +106,8 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
             }
             else
             {
-                std::cout << "normals set:" << normals_set_ << std::endl;
-                std::cout << "recognizer accepts normals:" << recognizers_[i]->acceptsNormals() << std::endl;
+                std::cout << "normals set:" << normals_set_
+                          << "recognizer accepts normals:" << recognizers_[i]->acceptsNormals() << std::endl;
             }
 
             for(size_t c=0; c < segmentation_indices_.size(); c++)
@@ -272,7 +272,7 @@ void faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::corresponde
             //      {
             //        pcl::ScopeTime t("finding correct indices...\n");
             //        std::vector<int> correct_indices;
-            //        getIndicesFromCloud<PointInT>(processed, keypoints_cloud_, correct_indices);
+            //        v4r::ORUtils::miscellaneous::getIndicesFromCloud<PointInT>(processed, keypoints_cloud_, correct_indices);
             pcl::copyPointCloud(*all_scene_normals, keypoint_indices_.indices, *scene_normals);
             //      }
         }
@@ -464,7 +464,7 @@ void faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::corresponde
 
 template<typename PointInT>
 bool
-faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::isSegmentationRequired()
+faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::isSegmentationRequired() const
 {
     bool ret_value = false;
     for(size_t i=0; (i < recognizers_.size()) && !ret_value; i++)
@@ -477,7 +477,7 @@ faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::isSegmentationRe
 
 template<typename PointInT>
 typename boost::shared_ptr<faat_pcl::rec_3d_framework::Source<PointInT> >
-faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::getDataSource ()
+faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointInT>::getDataSource () const
 {
     //NOTE: Assuming source is the same or contains the same models for all recognizers...
     //Otherwise, we should create a combined data source so that all models are present

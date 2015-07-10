@@ -1,19 +1,24 @@
-#include "include/singleview_object_recognizer.h"
+#include "v4r/recognition/singleview_object_recognizer.h"
 
-#include <v4r/ORFramework/local_recognizer.h>
-#include <v4r/ORFramework/metrics.h>
-#include <v4r/ORFramework/organized_color_ourcvfh_estimator.h>
-#include <v4r/ORFramework/ourcvfh_estimator.h>
-#include <v4r/ORFramework/shot_local_estimator.h>
-#include <v4r/ORFramework/shot_local_estimator_omp.h>
-#include <v4r/ORFramework/registered_views_source.h>
-#include <v4r/ORFramework/partial_pcd_source.h>
-#include <v4r/ORFramework/global_nn_recognizer_cvfh.h>
-#include <v4r/ORRecognition/graph_geometric_consistency.h>
-#include <v4r/ORRecognition/ghv.h>
+
+#include <pcl/filters/passthrough.h>
+#include <pcl/apps/dominant_plane_segmentation.h>
+
+#include <v4r/recognition/local_recognizer.h>
+#include <v4r/recognition/metrics.h>
+#include <v4r/recognition/multiplane_segmentation.h>
+#include <v4r/common/features/organized_color_ourcvfh_estimator.h>
+#include <v4r/common/features/ourcvfh_estimator.h>
+#include <v4r/common/features/shot_local_estimator.h>
+#include <v4r/common/features/shot_local_estimator_omp.h>
+#include <v4r/recognition/registered_views_source.h>
+#include <v4r/recognition/partial_pcd_source.h>
+#include <v4r/recognition/global_nn_recognizer_cvfh.h>
+#include <v4r/common/graph_geometric_consistency.h>
+#include <v4r/recognition/ghv.h>
 //#include <faat_pcl/recognition/hv/hv_cuda_wrapper.h>
-#include <v4r/ORRegistration/visibility_reasoning.h>
-#include <v4r/ORUtils/miscellaneous.h>
+#include <v4r/common/visibility_reasoning.h>
+#include <v4r/common/miscellaneous.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -21,18 +26,20 @@
 //#define USE_CUDA
 
 #ifndef USE_SIFT_GPU
-	#include <v4r/ORFramework/opencv_sift_local_estimator.h>
+    #include <v4r/recognition/opencv_sift_local_estimator.h>
 #endif
 
 #ifdef USE_CUDA
-    #include <v4r/ORRecognition/include/cuda/ghv_cuda.h>
-    #include <v4r/ORRecognition/include/cuda/ghv_cuda_wrapper.h>
+    #include <v4r/recognition/include/cuda/ghv_cuda.h>
+    #include <v4r/recognition/include/cuda/ghv_cuda_wrapper.h>
 #endif
 
 
 bool USE_SEGMENTATION_ = false;
 
-bool Recognizer::multiplaneSegmentation()
+namespace v4r
+{
+void Recognizer::multiplaneSegmentation()
 {
     //Multiplane segmentation
     faat_pcl::MultiPlaneSegmentation<PointT> mps;
@@ -45,16 +52,44 @@ bool Recognizer::multiplaneSegmentation()
     planes_found_ = mps.getModels();
 }
 
+bool Recognizer::retrain (const std::vector<std::string> &model_ids)
+{
+      //delete .idx files from recognizers
+      { //sift flann idx
+          bf::path file(idx_flann_fn_sift_);
+           if(bf::exists(file))
+              bf::remove(file);
+      }
+
+      { //shot flann idx
+        bf::path file(idx_flann_fn_shot_);
+         if(bf::exists(file))
+            bf::remove(file);
+      }
+
+      std::cout << "Never finishes this..." << std::endl;
+
+      if(model_ids.empty())
+      {
+          std::cout << "Number of model ids is zero. " << std::endl;
+          multi_recog_->reinitialize();
+      }
+      else
+      {
+          std::cout << "Number of ids:" << model_ids.size() << std::endl;
+          multi_recog_->reinitialize(model_ids);
+      }
+
+      return true;
+}
+
+
 void Recognizer::constructHypotheses()
 {
         if(pSceneNormals_->points.size() == 0)
         {
             std::cout << "No normals point cloud for scene given. Calculate normals of scene..." << std::endl;
-            pSceneNormals_.reset (new pcl::PointCloud<pcl::Normal>);
-            pcl::NormalEstimationOMP<PointT, pcl::Normal> ne;
-            ne.setRadiusSearch(0.02f);
-            ne.setInputCloud (pInputCloud_);
-            ne.compute (*pSceneNormals_);
+            v4r::ORUtils::miscellaneous::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
         }
 
     //    if(USE_SEGMENTATION_)
@@ -147,7 +182,7 @@ bool Recognizer::hypothesesVerification(std::vector<bool> &mask_hv)
                                hv_params_.smooth_seg_params_curv_t_,
                                hv_params_.smooth_seg_params_dist_t_,
                                hv_params_.smooth_seg_params_min_points_);//0.1, 0.035, 0.005);
-    go->setVisualizeGoCues(1);
+    go->setVisualizeGoCues(0);
     go->setUseSuperVoxels(hv_params_.use_supervoxels_);
     go->setZBufferSelfOcclusionResolution (hv_params_.z_buffer_self_occlusion_resolution_);
     go->setHypPenalty (hv_params_.hyp_penalty_);
@@ -226,7 +261,7 @@ bool Recognizer::hypothesesVerification(std::vector<bool> &mask_hv)
 #endif
 
     //append planar models
-    if(add_planes_)
+    if(sv_params_.add_planes_)
     {
         multiplaneSegmentation();
         go->addPlanarModels(planes_found_);
@@ -266,13 +301,9 @@ bool Recognizer::hypothesesVerification(std::vector<bool> &mask_hv)
     for(size_t j=0; j < planes_found_.size(); j++)
         coming_from[aligned_models_.size() + j] = 1;
 
-    bool have_verified_models = false;
-
     for (size_t j = 0; j < aligned_models_.size (); j++)
     {
-        mask_hv[j]=mask_hv_with_planes[j];
-        if(mask_hv_with_planes[j])
-            have_verified_models = true;
+        mask_hv[j] = mask_hv_with_planes[j];
     }
     for (size_t j = 0; j < planes_found_.size(); j++)
     {
@@ -304,29 +335,12 @@ void Recognizer::constructHypothesesFromFeatureMatches(std::map < std::string,fa
                  "dot_distance_: " << cg_params_.dot_distance_ << std::endl <<
                  "=================================================================" << std::endl << std::endl;
 
-
-    boost::shared_ptr < faat_pcl::CorrespondenceGrouping<PointT, PointT> > cast_cg_alg;
-    boost::shared_ptr < faat_pcl::GraphGeometricConsistencyGrouping<PointT, PointT> > gcg_alg (
-                new faat_pcl::GraphGeometricConsistencyGrouping<
-                PointT, PointT>);
-
     aligned_models_.clear();
     aligned_normals_.clear();
     model_ids_.clear();
     transforms_->clear();
     models_->clear();
     aligned_smooth_faces_.clear();
-
-    gcg_alg->setGCThreshold (cg_params_.cg_size_threshold_);
-    gcg_alg->setGCSize (cg_params_.cg_size_);
-    gcg_alg->setRansacThreshold (cg_params_.ransac_threshold_);
-    gcg_alg->setUseGraph (true);
-    gcg_alg->setDistForClusterFactor (cg_params_.dist_for_clutter_factor_);
-    gcg_alg->setMaxTaken(cg_params_.max_taken_);
-    gcg_alg->setMaxTimeForCliquesComputation(cg_params_.max_time_for_cliques_computation_);
-    gcg_alg->setDotDistance (cg_params_.dot_distance_);
-
-    cast_cg_alg = boost::static_pointer_cast<faat_pcl::CorrespondenceGrouping<PointT, PointT> > (gcg_alg);
 
     hypothesesOutput.clear();
     typename std::map<std::string, faat_pcl::rec_3d_framework::ObjectHypothesis<PointT> >::iterator it_map;
@@ -341,19 +355,19 @@ void Recognizer::constructHypothesesFromFeatureMatches(std::map < std::string,fa
         std::vector <pcl::Correspondences> corresp_clusters;
         std::string id = it_map->second.model_->id_;
         std::cout << id << ": " << it_map->second.correspondences_to_inputcloud->size() << std::endl;
-        cast_cg_alg->setSceneCloud (pKeypoints);
-        cast_cg_alg->setInputCloud ((*it_map).second.correspondences_pointcloud);
+        cast_cg_alg_->setSceneCloud (pKeypoints);
+        cast_cg_alg_->setInputCloud ((*it_map).second.correspondences_pointcloud);
 
-        if(cast_cg_alg->getRequiresNormals())
+        if(cast_cg_alg_->getRequiresNormals())
         {
             std::cout << "CG alg requires normals..." << ((*it_map).second.normals_pointcloud)->points.size() << " " << pKeypointNormals->points.size() << std::endl;
             assert(pKeypoints->points.size() == pKeypointNormals->points.size());
-            cast_cg_alg->setInputAndSceneNormals((*it_map).second.normals_pointcloud, pKeypointNormals);
+            cast_cg_alg_->setInputAndSceneNormals((*it_map).second.normals_pointcloud, pKeypointNormals);
         }
         //we need to pass the keypoints_pointcloud and the specific object hypothesis
 
-        cast_cg_alg->setModelSceneCorrespondences ((*it_map).second.correspondences_to_inputcloud);
-        cast_cg_alg->cluster (corresp_clusters);
+        cast_cg_alg_->setModelSceneCorrespondences ((*it_map).second.correspondences_to_inputcloud);
+        cast_cg_alg_->cluster (corresp_clusters);
 
         std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << " " << it_map->first << std::endl;
         for (size_t i = 0; i < corresp_clusters.size (); i++)
@@ -405,14 +419,14 @@ void Recognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_
     if(occlusion_cloud->isOrganized())
     {
         //compute FSV for the model and occlusion_cloud
-        faat_pcl::registration::VisibilityReasoning<PointT> vr (525.f, 640, 480);
+        v4r::registration::VisibilityReasoning<PointT> vr (525.f, 640, 480);
         vr.setThresholdTSS (0.01f);
 
         for(size_t i=0; i < models_->size(); i++)
         {
             pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_->at(i)->getNormalsAssembled (hv_params_.resolution_);
             typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
-            faat_pcl::utils::miscellaneous::transformNormals(normal_cloud, normal_aligned, transforms_->at(i));
+            v4r::ORUtils::miscellaneous::transformNormals(normal_cloud, normal_aligned, transforms_->at(i));
 
             if(models_->at(i)->getFlipNormalsBasedOnVP())
             {
@@ -604,7 +618,7 @@ bool Recognizer::recognize ()
     {
         if(mask_hv[j])
         {
-            //verified_models->push_back(models_->at(j));
+            models_verified_.push_back(models_->at(j));
             model_ids_verified_.push_back(model_ids_[j]);
             transforms_verified_.push_back(transforms_->at(j));
         }
@@ -614,26 +628,64 @@ bool Recognizer::recognize ()
                  "Number of verified models:" << model_ids_verified_.size() << std::endl;
 
     visualizeHypotheses();
+
+    return true;
   }
 
 
+void Recognizer::printParams() const
+{
+    std::cout << "cg_size_thresh: " << cg_params_.cg_size_threshold_ << std::endl
+              << "cg_size: " << cg_params_.cg_size_ << std::endl
+              << "cg_ransac_threshold: " << cg_params_.ransac_threshold_ << std::endl
+              << "cg_dist_for_clutter_factor: " << cg_params_.dist_for_clutter_factor_ << std::endl
+              << "cg_max_taken: " << cg_params_.max_taken_ << std::endl
+              << "cg_max_time_for_cliques_computation: " << cg_params_.max_time_for_cliques_computation_ << std::endl
+              << "cg_dot_distance: " << cg_params_.dot_distance_ << std::endl
+              << "cg_use_cg_graph: " << cg_params_.use_cg_graph_ << std::endl
+              << "hv_resolution: " << hv_params_.resolution_ << std::endl
+              << "hv_inlier_threshold: " << hv_params_.inlier_threshold_ << std::endl
+              << "hv_radius_clutter: " << hv_params_.radius_clutter_ << std::endl
+              << "hv_regularizer: " << hv_params_.regularizer_ << std::endl
+              << "hv_clutter_regularizer: " << hv_params_.clutter_regularizer_ << std::endl
+              << "hv_occlusion_threshold: " << hv_params_.occlusion_threshold_ << std::endl
+              << "hv_optimizer_type: " << hv_params_.optimizer_type_ << std::endl
+              << "hv_color_sigma_l: " << hv_params_.color_sigma_l_ << std::endl
+              << "hv_color_sigma_ab: " << hv_params_.color_sigma_ab_ << std::endl
+              << "hv_use_supervoxels: " << hv_params_.use_supervoxels_ << std::endl
+              << "hv_detect_clutter: " << hv_params_.detect_clutter_ << std::endl
+              << "hv_ignore_color: " << hv_params_.ignore_color_ << std::endl
+              << "chop_z: " << sv_params_.chop_at_z_ << std::endl
+              << "icp_iterations: " << sv_params_.icp_iterations_ << std::endl
+              << "icp_type: " << sv_params_.icp_type_ << std::endl
+              << "icp_voxel_size: " << hv_params_.resolution_ << std::endl
+              << "do_sift: " << sv_params_.do_sift_ << std::endl
+              << "do_shot: " << sv_params_.do_shot_ << std::endl
+              << "do_ourcvfh: " << sv_params_.do_ourcvfh_ << std::endl
+              << "====================" << std::endl << std::endl;
+}
 
   void Recognizer::initialize ()
   {
-      std::cout << "=================================================================" << std::endl <<
-                   "Initializing Recognizer with following parameters: " << std::endl <<
-                   "*** do_sift_: " << do_sift_ << std::endl <<
-                   "*** do_shot_: " << do_shot_ << std::endl <<
-                   "*** do_ourcvfh_: " << do_ourcvfh_ << std::endl <<
-                   "*** icp_iterations_: " << icp_iterations_ << std::endl <<
-                   "*** icp_type_: " << icp_type_ << std::endl <<
-                   "*** icp_voxel_size_: " << hv_params_.resolution_ << std::endl <<
-                   "=================================================================" << std::endl << std::endl;
-
     boost::function<bool (const Eigen::Vector3f &)> campos_constraints;
     campos_constraints = camPosConstraints ();
 
     multi_recog_.reset (new faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointT>);
+
+    boost::shared_ptr < faat_pcl::GraphGeometricConsistencyGrouping<PointT, PointT> > gcg_alg (
+                new faat_pcl::GraphGeometricConsistencyGrouping<
+                PointT, PointT>);
+    gcg_alg->setGCThreshold (cg_params_.cg_size_threshold_);
+    gcg_alg->setGCSize (cg_params_.cg_size_);
+    gcg_alg->setRansacThreshold (cg_params_.ransac_threshold_);
+    gcg_alg->setUseGraph (cg_params_.use_cg_graph_);
+    gcg_alg->setDistForClusterFactor (cg_params_.dist_for_clutter_factor_);
+    gcg_alg->setMaxTaken(cg_params_.max_taken_);
+    gcg_alg->setMaxTimeForCliquesComputation(cg_params_.max_time_for_cliques_computation_);
+    gcg_alg->setDotDistance (cg_params_.dot_distance_);
+
+    cast_cg_alg_ = boost::static_pointer_cast<faat_pcl::CorrespondenceGrouping<PointT, PointT> > (gcg_alg);
+
 
 //    model_only_source_->setPath (models_dir_);
 //    model_only_source_->setLoadViews (false);
@@ -644,7 +696,7 @@ bool Recognizer::recognize ()
 //    model_only_source_->setExtension("pcd");
 //    model_only_source_->generate (test);
 
-    if (do_sift_)
+    if ( sv_params_.do_sift_ )
     {
 
       std::string idx_flann_fn = "sift_flann.idx";
@@ -695,11 +747,11 @@ bool Recognizer::recognize ()
       new_sift_local->setDataSource (cast_source);
       new_sift_local->setTrainingDir (training_dir_sift_);
       new_sift_local->setDescriptorName (desc_name);
-      new_sift_local->setICPIterations (0);
+      new_sift_local->setICPIterations (sv_params_.icp_iterations_);
       new_sift_local->setFeatureEstimator (cast_estimator);
       new_sift_local->setUseCache (true);
-//      new_sift_local_->setCGAlgorithm (cast_cg_alg);
-      new_sift_local->setKnn (knn_sift_);
+      new_sift_local->setCGAlgorithm (cast_cg_alg_);
+      new_sift_local->setKnn (sv_params_.knn_sift_);
       new_sift_local->setUseCache (true);
       new_sift_local->setSaveHypotheses(true);
       new_sift_local->initialize (false);
@@ -711,7 +763,7 @@ bool Recognizer::recognize ()
       multi_recog_->addRecognizer (cast_recog);
     }
 
-    if(do_ourcvfh_ && USE_SEGMENTATION_)
+    if(sv_params_.do_ourcvfh_ && USE_SEGMENTATION_)
     {
       boost::shared_ptr<faat_pcl::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> >
                           source (
@@ -784,7 +836,7 @@ bool Recognizer::recognize ()
       rf_color_ourcvfh_global_->setDescriptorName (desc_name);
       rf_color_ourcvfh_global_->setFeatureEstimator (cast_estimator);
       rf_color_ourcvfh_global_->setNN (50);
-      rf_color_ourcvfh_global_->setICPIterations (0);
+      rf_color_ourcvfh_global_->setICPIterations ( sv_params_.icp_iterations_ );
       rf_color_ourcvfh_global_->setNoise (0.0f);
       rf_color_ourcvfh_global_->setUseCache (true);
       rf_color_ourcvfh_global_->setMaxHyp(15);
@@ -815,7 +867,7 @@ bool Recognizer::recognize ()
       multi_recog_->addRecognizer(cast_recog);
     }
 
-    if(do_shot_)
+    if(sv_params_.do_shot_)
     {
         std::string idx_flann_fn = "shot_flann.idx";
         std::string desc_name = "shot";
@@ -838,7 +890,7 @@ bool Recognizer::recognize ()
         boost::shared_ptr<faat_pcl::rec_3d_framework::UniformSamplingExtractor<PointT> > uniform_keypoint_extractor ( new faat_pcl::rec_3d_framework::UniformSamplingExtractor<PointT>);
         uniform_keypoint_extractor->setSamplingDensity (0.01f);
         uniform_keypoint_extractor->setFilterPlanar (true);
-        uniform_keypoint_extractor->setMaxDistance(chop_at_z_);
+        uniform_keypoint_extractor->setMaxDistance( sv_params_.chop_at_z_ );
         uniform_keypoint_extractor->setThresholdPlanar(0.1);
 
         boost::shared_ptr<faat_pcl::rec_3d_framework::KeypointExtractor<PointT> > keypoint_extractor;
@@ -867,12 +919,12 @@ bool Recognizer::recognize ()
         local->setTrainingDir (training_dir_shot_);
         local->setDescriptorName (desc_name);
         local->setFeatureEstimator (cast_estimator);
-//        local->setCGAlgorithm (cast_cg_alg);
-        local->setKnn(knn_shot_);
+//        local->setCGAlgorithm (cast_cg_alg_);
+        local->setKnn(sv_params_.knn_shot_);
         local->setUseCache (use_cache);
         local->setThresholdAcceptHyp (1);
         uniform_keypoint_extractor->setSamplingDensity (test_sampling_density);
-        local->setICPIterations (0);
+        local->setICPIterations ( sv_params_.icp_iterations_ );
         local->setKdtreeSplits (128);
         local->setSaveHypotheses(true);
         local->initialize (false);
@@ -883,10 +935,13 @@ bool Recognizer::recognize ()
         multi_recog_->addRecognizer(cast_recog);
     }
 
-    multi_recog_->setSaveHypotheses(true);
+//    multi_recog_->setSaveHypotheses(true);
     multi_recog_->setVoxelSizeICP(hv_params_.resolution_);
-    multi_recog_->setICPType(icp_type_);
-    multi_recog_->setICPIterations(icp_iterations_);
+    multi_recog_->setICPType(sv_params_.icp_type_);
+    multi_recog_->setCGAlgorithm(gcg_alg);
+//    multi_recog_->setVoxelSizeICP(0.005f);
+//    multi_recog_->setICPType(1);
+    multi_recog_->setICPIterations(sv_params_.icp_iterations_);
     multi_recog_->initialize();
   }
 
@@ -954,3 +1009,4 @@ bool Recognizer::recognize ()
 #endif
 
   }
+}

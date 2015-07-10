@@ -12,7 +12,7 @@
 #include <pcl/pcl_macros.h>
 #include "hypotheses_verification.h"
 //#include <pcl/recognition/3rdparty/metslib/mets.hh>
-#include "v4rexternal/metslib/mets.hh"
+#include "3rdparty/metslib/mets.hh"
 #include <pcl/features/normal_3d.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <boost/graph/graph_traits.hpp>
@@ -22,7 +22,7 @@
 #include <iostream>
 #include <fstream>
 #include "ghv_opt.h"
-#include <v4r/ORUtils/common_data_structures.h>
+#include <v4r/common/common_data_structures.h>
 
 #ifdef _MSC_VER
 #ifdef FAAT_REC_EXPORTS

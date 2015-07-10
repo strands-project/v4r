@@ -5,8 +5,8 @@
  *      Author: aitor
  */
 
-#include "global_nn_classifier.hpp"
-#include "metrics.h"
+#include <v4r/recognition/impl/global_nn_classifier.hpp>
+#include <v4r/recognition//metrics.h>
 
 //Instantiation
 template class faat_pcl::rec_3d_framework::GlobalNNPipeline<flann::L1, pcl::PointXYZ, pcl::VFHSignature308>;

@@ -12,9 +12,9 @@
 #include <flann/flann.h>
 #include <pcl/common/common.h>
 #include "source.h"
-#include "global_estimator.h"
-#include "ourcvfh_estimator.h"
-#include <v4r/ORRecognition/hypotheses_verification.h>
+#include <v4r/common/features/global_estimator.h>
+#include <v4r/common/features/ourcvfh_estimator.h>
+#include <v4r/recognition/hypotheses_verification.h>
 #include "recognizer.h"
 
 namespace faat_pcl
@@ -207,13 +207,13 @@ namespace faat_pcl
         getPose (ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix);
 
         bool
-        getRollPose (ModelT & model, int view_id, int d_id, Eigen::Matrix4f & pose_matrix);
+        getRollPose (const ModelT & model, int view_id, int d_id, Eigen::Matrix4f & pose_matrix) const;
 
         void
-        getCentroid (ModelT & model, int view_id, int d_id, Eigen::Vector3f & centroid);
+        getCentroid (const ModelT & model, int view_id, int d_id, Eigen::Vector3f & centroid) const;
 
         void
-        getView (ModelT & model, int view_id, PointInTPtr & view);
+        getView (const ModelT &model, int view_id, PointInTPtr & view) const;
 
         size_t NN_;
 
@@ -241,7 +241,7 @@ namespace faat_pcl
             return true;
         }
 
-        void setSceneNormals(pcl::PointCloud<pcl::Normal>::Ptr normals)
+        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr normals)
         {
             scene_normals_ = normals;
             normals_set_ = true;
@@ -256,56 +256,56 @@ namespace faat_pcl
         {
         }
 
-        void setMaxHyp(const int t) {
+        void setMaxHyp(int t) {
           OUR_CVFH_MAX_HYP_ = t;
         }
 
         void
-        setAcceptHypThreshold (const float t)
+        setAcceptHypThreshold (float t)
         {
           accept_hypotheses_threshold_ = t;
         }
 
         void
-        setMaxDescDistance (const float t)
+        setMaxDescDistance (float t)
         {
           max_desc_distance_ = t;
         }
 
         void
-        getDescriptorDistances (std::vector<float> & ds)
+        getDescriptorDistances (std::vector<float> & ds) const
         {
           ds = descriptor_distances_;
         }
 
         void
-        setComputeScale (const bool d)
+        setComputeScale (bool d)
         {
           compute_scale_ = d;
         }
 
         void
-        setCategoriesToUseForRecognition (const std::vector<std::string> cats_to_use)
+        setCategoriesToUseForRecognition (const std::vector<std::string> &cats_to_use)
         {
           categories_to_be_searched_.clear ();
           categories_to_be_searched_ = cats_to_use;
         }
 
         void
-        setUseSingleCategories (const bool b)
+        setUseSingleCategories (bool b)
         {
           use_single_categories_ = b;
         }
 
         void
-        setNoise (const float n)
+        setNoise (float n)
         {
           noisify_ = true;
           noise_ = n;
         }
 
         void
-        setNN (const size_t nn)
+        setNN (size_t nn)
         {
           NN_ = nn;
         }
@@ -324,13 +324,13 @@ namespace faat_pcl
          * \brief Sets the model data source_
          */
         void
-        setDataSource (typename boost::shared_ptr<Source<PointInT> > source)
+        setDataSource (const typename boost::shared_ptr<Source<PointInT> > source)
         {
           source_ = source;
         }
 
         typename boost::shared_ptr<Source<PointInT> >
-        getDataSource ()
+        getDataSource () const
         {
           return source_;
         }
@@ -340,19 +340,19 @@ namespace faat_pcl
          */
 
         void
-        setFeatureEstimator (typename boost::shared_ptr<OURCVFHEstimator<PointInT, FeatureT> > & feat)
+        setFeatureEstimator (const typename boost::shared_ptr<OURCVFHEstimator<PointInT, FeatureT> > & feat)
         {
           micvfh_estimator_ = feat;
         }
 
         void
-        setDescriptorName (const std::string name)
+        setDescriptorName (const std::string &name)
         {
           descr_name_ = name;
         }
 
         void
-        setTrainingDir (const std::string dir)
+        setTrainingDir (const std::string &dir)
         {
           training_dir_ = dir;
         }
@@ -365,7 +365,7 @@ namespace faat_pcl
         recognize ();
 
         void
-        setUseCache (const bool u)
+        setUseCache (bool u)
         {
           use_cache_ = u;
         }

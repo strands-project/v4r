@@ -5,8 +5,8 @@
  *      Author: aitor
  */
 
-#include "global_nn_classifier.h"
-#include <v4r/utils/filesystem_utils.h>
+#include <v4r/recognition/global_nn_classifier.h>
+#include <v4r/common/io/filesystem_utils.h>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
@@ -208,7 +208,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
     for (size_t i = 0; i < models->size (); i++)
     {
-      if (!source_->modelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
+      if (!source_->isModelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
       {
         for (size_t v = 0; v < models->at (i)->views_->size (); v++)
         {

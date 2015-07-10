@@ -8,10 +8,10 @@
 #ifndef MULTI_PIPELINE_RECOGNIZER_H_
 #define MULTI_PIPELINE_RECOGNIZER_H_
 
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include "recognizer.h"
 #include "local_recognizer.h"
-#include "v4r/ORRecognition/graph_geometric_consistency.h"
+#include <v4r/common/graph_geometric_consistency.h>
 
 namespace faat_pcl
 {
@@ -66,12 +66,12 @@ namespace faat_pcl
             set_save_hypotheses_ = false;
         }
 
-        void setMultiObjectCG(const bool b)
+        void setMultiObjectCG(bool b)
         {
             multi_object_correspondence_grouping_ = b;
         }
 
-        void setSaveHypotheses(const bool set_save_hypotheses)
+        void setSaveHypotheses(bool set_save_hypotheses)
         {
             set_save_hypotheses_ = set_save_hypotheses;
         }
@@ -100,7 +100,7 @@ namespace faat_pcl
 
         void reinitialize();
 
-        void reinitialize(std::vector<std::string> & load_ids);
+        void reinitialize(const std::vector<std::string> & load_ids);
 
         void correspondenceGrouping();
 
@@ -116,7 +116,10 @@ namespace faat_pcl
         }
 
         template <template<class > class Distance, typename FeatureT>
-        void setISPK(typename pcl::PointCloud<FeatureT>::Ptr & signatures, PointInTPtr & p, pcl::PointIndices & keypoint_indices, size_t feature_type)
+        void setISPK(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
+                     const PointInTPtr & p,
+                     const pcl::PointIndices & keypoint_indices,
+                     size_t feature_type)
         {
           for (size_t i=0; i < recognizers_.size(); i++)
           {
@@ -136,10 +139,10 @@ namespace faat_pcl
           cg_algorithm_ = alg;
         }
 
-        bool isSegmentationRequired();
+        bool isSegmentationRequired() const;
 
         typename boost::shared_ptr<Source<PointInT> >
-        getDataSource ();
+        getDataSource () const;
 
         void
         setSegmentation(const std::vector<pcl::PointIndices> & ind)
@@ -147,7 +150,7 @@ namespace faat_pcl
           segmentation_indices_ = ind;
         }
 
-        void setSceneNormals(pcl::PointCloud<pcl::Normal>::Ptr normals)
+        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr normals)
         {
             scene_normals_ = normals;
             normals_set_ = true;

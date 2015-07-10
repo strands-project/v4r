@@ -53,7 +53,7 @@ public:
     }
 
     boost::shared_ptr<std::vector<Model2DTPtr> >
-    getModels ()
+    getModels () const
     {
         return models_;
     }
@@ -109,7 +109,7 @@ public:
     }
 
     void
-    loadInMemorySpecificModel(std::string & dir, Model2D & model)
+    loadInMemorySpecificModel(const std::string & dir, Model2D & model)
     {
         std::stringstream pathmodel;
         pathmodel << dir << "/" << model.class_ << "/" << model.id_;
@@ -132,7 +132,7 @@ public:
     }
 
     void
-    loadOrGenerate (std::string & model_path, Model2D & model)
+    loadOrGenerate (const std::string & model_path, Model2D & model)
     {
         model.view_.reset (new cv::Mat() );
         model.view_filename_ = model_path;

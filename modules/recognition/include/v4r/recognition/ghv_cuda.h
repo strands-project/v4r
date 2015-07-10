@@ -10,8 +10,6 @@
 //#include <pcl/point_types.h>
 #include <pcl/gpu/containers/device_array.h>
 //#include <pcl/gpu/octree/src/internal.hpp>
-#include <pcl/gpu/octree/octree.hpp>
-#include <pcl/gpu/octree/device_format.hpp>
 
 #define cudaCheckErrors(msg) \
     do { \
@@ -142,7 +140,7 @@ class GHV
     int total_points_hypotheses_;
 
     std::vector<int> labels_; //scene_downsampled_.size()
-    pcl::gpu::Octree octree_device_;
+    pcl::device::OctreeImpl octree_device_;
 
     //parameters
     float inlier_threshold;

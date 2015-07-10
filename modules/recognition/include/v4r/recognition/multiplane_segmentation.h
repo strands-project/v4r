@@ -8,7 +8,7 @@
 #ifndef FAAT_PCL_3D_REC_FRAMEWORK_MULTIPLANE_SEGMENTATION_H_
 #define FAAT_PCL_3D_REC_FRAMEWORK_MULTIPLANE_SEGMENTATION_H_
 
-#include "v4r/ORUtils/common_data_structures.h"
+#include <v4r/common/common_data_structures.h>
 
 namespace faat_pcl
 {

@@ -20,8 +20,8 @@
 #include <vtkTransformFilter.h>
 #include "pcl/recognition/hv/occlusion_reasoning.h"
 #include "pcl/recognition/impl/hv/occlusion_reasoning.hpp"
-#include <v4r/utils/filesystem_utils.h>
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
+#include <v4r/common/io/filesystem_utils.h>
+#include "v4r/common/faat_3d_rec_framework_defines.h"
 
 namespace faat_pcl
 {

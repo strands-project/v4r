@@ -37,8 +37,8 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/impl/instantiate.hpp>
-#include "hv_go_3D.h"
-#include "occlusion_reasoning.hpp"
+#include "v4r/recognition/hv_go_3D.h"
+#include "v4r/common/impl/occlusion_reasoning.hpp"
 #include <pcl/features/normal_3d_omp.h>
 #include <functional>
 #include <numeric>

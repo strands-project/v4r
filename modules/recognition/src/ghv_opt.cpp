@@ -36,8 +36,8 @@
 
 #include <pcl/point_types.h>
 #include <pcl/impl/instantiate.hpp>
-#include "ghv.h"
-#include "ghv_opt.hpp"
+#include "v4r/recognition/ghv.h"
+#include "v4r/recognition/impl/ghv_opt.hpp"
 
 //PCL_INSTANTIATE_PRODUCT(faatGoHV, ((pcl::PointXYZ))((pcl::PointXYZ)))
 //PCL_INSTANTIATE_PRODUCT(faatGoHV, ((pcl::PointXYZRGB))((pcl::PointXYZRGB)))

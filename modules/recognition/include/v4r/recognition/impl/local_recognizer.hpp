@@ -1,5 +1,6 @@
-#include "local_recognizer.h"
-#include <v4r/utils/filesystem_utils.h>
+#include <v4r/recognition/local_recognizer.h>
+#include <v4r/common/io/filesystem_utils.h>
+#include <v4r/common/miscellaneous.h>
 
 //#include <pcl/visualization/pcl_visualizer.h>
 template<template<class > class Distance, typename PointInT, typename FeatureT>
@@ -260,7 +261,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
   template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize(std::vector<std::string> & load_ids)
+  faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize(const std::vector<std::string> & load_ids)
   {
       PCL_WARN("Reinitialize LocalRecognitionPipeline with list of load_ids\n");
       std::cout << "List of models being loaded:" << load_ids.size() << std::endl;
@@ -315,7 +316,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     {
       std::cout << models->at (i)->class_ << " " << models->at (i)->id_ << std::endl;
 
-      if (!source_->modelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
+      if (!source_->isModelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
       {
         std::cout << "Model not trained..." << models->at (i)->views_->size () << std::endl;
         if(!source_->getLoadIntoMemory())
@@ -799,7 +800,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             normal_estimator->estimate (input_, processed, all_scene_normals);
           }
           std::vector<int> correct_indices;
-          getIndicesFromCloud<PointInT>(processed, keypoints_pointcloud, correct_indices);
+          v4r::ORUtils::miscellaneous::getIndicesFromCloud<PointInT>(processed, keypoints_pointcloud, correct_indices);
           pcl::copyPointCloud(*all_scene_normals, correct_indices, *scene_normals);
         }
 
@@ -907,7 +908,6 @@ faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, Feature
   std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
   dir << path << "/view_" << view_id << ".pcd";
   pcl::io::loadPCDFile (dir.str (), *view);
-
 }
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
@@ -943,7 +943,7 @@ faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, Feature
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
 void
-faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getNormals (ModelT & model, int view_id,
+faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getNormals (const ModelT & model, int view_id,
                                                                                                 pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud)
 {
 
@@ -974,7 +974,7 @@ faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, Feature
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getPose (ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix)
+  faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getPose (const ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix)
   {
 
     if (use_cache_)

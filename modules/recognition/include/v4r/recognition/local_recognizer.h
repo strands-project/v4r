@@ -11,10 +11,10 @@
 #include <flann/flann.h>
 #include <pcl/common/common.h>
 #include "source.h"
-#include "local_estimator.h"
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
-#include <v4r/ORRecognition/correspondence_grouping.h>
-#include <v4r/ORRecognition/hypotheses_verification.h>
+#include <v4r/common/features/local_estimator.h>
+#include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/common/correspondence_grouping.h>
+#include <v4r/recognition//hypotheses_verification.h>
 #include "recognizer.h"
 
 inline bool
@@ -171,10 +171,10 @@ namespace faat_pcl
           nearestKSearch (flann::Index<DistT> * index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);
 
           void
-          getPose (ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix);
+          getPose (const ModelT &model, int view_id, Eigen::Matrix4f & pose_matrix);
 
           void
-          getNormals (ModelT & model, int view_id, pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud);
+          getNormals (const ModelT &model, int view_id, pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud);
 
           void
           getIndicesToProcessedAndNormals (ModelT & model, int view_id, pcl::PointCloud<IndexPoint>::Ptr & index_cloud);
@@ -186,7 +186,10 @@ namespace faat_pcl
           getView (ModelT & model, int view_id, PointInTPtr & view);
 
           void
-          drawCorrespondences (PointInTPtr & cloud, ObjectHypothesis<PointInT> & oh, PointInTPtr & keypoints_pointcloud, pcl::Correspondences & correspondences)
+          drawCorrespondences (const PointInTPtr & cloud,
+                               const ObjectHypothesis<PointInT> & oh,
+                               const PointInTPtr & keypoints_pointcloud,
+                               const pcl::Correspondences & correspondences)
           {
             pcl::visualization::PCLVisualizer vis_corresp_;
             vis_corresp_.setWindowName("correspondences...");
@@ -245,8 +248,8 @@ namespace faat_pcl
 
       public:
 
-        LocalRecognitionPipeline (std::string index_fn=std::string("index_flann.txt"),
-                                     std::string cb_index_fn=std::string("index_codebook.txt")) : Recognizer<PointInT>()
+        LocalRecognitionPipeline (const std::string index_fn=std::string("index_flann.txt"),
+                                     const std::string cb_index_fn=std::string("index_codebook.txt")) : Recognizer<PointInT>()
         {
           use_cache_ = false;
           threshold_accept_model_hypothesis_ = 0.2f;
@@ -292,7 +295,7 @@ namespace faat_pcl
           knn_ = k;
         }
 
-        void setSaveHypotheses(const bool set)
+        void setSaveHypotheses(bool set)
         {
           save_hypotheses_ = set;
         }
@@ -304,8 +307,7 @@ namespace faat_pcl
           hypotheses = saved_object_hypotheses_;
         }
 
-        void
-        getKeypointCloud(PointInTPtr & keypoint_cloud) const
+        void getKeypointCloud(PointInTPtr & keypoint_cloud) const
         {
           keypoint_cloud = keypoint_cloud_;
         }
@@ -316,7 +318,9 @@ namespace faat_pcl
             indices.indices = keypoint_indices_.indices;
         }
 
-        void setISPK(typename pcl::PointCloud<FeatureT>::Ptr & signatures, PointInTPtr & p, pcl::PointIndices & keypoint_indices)
+        void setISPK(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
+                     const PointInTPtr & p,
+                     const pcl::PointIndices & keypoint_indices)
         {  
           keypoint_indices_.header = keypoint_indices.header;
           keypoint_indices_.indices = keypoint_indices.indices;
@@ -332,18 +336,18 @@ namespace faat_pcl
           use_codebook_ = t;
         }
 
-        void setIndexFN(std::string & in)
+        void setIndexFN(const std::string & in)
         {
           flann_index_fn_ = in;
         }
 
-        void setCodebookFN(std::string & in)
+        void setCodebookFN(const std::string & in)
         {
           cb_flann_index_fn_ = in;
         }
 
         void
-        setSearchModel (std::string & id)
+        setSearchModel (const std::string & id)
         {
           search_model_ = id;
         }
@@ -361,7 +365,7 @@ namespace faat_pcl
         }
 
         void
-        setIndices (std::vector<int> & indices)
+        setIndices (const std::vector<int> & indices)
         {
           indices_ = indices;
         }
@@ -376,13 +380,13 @@ namespace faat_pcl
          * \brief Sets the model data source_
          */
         void
-        setDataSource (typename boost::shared_ptr<Source<PointInT> > & source)
+        setDataSource (const typename boost::shared_ptr<Source<PointInT> > & source)
         {
           source_ = source;
         }
 
         typename boost::shared_ptr<Source<PointInT> >
-        getDataSource ()
+        getDataSource () const
         {
           return source_;
         }
@@ -391,7 +395,7 @@ namespace faat_pcl
          * \brief Sets the local feature estimator
          */
         void
-        setFeatureEstimator (typename boost::shared_ptr<LocalEstimator<PointInT, FeatureT> > & feat)
+        setFeatureEstimator (const typename boost::shared_ptr<LocalEstimator<PointInT, FeatureT> > & feat)
         {
           estimator_ = feat;
         }
@@ -400,7 +404,7 @@ namespace faat_pcl
          * \brief Sets the CG algorithm
          */
         void
-        setCGAlgorithm (typename boost::shared_ptr<faat_pcl::CorrespondenceGrouping<PointInT, PointInT> > & alg)
+        setCGAlgorithm (const typename boost::shared_ptr<faat_pcl::CorrespondenceGrouping<PointInT, PointInT> > & alg)
         {
           cg_algorithm_ = alg;
         }
@@ -427,7 +431,7 @@ namespace faat_pcl
          * \brief Sets the descriptor name
          */
         void
-        setDescriptorName (std::string & name)
+        setDescriptorName (const std::string & name)
         {
           descr_name_ = name;
         }
@@ -436,13 +440,13 @@ namespace faat_pcl
          * \brief Filesystem dir where to keep the generated training data
          */
         void
-        setTrainingDir (const std::string dir)
+        setTrainingDir (const std::string & dir)
         {
           training_dir_ = dir;
         }
 
         void
-        getProcessed(PointInTPtr & cloud) {
+        getProcessed(PointInTPtr & cloud) const {
           cloud = processed_;
         }
 
@@ -459,7 +463,7 @@ namespace faat_pcl
         reinitialize ();
 
         void
-        reinitialize(std::vector<std::string> & load_ids);
+        reinitialize(const std::vector<std::string> & load_ids);
 
         /**
          * \brief Performs recognition and pose estimation on the input cloud

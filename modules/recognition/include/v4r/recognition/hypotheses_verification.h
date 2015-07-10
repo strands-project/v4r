@@ -38,8 +38,8 @@
 #define FAATPCL_RECOGNITION_HYPOTHESIS_VERIFICATION_H_
 
 #include <pcl/pcl_macros.h>
-#include "occlusion_reasoning.h"
-#include "occlusion_reasoning.hpp"
+#include <v4r/common/occlusion_reasoning.h>
+#include <v4r/common/impl/occlusion_reasoning.hpp>
 #include <pcl/common/common.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/filters/voxel_grid.h>

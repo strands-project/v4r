@@ -8,7 +8,7 @@
 #ifndef RECOGNIZER_H_
 #define RECOGNIZER_H_
 
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
+#include "v4r/common/features/faat_3d_rec_framework_defines.h"
 #include <pcl/common/common.h>
 #include "voxel_based_correspondence_estimation.h"
 #include "source.h"
@@ -17,7 +17,7 @@
 #include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/registration/transformation_estimation_point_to_plane_lls.h>
-#include "v4r/ORRecognition/hypotheses_verification.h"
+#include "v4r/recognition/hypotheses_verification.h"
 #include <pcl/common/time.h>
 #include <pcl/filters/crop_box.h>
 
@@ -25,29 +25,6 @@ namespace faat_pcl
 {
   namespace rec_3d_framework
   {
-
-    template<typename PointInT>
-    inline void
-    getIndicesFromCloud(typename pcl::PointCloud<PointInT>::Ptr & processed,
-                          typename pcl::PointCloud<PointInT>::Ptr & keypoints_pointcloud,
-                          std::vector<int> & indices)
-    {
-      pcl::octree::OctreePointCloudSearch<PointInT> octree (0.005);
-      octree.setInputCloud (processed);
-      octree.addPointsFromInputCloud ();
-
-      std::vector<int> pointIdxNKNSearch;
-      std::vector<float> pointNKNSquaredDistance;
-
-      for(size_t j=0; j < keypoints_pointcloud->points.size(); j++)
-      {
-       if (octree.nearestKSearch (keypoints_pointcloud->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
-       {
-         indices.push_back(pointIdxNKNSearch[0]);
-       }
-      }
-    }
-
     template<typename PointInT>
     class ObjectHypothesis
     {
@@ -350,13 +327,13 @@ namespace faat_pcl
             return false;
         }
 
-        virtual void setSceneNormals(pcl::PointCloud<pcl::Normal>::Ptr & /*normals*/)
+        virtual void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr & /*normals*/)
         {
             PCL_WARN("Set scene normals is not implemented for this class.");
         }
 
         virtual void
-        setSaveHypotheses(const bool b)
+        setSaveHypotheses(bool b)
         {
             PCL_WARN("Set save hypotheses is not implemented for this class.");
         }
@@ -385,14 +362,14 @@ namespace faat_pcl
         virtual void recognize () = 0;
 
         virtual typename boost::shared_ptr<Source<PointInT> >
-        getDataSource () = 0;
+        getDataSource () const = 0;
 
         virtual void reinitialize()
         {
 
         }
 
-        virtual void reinitialize(std::vector<std::string> & load_ids)
+        virtual void reinitialize(const std::vector<std::string> & load_ids)
         {
 
         }
@@ -407,7 +384,7 @@ namespace faat_pcl
         }
 
         void
-        setInputCloud (PointInTPtr & cloud)
+        setInputCloud (const PointInTPtr & cloud)
         {
           input_ = cloud;
         }
@@ -437,16 +414,16 @@ namespace faat_pcl
         }
 
         void
-        setICPIterations (const int it)
+        setICPIterations (int it)
         {
           ICP_iterations_ = it;
         }
 
-        void setICPType(const int t) {
+        void setICPType(int t) {
           icp_type_ = t;
         }
 
-        void setVoxelSizeICP(const float s) {
+        void setVoxelSizeICP(float s) {
           VOXEL_SIZE_ICP_ = s;
         }
 
