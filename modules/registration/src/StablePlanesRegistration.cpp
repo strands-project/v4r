@@ -246,7 +246,7 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
             normals[k] = getNormal(t);
             indices[k] = getIndices(t);
 
-            faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+            v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
             nm.setInputCloud(clouds[k]);
             nm.setInputNormals(normals[k]);
             nm.setLateralSigma(lateral_sigma);
@@ -257,7 +257,7 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
         }
 
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-        faat_pcl::utils::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
+        v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
         nmIntegration.setInputClouds(clouds);
         nmIntegration.setResolution(0.005f);
         nmIntegration.setWeights(weights);

@@ -1,10 +1,10 @@
 #include <v4r/common/pcl_visualization_utils.h>
 
-namespace faat_pcl
+namespace v4r
 {
-  namespace utils
+  namespace common
   {
-      std::vector<int> visualization_framework (pcl::visualization::PCLVisualizer::Ptr vis,
+      std::vector<int> pcl_visualizer::visualization_framework (pcl::visualization::PCLVisualizer::Ptr vis,
                                                 size_t number_of_views,
                                                 size_t number_of_subwindows_per_view,
                                                 const std::vector<std::string> &title_subwindows)

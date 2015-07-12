@@ -19,7 +19,7 @@
 
 namespace bf = boost::filesystem;
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

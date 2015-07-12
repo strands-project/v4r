@@ -18,15 +18,15 @@
 #include <pcl/common/angles.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-namespace faat_pcl
+namespace v4r
 {
-  namespace registration
+  namespace common
   {
     template <typename PointT>
     class ICPNode
     {
       typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
-      typedef typename faat_pcl::registration::ICPNode<PointT> ICPNodeT;
+      typedef typename v4r::common::ICPNode<PointT> ICPNodeT;
 
         public:
 
@@ -74,7 +74,7 @@ namespace faat_pcl
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
-      typedef typename faat_pcl::registration::ICPNode<PointT> ICPNodeT;
+      typedef typename v4r::common::ICPNode<PointT> ICPNodeT;
       void
       visualizeICPNodes(std::vector<boost::shared_ptr<ICPNodeT> > & nodes,
                           pcl::visualization::PCLVisualizer & vis,
@@ -138,7 +138,7 @@ namespace faat_pcl
 
       inline void
       uniformSamplingOfKeypoints (typename pcl::PointCloud<PointT>::Ptr & keypoint_cloud, std::vector<int> & indices_keypoints,
-                                  std::vector<int> & indices, faat_pcl::registration::UniformSamplingSharedVoxelGrid<PointT> & keypoint_extractor)
+                                  std::vector<int> & indices, v4r::common::UniformSamplingSharedVoxelGrid<PointT> & keypoint_extractor)
       {
 
         //pcl::UniformSampling<PointT> keypoint_extractor;
@@ -157,11 +157,11 @@ namespace faat_pcl
       inline void
       computeRGBEdges (typename pcl::PointCloud<PointT>::Ptr & cloud, std::vector<int> & indices)
       {
-        faat_pcl::OrganizedEdgeFromRGB<PointT, pcl::Label> oed;
+        v4r::OrganizedEdgeFromRGB<PointT, pcl::Label> oed;
         oed.setDepthDisconThreshold (0.03f);
         oed.setRGBCannyLowThreshold (150.f);
         oed.setRGBCannyHighThreshold (200.f);
-        oed.setEdgeType (faat_pcl::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_RGB_CANNY);
+        oed.setEdgeType (v4r::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_RGB_CANNY);
         oed.setInputCloud (cloud);
 
         pcl::PointCloud<pcl::Label>::Ptr labels (new pcl::PointCloud<pcl::Label>);

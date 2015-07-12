@@ -49,6 +49,7 @@ SET(SOURCE_H
   include/v4r/${SUBSYS_NAME}/impl/hough_3d.hpp
   include/v4r/${SUBSYS_NAME}/impl/kernel.hpp
   include/v4r/${SUBSYS_NAME}/impl/kmeans.hpp
+  include/v4r/${SUBSYS_NAME}/impl/miscellaneous.hpp
   include/v4r/${SUBSYS_NAME}/impl/occlusion_reasoning.hpp
   include/v4r/${SUBSYS_NAME}/impl/organized_edge_detection.hpp
   include/v4r/${SUBSYS_NAME}/impl/visibility_reasoning.hpp

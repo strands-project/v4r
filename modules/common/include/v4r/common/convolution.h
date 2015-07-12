@@ -42,7 +42,7 @@
 #include <pcl/filters/filter.h>
 #include <pcl/point_types.h>
 
-namespace faat_pcl
+namespace v4r
 {
   /**
    * This typedef is used to represent a point cloud containing edge information
@@ -147,7 +147,7 @@ namespace faat_pcl
 
 #include <v4r/common/impl/convolution.hpp>
 
-POINT_CLOUD_REGISTER_POINT_STRUCT (faat_pcl::PointXYZIEdge,
+POINT_CLOUD_REGISTER_POINT_STRUCT (v4r::PointXYZIEdge,
     (float, x, x)
     (float, y, y)
     (float, z, z)

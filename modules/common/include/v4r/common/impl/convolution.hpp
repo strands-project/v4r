@@ -40,7 +40,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::Convolution<PointT>::filter (pcl::PointCloud<PointT> &output)
+v4r::Convolution<PointT>::filter (pcl::PointCloud<PointT> &output)
 {
   int input_row = 0;
   int input_col = 0;

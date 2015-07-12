@@ -52,7 +52,7 @@
 
 template<typename PointModelT, typename PointSceneT, typename PointModelRfT, typename PointSceneRfT>
 template<typename PointType, typename PointRfType> void
-faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::computeRf (const boost::shared_ptr<const pcl::PointCloud<PointType> > &input, pcl::PointCloud<PointRfType> &rf)
+v4r::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::computeRf (const boost::shared_ptr<const pcl::PointCloud<PointType> > &input, pcl::PointCloud<PointRfType> &rf)
 {
   if (local_rf_search_radius_ == 0)
   {
@@ -82,7 +82,7 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT, typename PointModelRfT, typename PointSceneRfT> bool
-faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::train ()
+v4r::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::train ()
 {
   if (!input_)
   {
@@ -152,7 +152,7 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT, typename PointModelRfT, typename PointSceneRfT> bool
-faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::houghVoting ()
+v4r::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::houghVoting ()
 {
   if (needs_training_)
   {
@@ -259,7 +259,7 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
 
   std::cout << "vote position" << t.getTime() << std::endl;
 
-  hough_space_.reset (new faat_pcl::recognition::HoughSpace3D (d_min, bin_size, d_max));
+  hough_space_.reset (new v4r::recognition::HoughSpace3D (d_min, bin_size, d_max));
   hough_space_->reserveVoterIdsVectorFixedSize(10);
 
   {
@@ -291,7 +291,7 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT, typename PointModelRfT, typename PointSceneRfT> void
-faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
+v4r::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
 {
   model_instances.clear ();
   found_transformations_.clear ();
@@ -392,7 +392,7 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointModelT, typename PointSceneT, typename PointModelRfT, typename PointSceneRfT> bool
-faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::recognize (
+v4r::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::recognize (
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations)
 {
   std::vector<pcl::Correspondences> model_instances;
@@ -401,7 +401,7 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointModelT, typename PointSceneT, typename PointModelRfT, typename PointSceneRfT> bool
-faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::recognize (
+v4r::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::recognize (
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations, std::vector<pcl::Correspondences> &clustered_corrs)
 {
   transformations.clear ();
@@ -431,6 +431,6 @@ faat_pcl::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT
 }
 
 
-#define PCL_INSTANTIATE_Hough3DGrouping(T,ST,RFT,SRFT) template class PCL_EXPORTS faat_pcl::Hough3DGrouping<T,ST,RFT,SRFT>;
+#define PCL_INSTANTIATE_Hough3DGrouping(T,ST,RFT,SRFT) template class PCL_EXPORTS v4r::Hough3DGrouping<T,ST,RFT,SRFT>;
 
 #endif // PCL_RECOGNITION_HOUGH_3D_IMPL_H_

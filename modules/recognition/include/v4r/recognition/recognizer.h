@@ -21,7 +21,7 @@
 #include <pcl/common/time.h>
 #include <pcl/filters/crop_box.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {
@@ -71,7 +71,7 @@ namespace faat_pcl
         pcl::PointIndicesPtr icp_scene_indices_;
 
         /** \brief Hypotheses verification algorithm */
-        typename boost::shared_ptr<faat_pcl::HypothesisVerification<PointInT, PointInT> > hv_algorithm_;
+        typename boost::shared_ptr<v4r::HypothesisVerification<PointInT, PointInT> > hv_algorithm_;
 
         void poseRefinement()
         {
@@ -378,7 +378,7 @@ namespace faat_pcl
         setHVAlgorithm (typename boost::shared_ptr<pcl::HypothesisVerification<PointInT, PointInT> > & alg) = 0;*/
 
         void
-        setHVAlgorithm (const typename boost::shared_ptr<const faat_pcl::HypothesisVerification<PointInT, PointInT> > & alg)
+        setHVAlgorithm (const typename boost::shared_ptr<const v4r::HypothesisVerification<PointInT, PointInT> > & alg)
         {
           hv_algorithm_ = alg;
         }

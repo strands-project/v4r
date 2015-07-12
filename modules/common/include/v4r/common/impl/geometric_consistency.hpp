@@ -46,7 +46,7 @@
 #include <pcl/common/io.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace faat_pcl
+namespace v4r
 {
 inline bool
 gcCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
@@ -56,7 +56,7 @@ gcCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT> void
-faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
+v4r::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
 {
   model_instances.clear ();
   found_transformations_.clear ();
@@ -70,7 +70,7 @@ faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
 
   pcl::CorrespondencesPtr sorted_corrs (new pcl::Correspondences (*model_scene_corrs_));
 
-  std::sort (sorted_corrs->begin (), sorted_corrs->end (), faat_pcl::gcCorrespSorter);
+  std::sort (sorted_corrs->begin (), sorted_corrs->end (), v4r::gcCorrespSorter);
 
   model_scene_corrs_ = sorted_corrs;
 
@@ -157,7 +157,7 @@ faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT> bool
-faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
+v4r::GeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations)
 {
   std::vector<pcl::Correspondences> model_instances;
@@ -166,7 +166,7 @@ faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT> bool
-faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
+v4r::GeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations, std::vector<pcl::Correspondences> &clustered_corrs)
 {
   transformations.clear ();
@@ -185,6 +185,6 @@ faat_pcl::GeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
   return (true);
 }
 
-#define PCL_INSTANTIATE_GeometricConsistencyGrouping(T,ST) template class PCL_EXPORTS faat_pcl::GeometricConsistencyGrouping<T,ST>;
+#define PCL_INSTANTIATE_GeometricConsistencyGrouping(T,ST) template class PCL_EXPORTS v4r::GeometricConsistencyGrouping<T,ST>;
 
 #endif // FAAT_PCL_RECOGNITION_GEOMETRIC_CONSISTENCY_IMPL_H_

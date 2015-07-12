@@ -28,7 +28,7 @@ void
 v4r::Registration::FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > & session_ranges)
 {
 
-    typename faat_pcl::rec_3d_framework::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
+    typename v4r::rec_3d_framework::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
 
     //computes features and keypoints for the views of all sessions using appropiate object indices
     size_t total_views = getTotalNumberOfClouds();
@@ -128,38 +128,6 @@ v4r::Registration::FeatureBasedRegistration<PointT>::initialize(std::vector<std:
     }
 }
 
-
-template<typename PointType, typename DistType>
-void
-v4r::Registration::convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index)
-{
-    size_t rows = cloud->points.size ();
-    size_t cols = sizeof ( cloud->points[0].histogram ) / sizeof ( float ); // number of histogram bins
-
-    flann::Matrix<float> flann_data ( new float[rows * cols], rows, cols );
-
-    for ( size_t i = 0; i < rows; ++i )
-    {
-        for ( size_t j = 0; j < cols; ++j )
-        {
-            flann_data.ptr () [i * cols + j] = cloud->points[i].histogram[j];
-        }
-    }
-    flann_index.reset (new flann::Index<DistType> ( flann_data, flann::KDTreeIndexParams ( 4 ) ) );
-    flann_index->buildIndex ();
-}
-
-template <typename DistType>
-void v4r::Registration::nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
-                        flann::Matrix<float> &distances )
-{
-    flann::Matrix<float> p = flann::Matrix<float> ( new float[descr_size], 1, descr_size );
-    memcpy ( &p.ptr () [0], &descr[0], p.cols * p.rows * sizeof ( float ) );
-
-    index->knnSearch ( p, indices, distances, k, flann::SearchParams ( 128 ) );
-    delete[] p.ptr ();
-}
-
 template<class PointT>
 void
 v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
@@ -208,7 +176,7 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         *kps_s1 += *transformed;
 
         typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::ORUtils::miscellaneous::transformNormals(sift_normals_[t], normals, pose_inv);
+        v4r::common::miscellaneous::transformNormals(sift_normals_[t], normals, pose_inv);
 
         *normals_s1 += *normals;
     }
@@ -221,7 +189,7 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         *kps_s2 += *transformed;
 
         typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::ORUtils::miscellaneous::transformNormals(sift_normals_[t], normals, pose_inv);
+        v4r::common::miscellaneous::transformNormals(sift_normals_[t], normals, pose_inv);
         *normals_s2 += *normals;
     }
 
@@ -251,7 +219,7 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         bool graph_based = true;
         if(!graph_based)
         {
-            faat_pcl::GeometricConsistencyGrouping<PointT, PointT> gc_clusterer;
+            v4r::GeometricConsistencyGrouping<PointT, PointT> gc_clusterer;
             gc_clusterer.setGCSize (inlier_threshold_);
             gc_clusterer.setGCThreshold (gc_threshold_);
 
@@ -263,7 +231,7 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         }
         else
         {
-            faat_pcl::GraphGeometricConsistencyGrouping<PointT, PointT> gc_clusterer;
+            v4r::GraphGeometricConsistencyGrouping<PointT, PointT> gc_clusterer;
             gc_clusterer.setGCSize (inlier_threshold_);
             gc_clusterer.setGCThreshold (gc_threshold_);
             gc_clusterer.setRansacThreshold(inlier_threshold_);
@@ -392,8 +360,3 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
     }
 }
 template class v4r::Registration::FeatureBasedRegistration<pcl::PointXYZRGB>;
-template void v4r::Registration::convertToFLANN<pcl::Histogram<128>, flann::L1<float> > (const pcl::PointCloud<pcl::Histogram<128> >::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<flann::L1<float> > > &flann_index); // explicit instantiation.
-template void v4r::Registration::nearestKSearch<flann::L1<float> > ( boost::shared_ptr< flann::Index< flann::L1<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
-flann::Matrix<float> &distances );
-template void v4r::Registration::nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
-flann::Matrix<float> &distances );

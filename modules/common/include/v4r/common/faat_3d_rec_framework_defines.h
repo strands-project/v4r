@@ -35,7 +35,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<128>,
     (float[128], histogram, histogramSIFT)
 )
 
-namespace faat_pcl
+namespace v4r
 {
     namespace rec_3d_framework
     {

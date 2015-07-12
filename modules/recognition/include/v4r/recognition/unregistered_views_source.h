@@ -17,7 +17,7 @@
 #include <v4r/utils/filesystem_utils.h>
 
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

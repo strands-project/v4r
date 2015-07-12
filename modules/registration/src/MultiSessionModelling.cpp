@@ -22,14 +22,14 @@ v4r::Registration::MultiSessionModelling<PointT>::computeFSV (PointCloudTPtr & c
                                                               Eigen::Matrix4f & pose,
                                                               PointCloudTPtr & range_image)
 {
-    v4r::registration::VisibilityReasoning<PointT> vr (525.f, 640, 480);
+    v4r::common::VisibilityReasoning<PointT> vr (525.f, 640, 480);
     vr.setThresholdTSS (0.01f);
 
     PointCloudTPtr model(new pcl::PointCloud<PointT>());
     pcl::transformPointCloud(*cloud, indices, *model, pose);
 
     pcl::PointCloud<pcl::Normal>::Ptr model_normals (new pcl::PointCloud<pcl::Normal>);
-    v4r::ORUtils::miscellaneous::transformNormals(normals, model_normals, indices, pose);
+    v4r::common::miscellaneous::transformNormals(normals, model_normals, indices, pose);
 
     //Eigen::Matrix4f identity = Eigen::Matrix4f::Identity();
 

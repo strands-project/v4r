@@ -9,7 +9,7 @@
 
 namespace v4r
 {
-namespace ORUtils
+namespace common
 {
 namespace miscellaneous
 {
@@ -19,8 +19,8 @@ void computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
                     int method);
 
 inline void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
-                      pcl::PointCloud<pcl::Normal>::Ptr & normals_aligned,
-                      Eigen::Matrix4f & transform)
+                             pcl::PointCloud<pcl::Normal>::Ptr & normals_aligned,
+                             Eigen::Matrix4f & transform)
 {
     normals_aligned.reset (new pcl::PointCloud<pcl::Normal>);
     normals_aligned->points.resize (normals_cloud->points.size ());
@@ -30,11 +30,11 @@ inline void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
     {
         Eigen::Vector3f nt (normals_cloud->points[k].normal_x, normals_cloud->points[k].normal_y, normals_cloud->points[k].normal_z);
         normals_aligned->points[k].normal_x = static_cast<float> (transform (0, 0) * nt[0] + transform (0, 1) * nt[1]
-                                                                  + transform (0, 2) * nt[2]);
+                + transform (0, 2) * nt[2]);
         normals_aligned->points[k].normal_y = static_cast<float> (transform (1, 0) * nt[0] + transform (1, 1) * nt[1]
-                                                                  + transform (1, 2) * nt[2]);
+                + transform (1, 2) * nt[2]);
         normals_aligned->points[k].normal_z = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1]
-                                                                  + transform (2, 2) * nt[2]);
+                + transform (2, 2) * nt[2]);
 
         normals_aligned->points[k].curvature = normals_cloud->points[k].curvature;
 
@@ -53,11 +53,11 @@ inline void transformNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr & norm
     {
         Eigen::Vector3f nt (normals_cloud->points[k].normal_x, normals_cloud->points[k].normal_y, normals_cloud->points[k].normal_z);
         normals_aligned->points[k].normal_x = static_cast<float> (transform (0, 0) * nt[0] + transform (0, 1) * nt[1]
-                                                                  + transform (0, 2) * nt[2]);
+                + transform (0, 2) * nt[2]);
         normals_aligned->points[k].normal_y = static_cast<float> (transform (1, 0) * nt[0] + transform (1, 1) * nt[1]
-                                                                  + transform (1, 2) * nt[2]);
+                + transform (1, 2) * nt[2]);
         normals_aligned->points[k].normal_z = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1]
-                                                                  + transform (2, 2) * nt[2]);
+                + transform (2, 2) * nt[2]);
 
         normals_aligned->points[k].curvature = normals_cloud->points[k].curvature;
     }
@@ -75,15 +75,15 @@ inline void transformNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr & norm
     for (size_t k = 0; k < indices.size(); k++)
     {
         Eigen::Vector3f nt (normals_cloud->points[indices[k]].normal_x,
-                            normals_cloud->points[indices[k]].normal_y,
-                            normals_cloud->points[indices[k]].normal_z);
+                normals_cloud->points[indices[k]].normal_y,
+                normals_cloud->points[indices[k]].normal_z);
 
         normals_aligned->points[k].normal_x = static_cast<float> (transform (0, 0) * nt[0] + transform (0, 1) * nt[1]
-                                                                  + transform (0, 2) * nt[2]);
+                + transform (0, 2) * nt[2]);
         normals_aligned->points[k].normal_y = static_cast<float> (transform (1, 0) * nt[0] + transform (1, 1) * nt[1]
-                                                                  + transform (1, 2) * nt[2]);
+                + transform (1, 2) * nt[2]);
         normals_aligned->points[k].normal_z = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1]
-                                                                  + transform (2, 2) * nt[2]);
+                + transform (2, 2) * nt[2]);
 
         normals_aligned->points[k].curvature = normals_cloud->points[indices[k]].curvature;
 
@@ -100,8 +100,8 @@ inline void transformNormal(Eigen::Vector3f & nt,
 }
 
 inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
-                         pcl::PointCloud<pcl::PointXYZRGB> & voxel_grided,
-                         float resolution)
+                                pcl::PointCloud<pcl::PointXYZRGB> & voxel_grided,
+                                float resolution)
 {
     pcl::octree::OctreePointCloudPointVector<pcl::PointXYZRGB> octree(resolution);
     octree.setInputCloud(cloud);
@@ -152,30 +152,35 @@ inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
 template<typename PointInT>
 inline void
 getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_input_cloud,
-                      const typename pcl::PointCloud<PointInT>::ConstPtr & search_points,
-                      std::vector<int> & indices,
-                      float resolution = 0.005f)
+                    const typename pcl::PointCloud<PointInT>::ConstPtr & search_points,
+                    std::vector<int> & indices,
+                    float resolution = 0.005f)
 {
-  pcl::octree::OctreePointCloudSearch<PointInT> octree (resolution);
-  octree.setInputCloud (full_input_cloud);
-  octree.addPointsFromInputCloud ();
+    pcl::octree::OctreePointCloudSearch<PointInT> octree (resolution);
+    octree.setInputCloud (full_input_cloud);
+    octree.addPointsFromInputCloud ();
 
-  std::vector<int> pointIdxNKNSearch;
-  std::vector<float> pointNKNSquaredDistance;
+    std::vector<int> pointIdxNKNSearch;
+    std::vector<float> pointNKNSquaredDistance;
 
-  indices.resize( search_points->points.size() );
-  size_t kept=0;
+    indices.resize( search_points->points.size() );
+    size_t kept=0;
 
-  for(size_t j=0; j < search_points->points.size(); j++)
-  {
-   if (octree.nearestKSearch (search_points->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
-   {
-     indices[kept] = pointIdxNKNSearch[0];
-     kept++;
-   }
-  }
-  indices.resize(kept);
+    for(size_t j=0; j < search_points->points.size(); j++)
+    {
+        if (octree.nearestKSearch (search_points->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
+        {
+            indices[kept] = pointIdxNKNSearch[0];
+            kept++;
+        }
+    }
+    indices.resize(kept);
 }
+
+template<typename PointType, typename DistType> void convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index);
+
+template<typename DistType> void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+                                                  flann::Matrix<float> &distances );
 
 }
 }

@@ -9,8 +9,8 @@
 //#include <faat_pcl/registration/visibility_reasoning.h>
 #include <v4r/common/impl/visibility_reasoning.hpp>
 
-template class v4r::registration::VisibilityReasoning<pcl::PointXYZ>;
-template class v4r::registration::VisibilityReasoning<pcl::PointXYZRGB>;
-template class v4r::registration::VisibilityReasoning<pcl::PointNormal>;
-template class v4r::registration::VisibilityReasoning<pcl::PointXYZRGBNormal>;
+template class v4r::common::VisibilityReasoning<pcl::PointXYZ>;
+template class v4r::common::VisibilityReasoning<pcl::PointXYZRGB>;
+template class v4r::common::VisibilityReasoning<pcl::PointNormal>;
+template class v4r::common::VisibilityReasoning<pcl::PointXYZRGBNormal>;
 

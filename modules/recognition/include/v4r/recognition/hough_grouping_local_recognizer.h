@@ -7,7 +7,7 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/features/board.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {
@@ -151,8 +151,8 @@ namespace faat_pcl
             shot_lrf_est.compute (*scene_rfs_);
           }
 
-          boost::shared_ptr<faat_pcl::Hough3DGrouping<PointInT, PointInT, TypeRF, TypeRF> > hough_3d_voting_cg_alg;
-          hough_3d_voting_cg_alg = boost::static_pointer_cast<faat_pcl::Hough3DGrouping<PointInT, PointInT, TypeRF, TypeRF> > (cg_algorithm_);
+          boost::shared_ptr<v4r::Hough3DGrouping<PointInT, PointInT, TypeRF, TypeRF> > hough_3d_voting_cg_alg;
+          hough_3d_voting_cg_alg = boost::static_pointer_cast<v4r::Hough3DGrouping<PointInT, PointInT, TypeRF, TypeRF> > (cg_algorithm_);
           hough_3d_voting_cg_alg->setSceneRf (scene_rfs_);
         }
 
@@ -170,8 +170,8 @@ namespace faat_pcl
           pcl::copyPointCloud (*flann_models_rfs_, oh.indices_to_flann_models_, *model_rfs);
 
           //downcast...
-          boost::shared_ptr<faat_pcl::Hough3DGrouping<PointInT, PointInT, TypeRF, TypeRF> > hough_3d_voting_cg_alg;
-          hough_3d_voting_cg_alg = boost::static_pointer_cast<faat_pcl::Hough3DGrouping<PointInT, PointInT, TypeRF, TypeRF> > (cg_algorithm_);
+          boost::shared_ptr<v4r::Hough3DGrouping<PointInT, PointInT, TypeRF, TypeRF> > hough_3d_voting_cg_alg;
+          hough_3d_voting_cg_alg = boost::static_pointer_cast<v4r::Hough3DGrouping<PointInT, PointInT, TypeRF, TypeRF> > (cg_algorithm_);
           hough_3d_voting_cg_alg->setInputRf (model_rfs);
           hough_3d_voting_cg_alg->setSceneRf (scene_rfs_);
         }

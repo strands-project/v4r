@@ -43,7 +43,7 @@
 #include "correspondence_grouping.h"
 #include <pcl/point_cloud.h>
 
-namespace faat_pcl
+namespace v4r
 {
  
   /** \brief Class implementing a 3D correspondence grouping enforcing geometric consistency among feature correspondences
@@ -52,14 +52,14 @@ namespace faat_pcl
     * \ingroup recognition
     */
   template<typename PointModelT, typename PointSceneT>
-  class GeometricConsistencyGrouping : public faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>
+  class GeometricConsistencyGrouping : public v4r::CorrespondenceGrouping<PointModelT, PointSceneT>
   {
     public:
       typedef pcl::PointCloud<PointModelT> PointCloud;
       typedef typename PointCloud::Ptr PointCloudPtr;
       typedef typename PointCloud::ConstPtr PointCloudConstPtr;
 
-      typedef typename faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::SceneCloudConstPtr SceneCloudConstPtr;
+      typedef typename v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::SceneCloudConstPtr SceneCloudConstPtr;
 
       /** \brief Constructor */
       GeometricConsistencyGrouping () 
@@ -128,9 +128,9 @@ namespace faat_pcl
       recognize (std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations, std::vector<pcl::Correspondences> &clustered_corrs);
 
     protected:
-      using faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
-      using faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
-      using faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
+      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
+      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
+      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
 
       /** \brief Minimum cluster size. It shouldn't be less than 3, since at least 3 correspondences are needed to compute the 6DOF pose */
       int gc_threshold_;

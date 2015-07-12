@@ -12,7 +12,7 @@
 
 namespace v4r
 {
-  namespace registration
+  namespace common
   {
     template<typename PointT>
     class VisibilityReasoning

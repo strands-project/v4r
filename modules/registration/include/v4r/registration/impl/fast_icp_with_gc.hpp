@@ -17,13 +17,13 @@
 
 //#define FAAT_PCL_FAST_ICP_VIS_FINAL
 
-namespace faat_pcl
+namespace v4r
 {
-  namespace registration
+  namespace common
   {
     template<typename PointT>
       inline bool
-      faat_pcl::registration::FastIterativeClosestPointWithGC<PointT>::filterHypothesesByPose (boost::shared_ptr<ICPNodeT> & current,
+      v4r::common::FastIterativeClosestPointWithGC<PointT>::filterHypothesesByPose (boost::shared_ptr<ICPNodeT> & current,
                                                                                                std::vector<boost::shared_ptr<ICPNodeT> > & nodes,
                                                                                                float trans_threshold)
       {
@@ -66,7 +66,7 @@ namespace faat_pcl
 
     template<typename PointT>
       inline void
-      faat_pcl::registration::FastIterativeClosestPointWithGC<PointT>::visualizeICPNodes (std::vector<boost::shared_ptr<ICPNodeT> > & nodes,
+      v4r::common::FastIterativeClosestPointWithGC<PointT>::visualizeICPNodes (std::vector<boost::shared_ptr<ICPNodeT> > & nodes,
                                                                                           pcl::visualization::PCLVisualizer & icp_vis,
                                                                                           std::string wname)
       {
@@ -279,7 +279,7 @@ namespace faat_pcl
         boost::shared_ptr<std::vector<int> > ind_tgt;
         ind_tgt.reset (new std::vector<int>);
 
-        faat_pcl::registration::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
+        v4r::common::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
         keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
         uniformSamplingOfKeypoints (tgt_keypoints, ind_tgt_cedges, *ind_tgt, keypoint_extractor);
         pcl::copyPointCloud (*target_, *ind_tgt, *tgt_keypoints);
@@ -335,7 +335,7 @@ namespace faat_pcl
 
             boost::shared_ptr<std::vector<int> > ind_src;
             ind_src.reset (new std::vector<int>);
-            faat_pcl::registration::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
+            v4r::common::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
             keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
             keypoint_extractor.setVoxelGridValues (min_b, max_b);
             uniformSamplingOfKeypoints (src_keypoints, ind_src_cedges, *ind_src, keypoint_extractor);
@@ -395,7 +395,7 @@ namespace faat_pcl
               if (!standard_cg_)
               {
                 //pcl::ScopeTime t ("GraphGeometricConsistencyGrouping...");
-                faat_pcl::GraphGeometricConsistencyGrouping<PointT, PointT> gcg_alg;
+                v4r::GraphGeometricConsistencyGrouping<PointT, PointT> gcg_alg;
                 gcg_alg.setGCThreshold (min_number_correspondences_);
                 gcg_alg.setGCSize (gc_size_);
                 gcg_alg.setDotDistance (0.25f);
@@ -480,7 +480,7 @@ namespace faat_pcl
           {
             //std::cout << "Num hyp to evaluate:" << next_level_nodes_.size() << std::endl;
             //pcl::ScopeTime t ("Evaluate hypotheses...");
-            float osv_cutoff = 0.1f;
+//            float osv_cutoff = 0.1f;
             float fsv_cutoff = 0.02f;
 //#pragma omp parallel for num_threads(8)
             for (size_t k = 0; k < next_level_nodes_.size (); k++)
@@ -492,7 +492,7 @@ namespace faat_pcl
               //if (next_level_nodes_[k]->overlap_ > 0)
               //{
               //compute FSV fraction
-              v4r::registration::VisibilityReasoning<PointT> vr (fl_, cx_, cy_);
+              v4r::common::VisibilityReasoning<PointT> vr (fl_, cx_, cy_);
               vr.setThresholdTSS (0.01);
 
               float fsv_ij = vr.computeFSV (target_, next_level_nodes_[k]->src_keypoints_); //, next_level_nodes_[k]->accum_transform_);

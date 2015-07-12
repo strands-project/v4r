@@ -50,7 +50,7 @@
 
 #include <pcl/pcl_base.h>
 
-namespace faat_pcl
+namespace v4r
 {
   /** \brief @b K-means clustering.
     * \author Christian Potthast

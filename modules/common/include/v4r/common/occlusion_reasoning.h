@@ -41,7 +41,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/common/io.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace occlusion_reasoning
   {

@@ -13,7 +13,7 @@
 #include "v4r/common/miscellaneous.h"
 
 template<typename PointT>
-faat_pcl::utils::NMBasedCloudIntegration<PointT>::NMBasedCloudIntegration ()
+v4r::utils::NMBasedCloudIntegration<PointT>::NMBasedCloudIntegration ()
 {
     octree_resolution_ = 0.005f;
     min_weight_ = 0.9f;
@@ -23,7 +23,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::NMBasedCloudIntegration ()
 
 template<typename PointT>
 void
-faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
+v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
 {
 
     input_clouds_used_.resize(input_clouds_.size());
@@ -60,8 +60,8 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
             else
             {
                 //adapt weight based on distance
-                float capped_dist = std::min(std::max(start_dist, dist), max_distance_); //[start,end]
-                float w =  1.f - (capped_dist - start_dist) / (max_distance_ - start_dist);
+//                float capped_dist = std::min(std::max(start_dist, dist), max_distance_); //[start,end]
+//                float w =  1.f - (capped_dist - start_dist) / (max_distance_ - start_dist);
                 //noise_weights_[i][k] *=  w;
             }
         }
@@ -84,7 +84,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     {
         PointTPtr cloud(new pcl::PointCloud<PointT>);
         PointNormalTPtr normal_cloud(new pcl::PointCloud<pcl::Normal>);
-        v4r::ORUtils::miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
+        v4r::common::miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
         pcl::transformPointCloud(*input_clouds_used_[i], *cloud, transformations_to_global_[i]);
 
         /*float sum_curv = 0;
@@ -193,7 +193,7 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
             Eigen::Vector3f normal_from_cloud = input_normals_[i]->at (u,v).getNormalVector3fMap();
             Eigen::Vector3f normal_from_octree = octree_points_normals_->points[k].getNormalVector3fMap();
             Eigen::Vector3f normal_octree_trans;
-            v4r::ORUtils::miscellaneous::transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
+            v4r::common::miscellaneous::transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
 
             if(normal_octree_trans.dot(normal_from_cloud) < 0)
                 continue;
@@ -614,5 +614,5 @@ faat_pcl::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     output->is_dense = true;*/
 }
 
-template class faat_pcl::utils::NMBasedCloudIntegration<pcl::PointXYZRGB>;
+template class v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB>;
 //template class faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;

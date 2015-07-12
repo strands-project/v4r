@@ -45,7 +45,7 @@
 
 template<typename ModelT, typename SceneT>
 bool
-faat_pcl::GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx, typename pcl::PointCloud<ModelT>::Ptr & cloud)
+v4r::GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx, typename pcl::PointCloud<ModelT>::Ptr & cloud)
 {
   if(hyp_idx < 0 || hyp_idx > (recognition_models_.size() - 1))
     return false;
@@ -73,7 +73,7 @@ faat_pcl::GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx, typename pcl
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning)
+v4r::GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning)
 {
   std::cout << "Called GO3D addModels" << std::endl;
   mask_.clear();
@@ -100,7 +100,7 @@ faat_pcl::GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<
         typename pcl::PointCloud<ModelT>::ConstPtr const_filtered(new pcl::PointCloud<ModelT> (*model_in_view_coordinates));
 
         std::vector<int> indices_cloud_occlusion;
-        filtered = faat_pcl::occlusion_reasoning::filter<ModelT,SceneT> (occ_clouds_[k], const_filtered, 525.f, occlusion_thres_, indices_cloud_occlusion);
+        filtered = v4r::occlusion_reasoning::filter<ModelT,SceneT> (occ_clouds_[k], const_filtered, 525.f, occlusion_thres_, indices_cloud_occlusion);
 
         std::vector<int> final_indices = indices_cloud_occlusion;
         final_indices.resize(indices_cloud_occlusion.size());
@@ -133,8 +133,8 @@ faat_pcl::GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<
   normals_set_ = false;
 }
 
-template<typename ModelT, typename SceneT> float faat_pcl::GO3D<ModelT, SceneT>::sRGB_LUT[256] = {- 1};
-template<typename ModelT, typename SceneT> float faat_pcl::GO3D<ModelT, SceneT>::sXYZ_LUT[4000] = {- 1};
+template<typename ModelT, typename SceneT> float v4r::GO3D<ModelT, SceneT>::sRGB_LUT[256] = {- 1};
+template<typename ModelT, typename SceneT> float v4r::GO3D<ModelT, SceneT>::sXYZ_LUT[4000] = {- 1};
 
 //template class FAAT_REC_API faat_pcl::GO3D<pcl::PointXYZ,pcl::PointXYZ>;
-template class FAAT_REC_API faat_pcl::GO3D<pcl::PointXYZRGB,pcl::PointXYZRGB>;
+template class FAAT_REC_API v4r::GO3D<pcl::PointXYZRGB,pcl::PointXYZRGB>;

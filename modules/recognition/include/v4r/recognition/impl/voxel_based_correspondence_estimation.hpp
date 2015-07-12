@@ -4,7 +4,7 @@
 #include "v4r/recognition/voxel_based_correspondence_estimation.h"
 
 template <typename PointSource, typename PointTarget, typename Scalar> void
-faat_pcl::rec_3d_framework::VoxelBasedCorrespondenceEstimation<PointSource, PointTarget, Scalar>::determineCorrespondences (pcl::Correspondences &correspondences,
+v4r::rec_3d_framework::VoxelBasedCorrespondenceEstimation<PointSource, PointTarget, Scalar>::determineCorrespondences (pcl::Correspondences &correspondences,
                                                                                                                                 double /*max_distance*/) {
   if (!initCompute ())
     return;

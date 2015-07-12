@@ -41,7 +41,7 @@
 #include <pcl/pcl_base.h>
 #include <pcl/PointIndices.h>
 
-namespace faat_pcl
+namespace v4r
 {
   /** \brief OrganizedEdgeBase, OrganizedEdgeFromRGB, OrganizedEdgeFromNormals, 
     * and OrganizedEdgeFromRGBNormals find 3D edges from an organized point 

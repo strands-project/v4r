@@ -8,6 +8,6 @@
 #include <v4r/common/fast_icp_with_gc.h>
 #include <v4r/common/impl/fast_icp_with_gc.hpp>
 
-template class faat_pcl::registration::ICPNode<pcl::PointXYZRGB>;
-template class faat_pcl::registration::FastIterativeClosestPointWithGC<pcl::PointXYZRGB>;
+template class v4r::common::ICPNode<pcl::PointXYZRGB>;
+template class v4r::common::FastIterativeClosestPointWithGC<pcl::PointXYZRGB>;
 

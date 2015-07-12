@@ -45,7 +45,7 @@ SET(SOURCE_CPP_UTILS
 
 
 SET(SOURCE_CPP_MULTIVIEW
-#    src/multiview_object_recognizer_service.cpp
+    src/multiview_object_recognizer_service.cpp
 #    src/world_representation.cpp
     src/boost_graph_extension.cpp
     src/boost_graph_visualization_extension.cpp
@@ -56,7 +56,7 @@ SET(SOURCE_H_MULTIVIEW
     include/v4r/${SUBSYS_NAME}/boost_graph_extension.h
     include/v4r/${SUBSYS_NAME}/boost_graph_visualization_extension.h
     include/v4r/${SUBSYS_NAME}/segmenter.h
-#    include/v4r/${SUBSYS_NAME}/multiview_object_recognizer_service.h
+    include/v4r/${SUBSYS_NAME}/multiview_object_recognizer_service.h
 #    include/v4r/${SUBSYS_NAME}/world_representation.h
     include/v4r/${SUBSYS_NAME}/segmenter.h
     include/v4r/${SUBSYS_NAME}/singleview_object_recognizer.h

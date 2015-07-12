@@ -37,7 +37,7 @@ private:
     std::string most_current_view_id_, scene_name_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pAccumulatedKeypoints_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pAccumulatedKeypointNormals_;
-    std::map<std::string, faat_pcl::rec_3d_framework::ObjectHypothesis<PointT> > accumulatedHypotheses_;
+    std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> > accumulatedHypotheses_;
     bool visualize_output_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer_;
@@ -108,7 +108,7 @@ public:
      */
     void extendFeatureMatchesRecursive ( Graph &grph,
                                          Vertex &vrtx_start,
-                                         std::map < std::string,faat_pcl::rec_3d_framework::ObjectHypothesis<PointT> > &hypotheses,
+                                         std::map < std::string,v4r::rec_3d_framework::ObjectHypothesis<PointT> > &hypotheses,
                                          pcl::PointCloud<PointT>::Ptr keypoints,
                                          pcl::PointCloud<pcl::Normal>::Ptr keypointNormals);
     //    void calcMST ( const std::vector<Edge> &edges, const Graph &grph, std::vector<Edge> &edges_final );

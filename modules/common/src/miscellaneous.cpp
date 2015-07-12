@@ -4,8 +4,10 @@
 //#include <v4r/KeypointConversions/convertNormals.hpp>
 //#include <v4r/KeypointTools/ZAdaptiveNormals.hh>
 #include <pcl/visualization/cloud_viewer.h>
+#include <v4r/common/miscellaneous.h>
+#include <v4r/common/impl/miscellaneous.hpp>
 
-void v4r::ORUtils::miscellaneous::computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
+void v4r::common::miscellaneous::computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
                     int method)
 {
@@ -67,3 +69,9 @@ void v4r::ORUtils::miscellaneous::computeNormals(const pcl::PointCloud<pcl::Poin
 //        vis.spin();
 //    }
 }
+
+template void v4r::common::miscellaneous::convertToFLANN<pcl::Histogram<128>, flann::L1<float> > (const pcl::PointCloud<pcl::Histogram<128> >::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<flann::L1<float> > > &flann_index); // explicit instantiation.
+template void v4r::common::miscellaneous::nearestKSearch<flann::L1<float> > ( boost::shared_ptr< flann::Index< flann::L1<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+flann::Matrix<float> &distances );
+template void v4r::common::miscellaneous::nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+flann::Matrix<float> &distances );

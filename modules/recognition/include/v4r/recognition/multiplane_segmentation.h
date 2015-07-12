@@ -10,7 +10,7 @@
 
 #include <v4r/common/common_data_structures.h>
 
-namespace faat_pcl
+namespace v4r
 {
   template<typename PointT>
   class MultiPlaneSegmentation

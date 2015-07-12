@@ -14,7 +14,7 @@
 #include <v4r/ORUtils/pcl_opencv.h>
 #include <v4rexternal/siftpp/PSiftpp.hh>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

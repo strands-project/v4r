@@ -39,13 +39,13 @@ protected:
     typedef pcl::PointCloud<PointT> PointInT;
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointInTPtr;
-    typedef faat_pcl::rec_3d_framework::Model<PointT> ModelT;
+    typedef v4r::rec_3d_framework::Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
     typedef flann::L1<float> DistT;
     typedef pcl::Histogram<128> FeatureT;
 
 
-    boost::shared_ptr<faat_pcl::rec_3d_framework::MultiRecognitionPipeline<PointT> > multi_recog_;
+    boost::shared_ptr<v4r::rec_3d_framework::MultiRecognitionPipeline<PointT> > multi_recog_;
     std::string models_dir_;
     std::string training_dir_sift_;
     std::string training_dir_shot_;
@@ -54,7 +54,7 @@ protected:
     std::string idx_flann_fn_sift_;
     std::string idx_flann_fn_shot_;
 
-    std::map<std::string, faat_pcl::rec_3d_framework::ObjectHypothesis<PointT> > hypotheses_;
+    std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     pcl::PointIndices keypointIndices_;
     cv::Ptr<SiftGPU> sift_;
@@ -69,10 +69,10 @@ protected:
     std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals_;
     std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> aligned_smooth_faces_;
     std::vector<std::string> model_ids_;
-    std::vector<faat_pcl::PlaneModel<PointT> > planes_found_;
+    std::vector<v4r::PlaneModel<PointT> > planes_found_;
     std::vector<pcl::PointCloud<PointT>::Ptr> verified_planes_;
 
-    boost::shared_ptr < faat_pcl::CorrespondenceGrouping<PointT, PointT> > cast_cg_alg_;
+    boost::shared_ptr < v4r::CorrespondenceGrouping<PointT, PointT> > cast_cg_alg_;
 
 //    boost::shared_ptr < faat_pcl::rec_3d_framework::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>
 //            > model_only_source_;
@@ -267,7 +267,7 @@ public:
         sift_ = value;
     }
 
-    void getSavedHypotheses(std::map<std::string, faat_pcl::rec_3d_framework::ObjectHypothesis<PointT> > & hypotheses) const
+    void getSavedHypotheses(std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> > & hypotheses) const
     {
         hypotheses = hypotheses_;
     }
@@ -398,7 +398,7 @@ public:
 
     void setInputCloud(const pcl::PointCloud<PointT>::ConstPtr pInputCloud)
     {
-        v4r::ORUtils::miscellaneous::computeNormals(pInputCloud, pSceneNormals_, sv_params_.normal_computation_method_);
+        v4r::common::miscellaneous::computeNormals(pInputCloud, pSceneNormals_, sv_params_.normal_computation_method_);
         setInputCloud(pInputCloud, pSceneNormals_);
     }
 
@@ -418,7 +418,7 @@ public:
 
     void preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_cloud, std::vector<float> &fsv);
 
-    void constructHypothesesFromFeatureMatches(std::map < std::string,faat_pcl::rec_3d_framework::ObjectHypothesis<PointT> > hypothesesInput,
+    void constructHypothesesFromFeatureMatches(std::map < std::string,v4r::rec_3d_framework::ObjectHypothesis<PointT> > hypothesesInput,
                                                pcl::PointCloud<PointT>::Ptr pKeypoints,
                                                pcl::PointCloud<pcl::Normal>::Ptr pKeypointNormals,
                                                std::vector<Hypothesis<PointT> > &hypothesesOutput,

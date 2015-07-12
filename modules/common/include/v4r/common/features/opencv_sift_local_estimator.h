@@ -16,7 +16,7 @@
 #include "opencv2/nonfree/nonfree.hpp"
 #include <v4r/ORUtils/pcl_opencv.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

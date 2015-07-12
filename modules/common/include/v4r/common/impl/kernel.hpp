@@ -35,12 +35,12 @@
  *
  */
 
-#ifndef FAAT_PCL_2D_KERNEL_IMPL_HPP
-#define FAAT_PCL_2D_KERNEL_IMPL_HPP
+#ifndef v4r_2D_KERNEL_IMPL_HPP
+#define v4r_2D_KERNEL_IMPL_HPP
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::fetchKernel (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::fetchKernel (pcl::PointCloud<PointT> &kernel)
 {
   switch (kernel_type_)
   {
@@ -119,7 +119,7 @@ faat_pcl::kernel<PointT>::fetchKernel (pcl::PointCloud<PointT> &kernel)
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::gaussianKernel (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::gaussianKernel (pcl::PointCloud<PointT> &kernel)
 {
   float sum = 0;
   kernel.resize (kernel_size_ * kernel_size_);
@@ -146,7 +146,7 @@ faat_pcl::kernel<PointT>::gaussianKernel (pcl::PointCloud<PointT> &kernel)
 
 //////////////////////////////////////////////////////////////////////////////
 template<typename PointT> void
-faat_pcl::kernel<PointT>::loGKernel (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::loGKernel (pcl::PointCloud<PointT> &kernel)
 {
   float sum = 0;
   float temp = 0;
@@ -175,7 +175,7 @@ faat_pcl::kernel<PointT>::loGKernel (pcl::PointCloud<PointT> &kernel)
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::sobelKernelX (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::sobelKernelX (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (9);
   kernel.height = 3;
@@ -187,7 +187,7 @@ faat_pcl::kernel<PointT>::sobelKernelX (pcl::PointCloud<PointT> &kernel)
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::prewittKernelX (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::prewittKernelX (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (9);
   kernel.height = 3;
@@ -199,7 +199,7 @@ faat_pcl::kernel<PointT>::prewittKernelX (pcl::PointCloud<PointT> &kernel)
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::robertsKernelX (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::robertsKernelX (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (4);
   kernel.height = 2;
@@ -210,7 +210,7 @@ faat_pcl::kernel<PointT>::robertsKernelX (pcl::PointCloud<PointT> &kernel)
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::sobelKernelY (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::sobelKernelY (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (9);
   kernel.height = 3;
@@ -222,7 +222,7 @@ faat_pcl::kernel<PointT>::sobelKernelY (pcl::PointCloud<PointT> &kernel)
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::prewittKernelY (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::prewittKernelY (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (9);
   kernel.height = 3;
@@ -233,7 +233,7 @@ faat_pcl::kernel<PointT>::prewittKernelY (pcl::PointCloud<PointT> &kernel)
 }
 
 template <typename PointT> void
-faat_pcl::kernel<PointT>::robertsKernelY (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::robertsKernelY (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (4);
   kernel.height = 2;
@@ -244,7 +244,7 @@ faat_pcl::kernel<PointT>::robertsKernelY (pcl::PointCloud<PointT> &kernel)
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::derivativeXCentralKernel (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::derivativeXCentralKernel (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (3);
   kernel.height = 1;
@@ -254,7 +254,7 @@ faat_pcl::kernel<PointT>::derivativeXCentralKernel (pcl::PointCloud<PointT> &ker
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::derivativeXForwardKernel (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::derivativeXForwardKernel (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (3);
   kernel.height = 1;
@@ -264,7 +264,7 @@ faat_pcl::kernel<PointT>::derivativeXForwardKernel (pcl::PointCloud<PointT> &ker
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::derivativeXBackwardKernel (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::derivativeXBackwardKernel (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (3);
   kernel.height = 1;
@@ -274,7 +274,7 @@ faat_pcl::kernel<PointT>::derivativeXBackwardKernel (pcl::PointCloud<PointT> &ke
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::derivativeYCentralKernel (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::derivativeYCentralKernel (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (3);
   kernel.height = 3;
@@ -284,7 +284,7 @@ faat_pcl::kernel<PointT>::derivativeYCentralKernel (pcl::PointCloud<PointT> &ker
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::derivativeYForwardKernel (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::derivativeYForwardKernel (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (3);
   kernel.height = 3;
@@ -294,7 +294,7 @@ faat_pcl::kernel<PointT>::derivativeYForwardKernel (pcl::PointCloud<PointT> &ker
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::derivativeYBackwardKernel (pcl::PointCloud<PointT> &kernel)
+v4r::kernel<PointT>::derivativeYBackwardKernel (pcl::PointCloud<PointT> &kernel)
 {
   kernel.resize (3);
   kernel.height = 3;
@@ -305,21 +305,21 @@ faat_pcl::kernel<PointT>::derivativeYBackwardKernel (pcl::PointCloud<PointT> &ke
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::setKernelType (KERNEL_ENUM kernel_type)
+v4r::kernel<PointT>::setKernelType (KERNEL_ENUM kernel_type)
 {
   kernel_type_ = kernel_type;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::setKernelSize (int kernel_size)
+v4r::kernel<PointT>::setKernelSize (int kernel_size)
 {
   kernel_size_ = kernel_size;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::kernel<PointT>::setKernelSigma (float kernel_sigma)
+v4r::kernel<PointT>::setKernelSigma (float kernel_sigma)
 {
   sigma_ = kernel_sigma;
 }

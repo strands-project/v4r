@@ -42,7 +42,7 @@
 #include "convolution.h"
 #include "kernel.h"
 
-namespace faat_pcl
+namespace v4r
 {
   template <typename PointInT, typename PointOutT>
   class Edge
@@ -52,7 +52,7 @@ namespace faat_pcl
       typedef typename PointCloudIn::Ptr PointCloudInPtr;
 
       PointCloudInPtr input_;
-      faat_pcl::Convolution<PointInT> convolution_;
+      v4r::Convolution<PointInT> convolution_;
       kernel<PointInT>  kernel_;
 
       /** \brief This function performs edge tracing for Canny Edge detector.

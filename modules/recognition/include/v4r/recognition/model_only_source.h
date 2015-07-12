@@ -19,7 +19,7 @@
 #include <pcl/segmentation/supervoxel_clustering.h>
 #include <v4r/common/io/filesystem_utils.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

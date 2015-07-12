@@ -6,7 +6,7 @@
 
 #include <pcl/common/transforms.h>
 
-typedef faat_pcl::rec_3d_framework::Model<PointT> ModelT;
+typedef v4r::rec_3d_framework::Model<PointT> ModelT;
 typedef boost::shared_ptr<ModelT> ModelTPtr;
 
 void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization::PCLVisualizer::Ptr &vis)
@@ -23,7 +23,7 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
         vis->setWindowName ( "Recognition from Multiple Views" );
     }
     vis->removeAllPointClouds();
-    viewportNr = faat_pcl::utils::visualization_framework ( vis, num_vertices(grph), vis_rows);
+    viewportNr = v4r::common::pcl_visualizer::visualization_framework ( vis, num_vertices(grph), vis_rows);
 
     std::pair<vertex_iter, vertex_iter> vp;
     size_t view_id = 0;

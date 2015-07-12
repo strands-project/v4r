@@ -36,7 +36,7 @@
 
 template<typename PointT>
 void
-faat_pcl::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
+v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
 {
   models_.clear();
 
