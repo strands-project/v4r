@@ -6,7 +6,7 @@
 #include <pcl/ModelCoefficients.h>
 #include <pcl/sample_consensus/sac_model_plane.h>
 #include <pcl/filters/voxel_grid.h>
-namespace faat_pcl
+namespace v4r
 {
   template<typename PointT>
   struct PlaneModel

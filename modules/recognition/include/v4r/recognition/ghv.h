@@ -34,7 +34,7 @@
 #define FAAT_REC_API
 #endif
 
-namespace faat_pcl
+namespace v4r
 {
 
   /** \brief A hypothesis verification method proposed in
@@ -44,7 +44,7 @@ namespace faat_pcl
    */
 
   template<typename ModelT, typename SceneT>
-    class FAAT_REC_API GHV : public faat_pcl::HypothesisVerification<ModelT, SceneT>
+    class FAAT_REC_API GHV : public v4r::HypothesisVerification<ModelT, SceneT>
     {
       friend class GHVmove_manager<ModelT, SceneT>;
       friend class GHVSAModel<ModelT, SceneT>;
@@ -116,23 +116,23 @@ namespace faat_pcl
       }
 
     protected:
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::mask_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::scene_downsampled_tree_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::visible_models_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::visible_normal_models_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::visible_indices_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::complete_models_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::resolution_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::inliers_threshold_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::normals_set_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::requires_normals_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::occlusion_thres_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::occlusion_cloud_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::zbuffer_self_occlusion_resolution_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::scene_cloud_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
-      using faat_pcl::HypothesisVerification<ModelT, SceneT>::zbuffer_scene_resolution_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::mask_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::scene_downsampled_tree_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::visible_models_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::visible_normal_models_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::visible_indices_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::complete_models_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::resolution_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::inliers_threshold_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::normals_set_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::requires_normals_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::occlusion_thres_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::occlusion_cloud_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::zbuffer_self_occlusion_resolution_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::scene_cloud_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
+      using v4r::HypothesisVerification<ModelT, SceneT>::zbuffer_scene_resolution_;
 
       template<typename PointT, typename NormalT>
         inline void
@@ -521,7 +521,7 @@ namespace faat_pcl
       void
       computeGSHistogram (const std::vector<float> & hsv_values, Eigen::MatrixXf & histogram, int hist_size = 255);
 
-      std::vector<faat_pcl::PlaneModel<ModelT> > planar_models_;
+      std::vector<v4r::PlaneModel<ModelT> > planar_models_;
       std::map<int, int> model_to_planar_model_;
 
       bool use_histogram_specification_;
@@ -579,7 +579,7 @@ namespace faat_pcl
 
     public:
       GHV () :
-        faat_pcl::HypothesisVerification<ModelT, SceneT> ()
+        v4r::HypothesisVerification<ModelT, SceneT> ()
       {
         multiple_assignment_penalize_by_one_ = 2;
         resolution_ = 0.005f;
@@ -752,7 +752,7 @@ namespace faat_pcl
       {
         use_super_voxels_ = use;
       }
-      void addPlanarModels(std::vector<faat_pcl::PlaneModel<ModelT> > & models);
+      void addPlanarModels(std::vector<v4r::PlaneModel<ModelT> > & models);
 
       void
       setSmoothSegParameters (float t_eps, float curv_t, float dist_t, int min_points = 20)

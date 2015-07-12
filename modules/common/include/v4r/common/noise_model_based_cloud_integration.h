@@ -13,7 +13,7 @@
 #include <pcl/octree/octree_pointcloud_pointvector.h>
 #include <pcl/octree/impl/octree_iterator.hpp>
 
-namespace faat_pcl
+namespace v4r
 {
 namespace utils
 {

@@ -15,7 +15,7 @@
 #include <GL/glut.h>
 #include <v4r/common/pcl_opencv.h>
 
-namespace faat_pcl
+namespace v4r
 {
 namespace rec_3d_framework
 {

@@ -10,7 +10,7 @@
 
 #include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

@@ -438,7 +438,7 @@ best_extended_cliques (const ExtendedClique & a,
 
 template<typename PointModelT, typename PointSceneT>
 void
-faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph2(GraphGGCG & g, int gc_thres)
+v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph2(GraphGGCG & g, int gc_thres)
 {
     typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
     std::vector<typename boost::graph_traits<GraphGGCG>::vertex_descriptor> to_be_removed;
@@ -465,7 +465,7 @@ faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGrap
 
 template<typename PointModelT, typename PointSceneT>
 void
-faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph(GraphGGCG & g, int gc_thres)
+v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph(GraphGGCG & g, int gc_thres)
 {
 
     cleanGraph2(g, gc_thres);
@@ -689,7 +689,7 @@ faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::visualize
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT>
 void
-faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
+v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
 {
     //pcl::ScopeTime t_cluster("cluster correspondences");
     //pcl::StopWatch time_watch;
@@ -1580,7 +1580,7 @@ faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCo
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT>
 bool
-faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
+v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<
         Eigen::Matrix4f> > &transformations)
 {
@@ -1591,7 +1591,7 @@ faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointModelT, typename PointSceneT>
 bool
-faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
+v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<
         Eigen::Matrix4f> > &transformations,
         std::vector<pcl::Correspondences> &clustered_corrs)

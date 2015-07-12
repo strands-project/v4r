@@ -17,7 +17,7 @@
 #include <v4r/recognition/hypotheses_verification.h>
 #include "recognizer.h"
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

@@ -93,16 +93,4 @@ namespace v4r
     }
 }
 #undef PCL_NO_PRECOMPILE
-
-namespace v4r
-{
-    namespace Registration
-    {
-        template<typename PointType, typename DistType> void convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index);
-
-        template<typename DistType> void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
-                                flann::Matrix<float> &distances );
-    }
-}
-
 #endif

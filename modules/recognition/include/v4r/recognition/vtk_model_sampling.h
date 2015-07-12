@@ -18,7 +18,7 @@
 #include <vtkTransformFilter.h>
 #include <pcl/common/common.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

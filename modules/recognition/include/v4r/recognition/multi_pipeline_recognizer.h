@@ -13,7 +13,7 @@
 #include "local_recognizer.h"
 #include <v4r/common/graph_geometric_consistency.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {
@@ -21,7 +21,7 @@ namespace faat_pcl
     class FAAT_3D_FRAMEWORK_API MultiRecognitionPipeline : public Recognizer<PointInT>
     {
       protected:
-        std::vector<typename boost::shared_ptr<faat_pcl::rec_3d_framework::Recognizer<PointInT> > > recognizers_;
+        std::vector<typename boost::shared_ptr<v4r::rec_3d_framework::Recognizer<PointInT> > > recognizers_;
 
       private:
         using Recognizer<PointInT>::input_;
@@ -44,7 +44,7 @@ namespace faat_pcl
         typedef boost::shared_ptr<ModelT> ModelTPtr;
         std::vector<pcl::PointIndices> segmentation_indices_;
 
-        typename boost::shared_ptr<faat_pcl::GraphGeometricConsistencyGrouping<PointInT, PointInT> > cg_algorithm_;
+        typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointInT, PointInT> > cg_algorithm_;
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
         bool normals_set_;
 
@@ -110,7 +110,7 @@ namespace faat_pcl
 
         void recognize();
 
-        void addRecognizer(const typename boost::shared_ptr<faat_pcl::rec_3d_framework::Recognizer<PointInT> > & rec)
+        void addRecognizer(const typename boost::shared_ptr<v4r::rec_3d_framework::Recognizer<PointInT> > & rec)
         {
           recognizers_.push_back(rec);
         }
@@ -126,15 +126,15 @@ namespace faat_pcl
               std::cout << "Checking recognizer type: " << recognizers_[i]->getFeatureType() << std::endl;
               if(recognizers_[i]->getFeatureType() == feature_type)
               {
-                  typename boost::shared_ptr<faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > cast_local_recognizer;
-                  cast_local_recognizer = boost::static_pointer_cast<faat_pcl::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > (recognizers_[i]);
+                  typename boost::shared_ptr<v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > cast_local_recognizer;
+                  cast_local_recognizer = boost::static_pointer_cast<v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > (recognizers_[i]);
                   cast_local_recognizer->setISPK(signatures, p, keypoint_indices);
               }
           }
         }
 
         void
-        setCGAlgorithm (const typename boost::shared_ptr<faat_pcl::GraphGeometricConsistencyGrouping<PointInT, PointInT> > & alg)
+        setCGAlgorithm (const typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointInT, PointInT> > & alg)
         {
           cg_algorithm_ = alg;
         }

@@ -47,6 +47,6 @@
 //template class FAAT_REC_API faat_pcl::HVGOBinaryOptimizer<pcl::PointXYZ,pcl::PointXYZ>;
 //template class FAAT_REC_API faat_pcl::HVGOBinaryOptimizer<pcl::PointXYZRGB,pcl::PointXYZRGB>;
 
-template class FAAT_REC_API faat_pcl::GHVmove_manager<pcl::PointXYZ,pcl::PointXYZ>;
-template class FAAT_REC_API faat_pcl::GHVmove_manager<pcl::PointXYZRGB,pcl::PointXYZRGB>;
+template class FAAT_REC_API v4r::GHVmove_manager<pcl::PointXYZ,pcl::PointXYZ>;
+template class FAAT_REC_API v4r::GHVmove_manager<pcl::PointXYZRGB,pcl::PointXYZRGB>;
 //template class FAAT_REC_API faat_pcl::GlobalHypothesesVerification<pcl::PointXYZRGBA,pcl::PointXYZRGBA>;

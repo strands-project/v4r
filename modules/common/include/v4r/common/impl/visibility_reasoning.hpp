@@ -14,7 +14,7 @@
 
 template<typename PointT>
   int
-  v4r::registration::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObserved (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+  v4r::common::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObserved (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                                              const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                                                  std::vector<float> & range_diff)
   {
@@ -52,7 +52,7 @@ template<typename PointT>
 
   template<typename PointT>
     int
-    v4r::registration::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObservedWithIndicesBack (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+    v4r::common::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObservedWithIndicesBack (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                                                               const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                                                               std::vector<float> & range_diff,
                                                                                                               std::vector<int> & indices)
@@ -94,7 +94,7 @@ template<typename PointT>
 
 template<typename PointT>
 float
-v4r::registration::VisibilityReasoning<PointT>::computeFocalLength (int cx_, int cy_, const typename pcl::PointCloud<PointT>::ConstPtr & scene)
+v4r::common::VisibilityReasoning<PointT>::computeFocalLength (int cx_, int cy_, const typename pcl::PointCloud<PointT>::ConstPtr & scene)
 {
   float cx, cy;
   cx = static_cast<float> (cx_) / 2.f - 0.5f;
@@ -127,7 +127,7 @@ v4r::registration::VisibilityReasoning<PointT>::computeFocalLength (int cx_, int
 
 template<typename PointT>
 void
-v4r::registration::VisibilityReasoning<PointT>::computeRangeImage (int cx_, int cy_, float f_, const typename pcl::PointCloud<PointT>::ConstPtr & cloud,
+v4r::common::VisibilityReasoning<PointT>::computeRangeImage (int cx_, int cy_, float f_, const typename pcl::PointCloud<PointT>::ConstPtr & cloud,
                                                                             typename pcl::PointCloud<PointT>::Ptr & range_image)
 {
   float cx, cy;
@@ -214,7 +214,7 @@ v4r::registration::VisibilityReasoning<PointT>::computeRangeImage (int cx_, int 
 }
 
 template<typename PointT>
-float v4r::registration::VisibilityReasoning<PointT>::computeOSV(const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+float v4r::common::VisibilityReasoning<PointT>::computeOSV(const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                       const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                       Eigen::Matrix4f pose_2_to_1)
 {
@@ -262,7 +262,7 @@ float v4r::registration::VisibilityReasoning<PointT>::computeOSV(const typename 
 
 template<typename PointT>
   float
-  v4r::registration::VisibilityReasoning<PointT>::computeFSV (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+  v4r::common::VisibilityReasoning<PointT>::computeFSV (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                    const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                    Eigen::Matrix4f pose_2_to_1)
   {
@@ -305,7 +305,7 @@ template<typename PointT>
 
   template<typename PointT>
     float
-    v4r::registration::VisibilityReasoning<PointT>::computeFSVWithNormals (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+    v4r::common::VisibilityReasoning<PointT>::computeFSVWithNormals (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                                 const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                                 pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {

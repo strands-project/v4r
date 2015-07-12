@@ -15,7 +15,7 @@
 #include <pcl/features/our_cvfh.h>
 #include <pcl/surface/mls.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

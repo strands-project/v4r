@@ -44,7 +44,7 @@
 #include <pcl/correspondence.h>
 #include <pcl/console/print.h>
 
-namespace faat_pcl
+namespace v4r
 {
   /** \brief Abstract base class for Correspondence Grouping algorithms.
     *

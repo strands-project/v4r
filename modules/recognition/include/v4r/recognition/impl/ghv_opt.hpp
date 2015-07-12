@@ -10,14 +10,14 @@
 
 template<typename ModelT, typename SceneT>
 size_t
-faat_pcl::GHVreplace_hyp_move<ModelT, SceneT>::hash () const
+v4r::GHVreplace_hyp_move<ModelT, SceneT>::hash () const
 {
   return static_cast<size_t> (sol_size_ + sol_size_ * i_ + j_);
 }
 
 template<typename ModelT, typename SceneT>
 bool
-faat_pcl::GHVreplace_hyp_move<ModelT, SceneT>::operator== (const mets::mana_move& m) const
+v4r::GHVreplace_hyp_move<ModelT, SceneT>::operator== (const mets::mana_move& m) const
 {
     try
     {
@@ -37,14 +37,14 @@ faat_pcl::GHVreplace_hyp_move<ModelT, SceneT>::operator== (const mets::mana_move
 
 template<typename ModelT, typename SceneT>
 size_t
-faat_pcl::GHVmove<ModelT, SceneT>::hash () const
+v4r::GHVmove<ModelT, SceneT>::hash () const
 {
   return static_cast<size_t> (index_);
 }
 
 template<typename ModelT, typename SceneT>
 bool
-faat_pcl::GHVmove<ModelT, SceneT>::operator== (const mets::mana_move& m) const
+v4r::GHVmove<ModelT, SceneT>::operator== (const mets::mana_move& m) const
 {
   std::cout << "Going to cast move, should not happen" << std::endl;
   const GHVmove& mm = dynamic_cast<const GHVmove&> (m);
@@ -53,14 +53,14 @@ faat_pcl::GHVmove<ModelT, SceneT>::operator== (const mets::mana_move& m) const
 
 template<typename ModelT, typename SceneT>
 size_t
-faat_pcl::GHVmove_activate<ModelT, SceneT>::hash () const
+v4r::GHVmove_activate<ModelT, SceneT>::hash () const
 {
   return static_cast<size_t> (index_);
 }
 
 template<typename ModelT, typename SceneT>
 bool
-faat_pcl::GHVmove_activate<ModelT, SceneT>::operator== (const mets::mana_move& m) const
+v4r::GHVmove_activate<ModelT, SceneT>::operator== (const mets::mana_move& m) const
 {
     try
     {
@@ -78,14 +78,14 @@ faat_pcl::GHVmove_activate<ModelT, SceneT>::operator== (const mets::mana_move& m
 
 template<typename ModelT, typename SceneT>
 size_t
-faat_pcl::GHVmove_deactivate<ModelT, SceneT>::hash () const
+v4r::GHVmove_deactivate<ModelT, SceneT>::hash () const
 {
   return static_cast<size_t> (index_ + problem_size_);
 }
 
 template<typename ModelT, typename SceneT>
 bool
-faat_pcl::GHVmove_deactivate<ModelT, SceneT>::operator== (const mets::mana_move& m) const
+v4r::GHVmove_deactivate<ModelT, SceneT>::operator== (const mets::mana_move& m) const
 {
     try
     {
@@ -108,7 +108,7 @@ faat_pcl::GHVmove_deactivate<ModelT, SceneT>::operator== (const mets::mana_move&
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHVmove_manager<ModelT, SceneT>::refresh(mets::feasible_solution& s)
+v4r::GHVmove_manager<ModelT, SceneT>::refresh(mets::feasible_solution& s)
 {
   for (iterator ii = begin (); ii != end (); ++ii)
     delete (*ii);

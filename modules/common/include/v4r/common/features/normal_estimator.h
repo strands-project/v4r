@@ -15,7 +15,7 @@
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/common/time.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

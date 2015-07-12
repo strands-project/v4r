@@ -39,8 +39,8 @@
 #include "v4r/recognition/ghv.h"
 #include "v4r/recognition/impl/ghv.hpp"
 
-template<typename ModelT, typename SceneT> float faat_pcl::GHV<ModelT, SceneT>::sRGB_LUT[256] = {- 1};
-template<typename ModelT, typename SceneT> float faat_pcl::GHV<ModelT, SceneT>::sXYZ_LUT[4000] = {- 1};
+template<typename ModelT, typename SceneT> float v4r::GHV<ModelT, SceneT>::sRGB_LUT[256] = {- 1};
+template<typename ModelT, typename SceneT> float v4r::GHV<ModelT, SceneT>::sXYZ_LUT[4000] = {- 1};
 
-template class FAAT_REC_API faat_pcl::GHV<pcl::PointXYZ,pcl::PointXYZ>;
-template class FAAT_REC_API faat_pcl::GHV<pcl::PointXYZRGB,pcl::PointXYZRGB>;
+template class FAAT_REC_API v4r::GHV<pcl::PointXYZ,pcl::PointXYZ>;
+template class FAAT_REC_API v4r::GHV<pcl::PointXYZRGB,pcl::PointXYZRGB>;

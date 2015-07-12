@@ -45,7 +45,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/keypoints/uniform_sampling.h>
 
-namespace faat_pcl
+namespace v4r
 {
 
   /**
@@ -256,7 +256,7 @@ namespace faat_pcl
           PCL_WARN("Scene not organized... filtering using computed depth buffer\n");
         }
 
-        faat_pcl::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (zbuffer_scene_resolution_, zbuffer_scene_resolution_, 1.f);
+        v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (zbuffer_scene_resolution_, zbuffer_scene_resolution_, 1.f);
         if (!occlusion_cloud_->isOrganized ())
         {
           zbuffer_scene.computeDepthMap (occlusion_cloud_, true);
@@ -269,7 +269,7 @@ namespace faat_pcl
 
           //self-occlusions
           typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
-          typename faat_pcl::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_self_occlusion (zbuffer_self_occlusion_resolution_, zbuffer_self_occlusion_resolution_, 1.f);
+          typename v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_self_occlusion (zbuffer_self_occlusion_resolution_, zbuffer_self_occlusion_resolution_, 1.f);
           zbuffer_self_occlusion.computeDepthMap (models[i], true);
 
           std::vector<int> self_occlusion_indices;
@@ -283,7 +283,7 @@ namespace faat_pcl
           std::vector<int> indices_cloud_occlusion;
           if (occlusion_cloud_->isOrganized ())
           {
-            filtered = faat_pcl::occlusion_reasoning::filter<ModelT,SceneT> (occlusion_cloud_, const_filtered, 525.f, occlusion_thres_, indices_cloud_occlusion);
+            filtered = v4r::occlusion_reasoning::filter<ModelT,SceneT> (occlusion_cloud_, const_filtered, 525.f, occlusion_thres_, indices_cloud_occlusion);
             visible_indices_[i].resize(filtered->points.size());
             for(size_t k=0; k < indices_cloud_occlusion.size(); k++) {
               visible_indices_[i][k] = self_occlusion_indices[indices_cloud_occlusion[k]];

@@ -43,7 +43,7 @@
 #include "correspondence_grouping.h"
 #include <pcl/recognition/boost.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace recognition
   {
@@ -148,7 +148,7 @@ namespace faat_pcl
     * \ingroup recognition
     */
   template<typename PointModelT, typename PointSceneT, typename PointModelRfT = pcl::ReferenceFrame, typename PointSceneRfT = pcl::ReferenceFrame>
-  class Hough3DGrouping : public faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>
+  class Hough3DGrouping : public v4r::CorrespondenceGrouping<PointModelT, PointSceneT>
   {
     public:
       typedef pcl::PointCloud<PointModelRfT> ModelRfCloud;
@@ -163,7 +163,7 @@ namespace faat_pcl
       typedef typename PointCloud::Ptr PointCloudPtr;
       typedef typename PointCloud::ConstPtr PointCloudConstPtr;
 
-      typedef typename faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::SceneCloudConstPtr SceneCloudConstPtr;
+      typedef typename v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::SceneCloudConstPtr SceneCloudConstPtr;
 
       /** \brief Constructor */
       Hough3DGrouping () 
@@ -475,7 +475,7 @@ namespace faat_pcl
       float local_rf_search_radius_;
 
       /** \brief The Hough space. */
-      boost::shared_ptr<faat_pcl::recognition::HoughSpace3D> hough_space_;
+      boost::shared_ptr<v4r::recognition::HoughSpace3D> hough_space_;
 
       /** \brief Transformations found by clusterCorrespondences method. */
       std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > found_transformations_;

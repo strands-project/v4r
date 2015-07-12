@@ -48,7 +48,7 @@ PCL_INSTANTIATE_PRODUCT(Hough3DGrouping, ((pcl::PointXYZ)(pcl::PointXYZI)(pcl::P
 
 /////////////////////////////////////////////////////////////////////////////
 
-faat_pcl::recognition::HoughSpace3D::HoughSpace3D (const Eigen::Vector3d &min_coord, const Eigen::Vector3d &bin_size, const Eigen::Vector3d &max_coord)
+v4r::recognition::HoughSpace3D::HoughSpace3D (const Eigen::Vector3d &min_coord, const Eigen::Vector3d &bin_size, const Eigen::Vector3d &max_coord)
 {
   min_coord_ = min_coord;
   bin_size_ = bin_size;
@@ -82,7 +82,7 @@ faat_pcl::recognition::HoughSpace3D::HoughSpace3D (const Eigen::Vector3d &min_co
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-faat_pcl::recognition::HoughSpace3D::reset ()
+v4r::recognition::HoughSpace3D::reset ()
 {
   hough_space_.clear ();
   hough_space_.resize (total_bins_count_, 0.0);
@@ -97,7 +97,7 @@ faat_pcl::recognition::HoughSpace3D::reset ()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-faat_pcl::recognition::HoughSpace3D::reserveVoterIdsVector(int n_matches, float percentage)
+v4r::recognition::HoughSpace3D::reserveVoterIdsVector(int n_matches, float percentage)
 {
 
 }
@@ -105,7 +105,7 @@ faat_pcl::recognition::HoughSpace3D::reserveVoterIdsVector(int n_matches, float 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-faat_pcl::recognition::HoughSpace3D::reserveVoterIdsVectorFixedSize(int size_per_bin)
+v4r::recognition::HoughSpace3D::reserveVoterIdsVectorFixedSize(int size_per_bin)
 {
     for(size_t i=0; i < voter_ids_vector_.size(); i++)
     {
@@ -117,7 +117,7 @@ faat_pcl::recognition::HoughSpace3D::reserveVoterIdsVectorFixedSize(int size_per
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int
-faat_pcl::recognition::HoughSpace3D::vote (const Eigen::Vector3d &single_vote_coord, double weight, int voter_id)
+v4r::recognition::HoughSpace3D::vote (const Eigen::Vector3d &single_vote_coord, double weight, int voter_id)
 {
   int index = 0;
 
@@ -142,7 +142,7 @@ faat_pcl::recognition::HoughSpace3D::vote (const Eigen::Vector3d &single_vote_co
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int
-faat_pcl::recognition::HoughSpace3D::voteInt (const Eigen::Vector3d &single_vote_coord, double weight, int voter_id)
+v4r::recognition::HoughSpace3D::voteInt (const Eigen::Vector3d &single_vote_coord, double weight, int voter_id)
 {
   int central_bin_index = 0;
 
@@ -254,7 +254,7 @@ faat_pcl::recognition::HoughSpace3D::voteInt (const Eigen::Vector3d &single_vote
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 double
-faat_pcl::recognition::HoughSpace3D::findMaxima (double min_threshold, std::vector<double> &maxima_values, std::vector<std::vector<int> > &maxima_voter_ids)
+v4r::recognition::HoughSpace3D::findMaxima (double min_threshold, std::vector<double> &maxima_values, std::vector<std::vector<int> > &maxima_voter_ids)
 {
 
   // If min_threshold between -1 and 0 use it as a percentage of maximum vote

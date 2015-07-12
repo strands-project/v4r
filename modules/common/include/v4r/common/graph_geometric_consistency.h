@@ -50,10 +50,10 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/undirected_graph.hpp>
 
-namespace faat_pcl
+namespace v4r
 {
   template<typename PointModelT, typename PointSceneT>
-  class GraphGeometricConsistencyGrouping : public faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>
+  class GraphGeometricConsistencyGrouping : public v4r::CorrespondenceGrouping<PointModelT, PointSceneT>
   {
 
     struct edge_component_t
@@ -74,7 +74,7 @@ namespace faat_pcl
       typedef typename PointCloud::Ptr PointCloudPtr;
       typedef typename PointCloud::ConstPtr PointCloudConstPtr;
 
-      typedef typename faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::SceneCloudConstPtr SceneCloudConstPtr;
+      typedef typename v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::SceneCloudConstPtr SceneCloudConstPtr;
 
       /** \brief Constructor */
       GraphGeometricConsistencyGrouping ()
@@ -263,10 +263,10 @@ namespace faat_pcl
       }
 
     protected:
-      using faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
-      using faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
-      using faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
-      using faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::require_normals_;
+      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
+      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
+      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
+      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::require_normals_;
 
       pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
 

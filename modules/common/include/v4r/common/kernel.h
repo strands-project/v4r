@@ -39,7 +39,7 @@
 #define FAAT_PCL_2D_KERNEL_H_
 #include <pcl/pcl_base.h>
 #include <pcl/point_types.h>
-namespace faat_pcl
+namespace v4r
 {
   template<typename PointT>
   class kernel

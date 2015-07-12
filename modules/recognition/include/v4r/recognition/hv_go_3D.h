@@ -22,62 +22,62 @@
 #include <pcl/common/time.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
 
-namespace faat_pcl
+namespace v4r
 {
   template<typename ModelT, typename SceneT>
   //class FAAT_REC_API GO3D : public faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>
-  class FAAT_REC_API GO3D : public faat_pcl::GHV<ModelT, SceneT>
+  class FAAT_REC_API GO3D : public v4r::GHV<ModelT, SceneT>
   {
     private:
-    using faat_pcl::GHV<ModelT, SceneT>::mask_;
-    using faat_pcl::GHV<ModelT, SceneT>::scene_cloud_downsampled_;
-    using faat_pcl::GHV<ModelT, SceneT>::scene_downsampled_tree_;
-    using faat_pcl::GHV<ModelT, SceneT>::visible_models_;
-    using faat_pcl::GHV<ModelT, SceneT>::visible_normal_models_;
-    using faat_pcl::GHV<ModelT, SceneT>::visible_indices_;
-    using faat_pcl::GHV<ModelT, SceneT>::complete_models_;
-    using faat_pcl::GHV<ModelT, SceneT>::resolution_;
-    using faat_pcl::GHV<ModelT, SceneT>::inliers_threshold_;
-    using faat_pcl::GHV<ModelT, SceneT>::normals_set_;
-    using faat_pcl::GHV<ModelT, SceneT>::requires_normals_;
-    using faat_pcl::GHV<ModelT, SceneT>::occlusion_thres_;
-    using faat_pcl::GHV<ModelT, SceneT>::zbuffer_self_occlusion_resolution_;
-    using faat_pcl::GHV<ModelT, SceneT>::regularizer_;
-    using faat_pcl::GHV<ModelT, SceneT>::object_ids_;
-    using faat_pcl::GHV<ModelT, SceneT>::radius_normals_;
-    using faat_pcl::GHV<ModelT, SceneT>::extra_weights_;
-    using faat_pcl::GHV<ModelT, SceneT>::scene_normals_;
-    using faat_pcl::GHV<ModelT, SceneT>::ignore_color_even_if_exists_;
-    using faat_pcl::GHV<ModelT, SceneT>::color_sigma_ab_;
-    using faat_pcl::GHV<ModelT, SceneT>::color_sigma_l_;
-    using faat_pcl::GHV<ModelT, SceneT>::recognition_models_;
-    using faat_pcl::GHV<ModelT, SceneT>::computeRGBHistograms;
-    using faat_pcl::GHV<ModelT, SceneT>::specifyRGBHistograms;
-    using faat_pcl::GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods;
-    using faat_pcl::GHV<ModelT, SceneT>::explained_by_RM_distance_weighted;
-    using faat_pcl::GHV<ModelT, SceneT>::explained_by_RM_;
-    using faat_pcl::GHV<ModelT, SceneT>::complete_cloud_occupancy_by_RM_;
-    using faat_pcl::GHV<ModelT, SceneT>::octree_scene_downsampled_;
-    using faat_pcl::GHV<ModelT, SceneT>::use_super_voxels_;
-    using faat_pcl::GHV<ModelT, SceneT>::radius_neighborhood_GO_;
-    using faat_pcl::GHV<ModelT, SceneT>::detect_clutter_;
-    using faat_pcl::GHV<ModelT, SceneT>::cc_;
-    using faat_pcl::GHV<ModelT, SceneT>::n_cc_;
-    using faat_pcl::GHV<ModelT, SceneT>::valid_model_;
-    using faat_pcl::GHV<ModelT, SceneT>::cluster_tolerance_;
-    using faat_pcl::GHV<ModelT, SceneT>::eps_angle_threshold_;
-    using faat_pcl::GHV<ModelT, SceneT>::curvature_threshold_;
-    using faat_pcl::GHV<ModelT, SceneT>::clusters_cloud_rgb_;
-    using faat_pcl::GHV<ModelT, SceneT>::clusters_cloud_;
-    using faat_pcl::GHV<ModelT, SceneT>::min_points_;
-    using faat_pcl::GHV<ModelT, SceneT>::points_explained_by_rm_;
-    using faat_pcl::GHV<ModelT, SceneT>::res_occupancy_grid_;
-    using faat_pcl::GHV<ModelT, SceneT>::extractEuclideanClustersSmooth;
-    using faat_pcl::GHV<ModelT, SceneT>::complete_normal_models_;
-    using faat_pcl::GHV<ModelT, SceneT>::scene_LAB_values_;
-    using faat_pcl::GHV<ModelT, SceneT>::scene_RGB_values_;
-    using faat_pcl::GHV<ModelT, SceneT>::scene_GS_values_;
-    using faat_pcl::GHV<ModelT, SceneT>::computeClutterCueAtOnce;
+    using v4r::GHV<ModelT, SceneT>::mask_;
+    using v4r::GHV<ModelT, SceneT>::scene_cloud_downsampled_;
+    using v4r::GHV<ModelT, SceneT>::scene_downsampled_tree_;
+    using v4r::GHV<ModelT, SceneT>::visible_models_;
+    using v4r::GHV<ModelT, SceneT>::visible_normal_models_;
+    using v4r::GHV<ModelT, SceneT>::visible_indices_;
+    using v4r::GHV<ModelT, SceneT>::complete_models_;
+    using v4r::GHV<ModelT, SceneT>::resolution_;
+    using v4r::GHV<ModelT, SceneT>::inliers_threshold_;
+    using v4r::GHV<ModelT, SceneT>::normals_set_;
+    using v4r::GHV<ModelT, SceneT>::requires_normals_;
+    using v4r::GHV<ModelT, SceneT>::occlusion_thres_;
+    using v4r::GHV<ModelT, SceneT>::zbuffer_self_occlusion_resolution_;
+    using v4r::GHV<ModelT, SceneT>::regularizer_;
+    using v4r::GHV<ModelT, SceneT>::object_ids_;
+    using v4r::GHV<ModelT, SceneT>::radius_normals_;
+    using v4r::GHV<ModelT, SceneT>::extra_weights_;
+    using v4r::GHV<ModelT, SceneT>::scene_normals_;
+    using v4r::GHV<ModelT, SceneT>::ignore_color_even_if_exists_;
+    using v4r::GHV<ModelT, SceneT>::color_sigma_ab_;
+    using v4r::GHV<ModelT, SceneT>::color_sigma_l_;
+    using v4r::GHV<ModelT, SceneT>::recognition_models_;
+    using v4r::GHV<ModelT, SceneT>::computeRGBHistograms;
+    using v4r::GHV<ModelT, SceneT>::specifyRGBHistograms;
+    using v4r::GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods;
+    using v4r::GHV<ModelT, SceneT>::explained_by_RM_distance_weighted;
+    using v4r::GHV<ModelT, SceneT>::explained_by_RM_;
+    using v4r::GHV<ModelT, SceneT>::complete_cloud_occupancy_by_RM_;
+    using v4r::GHV<ModelT, SceneT>::octree_scene_downsampled_;
+    using v4r::GHV<ModelT, SceneT>::use_super_voxels_;
+    using v4r::GHV<ModelT, SceneT>::radius_neighborhood_GO_;
+    using v4r::GHV<ModelT, SceneT>::detect_clutter_;
+    using v4r::GHV<ModelT, SceneT>::cc_;
+    using v4r::GHV<ModelT, SceneT>::n_cc_;
+    using v4r::GHV<ModelT, SceneT>::valid_model_;
+    using v4r::GHV<ModelT, SceneT>::cluster_tolerance_;
+    using v4r::GHV<ModelT, SceneT>::eps_angle_threshold_;
+    using v4r::GHV<ModelT, SceneT>::curvature_threshold_;
+    using v4r::GHV<ModelT, SceneT>::clusters_cloud_rgb_;
+    using v4r::GHV<ModelT, SceneT>::clusters_cloud_;
+    using v4r::GHV<ModelT, SceneT>::min_points_;
+    using v4r::GHV<ModelT, SceneT>::points_explained_by_rm_;
+    using v4r::GHV<ModelT, SceneT>::res_occupancy_grid_;
+    using v4r::GHV<ModelT, SceneT>::extractEuclideanClustersSmooth;
+    using v4r::GHV<ModelT, SceneT>::complete_normal_models_;
+    using v4r::GHV<ModelT, SceneT>::scene_LAB_values_;
+    using v4r::GHV<ModelT, SceneT>::scene_RGB_values_;
+    using v4r::GHV<ModelT, SceneT>::scene_GS_values_;
+    using v4r::GHV<ModelT, SceneT>::computeClutterCueAtOnce;
 
     //typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;

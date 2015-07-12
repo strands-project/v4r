@@ -16,7 +16,7 @@
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/io/filesystem_utils.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

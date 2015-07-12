@@ -11,7 +11,7 @@
 #include "v4r/common/faat_3d_rec_framework_defines.h"
 #include "normal_estimator.h"
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

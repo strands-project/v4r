@@ -55,7 +55,7 @@
 #include <3rdparty/EDT/propagation_distance_field.h>
 #include "v4r/common/faat_3d_rec_framework_defines.h"
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

@@ -7,5 +7,5 @@
 
 #include <v4r/recognition/impl/multi_pipeline_recognizer.hpp>
 
-template class PCL_EXPORTS faat_pcl::rec_3d_framework::MultiRecognitionPipeline<pcl::PointXYZ>;
-template class PCL_EXPORTS faat_pcl::rec_3d_framework::MultiRecognitionPipeline<pcl::PointXYZRGB>;
+template class PCL_EXPORTS v4r::rec_3d_framework::MultiRecognitionPipeline<pcl::PointXYZ>;
+template class PCL_EXPORTS v4r::rec_3d_framework::MultiRecognitionPipeline<pcl::PointXYZRGB>;

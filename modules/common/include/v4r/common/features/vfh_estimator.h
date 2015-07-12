@@ -13,7 +13,7 @@
 #include "normal_estimator.h"
 #include <pcl/features/vfh.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {

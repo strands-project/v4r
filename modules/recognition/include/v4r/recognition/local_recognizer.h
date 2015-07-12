@@ -23,7 +23,7 @@ correspSorter (const pcl::Correspondence & i, const pcl::Correspondence & j)
   return (i.distance < j.distance);
 }
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {
@@ -98,7 +98,7 @@ namespace faat_pcl
           typename boost::shared_ptr<LocalEstimator<PointInT, FeatureT> > estimator_;
 
           /** \brief Point-to-point correspondence grouping algorithm */
-          typename boost::shared_ptr<faat_pcl::CorrespondenceGrouping<PointInT, PointInT> > cg_algorithm_;
+          typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointInT, PointInT> > cg_algorithm_;
 
           /** \brief Descriptor name */
           std::string descr_name_;
@@ -404,7 +404,7 @@ namespace faat_pcl
          * \brief Sets the CG algorithm
          */
         void
-        setCGAlgorithm (const typename boost::shared_ptr<faat_pcl::CorrespondenceGrouping<PointInT, PointInT> > & alg)
+        setCGAlgorithm (const typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointInT, PointInT> > & alg)
         {
           cg_algorithm_ = alg;
         }

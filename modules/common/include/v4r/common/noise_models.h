@@ -11,7 +11,7 @@
 #include <pcl/common/common.h>
 #include <pcl/common/io.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace utils
   {

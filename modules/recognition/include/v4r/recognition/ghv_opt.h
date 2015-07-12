@@ -33,7 +33,7 @@
 #define FAAT_REC_API
 #endif
 
-namespace faat_pcl
+namespace v4r
 {
 
   //Helper classes

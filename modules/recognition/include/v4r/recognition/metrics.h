@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstdlib>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace Metrics
   {

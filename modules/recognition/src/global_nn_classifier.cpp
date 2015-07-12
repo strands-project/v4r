@@ -9,8 +9,8 @@
 #include <v4r/recognition//metrics.h>
 
 //Instantiation
-template class faat_pcl::rec_3d_framework::GlobalNNPipeline<flann::L1, pcl::PointXYZ, pcl::VFHSignature308>;
-template class faat_pcl::rec_3d_framework::GlobalNNPipeline<faat_pcl::Metrics::HistIntersectionUnionDistance, pcl::PointXYZ, pcl::VFHSignature308>;
-template class faat_pcl::rec_3d_framework::GlobalNNPipeline<flann::L1, pcl::PointXYZ, pcl::ESFSignature640>;
+template class v4r::rec_3d_framework::GlobalNNPipeline<flann::L1, pcl::PointXYZ, pcl::VFHSignature308>;
+template class v4r::rec_3d_framework::GlobalNNPipeline<v4r::Metrics::HistIntersectionUnionDistance, pcl::PointXYZ, pcl::VFHSignature308>;
+template class v4r::rec_3d_framework::GlobalNNPipeline<flann::L1, pcl::PointXYZ, pcl::ESFSignature640>;
 
-template class faat_pcl::rec_3d_framework::GlobalClassifier<pcl::PointXYZ>;
+template class v4r::rec_3d_framework::GlobalClassifier<pcl::PointXYZ>;

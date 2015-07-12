@@ -53,7 +53,7 @@
 
 template<typename ModelT, typename SceneT>
 mets::gol_type
-faat_pcl::GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int changed)
+v4r::GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int changed)
 {
     //boost::posix_time::ptime start_time (boost::posix_time::microsec_clock::local_time ());
     float sign = 1.f;
@@ -119,7 +119,7 @@ faat_pcl::GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & activ
 
 template<typename ModelT, typename SceneT>
 double
-faat_pcl::GHV<ModelT, SceneT>::countActiveHypotheses (const std::vector<bool> & sol)
+v4r::GHV<ModelT, SceneT>::countActiveHypotheses (const std::vector<bool> & sol)
 {
     double c = 0;
     for (size_t i = 0; i < sol.size (); i++)
@@ -137,7 +137,7 @@ faat_pcl::GHV<ModelT, SceneT>::countActiveHypotheses (const std::vector<bool> & 
 
 template<typename ModelT, typename SceneT>
 double
-faat_pcl::GHV<ModelT, SceneT>::
+v4r::GHV<ModelT, SceneT>::
 countPointsOnDifferentPlaneSides (const std::vector<bool> & sol,
                                   bool print)
 {
@@ -198,7 +198,7 @@ countPointsOnDifferentPlaneSides (const std::vector<bool> & sol,
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::addPlanarModels(std::vector<faat_pcl::PlaneModel<ModelT> > & models)
+v4r::GHV<ModelT, SceneT>::addPlanarModels(std::vector<v4r::PlaneModel<ModelT> > & models)
 {
     planar_models_ = models;
     model_to_planar_model_.clear();
@@ -210,7 +210,7 @@ faat_pcl::GHV<ModelT, SceneT>::addPlanarModels(std::vector<faat_pcl::PlaneModel<
         model_to_planar_model_[static_cast<int>(size_start + i)] = static_cast<int>(i);
         complete_models_.push_back(planar_models_[i].plane_cloud_);
 
-        faat_pcl::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (zbuffer_scene_resolution_, zbuffer_scene_resolution_, 1.f);
+        v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (zbuffer_scene_resolution_, zbuffer_scene_resolution_, 1.f);
         if (!occlusion_cloud_->isOrganized ())
         {
             zbuffer_scene.computeDepthMap (occlusion_cloud_, true);
@@ -223,7 +223,7 @@ faat_pcl::GHV<ModelT, SceneT>::addPlanarModels(std::vector<faat_pcl::PlaneModel<
         std::vector<int> indices_cloud_occlusion;
         if (occlusion_cloud_->isOrganized ())
         {
-            filtered = faat_pcl::occlusion_reasoning::filter<ModelT,SceneT> (occlusion_cloud_, const_filtered, 525.f, occlusion_thres_, indices_cloud_occlusion);
+            filtered = v4r::occlusion_reasoning::filter<ModelT,SceneT> (occlusion_cloud_, const_filtered, 525.f, occlusion_thres_, indices_cloud_occlusion);
         }
         else
         {
@@ -428,7 +428,7 @@ superVoxelClutterSegmentation<pcl::PointXYZ>
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::initialize ()
+v4r::GHV<ModelT, SceneT>::initialize ()
 {
     //clear stuff
     recognition_models_.clear ();
@@ -896,7 +896,7 @@ faat_pcl::GHV<ModelT, SceneT>::initialize ()
 
 template<typename ModelT, typename SceneT>
 float
-faat_pcl::GHV<ModelT, SceneT>::getCurvWeight(float p_curvature)
+v4r::GHV<ModelT, SceneT>::getCurvWeight(float p_curvature)
 {
 
     if(multiple_assignment_penalize_by_one_ == 2)
@@ -916,7 +916,7 @@ faat_pcl::GHV<ModelT, SceneT>::getCurvWeight(float p_curvature)
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec,
+v4r::GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec,
                                                       const std::vector<float> & vec_float,
                                                       std::vector<int> & explained,
                                                       std::vector<double> & explained_by_RM_distance_weighted,
@@ -1152,7 +1152,7 @@ faat_pcl::GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & v
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::updateCMDuplicity (const std::vector<int> & vec, std::vector<int> & occupancy_vec, float sign)
+v4r::GHV<ModelT, SceneT>::updateCMDuplicity (const std::vector<int> & vec, std::vector<int> & occupancy_vec, float sign)
 {
     int add_to_duplicity_ = 0;
     for (size_t i = 0; i < vec.size (); i++)
@@ -1185,7 +1185,7 @@ faat_pcl::GHV<ModelT, SceneT>::updateCMDuplicity (const std::vector<int> & vec, 
 
 template<typename ModelT, typename SceneT>
 double
-faat_pcl::GHV<ModelT, SceneT>::getTotalExplainedInformation (const std::vector<int> & explained, const std::vector<double> & explained_by_RM_distance_weighted, double &duplicity)
+v4r::GHV<ModelT, SceneT>::getTotalExplainedInformation (const std::vector<int> & explained, const std::vector<double> & explained_by_RM_distance_weighted, double &duplicity)
 {
     double explained_info = 0;
     duplicity = 0;
@@ -1232,7 +1232,7 @@ faat_pcl::GHV<ModelT, SceneT>::getTotalExplainedInformation (const std::vector<i
 
 template<typename ModelT, typename SceneT>
 double
-faat_pcl::GHV<ModelT, SceneT>::getExplainedByIndices(const std::vector<int> & indices, const std::vector<float> & explained_values,
+v4r::GHV<ModelT, SceneT>::getExplainedByIndices(const std::vector<int> & indices, const std::vector<float> & explained_values,
                                                      const std::vector<double> & explained_by_RM, std::vector<int> & indices_to_update_in_RM_local)
 {
     float v=0;
@@ -1272,7 +1272,7 @@ faat_pcl::GHV<ModelT, SceneT>::getExplainedByIndices(const std::vector<int> & in
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::fill_structures(std::vector<int> & cc_indices, std::vector<bool> & initial_solution, GHVSAModel<ModelT, SceneT> & model)
+v4r::GHV<ModelT, SceneT>::fill_structures(std::vector<int> & cc_indices, std::vector<bool> & initial_solution, GHVSAModel<ModelT, SceneT> & model)
 {
     for (size_t j = 0; j < recognition_models_.size (); j++)
     {
@@ -1371,7 +1371,7 @@ faat_pcl::GHV<ModelT, SceneT>::fill_structures(std::vector<int> & cc_indices, st
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::clear_structures()
+v4r::GHV<ModelT, SceneT>::clear_structures()
 {
     size_t kk = complete_cloud_occupancy_by_RM_.size();
     explained_by_RM_.clear();
@@ -1393,7 +1393,7 @@ faat_pcl::GHV<ModelT, SceneT>::clear_structures()
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool> & initial_solution)
+v4r::GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool> & initial_solution)
 {
 
     //temporal copy of recogniton_models_
@@ -1881,7 +1881,7 @@ faat_pcl::GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::v
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::verify ()
+v4r::GHV<ModelT, SceneT>::verify ()
 {
     {
         pcl::StopWatch t;
@@ -2014,7 +2014,7 @@ inline void softBining(float val, int pos1, float bin_size, int max_pos, int & p
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::computeGSHistogram
+v4r::GHV<ModelT, SceneT>::computeGSHistogram
 (const std::vector<float> & gs_values, Eigen::MatrixXf & histogram, int hist_size)
 {
     float max = 255.f;
@@ -2038,7 +2038,7 @@ faat_pcl::GHV<ModelT, SceneT>::computeGSHistogram
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::computeRGBHistograms (const std::vector<Eigen::Vector3f> & rgb_values, Eigen::MatrixXf & rgb, int dim, float min, float max, bool soft)
+v4r::GHV<ModelT, SceneT>::computeRGBHistograms (const std::vector<Eigen::Vector3f> & rgb_values, Eigen::MatrixXf & rgb, int dim, float min, float max, bool soft)
 {
     int hist_size = max - min + 1;
     //float size_bin = 1.f / hist_size;
@@ -2099,7 +2099,7 @@ faat_pcl::GHV<ModelT, SceneT>::computeRGBHistograms (const std::vector<Eigen::Ve
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::specifyRGBHistograms (Eigen::MatrixXf & src, Eigen::MatrixXf & dst, Eigen::MatrixXf & lookup, int dim)
+v4r::GHV<ModelT, SceneT>::specifyRGBHistograms (Eigen::MatrixXf & src, Eigen::MatrixXf & dst, Eigen::MatrixXf & lookup, int dim)
 {
     //normalize histograms
     for(size_t i=0; i < dim; i++) {
@@ -2183,7 +2183,7 @@ faat_pcl::GHV<ModelT, SceneT>::specifyRGBHistograms (Eigen::MatrixXf & src, Eige
 
 template<typename ModelT, typename SceneT>
 bool
-faat_pcl::GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, bool is_planar_model, int object_models_size)
+v4r::GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, bool is_planar_model, int object_models_size)
 {
     //std::cout << visible_normal_models_.size() << " " << object_models_size << " " << complete_models_.size() << std::endl;
     if(visible_normal_models_.size() == static_cast<size_t>(object_models_size) && !use_normals_from_visible_/*&& !is_planar_model*/)
@@ -2282,7 +2282,7 @@ faat_pcl::GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognition
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model)
+v4r::GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model)
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_cloud_specified(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::copyPointCloud(*recog_model->cloud_, *model_cloud_specified);
@@ -2678,7 +2678,7 @@ faat_pcl::GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boo
 
 template<typename ModelT, typename SceneT>
 bool
-faat_pcl::GHV<ModelT, SceneT>::addModel (int model_id, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model)
+v4r::GHV<ModelT, SceneT>::addModel (int model_id, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model)
 {
     bool is_planar_model = false;
     std::map<int, int>::iterator it1;
@@ -3152,7 +3152,7 @@ faat_pcl::GHV<ModelT, SceneT>::addModel (int model_id, boost::shared_ptr<GHVReco
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
+v4r::GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
 {
     //compute all scene points that are explained by the hypothesis
     std::set<int> explained_points;
@@ -3304,7 +3304,7 @@ faat_pcl::GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud)
+v4r::GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud)
 {
     for(size_t i=0; i < recognition_models_.size(); i++)
     {
@@ -3323,7 +3323,7 @@ faat_pcl::GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::Po
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_color,
+v4r::GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_color,
                                                             std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_3d)
 {
     for(size_t i=0; i < recognition_models_.size(); i++)
@@ -3354,7 +3354,7 @@ faat_pcl::GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::Po
 
 template<typename ModelT, typename SceneT>
 void
-faat_pcl::GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
+v4r::GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
                                                 float cost, int times_evaluated)
 {
     std::cout << "visualizeGOCues:" << visualize_go_cues_ << std::endl;

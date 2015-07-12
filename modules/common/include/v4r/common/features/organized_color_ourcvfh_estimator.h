@@ -15,7 +15,7 @@
 #include <pcl/features/our_cvfh.h>
 #include <pcl/surface/mls.h>
 
-namespace faat_pcl
+namespace v4r
 {
     namespace rec_3d_framework
     {
@@ -200,7 +200,7 @@ namespace faat_pcl
                     processed.reset (new pcl::PointCloud<PointInT>(*in));
                 }
 
-                typedef typename faat_pcl::rec_3d_framework::OURCVFHEstimation<PointInT, pcl::Normal, pcl::VFHSignature308> OURCVFHEstimation;
+                typedef typename v4r::rec_3d_framework::OURCVFHEstimation<PointInT, pcl::Normal, pcl::VFHSignature308> OURCVFHEstimation;
                 typename pcl::search::KdTree<PointInT>::Ptr cvfh_tree (new pcl::search::KdTree<PointInT>);
 
                 //if vectors are not set, assume that single values are set...

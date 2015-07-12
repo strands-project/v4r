@@ -10,9 +10,9 @@
 
 #include <pcl/keypoints/keypoint.h>
 
-namespace faat_pcl
+namespace v4r
 {
-  namespace registration
+  namespace common
   {
     template <typename PointInT>
     class UniformSamplingSharedVoxelGrid: public pcl::Keypoint<PointInT, int>

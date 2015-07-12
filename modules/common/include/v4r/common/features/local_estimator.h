@@ -17,7 +17,7 @@
 #include <pcl/keypoints/susan.h>
 #include <pcl/keypoints/iss_3d.h>
 
-namespace faat_pcl
+namespace v4r
 {
 namespace rec_3d_framework
 {
@@ -75,8 +75,8 @@ private:
 private:
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     bool filter_planar_;
-    using faat_pcl::rec_3d_framework::KeypointExtractor<PointInT>::input_;
-    using faat_pcl::rec_3d_framework::KeypointExtractor<PointInT>::radius_;
+    using v4r::rec_3d_framework::KeypointExtractor<PointInT>::input_;
+    using v4r::rec_3d_framework::KeypointExtractor<PointInT>::radius_;
     using KeypointExtractor<PointInT>::keypoint_indices_;
     float sampling_density_;
     boost::shared_ptr<std::vector<std::vector<int> > > neighborhood_indices_;

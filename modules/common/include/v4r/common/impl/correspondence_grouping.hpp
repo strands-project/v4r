@@ -41,7 +41,7 @@
 #define FAAT_PCL_RECOGNITION_CORRESPONDENCE_GROUPING_IMPL_H_
 
 template <typename PointModelT, typename PointSceneT> void
-faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::cluster (std::vector<pcl::Correspondences> &clustered_corrs)
+v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::cluster (std::vector<pcl::Correspondences> &clustered_corrs)
 {
   clustered_corrs.clear ();
   corr_group_scale_.clear ();

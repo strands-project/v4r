@@ -12,7 +12,7 @@
 #include "global_estimator.h"
 #include <pcl/features/esf.h>
 
-namespace faat_pcl
+namespace v4r
 {
   namespace rec_3d_framework
   {
