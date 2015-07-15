@@ -23,12 +23,15 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
         vis->setWindowName ( "Recognition from Multiple Views" );
     }
     vis->removeAllPointClouds();
+<<<<<<< HEAD
     std::vector<std::string> subwindow_title;
     subwindow_title.push_back("original scene");
     subwindow_title.push_back("generated hypotheses from single-view only");
     subwindow_title.push_back("verified hypotheses from single-view only");
     subwindow_title.push_back("generated multi-view hypotheses (previous + current observations)");
     subwindow_title.push_back("verified multi-view hypotheses");
+=======
+>>>>>>> v4r_root/master
     viewportNr = v4r::common::pcl_visualizer::visualization_framework ( vis, num_vertices(grph), vis_rows);
 
     std::pair<vertex_iter, vertex_iter> vp;
@@ -37,7 +40,11 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
     {
         pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler_rgb ( grph[*vp.first].pScenePCl_f );
         std::stringstream cloud_name;
+<<<<<<< HEAD
         cloud_name << "view_cloud_" << grph[*vp.first].pScenePCl->header.frame_id <<  "_" << view_id;
+=======
+        cloud_name << "view_cloud_" << grph[*vp.first].pScenePCl->header.frame_id;
+>>>>>>> v4r_root/master
         vis->addPointCloud<pcl::PointXYZRGB> ( grph[*vp.first].pScenePCl_f, handler_rgb, cloud_name.str (), viewportNr[view_id * vis_rows + 0] );
 
         for ( size_t hyp_id = 0; hyp_id < grph[*vp.first].hypothesis_sv_.size(); hyp_id++ )
@@ -48,7 +55,11 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
             ModelTPtr model = grph[*vp.first].hypothesis_sv_[hyp_id].model_;
 
             std::stringstream name;
+<<<<<<< HEAD
             name << cloud_name.str() << "_sv__hypothesis_" << hyp_id << view_id;
+=======
+            name << cloud_name.str() << "_sv__hypothesis_" << hyp_id;
+>>>>>>> v4r_root/master
 
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
             ConstPointInTPtr model_cloud = model->getAssembled (0.005f);
@@ -67,7 +78,11 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
         for(size_t plane_id=0; plane_id < grph[*vp.first].verified_planes_.size(); plane_id++)
         {
             std::stringstream plane_name;
+<<<<<<< HEAD
             plane_name << "plane_sv_" << plane_id << "_vrtx" << grph[*vp.first].pScenePCl->header.frame_id <<  "_" << view_id;
+=======
+            plane_name << "plane_sv_" << plane_id << "_vrtx" << grph[*vp.first].pScenePCl->header.frame_id;
+>>>>>>> v4r_root/master
             pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler ( grph[*vp.first].verified_planes_[plane_id] );
             vis->addPointCloud<PointT> ( grph[*vp.first].verified_planes_[plane_id], rgb_handler, plane_name.str (), viewportNr[view_id * vis_rows + 2] );
         }
@@ -78,7 +93,11 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
             ModelTPtr model = grph[*vp.first].hypothesis_mv_[hyp_id].model_;
 
             std::stringstream name;
+<<<<<<< HEAD
             name << cloud_name.str() << "_mv__hypothesis_" << hyp_id << view_id;
+=======
+            name << cloud_name.str() << "_mv__hypothesis_" << hyp_id;
+>>>>>>> v4r_root/master
 
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
             ConstPointInTPtr model_cloud = model->getAssembled (0.005f);
@@ -98,7 +117,11 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
         for(size_t plane_id=0; plane_id < grph[*vp.first].verified_planes_.size(); plane_id++)
         {
             std::stringstream plane_name;
+<<<<<<< HEAD
             plane_name << "plane_mv_" << plane_id << "_vrtx" << grph[*vp.first].pScenePCl->header.frame_id << "_" << view_id;
+=======
+            plane_name << "plane_mv_" << plane_id << "_vrtx" << grph[*vp.first].pScenePCl->header.frame_id;
+>>>>>>> v4r_root/master
             pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler ( grph[*vp.first].verified_planes_[plane_id] );
             vis->addPointCloud<PointT> ( grph[*vp.first].verified_planes_[plane_id], rgb_handler, plane_name.str (), viewportNr[view_id * vis_rows + 4] );
         }

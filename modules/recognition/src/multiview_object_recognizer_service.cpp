@@ -650,10 +650,30 @@ calcEdgeWeight (Graph &grph, std::vector<Edge> &edges)
 //}
 
 
+<<<<<<< HEAD
 bool MultiviewRecognizer::recognize
 (const pcl::PointCloud<PointT>::ConstPtr pInputCloud,
  const std::string &view_name,
  const std::vector<float> &global_transform)
+=======
+/*
+ * recognition passing a global transformation matrix (to a world coordinate system)
+ */
+bool MultiviewRecognizer::recognize
+(const pcl::PointCloud<PointT>::ConstPtr pInputCloud,
+ const std::string view_name,
+ const Eigen::Matrix4f global_transform)
+{
+    mv_params_.use_robot_pose_ = true;
+    current_global_transform_ = global_transform;
+    return recognize(pInputCloud, view_name);
+}
+
+
+bool MultiviewRecognizer::recognize
+(const pcl::PointCloud<PointT>::ConstPtr pInputCloud,
+ const std::string view_name)
+>>>>>>> v4r_root/master
 {
     std::cout << "=================================================================" << std::endl <<
                  "Started recognition for view " << view_name << " in scene " << scene_name_ <<
@@ -671,7 +691,11 @@ bool MultiviewRecognizer::recognize
             go3dIcpTime,
             go3dVerification;
 
+<<<<<<< HEAD
     size_t total_num_correspondences = 0;
+=======
+    size_t total_num_correspondences=0;
+>>>>>>> v4r_root/master
     pcl::ScopeTime total_pcl_time ("Multiview Recognition");
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pSceneNormals_f (new pcl::PointCloud<pcl::Normal> );
     times_.clear();
@@ -680,6 +704,7 @@ bool MultiviewRecognizer::recognize
     Vertex vrtx = boost::add_vertex ( grph_ );
 
     pcl::copyPointCloud(*pInputCloud, *(grph_[vrtx].pScenePCl));
+<<<<<<< HEAD
 
     grph_[vrtx].pScenePCl->header.stamp = pInputCloud->header.stamp;
     grph_[vrtx].pScenePCl->header.frame_id = view_name;
@@ -701,6 +726,16 @@ bool MultiviewRecognizer::recognize
 
     most_current_view_id_ = view_name;
 
+=======
+    //    grph_[vrtx].pScenePCl = pInputCloud;
+    grph_[vrtx].absolute_pose_ = Eigen::Matrix4f::Identity();
+
+    most_current_view_id_ = view_name;
+
+    if( mv_params_.use_robot_pose_)
+        grph_[vrtx].transform_to_world_co_system_ = current_global_transform_;
+
+>>>>>>> v4r_root/master
     if( sv_params_.chop_at_z_ > 0)
     {
         pcl::PassThrough<PointT> pass;
@@ -709,6 +744,11 @@ bool MultiviewRecognizer::recognize
         pass.setInputCloud (grph_[vrtx].pScenePCl);
         pass.setKeepOrganized (true);
         pass.filter (*(grph_[vrtx].pScenePCl_f));
+<<<<<<< HEAD
+=======
+        grph_[vrtx].pScenePCl_f->header.stamp = pInputCloud->header.stamp;
+        grph_[vrtx].pScenePCl_f->header.frame_id = view_name;
+>>>>>>> v4r_root/master
         grph_[vrtx].filteredSceneIndices_.indices = *(pass.getIndices());
         grph_[vrtx].filteredSceneIndices_.header.stamp = pInputCloud->header.stamp;
         grph_[vrtx].filteredSceneIndices_.header.frame_id = view_name;
@@ -726,15 +766,23 @@ bool MultiviewRecognizer::recognize
     std::vector<Edge> new_edges;
 
     //--------------create-edges-between-views-by-Robot-Pose-----------------------------
+<<<<<<< HEAD
     if( mv_params_.use_robot_pose_ )
+=======
+    if( mv_params_.use_robot_pose_ && num_vertices(grph_)>1)
+>>>>>>> v4r_root/master
     {
         vertex_iter vertexIt, vertexEnd;
         for (boost::tie(vertexIt, vertexEnd) = vertices(grph_); vertexIt != vertexEnd; ++vertexIt)
         {
             Edge edge;
+<<<<<<< HEAD
             if( grph_[*vertexIt].pScenePCl->header.frame_id.compare ( grph_[vrtx].pScenePCl->header.frame_id ) != 0
                     && grph_[*vertexIt].transform_to_world_co_system_is_set_
                     && grph_[vrtx].transform_to_world_co_system_is_set_ )
+=======
+            if( grph_[*vertexIt].pScenePCl->header.frame_id.compare ( grph_[vrtx].pScenePCl->header.frame_id ) != 0 )
+>>>>>>> v4r_root/master
             {
                 estimateViewTransformationByRobotPose ( *vertexIt, vrtx, grph_, edge );
                 new_edges.push_back ( edge );

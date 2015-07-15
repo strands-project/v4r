@@ -38,6 +38,10 @@ private:
     boost::shared_ptr< pcl::PointCloud<PointT> > pAccumulatedKeypoints_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pAccumulatedKeypointNormals_;
     std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> > accumulatedHypotheses_;
+<<<<<<< HEAD
+=======
+    bool visualize_output_;
+>>>>>>> v4r_root/master
     pcl::visualization::PCLVisualizer::Ptr vis_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer_;
     int vp_go3d_1, vp_go3d_2;
@@ -49,9 +53,12 @@ private:
     pcl::visualization::PCLVisualizer::Ptr go3d_vis_;
     std::vector<int> go_3d_viewports_;
     
+<<<<<<< HEAD
 protected:
     bool visualize_output_;
 
+=======
+>>>>>>> v4r_root/master
 public:
     struct mv_params{
         bool scene_to_scene_;
@@ -147,8 +154,16 @@ public:
 
 
     bool recognize (const pcl::PointCloud<PointT>::ConstPtr inputCloud,
+<<<<<<< HEAD
                     const std::string &view_name,
                     const std::vector<float> &global_transform = std::vector<float>());
+=======
+                     const std::string view_name);
+
+    bool recognize (const pcl::PointCloud<PointT>::ConstPtr inputCloud,
+                     const std::string view_name,
+                     const Eigen::Matrix4f global_transform);
+>>>>>>> v4r_root/master
 
     // getter and setter functions
     bool visualize_output() const;

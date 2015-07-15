@@ -27,10 +27,16 @@ SET(SOURCE_H
 
 include_directories(${PCL_INCLUDE_DIRS} "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+<<<<<<< HEAD
 add_library(${PREFIX_LIB}segmentation SHARED ${SOURCE_H} ${SOURCE_CPP} )
 target_link_libraries(${PREFIX_LIB}segmentation ${PCL_LIBRARIES} ${OpenCV_LIBS} ${SUBSYS_DEPS} ${Boost_LIBRARIES})
 #v4r_add_library(${PROJECT_NAME} "${SUBSYS_NAME}" "${SOURCE_H}")
 #message("......${PREFIX_LIB}......")
 _install_library(${PREFIX_LIB}segmentation ${SOURCE_H} "/v4r/segmentation/")
+=======
+add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP} )
+target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${SUBSYS_DEPS} ${Boost_LIBRARIES})
+v4r_add_library(${PROJECT_NAME} "${SUBSYS_NAME}" "${SOURCE_H}")
+>>>>>>> v4r_root/master
 
 ENDIF(V4R_SEGMENTATION)
