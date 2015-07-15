@@ -1,0 +1,36 @@
+set(SUBSYS_NAME segmentation)
+set(SUBSYS_DESC "V4R segmentation module")
+set(SUBSYS_DEPS)
+set(V4R_SEGMENTATION 1 CACHE BOOL "V4R segmentation module" )
+IF(V4R_SEGMENTATION)
+
+FIND_PACKAGE (PCL 1.7 REQUIRED)
+INCLUDE_DIRECTORIES(${PCL_INCLUDE_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+link_directories(${PCL_LIBRARY_DIRS})
+
+PROJECT(v4r_${SUBSYS_NAME})
+
+SET(SOURCE_CPP
+  src/segmentation_utils.cpp
+  src/Slic.cpp
+  src/SLICO.cpp
+  src/SlicRGBD.cpp
+)
+
+SET(SOURCE_H
+  include/v4r/${SUBSYS_NAME}/segmentation_utils.h
+  include/v4r/${SUBSYS_NAME}/Slic.h
+  include/v4r/${SUBSYS_NAME}/SLICO.h
+  include/v4r/${SUBSYS_NAME}/SlicRGBD.h
+)
+
+include_directories(${PCL_INCLUDE_DIRS} "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP} )
+target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${SUBSYS_DEPS} ${Boost_LIBRARIES})
+#v4r_add_library(${PROJECT_NAME} "${SUBSYS_NAME}" "${SOURCE_H}")
+#message("......${PREFIX_LIB}......")
+_install_library(${PREFIX_LIB}segmentation ${SOURCE_H} "/v4r/segmentation/")
+
+ENDIF(V4R_SEGMENTATION)
