@@ -140,16 +140,20 @@ SET(SOURCE_H_KEYPOINT
   include/v4r/${SUBSYS_NAME}/keypoint/impl/convertNormals.hpp
   include/v4r/${SUBSYS_NAME}/keypoint/impl/DataMatrix2D.hpp
   include/v4r/${SUBSYS_NAME}/keypoint/impl/PointTypes.hpp
+  include/v4r/${SUBSYS_NAME}/keypoint/impl/SmartPtr.hpp
+  include/v4r/${SUBSYS_NAME}/keypoint/ClusterNormalsToPlanes.hh
+  include/v4r/${SUBSYS_NAME}/keypoint/PlaneEstimationRANSAC.hh
 )
 
 SET(SOURCE_CPP_KEYPOINT
+ClusterNormalsToPlanes.cc
+PlaneEstimationRANSAC.cc
 )
 
-#SET_TARGET_PROPERTIES("${PREFIX_LIB}common_keypoint" PROPERTIES LINKER_LANGUAGE C)
-#add_library("${PREFIX_LIB}common_keypoint" SHARED ${SOURCE_H_KEYPOINT} ${SOURCE_CPP_KEYPOINT} )
-#target_link_libraries("${PREFIX_LIB}common_keypoint" ${PCL_LIBRARIES} ${SUBSYS_DEPS})
+add_library("${PREFIX_LIB}common_keypoint" SHARED ${SOURCE_H_KEYPOINT} ${SOURCE_CPP_KEYPOINT} )
+target_link_libraries("${PREFIX_LIB}common_keypoint" ${PCL_LIBRARIES} ${SUBSYS_DEPS})
 #v4r_add_library("${PROJECT_NAME}_keypoint" "${SUBSYS_NAME}" "${SOURCE_H_KEYPOINT}")
-#_install_library(${PREFIX_LIB}common_keypoint ${SOURCE_H_KEYPOINT} "/v4r/common/keypoint/")
+_install_library(${PREFIX_LIB}common_keypoint ${SOURCE_H_KEYPOINT} "/v4r/common/keypoint/")
 
 
 ENDIF(V4R_COMMON)
