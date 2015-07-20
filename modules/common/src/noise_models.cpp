@@ -14,8 +14,9 @@
 template<typename PointT>
 v4r::utils::noise_models::NguyenNoiseModel<PointT>::NguyenNoiseModel ()
 {
-  max_angle_ = 70.f;
-  lateral_sigma_ = 0.002f;
+  nguyens_noise_model_params_.max_angle_ = 70.f;
+  nguyens_noise_model_params_.lateral_sigma_ = 0.002f;
+  nguyens_noise_model_params_.use_depth_edges_ = true;
   pose_set_ = false;
   pose_to_plane_RF_ = Eigen::Matrix4f::Identity();
 }
@@ -66,9 +67,9 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
 
     o2p.normalize();
     float angle = pcl::rad2deg(acos(o2p.dot(np)));
-    if(angle > max_angle_)
+    if(angle > nguyens_noise_model_params_.max_angle_)
     {
-      weights_[i] = 1.f - (angle - max_angle_) / (90.f - max_angle_);
+      weights_[i] = 1.f - (angle - nguyens_noise_model_params_.max_angle_) / (90.f - nguyens_noise_model_params_.max_angle_);
     }
     else
     {
@@ -80,7 +81,7 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
   }
 
   //dilate edge pixels checking that the distance is ok and keeping always the minimum euclidean distance for each dilated pixel
-  if (use_depth_edges_)
+  if (nguyens_noise_model_params_.use_depth_edges_)
   {
     pcl::PointCloud<pcl::PointXYZ>::Ptr edge_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     edge_cloud->width = input_->width;
@@ -138,7 +139,7 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
               int idx_u_v = u * input_->width + v;
               float dist = dist_to_edge[idx_u_v] + (input_->at (v, u).getVector3fMap () - input_->at (kv, ku).getVector3fMap ()).norm ();
               //std::cout << dist << " " << lateral_sigma_ * 3.f << std::endl;
-              if (dist < (lateral_sigma_ * 3.f))
+              if (dist < (nguyens_noise_model_params_.lateral_sigma_ * 3.f))
               {
                 //grow
                 edge_cloud2->at (kv, ku).getVector3fMap () = input_->at (kv, ku).getVector3fMap ();
@@ -167,7 +168,7 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
 
       assert(pcl_isfinite(dist_to_edge[i]));
       //adapt weight
-      weights_[i] *= 1.f - 0.5f * std::exp((dist_to_edge[i] * dist_to_edge[i]) / (lateral_sigma_ * lateral_sigma_));
+      weights_[i] *= 1.f - 0.5f * std::exp((dist_to_edge[i] * dist_to_edge[i]) / (nguyens_noise_model_params_.lateral_sigma_ * nguyens_noise_model_params_.lateral_sigma_));
     }
   }
 

@@ -12,7 +12,7 @@
 #include <pcl/pcl_macros.h>
 #include "hypotheses_verification.h"
 //#include <pcl/recognition/3rdparty/metslib/mets.hh>
-#include "3rdparty/metslib/mets.hh"
+#include <3rdparty/metslib/mets.hh>
 #include <pcl/features/normal_3d.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <boost/graph/graph_traits.hpp>

@@ -75,3 +75,10 @@ template void v4r::common::miscellaneous::nearestKSearch<flann::L1<float> > ( bo
 flann::Matrix<float> &distances );
 template void v4r::common::miscellaneous::nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
 flann::Matrix<float> &distances );
+
+//#define PCL_INSTANTIATE_setCloudPose(T) template void v4r::common::miscellaneous::setCloudPose<T>(const Eigen::Matrix4f&, pcl::PointCloud<T>&);
+//PCL_INSTANTIATE(setCloudPose, PCL_XYZ_POINT_TYPES)
+template void v4r::common::miscellaneous::setCloudPose<pcl::PointXYZ>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZ> &cloud);
+template void v4r::common::miscellaneous::setCloudPose<pcl::PointXYZRGB>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGB> &cloud);
+template void v4r::common::miscellaneous::setCloudPose<pcl::PointXYZRGBNormal>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud);
+template void v4r::common::miscellaneous::setCloudPose<pcl::PointXYZRGBA>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBA> &cloud);

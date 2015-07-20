@@ -38,7 +38,6 @@ private:
     boost::shared_ptr< pcl::PointCloud<PointT> > pAccumulatedKeypoints_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pAccumulatedKeypointNormals_;
     std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> > accumulatedHypotheses_;
-    bool visualize_output_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer_;
     int vp_go3d_1, vp_go3d_2;
@@ -49,7 +48,11 @@ private:
     BoostGraphVisualizer bgvis_;
     pcl::visualization::PCLVisualizer::Ptr go3d_vis_;
     std::vector<int> go_3d_viewports_;
-    
+
+protected:
+    bool visualize_output_;
+    void savePCDwithPose();
+
 public:
     struct mv_params{
         bool scene_to_scene_;
@@ -125,13 +128,8 @@ public:
      */
     void createEdgesFromHypothesisMatchOnline ( const Vertex new_vertex, Graph &grph, std::vector<Edge> &edges );
 
-
     void calcEdgeWeight (Graph &grph, std::vector<Edge> &edges);
 
-    void set_visualize_output(const bool vis_output)
-    {
-        visualize_output_ = vis_output;
-    }
 
     std::string get_scene_name() const
     {
@@ -143,21 +141,10 @@ public:
         times = times_;
     }
 
-
     bool recognize (const pcl::PointCloud<PointT>::ConstPtr inputCloud,
-                     const std::string view_name);
+                    const std::string &view_name,
+                    const std::vector<float> &global_transform = std::vector<float>());
 
-    bool recognize (const pcl::PointCloud<PointT>::ConstPtr inputCloud,
-                     const std::string view_name,
-                     const Eigen::Matrix4f global_transform);
-
-    // getter and setter functions
-    bool visualize_output() const;
-    void setVisualize_output(bool visualize_output);
-    int opt_type() const;
-    void setOpt_type(int opt_type);
-    int mv_keypoints() const;
-    void setMv_keypoints(int mv_keypoints);
 //    void setPSingleview_recognizer(const boost::shared_ptr<Recognizer> &value);
 
     bool getVerifiedHypotheses(std::vector<ModelTPtr> &models,

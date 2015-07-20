@@ -23,17 +23,21 @@ namespace v4r
         private:
           typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
           typedef typename pcl::PointCloud<pcl::Normal>::Ptr PointNormalTPtr;
-          float lateral_sigma_;
-          float max_angle_;
           PointTPtr input_;
           PointNormalTPtr normals_;
           std::vector<float> weights_;
           pcl::PointIndices discontinuity_edges_;
-          bool use_depth_edges_;
           Eigen::Matrix4f pose_to_plane_RF_;
           bool pose_set_;
 
         public:
+          struct nguyensNoiseModelParams
+          {
+              float lateral_sigma_;
+              float max_angle_;
+              bool use_depth_edges_;
+          }nguyens_noise_model_params_;
+
           NguyenNoiseModel ();
 
           //this is the pose used to align a cloud so that its aligned to the RF
@@ -47,7 +51,7 @@ namespace v4r
           }
 
           void
-          setInputCloud (PointTPtr & input)
+          setInputCloud (const PointTPtr & input)
           {
             input_ = input;
           }
@@ -55,17 +59,17 @@ namespace v4r
           void
           setMaxAngle(float f)
           {
-            max_angle_ = f;
+            nguyens_noise_model_params_.max_angle_ = f;
           }
 
           void
           setUseDepthEdges(bool b)
           {
-            use_depth_edges_ = b;
+            nguyens_noise_model_params_.use_depth_edges_ = b;
           }
 
           void
-          getDiscontinuityEdges(pcl::PointCloud<pcl::PointXYZ>::Ptr & disc)
+          getDiscontinuityEdges(pcl::PointCloud<pcl::PointXYZ>::Ptr & disc) const
           {
             disc.reset(new pcl::PointCloud<pcl::PointXYZ>);
             pcl::copyPointCloud(*input_, discontinuity_edges_, *disc);
@@ -75,11 +79,11 @@ namespace v4r
           void
           setLateralSigma(float s)
           {
-            lateral_sigma_ = s;
+            nguyens_noise_model_params_.lateral_sigma_ = s;
           }
 
           void
-          setInputNormals (PointNormalTPtr & normals)
+          setInputNormals (const PointNormalTPtr & normals)
           {
             normals_ = normals;
           }
@@ -88,7 +92,7 @@ namespace v4r
           compute ();
 
           void
-          getWeights (std::vector<float> & weights)
+          getWeights (std::vector<float> & weights) const
           {
             weights = weights_;
           }

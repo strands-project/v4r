@@ -82,6 +82,7 @@ View::View ()
     pSiftSignatures_.reset ( new pcl::PointCloud<FeatureT> );
     has_been_hopped_ = false;
     cumulative_weight_to_new_vrtx_ = 0;
+    transform_to_world_co_system_is_set_ = false;
 }
 
 myEdge::myEdge()

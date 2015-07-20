@@ -116,7 +116,7 @@ SET(SOURCE_CPP_FEATURES
 add_library("${PREFIX_LIB}common_features" SHARED ${SOURCE_H_FEATURES} ${SOURCE_CPP_FEATURES} )
 target_link_libraries("${PREFIX_LIB}common_features" ${PCL_LIBRARIES} ${SUBSYS_DEPS})
 #v4r_add_library("${PREFIX_LIB}common_features" "${SUBSYS_NAME}" "${SOURCE_FEATURES}")
-_install_library(${PREFIX_LIB}common_features ${SOURCE_H_FEATURES} "/v4r/common/features/")
+_install_library(${PREFIX_LIB}common_features ${SOURCE_FEATURES} "/v4r/common/features/")
 
 
 

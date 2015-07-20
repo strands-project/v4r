@@ -17,8 +17,8 @@ SET(SOURCE_H
 
 #add_library(${PROJECT_NAME} SHARED ${SOURCE_H})
 #target_link_libraries(${PROJECT_NAME})
-v4r_add_headers(${PROJECT_NAME} "${SOURCE_H}")
-#_install_library(${PREFIX_LIB}metslib ${SOURCE_H} "/3rdparty/metslib/")
+#v4r_add_headers(${PROJECT_NAME} "${SOURCE_H}")
+_install_library(${PREFIX_LIB}metslib ${SOURCE_H} "/3rdparty/metslib/")
 
 ENDIF(EXT_METSLIB)
 

@@ -15,15 +15,16 @@
 template<typename PointT>
 v4r::utils::NMBasedCloudIntegration<PointT>::NMBasedCloudIntegration ()
 {
-    octree_resolution_ = 0.005f;
-    min_weight_ = 0.9f;
-    min_points_per_voxel_ = 0;
-    threshold_ss_ = 0.003f;
+    nm_params_.octree_resolution_ = 0.005f;
+    nm_params_.min_weight_ = 0.9f;
+    nm_params_.min_points_per_voxel_ = 0;
+    nm_params_.threshold_ss_ = 0.003f;
+    nm_params_.max_distance_ = 5.f;
 }
 
 template<typename PointT>
 void
-v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
+v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
 {
 
     input_clouds_used_.resize(input_clouds_.size());
@@ -34,8 +35,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
 
     //process clouds and weights to remove points based on distance and add weights based on noise
     float bad_value = std::numeric_limits<float>::quiet_NaN();
-    float max_distance_ = 5.f;
-    float start_dist = 1.f;
+//    float start_dist = 1.f;
     for(size_t i=0; i < input_clouds_used_.size(); i++)
     {
         for(size_t k=0; k < input_clouds_used_[i]->points.size(); k++)
@@ -45,14 +45,14 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
 
             float dist = input_clouds_used_[i]->points[k].getVector3fMap().norm();
 
-            if(dist > max_distance_)
+            if(dist > nm_params_.max_distance_)
             {
                 input_clouds_used_[i]->points[k].x = input_clouds_used_[i]->points[k].y = input_clouds_used_[i]->points[k].z = bad_value;
                 noise_weights_[i][k] = 0.f;
                 continue;
             }
 
-            if(noise_weights_[i][k] < min_weight_)
+            if(noise_weights_[i][k] < nm_params_.min_weight_)
             {
                 input_clouds_used_[i]->points[k].x = input_clouds_used_[i]->points[k].y = input_clouds_used_[i]->points[k].z = bad_value;
                 noise_weights_[i][k] = 0.f;
@@ -60,8 +60,8 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
             else
             {
                 //adapt weight based on distance
-//                float capped_dist = std::min(std::max(start_dist, dist), max_distance_); //[start,end]
-//                float w =  1.f - (capped_dist - start_dist) / (max_distance_ - start_dist);
+//                float capped_dist = std::min(std::max(start_dist, dist), nm_params_.max_distance_); //[start,end]
+//                float w =  1.f - (capped_dist - start_dist) / (nm_params_.max_distance_ - start_dist);
                 //noise_weights_[i][k] *=  w;
             }
         }
@@ -203,7 +203,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
 
             //Check if point depth (distance to camera) is greater than the (u,v)
             //std::cout << std::abs(p[2] - z_oc) << std::endl;
-            if(std::abs(p[2] - z_oc) > threshold_ss_)
+            if(std::abs(p[2] - z_oc) > nm_params_.threshold_ss_)
             {
                 //in front or behind
                 infront_or_behind++;
@@ -255,7 +255,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         }
 
         weights_points_in_octree_ = new_weights_;
-        octree_.reset(new pcl::octree::OctreePointCloudPointVector<PointT>(octree_resolution_));
+        octree_.reset(new pcl::octree::OctreePointCloudPointVector<PointT>(nm_params_.octree_resolution_));
         octree_->setInputCloud(big_cloud_filtered);
         octree_->addPointsFromInputCloud();
     }
@@ -281,10 +281,10 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         std::vector<int> indexVector;
         container.getPointIndices (indexVector);
 
-        if(indexVector.size() < min_points_per_voxel_)
+        if(indexVector.size() < nm_params_.min_points_per_voxel_)
             continue;
 
-        if(final_resolution_ == -1)
+        if( nm_params_.final_resolution_ == -1)
         {
             for(size_t k=0; k < indexVector.size(); k++)
             {
@@ -309,7 +309,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         {
             for(size_t k=0; k < indexVector.size(); k++)
             {
-                if(weights_points_in_octree_[indexVector[k]] < min_weight_)
+                if(weights_points_in_octree_[indexVector[k]] < nm_params_.min_weight_)
                     continue;
 
                 p.getVector3fMap() = p.getVector3fMap() +  octree_->getInputCloud()->points[indexVector[k]].getVector3fMap();
@@ -348,7 +348,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
 
             for(size_t k=0; k < indexVector.size(); k++)
             {
-                if(weights_points_in_octree_[indexVector[k]] < min_weight_)
+                if(weights_points_in_octree_[indexVector[k]] < nm_params_.min_weight_)
                     continue;
 
                 if(weights_points_in_octree_[indexVector[k]] < max_weight)

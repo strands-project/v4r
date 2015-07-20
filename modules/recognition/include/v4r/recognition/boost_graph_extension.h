@@ -103,6 +103,7 @@ public:
     std::vector<Hypothesis<PointT> > hypothesis_mv_;
     Eigen::Matrix4f transform_to_world_co_system_;
     bool has_been_hopped_;
+    bool transform_to_world_co_system_is_set_;
     double cumulative_weight_to_new_vrtx_;
     pcl::PointIndices keypointIndices_;
     std::vector<pcl::PointCloud<PointT>::Ptr> verified_planes_;

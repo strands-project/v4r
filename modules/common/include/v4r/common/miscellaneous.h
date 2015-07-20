@@ -182,6 +182,11 @@ template<typename PointType, typename DistType> void convertToFLANN ( const type
 template<typename DistType> void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
                                                   flann::Matrix<float> &distances );
 
+/**
+ * @brief sets the sensor origin and sensor orientation fields of the PCL pointcloud header by the given transform
+ */
+template<typename PointType> void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud);
+
 }
 }
 }
