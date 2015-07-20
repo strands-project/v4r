@@ -1,0 +1,54 @@
+
+# Project structure
+build
+bin
+lib
+doc
+*~
+
+# CMake
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# KDE temp files
+*.kate-swp
+.kdev_include_paths
+.kdev4
+*.kdev4
+
+
+# Multimedia files 
+# to avoid overloading if needed use --force
+*.mov
+*.avi
+*.jpg
+*.bmp
+*.mpeg
+*.png
+*.bag

@@ -40,11 +40,6 @@
 
 namespace v4r
 {
-void MultiviewRecognizer::setVisualize_output(bool visualize_output)
-{
-    visualize_output_ = visualize_output;
-}
-
 void MultiviewRecognizer::
 createBigPointCloudRecursive (Graph & grph, Vertex &vrtx_start, pcl::PointCloud<PointT>::Ptr & pAccumulatedPCl)
 {
@@ -71,8 +66,6 @@ createBigPointCloudRecursive (Graph & grph, Vertex &vrtx_start, pcl::PointCloud<
             if (! grph[remote_vertex].has_been_hopped_)
             {
                 have_found_a_valid_edge = true;
-//                std::cout << "Edge src: " << edge_src << "; target: " << edge_trgt << "; model_name: " << grph[*out_i].model_name
-//                          << "; edge_weight: " << grph[*out_i].edge_weight << std::endl;
                 break;
             }
         }
@@ -194,19 +187,8 @@ estimateViewTransformationBySIFT ( const Vertex &src, const Vertex &trgt, Graph 
     else
     {
         pcl::GeometricConsistencyGrouping<PointT, PointT> gcg_alg;
-
         gcg_alg.setGCThreshold (15);
         gcg_alg.setGCSize (0.01);
-        //        if( (pSiftKeypointsSrc->points.size() == grph[src].keypointIndices_.indices.size())
-        //                && (pSiftKeypointsTrgt->points.size() == grph[trgt].keypointIndices_.indices.size()) )
-        //        {
-        //            std::cout << "we could use normals " << std::endl;
-        //            pcl::PointCloud<pcl::Normal>::Ptr pInputNormals (new pcl::PointCloud<pcl::Normal>);
-        //            pcl::PointCloud<pcl::Normal>::Ptr pSceneNormals (new pcl::PointCloud<pcl::Normal>);
-        //            pcl::copyPointCloud(*(grph[ src].pSceneNormals_f_), grph[ src].keypointIndices_, *pInputNormals);
-        //            pcl::copyPointCloud(*(grph[trgt].pSceneNormals_f_), grph[trgt].keypointIndices_, *pSceneNormals);
-        //            gcg_alg.setInputAndSceneNormals(pInputNormals, pSceneNormals);
-        //        }
         gcg_alg.setInputCloud(pSiftKeypointsSrc);
         gcg_alg.setSceneCloud(pSiftKeypointsTrgt);
         gcg_alg.setModelSceneCorrespondences(temp_correspondences);
@@ -295,9 +277,6 @@ extendFeatureMatchesRecursive ( Graph &grph,
 
             if (! grph[remote_vertex].has_been_hopped_)
             {
-//                std::cout << "Edge src: " << edge_src << "; target: " << edge_trgt << "; model_name: " << grph[*out_i].model_name
-//                          << "; edge_weight: " << grph[*out_i].edge_weight << std::endl;
-
                 if ( edge_src.compare( grph[vrtx_start].pScenePCl->header.frame_id ) == 0)
                 {
                     edge_transform = grph[*out_i].transformation.inverse();
@@ -637,43 +616,10 @@ calcEdgeWeight (Graph &grph, std::vector<Edge> &edges)
     }
 }
 
-//Eigen::Matrix4f GeometryMsgToMatrix4f(const geometry_msgs::Transform & tt)
-//{
-//    Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
-//    trans(0,3) = tt.translation.x;
-//    trans(1,3) = tt.translation.y;
-//    trans(2,3) = tt.translation.z;
-
-//    Eigen::Quaternionf q(tt.rotation.w,tt.rotation.x,tt.rotation.y,tt.rotation.z);
-//    trans.block<3,3>(0,0) = q.toRotationMatrix();
-//    return trans;
-//}
-
-
-<<<<<<< HEAD
 bool MultiviewRecognizer::recognize
 (const pcl::PointCloud<PointT>::ConstPtr pInputCloud,
  const std::string &view_name,
  const std::vector<float> &global_transform)
-=======
-/*
- * recognition passing a global transformation matrix (to a world coordinate system)
- */
-bool MultiviewRecognizer::recognize
-(const pcl::PointCloud<PointT>::ConstPtr pInputCloud,
- const std::string view_name,
- const Eigen::Matrix4f global_transform)
-{
-    mv_params_.use_robot_pose_ = true;
-    current_global_transform_ = global_transform;
-    return recognize(pInputCloud, view_name);
-}
-
-
-bool MultiviewRecognizer::recognize
-(const pcl::PointCloud<PointT>::ConstPtr pInputCloud,
- const std::string view_name)
->>>>>>> v4r_root/master
 {
     std::cout << "=================================================================" << std::endl <<
                  "Started recognition for view " << view_name << " in scene " << scene_name_ <<
@@ -687,15 +633,10 @@ bool MultiviewRecognizer::recognize
             mv_feat_ext_time,
             mv_icp_time,
             sv_total_time,
-            noiseModelTime,
             go3dIcpTime,
             go3dVerification;
 
-<<<<<<< HEAD
     size_t total_num_correspondences = 0;
-=======
-    size_t total_num_correspondences=0;
->>>>>>> v4r_root/master
     pcl::ScopeTime total_pcl_time ("Multiview Recognition");
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pSceneNormals_f (new pcl::PointCloud<pcl::Normal> );
     times_.clear();
@@ -704,7 +645,6 @@ bool MultiviewRecognizer::recognize
     Vertex vrtx = boost::add_vertex ( grph_ );
 
     pcl::copyPointCloud(*pInputCloud, *(grph_[vrtx].pScenePCl));
-<<<<<<< HEAD
 
     grph_[vrtx].pScenePCl->header.stamp = pInputCloud->header.stamp;
     grph_[vrtx].pScenePCl->header.frame_id = view_name;
@@ -726,16 +666,6 @@ bool MultiviewRecognizer::recognize
 
     most_current_view_id_ = view_name;
 
-=======
-    //    grph_[vrtx].pScenePCl = pInputCloud;
-    grph_[vrtx].absolute_pose_ = Eigen::Matrix4f::Identity();
-
-    most_current_view_id_ = view_name;
-
-    if( mv_params_.use_robot_pose_)
-        grph_[vrtx].transform_to_world_co_system_ = current_global_transform_;
-
->>>>>>> v4r_root/master
     if( sv_params_.chop_at_z_ > 0)
     {
         pcl::PassThrough<PointT> pass;
@@ -744,11 +674,6 @@ bool MultiviewRecognizer::recognize
         pass.setInputCloud (grph_[vrtx].pScenePCl);
         pass.setKeepOrganized (true);
         pass.filter (*(grph_[vrtx].pScenePCl_f));
-<<<<<<< HEAD
-=======
-        grph_[vrtx].pScenePCl_f->header.stamp = pInputCloud->header.stamp;
-        grph_[vrtx].pScenePCl_f->header.frame_id = view_name;
->>>>>>> v4r_root/master
         grph_[vrtx].filteredSceneIndices_.indices = *(pass.getIndices());
         grph_[vrtx].filteredSceneIndices_.header.stamp = pInputCloud->header.stamp;
         grph_[vrtx].filteredSceneIndices_.header.frame_id = view_name;
@@ -766,23 +691,15 @@ bool MultiviewRecognizer::recognize
     std::vector<Edge> new_edges;
 
     //--------------create-edges-between-views-by-Robot-Pose-----------------------------
-<<<<<<< HEAD
     if( mv_params_.use_robot_pose_ )
-=======
-    if( mv_params_.use_robot_pose_ && num_vertices(grph_)>1)
->>>>>>> v4r_root/master
     {
         vertex_iter vertexIt, vertexEnd;
         for (boost::tie(vertexIt, vertexEnd) = vertices(grph_); vertexIt != vertexEnd; ++vertexIt)
         {
             Edge edge;
-<<<<<<< HEAD
             if( grph_[*vertexIt].pScenePCl->header.frame_id.compare ( grph_[vrtx].pScenePCl->header.frame_id ) != 0
                     && grph_[*vertexIt].transform_to_world_co_system_is_set_
                     && grph_[vrtx].transform_to_world_co_system_is_set_ )
-=======
-            if( grph_[*vertexIt].pScenePCl->header.frame_id.compare ( grph_[vrtx].pScenePCl->header.frame_id ) != 0 )
->>>>>>> v4r_root/master
             {
                 estimateViewTransformationByRobotPose ( *vertexIt, vrtx, grph_, edge );
                 new_edges.push_back ( edge );
@@ -861,24 +778,6 @@ bool MultiviewRecognizer::recognize
                                                                        corresp_clusters_sv);
         sv_hyp_construction_time = sv_hyp_construction.getTime();
     }
-    //    std::vector<float> fsv_mask_sv;
-    //    preFilterWithFSV(grph_[vrtx].pScenePCl, fsv_mask_sv);
-    //        pcl::visualization::PCLVisualizer::Ptr vis_fsv (new pcl::visualization::PCLVisualizer);
-    //        for(size_t i=0; i<fsv_mask_sv.size(); i++)
-    //        {
-    //            vis_fsv->removeAllPointClouds();
-    //            pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified (grph_[vrtx].pScenePCl);
-    //            vis_fsv->addPointCloud<PointT> (grph_[vrtx].pScenePCl, handler_rgb_verified, "scene_cloud");
-    //            std::cout << "fsv " << i << ": " << fsv_mask_sv[i] << std::endl;
-    //            std::stringstream model_id;
-    //            model_id << "cloud " << i;
-    //            ConstPointInTPtr model_cloud = grph_[vrtx].hypothesis_sv_[i].model_->getAssembled (0.005f);
-    //            typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-    //            pcl::transformPointCloud (*model_cloud, *model_aligned, grph_[vrtx].hypothesis_sv_[i].transform_);
-    //            pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified2 (model_aligned);
-    //            vis_fsv->addPointCloud<PointT> (model_aligned, handler_rgb_verified2, model_id.str());
-    //            vis_fsv->spin();
-    //        }
 
     poseRefinement();
     std::vector<bool> mask_hv_sv;
@@ -941,7 +840,7 @@ bool MultiviewRecognizer::recognize
 
     //---------Extend-hypotheses-from-other-view(s)------------------------------------------
 
-    if (  mv_params_.extension_mode_ == 0)
+    if ( mv_params_.extension_mode_ == 0 )
     {
         accumulatedHypotheses_.clear();
 
@@ -1083,7 +982,6 @@ bool MultiviewRecognizer::recognize
 
             const bool visualize_output_go_3D = true;
 
-            pcl::StopWatch noiseModelTimePcl;
             v4r::utils::noise_models::NguyenNoiseModel<PointT> nm;
             nm.setInputCloud(grph_final_[vrtx_final].pScenePCl_f);
             nm.setInputNormals(grph_final_[vrtx_final].pSceneNormals_f);
@@ -1186,8 +1084,6 @@ bool MultiviewRecognizer::recognize
 
                 big_cloud_go3D = octree_cloud;
                 big_cloud_go3D_normals = big_normals;
-
-                noiseModelTime = noiseModelTimePcl.getTime();
 
                 //Refine aligned models with ICP
                 pcl::StopWatch go3dIcpTimePcl;
@@ -1432,8 +1328,8 @@ bool MultiviewRecognizer::recognize
 
                     pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler (big_cloud_go3D);
                     go3d_vis_->addPointCloud (big_cloud_go3D, handler, "big", go_3d_viewports_[0]);
-                    pcl::io::savePCDFile<PointT>(std::string("/home/thomas/Desktop/big_cloud_go3d.pcd"), *big_cloud_go3D);
-                    pcl::io::savePCDFile<PointT>("/home/thomas/Desktop/scene.pcd", *grph_final_[vrtx_final].pScenePCl_f);
+                    pcl::io::savePCDFile<PointT>(std::string("/tmp/big_cloud_go3d.pcd"), *big_cloud_go3D);
+                    pcl::io::savePCDFile<PointT>("/tmp/scene.pcd", *grph_final_[vrtx_final].pScenePCl_f);
 
                     /*pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler (big_cloud_vx_after_mv);
             vis.addPointCloud (big_cloud_vx_after_mv, handler, "big", v1);*/
@@ -1448,7 +1344,7 @@ bool MultiviewRecognizer::recognize
                         *all_hypotheses += *(aligned_models[i]);
                         go3d_vis_->addPointCloud<PointT> (aligned_models[i], handler_rgb_verified, name.str (), go_3d_viewports_[1]);
                     }
-                    std::string filename_tmp = "/home/thomas/Desktop/my_pcl_temp.pcd";
+                    std::string filename_tmp = "/tmp/my_pcl_temp.pcd";
                     pcl::io::savePCDFile<PointT>(filename_tmp, *all_hypotheses);
 
                     cv::Mat_ < cv::Vec3b > colorImage;
@@ -1457,7 +1353,7 @@ bool MultiviewRecognizer::recognize
                                                                          255.0f,
                                                                          255.0f,
                                                                          255.0f);
-                    cv::imwrite("/home/thomas/Desktop/my_image_temp.jpg", colorImage);
+                    cv::imwrite("/tmp/my_image_temp.jpg", colorImage);
 
                     pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  go3d.getSmoothClustersRGBCloud();
                     if(smooth_cloud_)
@@ -1522,8 +1418,8 @@ bool MultiviewRecognizer::recognize
     //-------Clean-up-graph-------------------
     total_time = total_pcl_time.getTime();
 
-    outputgraph ( grph_, "complete_graph.dot" );
-    outputgraph ( grph_final_, "Final_with_Hypothesis_extension.dot" );
+    outputgraph ( grph_, "/tmp/complete_graph.dot" );
+    outputgraph ( grph_final_, "/tmp/final_with_hypotheses_extension.dot" );
 
     times_.push_back(total_time);
     times_.push_back(sv_hyp_construction_time);
@@ -1535,44 +1431,11 @@ bool MultiviewRecognizer::recognize
     times_.push_back(total_num_correspondences);
     times_.push_back(sv_num_correspondences);
     times_.push_back(createEdgesFromHypMatchOnlineTime);
-    times_.push_back(noiseModelTime);
     times_.push_back(go3dIcpTime);
     times_.push_back(go3dVerification);
     times_.push_back(sv_total_time);
 
-    for (std::pair<vertex_iter, vertex_iter> vp = vertices (grph_final_); vp.first != vp.second; ++vp.first)
-    {
-        std::stringstream camera_pose_filename_ss;
-        camera_pose_filename_ss << "transformation_"
-                                <<   grph_final_[*vp.first].pScenePCl->header.frame_id
-                                <<  ".txt";
-
-        std::stringstream view_filename_ss;
-        view_filename_ss << grph_final_[*vp.first].pScenePCl->header.frame_id
-                         <<  ".pcd";
-
-        ofstream camera_pose_file;
-        camera_pose_file.open (camera_pose_filename_ss.str().c_str());
-        camera_pose_file << grph_final_[*vp.first].absolute_pose_(0,0)
-                << " " << grph_final_[*vp.first].absolute_pose_(0,1)
-                << " " << grph_final_[*vp.first].absolute_pose_(0,2)
-                << " " << grph_final_[*vp.first].absolute_pose_(0,3)
-                << " " << grph_final_[*vp.first].absolute_pose_(1,0)
-                << " " << grph_final_[*vp.first].absolute_pose_(1,1)
-                << " " << grph_final_[*vp.first].absolute_pose_(1,2)
-                << " " << grph_final_[*vp.first].absolute_pose_(1,3)
-                << " " << grph_final_[*vp.first].absolute_pose_(2,0)
-                << " " << grph_final_[*vp.first].absolute_pose_(2,1)
-                << " " << grph_final_[*vp.first].absolute_pose_(2,2)
-                << " " << grph_final_[*vp.first].absolute_pose_(2,3)
-                << " " << grph_final_[*vp.first].absolute_pose_(3,0)
-                << " " << grph_final_[*vp.first].absolute_pose_(3,1)
-                << " " << grph_final_[*vp.first].absolute_pose_(3,2)
-                << " " << grph_final_[*vp.first].absolute_pose_(3,3);
-        camera_pose_file.close();
-
-        pcl::io::savePCDFileBinary(view_filename_ss.str(), *(grph_final_[*vp.first].pScenePCl));
-    }
+    savePCDwithPose();
 
     if( mv_params_.extension_mode_ == 0 )
     {
@@ -1583,9 +1446,21 @@ bool MultiviewRecognizer::recognize
     pruneGraph(grph_, mv_params_.max_vertices_in_graph_);
     pruneGraph(grph_final_, mv_params_.max_vertices_in_graph_);
 
-    outputgraph ( grph_final_, "final_after_deleting_old_vertex.dot" );
-    outputgraph ( grph_, "grph_after_deleting_old_vertex.dot" );
+    outputgraph ( grph_final_, "/tmp/final_after_deleting_old_vertex.dot" );
+    outputgraph ( grph_, "/tmp/grph_after_deleting_old_vertex.dot" );
     return true;
+}
+
+void v4r::MultiviewRecognizer::savePCDwithPose()
+{
+    for (std::pair<vertex_iter, vertex_iter> vp = vertices (grph_final_); vp.first != vp.second; ++vp.first)
+    {
+        v4r::common::miscellaneous::setCloudPose(grph_final_[*vp.first].absolute_pose_, *grph_final_[*vp.first].pScenePCl);
+        std::stringstream view_filename_ss;
+        view_filename_ss << grph_final_[*vp.first].pScenePCl->header.frame_id
+                         <<  ".pcd";
+        pcl::io::savePCDFileBinary(view_filename_ss.str(), *(grph_final_[*vp.first].pScenePCl));
+    }
 }
 
 void v4r::MultiviewRecognizer::printParams(std::ostream &ostr)

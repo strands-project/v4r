@@ -30,3 +30,15 @@ void v4r::common::miscellaneous::nearestKSearch ( typename boost::shared_ptr< fl
     index->knnSearch ( p, indices, distances, k, flann::SearchParams ( 128 ) );
     delete[] p.ptr ();
 }
+
+
+template<typename PointType>
+void v4r::common::miscellaneous::setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud)
+{
+    cloud.sensor_origin_[0] = trans(0,3);
+    cloud.sensor_origin_[1] = trans(1,3);
+    cloud.sensor_origin_[2] = trans(2,3);
+    Eigen::Matrix3f rotation = trans.block<3,3>(0,0);
+    Eigen::Quaternionf q(rotation);
+    cloud.sensor_orientation_ = q;
+}
