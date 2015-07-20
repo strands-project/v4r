@@ -134,4 +134,22 @@ target_link_libraries("${PREFIX_LIB}common_io" ${PCL_LIBRARIES} ${SUBSYS_DEPS})
 _install_library(${PREFIX_LIB}common_io ${SOURCE_H_IO} "/v4r/common/io/")
 
 
+SET(SOURCE_H_KEYPOINT
+  include/v4r/${SUBSYS_NAME}/keypoint/impl/convertCloud.hpp
+  include/v4r/${SUBSYS_NAME}/keypoint/impl/convertImage.hpp
+  include/v4r/${SUBSYS_NAME}/keypoint/impl/convertNormals.hpp
+  include/v4r/${SUBSYS_NAME}/keypoint/impl/DataMatrix2D.hpp
+  include/v4r/${SUBSYS_NAME}/keypoint/impl/PointTypes.hpp
+)
+
+SET(SOURCE_CPP_KEYPOINT
+)
+
+#SET_TARGET_PROPERTIES("${PREFIX_LIB}common_keypoint" PROPERTIES LINKER_LANGUAGE C)
+#add_library("${PREFIX_LIB}common_keypoint" SHARED ${SOURCE_H_KEYPOINT} ${SOURCE_CPP_KEYPOINT} )
+#target_link_libraries("${PREFIX_LIB}common_keypoint" ${PCL_LIBRARIES} ${SUBSYS_DEPS})
+#v4r_add_library("${PROJECT_NAME}_keypoint" "${SUBSYS_NAME}" "${SOURCE_H_KEYPOINT}")
+#_install_library(${PREFIX_LIB}common_keypoint ${SOURCE_H_KEYPOINT} "/v4r/common/keypoint/")
+
+
 ENDIF(V4R_COMMON)
