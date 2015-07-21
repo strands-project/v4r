@@ -1,2 +1,0 @@
-add_subdirectory(EDT)
-add_subdirectory(SiftGPU)
