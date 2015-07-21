@@ -112,7 +112,7 @@ namespace v4r
               std::stringstream pose_file;
               pose_file << pathmodel.str () << "/" << file_replaced1;
               Eigen::Matrix4f pose;
-              v4r::utils::readMatrixFromFile( pose_file.str (), pose);
+              v4r::common::io::readMatrixFromFile( pose_file.str (), pose);
 
               //the recognizer assumes transformation from M to CC - i think!
               Eigen::Matrix4f pose_inv = pose.inverse();
@@ -177,7 +177,7 @@ namespace v4r
             pcl::copyPointCloud(*modell_voxelized, *model.normals_assembled_);
 
             //load views and poses
-            v4r::utils::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view.*.pcd", false);
+            v4r::common::io::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view.*.pcd", false);
 
             if(load_into_memory_)
             {
@@ -214,7 +214,7 @@ namespace v4r
 
             std::string vp = view_prefix.str();
 
-            v4r::utils::getFilesInDirectory(direc_ms.str(), view_filenames, "", vp, false);
+            v4r::common::io::getFilesInDirectory(direc_ms.str(), view_filenames, "", vp, false);
             std::cout << "Number of views" << model.class_ << " " << model.id_ << view_filenames.size () << std::endl;
 
             for (size_t i = 0; i < view_filenames.size (); i++)
@@ -367,10 +367,10 @@ namespace v4r
               boost::replace_last (file_replaced1, ".pcd", ".txt");
 
               Eigen::Matrix4f pose;
-              v4r::utils::readMatrixFromFile( file_replaced1, pose);
+              v4r::common::io::readMatrixFromFile( file_replaced1, pose);
               std::stringstream path_pose;
               path_pose << direc.str () << "/pose_" << i << ".txt";
-              v4r::utils::writeMatrixToFile( path_pose.str (), pose);
+              v4r::common::io::writeMatrixToFile( path_pose.str (), pose);
             }
 
             loadOrGenerate (dir, model_path, model);
@@ -406,7 +406,7 @@ namespace v4r
 
           //get models in directory
           std::vector < std::string > files;
-          v4r::utils::getFilesInDirectory (path_, files, "", ".*.pcd",  false);
+          v4r::common::io::getFilesInDirectory (path_, files, "", ".*.pcd",  false);
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);
