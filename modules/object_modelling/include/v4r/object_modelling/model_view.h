@@ -17,7 +17,7 @@ namespace v4r
     {
         class modelView
         {
-        protected:
+        public:
             typedef pcl::PointXYZRGB PointT;
             typedef pcl::Histogram<128> FeatureT;
 
@@ -40,10 +40,9 @@ namespace v4r
 
             size_t id; // might be redundant
 
-        public:
             modelView()
             {
-                cloud.reset(new pcl::PointCloud<PointT>());
+                cloud_.reset(new pcl::PointCloud<PointT>());
                 normal_.reset(new pcl::PointCloud<pcl::Normal>());
                 transferred_cluster_.reset(new pcl::PointCloud<PointT>());
                 supervoxel_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>());

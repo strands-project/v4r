@@ -21,11 +21,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/graph/graph_traits.hpp>
 
-//#define USE_REMOTE_PCL_VISUALIZER
-#ifdef USE_REMOTE_PCL_VISUALIZER
-	#include <pcl_visualizer/remote_pcl_visualizer.h>
-#endif
-
 namespace v4r
 {
 namespace object_modelling
@@ -77,16 +72,11 @@ protected:
     std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_;
     std::vector< pcl::PointCloud<FeatureT>::Ptr > sift_signatures_;
     std::vector<pcl::PointIndices> sift_keypoint_indices_;
-    ros::Publisher vis_pc_pub_; 
     std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > transferred_cluster_;
     std::vector< pcl::PointCloud<pcl::PointXYZRGBA>::Ptr > supervoxeled_clouds_;
- #ifdef USE_REMOTE_PCL_VISUALIZER
-    boost::shared_ptr<RemotePCLVisualizer> vis_;
- #else
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_;
     std::vector<int> vis_reconstructed_viewpoint_;
- #endif  
-   std::vector<int> vis_viewpoint_;
+    std::vector<int> vis_viewpoint_;
 
     std::vector<size_t> LUT_new2old_indices;
     cv::Ptr<SiftGPU> sift_;
@@ -135,25 +125,6 @@ public:
 
         big_cloud_.reset(new pcl::PointCloud<PointT>);
         big_cloud_segmented_.reset(new pcl::PointCloud<PointT>);
-    }
-
-    static Eigen::Matrix4f fromGMTransform(const geometry_msgs::Transform & gm_trans)
-    {
-        Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
-
-        Eigen::Quaternionf q(gm_trans.rotation.w,
-                             gm_trans.rotation.x,
-                             gm_trans.rotation.y,
-                             gm_trans.rotation.z);
-
-        Eigen::Vector3f translation(gm_trans.translation.x,
-                                    gm_trans.translation.y,
-                                    gm_trans.translation.z);
-
-
-        trans.block<3,3>(0,0) = q.toRotationMatrix();
-        trans.block<3,1>(0,3) = translation;
-        return trans;
     }
 
     void extractEuclideanClustersSmooth (
@@ -256,7 +227,6 @@ public:
                                                 std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes_dst,
                                                 pcl::PointIndices &all_plane_indices_wo_object,
                                                 float ratio=0.25);
-    bool visualizeROS(do_learning_srv_definitions::visualize::Request & req, do_learning_srv_definitions::visualize::Response & response);
     void visualize();
 
     /**
