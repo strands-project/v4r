@@ -1,10 +1,9 @@
 #include <v4r/common/io/filesystem_utils.h>
 #include <iostream>
 
-using namespace v4r;
+using namespace v4r::common::io;
 
-int
-utils::getFoldersInDirectory (const std::string & dir,
+int getFoldersInDirectory (const std::string & dir,
                               const std::string & rel_path_so_far,
                               std::vector<std::string> & relative_paths)
 {
@@ -26,7 +25,7 @@ utils::getFoldersInDirectory (const std::string & dir,
     return relative_paths.size();
 }
 
-int utils::getFilesInDirectory (const std::string &dir,
+int getFilesInDirectory (const std::string &dir,
                                  std::vector<std::string> & relative_paths,
                                  const std::string & rel_path_so_far,
                                  const std::string & regex_pattern,
@@ -62,7 +61,7 @@ int utils::getFilesInDirectory (const std::string &dir,
 
             if (recursive)
             {
-                if( getFilesInDirectory (itr->path().string(), relative_paths, so_far, regex_pattern, recursive) == -1)
+                if( v4r::common::io::getFilesInDirectory (itr->path().string(), relative_paths, so_far, regex_pattern, recursive) == -1)
                     return -1;
             }
         }
@@ -86,7 +85,7 @@ int utils::getFilesInDirectory (const std::string &dir,
 }
 
 
-bool utils::writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
+bool writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
 {
     std::ofstream out (file.c_str ());
     if (!out)
@@ -109,7 +108,7 @@ bool utils::writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & 
     return true;
 }
 
-bool utils::readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix)
+bool readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix)
 {
 
     std::ifstream in;
@@ -129,7 +128,7 @@ bool utils::readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matri
     return true;
 }
 
-bool utils::readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding)
+bool readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding)
 {
 
     std::ifstream in;
@@ -150,7 +149,7 @@ bool utils::readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matri
 }
 
 bool
-utils::writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid)
+writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid)
 {
     std::ofstream out (file.c_str ());
     if (!out)
@@ -166,7 +165,7 @@ utils::writeCentroidToFile (const std::string &file, const Eigen::Vector3f & cen
 }
 
 bool
-utils::getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid)
+getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid)
 {
     std::ifstream in;
 
@@ -191,7 +190,7 @@ utils::getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid)
 }
 
 bool
-utils::writeFloatToFile (const std::string &file, const float value)
+writeFloatToFile (const std::string &file, const float value)
 {
     std::ofstream out (file.c_str ());
     if (!out)
@@ -207,7 +206,7 @@ utils::writeFloatToFile (const std::string &file, const float value)
 }
 
 bool
-utils::readFloatFromFile (const std::string &file, float& value)
+readFloatFromFile (const std::string &file, float& value)
 {
 
     std::ifstream in;
@@ -227,7 +226,7 @@ utils::readFloatFromFile (const std::string &file, float& value)
 }
 
 
-bool utils::existsFile ( const std::string &rFile ) {
+bool existsFile ( const std::string &rFile ) {
     bf::path dir_path = rFile;
     if ( bf::exists ( dir_path ) && bf::is_regular_file(dir_path)) {
         return true;

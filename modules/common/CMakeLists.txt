@@ -142,12 +142,13 @@ SET(SOURCE_H_KEYPOINT
   include/v4r/${SUBSYS_NAME}/keypoint/impl/PointTypes.hpp
   include/v4r/${SUBSYS_NAME}/keypoint/impl/SmartPtr.hpp
   include/v4r/${SUBSYS_NAME}/keypoint/ClusterNormalsToPlanes.hh
+  include/v4r/${SUBSYS_NAME}/keypoint/DataContainer.hh
   include/v4r/${SUBSYS_NAME}/keypoint/PlaneEstimationRANSAC.hh
 )
 
 SET(SOURCE_CPP_KEYPOINT
-ClusterNormalsToPlanes.cc
-PlaneEstimationRANSAC.cc
+    src/keypoint/ClusterNormalsToPlanes.cc
+    src/keypoint/PlaneEstimationRANSAC.cc
 )
 
 add_library("${PREFIX_LIB}common_keypoint" SHARED ${SOURCE_H_KEYPOINT} ${SOURCE_CPP_KEYPOINT} )

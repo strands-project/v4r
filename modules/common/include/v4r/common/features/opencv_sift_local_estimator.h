@@ -9,12 +9,12 @@
 #define FAAT_PCL_REC_FRAMEWORK_OPENCV_SIFT_ESTIMATOR_H_
 
 #include "local_estimator.h"
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
+#include "v4r/common//faat_3d_rec_framework_defines.h"
 #include <pcl/io/pcd_io.h>
 #include "opencv2/nonfree/features2d.hpp"
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
-#include <v4r/ORUtils/pcl_opencv.h>
+#include <v4r/common/pcl_opencv.h>
 
 namespace v4r
 {

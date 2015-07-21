@@ -14,8 +14,8 @@
 #include <vector>
 #include <stdexcept>
 #include <string.h>
-#include "DataContainer.hh"
-#include "SmartPtr.hpp"
+#include "v4r/common/keypoint/DataContainer.hh"
+#include "v4r/common/keypoint/impl/SmartPtr.hpp"
 
 namespace kp 
 {

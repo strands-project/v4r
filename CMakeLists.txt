@@ -22,6 +22,9 @@ add_definitions("-Wall -Wno-unused-function -Wl,--no-undefined -fno-strict-alias
 
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/modules/common/include)
+include_directories(${CMAKE_SOURCE_DIR}/modules/object_modelling/include)
+include_directories(${CMAKE_SOURCE_DIR}/modules/recognition/include)
+include_directories(${CMAKE_SOURCE_DIR}/modules/registration/include)
 include_directories(${CMAKE_SOURCE_DIR}/modules/segmentation/include)
 
 add_subdirectory(3rdparty)

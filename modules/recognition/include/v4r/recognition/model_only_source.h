@@ -129,7 +129,7 @@ namespace v4r
           //get models in directory
           std::vector < std::string > files;
 
-          v4r::utils::getFilesInDirectory (path_, files, "", ".*.pcd", false);
+          v4r::common::io::getFilesInDirectory (path_, files, "", ".*.pcd", false);
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);

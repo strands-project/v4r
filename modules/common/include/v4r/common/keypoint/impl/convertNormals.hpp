@@ -38,8 +38,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include "v4r/KeypointTools/DataMatrix2D.hpp"
-#include "v4r/KeypointTools/PointTypes.hpp"
+#include "v4r/common/keypoint/impl/DataMatrix2D.hpp"
+#include "v4r/common/keypoint/impl/PointTypes.hpp"
 
 
 namespace kp 
