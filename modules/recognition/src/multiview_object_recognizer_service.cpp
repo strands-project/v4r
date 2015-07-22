@@ -149,7 +149,7 @@ estimateViewTransformationBySIFT ( const Vertex &src, const Vertex &trgt, Graph 
     {
         FeatureT searchFeature = grph[src].pSiftSignatures_->at ( keypointId );
         int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-        v4r::common::miscellaneous::nearestKSearch ( flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+        v4r::common::nearestKSearch ( flann_index, searchFeature.histogram, size_feat, K, indices, distances );
 
         pcl::Correspondence corr;
         corr.distance = distances[0][0];
@@ -683,7 +683,7 @@ bool MultiviewRecognizer::recognize
     std::cerr << "Computing Normals on GPU..." << std::endl;
     pcl::gpu::NormalEstimation::PointCloud cloud;
 #endif
-    v4r::common::miscellaneous::computeNormals(grph_[vrtx].pScenePCl, grph_[vrtx].pSceneNormals, 2);
+    v4r::common::computeNormals(grph_[vrtx].pScenePCl, grph_[vrtx].pSceneNormals, 2);
 
     pcl::copyPointCloud(*(grph_[vrtx].pSceneNormals), grph_[vrtx].filteredSceneIndices_, *pSceneNormals_f);
     pcl::copyPointCloud(*(grph_[vrtx].pSceneNormals), grph_[vrtx].filteredSceneIndices_, *(grph_[vrtx].pSceneNormals_f));
@@ -719,7 +719,7 @@ bool MultiviewRecognizer::recognize
         if (num_vertices(grph_)>1)
         {
             boost::shared_ptr< flann::Index<DistT> > flann_index;
-            v4r::common::miscellaneous::convertToFLANN<FeatureT, DistT >( grph_[vrtx].pSiftSignatures_, flann_index );
+            v4r::common::convertToFLANN<FeatureT, DistT >( grph_[vrtx].pSiftSignatures_, flann_index );
 
             //#pragma omp parallel for
             vertex_iter vertexIt, vertexEnd;
@@ -1214,7 +1214,7 @@ bool MultiviewRecognizer::recognize
 
                     pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = model->getNormalsAssembled (hv_params_.resolution_);
                     typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
-                    v4r::common::miscellaneous::transformNormals(normal_cloud, normal_aligned, trans);
+                    v4r::common::transformNormals(normal_cloud, normal_aligned, trans);
                     aligned_normals[kk] = normal_aligned;
                 }
 
@@ -1455,7 +1455,7 @@ void v4r::MultiviewRecognizer::savePCDwithPose()
 {
     for (std::pair<vertex_iter, vertex_iter> vp = vertices (grph_final_); vp.first != vp.second; ++vp.first)
     {
-        v4r::common::miscellaneous::setCloudPose(grph_final_[*vp.first].absolute_pose_, *grph_final_[*vp.first].pScenePCl);
+        v4r::common::setCloudPose(grph_final_[*vp.first].absolute_pose_, *grph_final_[*vp.first].pScenePCl);
         std::stringstream view_filename_ss;
         view_filename_ss << grph_final_[*vp.first].pScenePCl->header.frame_id
                          <<  ".pcd";

@@ -22,7 +22,7 @@ ELSE(${Ceres_FOUND})
 ENDIF(${Ceres_FOUND})
 
 
-PROJECT(v4rRegistration)
+PROJECT(v4r_${SUBSYS_NAME})
 
 SET(SOURCE_CPP
   src/fast_icp_with_gc.cpp
@@ -56,21 +56,21 @@ ENDIF(${Ceres_FOUND})
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP} )
-target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${SUBSYS_DEPS})
+add_library("${PREFIX_LIB}${SUBSYS_NAME}" SHARED ${SOURCE_H} ${SOURCE_CPP} )
+target_link_libraries("${PREFIX_LIB}${SUBSYS_NAME}" ${PCL_LIBRARIES} ${SUBSYS_DEPS})
 
 # in case of ceres is a static lib it must be linked to the executable
 IF(${Ceres_FOUND})
     get_target_property(LIBTYPE ${CERES_LIBRARIES} TYPE)
 
     IF("${LIBTYPE}" STREQUAL "SHARED_LIBRARY")
-        target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
+        target_link_libraries(${PREFIX_LIB}${SUBSYS_NAME} ${CERES_LIBRARIES})
     ELSE("${LIBTYPE}" STREQUAL "SHARED_LIBRARY")
         message(STATUS "libceres is static")
     ENDIF("${LIBTYPE}" STREQUAL "SHARED_LIBRARY")
 
 ENDIF(${Ceres_FOUND})
 
-v4r_add_library(${PROJECT_NAME} "${SUBSYS_NAME}"  "${SOURCE_H}")
+_install_library(${PREFIX_LIB}${SUBSYS_NAME} ${SOURCE_H} "/v4r/${SUBSYS_NAME}/")
 
 ENDIF(V4R_REGISTRATION)

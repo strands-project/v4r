@@ -398,7 +398,7 @@ public:
 
     void setInputCloud(const pcl::PointCloud<PointT>::ConstPtr pInputCloud)
     {
-        v4r::common::miscellaneous::computeNormals(pInputCloud, pSceneNormals_, sv_params_.normal_computation_method_);
+        v4r::common::computeNormals(pInputCloud, pSceneNormals_, sv_params_.normal_computation_method_);
         setInputCloud(pInputCloud, pSceneNormals_);
     }
 

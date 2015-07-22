@@ -176,7 +176,7 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         *kps_s1 += *transformed;
 
         typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::common::miscellaneous::transformNormals(sift_normals_[t], normals, pose_inv);
+        v4r::common::transformNormals(sift_normals_[t], normals, pose_inv);
 
         *normals_s1 += *normals;
     }
@@ -189,7 +189,7 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         *kps_s2 += *transformed;
 
         typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::common::miscellaneous::transformNormals(sift_normals_[t], normals, pose_inv);
+        v4r::common::transformNormals(sift_normals_[t], normals, pose_inv);
         *normals_s2 += *normals;
     }
 

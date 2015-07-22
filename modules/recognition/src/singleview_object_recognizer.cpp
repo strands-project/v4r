@@ -89,7 +89,7 @@ void Recognizer::constructHypotheses()
         if(pSceneNormals_->points.size() == 0)
         {
             std::cout << "No normals point cloud for scene given. Calculate normals of scene..." << std::endl;
-            v4r::common::miscellaneous::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
+            v4r::common::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
         }
 
     //    if(USE_SEGMENTATION_)
@@ -426,7 +426,7 @@ void Recognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_
         {
             pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_->at(i)->getNormalsAssembled (hv_params_.resolution_);
             typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
-            v4r::common::miscellaneous::transformNormals(normal_cloud, normal_aligned, transforms_->at(i));
+            v4r::common::transformNormals(normal_cloud, normal_aligned, transforms_->at(i));
 
             if(models_->at(i)->getFlipNormalsBasedOnVP())
             {
