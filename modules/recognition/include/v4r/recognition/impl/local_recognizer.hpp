@@ -800,7 +800,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             normal_estimator->estimate (input_, processed, all_scene_normals);
           }
           std::vector<int> correct_indices;
-          v4r::common::miscellaneous::getIndicesFromCloud<PointInT>(processed, keypoints_pointcloud, correct_indices);
+          v4r::common::getIndicesFromCloud<PointInT>(processed, keypoints_pointcloud, correct_indices);
           pcl::copyPointCloud(*all_scene_normals, correct_indices, *scene_normals);
         }
 

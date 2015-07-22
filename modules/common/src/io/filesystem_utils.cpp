@@ -1,9 +1,15 @@
 #include <v4r/common/io/filesystem_utils.h>
 #include <iostream>
 
-using namespace v4r::common::io;
+namespace v4r
+{
+namespace common
+{
+namespace io
+{
 
-int getFoldersInDirectory (const std::string & dir,
+int
+getFoldersInDirectory (const std::string & dir,
                               const std::string & rel_path_so_far,
                               std::vector<std::string> & relative_paths)
 {
@@ -25,7 +31,8 @@ int getFoldersInDirectory (const std::string & dir,
     return relative_paths.size();
 }
 
-int getFilesInDirectory (const std::string &dir,
+int
+getFilesInDirectory (const std::string &dir,
                                  std::vector<std::string> & relative_paths,
                                  const std::string & rel_path_so_far,
                                  const std::string & regex_pattern,
@@ -85,7 +92,8 @@ int getFilesInDirectory (const std::string &dir,
 }
 
 
-bool writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
+bool
+writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
 {
     std::ofstream out (file.c_str ());
     if (!out)
@@ -108,7 +116,8 @@ bool writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
     return true;
 }
 
-bool readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix)
+bool
+readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix)
 {
 
     std::ifstream in;
@@ -128,7 +137,8 @@ bool readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix)
     return true;
 }
 
-bool readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding)
+bool
+readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding)
 {
 
     std::ifstream in;
@@ -226,11 +236,16 @@ readFloatFromFile (const std::string &file, float& value)
 }
 
 
-bool existsFile ( const std::string &rFile ) {
+bool
+existsFile ( const std::string &rFile ) {
     bf::path dir_path = rFile;
     if ( bf::exists ( dir_path ) && bf::is_regular_file(dir_path)) {
         return true;
     } else {
         return false;
     }
+}
+
+}
+}
 }

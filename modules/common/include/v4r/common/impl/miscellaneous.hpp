@@ -1,8 +1,14 @@
 #include <v4r/common/miscellaneous.h>
 
+namespace v4r
+{
+namespace common
+{
+
+
 template<typename PointType, typename DistType>
 void
-v4r::common::miscellaneous::convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index)
+convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index)
 {
     size_t rows = cloud->points.size ();
     size_t cols = sizeof ( cloud->points[0].histogram ) / sizeof ( float ); // number of histogram bins
@@ -21,7 +27,7 @@ v4r::common::miscellaneous::convertToFLANN ( const typename pcl::PointCloud<Poin
 }
 
 template <typename DistType>
-void v4r::common::miscellaneous::nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
                         flann::Matrix<float> &distances )
 {
     flann::Matrix<float> p = flann::Matrix<float> ( new float[descr_size], 1, descr_size );
@@ -33,7 +39,7 @@ void v4r::common::miscellaneous::nearestKSearch ( typename boost::shared_ptr< fl
 
 
 template<typename PointType>
-void v4r::common::miscellaneous::setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud)
+void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud)
 {
     cloud.sensor_origin_[0] = trans(0,3);
     cloud.sensor_origin_[1] = trans(1,3);
@@ -41,4 +47,7 @@ void v4r::common::miscellaneous::setCloudPose(const Eigen::Matrix4f &trans, type
     Eigen::Matrix3f rotation = trans.block<3,3>(0,0);
     Eigen::Quaternionf q(rotation);
     cloud.sensor_orientation_ = q;
+}
+
+}
 }
