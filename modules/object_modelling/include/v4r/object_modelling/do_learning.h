@@ -60,18 +60,18 @@ protected:
 
     pcl::PointCloud<PointT>::Ptr big_cloud_;
     pcl::PointCloud<PointT>::Ptr big_cloud_segmented_;
-    std::vector<pcl::PointIndices> obj_indices_eroded_to_original_;
-    std::vector<pcl::PointIndices> obj_indices_2_to_filtered_;
-    std::vector<pcl::PointIndices> scene_points_;
-    std::vector<pcl::PointIndices> transferred_nn_points_;
-    std::vector<pcl::PointIndices> transferred_object_indices_without_plane_;
-    std::vector<pcl::PointIndices> initial_indices_good_to_unfiltered_;
-    std::vector<pcl::PointIndices> obj_indices_3_to_original_;
+    std::vector<std::vector< size_t > > obj_indices_eroded_to_original_;
+    std::vector<std::vector< size_t >> obj_indices_2_to_filtered_;
+    std::vector<std::vector< size_t > > scene_points_;
+    std::vector<std::vector< size_t > > transferred_nn_points_;
+    std::vector<std::vector< size_t > > transferred_object_indices_without_plane_;
+    std::vector<std::vector< size_t > > initial_indices_good_to_unfiltered_;
+    std::vector<std::vector< size_t > > obj_indices_3_to_original_;
     std::vector<Eigen::Matrix4f> cameras_;
     std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > keyframes_;
     std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_;
     std::vector< pcl::PointCloud<FeatureT>::Ptr > sift_signatures_;
-    std::vector<pcl::PointIndices> sift_keypoint_indices_;
+    std::vector<std::vector< size_t > > sift_keypoint_indices_;
     std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > transferred_cluster_;
     std::vector< pcl::PointCloud<pcl::PointXYZRGBA>::Ptr > supervoxeled_clouds_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_;
@@ -81,6 +81,7 @@ protected:
     std::vector<size_t> LUT_new2old_indices;
     cv::Ptr<SiftGPU> sift_;
     Graph grph_;
+    size_t counter_;
 
     ///radius to select points in other frames to belong to the same object
     /// bootstraps region growing
@@ -125,13 +126,14 @@ public:
 
         big_cloud_.reset(new pcl::PointCloud<PointT>);
         big_cloud_segmented_.reset(new pcl::PointCloud<PointT>);
+
+        counter_ = 0;
     }
 
-    void extractEuclideanClustersSmooth (
-                const pcl::PointCloud<PointT>::ConstPtr &cloud,
+    void extractEuclideanClustersSmooth (const pcl::PointCloud<PointT>::ConstPtr &cloud,
                 const pcl::PointCloud<pcl::Normal> &normals_,
-                const std::vector<int> &initial,
-                std::vector<int> &cluster) const;
+                const std::vector<size_t> &initial,
+                std::vector<size_t> &cluster) const;
 
     /**
      * @brief transfers object indices from origin into dest camera frame and performs
@@ -144,14 +146,14 @@ public:
 
     void updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
                                            pcl::PointCloud<pcl::Normal>::Ptr & normals_,
-                                           const std::vector<int> &object_points,
-                                           std::vector<int> & good_neighbours,
+                                           const std::vector< size_t > &object_points,
+                                           std::vector< size_t > & good_neighbours,
                                            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud);
 
 
     void erodeInitialIndices(const pcl::PointCloud<PointT> & cloud,
-                             const pcl::PointIndices & initial_indices,
-                             pcl::PointIndices & eroded_indices);
+                             const std::vector< size_t > & initial_indices,
+                             std::vector< size_t > & eroded_indices);
 
     static void createDirIfNotExist(const std::string & dirs)
     {
@@ -223,9 +225,9 @@ public:
                             std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes);
 
     static void getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
-                                                const pcl::PointIndices object_mask,
+                                                const std::vector< size_t > object_mask,
                                                 std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes_dst,
-                                                pcl::PointIndices &all_plane_indices_wo_object,
+                                                std::vector< size_t > &all_plane_indices_wo_object,
                                                 float ratio=0.25);
     void visualize();
 
@@ -243,7 +245,7 @@ public:
      * @param image_size
      * @param object_mask (output)
      */
-    void createMaskFromIndices( const std::vector<int> &objectIndices,
+    void createMaskFromIndices(const std::vector<size_t> &objectIndices,
                                 size_t image_size,
                                 std::vector<bool> &object_mask);
 
@@ -256,15 +258,15 @@ public:
      */
     void updateIndicesConsideringMask(const std::vector<bool> &background_mask,
                                            const std::vector<bool> &foreground_mask,
-                                           std::vector<int> &new_foreground_indices,
-                                           std::vector<int> &old_bg_indices);
+                                           std::vector<size_t> &new_foreground_indices,
+                                           std::vector<size_t> &old_bg_indices);
 
     void computeNormals(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                         pcl::PointCloud<pcl::Normal>::Ptr &normals, int method);
 
     bool calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
                       pcl::PointCloud<PointT>::Ptr &sift_keypoints,
-                      pcl::PointIndices &sift_keypoint_indices,
+                      std::vector< size_t > &sift_keypoint_indices,
                       pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
                       std::vector<float> &sift_keypoint_scales);
 

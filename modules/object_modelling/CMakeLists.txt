@@ -30,8 +30,8 @@ SET(SOURCE_H
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-add_library("${PREFIX_LIB}object_modelling" SHARED ${SOURCE_H} ${SOURCE_CPP} )
-target_link_libraries("${PREFIX_LIB}object_modelling" ${PCL_LIBRARIES} ${SUBSYS_DEPS})
-_install_library(${PREFIX_LIB}object_modelling ${SOURCE_H} "/v4r/object_modelling/")
+add_library("${PREFIX_LIB}${SUBSYS_NAME}" SHARED ${SOURCE_H} ${SOURCE_CPP} )
+target_link_libraries("${PREFIX_LIB}${SUBSYS_NAME}" ${PCL_LIBRARIES} ${SUBSYS_DEPS})
+_install_library(${PREFIX_LIB}${SUBSYS_NAME} ${SOURCE_H} "/v4r/${SUBSYS_NAME}/")
 
 ENDIF(V4R_OBJECT_MODELLING)
