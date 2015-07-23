@@ -1,5 +1,10 @@
-#ifndef FAAT_PCL_UTILS_MISCELLANEOUS_H_
-#define FAAT_PCL_UTILS_MISCELLANEOUS_H_
+/*
+ * Author: Thomas Faeulhammer
+ * Date: 21st July 2015
+ *
+ * */
+#ifndef V4R_COMMON_MISCELLANEOUS_H_
+#define V4R_COMMON_MISCELLANEOUS_H_
 
 #include <pcl/common/common.h>
 #include <pcl/features/integral_image_normal.h>
@@ -11,16 +16,14 @@ namespace v4r
 {
 namespace common
 {
-namespace miscellaneous
-{
 
 void computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
                     int method);
 
-inline void transformNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
+inline void transformNormals(const pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud,
                              pcl::PointCloud<pcl::Normal>::Ptr & normals_aligned,
-                             Eigen::Matrix4f & transform)
+                             const Eigen::Matrix4f & transform)
 {
     normals_aligned.reset (new pcl::PointCloud<pcl::Normal>);
     normals_aligned->points.resize (normals_cloud->points.size ());
@@ -90,13 +93,61 @@ inline void transformNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr & norm
     }
 }
 
-inline void transformNormal(Eigen::Vector3f & nt,
+inline void transformNormal(const Eigen::Vector3f & nt,
                             Eigen::Vector3f & normal_out,
-                            Eigen::Matrix4f & transform)
+                            const Eigen::Matrix4f & transform)
 {
     normal_out[0] = static_cast<float> (transform (0, 0) * nt[0] + transform (0, 1) * nt[1] + transform (0, 2) * nt[2]);
     normal_out[1] = static_cast<float> (transform (1, 0) * nt[0] + transform (1, 1) * nt[1] + transform (1, 2) * nt[2]);
     normal_out[2] = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1] + transform (2, 2) * nt[2]);
+}
+
+/**
+ * @brief Returns homogenous 4x4 transformation matrix for given rotation (quaternion) and translation components
+ * @param q rotation represented as quaternion
+ * @param trans homogenous translation
+ * @return tf 4x4 homogeneous transformation matrix
+ *
+ */
+inline Eigen::Matrix4f
+RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
+{
+    Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();;
+    tf.block<3,3>(0,0) = q.toRotationMatrix();
+    tf.block<4,1>(0,3) = trans;
+    tf(3,3) = 1.f;
+    return tf;
+}
+
+
+/**
+ * @brief Returns homogenous 4x4 transformation matrix for given rotation (quaternion) and translation components
+ * @param q rotation represented as quaternion
+ * @param trans translation
+ * @return tf 4x4 homogeneous transformation matrix
+ *
+ */
+inline Eigen::Matrix4f
+RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans)
+{
+    Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+    tf.block<3,3>(0,0) = q.toRotationMatrix();
+    tf.block<3,1>(0,3) = trans;
+    return tf;
+}
+
+/**
+ * @brief Returns rotation (quaternion) and translation components from a homogenous 4x4 transformation matrix
+ * @param tf 4x4 homogeneous transformation matrix
+ * @param q rotation represented as quaternion
+ * @param trans homogenous translation
+ */
+inline void
+Mat4f2RotTrans(const Eigen::Matrix4f &tf, Eigen::Quaternionf &q, Eigen::Vector4f &trans)
+{
+    Eigen::Matrix3f rotation = tf.block<3,3>(0,0);
+    q = rotation;
+    trans = tf.block<4,1>(0,3);
 }
 
 inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
@@ -149,11 +200,54 @@ inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
     }
 }
 
+
+/**
+ * @brief returns point indices from a point cloud which are closest to search points
+ * @param full_input_cloud
+ * @param search_points
+ * @param indices
+ * @param resolution (optional)
+ */
 template<typename PointInT>
 inline void
 getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_input_cloud,
                     const typename pcl::PointCloud<PointInT>::ConstPtr & search_points,
                     std::vector<int> & indices,
+                    float resolution = 0.005f)
+{
+    pcl::octree::OctreePointCloudSearch<PointInT> octree (resolution);
+    octree.setInputCloud (full_input_cloud);
+    octree.addPointsFromInputCloud ();
+
+    std::vector<int> pointIdxNKNSearch;
+    std::vector<float> pointNKNSquaredDistance;
+
+    indices.resize( search_points->points.size() );
+    size_t kept=0;
+
+    for(size_t j=0; j < search_points->points.size(); j++)
+    {
+        if (octree.nearestKSearch (search_points->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
+        {
+            indices[kept] = pointIdxNKNSearch[0];
+            kept++;
+        }
+    }
+    indices.resize(kept);
+}
+
+/**
+ * @brief returns point indices from a point cloud which are closest to search points
+ * @param full_input_cloud
+ * @param search_points
+ * @param indices
+ * @param resolution (optional)
+ */
+template<typename PointInT>
+inline void
+getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_input_cloud,
+                    const typename pcl::PointCloud<PointInT>::ConstPtr & search_points,
+                    std::vector<size_t> & indices,
                     float resolution = 0.005f)
 {
     pcl::octree::OctreePointCloudSearch<PointInT> octree (resolution);
@@ -187,8 +281,95 @@ template<typename DistType> void nearestKSearch ( typename boost::shared_ptr< fl
  */
 template<typename PointType> void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud);
 
+inline std::vector<size_t>
+convertVecInt2VecSizet(const std::vector<int> &input)
+{
+    std::vector<size_t> v_size_t;
+    v_size_t.resize(input.size());
+    for (size_t i=0; i<input.size(); i++)
+    {
+        if(input[i] < 0)
+            std::cerr << "Casting a negative integer to unsigned type size_t!" << std::endl;
+
+        v_size_t[i] = static_cast<size_t>( input[i] );
+    }
+    return v_size_t;
+}
+
+inline std::vector<int>
+convertVecSizet2VecInt(const std::vector<size_t> &input)
+{
+    std::vector<int> v_int;
+    v_int.resize(input.size());
+    for (size_t i=0; i<input.size(); i++)
+    {
+        if ( input[i] > static_cast<size_t>(std::numeric_limits<int>::max()) )
+            std::cerr << "Casting an unsigned type size_t with a value larger than limits of integer!" << std::endl;
+
+        v_int[i] = static_cast<int>( input[i] );
+    }
+    return v_int;
+}
+
+inline pcl::PointIndices
+convertVecSizet2PCLIndices(const std::vector<size_t> &input)
+{
+    pcl::PointIndices pind;
+    pind.indices.resize(input.size());
+    for (size_t i=0; i<input.size(); i++)
+    {
+        if ( input[i] > static_cast<size_t>(std::numeric_limits<int>::max()) )
+            std::cerr << "Casting an unsigned type size_t with a value larger than limits of integer!" << std::endl;
+
+        pind.indices[i] = static_cast<int>( input[i] );
+    }
+    return pind;
+}
+
+inline std::vector<size_t>
+convertPCLIndices2VecSizet(const pcl::PointIndices &input)
+{
+    std::vector<size_t> v_size_t;
+    v_size_t.resize(input.indices.size());
+    for (size_t i=0; i<input.indices.size(); i++)
+    {
+        if(input.indices[i] < 0)
+            std::cerr << "Casting a negative integer to unsigned type size_t!" << std::endl;
+
+        v_size_t[i] = static_cast<size_t>( input.indices[i] );
+    }
+    return v_size_t;
+}
+
 }
 }
+
+
+namespace pcl
+{
+/** \brief Extract the indices of a given point cloud as a new point cloud (instead of int types, this function uses a size_t vector)
+  * \param[in] cloud_in the input point cloud dataset
+  * \param[in] indices the vector of indices representing the points to be copied from \a cloud_in
+  * \param[out] cloud_out the resultant output point cloud dataset
+  * \note Assumes unique indices.
+  * \ingroup common
+  */
+template <typename PointT> void
+copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                const std::vector<size_t> &indices,
+                pcl::PointCloud<PointT> &cloud_out);
+
+/** \brief Extract the indices of a given point cloud as a new point cloud (instead of int types, this function uses a size_t vector)
+  * \param[in] cloud_in the input point cloud dataset
+  * \param[in] indices the vector of indices representing the points to be copied from \a cloud_in
+  * \param[out] cloud_out the resultant output point cloud dataset
+  * \note Assumes unique indices.
+  * \ingroup common
+  */
+template <typename PointT> void
+copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
+                pcl::PointCloud<PointT> &cloud_out);
 }
 
 #endif

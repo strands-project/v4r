@@ -37,12 +37,12 @@ namespace v4r
                 using PartialModelRegistrationBase<PointT>::partial_2;
                 using PartialModelRegistrationBase<PointT>::poses_;
 
-                using PartialModelRegistrationBase<PointT>::getTotalNumberOfClouds;
-                using PartialModelRegistrationBase<PointT>::getCloud;
-                using PartialModelRegistrationBase<PointT>::getNormal;
-                using PartialModelRegistrationBase<PointT>::getIndices;
-                using PartialModelRegistrationBase<PointT>::getPose;
-                using PartialModelRegistrationBase<PointT>::PointCloudTPtr;
+//                using PartialModelRegistrationBase<PointT>::getTotalNumberOfClouds;
+//                using PartialModelRegistrationBase<PointT>::getCloud;
+//                using PartialModelRegistrationBase<PointT>::getNormal;
+//                using PartialModelRegistrationBase<PointT>::getIndices;
+//                using PartialModelRegistrationBase<PointT>::getPose;
+//                using PartialModelRegistrationBase<PointT>::PointCloudTPtr;
 
 
                 typedef flann::L1<float> DistT;

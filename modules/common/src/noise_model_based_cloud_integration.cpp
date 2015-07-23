@@ -84,7 +84,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
     {
         PointTPtr cloud(new pcl::PointCloud<PointT>);
         PointNormalTPtr normal_cloud(new pcl::PointCloud<pcl::Normal>);
-        v4r::common::miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
+        v4r::common::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
         pcl::transformPointCloud(*input_clouds_used_[i], *cloud, transformations_to_global_[i]);
 
         /*float sum_curv = 0;
@@ -193,7 +193,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
             Eigen::Vector3f normal_from_cloud = input_normals_[i]->at (u,v).getNormalVector3fMap();
             Eigen::Vector3f normal_from_octree = octree_points_normals_->points[k].getNormalVector3fMap();
             Eigen::Vector3f normal_octree_trans;
-            v4r::common::miscellaneous::transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
+            v4r::common::transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
 
             if(normal_octree_trans.dot(normal_from_cloud) < 0)
                 continue;

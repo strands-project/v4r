@@ -89,7 +89,7 @@ void Recognizer::constructHypotheses()
         if(pSceneNormals_->points.size() == 0)
         {
             std::cout << "No normals point cloud for scene given. Calculate normals of scene..." << std::endl;
-            v4r::common::miscellaneous::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
+            v4r::common::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
         }
 
     //    if(USE_SEGMENTATION_)
@@ -158,7 +158,7 @@ bool Recognizer::hypothesesVerification(std::vector<bool> &mask_hv)
                  "*** Use ignore colors: " << hv_params_.ignore_color_ << std::endl <<
                  "=================================================================" << std::endl << std::endl;
 
-    typename pcl::PointCloud<PointT>::Ptr occlusion_cloud (new pcl::PointCloud<PointT>(*pInputCloud_));
+    pcl::PointCloud<PointT>::Ptr occlusion_cloud (new pcl::PointCloud<PointT>(*pInputCloud_));
 
     mask_hv.resize(aligned_models_.size());
 
@@ -201,7 +201,7 @@ bool Recognizer::hypothesesVerification(std::vector<bool> &mask_hv)
 
 
 #ifdef USE_CUDA
-    std::vector<typename pcl::PointCloud<PointT>::ConstPtr> aligned_models;
+    std::vector<pcl::PointCloud<PointT>::ConstPtr> aligned_models;
     std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals;
     std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> aligned_smooth_faces;
 
@@ -343,7 +343,7 @@ void Recognizer::constructHypothesesFromFeatureMatches(std::map < std::string,v4
     aligned_smooth_faces_.clear();
 
     hypothesesOutput.clear();
-    typename std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> >::iterator it_map;
+    std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> >::iterator it_map;
     std::cout << "I have " << hypothesesInput.size() << " hypotheses. " << std::endl;
 
 //#pragma omp parallel
@@ -374,7 +374,7 @@ void Recognizer::constructHypothesesFromFeatureMatches(std::map < std::string,v4
         {
             //std::cout << "size cluster:" << corresp_clusters[i].size() << std::endl;
             Eigen::Matrix4f best_trans;
-            typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
+            pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
             t_est.estimateRigidTransformation (*(*it_map).second.correspondences_pointcloud, *pKeypoints, corresp_clusters[i], best_trans);
 
             Hypothesis<PointT> ht_temp ( (*it_map).second.model_, best_trans );
@@ -387,7 +387,7 @@ void Recognizer::constructHypothesesFromFeatureMatches(std::map < std::string,v4
 //            ModelTPtr m_with_faces;
 //            model_only_source_->getModelById((*it_map).second.model_->id_, m_with_faces);
             ConstPointInTPtr model_cloud = (*it_map).second.model_->getAssembled (hv_params_.resolution_);
-            typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+            pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
             pcl::transformPointCloud (*model_cloud, *model_aligned, best_trans);
             aligned_models_.push_back(model_aligned);
 
@@ -425,8 +425,8 @@ void Recognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_
         for(size_t i=0; i < models_->size(); i++)
         {
             pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_->at(i)->getNormalsAssembled (hv_params_.resolution_);
-            typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
-            v4r::common::miscellaneous::transformNormals(normal_cloud, normal_aligned, transforms_->at(i));
+            pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
+            v4r::common::transformNormals(normal_cloud, normal_aligned, transforms_->at(i));
 
             if(models_->at(i)->getFlipNormalsBasedOnVP())
             {

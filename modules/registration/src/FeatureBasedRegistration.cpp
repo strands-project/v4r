@@ -31,7 +31,7 @@ v4r::Registration::FeatureBasedRegistration<PointT>::initialize(std::vector<std:
     typename v4r::rec_3d_framework::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
 
     //computes features and keypoints for the views of all sessions using appropiate object indices
-    size_t total_views = getTotalNumberOfClouds();
+    size_t total_views = this->getTotalNumberOfClouds();
     std::cout << "total views in initialize:" << total_views << std::endl;
 
     sift_keypoints_.resize(total_views);
@@ -58,10 +58,10 @@ v4r::Registration::FeatureBasedRegistration<PointT>::initialize(std::vector<std:
 
     for(size_t i=0; i < total_views; i++)
     {
-        typename pcl::PointCloud<PointT>::Ptr cloud = getCloud(i);
-        pcl::PointCloud<pcl::Normal>::Ptr normals = getNormal(i);
-        std::vector<int> & indices = getIndices(i);
-        Eigen::Matrix4f pose = getPose(i);
+        typename pcl::PointCloud<PointT>::Ptr cloud = this->getCloud(i);
+        pcl::PointCloud<pcl::Normal>::Ptr normals = this->getNormal(i);
+        std::vector<int> & indices = this->getIndices(i);
+        Eigen::Matrix4f pose = this->getPose(i);
 
         typename pcl::PointCloud<PointT>::Ptr processed(new pcl::PointCloud<PointT>);
         sift_keypoints_[i].reset(new pcl::PointCloud<PointT>);
@@ -171,12 +171,12 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
     for(int t=partial_1.first; t <= partial_1.second; t++)
     {
         typename pcl::PointCloud<PointT>::Ptr transformed(new pcl::PointCloud<PointT>);
-        Eigen::Matrix4f pose_inv = getPose(static_cast<size_t>(t));
+        Eigen::Matrix4f pose_inv = this->getPose(static_cast<size_t>(t));
         pcl::transformPointCloud(*sift_keypoints_[t], *transformed, pose_inv);
         *kps_s1 += *transformed;
 
         typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::common::miscellaneous::transformNormals(sift_normals_[t], normals, pose_inv);
+        v4r::common::transformNormals(sift_normals_[t], normals, pose_inv);
 
         *normals_s1 += *normals;
     }
@@ -184,12 +184,12 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
     for(int t=partial_2.first; t <= partial_2.second; t++)
     {
         typename pcl::PointCloud<PointT>::Ptr transformed(new pcl::PointCloud<PointT>);
-        Eigen::Matrix4f pose_inv = getPose(static_cast<size_t>(t));
+        Eigen::Matrix4f pose_inv = this->getPose(static_cast<size_t>(t));
         pcl::transformPointCloud(*sift_keypoints_[t], *transformed, pose_inv);
         *kps_s2 += *transformed;
 
         typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::common::miscellaneous::transformNormals(sift_normals_[t], normals, pose_inv);
+        v4r::common::transformNormals(sift_normals_[t], normals, pose_inv);
         *normals_s2 += *normals;
     }
 

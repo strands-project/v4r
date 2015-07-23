@@ -1,8 +1,14 @@
 #include <v4r/common/miscellaneous.h>
 
+namespace v4r
+{
+namespace common
+{
+
+
 template<typename PointType, typename DistType>
 void
-v4r::common::miscellaneous::convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index)
+convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index)
 {
     size_t rows = cloud->points.size ();
     size_t cols = sizeof ( cloud->points[0].histogram ) / sizeof ( float ); // number of histogram bins
@@ -21,7 +27,7 @@ v4r::common::miscellaneous::convertToFLANN ( const typename pcl::PointCloud<Poin
 }
 
 template <typename DistType>
-void v4r::common::miscellaneous::nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
                         flann::Matrix<float> &distances )
 {
     flann::Matrix<float> p = flann::Matrix<float> ( new float[descr_size], 1, descr_size );
@@ -33,7 +39,7 @@ void v4r::common::miscellaneous::nearestKSearch ( typename boost::shared_ptr< fl
 
 
 template<typename PointType>
-void v4r::common::miscellaneous::setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud)
+void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud)
 {
     cloud.sensor_origin_[0] = trans(0,3);
     cloud.sensor_origin_[1] = trans(1,3);
@@ -41,4 +47,62 @@ void v4r::common::miscellaneous::setCloudPose(const Eigen::Matrix4f &trans, type
     Eigen::Matrix3f rotation = trans.block<3,3>(0,0);
     Eigen::Quaternionf q(rotation);
     cloud.sensor_orientation_ = q;
+}
+
+}
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
+pcl::copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                     const std::vector<size_t> &indices,
+                     pcl::PointCloud<PointT> &cloud_out)
+{
+  // Do we want to copy everything?
+  if (indices.size () == cloud_in.points.size ())
+  {
+    cloud_out = cloud_in;
+    return;
+  }
+
+  // Allocate enough space and copy the basics
+  cloud_out.points.resize (indices.size ());
+  cloud_out.header   = cloud_in.header;
+  cloud_out.width    = static_cast<uint32_t>(indices.size ());
+  cloud_out.height   = 1;
+  cloud_out.is_dense = cloud_in.is_dense;
+  cloud_out.sensor_orientation_ = cloud_in.sensor_orientation_;
+  cloud_out.sensor_origin_ = cloud_in.sensor_origin_;
+
+  // Iterate over each point
+  for (size_t i = 0; i < indices.size (); ++i)
+    cloud_out.points[i] = cloud_in.points[indices[i]];
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
+pcl::copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                     const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
+                     pcl::PointCloud<PointT> &cloud_out)
+{
+  // Do we want to copy everything?
+  if (indices.size () == cloud_in.points.size ())
+  {
+    cloud_out = cloud_in;
+    return;
+  }
+
+  // Allocate enough space and copy the basics
+  cloud_out.points.resize (indices.size ());
+  cloud_out.header   = cloud_in.header;
+  cloud_out.width    = static_cast<uint32_t> (indices.size ());
+  cloud_out.height   = 1;
+  cloud_out.is_dense = cloud_in.is_dense;
+  cloud_out.sensor_orientation_ = cloud_in.sensor_orientation_;
+  cloud_out.sensor_origin_ = cloud_in.sensor_origin_;
+
+  // Iterate over each point
+  for (size_t i = 0; i < indices.size (); ++i)
+    cloud_out.points[i] = cloud_in.points[indices[i]];
 }

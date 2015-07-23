@@ -1,19 +1,26 @@
 #include "v4r/common/miscellaneous.h"
 
-//#include <v4r/KeypointConversions/convertCloud.hpp>
-//#include <v4r/KeypointConversions/convertNormals.hpp>
-//#include <v4r/KeypointTools/ZAdaptiveNormals.hh>
+#include <v4r/common/keypoint/impl/convertCloud.hpp>
+#include <v4r/common/keypoint/impl/convertNormals.hpp>
+#include <v4r/common/keypoint/ZAdaptiveNormals.hh>
 #include <pcl/visualization/cloud_viewer.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/impl/miscellaneous.hpp>
 
-void v4r::common::miscellaneous::computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
+namespace v4r
+{
+namespace common
+{
+
+void computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
                     int method)
 {
     normals.reset(new pcl::PointCloud<pcl::Normal>());
+    if (method > 3)
+        std::cerr << "Normal method specified (" << method << ") does not exist. Using normal method 3." << std::endl;
 
-    if(method== 0)
+    if(method == 0)
     {
         pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> n3d;
         n3d.setRadiusSearch (0.01f);
@@ -38,19 +45,18 @@ void v4r::common::miscellaneous::computeNormals(const pcl::PointCloud<pcl::Point
         ne.setInputCloud ( cloud );
         ne.compute ( *normals );
     }
-//    else //if(normal_method_ == 3)
-//    {
+    else //if(normal_method_ == 3)
+    {
+        kp::ZAdaptiveNormals::Parameter n_param;
+        n_param.adaptive = true;
+        kp::ZAdaptiveNormals nest(n_param);
 
-//        kp::ZAdaptiveNormals::Parameter n_param;
-//        n_param.adaptive = true;
-//        kp::ZAdaptiveNormals nest(n_param);
-
-//        kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new kp::DataMatrix2D<Eigen::Vector3f>() );
-//        kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals_tmp( new kp::DataMatrix2D<Eigen::Vector3f>() );
-//        kp::convertCloud(*cloud, *kp_cloud);
-//        nest.compute(*kp_cloud, *kp_normals_tmp);
-//        kp::convertNormals(*kp_normals_tmp, *normals);
-//    }
+        kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new kp::DataMatrix2D<Eigen::Vector3f>() );
+        kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals_tmp( new kp::DataMatrix2D<Eigen::Vector3f>() );
+        kp::convertCloud(*cloud, *kp_cloud);
+        nest.compute(*kp_cloud, *kp_normals_tmp);
+        kp::convertNormals(*kp_normals_tmp, *normals);
+    }
 
     // Normalize normals to unit length
     for ( size_t normal_pt_id = 0; normal_pt_id < normals->points.size(); normal_pt_id++)
@@ -70,15 +76,63 @@ void v4r::common::miscellaneous::computeNormals(const pcl::PointCloud<pcl::Point
 //    }
 }
 
-template void v4r::common::miscellaneous::convertToFLANN<pcl::Histogram<128>, flann::L1<float> > (const pcl::PointCloud<pcl::Histogram<128> >::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<flann::L1<float> > > &flann_index); // explicit instantiation.
-template void v4r::common::miscellaneous::nearestKSearch<flann::L1<float> > ( boost::shared_ptr< flann::Index< flann::L1<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+template void convertToFLANN<pcl::Histogram<128>, flann::L1<float> > (const pcl::PointCloud<pcl::Histogram<128> >::ConstPtr & cloud, boost::shared_ptr< flann::Index<flann::L1<float> > > &flann_index); // explicit instantiation.
+template void nearestKSearch<flann::L1<float> > ( boost::shared_ptr< flann::Index< flann::L1<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
 flann::Matrix<float> &distances );
-template void v4r::common::miscellaneous::nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+template void nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
 flann::Matrix<float> &distances );
 
-//#define PCL_INSTANTIATE_setCloudPose(T) template void v4r::common::miscellaneous::setCloudPose<T>(const Eigen::Matrix4f&, pcl::PointCloud<T>&);
+//#define PCL_INSTANTIATE_setCloudPose(T) template void v4r::common::setCloudPose<T>(const Eigen::Matrix4f&, pcl::PointCloud<T>&);
 //PCL_INSTANTIATE(setCloudPose, PCL_XYZ_POINT_TYPES)
-template void v4r::common::miscellaneous::setCloudPose<pcl::PointXYZ>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZ> &cloud);
-template void v4r::common::miscellaneous::setCloudPose<pcl::PointXYZRGB>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGB> &cloud);
-template void v4r::common::miscellaneous::setCloudPose<pcl::PointXYZRGBNormal>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud);
-template void v4r::common::miscellaneous::setCloudPose<pcl::PointXYZRGBA>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBA> &cloud);
+template void setCloudPose<pcl::PointXYZ>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZ> &cloud);
+template void setCloudPose<pcl::PointXYZRGB>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGB> &cloud);
+template void setCloudPose<pcl::PointXYZRGBNormal>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud);
+template void setCloudPose<pcl::PointXYZRGBA>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBA> &cloud);
+
+}
+}
+
+
+
+template void
+pcl::copyPointCloud<pcl::PointXYZ> (const pcl::PointCloud<pcl::PointXYZ> &cloud_in,
+                const std::vector<size_t> &indices,
+                pcl::PointCloud<pcl::PointXYZ> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB> &cloud_in,
+                const std::vector<size_t> &indices,
+                pcl::PointCloud<pcl::PointXYZRGB> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::PointXYZRGBNormal> (const pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_in,
+                const std::vector<size_t> &indices,
+                pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::PointXYZRGBA> (const pcl::PointCloud<pcl::PointXYZRGBA> &cloud_in,
+                const std::vector<size_t> &indices,
+                pcl::PointCloud<pcl::PointXYZRGBA> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::Normal> (const pcl::PointCloud<pcl::Normal> &cloud_in,
+                const std::vector<size_t> &indices,
+                pcl::PointCloud<pcl::Normal> &cloud_out);
+
+
+template void
+pcl::copyPointCloud<pcl::PointXYZ> (const pcl::PointCloud<pcl::PointXYZ> &cloud_in,
+                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
+                pcl::PointCloud<pcl::PointXYZ> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB> &cloud_in,
+                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
+                pcl::PointCloud<pcl::PointXYZRGB> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::PointXYZRGBNormal> (const pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_in,
+                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
+                pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::PointXYZRGBA> (const pcl::PointCloud<pcl::PointXYZRGBA> &cloud_in,
+                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
+                pcl::PointCloud<pcl::PointXYZRGBA> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::Normal> (const pcl::PointCloud<pcl::Normal> &cloud_in,
+                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
+                pcl::PointCloud<pcl::Normal> &cloud_out);
