@@ -40,6 +40,8 @@ namespace v4r
 
             size_t id_; // might be redundant
 
+            bool is_pre_labelled_;
+
             modelView()
             {
                 cloud_.reset(new pcl::PointCloud<PointT>());
@@ -47,6 +49,7 @@ namespace v4r
                 transferred_cluster_.reset(new pcl::PointCloud<PointT>());
                 supervoxel_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>());
                 sift_signatures_.reset (new pcl::PointCloud<FeatureT>());
+                is_pre_labelled_ = false;
             }
         };
     }
