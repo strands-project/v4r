@@ -354,7 +354,7 @@ public:
 //            model_only_source_->getModelById(models.at(i)->id_, m_with_faces);
 
             ConstPointInTPtr model_cloud = models.at(i)->getAssembled (hv_params_.resolution_);
-            typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+            pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
             pcl::transformPointCloud (*model_cloud, *model_aligned, transforms[i]);
             aligned_models_[i] = model_aligned;
             model_ids_[i] = models.at(i)->id_;

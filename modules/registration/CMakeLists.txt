@@ -1,6 +1,6 @@
 set(SUBSYS_NAME registration)
 set(SUBSYS_DESC "v4r registration module")
-set(SUBSYS_DEPS v4r_common)
+set(SUBSYS_DEPS v4r_common siftgpu)
 SET(V4R_REGISTRATION 1 CACHE BOOL "Registration module" )
 IF(V4R_REGISTRATION)
 

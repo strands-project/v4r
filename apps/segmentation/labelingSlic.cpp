@@ -186,7 +186,7 @@ public:
 
         if(in_path.substr(in_path.find_last_of(".") + 1) == "pcd")    //check if given img is a point cloud
         {
-            typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr pPCl(new pcl::PointCloud<pcl::PointXYZRGB>);
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr pPCl(new pcl::PointCloud<pcl::PointXYZRGB>);
             pcl::io::loadPCDFile(in_path, *pPCl);
             if (pPCl->isOrganized())
             {
@@ -285,7 +285,7 @@ public:
 
             if(is_pcd)    //check if given img is a point cloud
             {
-                typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr pLabelledPCl(new pcl::PointCloud<pcl::PointXYZRGB>);
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr pLabelledPCl(new pcl::PointCloud<pcl::PointXYZRGB>);
                 pcl::io::loadPCDFile(in_path, *pLabelledPCl);
 
                 assert(pxLabel.rows == pLabelledPCl->height && pxLabel.cols == pLabelledPCl->width);
