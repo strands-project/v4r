@@ -112,9 +112,10 @@ inline void transformNormal(const Eigen::Vector3f & nt,
 inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
 {
-    Eigen::Matrix4f tf;
+    Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();;
     tf.block<3,3>(0,0) = q.toRotationMatrix();
     tf.block<4,1>(0,3) = trans;
+    tf(3,3) = 1.f;
     return tf;
 }
 
@@ -129,10 +130,9 @@ RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
 inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans)
 {
-    Eigen::Matrix4f tf;
+    Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
     tf.block<3,3>(0,0) = q.toRotationMatrix();
     tf.block<3,1>(0,3) = trans;
-    tf(3,3) = 1;
     return tf;
 }
 

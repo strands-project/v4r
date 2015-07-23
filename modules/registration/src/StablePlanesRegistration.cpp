@@ -241,10 +241,10 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
         for(int t=session_ranges[i].first; t <= session_ranges[i].second; t++, k++)
         {
             std::cout << k << " " << t << " " << clouds.size() << std::endl;
-            clouds[k] = getCloud(t);
-            poses[k] = getPose(t);
-            normals[k] = getNormal(t);
-            indices[k] = getIndices(t);
+            clouds[k] = this->getCloud(t);
+            poses[k] = this->getPose(t);
+            normals[k] = this->getNormal(t);
+            indices[k] = this->getIndices(t);
 
             v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
             nm.setInputCloud(clouds[k]);

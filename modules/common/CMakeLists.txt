@@ -153,7 +153,7 @@ SET(SOURCE_CPP_CG
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(${PREFIX_LIB}${SUBSYS_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP} ${SOURCE_H_CG} ${SOURCE_CPP_CG})
-target_link_libraries(${PREFIX_LIB}${SUBSYS_NAME} ${PCL_LIBRARIES} ${SUBSYS_DEPS} ${PREFIX_LIB}${SUBSYS_NAME}_keypoint)
+target_link_libraries(${PREFIX_LIB}${SUBSYS_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${SUBSYS_DEPS} ${PREFIX_LIB}${SUBSYS_NAME}_keypoint)
 _install_library(${PREFIX_LIB}${SUBSYS_NAME} "${SOURCE_H} ${SOURCE_H_CG}" "/v4r/${SUBSYS_NAME}/")
 
 

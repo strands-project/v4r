@@ -51,3 +51,58 @@ void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointTy
 
 }
 }
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
+pcl::copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                     const std::vector<size_t> &indices,
+                     pcl::PointCloud<PointT> &cloud_out)
+{
+  // Do we want to copy everything?
+  if (indices.size () == cloud_in.points.size ())
+  {
+    cloud_out = cloud_in;
+    return;
+  }
+
+  // Allocate enough space and copy the basics
+  cloud_out.points.resize (indices.size ());
+  cloud_out.header   = cloud_in.header;
+  cloud_out.width    = static_cast<uint32_t>(indices.size ());
+  cloud_out.height   = 1;
+  cloud_out.is_dense = cloud_in.is_dense;
+  cloud_out.sensor_orientation_ = cloud_in.sensor_orientation_;
+  cloud_out.sensor_origin_ = cloud_in.sensor_origin_;
+
+  // Iterate over each point
+  for (size_t i = 0; i < indices.size (); ++i)
+    cloud_out.points[i] = cloud_in.points[indices[i]];
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
+pcl::copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                     const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
+                     pcl::PointCloud<PointT> &cloud_out)
+{
+  // Do we want to copy everything?
+  if (indices.size () == cloud_in.points.size ())
+  {
+    cloud_out = cloud_in;
+    return;
+  }
+
+  // Allocate enough space and copy the basics
+  cloud_out.points.resize (indices.size ());
+  cloud_out.header   = cloud_in.header;
+  cloud_out.width    = static_cast<uint32_t> (indices.size ());
+  cloud_out.height   = 1;
+  cloud_out.is_dense = cloud_in.is_dense;
+  cloud_out.sensor_orientation_ = cloud_in.sensor_orientation_;
+  cloud_out.sensor_origin_ = cloud_in.sensor_origin_;
+
+  // Iterate over each point
+  for (size_t i = 0; i < indices.size (); ++i)
+    cloud_out.points[i] = cloud_in.points[indices[i]];
+}
