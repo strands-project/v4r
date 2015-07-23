@@ -33,14 +33,43 @@ public:
     {
 
     }
-    Eigen::Matrix4f transformation;
-    double edge_weight;
-    std::string model_name;
-    std::string source_id, target_id;
+    Eigen::Matrix4f transformation_;
+    double edge_weight_;
+    std::string model_name_;
+    std::string source_id_, target_id_;
 };
 
 class DOL
 {
+public:
+    class Parameter{
+    public:
+        double radius_;
+        double eps_angle_;
+        double voxel_resolution_;
+        double seed_resolution_;
+        double ratio_;
+        double chop_z_;
+        bool do_erosion_;
+        bool do_sift_based_camera_pose_estimation_;
+        bool transfer_indices_from_latest_frame_only_;
+        size_t min_points_for_transferring_;
+        int normal_method_;
+        Parameter (double radius = 0.005f, double eps_angle = 0.9f, double voxel_resolution = 0.005f,
+                   double seed_resolution = 0.03f, double ratio = 0.25f,
+                   double chop_z = std::numeric_limits<double>::quiet_NaN(), bool do_erosion = true,
+                   bool do_sift_based_camera_pose_estimation = false, bool transfer_indices_from_latest_frame_only = false,
+                   size_t min_points_for_transferring = 10, int normal_method = 1) :
+            radius_(radius), eps_angle_(eps_angle), voxel_resolution_(voxel_resolution),
+            seed_resolution_(seed_resolution), ratio_(ratio), chop_z_(chop_z), do_erosion_(do_erosion),
+            do_sift_based_camera_pose_estimation_(do_sift_based_camera_pose_estimation),
+            transfer_indices_from_latest_frame_only_(transfer_indices_from_latest_frame_only),
+            min_points_for_transferring_(min_points_for_transferring), normal_method_(normal_method)
+        {
+        }
+
+    };
+
 protected:
     typedef pcl::PointXYZRGB PointT;
     typedef flann::L1<float> DistT;
@@ -55,25 +84,11 @@ protected:
 
 //    typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
 
-    int normal_method_;
+    Parameter param_;
     kp::ClusterNormalsToPlanes::Parameter p_param_;
 
     pcl::PointCloud<PointT>::Ptr big_cloud_;
     pcl::PointCloud<PointT>::Ptr big_cloud_segmented_;
-    std::vector<std::vector< size_t > > obj_indices_eroded_to_original_;
-    std::vector<std::vector< size_t >> obj_indices_2_to_filtered_;
-    std::vector<std::vector< size_t > > scene_points_;
-    std::vector<std::vector< size_t > > transferred_nn_points_;
-    std::vector<std::vector< size_t > > transferred_object_indices_without_plane_;
-    std::vector<std::vector< size_t > > initial_indices_good_to_unfiltered_;
-    std::vector<std::vector< size_t > > obj_indices_3_to_original_;
-    std::vector<Eigen::Matrix4f> cameras_;
-    std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > keyframes_;
-    std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_;
-    std::vector< pcl::PointCloud<FeatureT>::Ptr > sift_signatures_;
-    std::vector<std::vector< size_t > > sift_keypoint_indices_;
-    std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > transferred_cluster_;
-    std::vector< pcl::PointCloud<pcl::PointXYZRGBA>::Ptr > supervoxeled_clouds_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_;
     std::vector<int> vis_reconstructed_viewpoint_;
     std::vector<int> vis_viewpoint_;
@@ -82,36 +97,15 @@ protected:
     cv::Ptr<SiftGPU> sift_;
     Graph grph_;
     size_t counter_;
+    pcl::octree::OctreePointCloudSearch<PointT> octree_;
 
     ///radius to select points in other frames to belong to the same object
     /// bootstraps region growing
-    double radius_;
-    double eps_angle_;
-    double voxel_resolution_;
-    double seed_resolution_;
-    double ratio_;
-    double chop_z_;
-    bool do_erosion_;
-    bool do_sift_based_camera_pose_estimation_;
-    bool transfer_indices_from_latest_frame_only_;
-    pcl::octree::OctreePointCloudSearch<PointT> octree_;
-    size_t min_points_for_transferring_;
 
 public:
 
     DOL () : octree_(0.005f)
     {
-        radius_ = 0.005f;
-        eps_angle_ = 0.99f;
-        voxel_resolution_ = 0.005f;
-        seed_resolution_ = 0.03f;
-        ratio_ = 0.25f;
-        min_points_for_transferring_ = 10;
-        chop_z_ = std::numeric_limits<double>::quiet_NaN();
-        do_erosion_ = true;
-        transfer_indices_from_latest_frame_only_ = false;
-        do_sift_based_camera_pose_estimation_ = false;
-
         // Parameters for smooth clustering / plane segmentation
         p_param_.thrAngle=45;
         p_param_.inlDist=0.05;
@@ -121,8 +115,6 @@ public:
         p_param_.thrAngleSmooth=30;
         p_param_.inlDistSmooth=0.02;
         p_param_.minPointsSmooth=20;    // minimum number for a segment other than a plane
-
-        normal_method_ = 0;
 
         big_cloud_.reset(new pcl::PointCloud<PointT>);
         big_cloud_segmented_.reset(new pcl::PointCloud<PointT>);
@@ -134,15 +126,6 @@ public:
                 const pcl::PointCloud<pcl::Normal> &normals_,
                 const std::vector<size_t> &initial,
                 std::vector<size_t> &cluster) const;
-
-    /**
-     * @brief transfers object indices from origin into dest camera frame and performs
-     *        nearest neighbor search in dest frame.
-     * @param origin... id of source frame
-     * @param dest... id of destination frame
-     * @param nn... nearest neighbors points highlighted (true) in object mask
-     */
-    void transferIndicesAndNNSearch(size_t origin, size_t dest, std::vector<bool> &object_mask, const Eigen::Matrix4f &transform); //std::vector<int> &nn);
 
     void updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
                                            pcl::PointCloud<pcl::Normal>::Ptr & normals_,
@@ -168,47 +151,17 @@ public:
                      const std::string &recognition_structure_dir = "/tmp/recognition_structure_dir/",
                      const std::string &model_name = "new_dynamic_model.pcd");
 
-    bool learn_object (const pcl::PointCloud<PointT> &cloud, std::vector<size_t> &initial_indices);
+    bool learn_object (const pcl::PointCloud<PointT> &cloud,
+                       const Eigen::Matrix4f &camera_pose = Eigen::Matrix4f::Identity(),
+                       const std::vector<size_t> &initial_indices = std::vector<size_t>());
 
     void initialize (int argc, char ** argv);
 
     void clearMem()
     {
-        keyframes_.clear();
-        normals_.clear();
-        cameras_.clear();
-        transferred_cluster_.clear();
-        scene_points_.clear();
-        transferred_nn_points_.clear();
-        transferred_object_indices_without_plane_.clear();
-        initial_indices_good_to_unfiltered_.clear();
-        obj_indices_3_to_original_.clear();
-        obj_indices_2_to_filtered_.clear();
-        obj_indices_eroded_to_original_.clear();
-        supervoxeled_clouds_.clear();
         big_cloud_->points.clear();
         big_cloud_segmented_->points.clear();
         LUT_new2old_indices.clear();
-        sift_signatures_.clear();
-        sift_keypoint_indices_.clear();
-    }
-
-    void reserveMem(const size_t &num_elements)
-    {
-        keyframes_.resize( num_elements );
-        normals_.resize(num_elements);
-        cameras_.resize( num_elements );
-        transferred_cluster_.resize( num_elements );
-        scene_points_.resize( num_elements );
-        transferred_nn_points_.resize( num_elements );
-        transferred_object_indices_without_plane_.resize( num_elements );
-        initial_indices_good_to_unfiltered_.resize( num_elements );
-        obj_indices_3_to_original_.resize( num_elements );
-        obj_indices_2_to_filtered_.resize( num_elements );
-        obj_indices_eroded_to_original_.resize( num_elements );
-        supervoxeled_clouds_.resize( num_elements );
-        sift_signatures_.resize ( num_elements );
-        sift_keypoint_indices_.resize ( num_elements );
     }
 
     /**
@@ -275,7 +228,7 @@ public:
                                           const pcl::PointCloud<PointT> &dst_cloud,
                                           const std::vector<size_t> &src_sift_keypoint_indices,
                                           const std::vector<size_t> &dst_sift_keypoint_indices,
-                                          const pcl::PointCloud<FeatureT> &dst_sift_signatures,
+                                          const pcl::PointCloud<FeatureT> &src_sift_signatures,
                                           boost::shared_ptr< flann::Index<DistT> > &src_flann_index,
                                           std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
                                           bool use_gc = false);
@@ -284,7 +237,17 @@ public:
                           const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
                           Eigen::Matrix4f &transformation);
 
-    void printParams(std::ostream &ostr = std::cout);
+    void printParams(std::ostream &ostr = std::cout) const;
+
+    /**
+     * @brief transfers object points nearest neighbor search in dest frame.
+     * @param points which are transferred and looked for in search cloud
+     * @param search space for transferred points
+     * @param nn... nearest neighbors points highlighted (true) in object mask
+     * @param homogeneous transformation matrix for object_points into search cloud
+     */
+    void nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreePointCloudSearch<PointT> &octree,  std::vector<bool> &obj_mask);
+    void nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointCloud<PointT>::ConstPtr &search_cloud,  std::vector<bool> &obj_mask);
 };
 
 }

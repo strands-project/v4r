@@ -62,10 +62,13 @@
 #include <v4r/common/features/opencv_sift_local_estimator.h>
 #endif
 
-using namespace v4r::object_modelling;
+namespace v4r
+{
+namespace object_modelling
+{
 
-float DOL::
-calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
+float
+DOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
                            const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
                            Eigen::Matrix4f &transform)
 {
@@ -117,16 +120,11 @@ calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
     }
 
     //    transform = icp_trans; // refined transformation
-
-    //        grph[edge].edge_weight = w_after_icp_;
-
-    std::cout << "WEIGHT IS: " << w_after_icp_ << " coming from edge connecting ." << std::endl;
-
     return w_after_icp_;
 }
 
-bool DOL::
-calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
+bool
+DOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
                   pcl::PointCloud<PointT>::Ptr &sift_keypoints,
                   std::vector< size_t > &sift_keypoint_indices,
                   pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
@@ -166,8 +164,8 @@ DOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
                                       const pcl::PointCloud<PointT> &dst_cloud,
                                       const std::vector<size_t> &src_sift_keypoint_indices,
                                       const std::vector<size_t> &dst_sift_keypoint_indices,
-                                      const pcl::PointCloud<FeatureT> &dst_sift_signatures,
-                                      boost::shared_ptr< flann::Index<DistT> > &src_flann_index,
+                                      const pcl::PointCloud<FeatureT> &src_sift_signatures,
+                                      boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
                                       std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
                                       bool use_gc )
 {
@@ -185,9 +183,9 @@ DOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
 
     for ( size_t keypointId = 0; keypointId < pSiftKeypointsSrc->points.size (); keypointId++ )
     {
-        FeatureT searchFeature = dst_sift_signatures[ keypointId ];
+        FeatureT searchFeature = src_sift_signatures[ keypointId ];
         int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-        v4r::common::nearestKSearch ( src_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+        v4r::common::nearestKSearch ( dst_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
 
         pcl::Correspondence corr;
         corr.distance = distances[0][0];
@@ -229,18 +227,19 @@ DOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
 
         std::vector<pcl::Correspondences> clustered_corrs;
         gcg_alg.recognize(new_transforms, clustered_corrs);
-        transformations.insert(transformations.end(), transformations.begin(), transformations.end());
+        transformations.insert(transformations.end(), new_transforms.begin(), new_transforms.end());
     }
 }
 
 
-void DOL::extractEuclideanClustersSmooth (
+void
+DOL::extractEuclideanClustersSmooth (
         const pcl::PointCloud<PointT>::ConstPtr &cloud,
         const pcl::PointCloud<pcl::Normal> &normals,
         const std::vector<size_t> &initial,
         std::vector<size_t> &cluster) const
 {
-    float tolerance = radius_;
+    float tolerance = param_.radius_;
 
     if (cloud->points.size () != normals.points.size ())
     {
@@ -291,7 +290,7 @@ void DOL::extractEuclideanClustersSmooth (
                         n1.normalize();
                         n2.normalize();
                         float dot_p = n1.dot(n2);
-                        if (dot_p >= eps_angle_)
+                        if (dot_p >= param_.eps_angle_)
                         {
                             to_grow[nn_indices[j]] = true;
                             in_cluster[nn_indices[j]] = true;
@@ -319,7 +318,8 @@ void DOL::extractEuclideanClustersSmooth (
     }
 }
 
-void DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
+void
+DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
                                             pcl::PointCloud<pcl::Normal>::Ptr & normals,
                                             const std::vector<size_t> &obj_points,
                                             std::vector<size_t> &good_neighbours,
@@ -327,7 +327,7 @@ void DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr &
 {
     good_neighbours.clear();
 
-    pcl::SupervoxelClustering<PointT> super (voxel_resolution_, seed_resolution_, false);
+    pcl::SupervoxelClustering<PointT> super (param_.voxel_resolution_, param_.seed_resolution_, false);
     super.setInputCloud (cloud);
     super.setColorImportance (0.f);
     super.setSpatialImportance (0.5f);
@@ -366,7 +366,7 @@ void DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr &
     for(size_t i=0; i < supervoxels_labels_cloud->size(); i++)
     {
         const int sv_idx = label_to_idx[supervoxels_labels_cloud->at(i).label];
-        if(sv_idx < 0 || sv_idx >= sv_size)
+        if(sv_idx < 0 || sv_idx >= static_cast<int>(sv_size))
             continue;
 
         const Eigen::Vector3f sv_normal = sv_normal_cloud->points[sv_idx].getNormalVector3fMap();
@@ -381,7 +381,7 @@ void DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr &
     for(size_t id = 0; id < obj_points.size(); id++)
     {
         const int sv_idx = label_to_idx[ supervoxels_labels_cloud->at( obj_points[ id ] ).label];
-        if(sv_idx >= 0 && sv_idx < sv_size)
+        if(sv_idx >= 0 && sv_idx < static_cast<int>(sv_size))
         {
             label_count_nn[sv_idx]++;
         }
@@ -390,43 +390,34 @@ void DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr &
     for(size_t id = 0; id < obj_points.size(); id++)
     {
         const int sv_idx = label_to_idx[ supervoxels_labels_cloud->at( obj_points[ id ] ).label];
-        if(sv_idx < 0 || sv_idx >= sv_size)
+        if(sv_idx < 0 || sv_idx >= static_cast<int>(sv_size))
             continue;
 
-        if( (label_count_nn[sv_idx] / (float)label_count[sv_idx]) > ratio_)
+        if( (label_count_nn[sv_idx] / (float)label_count[sv_idx]) > param_.ratio_)
         {
             good_neighbours.push_back( obj_points[ id ] );
         }
     }
 }
 
-void DOL::transferIndicesAndNNSearch(size_t origin, size_t dest, std::vector<bool> &obj_mask, const Eigen::Matrix4f &transform)
+void
+DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointCloud<PointT>::ConstPtr &search_cloud,  std::vector<bool> &obj_mask)
 {
-    pcl::PointCloud<PointT>::Ptr cloud_origin_filtered(new pcl::PointCloud<PointT>);
-    pcl::PointCloud<PointT>::Ptr segmented(new pcl::PointCloud<PointT>);
+    pcl::octree::OctreePointCloudSearch<PointT> octree(0.005f);
 
-    pcl::copyPointCloud(*keyframes_[origin], scene_points_[origin], *cloud_origin_filtered);
+    octree.setInputCloud ( search_cloud );
+    octree.addPointsFromInputCloud ();
+    nnSearch(object_points, octree, obj_mask);
+}
 
-    if (do_erosion_)
-    {
-        pcl::copyPointCloud(*keyframes_[origin], obj_indices_eroded_to_original_[origin], *segmented);
-    }
-    else
-    {
-        pcl::copyPointCloud(*cloud_origin_filtered, obj_indices_2_to_filtered_[origin], *segmented);
-    }
-
-    pcl::PointCloud<PointT>::Ptr segmented_trans(new pcl::PointCloud<PointT>);
-    pcl::transformPointCloud(*segmented, *segmented_trans, transform);
-    transferred_cluster_[dest]->points.insert(transferred_cluster_[dest]->points.end(),
-                                              segmented_trans->points.begin(),
-                                              segmented_trans->points.end());// = segmented_trans;
-
+void
+DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreePointCloudSearch<PointT> &octree,  std::vector<bool> &obj_mask)
+{
     //find neighbours from transferred object points
     std::vector<int> pointIdxRadiusSearch;
     std::vector<float> pointRadiusSquaredDistance;
 
-    for(size_t i=0; i < segmented_trans->points.size(); i++)
+    for(size_t i=0; i < object_points.points.size(); i++)
     {
         //        if (octree.nearestKSearch (segmented_trans->points.back(), 1, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
         //            //if (octree.radiusSearch (segmented_trans->points.back(), radius_, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
@@ -434,12 +425,12 @@ void DOL::transferIndicesAndNNSearch(size_t origin, size_t dest, std::vector<boo
         //            if(pointRadiusSquaredDistance[0] <= (radius_ * radius_))
         //                all_neighbours.insert(pointIdxRadiusSearch.begin(), pointIdxRadiusSearch.end());
         //        }
-        if ( ! pcl::isFinite(segmented_trans->points.back()) )
+        if ( ! pcl::isFinite(object_points.points[i]) )
         {
             PCL_WARN ("Warning: Point is NaN.\n");    // not sure if this causes somewhere else a problem. This condition should not be fulfilled.
             continue;
         }
-        if ( octree_.radiusSearch (segmented_trans->points.back(), radius_, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
+        if ( octree.radiusSearch (object_points.points[i], param_.radius_, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
         {
             for( size_t nn_id = 0; nn_id < pointIdxRadiusSearch.size(); nn_id++)
             {
@@ -449,7 +440,8 @@ void DOL::transferIndicesAndNNSearch(size_t origin, size_t dest, std::vector<boo
     }
 }
 
-void DOL::erodeInitialIndices(const pcl::PointCloud<PointT> & cloud,
+void
+DOL::erodeInitialIndices(const pcl::PointCloud<PointT> & cloud,
                               const std::vector< size_t > & initial_indices,
                               std::vector< size_t > & eroded_indices)
 {
@@ -488,7 +480,7 @@ void DOL::erodeInitialIndices(const pcl::PointCloud<PointT> & cloud,
 
             if (    mask_dst.at<unsigned char>(r,c) > 0
                     && pcl::isFinite( cloud.points[idx] )
-                    && cloud.points[idx].z < chop_z_        )
+                    && cloud.points[idx].z < param_.chop_z_        )
             {
                 eroded_indices[kept] = idx;
                 kept++;
@@ -498,7 +490,7 @@ void DOL::erodeInitialIndices(const pcl::PointCloud<PointT> & cloud,
     eroded_indices.resize(kept);
 }
 
-
+#ifdef BLA
 bool
 DOL::save_model (const std::string &models_dir, const std::string &recognition_structure_dir, const std::string &model_name)
 {
@@ -628,8 +620,9 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
 
     return true;
 }
-
-void DOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
+#endif
+void
+DOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                              const pcl::PointCloud<pcl::Normal>::ConstPtr &normals,
                              const kp::ClusterNormalsToPlanes::Parameter p_param,
                              std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes)
@@ -643,7 +636,8 @@ void DOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
     pest.compute(*kp_cloud, *kp_normals, planes);
 }
 
-void DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
+void
+DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                             const std::vector< size_t > object_mask,
                                             std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes_dst,
                                             std::vector< size_t > &all_plane_indices_wo_object,
@@ -681,7 +675,8 @@ void DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormals
     }
 }
 
-void DOL::createMaskFromIndices( const std::vector<size_t> &objectIndices,
+void
+DOL::createMaskFromIndices( const std::vector<size_t> &objectIndices,
                                  size_t image_size,
                                  std::vector<bool> &mask)
 {
@@ -698,7 +693,8 @@ void DOL::createMaskFromIndices( const std::vector<size_t> &objectIndices,
     }
 }
 
-void DOL::updateIndicesConsideringMask(const std::vector<bool> &bg_mask,
+void
+DOL::updateIndicesConsideringMask(const std::vector<bool> &bg_mask,
                                        const std::vector<bool> &fg_mask,
                                        std::vector<size_t> &fg_indices,
                                        std::vector<size_t> &old_bg_indices)
@@ -726,7 +722,7 @@ void DOL::updateIndicesConsideringMask(const std::vector<bool> &bg_mask,
 }
 
 bool
-DOL::learn_object (const pcl::PointCloud<PointT> &cloud, std::vector<size_t> &initial_indices)
+DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &camera_pose, const std::vector<size_t> &initial_indices)
 {
     std::cout << "Computing indices for cloud " << num_vertices( grph_ ) << std::endl
               << "===================================" << std::endl;
@@ -734,9 +730,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, std::vector<size_t> &in
     Vertex view = boost::add_vertex ( grph_ );
     pcl::copyPointCloud(cloud, *grph_[view].cloud_);
     grph_[view].id_ = counter_++;
-    grph_[view].camera_pose_ = v4r::common::RotTrans2Mat4f(cloud.sensor_orientation_, cloud.sensor_origin_);
-
-    reserveMem(counter_);
+    grph_[view].camera_pose_ = camera_pose; //v4r::common::RotTrans2Mat4f(cloud.sensor_orientation_, cloud.sensor_origin_);
 
     pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>());
     pcl::PointCloud<pcl::Normal>::Ptr normals_filtered (new pcl::PointCloud<pcl::Normal>());
@@ -746,25 +740,14 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, std::vector<size_t> &in
     std::vector<bool> pixel_is_object;
     std::vector<bool> pixel_is_neglected;
 
-    //        cameras_.back() = fromGMTransform(req.transforms.back());
-
-    v4r::common::computeNormals(grph_[view].cloud_, grph_[view].normal_, normal_method_);
-    //        {
-    //            pcl::visualization::PCLVisualizer vis("cloud");
-    //            pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(keyframes_.back());
-    //            vis.addPointCloud(keyframes_.back(), rgb_handler, "original_cloud");
-    //            vis.addPointCloudNormals<pcl::PointXYZRGB, pcl::Normal> (keyframes_.back(), normals_.back(), 10, 0.05, "normals");
-    //            vis.spin();
-    //        }
-
-    assert(grph_[view].cloud_.points.size() == grph_[view].normal_.points.size());
+    v4r::common::computeNormals(grph_[view].cloud_, grph_[view].normal_, param_.normal_method_);
 
     octree_.setInputCloud ( grph_[view].cloud_ );
     octree_.addPointsFromInputCloud ();
 
     boost::shared_ptr<flann::Index<DistT> > flann_index;
 
-    if ( do_sift_based_camera_pose_estimation_ )
+    if ( param_.do_sift_based_camera_pose_estimation_ )
     {
         pcl::PointCloud<PointT>::Ptr sift_keypoints (new pcl::PointCloud<PointT>());
         std::vector<float> sift_keypoint_scales;
@@ -775,7 +758,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, std::vector<size_t> &in
         }
         catch (int e)
         {
-            do_sift_based_camera_pose_estimation_ = false;
+            param_.do_sift_based_camera_pose_estimation_ = false;
             std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
         }
     }
@@ -812,24 +795,23 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, std::vector<size_t> &in
 
             std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms;
             transforms.push_back( grph_[view].camera_pose_.inverse() * grph_[*vertexIt].camera_pose_ );
-            if ( do_sift_based_camera_pose_estimation_ )
+            if ( param_.do_sift_based_camera_pose_estimation_ )
             {
                 try
                 {
-                    estimateViewTransformationBySIFT( *grph_[view].cloud_, *grph_[*vertexIt].cloud_,
-                                                      grph_[view].sift_keypoint_indices_, grph_[*vertexIt].sift_keypoint_indices_,
+                    estimateViewTransformationBySIFT( *grph_[*vertexIt].cloud_, *grph_[view].cloud_,
+                                                      grph_[*vertexIt].sift_keypoint_indices_, grph_[view].sift_keypoint_indices_,
                                                       *grph_[*vertexIt].sift_signatures_, flann_index, transforms);
                 }
                 catch (int e)
                 {
-                    do_sift_based_camera_pose_estimation_ = false;
+                    param_.do_sift_based_camera_pose_estimation_ = false;
                     std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
                 }
             }
 
             size_t best_transform_id = 0;
             float lowest_edge_weight = std::numeric_limits<float>::max();
-
             for ( size_t trans_id = 0; trans_id < transforms.size(); trans_id++ )
             {
                 float edge_weight;
@@ -844,70 +826,87 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, std::vector<size_t> &in
                 }
                 catch (int e)
                 {
-                    do_sift_based_camera_pose_estimation_ = false;
+                    param_.do_sift_based_camera_pose_estimation_ = false;
                     std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
                     break;
                 }
-
-                //                        pcl::visualization::PCLVisualizer vis("sift based pose estimate");
-                //                        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(keyframes_.back());
-                //                        vis.addPointCloud(keyframes_.back(), rgb_handler, "src_cloud");
-                //                        pcl::PointCloud<PointT>::Ptr transf_cloud (new pcl::PointCloud<PointT>());
-                //                        pcl::transformPointCloud(*keyframes_[k], *transf_cloud, transforms[0]);
-                //                        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler2( transf_cloud );
-                //                        vis.addPointCloud( transf_cloud, rgb_handler2, "dst_cloud");
-                //                        vis.spin();
+//                std::stringstream title;
+//                title << "sift based pose estimate from view " << grph_[*vertexIt].id_ << " to view " << grph_[view].id_ << " by transform id " << trans_id;
+//                std::cout << transforms[trans_id] << std::endl << std::endl;
+//                pcl::visualization::PCLVisualizer vis(title.str());
+//                pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler( grph_[view].cloud_ );
+//                vis.addPointCloud(grph_[view].cloud_, rgb_handler, "src_cloud");
+//                pcl::PointCloud<PointT>::Ptr transf_cloud (new pcl::PointCloud<PointT>());
+//                pcl::transformPointCloud(*grph_[*vertexIt].cloud_, *transf_cloud, transforms[trans_id]);
+//                pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler2( transf_cloud );
+//                vis.addPointCloud( transf_cloud, rgb_handler2, "dst_cloud");
+//                vis.spin();
             }
-            Edge e_cpy; bool b;
-            //                    tie ( e_cpy, b ) = add_edge ( vrtx_src, vrtx_trgt, grph_final_ );
-#ifdef BLA
-            transferIndicesAndNNSearch(k, i, obj_mask, transforms[ best_transform_id ]); //transferred_nn_points_.back().indices);
-#endif
+            Edge e; bool b;
+            tie ( e, b ) = add_edge ( view, *vertexIt, grph_ );
+            grph_[e].edge_weight_ = lowest_edge_weight;
+            grph_[e].transformation_ = transforms[best_transform_id];
+            grph_[e].source_id_ = grph_[view].id_;
+            grph_[e].target_id_ = grph_[*vertexIt].id_;
+
+            pcl::PointCloud<PointT> new_search_pts, new_search_pts_aligned;
+            if (param_.do_erosion_)
+            {
+                pcl::copyPointCloud(*grph_[*vertexIt].cloud_, grph_[*vertexIt].obj_indices_eroded_to_original_, new_search_pts);
+            }
+            else
+            {
+                pcl::copyPointCloud(*grph_[*vertexIt].cloud_, grph_[*vertexIt].obj_indices_3_to_original_, new_search_pts);
+            }
+            pcl::transformPointCloud(new_search_pts, new_search_pts_aligned, transforms[best_transform_id]);
+            *grph_[view].transferred_cluster_ += new_search_pts_aligned;
         }
-#ifdef BLA
-        grph_[view].transferred_nn_points_.indices.resize( keyframes_[0]->points.size() );
+
+        nnSearch(*grph_[view].transferred_cluster_, octree_, obj_mask); //transferred_nn_points_.back().indices);
+
+        grph_[view].transferred_nn_points_.resize( obj_mask.size() );
         size_t kept = 0;
         for (size_t pt_id=0; pt_id < obj_mask.size(); pt_id++)
         {
             if( obj_mask [pt_id] )
             {
-                transferred_nn_points_.back().indices[kept] = pt_id;
+                grph_[view].transferred_nn_points_[kept] = pt_id;
                 kept++;
             }
         }
-        transferred_nn_points_.back().indices.resize( kept );
+        grph_[view].transferred_nn_points_.resize( kept );
+
+        std::cout << "Found " << kept << " points." << std::endl;
     }
+    createMaskFromIndices(grph_[view].transferred_nn_points_, grph_[view].cloud_->points.size(), pixel_is_object);
+    extractPlanePoints(grph_[view].cloud_, grph_[view].normal_, p_param_, planes);
 
-
-    createMaskFromIndices(transferred_nn_points_.back().indices, keyframes_.back()->points.size(), pixel_is_object);
-    extractPlanePoints(keyframes_.back(), normals_.back(), p_param_, planes);
     getPlanesNotSupportedByObjectMask(planes,
-                                      transferred_nn_points_.back(),
+                                      grph_[view].transferred_nn_points_,
                                       planes_wo_obj,
                                       plane_and_nan_points);
 
     // append indices with nan values or points further away than chop_z_ parameter
     std::vector<size_t> nan_indices;
-    nan_indices.resize( keyframes_.back()->points.size() );
+    nan_indices.resize( grph_[view].cloud_->points.size() );
     size_t kept=0;
-    for(size_t pt_id = 0; pt_id<keyframes_.back()->points.size(); pt_id++)
+    for(size_t pt_id = 0; pt_id < grph_[view].cloud_->points.size(); pt_id++)
     {
-        if ( !pcl::isFinite(keyframes_.back()->points[pt_id]) || keyframes_.back()->points[pt_id].z > chop_z_)
+        if ( !pcl::isFinite( grph_[view].cloud_->points[pt_id]) || grph_[view].cloud_->points[pt_id].z > param_.chop_z_)
         {
             nan_indices[kept] = pt_id;
             kept++;
         }
     }
     nan_indices.resize(kept);
-    plane_and_nan_points.indices.insert( plane_and_nan_points.indices.end(),
+    plane_and_nan_points.insert( plane_and_nan_points.end(),
                                          nan_indices.begin(), nan_indices.end() );
 
-    createMaskFromIndices(plane_and_nan_points.indices, keyframes_.back()->points.size(), pixel_is_neglected);
+    createMaskFromIndices(plane_and_nan_points, grph_[view].cloud_->points.size(), pixel_is_neglected);
 
-    updateIndicesConsideringMask(pixel_is_neglected, pixel_is_object, obj_indices_updated->indices, scene_points_.back().indices);
-    pcl::copyPointCloud(*keyframes_.back(), scene_points_.back(), *cloud_filtered);
-    pcl::copyPointCloud(*normals_.back(), scene_points_.back(), *normals_filtered);
-
+    updateIndicesConsideringMask(pixel_is_neglected, pixel_is_object, obj_indices_updated, grph_[view].scene_points_);
+    pcl::copyPointCloud(*grph_[view].cloud_,  grph_[view].scene_points_, *cloud_filtered);
+    pcl::copyPointCloud(*grph_[view].normal_, grph_[view].scene_points_, *normals_filtered);
 
     //#define DEBUG_SEGMENTATION
 #ifdef DEBUG_SEGMENTATION
@@ -941,60 +940,61 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, std::vector<size_t> &in
         vis.spin();
     }
 #endif
-
     updatePointNormalsFromSuperVoxels(cloud_filtered,
                                       normals_filtered,
-                                      obj_indices_updated->indices,
-                                      initial_indices_good_to_unfiltered_.back().indices,
-                                      supervoxeled_clouds_.back());
+                                      obj_indices_updated,
+                                      grph_[view].initial_indices_good_to_unfiltered_,
+                                      grph_[view].supervoxel_cloud_);
 
     extractEuclideanClustersSmooth(cloud_filtered, *normals_filtered,
-                                   initial_indices_good_to_unfiltered_.back().indices,
-                                   obj_indices_2_to_filtered_.back().indices);
+                                   grph_[view].initial_indices_good_to_unfiltered_,
+                                   grph_[view].obj_indices_2_to_filtered_);
 
 
     // Transferring indices corresponding to filtered cloud such that they correspond to original (unfiltered) cloud.
-    obj_indices_3_to_original_.back().indices.resize( obj_indices_2_to_filtered_.back().indices.size() );
-    for (size_t obj_pt_id=0; obj_pt_id<obj_indices_2_to_filtered_.back().indices.size(); obj_pt_id++)
+    grph_[view].obj_indices_3_to_original_.resize( grph_[view].obj_indices_2_to_filtered_.size() );
+    for (size_t obj_pt_id=0; obj_pt_id < grph_[view].obj_indices_2_to_filtered_.size(); obj_pt_id++)
     {
-        obj_indices_3_to_original_.back().indices[obj_pt_id] = scene_points_.back().indices[ obj_indices_2_to_filtered_.back().indices[obj_pt_id] ];
+        grph_[view].obj_indices_3_to_original_[obj_pt_id] = grph_[view].scene_points_[ grph_[view].obj_indices_2_to_filtered_[obj_pt_id] ];
     }
 
-    erodeInitialIndices(*keyframes_.back(), obj_indices_3_to_original_.back(), obj_indices_eroded_to_original_.back());
+    erodeInitialIndices(*grph_[view].cloud_, grph_[view].obj_indices_3_to_original_, grph_[view].obj_indices_eroded_to_original_);
 
-    std::cout << "Found " << transferred_nn_points_.back().indices.size() << " nearest neighbors before growing." << std::endl
-              << "After updatePointNormalsFromSuperVoxels size: " << initial_indices_good_to_unfiltered_.back().indices.size() << std::endl
-              << "size of final cluster: " << obj_indices_2_to_filtered_.back().indices.size() << std::endl
-              << "size of final cluster after erosion: " << obj_indices_eroded_to_original_.back().indices.size() << std::endl << std::endl;
+    std::cout << "Found " << grph_[view].transferred_nn_points_.size() << " nearest neighbors before growing." << std::endl
+              << "After updatePointNormalsFromSuperVoxels size: " << grph_[view].initial_indices_good_to_unfiltered_.size() << std::endl
+              << "size of final cluster: " << grph_[view].obj_indices_2_to_filtered_.size() << std::endl
+              << "size of final cluster after erosion: " << grph_[view].obj_indices_eroded_to_original_.size() << std::endl << std::endl;
 
-    if( i==0 && obj_indices_eroded_to_original_[0].indices.size() < min_points_for_transferring_)
-    {
-        obj_indices_eroded_to_original_[0].indices = transferred_nn_points_[0].indices;
-        std::cout << "After postprocessing the initial frame not enough points are left. Therefore taking the original provided indices." << std::endl;
-    }
-#endif
-}
+//    if( i==0 && obj_indices_eroded_to_original_[0].indices.size() < min_points_for_transferring_)
+//    {
+//        obj_indices_eroded_to_original_[0].indices = transferred_nn_points_[0].indices;
+//        std::cout << "After postprocessing the initial frame not enough points are left. Therefore taking the original provided indices." << std::endl;
+//    }
+    visualize();
     return true;
 }
 
-void DOL::createBigCloud()
+void
+DOL::createBigCloud()
 {
-    for(size_t i=0; i < keyframes_.size(); i++)
+    vertex_iter vertexIt, vertexEnd;
+    for (boost::tie(vertexIt, vertexEnd) = vertices(grph_); vertexIt != vertexEnd; ++vertexIt)
     {
         pcl::PointCloud<PointT>::Ptr cloud_trans (new pcl::PointCloud<PointT>());
         pcl::PointCloud<PointT>::Ptr cloud_trans_filtered (new pcl::PointCloud<PointT>());
-        pcl::transformPointCloud(*keyframes_.back(), *cloud_trans, cameras_.back());
-        pcl::copyPointCloud(*cloud_trans, scene_points_.back(), *cloud_trans_filtered);
+        pcl::transformPointCloud(*grph_[*vertexIt].cloud_, *cloud_trans, grph_[*vertexIt].camera_pose_);
+        pcl::copyPointCloud(*cloud_trans, grph_[*vertexIt].scene_points_, *cloud_trans_filtered);
         *big_cloud_ += *cloud_trans_filtered;
 
         pcl::PointCloud<PointT>::Ptr segmented_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*cloud_trans_filtered, obj_indices_2_to_filtered_.back(), *segmented_trans);
+        pcl::copyPointCloud(*cloud_trans_filtered, grph_[*vertexIt].obj_indices_2_to_filtered_, *segmented_trans);
         *big_cloud_segmented_ += *segmented_trans;
     }
 }
 
 
-void DOL::visualize()
+void
+DOL::visualize()
 {
     if (!vis_reconstructed_)
     {
@@ -1027,88 +1027,92 @@ void DOL::visualize()
     subwindow_title.push_back("before 2D erosion");
     subwindow_title.push_back("after 2D erosion");
 
-    vis_viewpoint_ = v4r::common::pcl_visualizer::visualization_framework (vis_, keyframes_.size(), NUM_SUBWINDOWS, subwindow_title);
+    vis_viewpoint_ = v4r::common::pcl_visualizer::visualization_framework (vis_, boost::num_vertices(grph_), NUM_SUBWINDOWS, subwindow_title);
 
-    for(size_t i=0; i < keyframes_.size(); i++)
+    size_t viewpoint_id = 0;
+    vertex_iter vertexIt, vertexEnd;
+    for (boost::tie(vertexIt, vertexEnd) = vertices(grph_); vertexIt != vertexEnd; ++vertexIt)
     {
         pcl::PointCloud<PointT>::Ptr cloud_trans (new pcl::PointCloud<PointT>());
         pcl::PointCloud<PointT>::Ptr cloud_trans_filtered (new pcl::PointCloud<PointT>());
-        pcl::transformPointCloud(*keyframes_.back(), *cloud_trans, cameras_.back());
-        pcl::copyPointCloud(*cloud_trans, scene_points_.back(), *cloud_trans_filtered);
+        pcl::transformPointCloud(*grph_[*vertexIt].cloud_, *cloud_trans, grph_[*vertexIt].camera_pose_);
+        pcl::copyPointCloud(*cloud_trans, grph_[*vertexIt].scene_points_, *cloud_trans_filtered);
 
         pcl::PointCloud<pcl::PointXYZRGBA>::Ptr sv_trans (new pcl::PointCloud<pcl::PointXYZRGBA>());
-        pcl::transformPointCloud(*supervoxeled_clouds_.back(), *sv_trans, cameras_.back());
+        pcl::transformPointCloud(*grph_[*vertexIt].supervoxel_cloud_, *sv_trans, grph_[*vertexIt].camera_pose_);
 
         pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
         pcl::PointCloud<PointT>::Ptr segmented_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*keyframes_.back(), transferred_nn_points_.back(), *segmented);
-        pcl::transformPointCloud(*segmented, *segmented_trans, cameras_.back());
+        pcl::copyPointCloud(*grph_[*vertexIt].cloud_, grph_[*vertexIt].transferred_nn_points_, *segmented);
+        pcl::transformPointCloud(*segmented, *segmented_trans, grph_[*vertexIt].camera_pose_);
 
         pcl::PointCloud<PointT>::Ptr segmented2_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*cloud_trans_filtered, initial_indices_good_to_unfiltered_.back(), *segmented2_trans);
+        pcl::copyPointCloud(*cloud_trans_filtered, grph_[*vertexIt].initial_indices_good_to_unfiltered_, *segmented2_trans);
 
         pcl::PointCloud<PointT>::Ptr segmented3_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*cloud_trans_filtered, obj_indices_2_to_filtered_.back(), *segmented3_trans);
+        pcl::copyPointCloud(*cloud_trans_filtered, grph_[*vertexIt].obj_indices_2_to_filtered_, *segmented3_trans);
 
         pcl::PointCloud<PointT>::Ptr segmented_eroded_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*cloud_trans, obj_indices_eroded_to_original_.back(), *segmented_eroded_trans);
+        pcl::copyPointCloud(*cloud_trans, grph_[*vertexIt].obj_indices_eroded_to_original_, *segmented_eroded_trans);
 
         std::stringstream cloud_name;
-        cloud_name << "cloud_" << i;
+        cloud_name << "cloud_" << grph_[*vertexIt].id_;
         pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler0(cloud_trans);
-        vis_->addPointCloud(cloud_trans, rgb_handler0, cloud_name.str(), vis_viewpoint_[i * NUM_SUBWINDOWS + 0]);
+        vis_->addPointCloud(cloud_trans, rgb_handler0, cloud_name.str(), vis_viewpoint_[viewpoint_id * NUM_SUBWINDOWS + 0]);
 
         size_t subwindow_id=0;
 
-        if (i>0)
+        if (grph_[*vertexIt].transferred_nn_points_.size())
         {
             cloud_name << "_search_pts";
             pcl::PointCloud<PointT>::Ptr cloud_trans_tmp (new pcl::PointCloud<PointT>());
-            pcl::transformPointCloud(*transferred_cluster_.back(), *cloud_trans_tmp, cameras_.back());
-            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red_source (cloud_trans_tmp, 0, 255, 0);
-            vis_->addPointCloud(cloud_trans_tmp, red_source, cloud_name.str(), vis_viewpoint_[i * NUM_SUBWINDOWS + subwindow_id++]);
+            pcl::transformPointCloud(*grph_[*vertexIt].transferred_cluster_, *cloud_trans_tmp, grph_[*vertexIt].camera_pose_);
+            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> green_source (cloud_trans_tmp, 0, 255, 0);
+            vis_->addPointCloud(cloud_trans_tmp, green_source, cloud_name.str(), vis_viewpoint_[viewpoint_id * NUM_SUBWINDOWS + subwindow_id++]);
         }
         else
         {
             cloud_name << "_search_pts";
             pcl::PointCloud<PointT>::Ptr cloud_trans_tmp (new pcl::PointCloud<PointT>());
             pcl::PointCloud<PointT>::Ptr obj_trans_tmp (new pcl::PointCloud<PointT>());
-            pcl::transformPointCloud(*keyframes_.back(), *cloud_trans_tmp, cameras_.back());
-            pcl::copyPointCloud(*cloud_trans_tmp, transferred_nn_points_.back(), *obj_trans_tmp);
+            pcl::transformPointCloud(*grph_[*vertexIt].cloud_, *cloud_trans_tmp, grph_[*vertexIt].camera_pose_);
+            pcl::copyPointCloud(*cloud_trans_tmp, grph_[*vertexIt].transferred_nn_points_, *obj_trans_tmp);
             pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red_source (obj_trans_tmp, 255, 0, 0);
-            vis_->addPointCloud(obj_trans_tmp, red_source, cloud_name.str(), vis_viewpoint_[i * NUM_SUBWINDOWS + subwindow_id++]);
+            vis_->addPointCloud(obj_trans_tmp, red_source, cloud_name.str(), vis_viewpoint_[viewpoint_id * NUM_SUBWINDOWS + subwindow_id++]);
         }
 
         cloud_name << "_filtered";
         pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler1(cloud_trans_filtered);
-        vis_->addPointCloud(cloud_trans_filtered, rgb_handler1, cloud_name.str(), vis_viewpoint_[i * NUM_SUBWINDOWS + subwindow_id++]);
+        vis_->addPointCloud(cloud_trans_filtered, rgb_handler1, cloud_name.str(), vis_viewpoint_[viewpoint_id * NUM_SUBWINDOWS + subwindow_id++]);
 
         cloud_name << "_supervoxellized";
-        vis_->addPointCloud(sv_trans, cloud_name.str(), vis_viewpoint_[i * NUM_SUBWINDOWS + subwindow_id++]);
+        vis_->addPointCloud(sv_trans, cloud_name.str(), vis_viewpoint_[viewpoint_id * NUM_SUBWINDOWS + subwindow_id++]);
 
         cloud_name << "_nearest_neighbor";
         pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler2(segmented_trans);
-        vis_->addPointCloud(segmented_trans, rgb_handler2, cloud_name.str(), vis_viewpoint_[i * NUM_SUBWINDOWS + subwindow_id++]);
+        vis_->addPointCloud(segmented_trans, rgb_handler2, cloud_name.str(), vis_viewpoint_[viewpoint_id * NUM_SUBWINDOWS + subwindow_id++]);
 
         cloud_name << "_good";
         pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler3(segmented2_trans);
-        vis_->addPointCloud(segmented2_trans, rgb_handler3, cloud_name.str(), vis_viewpoint_[i * NUM_SUBWINDOWS + subwindow_id++]);
+        vis_->addPointCloud(segmented2_trans, rgb_handler3, cloud_name.str(), vis_viewpoint_[viewpoint_id * NUM_SUBWINDOWS + subwindow_id++]);
 
         cloud_name << "_region_grown";
         pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler4(segmented3_trans);
-        vis_->addPointCloud(segmented3_trans, rgb_handler4, cloud_name.str(), vis_viewpoint_[i * NUM_SUBWINDOWS + subwindow_id++]);
+        vis_->addPointCloud(segmented3_trans, rgb_handler4, cloud_name.str(), vis_viewpoint_[viewpoint_id * NUM_SUBWINDOWS + subwindow_id++]);
 
         cloud_name << "_eroded";
         pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler5(segmented_eroded_trans);
-        vis_->addPointCloud(segmented_eroded_trans, rgb_handler5, cloud_name.str(), vis_viewpoint_[i * NUM_SUBWINDOWS + subwindow_id++]);
+        vis_->addPointCloud(segmented_eroded_trans, rgb_handler5, cloud_name.str(), vis_viewpoint_[viewpoint_id * NUM_SUBWINDOWS + subwindow_id++]);
+        viewpoint_id++;
     }
     vis_->spin();
 }
 
 
-void DOL::initialize (int argc, char ** argv)
+void
+DOL::initialize (int argc, char ** argv)
 {
-    if (do_sift_based_camera_pose_estimation_)
+    if (param_.do_sift_based_camera_pose_estimation_)
     {
 #ifdef USE_SIFT_GPU
 
@@ -1127,17 +1131,20 @@ void DOL::initialize (int argc, char ** argv)
     }
 }
 
-void DOL::printParams(std::ostream &ostr)
+void
+DOL::printParams(std::ostream &ostr) const
 {
     ostr << "Started dynamic object learning with parameters: " << std::endl
          << "===================================================" << std::endl
-         << "radius: " << radius_ << std::endl
-         << "eps_angle: " << eps_angle_ << std::endl
-         << "seed resolution: " << seed_resolution_ << std::endl
-         << "voxel resolution: " << voxel_resolution_ << std::endl
-         << "ratio: " << ratio_ << std::endl
-         << "do_erosion: " << do_erosion_ << std::endl
-         << "max z distance: " << chop_z_ << std::endl
-         << "transferring object indices from latest frame only: " << transfer_indices_from_latest_frame_only_ << std::endl
+         << "radius: " << param_.radius_ << std::endl
+         << "eps_angle: " << param_.eps_angle_ << std::endl
+         << "seed resolution: " << param_.seed_resolution_ << std::endl
+         << "voxel resolution: " << param_.voxel_resolution_ << std::endl
+         << "ratio: " << param_.ratio_ << std::endl
+         << "do_erosion: " << param_.do_erosion_ << std::endl
+         << "max z distance: " << param_.chop_z_ << std::endl
+         << "transferring object indices from latest frame only: " << param_.transfer_indices_from_latest_frame_only_ << std::endl
          << "===================================================" << std::endl << std::endl;
+}
+}
 }
