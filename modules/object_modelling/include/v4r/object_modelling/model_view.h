@@ -37,6 +37,9 @@ namespace v4r
             std::vector< size_t > obj_indices_3_to_original_;
             std::vector< size_t > sift_keypoint_indices_;
             Eigen::Matrix4f camera_pose_;
+            Eigen::Matrix4f tracking_pose_;
+            bool tracking_pose_set_ = false;
+            bool camera_pose_set_ = false;
 
             size_t id_; // might be redundant
 

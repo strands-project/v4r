@@ -12,7 +12,7 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/search/octree.h>
 
-#include <3rdparty//SiftGPU/src/SiftGPU/SiftGPU.h>
+#include <3rdparty/SiftGPU/src/SiftGPU/SiftGPU.h>
 #include <v4r/common/keypoint/ClusterNormalsToPlanes.hh>
 #include <v4r/common/keypoint/impl/PointTypes.hpp>
 #include "v4r/object_modelling/model_view.h"
@@ -26,18 +26,67 @@ namespace v4r
 namespace object_modelling
 {
 
-class CamConnect
+struct CamConnect
 {
-public:
-    CamConnect()
+//    typedef boost::property<boost::edge_weight_t, float> EdgeProperty;
+    Eigen::Matrix4f transformation_;
+    float edge_weight;
+    std::string model_name_;
+    size_t source_id_, target_id_;
+//    EdgeProperty boost_edge_weight;
+
+    explicit CamConnect(float w) :
+        edge_weight(w)
     {
 
     }
-    Eigen::Matrix4f transformation_;
-    double edge_weight_;
-    std::string model_name_;
-    std::string source_id_, target_id_;
+
+    CamConnect() : edge_weight(0.f)
+    {
+
+    }
+
+    bool operator<(const CamConnect& e) const {
+        if(edge_weight < e.edge_weight)
+            return true;
+
+        return false;
+    }
+
+    bool operator<=(const CamConnect& e) const {
+        if(edge_weight <= e.edge_weight)
+            return true;
+
+        return false;
+    }
+
+    bool operator>(const CamConnect& e) const {
+        if(edge_weight > e.edge_weight)
+            return true;
+
+        return false;
+    }
+
+    bool operator>=(const CamConnect& e) const {
+        if(edge_weight >= e.edge_weight)
+            return true;
+
+        return false;
+    }
 };
+
+//namespace std {
+//    template<>
+//    struct numeric_limits<CamConnect> {
+//        static CamConnect max() { return CamConnect(numeric_limits<float>::max()); }
+//    };
+//}
+
+//struct CamConnectInfo
+//{
+//    typedef boost::edge_property_tag kind;
+//    static std::size_t const num; // ???
+//};
 
 class DOL
 {
@@ -75,12 +124,23 @@ protected:
     typedef flann::L1<float> DistT;
     typedef pcl::Histogram<128> FeatureT;
 
-    typedef boost::adjacency_list < boost::vecS, boost::vecS, boost::undirectedS,
-             modelView, CamConnect> Graph;
+    typedef boost::property<boost::edge_weight_t, CamConnect> EdgeWeightProperty;
+    typedef boost::adjacency_list < boost::vecS, boost::vecS, boost::undirectedS, size_t, EdgeWeightProperty> Graph;
     typedef boost::graph_traits < Graph >::vertex_descriptor Vertex;
     typedef boost::graph_traits < Graph >::edge_descriptor Edge;
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
-    typedef boost::graph_traits<Graph>::edge_iterator edge_iter;
+    typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
+
+    Graph gs_;
+
+//    typedef boost::property<CamConnectInfo, CamConnect> edge_info_prop_type;
+//    typedef boost::adjacency_list < boost::vecS, boost::vecS, boost::undirectedS,
+//             modelView, CamConnect> Graph;
+//    typedef boost::graph_traits < Graph >::vertex_descriptor Vertex;
+//    typedef boost::graph_traits < Graph >::edge_descriptor Edge;
+//    typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+//    typedef boost::graph_traits<Graph>::edge_iterator edge_iter;
+
 
 //    typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
 
@@ -95,9 +155,12 @@ protected:
 
     std::vector<size_t> LUT_new2old_indices;
     cv::Ptr<SiftGPU> sift_;
-    Graph grph_;
+    std::vector<modelView> grph_;
     size_t counter_;
     pcl::octree::OctreePointCloudSearch<PointT> octree_;
+
+    void computeAbsolutePoses(const Graph & grph,
+                              std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses);
 
     ///radius to select points in other frames to belong to the same object
     /// bootstraps region growing
