@@ -237,12 +237,23 @@ readFloatFromFile (const std::string &file, float& value)
 
 
 bool
-existsFile ( const std::string &rFile ) {
+existsFile ( const std::string &rFile )
+{
     bf::path dir_path = rFile;
     if ( bf::exists ( dir_path ) && bf::is_regular_file(dir_path)) {
         return true;
     } else {
         return false;
+    }
+}
+
+void
+createDirIfNotExist(const std::string & dirs)
+{
+    boost::filesystem::path dir = dirs;
+    if(!boost::filesystem::exists(dir))
+    {
+        boost::filesystem::create_directory(dir);
     }
 }
 

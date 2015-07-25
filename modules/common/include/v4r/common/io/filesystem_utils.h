@@ -79,6 +79,12 @@ namespace v4r
         * @return true if file exsits
         */
         bool existsFile ( const std::string &rFile );
+
+        /** checks if folder already exists and if not, creates one
+          * @param folder_name
+          */
+        void
+        createDirIfNotExist(const std::string & dirs);
       }
   }
 }
