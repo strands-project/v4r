@@ -3,7 +3,6 @@ set(SUBSYS_DESC "v4r object modelling module")
 set(SUBSYS_DEPS v4r_common v4r_common_io v4r_registration v4r_common_keypoint)
 SET(V4R_OBJECT_MODELLING 1 CACHE BOOL "Object modelling module" )
 IF(V4R_OBJECT_MODELLING)
-set(CMAKE_BUILD_TYPE "Debug")
 FIND_PACKAGE (PCL)
 INCLUDE_DIRECTORIES(${PCL_INCLUDE_DIRS})
 add_definitions(${PCL_DEFINITIONS})
@@ -20,6 +19,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 SET(SOURCE_CPP
   src/do_learning.cpp
   src/model_view.cpp
+  src/visualization.cpp
 )
 
 SET(SOURCE_H

@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include <thread>
+#include <iostream>
 
 #include <pcl/common/angles.h>
 #include <pcl/common/time.h>
@@ -50,13 +51,10 @@
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/noise_model_based_cloud_integration.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/common/io/filesystem_utils.h>
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 #include <boost/graph/graphviz.hpp>
-
-#define NUM_SUBWINDOWS 7
 
 //#define USE_SIFT_GPU
 
@@ -209,12 +207,11 @@ DOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
         rej->setInputCorrespondences (temp_correspondences);
         rej->getCorrespondences (*after_rej_correspondences);
 
-        Eigen::Matrix4f bla = rej->getBestTransformation();
-        Eigen::Matrix4f bla2;
+        Eigen::Matrix4f refined_pose;
         transformations.push_back( rej->getBestTransformation () );
         pcl::registration::TransformationEstimationSVD<PointT, PointT> t_est;
-        t_est.estimateRigidTransformation (*pSiftKeypointsSrc, *pSiftKeypointsDst, *after_rej_correspondences, bla2);
-        transformations.back() = bla2;
+        t_est.estimateRigidTransformation (*pSiftKeypointsSrc, *pSiftKeypointsDst, *after_rej_correspondences, refined_pose);
+        transformations.back() = refined_pose;
     }
     else
     {
@@ -575,9 +572,9 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
         export_to_rs << recognition_structure_dir << "/" << model_name << "/";
         std::string export_to = export_to_rs.str();
 
-        createDirIfNotExist(recognition_structure_dir);
-        createDirIfNotExist(models_dir);
-        createDirIfNotExist(export_to);
+        v4r::common::io::createDirIfNotExist(recognition_structure_dir);
+        v4r::common::io::createDirIfNotExist(models_dir);
+        v4r::common::io::createDirIfNotExist(export_to);
 
         std::cout << "Saving " << kept_keyframes << " keyframes from " << num_frames << "." << std::endl;
 
@@ -614,11 +611,6 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
         sor.setStddevMulThresh (3.0);
         sor.filter (*cloud_normals_oriented);
         pcl::io::savePCDFileBinary(path_model.str(), *cloud_normals_oriented);
-
-        //        sensor_msgs::PointCloud2 recognizedModelsRos;
-        //        pcl::toROSMsg (*cloud_normals_oriented, recognizedModelsRos);
-        //        recognizedModelsRos.header.frame_id = "world";
-        //        vis_pc_pub_.publish(recognizedModelsRos);
     }
 
     return true;
@@ -658,7 +650,7 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
             {
                 for (size_t obj_pt_id=0; obj_pt_id<object_mask.size(); obj_pt_id++)
                 {
-                    if (object_mask[obj_pt_id] == planes[cluster_id]->indices[cluster_pt_id])
+                    if (object_mask[obj_pt_id] == static_cast<size_t>(planes[cluster_id]->indices[cluster_pt_id]))
                     {
                         num_obj_pts++;
                     }
@@ -719,62 +711,51 @@ DOL::updateIndicesConsideringMask(const std::vector<bool> &bg_mask,
 }
 
 void
-DOL::computeAbsolutePoses(const Graph & grph,
-                          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses)
+DOL::computeAbsolutePosesRecursive (const Graph & grph,
+                              const Vertex start,
+                              const Eigen::Matrix4f &accum,
+                              std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses,
+                              std::vector<bool> &hop_list)
 {
-    absolute_poses.resize( boost::num_vertices(grph) );
-
-    Vertex source_view = 0;
-    std::vector<Vertex> hop_list;
-    Eigen::Matrix4f accum;
-    accum.setIdentity ();
-    absolute_poses[0] = accum ;
-
-    typedef boost::graph_traits<Graph> GraphTraits;
-    typename GraphTraits::out_edge_iterator out_i, out_end;
-    typename GraphTraits::edge_descriptor e;
-    boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
-
-    bool found_a_new_vertex = true;
-    while( found_a_new_vertex )
+    boost::graph_traits<Graph>::out_edge_iterator ei, ei_end;
+    for (boost::tie (ei, ei_end) = boost::out_edges (start, grph); ei != ei_end; ++ei)
     {
-        hop_list.push_back(source_view);
-        found_a_new_vertex = false;
-        for (tie(out_i, out_end) = out_edges(source_view, grph);
-             out_i != out_end; ++out_i)
+        Vertex targ = boost::target (*ei, grph);
+        size_t target_id = boost::target (*ei, grph);
+        size_t source_id = boost::source (*ei, grph);
+
+        if(hop_list[target_id])
+           continue;
+
+        boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
+        hop_list[target_id] = true;
+        CamConnect my_e = weightmap[*ei];
+        Eigen::Matrix4f intern_accum;
+        Eigen::Matrix4f trans = my_e.transformation_;
+        if( my_e.source_id_ != source_id)
         {
-            e = *out_i;
-            Vertex src = source(e, grph), targ = target(e, grph);
-            assert(src==source_view);
-            bool vrtx_tmp_exists = false;
-            for(size_t i=0; i<hop_list.size(); i++)
-            {
-                if ( targ == hop_list[i] )
-                {
-                    vrtx_tmp_exists = true;
-                    break;
-                }
-            }
-            if ( !vrtx_tmp_exists )
-            {
-                found_a_new_vertex = true;
-                source_view = targ;
-
-                CamConnect my_e = weightmap[e];
-                Eigen::Matrix4f trans = my_e.transformation_;
-                if( my_e.source_id_ == source_view)
-                {
-                    Eigen::Matrix4f trans_inv;
-                    trans_inv = trans.inverse();
-                    trans = trans_inv;
-                }
-
-                accum = accum * trans;
-                absolute_poses [ targ ] = accum ;
-                break;
-            }
+            Eigen::Matrix4f trans_inv;
+            trans_inv = trans.inverse();
+            trans = trans_inv;
         }
+        intern_accum = accum * trans;
+        absolute_poses[target_id] = intern_accum;
+        computeAbsolutePosesRecursive (grph, targ, intern_accum, absolute_poses, hop_list);
     }
+}
+
+void
+DOL::computeAbsolutePoses (const Graph & grph,
+                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses)
+{
+  size_t num_frames = boost::num_vertices(grph);
+  absolute_poses.resize( num_frames );
+  std::vector<bool> hop_list (num_frames, false);
+  Vertex source_view = 0;
+  hop_list[0] = true;
+  Eigen::Matrix4f accum = grph_[0].tracking_pose_;
+  absolute_poses[0] = accum;
+  computeAbsolutePosesRecursive (grph, source_view, accum, absolute_poses, hop_list);
 }
 
 bool
@@ -853,7 +834,6 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
             {
                 try
                 {
-
                     e.model_name_ = "sift_background_matching";
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
                     estimateViewTransformationBySIFT( *grph_[view_id].cloud_, *view.cloud_,
@@ -1051,138 +1031,6 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     return true;
 }
-
-void
-DOL::createBigCloud()
-{
-    for (size_t view_id = 0; view_id < grph_.size(); view_id++)
-    {
-        pcl::PointCloud<PointT>::Ptr cloud_trans (new pcl::PointCloud<PointT>());
-        pcl::PointCloud<PointT>::Ptr cloud_trans_filtered (new pcl::PointCloud<PointT>());
-        pcl::transformPointCloud(*grph_[view_id].cloud_, *cloud_trans, grph_[view_id].camera_pose_);
-        pcl::copyPointCloud(*cloud_trans, grph_[view_id].scene_points_, *cloud_trans_filtered);
-        *big_cloud_ += *cloud_trans_filtered;
-
-        pcl::PointCloud<PointT>::Ptr segmented_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*cloud_trans_filtered, grph_[view_id].obj_indices_2_to_filtered_, *segmented_trans);
-        *big_cloud_segmented_ += *segmented_trans;
-    }
-}
-
-
-void
-DOL::visualize()
-{
-    if (!vis_reconstructed_)
-    {
-        vis_reconstructed_.reset(new pcl::visualization::PCLVisualizer("segmented cloud"));
-        vis_reconstructed_viewpoint_.resize( 2 );
-        vis_reconstructed_->createViewPort(0,0,0.5,1,vis_reconstructed_viewpoint_[0]);
-        vis_reconstructed_->createViewPort(0.5,0,1,1,vis_reconstructed_viewpoint_[1]);
-    }
-    vis_reconstructed_->removeAllPointClouds(vis_reconstructed_viewpoint_[0]);
-    vis_reconstructed_->removeAllPointClouds(vis_reconstructed_viewpoint_[1]);
-    vis_reconstructed_->addPointCloud(big_cloud_, "big", vis_reconstructed_viewpoint_[0]);
-    vis_reconstructed_->addPointCloud(big_cloud_segmented_, "segmented", vis_reconstructed_viewpoint_[1]);
-    vis_reconstructed_->spinOnce();
-
-    if (!vis_) {
-        vis_.reset(new pcl::visualization::PCLVisualizer());
-    }
-    else
-    {
-        for (size_t vp_id=0; vp_id < vis_viewpoint_.size(); vp_id++)
-        {
-            vis_->removeAllPointClouds( vis_viewpoint_[vp_id] );
-        }
-    }
-    std::vector<std::string> subwindow_title;
-    subwindow_title.push_back("original scene");
-    subwindow_title.push_back("filtered scene");
-    subwindow_title.push_back("supervoxelled scene");
-    subwindow_title.push_back("after nearest neighbor search");
-    subwindow_title.push_back("good points");
-    subwindow_title.push_back("before 2D erosion");
-    subwindow_title.push_back("after 2D erosion");
-
-    vis_viewpoint_ = v4r::common::pcl_visualizer::visualization_framework (vis_, grph_.size(), NUM_SUBWINDOWS, subwindow_title);
-
-    for (size_t view_id = 0; view_id < grph_.size(); view_id++)
-    {
-        pcl::PointCloud<PointT>::Ptr cloud_trans (new pcl::PointCloud<PointT>());
-        pcl::PointCloud<PointT>::Ptr cloud_trans_filtered (new pcl::PointCloud<PointT>());
-        pcl::transformPointCloud(*grph_[view_id].cloud_, *cloud_trans, grph_[view_id].camera_pose_);
-        pcl::copyPointCloud(*cloud_trans, grph_[view_id].scene_points_, *cloud_trans_filtered);
-
-        pcl::PointCloud<pcl::PointXYZRGBA>::Ptr sv_trans (new pcl::PointCloud<pcl::PointXYZRGBA>());
-        pcl::transformPointCloud(*grph_[view_id].supervoxel_cloud_, *sv_trans, grph_[view_id].camera_pose_);
-
-        pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
-        pcl::PointCloud<PointT>::Ptr segmented_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].transferred_nn_points_, *segmented);
-        pcl::transformPointCloud(*segmented, *segmented_trans, grph_[view_id].camera_pose_);
-
-        pcl::PointCloud<PointT>::Ptr segmented2_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*cloud_trans_filtered, grph_[view_id].initial_indices_good_to_unfiltered_, *segmented2_trans);
-
-        pcl::PointCloud<PointT>::Ptr segmented3_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*cloud_trans_filtered, grph_[view_id].obj_indices_2_to_filtered_, *segmented3_trans);
-
-        pcl::PointCloud<PointT>::Ptr segmented_eroded_trans (new pcl::PointCloud<PointT>());
-        pcl::copyPointCloud(*cloud_trans, grph_[view_id].obj_indices_eroded_to_original_, *segmented_eroded_trans);
-
-        std::stringstream cloud_name;
-        cloud_name << "cloud_" << grph_[view_id].id_;
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler0(cloud_trans);
-        vis_->addPointCloud(cloud_trans, rgb_handler0, cloud_name.str(), vis_viewpoint_[view_id * NUM_SUBWINDOWS + 0]);
-
-        size_t subwindow_id=0;
-
-        if (!grph_[view_id].is_pre_labelled_)
-        {
-            cloud_name << "_search_pts";
-            pcl::PointCloud<PointT>::Ptr cloud_trans_tmp (new pcl::PointCloud<PointT>());
-            pcl::transformPointCloud(*grph_[view_id].transferred_cluster_, *cloud_trans_tmp, grph_[view_id].camera_pose_);
-            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> green_source (cloud_trans_tmp, 0, 255, 0);
-            vis_->addPointCloud(cloud_trans_tmp, green_source, cloud_name.str(), vis_viewpoint_[view_id * NUM_SUBWINDOWS + subwindow_id++]);
-        }
-        else
-        {
-            cloud_name << "_search_pts";
-            pcl::PointCloud<PointT>::Ptr cloud_trans_tmp (new pcl::PointCloud<PointT>());
-            pcl::PointCloud<PointT>::Ptr obj_trans_tmp (new pcl::PointCloud<PointT>());
-            pcl::transformPointCloud(*grph_[view_id].cloud_, *cloud_trans_tmp, grph_[view_id].camera_pose_);
-            pcl::copyPointCloud(*cloud_trans_tmp, grph_[view_id].transferred_nn_points_, *obj_trans_tmp);
-            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red_source (obj_trans_tmp, 255, 0, 0);
-            vis_->addPointCloud(obj_trans_tmp, red_source, cloud_name.str(), vis_viewpoint_[view_id * NUM_SUBWINDOWS + subwindow_id++]);
-        }
-
-        cloud_name << "_filtered";
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler1(cloud_trans_filtered);
-        vis_->addPointCloud(cloud_trans_filtered, rgb_handler1, cloud_name.str(), vis_viewpoint_[view_id * NUM_SUBWINDOWS + subwindow_id++]);
-
-        cloud_name << "_supervoxellized";
-        vis_->addPointCloud(sv_trans, cloud_name.str(), vis_viewpoint_[view_id * NUM_SUBWINDOWS + subwindow_id++]);
-
-        cloud_name << "_nearest_neighbor";
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler2(segmented_trans);
-        vis_->addPointCloud(segmented_trans, rgb_handler2, cloud_name.str(), vis_viewpoint_[view_id * NUM_SUBWINDOWS + subwindow_id++]);
-
-        cloud_name << "_good";
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler3(segmented2_trans);
-        vis_->addPointCloud(segmented2_trans, rgb_handler3, cloud_name.str(), vis_viewpoint_[view_id * NUM_SUBWINDOWS + subwindow_id++]);
-
-        cloud_name << "_region_grown";
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler4(segmented3_trans);
-        vis_->addPointCloud(segmented3_trans, rgb_handler4, cloud_name.str(), vis_viewpoint_[view_id * NUM_SUBWINDOWS + subwindow_id++]);
-
-        cloud_name << "_eroded";
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler5(segmented_eroded_trans);
-        vis_->addPointCloud(segmented_eroded_trans, rgb_handler5, cloud_name.str(), vis_viewpoint_[view_id * NUM_SUBWINDOWS + subwindow_id++]);
-    }
-    vis_->spin();
-}
-
 
 void
 DOL::initialize (int argc, char ** argv)

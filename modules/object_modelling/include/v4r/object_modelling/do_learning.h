@@ -133,17 +133,6 @@ protected:
 
     Graph gs_;
 
-//    typedef boost::property<CamConnectInfo, CamConnect> edge_info_prop_type;
-//    typedef boost::adjacency_list < boost::vecS, boost::vecS, boost::undirectedS,
-//             modelView, CamConnect> Graph;
-//    typedef boost::graph_traits < Graph >::vertex_descriptor Vertex;
-//    typedef boost::graph_traits < Graph >::edge_descriptor Edge;
-//    typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
-//    typedef boost::graph_traits<Graph>::edge_iterator edge_iter;
-
-
-//    typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
-
     Parameter param_;
     kp::ClusterNormalsToPlanes::Parameter p_param_;
 
@@ -161,6 +150,13 @@ protected:
 
     void computeAbsolutePoses(const Graph & grph,
                               std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses);
+
+    void
+    computeAbsolutePosesRecursive (const Graph &grph,
+                                  const Vertex start,
+                                  const Eigen::Matrix4f &accum,
+                                  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &absolute_poses,
+                                  std::vector<bool> &hop_list);
 
     ///radius to select points in other frames to belong to the same object
     /// bootstraps region growing
@@ -200,15 +196,6 @@ public:
     void erodeInitialIndices(const pcl::PointCloud<PointT> & cloud,
                              const std::vector< size_t > & initial_indices,
                              std::vector< size_t > & eroded_indices);
-
-    static void createDirIfNotExist(const std::string & dirs)
-    {
-        boost::filesystem::path dir = dirs;
-        if(!boost::filesystem::exists(dir))
-        {
-            boost::filesystem::create_directory(dir);
-        }
-    }
 
     bool save_model (const std::string &models_dir = "/tmp/dynamic_models/",
                      const std::string &recognition_structure_dir = "/tmp/recognition_structure_dir/",
