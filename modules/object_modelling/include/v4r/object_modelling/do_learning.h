@@ -104,16 +104,18 @@ public:
         bool transfer_indices_from_latest_frame_only_;
         size_t min_points_for_transferring_;
         int normal_method_;
+        bool do_mst_refinement_;
         Parameter (double radius = 0.005f, double eps_angle = 0.9f, double voxel_resolution = 0.005f,
                    double seed_resolution = 0.03f, double ratio = 0.25f,
                    double chop_z = std::numeric_limits<double>::quiet_NaN(), bool do_erosion = true,
                    bool do_sift_based_camera_pose_estimation = false, bool transfer_indices_from_latest_frame_only = false,
-                   size_t min_points_for_transferring = 10, int normal_method = 1) :
+                   size_t min_points_for_transferring = 10, int normal_method = 1, bool do_mst_refinement = true) :
             radius_(radius), eps_angle_(eps_angle), voxel_resolution_(voxel_resolution),
             seed_resolution_(seed_resolution), ratio_(ratio), chop_z_(chop_z), do_erosion_(do_erosion),
             do_sift_based_camera_pose_estimation_(do_sift_based_camera_pose_estimation),
             transfer_indices_from_latest_frame_only_(transfer_indices_from_latest_frame_only),
-            min_points_for_transferring_(min_points_for_transferring), normal_method_(normal_method)
+            min_points_for_transferring_(min_points_for_transferring), normal_method_(normal_method),
+            do_mst_refinement_(do_mst_refinement)
         {
         }
 
@@ -207,11 +209,17 @@ public:
 
     void initialize (int argc, char ** argv);
 
-    void clearMem()
+    void clear()
     {
         big_cloud_->points.clear();
         big_cloud_segmented_->points.clear();
         LUT_new2old_indices.clear();
+        grph_.clear();
+        counter_=0;
+        gs_.clearing_graph();
+        gs_.clearing_graph();
+        vis_viewpoint_.clear();
+        vis_reconstructed_viewpoint_.clear();
     }
 
     /**
@@ -229,8 +237,7 @@ public:
 
     static void getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                                 const std::vector< size_t > object_mask,
-                                                std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes_dst,
-                                                std::vector< size_t > &all_plane_indices_wo_object,
+                                                std::vector<std::vector<int> > &planes_not_on_object,
                                                 float ratio=0.25);
     void visualize();
 
@@ -248,9 +255,15 @@ public:
      * @param image_size
      * @param object_mask (output)
      */
-    void createMaskFromIndices(const std::vector<size_t> &objectIndices,
+    void createMaskFromIndices(const std::vector<size_t> &indices,
                                 size_t image_size,
-                                std::vector<bool> &object_mask);
+                                std::vector<bool> &mask);
+   void createMaskFromIndices(const std::vector<int> &indices,
+                               size_t image_size,
+                               std::vector<bool> &mask);
+    void createMaskFromVecIndices(const std::vector<std::vector<int> > &indices,
+                                size_t image_size,
+                                std::vector<bool> &mask);
 
     /**
      * @brief this function returns the indices of foreground given the foreground mask and considering all true pixels in background mask are being removed

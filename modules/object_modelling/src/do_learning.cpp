@@ -633,13 +633,12 @@ DOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
 void
 DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                             const std::vector< size_t > object_mask,
-                                            std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes_dst,
-                                            std::vector< size_t > &all_plane_indices_wo_object,
+                                            std::vector< std::vector<int> > &planes_not_on_object,
                                             float ratio)
 {
-    planes_dst.clear();
-    all_plane_indices_wo_object.clear();
+    planes_not_on_object.resize(planes.size());
 
+    size_t kept=0;
     for(size_t cluster_id=0; cluster_id<planes.size(); cluster_id++)
     {
         size_t num_obj_pts = 0;
@@ -659,26 +658,54 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
 
             if ( num_obj_pts < ratio * planes[cluster_id]->indices.size() )
             {
-                planes_dst.push_back( planes[cluster_id] );
-                all_plane_indices_wo_object.insert(all_plane_indices_wo_object.end(),
-                                                   planes[cluster_id]->indices.begin(),
-                                                   planes[cluster_id]->indices.end());
+                planes_not_on_object[kept] = planes[cluster_id]->indices;
+                kept++;
             }
-
         }
+    }
+    planes_not_on_object.resize(kept);
+}
+
+void
+DOL::createMaskFromIndices(const std::vector<size_t> &indices,
+                                 size_t image_size,
+                                 std::vector<bool> &mask)
+{
+    if ( mask.size() != image_size )
+        mask = std::vector<bool>( image_size, false );
+
+    for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
+    {
+        mask [ indices[obj_pt_id] ] = true;
+    }
+}
+
+
+void
+DOL::createMaskFromIndices(const std::vector<int> &indices,
+                                 size_t image_size,
+                                 std::vector<bool> &mask)
+{
+    if ( mask.size() != image_size )
+        mask = std::vector<bool>( image_size, false );
+
+    for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
+    {
+        mask [ indices[obj_pt_id] ] = true;
     }
 }
 
 void
-DOL::createMaskFromIndices( const std::vector<size_t> &objectIndices,
+DOL::createMaskFromVecIndices( const std::vector< std::vector<int> > &v_indices,
                                  size_t image_size,
                                  std::vector<bool> &mask)
 {
-    mask = std::vector<bool>( image_size, false );
+    if ( mask.size() != image_size )
+        mask = std::vector<bool>( image_size, false );
 
-    for (size_t obj_pt_id = 0; obj_pt_id < objectIndices.size(); obj_pt_id++)
+    for(size_t i=0; i<v_indices.size(); i++)
     {
-        mask [objectIndices[obj_pt_id]] = true;
+        createMaskFromIndices(v_indices[i], image_size, mask);
     }
 }
 
@@ -776,9 +803,9 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>());
     pcl::PointCloud<pcl::Normal>::Ptr normals_filtered (new pcl::PointCloud<pcl::Normal>());
-    std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> planes, planes_wo_obj;
+    std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> planes;
+    std::vector< std::vector<int> > planes_not_on_obj;
     std::vector< size_t > obj_indices_updated;
-    std::vector< size_t > plane_and_nan_points;
     std::vector<bool> pixel_is_object;
     std::vector<bool> pixel_is_neglected;
 
@@ -879,26 +906,30 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
             boost::add_edge (transforms[best_transform_id].source_id_, transforms[best_transform_id].target_id_, transforms[best_transform_id], gs_);
 
         }
-        boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
-        std::vector < Edge > spanning_tree;
-        boost::kruskal_minimum_spanning_tree(gs_, std::back_inserter(spanning_tree));
 
-        Graph grph_mst;
-        std::cout << "Print the edges in the MST:" << std::endl;
-        for (std::vector < Edge >::iterator ei = spanning_tree.begin(); ei != spanning_tree.end(); ++ei)
+        if(param_.do_mst_refinement_)
         {
-            CamConnect my_e = weightmap[*ei];
-            std::cout << "[" << source(*ei, gs_) << "->" << target(*ei, gs_) << "] with weight " << my_e.edge_weight << " by " << my_e.model_name_ << std::endl;
-            boost::add_edge(source(*ei, gs_), target(*ei, gs_), weightmap[*ei], grph_mst);
-        }
+            boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
+            std::vector < Edge > spanning_tree;
+            boost::kruskal_minimum_spanning_tree(gs_, std::back_inserter(spanning_tree));
+
+            Graph grph_mst;
+            std::cout << "Print the edges in the MST:" << std::endl;
+            for (std::vector < Edge >::iterator ei = spanning_tree.begin(); ei != spanning_tree.end(); ++ei)
+            {
+                CamConnect my_e = weightmap[*ei];
+                std::cout << "[" << source(*ei, gs_) << "->" << target(*ei, gs_) << "] with weight " << my_e.edge_weight << " by " << my_e.model_name_ << std::endl;
+                boost::add_edge(source(*ei, gs_), target(*ei, gs_), weightmap[*ei], grph_mst);
+            }
 
 
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_poses;
-        computeAbsolutePoses(grph_mst, absolute_poses);
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_poses;
+            computeAbsolutePoses(grph_mst, absolute_poses);
 
-        for(size_t view_id=0; view_id<absolute_poses.size(); view_id++)
-        {
-            grph_[ view_id ].camera_pose_ = absolute_poses [ view_id ];
+            for(size_t view_id=0; view_id<absolute_poses.size(); view_id++)
+            {
+                grph_[ view_id ].camera_pose_ = absolute_poses [ view_id ];
+            }
         }
 
         for (size_t view_id = 0; view_id < grph_.size(); view_id++)
@@ -941,26 +972,24 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     getPlanesNotSupportedByObjectMask(planes,
                                       view.transferred_nn_points_,
-                                      planes_wo_obj,
-                                      plane_and_nan_points);
+                                      planes_not_on_obj);
 
     // append indices with nan values or points further away than chop_z_ parameter
-    std::vector<size_t> nan_indices;
+    std::vector<int> nan_indices;
     nan_indices.resize( view.cloud_->points.size() );
     size_t kept=0;
     for(size_t pt_id = 0; pt_id < view.cloud_->points.size(); pt_id++)
     {
         if ( !pcl::isFinite( view.cloud_->points[pt_id]) || view.cloud_->points[pt_id].z > param_.chop_z_)
         {
-            nan_indices[kept] = pt_id;
+            nan_indices[kept] = (int)pt_id;
             kept++;
         }
     }
     nan_indices.resize(kept);
-    plane_and_nan_points.insert( plane_and_nan_points.end(),
-                                         nan_indices.begin(), nan_indices.end() );
+    planes_not_on_obj.push_back(nan_indices);
 
-    createMaskFromIndices(plane_and_nan_points, view.cloud_->points.size(), pixel_is_neglected);
+    createMaskFromVecIndices(planes_not_on_obj, view.cloud_->points.size(), pixel_is_neglected);
 
     updateIndicesConsideringMask(pixel_is_neglected, pixel_is_object, obj_indices_updated, view.scene_points_);
     pcl::copyPointCloud(*view.cloud_,  view.scene_points_, *cloud_filtered);
