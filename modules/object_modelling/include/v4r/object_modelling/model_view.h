@@ -28,14 +28,10 @@ namespace v4r
             pcl::PointCloud<FeatureT>::Ptr  sift_signatures_;
             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr  supervoxel_cloud_;
 
-            std::vector< size_t > obj_indices_eroded_to_original_;
-            std::vector< size_t > obj_indices_2_to_filtered_;
             std::vector< size_t > scene_points_;
-            std::vector< size_t > transferred_nn_points_;
-            std::vector< size_t > transferred_object_indices_without_plane_;
-            std::vector< size_t > initial_indices_good_to_unfiltered_;
-            std::vector< size_t > obj_indices_3_to_original_;
             std::vector< size_t > sift_keypoint_indices_;
+
+            std::vector< std::vector <size_t> > obj_indices_in_step_;
             Eigen::Matrix4f camera_pose_;
             Eigen::Matrix4f tracking_pose_;
             bool tracking_pose_set_ = false;

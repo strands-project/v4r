@@ -15,7 +15,8 @@
 #include <3rdparty/SiftGPU/src/SiftGPU/SiftGPU.h>
 #include <v4r/common/keypoint/ClusterNormalsToPlanes.hh>
 #include <v4r/common/keypoint/impl/PointTypes.hpp>
-#include "v4r/object_modelling/model_view.h"
+#include <v4r/common/noise_model_based_cloud_integration.h>
+#include <v4r/object_modelling/model_view.h>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/filesystem.hpp>
@@ -95,6 +96,7 @@ public:
     public:
         double radius_;
         double eps_angle_;
+        double dist_threshold_growing_;
         double voxel_resolution_;
         double seed_resolution_;
         double ratio_;
@@ -105,20 +107,42 @@ public:
         size_t min_points_for_transferring_;
         int normal_method_;
         bool do_mst_refinement_;
-        Parameter (double radius = 0.005f, double eps_angle = 0.9f, double voxel_resolution = 0.005f,
-                   double seed_resolution = 0.03f, double ratio = 0.25f,
-                   double chop_z = std::numeric_limits<double>::quiet_NaN(), bool do_erosion = true,
-                   bool do_sift_based_camera_pose_estimation = false, bool transfer_indices_from_latest_frame_only = false,
-                   size_t min_points_for_transferring = 10, int normal_method = 1, bool do_mst_refinement = true) :
-            radius_(radius), eps_angle_(eps_angle), voxel_resolution_(voxel_resolution),
-            seed_resolution_(seed_resolution), ratio_(ratio), chop_z_(chop_z), do_erosion_(do_erosion),
+        Parameter (double radius = 0.005f,
+                   double eps_angle = 0.9f,
+                   double dist_threshold_growing = 0.05f,
+                   double voxel_resolution = 0.005f,
+                   double seed_resolution = 0.03f,
+                   double ratio = 0.25f,
+                   double chop_z = std::numeric_limits<double>::quiet_NaN(),
+                   bool do_erosion = true,
+                   bool do_sift_based_camera_pose_estimation = false,
+                   bool transfer_indices_from_latest_frame_only = false,
+                   size_t min_points_for_transferring = 10,
+                   int normal_method = 1,
+                   bool do_mst_refinement = true) :
+            radius_(radius),
+            eps_angle_(eps_angle),
+            dist_threshold_growing_(dist_threshold_growing),
+            voxel_resolution_(voxel_resolution),
+            seed_resolution_(seed_resolution),
+            ratio_(ratio),
+            chop_z_(chop_z),
+            do_erosion_(do_erosion),
             do_sift_based_camera_pose_estimation_(do_sift_based_camera_pose_estimation),
             transfer_indices_from_latest_frame_only_(transfer_indices_from_latest_frame_only),
-            min_points_for_transferring_(min_points_for_transferring), normal_method_(normal_method),
+            min_points_for_transferring_(min_points_for_transferring),
+            normal_method_(normal_method),
             do_mst_refinement_(do_mst_refinement)
         {
         }
 
+    };
+
+    enum MASK_OPERATOR{
+        AND,
+        AND_N, // this will negate the second argument
+        OR,
+        XOR
     };
 
 protected:
@@ -137,9 +161,12 @@ protected:
 
     Parameter param_;
     kp::ClusterNormalsToPlanes::Parameter p_param_;
+    v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nm_int_param_;
 
     pcl::PointCloud<PointT>::Ptr big_cloud_;
     pcl::PointCloud<PointT>::Ptr big_cloud_segmented_;
+    pcl::PointCloud<PointT>::Ptr big_cloud_refined_;
+    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr big_cloud_segmented_refined_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_;
     std::vector<int> vis_reconstructed_viewpoint_;
     std::vector<int> vis_viewpoint_;
@@ -177,9 +204,18 @@ public:
         p_param_.inlDistSmooth=0.02;
         p_param_.minPointsSmooth=20;    // minimum number for a segment other than a plane
 
+        nm_int_param_.final_resolution_ = 0.002f;
+        nm_int_param_.min_points_per_voxel_ = 1;
+        nm_int_param_.min_weight_ = 0.5f;
+        nm_int_param_.octree_resolution_ = 0.002f;
+        nm_int_param_.threshold_ss_ = 0.01f;
+
         big_cloud_.reset(new pcl::PointCloud<PointT>);
         big_cloud_segmented_.reset(new pcl::PointCloud<PointT>);
-
+        big_cloud_refined_.reset(new pcl::PointCloud<PointT>);
+        big_cloud_segmented_refined_.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+        vis_.reset();
+        vis_reconstructed_.reset();
         counter_ = 0;
     }
 
@@ -195,7 +231,7 @@ public:
                                            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud);
 
 
-    void erodeInitialIndices(const pcl::PointCloud<PointT> & cloud,
+    void erodeIndices(const pcl::PointCloud<PointT> & cloud,
                              const std::vector< size_t > & initial_indices,
                              std::vector< size_t > & eroded_indices);
 
@@ -213,11 +249,13 @@ public:
     {
         big_cloud_->points.clear();
         big_cloud_segmented_->points.clear();
+        big_cloud_refined_->points.clear();
+        big_cloud_segmented_refined_->points.clear();
         LUT_new2old_indices.clear();
         grph_.clear();
         counter_=0;
         gs_.clearing_graph();
-        gs_.clearing_graph();
+        gs_.clear();
         vis_viewpoint_.clear();
         vis_reconstructed_viewpoint_.clear();
     }
@@ -230,9 +268,8 @@ public:
      * @param p_param
      * @param planes
      */
-    static void extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
+    void extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                             const pcl::PointCloud<pcl::Normal>::ConstPtr &normals,
-                            const kp::ClusterNormalsToPlanes::Parameter p_param,
                             std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes);
 
     static void getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
@@ -240,6 +277,15 @@ public:
                                                 std::vector<std::vector<int> > &planes_not_on_object,
                                                 float ratio=0.25);
     void visualize();
+
+    /**
+     * @brief performs bit wise logical operations
+     * @param bit mask1
+     * @param bit mask2
+     * @param operation (AND, AND_N, OR, XOR)
+     * @return output bit mask
+     */
+    std::vector<bool> logical_operation(const std::vector<bool> &mask1, const std::vector<bool> &mask2, int operation=MASK_OPERATOR::OR);
 
     /**
      * @brief transforms each keyframe to global coordinate system using given camera
@@ -258,24 +304,15 @@ public:
     void createMaskFromIndices(const std::vector<size_t> &indices,
                                 size_t image_size,
                                 std::vector<bool> &mask);
-   void createMaskFromIndices(const std::vector<int> &indices,
+    void createMaskFromIndices(const std::vector<int> &indices,
                                size_t image_size,
                                std::vector<bool> &mask);
     void createMaskFromVecIndices(const std::vector<std::vector<int> > &indices,
                                 size_t image_size,
                                 std::vector<bool> &mask);
 
-    /**
-     * @brief this function returns the indices of foreground given the foreground mask and considering all true pixels in background mask are being removed
-     * @param background_mask (if true, pixel is neglected / not being part of the scene)
-     * @param foreground_mask
-     * @param new_foreground_indices (output)
-     * @param indices of original image which belong to the scene (output)
-     */
-    void updateIndicesConsideringMask(const std::vector<bool> &background_mask,
-                                           const std::vector<bool> &foreground_mask,
-                                           std::vector<size_t> &new_foreground_indices,
-                                           std::vector<size_t> &old_bg_indices);
+    std::vector<size_t>
+    createIndicesFromMask(const std::vector<bool> &mask, bool invert=false);
 
     void computeNormals(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                         pcl::PointCloud<pcl::Normal>::Ptr &normals, int method);

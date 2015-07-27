@@ -18,7 +18,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 SET(SOURCE_CPP
   src/do_learning.cpp
-  src/model_view.cpp
   src/visualization.cpp
 )
 
