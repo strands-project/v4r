@@ -81,7 +81,7 @@ namespace v4r
 
     //typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
-    std::vector<Eigen::Matrix4f> absolute_poses_camera_to_global_;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_poses_camera_to_global_;
     std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > occ_clouds_;
 
     static float sRGB_LUT[256];
@@ -182,7 +182,7 @@ namespace v4r
 
       //for each cloud, we will need a pose
       //then the models will be checked against all of them
-      void setAbsolutePoses(std::vector<Eigen::Matrix4f> & absolute_poses_camera_to_global)
+      void setAbsolutePoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses_camera_to_global)
       {
         absolute_poses_camera_to_global_ = absolute_poses_camera_to_global;
       }
