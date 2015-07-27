@@ -230,7 +230,7 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
         int clouds_session = session_ranges[i].second - session_ranges[i].first + 1;
         std::vector<std::vector<float> > weights(clouds_session);
         std::vector<typename pcl::PointCloud<PointT>::Ptr> clouds(clouds_session);
-        std::vector<Eigen::Matrix4f> poses(clouds_session);
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses(clouds_session);
         std::vector<std::vector<int> > indices(clouds_session);
         std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals(clouds_session);
 

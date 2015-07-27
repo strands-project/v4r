@@ -10,21 +10,20 @@
 #include <v4r/common/organized_edge_detection.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/transforms.h>
-#include "v4r/common/miscellaneous.h"
 
-template<typename PointT>
-v4r::utils::NMBasedCloudIntegration<PointT>::NMBasedCloudIntegration ()
+namespace v4r
 {
-    nm_params_.octree_resolution_ = 0.005f;
-    nm_params_.min_weight_ = 0.9f;
-    nm_params_.min_points_per_voxel_ = 0;
-    nm_params_.threshold_ss_ = 0.003f;
-    nm_params_.max_distance_ = 5.f;
+namespace utils
+{
+template<typename PointT>
+NMBasedCloudIntegration<PointT>::NMBasedCloudIntegration(const Parameter &p) : param_(p)
+{
+
 }
 
 template<typename PointT>
 void
-v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
+NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
 {
 
     input_clouds_used_.resize(input_clouds_.size());
@@ -45,14 +44,14 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
 
             float dist = input_clouds_used_[i]->points[k].getVector3fMap().norm();
 
-            if(dist > nm_params_.max_distance_)
+            if(dist > param_.max_distance_)
             {
                 input_clouds_used_[i]->points[k].x = input_clouds_used_[i]->points[k].y = input_clouds_used_[i]->points[k].z = bad_value;
                 noise_weights_[i][k] = 0.f;
                 continue;
             }
 
-            if(noise_weights_[i][k] < nm_params_.min_weight_)
+            if(noise_weights_[i][k] < param_.min_weight_)
             {
                 input_clouds_used_[i]->points[k].x = input_clouds_used_[i]->points[k].y = input_clouds_used_[i]->points[k].z = bad_value;
                 noise_weights_[i][k] = 0.f;
@@ -108,7 +107,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
             pcl::copyPointCloud(*cloud, indices_[i], *cloud);
             *big_cloud += *cloud;
 
-            for (int j=0;j<indices_[i].size();j++)
+            for (size_t j=0;j<indices_[i].size();j++)
             {
                 weights_points_in_octree_.push_back(noise_weights_[i][indices_[i][j]]);
             }
@@ -128,7 +127,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
         }
     }
 
-    std::vector<std::pair<int, int> > big_cloud_to_input_clouds;
+    std::vector<std::pair<size_t, size_t> > big_cloud_to_input_clouds;
     big_cloud_to_input_clouds.resize(big_cloud->points.size());
     int idx = 0;
     for(size_t i=0; i < input_clouds_used_.size(); i++)
@@ -137,7 +136,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
         {
             for(size_t k=0; k < input_clouds_used_[i]->points.size(); k++, idx++)
             {
-                big_cloud_to_input_clouds[idx] = std::make_pair((int)i, int(k));
+                big_cloud_to_input_clouds[idx] = std::make_pair(i, k);
             }
         }
         else
@@ -145,9 +144,9 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
             std::cout << "input point size: " << input_clouds_used_[i]->points.size() << std::endl;
             std::cout << "indices size: " << indices_[i].size() << std::endl;
 
-            for (int k=0;k<indices_[i].size();k++, idx++)
+            for (size_t k=0; k<indices_[i].size(); k++, idx++)
             {
-                big_cloud_to_input_clouds[idx] = std::make_pair((int)i, int(indices_[i][k]));
+                big_cloud_to_input_clouds[idx] = std::make_pair(i, indices_[i][k]);
             }
         }
     }
@@ -203,7 +202,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
 
             //Check if point depth (distance to camera) is greater than the (u,v)
             //std::cout << std::abs(p[2] - z_oc) << std::endl;
-            if(std::abs(p[2] - z_oc) > nm_params_.threshold_ss_)
+            if(std::abs(p[2] - z_oc) > param_.threshold_ss_)
             {
                 //in front or behind
                 infront_or_behind++;
@@ -255,7 +254,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
         }
 
         weights_points_in_octree_ = new_weights_;
-        octree_.reset(new pcl::octree::OctreePointCloudPointVector<PointT>(nm_params_.octree_resolution_));
+        octree_.reset(new pcl::octree::OctreePointCloudPointVector<PointT>(param_.octree_resolution_));
         octree_->setInputCloud(big_cloud_filtered);
         octree_->addPointsFromInputCloud();
     }
@@ -281,10 +280,10 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
         std::vector<int> indexVector;
         container.getPointIndices (indexVector);
 
-        if(indexVector.size() < nm_params_.min_points_per_voxel_)
+        if(indexVector.size() < param_.min_points_per_voxel_)
             continue;
 
-        if( nm_params_.final_resolution_ == -1)
+        if( param_.final_resolution_ == -1)
         {
             for(size_t k=0; k < indexVector.size(); k++)
             {
@@ -309,7 +308,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
         {
             for(size_t k=0; k < indexVector.size(); k++)
             {
-                if(weights_points_in_octree_[indexVector[k]] < nm_params_.min_weight_)
+                if(weights_points_in_octree_[indexVector[k]] < param_.min_weight_)
                     continue;
 
                 p.getVector3fMap() = p.getVector3fMap() +  octree_->getInputCloud()->points[indexVector[k]].getVector3fMap();
@@ -348,7 +347,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
 
             for(size_t k=0; k < indexVector.size(); k++)
             {
-                if(weights_points_in_octree_[indexVector[k]] < nm_params_.min_weight_)
+                if(weights_points_in_octree_[indexVector[k]] < param_.min_weight_)
                     continue;
 
                 if(weights_points_in_octree_[indexVector[k]] < max_weight)
@@ -391,8 +390,8 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
     {
         if(!indices_big_cloud_keep[k])
         {
-            int idx_c = big_cloud_to_input_clouds[k].first;
-            int idx_p = big_cloud_to_input_clouds[k].second;
+            size_t idx_c = big_cloud_to_input_clouds[k].first;
+            size_t idx_p = big_cloud_to_input_clouds[k].second;
             input_clouds_used_[idx_c]->points[idx_p].x =
             input_clouds_used_[idx_c]->points[idx_p].y =
             input_clouds_used_[idx_c]->points[idx_p].z = bad_value;
@@ -614,5 +613,7 @@ v4r::utils::NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
     output->is_dense = true;*/
 }
 
-template class v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB>;
+template class NMBasedCloudIntegration<pcl::PointXYZRGB>;
 //template class faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
+}
+}
