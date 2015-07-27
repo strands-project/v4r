@@ -1022,7 +1022,7 @@ bool MultiviewRecognizer::recognize
             //visualize the model hypotheses
             std::vector<pcl::PointCloud<PointT>::ConstPtr> aligned_models (grph_final_[vrtx_final].hypothesis_mv_.size());
             std::vector < std::string > ids (grph_final_[vrtx_final].hypothesis_mv_.size());
-            std::vector < Eigen::Matrix4f > transforms_to_global;
+            std::vector < Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>  > transforms_to_global;
             std::vector<typename pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals (grph_final_[vrtx_final].hypothesis_mv_.size());
 
             for (vp = vertices (grph_final_); vp.first != vp.second; ++vp.first)
