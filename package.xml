@@ -31,13 +31,19 @@
   <build_depend>suitesparse</build_depend>
   <build_depend>libpcl-all-dev</build_depend>
   <build_depend>libopenni-dev</build_depend>
+  <build_depend>libceres-dev</build_depend>
   <build_depend>atlas</build_depend>
   <build_depend>boost</build_depend>
   <build_depend>libopencv-dev</build_depend>
+  <build_depend>libglew-dev</build_depend>
+  <build_depend>freeglut3-dev</build_depend>
 
   <run_depend>libpcl-all-dev</run_depend>
   <run_depend>atlas</run_depend>
   <run_depend>libopencv-dev</run_depend>
+  <run_depend>libceres-dev</run_depend>
+  <run_depend>libglew-dev</run_depend>
+  <run_depend>freeglut3-dev</run_depend>
 
   <export>
 	<build_type>cmake</build_type>
