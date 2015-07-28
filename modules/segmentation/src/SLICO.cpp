@@ -528,7 +528,7 @@ void SLICO::GetKValues_LABXYZ(
 	vector<double>&				kseedsz,
         const int&				STEP)
 {
-    const bool hexgrid = false;
+    //const bool hexgrid = false;
 	int numseeds(0);
 	int n(0);
 

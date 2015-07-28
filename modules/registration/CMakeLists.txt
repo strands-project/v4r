@@ -15,7 +15,6 @@ link_directories(${OPENCV_LIBRARY_DIRS})
 
 FIND_PACKAGE(Ceres)
 IF(${Ceres_FOUND})
-  message("****************${Ceres_VERSION}**************")
   INCLUDE_DIRECTORIES(${CERES_INCLUDES})
   IF(${Ceres_VERSION} EQUAL 1.8.0)
     add_definitions(-DCERES_VERSION_LESS_1_9_0)
