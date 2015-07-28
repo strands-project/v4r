@@ -1,4 +1,3 @@
-#include "v4r/registration/MvLMIcp.h"
 #include <pcl/common/transforms.h>
 #include "ceres/cost_function.h"
 #include "ceres/ceres.h"
@@ -6,6 +5,82 @@
 #include "ceres/conditioned_cost_function.h"
 #include <boost/scoped_ptr.hpp>
 #include <v4r/common/miscellaneous.h>
+#include <v4r/registration/MvLMIcp.h>
+
+//#define USE_QUATERNIONS_AUTO_DIFF
+
+template<typename T>
+struct JetOps {
+    static bool IsScalar() {
+        return true;
+    }
+    static T GetScalar(const T& t) {
+        return t;
+    }
+    static void SetScalar(const T& scalar, T* t) {
+        *t = scalar;
+    }
+    static void ScaleDerivative(double scale_by, T *value) {
+        // For double, there is no derivative to scale.
+        (void) scale_by; // Ignored.
+        (void) value; // Ignored.
+    }
+};
+template<typename T, int N>
+struct JetOps<ceres::Jet<T, N> > {
+    static bool IsScalar() {
+        return false;
+    }
+    static T GetScalar(const ceres::Jet<T, N>& t) {
+        return t.a;
+    }
+    static void SetScalar(const T& scalar, ceres::Jet<T, N>* t) {
+        t->a = scalar;
+    }
+    static void ScaleDerivative(double scale_by, ceres::Jet<T, N> *value) {
+        value->v *= scale_by;
+    }
+};
+template<typename FunctionType, int kNumArgs, typename ArgumentType>
+struct Chain {
+    static ArgumentType Rule(const FunctionType &f,
+                             const FunctionType dfdx[kNumArgs],
+                             const ArgumentType x[kNumArgs]) {
+        // In the default case of scalars, there's nothing to do since there are no
+        // derivatives to propagate.
+        (void) dfdx; // Ignored.
+        (void) x; // Ignored.
+        return f;
+    }
+};
+// XXX Add documentation here!
+template<typename FunctionType, int kNumArgs, typename T, int N>
+struct Chain<FunctionType, kNumArgs, ceres::Jet<T, N> > {
+    static ceres::Jet<T, N> Rule(const FunctionType &f,
+                                 const FunctionType dfdx[kNumArgs],
+                                 const ceres::Jet<T, N> x[kNumArgs])
+    {
+        // x is itself a function of another variable ("z"); what this function
+        // needs to return is "f", but with the derivative with respect to z
+        // attached to the jet. So combine the derivative part of x's jets to form
+        // a Jacobian matrix between x and z (i.e. dx/dz).
+        Eigen::Matrix<T, kNumArgs, N> dxdz;
+        for (int i = 0; i < kNumArgs; ++i)
+        {
+            dxdz.row(i) = x[i].v.transpose();
+        }
+
+        // Map the input gradient dfdx into an Eigen row vector.
+        Eigen::Map<const Eigen::Matrix<FunctionType, 1, kNumArgs> > vector_dfdx(dfdx, 1, kNumArgs);
+
+        // Now apply the chain rule to obtain df/dz. Combine the derivative with
+        // the scalar part to obtain f with full derivative information.
+        ceres::Jet<T, N> jet_f;
+        jet_f.a = f;
+        jet_f.v = vector_dfdx.template cast<T>() * dxdz; // Also known as dfdz.
+        return jet_f;
+    }
+};
 
 inline Eigen::Matrix3d coolquat_to_mat(Eigen::Quaterniond & q)
 {
@@ -100,6 +175,159 @@ public:
     }
 };
 
+template<class PointT>
+class RegistrationCostFunctionAutoDiff
+{
+
+private:
+    typename v4r::Registration::MvLMIcp<PointT> * nl_icp;
+
+    //view indices considered for this block
+    int h_;
+    int k_;
+
+public:
+
+    RegistrationCostFunctionAutoDiff(typename v4r::Registration::MvLMIcp<PointT> * data, int h, int k)
+    {
+        nl_icp = data;
+        h_ = h;
+        k_ = k;
+    }
+
+    template <typename T>
+    bool operator()(const T* const params_h,
+                    const T* const params_k,
+                    T* residual) const
+    {
+
+        //params_h and params_k (first 3 elements are rotation, 4 to 6 are translation)
+        Eigen::Matrix<T, 4, 4> T_h, T_k, T_hk;
+        T_h.setIdentity();
+        T_k.setIdentity();
+
+        Eigen::Matrix<T, 3, 3> R_h, R_k, R_hk;
+
+        ceres::AngleAxisToRotationMatrix(params_h, R_h.data());
+        ceres::AngleAxisToRotationMatrix(params_k, R_k.data());
+
+        for(int i=0; i < 3; i++)
+        {
+            for(int j=0; j < 3; j++)
+            {
+                T_h(i,j) = R_h(i,j);
+                T_k(i,j) = R_k(i,j);
+            }
+        }
+
+        for(int k=0; k < 3; k++)
+        {
+            T_h(k, 3) = *(params_h + 3 + k);
+            T_k(k, 3) = *(params_k + 3 + k);
+        }
+
+        T_hk = T_k.inverse() * T_h;
+
+        for(int i=0; i < 3; i++)
+        {
+            for(int j=0; j < 3; j++)
+            {
+                R_hk(i,j) = T_hk(i,j);
+                R_hk(i,j) = T_hk(i,j);
+            }
+        }
+
+        for(size_t i=0; i < nl_icp->clouds_transformed_with_ip_[h_]->points.size(); i++)
+        {
+            Eigen::Vector4f p = nl_icp->clouds_transformed_with_ip_[h_]->points[i].getVector4fMap();
+
+            T w = T(1);
+
+            //transform p to original CS of k, then we can add the gradient from k at that location
+            Eigen::Matrix<T, 4, 1> pt;
+            pt[0] = T(p[0]); pt[1] = T(p[1]); pt[2] = T(p[2]); pt[3] = T(1);
+            pt = T_hk * pt;
+
+            //residual is simply the distance from pt to the NN in point cloud k_
+            float x,y,z;
+            x = float(JetOps<T>::GetScalar(pt[0]));
+            y = float(JetOps<T>::GetScalar(pt[1]));
+            z = float(JetOps<T>::GetScalar(pt[2]));
+
+            PointT p_at_k;
+            p_at_k.getVector3fMap() = Eigen::Vector3f(x,y,z);
+
+            float dist;
+            int idx;
+            nl_icp->distance_transforms_[k_]->getCorrespondence(p_at_k, &idx, &dist, 0, 0);
+
+            //float dist = nl_icp->distance_transforms_[k_]->getCorrespondence(x,y,z);
+
+            if(dist < 0 || dist > nl_icp->max_correspondence_distance_)
+            {
+                residual[i] = T(nl_icp->max_correspondence_distance_);
+                continue;
+            }
+
+            if(nl_icp->normals_.size() == nl_icp->clouds_.size())
+            {
+                Eigen::Vector3f n_h, n_k;
+                n_h = nl_icp->normals_transformed_with_ip_[h_]->points[i].getNormalVector3fMap();
+                n_k = nl_icp->normals_transformed_with_ip_[k_]->points[idx].getNormalVector3fMap();
+
+                Eigen::Matrix<T, 3, 1> n_hT, n_kT;
+                n_hT[0] = T(n_h[0]); n_hT[1] = T(n_h[1]); n_hT[2] = T(n_h[2]);
+                n_kT[0] = T(n_k[0]); n_kT[1] = T(n_k[1]); n_kT[2] = T(n_k[2]);
+
+                n_hT = R_hk * n_hT;
+
+
+                if(n_hT.dot(n_kT) < T(nl_icp->normal_dot_))
+                {
+                    w = T(0);
+                }
+            }
+
+            //use idx to compute the distance
+            /*Eigen::Vector3f nn_k = nl_icp->clouds_transformed_with_ip_[k_]->points[idx].getVector3fMap();
+            Eigen::Matrix<T, 4, 1> nn_ptk;
+            nn_ptk[0] = T(nn_k[0]); nn_ptk[1] = T(nn_k[1]); nn_ptk[2] = T(nn_k[2]); nn_ptk[3] = T(1);*/
+
+            //residual[i] = T( (nn_ptk - pt).norm() );
+            residual[i] = T(dist) * w;
+
+            //propagate gradient if ceres asking for derivatives
+            if (!JetOps<T>::IsScalar())
+            {
+                //For the derivative case, sample the gradient as well.
+                float sample[4];
+                sample[0] = dist;
+
+                //TODO: trilinear interpolation
+                Eigen::Vector3f dxyz;
+                //nl_icp->distance_transforms_[k_]->getDerivatives(p_at_k, dxyz);
+                nl_icp->distance_transforms_[k_]->getDerivatives(x, y, z, dxyz);
+
+                if(!pcl_isfinite(dxyz[0]))
+                {
+                    residual[i] = T(0);
+                    continue;
+                }
+
+                for(int k=0; k < 3; k++)
+                    sample[1+k] = dxyz[k];
+
+                T xyz[3] = { pt[0], pt[1], pt[2] };
+
+                residual[i] = Chain<float, 3, T>::Rule(sample[0], sample + 1, xyz);
+            }
+
+        }
+
+        return true;
+    }
+};
+
 /// cost function (residuals + jacobian)
 /// acts on a pair of views
 
@@ -113,7 +341,11 @@ private:
     //view indices considered for this block
     int h_;
     int k_;
+    #ifdef CERES_VERSION_LESS_1_9_0
+    std::vector<short> * param_blocks_sizes_;
+    #else
     std::vector<int> * param_blocks_sizes_;
+    #endif
 
 public:
 
@@ -158,22 +390,22 @@ public:
         T_k.block<3,1>(0,3) = trans_k.cast<float>();
         T = T_k.inverse() * T_h;
 
-//        std::cout << h_ << " " << k_ << std::endl;
+        //        std::cout << h_ << " " << k_ << std::endl;
         //std::cout << T << std::endl;
 
-//        for(int k=0; k < (*param_blocks_sizes_)[0]; k++)
-//        {
-//            std::cout << parameters[0][k] << " ";
-//        }
+        //        for(int k=0; k < (*param_blocks_sizes_)[0]; k++)
+        //        {
+        //            std::cout << parameters[0][k] << " ";
+        //        }
 
-//        std::cout << std::endl;
+        //        std::cout << std::endl;
 
-//        for(int k=0; k < (*param_blocks_sizes_)[1]; k++)
-//        {
-//            std::cout << parameters[1][k] << " ";
-//        }
+        //        for(int k=0; k < (*param_blocks_sizes_)[1]; k++)
+        //        {
+        //            std::cout << parameters[1][k] << " ";
+        //        }
 
-//        std::cout << std::endl;
+        //        std::cout << std::endl;
 
         float step = 0.001f;
         //double huber_sigma = 0.003f * 1.345;
@@ -655,13 +887,31 @@ v4r::Registration::MvLMIcp<PointT>::compute()
         }
     }
 
-    octrees_.resize(clouds_.size());
-
-    for (size_t i = 0; i < clouds_.size (); i++)
+    if(diff_type == 1)
     {
-        octrees_[i].reset(new pcl::octree::OctreePointCloudSearch<PointT> (0.003));
-        octrees_[i]->setInputCloud (clouds_transformed_with_ip_[i]);
-        octrees_[i]->addPointsFromInputCloud ();
+        //using distance transforms
+        distance_transforms_.resize(clouds_.size());
+
+        for (size_t i = 0; i < clouds_.size (); i++)
+        {
+            typename pcl::PointCloud<PointT>::ConstPtr cloud_const(new pcl::PointCloud<PointT>(*clouds_transformed_with_ip_[i]));
+            distance_transforms_[i].reset(new distance_field::PropagationDistanceField<PointT>(0.003));
+            distance_transforms_[i]->setInputCloud(cloud_const);
+            distance_transforms_[i]->compute();
+            distance_transforms_[i]->computeFiniteDifferences();
+        }
+    }
+    else
+    {
+        octrees_.resize(clouds_.size());
+
+        for (size_t i = 0; i < clouds_.size (); i++)
+        {
+            octrees_[i].reset(new pcl::octree::OctreePointCloudSearch<PointT> (0.003));
+            octrees_[i]->setInputCloud (clouds_transformed_with_ip_[i]);
+            octrees_[i]->addPointsFromInputCloud ();
+        }
+
     }
 
     //fill adjacency matrix and view pair list
@@ -687,45 +937,63 @@ v4r::Registration::MvLMIcp<PointT>::compute()
 
     switch(diff_type)
     {
-        case 0:
+    case 0:
+    {
+
+        parameters = new double[params_per_view * clouds_.size()];
+        for(size_t i=0; i < clouds_.size(); i++)
         {
-
-            parameters = new double[params_per_view * clouds_.size()];
-            for(size_t i=0; i < clouds_.size(); i++)
-            {
-                //rotation (rx,ry,rz)
-                parameters[i * params_per_view + 0] = 0.0;
-                parameters[i * params_per_view + 1] = 0.0;
-                parameters[i * params_per_view + 2] = 0.0;
-                //translation (tx,ty,tz)
-                parameters[i * params_per_view + 3] = 0.0;
-                parameters[i * params_per_view + 4] = 0.0;
-                parameters[i * params_per_view + 5] = 0.0;
-            }
-
-            break;
+            //rotation (rx,ry,rz)
+            parameters[i * params_per_view + 0] = 0.0;
+            parameters[i * params_per_view + 1] = 0.0;
+            parameters[i * params_per_view + 2] = 0.0;
+            //translation (tx,ty,tz)
+            parameters[i * params_per_view + 3] = 0.0;
+            parameters[i * params_per_view + 4] = 0.0;
+            parameters[i * params_per_view + 5] = 0.0;
         }
 
-        default:
+        break;
+    }
+
+    case 1:
+    {
+        parameters = new double[params_per_view * clouds_.size()];
+        for(size_t i=0; i < clouds_.size(); i++)
         {
-
-            params_per_view = 7;
-            parameters = new double[params_per_view * clouds_.size()];
-            for(size_t i=0; i < clouds_.size(); i++)
-            {
-                //rotation (qx,qy,qz,qw)
-                parameters[i * params_per_view + 0] = 0.0;
-                parameters[i * params_per_view + 1] = 0.0;
-                parameters[i * params_per_view + 2] = 0.0;
-                parameters[i * params_per_view + 3] = 1.0;
-                //translation (tx,ty,tz)
-                parameters[i * params_per_view + 4] = 0.0;
-                parameters[i * params_per_view + 5] = 0.0;
-                parameters[i * params_per_view + 6] = 0.0;
-            }
-
-            break;
+            //rotation (rx,ry,rz)
+            parameters[i * params_per_view + 0] = 0.0;
+            parameters[i * params_per_view + 1] = 0.0;
+            parameters[i * params_per_view + 2] = 0.0;
+            //translation (tx,ty,tz)
+            parameters[i * params_per_view + 3] = 0.0;
+            parameters[i * params_per_view + 4] = 0.0;
+            parameters[i * params_per_view + 5] = 0.0;
         }
+
+        break;
+    }
+
+    default:
+    {
+
+        params_per_view = 7;
+        parameters = new double[params_per_view * clouds_.size()];
+        for(size_t i=0; i < clouds_.size(); i++)
+        {
+            //rotation (qx,qy,qz,qw)
+            parameters[i * params_per_view + 0] = 0.0;
+            parameters[i * params_per_view + 1] = 0.0;
+            parameters[i * params_per_view + 2] = 0.0;
+            parameters[i * params_per_view + 3] = 1.0;
+            //translation (tx,ty,tz)
+            parameters[i * params_per_view + 4] = 0.0;
+            parameters[i * params_per_view + 5] = 0.0;
+            parameters[i * params_per_view + 6] = 0.0;
+        }
+
+        break;
+    }
     }
 
     //how many residual blocks do I need to add?
@@ -735,39 +1003,50 @@ v4r::Registration::MvLMIcp<PointT>::compute()
 
         switch(diff_type)
         {
-            case 0:
-            {
-                ceres::CostFunction* cost_function
+        case 0:
+        {
+
+            ceres::CostFunction* cost_function
                     = new ceres::NumericDiffCostFunction<RegistrationCostFunctor<PointT>, ceres::CENTRAL, ceres::DYNAMIC, 6, 6>(
                         new RegistrationCostFunctor<PointT>(this, S_[i].first, S_[i].second),
                         ceres::TAKE_OWNERSHIP,
                         static_cast<int>(clouds_[S_[i].first]->points.size()));
 
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(max_correspondence_distance_ / 2.0),
-                                         parameters + S_[i].first * params_per_view,
-                                         parameters + S_[i].second * params_per_view);
-                break;
-            }
+            problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(max_correspondence_distance_ / 2.0),
+                                     parameters + S_[i].first * params_per_view,
+                                     parameters + S_[i].second * params_per_view);
+            break;
+        }
 
-            default:
-            {
+        case 1:
+        {
 
-                ceres::CostFunction* cost_function = new RegistrationCostFunction<PointT>(this, S_[i].first, S_[i].second);
+            RegistrationCostFunctionAutoDiff<PointT> * functor
+                    = new RegistrationCostFunctionAutoDiff<PointT> (this, S_[i].first, S_[i].second);
 
-                //add conditioners...
-                /*ceres::Condition
-                std::vector<ceres::CostFunction*> conditioners(clouds_[S_[i].first]->points.size());
-                for(size_t r=0; r < clouds_[S_[i].first]->points.size(); r++)
-                {
-                    conditioners[r] =
-                }*/
+            ceres::CostFunction* cost_function =
+                    new ceres::AutoDiffCostFunction< RegistrationCostFunctionAutoDiff<PointT>, ceres::DYNAMIC, 6, 6>
+                    (functor, static_cast<int>(clouds_[S_[i].first]->points.size()));
 
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(max_correspondence_distance_ / 2.0),
-                                         parameters + S_[i].first * params_per_view,
-                                         parameters + S_[i].second * params_per_view);
+            problem.AddResidualBlock(cost_function,
+                                     new ceres::CauchyLoss(max_correspondence_distance_ / 2.0),
+                                     parameters + S_[i].first * params_per_view,
+                                     parameters + S_[i].second * params_per_view);
 
-                break;
-            }
+            break;
+        }
+
+        default:
+        {
+
+            ceres::CostFunction* cost_function = new RegistrationCostFunction<PointT>(this, S_[i].first, S_[i].second);
+
+            problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(max_correspondence_distance_ / 2.0),
+                                     parameters + S_[i].first * params_per_view,
+                                     parameters + S_[i].second * params_per_view);
+
+            break;
+        }
         }
     }
 
@@ -802,41 +1081,59 @@ v4r::Registration::MvLMIcp<PointT>::compute()
 
         switch(diff_type)
         {
-            case 0:
-            {
+        case 0:
+        {
 
-                Eigen::Vector3d trans(parameters[i * params_per_view + 3], parameters[i * params_per_view + 4], parameters[i * params_per_view + 5]);
-                Eigen::Matrix3d R;
-                ceres::AngleAxisToRotationMatrix<double>(parameters + i * params_per_view, R.data());
+            Eigen::Vector3d trans(parameters[i * params_per_view + 3], parameters[i * params_per_view + 4], parameters[i * params_per_view + 5]);
+            Eigen::Matrix3d R;
+            ceres::AngleAxisToRotationMatrix<double>(parameters + i * params_per_view, R.data());
 
-                std::cout << R << std::endl;
+            std::cout << R << std::endl;
 
-                Eigen::Matrix4f T_h;
-                T_h.setIdentity();
-                T_h.block<3,3>(0,0) = R.cast<float>();
-                T_h.block<3,1>(0,3) = trans.cast<float>();
-                final_poses_[i] = (T_h * poses_[i]);
+            Eigen::Matrix4f T_h;
+            T_h.setIdentity();
+            T_h.block<3,3>(0,0) = R.cast<float>();
+            T_h.block<3,1>(0,3) = trans.cast<float>();
+            final_poses_[i] = (T_h * poses_[i]);
 
-                break;
-            }
+            break;
+        }
 
-            default:
-            {
+        case 1:
+        {
 
-                Eigen::Quaterniond rot(parameters[i * params_per_view + 3], parameters[i * params_per_view], parameters[i * params_per_view + 1], parameters[i * params_per_view + 2]);
-                Eigen::Vector3d trans(parameters[i * params_per_view + 4], parameters[i * params_per_view + 5], parameters[i * params_per_view + 6]);
-                Eigen::Matrix3d R = coolquat_to_mat(rot);
-                R /= rot.squaredNorm();
+            Eigen::Vector3d trans(parameters[i * params_per_view + 3], parameters[i * params_per_view + 4], parameters[i * params_per_view + 5]);
+            Eigen::Matrix3d R;
+            ceres::AngleAxisToRotationMatrix<double>(parameters + i * params_per_view, R.data());
 
-                Eigen::Matrix4f T_h;
-                T_h.setIdentity();
-                T_h.block<3,3>(0,0) = R.cast<float>();
-                T_h.block<3,1>(0,3) = trans.cast<float>();
-                final_poses_[i] = (T_h * poses_[i]);
+            std::cout << R << std::endl;
+
+            Eigen::Matrix4f T_h;
+            T_h.setIdentity();
+            T_h.block<3,3>(0,0) = R.cast<float>();
+            T_h.block<3,1>(0,3) = trans.cast<float>();
+            final_poses_[i] = (T_h * poses_[i]);
+
+            break;
+        }
+
+        default:
+        {
+
+            Eigen::Quaterniond rot(parameters[i * params_per_view + 3], parameters[i * params_per_view], parameters[i * params_per_view + 1], parameters[i * params_per_view + 2]);
+            Eigen::Vector3d trans(parameters[i * params_per_view + 4], parameters[i * params_per_view + 5], parameters[i * params_per_view + 6]);
+            Eigen::Matrix3d R = coolquat_to_mat(rot);
+            R /= rot.squaredNorm();
+
+            Eigen::Matrix4f T_h;
+            T_h.setIdentity();
+            T_h.block<3,3>(0,0) = R.cast<float>();
+            T_h.block<3,1>(0,3) = trans.cast<float>();
+            final_poses_[i] = (T_h * poses_[i]);
 
 
-                break;
-            }
+            break;
+        }
         }
 
         for(int k=0; k < params_per_view; k++)
@@ -860,7 +1157,7 @@ void v4r::Registration::MvLMIcp<PointT>::computeAdjacencyMatrix()
 
     std::vector<int> pointIdxNKNSearch;
     std::vector<float> pointNKNSquaredDistance;
-    float inlier = 0.01f;
+    float inlier = max_correspondence_distance_ * 2.f;
     for (size_t i = 0; i < clouds_.size (); i++)
     {
 
@@ -873,12 +1170,26 @@ void v4r::Registration::MvLMIcp<PointT>::computeAdjacencyMatrix()
                 if(pcl_isnan(clouds_transformed_with_ip_[j]->points[kk].x))
                     continue;
 
-                if (octrees_[i]->nearestKSearch (clouds_transformed_with_ip_[j]->points[kk], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
+                if(diff_type == 1)
                 {
-                    float d = sqrt (pointNKNSquaredDistance[0]);
-                    if (d < inlier)
+
+                    float dist;
+                    int idx;
+                    distance_transforms_[i]->getCorrespondence(clouds_transformed_with_ip_[j]->points[kk], &idx, &dist, 0, 0);
+                    if (dist < inlier)
                     {
                         overlap++;
+                    }
+                }
+                else
+                {
+                    if (octrees_[i]->nearestKSearch (clouds_transformed_with_ip_[j]->points[kk], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
+                    {
+                        float d = sqrt (pointNKNSquaredDistance[0]);
+                        if (d < inlier)
+                        {
+                            overlap++;
+                        }
                     }
                 }
             }
