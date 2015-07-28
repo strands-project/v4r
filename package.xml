@@ -37,6 +37,7 @@
   <build_depend>libopencv-dev</build_depend>
   <build_depend>libglew-dev</build_depend>
   <build_depend>glut</build_depend>
+  <build_depend>libdevil-dev</build_depend>
 
   <run_depend>libpcl-all-dev</run_depend>
   <run_depend>atlas</run_depend>
@@ -44,6 +45,7 @@
   <run_depend>libceres-dev</run_depend>
   <run_depend>libglew-dev</run_depend>
   <run_depend>glut</run_depend>
+  <run_depend>libdevil-dev</run_depend>
 
   <export>
 	<build_type>cmake</build_type>
