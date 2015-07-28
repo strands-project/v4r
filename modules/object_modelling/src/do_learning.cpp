@@ -231,6 +231,7 @@ DOL::extractEuclideanClustersSmooth (
         const pcl::PointCloud<PointT>::ConstPtr &cloud,
         const pcl::PointCloud<pcl::Normal> &normals,
         const std::vector<size_t> &initial,
+        const std::vector<bool> &bg_mask,
         std::vector<size_t> &cluster) const
 {
 
@@ -261,6 +262,9 @@ DOL::extractEuclideanClustersSmooth (
 
     while(!stop)
     {
+        stop = true;
+        std::vector<bool> is_new_point (cloud->points.size (), false);  // do as long as there is no new point
+
         std::vector<int> nn_indices;
         std::vector<float> nn_distances;
         // Process all points in the indices vector
@@ -270,13 +274,11 @@ DOL::extractEuclideanClustersSmooth (
             if (!to_grow[i])
                 continue;
 
-            to_grow[i] = false;
-
             if (octree.radiusSearch (cloud->points[i], param_.radius_, nn_indices, nn_distances))
             {
                 for (size_t j = 0; j < nn_indices.size (); j++) // is nn_indices[0] the same point?
                 {
-                    if(!in_cluster[nn_indices[j]])
+                    if( !in_cluster[ nn_indices[j] ] && !bg_mask[ nn_indices[j] ])  // if nearest neighbor is not already an object and is not a point to be neglected (background)
                     {
                         //check smoothness constraint
                         Eigen::Vector3f n1 = normals.points[i].getNormalVector3fMap();
@@ -287,30 +289,18 @@ DOL::extractEuclideanClustersSmooth (
 
                         if (dot_p >= param_.eps_angle_)
                         {
-                            to_grow[nn_indices[j]] = true;
-                            in_cluster[nn_indices[j]] = true;
+                            stop = false;
+                            is_new_point[ nn_indices[j] ] = true;
+                            in_cluster[ nn_indices[j] ] = true;
                         }
                     }
                 }
             }
         }
-
-        size_t ngrow = 0;
-        for (size_t i = 0; i < cloud->points.size (); ++i)
-        {
-            if(to_grow[i])
-                ngrow++;
-        }
-
-        if(ngrow == 0)
-            stop = true;
+        to_grow = is_new_point;
     }
 
-    for (size_t i = 0; i < cloud->points.size (); ++i)
-    {
-        if( in_cluster[i] )
-            cluster.push_back(i);
-    }
+    cluster = createIndicesFromMask(in_cluster);
 }
 
 void
@@ -654,7 +644,7 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
 void
 DOL::createMaskFromIndices(const std::vector<size_t> &indices,
                                  size_t image_size,
-                                 std::vector<bool> &mask)
+                                 std::vector<bool> &mask) const
 {
     if ( mask.size() != image_size )
         mask = std::vector<bool>( image_size, false );
@@ -669,7 +659,7 @@ DOL::createMaskFromIndices(const std::vector<size_t> &indices,
 void
 DOL::createMaskFromIndices(const std::vector<int> &indices,
                                  size_t image_size,
-                                 std::vector<bool> &mask)
+                                 std::vector<bool> &mask) const
 {
     if ( mask.size() != image_size )
         mask = std::vector<bool>( image_size, false );
@@ -683,7 +673,7 @@ DOL::createMaskFromIndices(const std::vector<int> &indices,
 void
 DOL::createMaskFromVecIndices( const std::vector< std::vector<int> > &v_indices,
                                  size_t image_size,
-                                 std::vector<bool> &mask)
+                                 std::vector<bool> &mask) const
 {
     if ( mask.size() != image_size )
         mask = std::vector<bool>( image_size, false );
@@ -695,7 +685,7 @@ DOL::createMaskFromVecIndices( const std::vector< std::vector<int> > &v_indices,
 }
 
 std::vector<size_t>
-DOL::createIndicesFromMask(const std::vector<bool> &mask, bool invert)
+DOL::createIndicesFromMask(const std::vector<bool> &mask, bool invert) const
 {
     std::vector<size_t> out;
     out.resize(mask.size());
@@ -1063,6 +1053,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     std::vector<size_t> obj_indices_grown_by_smooth_surface;
     extractEuclideanClustersSmooth(view.cloud_, *view.normal_,
                                    view.obj_indices_in_step_.back(),
+                                   pixel_is_neglected,
                                    obj_indices_grown_by_smooth_surface);
     view.obj_indices_in_step_.push_back( obj_indices_grown_by_smooth_surface );
 

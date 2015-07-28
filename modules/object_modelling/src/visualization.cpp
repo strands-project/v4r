@@ -139,6 +139,7 @@ DOL::visualize()
             vis_->removeAllPointClouds( vis_viewpoint_[vp_id] );
         }
     }
+    vis_->removeAllPointClouds();
     std::vector<std::string> subwindow_title;
     subwindow_title.push_back("scene + init. ind. / transf. cluster");
     subwindow_title.push_back("filtered scene");

@@ -221,7 +221,7 @@ public:
 
     void extractEuclideanClustersSmooth (const pcl::PointCloud<PointT>::ConstPtr &cloud,
                 const pcl::PointCloud<pcl::Normal> &normals_,
-                const std::vector<size_t> &initial,
+                const std::vector<size_t> &initial, const std::vector<bool> &bg_mask,
                 std::vector<size_t> &cluster) const;
 
     void updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
@@ -303,16 +303,16 @@ public:
      */
     void createMaskFromIndices(const std::vector<size_t> &indices,
                                 size_t image_size,
-                                std::vector<bool> &mask);
+                                std::vector<bool> &mask) const;
     void createMaskFromIndices(const std::vector<int> &indices,
                                size_t image_size,
-                               std::vector<bool> &mask);
+                               std::vector<bool> &mask) const;
     void createMaskFromVecIndices(const std::vector<std::vector<int> > &indices,
                                 size_t image_size,
-                                std::vector<bool> &mask);
+                                std::vector<bool> &mask) const;
 
     std::vector<size_t>
-    createIndicesFromMask(const std::vector<bool> &mask, bool invert=false);
+    createIndicesFromMask(const std::vector<bool> &mask, bool invert=false) const;
 
     void computeNormals(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                         pcl::PointCloud<pcl::Normal>::Ptr &normals, int method);

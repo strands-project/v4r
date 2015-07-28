@@ -1,14 +1,15 @@
 set(SUBSYS_NAME object_modelling)
 set(SUBSYS_DESC "v4r object modelling module")
-set(SUBSYS_DEPS v4r_common v4r_common_io v4r_registration v4r_common_keypoint)
+set(SUBSYS_DEPS v4r_common v4r_common_io v4r_registration v4r_common_keypoint siftgpu)
 SET(V4R_OBJECT_MODELLING 1 CACHE BOOL "Object modelling module" )
 IF(V4R_OBJECT_MODELLING)
-FIND_PACKAGE (PCL)
+
+FIND_PACKAGE (PCL REQUIRED)
 INCLUDE_DIRECTORIES(${PCL_INCLUDE_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 link_directories(${PCL_LIBRARY_DIRS})
 
-FIND_PACKAGE (OpenCV)
+FIND_PACKAGE (OpenCV REQUIRED)
 include_directories(${OPENCV_INCLUDE_DIRS})
 link_directories(${OPENCV_LIBRARY_DIRS})
 
@@ -30,7 +31,7 @@ SET(SOURCE_H
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library("${PREFIX_LIB}${SUBSYS_NAME}" SHARED ${SOURCE_H} ${SOURCE_CPP} )
-target_link_libraries("${PREFIX_LIB}${SUBSYS_NAME}" ${PCL_LIBRARIES} ${OpenCV_LIBS} ${SUBSYS_DEPS})
+target_link_libraries("${PREFIX_LIB}${SUBSYS_NAME}" ${PCL_LIBRARIES} ${OPENCV_LIBRARIES} ${SUBSYS_DEPS})
 _install_library(${PREFIX_LIB}${SUBSYS_NAME} ${SOURCE_H} "/v4r/${SUBSYS_NAME}/")
 
 ENDIF(V4R_OBJECT_MODELLING)
