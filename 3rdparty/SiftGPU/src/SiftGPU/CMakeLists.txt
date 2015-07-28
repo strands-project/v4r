@@ -3,6 +3,11 @@ IF(EXT_SIFTGPU)
 
 PROJECT(SiftGPU)
 
+find_package(GLEW REQUIRED)
+find_package(GLUT REQUIRED)
+find_package(X11 REQUIRED)
+find_package(OpenGL REQUIRED)
+
 ADD_DEFINITIONS(-fPIC)
 ADD_DEFINITIONS(-march=native)
 ADD_DEFINITIONS(-mfpmath=sse)

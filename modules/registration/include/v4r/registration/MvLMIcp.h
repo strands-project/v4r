@@ -1,8 +1,9 @@
-#include <pcl/common/common.h>
-#include <pcl/octree/octree_search.h>
-
 #ifndef V4R_MVLMICP_H
 #define V4R_MVLMICP_H
+
+#include <pcl/common/common.h>
+#include <pcl/octree/octree_search.h>
+#include <3rdparty/EDT/propagation_distance_field.h>
 
 namespace v4r
 {
@@ -46,6 +47,9 @@ namespace v4r
                 float normal_dot_;
                 //octrees for the clouds...
                 std::vector<boost::shared_ptr<typename pcl::octree::OctreePointCloudSearch<PointT> > > octrees_;
+
+                //distance transforms...
+                std::vector<boost::shared_ptr<typename distance_field::PropagationDistanceField<PointT> > > distance_transforms_;
 
                 std::vector<std::vector<float> > weights_;
 
