@@ -145,6 +145,11 @@ public:
         XOR
     };
 
+    struct {
+        int meanK_ = 50;
+        double std_mul_ = 1.0f;
+    }sor_params_;
+
 protected:
     typedef pcl::PointXYZRGB PointT;
     typedef flann::L1<float> DistT;
@@ -285,7 +290,7 @@ public:
      * @param operation (AND, AND_N, OR, XOR)
      * @return output bit mask
      */
-    std::vector<bool> logical_operation(const std::vector<bool> &mask1, const std::vector<bool> &mask2, int operation=MASK_OPERATOR::OR);
+    static std::vector<bool> logical_operation(const std::vector<bool> &mask1, const std::vector<bool> &mask2, int operation=MASK_OPERATOR::OR);
 
     /**
      * @brief transforms each keyframe to global coordinate system using given camera
@@ -301,18 +306,15 @@ public:
      * @param image_size
      * @param object_mask (output)
      */
-    void createMaskFromIndices(const std::vector<size_t> &indices,
-                                size_t image_size,
-                                std::vector<bool> &mask) const;
-    void createMaskFromIndices(const std::vector<int> &indices,
-                               size_t image_size,
-                               std::vector<bool> &mask) const;
-    void createMaskFromVecIndices(const std::vector<std::vector<int> > &indices,
-                                size_t image_size,
-                                std::vector<bool> &mask) const;
+    static std::vector<bool> createMaskFromIndices(const std::vector<size_t> &indices,
+                                size_t image_size);
+    static std::vector<bool> createMaskFromIndices(const std::vector<int> &indices,
+                               size_t image_size);
+    static std::vector<bool> createMaskFromVecIndices(const std::vector<std::vector<int> > &indices,
+                                size_t image_size);
 
-    std::vector<size_t>
-    createIndicesFromMask(const std::vector<bool> &mask, bool invert=false) const;
+    static std::vector<size_t>
+    createIndicesFromMask(const std::vector<bool> &mask, bool invert=false);
 
     void computeNormals(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                         pcl::PointCloud<pcl::Normal>::Ptr &normals, int method);

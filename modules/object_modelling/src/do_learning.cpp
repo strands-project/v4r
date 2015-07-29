@@ -51,6 +51,7 @@
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/io/filesystem_utils.h>
+#include <v4r/common/occlusion_reasoning.h>
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 #include <boost/graph/graphviz.hpp>
@@ -641,51 +642,63 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
     planes_not_on_object.resize(kept);
 }
 
-void
+std::vector<bool>
 DOL::createMaskFromIndices(const std::vector<size_t> &indices,
-                                 size_t image_size,
-                                 std::vector<bool> &mask) const
+                                 size_t image_size)
 {
-    if ( mask.size() != image_size )
-        mask = std::vector<bool>( image_size, false );
+    std::vector<bool> mask (image_size, false);
+
+//    if ( mask.size() != image_size )
+//        mask = std::vector<bool>( image_size, false );
 
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
     {
         mask [ indices[obj_pt_id] ] = true;
     }
+    return mask;
 }
 
 
-void
+std::vector<bool>
 DOL::createMaskFromIndices(const std::vector<int> &indices,
-                                 size_t image_size,
-                                 std::vector<bool> &mask) const
+                                 size_t image_size)
 {
-    if ( mask.size() != image_size )
-        mask = std::vector<bool>( image_size, false );
+    std::vector<bool> mask (image_size, false);
+
+//    if ( mask.size() != image_size )
+//        mask = std::vector<bool>( image_size, false );
 
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
     {
         mask [ indices[obj_pt_id] ] = true;
     }
+    return mask;
 }
 
-void
+std::vector<bool>
 DOL::createMaskFromVecIndices( const std::vector< std::vector<int> > &v_indices,
-                                 size_t image_size,
-                                 std::vector<bool> &mask) const
+                               size_t image_size)
 {
+    std::vector<bool> mask;
+
     if ( mask.size() != image_size )
         mask = std::vector<bool>( image_size, false );
 
     for(size_t i=0; i<v_indices.size(); i++)
     {
-        createMaskFromIndices(v_indices[i], image_size, mask);
+        std::vector<bool> mask_tmp = createMaskFromIndices(v_indices[i], image_size);
+
+        if(mask.size())
+            mask = logical_operation(mask, mask_tmp, MASK_OPERATOR::OR);
+        else
+            mask = mask_tmp;
     }
+
+    return mask;
 }
 
 std::vector<size_t>
-DOL::createIndicesFromMask(const std::vector<bool> &mask, bool invert) const
+DOL::createIndicesFromMask(const std::vector<bool> &mask, bool invert)
 {
     std::vector<size_t> out;
     out.resize(mask.size());
@@ -803,11 +816,10 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     pcl::PointCloud<pcl::Normal>::Ptr normals_filtered (new pcl::PointCloud<pcl::Normal>());
     std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> planes;
     std::vector< std::vector<int> > planes_not_on_obj;
-    std::vector< size_t > obj_indices_updated;
-    std::vector<bool> pixel_is_object;
     std::vector<bool> pixel_is_neglected;
 
     v4r::common::computeNormals(view.cloud_, view.normal_, param_.normal_method_);
+    extractPlanePoints(view.cloud_, view.normal_, planes);
 
     octree_.setInputCloud ( view.cloud_ );
     octree_.addPointsFromInputCloud ();
@@ -836,8 +848,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         view.is_pre_labelled_ = true;
 
         // remove nan values and points further away than chop_z_ parameter
-        std::vector<size_t> initial_indices_wo_nan;
-        initial_indices_wo_nan.resize(initial_indices.size());
+        std::vector<size_t> initial_indices_wo_nan (initial_indices.size());
         size_t kept=0;
         for(size_t idx=0; idx<initial_indices.size(); idx++)
         {
@@ -860,21 +871,23 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         pcl::StatisticalOutlierRemoval<PointT> sor(true);
         sor.setInputCloud (view.cloud_);
         sor.setIndices(ObjectIndicesPtr);
-        sor.setMeanK (50);
-        sor.setStddevMulThresh (1.0);
+        sor.setMeanK (sor_params_.meanK_);
+        sor.setStddevMulThresh (sor_params_.std_mul_);
         sor.filter (*cloud_filtered);
         FilteredObjectIndicesPtr = sor.getRemovedIndices();
 
-        std::vector<bool> initial_object, outlier_mask, initial_object_wo_outlier_mask;
-        createMaskFromIndices(initial_indices_wo_nan, view.cloud_->points.size(), initial_object);
-        createMaskFromIndices(*FilteredObjectIndicesPtr, view.cloud_->points.size(), outlier_mask);
-        initial_object_wo_outlier_mask = logical_operation(initial_object, outlier_mask, MASK_OPERATOR::AND_N);
+        const std::vector<bool> initial_object = createMaskFromIndices(initial_indices_wo_nan, view.cloud_->points.size());
+        const std::vector<bool> outlier_mask = createMaskFromIndices(*FilteredObjectIndicesPtr, view.cloud_->points.size());
+        const std::vector<bool> initial_object_wo_outlier_mask = logical_operation(initial_object, outlier_mask, MASK_OPERATOR::AND_N);
 
         view.obj_indices_in_step_.push_back( createIndicesFromMask(initial_object_wo_outlier_mask) );
 
         std::vector<size_t> eroded_object;
         erodeIndices(*view.cloud_, view.obj_indices_in_step_.back(), eroded_object);
         view.obj_indices_in_step_.push_back( eroded_object );
+        getPlanesNotSupportedByObjectMask(planes,
+                                          view.obj_indices_in_step_.back(),
+                                          planes_not_on_obj);
     }
     else
     {
@@ -965,6 +978,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
             }
         }
 
+        std::vector<bool> is_occluded;
         for (size_t view_id = 0; view_id < grph_.size(); view_id++)
         {
             if( view.id_ != grph_[view_id].id_)
@@ -974,37 +988,65 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                 const Eigen::Matrix4f tf = view.camera_pose_.inverse() * grph_[view_id].camera_pose_;
                 pcl::transformPointCloud(new_search_pts, new_search_pts_aligned, tf);
                 *view.transferred_cluster_ += new_search_pts_aligned;
+
+                if (grph_[view_id].is_pre_labelled_)
+                {
+                    std::vector<bool> is_occluded_tmp = v4r::occlusion_reasoning::computeOccludedPoints(*grph_[view_id].cloud_,
+                                                                                                   *view.cloud_,
+                                                                                                   tf.inverse(),
+                                                                                                        525.f, 0.01f, false);
+                    if( is_occluded.size() == is_occluded_tmp.size())
+                    {
+                        is_occluded = logical_operation(is_occluded, is_occluded_tmp, MASK_OPERATOR::AND); // is this correct?
+                    }
+                    else
+                    {
+                        is_occluded = is_occluded_tmp;
+                    }
+                }
             }
         }
 
-        std::vector<bool> obj_mask (view.cloud_->points.size(), false);
-        nnSearch(*view.transferred_cluster_, octree_, obj_mask);
+        std::vector<bool> is_object (view.cloud_->points.size(), false);
+        nnSearch(*view.transferred_cluster_, octree_, is_object);
+        view.obj_indices_in_step_.push_back( createIndicesFromMask(is_object) );
 
-        std::vector<size_t> transferred_nn_points;
-        transferred_nn_points.resize( obj_mask.size() );
-        size_t kept = 0;
-        for (size_t pt_id=0; pt_id < obj_mask.size(); pt_id++)
-        {
-            if( obj_mask [pt_id] )
-            {
-                transferred_nn_points[kept] = pt_id;
-                kept++;
-            }
-        }
-        transferred_nn_points.resize( kept );
-        view.obj_indices_in_step_.push_back( transferred_nn_points );
+//        cv::Mat mask = cv::Mat(view.cloud_->height, view.cloud_->width, CV_8UC1);
+//        mask.setTo(0);
+//        for(size_t i=0; i < view.obj_indices_in_step_.back().size(); i++)
+//        {
+//            if (view.obj_indices_in_step_.back().at(i))
+//            {
+//                const int r = view.obj_indices_in_step_.back().at(i) / mask.cols;
+//                const int c = view.obj_indices_in_step_.back().at(i) % mask.cols;
+//                mask.at<unsigned char>(r,c) = 255;
+//            }
+//        }
+//        cv::imshow("visible points (white) when transferred to first frame", mask);
+////        cv::waitKey(0);
 
-        std::cout << "Found " << kept << " nearest neighbor points." << std::endl;
+        std::vector<bool> is_object_or_occluded = logical_operation(is_object, is_occluded, MASK_OPERATOR::OR);
+//        cv::Mat mask2 = cv::Mat(view.cloud_->height, view.cloud_->width, CV_8UC1);
+//        for(size_t i=0; i < is_object_or_occluded.size(); i++)
+//        {
+//            const int r = i / mask.cols;
+//            const int c = i % mask.cols;
+
+//            if ( is_object_or_occluded[i] )
+//                mask2.at<unsigned char>(r,c) = 255;
+//            else
+//                mask2.at<unsigned char>(r,c) = 0;
+//        }
+//        cv::imshow("visible points (white) when transferred to first frame and occlusion is considered", mask2);
+//        cv::waitKey(0);
+
+        getPlanesNotSupportedByObjectMask(planes,
+                                          createIndicesFromMask(is_object_or_occluded),
+                                          planes_not_on_obj);
     }
 
-    extractPlanePoints(view.cloud_, view.normal_, planes);
-
-    createMaskFromIndices(view.obj_indices_in_step_.back(), view.cloud_->points.size(), pixel_is_object);
-    getPlanesNotSupportedByObjectMask(planes,
-                                      view.obj_indices_in_step_.back(),
-                                      planes_not_on_obj);
-
-    createMaskFromVecIndices(planes_not_on_obj, view.cloud_->points.size(), pixel_is_neglected);
+    std::vector<bool> pixel_is_object = createMaskFromIndices(view.obj_indices_in_step_.back(), view.cloud_->points.size());
+    pixel_is_neglected = createMaskFromVecIndices(planes_not_on_obj, view.cloud_->points.size());
     view.scene_points_ = createIndicesFromMask(pixel_is_neglected, true);
     view.obj_indices_in_step_.push_back( createIndicesFromMask( logical_operation(pixel_is_object, pixel_is_neglected, MASK_OPERATOR::AND_N) ) );
     pcl::copyPointCloud(*view.cloud_,  view.scene_points_, *cloud_filtered);
