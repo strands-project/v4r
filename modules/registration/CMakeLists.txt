@@ -6,7 +6,7 @@ v4r_add_module(registration v4r_common v4r_io v4r_features)
 if(HAVE_EDT)
   v4r_debug_message(" ->>>>>>>>>>>>>>>>>>>>>>>>>>>>" ${EDT_INCLUDE_DIR})
   v4r_include_directories(${EDT_INCLUDE_DIR})
-  list(APPEND DEP_LIBS ${EDT_LIBRARY})
+  list(APPEND DEP_LIBS ${EDT_LIBRARIES})
 endif()
 
 # depends on siftgpu and opencv ceres
@@ -65,8 +65,9 @@ v4r_set_module_sources(HEADERS ${lib_hdrs} ${lib_hdrs_detail}
                        SOURCES ${lib_srcs} ${lib_int_hdrs} ${lib_cuda_srcs} ${lib_cuda_hdrs})
 
 v4r_module_include_directories()
-v4r_create_module()
+v4r_create_module(${DEP_LIBS})
 
+set_target_properties(${the_module} PROPERTIES LINK_INTERFACE_LIBRARIES "")
 
 # in case of ceres is a static lib it must be linked to the executable
 #IF(${Ceres_FOUND})

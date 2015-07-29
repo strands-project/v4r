@@ -1,5 +1,7 @@
 project(${EDT_LIBRARY})
 
+v4r_include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 set(lib_srcs
   propagation_distance_field.cpp
 )
@@ -11,7 +13,7 @@ set(lib_srcs
 #)
 
 #include_directories(${PCL_INCLUDE_DIRS})
-add_library(${EDT_LIBRARY} SHARED ${lib_srcs})
+add_library(${EDT_LIBRARY} STATIC ${lib_srcs})
 target_link_libraries(${EDT_LIBRARY} ${PCL_LIBRARIES})
 
 set_target_properties(${EDT_LIBRARY}
