@@ -95,6 +95,7 @@ V4R_OPTION(WITH_QT             "Build with Qt Backend support"               OFF
 V4R_OPTION(WITH_OPENMP         "Include OpenMP support"                      OFF)
 V4R_OPTION(WITH_PTHREADS_PF    "Use pthreads-based parallel_for"             ON   IF (NOT WIN32) )
 V4R_OPTION(WITH_EDT            "Include EDT support"                         ON   IF (NOT IOS) )
+V4R_OPTION(WITH_SIFTGPU        "Include SiftGPU support"                     ON   IF (NOT IOS) )
 V4R_OPTION(WITH_OPENCL         "Include OpenCL Runtime support"              NOT ANDROID IF (NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_OPENCL_SVM     "Include OpenCL Shared Virtual Memory support" OFF ) # experimental
 V4R_OPTION(WITH_OPENCLAMDFFT   "Include AMD OpenCL FFT library support"      ON   IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
@@ -104,7 +105,6 @@ V4R_OPTION(WITH_OPENCLAMDBLAS  "Include AMD OpenCL BLAS library support"     ON 
 # ===================================================
 V4R_OPTION(BUILD_SHARED_LIBS        "Build shared libraries (.so) instead of static ones (.a)" NOT (ANDROID OR IOS) )
 V4R_OPTION(BUILD_v4r_apps           "Build utility applications (used for example to train classifiers)" (NOT ANDROID AND NOT WINRT) IF (NOT IOS) )
-V4R_OPTION(BUILD_ANDROID_EXAMPLES   "Build examples for Android platform"         ON  IF ANDROID )
 V4R_OPTION(BUILD_DOCS               "Create build rules for V4R Documentation"    ON  IF NOT WINRT)
 V4R_OPTION(BUILD_EXAMPLES           "Build all examples"                          OFF )
 V4R_OPTION(BUILD_PACKAGE            "Enables 'make package_source' command"       ON  IF NOT WINRT)
@@ -119,6 +119,7 @@ V4R_OPTION(BUILD_CUDA_STUBS         "Build CUDA modules stubs when no CUDA SDK" 
 
 # 3rd party libs
 V4R_OPTION(BUILD_ZLIB               "Build zlib from source"             WIN32 OR APPLE )
+V4R_OPTION(BUILD_SIFTGPU            "Build SiftGPU from source"          ON)
 V4R_OPTION(BUILD_EDT                "Build libedt from source"           ON)
 V4R_OPTION(BUILD_JASPER             "Build libjasper from source"        WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_JPEG               "Build libjpeg from source"          WIN32 OR ANDROID OR APPLE )
@@ -322,6 +323,7 @@ endif(BUILD_DOCS)
   #include(cmake/V4RDetectVTK.cmake)
 #endif()
 include(cmake/V4RFindEDT.cmake)
+include(cmake/V4RFindSiftGPU.cmake)
 
 # ----------------------------------------------------------------------------
 # Add CUDA libraries (needed for apps/tools, samples)
@@ -544,6 +546,11 @@ if(WITH_EDT)
   status("    EDT:"  EDT_FOUND  THEN "${EDT_LIBRARIES} (ver ${EDT_VERSION})" ELSE "build (ver ${EDT_VERSION})")
 else()
   status("    EDT:"  "NO")
+endif()
+if(WITH_SIFTGPU)
+  status("    SiftGPU:"  SIFTGPU_FOUND  THEN "${SIFTGPU_LIBRARIES} (ver ${SIFTGPU_VERSION})" ELSE "build (ver ${SIFTGPU_VERSION})")
+else()
+  status("    SiftGPU:"  "NO")
 endif()
 
 if( WITH_GDAL )
