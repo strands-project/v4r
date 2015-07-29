@@ -749,7 +749,7 @@ v4r::GHV<ModelT, SceneT>::initialize ()
     if(!ignore_color_even_if_exists_)
     {
         bool exists_s;
-        float rgb_s;
+        float rgb_s = 0.f;
         scene_LAB_values_.resize(scene_cloud_downsampled_->points.size());
         scene_RGB_values_.resize(scene_cloud_downsampled_->points.size());
         scene_GS_values_.resize(scene_cloud_downsampled_->points.size());
@@ -2720,7 +2720,7 @@ v4r::GHV<ModelT, SceneT>::addModel (int model_id, boost::shared_ptr<GHVRecogniti
     recog_model->color_outliers_indices_.resize (recog_model->cloud_->points.size ());
     recog_model->scene_point_explained_by_hypothesis_.resize(scene_cloud_downsampled_->points.size(), false);
 
-    float rgb_m;
+    float rgb_m=0.f;
     bool exists_m;
 
     if(!is_planar_model && !ignore_color_even_if_exists_)
