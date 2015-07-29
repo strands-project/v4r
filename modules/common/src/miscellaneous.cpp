@@ -1,8 +1,8 @@
 #include "v4r/common/miscellaneous.h"
 
-#include <v4r/common/keypoint/impl/convertCloud.hpp>
-#include <v4r/common/keypoint/impl/convertNormals.hpp>
-#include <v4r/common/keypoint/ZAdaptiveNormals.hh>
+#include <v4r/keypoints/impl/convertCloud.hpp>
+#include <v4r/keypoints/impl/convertNormals.hpp>
+#include <v4r/keypoints/ZAdaptiveNormals.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/impl/miscellaneous.hpp>
