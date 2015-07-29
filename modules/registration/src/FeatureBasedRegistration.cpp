@@ -1,5 +1,5 @@
 #include "v4r/registration/FeatureBasedRegistration.h"
-#include <v4r/common/features/sift_local_estimator.h>
+#include <v4r/features/sift_local_estimator.h>
 #include "v4r/common/impl/geometric_consistency.hpp"
 #include "v4r/common/graph_geometric_consistency.h"
 #include <pcl/registration/correspondence_estimation.h>
