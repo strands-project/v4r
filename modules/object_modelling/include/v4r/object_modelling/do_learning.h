@@ -29,12 +29,10 @@ namespace object_modelling
 
 struct CamConnect
 {
-//    typedef boost::property<boost::edge_weight_t, float> EdgeProperty;
     Eigen::Matrix4f transformation_;
     float edge_weight;
     std::string model_name_;
     size_t source_id_, target_id_;
-//    EdgeProperty boost_edge_weight;
 
     explicit CamConnect(float w) :
         edge_weight(w)
@@ -75,19 +73,6 @@ struct CamConnect
         return false;
     }
 };
-
-//namespace std {
-//    template<>
-//    struct numeric_limits<CamConnect> {
-//        static CamConnect max() { return CamConnect(numeric_limits<float>::max()); }
-//    };
-//}
-
-//struct CamConnectInfo
-//{
-//    typedef boost::edge_property_tag kind;
-//    static std::size_t const num; // ???
-//};
 
 class DOL
 {
@@ -235,10 +220,10 @@ public:
                                            std::vector< size_t > & good_neighbours,
                                            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud);
 
+    std::vector<bool>
+    erodeIndices(const std::vector< bool > &obj_mask,
+                      const pcl::PointCloud<PointT> & cloud);
 
-    void erodeIndices(const pcl::PointCloud<PointT> & cloud,
-                             const std::vector< size_t > & initial_indices,
-                             std::vector< size_t > & eroded_indices);
 
     bool save_model (const std::string &models_dir = "/tmp/dynamic_models/",
                      const std::string &recognition_structure_dir = "/tmp/recognition_structure_dir/",

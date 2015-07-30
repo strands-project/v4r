@@ -6,7 +6,7 @@
  * using given camera poses
  *
  *  Created on: June, 2015
- *      Author: Aitor Aldoma, Thomas Faeulhammer
+ *      Author: Thomas Faeulhammer
  */
 
 
@@ -20,12 +20,8 @@
 #include <thread>
 #include <iostream>
 
-#include <pcl/common/angles.h>
-#include <pcl/common/time.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/extract_indices.h>
-#include <pcl/features/integral_image_normal.h>
-#include <pcl/features/normal_3d_omp.h>
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
@@ -34,18 +30,8 @@
 #include <pcl/segmentation/supervoxel_clustering.h>
 
 #include <v4r/common/keypoint/impl/convertCloud.hpp>
-#include <v4r/common/keypoint/impl/convertImage.hpp>
 #include <v4r/common/keypoint/impl/convertNormals.hpp>
-//#include <v4r/KeypointSlam/KeypointSlamRGBD2.hh>
-//#include <v4r/KeypointSlam/ProjBundleAdjuster.hh>
 #include <v4r/common/keypoint/impl/DataMatrix2D.hpp>
-//#include <v4r/KeypointTools/invPose.hpp>
-//#include <v4r/KeypointTools/PoseIO.hpp>
-//#include <v4r/KeypointTools/ScopeTime.hpp>
-//#include <v4r/KeypointTools/toString.hpp>
-//#include <v4r/KeypointTools/ZAdaptiveNormals.hh>
-#include <v4r/registration/FeatureBasedRegistration.h>
-#include <v4r/common/organized_edge_detection.h>
 #include <v4r/common/features/sift_local_estimator.h>
 #include <v4r/common/fast_icp_with_gc.h>
 #include <v4r/common/miscellaneous.h>
@@ -54,7 +40,6 @@
 #include <v4r/common/occlusion_reasoning.h>
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
-#include <boost/graph/graphviz.hpp>
 
 //#define USE_SIFT_GPU
 
@@ -422,28 +407,32 @@ DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreeP
     }
 }
 
-void
-DOL::erodeIndices(const pcl::PointCloud<PointT> & cloud,
-                              const std::vector< size_t > & initial_indices,
-                              std::vector< size_t > & eroded_indices)
+std::vector<bool>
+DOL::erodeIndices(const std::vector< bool > &obj_mask,
+                  const pcl::PointCloud<PointT> & cloud)
 {
-    cv::Mat mask = cv::Mat(cloud.height, cloud.width, CV_8UC1);
-    cv::Mat mask_dst;
-    mask.setTo(0);
+    assert (obj_mask.size == cloud.height * cloud.width);
 
-    for(size_t i=0; i < initial_indices.size(); i++)
+    cv::Mat mask = cv::Mat(cloud.height, cloud.width, CV_8UC1);
+    std::vector<bool> mask_out(obj_mask.size());
+
+    for(size_t i=0; i < obj_mask.size(); i++)
     {
         int r,c;
-        r = initial_indices[i] / mask.cols;
-        c = initial_indices[i] % mask.cols;
+        r = i / mask.cols;
+        c = i % mask.cols;
 
-        mask.at<unsigned char>(r,c) = 255;
+        if (obj_mask[i])
+            mask.at<unsigned char>(r,c) = 255;
+        else
+            mask.at<unsigned char>(r,c) = 0;
     }
 
     cv::Mat const structure_elem = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
     cv::Mat close_result;
     cv::morphologyEx(mask, close_result, cv::MORPH_CLOSE, structure_elem);
 
+    cv::Mat mask_dst;
     cv::erode(close_result, mask_dst, cv::Mat(), cv::Point(-1,-1), 3);
 
     //        cv::imshow("mask", mask);
@@ -451,25 +440,19 @@ DOL::erodeIndices(const pcl::PointCloud<PointT> & cloud,
     //        cv::imshow("mask_dst", mask_dst);
     //        cv::waitKey(0);
 
-    eroded_indices.clear();
-    eroded_indices.resize(mask_dst.rows * mask_dst.cols);
-    size_t kept = 0;
     for(int r=0; r < mask_dst.rows; r++)
     {
         for(int c=0; c< mask_dst.cols; c++)
         {
             const int idx = r * mask_dst.cols + c;
 
-            if (    mask_dst.at<unsigned char>(r,c) > 0
-                    && pcl::isFinite( cloud.points[idx] )
-                    && cloud.points[idx].z < param_.chop_z_        )
-            {
-                eroded_indices[kept] = idx;
-                kept++;
-            }
+            if (mask_dst.at<unsigned char>(r,c) > 0 && pcl::isFinite( cloud.points[idx] ) && cloud.points[idx].z < param_.chop_z_)
+                mask_out[idx] = true;
+            else
+                mask_out[idx] = false;
         }
     }
-    eroded_indices.resize(kept);
+    return mask_out;
 }
 
 
@@ -653,10 +636,6 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
 {
     planes_not_on_object.resize(planes.size());
 
-    pcl::visualization::PCLVisualizer vis("segmented cloud");
-    pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(cloud);
-    vis.addPointCloud(cloud, rgb_handler, "original_cloud");
-
     size_t kept=0;
     for(size_t cluster_id=0; cluster_id<planes.size(); cluster_id++)
     {
@@ -666,12 +645,6 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
 
         if (planes[cluster_id]->is_plane)
         {
-            vis.removePointCloud("segmented");
-            pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
-            pcl::copyPointCloud(*cloud, planes[cluster_id]->indices, *segmented);
-            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red_source (segmented, 255, 0, 0);
-            vis.addPointCloud(segmented, red_source, "segmented");
-
             for (size_t cluster_pt_id=0; cluster_pt_id<planes[cluster_id]->indices.size(); cluster_pt_id++)
             {
                 const int id = planes[cluster_id]->indices[cluster_pt_id];
@@ -693,15 +666,7 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
             {
                 planes_not_on_object[kept] = planes[cluster_id]->indices;
                 kept++;
-                std::cout << "***KEPT*** on plane " << cluster_id << " there are " << num_obj_pts << " object points and " << num_occluded_pts <<
-                             " occlusion_pts out of " << num_plane_pts << " total points (" << (float)num_obj_pts/num_plane_pts << " / " <<
-                             (float)num_occluded_pts/num_plane_pts << " / " << std::endl;
             }
-            else
-                std::cout << "-----------on plane " << cluster_id << " there are " << num_obj_pts << " object points and " << num_occluded_pts <<
-                             " occlusion_pts out of " << num_plane_pts << " total points (" << (float)num_obj_pts/num_plane_pts << " / " <<
-                             (float)num_occluded_pts/num_plane_pts << " / " << std::endl;
-            vis.spin();
         }
     }
     planes_not_on_object.resize(kept);
@@ -947,11 +912,12 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
         view.obj_indices_in_step_.push_back( createIndicesFromMask(initial_object_wo_outlier_mask) );
 
-        std::vector<size_t> eroded_object;
-        erodeIndices(*view.cloud_, view.obj_indices_in_step_.back(), eroded_object);
-        view.obj_indices_in_step_.push_back( eroded_object );
+        std::vector<bool> eroded_obj_mask = erodeIndices(initial_object_wo_outlier_mask, *view.cloud_);
+        view.obj_indices_in_step_.push_back( createIndicesFromMask(eroded_obj_mask) );
         getPlanesNotSupportedByObjectMask(planes,
-                                          view.obj_indices_in_step_.back(),
+                                          eroded_obj_mask,
+                                          std::vector<bool>(view.cloud_->points.size(), false),
+                                          view.cloud_,
                                           planes_not_on_obj);
     }
     else
@@ -1076,35 +1042,6 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         nnSearch(*view.transferred_cluster_, octree_, is_object);
         view.obj_indices_in_step_.push_back( createIndicesFromMask(is_object) );
 
-        cv::Mat mask = cv::Mat(view.cloud_->height, view.cloud_->width, CV_8UC1);
-        mask.setTo(0);
-        for(size_t i=0; i < view.obj_indices_in_step_.back().size(); i++)
-        {
-            if (view.obj_indices_in_step_.back().at(i))
-            {
-                const int r = view.obj_indices_in_step_.back().at(i) / mask.cols;
-                const int c = view.obj_indices_in_step_.back().at(i) % mask.cols;
-                mask.at<unsigned char>(r,c) = 255;
-            }
-        }
-        cv::imshow("visible points (white) when transferred to first frame", mask);
-////        cv::waitKey(0);
-
-//        std::vector<bool> is_object_or_occluded = logical_operation(is_object, is_occluded, MASK_OPERATOR::OR);
-        cv::Mat mask2 = cv::Mat(view.cloud_->height, view.cloud_->width, CV_8UC1);
-        for(size_t i=0; i < is_occluded.size(); i++)
-        {
-            const int r = i / mask.cols;
-            const int c = i % mask.cols;
-
-            if ( is_occluded[i] )
-                mask2.at<unsigned char>(r,c) = 255;
-            else
-                mask2.at<unsigned char>(r,c) = 0;
-        }
-        cv::imshow("visible points (white) when transferred to first frame and occlusion is considered", mask2);
-        cv::waitKey(0);
-
         getPlanesNotSupportedByObjectMask(planes,
                                           is_object,
                                           is_occluded,
@@ -1176,9 +1113,9 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
 //    view.obj_indices_3_to_original_ = view.obj_indices_2_to_filtered_;
 
-    std::vector<size_t> eroded_object;
-    erodeIndices(*view.cloud_, view.obj_indices_in_step_.back(), eroded_object);
-    view.obj_indices_in_step_.push_back(eroded_object);
+    std::vector<bool> eroded_obj_mask = erodeIndices(createMaskFromIndices(obj_indices_grown_by_smooth_surface, view.cloud_->points.size()),
+                                                     *view.cloud_);
+    view.obj_indices_in_step_.push_back( createIndicesFromMask(eroded_obj_mask) );
 
     for( size_t step_id = 0; step_id<view.obj_indices_in_step_.size(); step_id++)
     {
