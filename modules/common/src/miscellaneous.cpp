@@ -136,3 +136,25 @@ template void
 pcl::copyPointCloud<pcl::Normal> (const pcl::PointCloud<pcl::Normal> &cloud_in,
                 const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
                 pcl::PointCloud<pcl::Normal> &cloud_out);
+
+
+template void
+pcl::copyPointCloud<pcl::PointXYZ> (const pcl::PointCloud<pcl::PointXYZ> &cloud_in,
+                const std::vector<bool> &indices,
+                pcl::PointCloud<pcl::PointXYZ> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB> &cloud_in,
+                const std::vector<bool> &indices,
+                pcl::PointCloud<pcl::PointXYZRGB> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::PointXYZRGBNormal> (const pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_in,
+                const std::vector<bool> &indices,
+                pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::PointXYZRGBA> (const pcl::PointCloud<pcl::PointXYZRGBA> &cloud_in,
+                const std::vector<bool> &indices,
+                pcl::PointCloud<pcl::PointXYZRGBA> &cloud_out);
+template void
+pcl::copyPointCloud<pcl::Normal> (const pcl::PointCloud<pcl::Normal> &cloud_in,
+                const std::vector<bool> &indices,
+                pcl::PointCloud<pcl::Normal> &cloud_out);

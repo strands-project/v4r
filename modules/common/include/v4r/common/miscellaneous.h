@@ -370,6 +370,11 @@ template <typename PointT> void
 copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
                 const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
                 pcl::PointCloud<PointT> &cloud_out);
+
+template <typename PointT> void
+copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                     const std::vector<bool> &mask,
+                     pcl::PointCloud<PointT> &cloud_out);
 }
 
 #endif
