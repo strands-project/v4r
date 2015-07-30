@@ -106,3 +106,34 @@ pcl::copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
   for (size_t i = 0; i < indices.size (); ++i)
     cloud_out.points[i] = cloud_in.points[indices[i]];
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT> void
+pcl::copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                     const std::vector<bool> &mask,
+                     pcl::PointCloud<PointT> &cloud_out)
+{
+  assert(cloud_in.points.size() == mask.size());
+
+  // Allocate enough space and copy the basics
+  cloud_out.points.resize (cloud_in.points.size ());
+  cloud_out.header   = cloud_in.header;
+  cloud_out.width    = static_cast<uint32_t> (mask.size ());
+  cloud_out.height   = 1;
+  cloud_out.is_dense = cloud_in.is_dense;
+  cloud_out.sensor_orientation_ = cloud_in.sensor_orientation_;
+  cloud_out.sensor_origin_ = cloud_in.sensor_origin_;
+
+  // Iterate over each point
+  size_t kept=0;
+  for (size_t i = 0; i < mask.size (); ++i)
+  {
+      if( mask[i] )
+      {
+            cloud_out.points[kept] = cloud_in.points[i];
+            kept++;
+      }
+  }
+  cloud_out.points.resize(kept);
+  cloud_out.width = kept;
+}
