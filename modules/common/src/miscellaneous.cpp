@@ -1,4 +1,4 @@
-#include <v4r/keypoints/miscellaneous.h>
+#include "v4r/common/miscellaneous.h"
 
 #include <v4r/keypoints/impl/convertCloud.hpp>
 #include <v4r/keypoints/impl/convertNormals.hpp>
