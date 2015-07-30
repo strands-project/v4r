@@ -11,7 +11,7 @@
 #include "local_estimator.h"
 #include "faat_3d_rec_framework_defines.h"
 #include <pcl/io/pcd_io.h>
-#include <3rdparty/SiftGPU/src/SiftGPU/SiftGPU.h>
+#include <SiftGPU/SiftGPU.h>
 #include <GL/glut.h>
 #include <v4r/common/pcl_opencv.h>
 

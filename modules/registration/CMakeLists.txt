@@ -4,9 +4,13 @@ v4r_add_module(registration v4r_common v4r_io v4r_features)
 
 
 if(HAVE_EDT)
-  v4r_debug_message(" ->>>>>>>>>>>>>>>>>>>>>>>>>>>>" ${EDT_INCLUDE_DIR})
   v4r_include_directories(${EDT_INCLUDE_DIR})
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
+endif()
+
+if(HAVE_SIFTGPU)
+  v4r_include_directories(${SIFTGPU_INCLUDE_DIR})
+  list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
 endif()
 
 # depends on siftgpu and opencv ceres

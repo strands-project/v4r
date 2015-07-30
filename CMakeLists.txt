@@ -95,11 +95,11 @@ V4R_OPTION(WITH_QT             "Build with Qt Backend support"               OFF
 V4R_OPTION(WITH_OPENMP         "Include OpenMP support"                      OFF)
 V4R_OPTION(WITH_PTHREADS_PF    "Use pthreads-based parallel_for"             ON   IF (NOT WIN32) )
 V4R_OPTION(WITH_EDT            "Include EDT support"                         ON   IF (NOT IOS) )
-V4R_OPTION(WITH_SIFTGPU        "Include SiftGPU support"                     ON   IF (NOT IOS) )
 V4R_OPTION(WITH_OPENCL         "Include OpenCL Runtime support"              NOT ANDROID IF (NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_OPENCL_SVM     "Include OpenCL Shared Virtual Memory support" OFF ) # experimental
 V4R_OPTION(WITH_OPENCLAMDFFT   "Include AMD OpenCL FFT library support"      ON   IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_OPENCLAMDBLAS  "Include AMD OpenCL BLAS library support"     ON   IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
+V4R_OPTION(WITH_SIFTGPU        "Include SiftGPU support"                     ON)
 
 # V4R build components
 # ===================================================
@@ -119,13 +119,13 @@ V4R_OPTION(BUILD_CUDA_STUBS         "Build CUDA modules stubs when no CUDA SDK" 
 
 # 3rd party libs
 V4R_OPTION(BUILD_ZLIB               "Build zlib from source"             WIN32 OR APPLE )
-V4R_OPTION(BUILD_SIFTGPU            "Build SiftGPU from source"          ON)
 V4R_OPTION(BUILD_EDT                "Build libedt from source"           ON)
 V4R_OPTION(BUILD_JASPER             "Build libjasper from source"        WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_JPEG               "Build libjpeg from source"          WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_PNG                "Build libpng from source"           WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_OPENEXR            "Build openexr from source"          (WIN32 OR ANDROID OR APPLE) AND NOT WINRT)
 V4R_OPTION(BUILD_TBB                "Download and build TBB from source" ANDROID )
+V4R_OPTION(BUILD_SIFTGPU            "Build SiftGPU from source"          ON)
 
 # V4R installation options
 # ===================================================
@@ -303,8 +303,11 @@ include(cmake/V4RFindEigen.cmake)
 include(cmake/V4RFindPCL.cmake)
 
 # ----------------------------------------------------------------------------
-#  Detect other 3rd-party libraries/tools
+#  Detect optional 3rd-party libraries/tools
 # ----------------------------------------------------------------------------
+
+include(cmake/V4RFindEDT.cmake)
+include(cmake/V4RFindSiftGPU.cmake)
 
 # --- Doxygen for documentation ---
 unset(DOXYGEN_FOUND CACHE)
@@ -322,8 +325,6 @@ endif(BUILD_DOCS)
 #if(WITH_VTK)
   #include(cmake/V4RDetectVTK.cmake)
 #endif()
-include(cmake/V4RFindEDT.cmake)
-include(cmake/V4RFindSiftGPU.cmake)
 
 # ----------------------------------------------------------------------------
 # Add CUDA libraries (needed for apps/tools, samples)
