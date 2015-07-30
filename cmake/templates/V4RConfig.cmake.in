@@ -265,16 +265,6 @@ foreach(__opttype OPT DBG)
   endif()
 endforeach()
 
-# ==============================================================
-# Compatibility stuff
-# ==============================================================
-if(CMAKE_BUILD_TYPE MATCHES "Debug")
-  SET(V4R_LIB_DIR ${V4R_LIB_DIR_DBG} ${V4R_3RDPARTY_LIB_DIR_DBG})
-else()
-  SET(V4R_LIB_DIR ${V4R_LIB_DIR_OPT} ${V4R_3RDPARTY_LIB_DIR_OPT})
-endif()
-set(V4R_LIBRARIES ${V4R_LIBS})
-
 if(CMAKE_CROSSCOMPILING AND V4R_SHARED AND (CMAKE_SYSTEM_NAME MATCHES "Linux"))
   foreach(dir ${V4R_LIB_DIR})
     set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS}    -Wl,-rpath-link,${dir}")
