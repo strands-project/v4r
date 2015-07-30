@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <opencv2/core/core.hpp>
 
+#include <v4r/common/macros.h>
 
 namespace v4r
 {
@@ -14,7 +15,7 @@ namespace v4r
 /**
  * Data structure
  */
-class SlicPoint
+class V4R_EXPORTS SlicPoint
 {
 public:
   double x, y;
@@ -28,7 +29,7 @@ public:
 /**
  * Slic
  */
-class Slic  
+class V4R_EXPORTS Slic
 {
 private:
 

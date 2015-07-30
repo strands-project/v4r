@@ -39,7 +39,8 @@
 
 #include "pcl/point_types.h"
 #include "pcl/impl/instantiate.hpp"
-#include "v4r/common/geometric_consistency.h"
-#include "v4r/common/impl/geometric_consistency.hpp"
+
+#include <v4r/common/geometric_consistency.h>
+#include <v4r/common/impl/geometric_consistency.hpp>
 
 PCL_INSTANTIATE_PRODUCT(GeometricConsistencyGrouping, ((pcl::PointXYZ)(pcl::PointXYZI)(pcl::PointXYZRGBA)(pcl::PointXYZRGB))((pcl::PointXYZ)(pcl::PointXYZI)(pcl::PointXYZRGBA)(pcl::PointXYZRGB)))

@@ -26,6 +26,8 @@
 #ifndef KP_ZADAPTIVE_NORMALS_HH
 #define KP_ZADAPTIVE_NORMALS_HH
 
+#include <v4r/common/macros.h>
+
 #include <iostream>
 #include <stdexcept>
 #include <omp.h>
@@ -40,7 +42,7 @@ namespace kp
 /**
  * Surface normals estimation
  */
-class ZAdaptiveNormals
+class V4R_EXPORTS ZAdaptiveNormals
 {
 public:
   class Parameter

@@ -50,6 +50,8 @@
 
 #include <pcl/pcl_base.h>
 
+#include <v4r/common/macros.h>
+
 namespace v4r
 {
   /** \brief @b K-means clustering.
@@ -58,7 +60,7 @@ namespace v4r
     */
   //template <typename PointT>
   //class Kmeans : public PCLBase<PointT>
-  class PCL_EXPORTS Kmeans
+  class V4R_EXPORTS Kmeans
   {
 /*
     typedef PCLBase<PointT> BasePCLBase;
