@@ -106,15 +106,12 @@ DOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_s
 
 bool
 DOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
-                  pcl::PointCloud<PointT>::Ptr &sift_keypoints,
-                  std::vector< size_t > &sift_keypoint_indices,
-                  pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
-                  std::vector<float> &sift_keypoint_scales)
+                       pcl::PointCloud<PointT>::Ptr &sift_keypoints,
+                       std::vector< size_t > &sift_keypoint_indices,
+                       pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
+                       std::vector<float> &sift_keypoint_scales)
 {
     pcl::PointIndices sift_keypoint_pcl_indices;
-
-    //    if(use_table_plane)
-    //        estimator->setIndices (*(grph[src].pIndices_above_plane));
 
 #ifdef USE_SIFT_GPU
     boost::shared_ptr < faat_pcl::rec_3d_framework::SIFTLocalEstimation<PointT, FeatureT> > estimator;
@@ -132,14 +129,10 @@ DOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
     estimator->getKeypointIndices( sift_keypoint_pcl_indices );
 
     sift_keypoint_indices = v4r::common::convertPCLIndices2VecSizet(sift_keypoint_pcl_indices);
-
-    //      boost::shared_ptr < faat_pcl::rec_3d_framework::LocalEstimator<PointT, pcl::Histogram<128> > > cast_estimator;
-    //      cast_estimator = boost::dynamic_pointer_cast<faat_pcl::rec_3d_framework::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > (estimator);
 #endif
     return ret;
 }
 
-//void DOL::estimateViewTransformationBySIFT ( size_t src, size_t dst, boost::shared_ptr< flann::Index<DistT> > &flann_index, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations, bool use_gc )
 void
 DOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
                                       const pcl::PointCloud<PointT> &dst_cloud,
@@ -212,40 +205,24 @@ DOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
 }
 
 
-void
+std::vector<bool>
 DOL::extractEuclideanClustersSmooth (
         const pcl::PointCloud<PointT>::ConstPtr &cloud,
         const pcl::PointCloud<pcl::Normal> &normals,
-        const std::vector<size_t> &initial,
-        const std::vector<bool> &bg_mask,
-        std::vector<size_t> &cluster) const
+        const std::vector<bool> &initial_mask,
+        const std::vector<bool> &bg_mask) const
 {
-
-    if (cloud->points.size () != normals.points.size ())
-    {
-        PCL_ERROR ("[pcl::extractEuclideanClusters] Number of points in the input point cloud (%zu) different than normals (%zu)!\n", cloud->points.size (), normals.points.size ());
-        return;
-    }
+    assert (cloud->points.size () != normals.points.size ());
 
     pcl::octree::OctreePointCloudSearch<PointT> octree(0.005f);
     octree.setInputCloud ( cloud );
     octree.addPointsFromInputCloud ();
 
-    cluster.clear(); // is this okay???
-
     // Create a bool vector of processed point indices, and initialize it to false
-    std::vector<bool> to_grow (cloud->points.size (), false);
-    std::vector<bool> in_cluster (cloud->points.size (), false);
-
-    std::vector<size_t>::const_iterator it;
-    for(it = initial.begin(); it != initial.end(); it++)
-    {
-        to_grow[*it] = true;
-        in_cluster[*it] = true;
-    }
+    std::vector<bool> to_grow = initial_mask;
+    std::vector<bool> in_cluster = initial_mask;
 
     bool stop = false;
-
     while(!stop)
     {
         stop = true;
@@ -285,17 +262,17 @@ DOL::extractEuclideanClustersSmooth (
         }
         to_grow = is_new_point;
     }
-
-    cluster = createIndicesFromMask(in_cluster);
+    return in_cluster;
 }
 
 void
 DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
                                             pcl::PointCloud<pcl::Normal>::Ptr & normals,
-                                            const std::vector<size_t> &obj_points,
-                                            std::vector<size_t> &good_neighbours,
+                                            const std::vector<bool> &obj_mask,
+                                            std::vector<bool> &obj_mask_out,
                                             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud)
 {
+    assert( cloud->points.size() == normals->points.size() == obj_mask.size() );
 
     pcl::SupervoxelClustering<PointT> super (param_.voxel_resolution_, param_.seed_resolution_, false);
     super.setInputCloud (cloud);
@@ -306,20 +283,18 @@ DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
     std::map <uint32_t, pcl::Supervoxel<PointT>::Ptr > supervoxel_clusters;
     super.extract (supervoxel_clusters);
     super.refineSupervoxels(2, supervoxel_clusters);
-
-    pcl::console::print_info ("Found %d supervoxels\n", supervoxel_clusters.size ());
-
-    const pcl::PointCloud<pcl::PointXYZL>::Ptr supervoxels_labels_cloud = super.getLabeledCloud();
-    uint32_t max_label = super.getMaxLabel();
-
     supervoxel_cloud = super.getColoredVoxelCloud();
 
+    size_t sv_size = supervoxel_clusters.size ();
+    std::cout << "Found " << sv_size << " supervoxels." << std::endl;
+
+    const pcl::PointCloud<pcl::PointXYZL>::Ptr supervoxels_labels_cloud = super.getLabeledCloud();
+    const uint32_t max_label = super.getMaxLabel();
     const pcl::PointCloud<pcl::PointNormal>::Ptr sv_normal_cloud = super.makeSupervoxelNormalCloud (supervoxel_clusters);
 
-    std::vector<int> label_to_idx;
-    label_to_idx.resize(max_label + 1, -1);
+    std::vector<int> label_to_idx (max_label + 1, -1);
 
-    typename std::map <uint32_t, typename pcl::Supervoxel<PointT>::Ptr>::iterator sv_itr,sv_itr_end;
+    std::map <uint32_t, pcl::Supervoxel<PointT>::Ptr>::iterator sv_itr,sv_itr_end;
     sv_itr = supervoxel_clusters.begin ();
     sv_itr_end = supervoxel_clusters.end ();
     int i=0;
@@ -329,7 +304,6 @@ DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
     }
 
     //count total number of pixels for each supervoxel
-    size_t sv_size = supervoxel_clusters.size ();
     std::vector<size_t> label_count;
     label_count.resize ( supervoxel_clusters.size(), 0 );
 
@@ -348,30 +322,40 @@ DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
     std::vector<size_t> label_count_nn;
     label_count_nn.resize(sv_size, 0);
 
-    for(size_t id = 0; id < obj_points.size(); id++)
+    for(size_t id = 0; id < obj_mask.size(); id++)
     {
-        const int sv_idx = label_to_idx[ supervoxels_labels_cloud->at( obj_points[ id ] ).label];
+        const int sv_idx = label_to_idx[ supervoxels_labels_cloud->at(id).label];
         if(sv_idx >= 0 && sv_idx < static_cast<int>(sv_size))
         {
             label_count_nn[sv_idx]++;
         }
     }
 
-    good_neighbours.resize(obj_points.size());
-    size_t kept = 0;
-    for(size_t id = 0; id < obj_points.size(); id++)
+    obj_mask_out.resize(cloud->points.size());
+    for(size_t id = 0; id < cloud->points.size(); id++)
     {
-        const int sv_idx = label_to_idx[ supervoxels_labels_cloud->at( obj_points[ id ] ).label];
-        if(sv_idx < 0 || sv_idx >= static_cast<int>(sv_size))
+        if ( !obj_mask[id])
+        {
+            obj_mask_out[id] = false;
             continue;
+        }
+
+        const int sv_idx = label_to_idx[ supervoxels_labels_cloud->at(id).label];
+        if( sv_idx < 0 || sv_idx >= static_cast<int>(sv_size) )
+        {
+            obj_mask_out[id] = false;
+            continue;
+        }
 
         if( (label_count_nn[sv_idx] / (float)label_count[sv_idx]) > param_.ratio_)
         {
-            good_neighbours[kept] = obj_points[ id ];
-            kept++;
+            obj_mask_out[id] = true;
+        }
+        else
+        {
+            obj_mask_out[id] = false;
         }
     }
-    good_neighbours.resize(kept);
 }
 
 void
@@ -408,8 +392,7 @@ DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreeP
 }
 
 std::vector<bool>
-DOL::erodeIndices(const std::vector< bool > &obj_mask,
-                  const pcl::PointCloud<PointT> & cloud)
+DOL::erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<PointT> & cloud)
 {
     assert (obj_mask.size == cloud.height * cloud.width);
 
@@ -479,12 +462,12 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
     size_t kept_keyframes=0;
     for (size_t view_id = 0; view_id < grph_.size(); view_id++)
     {
-        if ( grph_[view_id].obj_indices_in_step_.back().size() )
+        if ( grph_[view_id].obj_mask_step_.back().size() )
         {
             keyframes_used[ kept_keyframes ] = grph_[view_id].cloud_;
             normals_used [ kept_keyframes ] = grph_[view_id].normal_;
             cameras_used [ kept_keyframes ] = grph_[view_id].camera_pose_;
-            indices_used[ kept_keyframes ] = grph_[view_id].obj_indices_in_step_.back();
+            indices_used[ kept_keyframes ] = createIndicesFromMask( grph_[view_id].obj_mask_step_.back() );
 
             object_indices_clouds[ kept_keyframes ].points.resize( indices_used[ kept_keyframes ].size());
 
@@ -591,42 +574,6 @@ DOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
 
 void
 DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
-                                            const std::vector< size_t > object_mask,
-                                            std::vector< std::vector<int> > &planes_not_on_object,
-                                            float ratio)
-{
-    planes_not_on_object.resize(planes.size());
-
-    size_t kept=0;
-    for(size_t cluster_id=0; cluster_id<planes.size(); cluster_id++)
-    {
-        size_t num_obj_pts = 0;
-
-        if (planes[cluster_id]->is_plane)
-        {
-            for (size_t cluster_pt_id=0; cluster_pt_id<planes[cluster_id]->indices.size(); cluster_pt_id++)
-            {
-                for (size_t obj_pt_id=0; obj_pt_id<object_mask.size(); obj_pt_id++)
-                {
-                    if (object_mask[obj_pt_id] == static_cast<size_t>(planes[cluster_id]->indices[cluster_pt_id]))
-                    {
-                        num_obj_pts++;
-                    }
-                }
-            }
-
-            if ( num_obj_pts < ratio * planes[cluster_id]->indices.size() )
-            {
-                planes_not_on_object[kept] = planes[cluster_id]->indices;
-                kept++;
-            }
-        }
-    }
-    planes_not_on_object.resize(kept);
-}
-
-void
-DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                        const std::vector< bool > &object_mask,
                                        const std::vector< bool > &occlusion_mask,
                                        const pcl::PointCloud<PointT>::ConstPtr &cloud,
@@ -643,7 +590,7 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
         size_t num_occluded_pts = 0;
         size_t num_plane_pts = 0;
 
-        if (planes[cluster_id]->is_plane)
+        if ( planes[cluster_id]->is_plane || !param_.filter_planes_only_ )
         {
             for (size_t cluster_pt_id=0; cluster_pt_id<planes[cluster_id]->indices.size(); cluster_pt_id++)
             {
@@ -661,7 +608,6 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
                 num_plane_pts++;
             }
 
-
             if ( num_plane_pts == 0 || (num_obj_pts < ratio * num_plane_pts && num_occluded_pts < ratio_occ * num_plane_pts) )
             {
                 planes_not_on_object[kept] = planes[cluster_id]->indices;
@@ -673,35 +619,25 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
 }
 
 std::vector<bool>
-DOL::createMaskFromIndices(const std::vector<size_t> &indices,
-                                 size_t image_size)
+DOL::createMaskFromIndices(const std::vector<size_t> &indices,size_t image_size)
 {
     std::vector<bool> mask (image_size, false);
 
-//    if ( mask.size() != image_size )
-//        mask = std::vector<bool>( image_size, false );
-
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-    {
         mask [ indices[obj_pt_id] ] = true;
-    }
+
     return mask;
 }
 
 
 std::vector<bool>
-DOL::createMaskFromIndices(const std::vector<int> &indices,
-                                 size_t image_size)
+DOL::createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 {
     std::vector<bool> mask (image_size, false);
 
-//    if ( mask.size() != image_size )
-//        mask = std::vector<bool>( image_size, false );
-
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-    {
         mask [ indices[obj_pt_id] ] = true;
-    }
+
     return mask;
 }
 
@@ -874,7 +810,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     if (initial_indices.size())   // for first frame use given initial indices and erode them
     {
-        view.obj_indices_in_step_.push_back(initial_indices);
+        view.obj_mask_step_.push_back(createMaskFromIndices(initial_indices, view.cloud_->points.size()));
         view.is_pre_labelled_ = true;
 
         // remove nan values and points further away than chop_z_ parameter
@@ -906,16 +842,16 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         sor.filter (*cloud_filtered);
         FilteredObjectIndicesPtr = sor.getRemovedIndices();
 
-        const std::vector<bool> initial_object = createMaskFromIndices(initial_indices_wo_nan, view.cloud_->points.size());
+        const std::vector<bool> obj_mask_initial = createMaskFromIndices(initial_indices_wo_nan, view.cloud_->points.size());
         const std::vector<bool> outlier_mask = createMaskFromIndices(*FilteredObjectIndicesPtr, view.cloud_->points.size());
-        const std::vector<bool> initial_object_wo_outlier_mask = logical_operation(initial_object, outlier_mask, MASK_OPERATOR::AND_N);
+        const std::vector<bool> obj_mask_wo_outlier = logical_operation(obj_mask_initial, outlier_mask, MASK_OPERATOR::AND_N);
 
-        view.obj_indices_in_step_.push_back( createIndicesFromMask(initial_object_wo_outlier_mask) );
+        view.obj_mask_step_.push_back( obj_mask_wo_outlier);
 
-        std::vector<bool> eroded_obj_mask = erodeIndices(initial_object_wo_outlier_mask, *view.cloud_);
-        view.obj_indices_in_step_.push_back( createIndicesFromMask(eroded_obj_mask) );
+        std::vector<bool> obj_mask_eroded = erodeIndices(obj_mask_wo_outlier, *view.cloud_);
+        view.obj_mask_step_.push_back( obj_mask_eroded );
         getPlanesNotSupportedByObjectMask(planes,
-                                          eroded_obj_mask,
+                                          obj_mask_eroded,
                                           std::vector<bool>(view.cloud_->points.size(), false),
                                           view.cloud_,
                                           planes_not_on_obj);
@@ -1015,7 +951,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
             if( view.id_ != grph_[view_id].id_)
             {
                 pcl::PointCloud<PointT> new_search_pts, new_search_pts_aligned;
-                pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_indices_in_step_.back(), new_search_pts);
+                pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_mask_step_.back(), new_search_pts);
                 const Eigen::Matrix4f tf = view.camera_pose_.inverse() * grph_[view_id].camera_pose_;
                 pcl::transformPointCloud(new_search_pts, new_search_pts_aligned, tf);
                 *view.transferred_cluster_ += new_search_pts_aligned;
@@ -1038,21 +974,21 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
             }
         }
 
-        std::vector<bool> is_object (view.cloud_->points.size(), false);
-        nnSearch(*view.transferred_cluster_, octree_, is_object);
-        view.obj_indices_in_step_.push_back( createIndicesFromMask(is_object) );
+        std::vector<bool> obj_mask_nn_search (view.cloud_->points.size(), false);
+        nnSearch(*view.transferred_cluster_, octree_, obj_mask_nn_search);
+        view.obj_mask_step_.push_back( obj_mask_nn_search);
 
         getPlanesNotSupportedByObjectMask(planes,
-                                          is_object,
+                                          obj_mask_nn_search,
                                           is_occluded,
                                           view.cloud_,
                                           planes_not_on_obj);
     }
 
-    std::vector<bool> pixel_is_object = createMaskFromIndices(view.obj_indices_in_step_.back(), view.cloud_->points.size());
+    std::vector<bool> pixel_is_object = view.obj_mask_step_.back();
     pixel_is_neglected = createMaskFromVecIndices(planes_not_on_obj, view.cloud_->points.size());
     view.scene_points_ = createIndicesFromMask(pixel_is_neglected, true);
-    view.obj_indices_in_step_.push_back( createIndicesFromMask( logical_operation(pixel_is_object, pixel_is_neglected, MASK_OPERATOR::AND_N) ) );
+    view.obj_mask_step_.push_back( logical_operation(pixel_is_object, pixel_is_neglected, MASK_OPERATOR::AND_N) );
     pcl::copyPointCloud(*view.cloud_,  view.scene_points_, *cloud_filtered);
     pcl::copyPointCloud(*view.normal_, view.scene_points_, *normals_filtered);
 
@@ -1088,46 +1024,33 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         vis.spin();
     }
 #endif
-    std::vector<size_t> obj_indices_enforced_by_supervoxel_consistency;
+    std::vector<bool> obj_mask_enforced_by_supervoxel_consistency;
     updatePointNormalsFromSuperVoxels(view.cloud_,
                                       view.normal_,
-                                      view.obj_indices_in_step_.back(),
-                                      obj_indices_enforced_by_supervoxel_consistency,
+                                      view.obj_mask_step_.back(),
+                                      obj_mask_enforced_by_supervoxel_consistency,
                                       view.supervoxel_cloud_);
-    view.obj_indices_in_step_.push_back( obj_indices_enforced_by_supervoxel_consistency );
+    view.obj_mask_step_.push_back( obj_mask_enforced_by_supervoxel_consistency );
 
-    std::vector<size_t> obj_indices_grown_by_smooth_surface;
-    extractEuclideanClustersSmooth(view.cloud_, *view.normal_,
-                                   view.obj_indices_in_step_.back(),
-                                   pixel_is_neglected,
-                                   obj_indices_grown_by_smooth_surface);
-    view.obj_indices_in_step_.push_back( obj_indices_grown_by_smooth_surface );
+    std::vector<bool> obj_mask_grown_by_smooth_surface = extractEuclideanClustersSmooth(view.cloud_,
+                                                                                           *view.normal_,
+                                                                                           obj_mask_enforced_by_supervoxel_consistency,
+                                                                                           pixel_is_neglected);
+    view.obj_mask_step_.push_back(obj_mask_grown_by_smooth_surface);
 
+    std::vector<bool> obj_mask_eroded = erodeIndices(obj_mask_grown_by_smooth_surface, *view.cloud_);
+    view.obj_mask_step_.push_back( obj_mask_eroded );
 
-//    // Transferring indices corresponding to filtered cloud such that they correspond to original (unfiltered) cloud.
-//    view.obj_indices_3_to_original_.resize( view.obj_indices_2_to_filtered_.size() );
-//    for (size_t obj_pt_id=0; obj_pt_id < view.obj_indices_2_to_filtered_.size(); obj_pt_id++)
-//    {
-//        view.obj_indices_3_to_original_[obj_pt_id] = view.scene_points_[ view.obj_indices_2_to_filtered_[obj_pt_id] ];
-//    }
-
-//    view.obj_indices_3_to_original_ = view.obj_indices_2_to_filtered_;
-
-    std::vector<bool> eroded_obj_mask = erodeIndices(createMaskFromIndices(obj_indices_grown_by_smooth_surface, view.cloud_->points.size()),
-                                                     *view.cloud_);
-    view.obj_indices_in_step_.push_back( createIndicesFromMask(eroded_obj_mask) );
-
-    for( size_t step_id = 0; step_id<view.obj_indices_in_step_.size(); step_id++)
+    for( size_t step_id = 0; step_id<view.obj_mask_step_.size(); step_id++)
     {
-        std::cout << "step " << step_id << ": " << view.obj_indices_in_step_[step_id].size() << " points." << std::endl;
+        std::cout << "step " << step_id << ": " << createIndicesFromMask(view.obj_mask_step_[step_id]).size() << " points." << std::endl;
     }
 
-    if( view.is_pre_labelled_ && view.obj_indices_in_step_.back().size() < param_.min_points_for_transferring_)
+    if( view.is_pre_labelled_ && createIndicesFromMask(view.obj_mask_step_.back()).size() < param_.min_points_for_transferring_)
     {
-        view.obj_indices_in_step_.back() = view.obj_indices_in_step_[0];
+        view.obj_mask_step_.back() = view.obj_mask_step_[0];
         std::cout << "After postprocessing the initial frame not enough points are left. Therefore taking the original provided indices." << std::endl;
     }
-
     return true;
 }
 
@@ -1166,6 +1089,8 @@ DOL::printParams(std::ostream &ostr) const
          << "do_erosion: " << param_.do_erosion_ << std::endl
          << "max z distance: " << param_.chop_z_ << std::endl
          << "transferring object indices from latest frame only: " << param_.transfer_indices_from_latest_frame_only_ << std::endl
+         << "apply minimimum spanning tree: " << param_.do_mst_refinement_ << std::endl
+         << "Filter only planes (no other Euclidean clusters): " << param_.filter_planes_only_ << std::endl
          << "===================================================" << std::endl << std::endl;
 }
 }

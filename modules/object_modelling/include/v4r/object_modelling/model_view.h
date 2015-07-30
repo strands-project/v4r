@@ -31,7 +31,7 @@ namespace v4r
             std::vector< size_t > scene_points_;
             std::vector< size_t > sift_keypoint_indices_;
 
-            std::vector< std::vector <size_t> > obj_indices_in_step_;
+            std::vector< std::vector <bool> > obj_mask_step_;
             Eigen::Matrix4f camera_pose_;
             Eigen::Matrix4f tracking_pose_;
             bool tracking_pose_set_ = false;

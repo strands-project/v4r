@@ -92,6 +92,7 @@ public:
         size_t min_points_for_transferring_;
         int normal_method_;
         bool do_mst_refinement_;
+        bool filter_planes_only_;
         Parameter (double radius = 0.005f,
                    double eps_angle = 0.9f,
                    double dist_threshold_growing = 0.05f,
@@ -104,7 +105,8 @@ public:
                    bool transfer_indices_from_latest_frame_only = false,
                    size_t min_points_for_transferring = 10,
                    int normal_method = 1,
-                   bool do_mst_refinement = true) :
+                   bool do_mst_refinement = true,
+                   bool filter_planes_only = true) :
             radius_(radius),
             eps_angle_(eps_angle),
             dist_threshold_growing_(dist_threshold_growing),
@@ -117,7 +119,8 @@ public:
             transfer_indices_from_latest_frame_only_(transfer_indices_from_latest_frame_only),
             min_points_for_transferring_(min_points_for_transferring),
             normal_method_(normal_method),
-            do_mst_refinement_(do_mst_refinement)
+            do_mst_refinement_(do_mst_refinement),
+            filter_planes_only_(filter_planes_only)
         {
         }
 
@@ -176,10 +179,6 @@ protected:
                                   const Eigen::Matrix4f &accum,
                                   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &absolute_poses,
                                   std::vector<bool> &hop_list);
-
-    ///radius to select points in other frames to belong to the same object
-    /// bootstraps region growing
-
 public:
 
     DOL () : octree_(0.005f)
@@ -209,15 +208,16 @@ public:
         counter_ = 0;
     }
 
-    void extractEuclideanClustersSmooth (const pcl::PointCloud<PointT>::ConstPtr &cloud,
-                const pcl::PointCloud<pcl::Normal> &normals_,
-                const std::vector<size_t> &initial, const std::vector<bool> &bg_mask,
-                std::vector<size_t> &cluster) const;
+    std::vector<bool>
+    extractEuclideanClustersSmooth (const pcl::PointCloud<PointT>::ConstPtr &cloud,
+                                    const pcl::PointCloud<pcl::Normal> &normals_,
+                                    const std::vector<bool> &initial_mask,
+                                    const std::vector<bool> &bg_mask) const;
 
     void updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
                                            pcl::PointCloud<pcl::Normal>::Ptr & normals_,
-                                           const std::vector< size_t > &object_points,
-                                           std::vector< size_t > & good_neighbours,
+                                           const std::vector<bool> &obj_mask,
+                                           std::vector<bool> &obj_mask_out,
                                            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud);
 
     std::vector<bool>
@@ -262,11 +262,17 @@ public:
                             const pcl::PointCloud<pcl::Normal>::ConstPtr &normals,
                             std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes);
 
-    static void getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
-                                                const std::vector<size_t> object_mask,
-                                                std::vector<std::vector<int> > &planes_not_on_object,
-                                                float ratio=0.25);
-
+    /**
+     * @brief given a set of clusters, this function returns the clusters which have less than ratio% object points or ratio_occ% occlusion points
+     * Points further away than param_.chop_z_ are neglected
+     * @param planes - set of input clusters
+     * @param object_mask - binary mask of object pixels
+     * @param occlusion_mask - binary mask of pixels which are neither object nor background (e.g. pixels that are occluded when transferred into the labelled frame)
+     * @param cloud - point cloud of the scene
+     * @param planes_not_on_object - output set of clusters
+     * @param ratio - threshold percentage when a cluster is considered as belonging to an object
+     * @param ratio_occ - threshold percentage when a cluster is considered as being occluded
+     */
     void getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                            const std::vector< bool > &object_mask,
                                            const std::vector< bool > &occlusion_mask,
@@ -306,8 +312,7 @@ public:
     static std::vector<bool> createMaskFromVecIndices(const std::vector<std::vector<int> > &indices,
                                 size_t image_size);
 
-    static std::vector<size_t>
-    createIndicesFromMask(const std::vector<bool> &mask, bool invert=false);
+    static std::vector<size_t> createIndicesFromMask(const std::vector<bool> &mask, bool invert=false);
 
     void computeNormals(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                         pcl::PointCloud<pcl::Normal>::Ptr &normals, int method);

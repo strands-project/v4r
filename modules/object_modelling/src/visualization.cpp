@@ -41,17 +41,17 @@ DOL::createBigCloud()
 
          // object reconstruction without noise model
          pcl::PointCloud<PointT>::Ptr segmented_trans (new pcl::PointCloud<PointT>());
-         pcl::copyPointCloud(*cloud_trans, grph_[view_id].obj_indices_in_step_.back(), *segmented_trans);
+         pcl::copyPointCloud(*cloud_trans, grph_[view_id].obj_mask_step_.back(), *segmented_trans);
          *big_cloud_segmented_ += *segmented_trans;
 
 
          //using noise model
-         if ( grph_[view_id].obj_indices_in_step_.back().size() )
+         if ( grph_[view_id].obj_mask_step_.back().size() )
          {
              keyframes_used[ kept_keyframes ] = grph_[view_id].cloud_;
              normals_used [ kept_keyframes ] = grph_[view_id].normal_;
              cameras_used [ kept_keyframes ] = grph_[view_id].camera_pose_;
-             indices_used[ kept_keyframes ] = grph_[view_id].obj_indices_in_step_.back();
+             indices_used[ kept_keyframes ] = createIndicesFromMask( grph_[view_id].obj_mask_step_.back() );
 
              object_indices_clouds[ kept_keyframes ].points.resize( indices_used[ kept_keyframes ].size());
 
@@ -150,7 +150,7 @@ DOL::visualize()
     subwindow_title.push_back("after growing points within smooth surfaces");
     subwindow_title.push_back("after 2D erosion");
 
-    size_t num_subwindows = grph_.back().obj_indices_in_step_.size() + 3;
+    size_t num_subwindows = grph_.back().obj_mask_step_.size() + 3;
     vis_viewpoint_ = v4r::common::pcl_visualizer::visualization_framework (vis_, grph_.size(), num_subwindows, subwindow_title);
 
     for (size_t view_id = 0; view_id < grph_.size(); view_id++)
@@ -179,7 +179,7 @@ DOL::visualize()
         {
             cloud_name << "_initial_indices";
             pcl::PointCloud<PointT>::Ptr obj_trans_tmp (new pcl::PointCloud<PointT>());
-            pcl::copyPointCloud(*cloud_trans, grph_[view_id].obj_indices_in_step_[0], *obj_trans_tmp);
+            pcl::copyPointCloud(*cloud_trans, grph_[view_id].obj_mask_step_[0], *obj_trans_tmp);
             pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red_source (obj_trans_tmp, 255, 0, 0);
             vis_->addPointCloud(obj_trans_tmp, red_source, cloud_name.str(), vis_viewpoint_[view_id * num_subwindows + subwindow_id++]);
         }
@@ -193,7 +193,7 @@ DOL::visualize()
         cloud_name << "_supervoxellized";
         vis_->addPointCloud(sv_trans, cloud_name.str(), vis_viewpoint_[view_id * num_subwindows + subwindow_id++]);
 
-        for(size_t step_id=0; step_id<grph_[view_id].obj_indices_in_step_.size(); step_id++)
+        for(size_t step_id=0; step_id<grph_[view_id].obj_mask_step_.size(); step_id++)
         {
             if (grph_[view_id].is_pre_labelled_ && step_id==0) // initial indices already shown in other subwindow
             {
@@ -202,7 +202,7 @@ DOL::visualize()
 
             pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
             pcl::PointCloud<PointT>::Ptr segmented_trans (new pcl::PointCloud<PointT>());
-            pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_indices_in_step_[step_id], *segmented);
+            pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_mask_step_[step_id], *segmented);
             pcl::transformPointCloud(*segmented, *segmented_trans, grph_[view_id].camera_pose_);
             cloud_name << "__step_" << step_id;
             pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(segmented_trans);
