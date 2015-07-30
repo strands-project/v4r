@@ -1,6 +1,8 @@
 #ifndef FILESYSTEM_UTILS_H_
 #define FILESYSTEM_UTILS_H_
 
+#include <v4r/common/macros.h>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
@@ -20,7 +22,7 @@ namespace v4r
           * @param relative_paths
           * @return number of folders in folder
           */
-          int
+          V4R_EXPORTS int
           getFoldersInDirectory (const std::string & dir,
                                  const std::string & rel_path_so_far,
                                  std::vector<std::string> & relative_paths);
@@ -36,32 +38,32 @@ namespace v4r
         * @param recursive (true if files in subfolders should be returned as well)
         * @return number of files in folder (-1 in case directory name is not valid)
         */
-        int
+        V4R_EXPORTS int
         getFilesInDirectory (   const std::string & dir,
                                 std::vector<std::string> & relative_paths,
                                 const std::string & rel_path_so_far = std::string(""),
                                 const std::string & regex_pattern = std::string(""),
                                 bool recursive = true);
 
-        bool
+        V4R_EXPORTS bool
         writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix);
 
-        bool
+        V4R_EXPORTS bool
         readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix);
 
-        bool
+        V4R_EXPORTS bool
         readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding);
 
-        bool
+        V4R_EXPORTS bool
         writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid);
 
-        bool
+        V4R_EXPORTS bool
         getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid);
 
-        bool
+        V4R_EXPORTS bool
         writeFloatToFile (const std::string &file, const float value);
 
-        bool
+        V4R_EXPORTS bool
         readFloatFromFile (const std::string &file, float& value);
 
 
@@ -69,12 +71,13 @@ namespace v4r
         * @param rFile
         * @return true if file exsits
         */
-        bool existsFile ( const std::string &rFile );
+        V4R_EXPORTS bool
+        existsFile ( const std::string &rFile );
 
         /** checks if folder already exists and if not, creates one
           * @param folder_name
           */
-        void
+        V4R_EXPORTS void
         createDirIfNotExist(const std::string & dirs);
       }
 }
