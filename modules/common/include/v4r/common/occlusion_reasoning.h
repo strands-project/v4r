@@ -70,74 +70,12 @@ namespace v4r
         void filter (typename pcl::PointCloud<ModelT>::ConstPtr & model, std::vector<int> & indices, float thres = 0.01);
       };
 
-      template<typename ModelT, typename SceneT> std::vector<bool>
-      computeOccludedPoints (const typename pcl::PointCloud<SceneT> & organized_cloud,
-                             const typename pcl::PointCloud<ModelT> & to_be_filtered,
-                             float f = 525.f,
-                             float threshold = 0.01f,
-                             bool is_occluded_out_fov = true)
-      {
-        const float cx = (static_cast<float> (organized_cloud.width) / 2.f - 0.5f);
-        const float cy = (static_cast<float> (organized_cloud.height) / 2.f - 0.5f);
-        std::vector<bool> is_occluded (to_be_filtered.points.size(), false);
-
-        for (size_t i = 0; i < to_be_filtered.points.size (); i++)
-        {
-          if ( !pcl::isFinite(to_be_filtered.points[i]) )
-               continue;
-
-          const float x = to_be_filtered.points[i].x;
-          const float y = to_be_filtered.points[i].y;
-          const float z = to_be_filtered.points[i].z;
-          const int u = static_cast<int> (f * x / z + cx);
-          const int v = static_cast<int> (f * y / z + cy);
-
-          // points out of the field of view in the first frame
-          if ((u >= static_cast<int> (organized_cloud.width)) || (v >= static_cast<int> (organized_cloud.height)) || (u < 0) || (v < 0))
-          {
-              is_occluded[i] = is_occluded_out_fov;
-              continue;
-          }
-
-          // Check for invalid depth
-          if ( !pcl::isFinite (organized_cloud.at (u, v)) )
-          {
-              is_occluded[i] = true;
-              continue;
-          }
-
-
-          //Check if point depth (distance to camera) is greater than the (u,v)
-          if ( ( z - organized_cloud.at(u, v).z ) > threshold)
-          {
-              is_occluded[i] = true;
-          }
-        }
-        return is_occluded;
-      }
-
-
-
-      template<typename ModelT, typename SceneT> std::vector<bool>
-      computeOccludedPoints (const typename pcl::PointCloud<SceneT> & organized_cloud,
-                             const typename pcl::PointCloud<ModelT> & to_be_filtered,
-                             const Eigen::Matrix4f &transform_2to1,
-                             float f = 525.f,
-                             float threshold = 0.01f,
-                             bool is_occluded_out_fov = true)
-        {
-            typename pcl::PointCloud<ModelT> cloud_trans;
-            pcl::transformPointCloud(to_be_filtered, cloud_trans, transform_2to1);
-            return computeOccludedPoints(organized_cloud, cloud_trans, f, threshold, is_occluded_out_fov);
-        }
-
-
     template<typename ModelT, typename SceneT> typename pcl::PointCloud<ModelT>::Ptr
     filter (typename pcl::PointCloud<SceneT>::ConstPtr & organized_cloud, typename pcl::PointCloud<ModelT>::ConstPtr & to_be_filtered, float f,
             float threshold)
     {
-      const float cx = (static_cast<float> (organized_cloud->width) / 2.f - 0.5f);
-      const float cy = (static_cast<float> (organized_cloud->height) / 2.f - 0.5f);
+      float cx = (static_cast<float> (organized_cloud->width) / 2.f - 0.5f);
+      float cy = (static_cast<float> (organized_cloud->height) / 2.f - 0.5f);
       typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
 
       std::vector<int> indices_to_keep;
@@ -146,11 +84,11 @@ namespace v4r
       int keep = 0;
       for (size_t i = 0; i < to_be_filtered->points.size (); i++)
       {
-        const float x = to_be_filtered->points[i].x;
-        const float y = to_be_filtered->points[i].y;
-        const float z = to_be_filtered->points[i].z;
-        const int u = static_cast<int> (f * x / z + cx);
-        const int v = static_cast<int> (f * y / z + cy);
+        float x = to_be_filtered->points[i].x;
+        float y = to_be_filtered->points[i].y;
+        float z = to_be_filtered->points[i].z;
+        int u = static_cast<int> (f * x / z + cx);
+        int v = static_cast<int> (f * y / z + cy);
 
         //Not out of bounds
         if ((u >= static_cast<int> (organized_cloud->width)) || (v >= static_cast<int> (organized_cloud->height)) || (u < 0) || (v < 0))
