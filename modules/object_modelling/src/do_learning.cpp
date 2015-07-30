@@ -642,6 +642,71 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
     planes_not_on_object.resize(kept);
 }
 
+void
+DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
+                                       const std::vector< bool > &object_mask,
+                                       const std::vector< bool > &occlusion_mask,
+                                       const pcl::PointCloud<PointT>::ConstPtr &cloud,
+                                       std::vector< std::vector<int> > &planes_not_on_object,
+                                       float ratio,
+                                       float ratio_occ) const
+{
+    planes_not_on_object.resize(planes.size());
+
+    pcl::visualization::PCLVisualizer vis("segmented cloud");
+    pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(cloud);
+    vis.addPointCloud(cloud, rgb_handler, "original_cloud");
+
+    size_t kept=0;
+    for(size_t cluster_id=0; cluster_id<planes.size(); cluster_id++)
+    {
+        size_t num_obj_pts = 0;
+        size_t num_occluded_pts = 0;
+        size_t num_plane_pts = 0;
+
+        if (planes[cluster_id]->is_plane)
+        {
+            vis.removePointCloud("segmented");
+            pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
+            pcl::copyPointCloud(*cloud, planes[cluster_id]->indices, *segmented);
+            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red_source (segmented, 255, 0, 0);
+            vis.addPointCloud(segmented, red_source, "segmented");
+
+            for (size_t cluster_pt_id=0; cluster_pt_id<planes[cluster_id]->indices.size(); cluster_pt_id++)
+            {
+                const int id = planes[cluster_id]->indices[cluster_pt_id];
+
+                if ( cloud->points[id].z > param_.chop_z_ ) // do not consider points that are further away than a certain threshold
+                    continue;
+
+                if ( object_mask[id] )
+                    num_obj_pts++;
+
+                if( occlusion_mask[id] )
+                    num_occluded_pts++;
+
+                num_plane_pts++;
+            }
+
+
+            if ( num_plane_pts == 0 || (num_obj_pts < ratio * num_plane_pts && num_occluded_pts < ratio_occ * num_plane_pts) )
+            {
+                planes_not_on_object[kept] = planes[cluster_id]->indices;
+                kept++;
+                std::cout << "***KEPT*** on plane " << cluster_id << " there are " << num_obj_pts << " object points and " << num_occluded_pts <<
+                             " occlusion_pts out of " << num_plane_pts << " total points (" << (float)num_obj_pts/num_plane_pts << " / " <<
+                             (float)num_occluded_pts/num_plane_pts << " / " << std::endl;
+            }
+            else
+                std::cout << "-----------on plane " << cluster_id << " there are " << num_obj_pts << " object points and " << num_occluded_pts <<
+                             " occlusion_pts out of " << num_plane_pts << " total points (" << (float)num_obj_pts/num_plane_pts << " / " <<
+                             (float)num_occluded_pts/num_plane_pts << " / " << std::endl;
+            vis.spin();
+        }
+    }
+    planes_not_on_object.resize(kept);
+}
+
 std::vector<bool>
 DOL::createMaskFromIndices(const std::vector<size_t> &indices,
                                  size_t image_size)
@@ -1011,37 +1076,39 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         nnSearch(*view.transferred_cluster_, octree_, is_object);
         view.obj_indices_in_step_.push_back( createIndicesFromMask(is_object) );
 
-//        cv::Mat mask = cv::Mat(view.cloud_->height, view.cloud_->width, CV_8UC1);
-//        mask.setTo(0);
-//        for(size_t i=0; i < view.obj_indices_in_step_.back().size(); i++)
-//        {
-//            if (view.obj_indices_in_step_.back().at(i))
-//            {
-//                const int r = view.obj_indices_in_step_.back().at(i) / mask.cols;
-//                const int c = view.obj_indices_in_step_.back().at(i) % mask.cols;
-//                mask.at<unsigned char>(r,c) = 255;
-//            }
-//        }
-//        cv::imshow("visible points (white) when transferred to first frame", mask);
+        cv::Mat mask = cv::Mat(view.cloud_->height, view.cloud_->width, CV_8UC1);
+        mask.setTo(0);
+        for(size_t i=0; i < view.obj_indices_in_step_.back().size(); i++)
+        {
+            if (view.obj_indices_in_step_.back().at(i))
+            {
+                const int r = view.obj_indices_in_step_.back().at(i) / mask.cols;
+                const int c = view.obj_indices_in_step_.back().at(i) % mask.cols;
+                mask.at<unsigned char>(r,c) = 255;
+            }
+        }
+        cv::imshow("visible points (white) when transferred to first frame", mask);
 ////        cv::waitKey(0);
 
-        std::vector<bool> is_object_or_occluded = logical_operation(is_object, is_occluded, MASK_OPERATOR::OR);
-//        cv::Mat mask2 = cv::Mat(view.cloud_->height, view.cloud_->width, CV_8UC1);
-//        for(size_t i=0; i < is_object_or_occluded.size(); i++)
-//        {
-//            const int r = i / mask.cols;
-//            const int c = i % mask.cols;
+//        std::vector<bool> is_object_or_occluded = logical_operation(is_object, is_occluded, MASK_OPERATOR::OR);
+        cv::Mat mask2 = cv::Mat(view.cloud_->height, view.cloud_->width, CV_8UC1);
+        for(size_t i=0; i < is_occluded.size(); i++)
+        {
+            const int r = i / mask.cols;
+            const int c = i % mask.cols;
 
-//            if ( is_object_or_occluded[i] )
-//                mask2.at<unsigned char>(r,c) = 255;
-//            else
-//                mask2.at<unsigned char>(r,c) = 0;
-//        }
-//        cv::imshow("visible points (white) when transferred to first frame and occlusion is considered", mask2);
-//        cv::waitKey(0);
+            if ( is_occluded[i] )
+                mask2.at<unsigned char>(r,c) = 255;
+            else
+                mask2.at<unsigned char>(r,c) = 0;
+        }
+        cv::imshow("visible points (white) when transferred to first frame and occlusion is considered", mask2);
+        cv::waitKey(0);
 
         getPlanesNotSupportedByObjectMask(planes,
-                                          createIndicesFromMask(is_object_or_occluded),
+                                          is_object,
+                                          is_occluded,
+                                          view.cloud_,
                                           planes_not_on_obj);
     }
 

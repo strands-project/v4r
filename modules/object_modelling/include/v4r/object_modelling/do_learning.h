@@ -278,9 +278,17 @@ public:
                             std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes);
 
     static void getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
-                                                const std::vector< size_t > object_mask,
+                                                const std::vector<size_t> object_mask,
                                                 std::vector<std::vector<int> > &planes_not_on_object,
                                                 float ratio=0.25);
+
+    void getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
+                                           const std::vector< bool > &object_mask,
+                                           const std::vector< bool > &occlusion_mask,
+                                           const pcl::PointCloud<PointT>::ConstPtr &cloud,
+                                           std::vector<std::vector<int> > &planes_not_on_object,
+                                           float ratio=0.25,
+                                           float ratio_occ=0.75) const;
     void visualize();
 
     /**
