@@ -60,7 +60,7 @@ configure_file("${V4R_SOURCE_DIR}/cmake/templates/V4RConfig-version.cmake.in" "$
 # --------------------------------------------------------------------------------------------
 #  Part 2/2: ${BIN_DIR}/unix-install/V4RConfig.cmake -> For use *with* "make install"
 # -------------------------------------------------------------------------------------------
-set(V4R_INCLUDE_DIRS_CONFIGCMAKE "\"\${V4R_INSTALL_PATH}/${V4R_INCLUDE_INSTALL_PATH}/v4r" "\${V4R_INSTALL_PATH}/${V4R_INCLUDE_INSTALL_PATH}\"")
+set(V4R_INCLUDE_DIRS_CONFIGCMAKE "\"\${V4R_INSTALL_PATH}/${V4R_3P_INCLUDE_INSTALL_PATH}" "\${V4R_INSTALL_PATH}/${V4R_INCLUDE_INSTALL_PATH}\"")
 
 #set(V4R2_INCLUDE_DIRS_CONFIGCMAKE "\"\"")
 set(V4R_3RDPARTY_LIB_DIRS_CONFIGCMAKE "\"\${V4R_INSTALL_PATH}/${V4R_3P_LIB_INSTALL_PATH}\"")
