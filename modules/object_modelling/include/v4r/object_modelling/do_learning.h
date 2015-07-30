@@ -191,7 +191,7 @@ public:
         p_param_.smooth_clustering=true;
         p_param_.thrAngleSmooth=30;
         p_param_.inlDistSmooth=0.02;
-        p_param_.minPointsSmooth=20;    // minimum number for a segment other than a plane
+        p_param_.minPointsSmooth=50;    // minimum number for a segment other than a plane
 
         nm_int_param_.final_resolution_ = 0.002f;
         nm_int_param_.min_points_per_voxel_ = 1;

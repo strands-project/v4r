@@ -462,7 +462,7 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
     size_t kept_keyframes=0;
     for (size_t view_id = 0; view_id < grph_.size(); view_id++)
     {
-        if ( grph_[view_id].obj_mask_step_.back().size() )
+        if ( createIndicesFromMask(grph_[view_id].obj_mask_step_.back()).size() )
         {
             keyframes_used[ kept_keyframes ] = grph_[view_id].cloud_;
             normals_used [ kept_keyframes ] = grph_[view_id].normal_;
@@ -582,6 +582,16 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
                                        float ratio_occ) const
 {
     planes_not_on_object.resize(planes.size());
+    pcl::PointCloud<PointT>::Ptr tra (new pcl::PointCloud<PointT>());
+    pcl::copyPointCloud(*cloud, object_mask, *tra);
+    pcl::visualization::PCLVisualizer vis2("asdf cloud");
+    pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler2(tra);
+    vis2.addPointCloud(tra, rgb_handler2, "asdf");
+
+
+    pcl::visualization::PCLVisualizer vis("segmented cloud");
+    pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(cloud);
+    vis.addPointCloud(cloud, rgb_handler, "original_cloud");
 
     size_t kept=0;
     for(size_t cluster_id=0; cluster_id<planes.size(); cluster_id++)
@@ -589,9 +599,17 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
         size_t num_obj_pts = 0;
         size_t num_occluded_pts = 0;
         size_t num_plane_pts = 0;
+        pcl::PointCloud<PointT>::Ptr obj_points (new pcl::PointCloud<PointT>());
+        obj_points->points.resize(planes[cluster_id]->indices.size());
 
         if ( planes[cluster_id]->is_plane || !param_.filter_planes_only_ )
         {
+            vis.removePointCloud("segmented");
+            pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
+            pcl::copyPointCloud(*cloud, planes[cluster_id]->indices, *segmented);
+            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red_source (segmented, 255, 0, 0);
+            vis.addPointCloud(segmented, red_source, "segmented");
+
             for (size_t cluster_pt_id=0; cluster_pt_id<planes[cluster_id]->indices.size(); cluster_pt_id++)
             {
                 const int id = planes[cluster_id]->indices[cluster_pt_id];
@@ -600,7 +618,10 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
                     continue;
 
                 if ( object_mask[id] )
+                {
+                    obj_points->points[num_obj_pts] = cloud->points[id];
                     num_obj_pts++;
+                }
 
                 if( occlusion_mask[id] )
                     num_occluded_pts++;
@@ -612,7 +633,20 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPla
             {
                 planes_not_on_object[kept] = planes[cluster_id]->indices;
                 kept++;
+                std::cout << "***KEPT*** on plane " << cluster_id << " there are " << num_obj_pts << " object points and " << num_occluded_pts <<
+                             " occlusion_pts out of " << num_plane_pts << " total points (" << (float)num_obj_pts/num_plane_pts << " / " <<
+                             (float)num_occluded_pts/num_plane_pts << " / " << std::endl;
             }
+            else
+                std::cout << "-----------on plane " << cluster_id << " there are " << num_obj_pts << " object points and " << num_occluded_pts <<
+                             " occlusion_pts out of " << num_plane_pts << " total points (" << (float)num_obj_pts/num_plane_pts << " / " <<
+                             (float)num_occluded_pts/num_plane_pts << " / " << std::endl;
+
+            obj_points->points.resize(num_obj_pts);
+            vis.removePointCloud("obj_points");
+            pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> green_source (obj_points, 0, 255, 0);
+            vis.addPointCloud(obj_points, green_source, "obj_points");
+//            vis.spin();
         }
     }
     planes_not_on_object.resize(kept);
@@ -851,7 +885,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         std::vector<bool> obj_mask_eroded = erodeIndices(obj_mask_wo_outlier, *view.cloud_);
         view.obj_mask_step_.push_back( obj_mask_eroded );
         getPlanesNotSupportedByObjectMask(planes,
-                                          obj_mask_eroded,
+                                          view.obj_mask_step_[0],
                                           std::vector<bool>(view.cloud_->points.size(), false),
                                           view.cloud_,
                                           planes_not_on_obj);
@@ -1016,12 +1050,12 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                 pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> green_source (segmented, 0, 255, 0);
                 vis.addPointCloud(segmented, green_source, "segmented");
             }
-            vis.spin();
+//            vis.spin();
         }
         vis.removeAllPointClouds();
         pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(keyframes_.back());
         vis.addPointCloud(keyframes_.back(), rgb_handler, "original_cloud");
-        vis.spin();
+//        vis.spin();
     }
 #endif
     std::vector<bool> obj_mask_enforced_by_supervoxel_consistency;
