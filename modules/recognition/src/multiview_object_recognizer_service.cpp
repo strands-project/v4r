@@ -8,7 +8,7 @@
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/recognition/multiplane_segmentation.h>
-#include <v4r/common/features/sift_local_estimator.h>
+#include <v4r/features/sift_local_estimator.h>
 #include <v4r/recognition/hv_go_3D.h>
 #include <v4r/common/fast_icp_with_gc.h>
 #include <v4r/common/miscellaneous.h>

@@ -9,7 +9,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <v4r/recognition/multi_pipeline_recognizer.h>
-#include <v4r/common/features/sift_local_estimator.h>
+#include <v4r/features/sift_local_estimator.h>
 #include <v4r/common/common_data_structures.h>
 #include <v4r/common/miscellaneous.h>
 

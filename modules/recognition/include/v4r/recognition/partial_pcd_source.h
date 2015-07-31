@@ -20,7 +20,7 @@
 #include <vtkTransformFilter.h>
 #include "pcl/recognition/hv/occlusion_reasoning.h"
 #include "pcl/recognition/impl/hv/occlusion_reasoning.hpp"
-#include <v4r/common/io/filesystem_utils.h>
+#include <v4r/io/filesystem_utils.h>
 #include "v4r/common/faat_3d_rec_framework_defines.h"
 
 namespace v4r
@@ -171,7 +171,7 @@ namespace v4r
 
           //get models in directory
           std::vector < std::string > files;
-          v4r::common::io::getFilesInDirectory(path_, files, "", ".*.pcd", false );
+          v4r::io::getFilesInDirectory(path_, files, "", ".*.pcd", false );
 
           models_.reset (new std::vector<ModelTPtr>);
 
@@ -191,10 +191,10 @@ namespace v4r
             else
             {
               std::stringstream ss;
-              for (int i = 0; i < (static_cast<int> (strs.size ()) - 1); i++)
+              for (int k = 0; k < (static_cast<int> (strs.size ()) - 1); k++)
               {
-                ss << strs[i];
-                if (i != (static_cast<int> (strs.size ()) - 1))
+                ss << strs[k];
+                if (k != (static_cast<int> (strs.size ()) - 1))
                   ss << "/";
               }
 

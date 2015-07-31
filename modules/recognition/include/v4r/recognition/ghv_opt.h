@@ -15,7 +15,7 @@
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/variate_generator.hpp>
 //#include "pcl/recognition/3rdparty/metslib/mets.hh"
-#include "3rdparty/metslib/mets.hh"
+#include <mets.hh>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <map>

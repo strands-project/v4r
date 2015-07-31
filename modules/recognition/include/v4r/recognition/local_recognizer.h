@@ -11,7 +11,7 @@
 #include <flann/flann.h>
 #include <pcl/common/common.h>
 #include "source.h"
-#include <v4r/common/features/local_estimator.h>
+#include <v4r/features/local_estimator.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/correspondence_grouping.h>
 #include <v4r/recognition//hypotheses_verification.h>

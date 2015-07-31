@@ -12,8 +12,8 @@
 #include <flann/flann.h>
 #include <pcl/common/common.h>
 #include "source.h"
-#include <v4r/common/features/global_estimator.h>
-#include <v4r/common/features/ourcvfh_estimator.h>
+#include <v4r/features/global_estimator.h>
+#include <v4r/features/ourcvfh_estimator.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include "recognizer.h"
 

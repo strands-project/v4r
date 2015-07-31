@@ -16,7 +16,7 @@
 #include "vtk_model_sampling.h"
 #include <boost/function.hpp>
 #include <vtkTransformPolyDataFilter.h>
-#include <v4r/common/io/filesystem_utils.h>
+#include <v4r/io/filesystem_utils.h>
 
 namespace v4r
 {
@@ -123,7 +123,7 @@ namespace v4r
             pose_file << pathmodel.str () << "/" << file_replaced1;
 
             Eigen::Matrix4f pose;
-            v4r::common::io::readMatrixFromFile(pose_file.str (), pose);
+            v4r::io::readMatrixFromFile(pose_file.str (), pose);
 
             model.poses_->push_back (pose);
 
@@ -131,7 +131,7 @@ namespace v4r
             std::stringstream entropy_file;
             entropy_file << pathmodel.str () << "/" << file_replaced2;
             float entropy = 0;
-            v4r::common::io::readFloatFromFile (entropy_file.str (), entropy);
+            v4r::io::readFloatFromFile (entropy_file.str (), entropy);
             model.self_occlusions_->push_back (entropy);
 
           }
@@ -160,7 +160,7 @@ namespace v4r
           vis.addPointCloudNormals<PointInT, pcl::Normal>(model.assembled_, model.normals_assembled_, 50, 0.02, "normals");
           vis.spin();*/
 
-          if (v4r::common::io::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view_prefix_.*.pcd", false) != -1)
+          if (v4r::io::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view_prefix_.*.pcd", false) != -1)
           {
             if(load_into_memory_)
             {
@@ -261,11 +261,11 @@ namespace v4r
               std::stringstream path_pose;
               path_pose << direc.str () << "/pose_" << i << ".txt";
 
-              v4r::common::io::writeMatrixToFile( path_pose.str (), model.poses_->at (i));
+              v4r::io::writeMatrixToFile( path_pose.str (), model.poses_->at (i));
 
               std::stringstream path_entropy;
               path_entropy << direc.str () << "/entropy_" << i << ".txt";
-              v4r::common::io::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
+              v4r::io::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
             }
 
             loadOrGenerate (dir, model_path, model);
@@ -285,7 +285,7 @@ namespace v4r
 
           //get models in directory
           std::vector < std::string > files;
-          v4r::common::io::getFilesInDirectory(path_, files, "", ".*.ply", true);
+          v4r::io::getFilesInDirectory(path_, files, "", ".*.ply", true);
 
           models_.reset (new std::vector<ModelTPtr>);
 
