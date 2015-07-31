@@ -12,7 +12,7 @@
 #include <pcl/pcl_macros.h>
 #include "hypotheses_verification.h"
 #include "ghv.h"
-#include <3rdparty//metslib/mets.hh>
+#include <mets.hh>
 #include <pcl/features/normal_3d.h>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
