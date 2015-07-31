@@ -1,5 +1,5 @@
 set(the_description "Recognition")
-v4r_add_module(recognition v4r_common v4r_io v4r_features)
+v4r_add_module(recognition v4r_common v4r_io v4r_features v4r_segmentation)
 
 if(HAVE_SIFTGPU)
   v4r_include_directories(${SIFTGPU_INCLUDE_DIR})
