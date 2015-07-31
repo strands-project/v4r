@@ -1,6 +1,8 @@
 project(${EDT_LIBRARY})
 
-v4r_include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+v4r_assert(HAVE_PCL)
+
+v4r_include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${PCL_INCLUDE_DIRS})
 
 set(lib_srcs
   propagation_distance_field.cpp
@@ -12,7 +14,6 @@ SET(lib_hdrs
   propagation_distance_field.h
 )
 
-#include_directories(${PCL_INCLUDE_DIRS})
 add_library(${EDT_LIBRARY} STATIC ${lib_srcs})
 target_link_libraries(${EDT_LIBRARY} ${PCL_LIBRARIES})
 
