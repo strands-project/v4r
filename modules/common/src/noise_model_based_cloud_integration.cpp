@@ -7,6 +7,7 @@
 
 #include "v4r/common/noise_model_based_cloud_integration.h"
 #include <pcl/common/angles.h>
+#include <pcl/common/io.h>
 #include <v4r/common/organized_edge_detection.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/transforms.h>
@@ -613,7 +614,7 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
     output->is_dense = true;*/
 }
 
-template class NMBasedCloudIntegration<pcl::PointXYZRGB>;
+//template class NMBasedCloudIntegration<pcl::PointXYZRGB>;
 //template class faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
 }
 }
