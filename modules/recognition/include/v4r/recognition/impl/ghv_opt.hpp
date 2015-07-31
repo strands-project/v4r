@@ -6,7 +6,9 @@
  */
 
 #include <v4r/recognition/ghv_opt.h>
+#include <functional>
 #include <numeric>
+#include <utility>
 
 template<typename ModelT, typename SceneT>
 size_t
@@ -157,7 +159,9 @@ v4r::GHVmove_manager<ModelT, SceneT>::refresh(mets::feasible_solution& s)
     for(size_t i=0; i < active.size(); ++i) {
       for(size_t j=(i+1); j < inactive.size(); ++j) {
         std::map< std::pair<int, int>, bool>::iterator it;
-        it = intersections_->find(std::make_pair<int, int>(std::min(active[i], inactive[j]),std::max(active[i], inactive[j])));
+        int minn = std::min(active[i], inactive[j]);
+        int maxx = std::max(active[i], inactive[j]);
+        it = intersections_->find(std::make_pair(minn,maxx));
         assert(it != intersections_->end());
         if((*it).second) {
           moves_m[model.solution_.size() + nm] = new GHVreplace_hyp_move<ModelT, SceneT> (active[i], inactive[j], model.solution_.size());

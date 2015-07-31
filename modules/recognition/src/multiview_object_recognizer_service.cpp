@@ -46,7 +46,7 @@ createBigPointCloudRecursive (Graph & grph, Vertex &vrtx_start, pcl::PointCloud<
     grph[vrtx_start].has_been_hopped_ = true;
     *pAccumulatedPCl += *(grph[vrtx_start].pScenePCl_f);
 
-    typename graph_traits<Graph>::out_edge_iterator out_i, out_end;
+    graph_traits<Graph>::out_edge_iterator out_i, out_end;
     tie ( out_i, out_end ) = out_edges ( vrtx_start, grph);
 
     if(out_i != out_end)  //otherwise there are no edges to hop
@@ -260,7 +260,7 @@ extendFeatureMatchesRecursive ( Graph &grph,
 
     grph[vrtx_start].has_been_hopped_ = true;
 
-    typename graph_traits<Graph>::out_edge_iterator out_i, out_end;
+    graph_traits<Graph>::out_edge_iterator out_i, out_end;
     tie ( out_i, out_end ) = out_edges ( vrtx_start, grph);
     if(out_i != out_end)  //otherwise there are no edges to hop
     {   //------get hypotheses from next vertex. Just taking the first one not being hopped.----
@@ -1023,7 +1023,7 @@ bool MultiviewRecognizer::recognize
             std::vector<pcl::PointCloud<PointT>::ConstPtr> aligned_models (grph_final_[vrtx_final].hypothesis_mv_.size());
             std::vector < std::string > ids (grph_final_[vrtx_final].hypothesis_mv_.size());
             std::vector < Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>  > transforms_to_global;
-            std::vector<typename pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals (grph_final_[vrtx_final].hypothesis_mv_.size());
+            std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals (grph_final_[vrtx_final].hypothesis_mv_.size());
 
             for (vp = vertices (grph_final_); vp.first != vp.second; ++vp.first)
             {
@@ -1044,8 +1044,8 @@ bool MultiviewRecognizer::recognize
                 ConstPointInTPtr model_cloud = model->getAssembled (hv_params_.resolution_);
                 pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = model->getNormalsAssembled (hv_params_.resolution_);
 
-                typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>(*normal_cloud));
-                typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>(*model_cloud));
+                pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>(*normal_cloud));
+                pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>(*model_cloud));
 
                 aligned_models[hyp_id] = model_aligned;
                 aligned_normals[hyp_id] = normal_aligned;
@@ -1207,13 +1207,13 @@ bool MultiviewRecognizer::recognize
                     Eigen::Matrix4f trans = grph_final_[vrtx_final].hypothesis_mv_[kk].transform_;
                     ModelTPtr model = grph_final_[vrtx_final].hypothesis_mv_[kk].model_;
 
-                    typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
+                    pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
                     ConstPointInTPtr model_cloud = model->getAssembled (hv_params_.resolution_);
                     pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
                     aligned_models[kk] = model_aligned;
 
                     pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = model->getNormalsAssembled (hv_params_.resolution_);
-                    typename pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
+                    pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
                     v4r::common::transformNormals(normal_cloud, normal_aligned, trans);
                     aligned_normals[kk] = normal_aligned;
                 }
@@ -1334,7 +1334,7 @@ bool MultiviewRecognizer::recognize
                     /*pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler (big_cloud_vx_after_mv);
             vis.addPointCloud (big_cloud_vx_after_mv, handler, "big", v1);*/
 
-                    typename pcl::PointCloud<PointT>::Ptr all_hypotheses ( new pcl::PointCloud<PointT> );
+                    pcl::PointCloud<PointT>::Ptr all_hypotheses ( new pcl::PointCloud<PointT> );
 
                     for(size_t i=0; i < grph_final_[vrtx_final].hypothesis_mv_.size(); i++)
                     {

@@ -5,7 +5,7 @@ set(V4R_RECOGNITION 1 CACHE BOOL "Object recognition module" )
 IF(V4R_RECOGNITION)
 
 
-FIND_PACKAGE (PCL)
+FIND_PACKAGE(PCL 1.7 REQUIRED)
 INCLUDE_DIRECTORIES(${PCL_INCLUDE_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 link_directories(${PCL_LIBRARY_DIRS})
@@ -103,7 +103,6 @@ SET(SOURCE_CPP_PIPELINES
  src/local_recognizer.cpp
  src/global_nn_recognizer_cvfh.cpp                          
 )
-
 include_directories(${PCL_INCLUDE_DIRS} "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(${PREFIX_LIB}${SUBSYS_NAME} SHARED ${SOURCE_H_HV} ${SOURCE_CPP_HV} ${SOURCE_H_MULTIVIEW} ${SOURCE_CPP_MULTIVIEW} 
