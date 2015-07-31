@@ -1,25 +1,26 @@
+#include <v4r/io/filesystem_utils.h>
+#include <v4r/registration/MultiSessionModelling.h>
+#include <v4r/registration/FeatureBasedRegistration.h>
+#include <v4r/registration/MvLMIcp.h>
+#include <v4r/common/noise_model_based_cloud_integration.h>
+#include <v4r/common/noise_models.h>
+#include <v4r/common/pcl_opencv.h>
+#include <v4r/registration/StablePlanesRegistration.h>
+
 #include <pcl/console/parse.h>
-#include <v4r/ORUtils/filesystem_utils.h>
-#include <v4r/Registration/MultiSessionModelling.h>
 #include <pcl/common/common.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/voxel_grid.h>
 #include <boost/algorithm/string.hpp>
-#include <v4r/Registration/FeatureBasedRegistration.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <v4r/Registration/MvLMIcp.h>
-#include <v4r/ORUtils/noise_model_based_cloud_integration.h>
-#include <v4r/ORUtils/noise_models.h>
-#include "StablePlanesRegistration.h"
 #include <pcl/filters/passthrough.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/keypoints/uniform_sampling.h>
-#include <v4r/ORUtils/pcl_opencv.h>
 #include <opencv2/opencv.hpp>
 #include <pcl/filters/statistical_outlier_removal.h>
 
@@ -218,7 +219,7 @@ main (int argc, char ** argv)
         std::vector<std::string> to_process;
         std::string so_far = "";
         std::string pattern = ".*cloud.*.pcd";
-        v4r::utils::getFilesInDirectory(strs[k, to_process, so_far, pattern, true);
+        v4r::io::getFilesInDirectory(strs[k], to_process, so_far, pattern, true);
 
         std::sort(to_process.begin(), to_process.end());
 

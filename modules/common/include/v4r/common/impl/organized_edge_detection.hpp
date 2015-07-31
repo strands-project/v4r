@@ -38,6 +38,7 @@
 #ifndef v4r_FEATURES_IMPL_ORGANIZED_EDGE_DETECTION_H_
 #define v4r_FEATURES_IMPL_ORGANIZED_EDGE_DETECTION_H_
 
+#include <v4r/common/macros.h>
 #include <v4r/common/edge.h>
 #include <v4r/common/organized_edge_detection.h>
 #include <pcl/console/print.h>
@@ -346,9 +347,9 @@ v4r::OrganizedEdgeFromRGBNormals<PointT, PointNT, PointLT>::compute (pcl::PointC
   this->assignLabelIndices (labels, label_indices);
 }
 
-#define PCL_INSTANTIATE_OrganizedEdgeBase(T,LT)               template class PCL_EXPORTS v4r::OrganizedEdgeBase<T,LT>;
-#define PCL_INSTANTIATE_OrganizedEdgeFromRGB(T,LT)            template class PCL_EXPORTS v4r::OrganizedEdgeFromRGB<T,LT>;
-#define PCL_INSTANTIATE_OrganizedEdgeFromNormals(T,NT,LT)     template class PCL_EXPORTS v4r::OrganizedEdgeFromNormals<T,NT,LT>;
-#define PCL_INSTANTIATE_OrganizedEdgeFromRGBNormals(T,NT,LT)  template class PCL_EXPORTS v4r::OrganizedEdgeFromRGBNormals<T,NT,LT>;
+#define PCL_INSTANTIATE_OrganizedEdgeBase(T,LT)               template class V4R_EXPORTS v4r::OrganizedEdgeBase<T,LT>;
+#define PCL_INSTANTIATE_OrganizedEdgeFromRGB(T,LT)            template class V4R_EXPORTS v4r::OrganizedEdgeFromRGB<T,LT>;
+#define PCL_INSTANTIATE_OrganizedEdgeFromNormals(T,NT,LT)     template class V4R_EXPORTS v4r::OrganizedEdgeFromNormals<T,NT,LT>;
+#define PCL_INSTANTIATE_OrganizedEdgeFromRGBNormals(T,NT,LT)  template class V4R_EXPORTS v4r::OrganizedEdgeFromRGBNormals<T,NT,LT>;
 
 #endif //#ifndef PCL_FEATURES_IMPL_ORGANIZED_EDGE_DETECTION_H_

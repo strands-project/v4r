@@ -67,6 +67,7 @@ namespace v4r
         using Recognizer<PointInT>::requires_segmentation_;
         using Recognizer<PointInT>::indices_;
         using Recognizer<PointInT>::hv_algorithm_;
+        using Recognizer<PointInT>::setSceneNormals;
 
         /** \brief Directory where the trained structure will be saved */
         std::string training_dir_;
@@ -241,7 +242,7 @@ namespace v4r
             return true;
         }
 
-        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr normals)
+        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
         {
             scene_normals_ = normals;
             normals_set_ = true;

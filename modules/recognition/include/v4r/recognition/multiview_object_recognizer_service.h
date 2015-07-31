@@ -40,7 +40,7 @@ private:
     std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> > accumulatedHypotheses_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer_;
-    int vp_go3d_1, vp_go3d_2;
+//    int vp_go3d_1, vp_go3d_2;
     std::vector<double> times_;
 
     Eigen::Matrix4f current_global_transform_;

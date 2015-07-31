@@ -1,5 +1,6 @@
+#include <v4r/io/filesystem_utils.h>
+
 #include <pcl/console/parse.h>
-#include <v4r/ORUtils/filesystem_utils.h>
 #include <pcl/common/common.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
@@ -98,11 +99,11 @@ main (int argc, char ** argv)
     std::string so_far = "";
     std::string pattern = "cloud.*.pcd";
 
-    v4r::utils::getFilesInDirectory(directory, to_process, so_far, pattern, false);
+    v4r::io::getFilesInDirectory(directory, to_process, so_far, pattern, false);
 
     std::vector<std::string> poses;
     pattern = ".*pose.*.txt";
-    v4r::utils::getFilesInDirectory(directory, poses, so_far, pattern, false);
+    v4r::io::getFilesInDirectory(directory, poses, so_far, pattern, false);
 
     std::sort(poses.begin(), poses.end());
     std::sort(to_process.begin(), to_process.end());
@@ -195,7 +196,7 @@ main (int argc, char ** argv)
           std::cout << file_replaced1 << std::endl;
 
           //read pose as well
-          faat_pcl::utils::writeMatrixToFile(file_replaced1, matrix_poses[i]);
+          v4r::io::writeMatrixToFile(file_replaced1, matrix_poses[i]);
 
           std::string file_replaced2 (view_file.str());
           boost::replace_last (file_replaced2, "cloud", "object_indices");

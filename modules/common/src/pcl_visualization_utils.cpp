@@ -10,7 +10,6 @@ namespace v4r
                                                 const std::vector<std::string> &title_subwindows)
       {
         std::vector<int> viewportNr (number_of_views * number_of_subwindows_per_view, 0);
-        vis->removeAllShapes();
 
         for (size_t i = 0; i < number_of_views; i++)
         {
@@ -23,13 +22,13 @@ namespace v4r
                                      float (j * ((i % 2) / 10.0 + 1)) / number_of_subwindows_per_view,
                                      float (j * ((i % 2) / 10.0 + 1)) / number_of_subwindows_per_view, viewportNr[number_of_subwindows_per_view * i + j]);
 
-           std::stringstream window_id;
+            vis->removeAllShapes(viewportNr[i * number_of_subwindows_per_view + j]);
+            std::stringstream window_id;
             window_id << "(" << i << ", " << j << ") ";
             if(title_subwindows.size()>j)
             {
                 window_id << title_subwindows[j];
             }
-            vis->removeText3D( window_id.str () );
             vis->addText (window_id.str (), 10, 10, window_id.str (), viewportNr[i * number_of_subwindows_per_view + j]);
           }
         }

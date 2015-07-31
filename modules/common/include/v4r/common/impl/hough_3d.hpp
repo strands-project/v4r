@@ -48,6 +48,7 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/board.h>
 #include <pcl/common/time.h>
+#include <pcl/common/io.h>
 
 
 template<typename PointModelT, typename PointSceneT, typename PointModelRfT, typename PointSceneRfT>
@@ -431,6 +432,6 @@ v4r::Hough3DGrouping<PointModelT, PointSceneT, PointModelRfT, PointSceneRfT>::re
 }
 
 
-#define PCL_INSTANTIATE_Hough3DGrouping(T,ST,RFT,SRFT) template class PCL_EXPORTS v4r::Hough3DGrouping<T,ST,RFT,SRFT>;
+#define PCL_INSTANTIATE_Hough3DGrouping(T,ST,RFT,SRFT) template class V4R_EXPORTS v4r::Hough3DGrouping<T,ST,RFT,SRFT>;
 
 #endif // PCL_RECOGNITION_HOUGH_3D_IMPL_H_

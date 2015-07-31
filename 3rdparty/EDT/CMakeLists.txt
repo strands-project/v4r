@@ -1,21 +1,27 @@
-SET(EXT_EDT 1 CACHE BOOL "Distance transform module" )
-IF(EXT_EDT)
+project(${EDT_LIBRARY})
 
-PROJECT(EDT)
-SET(SOURCE_CPP
-    propagation_distance_field.cpp
+v4r_include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+set(lib_srcs
+  propagation_distance_field.cpp
 )
 
-SET(SOURCE_H
-  distance_field.h
-  voxel_grid.h
-  propagation_distance_field.h
+#SET(SOURCE_H
+  #distance_field.h
+  #voxel_grid.h
+  #propagation_distance_field.h
+#)
+
+#include_directories(${PCL_INCLUDE_DIRS})
+add_library(${EDT_LIBRARY} STATIC ${lib_srcs})
+target_link_libraries(${EDT_LIBRARY} ${PCL_LIBRARIES})
+
+set_target_properties(${EDT_LIBRARY}
+  PROPERTIES
+  OUTPUT_NAME "${EDT_LIBRARY}"
+  ARCHIVE_OUTPUT_DIRECTORY ${3P_LIBRARY_OUTPUT_PATH}
 )
 
-include_directories(${PCL_INCLUDE_DIRS})
-add_library(${PROJECT_NAME} SHARED ${SOURCE_H} ${SOURCE_CPP})
-target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES})
-v4r_add_library(${PROJECT_NAME} "${SUBSYS_NAME}" "${SOURCE_H}")
-
-ENDIF(EXT_EDT)
-
+if(NOT BUILD_SHARED_LIBS)
+  v4r_install_target(${EDT_LIBRARY} EXPORT V4RModules ARCHIVE DESTINATION ${V4R_3P_LIB_INSTALL_PATH} COMPONENT dev)
+endif()
