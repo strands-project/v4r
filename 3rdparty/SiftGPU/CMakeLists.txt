@@ -1,7 +1,9 @@
 project(${SIFTGPU_LIBRARY})
 include(ExternalProject)
 
-# Make a target that downloads and builds SiftGPU from source
+# Make a target that downloads and builds SiftGPU from source.
+# The install command copies the (only) library header to the root SiftGPU directory. This is needed to allow using V4R
+# from without installation (directly from build/ location).
 set(_external_target "${SIFTGPU_LIBRARY}_external")
 ExternalProject_Add(${_external_target}
   PREFIX "${CMAKE_CURRENT_LIST_DIR}"
@@ -11,7 +13,7 @@ ExternalProject_Add(${_external_target}
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make siftgpu_enable_cuda=0
   BUILD_IN_SOURCE 1
-  INSTALL_COMMAND ""
+  INSTALL_COMMAND cp <SOURCE_DIR>/src/SiftGPU/SiftGPU.h ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # SOURCE_DIR is where the source was unpacked and then built.
