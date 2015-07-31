@@ -1,7 +1,7 @@
 #ifndef FILESYSTEM_UTILS_H_
 #define FILESYSTEM_UTILS_H_
 
-#include <v4r/common/macros.h>
+#include <v4r/core/macros.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
