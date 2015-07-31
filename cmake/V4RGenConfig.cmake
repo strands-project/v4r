@@ -35,14 +35,14 @@ endif()
 # -------------------------------------------------------------------------------------------
 #  Part 1/2: ${BIN_DIR}/V4RConfig.cmake              -> For use *without* "make install"
 # -------------------------------------------------------------------------------------------
-set(V4R_INCLUDE_DIRS_CONFIGCMAKE "\"${V4R_CONFIG_FILE_INCLUDE_DIR}\" \"${V4R_SOURCE_DIR}/include\" \"${V4R_SOURCE_DIR}/include/v4r\"")
+set(V4R_INCLUDE_DIRS_CONFIGCMAKE "\"${V4R_CONFIG_FILE_INCLUDE_DIR}\"")
 
-#set(V4R2_INCLUDE_DIRS_CONFIGCMAKE "")
-#foreach(m ${V4R_MODULES_BUILD})
-  #if(EXISTS "${V4R_MODULE_${m}_LOCATION}/include")
-    #list(APPEND V4R2_INCLUDE_DIRS_CONFIGCMAKE "${V4R_MODULE_${m}_LOCATION}/include")
-  #endif()
-#endforeach()
+foreach(m ${V4R_MODULES_BUILD})
+  if(EXISTS "${V4R_MODULE_${m}_LOCATION}/include")
+    list(APPEND V4R_INCLUDE_DIRS_CONFIGCMAKE "\"${V4R_MODULE_${m}_LOCATION}/include\"")
+  endif()
+endforeach()
+string(REPLACE ";" " " V4R_INCLUDE_DIRS_CONFIGCMAKE "${V4R_INCLUDE_DIRS_CONFIGCMAKE}")
 
 export(TARGETS ${V4RModules_TARGETS} FILE "${CMAKE_BINARY_DIR}/V4RModules.cmake")
 
