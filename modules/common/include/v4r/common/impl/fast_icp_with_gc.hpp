@@ -14,6 +14,7 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/features/integral_image_normal.h>
 #include <v4r/common/visibility_reasoning.h>
+#include <pcl/common/io.h>
 
 //#define FAAT_PCL_FAST_ICP_VIS_FINAL
 

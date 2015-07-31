@@ -40,6 +40,8 @@
 #ifndef FAAT_PCL_RECOGNITION_HOUGH_3D_H_
 #define FAAT_PCL_RECOGNITION_HOUGH_3D_H_
 
+#include <v4r/common/macros.h>
+
 #include "correspondence_grouping.h"
 #include <pcl/recognition/boost.h>
 
@@ -51,7 +53,7 @@ namespace v4r
       * \author Federico Tombari (original), Tommaso Cavallari (PCL port)
       * \ingroup recognition
       */
-    class PCL_EXPORTS HoughSpace3D
+    class V4R_EXPORTS HoughSpace3D
     {
 
       public:

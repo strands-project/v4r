@@ -27,9 +27,9 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include <v4r/ORUtils/pcl_opencv.h>
-#include <v4r/utils/filesystem_utils.h>
-#include <v4r/Segmentation/Slic.h>
+#include <v4r/common/pcl_opencv.h>
+#include <v4r/io/filesystem_utils.h>
+#include <v4r/segmentation/Slic.h>
 
 using namespace std;
 using namespace cv;
@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
 
     bf::path img_path_bf = img_path;
     std::vector < std::string > files_intern;
-    if (v4r::utils::getFilesInDirectory(img_path, files_intern, "", ".*\\.(jpg|JPG|png|PNG|jpeg|JPEG|bmp|BMP|pcd|PCD)", true) != -1)
+    if (v4r::io::getFilesInDirectory(img_path, files_intern, "", ".*\\.(jpg|JPG|png|PNG|jpeg|JPEG|bmp|BMP|pcd|PCD)", true) != -1)
     {
         for(size_t file_id=0; file_id < files_intern.size(); file_id++)
         {

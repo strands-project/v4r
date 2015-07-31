@@ -1,0 +1,4 @@
+# These paths will be created and populated by the `ExternalProject_Add`
+# command when the "SiftGPU" target is built.
+src/
+tmp/
