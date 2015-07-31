@@ -14,6 +14,7 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/common/time.h>
+#include <pcl/common/io.h>
 
 namespace faat_pcl
 {

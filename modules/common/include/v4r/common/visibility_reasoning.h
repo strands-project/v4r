@@ -66,4 +66,6 @@ namespace v4r
   }
 }
 
+#include <v4r/common/impl/visibility_reasoning.hpp>
+
 #endif /* V4R_REGISTRATION_VISIBILITY_REASONING_H_ */

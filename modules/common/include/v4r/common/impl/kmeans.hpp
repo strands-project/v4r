@@ -189,7 +189,7 @@ faat_pcl::Kmeans<PointT>::cluster (std::vector<PointIndices> &clusters)
 
 
 
-#define PCL_INSTANTIATE_Kmeans(T) template class PCL_EXPORTS faat_pcl::Kmeans<T>;
+#define PCL_INSTANTIATE_Kmeans(T) template class V4R_EXPORTS faat_pcl::Kmeans<T>;
 
 #endif    // FAAT_PCL_KMEANS_HPP_
 

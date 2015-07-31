@@ -5,6 +5,7 @@
   <description>The Vision for Robotics Library of ACIN TUW (open source STRANDS version)</description>
 
   <maintainer email="faeulhammer@acin.tuwien.ac.at">Thomas Fäulhammer</maintainer>
+  <maintainer email="alexandrov@acin.tuwien.ac.at">Sergey Alexandrov</maintainer>
   <maintainer email="zillich@acin.tuwien.ac.at">Michael Zillich</maintainer>
 
 
@@ -51,3 +52,4 @@
 	<build_type>cmake</build_type>
   </export>
 </package>
+

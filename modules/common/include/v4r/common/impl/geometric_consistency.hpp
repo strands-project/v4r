@@ -40,6 +40,7 @@
 #ifndef FAAT_PCL_RECOGNITION_GEOMETRIC_CONSISTENCY_IMPL_H_
 #define FAAT_PCL_RECOGNITION_GEOMETRIC_CONSISTENCY_IMPL_H_
 
+#include <v4r/common/macros.h>
 #include "v4r/common/geometric_consistency.h"
 #include <pcl/registration/correspondence_types.h>
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
@@ -185,6 +186,6 @@ v4r::GeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
   return (true);
 }
 
-#define PCL_INSTANTIATE_GeometricConsistencyGrouping(T,ST) template class PCL_EXPORTS v4r::GeometricConsistencyGrouping<T,ST>;
+#define PCL_INSTANTIATE_GeometricConsistencyGrouping(T,ST) template class V4R_EXPORTS v4r::GeometricConsistencyGrouping<T,ST>;
 
 #endif // FAAT_PCL_RECOGNITION_GEOMETRIC_CONSISTENCY_IMPL_H_
