@@ -80,7 +80,7 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
             std::stringstream name;
             name << cloud_name.str() << "_mv__hypothesis_" << hyp_id << view_id;
 
-            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
+            pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
             ConstPointInTPtr model_cloud = model->getAssembled (0.005f);
             pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
 
@@ -226,7 +226,7 @@ void BoostGraphVisualizer::visualizeWorkflow ( const Vertex &vrtx, const Graph &
          std::stringstream name;
          name << "_sv__hypothesis_" << hyp_id;
 
-         typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
+         pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
          ConstPointInTPtr model_cloud = model->getAssembled (0.005f);
          pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
 
@@ -244,7 +244,7 @@ void BoostGraphVisualizer::visualizeWorkflow ( const Vertex &vrtx, const Graph &
          std::stringstream name;
          name << "_mv__hypothesis_" << hyp_id;
 
-         typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
+         pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
          ConstPointInTPtr model_cloud = model->getAssembled (0.005f);
          pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
 
@@ -264,7 +264,7 @@ void BoostGraphVisualizer::visualizeWorkflow ( const Vertex &vrtx, const Graph &
         {
             Eigen::Matrix4f trans = grph[vrtx].hypothesis_sv_[hyp_id].transform_;
             ModelTPtr model = grph[vrtx].hypothesis_sv_[hyp_id].model_;
-            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
+            pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
             ConstPointInTPtr model_cloud = model->getAssembled (0.005f);
             pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
 
@@ -281,7 +281,7 @@ void BoostGraphVisualizer::visualizeWorkflow ( const Vertex &vrtx, const Graph &
         {
             Eigen::Matrix4f trans = grph[vrtx].hypothesis_mv_[hyp_id].transform_;
             ModelTPtr model = grph[vrtx].hypothesis_mv_[hyp_id].model_;
-            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
+            pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
             ConstPointInTPtr model_cloud = model->getAssembled (0.005f);
             pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
 

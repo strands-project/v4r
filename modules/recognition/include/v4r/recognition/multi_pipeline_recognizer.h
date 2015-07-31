@@ -32,6 +32,7 @@ namespace v4r
         using Recognizer<PointInT>::VOXEL_SIZE_ICP_;
         using Recognizer<PointInT>::indices_;
         using Recognizer<PointInT>::hv_algorithm_;
+        using Recognizer<PointInT>::setSceneNormals;
 
         using Recognizer<PointInT>::poseRefinement;
         using Recognizer<PointInT>::hypothesisVerification;
@@ -150,7 +151,7 @@ namespace v4r
           segmentation_indices_ = ind;
         }
 
-        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr normals)
+        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
         {
             scene_normals_ = normals;
             normals_set_ = true;

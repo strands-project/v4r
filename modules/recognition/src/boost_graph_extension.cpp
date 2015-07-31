@@ -132,7 +132,7 @@ void pruneGraph (Graph &grph, size_t num_remaining_vertices)
         Vertex vrtxToKill = getFurthestVertex(grph);
 
         std::vector<Edge> edges_to_be_removed;
-        typename graph_traits<Graph>::out_edge_iterator out_i, out_end;
+        graph_traits<Graph>::out_edge_iterator out_i, out_end;
         for ( tie ( out_i, out_end ) = out_edges ( vrtxToKill, grph ); out_i != out_end; ++out_i )
         {
             edges_to_be_removed.push_back(*out_i);
@@ -145,7 +145,7 @@ void pruneGraph (Graph &grph, size_t num_remaining_vertices)
 
         edges_to_be_removed.clear();   // This should fix a problem with newer boost versions that in_edges and out_edges are not treated seperately any more for undirected edges
 
-        typename graph_traits<Graph>::in_edge_iterator in_i, in_end;
+        graph_traits<Graph>::in_edge_iterator in_i, in_end;
         for ( tie ( in_i, in_end ) = in_edges ( vrtxToKill, grph ); in_i != in_end; ++in_i )
         {
             edges_to_be_removed.push_back(*in_i);
