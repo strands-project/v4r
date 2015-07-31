@@ -1,4 +1,4 @@
-set(V4R_VERSION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/modules/common/include/v4r/common/version.h")
+set(V4R_VERSION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/modules/core/include/v4r/core/version.h")
 file(STRINGS "${V4R_VERSION_FILE}" V4R_VERSION_PARTS REGEX "#define V4R_VERSION_[A-Z]+[ ]+" )
 
 string(REGEX REPLACE ".+V4R_VERSION_MAJOR[ ]+([0-9]+).*" "\\1" V4R_VERSION_MAJOR "${V4R_VERSION_PARTS}")

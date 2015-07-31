@@ -4,7 +4,7 @@ endif()
 
 set(the_description "Registration")
 
-v4r_add_module(registration v4r_common v4r_io v4r_features)
+v4r_add_module(registration v4r_core v4r_io v4r_features)
 
 
 v4r_module_include_directories(${PCL_INCLUDE_DIRS})
