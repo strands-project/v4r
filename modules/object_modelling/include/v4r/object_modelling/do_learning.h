@@ -158,13 +158,12 @@ protected:
 
     pcl::PointCloud<PointT>::Ptr big_cloud_;
     pcl::PointCloud<PointT>::Ptr big_cloud_segmented_;
-    pcl::PointCloud<PointT>::Ptr big_cloud_refined_;
+//    pcl::PointCloud<PointT>::Ptr big_cloud_refined_;
     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr big_cloud_segmented_refined_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_;
     std::vector<int> vis_reconstructed_viewpoint_;
     std::vector<int> vis_viewpoint_;
-
-    std::vector<size_t> LUT_new2old_indices;
+//    std::vector<size_t> LUT_new2old_indices;
     cv::Ptr<SiftGPU> sift_;
     std::vector<modelView> grph_;
     size_t counter_;
@@ -201,7 +200,7 @@ public:
 
         big_cloud_.reset(new pcl::PointCloud<PointT>);
         big_cloud_segmented_.reset(new pcl::PointCloud<PointT>);
-        big_cloud_refined_.reset(new pcl::PointCloud<PointT>);
+//        big_cloud_refined_.reset(new pcl::PointCloud<PointT>);
         big_cloud_segmented_refined_.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
         vis_.reset();
         vis_reconstructed_.reset();
@@ -224,7 +223,13 @@ public:
     erodeIndices(const std::vector< bool > &obj_mask,
                       const pcl::PointCloud<PointT> & cloud);
 
-
+    /**
+     * @brief saves the learned model to disk
+     * @param[in] models_dir directory of the model
+     * @param[in] recognition_structure_dir directory of the model's recognition structure, which can be used by the recognizer
+     * @param[in] model_name - name of the model
+     * @return
+     */
     bool save_model (const std::string &models_dir = "/tmp/dynamic_models/",
                      const std::string &recognition_structure_dir = "/tmp/recognition_structure_dir/",
                      const std::string &model_name = "new_dynamic_model.pcd");
@@ -235,15 +240,19 @@ public:
 
     void initialize (int argc, char ** argv);
 
+    /**
+     * @brief clears the memory from the currently learned object.
+     * Needs to be called before learning a new object model.
+     */
     void clear()
     {
         big_cloud_->points.clear();
         big_cloud_segmented_->points.clear();
-        big_cloud_refined_->points.clear();
+//        big_cloud_refined_->points.clear();
         big_cloud_segmented_refined_->points.clear();
-        LUT_new2old_indices.clear();
+//        LUT_new2old_indices.clear();
         grph_.clear();
-        counter_=0;
+        counter_ = 0;
         gs_.clearing_graph();
         gs_.clear();
         vis_viewpoint_.clear();
@@ -253,10 +262,9 @@ public:
     /**
      * @brief given a point cloud and a normal cloud, this function computes points belonging to a table
      *  (optional: computes smooth clusters for points not belonging to table)
-     * @param cloud
-     * @param normals
-     * @param p_param
-     * @param planes
+     * @param[in] cloud The input cloud from which smooth clusters / planes are being calculated
+     * @param[in] normals The normal cloud corresponding to the input cloud
+     * @param[out] planes The resulting smooth clusters and planes
      */
     void extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                             const pcl::PointCloud<pcl::Normal>::ConstPtr &normals,
@@ -265,11 +273,11 @@ public:
     /**
      * @brief given a set of clusters, this function returns the clusters which have less than ratio% object points or ratio_occ% occlusion points
      * Points further away than param_.chop_z_ are neglected
-     * @param planes - set of input clusters
-     * @param object_mask - binary mask of object pixels
-     * @param occlusion_mask - binary mask of pixels which are neither object nor background (e.g. pixels that are occluded when transferred into the labelled frame)
-     * @param cloud - point cloud of the scene
-     * @param planes_not_on_object - output set of clusters
+     * @param[in] planes - set of input clusters
+     * @param[in] object_mask - binary mask of object pixels
+     * @param[in] occlusion_mask - binary mask of pixels which are neither object nor background (e.g. pixels that are occluded when transferred into the labelled frame)
+     * @param[in] cloud - point cloud of the scene
+     * @param[out] planes_not_on_object - output set of clusters
      * @param ratio - threshold percentage when a cluster is considered as belonging to an object
      * @param ratio_occ - threshold percentage when a cluster is considered as being occluded
      */
@@ -280,13 +288,16 @@ public:
                                            std::vector<std::vector<int> > &planes_not_on_object,
                                            float ratio=0.25,
                                            float ratio_occ=0.75) const;
+    /**
+     * @brief This shows the learned object together with all the intermediate steps using pcl viewer
+     */
     void visualize();
 
     /**
      * @brief performs bit wise logical operations
-     * @param bit mask1
-     * @param bit mask2
-     * @param operation (AND, AND_N, OR, XOR)
+     * @param[in] bit mask1
+     * @param[in] bit mask2
+     * @param[in] operation (AND, AND_N, OR, XOR)
      * @return output bit mask
      */
     static std::vector<bool> logical_operation(const std::vector<bool> &mask1, const std::vector<bool> &mask2, int operation=MASK_OPERATOR::OR);
@@ -318,10 +329,10 @@ public:
                         pcl::PointCloud<pcl::Normal>::Ptr &normals, int method);
 
     bool calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
-                      pcl::PointCloud<PointT>::Ptr &sift_keypoints,
-                      std::vector< size_t > &sift_keypoint_indices,
-                      pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
-                      std::vector<float> &sift_keypoint_scales);
+                           pcl::PointCloud<PointT>::Ptr &sift_keypoints,
+                           std::vector< size_t > &sift_keypoint_indices,
+                           pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
+                           std::vector<float> &sift_keypoint_scales);
 
     void
     estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
@@ -333,18 +344,27 @@ public:
                                           std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
                                           bool use_gc = false);
 
+    /**
+     * @brief This method computes a cost function for the pairwise alignment of two point clouds.
+     * It is computed using fast ICP
+     * @param[in] cloud_src source cloud
+     * @param[in] cloud_dst target cloud
+     * @param[out] refined_transform refined homogenous transformation matrix aligning the two point clouds based on ICP
+     * @param[in] transform homogenous transformation matrix aligning the two point clouds
+     * @return registration cost ( the lower the better the alignment - weight range [0, 0.75] )
+     */
     float calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                          const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                          Eigen::Matrix4f &transformation);
+                                     const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
+                                     Eigen::Matrix4f &refined_transform,
+                                     const Eigen::Matrix4f &transform = Eigen::Matrix4f::Identity());
 
     void printParams(std::ostream &ostr = std::cout) const;
 
     /**
      * @brief transfers object points nearest neighbor search in dest frame.
-     * @param points which are transferred and looked for in search cloud
-     * @param search space for transferred points
-     * @param nn... nearest neighbors points highlighted (true) in object mask
-     * @param homogeneous transformation matrix for object_points into search cloud
+     * @param[in] object_points points which are transferred and looked for in search cloud
+     * @param[in] octree search space for transferred points
+     * @param[out] obj_mask nearest neighbors points within a specified radius highlighted (true) in object mask
      */
     void nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreePointCloudSearch<PointT> &octree,  std::vector<bool> &obj_mask);
     void nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointCloud<PointT>::ConstPtr &search_cloud,  std::vector<bool> &obj_mask);

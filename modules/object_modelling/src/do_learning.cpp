@@ -54,8 +54,9 @@ namespace object_modelling
 
 float
 DOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                           const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                           Eigen::Matrix4f &transform)
+                                const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
+                                Eigen::Matrix4f &refined_transform,
+                                const Eigen::Matrix4f &transform)
 {
     pcl::PointCloud<PointT>::Ptr cloud_src_wo_nan ( new pcl::PointCloud<PointT>());
     pcl::PointCloud<PointT>::Ptr cloud_dst_wo_nan ( new pcl::PointCloud<PointT>());
@@ -77,7 +78,6 @@ DOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_s
     float w_after_icp_ = std::numeric_limits<float>::max ();
     const float best_overlap_ = 0.75f;
 
-    Eigen::Matrix4f icp_trans;
     v4r::common::FastIterativeClosestPointWithGC<pcl::PointXYZRGB> icp;
     icp.setMaxCorrespondenceDistance ( 0.02f );
     icp.setInputSource ( cloud_src_wo_nan );
@@ -89,16 +89,12 @@ DOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_s
     icp.setKeepMaxHypotheses (5);
     icp.setMaximumIterations (10);
     icp.align (transform);
-    w_after_icp_ = icp.getFinalTransformation ( icp_trans );
+    w_after_icp_ = icp.getFinalTransformation ( refined_transform );
 
     if ( w_after_icp_ < 0 || !pcl_isfinite ( w_after_icp_ ) )
-    {
         w_after_icp_ = std::numeric_limits<float>::max ();
-    }
     else
-    {
         w_after_icp_ = best_overlap_ - w_after_icp_;
-    }
 
     //    transform = icp_trans; // refined transformation
     return w_after_icp_;
@@ -212,7 +208,7 @@ DOL::extractEuclideanClustersSmooth (
         const std::vector<bool> &initial_mask,
         const std::vector<bool> &bg_mask) const
 {
-    assert (cloud->points.size () != normals.points.size ());
+    assert (cloud->points.size () == normals.points.size ());
 
     pcl::octree::OctreePointCloudSearch<PointT> octree(0.005f);
     octree.setInputCloud ( cloud );
@@ -227,10 +223,8 @@ DOL::extractEuclideanClustersSmooth (
     {
         stop = true;
         std::vector<bool> is_new_point (cloud->points.size (), false);  // do as long as there is no new point
-
         std::vector<int> nn_indices;
         std::vector<float> nn_distances;
-        // Process all points in the indices vector
 
         for (size_t i = 0; i < cloud->points.size (); i++)
         {
@@ -272,7 +266,8 @@ DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
                                             std::vector<bool> &obj_mask_out,
                                             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud)
 {
-    assert( cloud->points.size() == normals->points.size() == obj_mask.size() );
+    assert( cloud->points.size() == normals->points.size() &&
+            cloud->points.size() == obj_mask.size());
 
     pcl::SupervoxelClustering<PointT> super (param_.voxel_resolution_, param_.seed_resolution_, false);
     super.setInputCloud (cloud);
@@ -284,76 +279,58 @@ DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
     super.extract (supervoxel_clusters);
     super.refineSupervoxels(2, supervoxel_clusters);
     supervoxel_cloud = super.getColoredVoxelCloud();
-
-    size_t sv_size = supervoxel_clusters.size ();
-    std::cout << "Found " << sv_size << " supervoxels." << std::endl;
-
     const pcl::PointCloud<pcl::PointXYZL>::Ptr supervoxels_labels_cloud = super.getLabeledCloud();
-    const uint32_t max_label = super.getMaxLabel();
-    const pcl::PointCloud<pcl::PointNormal>::Ptr sv_normal_cloud = super.makeSupervoxelNormalCloud (supervoxel_clusters);
 
-    std::vector<int> label_to_idx (max_label + 1, -1);
+    std::cout << "Found " << supervoxel_clusters.size () << " supervoxels." << std::endl;
 
-    std::map <uint32_t, pcl::Supervoxel<PointT>::Ptr>::iterator sv_itr,sv_itr_end;
-    sv_itr = supervoxel_clusters.begin ();
-    sv_itr_end = supervoxel_clusters.end ();
-    int i=0;
-    for ( ; sv_itr != sv_itr_end; ++sv_itr, i++)
+    const size_t max_label = super.getMaxLabel();
+//    const pcl::PointCloud<pcl::PointNormal>::Ptr sv_normal_cloud = super.makeSupervoxelNormalCloud (supervoxel_clusters);
+
+//    //count for all labels how many pixels are in the initial indices
+    std::vector<size_t> label_count (max_label+1, 0);
+
+    for(size_t i = 0; i < supervoxels_labels_cloud->points.size(); i++)
     {
-        label_to_idx[sv_itr->first] = i;
-    }
-
-    //count total number of pixels for each supervoxel
-    std::vector<size_t> label_count;
-    label_count.resize ( supervoxel_clusters.size(), 0 );
-
-    for(size_t i=0; i < supervoxels_labels_cloud->size(); i++)
-    {
-        const int sv_idx = label_to_idx[supervoxels_labels_cloud->at(i).label];
-        if(sv_idx < 0 || sv_idx >= static_cast<int>(sv_size))
-            continue;
-
-        const Eigen::Vector3f sv_normal = sv_normal_cloud->points[sv_idx].getNormalVector3fMap();
-        normals->points[i].getNormalVector3fMap() = sv_normal;
-        label_count[sv_idx]++;
-    }
-
-    //count for all labels how many pixels are in the initial indices
-    std::vector<size_t> label_count_nn;
-    label_count_nn.resize(sv_size, 0);
-
-    for(size_t id = 0; id < obj_mask.size(); id++)
-    {
-        const int sv_idx = label_to_idx[ supervoxels_labels_cloud->at(id).label];
-        if(sv_idx >= 0 && sv_idx < static_cast<int>(sv_size))
-        {
-            label_count_nn[sv_idx]++;
-        }
+        const size_t label = static_cast<size_t>(supervoxels_labels_cloud->points[i].label);
+        label_count[ label ]++;
     }
 
     obj_mask_out.resize(cloud->points.size());
-    for(size_t id = 0; id < cloud->points.size(); id++)
+
+    for(size_t i = 0; i < cloud->points.size(); i++)
     {
-        if ( !obj_mask[id])
+        const size_t label = supervoxels_labels_cloud->points[i].label;
+        assert(label<label_count.size());
+
+        if ( !obj_mask[i] || !pcl::isFinite(cloud->points[i]))
         {
-            obj_mask_out[id] = false;
+            obj_mask_out[i] = false;
             continue;
         }
 
-        const int sv_idx = label_to_idx[ supervoxels_labels_cloud->at(id).label];
-        if( sv_idx < 0 || sv_idx >= static_cast<int>(sv_size) )
+        if( obj_mask[i] && label==0)    // label 0 means the point could not be associated to any supervoxel (see supervoxelclustering doc) - we will pass this point therefore by definition
         {
-            obj_mask_out[id] = false;
+            obj_mask_out[i] = true;
             continue;
         }
 
-        if( (label_count_nn[sv_idx] / (float)label_count[sv_idx]) > param_.ratio_)
+        std::map <uint32_t, pcl::Supervoxel<PointT>::Ptr >::const_iterator it = supervoxel_clusters.find(label);
+        if (it != supervoxel_clusters.end())
         {
-            obj_mask_out[id] = true;
+//            // refine normals
+            const Eigen::Vector3f sv_normal = it->second->normal_.getNormalVector3fMap();
+            normals->points[i].getNormalVector3fMap() = sv_normal;
+
+            const size_t tot_pts_in_supervoxel = it->second->voxels_->points.size();
+            if( label_count[label]  > param_.ratio_ * tot_pts_in_supervoxel)
+                obj_mask_out[i] = true;
+            else
+                obj_mask_out[i] = false;
         }
         else
         {
-            obj_mask_out[id] = false;
+            std::cerr << "Cluster for label does not exist" << std::endl;
+            obj_mask_out[i] = true;
         }
     }
 }
@@ -394,7 +371,7 @@ DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreeP
 std::vector<bool>
 DOL::erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<PointT> & cloud)
 {
-    assert (obj_mask.size == cloud.height * cloud.width);
+    assert (obj_mask.size() == cloud.height * cloud.width);
 
     cv::Mat mask = cv::Mat(cloud.height, cloud.width, CV_8UC1);
     std::vector<bool> mask_out(obj_mask.size());
@@ -901,7 +878,9 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
             {
                 try
                 {
-                    transforms[ trans_id ].edge_weight = calcEdgeWeightAndRefineTf( grph_[view_id].cloud_, view.cloud_, transforms[ trans_id ].transformation_);
+                    Eigen::Matrix4f icp_refined_trans;
+                    transforms[ trans_id ].edge_weight = calcEdgeWeightAndRefineTf( grph_[view_id].cloud_, view.cloud_, icp_refined_trans, transforms[ trans_id ].transformation_);
+                    transforms[ trans_id ].transformation_ = icp_refined_trans,
                     std::cout << "Edge weight is " << transforms[ trans_id ].edge_weight << " for edge connecting vertex " <<
                                  transforms[ trans_id ].source_id_ << " and " << transforms[ trans_id ].target_id_ << " by " <<
                                  transforms[ trans_id ].model_name_ << std::endl;
@@ -1053,6 +1032,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         view.obj_mask_step_.back() = view.obj_mask_step_[0];
         std::cout << "After postprocessing the initial frame not enough points are left. Therefore taking the original provided indices." << std::endl;
     }
+//    visualize();
     return true;
 }
 
