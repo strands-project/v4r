@@ -13,6 +13,7 @@
 #include <pcl/octree/octree_pointcloud_pointvector.h>
 #include <pcl/octree/impl/octree_iterator.hpp>
 
+#include <v4r/core/macros.h>
 #include "v4r/common/miscellaneous.h"
 
 namespace v4r
@@ -20,10 +21,10 @@ namespace v4r
 namespace utils
 {
 template<class PointT>
-class NMBasedCloudIntegration
+class V4R_EXPORTS NMBasedCloudIntegration
 {
 public:
-    class Parameter
+    class V4R_EXPORTS Parameter
     {
     public:
         int min_points_per_voxel_;

@@ -11,6 +11,8 @@
 #include <pcl/common/common.h>
 #include <pcl/common/io.h>
 
+#include <v4r/core/macros.h>
+
 namespace v4r
 {
   namespace utils
@@ -18,7 +20,7 @@ namespace v4r
     namespace noise_models
     {
       template<class PointT>
-        class NguyenNoiseModel
+        class V4R_EXPORTS NguyenNoiseModel
         {
         private:
           typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;

@@ -260,5 +260,5 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovingPoi
     }
 }
 
-template class v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB>;
-template class v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
+template class V4R_EXPORTS v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;

@@ -614,7 +614,7 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
     output->is_dense = true;*/
 }
 
-//template class NMBasedCloudIntegration<pcl::PointXYZRGB>;
+template class V4R_EXPORTS NMBasedCloudIntegration<pcl::PointXYZRGB>;
 //template class faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
 }
 }
