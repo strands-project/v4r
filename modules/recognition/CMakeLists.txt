@@ -9,7 +9,12 @@ endif()
 if(HAVE_EDT)
   v4r_include_directories(${EDT_INCLUDE_DIR})
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
-endif() 
+endif()
+
+
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS} ${Boost_LIB_DIAGNOSTIC_DEFINITIONS})
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../3rdparty/metslib) # for the time being - metslib still needs to be implemented
 

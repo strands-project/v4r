@@ -12,7 +12,7 @@
 #include <boost/algorithm/string.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/voxel_grid.h>
-#include <propagation_distance_field.h>
+#include <EDT/propagation_distance_field.h>
 #include <pcl/common/transforms.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <boost/regex.hpp>
