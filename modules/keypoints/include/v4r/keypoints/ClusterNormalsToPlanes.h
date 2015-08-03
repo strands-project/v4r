@@ -14,6 +14,7 @@
 #include <set>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
+#include <v4r/core/macros.h>
 #include "v4r/keypoints/impl/DataMatrix2D.hpp"
 #include "v4r/keypoints/impl/SmartPtr.hpp"
 #include "v4r/keypoints/PlaneEstimationRANSAC.h"
@@ -26,7 +27,7 @@ namespace kp
 /**
  * ClusterNormalsToPlanes
  */
-class ClusterNormalsToPlanes
+class V4R_EXPORTS ClusterNormalsToPlanes
 {
 public:
 

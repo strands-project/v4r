@@ -8,7 +8,7 @@
 #ifndef RECOGNIZER_H_
 #define RECOGNIZER_H_
 
-#include <v4r/features/faat_3d_rec_framework_defines.h>
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <pcl/common/common.h>
 #include "voxel_based_correspondence_estimation.h"
 #include "source.h"

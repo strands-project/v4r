@@ -40,7 +40,7 @@
 #ifndef FAAT_PCL_RECOGNITION_HOUGH_3D_H_
 #define FAAT_PCL_RECOGNITION_HOUGH_3D_H_
 
-#include <v4r/common/macros.h>
+#include <v4r/core/macros.h>
 
 #include "correspondence_grouping.h"
 #include <pcl/recognition/boost.h>

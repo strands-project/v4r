@@ -40,7 +40,7 @@
 #ifndef FAAT_PCL_RECOGNITION_GEOMETRIC_CONSISTENCY_IMPL_H_
 #define FAAT_PCL_RECOGNITION_GEOMETRIC_CONSISTENCY_IMPL_H_
 
-#include <v4r/common/macros.h>
+#include <v4r/core/macros.h>
 #include "v4r/common/geometric_consistency.h"
 #include <pcl/registration/correspondence_types.h>
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>

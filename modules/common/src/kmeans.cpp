@@ -50,7 +50,7 @@
 
 #include <pcl/pcl_base.h>
 
-#include <v4r/common/macros.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {

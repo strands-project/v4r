@@ -12,12 +12,14 @@
 #include <pcl/octree/octree_pointcloud_pointvector.h>
 #include <pcl/octree/impl/octree_iterator.hpp>
 
+#include <v4r/core/macros.h>
+
 namespace v4r
 {
 namespace common
 {
 
-void computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
+void V4R_EXPORTS computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
                     int method);
 
@@ -271,15 +273,15 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_in
     indices.resize(kept);
 }
 
-template<typename PointType, typename DistType> void convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index);
+template<typename PointType, typename DistType> V4R_EXPORTS void convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index);
 
-template<typename DistType> void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+template<typename DistType> V4R_EXPORTS void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
                                                   flann::Matrix<float> &distances );
 
 /**
  * @brief sets the sensor origin and sensor orientation fields of the PCL pointcloud header by the given transform
  */
-template<typename PointType> void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud);
+template<typename PointType> V4R_EXPORTS void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud);
 
 inline std::vector<size_t>
 convertVecInt2VecSizet(const std::vector<int> &input)
@@ -354,7 +356,7 @@ namespace pcl
   * \note Assumes unique indices.
   * \ingroup common
   */
-template <typename PointT> void
+template <typename PointT> V4R_EXPORTS void
 copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
                 const std::vector<size_t> &indices,
                 pcl::PointCloud<PointT> &cloud_out);
@@ -366,12 +368,12 @@ copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
   * \note Assumes unique indices.
   * \ingroup common
   */
-template <typename PointT> void
+template <typename PointT> V4R_EXPORTS void
 copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
                 const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
                 pcl::PointCloud<PointT> &cloud_out);
 
-template <typename PointT> void
+template <typename PointT> V4R_EXPORTS void
 copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
                      const std::vector<bool> &mask,
                      pcl::PointCloud<PointT> &cloud_out);

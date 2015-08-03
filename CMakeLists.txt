@@ -99,7 +99,9 @@ V4R_OPTION(WITH_OPENCL         "Include OpenCL Runtime support"              NOT
 V4R_OPTION(WITH_OPENCL_SVM     "Include OpenCL Shared Virtual Memory support" OFF ) # experimental
 V4R_OPTION(WITH_OPENCLAMDFFT   "Include AMD OpenCL FFT library support"      ON   IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_OPENCLAMDBLAS  "Include AMD OpenCL BLAS library support"     ON   IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
+V4R_OPTION(WITH_OpenCV		"Include OpenCV support"    		     ON)
 V4R_OPTION(WITH_SIFTGPU        "Include SiftGPU support"                     ON)
+V4R_OPTION(WITH_PCL            "Include PCL support"                         ON)
 
 # V4R build components
 # ===================================================
@@ -125,7 +127,7 @@ V4R_OPTION(BUILD_JPEG               "Build libjpeg from source"          WIN32 O
 V4R_OPTION(BUILD_PNG                "Build libpng from source"           WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_OPENEXR            "Build openexr from source"          (WIN32 OR ANDROID OR APPLE) AND NOT WINRT)
 V4R_OPTION(BUILD_TBB                "Download and build TBB from source" ANDROID )
-V4R_OPTION(BUILD_SIFTGPU            "Build SiftGPU from source"          ON)
+V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
 
 # V4R installation options
 # ===================================================
@@ -302,7 +304,7 @@ test_big_endian(WORDS_BIGENDIAN)
 #include(cmake/V4RFindLibsPerf.cmake)
 include(cmake/V4RFindEigen.cmake)
 include(cmake/V4RFindPCL.cmake)
-
+include(cmake/V4RFindOpenCV.cmake)
 # ----------------------------------------------------------------------------
 #  Detect optional 3rd-party libraries/tools
 # ----------------------------------------------------------------------------
@@ -553,6 +555,11 @@ if(WITH_SIFTGPU)
   status("    SiftGPU:"  SIFTGPU_FOUND  THEN "${SIFTGPU_LIBRARIES} (ver ${SIFTGPU_VERSION})" ELSE "build (ver ${SIFTGPU_VERSION})")
 else()
   status("    SiftGPU:"  "NO")
+endif()
+if(WITH_PCL AND HAVE_PCL)
+  status("    PCL:"  "YES (ver ${PCL_VERSION})")
+else()
+  status("    PCL:"  "NO")
 endif()
 
 if( WITH_GDAL )
