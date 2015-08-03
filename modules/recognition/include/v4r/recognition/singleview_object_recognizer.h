@@ -9,7 +9,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <v4r/recognition/multi_pipeline_recognizer.h>
-#include <v4r/common/features/sift_local_estimator.h>
+#include <v4r/features/sift_local_estimator.h>
 #include <v4r/common/common_data_structures.h>
 #include <v4r/common/miscellaneous.h>
 
@@ -37,8 +37,8 @@ class Recognizer
 protected:
     typedef pcl::PointXYZRGB PointT;
     typedef pcl::PointCloud<PointT> PointInT;
-    typedef pcl::PointCloud<PointT>::Ptr PointInTPtr;
-    typedef pcl::PointCloud<PointT>::ConstPtr ConstPointInTPtr;
+    typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
+    typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointInTPtr;
     typedef v4r::rec_3d_framework::Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
     typedef flann::L1<float> DistT;

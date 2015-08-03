@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <opencv2/core/core.hpp>
 
-#include <v4r/common/macros.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {

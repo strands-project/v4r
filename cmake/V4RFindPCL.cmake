@@ -1,2 +1,6 @@
-find_package(PCL 1.7 REQUIRED)
-v4r_include_directories(${PCL_INCLUDE_DIRS})
+if(WITH_PCL)
+  find_package(PCL "${MIN_VER_PCL}")
+  if(PCL_FOUND)
+    set(HAVE_PCL TRUE)
+  endif()
+endif()

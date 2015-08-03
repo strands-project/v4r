@@ -52,7 +52,7 @@
 #include <pcl/registration/correspondence_types.h>
 #include <pcl/registration/correspondence_estimation.h>
 
-#include <3rdparty/EDT/propagation_distance_field.h>
+#include <EDT/propagation_distance_field.h>
 #include "v4r/common/faat_3d_rec_framework_defines.h"
 
 namespace v4r

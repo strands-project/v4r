@@ -7,10 +7,10 @@
 #include <v4r/recognition/local_recognizer.h>
 #include <v4r/recognition/metrics.h>
 #include <v4r/recognition/multiplane_segmentation.h>
-#include <v4r/common/features/organized_color_ourcvfh_estimator.h>
-#include <v4r/common/features/ourcvfh_estimator.h>
-#include <v4r/common/features/shot_local_estimator.h>
-#include <v4r/common/features/shot_local_estimator_omp.h>
+#include <v4r/features/organized_color_ourcvfh_estimator.h>
+#include <v4r/features/ourcvfh_estimator.h>
+#include <v4r/features/shot_local_estimator.h>
+#include <v4r/features/shot_local_estimator_omp.h>
 #include <v4r/recognition/registered_views_source.h>
 #include <v4r/recognition/partial_pcd_source.h>
 #include <v4r/recognition/global_nn_recognizer_cvfh.h>

@@ -17,7 +17,7 @@
 #include "vtk_model_sampling.h"
 #include <vtkTransformPolyDataFilter.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
-#include <v4r/common/io/filesystem_utils.h>
+#include <v4r/io/filesystem_utils.h>
 
 namespace v4r
 {
@@ -129,7 +129,7 @@ namespace v4r
           //get models in directory
           std::vector < std::string > files;
 
-          v4r::common::io::getFilesInDirectory (path_, files, "", ".*.pcd", false);
+          v4r::io::getFilesInDirectory (path_, files, "", ".*.pcd", false);
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);

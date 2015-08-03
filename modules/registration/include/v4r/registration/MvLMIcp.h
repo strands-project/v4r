@@ -3,7 +3,8 @@
 
 #include <pcl/common/common.h>
 #include <pcl/octree/octree_search.h>
-#include "propagation_distance_field.h"
+
+#include <EDT/propagation_distance_field.h>
 
 namespace v4r
 {

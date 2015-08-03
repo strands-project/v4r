@@ -26,7 +26,7 @@
 #ifndef KP_ZADAPTIVE_NORMALS_HH
 #define KP_ZADAPTIVE_NORMALS_HH
 
-#include <v4r/common/macros.h>
+#include <v4r/core/macros.h>
 
 #include <iostream>
 #include <stdexcept>

@@ -15,7 +15,7 @@
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/variate_generator.hpp>
 //#include "pcl/recognition/3rdparty/metslib/mets.hh"
-#include "3rdparty/metslib/mets.hh"
+#include <mets.hh>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <map>
@@ -530,7 +530,7 @@ namespace v4r
     void
     writeToLog (std::ofstream & of)
     {
-      //const GHVSAModel<ModelT, SceneT>& ss = static_cast<const GHVSAModel<ModelT, SceneT>&> (best_ever_m);
+      const GHVSAModel<ModelT, SceneT>& ss = static_cast<const GHVSAModel<ModelT, SceneT>&> (best_ever_m);
       of << times_evaluated_ << "\t\t";
       of << costs_.size () << "\t\t";
       of << costs_[costs_.size () - 1] << std::endl;

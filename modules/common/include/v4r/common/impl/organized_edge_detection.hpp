@@ -38,7 +38,7 @@
 #ifndef v4r_FEATURES_IMPL_ORGANIZED_EDGE_DETECTION_H_
 #define v4r_FEATURES_IMPL_ORGANIZED_EDGE_DETECTION_H_
 
-#include <v4r/common/macros.h>
+#include <v4r/core/macros.h>
 #include <v4r/common/edge.h>
 #include <v4r/common/organized_edge_detection.h>
 #include <pcl/console/print.h>

@@ -2,3 +2,4 @@
 # command when the "SiftGPU" target is built.
 src/
 tmp/
+SiftGPU.h

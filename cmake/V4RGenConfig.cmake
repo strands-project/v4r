@@ -35,7 +35,7 @@ endif()
 # -------------------------------------------------------------------------------------------
 #  Part 1/2: ${BIN_DIR}/V4RConfig.cmake              -> For use *without* "make install"
 # -------------------------------------------------------------------------------------------
-set(V4R_INCLUDE_DIRS_CONFIGCMAKE "\"${V4R_CONFIG_FILE_INCLUDE_DIR}\"")
+set(V4R_INCLUDE_DIRS_CONFIGCMAKE "\"${V4R_CONFIG_FILE_INCLUDE_DIR}\"" "\"${V4R_SOURCE_DIR}/3rdparty\"")
 
 foreach(m ${V4R_MODULES_BUILD})
   if(EXISTS "${V4R_MODULE_${m}_LOCATION}/include")
