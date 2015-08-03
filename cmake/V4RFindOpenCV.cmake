@@ -1,0 +1,6 @@
+if(WITH_OpenCV)
+  find_package(OpenCV "${MIN_VER_OpenCV}")
+  if(OpenCV_FOUND)
+    set(HAVE_OpenCV TRUE)
+  endif()
+endif()

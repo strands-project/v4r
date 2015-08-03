@@ -1,7 +1,7 @@
 #ifndef PCL_VISUALIZATION_UTILS_H
 #define PCL_VISUALIZATION_UTILS_H
 
-
+#include <v4r/core/macros.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <string>
 
@@ -9,7 +9,7 @@ namespace v4r
 {
   namespace common
   {
-      class pcl_visualizer
+      class V4R_EXPORTS pcl_visualizer
       {
       public:
           static std::vector<int> visualization_framework (pcl::visualization::PCLVisualizer::Ptr vis,

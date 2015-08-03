@@ -41,9 +41,9 @@
 #include "v4r/common/graph_geometric_consistency.h"
 #include "v4r/common/impl/graph_geometric_consistency.hpp"
 
-template class v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZ,pcl::PointXYZ>;
+template class V4R_EXPORTS v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZ,pcl::PointXYZ>;
 //template class faat_pcl::GraphGeometricConsistencyGrouping<pcl::PointXYZI,pcl::PointXYZI>;
-template class v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZRGB,pcl::PointXYZRGB>;
-template class v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZRGBA,pcl::PointXYZRGBA>;
+template class V4R_EXPORTS v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZRGB,pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZRGBA,pcl::PointXYZRGBA>;
 //template class faat_pcl::GraphGeometricConsistencyGrouping<pcl::PointNormal,pcl::PointNormal>;
 //template class faat_pcl::GraphGeometricConsistencyGrouping<pcl::PointXYZRGBNormal,pcl::PointXYZRGBNormal>;
