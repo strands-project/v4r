@@ -29,14 +29,14 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
 
-#include <v4r/common/keypoint/impl/convertCloud.hpp>
-#include <v4r/common/keypoint/impl/convertNormals.hpp>
-#include <v4r/common/keypoint/impl/DataMatrix2D.hpp>
-#include <v4r/common/features/sift_local_estimator.h>
+#include <v4r/keypoints/impl/convertCloud.hpp>
+#include <v4r/keypoints/impl/convertNormals.hpp>
+#include <v4r/keypoints/impl/DataMatrix2D.hpp>
+#include <v4r/features/sift_local_estimator.h>
 #include <v4r/common/fast_icp_with_gc.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/common/io/filesystem_utils.h>
+#include <v4r/io/filesystem_utils.h>
 #include <v4r/common/occlusion_reasoning.h>
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
@@ -44,7 +44,7 @@
 //#define USE_SIFT_GPU
 
 #ifndef USE_SIFT_GPU
-#include <v4r/common/features/opencv_sift_local_estimator.h>
+#include <v4r/features/opencv_sift_local_estimator.h>
 #endif
 
 namespace v4r
@@ -493,9 +493,9 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
         export_to_rs << recognition_structure_dir << "/" << model_name << "/";
         std::string export_to = export_to_rs.str();
 
-        v4r::common::io::createDirIfNotExist(recognition_structure_dir);
-        v4r::common::io::createDirIfNotExist(models_dir);
-        v4r::common::io::createDirIfNotExist(export_to);
+        v4r::io::createDirIfNotExist(recognition_structure_dir);
+        v4r::io::createDirIfNotExist(models_dir);
+        v4r::io::createDirIfNotExist(export_to);
 
         std::cout << "Saving " << kept_keyframes << " keyframes from " << num_frames << "." << std::endl;
 
@@ -510,7 +510,7 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
             std::string path_pose (view_file.str());
             boost::replace_last (path_pose, "cloud", "pose");
             boost::replace_last (path_pose, ".pcd", ".txt");
-            v4r::common::io::writeMatrixToFile(path_pose, cameras_used[i]);
+            v4r::io::writeMatrixToFile(path_pose, cameras_used[i]);
             std::cout << path_pose << std::endl;
 
             std::string path_obj_indices (view_file.str());
@@ -843,26 +843,26 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                 continue;
 
             std::vector<CamConnect> transforms;
-            CamConnect e;
-            e.model_name_ = "camera_tracking";
-            e.source_id_ = view.id_;
-            e.target_id_ = grph_[view_id].id_;
-            e.transformation_ = view.tracking_pose_.inverse() * grph_[view_id].tracking_pose_ ;
-            transforms.push_back( e );
+            CamConnect edge;
+            edge.model_name_ = "camera_tracking";
+            edge.source_id_ = view.id_;
+            edge.target_id_ = grph_[view_id].id_;
+            edge.transformation_ = view.tracking_pose_.inverse() * grph_[view_id].tracking_pose_ ;
+            transforms.push_back( edge );
 
             if ( param_.do_sift_based_camera_pose_estimation_ )
             {
                 try
                 {
-                    e.model_name_ = "sift_background_matching";
+                    edge.model_name_ = "sift_background_matching";
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
                     estimateViewTransformationBySIFT( *grph_[view_id].cloud_, *view.cloud_,
                                                       grph_[view_id].sift_keypoint_indices_, view.sift_keypoint_indices_,
                                                       *grph_[view_id].sift_signatures_, flann_index, sift_transforms);
                     for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++)
                     {
-                        e.transformation_ = sift_transforms[sift_tf_id];
-                        transforms.push_back(e);
+                        edge.transformation_ = sift_transforms[sift_tf_id];
+                        transforms.push_back(edge);
                     }
                 }
                 catch (int e)

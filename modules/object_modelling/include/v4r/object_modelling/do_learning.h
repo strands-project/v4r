@@ -12,9 +12,10 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/search/octree.h>
 
-#include <3rdparty/SiftGPU/src/SiftGPU/SiftGPU.h>
-#include <v4r/common/keypoint/ClusterNormalsToPlanes.hh>
-#include <v4r/common/keypoint/impl/PointTypes.hpp>
+#include <SiftGPU/SiftGPU.h>
+#include <v4r/core/macros.h>
+#include <v4r/keypoints/ClusterNormalsToPlanes.h>
+#include <v4r/keypoints/impl/PointTypes.hpp>
 #include <v4r/common/noise_model_based_cloud_integration.h>
 #include <v4r/object_modelling/model_view.h>
 
@@ -74,7 +75,7 @@ struct CamConnect
     }
 };
 
-class DOL
+class V4R_EXPORTS  DOL
 {
 public:
     class Parameter{

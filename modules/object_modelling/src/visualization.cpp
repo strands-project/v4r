@@ -205,8 +205,8 @@ DOL::visualize()
             pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_mask_step_[step_id], *segmented);
             pcl::transformPointCloud(*segmented, *segmented_trans, grph_[view_id].camera_pose_);
             cloud_name << "__step_" << step_id;
-            pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(segmented_trans);
-            vis_->addPointCloud(segmented_trans, rgb_handler, cloud_name.str(), vis_viewpoint_[view_id * num_subwindows + subwindow_id++]);
+            pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler_tmp(segmented_trans);
+            vis_->addPointCloud(segmented_trans, rgb_handler_tmp, cloud_name.str(), vis_viewpoint_[view_id * num_subwindows + subwindow_id++]);
         }
     }
     vis_->spin();
