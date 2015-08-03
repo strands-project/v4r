@@ -116,6 +116,7 @@ DOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
     bool ret = estimator->estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
     estimator->getKeypointIndices( sift_keypoint_pcl_indices );
 #else
+    (void)sift_keypoint_scales; //silences compiler warning of unused variable
     boost::shared_ptr < v4r::rec_3d_framework::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
     estimator.reset (new v4r::rec_3d_framework::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> >);
 
@@ -757,7 +758,6 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     boost::add_vertex(view.id_, gs_);
 
-    pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>());
     pcl::PointCloud<pcl::Normal>::Ptr normals_filtered (new pcl::PointCloud<pcl::Normal>());
     std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> planes;
     std::vector< std::vector<int> > planes_not_on_obj;
@@ -970,7 +970,6 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     pixel_is_neglected = createMaskFromVecIndices(planes_not_on_obj, view.cloud_->points.size());
     view.scene_points_ = createIndicesFromMask(pixel_is_neglected, true);
     view.obj_mask_step_.push_back( logical_operation(pixel_is_object, pixel_is_neglected, MASK_OPERATOR::AND_N) );
-    pcl::copyPointCloud(*view.cloud_,  view.scene_points_, *cloud_filtered);
     pcl::copyPointCloud(*view.normal_, view.scene_points_, *normals_filtered);
 
     //#define DEBUG_SEGMENTATION

@@ -105,7 +105,7 @@ public:
                    bool do_sift_based_camera_pose_estimation = false,
                    bool transfer_indices_from_latest_frame_only = false,
                    size_t min_points_for_transferring = 10,
-                   int normal_method = 1,
+                   int normal_method = 0,
                    bool do_mst_refinement = true,
                    bool filter_planes_only = true) :
             radius_(radius),
@@ -135,8 +135,8 @@ public:
     };
 
     struct {
-        int meanK_ = 50;
-        double std_mul_ = 1.0f;
+        int meanK_ = 10;
+        double std_mul_ = 2.0f;
     }sor_params_;
 
 protected:
