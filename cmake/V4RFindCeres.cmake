@@ -1,6 +1,8 @@
 if(WITH_CERES)
   find_package(Ceres)
   if(${Ceres_FOUND})
+    set(CERES_LIBRARIES "${CERES_LIBRARIES}")
+    set(CERES_INCLUDE_DIRS "${CERES_INCLUDES}")
     set(HAVE_CERES TRUE)
   endif()
 endif()
