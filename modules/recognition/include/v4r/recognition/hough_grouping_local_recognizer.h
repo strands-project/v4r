@@ -9,8 +9,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
     /*
      * This class applies HoughGrouping to the correspondences yielded by a LocalRecognitionPipeline
      * It requires for each keypoint (model and scene) to have an associated LRF.
@@ -18,7 +16,7 @@ namespace v4r
      * from LocalRecognitionPipeline) is associated with a pcl::ReferenceFrame
      */
     template<template<class > class Distance, typename PointInT, typename FeatureT, typename TypeRF = pcl::ReferenceFrame>
-      class FAAT_3D_FRAMEWORK_API LocalRecognitionHoughGroupingPipeline : public LocalRecognitionPipeline<Distance, PointInT, FeatureT>
+      class V4R_EXPORTS LocalRecognitionHoughGroupingPipeline : public LocalRecognitionPipeline<Distance, PointInT, FeatureT>
       {
 
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -195,6 +193,5 @@ namespace v4r
           support_radius_ = r;
         }
       };
-  }
 }
 #endif //FAAT_PCL_REC_FRAMEWORK_HG_LOCAL_RECOGNIZER_H_

@@ -403,7 +403,7 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
     {
         PointTPtr cloud(new pcl::PointCloud<PointT>);
         PointNormalTPtr normal_cloud(new pcl::PointCloud<pcl::Normal>);
-        faat_pcl::utils::miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
+        v4r::utils::miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
 
         pcl::transformPointCloud(*input_clouds_[i], *cloud, transformations_to_global_[i]);
         PointTPtr organized_cloud = input_clouds_[i];
@@ -461,7 +461,7 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
                 Eigen::Vector3f normal_from_cloud = input_normals_[i]->at (u,v).getNormalVector3fMap();
                 Eigen::Vector3f normal_from_octree = octree_points_normals_->points[indexVector[k]].getNormalVector3fMap();
                 Eigen::Vector3f normal_octree_trans;
-                faat_pcl::utils::miscellaneous::transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
+                v4r::utils::miscellaneous::transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
                 if(normal_octree_trans.dot(normal_from_cloud) < 0)
                 {
                     indices_octree_keep.push_back(indexVector[k]);
@@ -615,6 +615,6 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
 }
 
 template class V4R_EXPORTS NMBasedCloudIntegration<pcl::PointXYZRGB>;
-//template class faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
+//template class v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
 }
 }

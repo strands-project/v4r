@@ -33,20 +33,20 @@ struct camPosConstraints
 
 namespace v4r
 {
-class V4R_EXPORTS Recognizer
+class V4R_EXPORTS SingleViewRecognizer
 {
 protected:
     typedef pcl::PointXYZRGB PointT;
     typedef pcl::PointCloud<PointT> PointInT;
     typedef pcl::PointCloud<PointT>::Ptr PointInTPtr;
     typedef pcl::PointCloud<PointT>::ConstPtr ConstPointInTPtr;
-    typedef v4r::rec_3d_framework::Model<PointT> ModelT;
+    typedef v4r::Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
     typedef flann::L1<float> DistT;
     typedef pcl::Histogram<128> FeatureT;
 
 
-    boost::shared_ptr<v4r::rec_3d_framework::MultiRecognitionPipeline<PointT> > multi_recog_;
+    boost::shared_ptr<v4r::MultiRecognitionPipeline<PointT> > multi_recog_;
     std::string models_dir_;
     std::string training_dir_sift_;
     std::string training_dir_shot_;
@@ -55,7 +55,7 @@ protected:
     std::string idx_flann_fn_sift_;
     std::string idx_flann_fn_shot_;
 
-    std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> > hypotheses_;
+    std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     pcl::PointIndices keypointIndices_;
     cv::Ptr<SiftGPU> sift_;
@@ -75,7 +75,7 @@ protected:
 
     boost::shared_ptr < v4r::CorrespondenceGrouping<PointT, PointT> > cast_cg_alg_;
 
-//    boost::shared_ptr < faat_pcl::rec_3d_framework::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>
+//    boost::shared_ptr < v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>
 //            > model_only_source_;
 
 
@@ -137,7 +137,7 @@ public:
         int normal_computation_method_;
     }sv_params_;
 
-    Recognizer ()
+    SingleViewRecognizer ()
     {
         sv_params_.do_sift_ = true;
         sv_params_.do_shot_ = false;
@@ -149,7 +149,7 @@ public:
 
         sv_params_.icp_iterations_ = 0;
         sv_params_.icp_type_ = 1;
-        sv_params_.chop_at_z_ = 1.5f;
+        sv_params_.chop_at_z_ = 2.0f;
 
         hv_params_.resolution_ = 0.005f;
         hv_params_.inlier_threshold_ = 0.015;
@@ -188,7 +188,7 @@ public:
         pInputCloud_.reset(new pcl::PointCloud<PointT>);
         pSceneNormals_.reset(new pcl::PointCloud<pcl::Normal>);
 
-//        model_only_source_.reset (new faat_pcl::rec_3d_framework::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>);
+//        model_only_source_.reset (new v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>);
 
 
 #ifdef SOC_VISUALIZE
@@ -243,7 +243,7 @@ public:
         sift_ = value;
     }
 
-    void getSavedHypotheses(std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> > & hypotheses) const
+    void getSavedHypotheses(std::map<std::string, v4r::ObjectHypothesis<PointT> > & hypotheses) const
     {
         hypotheses = hypotheses_;
     }
@@ -394,7 +394,7 @@ public:
 
     void preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_cloud, std::vector<float> &fsv);
 
-    void constructHypothesesFromFeatureMatches(std::map < std::string,v4r::rec_3d_framework::ObjectHypothesis<PointT> > hypothesesInput,
+    void constructHypothesesFromFeatureMatches(std::map < std::string,v4r::ObjectHypothesis<PointT> > hypothesesInput,
                                                pcl::PointCloud<PointT>::Ptr pKeypoints,
                                                pcl::PointCloud<pcl::Normal>::Ptr pKeypointNormals,
                                                std::vector<Hypothesis<PointT> > &hypothesesOutput,

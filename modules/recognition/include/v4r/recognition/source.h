@@ -22,9 +22,6 @@ namespace bf = boost::filesystem;
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
-
     /**
      * \brief Model representation
      * \author Aitor Aldoma
@@ -516,7 +513,6 @@ namespace v4r
         }
       }
     };
-  }
 }
 
 #endif /* REC_FRAMEWORK_VIEWS_SOURCE_H_ */

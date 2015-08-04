@@ -9,21 +9,20 @@
 #define REC_FRAMEWORK_LOCAL_ESTIMATOR_H_
 
 #include "normal_estimator.h"
-#include "faat_3d_rec_framework_defines.h"
 #include "pcl/keypoints/uniform_sampling.h"
 #include <pcl/surface/mls.h>
 #include <pcl/keypoints/harris_3d.h>
 #include <pcl/keypoints/sift_keypoint.h>
 #include <pcl/keypoints/susan.h>
 #include <pcl/keypoints/iss_3d.h>
+#include <v4r/core/macros.h>
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 
 namespace v4r
 {
-namespace rec_3d_framework
-{
 
 template<typename PointInT>
-class FAAT_3D_FRAMEWORK_API KeypointExtractor
+class V4R_EXPORTS KeypointExtractor
 {
 protected:
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -68,15 +67,15 @@ public:
 };
 
 template<typename PointInT>
-class FAAT_3D_FRAMEWORK_API UniformSamplingExtractor : public KeypointExtractor<PointInT>
+class V4R_EXPORTS UniformSamplingExtractor : public KeypointExtractor<PointInT>
 {
 private:
 
 private:
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     bool filter_planar_;
-    using v4r::rec_3d_framework::KeypointExtractor<PointInT>::input_;
-    using v4r::rec_3d_framework::KeypointExtractor<PointInT>::radius_;
+    using v4r::KeypointExtractor<PointInT>::input_;
+    using v4r::KeypointExtractor<PointInT>::radius_;
     using KeypointExtractor<PointInT>::keypoint_indices_;
     float sampling_density_;
     boost::shared_ptr<std::vector<std::vector<int> > > neighborhood_indices_;
@@ -265,7 +264,7 @@ public:
 };
 
 /*template<typename PointInT>
-class FAAT_3D_FRAMEWORK_API SIFTKeypointExtractor : public KeypointExtractor<PointInT>
+class V4R_EXPORTS SIFTKeypointExtractor : public KeypointExtractor<PointInT>
 {
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     using KeypointExtractor<PointInT>::input_;
@@ -291,7 +290,7 @@ public:
 };
 
 template<typename PointInT>
-class FAAT_3D_FRAMEWORK_API SIFTSurfaceKeypointExtractor : public KeypointExtractor<PointInT>
+class V4R_EXPORTS SIFTSurfaceKeypointExtractor : public KeypointExtractor<PointInT>
 {
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
@@ -343,7 +342,7 @@ public:
 };
 
 template<typename PointInT, typename NormalT = pcl::Normal>
-class FAAT_3D_FRAMEWORK_API HarrisKeypointExtractor : public KeypointExtractor<PointInT>
+class V4R_EXPORTS HarrisKeypointExtractor : public KeypointExtractor<PointInT>
 {
 
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
@@ -419,7 +418,7 @@ public:
 };
 
 template<typename PointInT, typename NormalT = pcl::Normal>
-class FAAT_3D_FRAMEWORK_API ISSKeypointExtractor : public KeypointExtractor<PointInT>
+class V4R_EXPORTS ISSKeypointExtractor : public KeypointExtractor<PointInT>
 {
 
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
@@ -492,7 +491,7 @@ public:
 };
 
 template<typename PointInT, typename NormalT = pcl::Normal>
-class FAAT_3D_FRAMEWORK_API SUSANKeypointExtractor : public KeypointExtractor<PointInT>
+class V4R_EXPORTS SUSANKeypointExtractor : public KeypointExtractor<PointInT>
 {
 
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
@@ -544,7 +543,7 @@ public:
 };*/
 
 template<typename PointInT, typename FeatureT>
-class FAAT_3D_FRAMEWORK_API LocalEstimator
+class V4R_EXPORTS LocalEstimator
 {
 protected:
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -742,7 +741,6 @@ public:
          }*/
 
 };
-}
 }
 
 #endif /* REC_FRAMEWORK_LOCAL_ESTIMATOR_H_ */

@@ -7,6 +7,6 @@
 
 #include "v4r/recognition/impl/voxel_based_correspondence_estimation.hpp"
 
-template class v4r::rec_3d_framework::VoxelBasedCorrespondenceEstimation<pcl::PointXYZ, pcl::PointXYZ >;
-template class v4r::rec_3d_framework::VoxelBasedCorrespondenceEstimation<pcl::PointXYZRGB, pcl::PointXYZRGB >;
-template class v4r::rec_3d_framework::VoxelBasedCorrespondenceEstimation<pcl::PointXYZRGBA, pcl::PointXYZRGBA >;
+template class v4r::VoxelBasedCorrespondenceEstimation<pcl::PointXYZ, pcl::PointXYZ >;
+template class v4r::VoxelBasedCorrespondenceEstimation<pcl::PointXYZRGB, pcl::PointXYZRGB >;
+template class v4r::VoxelBasedCorrespondenceEstimation<pcl::PointXYZRGBA, pcl::PointXYZRGBA >;

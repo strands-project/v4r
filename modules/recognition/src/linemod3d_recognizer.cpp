@@ -1,6 +1,6 @@
-#include "linemod3d_recognizer.h"
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
-#include <v4r/ORUtils/pcl_opencv.h>
+#include <v4r/recognition/linemod3d_recognizer.h>
+#include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/common/pcl_opencv.h>
 #include <pcl/common/angles.h>
 //add functions
 
@@ -87,7 +87,7 @@ void rotateOrganizedPointCloud(typename pcl::PointCloud<PointInT>::Ptr & cloud,
 
 template<typename PointInT>
 void
-faat_pcl::rec_3d_framework::LineMod3DPipeline<PointInT>::initialize (bool force_retrain)
+v4r::LineMod3DPipeline<PointInT>::initialize (bool force_retrain)
   {
     boost::shared_ptr < std::vector<ModelTPtr> > models;
 
@@ -247,7 +247,7 @@ faat_pcl::rec_3d_framework::LineMod3DPipeline<PointInT>::initialize (bool force_
 
 template<typename PointInT>
 void
-faat_pcl::rec_3d_framework::LineMod3DPipeline<PointInT>::recognize ()
+v4r::LineMod3DPipeline<PointInT>::recognize ()
   {
 
     models_.reset (new std::vector<ModelTPtr>);
@@ -349,7 +349,7 @@ faat_pcl::rec_3d_framework::LineMod3DPipeline<PointInT>::recognize ()
 
 template<typename PointInT>
 void
-faat_pcl::rec_3d_framework::LineMod3DPipeline<PointInT>::getView (ModelT & model, int view_id, PointInTPtr & view)
+v4r::LineMod3DPipeline<PointInT>::getView (ModelT & model, int view_id, PointInTPtr & view)
 {
   view.reset (new pcl::PointCloud<PointInT>);
   std::stringstream dir;
@@ -362,7 +362,7 @@ faat_pcl::rec_3d_framework::LineMod3DPipeline<PointInT>::getView (ModelT & model
 
 template<typename PointInT>
 void
-faat_pcl::rec_3d_framework::LineMod3DPipeline<PointInT>::getPose (ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix)
+v4r::LineMod3DPipeline<PointInT>::getPose (ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix)
 {
 
   if (use_cache_)
@@ -390,4 +390,4 @@ faat_pcl::rec_3d_framework::LineMod3DPipeline<PointInT>::getPose (ModelT & model
 }
 
 
-template class PCL_EXPORTS faat_pcl::rec_3d_framework::LineMod3DPipeline<pcl::PointXYZRGBA>;
+template class V4R_EXPORTS v4r::LineMod3DPipeline<pcl::PointXYZRGBA>;

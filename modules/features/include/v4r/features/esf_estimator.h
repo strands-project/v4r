@@ -8,16 +8,14 @@
 #ifndef REC_FRAMEWORK_ESF_ESTIMATOR_H_
 #define REC_FRAMEWORK_ESF_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include "global_estimator.h"
 #include <pcl/features/esf.h>
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
     template<typename PointInT, typename FeatureT>
-      class FAAT_3D_FRAMEWORK_API ESFEstimation : public GlobalEstimator<PointInT, FeatureT>
+      class V4R_EXPORTS ESFEstimation : public GlobalEstimator<PointInT, FeatureT>
       {
 
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -68,7 +66,6 @@ namespace v4r
           return false;
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_ESF_ESTIMATOR_H_ */

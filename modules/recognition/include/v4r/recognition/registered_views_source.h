@@ -14,13 +14,11 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
-#include <v4r/io/filesystem_utils.h>
+#include <v4r/io/eigen.h>
+#include <v4r/io/filesystem.h>
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
-
     /**
      * \brief Data source class based on partial views from sensor.
      * In this case, the training data is obtained directly from a depth sensor.
@@ -458,7 +456,6 @@ namespace v4r
           }
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_MESH_SOURCE_H_ */

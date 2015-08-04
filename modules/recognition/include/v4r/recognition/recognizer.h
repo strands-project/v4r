@@ -24,8 +24,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
     template<typename PointInT>
     class ObjectHypothesis
     {
@@ -438,6 +436,5 @@ namespace v4r
           indices_ = indices;
         }
     };
-  }
 }
 #endif /* RECOGNIZER_H_ */

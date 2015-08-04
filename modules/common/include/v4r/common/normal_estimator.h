@@ -18,8 +18,6 @@
 
 namespace faat_pcl
 {
-  namespace rec_3d_framework
-  {
     template<typename PointInT, typename PointOutT>
       class PreProcessorAndNormalEstimator
       {
@@ -360,7 +358,6 @@ namespace faat_pcl
           }*/
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_NORMAL_ESTIMATOR_H_ */

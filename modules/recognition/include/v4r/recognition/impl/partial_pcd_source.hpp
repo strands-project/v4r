@@ -10,11 +10,12 @@
 
 #include <v4r/recognition/partial_pcd_source.h>
 #include <pcl/common/angles.h>
-#include <v4r/io/filesystem_utils.h>
+#include <v4r/io/eigen.h>
+#include <v4r/io/filesystem.h>
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
-v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model)
+v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model)
 {
   std::stringstream pathmodel;
   pathmodel << dir << "/" << model.class_ << "/" << model.id_;
@@ -730,7 +731,7 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
-v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModelAndView(std::string & dir, ModelT & model, int view_id)
+v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModelAndView(std::string & dir, ModelT & model, int view_id)
 {
   std::stringstream pathmodel;
   pathmodel << dir << "/" << model.class_ << "/" << model.id_;
@@ -787,7 +788,7 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
-v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::assembleModelFromViewsAndPoses(ModelT & model,
+v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::assembleModelFromViewsAndPoses(ModelT & model,
                                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
                                    std::vector<pcl::PointIndices> & indices,
                                    typename pcl::PointCloud<PointInT>::Ptr &model_cloud) {
@@ -805,7 +806,7 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
-v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModel(std::string & dir, ModelT & model)
+v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModel(std::string & dir, ModelT & model)
 {
   PCL_WARN("Loading into memory %d views \n", static_cast<int>(model.view_filenames_.size ()));
   std::stringstream pathmodel;

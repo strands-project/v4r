@@ -8,15 +8,13 @@
 #ifndef FAAT_PCL_REC_FRAMEWORK_GLOBAL_ESTIMATOR_H_
 #define FAAT_PCL_REC_FRAMEWORK_GLOBAL_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include "normal_estimator.h"
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
     template <typename PointInT, typename FeatureT>
-    class FAAT_3D_FRAMEWORK_API GlobalEstimator {
+    class V4R_EXPORTS GlobalEstimator {
       protected:
         bool computed_normals_;
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -59,7 +57,6 @@ namespace v4r
         }
 
     };
-  }
 }
 
 

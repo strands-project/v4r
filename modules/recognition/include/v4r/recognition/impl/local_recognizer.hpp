@@ -1,11 +1,11 @@
 #include <v4r/recognition/local_recognizer.h>
-#include <v4r/io/filesystem_utils.h>
+#include <v4r/io/eigen.h>
 #include <v4r/common/miscellaneous.h>
 
 //#include <pcl/visualization/pcl_visualizer.h>
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
+  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
   {
     boost::shared_ptr < std::vector<ModelTPtr> > models = source_->getModels ();
     std::cout << "Models size:" << models->size () << std::endl;
@@ -230,7 +230,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index,
+  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index,
                                                                                                      /*float * descr, int descr_size*/
                                                                                                      flann::Matrix<float> & p, int k,
                                                                                                      flann::Matrix<int> &indices,
@@ -242,7 +242,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize ()
+  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize ()
   {
       PCL_WARN("Reinitialize LocalRecognitionPipeline\n");
 
@@ -261,7 +261,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
   template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize(const std::vector<std::string> & load_ids)
+  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize(const std::vector<std::string> & load_ids)
   {
       PCL_WARN("Reinitialize LocalRecognitionPipeline with list of load_ids\n");
       std::cout << "List of models being loaded:" << load_ids.size() << std::endl;
@@ -284,7 +284,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
+  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
   {
     boost::shared_ptr < std::vector<ModelTPtr> > models;
 
@@ -424,8 +424,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
               if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
               {
                 PCL_ERROR("Need to compute normals due to the cg algorithm\n");
-                boost::shared_ptr<v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator;
-                normal_estimator.reset (new v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointInT, pcl::Normal>);
+                boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator;
+                normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal>);
                 normal_estimator->setCMR (false);
                 normal_estimator->setDoVoxelGrid (false);
                 normal_estimator->setRemoveOutliers (false);
@@ -497,7 +497,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::recognize ()
+  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::recognize ()
   {
 
     models_.reset (new std::vector<ModelTPtr>);
@@ -789,8 +789,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             //compute them...
             PCL_ERROR("Need to compute normals due to the cg algorithm\n");
             all_scene_normals.reset(new pcl::PointCloud<pcl::Normal>);
-            boost::shared_ptr<v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator;
-            normal_estimator.reset (new v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointInT, pcl::Normal>);
+            boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator;
+            normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal>);
             normal_estimator->setCMR (false);
             normal_estimator->setDoVoxelGrid (false);
             normal_estimator->setRemoveOutliers (false);
@@ -901,7 +901,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
 void
-v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getView (ModelT & model, int view_id, PointInTPtr & view)
+v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getView (ModelT & model, int view_id, PointInTPtr & view)
 {
   view.reset (new pcl::PointCloud<PointInT>);
   std::stringstream dir;
@@ -912,7 +912,7 @@ v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::g
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
 void
-v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getIndicesToProcessedAndNormals (ModelT & model,
+v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getIndicesToProcessedAndNormals (ModelT & model,
                                                                                                                        int view_id,
                                                                                                                        pcl::PointCloud<IndexPoint>::Ptr & index_cloud)
 {
@@ -943,7 +943,7 @@ v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::g
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
 void
-v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getNormals (const ModelT & model, int view_id,
+v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getNormals (const ModelT & model, int view_id,
                                                                                                 pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud)
 {
 
@@ -974,7 +974,7 @@ v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::g
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getPose (const ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix)
+  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getPose (const ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix)
   {
 
     if (use_cache_)
@@ -1002,7 +1002,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getKeypoints (
+  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getKeypoints (
                                                                                                ModelT & model,
                                                                                                int view_id,
                                                                                                typename pcl::PointCloud<PointInT>::Ptr & keypoints_cloud)

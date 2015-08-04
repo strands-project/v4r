@@ -9,7 +9,7 @@
 #define FAAT_PCL_REC_FRAMEWORK_OPENCV_SIFT_ESTIMATOR_H_
 
 #include "local_estimator.h"
-#include "faat_3d_rec_framework_defines.h"
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <pcl/io/pcd_io.h>
 #include "opencv2/nonfree/features2d.hpp"
 #include "opencv2/features2d/features2d.hpp"
@@ -18,11 +18,9 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
 
     template<typename PointInT, typename FeatureT>
-      class FAAT_3D_FRAMEWORK_API OpenCVSIFTLocalEstimation : public LocalEstimator<PointInT, FeatureT>
+      class V4R_EXPORTS OpenCVSIFTLocalEstimation : public LocalEstimator<PointInT, FeatureT>
       {
 
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -165,7 +163,6 @@ namespace v4r
       private:
 
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_SHOT_LOCAL_ESTIMATOR_H_ */

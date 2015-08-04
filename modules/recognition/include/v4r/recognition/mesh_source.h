@@ -16,20 +16,18 @@
 #include "vtk_model_sampling.h"
 #include <boost/function.hpp>
 #include <vtkTransformPolyDataFilter.h>
-#include <v4r/io/filesystem_utils.h>
+#include <v4r/io/eigen.h>
+#include <v4r/io/filesystem.h>
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
-
     /**
      * \brief Data source class based on mesh models
      * \author Aitor Aldoma
      */
 
     template<typename PointInT>
-      class FAAT_3D_FRAMEWORK_API MeshSource : public Source<PointInT>
+      class V4R_EXPORTS MeshSource : public Source<PointInT>
       {
         typedef Source<PointInT> SourceT;
         typedef Model<PointInT> ModelT;
@@ -308,7 +306,6 @@ namespace v4r
           std::cout << "End of generate function" << std::endl;
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_MESH_SOURCE_H_ */

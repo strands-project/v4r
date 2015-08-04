@@ -11,11 +11,12 @@
 #include <boost/random/normal_distribution.hpp>
 #include <pcl/common/time.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <v4r/io/filesystem_utils.h>
+#include <v4r/io/eigen.h>
+#include <v4r/io/filesystem.h>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getPose (ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix)
+  v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getPose (ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix)
   {
 
     if (use_cache_)
@@ -43,7 +44,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   bool
-  v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getRollPose (const ModelT & model, int view_id, int d_id,
+  v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getRollPose (const ModelT & model, int view_id, int d_id,
                                                                                             Eigen::Matrix4f & pose_matrix) const
   {
 
@@ -81,7 +82,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getCentroid (const ModelT &model, int view_id, int d_id,
+  v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getCentroid (const ModelT &model, int view_id, int d_id,
                                                                                             Eigen::Vector3f & centroid) const
   {
     std::stringstream dir;
@@ -93,7 +94,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getView (const ModelT & model, int view_id, PointInTPtr & view) const
+  v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::getView (const ModelT & model, int view_id, PointInTPtr & view) const
   {
     view.reset (new pcl::PointCloud<PointInT>);
     std::stringstream dir;
@@ -105,7 +106,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
+  v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
   {
 
     boost::shared_ptr < std::vector<ModelTPtr> > models = source_->getModels ();
@@ -236,7 +237,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index, const flann_model &model,
+  v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index, const flann_model &model,
                                                                                                int k, flann::Matrix<int> &indices,
                                                                                                flann::Matrix<float> &distances)
   {
@@ -251,7 +252,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
   template<template<class > class Distance, typename PointInT, typename FeatureT>
     void
-    v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index,
+    v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index,
                                                                                                       flann::Matrix<float> & p,
                                                                                                       int k, flann::Matrix<int> &indices,
                                                                                                       flann::Matrix<float> &distances)
@@ -261,7 +262,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::recognize ()
+  v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::recognize ()
   {
 
     models_.reset (new std::vector<ModelTPtr>);
@@ -690,14 +691,14 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
   template<template<class > class Distance, typename PointInT, typename FeatureT>
     void
-    v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::reinitialize ()
+    v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::reinitialize ()
     {
         PCL_WARN("Reinitialize GlobalNNCVFHRecognizer, NOT IMPLEMENTED!\n");
     }
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
+  v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
   {
 
     //use the source to know what has to be trained and what not, checking if the descr_name directory exists

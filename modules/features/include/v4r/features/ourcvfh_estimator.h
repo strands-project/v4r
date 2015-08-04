@@ -15,8 +15,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
     template<typename PointInT, typename FeatureT>
       class OURCVFHEstimator : public GlobalEstimator<PointInT, FeatureT>
       {
@@ -315,7 +313,6 @@ namespace v4r
             indices = cluster_indices_;
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_OURCVFH_ESTIMATOR_H_ */

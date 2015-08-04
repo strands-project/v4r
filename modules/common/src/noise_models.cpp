@@ -193,7 +193,7 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
 
 /*template<typename PointT>
 void
-faat_pcl::utils::noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr & filtered, float w_t)
+v4r::utils::noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr & filtered, float w_t)
 {
   Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
                         std::numeric_limits<float>::quiet_NaN(),

@@ -7,7 +7,7 @@
 //#define VIS
 
 template<typename PointT>
-faat_pcl::recognition::GHVCudaWrapper<PointT>::GHVCudaWrapper ()
+v4r::recognition::GHVCudaWrapper<PointT>::GHVCudaWrapper ()
 {
 #ifdef VIS
     vis_.reset(new pcl::visualization::PCLVisualizer("GHV gpu"));
@@ -22,7 +22,7 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::GHVCudaWrapper ()
 
 template<typename PointT>
 void
-faat_pcl::recognition::GHVCudaWrapper<PointT>::extractEuclideanClustersSmooth (const typename pcl::PointCloud<PointT> &cloud,
+v4r::recognition::GHVCudaWrapper<PointT>::extractEuclideanClustersSmooth (const typename pcl::PointCloud<PointT> &cloud,
                                                                                const pcl::PointCloud<pcl::Normal> &normals, float tolerance,
                                                                                const typename pcl::search::Search<PointT>::Ptr &tree,
                                                                                std::vector<pcl::PointIndices> &clusters, double eps_angle,
@@ -119,7 +119,7 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::extractEuclideanClustersSmooth (c
 
 template<typename PointT>
 void
-faat_pcl::recognition::GHVCudaWrapper<PointT>::smoothSceneSegmentation()
+v4r::recognition::GHVCudaWrapper<PointT>::smoothSceneSegmentation()
 {
 
     pcl::ScopeTime t("smoothSceneSegmentation() in single thread");
@@ -189,17 +189,17 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::smoothSceneSegmentation()
 
 template<typename PointT>
 void
-faat_pcl::recognition::GHVCudaWrapper<PointT>::uploadToGPU (faat_pcl::recognition_cuda::GHV & ghv_)
+v4r::recognition::GHVCudaWrapper<PointT>::uploadToGPU (v4r::recognition_cuda::GHV & ghv_)
 {
     //upload scene and occlusion clouds
-    faat_pcl::recognition_cuda::XYZPointCloud * occ_cloud = new faat_pcl::recognition_cuda::XYZPointCloud;
-    faat_pcl::recognition_cuda::XYZPointCloud * scene = new faat_pcl::recognition_cuda::XYZPointCloud;
+    v4r::recognition_cuda::XYZPointCloud * occ_cloud = new v4r::recognition_cuda::XYZPointCloud;
+    v4r::recognition_cuda::XYZPointCloud * scene = new v4r::recognition_cuda::XYZPointCloud;
 
     {
         occ_cloud->height_ = occlusion_cloud_->height;
         occ_cloud->width_ = occlusion_cloud_->width;
         occ_cloud->on_device_ = false;
-        occ_cloud->points = new faat_pcl::recognition_cuda::xyz_p[occlusion_cloud_->points.size()];
+        occ_cloud->points = new v4r::recognition_cuda::xyz_p[occlusion_cloud_->points.size()];
         for(size_t i=0; i < occlusion_cloud_->points.size(); i++)
         {
             occ_cloud->points[i].x = occlusion_cloud_->points[i].x;
@@ -226,7 +226,7 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::uploadToGPU (faat_pcl::recognitio
         scene->height_ = scene_cloud_->height;
         scene->width_ = scene_cloud_->width;
         scene->on_device_ = false;
-        scene->points = new faat_pcl::recognition_cuda::xyz_p[scene_cloud_->points.size()];
+        scene->points = new v4r::recognition_cuda::xyz_p[scene_cloud_->points.size()];
         for(size_t i=0; i < scene_cloud_->points.size(); i++)
         {
             scene->points[i].x = scene_cloud_->points[i].x;
@@ -267,8 +267,8 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::uploadToGPU (faat_pcl::recognitio
     }
 
     //upload model clouds, transforms and mapping to GPU
-    std::vector<faat_pcl::recognition_cuda::XYZPointCloud *> models_gpu;
-    std::vector<faat_pcl::recognition_cuda::XYZPointCloud *> models_normals_gpu;
+    std::vector<v4r::recognition_cuda::XYZPointCloud *> models_gpu;
+    std::vector<v4r::recognition_cuda::XYZPointCloud *> models_normals_gpu;
     std::vector<float3 *> models_color_gpu;
     std::vector<int> models_sizes_gpu;
 
@@ -282,11 +282,11 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::uploadToGPU (faat_pcl::recognitio
                         pcl::CopyIfFieldExists<typename CloudS::PointType, float> (models_[i]->points[0],
                                                                                    "rgb", exists_s, rgb_s));
 
-        faat_pcl::recognition_cuda::XYZPointCloud * model = new faat_pcl::recognition_cuda::XYZPointCloud;
+        v4r::recognition_cuda::XYZPointCloud * model = new v4r::recognition_cuda::XYZPointCloud;
         model->height_ = models_[i]->height;
         model->width_ = models_[i]->width;
         model->on_device_ = false;
-        model->points = new faat_pcl::recognition_cuda::xyz_p[models_[i]->points.size()];
+        model->points = new v4r::recognition_cuda::xyz_p[models_[i]->points.size()];
         for(size_t k=0; k < models_[i]->points.size(); k++)
         {
             model->points[k].x = models_[i]->points[k].x;
@@ -318,11 +318,11 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::uploadToGPU (faat_pcl::recognitio
         models_color_gpu.push_back(color);
         models_gpu.push_back(model);
 
-        faat_pcl::recognition_cuda::XYZPointCloud * normals = new faat_pcl::recognition_cuda::XYZPointCloud;
+        v4r::recognition_cuda::XYZPointCloud * normals = new v4r::recognition_cuda::XYZPointCloud;
         normals->height_ = models_[i]->height;
         normals->width_ = models_[i]->width;
         normals->on_device_ = false;
-        normals->points = new faat_pcl::recognition_cuda::xyz_p[models_[i]->points.size()];
+        normals->points = new v4r::recognition_cuda::xyz_p[models_[i]->points.size()];
         for(size_t k=0; k < models_[i]->points.size(); k++)
         {
             Eigen::Vector3f n = models_normals_[i]->points[k].getNormalVector3fMap();
@@ -339,11 +339,11 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::uploadToGPU (faat_pcl::recognitio
 
     {
         //upload scene normals
-        faat_pcl::recognition_cuda::XYZPointCloud * normals = new faat_pcl::recognition_cuda::XYZPointCloud;
+        v4r::recognition_cuda::XYZPointCloud * normals = new v4r::recognition_cuda::XYZPointCloud;
         normals->height_ = scene_normals_->height;
         normals->width_ = scene_normals_->width;
         normals->on_device_ = false;
-        normals->points = new faat_pcl::recognition_cuda::xyz_p[scene_normals_->points.size()];
+        normals->points = new v4r::recognition_cuda::xyz_p[scene_normals_->points.size()];
         for(size_t k=0; k < scene_normals_->points.size(); k++)
         {
             Eigen::Vector3f n = scene_normals_->points[k].getNormalVector3fMap();
@@ -355,10 +355,10 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::uploadToGPU (faat_pcl::recognitio
         ghv_.setSceneNormals(normals);
     }
 
-    std::vector<faat_pcl::recognition_cuda::HypothesisGPU> hypotheses;
+    std::vector<v4r::recognition_cuda::HypothesisGPU> hypotheses;
     for(size_t i=0; i < transforms_.size(); i++)
     {
-        faat_pcl::recognition_cuda::HypothesisGPU hyp;
+        v4r::recognition_cuda::HypothesisGPU hyp;
         hyp.model_idx_ = transforms_to_models_[i];
 
         for(size_t ii=0; ii < 4; ii++)
@@ -376,7 +376,7 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::uploadToGPU (faat_pcl::recognitio
 }
 
 template<typename PointT>
-void faat_pcl::recognition::GHVCudaWrapper<PointT>::addPlanarModels(std::vector<faat_pcl::PlaneModel<PointT> > & models)
+void v4r::recognition::GHVCudaWrapper<PointT>::addPlanarModels(std::vector<v4r::PlaneModel<PointT> > & models)
 {
     planar_model_hypotheses_ = models;
 
@@ -410,7 +410,7 @@ void faat_pcl::recognition::GHVCudaWrapper<PointT>::addPlanarModels(std::vector<
 
 template<typename PointT>
 void
-faat_pcl::recognition::GHVCudaWrapper<PointT>::verify ()
+v4r::recognition::GHVCudaWrapper<PointT>::verify ()
 {
 
     sol.clear();
@@ -442,7 +442,7 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::verify ()
 
 #endif
 
-    faat_pcl::recognition_cuda::GHV ghv_;
+    v4r::recognition_cuda::GHV ghv_;
     ghv_.setclutterRadius(clutter_radius_);
     ghv_.setOutlierWewight(outlier_regularizer_);
     ghv_.setClutterWeight(clutter_regularizer_);
@@ -454,7 +454,7 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::verify ()
         pcl::StopWatch t_cues;
         t_cues.reset();
 
-        boost::thread thread_1 (&faat_pcl::recognition::GHVCudaWrapper<PointT>::smoothSceneSegmentation, this);
+        boost::thread thread_1 (&v4r::recognition::GHVCudaWrapper<PointT>::smoothSceneSegmentation, this);
 
         {
             pcl::ScopeTime t("upload");
@@ -618,8 +618,8 @@ faat_pcl::recognition::GHVCudaWrapper<PointT>::verify ()
 
 }
 
-template<typename PointT> float faat_pcl::recognition::GHVCudaWrapper<PointT>::sRGB_LUT[256] = {- 1};
-template<typename PointT> float faat_pcl::recognition::GHVCudaWrapper<PointT>::sXYZ_LUT[4000] = {- 1};
+template<typename PointT> float v4r::recognition::GHVCudaWrapper<PointT>::sRGB_LUT[256] = {- 1};
+template<typename PointT> float v4r::recognition::GHVCudaWrapper<PointT>::sXYZ_LUT[4000] = {- 1};
 
-//template class faat_pcl::recognition::GHVCudaWrapper<pcl::PointXYZ>;
-template class faat_pcl::recognition::GHVCudaWrapper<pcl::PointXYZRGB>;
+//template class v4r::recognition::GHVCudaWrapper<pcl::PointXYZ>;
+template class v4r::recognition::GHVCudaWrapper<pcl::PointXYZRGB>;

@@ -19,8 +19,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
 
     /**
      * \brief Nearest neighbor search based classification of PCL point type features.
@@ -29,7 +27,7 @@ namespace v4r
      */
 
     template<template<class > class Distance, typename PointInT, typename FeatureT = pcl::VFHSignature308>
-      class PCL_EXPORTS GlobalNNCVFHRecognizer : public Recognizer<PointInT>
+      class V4R_EXPORTS GlobalNNCVFHRecognizer : public Recognizer<PointInT>
       {
 
       protected:
@@ -372,6 +370,5 @@ namespace v4r
         }
 
       };
-  }
 }
 #endif /* REC_FRAMEWORK_GLOBAL_PIPELINE_H_ */

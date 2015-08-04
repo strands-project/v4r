@@ -8,17 +8,15 @@
 #ifndef REC_FRAMEWORK_CRH_ESTIMATOR_H_
 #define REC_FRAMEWORK_CRH_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include "global_estimator.h"
 #include "normal_estimator.h"
 #include <pcl/features/crh.h>
 
 namespace pcl
 {
-  namespace rec_3d_framework
-  {
     template<typename PointInT, typename FeatureT>
-    class FAAT_3D_FRAMEWORK_API CRHEstimation : public GlobalEstimator<PointInT, FeatureT>
+    class V4R_EXPORTS CRHEstimation : public GlobalEstimator<PointInT, FeatureT>
     {
 
       typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -89,7 +87,6 @@ namespace pcl
         return true;
       }
     };
-  }
 }
 
 #endif /* REC_FRAMEWORK_CVFH_ESTIMATOR_H_ */
