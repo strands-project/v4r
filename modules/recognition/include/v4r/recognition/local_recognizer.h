@@ -37,7 +37,7 @@ namespace v4r
      */
 
     template<template<class > class Distance, typename PointInT, typename FeatureT>
-      class FAAT_3D_FRAMEWORK_API LocalRecognitionPipeline : public Recognizer<PointInT>
+      class V4R_EXPORTS LocalRecognitionPipeline : public Recognizer<PointInT>
       {
         protected:
           typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;

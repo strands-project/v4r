@@ -16,6 +16,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <boost/regex.hpp>
+#include <v4r/core/macros.h>
 
 namespace bf = boost::filesystem;
 
@@ -30,7 +31,7 @@ namespace v4r
      */
 
     template<typename PointT>
-    class Model
+    class V4R_EXPORTS Model
     {
       typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
       typedef typename pcl::PointCloud<PointT>::ConstPtr PointTPtrConst;
@@ -214,7 +215,7 @@ namespace v4r
      */
 
     template<typename PointInT>
-    class Source
+    class V4R_EXPORTS Source
     {
 
     protected:
@@ -327,12 +328,17 @@ namespace v4r
       virtual void
       loadInMemorySpecificModelAndView(std::string & dir, ModelT & model, int view_id)
       {
+        (void)dir;
+        (void)model;
+        (void)view_id;
         PCL_ERROR("This function is not implemented in this Source class\n");
       }
 
       virtual void
       loadInMemorySpecificModel(std::string & dir, ModelT & model)
       {
+        (void)dir;
+        (void)model;
         PCL_ERROR("This function is not implemented in this Source class\n");
       }
 

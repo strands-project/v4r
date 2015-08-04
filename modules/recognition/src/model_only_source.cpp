@@ -154,5 +154,5 @@ v4r::rec_3d_framework::ModelOnlySource<Full3DPointT, PointInT>::computeFaces (Mo
     computeFacesImpl<Full3DPointT, PointInT>(model);
 }
 
-template class v4r::rec_3d_framework::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>;
-template class v4r::rec_3d_framework::ModelOnlySource<pcl::PointXYZ, pcl::PointXYZ>;
+template class V4R_EXPORTS v4r::rec_3d_framework::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::rec_3d_framework::ModelOnlySource<pcl::PointXYZ, pcl::PointXYZ>;

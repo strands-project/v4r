@@ -12,6 +12,7 @@
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/common/common_data_structures.h>
 #include <v4r/common/miscellaneous.h>
+#include <v4r/core/macros.h>
 
 #include "segmenter.h"
 #include "boost_graph_extension.h"
@@ -32,13 +33,13 @@ struct camPosConstraints
 
 namespace v4r
 {
-class Recognizer
+class V4R_EXPORTS Recognizer
 {
 protected:
     typedef pcl::PointXYZRGB PointT;
     typedef pcl::PointCloud<PointT> PointInT;
-    typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-    typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointInTPtr;
+    typedef pcl::PointCloud<PointT>::Ptr PointInTPtr;
+    typedef pcl::PointCloud<PointT>::ConstPtr ConstPointInTPtr;
     typedef v4r::rec_3d_framework::Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
     typedef flann::L1<float> DistT;
@@ -207,19 +208,9 @@ public:
         planes = verified_planes_;
     }
 
-    std::string training_dir_sift() const
-    {
-        return training_dir_sift_;
-    }
-
     void setTraining_dir_sift(const std::string &training_dir_sift)
     {
         training_dir_sift_ = training_dir_sift;
-    }
-
-    std::string training_dir_shot() const
-    {
-        return training_dir_shot_;
     }
 
     void setTraining_dir_shot(const std::string &training_dir_shot)
@@ -227,29 +218,14 @@ public:
         training_dir_shot_ = training_dir_shot;
     }
 
-    std::string models_dir() const
-    {
-        return models_dir_;
-    }
-
     void setModels_dir(const std::string &models_dir)
     {
         models_dir_ = models_dir;
     }
 
-    std::string sift_structure() const
-    {
-        return sift_structure_;
-    }
-
     void setSift_structure(const std::string &sift_structure)
     {
         sift_structure_ = sift_structure;
-    }
-
-    std::string training_dir_ourcvfh() const
-    {
-        return training_dir_ourcvfh_;
     }
 
     void setTraining_dir_ourcvfh(const std::string &training_dir_ourcvfh)

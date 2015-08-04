@@ -35,7 +35,7 @@ namespace v4r
      */
 
     template<typename Full3DPointT = pcl::PointXYZRGBNormal, typename PointInT = pcl::PointXYZRGB>
-      class ModelOnlySource : public Source<PointInT>
+      class V4R_EXPORTS ModelOnlySource : public Source<PointInT>
       {
         typedef Source<PointInT> SourceT;
         typedef Model<PointInT> ModelT;
