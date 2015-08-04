@@ -1,12 +1,10 @@
-#ifndef FILESYSTEM_UTILS_H_
-#define FILESYSTEM_UTILS_H_
+#ifndef V4R_IO_FILESYSTEM__H_
+#define V4R_IO_FILESYSTEM__H_
 
 #include <v4r/core/macros.h>
 
 #include <string>
-#include <fstream>
 #include <vector>
-#include <Eigen/Dense>
 
 namespace v4r
 {
@@ -42,28 +40,6 @@ namespace v4r
                                 const std::string & regex_pattern = std::string(""),
                                 bool recursive = true);
 
-        V4R_EXPORTS bool
-        writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix);
-
-        V4R_EXPORTS bool
-        readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix);
-
-        V4R_EXPORTS bool
-        readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding);
-
-        V4R_EXPORTS bool
-        writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid);
-
-        V4R_EXPORTS bool
-        getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid);
-
-        V4R_EXPORTS bool
-        writeFloatToFile (const std::string &file, const float value);
-
-        V4R_EXPORTS bool
-        readFloatFromFile (const std::string &file, float& value);
-
-
         /** checks if a file exists
         * @param rFile
         * @return true if file exsits
@@ -76,6 +52,9 @@ namespace v4r
           */
         V4R_EXPORTS void
         createDirIfNotExist(const std::string & dirs);
+
       }
+
 }
-#endif /* FILESYSTEM_UTILS_H_ */
+
+#endif /* V4R_IO_FILESYSTEM_H_ */
