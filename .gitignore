@@ -6,6 +6,9 @@ lib
 doc
 *~
 
+# git backups
+*.orig
+
 # CMake
 CMakeCache.txt
 CMakeFiles

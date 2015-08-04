@@ -29,7 +29,7 @@
 
 namespace v4r
 {
-class MultiviewRecognizer : public Recognizer
+class  V4R_EXPORTS MultiviewRecognizer : public Recognizer
 {
 private:
 //    boost::shared_ptr<Recognizer> pSingleview_recognizer_;

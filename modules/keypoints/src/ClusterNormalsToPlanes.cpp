@@ -7,7 +7,7 @@
 
 #include "v4r/keypoints/ClusterNormalsToPlanes.h"
 
-namespace kp
+namespace v4r
 {
 
 using namespace std;
@@ -32,7 +32,7 @@ ClusterNormalsToPlanes::~ClusterNormalsToPlanes()
 /**
  * ClusterNormals
  */
-void ClusterNormalsToPlanes::clusterNormals(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const kp::DataMatrix2D<Eigen::Vector3f> &normals, int idx, Plane &plane)
+void ClusterNormalsToPlanes::clusterNormals(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &normals, int idx, Plane &plane)
 {
   plane.clear();
 
@@ -110,7 +110,7 @@ void ClusterNormalsToPlanes::clusterNormals(const kp::DataMatrix2D<Eigen::Vector
  * @param idx
  * @param plane
  */
-void ClusterNormalsToPlanes::smoothClustering(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const kp::DataMatrix2D<Eigen::Vector3f> &normals, int idx, Plane &plane)
+void ClusterNormalsToPlanes::smoothClustering(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &normals, int idx, Plane &plane)
 {
   plane.clear();
 
@@ -187,7 +187,7 @@ void ClusterNormalsToPlanes::smoothClustering(const kp::DataMatrix2D<Eigen::Vect
 /**
  * ClusterNormals
  */
-void ClusterNormalsToPlanes::doClustering(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const kp::DataMatrix2D<Eigen::Vector3f> &normals, std::vector<Plane::Ptr> &planes)
+void ClusterNormalsToPlanes::doClustering(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &normals, std::vector<Plane::Ptr> &planes)
 {
   mask.clear();
   mask.resize(cloud.rows*cloud.cols,true);
@@ -233,9 +233,9 @@ void ClusterNormalsToPlanes::doClustering(const kp::DataMatrix2D<Eigen::Vector3f
     // mark planes
     for (unsigned i=0; i<planes.size(); i++)
     {
-      Plane &plane = *planes[i];
-      for (unsigned j=0; j<plane.size(); j++)
-        mask[plane.indices[j]] = false;
+      Plane &plane_tmp = *planes[i];
+      for (unsigned j=0; j<plane_tmp.size(); j++)
+        mask[plane_tmp.indices[j]] = false;
     }
 
     // do smooth clustering
@@ -262,7 +262,7 @@ void ClusterNormalsToPlanes::doClustering(const kp::DataMatrix2D<Eigen::Vector3f
  * @param _cloud
  * @param planes
  */
-void ClusterNormalsToPlanes::computeLeastSquarePlanes(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, std::vector<Plane::Ptr> &planes)
+void ClusterNormalsToPlanes::computeLeastSquarePlanes(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, std::vector<Plane::Ptr> &planes)
 {
   Eigen::Vector3f n;
 
@@ -289,7 +289,7 @@ void ClusterNormalsToPlanes::computeLeastSquarePlanes(const kp::DataMatrix2D<Eig
 /**
  * Compute
  */
-void ClusterNormalsToPlanes::compute(const kp::DataMatrix2D<Eigen::Vector3f> &_cloud, const kp::DataMatrix2D<Eigen::Vector3f> &_normals, std::vector<Plane::Ptr> &planes)
+void ClusterNormalsToPlanes::compute(const v4r::DataMatrix2D<Eigen::Vector3f> &_cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &_normals, std::vector<Plane::Ptr> &planes)
 {
   planes.clear();
 
@@ -306,7 +306,7 @@ void ClusterNormalsToPlanes::compute(const kp::DataMatrix2D<Eigen::Vector3f> &_c
  * @param y
  * @param plane
  */
-void ClusterNormalsToPlanes::compute(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const kp::DataMatrix2D<Eigen::Vector3f> &normals, int x, int y, Plane &plane)
+void ClusterNormalsToPlanes::compute(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &normals, int x, int y, Plane &plane)
 {
   mask.clear();
   mask.resize(cloud.rows*cloud.cols,true);

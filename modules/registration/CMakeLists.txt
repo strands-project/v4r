@@ -6,7 +6,6 @@ set(the_description "Registration")
 
 v4r_add_module(registration v4r_core v4r_io v4r_features)
 
-
 v4r_module_include_directories(${PCL_INCLUDE_DIRS})
 
 if(HAVE_EDT)
@@ -19,17 +18,7 @@ if(HAVE_SIFTGPU)
   list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
 endif()
 
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
-
 # depends on siftgpu and opencv ceres
-
-#FIND_PACKAGE (OpenCV REQUIRED)
-#include_directories(${OPENCV_INCLUDE_DIRS})
-#link_directories(${OPENCV_LIBRARY_DIRS})
 
 #FIND_PACKAGE(Ceres)
 #IF(${Ceres_FOUND})

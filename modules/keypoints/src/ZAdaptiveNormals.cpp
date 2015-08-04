@@ -27,7 +27,7 @@
 #include "v4r/keypoints/ZAdaptiveNormals.h"
 #include "v4r/keypoints/eigen.h"
 
-namespace kp 
+namespace v4r
 {
 
 // using namespace std;
@@ -62,7 +62,7 @@ ZAdaptiveNormals::~ZAdaptiveNormals()
 /**
  * ComputeCovarianceMatrix
  */
-void ZAdaptiveNormals::computeCovarianceMatrix (const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &indices, const Eigen::Vector3f &mean, Eigen::Matrix3f &cov)
+void ZAdaptiveNormals::computeCovarianceMatrix (const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &indices, const Eigen::Vector3f &mean, Eigen::Matrix3f &cov)
 {
   Eigen::Vector3f pt;
   cov.setZero ();
@@ -89,7 +89,7 @@ void ZAdaptiveNormals::computeCovarianceMatrix (const kp::DataMatrix2D<Eigen::Ve
 /**
  * GetIndices
  */
-void ZAdaptiveNormals::getIndices(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, int u, int v, int kernel, std::vector<int> &indices)
+void ZAdaptiveNormals::getIndices(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, int u, int v, int kernel, std::vector<int> &indices)
 {
   int idx;
   const Eigen::Vector3f &pt = cloud.data[getIdx(u,v)]; 
@@ -121,7 +121,7 @@ void ZAdaptiveNormals::getIndices(const kp::DataMatrix2D<Eigen::Vector3f> &cloud
 /**
  * ComputeNormal
  */
-float ZAdaptiveNormals::computeNormal(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, std::vector<int> &indices, Eigen::Matrix3f &eigen_vectors)
+float ZAdaptiveNormals::computeNormal(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, std::vector<int> &indices, Eigen::Matrix3f &eigen_vectors)
 {
   if (indices.size()<4)
     return NaN;
@@ -136,7 +136,7 @@ float ZAdaptiveNormals::computeNormal(const kp::DataMatrix2D<Eigen::Vector3f> &c
   computeCovarianceMatrix (cloud, indices, mean, cov);
 
   Eigen::Vector3f eigen_values;
-  kp::eigen33 (cov, eigen_vectors, eigen_values);
+  v4r::eigen33 (cov, eigen_vectors, eigen_values);
   float eigsum = eigen_values.sum();
   if (eigsum != 0)
     return fabs (eigen_values[0] / eigsum );
@@ -148,7 +148,7 @@ float ZAdaptiveNormals::computeNormal(const kp::DataMatrix2D<Eigen::Vector3f> &c
 /**
  * EstimateNormals
  */
-void ZAdaptiveNormals::estimateNormals(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, kp::DataMatrix2D<Eigen::Vector3f> &normals)
+void ZAdaptiveNormals::estimateNormals(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, v4r::DataMatrix2D<Eigen::Vector3f> &normals)
 {
   EIGEN_ALIGN16 Eigen::Matrix3f eigen_vectors;
   std::vector< int > indices;
@@ -193,7 +193,7 @@ void ZAdaptiveNormals::estimateNormals(const kp::DataMatrix2D<Eigen::Vector3f> &
 /**
  * estimateNormals
  */
-void ZAdaptiveNormals::estimateNormals(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &normals_indices, std::vector<Eigen::Vector3f> &normals)
+void ZAdaptiveNormals::estimateNormals(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &normals_indices, std::vector<Eigen::Vector3f> &normals)
 {
   EIGEN_ALIGN16 Eigen::Matrix3f eigen_vectors;
   std::vector< int > indices;
@@ -242,7 +242,7 @@ void ZAdaptiveNormals::estimateNormals(const kp::DataMatrix2D<Eigen::Vector3f> &
 /**
  * compute the normals
  */
-void ZAdaptiveNormals::compute(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, kp::DataMatrix2D<Eigen::Vector3f> &normals)
+void ZAdaptiveNormals::compute(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, v4r::DataMatrix2D<Eigen::Vector3f> &normals)
 {
   width = cloud.cols;
   height = cloud.rows;
@@ -255,7 +255,7 @@ void ZAdaptiveNormals::compute(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, k
 /**
  * compute the normals using a mask
  */
-void ZAdaptiveNormals::compute(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &indices, std::vector<Eigen::Vector3f> &normals)
+void ZAdaptiveNormals::compute(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &indices, std::vector<Eigen::Vector3f> &normals)
 {
   width = cloud.cols;
   height = cloud.rows;

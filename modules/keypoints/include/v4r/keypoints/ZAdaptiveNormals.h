@@ -33,11 +33,11 @@
 #include <omp.h>
 #include <math.h>
 #include <Eigen/Dense>
-#include "v4r/keypoints/impl/DataMatrix2D.hpp"
-#include "v4r/keypoints/impl/SmartPtr.hpp"
+#include <v4r/common/impl/DataMatrix2D.hpp>
+#include <v4r/common/impl/SmartPtr.hpp>
 
 
-namespace kp 
+namespace v4r
 {
 /**
  * Surface normals estimation
@@ -66,15 +66,15 @@ private:
 
   float sqr_radius;
 
-  void computeCovarianceMatrix (const kp::DataMatrix2D<Eigen::Vector3f> &cloud,
+  void computeCovarianceMatrix (const v4r::DataMatrix2D<Eigen::Vector3f> &cloud,
         const std::vector<int> &indices, const Eigen::Vector3f &mean, Eigen::Matrix3f &cov);
-  void estimateNormals(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, 
-        kp::DataMatrix2D<Eigen::Vector3f> &normals);
-  void getIndices(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, int u, int v, int kernel, 
+  void estimateNormals(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud,
+        v4r::DataMatrix2D<Eigen::Vector3f> &normals);
+  void getIndices(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, int u, int v, int kernel,
         std::vector<int> &indices);
-  float computeNormal(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, std::vector<int> &indices,
+  float computeNormal(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, std::vector<int> &indices,
         Eigen::Matrix3f &eigen_vectors);
-  void estimateNormals(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, 
+  void estimateNormals(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud,
         const std::vector<int> &normals_indices, std::vector<Eigen::Vector3f> &normals);
 
 
@@ -90,14 +90,14 @@ public:
 
   void setParameter(const Parameter &p);
 
-  void compute(const kp::DataMatrix2D<Eigen::Vector3f> &cloud,
-          kp::DataMatrix2D<Eigen::Vector3f> &normals);
+  void compute(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud,
+          v4r::DataMatrix2D<Eigen::Vector3f> &normals);
 
-  void compute(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &indices,
+  void compute(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &indices,
           std::vector<Eigen::Vector3f> &normals);
 
-  typedef SmartPtr< ::kp::ZAdaptiveNormals> Ptr;
-  typedef SmartPtr< ::kp::ZAdaptiveNormals const> ConstPtr;
+  typedef SmartPtr< ::v4r::ZAdaptiveNormals> Ptr;
+  typedef SmartPtr< ::v4r::ZAdaptiveNormals const> ConstPtr;
 };
 
 

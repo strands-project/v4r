@@ -162,7 +162,7 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
     //pcl::visualization::PCLVisualizer vis_test("vis");
     //vis_test.addCoordinateSystem(0.1f);
 
-    for (size_t i = 0; i < cam_positions.size (); i++)
+    for (size_t cam_id = 0; cam_id < cam_positions.size (); cam_id++)
     {
       //obtain partial views and views poses
       typename pcl::PointCloud<Full3DPointT>::Ptr model_cloud_trans (new pcl::PointCloud<Full3DPointT> ());
@@ -185,7 +185,7 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
         vis_test.addPointCloud<Full3DPointT>(model_cloud_trans, handler, "transformed2");
       }*/
 
-      Eigen::Vector3f zp = cam_positions[i] * -1.f;
+      Eigen::Vector3f zp = cam_positions[cam_id] * -1.f;
       zp.normalize ();
       Eigen::Vector3f yp = (Eigen::Vector3f::UnitY ()).cross (zp);
       yp.normalize ();
@@ -209,7 +209,7 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
 
       Eigen::Vector4f bb;
       bb.setZero ();
-      bb.head<3> () = cam_positions[i];
+      bb.head<3> () = cam_positions[cam_id];
       bb = inv * bb;
 
       /*std::cout << inv << std::endl;
@@ -230,7 +230,7 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
       if(gen_inplane_rotations_)
       {
         Eigen::Matrix3f m;
-        m = Eigen::AngleAxisf(pcl::deg2rad(inplane_rotations_for_cams[i]), Eigen::Vector3f::UnitZ());
+        m = Eigen::AngleAxisf(pcl::deg2rad(inplane_rotations_for_cams[cam_id]), Eigen::Vector3f::UnitZ());
         Eigen::Matrix4f roll_trans;
         roll_trans.setIdentity();
         roll_trans.block<3,3>(0,0) = m;
@@ -295,14 +295,14 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
             //float f_ = (cx) / maxC;
             //f_ /= 1.5;
 
-            for (int i = 0; i < (cx_ * cy_); i++)
-              depth_[i] = std::numeric_limits<float>::quiet_NaN ();
+            for (int id = 0; id < (cx_ * cy_); id++)
+              depth_[id] = std::numeric_limits<float>::quiet_NaN ();
 
-            for (size_t i = 0; i < model_cloud_trans_const->points.size (); i++)
+            for (size_t id = 0; id < model_cloud_trans_const->points.size (); id++)
             {
-              float x = model_cloud_trans_const->points[i].x;
-              float y = model_cloud_trans_const->points[i].y;
-              float z = model_cloud_trans_const->points[i].z;
+              float x = model_cloud_trans_const->points[id].x;
+              float y = model_cloud_trans_const->points[id].y;
+              float z = model_cloud_trans_const->points[id].z;
               int u = static_cast<int> (f_ * x / z + cx2);
               int v = static_cast<int> (f_ * y / z + cy2);
 
@@ -322,10 +322,10 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
               if ((z < depth_[idx]) || (!pcl_isfinite(depth_[idx])))
               {
                 depth_[idx] = z;
-                normals[idx] = model_cloud_trans_const->points[i].getNormalVector3fMap();
-                r[idx] = model_cloud_trans_const->points[i].r;
-                g[idx] = model_cloud_trans_const->points[i].g;
-                b[idx] = model_cloud_trans_const->points[i].b;
+                normals[idx] = model_cloud_trans_const->points[id].getNormalVector3fMap();
+                r[idx] = model_cloud_trans_const->points[id].r;
+                g[idx] = model_cloud_trans_const->points[id].g;
+                b[idx] = model_cloud_trans_const->points[id].b;
               }
 
             }
@@ -394,18 +394,18 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
                       {
                         for (int i = (v - ws3); i <= (v + ws3); i++)
                         {
-                          int idx = i * width_ + j;
-                          if(idx >= cx_ * cy_)
+                          int idxx = i * width_ + j;
+                          if(idxx >= cx_ * cy_)
                               continue;
 
-                          if (pcl_isfinite(depth_[idx]) && (std::abs (depth_[idx] - min) <= 0.005f))
+                          if (pcl_isfinite(depth_[idxx]) && (std::abs (depth_[idxx] - min) <= 0.005f))
                           {
-                            new_d += depth_[idx];
-                            new_r += static_cast<int> (r[idx]);
-                            new_g += static_cast<int> (g[idx]);
-                            new_b += static_cast<int> (b[idx]);
+                            new_d += depth_[idxx];
+                            new_r += static_cast<int> (r[idxx]);
+                            new_g += static_cast<int> (g[idxx]);
+                            new_b += static_cast<int> (b[idxx]);
                             num++;
-                            new_normal += normals[idx];
+                            new_normal += normals[idxx];
                           }
                         }
                       }
@@ -473,9 +473,7 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
                     {
                       for (int i = (v - ws2); i <= (v + ws2); i++)
                       {
-
-                        int idx = i * width_ + j;
-                        if (!pcl_isfinite(depth_smooth[idx]))
+                        if (!pcl_isfinite(depth_smooth[ i * width_ + j ]))
                         {
                           to_erode = true;
                           nans++;
@@ -604,12 +602,12 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
       views_orig.push_back (filtered2);*/
 
       std::stringstream path_view;
-      path_view << direc.str () << "/view_" << std::setfill ('0') << std::setw (8) << i << ".pcd";
+      path_view << direc.str () << "/view_" << std::setfill ('0') << std::setw (8) << cam_id << ".pcd";
       std::cout << filtered2->points.size() << std::endl;
       pcl::io::savePCDFileBinary (path_view.str (), *filtered2);
 
       std::stringstream path_pose;
-      path_pose << direc.str () << "/pose_" << std::setfill ('0') << std::setw (8) << i << ".txt";
+      path_pose << direc.str () << "/pose_" << std::setfill ('0') << std::setw (8) << cam_id << ".txt";
       v4r::io::writeMatrixToFile( path_pose.str (), final_mat);
 
       /*std::stringstream path_entropy;
@@ -631,7 +629,7 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
         }
 
         std::stringstream path_oi;
-        path_oi << direc.str () << "/object_indices_" << std::setfill ('0') << std::setw (8) << i << ".pcd";
+        path_oi << direc.str () << "/object_indices_" << std::setfill ('0') << std::setw (8) << cam_id << ".pcd";
         pcl::io::savePCDFileBinary(path_oi.str(), obj_indices_cloud);
         //model.indices_->push_back (indices_cloud);
       }
@@ -771,12 +769,12 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
 
   if(gen_organized_)
   {
-    std::string file_replaced2 (model.view_filenames_[i]);
-    boost::replace_all (file_replaced2, "view", "object_indices");
+    std::string file_replaced3 (model.view_filenames_[i]);
+    boost::replace_all (file_replaced3, "view", "object_indices");
     pcl::PointCloud<IndexPoint> obj_indices_cloud;
 
     std::stringstream oi_file;
-    oi_file << pathmodel.str () << "/" << file_replaced2;
+    oi_file << pathmodel.str () << "/" << file_replaced3;
     pcl::io::loadPCDFile (oi_file.str(), obj_indices_cloud);
     pcl::PointIndices indices;
     indices.indices.resize(obj_indices_cloud.points.size());
@@ -861,12 +859,12 @@ v4r::rec_3d_framework::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>:
 
     if(gen_organized_)
     {
-      std::string file_replaced2 (model.view_filenames_[i]);
-      boost::replace_all (file_replaced2, "view", "object_indices");
+      std::string file_replaced3 (model.view_filenames_[i]);
+      boost::replace_all (file_replaced3, "view", "object_indices");
       pcl::PointCloud<IndexPoint> obj_indices_cloud;
 
       std::stringstream oi_file;
-      oi_file << pathmodel.str () << "/" << file_replaced2;
+      oi_file << pathmodel.str () << "/" << file_replaced3;
       pcl::io::loadPCDFile (oi_file.str(), obj_indices_cloud);
       pcl::PointIndices indices;
       indices.indices.resize(obj_indices_cloud.points.size());

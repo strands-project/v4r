@@ -15,14 +15,12 @@
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
 #include <v4r/core/macros.h>
-#include "v4r/keypoints/impl/DataMatrix2D.hpp"
-#include "v4r/keypoints/impl/SmartPtr.hpp"
+#include <v4r/common/impl/DataMatrix2D.hpp>
+#include <v4r/common/impl/SmartPtr.hpp>
 #include "v4r/keypoints/PlaneEstimationRANSAC.h"
 
-namespace kp
+namespace v4r
 {
-
-
 
 /**
  * ClusterNormalsToPlanes
@@ -90,8 +88,8 @@ public:
     /** Plane **/
     Plane(bool _is_plane=false) : is_plane(_is_plane) {}
     ~Plane() {}
-    typedef SmartPtr< ::kp::ClusterNormalsToPlanes::Plane> Ptr;
-    typedef SmartPtr< ::kp::ClusterNormalsToPlanes::Plane const> ConstPtr;
+    typedef SmartPtr< ::v4r::ClusterNormalsToPlanes::Plane> Ptr;
+    typedef SmartPtr< ::v4r::ClusterNormalsToPlanes::Plane const> ConstPtr;
   };
 
 private:
@@ -104,13 +102,13 @@ private:
   PlaneEstimationRANSAC pest;
   
   // cluster normals
-  void doClustering(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const kp::DataMatrix2D<Eigen::Vector3f> &normals, std::vector<Plane::Ptr> &planes);
+  void doClustering(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &normals, std::vector<Plane::Ptr> &planes);
   // cluster normals from point
-  void clusterNormals(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const kp::DataMatrix2D<Eigen::Vector3f> &normals, int idx, Plane &plane);
+  void clusterNormals(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &normals, int idx, Plane &plane);
   // do a smooth clustering
-  void smoothClustering(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const kp::DataMatrix2D<Eigen::Vector3f> &normals, int idx, Plane &plane);
+  void smoothClustering(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &normals, int idx, Plane &plane);
   // least square plane
-  void computeLeastSquarePlanes(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, std::vector<Plane::Ptr> &planes);
+  void computeLeastSquarePlanes(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, std::vector<Plane::Ptr> &planes);
   // adds normals to each point of segmented patches
 
   inline bool isnan(const Eigen::Vector3f &pt);
@@ -121,14 +119,14 @@ public:
   ~ClusterNormalsToPlanes();
 
   /** Compute planes by surface normal grouping **/
-  void compute(const kp::DataMatrix2D<Eigen::Vector3f> &_cloud, const kp::DataMatrix2D<Eigen::Vector3f> &_normals, std::vector<Plane::Ptr> &planes);
+  void compute(const v4r::DataMatrix2D<Eigen::Vector3f> &_cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &_normals, std::vector<Plane::Ptr> &planes);
 
   /** Compute a plane starting from a seed point **/
-  void compute(const kp::DataMatrix2D<Eigen::Vector3f> &cloud, const kp::DataMatrix2D<Eigen::Vector3f> &normals, int x, int y, Plane &plane);
+  void compute(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const v4r::DataMatrix2D<Eigen::Vector3f> &normals, int x, int y, Plane &plane);
 
 
-  typedef SmartPtr< ::kp::ClusterNormalsToPlanes> Ptr;
-  typedef SmartPtr< ::kp::ClusterNormalsToPlanes const> ConstPtr;
+  typedef SmartPtr< ::v4r::ClusterNormalsToPlanes> Ptr;
+  typedef SmartPtr< ::v4r::ClusterNormalsToPlanes const> ConstPtr;
 };
 
 

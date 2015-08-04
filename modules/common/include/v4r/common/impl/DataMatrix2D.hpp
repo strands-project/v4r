@@ -1,12 +1,37 @@
 /**
  * $Id$
+ * 
+ * Software License Agreement (GNU General Public License)
  *
- * Copyright (c) 2014, Johann Prankl
- * @author Johann Prankl (prankl@acin.tuwien.ac.at)
+ *  Copyright (C) 2015:
+ *
+ *    Johann Prankl, prankl@acin.tuwien.ac.at
+ *    Aitor Aldoma, aldoma@acin.tuwien.ac.at
+ *
+ *      Automation and Control Institute
+ *      Vienna University of Technology
+ *      Gusshausstraße 25-29
+ *      1170 Vienn, Austria
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Johann Prankl, Aitor Aldoma
+ *
  */
 
-#ifndef KP_DATA_MATRIX_2D_HPP
-#define KP_DATA_MATRIX_2D_HPP
+#ifndef V4R_DATA_MATRIX_2D_HPP
+#define V4R_DATA_MATRIX_2D_HPP
 
 #include <stdio.h>
 #include <iostream>
@@ -14,17 +39,18 @@
 #include <vector>
 #include <stdexcept>
 #include <string.h>
-#include "v4r/keypoints/DataContainer.h"
-#include "v4r/keypoints/impl/SmartPtr.hpp"
+#include <v4r/common/DataContainer.h>
+#include <v4r/common/impl/SmartPtr.hpp>
+#include <v4r/core/macros.h>
 
-namespace kp 
+namespace v4r
 {
 
 /**
  * DataMatrix2D
  */
 template <class T>
-class DataMatrix2D : public DataContainer
+class V4R_EXPORTS DataMatrix2D : public DataContainer
 {
 public:
   int rows, cols;
@@ -60,8 +86,8 @@ public:
   static void read(const std::string &filename, DataMatrix2D<T> &mat);
   static void read(std::ifstream &in, DataMatrix2D<T> &mat);
 
-  typedef SmartPtr< ::kp::DataMatrix2D<T> > Ptr;
-  typedef SmartPtr< ::kp::DataMatrix2D<T> const> ConstPtr;
+  typedef SmartPtr< ::v4r::DataMatrix2D<T> > Ptr;
+  typedef SmartPtr< ::v4r::DataMatrix2D<T> const> ConstPtr;
 };
 
 
@@ -80,8 +106,8 @@ public:
   virtual inline void setTo(const float &d);
   virtual inline void setZero();
 
-  typedef SmartPtr< ::kp::DataMatrix2Df > Ptr;
-  typedef SmartPtr< ::kp::DataMatrix2Df const> ConstPtr;
+  typedef SmartPtr< ::v4r::DataMatrix2Df > Ptr;
+  typedef SmartPtr< ::v4r::DataMatrix2Df const> ConstPtr;
 };
 
 /**
@@ -99,8 +125,8 @@ public:
   virtual inline void setTo(const unsigned char &d);
   virtual inline void setZero();
 
-  typedef SmartPtr< ::kp::DataMatrix2Db > Ptr;
-  typedef SmartPtr< ::kp::DataMatrix2Db const> ConstPtr;
+  typedef SmartPtr< ::v4r::DataMatrix2Db > Ptr;
+  typedef SmartPtr< ::v4r::DataMatrix2Db const> ConstPtr;
 };
 
 /**
@@ -118,8 +144,8 @@ public:
   virtual inline void setTo(const int &d);
   virtual inline void setZero();
 
-  typedef SmartPtr< ::kp::DataMatrix2Di > Ptr;
-  typedef SmartPtr< ::kp::DataMatrix2Di const> ConstPtr;
+  typedef SmartPtr< ::v4r::DataMatrix2Di > Ptr;
+  typedef SmartPtr< ::v4r::DataMatrix2Di const> ConstPtr;
 };
 
 /*************************** INLINE METHODES **************************/

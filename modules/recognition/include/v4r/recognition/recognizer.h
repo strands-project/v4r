@@ -9,6 +9,7 @@
 #define RECOGNIZER_H_
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/core/macros.h>
 #include <pcl/common/common.h>
 #include "voxel_based_correspondence_estimation.h"
 #include "source.h"
@@ -42,7 +43,7 @@ namespace v4r
     };
 
     template<typename PointInT>
-    class FAAT_3D_FRAMEWORK_API Recognizer
+    class V4R_EXPORTS Recognizer
     {
       typedef Model<PointInT> ModelT;
       typedef boost::shared_ptr<ModelT> ModelTPtr;
