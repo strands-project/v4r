@@ -1,27 +1,5 @@
 set(the_description "Recognition")
-v4r_add_module(recognition v4r_common v4r_io v4r_features v4r_segmentation)
-
-if(HAVE_SIFTGPU)
-  v4r_include_directories(${SIFTGPU_INCLUDE_DIR})
-  list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
-endif()
-
-if(HAVE_EDT)
-  v4r_include_directories(${EDT_INCLUDE_DIR})
-  list(APPEND DEP_LIBS ${EDT_LIBRARIES})
-endif()
-
-if(HAVE_PCL)
-  v4r_include_directories(${PCL_INCLUDE_DIRS})
-  list(APPEND DEP_LIBS ${PCL_LIBRARIES})
-  add_definitions(${PCL_DEFINITIONS} ${Boost_LIB_DIAGNOSTIC_DEFINITIONS})
-endif()
-
-if(HAVE_OpenCV)
-  v4r_include_directories(${OpenCV_INCLUDE_DIRS})
-  list(APPEND DEP_LIBS ${OpenCV_LIBS})
-endif()
-
+v4r_add_module(recognition REQUIRED v4r_common v4r_io v4r_features v4r_segmentation pcl opencv OPTIONAL edt siftgpu)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../3rdparty/metslib) # for the time being - metslib still needs to be implemented
 
@@ -119,6 +97,6 @@ SET(SOURCE_CPP_PIPELINES
 v4r_set_module_sources(HEADERS ${SOURCE_H_HV} ${SOURCE_H_MULTIVIEW} ${SOURCE_H_DATA_SOURCES} ${SOURCE_H_UTILS} ${SOURCE_H_PIPELINES}
                        SOURCES ${SOURCE_CPP_HV}  ${SOURCE_CPP_MULTIVIEW} ${SOURCE_CPP_UTILS} ${SOURCE_CPP_DATA_SOURCES} ${SOURCE_CPP_PIPELINES} )
 v4r_module_include_directories()
-v4r_create_module(${DEP_LIBS})
+v4r_create_module()
 
-set_target_properties(${the_module} PROPERTIES LINK_INTERFACE_LIBRARIES "")
+#set_target_properties(${the_module} PROPERTIES LINK_INTERFACE_LIBRARIES "")
