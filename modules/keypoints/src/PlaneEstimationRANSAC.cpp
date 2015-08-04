@@ -9,7 +9,7 @@
 #include "v4r/keypoints/PlaneEstimationRANSAC.h"
 
 
-namespace kp 
+namespace v4r
 {
 
 using namespace std;

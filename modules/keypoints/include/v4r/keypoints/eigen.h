@@ -64,7 +64,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
-namespace kp
+namespace v4r
 {
   /** \brief Compute the roots of a quadratic polynom x^2 + b*x + c = 0
     * \param[in] b linear parameter

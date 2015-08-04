@@ -42,11 +42,11 @@
 #include "v4r/keypoints/impl/PointTypes.hpp"
 
 
-namespace kp 
+namespace v4r 
 {
 
 
-inline void convertNormals(const kp::DataMatrix2D<Eigen::Vector3f> &kp_normals, pcl::PointCloud<pcl::Normal> &pcl_normals)
+inline void convertNormals(const v4r::DataMatrix2D<Eigen::Vector3f> &kp_normals, pcl::PointCloud<pcl::Normal> &pcl_normals)
 {
   pcl_normals.points.resize(kp_normals.data.size());
   pcl_normals.width = kp_normals.cols;
@@ -59,7 +59,7 @@ inline void convertNormals(const kp::DataMatrix2D<Eigen::Vector3f> &kp_normals, 
   }
 }
 
-inline void convertNormals(const pcl::PointCloud<pcl::Normal> &pcl_normals, kp::DataMatrix2D<Eigen::Vector3f> &kp_normals)
+inline void convertNormals(const pcl::PointCloud<pcl::Normal> &pcl_normals, v4r::DataMatrix2D<Eigen::Vector3f> &kp_normals)
 {
   kp_normals.data.resize(pcl_normals.points.size());
   kp_normals.cols = pcl_normals.width;

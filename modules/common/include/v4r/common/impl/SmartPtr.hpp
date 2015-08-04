@@ -5,10 +5,11 @@
  * @author Johann Prankl (prankl@acin.tuwien.ac.at)
  */
 
-#ifndef KP_SMART_PTR_HPP
-#define KP_SMART_PTR_HPP
+#ifndef V4R_SMART_PTR_HPP
+#define V4R_SMART_PTR_HPP
 
 #include <stdlib.h>
+#include <v4r/core/macros.h>
 
 // exchange-add operation for atomic operations
 #if defined __INTEL_COMPILER && !(defined WIN32 || defined _WIN32)   // atomic increment on the linux version
@@ -43,7 +44,7 @@
 
 #elif defined WIN32 || defined _WIN32 || defined WINCE
   namespace kp { CV_EXPORTS int _interlockedExchangeAdd(int* addr, int delta); }
-  #define KP_XADD kp::_interlockedExchangeAdd
+  #define KP_XADD v4r::_interlockedExchangeAdd
 
 #else
   static inline int KP_XADD(int* addr, int delta)
@@ -51,10 +52,10 @@
 #endif
 
 
-namespace kp 
+namespace v4r
 {
 
-template<typename T> class SmartPtr
+template<typename T> class V4R_EXPORTS SmartPtr
 {
 public:
     SmartPtr();

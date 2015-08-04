@@ -15,7 +15,7 @@
 #include <pcl/point_types.h>
 
 
-namespace kp
+namespace v4r
 {
 
 
