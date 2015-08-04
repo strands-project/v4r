@@ -1,0 +1,6 @@
+if(WITH_BOOST)
+  find_package(Boost "${MIN_VER_BOOST}" COMPONENTS system filesystem regex)
+  if(Boost_FOUND)
+    set(HAVE_BOOST TRUE)
+  endif()
+endif()

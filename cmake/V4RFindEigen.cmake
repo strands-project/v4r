@@ -7,5 +7,5 @@ find_path(EIGEN_INCLUDE_PATH "Eigen/Core"
 if(EIGEN_INCLUDE_PATH)
   v4r_include_directories(${EIGEN_INCLUDE_PATH})
   v4r_parse_header("${EIGEN_INCLUDE_PATH}/Eigen/src/Core/util/Macros.h" EIGEN_VERSION_LINES EIGEN_WORLD_VERSION EIGEN_MAJOR_VERSION EIGEN_MINOR_VERSION)
-  set(HAVE_EIGEN 1)
+  set(HAVE_EIGEN TRUE)
 endif()
