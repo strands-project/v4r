@@ -14,7 +14,7 @@ if(HAVE_EDT)
 endif()
 
 if(HAVE_SIFTGPU)
-  v4r_include_directories(${SIFTGPU_INCLUDE_DIR})
+  v4r_include_directories(${SIFTGPU_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
 endif()
 
