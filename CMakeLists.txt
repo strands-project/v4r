@@ -309,7 +309,6 @@ include(cmake/V4RFindEigen.cmake)
 include(cmake/V4RFindPCL.cmake)
 include(cmake/V4RFindOpenCV.cmake)
 include(cmake/V4RFindBoost.cmake)
-include(cmake/V4RFindEigen.cmake)
 # ----------------------------------------------------------------------------
 #  Detect optional 3rd-party libraries/tools
 # ----------------------------------------------------------------------------
