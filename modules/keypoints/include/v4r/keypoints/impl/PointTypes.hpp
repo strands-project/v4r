@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 #include <stdint.h>
 
-namespace kp 
+namespace v4r 
 {
 
 const float NaNf = std::numeric_limits<float>::quiet_NaN();

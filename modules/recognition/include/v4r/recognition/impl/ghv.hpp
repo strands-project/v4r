@@ -2196,13 +2196,13 @@ v4r::GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel
 
         //check nans...
         size_t kept = 0;
-        for (size_t i = 0; i < recog_model->cloud_->points.size (); ++i)
+        for (size_t idx = 0; idx < recog_model->cloud_->points.size (); ++idx)
         {
-            if (pcl::isFinite(recog_model->cloud_->points[i])
-                    && pcl::isFinite(model_normals->points[i]) )
+            if (pcl::isFinite(recog_model->cloud_->points[idx])
+                    && pcl::isFinite(model_normals->points[idx]) )
             {
-                recog_model->cloud_->points[kept] = recog_model->cloud_->points[i];
-                recog_model->normals_->points[kept] = model_normals->points[i];
+                recog_model->cloud_->points[kept] = recog_model->cloud_->points[idx];
+                recog_model->normals_->points[kept] = model_normals->points[idx];
                 kept++;
             }
         }
@@ -2226,11 +2226,11 @@ v4r::GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel
         //pcl::ScopeTime t("Computing normals and checking nans");
 
         size_t kept = 0;
-        for (size_t i = 0; i < recog_model->cloud_->points.size (); ++i)
+        for (size_t idx = 0; idx < recog_model->cloud_->points.size (); ++idx)
         {
-            if ( pcl::isFinite(recog_model->cloud_->points[i]) )
+            if ( pcl::isFinite(recog_model->cloud_->points[idx]) )
             {
-                recog_model->cloud_->points[kept] = recog_model->cloud_->points[i];
+                recog_model->cloud_->points[kept] = recog_model->cloud_->points[idx];
                 kept++;
             }
         }
@@ -2525,30 +2525,30 @@ v4r::GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::s
             //histogram specification, adapt model values to scene values
             specifyRGBHistograms(gs_scene, gs_model, lookup, dim);
 
-            for (size_t i = 0; i < label_indices[j].size (); i++)
+            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
             {
                 for(int k=0; k < dim; k++)
                 {
-                    float color = recog_model->cloud_RGB_[label_indices[j][i]][k] * 255.f;
+                    float color = recog_model->cloud_RGB_[label_indices[j][ii]][k] * 255.f;
                     int pos = std::floor (static_cast<float> (color) / 255.f * 256);
                     float specified = lookup(pos, k);
-                    recog_model->cloud_RGB_[label_indices[j][i]][k] = specified / 255.f;
+                    recog_model->cloud_RGB_[label_indices[j][ii]][k] = specified / 255.f;
                 }
             }
 
             if(color_space_ == 5)
             {
                 //transform specified RGB to lab
-                for(size_t j=0; j < recog_model->cloud_LAB_.size(); j++)
+                for(size_t jj=0; jj < recog_model->cloud_LAB_.size(); jj++)
                 {
-                    unsigned char rm = recog_model->cloud_RGB_[j][0] * 255;
-                    unsigned char gm = recog_model->cloud_RGB_[j][1] * 255;
-                    unsigned char bm = recog_model->cloud_RGB_[j][2] * 255;
+                    unsigned char rm = recog_model->cloud_RGB_[jj][0] * 255;
+                    unsigned char gm = recog_model->cloud_RGB_[jj][1] * 255;
+                    unsigned char bm = recog_model->cloud_RGB_[jj][2] * 255;
 
                     float LRefm, aRefm, bRefm;
                     RGB2CIELAB (rm, gm, bm, LRefm, aRefm, bRefm); //this is called in parallel and initially fill values on static thing...
                     LRefm /= 100.0f; aRefm /= 120.0f; bRefm /= 120.0f;    //normalized LAB components (0<L<1, -1<a<1, -1<b<1)
-                    recog_model->cloud_LAB_[j] = Eigen::Vector3f(LRefm, aRefm, bRefm);
+                    recog_model->cloud_LAB_[jj] = Eigen::Vector3f(LRefm, aRefm, bRefm);
                 }
             }
         }
@@ -2557,9 +2557,9 @@ v4r::GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::s
             std::vector<float> model_gs_values, scene_gs_values;
 
             //compute RGB histogram for the model points
-            for (size_t i = 0; i < label_indices[j].size (); i++)
+            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
             {
-                model_gs_values.push_back(recog_model->cloud_GS_[label_indices[j][i]] * 255.f);
+                model_gs_values.push_back(recog_model->cloud_GS_[label_indices[j][ii]] * 255.f);
             }
 
             //compute RGB histogram for the explained points
@@ -2576,13 +2576,13 @@ v4r::GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::s
             //histogram specification, adapt model values to scene values
             specifyRGBHistograms(gs_scene, gs_model, lookup, 1);
 
-            for (size_t i = 0; i < label_indices[j].size (); i++)
+            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
             {
-                float LRefm = recog_model->cloud_GS_[label_indices[j][i]] * 255.f;
+                float LRefm = recog_model->cloud_GS_[label_indices[j][ii]] * 255.f;
                 int pos = std::floor (static_cast<float> (LRefm) / 255.f * 256);
                 float gs_specified = lookup(pos, 0);
                 LRefm = gs_specified / 255.f;
-                recog_model->cloud_GS_[label_indices[j][i]] = LRefm;
+                recog_model->cloud_GS_[label_indices[j][ii]] = LRefm;
             }
         }
         else if(color_space_ == 6)
@@ -2591,9 +2591,9 @@ v4r::GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::s
             int dim = 3;
 
             //compute LAB histogram for the model points
-            for (size_t i = 0; i < label_indices[j].size (); i++)
+            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
             {
-                Eigen::Vector3f lab = recog_model->cloud_LAB_[label_indices[j][i]] * 255.f;
+                Eigen::Vector3f lab = recog_model->cloud_LAB_[label_indices[j][ii]] * 255.f;
                 lab[1] = (lab[1] + 255.f) / 2.f;
                 lab[2] = (lab[2] + 255.f) / 2.f;
 
@@ -2629,13 +2629,13 @@ v4r::GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::s
             //histogram specification, adapt model values to scene values
             specifyRGBHistograms(gs_scene, gs_model, lookup, dim);
 
-            for (size_t i = 0; i < label_indices[j].size (); i++)
+            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
             {
-                recog_model->cloud_indices_specified_.push_back(label_indices[j][i]);
+                recog_model->cloud_indices_specified_.push_back(label_indices[j][ii]);
 
                 for(int k=0; k < dim; k++)
                 {
-                    float LRefm = recog_model->cloud_LAB_[label_indices[j][i]][k] * 255.f;
+                    float LRefm = recog_model->cloud_LAB_[label_indices[j][ii]][k] * 255.f;
                     if(k > 0)
                     {
                         LRefm = (LRefm + 255.f) / 2.f;
@@ -2669,7 +2669,7 @@ v4r::GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::s
                         }
                     }
 
-                    recog_model->cloud_LAB_[label_indices[j][i]][k] = LRefm;
+                    recog_model->cloud_LAB_[label_indices[j][ii]][k] = LRefm;
                 }
             }
         }

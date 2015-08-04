@@ -12,18 +12,17 @@
 #include <iostream>
 #include <stdexcept>
 #include <Eigen/Dense>
-#include "v4r/keypoints/impl/SmartPtr.hpp"
+#include <v4r/common/impl/SmartPtr.hpp>
+#include <v4r/core/macros.h>
 
 
-
-
-namespace kp
+namespace v4r
 {
 
 /**
  * PlaneEstimationRANSAC
  */
-class PlaneEstimationRANSAC
+class V4R_EXPORTS PlaneEstimationRANSAC
 {
 public:
   class Parameter
@@ -77,8 +76,8 @@ public:
   inline float normalPointDist(const Eigen::Vector3f &pt, const Eigen::Vector3f &n, 
                 const Eigen::Vector3f &pt_dist);
 
-  typedef SmartPtr< ::kp::PlaneEstimationRANSAC> Ptr;
-  typedef SmartPtr< ::kp::PlaneEstimationRANSAC const> ConstPtr;
+  typedef SmartPtr< ::v4r::PlaneEstimationRANSAC> Ptr;
+  typedef SmartPtr< ::v4r::PlaneEstimationRANSAC const> ConstPtr;
 
 };
 

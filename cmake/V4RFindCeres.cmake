@@ -1,0 +1,6 @@
+if(WITH_CERES)
+  find_package(Ceres)
+  if(${Ceres_FOUND})
+    set(HAVE_CERES TRUE)
+  endif()
+endif()

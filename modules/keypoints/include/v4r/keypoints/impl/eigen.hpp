@@ -43,7 +43,7 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////
 void 
-kp::getTransFromUnitVectorsZY (const Eigen::Vector3f& z_axis, 
+v4r::getTransFromUnitVectorsZY (const Eigen::Vector3f& z_axis,
                                 const Eigen::Vector3f& y_direction, 
                                 Eigen::Affine3f& transformation)
 {
@@ -59,7 +59,7 @@ kp::getTransFromUnitVectorsZY (const Eigen::Vector3f& z_axis,
 
 //////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Affine3f 
-kp::getTransFromUnitVectorsZY (const Eigen::Vector3f& z_axis, 
+v4r::getTransFromUnitVectorsZY (const Eigen::Vector3f& z_axis,
                                 const Eigen::Vector3f& y_direction)
 {
   Eigen::Affine3f transformation;
@@ -69,7 +69,7 @@ kp::getTransFromUnitVectorsZY (const Eigen::Vector3f& z_axis,
 
 //////////////////////////////////////////////////////////////////////////////////////////
 void 
-kp::getTransFromUnitVectorsXY (const Eigen::Vector3f& x_axis, 
+v4r::getTransFromUnitVectorsXY (const Eigen::Vector3f& x_axis,
                                 const Eigen::Vector3f& y_direction, 
                                 Eigen::Affine3f& transformation)
 {
@@ -85,7 +85,7 @@ kp::getTransFromUnitVectorsXY (const Eigen::Vector3f& x_axis,
 
 //////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Affine3f 
-kp::getTransFromUnitVectorsXY (const Eigen::Vector3f& x_axis, 
+v4r::getTransFromUnitVectorsXY (const Eigen::Vector3f& x_axis,
                                 const Eigen::Vector3f& y_direction)
 {
   Eigen::Affine3f transformation;
@@ -95,7 +95,7 @@ kp::getTransFromUnitVectorsXY (const Eigen::Vector3f& x_axis,
 
 //////////////////////////////////////////////////////////////////////////////////////////
 void 
-kp::getTransformationFromTwoUnitVectors (const Eigen::Vector3f& y_direction, 
+v4r::getTransformationFromTwoUnitVectors (const Eigen::Vector3f& y_direction,
                                           const Eigen::Vector3f& z_axis, 
                                           Eigen::Affine3f& transformation)
 {
@@ -104,7 +104,7 @@ kp::getTransformationFromTwoUnitVectors (const Eigen::Vector3f& y_direction,
 
 //////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Affine3f 
-kp::getTransformationFromTwoUnitVectors (const Eigen::Vector3f& y_direction, 
+v4r::getTransformationFromTwoUnitVectors (const Eigen::Vector3f& y_direction,
                                           const Eigen::Vector3f& z_axis)
 {
   Eigen::Affine3f transformation;
@@ -113,7 +113,7 @@ kp::getTransformationFromTwoUnitVectors (const Eigen::Vector3f& y_direction,
 }
 
 void 
-kp::getTransformationFromTwoUnitVectorsAndOrigin (const Eigen::Vector3f& y_direction, 
+v4r::getTransformationFromTwoUnitVectorsAndOrigin (const Eigen::Vector3f& y_direction,
                                                    const Eigen::Vector3f& z_axis,
                                                    const Eigen::Vector3f& origin, 
                                                    Eigen::Affine3f& transformation)
@@ -125,7 +125,7 @@ kp::getTransformationFromTwoUnitVectorsAndOrigin (const Eigen::Vector3f& y_direc
 
 //////////////////////////////////////////////////////////////////////////////////////////
 void 
-kp::getEulerAngles (const Eigen::Affine3f& t, float& roll, float& pitch, float& yaw)
+v4r::getEulerAngles (const Eigen::Affine3f& t, float& roll, float& pitch, float& yaw)
 {
   roll  = atan2f(t(2,1), t(2,2));
   pitch = asinf(-t(2,0));
@@ -134,7 +134,7 @@ kp::getEulerAngles (const Eigen::Affine3f& t, float& roll, float& pitch, float& 
 
 //////////////////////////////////////////////////////////////////////////////////////////
 void 
-kp::getTranslationAndEulerAngles (const Eigen::Affine3f& t, 
+v4r::getTranslationAndEulerAngles (const Eigen::Affine3f& t,
                                    float& x, float& y, float& z, 
                                    float& roll, float& pitch, float& yaw)
 {
@@ -148,7 +148,7 @@ kp::getTranslationAndEulerAngles (const Eigen::Affine3f& t,
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template <typename Scalar> void 
-kp::getTransformation (Scalar x, Scalar y, Scalar z, 
+v4r::getTransformation (Scalar x, Scalar y, Scalar z,
                         Scalar roll, Scalar pitch, Scalar yaw, 
                         Eigen::Transform<Scalar, 3, Eigen::Affine> &t)
 {
@@ -163,7 +163,7 @@ kp::getTransformation (Scalar x, Scalar y, Scalar z,
 
 //////////////////////////////////////////////////////////////////////////////////////////
 Eigen::Affine3f 
-kp::getTransformation (float x, float y, float z, float roll, float pitch, float yaw)
+v4r::getTransformation (float x, float y, float z, float roll, float pitch, float yaw)
 {
   Eigen::Affine3f t;
   getTransformation (x, y, z, roll, pitch, yaw, t);
@@ -172,7 +172,7 @@ kp::getTransformation (float x, float y, float z, float roll, float pitch, float
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template <typename Derived> void 
-kp::saveBinary (const Eigen::MatrixBase<Derived>& matrix, std::ostream& file)
+v4r::saveBinary (const Eigen::MatrixBase<Derived>& matrix, std::ostream& file)
 {
   uint32_t rows = static_cast<uint32_t> (matrix.rows ()), cols = static_cast<uint32_t> (matrix.cols ());
   file.write (reinterpret_cast<char*> (&rows), sizeof (rows));
@@ -187,7 +187,7 @@ kp::saveBinary (const Eigen::MatrixBase<Derived>& matrix, std::ostream& file)
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template <typename Derived> void 
-kp::loadBinary (Eigen::MatrixBase<Derived> const & matrix_, std::istream& file)
+v4r::loadBinary (Eigen::MatrixBase<Derived> const & matrix_, std::istream& file)
 {
   Eigen::MatrixBase<Derived> &matrix = const_cast<Eigen::MatrixBase<Derived> &> (matrix_);
 
@@ -209,7 +209,7 @@ kp::loadBinary (Eigen::MatrixBase<Derived> const & matrix_, std::istream& file)
 //////////////////////////////////////////////////////////////////////////////////////////
 template <typename Derived, typename OtherDerived> 
 typename Eigen::internal::umeyama_transform_matrix_type<Derived, OtherDerived>::type
-kp::umeyama (const Eigen::MatrixBase<Derived>& src, const Eigen::MatrixBase<OtherDerived>& dst, bool with_scaling)
+v4r::umeyama (const Eigen::MatrixBase<Derived>& src, const Eigen::MatrixBase<OtherDerived>& dst, bool with_scaling)
 {
   typedef typename Eigen::internal::umeyama_transform_matrix_type<Derived, OtherDerived>::type TransformationMatrixType;
   typedef typename Eigen::internal::traits<TransformationMatrixType>::Scalar Scalar;

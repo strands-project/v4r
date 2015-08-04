@@ -11,10 +11,17 @@ if(HAVE_EDT)
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
 endif()
 
+if(HAVE_PCL)
+  v4r_include_directories(${PCL_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${PCL_LIBRARIES})
+  add_definitions(${PCL_DEFINITIONS} ${Boost_LIB_DIAGNOSTIC_DEFINITIONS})
+endif()
 
-include_directories(${PCL_INCLUDE_DIRS})
-link_directories(${PCL_LIBRARY_DIRS})
-add_definitions(${PCL_DEFINITIONS} ${Boost_LIB_DIAGNOSTIC_DEFINITIONS})
+if(HAVE_OpenCV)
+  v4r_include_directories(${OpenCV_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${OpenCV_LIBS})
+endif()
+
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../3rdparty/metslib) # for the time being - metslib still needs to be implemented
 
