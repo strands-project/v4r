@@ -1,4 +1,4 @@
-if(WITH_OpenCV)
+if(WITH_OPENCV)
   find_package(OpenCV "${MIN_VER_OpenCV}")
   if(OpenCV_FOUND)
     set(OPENCV_LIBRARIES "${OpenCV_LIBS}")
