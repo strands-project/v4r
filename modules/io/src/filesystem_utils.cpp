@@ -1,6 +1,12 @@
 #include <v4r/io/filesystem_utils.h>
 #include <iostream>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
+
+namespace bf = boost::filesystem;
+
 namespace v4r
 {
 namespace io

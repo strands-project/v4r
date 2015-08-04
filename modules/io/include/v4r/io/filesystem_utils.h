@@ -3,13 +3,10 @@
 
 #include <v4r/core/macros.h>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/regex.hpp>
+#include <string>
 #include <fstream>
+#include <vector>
 #include <Eigen/Dense>
-
-namespace bf = boost::filesystem;
 
 namespace v4r
 {
