@@ -31,7 +31,7 @@
 
 #include <v4r/keypoints/impl/convertCloud.hpp>
 #include <v4r/keypoints/impl/convertNormals.hpp>
-#include <v4r/keypoints/impl/DataMatrix2D.hpp>
+#include <v4r/common/impl/DataMatrix2D.hpp>
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/common/fast_icp_with_gc.h>
 #include <v4r/common/miscellaneous.h>
@@ -540,18 +540,18 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
 void
 DOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                              const pcl::PointCloud<pcl::Normal>::ConstPtr &normals,
-                             std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes)
+                             std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> &planes)
 {
-    kp::ClusterNormalsToPlanes pest(p_param_);
-    kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new kp::DataMatrix2D<Eigen::Vector3f>() );
-    kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals( new kp::DataMatrix2D<Eigen::Vector3f>() );
-    kp::convertCloud(*cloud, *kp_cloud);
-    kp::convertNormals(*normals, *kp_normals);
+    v4r::ClusterNormalsToPlanes pest(p_param_);
+    v4r::DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new v4r::DataMatrix2D<Eigen::Vector3f>() );
+    v4r::DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals( new v4r::DataMatrix2D<Eigen::Vector3f>() );
+    v4r::convertCloud(*cloud, *kp_cloud);
+    v4r::convertNormals(*normals, *kp_normals);
     pest.compute(*kp_cloud, *kp_normals, planes);
 }
 
 void
-DOL::getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
+DOL::getPlanesNotSupportedByObjectMask(const std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                        const std::vector< bool > &object_mask,
                                        const std::vector< bool > &occlusion_mask,
                                        const pcl::PointCloud<PointT>::ConstPtr &cloud,
@@ -759,7 +759,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     boost::add_vertex(view.id_, gs_);
 
     pcl::PointCloud<pcl::Normal>::Ptr normals_filtered (new pcl::PointCloud<pcl::Normal>());
-    std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> planes;
+    std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> planes;
     std::vector< std::vector<int> > planes_not_on_obj;
     std::vector<bool> pixel_is_neglected;
 
