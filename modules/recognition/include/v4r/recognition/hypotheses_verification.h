@@ -38,6 +38,7 @@
 #define FAATPCL_RECOGNITION_HYPOTHESIS_VERIFICATION_H_
 
 #include <pcl/pcl_macros.h>
+#include <v4r/core/macros.h>
 #include <v4r/common/occlusion_reasoning.h>
 #include <v4r/common/impl/occlusion_reasoning.hpp>
 #include <pcl/common/common.h>
@@ -54,7 +55,7 @@ namespace v4r
    */
 
   template<typename ModelT, typename SceneT>
-  class PCL_EXPORTS HypothesisVerification
+  class V4R_EXPORTS HypothesisVerification
   {
 
   protected:

@@ -17,12 +17,10 @@
 #include "vtk_model_sampling.h"
 #include <vtkTransformPolyDataFilter.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
-#include <v4r/io/filesystem_utils.h>
+#include <v4r/io/filesystem.h>
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
 
     /**
      * \brief Data source class based on partial views from sensor.
@@ -176,7 +174,6 @@ namespace v4r
           }
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_MESH_SOURCE_H_ */

@@ -16,11 +16,8 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
-
     template<typename PointInT>
-    class FAAT_3D_FRAMEWORK_API GlobalClassifier {
+    class V4R_EXPORTS GlobalClassifier {
       public:
       typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
 
@@ -53,7 +50,7 @@ namespace v4r
      */
 
     template<template<class > class Distance, typename PointInT, typename FeatureT>
-      class FAAT_3D_FRAMEWORK_API GlobalNNPipeline : public GlobalClassifier<PointInT>
+      class V4R_EXPORTS GlobalNNPipeline : public GlobalClassifier<PointInT>
       {
 
       protected:
@@ -231,6 +228,5 @@ namespace v4r
           training_dir_ = dir;
         }
       };
-  }
 }
 #endif /* REC_FRAMEWORK_GLOBAL_PIPELINE_H_ */

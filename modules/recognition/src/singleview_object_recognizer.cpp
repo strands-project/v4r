@@ -16,7 +16,7 @@
 #include <v4r/recognition/global_nn_recognizer_cvfh.h>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <v4r/recognition/ghv.h>
-//#include <faat_pcl/recognition/hv/hv_cuda_wrapper.h>
+//#include <v4r/recognition/hv/hv_cuda_wrapper.h>
 #include <v4r/common/visibility_reasoning.h>
 #include <v4r/common/miscellaneous.h>
 #include <boost/algorithm/string/predicate.hpp>
@@ -39,7 +39,7 @@ bool USE_SEGMENTATION_ = false;
 
 namespace v4r
 {
-void Recognizer::multiplaneSegmentation()
+void SingleViewRecognizer::multiplaneSegmentation()
 {
     //Multiplane segmentation
     v4r::MultiPlaneSegmentation<PointT> mps;
@@ -52,7 +52,7 @@ void Recognizer::multiplaneSegmentation()
     planes_found_ = mps.getModels();
 }
 
-bool Recognizer::retrain (const std::vector<std::string> &model_ids)
+bool SingleViewRecognizer::retrain (const std::vector<std::string> &model_ids)
 {
       //delete .idx files from recognizers
       { //sift flann idx
@@ -84,7 +84,7 @@ bool Recognizer::retrain (const std::vector<std::string> &model_ids)
 }
 
 
-void Recognizer::constructHypotheses()
+void SingleViewRecognizer::constructHypotheses()
 {
         if(pSceneNormals_->points.size() == 0)
         {
@@ -141,7 +141,7 @@ void Recognizer::constructHypotheses()
         }
 }
 
-bool Recognizer::hypothesesVerification(std::vector<bool> &mask_hv)
+bool SingleViewRecognizer::hypothesesVerification(std::vector<bool> &mask_hv)
 {
     std::cout << "=================================================================" << std::endl <<
                  "Verifying hypotheses on CPU with following parameters: " << std::endl <<
@@ -164,7 +164,7 @@ bool Recognizer::hypothesesVerification(std::vector<bool> &mask_hv)
 
     //initialize go
 #ifdef USE_CUDA
-    boost::shared_ptr<faat_pcl::recognition::GHVCudaWrapper<PointT> > go (new faat_pcl::recognition::GHVCudaWrapper<PointT>);
+    boost::shared_ptr<v4r::recognition::GHVCudaWrapper<PointT> > go (new v4r::recognition::GHVCudaWrapper<PointT>);
 #else
     boost::shared_ptr<v4r::GHV<PointT, PointT> > go (new v4r::GHV<PointT, PointT>);
     //go->setRadiusNormals(0.03f);
@@ -318,7 +318,7 @@ bool Recognizer::hypothesesVerification(std::vector<bool> &mask_hv)
  * Correspondence grouping (clustering) for existing feature matches. If enough points (>cg_size) are
  * in the same cluster and vote for the same model, a hypothesis (with pose estimate) is constructed.
  */
-void Recognizer::constructHypothesesFromFeatureMatches(std::map < std::string,v4r::rec_3d_framework::ObjectHypothesis<PointT> > hypothesesInput,
+void SingleViewRecognizer::constructHypothesesFromFeatureMatches(std::map < std::string,v4r::ObjectHypothesis<PointT> > hypothesesInput,
                                                            pcl::PointCloud<PointT>::Ptr pKeypoints,
                                                            pcl::PointCloud<pcl::Normal>::Ptr pKeypointNormals,
                                                            std::vector<Hypothesis<PointT> > &hypothesesOutput,
@@ -343,7 +343,7 @@ void Recognizer::constructHypothesesFromFeatureMatches(std::map < std::string,v4
     aligned_smooth_faces_.clear();
 
     hypothesesOutput.clear();
-    std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> >::iterator it_map;
+    std::map<std::string, v4r::ObjectHypothesis<PointT> >::iterator it_map;
     std::cout << "I have " << hypothesesInput.size() << " hypotheses. " << std::endl;
 
 //#pragma omp parallel
@@ -411,7 +411,7 @@ void Recognizer::constructHypothesesFromFeatureMatches(std::map < std::string,v4
     }
 }
 
-void Recognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_cloud, std::vector<float> &fsv)
+void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_cloud, std::vector<float> &fsv)
 {
     pcl::PointCloud<PointT>::Ptr occlusion_cloud (new pcl::PointCloud<PointT> (*scene_cloud));
     fsv.resize(models_->size());
@@ -454,7 +454,7 @@ void Recognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_
     }
 }
 
-//bool Recognizer::hypothesesVerificationGpu(std::vector<bool> &mask_hv)
+//bool SingleViewRecognizer::hypothesesVerificationGpu(std::vector<bool> &mask_hv)
 //{
 //    std::cout << "=================================================================" << std::endl <<
 //                 "Verifying hypotheses on GPU with following parameters: " << std::endl <<
@@ -510,7 +510,7 @@ void Recognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_
 //        pcl::ScopeTime t("finding planes...");
 //        //compute planes
 
-//        faat_pcl::MultiPlaneSegmentation<PointT> mps;
+//        v4r::MultiPlaneSegmentation<PointT> mps;
 //        mps.setInputCloud(pInputCloud_);
 //        mps.setMinPlaneInliers(1000);
 //        mps.setResolution(hv_params_.resolution_);
@@ -525,7 +525,7 @@ void Recognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_
 ////    ne.setInputCloud (pInputCloud_ds);
 ////    ne.compute (*pInputNormals_ds);
 
-//    typename faat_pcl::recognition::GHVCudaWrapper<PointT> ghv;
+//    typename v4r::recognition::GHVCudaWrapper<PointT> ghv;
 //    ghv.setInlierThreshold(hv_params_.inlier_threshold_);
 //    ghv.setOutlierWewight(hv_params_.regularizer_);
 //    ghv.setClutterWeight(hv_params_.clutter_regularizer_);
@@ -606,7 +606,7 @@ void Recognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_
 //}
 
 
-bool Recognizer::recognize ()
+bool SingleViewRecognizer::recognize ()
 {
     std::vector<bool> mask_hv;
 
@@ -633,7 +633,7 @@ bool Recognizer::recognize ()
   }
 
 
-void Recognizer::printParams() const
+void SingleViewRecognizer::printParams() const
 {
     std::cout << "cg_size_thresh: " << cg_params_.cg_size_threshold_ << std::endl
               << "cg_size: " << cg_params_.cg_size_ << std::endl
@@ -665,12 +665,12 @@ void Recognizer::printParams() const
               << "====================" << std::endl << std::endl;
 }
 
-  void Recognizer::initialize ()
+  void SingleViewRecognizer::initialize ()
   {
     boost::function<bool (const Eigen::Vector3f &)> campos_constraints;
     campos_constraints = camPosConstraints ();
 
-    multi_recog_.reset (new v4r::rec_3d_framework::MultiRecognitionPipeline<PointT>);
+    multi_recog_.reset (new v4r::MultiRecognitionPipeline<PointT>);
 
     boost::shared_ptr < v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > gcg_alg (
                 new v4r::GraphGeometricConsistencyGrouping<
@@ -702,16 +702,16 @@ void Recognizer::printParams() const
       std::string idx_flann_fn = "sift_flann.idx";
       std::string desc_name = "sift";
 
-      boost::shared_ptr < v4r::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>
-          > mesh_source (new v4r::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB, pcl::PointXYZRGB>);
+      boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>
+          > mesh_source (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB, pcl::PointXYZRGB>);
       mesh_source->setPath (models_dir_);
       mesh_source->setModelStructureDir (sift_structure_);
       mesh_source->setLoadViews (false);
       mesh_source->generate (training_dir_sift_);
       mesh_source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
 
-      boost::shared_ptr < v4r::rec_3d_framework::Source<PointT> > cast_source;
-      cast_source = boost::static_pointer_cast<v4r::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (mesh_source);
+      boost::shared_ptr < v4r::Source<PointT> > cast_source;
+      cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (mesh_source);
 
 #ifdef USE_SIFT_GPU
 
@@ -729,21 +729,21 @@ void Recognizer::printParams() const
             throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
       }
 
-      boost::shared_ptr < v4r::rec_3d_framework::SIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
-      estimator.reset (new v4r::rec_3d_framework::SIFTLocalEstimation<PointT, pcl::Histogram<128> >(sift_));
+      boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
+      estimator.reset (new v4r::SIFTLocalEstimation<PointT, pcl::Histogram<128> >(sift_));
 
-      boost::shared_ptr < v4r::rec_3d_framework::LocalEstimator<PointT, pcl::Histogram<128> > > cast_estimator;
-      cast_estimator = boost::dynamic_pointer_cast<v4r::rec_3d_framework::SIFTLocalEstimation<PointT, pcl::Histogram<128> > > (estimator);
+      boost::shared_ptr < v4r::LocalEstimator<PointT, pcl::Histogram<128> > > cast_estimator;
+      cast_estimator = boost::dynamic_pointer_cast<v4r::SIFTLocalEstimation<PointT, pcl::Histogram<128> > > (estimator);
 #else
-      boost::shared_ptr < faat_pcl::rec_3d_framework::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
-      estimator.reset (new faat_pcl::rec_3d_framework::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> >);
+      boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
+      estimator.reset (new v4r::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> >);
 
-      boost::shared_ptr < faat_pcl::rec_3d_framework::LocalEstimator<PointT, pcl::Histogram<128> > > cast_estimator;
-      cast_estimator = boost::dynamic_pointer_cast<faat_pcl::rec_3d_framework::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > (estimator);
+      boost::shared_ptr < v4r::LocalEstimator<PointT, pcl::Histogram<128> > > cast_estimator;
+      cast_estimator = boost::dynamic_pointer_cast<v4r::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > (estimator);
 #endif
 
-      boost::shared_ptr<v4r::rec_3d_framework::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > new_sift_local;
-      new_sift_local.reset (new v4r::rec_3d_framework::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > (idx_flann_fn));
+      boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > new_sift_local;
+      new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > (idx_flann_fn));
       new_sift_local->setDataSource (cast_source);
       new_sift_local->setTrainingDir (training_dir_sift_);
       new_sift_local->setDescriptorName (desc_name);
@@ -756,8 +756,8 @@ void Recognizer::printParams() const
       new_sift_local->setSaveHypotheses(true);
       new_sift_local->initialize (false);
 
-      boost::shared_ptr < v4r::rec_3d_framework::Recognizer<PointT> > cast_recog;
-      cast_recog = boost::static_pointer_cast<v4r::rec_3d_framework::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > (
+      boost::shared_ptr < v4r::Recognizer<PointT> > cast_recog;
+      cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > (
                                                                                                                                         new_sift_local);
       std::cout << "Feature Type: " << cast_recog->getFeatureType() << std::endl;
       multi_recog_->addRecognizer (cast_recog);
@@ -765,9 +765,9 @@ void Recognizer::printParams() const
 
     if(sv_params_.do_ourcvfh_ && USE_SEGMENTATION_)
     {
-      boost::shared_ptr<v4r::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> >
+      boost::shared_ptr<v4r::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> >
                           source (
-                              new v4r::rec_3d_framework::PartialPCDSource<
+                              new v4r::PartialPCDSource<
                               pcl::PointXYZRGBNormal,
                               pcl::PointXYZRGB>);
       source->setPath (models_dir_);
@@ -784,23 +784,23 @@ void Recognizer::printParams() const
       source->generate (training_dir_ourcvfh_);
       source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
 
-      boost::shared_ptr<v4r::rec_3d_framework::Source<pcl::PointXYZRGB> > cast_source;
-      cast_source = boost::static_pointer_cast<v4r::rec_3d_framework::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > (source);
+      boost::shared_ptr<v4r::Source<pcl::PointXYZRGB> > cast_source;
+      cast_source = boost::static_pointer_cast<v4r::PartialPCDSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > (source);
 
       //configure normal estimator
-      boost::shared_ptr<v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;
-      normal_estimator.reset (new v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointT, pcl::Normal>);
+      boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;
+      normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal>);
       normal_estimator->setCMR (false);
       normal_estimator->setDoVoxelGrid (false);
       normal_estimator->setRemoveOutliers (false);
       normal_estimator->setValuesForCMRFalse (0.001f, 0.02f);
       normal_estimator->setForceUnorganized(true);
 
-      //boost::shared_ptr<faat_pcl::rec_3d_framework::ColorOURCVFHEstimator<PointT, pcl::Histogram<1327> > > vfh_estimator;
-      //vfh_estimator.reset (new faat_pcl::rec_3d_framework::ColorOURCVFHEstimator<PointT, pcl::Histogram<1327> >);
+      //boost::shared_ptr<v4r::ColorOURCVFHEstimator<PointT, pcl::Histogram<1327> > > vfh_estimator;
+      //vfh_estimator.reset (new v4r::ColorOURCVFHEstimator<PointT, pcl::Histogram<1327> >);
 
-      boost::shared_ptr<v4r::rec_3d_framework::OrganizedColorOURCVFHEstimator<PointT, pcl::Histogram<1327> > > vfh_estimator;
-      vfh_estimator.reset (new v4r::rec_3d_framework::OrganizedColorOURCVFHEstimator<PointT, pcl::Histogram<1327> >);
+      boost::shared_ptr<v4r::OrganizedColorOURCVFHEstimator<PointT, pcl::Histogram<1327> > > vfh_estimator;
+      vfh_estimator.reset (new v4r::OrganizedColorOURCVFHEstimator<PointT, pcl::Histogram<1327> >);
       vfh_estimator->setNormalEstimator (normal_estimator);
       vfh_estimator->setNormalizeBins(true);
       vfh_estimator->setUseRFForColor (true);
@@ -826,11 +826,11 @@ void Recognizer::printParams() const
 
       std::string desc_name = "rf_our_cvfh_color_normalized";
 
-      boost::shared_ptr<v4r::rec_3d_framework::OURCVFHEstimator<pcl::PointXYZRGB, pcl::Histogram<1327> > > cast_estimator;
-      cast_estimator = boost::dynamic_pointer_cast<v4r::rec_3d_framework::OrganizedColorOURCVFHEstimator<pcl::PointXYZRGB, pcl::Histogram<1327> > > (vfh_estimator);
+      boost::shared_ptr<v4r::OURCVFHEstimator<pcl::PointXYZRGB, pcl::Histogram<1327> > > cast_estimator;
+      cast_estimator = boost::dynamic_pointer_cast<v4r::OrganizedColorOURCVFHEstimator<pcl::PointXYZRGB, pcl::Histogram<1327> > > (vfh_estimator);
 
-      boost::shared_ptr<v4r::rec_3d_framework::GlobalNNCVFHRecognizer<v4r::Metrics::HistIntersectionUnionDistance, PointT, pcl::Histogram<1327> > > rf_color_ourcvfh_global_;
-      rf_color_ourcvfh_global_.reset(new v4r::rec_3d_framework::GlobalNNCVFHRecognizer<v4r::Metrics::HistIntersectionUnionDistance, PointT, pcl::Histogram<1327> >);
+      boost::shared_ptr<v4r::GlobalNNCVFHRecognizer<v4r::Metrics::HistIntersectionUnionDistance, PointT, pcl::Histogram<1327> > > rf_color_ourcvfh_global_;
+      rf_color_ourcvfh_global_.reset(new v4r::GlobalNNCVFHRecognizer<v4r::Metrics::HistIntersectionUnionDistance, PointT, pcl::Histogram<1327> >);
       rf_color_ourcvfh_global_->setDataSource (cast_source);
       rf_color_ourcvfh_global_->setTrainingDir (training_dir_ourcvfh_);
       rf_color_ourcvfh_global_->setDescriptorName (desc_name);
@@ -862,8 +862,8 @@ void Recognizer::printParams() const
           vfh_estimator->setAdaptativeMLS (false);
       }
 
-      boost::shared_ptr < v4r::rec_3d_framework::Recognizer<PointT> > cast_recog;
-      cast_recog = boost::static_pointer_cast<v4r::rec_3d_framework::GlobalNNCVFHRecognizer<v4r::Metrics::HistIntersectionUnionDistance, PointT, pcl::Histogram<1327> > > (rf_color_ourcvfh_global_);
+      boost::shared_ptr < v4r::Recognizer<PointT> > cast_recog;
+      cast_recog = boost::static_pointer_cast<v4r::GlobalNNCVFHRecognizer<v4r::Metrics::HistIntersectionUnionDistance, PointT, pcl::Histogram<1327> > > (rf_color_ourcvfh_global_);
       multi_recog_->addRecognizer(cast_recog);
     }
 
@@ -876,45 +876,45 @@ void Recognizer::printParams() const
 
         //configure mesh source
         typedef pcl::PointXYZRGB PointT;
-        boost::shared_ptr < v4r::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>
-                > mesh_source (new v4r::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB, pcl::PointXYZRGB>);
+        boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>
+                > mesh_source (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB, pcl::PointXYZRGB>);
         mesh_source->setPath (models_dir_);
         mesh_source->setModelStructureDir (sift_structure_);
         mesh_source->setLoadViews(false);
         mesh_source->generate (training_dir_shot_);
         mesh_source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
 
-        boost::shared_ptr < v4r::rec_3d_framework::Source<PointT> > cast_source;
-        cast_source = boost::static_pointer_cast<v4r::rec_3d_framework::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (mesh_source);
+        boost::shared_ptr < v4r::Source<PointT> > cast_source;
+        cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (mesh_source);
 
-        boost::shared_ptr<v4r::rec_3d_framework::UniformSamplingExtractor<PointT> > uniform_keypoint_extractor ( new v4r::rec_3d_framework::UniformSamplingExtractor<PointT>);
+        boost::shared_ptr<v4r::UniformSamplingExtractor<PointT> > uniform_keypoint_extractor ( new v4r::UniformSamplingExtractor<PointT>);
         uniform_keypoint_extractor->setSamplingDensity (0.01f);
         uniform_keypoint_extractor->setFilterPlanar (true);
         uniform_keypoint_extractor->setMaxDistance( sv_params_.chop_at_z_ );
         uniform_keypoint_extractor->setThresholdPlanar(0.1);
 
-        boost::shared_ptr<v4r::rec_3d_framework::KeypointExtractor<PointT> > keypoint_extractor;
-        keypoint_extractor = boost::static_pointer_cast<v4r::rec_3d_framework::KeypointExtractor<PointT> > (uniform_keypoint_extractor);
+        boost::shared_ptr<v4r::KeypointExtractor<PointT> > keypoint_extractor;
+        keypoint_extractor = boost::static_pointer_cast<v4r::KeypointExtractor<PointT> > (uniform_keypoint_extractor);
 
-        boost::shared_ptr<v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;
-        normal_estimator.reset (new v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointT, pcl::Normal>);
+        boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;
+        normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal>);
         normal_estimator->setCMR (false);
         normal_estimator->setDoVoxelGrid (true);
         normal_estimator->setRemoveOutliers (false);
         normal_estimator->setValuesForCMRFalse (0.003f, 0.02f);
 
-        boost::shared_ptr<v4r::rec_3d_framework::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> > > estimator;
-        estimator.reset (new v4r::rec_3d_framework::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >);
+        boost::shared_ptr<v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> > > estimator;
+        estimator.reset (new v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >);
         estimator->setNormalEstimator (normal_estimator);
         estimator->addKeypointExtractor (keypoint_extractor);
         estimator->setSupportRadius (0.04f);
         estimator->setAdaptativeMLS (false);
 
-        boost::shared_ptr<v4r::rec_3d_framework::LocalEstimator<PointT, pcl::Histogram<352> > > cast_estimator;
-        cast_estimator = boost::dynamic_pointer_cast<v4r::rec_3d_framework::LocalEstimator<PointT, pcl::Histogram<352> > > (estimator);
+        boost::shared_ptr<v4r::LocalEstimator<PointT, pcl::Histogram<352> > > cast_estimator;
+        cast_estimator = boost::dynamic_pointer_cast<v4r::LocalEstimator<PointT, pcl::Histogram<352> > > (estimator);
 
-        boost::shared_ptr<v4r::rec_3d_framework::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
-        local.reset(new v4r::rec_3d_framework::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (idx_flann_fn));
+        boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
+        local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (idx_flann_fn));
         local->setDataSource (cast_source);
         local->setTrainingDir (training_dir_shot_);
         local->setDescriptorName (desc_name);
@@ -930,8 +930,8 @@ void Recognizer::printParams() const
         local->initialize (false);
         local->setMaxDescriptorDistance(std::numeric_limits<float>::infinity());
 
-        boost::shared_ptr<v4r::rec_3d_framework::Recognizer<PointT> > cast_recog;
-        cast_recog = boost::static_pointer_cast<v4r::rec_3d_framework::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > (local);
+        boost::shared_ptr<v4r::Recognizer<PointT> > cast_recog;
+        cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > (local);
         multi_recog_->addRecognizer(cast_recog);
     }
 
@@ -945,7 +945,7 @@ void Recognizer::printParams() const
     multi_recog_->initialize();
   }
 
-  void Recognizer::visualizeHypotheses()
+  void SingleViewRecognizer::visualizeHypotheses()
   {
 #ifdef SOC_VISUALIZE
     vis_->removeAllPointClouds();

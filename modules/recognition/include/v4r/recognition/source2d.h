@@ -16,8 +16,6 @@ namespace bf = boost::filesystem;
 
 namespace v4r
 {
-namespace rec_3d_framework
-{
 class Model2D
 {
 public:
@@ -183,7 +181,6 @@ public:
         }
     }
 };
-}
 }
 
 #endif // MODEL2D_H

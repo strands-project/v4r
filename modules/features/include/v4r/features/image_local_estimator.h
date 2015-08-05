@@ -8,15 +8,12 @@
 #ifndef REC_FRAMEWORK_IMAGE_LOCAL_ESTIMATOR_H_
 #define REC_FRAMEWORK_IMAGE_LOCAL_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
-
     template<typename PointInT>
-      class FAAT_3D_FRAMEWORK_API ImageKeypointExtractor
+      class V4R_EXPORTS ImageKeypointExtractor
       {
       protected:
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -54,7 +51,7 @@ namespace v4r
       };
 
     template<typename PointInT>
-      class FAAT_3D_FRAMEWORK_API UniformSamplingExtractor : public KeypointExtractor<PointInT>
+      class V4R_EXPORTS UniformSamplingExtractor : public KeypointExtractor<PointInT>
       {
       private:
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -163,7 +160,7 @@ namespace v4r
       };
 
     template<typename PointInT>
-      class FAAT_3D_FRAMEWORK_API SIFTKeypointExtractor : public KeypointExtractor<PointInT>
+      class V4R_EXPORTS SIFTKeypointExtractor : public KeypointExtractor<PointInT>
       {
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
         using KeypointExtractor<PointInT>::input_;
@@ -187,7 +184,7 @@ namespace v4r
       };
 
     template<typename PointInT>
-      class FAAT_3D_FRAMEWORK_API SIFTSurfaceKeypointExtractor : public KeypointExtractor<PointInT>
+      class V4R_EXPORTS SIFTSurfaceKeypointExtractor : public KeypointExtractor<PointInT>
       {
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
         pcl::PointCloud<pcl::Normal>::Ptr normals_;
@@ -237,7 +234,7 @@ namespace v4r
       };
 
     template<typename PointInT, typename NormalT = pcl::Normal>
-      class FAAT_3D_FRAMEWORK_API HarrisKeypointExtractor : public KeypointExtractor<PointInT>
+      class V4R_EXPORTS HarrisKeypointExtractor : public KeypointExtractor<PointInT>
       {
 
         pcl::PointCloud<pcl::Normal>::Ptr normals_;
@@ -311,7 +308,7 @@ namespace v4r
       };
 
     template<typename PointInT, typename NormalT = pcl::Normal>
-      class FAAT_3D_FRAMEWORK_API SUSANKeypointExtractor : public KeypointExtractor<PointInT>
+      class V4R_EXPORTS SUSANKeypointExtractor : public KeypointExtractor<PointInT>
       {
 
         pcl::PointCloud<pcl::Normal>::Ptr normals_;
@@ -361,7 +358,7 @@ namespace v4r
       };
 
     template<typename PointInT, typename FeatureT>
-      class FAAT_3D_FRAMEWORK_API LocalEstimator
+      class V4R_EXPORTS LocalEstimator
       {
       protected:
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -519,7 +516,6 @@ namespace v4r
          }*/
 
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_LOCAL_ESTIMATOR_H_ */

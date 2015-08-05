@@ -26,7 +26,7 @@ namespace faat_pcl
      */
 
     template<typename PointInT>
-      class FAAT_3D_FRAMEWORK_API LineMod3DPipeline : public Recognizer<PointInT>
+      class V4R_EXPORTS LineMod3DPipeline : public Recognizer<PointInT>
       {
         protected:
           typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;

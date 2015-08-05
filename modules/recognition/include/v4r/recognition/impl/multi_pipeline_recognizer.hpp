@@ -15,7 +15,7 @@
 
 template<typename PointInT>
 void
-v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::initialize()
+v4r::MultiRecognitionPipeline<PointInT>::initialize()
 {
     if(ICP_iterations_ > 0 && icp_type_ == 1)
     {
@@ -28,7 +28,7 @@ v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::initialize()
 
 template<typename PointInT>
 void
-v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize()
+v4r::MultiRecognitionPipeline<PointInT>::reinitialize()
 {
     for(size_t i=0; i < recognizers_.size(); i++)
     {
@@ -40,7 +40,7 @@ v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize()
 
 template<typename PointInT>
 void
-v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize(const std::vector<std::string> & load_ids)
+v4r::MultiRecognitionPipeline<PointInT>::reinitialize(const std::vector<std::string> & load_ids)
 {
     for(size_t i=0; i < recognizers_.size(); i++)
     {
@@ -53,7 +53,7 @@ v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::reinitialize(const st
 
 template<typename PointInT>
 void
-v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::getPoseRefinement(
+v4r::MultiRecognitionPipeline<PointInT>::getPoseRefinement(
         boost::shared_ptr<std::vector<ModelTPtr> > models,
         boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms)
 {
@@ -64,7 +64,7 @@ v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::getPoseRefinement(
 
 template<typename PointInT>
 void
-v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
+v4r::MultiRecognitionPipeline<PointInT>::recognize()
 {
 
     /*if(models_)
@@ -236,7 +236,7 @@ v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::recognize()
 
 
 template<typename PointInT>
-void v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
+void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
 {
     if(set_save_hypotheses_ && pObjectHypotheses_->size() > 0)
     {
@@ -253,8 +253,8 @@ void v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::correspondenceGr
             if(!normals_set_)
             {
                 pcl::ScopeTime t("compute normals\n");
-                boost::shared_ptr<v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator;
-                normal_estimator.reset (new v4r::rec_3d_framework::PreProcessorAndNormalEstimator<PointInT, pcl::Normal>);
+                boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator;
+                normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal>);
                 normal_estimator->setCMR (false);
                 normal_estimator->setDoVoxelGrid (false);
                 normal_estimator->setRemoveOutliers (false);
@@ -464,7 +464,7 @@ void v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::correspondenceGr
 
 template<typename PointInT>
 bool
-v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::isSegmentationRequired() const
+v4r::MultiRecognitionPipeline<PointInT>::isSegmentationRequired() const
 {
     bool ret_value = false;
     for(size_t i=0; (i < recognizers_.size()) && !ret_value; i++)
@@ -476,8 +476,8 @@ v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::isSegmentationRequire
 }
 
 template<typename PointInT>
-typename boost::shared_ptr<v4r::rec_3d_framework::Source<PointInT> >
-v4r::rec_3d_framework::MultiRecognitionPipeline<PointInT>::getDataSource () const
+typename boost::shared_ptr<v4r::Source<PointInT> >
+v4r::MultiRecognitionPipeline<PointInT>::getDataSource () const
 {
     //NOTE: Assuming source is the same or contains the same models for all recognizers...
     //Otherwise, we should create a combined data source so that all models are present

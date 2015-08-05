@@ -1,22 +1,17 @@
-if(NOT HAVE_PCL)
-  v4r_module_disable(registration)
-endif()
-
 set(the_description "Registration")
+v4r_add_module(registration REQUIRED v4r_core v4r_io v4r_features pcl OPTIONAL edt siftgpu)
 
-v4r_add_module(registration v4r_core v4r_io v4r_features)
+v4r_module_include_directories()
 
-v4r_module_include_directories(${PCL_INCLUDE_DIRS})
+#if(HAVE_EDT)
+  #v4r_include_directories(${EDT_INCLUDE_DIR})
+  #list(APPEND DEP_LIBS ${EDT_LIBRARIES})
+#endif()
 
-if(HAVE_EDT)
-  v4r_include_directories(${EDT_INCLUDE_DIR})
-  list(APPEND DEP_LIBS ${EDT_LIBRARIES})
-endif()
-
-if(HAVE_SIFTGPU)
-  v4r_include_directories(${SIFTGPU_INCLUDE_DIR})
-  list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
-endif()
+#if(HAVE_SIFTGPU)
+  #v4r_include_directories(${SIFTGPU_INCLUDE_DIRS})
+  #list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
+#endif()
 
 # depends on siftgpu and opencv ceres
 
@@ -69,10 +64,10 @@ set(lib_hdrs
 v4r_set_module_sources(HEADERS ${lib_hdrs} ${lib_hdrs_detail}
                        SOURCES ${lib_srcs} ${lib_int_hdrs} ${lib_cuda_srcs} ${lib_cuda_hdrs})
 
-v4r_module_include_directories()
-v4r_create_module(${DEP_LIBS} ${PCL_LIBRARIES})
+#v4r_create_module(${DEP_LIBS} ${PCL_LIBRARIES})
+v4r_create_module()
 
-set_target_properties(${the_module} PROPERTIES LINK_INTERFACE_LIBRARIES "")
+#set_target_properties(${the_module} PROPERTIES LINK_INTERFACE_LIBRARIES "")
 
 # in case of ceres is a static lib it must be linked to the executable
 #IF(${Ceres_FOUND})

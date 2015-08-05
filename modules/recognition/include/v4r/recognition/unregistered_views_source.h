@@ -19,8 +19,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
 
     /**
      * \brief Data source class based on partial views from sensor.
@@ -206,7 +204,6 @@ namespace v4r
           }
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_MESH_SOURCE_H_ */

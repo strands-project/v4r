@@ -15,13 +15,11 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
     template<typename PointInT>
-    class FAAT_3D_FRAMEWORK_API MultiRecognitionPipeline : public Recognizer<PointInT>
+    class V4R_EXPORTS MultiRecognitionPipeline : public Recognizer<PointInT>
     {
       protected:
-        std::vector<typename boost::shared_ptr<v4r::rec_3d_framework::Recognizer<PointInT> > > recognizers_;
+        std::vector<typename boost::shared_ptr<v4r::Recognizer<PointInT> > > recognizers_;
 
       private:
         using Recognizer<PointInT>::input_;
@@ -111,7 +109,7 @@ namespace v4r
 
         void recognize();
 
-        void addRecognizer(const typename boost::shared_ptr<v4r::rec_3d_framework::Recognizer<PointInT> > & rec)
+        void addRecognizer(const typename boost::shared_ptr<v4r::Recognizer<PointInT> > & rec)
         {
           recognizers_.push_back(rec);
         }
@@ -127,8 +125,8 @@ namespace v4r
               std::cout << "Checking recognizer type: " << recognizers_[i]->getFeatureType() << std::endl;
               if(recognizers_[i]->getFeatureType() == feature_type)
               {
-                  typename boost::shared_ptr<v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > cast_local_recognizer;
-                  cast_local_recognizer = boost::static_pointer_cast<v4r::rec_3d_framework::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > (recognizers_[i]);
+                  typename boost::shared_ptr<v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > cast_local_recognizer;
+                  cast_local_recognizer = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > (recognizers_[i]);
                   cast_local_recognizer->setISPK(signatures, p, keypoint_indices);
               }
           }
@@ -157,6 +155,5 @@ namespace v4r
             normals_set_ = true;
         }
     };
-  }
 }
 #endif /* MULTI_PIPELINE_RECOGNIZER_H_ */

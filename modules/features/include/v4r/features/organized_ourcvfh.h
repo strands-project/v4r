@@ -12,9 +12,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
-
 template<typename PointInT, typename PointNT, typename PointOutT = pcl::VFHSignature308>
 class OURCVFHEstimation : public pcl::FeatureFromNormals<PointInT, PointNT, PointOutT>
 {
@@ -1045,7 +1042,6 @@ class OURCVFHEstimation : public pcl::FeatureFromNormals<PointInT, PointNT, Poin
     /** \brief Indices to the points representing the stable clusters */
     std::vector<pcl::PointIndices> clusters_;
 };
-}
 }
 
 #endif

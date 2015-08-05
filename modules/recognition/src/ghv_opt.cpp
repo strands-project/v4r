@@ -43,10 +43,10 @@
 //PCL_INSTANTIATE_PRODUCT(faatGoHV, ((pcl::PointXYZRGB))((pcl::PointXYZRGB)))
 //PCL_INSTANTIATE_PRODUCT(faatGoHV, ((pcl::PointXYZRGBA))((pcl::PointXYZRGBA)))
 
-//PCL_INSTANTIATE_PRODUCT(faatGoHV, ((pcl::PointXYZ))((pcl::PointXYZ))) template class faat_pcl::GlobalHypothesesVerification<pcl::PointXYZ,pcl::PointXYZ>;
-//template class FAAT_REC_API faat_pcl::HVGOBinaryOptimizer<pcl::PointXYZ,pcl::PointXYZ>;
-//template class FAAT_REC_API faat_pcl::HVGOBinaryOptimizer<pcl::PointXYZRGB,pcl::PointXYZRGB>;
+//PCL_INSTANTIATE_PRODUCT(faatGoHV, ((pcl::PointXYZ))((pcl::PointXYZ))) template class v4r::GlobalHypothesesVerification<pcl::PointXYZ,pcl::PointXYZ>;
+//template class FAAT_REC_API v4r::HVGOBinaryOptimizer<pcl::PointXYZ,pcl::PointXYZ>;
+//template class FAAT_REC_API v4r::HVGOBinaryOptimizer<pcl::PointXYZRGB,pcl::PointXYZRGB>;
 
 template class FAAT_REC_API v4r::GHVmove_manager<pcl::PointXYZ,pcl::PointXYZ>;
 template class FAAT_REC_API v4r::GHVmove_manager<pcl::PointXYZRGB,pcl::PointXYZRGB>;
-//template class FAAT_REC_API faat_pcl::GlobalHypothesesVerification<pcl::PointXYZRGBA,pcl::PointXYZRGBA>;
+//template class FAAT_REC_API v4r::GlobalHypothesesVerification<pcl::PointXYZRGBA,pcl::PointXYZRGBA>;

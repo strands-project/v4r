@@ -6,11 +6,11 @@
  */
 
 #include <v4r/recognition/global_nn_classifier.h>
-#include <v4r/io/filesystem_utils.h>
+#include <v4r/io/eigen.h>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
+  v4r::GlobalNNPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
   {
     boost::shared_ptr < std::vector<ModelTPtr> > models = source_->getModels ();
     for (size_t i = 0; i < models->size (); i++)
@@ -60,7 +60,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNPipeline<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index, const flann_model &model,
+  v4r::GlobalNNPipeline<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index, const flann_model &model,
                                                                                          int k, flann::Matrix<int> &indices,
                                                                                          flann::Matrix<float> &distances)
   {
@@ -75,7 +75,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNPipeline<Distance, PointInT, FeatureT>::classify ()
+  v4r::GlobalNNPipeline<Distance, PointInT, FeatureT>::classify ()
   {
 
     categories_.clear ();
@@ -190,7 +190,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::rec_3d_framework::GlobalNNPipeline<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
+  v4r::GlobalNNPipeline<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
   {
 
     //use the source to know what has to be trained and what not, checking if the descr_name directory exists

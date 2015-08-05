@@ -6,7 +6,7 @@
 
 #include <pcl/common/transforms.h>
 
-typedef v4r::rec_3d_framework::Model<PointT> ModelT;
+typedef v4r::Model<PointT> ModelT;
 typedef boost::shared_ptr<ModelT> ModelTPtr;
 
 void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization::PCLVisualizer::Ptr &vis)

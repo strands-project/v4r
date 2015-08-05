@@ -26,9 +26,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
-
     /**
      * \brief Data source class based on partial views from sensor.
      * In this case, the original training data is obtained directly from a depth sensor.
@@ -42,7 +39,7 @@ namespace v4r
      */
 
     template<typename PointInT>
-      class FAAT_3D_FRAMEWORK_API RegisteredViewsWithPPSource : public Source<PointInT>
+      class V4R_EXPORTS RegisteredViewsWithPPSource : public Source<PointInT>
       {
         typedef Source<PointInT> SourceT;
         typedef Model<PointInT> ModelT;
@@ -58,7 +55,7 @@ namespace v4r
         float res_grid_;
 
         template<typename PointT>
-        class FAAT_3D_FRAMEWORK_API Voxel
+        class V4R_EXPORTS Voxel
         {
         public:
           bool label_;
@@ -633,7 +630,7 @@ namespace v4r
 
               std::stringstream path_pose;
               path_pose << direc.str () << "/pose_" << i << ".txt";
-              faat_pcl::rec_3d_framework::PersistenceUtils::writeMatrixToFile (path_pose.str (), pose);
+              v4r::PersistenceUtils::writeMatrixToFile (path_pose.str (), pose);
             }
 
             loadOrGenerate (dir, model_path, model);*/
@@ -715,7 +712,6 @@ namespace v4r
           }
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_MESH_SOURCE_H_ */

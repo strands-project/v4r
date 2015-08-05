@@ -8,7 +8,7 @@
 #ifndef REC_FRAMEWORK_ORGANIZED_COLOR_OURCVFH_ESTIMATOR_H_
 #define REC_FRAMEWORK_ORGANIZED_COLOR_OURCVFH_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include "ourcvfh_estimator.h"
 #include "organized_ourcvfh.h"
 #include "normal_estimator.h"
@@ -17,11 +17,8 @@
 
 namespace v4r
 {
-    namespace rec_3d_framework
-    {
-
         template<typename PointInT = pcl::PointXYZRGB, typename FeatureT = pcl::Histogram<367> >
-        class FAAT_3D_FRAMEWORK_API OrganizedColorOURCVFHEstimator : public OURCVFHEstimator<PointInT, FeatureT>
+        class V4R_EXPORTS OrganizedColorOURCVFHEstimator : public OURCVFHEstimator<PointInT, FeatureT>
         {
 
             typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -200,7 +197,7 @@ namespace v4r
                     processed.reset (new pcl::PointCloud<PointInT>(*in));
                 }
 
-                typedef typename v4r::rec_3d_framework::OURCVFHEstimation<PointInT, pcl::Normal, pcl::VFHSignature308> OURCVFHEstimation;
+                typedef typename v4r::OURCVFHEstimation<PointInT, pcl::Normal, pcl::VFHSignature308> OURCVFHEstimation;
                 typename pcl::search::KdTree<PointInT>::Ptr cvfh_tree (new pcl::search::KdTree<PointInT>);
 
                 //if vectors are not set, assume that single values are set...
@@ -513,7 +510,6 @@ namespace v4r
                 return true;
             }
         };
-    }
 }
 
 #endif /* REC_FRAMEWORK_COLOR_OURCVFH_ESTIMATOR_H_ */

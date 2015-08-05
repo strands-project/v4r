@@ -20,9 +20,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
-
     inline double
     uniform_deviate (int seed)
     {
@@ -161,7 +158,6 @@ namespace v4r
         cloud_out.points[i].z = static_cast<float> (p[2]);
       }
     }
-  }
 }
 
 #endif /* REC_FRAMEWORK_UNIFORM_SAMPLING_H_ */

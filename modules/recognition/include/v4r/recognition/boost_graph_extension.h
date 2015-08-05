@@ -18,7 +18,7 @@ typedef pcl::Histogram<128> FeatureT;
 template<typename PointInT>
 class Hypothesis
 {
-    typedef v4r::rec_3d_framework::Model<PointInT> ModelT;
+    typedef v4r::Model<PointInT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
     static size_t sNum_hypotheses_;
@@ -95,7 +95,7 @@ public:
     pcl::PointIndices filteredSceneIndices_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pKeypointNormalsMultipipe_;
-    std::map<std::string, v4r::rec_3d_framework::ObjectHypothesis<PointT> > hypotheses_;
+    std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<FeatureT > > pSiftSignatures_;
     std::vector<float> sift_keypoints_scales_;
     pcl::PointIndices siftKeypointIndices_;

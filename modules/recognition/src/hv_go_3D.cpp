@@ -136,5 +136,5 @@ v4r::GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<Model
 template<typename ModelT, typename SceneT> float v4r::GO3D<ModelT, SceneT>::sRGB_LUT[256] = {- 1};
 template<typename ModelT, typename SceneT> float v4r::GO3D<ModelT, SceneT>::sXYZ_LUT[4000] = {- 1};
 
-//template class FAAT_REC_API faat_pcl::GO3D<pcl::PointXYZ,pcl::PointXYZ>;
+//template class FAAT_REC_API v4r::GO3D<pcl::PointXYZ,pcl::PointXYZ>;
 template class FAAT_REC_API v4r::GO3D<pcl::PointXYZRGB,pcl::PointXYZRGB>;

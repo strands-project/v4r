@@ -28,7 +28,7 @@ void
 v4r::Registration::FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > & session_ranges)
 {
 
-    typename v4r::rec_3d_framework::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
+    typename v4r::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
 
     //computes features and keypoints for the views of all sessions using appropiate object indices
     size_t total_views = this->getTotalNumberOfClouds();

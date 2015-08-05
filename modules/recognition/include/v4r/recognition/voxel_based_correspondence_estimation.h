@@ -57,8 +57,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
     template <typename PointSource, typename PointTarget, typename Scalar = float>
     class PCL_EXPORTS VoxelBasedCorrespondenceEstimation : public pcl::registration::CorrespondenceEstimationBase<PointSource, PointTarget, Scalar>
     {
@@ -243,7 +241,6 @@ namespace v4r
           return (true);
         }
      };
-  }
 }
 
 #endif /* PCL_REGISTRATION_VOXELBASED_CORRESPONDENCE_ESTIMATION_H_ */

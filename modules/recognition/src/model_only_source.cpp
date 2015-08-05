@@ -8,7 +8,7 @@
 
 template<typename Full3DPointT, typename PointInT>
 void
-computeFacesImpl (typename v4r::rec_3d_framework::Model<PointInT> & model)
+computeFacesImpl (typename v4r::Model<PointInT> & model)
 {
     float voxel_resolution = 0.005f;
     float seed_resolution = 0.05f;
@@ -141,18 +141,18 @@ computeFacesImpl (typename v4r::rec_3d_framework::Model<PointInT> & model)
 template< >
 void
 computeFacesImpl <pcl::PointXYZ, pcl::PointXYZ>
-    (v4r::rec_3d_framework::Model<pcl::PointXYZ> & model)
+    (v4r::Model<pcl::PointXYZ> & model)
 {
     PCL_WARN("Not implemented for pcl::PointXYZ... this function would be available for PCL1.7.2 or higher\n");
 }
 
 template<typename Full3DPointT, typename PointInT>
 void
-v4r::rec_3d_framework::ModelOnlySource<Full3DPointT, PointInT>::computeFaces (ModelT & model)
+v4r::ModelOnlySource<Full3DPointT, PointInT>::computeFaces (ModelT & model)
 {
-    //boost::shared_ptr< typename faat_pcl::rec_3d_framework::Model<PointInT> > m = model;
+    //boost::shared_ptr< typename v4r::Model<PointInT> > m = model;
     computeFacesImpl<Full3DPointT, PointInT>(model);
 }
 
-template class V4R_EXPORTS v4r::rec_3d_framework::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>;
-template class V4R_EXPORTS v4r::rec_3d_framework::ModelOnlySource<pcl::PointXYZ, pcl::PointXYZ>;
+template class V4R_EXPORTS v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::ModelOnlySource<pcl::PointXYZ, pcl::PointXYZ>;

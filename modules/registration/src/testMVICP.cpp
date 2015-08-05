@@ -71,7 +71,7 @@ main (int argc, char ** argv)
 
       //read pose as well
       Eigen::Matrix4f pose;
-      faat_pcl::utils::readMatrixFromFile (file_replaced1, pose);
+      v4r::utils::readMatrixFromFile (file_replaced1, pose);
 
       //the recognizer assumes transformation from M to CC - i think!
       Eigen::Matrix4f pose_inv = pose; //.inverse();
@@ -177,7 +177,7 @@ main (int argc, char ** argv)
           std::cout << file_replaced1 << std::endl;
 
           //read pose as well
-          faat_pcl::utils::writeMatrixToFile(file_replaced1, final_poses[i]);
+          v4r::utils::writeMatrixToFile(file_replaced1, final_poses[i]);
 
           std::string file_replaced2 (view_file.str());
           boost::replace_last (file_replaced2, "cloud", "object_indices");

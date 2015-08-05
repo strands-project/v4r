@@ -8,7 +8,7 @@
 #ifndef REC_FRAMEWORK_COLOR_OURCVFH_ESTIMATOR_H_
 #define REC_FRAMEWORK_COLOR_OURCVFH_ESTIMATOR_H_
 
-#include "faat_3d_rec_framework_defines.h"
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include "ourcvfh_estimator.h"
 #include "normal_estimator.h"
 #include <pcl/common/transforms.h>
@@ -17,10 +17,8 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
     template<typename PointInT = pcl::PointXYZRGB, typename FeatureT = pcl::Histogram<367> >
-      class FAAT_3D_FRAMEWORK_API ColorOURCVFHEstimator : public OURCVFHEstimator<PointInT, FeatureT>
+      class V4R_EXPORTS ColorOURCVFHEstimator : public OURCVFHEstimator<PointInT, FeatureT>
       {
 
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
@@ -436,7 +434,6 @@ namespace v4r
           return true;
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_COLOR_OURCVFH_ESTIMATOR_H_ */

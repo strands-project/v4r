@@ -242,7 +242,7 @@ main (int argc, char ** argv)
 
             //read pose as well
             Eigen::Matrix4f pose;
-            faat_pcl::utils::readMatrixFromFile (file_replaced1, pose);
+            v4r::utils::readMatrixFromFile (file_replaced1, pose);
 
             Eigen::Matrix4f pose_inv = pose; //.inverse();
 
@@ -356,7 +356,7 @@ main (int argc, char ** argv)
 
     for(size_t i=0; i < clouds.size(); i++)
     {
-        faat_pcl::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+        v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
         nm.setInputCloud(clouds[i]);
         nm.setInputNormals(normals[i]);
         if(use_plane_for_nw)
@@ -467,7 +467,7 @@ main (int argc, char ** argv)
 
     //do NM based cloud integration
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-    faat_pcl::utils::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
+    v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
     nmIntegration.setInputClouds(clouds);
     nmIntegration.setResolution(model_resolution);
     nmIntegration.setWeights(weights);
@@ -521,7 +521,7 @@ main (int argc, char ** argv)
             std::cout << file_replaced1 << std::endl;
 
             //read pose as well
-            faat_pcl::utils::writeMatrixToFile(file_replaced1, final_poses[i]);
+            v4r::utils::writeMatrixToFile(file_replaced1, final_poses[i]);
 
             std::string file_replaced2 (view_file.str());
             boost::replace_last (file_replaced2, "cloud", "object_indices");

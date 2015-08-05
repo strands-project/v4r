@@ -17,8 +17,6 @@
 
 namespace v4r
 {
-  namespace rec_3d_framework
-  {
     template<typename PointInT, typename PointOutT>
       class PreProcessorAndNormalEstimator
       {
@@ -359,7 +357,6 @@ namespace v4r
           }*/
         }
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_NORMAL_ESTIMATOR_H_ */
