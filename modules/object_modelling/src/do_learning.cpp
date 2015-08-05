@@ -36,12 +36,13 @@
 #include <v4r/common/fast_icp_with_gc.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/io/filesystem_utils.h>
+#include <v4r/io/filesystem.h>
+#include <v4r/io/eigen.h>
 #include <v4r/common/occlusion_reasoning.h>
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
-//#define USE_SIFT_GPU
+#define USE_SIFT_GPU
 
 #ifndef USE_SIFT_GPU
 #include <v4r/features/opencv_sift_local_estimator.h>
