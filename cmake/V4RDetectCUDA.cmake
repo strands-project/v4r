@@ -159,7 +159,7 @@ if(CUDA_FOUND)
 
   message(STATUS "CUDA NVCC target flags: ${CUDA_NVCC_FLAGS}")
 
-  OCV_OPTION(CUDA_FAST_MATH "Enable --use_fast_math for CUDA compiler " OFF)
+  V4R_OPTION(CUDA_FAST_MATH "Enable --use_fast_math for CUDA compiler " OFF)
 
   if(CUDA_FAST_MATH)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --use_fast_math)
