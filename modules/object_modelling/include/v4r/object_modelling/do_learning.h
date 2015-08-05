@@ -154,7 +154,7 @@ protected:
     Graph gs_;
 
     Parameter param_;
-    kp::ClusterNormalsToPlanes::Parameter p_param_;
+    v4r::ClusterNormalsToPlanes::Parameter p_param_;
     v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nm_int_param_;
 
     pcl::PointCloud<PointT>::Ptr big_cloud_;
@@ -269,7 +269,7 @@ public:
      */
     void extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                             const pcl::PointCloud<pcl::Normal>::ConstPtr &normals,
-                            std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes);
+                            std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> &planes);
 
     /**
      * @brief given a set of clusters, this function returns the clusters which have less than ratio% object points or ratio_occ% occlusion points
@@ -282,7 +282,7 @@ public:
      * @param ratio - threshold percentage when a cluster is considered as belonging to an object
      * @param ratio_occ - threshold percentage when a cluster is considered as being occluded
      */
-    void getPlanesNotSupportedByObjectMask(const std::vector<kp::ClusterNormalsToPlanes::Plane::Ptr> &planes,
+    void getPlanesNotSupportedByObjectMask(const std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                            const std::vector< bool > &object_mask,
                                            const std::vector< bool > &occlusion_mask,
                                            const pcl::PointCloud<PointT>::ConstPtr &cloud,
@@ -301,7 +301,7 @@ public:
      * @param[in] operation (AND, AND_N, OR, XOR)
      * @return output bit mask
      */
-    static std::vector<bool> logical_operation(const std::vector<bool> &mask1, const std::vector<bool> &mask2, int operation=MASK_OPERATOR::OR);
+    static std::vector<bool> logical_operation(const std::vector<bool> &mask1, const std::vector<bool> &mask2, int operation);
 
     /**
      * @brief transforms each keyframe to global coordinate system using given camera
