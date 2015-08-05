@@ -167,7 +167,7 @@ if(CUDA_FOUND)
 
   mark_as_advanced(CUDA_BUILD_CUBIN CUDA_BUILD_EMULATION CUDA_VERBOSE_BUILD CUDA_SDK_ROOT_DIR)
 
-  macro(ocv_cuda_compile VAR)
+  macro(v4r_cuda_compile VAR)
     foreach(var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_DEBUG)
       set(${var}_backup_in_cuda_compile_ "${${var}}")
 
@@ -205,7 +205,7 @@ if(CUDA_FOUND)
 
     # disabled because of multiple warnings during building nvcc auto generated files
     if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_GCC_REGEX_VERSION VERSION_GREATER "4.6.0")
-      ocv_warnings_disable(CMAKE_CXX_FLAGS -Wunused-but-set-variable)
+      v4r_warnings_disable(CMAKE_CXX_FLAGS -Wunused-but-set-variable)
     endif()
 
     CUDA_COMPILE(${VAR} ${ARGN})
@@ -245,16 +245,16 @@ if(HAVE_CUDA)
   link_directories(${CUDA_LIBS_PATH})
 
   set(CUDA_LIBRARIES_ABS ${CUDA_LIBRARIES})
-  ocv_convert_to_lib_name(CUDA_LIBRARIES ${CUDA_LIBRARIES})
+  v4r_convert_to_lib_name(CUDA_LIBRARIES ${CUDA_LIBRARIES})
   set(CUDA_npp_LIBRARY_ABS ${CUDA_npp_LIBRARY})
-  ocv_convert_to_lib_name(CUDA_npp_LIBRARY ${CUDA_npp_LIBRARY})
+  v4r_convert_to_lib_name(CUDA_npp_LIBRARY ${CUDA_npp_LIBRARY})
   if(HAVE_CUBLAS)
     set(CUDA_cublas_LIBRARY_ABS ${CUDA_cublas_LIBRARY})
-    ocv_convert_to_lib_name(CUDA_cublas_LIBRARY ${CUDA_cublas_LIBRARY})
+    v4r_convert_to_lib_name(CUDA_cublas_LIBRARY ${CUDA_cublas_LIBRARY})
   endif()
 
   if(HAVE_CUFFT)
     set(CUDA_cufft_LIBRARY_ABS ${CUDA_cufft_LIBRARY})
-    ocv_convert_to_lib_name(CUDA_cufft_LIBRARY ${CUDA_cufft_LIBRARY})
+    v4r_convert_to_lib_name(CUDA_cufft_LIBRARY ${CUDA_cufft_LIBRARY})
   endif()
 endif()
