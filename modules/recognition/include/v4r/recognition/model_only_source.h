@@ -147,10 +147,10 @@ namespace v4r
             else
             {
               std::stringstream ss;
-              for (int i = 0; i < (static_cast<int> (strs.size ()) - 1); i++)
+              for (int j = 0; j < (static_cast<int> (strs.size ()) - 1); j++)
               {
-                ss << strs[i];
-                if (i != (static_cast<int> (strs.size ()) - 1))
+                ss << strs[j];
+                if (j != (static_cast<int> (strs.size ()) - 1))
                   ss << "/";
               }
 

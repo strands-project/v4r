@@ -372,13 +372,12 @@ add_subdirectory(modules)
 # extra applications
 if(BUILD_v4r_apps)
   # TODO
-  #add_subdirectory(apps)
+  add_subdirectory(apps)
 endif()
 
 # examples
 if(BUILD_EXAMPLES)
-  # TODO
-  #add_subdirectory(samples)
+  add_subdirectory(samples)
 endif()
 
 # ----------------------------------------------------------------------------
