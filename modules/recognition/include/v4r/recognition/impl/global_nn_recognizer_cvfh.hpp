@@ -10,6 +10,7 @@
 #include <boost/random.hpp>
 #include <boost/random/normal_distribution.hpp>
 #include <pcl/common/time.h>
+#include <pcl/pcl_config.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
@@ -509,7 +510,12 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         //std::cout << "Number of object hypotheses... " << num_n << std::endl;
 
         std::vector<bool> valid_trans;
+
+#if PCL_VERSION < 100800
+        std::vector < Eigen::Matrix4f> transformations;
+#else
         std::vector < Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations;
+#endif
 
         micvfh_estimator_->getValidTransformsVec (valid_trans);
         micvfh_estimator_->getTransformsVec (transformations);
@@ -769,7 +775,12 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           micvfh_estimator_->estimate (view, processed, signatures, centroids);
 
           std::vector<bool> valid_trans;
+
+#if PCL_VERSION < 100800
+          std::vector < Eigen::Matrix4f> transforms;
+#else
           std::vector < Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms;
+#endif
 
           micvfh_estimator_->getValidTransformsVec (valid_trans);
           micvfh_estimator_->getTransformsVec (transforms);

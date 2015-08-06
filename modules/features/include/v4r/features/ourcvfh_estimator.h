@@ -134,7 +134,11 @@ namespace v4r
         }
 
         void
+#if PCL_VERSION < 100800
+        getTransformsVec (std::vector<Eigen::Matrix4f> & trans)
+#else
         getTransformsVec (std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & trans)
+#endif
         {
           trans = transforms_;
         }
