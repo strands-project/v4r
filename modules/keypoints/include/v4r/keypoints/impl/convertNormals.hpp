@@ -38,8 +38,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include "v4r/keypoints/impl/DataMatrix2D.hpp"
-#include "v4r/keypoints/impl/PointTypes.hpp"
+#include <v4r/common/impl/DataMatrix2D.hpp>
+#include <v4r/keypoints/impl/PointTypes.hpp>
 
 
 namespace v4r 
