@@ -70,7 +70,7 @@ namespace v4r
         void filter (typename pcl::PointCloud<ModelT>::ConstPtr & model, std::vector<int> & indices, float thres = 0.01);
       };
 
-      template<typename ModelT, typename SceneT> std::vector<bool>
+      template<typename SceneT, typename ModelT> std::vector<bool>
       computeOccludedPoints (const typename pcl::PointCloud<SceneT> & organized_cloud,
                              const typename pcl::PointCloud<ModelT> & to_be_filtered,
                              float f = 525.f,
@@ -118,7 +118,7 @@ namespace v4r
 
 
 
-      template<typename ModelT, typename SceneT> std::vector<bool>
+      template<typename SceneT, typename ModelT> std::vector<bool>
       computeOccludedPoints (const typename pcl::PointCloud<SceneT> & organized_cloud,
                              const typename pcl::PointCloud<ModelT> & to_be_filtered,
                              const Eigen::Matrix4f &transform_2to1,
