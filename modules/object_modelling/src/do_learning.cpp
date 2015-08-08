@@ -441,12 +441,12 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
     size_t kept_keyframes=0;
     for (size_t view_id = 0; view_id < grph_.size(); view_id++)
     {
-        if ( createIndicesFromMask(grph_[view_id].obj_mask_step_.back()).size() )
+        if ( v4r::common::createIndicesFromMask(grph_[view_id].obj_mask_step_.back()).size() )
         {
             keyframes_used[ kept_keyframes ] = grph_[view_id].cloud_;
             normals_used [ kept_keyframes ] = grph_[view_id].normal_;
             cameras_used [ kept_keyframes ] = grph_[view_id].camera_pose_;
-            indices_used[ kept_keyframes ] = createIndicesFromMask( grph_[view_id].obj_mask_step_.back() );
+            indices_used[ kept_keyframes ] = v4r::common::createIndicesFromMask( grph_[view_id].obj_mask_step_.back() );
 
             object_indices_clouds[ kept_keyframes ].points.resize( indices_used[ kept_keyframes ].size());
 
@@ -599,70 +599,6 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<v4r::ClusterNormalsToPl
     planes_not_on_object.resize(kept);
 }
 
-std::vector<bool>
-DOL::createMaskFromIndices(const std::vector<size_t> &indices,size_t image_size)
-{
-    std::vector<bool> mask (image_size, false);
-
-    for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-        mask [ indices[obj_pt_id] ] = true;
-
-    return mask;
-}
-
-
-std::vector<bool>
-DOL::createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
-{
-    std::vector<bool> mask (image_size, false);
-
-    for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-        mask [ indices[obj_pt_id] ] = true;
-
-    return mask;
-}
-
-std::vector<bool>
-DOL::createMaskFromVecIndices( const std::vector< std::vector<int> > &v_indices,
-                               size_t image_size)
-{
-    std::vector<bool> mask;
-
-    if ( mask.size() != image_size )
-        mask = std::vector<bool>( image_size, false );
-
-    for(size_t i=0; i<v_indices.size(); i++)
-    {
-        std::vector<bool> mask_tmp = createMaskFromIndices(v_indices[i], image_size);
-
-        if(mask.size())
-            mask = logical_operation(mask, mask_tmp, MASK_OPERATOR::OR);
-        else
-            mask = mask_tmp;
-    }
-
-    return mask;
-}
-
-std::vector<size_t>
-DOL::createIndicesFromMask(const std::vector<bool> &mask, bool invert)
-{
-    std::vector<size_t> out;
-    out.resize(mask.size());
-
-    size_t kept=0;
-    for(size_t i=0; i<mask.size(); i++)
-    {
-        if( ( mask[i] && !invert ) || ( !mask[i] && invert ))
-        {
-            out[kept] = i;
-            kept++;
-        }
-    }
-    out.resize(kept);
-    return out;
-}
-
 void
 DOL::computeAbsolutePosesRecursive (const Graph & grph,
                               const Vertex start,
@@ -708,6 +644,28 @@ DOL::computeAbsolutePoses (const Graph & grph,
   Eigen::Matrix4f accum = grph_[0].tracking_pose_;
   absolute_poses[0] = accum;
   computeAbsolutePosesRecursive (grph, source_view, accum, absolute_poses, hop_list);
+}
+
+std::vector<bool>
+DOL::createMaskFromVecIndices( const std::vector< std::vector<int> > &v_indices,
+                               size_t image_size)
+{
+    std::vector<bool> mask;
+
+    if ( mask.size() != image_size )
+        mask = std::vector<bool>( image_size, false );
+
+    for(size_t i=0; i<v_indices.size(); i++)
+    {
+        std::vector<bool> mask_tmp = v4r::common::createMaskFromIndices(v_indices[i], image_size);
+
+        if(mask.size())
+            mask = logical_operation(mask, mask_tmp, MASK_OPERATOR::OR);
+        else
+            mask = mask_tmp;
+    }
+
+    return mask;
 }
 
 std::vector<bool>
@@ -790,7 +748,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     if (initial_indices.size())   // for first frame use given initial indices and erode them
     {
-        view.obj_mask_step_.push_back(createMaskFromIndices(initial_indices, view.cloud_->points.size()));
+        view.obj_mask_step_.push_back(v4r::common::createMaskFromIndices(initial_indices, view.cloud_->points.size()));
         view.is_pre_labelled_ = true;
 
         // remove nan values and points further away than chop_z_ parameter
@@ -822,8 +780,8 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         sor.filter (*cloud_filtered);
         FilteredObjectIndicesPtr = sor.getRemovedIndices();
 
-        const std::vector<bool> obj_mask_initial = createMaskFromIndices(initial_indices_wo_nan, view.cloud_->points.size());
-        const std::vector<bool> outlier_mask = createMaskFromIndices(*FilteredObjectIndicesPtr, view.cloud_->points.size());
+        const std::vector<bool> obj_mask_initial = v4r::common::createMaskFromIndices(initial_indices_wo_nan, view.cloud_->points.size());
+        const std::vector<bool> outlier_mask = v4r::common::createMaskFromIndices(*FilteredObjectIndicesPtr, view.cloud_->points.size());
         const std::vector<bool> obj_mask_wo_outlier = logical_operation(obj_mask_initial, outlier_mask, MASK_OPERATOR::AND_N);
 
         view.obj_mask_step_.push_back( obj_mask_wo_outlier);
@@ -968,8 +926,8 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     }
 
     std::vector<bool> pixel_is_object = view.obj_mask_step_.back();
-    pixel_is_neglected = createMaskFromVecIndices(planes_not_on_obj, view.cloud_->points.size());
-    view.scene_points_ = createIndicesFromMask(pixel_is_neglected, true);
+    pixel_is_neglected = v4r::common::createMaskFromVecIndices(planes_not_on_obj, view.cloud_->points.size());
+    view.scene_points_ = v4r::common::createIndicesFromMask(pixel_is_neglected, true);
     view.obj_mask_step_.push_back( logical_operation(pixel_is_object, pixel_is_neglected, MASK_OPERATOR::AND_N) );
     pcl::copyPointCloud(*view.normal_, view.scene_points_, *normals_filtered);
 
@@ -1024,10 +982,10 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     for( size_t step_id = 0; step_id<view.obj_mask_step_.size(); step_id++)
     {
-        std::cout << "step " << step_id << ": " << createIndicesFromMask(view.obj_mask_step_[step_id]).size() << " points." << std::endl;
+        std::cout << "step " << step_id << ": " << v4r::common::createIndicesFromMask(view.obj_mask_step_[step_id]).size() << " points." << std::endl;
     }
 
-    if( view.is_pre_labelled_ && createIndicesFromMask(view.obj_mask_step_.back()).size() < param_.min_points_for_transferring_)
+    if( view.is_pre_labelled_ && v4r::common::createIndicesFromMask(view.obj_mask_step_.back()).size() < param_.min_points_for_transferring_)
     {
         view.obj_mask_step_.back() = view.obj_mask_step_[0];
         std::cout << "After postprocessing the initial frame not enough points are left. Therefore taking the original provided indices." << std::endl;
