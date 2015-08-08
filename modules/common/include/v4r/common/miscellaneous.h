@@ -343,6 +343,48 @@ convertPCLIndices2VecSizet(const pcl::PointIndices &input)
     return v_size_t;
 }
 
+inline std::vector<bool>
+createMaskFromIndices(const std::vector<size_t> &indices,size_t image_size)
+{
+    std::vector<bool> mask (image_size, false);
+
+    for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
+        mask [ indices[obj_pt_id] ] = true;
+
+    return mask;
+}
+
+
+inline std::vector<bool>
+createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
+{
+    std::vector<bool> mask (image_size, false);
+
+    for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
+        mask [ indices[obj_pt_id] ] = true;
+
+    return mask;
+}
+
+inline std::vector<size_t>
+createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
+{
+    std::vector<size_t> out;
+    out.resize(mask.size());
+
+    size_t kept=0;
+    for(size_t i=0; i<mask.size(); i++)
+    {
+        if( ( mask[i] && !invert ) || ( !mask[i] && invert ))
+        {
+            out[kept] = i;
+            kept++;
+        }
+    }
+    out.resize(kept);
+    return out;
+}
+
 }
 }
 

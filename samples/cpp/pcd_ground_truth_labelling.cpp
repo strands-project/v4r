@@ -2,6 +2,8 @@
  *  Created on: Aug, 08, 2014
  *      Author: Thomas Faeulhammer
  */
+#include <iostream>
+#include <fstream>
 #include <pcl/console/parse.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -11,6 +13,8 @@
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
+
+//-gt_dir /media/Data/datasets/TUW/annotations -output_dir /home/thomas/Desktop/test -scenes_dir /media/Data/datasets/TUW/test_set_static/ -models_dir /media/Data/datasets/TUW/models -threshold 0.01 -visualize 0
 
 namespace v4r
 {
@@ -140,7 +144,8 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         visible_model_points_.push_back(visible_model_pts_tmp);
                         model_id_.push_back( model_instance );
                         transform_to_scene_.push_back(transform);
-//                        pixel_annotated_obj_in_first_view_.push_back ( std::vector<bool>(pScenePCl_->points.size(), false) );
+                        std::vector<bool> obj_mask (pScenePCl_->points.size(), false);
+                        pixel_annotated_obj_in_first_view_.push_back ( obj_mask );
                         current_model_id = model_id_.size()-1;
                     }
 
@@ -165,8 +170,8 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         if( (mp.z - threshold_ - sp.z) < 0 )
                         {
                             visible_model_points_[current_model_id][m_pt_id] = true;
-//                            if( s_id == 0 )
-//                                pixel_annotated_obj_in_first_view_[current_model_id][u*pScenePCl_->width + v] = true;
+                            if( s_id == 0 )
+                                pixel_annotated_obj_in_first_view_[current_model_id][v*pScenePCl_->width + u] = true;
                         }
                     }
                 }
@@ -262,7 +267,19 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
         std::cout << num_vis_pts << " visible points of total " << visible_model_points_[m_id].size() << std::endl;
         pcl::copyPointCloud( *model_cloud, visible_model_points_[ m_id ], *visible_model);
         v4r::common::setCloudPose(transform_to_scene_[m_id], *visible_model);
-        pcl::io::savePCDFileBinary( path + "/" + model_name + ".pcd", *visible_model);
+        pcl::io::savePCDFileBinary( path + "/" + model_id_[m_id] + ".pcd", *visible_model);
+
+        if( pixel_annotated_obj_in_first_view_.size() > m_id )
+        {
+            std::vector<size_t> obj_mask_in_first_frame = v4r::common::createIndicesFromMask( pixel_annotated_obj_in_first_view_ [m_id] );
+            std::ofstream mask;
+            mask.open( (path + "/" + model_name + "_mask.txt").c_str() );
+            for(size_t i=0; i < obj_mask_in_first_frame.size(); i++)
+            {
+                mask << obj_mask_in_first_frame[i] << std::endl;
+            }
+            mask.close();
+        }
     }
 }
 
@@ -275,7 +292,7 @@ void PcdGtAnnotator<PointT>::printUsage(int argc, char ** argv)
               << "Usage " << argv[0]
               << "-models_dir /path/to/models/ "
               << "-gt_dir /path/to/annotations/ "
-              << "-pcd_file /path/to/input_PCDs/ "
+              << "-scenes_dir /path/to/input_PCDs/ "
               << "-output_dir /path/to/output/ "
               << "[-visualize 1] "
               << std::endl << std::endl;
@@ -292,7 +309,7 @@ main (int argc, char ** argv)
     std::string scene_dir, output_dir;
     bool visualize = false;
 
-    pcl::console::parse_argument (argc, argv, "-pcd_file", scene_dir);
+    pcl::console::parse_argument (argc, argv, "-scenes_dir", scene_dir);
     pcl::console::parse_argument (argc, argv, "-output_dir", output_dir);
     pcl::console::parse_argument (argc, argv, "-models_dir", annotator.models_dir_);
     pcl::console::parse_argument (argc, argv, "-gt_dir", annotator.gt_dir_);
@@ -326,7 +343,7 @@ main (int argc, char ** argv)
     if(!v4r::io::getFoldersInDirectory( scene_dir, "", sub_folder_names) )
     {
         std::cerr << "No subfolders in directory " << scene_dir << ". " << std::endl;
-        return 0;
+        sub_folder_names.push_back("");
     }
 
     annotator.init_source();
