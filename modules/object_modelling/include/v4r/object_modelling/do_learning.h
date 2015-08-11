@@ -181,8 +181,9 @@ protected:
                                   std::vector<bool> &hop_list);
 public:
 
-    DOL () : octree_(0.005f)
+    DOL (const Parameter &p=Parameter()) : octree_(0.005f)
     {
+        param_ = p;
         // Parameters for smooth clustering / plane segmentation
         p_param_.thrAngle=45;
         p_param_.inlDist=0.05;
@@ -239,7 +240,7 @@ public:
                        const Eigen::Matrix4f &camera_pose = Eigen::Matrix4f::Identity(),
                        const std::vector<size_t> &initial_indices = std::vector<size_t>());
 
-    void initialize (int argc, char ** argv);
+    void initSIFT ();
 
     /**
      * @brief clears the memory from the currently learned object.

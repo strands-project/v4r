@@ -111,6 +111,7 @@ DOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
     pcl::PointIndices sift_keypoint_pcl_indices;
 
 #ifdef USE_SIFT_GPU
+    (void) sift_keypoint_indices;
     boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT> > estimator;
     estimator.reset (new v4r::SIFTLocalEstimation<PointT, FeatureT>(sift_));
 
@@ -995,7 +996,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 }
 
 void
-DOL::initialize (int argc, char ** argv)
+DOL::initSIFT ()
 {
     if (param_.do_sift_based_camera_pose_estimation_)
     {
