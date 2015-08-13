@@ -110,6 +110,12 @@ main (int argc, char ** argv)
                 pcl::io::loadPCDFile(view_file, *pCloud);
                 const Eigen::Matrix4f trans = v4r::common::RotTrans2Mat4f(pCloud->sensor_orientation_, pCloud->sensor_origin_);
 
+
+                Eigen::Vector4f zero_origin;
+                zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
+                pCloud->sensor_origin_ = zero_origin;   // for correct visualization
+                pCloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+
                 if (v_id==0)
                     m.learn_object(*pCloud, trans, mask);
                 else

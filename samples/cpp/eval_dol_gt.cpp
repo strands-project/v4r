@@ -12,19 +12,19 @@
 //-do_erosion 1 -radius 0.005 -dot_product 0.99 -normal_method 0 -chop_z 2 -transfer_latest_only 0 -do_sift_based_camera_pose_estimation 0 -scenes_dir /media/Data/datasets/TUW/test_set -input_mask_dir /home/thomas/Desktop/test -output_dir /home/thomas/Desktop/out_test/ -visualize 1
 
 template<typename PointT> float
-computeRecall(const typename pcl::PointCloud<PointT>::ConstPtr &gt, const typename pcl::PointCloud<PointT>::ConstPtr &test)
+computeRecall(const typename pcl::PointCloud<PointT>::ConstPtr &gt, const typename pcl::PointCloud<PointT>::ConstPtr &searchPoints, float radius=0.005f)
 {
-    if (!test->points.size())   // if no test points, everything is correct by definition
+    if (!searchPoints->points.size())   // if no test points, everything is correct by definition
         return 1.0f;
 
-    pcl::octree::OctreePointCloudSearch<PointT> octree(0.005f);
+    pcl::octree::OctreePointCloudSearch<PointT> octree(radius);
     octree.setInputCloud( gt );
     octree.addPointsFromInputCloud();
 
     size_t num_matches=0;
-    for(size_t i=0; i < test->points.size(); i++)
+    for(size_t i=0; i < searchPoints->points.size(); i++)
     {
-        if ( ! pcl::isFinite(test->points[i]) )
+        if ( ! pcl::isFinite(searchPoints->points[i]) )
         {
             PCL_WARN ("Warning: Point is NaN.\n");    // not sure if this causes somewhere else a problem. This condition should not be fulfilled.
             continue;
@@ -33,7 +33,7 @@ computeRecall(const typename pcl::PointCloud<PointT>::ConstPtr &gt, const typena
         std::vector<int> pointIdxRadiusSearch;
         std::vector<float> pointRadiusSquaredDistance;
 
-        if ( octree.radiusSearch (test->points[i], 0.005f, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
+        if ( octree.radiusSearch (searchPoints->points[i], 2*radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
         {
             for( size_t nn_id = 0; nn_id < pointIdxRadiusSearch.size(); nn_id++)
             {
@@ -45,7 +45,7 @@ computeRecall(const typename pcl::PointCloud<PointT>::ConstPtr &gt, const typena
             }
         }
     }
-    return static_cast<float>( num_matches ) / test->points.size();
+    return static_cast<float>( num_matches ) / searchPoints->points.size();
 }
 
 int
@@ -54,16 +54,21 @@ main (int argc, char ** argv)
     typedef pcl::PointXYZRGB PointT;
 
     std::string input_dir;
+    float radius=0.005f;
     bool visualize = false;
+    pcl::visualization::PCLVisualizer::Ptr vis_;
 
     pcl::console::parse_argument (argc, argv,  "-visualize", visualize);
     pcl::console::parse_argument (argc, argv, "-input_dir", input_dir);
+    pcl::console::parse_argument (argc, argv, "-radius", radius);
 
     if (input_dir.compare ("") == 0)
     {
         PCL_ERROR("Set the input directory. Usage -input_dir [path_to_dir].\n");
         return -1;
     }
+    if(visualize)
+        vis_.reset( new pcl::visualization::PCLVisualizer("gt and dol object") );
 
     std::vector< std::string> sub_folder_names;
     if(!v4r::io::getFoldersInDirectory( input_dir, "", sub_folder_names) )
@@ -88,8 +93,6 @@ main (int argc, char ** argv)
             pcl::PointCloud<PointT>::Ptr obj_gt (new pcl::PointCloud<PointT>());
             pcl::io::loadPCDFile(gt_fn, *obj_gt);
 
-            pcl::visualization::PCLVisualizer vis("gt and dol object");
-
             pcl::transformPointCloud(*obj_dol, *obj_dol, v4r::common::RotTrans2Mat4f(obj_dol->sensor_orientation_, obj_dol->sensor_origin_) );
             pcl::transformPointCloud( *obj_gt,  *obj_gt, v4r::common::RotTrans2Mat4f( obj_gt->sensor_orientation_,  obj_gt->sensor_origin_) );
 
@@ -100,11 +103,15 @@ main (int argc, char ** argv)
             obj_dol->sensor_origin_ = zero_origin;   // for correct visualization
             obj_dol->sensor_orientation_ = Eigen::Quaternionf::Identity();
 
-            std::cout << obj_fn[ o_id ] << ": " << computeRecall<PointT>(obj_gt, obj_dol) << " and " << computeRecall<PointT>(obj_dol, obj_gt) << std::endl;
+            std::cout << obj_fn[ o_id ] << ": " << computeRecall<PointT>(obj_gt, obj_dol, radius) << " and " << computeRecall<PointT>(obj_dol, obj_gt, radius) << std::endl;
 
-            vis.addPointCloud(obj_gt, "ground_truth");
-            vis.addPointCloud(obj_dol, "dol");
-            vis.spin();
+            if(visualize)
+            {
+                vis_->removeAllPointClouds();
+                vis_->addPointCloud(obj_gt, "ground_truth");
+                vis_->addPointCloud(obj_dol, "dol");
+                vis_->spin();
+            }
         }
     }
     return 0;
