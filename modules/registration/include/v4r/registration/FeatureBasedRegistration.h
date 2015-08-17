@@ -9,6 +9,7 @@
 #include "PartialModelRegistrationBase.h"
 
 #include <flann/flann.h>
+#include <v4r/core/macros.h>
 
 //PCL_EXPORTS std::ostream& operator << (std::ostream& os, const SIFTHistogram& p);
 
@@ -28,7 +29,7 @@ namespace v4r
     namespace Registration
     {
         template<class PointT>
-        class FeatureBasedRegistration : public PartialModelRegistrationBase<PointT>
+        class V4R_EXPORTS FeatureBasedRegistration : public PartialModelRegistrationBase<PointT>
         {
             private:
 

@@ -1231,5 +1231,5 @@ v4r::Registration::MvLMIcp<PointT>::fillViewParList()
 }
 
 
-template class v4r::Registration::MvLMIcp<pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::Registration::MvLMIcp<pcl::PointXYZRGB>;
 

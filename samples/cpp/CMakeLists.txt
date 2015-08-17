@@ -3,7 +3,7 @@
 #
 # ----------------------------------------------------------------------------
 
-SET(V4R_CPP_SAMPLES_REQUIRED_DEPS v4r_common v4r_recognition v4r_core v4r_io)
+SET(V4R_CPP_SAMPLES_REQUIRED_DEPS v4r_common v4r_keypoints v4r_recognition v4r_registration v4r_core v4r_io v4r_object_modelling)
 
 if(HAVE_PCL)
   v4r_include_directories(${PCL_INCLUDE_DIRS})
@@ -18,6 +18,12 @@ endif()
 if(HAVE_EDT)
   v4r_include_directories(${EDT_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
+endif()
+
+
+if(HAVE_CERES)
+  v4r_include_directories(${CERES_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${CERES_LIBRARIES})
 endif()
 
 v4r_check_dependencies(${V4R_CPP_SAMPLES_REQUIRED_DEPS})

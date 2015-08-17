@@ -502,4 +502,4 @@ v4r::Registration::StablePlanesRegistration<PointT>::compute(int s1, int s2)
     }
 }
 
-template class v4r::Registration::StablePlanesRegistration<pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::Registration::StablePlanesRegistration<pcl::PointXYZRGB>;

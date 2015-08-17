@@ -42,6 +42,7 @@
 
 #include "correspondence_grouping.h"
 #include <pcl/point_cloud.h>
+#include <v4r/core/macros.h>
 
 namespace faat_pcl
 {
@@ -52,7 +53,7 @@ namespace faat_pcl
     * \ingroup recognition
     */
   template<typename PointModelT, typename PointSceneT>
-  class GeometricConsistencyGrouping : public faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>
+  class V4R_EXPORTS GeometricConsistencyGrouping : public faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>
   {
     public:
       typedef pcl::PointCloud<PointModelT> PointCloud;

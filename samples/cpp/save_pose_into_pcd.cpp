@@ -16,6 +16,8 @@
 #include <iostream>
 #include <sstream>
 
+#define USE_WILLOW_DATASET
+
 typedef pcl::PointXYZRGB PointT;
 
 
@@ -46,17 +48,12 @@ int main (int argc, char ** argv)
 
     for (size_t file_id=0; file_id < cloud_files.size(); file_id++)
     {
-        std::stringstream full_path_ss;
-#ifdef _WIN32
-        full_path << path << "\\" << cloud_files[file_id];
-#else
-        full_path_ss << path << "/"  << cloud_files[file_id];
-#endif
-        std::cout << "Checking " << full_path_ss.str() << std::endl;
+        const std::string full_path = path + "/"  + cloud_files[file_id];
+        std::cout << "Checking " << full_path << std::endl;
 
         // Loading file and corresponding indices file (if it exists)
         pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
-        pcl::io::loadPCDFile (full_path_ss.str(), *cloud);
+        pcl::io::loadPCDFile (full_path, *cloud);
 
         if(use_indices)
         {
@@ -64,26 +61,20 @@ int main (int argc, char ** argv)
             std::string indices_filename( cloud_files[file_id] );
             boost::replace_all (indices_filename, "cloud", "object_indices");
 
-            std::stringstream full_indices_path_ss;
-    #ifdef _WIN32
-            full_indices_path_ss << path << "\\" << indices_filename;
-    #else
-            full_indices_path_ss << path << "/"  << indices_filename;
-    #endif
-
-            if( v4r::io::existsFile( full_indices_path_ss.str()) )
+            const std::string full_indices_path = path + "/"  + indices_filename;
+            if( v4r::io::existsFile( full_indices_path ) )
             {
                 pcl::PointCloud<IndexPoint> obj_indices_cloud;
-                pcl::io::loadPCDFile(full_indices_path_ss.str(), obj_indices_cloud);
+                pcl::io::loadPCDFile(full_indices_path, obj_indices_cloud);
                 pcl::PointIndices indices;
                 indices.indices.resize(obj_indices_cloud.points.size());
                 for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
-                  indices.indices[kk] = obj_indices_cloud.points[kk].idx;
+                    indices.indices[kk] = obj_indices_cloud.points[kk].idx;
                 pcl::copyPointCloud(*cloud, indices, *cloud);
             }
             else
             {
-                std::cout << "Indices file " << full_indices_path_ss.str() << " does not exist." << std::endl;
+                std::cout << "Indices file " << full_indices_path << " does not exist." << std::endl;
             }
         }
 
@@ -94,32 +85,26 @@ int main (int argc, char ** argv)
 
 #ifdef USE_WILLOW_DATASET
     boost::replace_all (pose_filename, "cloud_", "pose_");
-    #ifdef _WIN32
-            full_pose_path = path + "\\" + pose_filename;
-    #else
-            full_pose_path = path + "/"  + pose_filename;
-    #endif
+    full_pose_path = path + "/"  + pose_filename;
 #else
-    #ifdef _WIN32
-            full_pose_path = path + "\\" + "transformation_" + pose_filename;
-    #else
-            full_pose_path = path + "/"  + "transformation_" + pose_filename;
-    #endif
+    full_pose_path = path + "/"  + "transformation_" + pose_filename;
 #endif
 
         if( v4r::io::existsFile( full_pose_path ) )
         {
             std::cout << "Transform to world coordinate system: " << std::endl;
             Eigen::Matrix4f global_trans;
+#ifdef USE_WILLOW_DATASET
             v4r::io::readMatrixFromFile(full_pose_path, global_trans, 1);
+#else
+            v4r::io::readMatrixFromFile(full_pose_path, global_trans);
+#endif
             std::cout << global_trans << std::endl << std::endl;
             v4r::common::setCloudPose(global_trans, *cloud);
-            pcl::io::savePCDFileBinary(full_path_ss.str(), *cloud);
+            pcl::io::savePCDFileBinary(full_path, *cloud);
         }
         else
-        {
             std::cout << "Pose file " << full_pose_path << " does not exist." << std::endl;
-        }
 
     }
 }

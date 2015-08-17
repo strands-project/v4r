@@ -342,5 +342,5 @@ v4r::Registration::MultiSessionModelling<PointT>::compute()
     }
 }
 
-template class v4r::Registration::MultiSessionModelling<pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::Registration::MultiSessionModelling<pcl::PointXYZRGB>;
 

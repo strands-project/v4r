@@ -9,13 +9,15 @@
 #define FAAT_PCL_UNIFORM_SAMPLING_H_
 
 #include <pcl/keypoints/keypoint.h>
+#include <pcl/common/common.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
   namespace common
   {
     template <typename PointInT>
-    class UniformSamplingSharedVoxelGrid: public pcl::Keypoint<PointInT, int>
+    class V4R_EXPORTS UniformSamplingSharedVoxelGrid: public pcl::Keypoint<PointInT, int>
     {
     protected:
       typedef typename pcl::Keypoint<PointInT, int>::PointCloudIn PointCloudIn;

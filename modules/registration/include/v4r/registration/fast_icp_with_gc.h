@@ -8,25 +8,25 @@
 #ifndef FAAT_PCL_FAST_ICP_WITH_GC_H_
 #define FAAT_PCL_FAST_ICP_WITH_GC_H_
 
+#include <boost/unordered_map.hpp>
+
+#include <v4r/common/organized_edge_detection.h>
+#include <v4r/core/macros.h>
+#include <v4r/registration/uniform_sampling.h>
+
+#include <pcl/common/angles.h>
 #include <pcl/common/common.h>
 #include <pcl/common/time.h>
-#include <pcl/registration/correspondence_estimation.h>
-#include <boost/unordered_map.hpp>
-#include <v4r/registration/uniform_sampling.h>
-#include <v4r/common/organized_edge_detection.h>
 #include <pcl/keypoints/uniform_sampling.h>
-#include <pcl/common/angles.h>
+#include <pcl/registration/correspondence_estimation.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
 namespace v4r
 {
-  namespace common
-  {
     template <typename PointT>
-    class ICPNode
+    class V4R_EXPORTS ICPNode
     {
       typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
-      typedef typename v4r::common::ICPNode<PointT> ICPNodeT;
 
         public:
 
@@ -46,7 +46,7 @@ namespace v4r
         }
 
         void
-        addChild(boost::shared_ptr<ICPNodeT> & c)
+        addChild(typename boost::shared_ptr<ICPNode<PointT> > & c)
         {
           childs_.push_back(c);
         }
@@ -57,7 +57,7 @@ namespace v4r
         Eigen::Matrix4f incr_transform_; //transform from parent to current node
         Eigen::Matrix4f accum_transform_;
         bool converged_; //wether the alignment path converged or not...
-        std::vector< boost::shared_ptr<ICPNodeT> > childs_;
+        typename std::vector< boost::shared_ptr< ICPNode<PointT> > > childs_;
         float reg_error_;
         float color_weight_;
         int overlap_;
@@ -69,20 +69,20 @@ namespace v4r
     };
 
     template <typename PointT>
-    class FastIterativeClosestPointWithGC
+    class V4R_EXPORTS FastIterativeClosestPointWithGC
     {
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
-      typedef typename v4r::common::ICPNode<PointT> ICPNodeT;
+
       void
-      visualizeICPNodes(std::vector<boost::shared_ptr<ICPNodeT> > & nodes,
+      visualizeICPNodes(typename std::vector<boost::shared_ptr<ICPNode<PointT> > > & nodes,
                           pcl::visualization::PCLVisualizer & vis,
                           std::string wname="icp nodes");
 
       bool
-      filterHypothesesByPose(boost::shared_ptr<ICPNodeT> & current,
-                                std::vector<boost::shared_ptr<ICPNodeT> > & nodes,
+      filterHypothesesByPose(typename boost::shared_ptr< ICPNode<PointT> > & current,
+                                typename std::vector<boost::shared_ptr<ICPNode<PointT> > > & nodes,
                                 float trans_threshold);
 
       std::vector<float> evaluateHypotheses(PointTPtr & im1,
@@ -308,6 +308,5 @@ namespace v4r
 
         void align(Eigen::Matrix4f initial_guess=Eigen::Matrix4f::Identity());
     };
-  }
 }
 #endif /* FAST_ICP_WITH_GC_H_ */

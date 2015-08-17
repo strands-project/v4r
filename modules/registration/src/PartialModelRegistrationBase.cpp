@@ -35,5 +35,5 @@ v4r::Registration::PartialModelRegistrationBase<PointT>::getNormal(size_t i)
     return msm_->getNormal(i);
 }
 
-template class v4r::Registration::PartialModelRegistrationBase<pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::Registration::PartialModelRegistrationBase<pcl::PointXYZRGB>;
 

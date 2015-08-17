@@ -9,6 +9,9 @@
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/undirected_graph.hpp>
+
+#include <v4r/core/macros.h>
+
 #include <limits>
 
 //MST stuff
@@ -80,7 +83,7 @@ namespace v4r
         };
 
         template<class PointT>
-        class MultiSessionModelling
+        class V4R_EXPORTS MultiSessionModelling
         {
             private:
 
@@ -89,7 +92,7 @@ namespace v4r
                 std::vector<PointCloudTPtr> clouds_;
 
                 //initial poses bringing clouds_ into alignment
-                std::vector<Eigen::Matrix4f> poses_;
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
 
                 //indices to clouds indicating where the object is
                 std::vector<std::vector<int> > object_indices_;
@@ -101,11 +104,11 @@ namespace v4r
                 std::vector<std::pair<int,int> > session_ranges_;
 
                 //for each session, pose aligning all poses to the CS of the first
-                std::vector<Eigen::Matrix4f> output_session_poses_;
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > output_session_poses_;
 
                 //poses aligning all clouds to the CS of the first session
                 //basically, a concatenation of output_session_poses_ and poses_
-                std::vector<Eigen::Matrix4f> output_cloud_poses_;
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > output_cloud_poses_;
 
                 std::vector< boost::shared_ptr< PartialModelRegistrationBase<PointT> > > reg_algos_;
 
@@ -130,7 +133,7 @@ namespace v4r
                 computeAbsolutePosesRecursive (Graph & grph_final,
                                               Vertex start, Vertex coming_from,
                                               Eigen::Matrix4f accum,
-                                              std::vector<Eigen::Matrix4f> & absolute_poses)
+                                              std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses)
                 {
                   if (boost::degree (start, grph_final) == 1)
                   {
@@ -184,7 +187,7 @@ namespace v4r
 
                 void
                 computeAbsolutePoses (Graph & grph_final,
-                                     std::vector<Eigen::Matrix4f> & absolute_poses)
+                                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses)
                 {
                   std::pair<vertex_iter, vertex_iter> vp;
                   vp = vertices (grph_final);
@@ -199,7 +202,7 @@ namespace v4r
                 MultiSessionModelling();
 
                 void setInputData(std::vector<PointCloudTPtr> & clouds,
-                                  std::vector<Eigen::Matrix4f> & poses,
+                                  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
                                   std::vector<std::vector<int> > & object_indices,
                                   std::vector<std::pair<int,int> > & session_ranges)
                 {
@@ -245,7 +248,7 @@ namespace v4r
                     return poses_[i];
                 }
 
-                void getOutputPoses(std::vector<Eigen::Matrix4f> & out)
+                void getOutputPoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & out)
                 {
                     out = output_cloud_poses_;
                 }

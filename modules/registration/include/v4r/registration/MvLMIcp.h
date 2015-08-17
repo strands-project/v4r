@@ -4,6 +4,8 @@
 #include <pcl/common/common.h>
 #include <pcl/octree/octree_search.h>
 
+#include <v4r/core/macros.h>
+
 #include <EDT/propagation_distance_field.h>
 
 namespace v4r
@@ -11,7 +13,7 @@ namespace v4r
     namespace Registration
     {
         template<class PointT>
-        class MvLMIcp
+        class V4R_EXPORTS MvLMIcp
         {
             private:
                 //private util functions...
@@ -33,10 +35,10 @@ namespace v4r
                 std::vector<pcl::PointCloud<pcl::Normal>::Ptr > normals_transformed_with_ip_;
 
                 //initial poses bringing clouds_ into alignment
-                std::vector<Eigen::Matrix4f> poses_;
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
 
                 //final poses after refinement
-                std::vector<Eigen::Matrix4f> final_poses_;
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > final_poses_;
 
                 //adjacency matrix representing which views are to be registered
                 std::vector< std::vector<bool> > adjacency_matrix_;
@@ -88,7 +90,7 @@ namespace v4r
                     clouds_ = clouds;
                 }
 
-                void setPoses(std::vector<Eigen::Matrix4f> & poses)
+                void setPoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses)
                 {
                     poses_ = poses;
                 }
@@ -100,7 +102,7 @@ namespace v4r
 
                 void compute();
 
-                std::vector<Eigen::Matrix4f> getFinalPoses()
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > getFinalPoses()
                 {
                     return final_poses_;
                 }
