@@ -87,14 +87,18 @@ int main (int argc, char ** argv)
 
         // Check if pose file exist
         std::string pose_filename( cloud_files[file_id] );
-//        boost::replace_all (pose_filename, "cloud", "pose");
         boost::replace_all (pose_filename, ".pcd", ".txt");
-
         std::stringstream full_pose_path_ss;
-#ifdef _WIN32
-        full_pose_path_ss << path << "\\" << "transformation_" << pose_filename;
+
+#ifdef USE_WILLOW_DATASET
+        boost::replace_all (pose_filename, "cloud_", "pose_");
+        full_pose_path_ss << pose_filename;
 #else
-        full_pose_path_ss << path << "/"  << "transformation_" << pose_filename;
+    #ifdef _WIN32
+            full_pose_path_ss << path << "\\" << "transformation_" << pose_filename;
+    #else
+            full_pose_path_ss << path << "/"  << "transformation_" << pose_filename;
+    #endif
 #endif
 
         if( v4r::io::existsFile( full_pose_path_ss.str()) )
