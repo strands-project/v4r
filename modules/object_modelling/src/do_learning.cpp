@@ -33,7 +33,7 @@
 #include <v4r/keypoints/impl/convertNormals.hpp>
 #include <v4r/common/impl/DataMatrix2D.hpp>
 #include <v4r/features/sift_local_estimator.h>
-#include <v4r/common/fast_icp_with_gc.h>
+#include <v4r/registration/fast_icp_with_gc.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/io/filesystem.h>
@@ -79,7 +79,7 @@ DOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_s
     float w_after_icp_ = std::numeric_limits<float>::max ();
     const float best_overlap_ = 0.75f;
 
-    v4r::common::FastIterativeClosestPointWithGC<pcl::PointXYZRGB> icp;
+    v4r::FastIterativeClosestPointWithGC<pcl::PointXYZRGB> icp;
     icp.setMaxCorrespondenceDistance ( 0.02f );
     icp.setInputSource ( cloud_src_wo_nan );
     icp.setInputTarget ( cloud_dst_wo_nan );
@@ -642,7 +642,7 @@ DOL::computeAbsolutePoses (const Graph & grph,
   std::vector<bool> hop_list (num_frames, false);
   Vertex source_view = 0;
   hop_list[0] = true;
-  Eigen::Matrix4f accum = grph_[0].tracking_pose_;
+  Eigen::Matrix4f accum = grph_[0].tracking_pose_;      // CAN IT ALSO BE grph[0] instead of class member?
   absolute_poses[0] = accum;
   computeAbsolutePosesRecursive (grph, source_view, accum, absolute_poses, hop_list);
 }
