@@ -91,8 +91,12 @@ int main (int argc, char ** argv)
         std::stringstream full_pose_path_ss;
 
 #ifdef USE_WILLOW_DATASET
-        boost::replace_all (pose_filename, "cloud_", "pose_");
-        full_pose_path_ss << pose_filename;
+    boost::replace_all (pose_filename, "cloud_", "pose_");
+    #ifdef _WIN32
+            full_pose_path_ss << path << "\\" << pose_filename;
+    #else
+            full_pose_path_ss << path << "/"  << pose_filename;
+    #endif
 #else
     #ifdef _WIN32
             full_pose_path_ss << path << "\\" << "transformation_" << pose_filename;
