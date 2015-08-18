@@ -325,7 +325,7 @@ DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
             normals->points[i].getNormalVector3fMap() = sv_normal;
 
             const size_t tot_pts_in_supervoxel = it->second->voxels_->points.size();
-            if( label_count[label]  > param_.ratio_ * tot_pts_in_supervoxel)
+            if( label_count[label]  > param_.ratio_supervoxel_ * tot_pts_in_supervoxel)
                 obj_mask_out[i] = true;
             else
                 obj_mask_out[i] = false;
@@ -557,9 +557,7 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<v4r::ClusterNormalsToPl
                                        const std::vector< bool > &object_mask,
                                        const std::vector< bool > &occlusion_mask,
                                        const pcl::PointCloud<PointT>::ConstPtr &cloud,
-                                       std::vector< std::vector<int> > &planes_not_on_object,
-                                       float ratio,
-                                       float ratio_occ) const
+                                       std::vector< std::vector<int> > &planes_not_on_object) const
 {
     planes_not_on_object.resize(planes.size());
 
@@ -590,7 +588,8 @@ DOL::getPlanesNotSupportedByObjectMask(const std::vector<v4r::ClusterNormalsToPl
                 num_plane_pts++;
             }
 
-            if ( num_plane_pts == 0 || (num_obj_pts < ratio * num_plane_pts && num_occluded_pts < ratio_occ * num_plane_pts) )
+            if ( num_plane_pts == 0 ||
+                 ( (double)num_obj_pts/num_plane_pts < param_.ratio_cluster_obj_supported_ && (double)num_occluded_pts/num_plane_pts < param_.ratio_cluster_occluded_) )
             {
                 planes_not_on_object[kept] = planes[cluster_id]->indices;
                 kept++;
@@ -1026,7 +1025,7 @@ DOL::printParams(std::ostream &ostr) const
          << "eps_angle: " << param_.eps_angle_ << std::endl
          << "seed resolution: " << param_.seed_resolution_ << std::endl
          << "voxel resolution: " << param_.voxel_resolution_ << std::endl
-         << "ratio: " << param_.ratio_ << std::endl
+         << "ratio: " << param_.ratio_supervoxel_ << std::endl
          << "do_erosion: " << param_.do_erosion_ << std::endl
          << "max z distance: " << param_.chop_z_ << std::endl
          << "transferring object indices from latest frame only: " << param_.transfer_indices_from_latest_frame_only_ << std::endl

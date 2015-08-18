@@ -23,7 +23,7 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv,  "-dist_threshold_growing", param.dist_threshold_growing_);
     pcl::console::parse_argument (argc, argv,  "-seed_res", param.seed_resolution_);
     pcl::console::parse_argument (argc, argv,  "-voxel_res", param.voxel_resolution_);
-    pcl::console::parse_argument (argc, argv,  "-ratio", param.ratio_);
+    pcl::console::parse_argument (argc, argv,  "-ratio", param.ratio_supervoxel_);
     pcl::console::parse_argument (argc, argv,  "-do_erosion", param.do_erosion_);
     pcl::console::parse_argument (argc, argv,  "-do_mst_refinement", param.do_mst_refinement_);
     pcl::console::parse_argument (argc, argv,  "-do_sift_based_camera_pose_estimation", param.do_sift_based_camera_pose_estimation_);
@@ -31,13 +31,16 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv,  "-chop_z", param.chop_z_);
     pcl::console::parse_argument (argc, argv,  "-normal_method", param.normal_method_);
     pcl::console::parse_argument (argc, argv,  "-filter_planes_only", param.filter_planes_only_);
+    pcl::console::parse_argument (argc, argv,  "-ratio_cluster_obj_supported", param.ratio_cluster_obj_supported_);
+    pcl::console::parse_argument (argc, argv,  "-ratio_cluster_occluded", param.ratio_cluster_occluded_);
     pcl::console::parse_argument (argc, argv,  "-visualize", visualize);
 
     v4r::object_modelling::DOL m(param);
     pcl::console::parse_argument (argc, argv,  "-stat_outlier_removal_meanK", m.sor_params_.meanK_);
     pcl::console::parse_argument (argc, argv,  "-stat_outlier_removal_std_mul", m.sor_params_.std_mul_);
-
-
+    pcl::console::parse_argument (argc, argv,  "-inlier_threshold_plane_seg", m.p_param_.inlDist);
+    pcl::console::parse_argument (argc, argv,  "-min_points_smooth_cluster", m.p_param_.minPointsSmooth);
+    pcl::console::parse_argument (argc, argv,  "-min_plane_points", m.p_param_.minPoints);
 
     pcl::console::parse_argument (argc, argv, "-scenes_dir", scene_dir);
     pcl::console::parse_argument (argc, argv, "-input_mask_dir", input_mask_dir);
