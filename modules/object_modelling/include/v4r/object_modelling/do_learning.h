@@ -85,7 +85,7 @@ public:
         double dist_threshold_growing_;
         double voxel_resolution_;
         double seed_resolution_;
-        double ratio_;
+        double ratio_supervoxel_;
         double chop_z_;
         bool do_erosion_;
         bool do_sift_based_camera_pose_estimation_;
@@ -94,6 +94,8 @@ public:
         int normal_method_;
         bool do_mst_refinement_;
         bool filter_planes_only_;
+        double ratio_cluster_obj_supported_;
+        double ratio_cluster_occluded_;
         Parameter (double radius = 0.005f,
                    double eps_angle = 0.9f,
                    double dist_threshold_growing = 0.05f,
@@ -107,13 +109,15 @@ public:
                    size_t min_points_for_transferring = 10,
                    int normal_method = 0,
                    bool do_mst_refinement = true,
-                   bool filter_planes_only = true) :
+                   bool filter_planes_only = true,
+                   double ratio_cluster_obj_supported = 0.25,
+                   double ratio_cluster_occluded = 0.75):
             radius_(radius),
             eps_angle_(eps_angle),
             dist_threshold_growing_(dist_threshold_growing),
             voxel_resolution_(voxel_resolution),
             seed_resolution_(seed_resolution),
-            ratio_(ratio),
+            ratio_supervoxel_(ratio),
             chop_z_(chop_z),
             do_erosion_(do_erosion),
             do_sift_based_camera_pose_estimation_(do_sift_based_camera_pose_estimation),
@@ -121,7 +125,9 @@ public:
             min_points_for_transferring_(min_points_for_transferring),
             normal_method_(normal_method),
             do_mst_refinement_(do_mst_refinement),
-            filter_planes_only_(filter_planes_only)
+            filter_planes_only_(filter_planes_only),
+            ratio_cluster_obj_supported_ (ratio_cluster_obj_supported),
+            ratio_cluster_occluded_(ratio_cluster_occluded)
         {
         }
 
@@ -139,6 +145,9 @@ public:
         double std_mul_ = 2.0f;
     }sor_params_;
 
+    v4r::ClusterNormalsToPlanes::Parameter p_param_;
+    v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nm_int_param_;
+
 protected:
     typedef pcl::PointXYZRGB PointT;
     typedef flann::L1<float> DistT;
@@ -152,22 +161,16 @@ protected:
     typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
 
     Graph gs_;
-
     Parameter param_;
-    v4r::ClusterNormalsToPlanes::Parameter p_param_;
-    v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nm_int_param_;
 
     pcl::PointCloud<PointT>::Ptr big_cloud_;
     pcl::PointCloud<PointT>::Ptr big_cloud_segmented_;
-//    pcl::PointCloud<PointT>::Ptr big_cloud_refined_;
     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr big_cloud_segmented_refined_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_;
     std::vector<int> vis_reconstructed_viewpoint_;
     std::vector<int> vis_viewpoint_;
-//    std::vector<size_t> LUT_new2old_indices;
     cv::Ptr<SiftGPU> sift_;
     std::vector<modelView> grph_;
-    size_t counter_;
     pcl::octree::OctreePointCloudSearch<PointT> octree_;
 
     void computeAbsolutePoses(const Graph & grph,
@@ -206,7 +209,6 @@ public:
         big_cloud_segmented_refined_.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
         vis_.reset();
         vis_reconstructed_.reset();
-        counter_ = 0;
     }
 
     std::vector<bool>
@@ -250,11 +252,8 @@ public:
     {
         big_cloud_->points.clear();
         big_cloud_segmented_->points.clear();
-//        big_cloud_refined_->points.clear();
         big_cloud_segmented_refined_->points.clear();
-//        LUT_new2old_indices.clear();
         grph_.clear();
-        counter_ = 0;
         gs_.clearing_graph();
         gs_.clear();
         vis_viewpoint_.clear();
@@ -287,9 +286,7 @@ public:
                                            const std::vector< bool > &object_mask,
                                            const std::vector< bool > &occlusion_mask,
                                            const pcl::PointCloud<PointT>::ConstPtr &cloud,
-                                           std::vector<std::vector<int> > &planes_not_on_object,
-                                           float ratio=0.25,
-                                           float ratio_occ=0.75) const;
+                                           std::vector<std::vector<int> > &planes_not_on_object) const;
     /**
      * @brief This shows the learned object together with all the intermediate steps using pcl viewer
      */
