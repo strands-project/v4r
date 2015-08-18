@@ -10,7 +10,7 @@
 #include <v4r/recognition/multiplane_segmentation.h>
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/recognition/hv_go_3D.h>
-#include <v4r/common/fast_icp_with_gc.h>
+#include <v4r/registration/fast_icp_with_gc.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/noise_model_based_cloud_integration.h>
@@ -569,7 +569,7 @@ calcEdgeWeight (Graph &grph, std::vector<Edge> &edges)
         const float best_overlap_ = 0.75f;
 
         Eigen::Matrix4f icp_trans;
-        v4r::common::FastIterativeClosestPointWithGC<PointT> icp;
+        v4r::FastIterativeClosestPointWithGC<PointT> icp;
         icp.setMaxCorrespondenceDistance ( 0.02f );
         icp.setInputSource (grph[vrtx_src].pScenePCl_f);
         icp.setInputTarget (grph[vrtx_trgt].pScenePCl_f);

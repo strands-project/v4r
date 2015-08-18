@@ -12,6 +12,7 @@
 #include "normal_estimator.h"
 #include <pcl/features/our_cvfh.h>
 #include <pcl/surface/mls.h>
+#include <pcl/pcl_config.h>
 
 namespace v4r
 {
@@ -36,7 +37,11 @@ namespace v4r
         float refine_factor_;
 
         std::vector<bool> valid_roll_transforms_;
+#if PCL_VERSION < 100800
+        std::vector<Eigen::Matrix4f> transforms_;
+#else
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
+#endif
         std::vector<pcl::PointIndices> cluster_indices_;
 
         float axis_ratio_;
@@ -129,7 +134,11 @@ namespace v4r
         }
 
         void
+#if PCL_VERSION < 100800
+        getTransformsVec (std::vector<Eigen::Matrix4f> & trans)
+#else
         getTransformsVec (std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & trans)
+#endif
         {
           trans = transforms_;
         }

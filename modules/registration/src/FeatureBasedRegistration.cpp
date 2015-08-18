@@ -12,9 +12,13 @@
 #include <pcl/octree/impl/octree_base.hpp>
 #include <v4r/common/miscellaneous.h>
 
+namespace v4r
+{
+namespace Registration
+{
 
 template<class PointT>
-v4r::Registration::FeatureBasedRegistration<PointT>::FeatureBasedRegistration()
+FeatureBasedRegistration<PointT>::FeatureBasedRegistration()
 {
     name_ = "FeatureBasedRegistration";
     do_cg_ = false;
@@ -23,9 +27,8 @@ v4r::Registration::FeatureBasedRegistration<PointT>::FeatureBasedRegistration()
     kdtree_splits_ = 512;
 }
 
-template<class PointT>
-void
-v4r::Registration::FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > & session_ranges)
+template<class PointT> void
+FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > & session_ranges)
 {
 
     typename v4r::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
@@ -128,9 +131,8 @@ v4r::Registration::FeatureBasedRegistration<PointT>::initialize(std::vector<std:
     }
 }
 
-template<class PointT>
-void
-v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
+template<class PointT> void
+FeatureBasedRegistration<PointT>::compute(int s1, int s2)
 {
 
     //compute sift features for views in partial_1 and partial_2 (already computed in initialize in fact)
@@ -359,4 +361,8 @@ v4r::Registration::FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         poses_[0] = svd_pose;
     }
 }
-template class v4r::Registration::FeatureBasedRegistration<pcl::PointXYZRGB>;
+
+}
+}
+
+template class V4R_EXPORTS v4r::Registration::FeatureBasedRegistration<pcl::PointXYZRGB>;

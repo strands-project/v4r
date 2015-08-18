@@ -2,16 +2,17 @@
 #define V4R_REGISTRATION_PMRB
 
 #include <pcl/common/common.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
     namespace Registration
     {
 
-        template<class PointT> class MultiSessionModelling;
+        template<class PointT> class V4R_EXPORTS MultiSessionModelling;
 
         template<class PointT>
-        class PartialModelRegistrationBase
+        class V4R_EXPORTS PartialModelRegistrationBase
         {
             protected:
                 typedef typename pcl::PointCloud<PointT>::Ptr PointCloudTPtr;

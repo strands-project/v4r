@@ -49,11 +49,12 @@
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/undirected_graph.hpp>
+#include <v4r/core/macros.h>
 
 namespace faat_pcl
 {
   template<typename PointModelT, typename PointSceneT>
-  class GraphGeometricConsistencyGrouping : public faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>
+  class V4R_EXPORTS GraphGeometricConsistencyGrouping : public faat_pcl::CorrespondenceGrouping<PointModelT, PointSceneT>
   {
 
     struct edge_component_t

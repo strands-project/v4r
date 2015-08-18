@@ -16,10 +16,7 @@ namespace v4r
         writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix);
 
         V4R_EXPORTS bool
-        readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix);
-
-        V4R_EXPORTS bool
-        readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding);
+        readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding=0);
 
         V4R_EXPORTS bool
         writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid);
@@ -33,6 +30,8 @@ namespace v4r
         V4R_EXPORTS bool
         readFloatFromFile (const std::string &file, float& value);
 
+        V4R_EXPORTS bool
+        is_number(const std::string& s);
       }
 
 }

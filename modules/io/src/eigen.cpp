@@ -11,6 +11,15 @@ namespace io
 {
 
 bool
+is_number(const std::string& s)
+{
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
+
+
+bool
 writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
 {
     std::ofstream out (file.c_str ());
@@ -35,28 +44,7 @@ writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
 }
 
 bool
-readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix)
-{
-
-    std::ifstream in;
-    in.open (file.c_str (), std::ifstream::in);
-
-    char linebuf[1024];
-    in.getline (linebuf, 1024);
-    std::string line (linebuf);
-    std::vector < std::string > strs_2;
-    boost::split (strs_2, line, boost::is_any_of (" "));
-
-    for (int i = 0; i < 16; i++)
-    {
-        matrix (i / 4, i % 4) = static_cast<float> (atof (strs_2[i].c_str ()));
-    }
-
-    return true;
-}
-
-bool
-readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding)
+readMatrixFromFile(const std::string &file, Eigen::Matrix4f & matrix, int padding)
 {
 
     std::ifstream in;

@@ -1,4 +1,5 @@
-#include <v4r/io/filesystem_utils.h>
+#include <v4r/io/filesystem.h>
+#include <v4r/io/eigen.h>
 
 #include <pcl/console/parse.h>
 #include <pcl/common/common.h>
@@ -174,10 +175,10 @@ main (int argc, char ** argv)
     if(output_directory.compare("") != 0)
     {
 
-        bf::path dir = output_directory;
-      if(!bf::exists(dir))
+        boost::filesystem::path dir = output_directory;
+      if(!boost::filesystem::exists(dir))
       {
-          bf::create_directory(dir);
+          boost::filesystem::create_directory(dir);
       }
 
       //save the data with new poses

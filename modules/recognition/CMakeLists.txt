@@ -1,5 +1,5 @@
 set(the_description "Recognition")
-v4r_add_module(recognition REQUIRED v4r_common v4r_io v4r_features v4r_segmentation pcl opencv OPTIONAL edt siftgpu)
+v4r_add_module(recognition REQUIRED v4r_common v4r_io v4r_features v4r_segmentation v4r_registration pcl opencv OPTIONAL edt siftgpu)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../3rdparty/metslib) # for the time being - metslib still needs to be implemented
 

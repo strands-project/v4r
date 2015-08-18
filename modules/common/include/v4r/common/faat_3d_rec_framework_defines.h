@@ -1,7 +1,7 @@
-#include <pcl/common/common.h>
-
 #ifndef FAAT_3D_REC_FRAMEWORK_DEFINES_H
 #define FAAT_3D_REC_FRAMEWORK_DEFINES_H
+
+#include <pcl/common/common.h>
 
 struct IndexPoint
 {

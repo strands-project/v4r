@@ -5,7 +5,7 @@
  *      Author: aitor
  */
 
-#include <v4r/common/fast_icp_with_gc.h>
+#include <v4r/registration/fast_icp_with_gc.h>
 #include <pcl/keypoints/uniform_sampling.h>
 #include <pcl/common/angles.h>
 #include <v4r/common/graph_geometric_consistency.h>
@@ -19,13 +19,11 @@
 
 namespace v4r
 {
-  namespace common
-  {
     template<typename PointT>
       inline bool
-      v4r::common::FastIterativeClosestPointWithGC<PointT>::filterHypothesesByPose (boost::shared_ptr<ICPNodeT> & current,
-                                                                                               std::vector<boost::shared_ptr<ICPNodeT> > & nodes,
-                                                                                               float trans_threshold)
+      v4r::FastIterativeClosestPointWithGC<PointT>::filterHypothesesByPose (typename boost::shared_ptr<ICPNode<PointT> > & current,
+                                                                            typename std::vector<boost::shared_ptr<ICPNode<PointT> > > & nodes,
+                                                                            float trans_threshold)
       {
         bool found = false;
         //Eigen::Vector4f origin = Eigen::Vector4f(0,0,0,1);
@@ -66,9 +64,9 @@ namespace v4r
 
     template<typename PointT>
       inline void
-      v4r::common::FastIterativeClosestPointWithGC<PointT>::visualizeICPNodes (std::vector<boost::shared_ptr<ICPNodeT> > & nodes,
-                                                                                          pcl::visualization::PCLVisualizer & icp_vis,
-                                                                                          std::string wname)
+      FastIterativeClosestPointWithGC<PointT>::visualizeICPNodes (typename std::vector<boost::shared_ptr<ICPNode<PointT> > > & nodes,
+                                                                  pcl::visualization::PCLVisualizer & icp_vis,
+                                                                  std::string wname)
       {
         int k = 0, l = 0, viewport = 0;
         int y_s = 0, x_s = 0;
@@ -279,7 +277,7 @@ namespace v4r
         boost::shared_ptr<std::vector<int> > ind_tgt;
         ind_tgt.reset (new std::vector<int>);
 
-        v4r::common::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
+        common::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
         keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
         uniformSamplingOfKeypoints (tgt_keypoints, ind_tgt_cedges, *ind_tgt, keypoint_extractor);
         pcl::copyPointCloud (*target_, *ind_tgt, *tgt_keypoints);
@@ -289,12 +287,12 @@ namespace v4r
         Eigen::Vector4f min_b, max_b;
         keypoint_extractor.getVoxelGridValues (min_b, max_b);
 
-        std::vector<boost::shared_ptr<ICPNodeT> > alive_nodes_; //contains nodes that need to be processed at a certain ICP iteration
+        typename std::vector<boost::shared_ptr<ICPNode<PointT> > > alive_nodes_; //contains nodes that need to be processed at a certain ICP iteration
 
         //create root_node
         if(initial_poses_.size() == 0)
         {
-          boost::shared_ptr<ICPNodeT> root_node_ (new ICPNodeT (0, true));
+          typename boost::shared_ptr<ICPNode<PointT> > root_node_ (new ICPNode<PointT> (0, true));
           root_node_->accum_transform_ = initial_guess;
           alive_nodes_.push_back (root_node_);
         }
@@ -302,7 +300,7 @@ namespace v4r
         {
           for(size_t i=0; i < initial_poses_.size(); i++)
           {
-            boost::shared_ptr<ICPNodeT> root_node_ (new ICPNodeT (0, true));
+            typename boost::shared_ptr<ICPNode<PointT> > root_node_ (new ICPNode<PointT> (0, true));
             root_node_->accum_transform_ = initial_poses_[i];
             alive_nodes_.push_back (root_node_);
           }
@@ -317,8 +315,8 @@ namespace v4r
         do
         {
 
-          std::vector<boost::shared_ptr<ICPNodeT> > next_level_nodes_;
-          std::vector<std::vector<boost::shared_ptr<ICPNodeT> > > next_level_nodes_by_parent_;
+          typename std::vector<boost::shared_ptr<ICPNode<PointT> > > next_level_nodes_;
+          typename std::vector<std::vector<boost::shared_ptr<ICPNode<PointT> > > > next_level_nodes_by_parent_;
           next_level_nodes_by_parent_.resize (alive_nodes_.size ());
 
           //survived_vis.removeAllPointClouds ();
@@ -329,13 +327,13 @@ namespace v4r
           for (size_t an = 0; an < alive_nodes_.size (); an++)
           {
             //transform input cloud
-            boost::shared_ptr<ICPNodeT> cur_node = alive_nodes_[an];
+            typename boost::shared_ptr<ICPNode<PointT> > cur_node = alive_nodes_[an];
 
             PointTPtr src_keypoints_local (new pcl::PointCloud<PointT>);
 
             boost::shared_ptr<std::vector<int> > ind_src;
             ind_src.reset (new std::vector<int>);
-            v4r::common::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
+            common::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
             keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
             keypoint_extractor.setVoxelGridValues (min_b, max_b);
             uniformSamplingOfKeypoints (src_keypoints, ind_src_cedges, *ind_src, keypoint_extractor);
@@ -454,7 +452,7 @@ namespace v4r
                   //t_est.estimateRigidTransformation (*input_transformed_local_, *target_, *after_rej_correspondences, transformation);
                   t_est.estimateRigidTransformation (*src_keypoints_local, *tgt_keypoints, *after_rej_correspondences, transformation);
 
-                  boost::shared_ptr<ICPNodeT> child (new ICPNodeT (nr_iterations + 1));
+                  typename boost::shared_ptr<ICPNode<PointT> > child (new ICPNode<PointT> (nr_iterations + 1));
                   child->accum_transform_ = transformation * cur_node->accum_transform_;
                   child->src_keypoints_ = src_keypoints_local;
                   child->normal_src_keypoints_ = normal_src_keypoints_local;
@@ -492,7 +490,7 @@ namespace v4r
               //if (next_level_nodes_[k]->overlap_ > 0)
               //{
               //compute FSV fraction
-              v4r::common::VisibilityReasoning<PointT> vr (fl_, cx_, cy_);
+              common::VisibilityReasoning<PointT> vr (fl_, cx_, cy_);
               vr.setThresholdTSS (0.01);
 
               float fsv_ij = vr.computeFSV (target_, next_level_nodes_[k]->src_keypoints_); //, next_level_nodes_[k]->accum_transform_);
@@ -539,9 +537,9 @@ namespace v4r
           }
 
           std::sort (next_level_nodes_.begin (), next_level_nodes_.end (),
-                     boost::bind (&ICPNodeT::reg_error_, _1) > boost::bind (&ICPNodeT::reg_error_, _2));
+                     boost::bind (&ICPNode<PointT>::reg_error_, _1) > boost::bind (&ICPNode<PointT>::reg_error_, _2));
 
-          std::vector<boost::shared_ptr<ICPNodeT> > nodes_survived_after_filtering; //contains nodes that need to be processed at a certain ICP iteration
+          typename std::vector<boost::shared_ptr<ICPNode<PointT> > > nodes_survived_after_filtering; //contains nodes that need to be processed at a certain ICP iteration
           for (size_t k = 0; k < next_level_nodes_.size (); k++)
           {
             bool f = filterHypothesesByPose (next_level_nodes_[k], nodes_survived_after_filtering, 0.02f);
@@ -568,7 +566,6 @@ namespace v4r
         visualizeICPNodes (alive_nodes_, survived_vis, "final");
 #endif
       }
-  }
 }
 
 //template class faat_pcl::registration::ICPNode<pcl::PointXYZRGB>;

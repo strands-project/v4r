@@ -9,6 +9,8 @@ namespace v4r
                                                 size_t number_of_subwindows_per_view,
                                                 const std::vector<std::string> &title_subwindows)
       {
+        vis->removeAllPointClouds();
+        vis->removeAllShapes();
         std::vector<int> viewportNr (number_of_views * number_of_subwindows_per_view, 0);
 
         for (size_t i = 0; i < number_of_views; i++)
@@ -22,6 +24,7 @@ namespace v4r
                                      float (j * ((i % 2) / 10.0 + 1)) / number_of_subwindows_per_view,
                                      float (j * ((i % 2) / 10.0 + 1)) / number_of_subwindows_per_view, viewportNr[number_of_subwindows_per_view * i + j]);
 
+            vis->removeAllPointClouds(viewportNr[i * number_of_subwindows_per_view + j]);
             vis->removeAllShapes(viewportNr[i * number_of_subwindows_per_view + j]);
             std::stringstream window_id;
             window_id << "(" << i << ", " << j << ") ";

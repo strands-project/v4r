@@ -5,12 +5,13 @@
 #include "PartialModelRegistrationBase.h"
 #include <pcl/PolygonMesh.h>
 #include <pcl/search/octree.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
     namespace Registration
     {
-        class stablePlane
+        class V4R_EXPORTS stablePlane
         {
         public:
             Eigen::Vector3f normal_;
