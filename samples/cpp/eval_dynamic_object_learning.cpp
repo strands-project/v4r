@@ -75,6 +75,8 @@ main (int argc, char ** argv)
         sub_folder_names.push_back("");
     }
 
+    std::sort(sub_folder_names.begin(), sub_folder_names.end());
+
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {
         const std::string output_dir_w_sub = output_dir + "/" + sub_folder_names[ sub_folder_id ];
@@ -83,6 +85,9 @@ main (int argc, char ** argv)
         const std::string annotations_dir = input_mask_dir + "/" + sub_folder_names[ sub_folder_id ];
         std::vector< std::string > mask_file_v;
         v4r::io::getFilesInDirectory(annotations_dir, mask_file_v, "", ".*.txt", false);
+
+        std::sort(mask_file_v.begin(), mask_file_v.end());
+
         for (size_t o_id=0; o_id<mask_file_v.size(); o_id++)
         {
             const std::string mask_file = annotations_dir + "/" + mask_file_v[o_id];
@@ -102,6 +107,10 @@ main (int argc, char ** argv)
             const std::string scene_path = scene_dir + "/" + sub_folder_names[ sub_folder_id ];
             std::vector< std::string > views;
             v4r::io::getFilesInDirectory(scene_path, views, "", ".*.pcd", false);
+
+            std::sort(views.begin(), views.end());
+
+            std::cout << "Learning object from mask " << mask_file << " for scene " << scene_path << std::endl;
 
             for(size_t v_id=0; v_id<views.size(); v_id++)
             {
