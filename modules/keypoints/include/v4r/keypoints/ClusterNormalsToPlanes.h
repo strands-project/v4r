@@ -35,17 +35,17 @@ public:
   class Parameter
   {
   public:
-    float thrAngle;             // Threshold of angle for normal clustering 
-    float inlDist;              // Maximum inlier distance
+    double thrAngle;             // Threshold of angle for normal clustering
+    double inlDist;              // Maximum inlier distance
     unsigned minPoints;              // Minimum number of points for a plane
     bool least_squares_refinement;
     bool smooth_clustering;
-    float thrAngleSmooth;             // Threshold of angle for normal clustering
-    float inlDistSmooth;              // Maximum inlier distance
+    double thrAngleSmooth;             // Threshold of angle for normal clustering
+    double inlDistSmooth;              // Maximum inlier distance
     unsigned minPointsSmooth;
     
-    Parameter(float thrAngleNC=30, float _inlDist=0.01, unsigned _minPoints=9, bool _least_squares_refinement=true, bool _smooth_clustering=false,
-              float _thrAngleSmooth=30, float _inlDistSmooth=0.02, unsigned _minPointsSmooth=3)
+    Parameter(double thrAngleNC=30, double _inlDist=0.01, unsigned _minPoints=9, bool _least_squares_refinement=true, bool _smooth_clustering=false,
+              double _thrAngleSmooth=30, double _inlDistSmooth=0.02, unsigned _minPointsSmooth=3)
     : thrAngle(thrAngleNC), inlDist(_inlDist), minPoints(_minPoints), least_squares_refinement(_least_squares_refinement), smooth_clustering(_smooth_clustering),
       thrAngleSmooth(_thrAngleSmooth), inlDistSmooth(_inlDistSmooth), minPointsSmooth(_minPointsSmooth){}
   };
