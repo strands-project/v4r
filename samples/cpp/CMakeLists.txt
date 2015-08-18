@@ -3,7 +3,7 @@
 #
 # ----------------------------------------------------------------------------
 
-SET(V4R_CPP_SAMPLES_REQUIRED_DEPS v4r_common v4r_keypoints v4r_recognition v4r_registration v4r_core v4r_io v4r_object_modelling)
+SET(V4R_CPP_SAMPLES_REQUIRED_DEPS v4r_common v4r_keypoints v4r_recognition v4r_registration v4r_core v4r_io)
 
 if(HAVE_PCL)
   v4r_include_directories(${PCL_INCLUDE_DIRS})

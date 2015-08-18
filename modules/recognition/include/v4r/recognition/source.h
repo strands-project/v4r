@@ -388,7 +388,7 @@ namespace v4r
       }
 
       bool
-      getModelById (std::string & model_id, ModelTPtr & m)
+      getModelById (const std::string & model_id, ModelTPtr & m)
       {
 
         typename std::vector<ModelTPtr>::iterator it = models_->begin ();
