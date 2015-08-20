@@ -41,11 +41,13 @@ namespace PCLOpenCV
 
   template<class PointT>
   void
-  ConvertPCLCloud2Image (const typename pcl::PointCloud<PointT>::Ptr &pcl_cloud, cv::Mat_<cv::Vec3b> &image)
+  ConvertPCLCloud2Image (const typename pcl::PointCloud<PointT>::Ptr &pcl_cloud, cv::Mat_<cv::Vec3b> &image, bool crop = false)
   {
     unsigned pcWidth = pcl_cloud->width;
     unsigned pcHeight = pcl_cloud->height;
     unsigned position = 0;
+
+    unsigned min_u = pcWidth-1, min_v = pcHeight-1, max_u = 0, max_v = 0;
 
     image = cv::Mat_<cv::Vec3b> (pcHeight, pcWidth);
 
@@ -60,8 +62,24 @@ namespace PCLOpenCV
         cvp[0] = pt.b;
         cvp[1] = pt.g;
         cvp[2] = pt.r;
+
+        if( pcl::isFinite(pt) )
+        {
+            if( row < min_v )
+                min_v = row;
+            if( row > max_v )
+                max_v = row;
+            if( col < min_u )
+                min_u = col;
+            if( col > max_u )
+                max_u = col;
+        }
       }
     }
+    cv::Mat cropped_image = image(cv::Rect(min_u, min_v, max_u - min_u, max_v - min_v));
+
+    if(crop)
+        image = cropped_image;
   }
 
   template<class PointT>
@@ -90,6 +108,7 @@ namespace PCLOpenCV
   void
   ConvertUnorganizedPCLCloud2Image (const typename pcl::PointCloud<PointT>::Ptr &pcl_cloud,
                                     cv::Mat_<cv::Vec3b> &image,
+                                    bool crop = false,
                                     float bg_r = 255.0f,
                                     float bg_g = 255.0f,
                                     float bg_b = 255.0f,
@@ -101,7 +120,7 @@ namespace PCLOpenCV
   {
 
       //transform scene_cloud to organized point cloud and then to image
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr pScenePCl_organized(new pcl::PointCloud<pcl::PointXYZRGB>);
+      typename pcl::PointCloud<PointT>::Ptr pScenePCl_organized(new pcl::PointCloud<PointT>);
       pScenePCl_organized->width = width;
       pScenePCl_organized->height = height;
       pScenePCl_organized->is_dense = true;
@@ -150,8 +169,7 @@ namespace PCLOpenCV
               }
           }
       }
-
-      ConvertPCLCloud2Image<PointT> (pScenePCl_organized, image);
+      ConvertPCLCloud2Image<PointT> (pScenePCl_organized, image, crop);
   }
 }
 

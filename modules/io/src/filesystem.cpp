@@ -113,7 +113,7 @@ createDirIfNotExist(const std::string & dirs)
     boost::filesystem::path dir = dirs;
     if(!boost::filesystem::exists(dir))
     {
-        boost::filesystem::create_directory(dir);
+        boost::filesystem::create_directories(dir);
     }
 }
 
