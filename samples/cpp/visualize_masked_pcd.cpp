@@ -20,6 +20,8 @@ int main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv, "-scene_path", path_s);
     pcl::console::parse_argument (argc, argv, "-mask_path", path_o);
 
+    std::cout << path_s << " " << path_o << std::endl;
+
     pcl::visualization::PCLVisualizer vis;
 
     // Setting up the visualization

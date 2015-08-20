@@ -33,7 +33,7 @@ computeRecall(const typename pcl::PointCloud<PointT>::ConstPtr &gt, const typena
         std::vector<int> pointIdxRadiusSearch;
         std::vector<float> pointRadiusSquaredDistance;
 
-        if ( octree.radiusSearch (searchPoints->points[i], 2*radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
+        if ( octree.radiusSearch (searchPoints->points[i], radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
         {
             for( size_t nn_id = 0; nn_id < pointIdxRadiusSearch.size(); nn_id++)
             {

@@ -267,7 +267,8 @@ DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
                                             pcl::PointCloud<pcl::Normal>::Ptr & normals,
                                             const std::vector<bool> &obj_mask,
                                             std::vector<bool> &obj_mask_out,
-                                            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud)
+                                            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud,
+                                            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud_organized)
 {
     assert( cloud->points.size() == normals->points.size() &&
             cloud->points.size() == obj_mask.size());
@@ -282,6 +283,7 @@ DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
     super.extract (supervoxel_clusters);
     super.refineSupervoxels(2, supervoxel_clusters);
     supervoxel_cloud = super.getColoredVoxelCloud();
+    supervoxel_cloud_organized = super.getColoredCloud();
     const pcl::PointCloud<pcl::PointXYZL>::Ptr supervoxels_labels_cloud = super.getLabeledCloud();
 
     std::cout << "Found " << supervoxel_clusters.size () << " supervoxels." << std::endl;
@@ -968,7 +970,8 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                                       view.normal_,
                                       view.obj_mask_step_.back(),
                                       obj_mask_enforced_by_supervoxel_consistency,
-                                      view.supervoxel_cloud_);
+                                      view.supervoxel_cloud_,
+                                      view.supervoxel_cloud_organized_);
     view.obj_mask_step_.push_back( obj_mask_enforced_by_supervoxel_consistency );
 
     std::vector<bool> obj_mask_grown_by_smooth_surface = extractEuclideanClustersSmooth(view.cloud_,
