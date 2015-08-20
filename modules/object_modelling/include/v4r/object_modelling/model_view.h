@@ -27,6 +27,7 @@ namespace v4r
 
             pcl::PointCloud<FeatureT>::Ptr  sift_signatures_;
             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr  supervoxel_cloud_;
+            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr  supervoxel_cloud_organized_;
 
             std::vector< size_t > scene_points_;
             std::vector< size_t > sift_keypoint_indices_;
@@ -47,6 +48,7 @@ namespace v4r
                 normal_.reset(new pcl::PointCloud<pcl::Normal>());
                 transferred_cluster_.reset(new pcl::PointCloud<PointT>());
                 supervoxel_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>());
+                supervoxel_cloud_organized_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>());
                 sift_signatures_.reset (new pcl::PointCloud<FeatureT>());
                 is_pre_labelled_ = false;
             }

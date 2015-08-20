@@ -221,7 +221,8 @@ public:
                                            pcl::PointCloud<pcl::Normal>::Ptr & normals_,
                                            const std::vector<bool> &obj_mask,
                                            std::vector<bool> &obj_mask_out,
-                                           pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud);
+                                           pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud,
+                                           pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud_organized);
 
     std::vector<bool>
     erodeIndices(const std::vector< bool > &obj_mask,
@@ -291,6 +292,13 @@ public:
      * @brief This shows the learned object together with all the intermediate steps using pcl viewer
      */
     void visualize();
+
+
+    /**
+     * @brief This creates images of all intermediate steps of the object learning and writes them to disk
+     * @param[in] path - folder where to write the files to
+     */
+    void writeImagesToDisk(const std::string &path = std::string("/tmp/dol_images/"), bool crop=false);
 
     /**
      * @brief performs bit wise logical operations

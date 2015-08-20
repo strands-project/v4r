@@ -3,9 +3,12 @@
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/pcl_visualization_utils.h>
 
+#include <opencv2/opencv.hpp>
 #include <pcl/filters/statistical_outlier_removal.h>
-#include <v4r/common/noise_models.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/common/noise_models.h>
+#include <v4r/common/pcl_opencv.h>
+#include <v4r/io/filesystem.h>
 
 namespace v4r
 {
@@ -210,6 +213,84 @@ DOL::visualize()
         }
     }
     vis_->spin();
+}
+
+
+void
+DOL::writeImagesToDisk(const std::string &path, bool crop)
+{
+    v4r::io::createDirIfNotExist(path);
+
+    for (size_t view_id = 0; view_id < grph_.size(); view_id++)
+    {
+        std::stringstream filename;
+        filename << path << "/" << view_id << ".jpg";
+        cv::Mat_ < cv::Vec3b > colorImage;
+        PCLOpenCV::ConvertPCLCloud2Image<PointT> (grph_[view_id].cloud_, colorImage);
+        cv::imwrite( filename.str(), colorImage);
+
+        std::stringstream filename_sv;
+        filename_sv << path << "/" << view_id << "_sv.jpg";
+        PCLOpenCV::ConvertPCLCloud2Image<pcl::PointXYZRGBA> (grph_[view_id].supervoxel_cloud_organized_, colorImage);
+        cv::imwrite( filename_sv.str(), colorImage);
+
+        std::stringstream filename_filtered;
+        filename_filtered << path << "/" << view_id << "_filtered.jpg";
+        pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>());
+        pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].scene_points_, *cloud_filtered);
+        PCLOpenCV::ConvertUnorganizedPCLCloud2Image<PointT> (cloud_filtered, colorImage);
+        cv::imwrite( filename_filtered.str(), colorImage);
+
+        std::stringstream filename_search_points;
+        filename_search_points << path << "/" << view_id << "_search_pts.jpg";
+        pcl::PointCloud<PointT>::Ptr cloud_with_search_pts (new pcl::PointCloud<PointT>());
+        pcl::PointCloud<PointT>::Ptr search_pts (new pcl::PointCloud<PointT>());
+        *cloud_with_search_pts = *grph_[view_id].cloud_;
+
+        if (!grph_[view_id].is_pre_labelled_)
+        {
+            pcl::copyPointCloud(*grph_[view_id].transferred_cluster_, *search_pts);
+            for (size_t s_id=0; s_id < search_pts->points.size(); s_id++)
+            {
+                search_pts->points[s_id].r = 255;
+                search_pts->points[s_id].g = 0;
+                search_pts->points[s_id].b = 0;
+                search_pts->points[s_id].z -= 0.01f;    // just to force the search point in the foreground for visualization
+            }
+        }
+        else
+        {
+            pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_mask_step_[0], *search_pts);
+            for (size_t s_id=0; s_id < search_pts->points.size(); s_id++)
+            {
+                search_pts->points[s_id].r = 0;
+                search_pts->points[s_id].g = 255;
+                search_pts->points[s_id].b = 0;
+                search_pts->points[s_id].z -= 0.01f;    // just to force the search point in the foreground for visualization
+            }
+        }
+
+        *cloud_with_search_pts += *search_pts;
+        PCLOpenCV::ConvertUnorganizedPCLCloud2Image<PointT> (cloud_with_search_pts, colorImage);
+        cv::imwrite( filename_search_points.str(), colorImage);
+
+
+        for(size_t step_id=0; step_id<grph_[view_id].obj_mask_step_.size(); step_id++)
+        {
+            if (grph_[view_id].is_pre_labelled_ && step_id==0) // initial indices already shown in other subwindow
+            {
+                continue;
+            }
+
+            pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
+            pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_mask_step_[step_id], *segmented);
+
+            std::stringstream filename_step;
+            filename_step << path << "/" << view_id << "_step_" << step_id << ".jpg";
+            PCLOpenCV::ConvertUnorganizedPCLCloud2Image<PointT> (segmented, colorImage, crop);
+            cv::imwrite( filename_step.str(), colorImage);
+        }
+    }
 }
 
 }
