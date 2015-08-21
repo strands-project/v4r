@@ -1,4 +1,4 @@
-if(WITH_QT)
+if(WITH_QT4)
   find_package(Qt4 )
   if(Qt4_FOUND)
     set(QT4_LIBRARIES "${QT_LIBRARIES}")
