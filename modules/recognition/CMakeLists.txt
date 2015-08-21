@@ -22,14 +22,11 @@ SET(SOURCE_H_UTILS
   "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/metrics.h"
   "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/vtk_model_sampling.h"
   "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/voxel_based_correspondence_estimation.h"
-  "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/multiplane_segmentation.h"
   "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/impl/voxel_based_correspondence_estimation.hpp"
-  "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/impl/multiplane_segmentation.hpp"
 )
 
 SET(SOURCE_CPP_UTILS
   src/voxel_based_correspondence_estimation.cpp
-  src/multiplane_segmentation.cpp
 )
 
 

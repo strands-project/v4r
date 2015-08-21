@@ -21,6 +21,7 @@ public:
                table_range_max_,
                chop_at_z_,
                angular_threshold_deg_;
+        bool use_transform_to_world_;
         Parameter (int seg_type = 0,
                    int min_cluster_size=500,
                    int max_vertical_plane_size=5000,
@@ -30,7 +31,8 @@ public:
                    double table_range_min = 0.6f,
                    double table_range_max = 1.2f,
                    double chop_at_z = std::numeric_limits<double>::max(),
-                   double angular_threshold_deg = 10.f)
+                   double angular_threshold_deg = 10.f,
+                   bool use_transform_to_world=false)
             :
               seg_type_ (seg_type),
               min_cluster_size_ (min_cluster_size),
@@ -41,7 +43,8 @@ public:
               table_range_min_ (table_range_min),
               table_range_max_ (table_range_max),
               chop_at_z_ (chop_at_z),
-              angular_threshold_deg_ (angular_threshold_deg)
+              angular_threshold_deg_ (angular_threshold_deg),
+              use_transform_to_world_ (use_transform_to_world)
         {
 
         }
@@ -52,6 +55,7 @@ protected:
     pcl::PointCloud<pcl::Normal>::Ptr input_normal_cloud_;
     Eigen::Vector4f extracted_table_plane_;
     Parameter param_;
+    Eigen::Matrix4f transform_to_world_;
 
 public:
     PCLSegmenter(const Parameter &p = Parameter())
@@ -71,6 +75,11 @@ public:
     void set_input_normal_cloud(const pcl::PointCloud<pcl::Normal> &normals)
     {
         *input_normal_cloud_ = normals;
+    }
+
+    void set_transform2world(const Eigen::Matrix4f &tf)
+    {
+        transform_to_world_ = tf;
     }
 
     Eigen::Vector4f get_table_plane() const

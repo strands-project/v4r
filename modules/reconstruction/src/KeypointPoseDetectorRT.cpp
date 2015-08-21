@@ -82,7 +82,7 @@ double KeypointPoseDetectorRT::detect(const cv::Mat &image, const DataMatrix2D<E
   else im_gray = image;
 
 
-  //{ kp::ScopeTime t("detect keypoints");
+  //{ v4r::ScopeTime t("detect keypoints");
   detector->detect(im_gray, keys);
   descEstimator->extract(im_gray, keys, descs);
   //}

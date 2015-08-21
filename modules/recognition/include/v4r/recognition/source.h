@@ -255,7 +255,7 @@ namespace v4r
       {
         bf::path trained_dir = training_dir;
         if (!bf::exists (trained_dir))
-        bf::create_directory (trained_dir);
+            bf::create_directories (training_dir);
       }
 
       void

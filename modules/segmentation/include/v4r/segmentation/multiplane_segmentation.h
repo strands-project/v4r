@@ -9,11 +9,12 @@
 #define FAAT_PCL_3D_REC_FRAMEWORK_MULTIPLANE_SEGMENTATION_H_
 
 #include <v4r/common/common_data_structures.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
   template<typename PointT>
-  class MultiPlaneSegmentation
+  class V4R_EXPORTS MultiPlaneSegmentation
   {
     private:
       typedef pcl::PointCloud<PointT> PointTCloud;

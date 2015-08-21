@@ -137,7 +137,7 @@ v4r::Registration::MultiSessionModelling<PointT>::compute()
                 reg_algos_[a]->compute(i,j);
 
                 //poses transform the RF of pair_j to the RF of pair_i
-                std::vector<Eigen::Matrix4f> poses;
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses;
                 reg_algos_[a]->getPoses(poses);
 
                 std::cout << "poses between " << j << " and " << i << " :" << poses.size() << std::endl;

@@ -157,13 +157,13 @@ bool KeypointSlamRGBD2::addKeyframe(const ObjectView &view, const Eigen::Matrix4
  * @brief camera tracking ....
  * @param image input image
  * @param cloud input point cloud
- * @param pose estimate without confidence value (verification of poses is done async)
+ * @param pose estimate without confidence 0value (verification of poses is done async)
  * @return camera id
  */
 //int cnt_reinit=0;
 bool KeypointSlamRGBD2::track(const cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, Eigen::Matrix4f &current_pose, double &current_conf, int &cam_id)
 {
-  //kp::ScopeTime t("tracking");
+  //v4r::ScopeTime t("tracking");
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
   else image.copyTo(im_gray);
 

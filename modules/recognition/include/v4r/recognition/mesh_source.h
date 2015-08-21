@@ -279,7 +279,7 @@ namespace v4r
         {
 
           //create training dir fs if not existent
-          createTrainingDir (training_dir);
+          v4r::io::createDirIfNotExist(training_dir);
 
           //get models in directory
           std::vector < std::string > files;

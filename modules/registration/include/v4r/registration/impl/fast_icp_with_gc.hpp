@@ -568,6 +568,6 @@ namespace v4r
       }
 }
 
-//template class faat_pcl::registration::ICPNode<pcl::PointXYZRGB>;
-//template class faat_pcl::registration::FastIterativeClosestPointWithGC<pcl::PointXYZRGB>;
+//template class v4r::registration::ICPNode<pcl::PointXYZRGB>;
+//template class v4r::registration::FastIterativeClosestPointWithGC<pcl::PointXYZRGB>;
 

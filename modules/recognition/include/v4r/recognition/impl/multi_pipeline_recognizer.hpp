@@ -305,7 +305,7 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
                 object_ids.push_back(it_map->second.model_->id_);
             }
 
-            faat_pcl::MultiObjectGraphGeometricConsistencyGrouping<PointInT, PointInT> mo_gcc;
+            v4r::MultiObjectGraphGeometricConsistencyGrouping<PointInT, PointInT> mo_gcc;
             mo_gcc.setDotDistance(0.25f);
             mo_gcc.setGCSize(0.01);
             mo_gcc.setGCThreshold(3);

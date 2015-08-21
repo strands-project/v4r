@@ -18,7 +18,7 @@ namespace v4r
                 typedef typename pcl::PointCloud<PointT>::Ptr PointCloudTPtr;
 
                 std::pair<int, int> partial_1, partial_2;
-                std::vector<Eigen::Matrix4f> poses_;
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
                 std::string name_;
                 MultiSessionModelling<PointT> * msm_;
 
@@ -45,7 +45,7 @@ namespace v4r
 
                 virtual void initialize(std::vector<std::pair<int, int> > & session_ranges) = 0;
 
-                void getPoses(std::vector<Eigen::Matrix4f> & poses)
+                void getPoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses)
                 {
                     poses = poses_;
                 }
