@@ -114,7 +114,7 @@ namespace v4r
         }
 
         void
-        assembleModelFromViewsAndPoses(ModelT & model, std::vector<Eigen::Matrix4f> & poses) {
+        assembleModelFromViewsAndPoses(ModelT & model, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses) {
           for(size_t i=0; i < model.views_->size(); i++) {
             Eigen::Matrix4f inv = poses[i];
             typename pcl::PointCloud<PointInT>::Ptr global_cloud(new pcl::PointCloud<PointInT>);
@@ -174,7 +174,7 @@ namespace v4r
               }
             }
 
-            std::vector<Eigen::Matrix4f> poses_to_assemble_;
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_to_assemble_;
 
             for (size_t i = 0; i < view_filenames.size (); i++)
             {

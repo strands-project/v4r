@@ -47,15 +47,15 @@ void computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
     }
     else //if(normal_method_ == 3)
     {
-        //kp::ZAdaptiveNormals::Parameter n_param;
+        //v4r::ZAdaptiveNormals::Parameter n_param;
         //n_param.adaptive = true;
-        //kp::ZAdaptiveNormals nest(n_param);
+        //v4r::ZAdaptiveNormals nest(n_param);
 
-        //kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new kp::DataMatrix2D<Eigen::Vector3f>() );
-        //kp::DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals_tmp( new kp::DataMatrix2D<Eigen::Vector3f>() );
-        //kp::convertCloud(*cloud, *kp_cloud);
+        //v4r::DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new v4r::DataMatrix2D<Eigen::Vector3f>() );
+        //v4r::DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals_tmp( new v4r::DataMatrix2D<Eigen::Vector3f>() );
+        //v4r::convertCloud(*cloud, *kp_cloud);
         //nest.compute(*kp_cloud, *kp_normals_tmp);
-        //kp::convertNormals(*kp_normals_tmp, *normals);
+        //v4r::convertNormals(*kp_normals_tmp, *normals);
         throw "not implemented";
     }
 

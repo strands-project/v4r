@@ -110,7 +110,7 @@ main (int argc, char ** argv)
     std::sort(to_process.begin(), to_process.end());
 
     std::vector<pcl::PointCloud<PointInT>::Ptr> original_clouds;
-    std::vector<Eigen::Matrix4f> matrix_poses;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > matrix_poses;
     std::vector<pcl::PointCloud<IndexPoint> > object_indices_clouds;
     std::vector<std::vector<int> > indices_vector;
 

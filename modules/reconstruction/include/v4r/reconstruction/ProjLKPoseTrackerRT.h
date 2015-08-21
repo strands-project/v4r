@@ -41,7 +41,7 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <Eigen/Dense>
 #include <v4r/common/impl/SmartPtr.hpp>
-#include <v4r/reconstruction/impl/Object.hpp>
+#include <v4r/keypoints/impl/Object.hpp>
 #include <v4r/reconstruction/RefineProjectedPointLocationLK.h>
 #include <v4r/keypoints/RigidTransformationRANSAC.h>
 #include <v4r/common/impl/DataMatrix2D.hpp>

@@ -25,7 +25,7 @@
 namespace v4r
 {
   template<typename ModelT, typename SceneT>
-  //class FAAT_REC_API GO3D : public faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>
+  //class FAAT_REC_API GO3D : public v4r::GlobalHypothesesVerification_1<ModelT, SceneT>
   class FAAT_REC_API GO3D : public v4r::GHV<ModelT, SceneT>
   {
     private:

@@ -30,8 +30,8 @@
  *
  */
 
-#ifndef V4R_OBJECT_HH
-#define V4R_OBJECT_HH
+#ifndef KP_OBJECT_HH
+#define KP_OBJECT_HH
 
 #include <stdio.h>
 #include <string>
@@ -42,12 +42,14 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <Eigen/Dense>
 #include <v4r/common/impl/SmartPtr.hpp>
+#include <v4r/core/macros.h>
 #include <v4r/keypoints/impl/triple.hpp>
+
 
 namespace v4r
 {
 
-class Object;
+class V4R_EXPORTS Object;
 
 /***********************************************************************
  * GlobalPoint
@@ -65,7 +67,7 @@ public:
 /***********************************************************************
  * ObjectView 
  */
-class ObjectView
+class V4R_EXPORTS ObjectView
 {
 public:
 
@@ -143,11 +145,11 @@ public:
 /*************************************************************************** 
  * Object 
  */
-class Object
+class V4R_EXPORTS Object
 {
 public:
   std::string id;
-  std::vector< Eigen::Matrix4f > cameras;                       // cameras for a static scene
+  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras;                       // cameras for a static scene
   std::vector< std::vector<double> > camera_parameter;          // camera parameter [fx fy cx cy k1 k2 k3 p1 p2]
 
   std::vector<ObjectView::Ptr> views;

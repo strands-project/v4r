@@ -8,7 +8,7 @@
 #ifndef FAAT_PCL_3D_REC_FRAMEWORK_MULTIPLANE_SEGMENTATION_HPP_
 #define FAAT_PCL_3D_REC_FRAMEWORK_MULTIPLANE_SEGMENTATION_HPP_
 
-#include <v4r/recognition/multiplane_segmentation.h>
+#include <v4r/segmentation/multiplane_segmentation.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>

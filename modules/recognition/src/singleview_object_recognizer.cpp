@@ -6,7 +6,7 @@
 
 #include <v4r/recognition/local_recognizer.h>
 #include <v4r/recognition/metrics.h>
-#include <v4r/recognition/multiplane_segmentation.h>
+#include <v4r/segmentation/multiplane_segmentation.h>
 #include <v4r/features/organized_color_ourcvfh_estimator.h>
 #include <v4r/features/ourcvfh_estimator.h>
 #include <v4r/features/shot_local_estimator.h>
@@ -211,7 +211,7 @@ bool SingleViewRecognizer::hypothesesVerification(std::vector<bool> &mask_hv)
 
     std::map<std::string, int> id_to_model_clouds;
     std::map<std::string, int>::iterator it;
-    std::vector<Eigen::Matrix4f> transformations;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations;
     std::vector<int> transforms_to_models;
     transforms_to_models.resize(models_->size());
     transformations.resize(models_->size());
@@ -542,7 +542,7 @@ void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::Const
 
 //    std::map<std::string, int> id_to_model_clouds;
 //    std::map<std::string, int>::iterator it;
-//    std::vector<Eigen::Matrix4f> transformations;
+//    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations;
 //    std::vector<int> transforms_to_models;
 //    transforms_to_models.resize(models_->size());
 //    transformations.resize(models_->size());

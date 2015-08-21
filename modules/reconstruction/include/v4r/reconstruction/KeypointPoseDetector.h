@@ -42,7 +42,7 @@
 #include <Eigen/Dense>
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/features/FeatureDetectorHeaders.h>
-#include <v4r/reconstruction/impl/Object.hpp>
+#include <v4r/keypoints/impl/Object.hpp>
 
 
 namespace v4r

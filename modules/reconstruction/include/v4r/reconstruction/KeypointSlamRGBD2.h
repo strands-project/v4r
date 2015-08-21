@@ -42,7 +42,7 @@
 #include <boost/thread.hpp>
 #include <v4r/common/impl/SmartPtr.hpp>
 
-#include <v4r/reconstruction/impl/Object.hpp>
+#include <v4r/keypoints/impl/Object.hpp>
 #include <v4r/reconstruction/KeyframeManagementRGBD2.h>
 #include <v4r/reconstruction/ProjLKPoseTrackerRT.h>
 #include <v4r/reconstruction/LKPoseTrackerRT.h>
