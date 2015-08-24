@@ -733,7 +733,9 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     if (initial_indices.size())   // for first frame use given initial indices and erode them
     {
-        view.obj_mask_step_.push_back(v4r::common::createMaskFromIndices(initial_indices, view.cloud_->points.size()));
+        std::vector<bool> initial_mask = v4r::common::createMaskFromIndices(initial_indices, view.cloud_->points.size());
+        remove_nan_points(*view.cloud_, initial_mask);
+        view.obj_mask_step_.push_back( initial_mask );
         view.is_pre_labelled_ = true;
 
         // remove nan values and points further away than chop_z_ parameter
@@ -970,6 +972,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     view.obj_mask_step_.push_back(obj_mask_grown_by_smooth_surface);
 
     std::vector<bool> obj_mask_eroded = erodeIndices(obj_mask_grown_by_smooth_surface, *view.cloud_);
+    remove_nan_points(*view.cloud_, obj_mask_eroded);
     view.obj_mask_step_.push_back( obj_mask_eroded );
 
     for( size_t step_id = 0; step_id<view.obj_mask_step_.size(); step_id++)

@@ -199,6 +199,17 @@ protected:
 
     bool merging_planes_reasonable(const modelView::SuperPlane &sp1, const modelView::SuperPlane &sp2) const;
 
+    void
+    remove_nan_points(const pcl::PointCloud<PointT> &cloud, std::vector<bool> &mask)
+    {
+        assert(mask.size()==cloud.size());
+        for (size_t i=0; i<mask.size(); i++)
+        {
+            if(mask[i] && !pcl::isFinite(cloud.points[i]))
+                mask[i] = false;
+        }
+    }
+
 public:
 
     DOL (const Parameter &p=Parameter()) : octree_(0.005f)
