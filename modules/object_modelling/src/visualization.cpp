@@ -171,7 +171,7 @@ DOL::visualize_clusters()
             {
                 pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> colored_src (segmented, r, g, b);
                 vis_seg_->addPointCloud(segmented, colored_src, name.str(), viewports[view_id*3 + 1]);
-                vis_seg_->addText(text.str(),40, 10*cluster_id,10,r,g,b,name.str(), viewports[view_id*3 + 1]);
+                vis_seg_->addText(text.str(),40, 10*cluster_id,10, r/255, g/255, b/255, name.str(), viewports[view_id*3 + 1]);
             }
             else
             {
