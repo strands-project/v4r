@@ -29,7 +29,7 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
     subwindow_title.push_back("verified hypotheses from single-view only");
     subwindow_title.push_back("generated multi-view hypotheses (previous + current observations)");
     subwindow_title.push_back("verified multi-view hypotheses");
-    viewportNr = v4r::common::pcl_visualizer::visualization_framework ( vis, num_vertices(grph), vis_rows);
+    viewportNr = v4r::common::pcl_visualizer::visualization_framework ( *vis, num_vertices(grph), vis_rows);
 
     std::pair<vertex_iter, vertex_iter> vp;
     size_t view_id = 0;
