@@ -201,7 +201,7 @@ void PcdGtAnnotator<PointT>::visualize()
     {
         subwindow_titles.push_back ( model_id_[m_id] );
     }
-    std::vector<int> viewports = v4r::common::pcl_visualizer::visualization_framework(vis_, 1, model_id_.size() + 1 , subwindow_titles);
+    std::vector<int> viewports = v4r::common::pcl_visualizer::visualization_framework(*vis_, 1, model_id_.size() + 1 , subwindow_titles);
 
     size_t vp_id = 0;
 
