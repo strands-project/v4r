@@ -26,6 +26,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
+#include <pcl/registration/icp.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
 
@@ -34,8 +35,10 @@
 #include <v4r/common/impl/DataMatrix2D.hpp>
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/registration/fast_icp_with_gc.h>
+#include <v4r/common/binary_algorithms.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/noise_models.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
 #include <v4r/common/occlusion_reasoning.h>
@@ -551,54 +554,91 @@ DOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
     v4r::DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals( new v4r::DataMatrix2D<Eigen::Vector3f>() );
     v4r::convertCloud(*cloud, *kp_cloud);
     v4r::convertNormals(*normals, *kp_normals);
-    pest.compute(*kp_cloud, *kp_normals, planes);
+
+    std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> all_planes;
+    pest.compute(*kp_cloud, *kp_normals, all_planes);
+    planes.resize(all_planes.size());
+    size_t kept=0;
+    for (size_t cluster_id=0; cluster_id<all_planes.size(); cluster_id++)
+    {
+        float min_z = std::numeric_limits<float>::max();
+        for(size_t cluster_pt_id=0; cluster_pt_id<all_planes[cluster_id]->indices.size(); cluster_pt_id++)
+        {
+            const int id = all_planes[cluster_id]->indices[cluster_pt_id];
+            if ( cloud->points[id].z < min_z ) // do not consider points that are further away than a certain threshold
+                min_z = cloud->points[id].z;
+        }
+        if(min_z < param_.chop_z_)
+        {
+            planes[kept] = all_planes[cluster_id];
+            kept++;
+        }
+    }
+    planes.resize(kept);
+}
+
+bool
+DOL::merging_planes_reasonable(const modelView::SuperPlane &sp1, const modelView::SuperPlane &sp2) const
+{
+    float dist = std::abs(PlaneEstimationRANSAC::normalPointDist(sp1.pt, sp1.normal, sp2.pt));
+    float dot  = sp1.normal.dot(sp2.normal);
+//    std::cout << "dist: " << dist << ", dot: " << dot << std::endl;
+    return (dist < 2 * p_param_.inlDist && dot > 0.95);
 }
 
 void
-DOL::getPlanesNotSupportedByObjectMask(const std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> &planes,
+DOL::computePlaneProperties(const std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                        const std::vector< bool > &object_mask,
                                        const std::vector< bool > &occlusion_mask,
                                        const pcl::PointCloud<PointT>::ConstPtr &cloud,
-                                       std::vector< std::vector<int> > &planes_not_on_object) const
+                                       std::vector<modelView::SuperPlane> &super_planes) const
 {
-    planes_not_on_object.resize(planes.size());
+//    planes_not_on_object.resize(planes.size());
+    super_planes.resize(planes.size());
 
-    size_t kept=0;
+//    size_t kept=0;
     for(size_t cluster_id=0; cluster_id<planes.size(); cluster_id++)
     {
+        super_planes[cluster_id].pt = planes[cluster_id]->pt;
+        super_planes[cluster_id].normal = planes[cluster_id]->normal;
+        super_planes[cluster_id].is_plane = planes[cluster_id]->is_plane;
+        super_planes[cluster_id].indices = planes[cluster_id]->indices;
+        super_planes[cluster_id].visible_indices.resize( planes[cluster_id]->indices.size() );
+        super_planes[cluster_id].object_indices.resize( planes[cluster_id]->indices.size() );
+        super_planes[cluster_id].within_chop_z_indices.resize( planes[cluster_id]->indices.size() );
+
         size_t num_obj_pts = 0;
         size_t num_occluded_pts = 0;
         size_t num_plane_pts = 0;
 
-        if ( planes[cluster_id]->is_plane || !param_.filter_planes_only_ )
+        for (size_t cluster_pt_id=0; cluster_pt_id<planes[cluster_id]->indices.size(); cluster_pt_id++)
         {
-            for (size_t cluster_pt_id=0; cluster_pt_id<planes[cluster_id]->indices.size(); cluster_pt_id++)
+            const int id = planes[cluster_id]->indices[cluster_pt_id];
+            if ( cloud->points[id].z < param_.chop_z_ )
             {
-                const int id = planes[cluster_id]->indices[cluster_pt_id];
-
-                if ( cloud->points[id].z > param_.chop_z_ ) // do not consider points that are further away than a certain threshold
-                    continue;
+                super_planes[cluster_id].within_chop_z_indices[ num_plane_pts++ ] = id;
 
                 if ( object_mask[id] )
-                {
-                    num_obj_pts++;
-                }
+                     super_planes[cluster_id].object_indices[ num_obj_pts++ ] = id;
 
-                if( occlusion_mask[id] )
-                    num_occluded_pts++;
+                if( !occlusion_mask[id] )
+                    super_planes[cluster_id].visible_indices[ num_occluded_pts++ ] = id;
 
-                num_plane_pts++;
-            }
-
-            if ( num_plane_pts == 0 ||
-                 ( (double)num_obj_pts/num_plane_pts < param_.ratio_cluster_obj_supported_ && (double)num_occluded_pts/num_plane_pts < param_.ratio_cluster_occluded_) )
-            {
-                planes_not_on_object[kept] = planes[cluster_id]->indices;
-                kept++;
             }
         }
+        super_planes[cluster_id].visible_indices.resize( num_occluded_pts );
+        super_planes[cluster_id].object_indices.resize( num_obj_pts );
+        super_planes[cluster_id].within_chop_z_indices.resize( num_plane_pts );
+
+
+//        if ( num_plane_pts == 0 ||
+//             ( (double)num_obj_pts/num_plane_pts < param_.ratio_cluster_obj_supported_ && (double)num_occluded_pts/num_plane_pts < param_.ratio_cluster_occluded_) )
+//        {
+//            planes_not_on_object[kept] = planes[cluster_id];
+//            kept++;
+//        }
     }
-    planes_not_on_object.resize(kept);
+//    planes_not_on_object.resize(kept);
 }
 
 void
@@ -648,61 +688,6 @@ DOL::computeAbsolutePoses (const Graph & grph,
   computeAbsolutePosesRecursive (grph, source_view, accum, absolute_poses, hop_list);
 }
 
-std::vector<bool>
-DOL::createMaskFromVecIndices( const std::vector< std::vector<int> > &v_indices,
-                               size_t image_size)
-{
-    std::vector<bool> mask;
-
-    if ( mask.size() != image_size )
-        mask = std::vector<bool>( image_size, false );
-
-    for(size_t i=0; i<v_indices.size(); i++)
-    {
-        std::vector<bool> mask_tmp = v4r::common::createMaskFromIndices(v_indices[i], image_size);
-
-        if(mask.size())
-            mask = logical_operation(mask, mask_tmp, MASK_OPERATOR::OR);
-        else
-            mask = mask_tmp;
-    }
-
-    return mask;
-}
-
-std::vector<bool>
-DOL::logical_operation(const std::vector<bool> &mask1, const std::vector<bool> &mask2, int operation)
-{
-    assert(mask1.size() == mask2.size());
-
-    std::vector<bool> output_mask;
-    output_mask.resize(mask1.size());
-
-    for(size_t i=0; i<mask1.size(); i++)
-    {
-        if(operation == MASK_OPERATOR::AND)
-        {
-            output_mask[i] = mask1[i] && mask2[i];
-        }
-        else
-        if (operation == MASK_OPERATOR::AND_N)
-        {
-            output_mask[i] = mask1[i] && !mask2[i];
-        }
-        else
-        if (operation == MASK_OPERATOR::OR)
-        {
-            output_mask[i] = mask1[i] || mask2[i];
-        }
-        else
-        if (operation == MASK_OPERATOR::XOR)
-        {
-            output_mask[i] = (mask1[i] && !mask2[i]) || (!mask1[i] && mask2[i]);
-        }
-    }
-    return output_mask;
-}
-
 bool
 DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &camera_pose, const std::vector<size_t> &initial_indices)
 {
@@ -721,8 +706,6 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     pcl::PointCloud<pcl::Normal>::Ptr normals_filtered (new pcl::PointCloud<pcl::Normal>());
     std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> planes;
-    std::vector< std::vector<int> > planes_not_on_obj;
-    std::vector<bool> pixel_is_neglected;
 
     v4r::common::computeNormals(view.cloud_, view.normal_, param_.normal_method_);
     extractPlanePoints(view.cloud_, view.normal_, planes);
@@ -784,17 +767,15 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
         const std::vector<bool> obj_mask_initial = v4r::common::createMaskFromIndices(initial_indices_wo_nan, view.cloud_->points.size());
         const std::vector<bool> outlier_mask = v4r::common::createMaskFromIndices(*FilteredObjectIndicesPtr, view.cloud_->points.size());
-        const std::vector<bool> obj_mask_wo_outlier = logical_operation(obj_mask_initial, outlier_mask, MASK_OPERATOR::AND_N);
+        const std::vector<bool> obj_mask_wo_outlier = binary_operation(obj_mask_initial, outlier_mask, BINARY_OPERATOR::AND_N);
 
         view.obj_mask_step_.push_back( obj_mask_wo_outlier);
 
         std::vector<bool> obj_mask_eroded = erodeIndices(obj_mask_wo_outlier, *view.cloud_);
         view.obj_mask_step_.push_back( obj_mask_eroded );
-        getPlanesNotSupportedByObjectMask(planes,
-                                          view.obj_mask_step_[0],
-                                          std::vector<bool>(view.cloud_->points.size(), false),
-                                          view.cloud_,
-                                          planes_not_on_obj);
+        computePlaneProperties(planes, view.obj_mask_step_[0],
+                               std::vector<bool>(view.cloud_->points.size(), false),
+                               view.cloud_, view.planes_);
     }
     else
     {
@@ -892,11 +873,20 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         {
             if( view.id_ != grph_[view_id].id_)
             {
-                pcl::PointCloud<PointT> new_search_pts, new_search_pts_aligned;
-                pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_mask_step_.back(), new_search_pts);
+                pcl::PointCloud<PointT>::Ptr new_search_pts, new_search_pts_aligned;
+                new_search_pts.reset(new pcl::PointCloud<PointT>());
+                new_search_pts_aligned.reset(new pcl::PointCloud<PointT>());
+                pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_mask_step_.back(), *new_search_pts);
                 const Eigen::Matrix4f tf = view.camera_pose_.inverse() * grph_[view_id].camera_pose_;
-                pcl::transformPointCloud(new_search_pts, new_search_pts_aligned, tf);
-                *view.transferred_cluster_ += new_search_pts_aligned;
+                pcl::transformPointCloud(*new_search_pts, *new_search_pts_aligned, tf);
+
+                pcl::IterativeClosestPoint<PointT, PointT> icp;
+                icp.setInputSource(new_search_pts_aligned);
+                icp.setInputTarget(view.cloud_);
+                icp.setMaxCorrespondenceDistance (0.02f);
+                pcl::PointCloud<PointT>::Ptr icp_aligned_cloud (new pcl::PointCloud<PointT>());
+                icp.align(*icp_aligned_cloud, Eigen::Matrix4f::Identity());
+                *view.transferred_cluster_ += *icp_aligned_cloud;
 
                 if (grph_[view_id].is_pre_labelled_)
                 {
@@ -906,7 +896,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                                                                                                         525.f, 0.01f, false);
                     if( is_occluded.size() == is_occluded_tmp.size())
                     {
-                        is_occluded = logical_operation(is_occluded, is_occluded_tmp, MASK_OPERATOR::AND); // is this correct?
+                        is_occluded = binary_operation(is_occluded, is_occluded_tmp, BINARY_OPERATOR::AND); // is this correct?
                     }
                     else
                     {
@@ -920,51 +910,50 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         nnSearch(*view.transferred_cluster_, octree_, obj_mask_nn_search);
         view.obj_mask_step_.push_back( obj_mask_nn_search);
 
-        getPlanesNotSupportedByObjectMask(planes,
-                                          obj_mask_nn_search,
-                                          is_occluded,
-                                          view.cloud_,
-                                          planes_not_on_obj);
+        computePlaneProperties(planes, obj_mask_nn_search, is_occluded,
+                               view.cloud_, view.planes_);
+    }
+    std::vector<bool> pixel_is_object = view.obj_mask_step_.back();
+
+    // filter cloud based on planes not on object and not occluded in first frame
+    std::vector<bool> pixel_is_neglected (view.cloud_->points.size(), false);
+    for (size_t p_id=0; p_id<view.planes_.size(); p_id++)
+    {
+        for (size_t view_id = 0; view_id < grph_.size(); view_id++)
+        {
+            if( view.id_ != grph_[view_id].id_)
+            {
+                for (size_t p2_id=0; p2_id<grph_[view_id].planes_.size(); p2_id++)
+                {
+//                    std::cout << "Checking cluster new " << p_id << " and cluster old " <<
+//                                 p2_id << " from view " << view_id << std::endl;
+//                    std::cout << merging_planes_reasonable(view.planes_[p_id], grph_[view_id].planes_[p2_id]) << std::endl;
+
+                    // if the planes can be merged (based on normals and distance), then filter new plane if old one has been filtered
+                    if (grph_[view_id].planes_[p2_id].is_filtered && merging_planes_reasonable(view.planes_[p_id], grph_[view_id].planes_[p2_id]) && !plane_has_object(view.planes_[p_id]))
+                        view.planes_[p_id].is_filtered = true;
+                }
+            }
+        }
+        if ( plane_is_filtered( view.planes_[p_id] ) )
+            view.planes_[p_id].is_filtered = true;
+
+        if ( view.planes_[p_id].is_filtered )
+        {
+            for (size_t c_pt_id=0; c_pt_id < view.planes_[p_id].indices.size(); c_pt_id++)
+                pixel_is_neglected [ view.planes_[p_id].indices[ c_pt_id ] ] = true;
+        }
+    }
+    for(size_t pt=0; pt<view.cloud_->points.size(); pt++)
+    {
+        if (view.cloud_->points[pt].z > param_.chop_z_)
+            pixel_is_neglected[pt] = true;
     }
 
-    std::vector<bool> pixel_is_object = view.obj_mask_step_.back();
-    pixel_is_neglected = v4r::common::createMaskFromVecIndices(planes_not_on_obj, view.cloud_->points.size());
     view.scene_points_ = v4r::common::createIndicesFromMask(pixel_is_neglected, true);
-    view.obj_mask_step_.push_back( logical_operation(pixel_is_object, pixel_is_neglected, MASK_OPERATOR::AND_N) );
+    view.obj_mask_step_.push_back( binary_operation(pixel_is_object, pixel_is_neglected, BINARY_OPERATOR::AND_N) );
     pcl::copyPointCloud(*view.normal_, view.scene_points_, *normals_filtered);
 
-    //#define DEBUG_SEGMENTATION
-#ifdef DEBUG_SEGMENTATION
-    {
-        pcl::visualization::PCLVisualizer vis("segmented cloud");
-        for(size_t cluster_id=0; cluster_id<planes.size(); cluster_id++)
-        {
-            vis.removeAllPointCloud();
-            pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(keyframes_.back());
-            vis.addPointCloud(keyframes_.back(), rgb_handler, "original_cloud");
-
-
-            pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
-            pcl::copyPointCloud(*keyframes_.back(), planes[cluster_id]->indices, *segmented);
-            if (planes[cluster_id]->is_plane)
-            {
-                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> red_source (segmented, 255, 0, 0);
-                vis.addPointCloud(segmented, red_source, "segmented");
-            }
-            else
-            {
-                break;
-                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> green_source (segmented, 0, 255, 0);
-                vis.addPointCloud(segmented, green_source, "segmented");
-            }
-//            vis.spin();
-        }
-        vis.removeAllPointClouds();
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(keyframes_.back());
-        vis.addPointCloud(keyframes_.back(), rgb_handler, "original_cloud");
-//        vis.spin();
-    }
-#endif
     std::vector<bool> obj_mask_enforced_by_supervoxel_consistency;
     updatePointNormalsFromSuperVoxels(view.cloud_,
                                       view.normal_,
@@ -1026,14 +1015,29 @@ DOL::printParams(std::ostream &ostr) const
          << "===================================================" << std::endl
          << "radius: " << param_.radius_ << std::endl
          << "eps_angle: " << param_.eps_angle_ << std::endl
-         << "seed resolution: " << param_.seed_resolution_ << std::endl
+         << "dist_threshold_growing_: " << param_.dist_threshold_growing_ << std::endl
          << "voxel resolution: " << param_.voxel_resolution_ << std::endl
-         << "ratio: " << param_.ratio_supervoxel_ << std::endl
-         << "do_erosion: " << param_.do_erosion_ << std::endl
+         << "seed resolution: " << param_.seed_resolution_ << std::endl
+         << "ratio_supervoxel: " << param_.ratio_supervoxel_ << std::endl
          << "max z distance: " << param_.chop_z_ << std::endl
+         << "do_erosion: " << param_.do_erosion_ << std::endl
+         << "do_sift_based_camera_pose_estimation_: " << param_.do_sift_based_camera_pose_estimation_ << std::endl
          << "transferring object indices from latest frame only: " << param_.transfer_indices_from_latest_frame_only_ << std::endl
+         << "min_points_for_transferring_: " << param_.min_points_for_transferring_ << std::endl
+         << "normal_method_: " << param_.normal_method_ << std::endl
          << "apply minimimum spanning tree: " << param_.do_mst_refinement_ << std::endl
-         << "Filter only planes (no other Euclidean clusters): " << param_.filter_planes_only_ << std::endl
+         << "ratio_cluster_obj_supported_: " << param_.ratio_cluster_obj_supported_ << std::endl
+         << "ratio_cluster_occluded_: " << param_.ratio_cluster_occluded_ << std::endl
+         << "smooth_clustering_param_inlDist: " << p_param_.inlDist << std::endl
+         << "smooth_clustering_param_inlDistSmooth: " << p_param_.inlDistSmooth << std::endl
+         << "smooth_clustering_param_least_squares_refinement: " << p_param_.least_squares_refinement << std::endl
+         << "smooth_clustering_param_minPoints: " << p_param_.minPoints << std::endl
+         << "smooth_clustering_param_minPointsSmooth: " << p_param_.minPointsSmooth << std::endl
+         << "smooth_clustering_param_smooth_clustering: " << p_param_.smooth_clustering << std::endl
+         << "smooth_clustering_param_thrAngle: " << p_param_.thrAngle << std::endl
+         << "smooth_clustering_param_thrAngleSmooth: " << p_param_.thrAngleSmooth << std::endl
+         << "statistical_outlier_removal_meanK_: " << sor_params_.meanK_ << std::endl
+         << "statistical_outlier_removal_std_mul_: " << sor_params_.std_mul_ << std::endl
          << "===================================================" << std::endl << std::endl;
 }
 }

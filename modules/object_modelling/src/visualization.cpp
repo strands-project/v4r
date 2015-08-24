@@ -9,6 +9,8 @@
 #include <v4r/common/noise_models.h>
 #include <v4r/common/pcl_opencv.h>
 #include <v4r/io/filesystem.h>
+#include <time.h>
+#include <stdlib.h>
 
 namespace v4r
 {
@@ -108,10 +110,87 @@ DOL::createBigCloud()
      }
 }
 
+void
+DOL::visualize_clusters()
+{
+    srand (time(NULL));
+    if (!vis_seg_)
+        vis_seg_.reset(new pcl::visualization::PCLVisualizer("smooth clusters"));
+//        size_t total_sub_windows = view.planes_.size();
+//        size_t cols = static_cast<size_t>(total_sub_windows * 16.f / (16.f*9.f) + 0.5f); // optimized for 16:9
+//        size_t rows = std::ceil(total_sub_windows/float(cols));
+//        std::vector<int> viewports = v4r::common::pcl_visualizer::visualization_framework (*vis_seg_, cols, rows);
+
+//    size_t max_clusters=0;
+//    for (size_t view_id = 0; view_id < grph_.size(); view_id++)
+//    {
+//      if( grph_[view_id].planes_.size() > max_clusters )
+//         max_clusters = grph_[view_id].planes_.size();
+//    }
+    //    std::vector<int> viewports = v4r::common::pcl_visualizer::visualization_framework (*vis_seg_, grph_.size(), max_clusters+1);
+
+    std::vector<std::string> subwindow_title;
+    subwindow_title.push_back("original");
+    subwindow_title.push_back("filtered");
+    subwindow_title.push_back("passed");
+    std::vector<int> viewports = v4r::common::pcl_visualizer::visualization_framework (*vis_seg_, grph_.size(), 3, subwindow_title);
+
+    vis_seg_->removeAllPointClouds();
+
+    for (size_t view_id = 0; view_id < grph_.size(); view_id++)
+    {
+        std::stringstream name;
+        name << "cloud_" << view_id;
+        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler(grph_[view_id].cloud_);
+        vis_seg_->addPointCloud(grph_[view_id].cloud_, rgb_handler, name.str(), viewports[view_id*3 + 0]);
+
+        name << "_";
+        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler2(grph_[view_id].cloud_);
+        vis_seg_->addPointCloud(grph_[view_id].cloud_, rgb_handler2, name.str(), viewports[view_id*3 + 1]);
+
+        name << "_";
+        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler3(grph_[view_id].cloud_);
+        vis_seg_->addPointCloud(grph_[view_id].cloud_, rgb_handler3, name.str(), viewports[view_id*3 + 2]);
+
+        for(size_t cluster_id=0; cluster_id<grph_[view_id].planes_.size(); cluster_id++)
+        {
+            name << "_segmented_" << cluster_id;
+            pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
+            pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].planes_[cluster_id].indices, *segmented);
+
+            float r=0, g=0, b=0;
+            r=50+rand()%205;
+            g=50+rand()%205;
+            b=50+rand()%205;
+
+            std::stringstream text;
+            const double num_vis = static_cast<double>(grph_[view_id].planes_[cluster_id].visible_indices.size()) / grph_[view_id].planes_[cluster_id].within_chop_z_indices.size();
+            const double num_obj = static_cast<double>(grph_[view_id].planes_[cluster_id].object_indices.size()) / grph_[view_id].planes_[cluster_id].within_chop_z_indices.size();
+            text << "v:" << std::setprecision(2) << num_vis << " / o: " << std::setprecision(2) << num_obj;
+
+            if(grph_[view_id].planes_[cluster_id].is_filtered)
+            {
+                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> colored_src (segmented, r, g, b);
+                vis_seg_->addPointCloud(segmented, colored_src, name.str(), viewports[view_id*3 + 1]);
+                vis_seg_->addText(text.str(),40, 10*cluster_id,10,r,g,b,name.str(), viewports[view_id*3 + 1]);
+            }
+            else
+            {
+                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> colored_src (segmented, r, g, b);
+                vis_seg_->addPointCloud(segmented, colored_src, name.str(), viewports[view_id*3 + 2]);
+                vis_seg_->addText(text.str(), 40, 10*cluster_id,10,r,g,b,name.str(), viewports[view_id*3 + 2]);
+            }
+        }
+
+    }
+    vis_seg_->spinOnce();
+}
+
 
 void
 DOL::visualize()
 {
+    visualize_clusters();
     createBigCloud();
     if (!vis_reconstructed_)
     {
@@ -154,7 +233,7 @@ DOL::visualize()
     subwindow_title.push_back("after 2D erosion");
 
     size_t num_subwindows = grph_.back().obj_mask_step_.size() + 3;
-    vis_viewpoint_ = v4r::common::pcl_visualizer::visualization_framework (vis_, grph_.size(), num_subwindows, subwindow_title);
+    vis_viewpoint_ = v4r::common::pcl_visualizer::visualization_framework (*vis_, grph_.size(), num_subwindows, subwindow_title);
 
     for (size_t view_id = 0; view_id < grph_.size(); view_id++)
     {
