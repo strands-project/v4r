@@ -42,8 +42,6 @@ private:
         const std::vector<int> &indices, const Eigen::Vector3f &mean, Eigen::Matrix3f &cov);
   void getInliers(std::vector<float> &dists, std::vector<int> &inliers);
   unsigned countInliers(std::vector<float> &dists);
-  void getDistances(const std::vector<Eigen::Vector3f> &pts, 
-        const Eigen::Vector3f &pt, const Eigen::Vector3f &n, std::vector<float> &dists);
   void getRandIdx(int size, int num, std::vector<int> &idx);
   void ransac(const std::vector<Eigen::Vector3f> &pts,
         Eigen::Vector3f &pt, Eigen::Vector3f &n, std::vector<int> &inliers);
@@ -73,8 +71,10 @@ public:
                 const Eigen::Vector3f &pt3, Eigen::Vector3f &n); 
   inline float implicitPointDist(const float  &a, const float &b, 
                 const float &c, const float &d, const Eigen::Vector3f &pt);
-  inline float normalPointDist(const Eigen::Vector3f &pt, const Eigen::Vector3f &n, 
+  static inline float normalPointDist(const Eigen::Vector3f &pt, const Eigen::Vector3f &n,
                 const Eigen::Vector3f &pt_dist);
+  static void getDistances(const std::vector<Eigen::Vector3f> &pts,
+        const Eigen::Vector3f &pt, const Eigen::Vector3f &n, std::vector<float> &dists);
 
   typedef SmartPtr< ::v4r::PlaneEstimationRANSAC> Ptr;
   typedef SmartPtr< ::v4r::PlaneEstimationRANSAC const> ConstPtr;
