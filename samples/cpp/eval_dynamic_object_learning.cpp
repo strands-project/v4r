@@ -30,7 +30,6 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv,  "-transfer_latest_only", param.transfer_indices_from_latest_frame_only_);
     pcl::console::parse_argument (argc, argv,  "-chop_z", param.chop_z_);
     pcl::console::parse_argument (argc, argv,  "-normal_method", param.normal_method_);
-    pcl::console::parse_argument (argc, argv,  "-filter_planes_only", param.filter_planes_only_);
     pcl::console::parse_argument (argc, argv,  "-ratio_cluster_obj_supported", param.ratio_cluster_obj_supported_);
     pcl::console::parse_argument (argc, argv,  "-ratio_cluster_occluded", param.ratio_cluster_occluded_);
     pcl::console::parse_argument (argc, argv,  "-visualize", visualize);
@@ -41,6 +40,7 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv,  "-inlier_threshold_plane_seg", m.p_param_.inlDist);
     pcl::console::parse_argument (argc, argv,  "-min_points_smooth_cluster", m.p_param_.minPointsSmooth);
     pcl::console::parse_argument (argc, argv,  "-min_plane_points", m.p_param_.minPoints);
+    pcl::console::parse_argument (argc, argv,  "-smooth_clustering", m.p_param_.smooth_clustering);
 
     pcl::console::parse_argument (argc, argv, "-scenes_dir", scene_dir);
     pcl::console::parse_argument (argc, argv, "-input_mask_dir", input_mask_dir);

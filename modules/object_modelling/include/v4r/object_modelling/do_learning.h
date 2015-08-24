@@ -93,7 +93,6 @@ public:
         size_t min_points_for_transferring_;
         int normal_method_;
         bool do_mst_refinement_;
-        bool filter_planes_only_;
         double ratio_cluster_obj_supported_;
         double ratio_cluster_occluded_;
         Parameter (double radius = 0.005f,
@@ -109,7 +108,6 @@ public:
                    size_t min_points_for_transferring = 10,
                    int normal_method = 0,
                    bool do_mst_refinement = true,
-                   bool filter_planes_only = true,
                    double ratio_cluster_obj_supported = 0.25,
                    double ratio_cluster_occluded = 0.75):
             radius_(radius),
@@ -125,19 +123,11 @@ public:
             min_points_for_transferring_(min_points_for_transferring),
             normal_method_(normal_method),
             do_mst_refinement_(do_mst_refinement),
-            filter_planes_only_(filter_planes_only),
             ratio_cluster_obj_supported_ (ratio_cluster_obj_supported),
             ratio_cluster_occluded_(ratio_cluster_occluded)
         {
         }
 
-    };
-
-    enum MASK_OPERATOR{
-        AND,
-        AND_N, // this will negate the second argument
-        OR,
-        XOR
     };
 
     struct {
@@ -166,7 +156,7 @@ protected:
     pcl::PointCloud<PointT>::Ptr big_cloud_;
     pcl::PointCloud<PointT>::Ptr big_cloud_segmented_;
     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr big_cloud_segmented_refined_;
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_;
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_, vis_seg_;
     std::vector<int> vis_reconstructed_viewpoint_;
     std::vector<int> vis_viewpoint_;
     cv::Ptr<SiftGPU> sift_;
@@ -182,6 +172,33 @@ protected:
                                   const Eigen::Matrix4f &accum,
                                   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &absolute_poses,
                                   std::vector<bool> &hop_list);
+
+    bool
+    plane_has_object (const modelView::SuperPlane &sp) const
+    {
+        const size_t num_pts = sp.within_chop_z_indices.size();
+        const size_t num_obj = sp.object_indices.size();
+
+        return num_pts > 0 && static_cast<double>(num_obj)/num_pts > param_.ratio_cluster_obj_supported_;
+    }
+
+    bool
+    plane_is_visible (const modelView::SuperPlane &sp) const
+    {
+        const size_t num_pts = sp.within_chop_z_indices.size();
+        const size_t num_vis = sp.visible_indices.size();
+
+        return num_pts > 0 && static_cast<double>(num_vis)/num_pts > param_.ratio_cluster_occluded_;
+    }
+
+    bool
+    plane_is_filtered (const modelView::SuperPlane &sp) const
+    {
+        return plane_is_visible(sp) && !plane_has_object(sp);
+    }
+
+    bool merging_planes_reasonable(const modelView::SuperPlane &sp1, const modelView::SuperPlane &sp2) const;
+
 public:
 
     DOL (const Parameter &p=Parameter()) : octree_(0.005f)
@@ -192,7 +209,7 @@ public:
         p_param_.inlDist=0.05;
         p_param_.minPoints=5000;    // minimum number for a plane to be segmented
         p_param_.least_squares_refinement=true;
-        p_param_.smooth_clustering=true;
+        p_param_.smooth_clustering=false;
         p_param_.thrAngleSmooth=30;
         p_param_.inlDistSmooth=0.02;
         p_param_.minPointsSmooth=50;    // minimum number for a segment other than a plane
@@ -283,15 +300,16 @@ public:
      * @param ratio - threshold percentage when a cluster is considered as belonging to an object
      * @param ratio_occ - threshold percentage when a cluster is considered as being occluded
      */
-    void getPlanesNotSupportedByObjectMask(const std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> &planes,
+    void computePlaneProperties(const std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                            const std::vector< bool > &object_mask,
                                            const std::vector< bool > &occlusion_mask,
                                            const pcl::PointCloud<PointT>::ConstPtr &cloud,
-                                           std::vector<std::vector<int> > &planes_not_on_object) const;
+                                           std::vector<modelView::SuperPlane> &super_planes) const;
     /**
      * @brief This shows the learned object together with all the intermediate steps using pcl viewer
      */
     void visualize();
+    void visualize_clusters();
 
 
     /**
@@ -301,21 +319,13 @@ public:
     void writeImagesToDisk(const std::string &path = std::string("/tmp/dol_images/"), bool crop=false);
 
     /**
-     * @brief performs bit wise logical operations
-     * @param[in] bit mask1
-     * @param[in] bit mask2
-     * @param[in] operation (AND, AND_N, OR, XOR)
-     * @return output bit mask
-     */
-    static std::vector<bool> logical_operation(const std::vector<bool> &mask1, const std::vector<bool> &mask2, int operation);
-
-    /**
      * @brief transforms each keyframe to global coordinate system using given camera
      *  pose and does segmentation based on the computed object indices to create
      *  reconstructed point cloud of scene and object model
      */
     void createBigCloud();
 
+<<<<<<< HEAD
 
     /**
      * @brief given indices of an image or pointcloud, this function create a boolean mask of the indices
@@ -332,6 +342,8 @@ public:
 
     static std::vector<size_t> createIndicesFromMask(const std::vector<bool> &mask, bool invert=false);
 
+=======
+>>>>>>> included plane merge
     void computeNormals(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                         pcl::PointCloud<pcl::Normal>::Ptr &normals, int method);
 

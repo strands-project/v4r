@@ -10,13 +10,29 @@
  *
  * */
 #include <pcl/common/common.h>
+#include <v4r/core/macros.h>
+#include <v4r/keypoints/ClusterNormalsToPlanes.h>
 
 namespace v4r
 {
     namespace object_modelling
     {
-        class modelView
+        class V4R_EXPORTS modelView
         {
+        public:
+            class SuperPlane : public ClusterNormalsToPlanes::Plane
+            {
+            public:
+                std::vector<size_t> visible_indices;
+                std::vector<size_t> object_indices;
+                std::vector<size_t> within_chop_z_indices;
+                bool is_filtered;
+                SuperPlane() : ClusterNormalsToPlanes::Plane()
+                {
+                    is_filtered = false;
+                }
+            };
+
         public:
             typedef pcl::PointXYZRGB PointT;
             typedef pcl::Histogram<128> FeatureT;
@@ -28,6 +44,8 @@ namespace v4r
             pcl::PointCloud<FeatureT>::Ptr  sift_signatures_;
             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr  supervoxel_cloud_;
             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr  supervoxel_cloud_organized_;
+
+            std::vector<SuperPlane> planes_;
 
             std::vector< size_t > scene_points_;
             std::vector< size_t > sift_keypoint_indices_;
