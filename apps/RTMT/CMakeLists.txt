@@ -53,6 +53,9 @@ endif()
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GL REQUIRED gl)
 
+find_package(PkgConfig REQUIRED)
+pkg_search_module(OPENNI REQUIRED openni-dev)
+
 add_definitions(-std=c++0x)
 add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
 add_definitions(-Dlinux -D__x86_64__)
@@ -100,7 +103,7 @@ message(STATUS "QT_USE_FILE: ${QT_USE_FILE}")
 message(STATUS "QT_DEFINITIONS: ${QT_DEFINITIONS}")
 message(STATUS "QT_LIBRARIES: ${QT_LIBRARIES}")
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${OPENNI2_INCLUDE_DIR})
 add_executable(RTMT ${SOURCES} ${HEADERS_MOC} ${FORMS_MOC})
-target_link_libraries(RTMT ${RTMT_DEPS} ${DEP_LIBS} ${QT_LIBRARIES} ${GL_LIBRARIES})
+target_link_libraries(RTMT ${RTMT_DEPS} ${DEP_LIBS} ${QT_LIBRARIES} ${OPENNI2_LIBRARY} ${GL_LIBRARIES})
 

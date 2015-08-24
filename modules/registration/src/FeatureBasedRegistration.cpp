@@ -8,6 +8,7 @@
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/octree/octree_impl.h>
 #include <pcl/octree/octree_pointcloud_occupancy.h>
 #include <pcl/octree/impl/octree_base.hpp>
 #include <v4r/common/miscellaneous.h>
