@@ -5,6 +5,9 @@ if(NOT V4R_DEPENDENCIES_FOUND)
   return()
 endif()
 
+find_package(PkgConfig REQUIRED)
+pkg_search_module(GL REQUIRED gl)
+
 v4r_include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 v4r_include_modules(${3D_SCENE_RECONSTRUCTION_BY_SIFT_AND_MST_DEPS})
 
@@ -24,7 +27,8 @@ endif()
 
 if(HAVE_SIFTGPU)
   v4r_include_directories(${SIFTGPU_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
 endif()
 
 add_executable(3dReconstructionBySiftAndMST main.cpp)
-target_link_libraries(3dReconstructionBySiftAndMST glfw3 ${3D_SCENE_RECONSTRUCTION_BY_SIFT_AND_MST_DEPS} ${DEP_LIBS})
+target_link_libraries(3dReconstructionBySiftAndMST ${3D_SCENE_RECONSTRUCTION_BY_SIFT_AND_MST_DEPS} ${DEP_LIBS} ${GL_LIBRARIES})
