@@ -158,10 +158,9 @@ DOL::visualize_clusters()
             pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
             pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].planes_[cluster_id].indices, *segmented);
 
-            float r=0, g=0, b=0;
-            r=50+rand()%205;
-            g=50+rand()%205;
-            b=50+rand()%205;
+            const float r=50+rand()%205;
+            const float g=50+rand()%205;
+            const float b=50+rand()%205;
 
             std::stringstream text;
             const double num_vis = static_cast<double>(grph_[view_id].planes_[cluster_id].visible_indices.size()) / grph_[view_id].planes_[cluster_id].within_chop_z_indices.size();
