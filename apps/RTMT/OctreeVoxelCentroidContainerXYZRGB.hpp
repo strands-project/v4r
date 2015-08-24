@@ -75,7 +75,7 @@ namespace pcl
 
           if (point_counter_)
           {
-            centroid_arg.getVector3fMap() = (pt_ / static_cast<double> (point_counter_)).cast<float>();
+            centroid_arg.getVector3fMap() = (pt_ / static_cast<double> (point_counter_)).template cast<float>();
             centroid_arg.r = static_cast<unsigned char>(r_ / point_counter_);
             centroid_arg.g = static_cast<unsigned char>(g_ / point_counter_);
             centroid_arg.b = static_cast<unsigned char>(b_ / point_counter_);
