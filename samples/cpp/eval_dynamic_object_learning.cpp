@@ -135,7 +135,7 @@ main (int argc, char ** argv)
             }
 
             std::string out_fn = mask_file_v[o_id];
-            boost::replace_last (out_fn, "_mask.txt", "_dol.pcd");
+            boost::replace_last (out_fn, "mask.txt", "dol.pcd");
             m.save_model(output_dir_w_sub, recognition_structure_dir, out_fn);
             if (visualize)
                 m.visualize();
