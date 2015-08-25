@@ -13,6 +13,8 @@
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
+#include <time.h>
+#include <stdlib.h>
 
 //-gt_dir /media/Data/datasets/TUW/annotations -output_dir /home/thomas/Desktop/test -scenes_dir /media/Data/datasets/TUW/test_set_static/ -models_dir /media/Data/datasets/TUW/models -threshold 0.01 -visualize 0
 
@@ -22,10 +24,22 @@ namespace v4r
 template<typename PointT>
 class PcdGtAnnotator
 {
+public:
+    class View{
+    public:
+        typename pcl::PointCloud<PointT>::Ptr cloud_;
+        std::vector< std::string > model_id_;
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transform_to_scene_;
+        View()
+        {
+            cloud_.reset(new pcl::PointCloud<PointT>());
+        }
+    };
+
 private:
     typedef v4r::Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
-    typename pcl::PointCloud<PointT>::Ptr pScenePCl_;
+    typename pcl::PointCloud<PointT>::Ptr reconstructed_scene_;
     boost::shared_ptr < v4r::ModelOnlySource<pcl::PointXYZRGBNormal, PointT> > source_;
     float f_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
@@ -35,6 +49,7 @@ private:
     std::vector< std::string > model_id_;
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transform_to_scene_;
     std::vector<std::vector<bool> > pixel_annotated_obj_in_first_view_;
+    std::vector<View> views_;
 
 public:
     std::string gt_dir_;
@@ -48,7 +63,7 @@ public:
         models_dir_ = "";
         gt_dir_ = "";
         threshold_ = 0.01f;
-        pScenePCl_.reset(new pcl::PointCloud<PointT>);
+        reconstructed_scene_.reset(new pcl::PointCloud<PointT>);
     }
 
     void init_source()
@@ -84,6 +99,7 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
         {
             std::cerr << "Could not find any annotations in " << annotations_dir << ". " << std::endl;
         }
+        std::sort(scene_view.begin(), scene_view.end());
         for (size_t s_id = 0; s_id < scene_view.size (); s_id++)
         {
             std::vector<std::string> strs;
@@ -92,7 +108,11 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
             std::string gt_occ_check = scene_file_wo_ext + "_occlusion_";
 
             std::string scene_full_file_path = scene_full_path + "/" + scene_view[s_id];
-            pcl::io::loadPCDFile(scene_full_file_path, *pScenePCl_);
+            pcl::io::loadPCDFile(scene_full_file_path, *reconstructed_scene_);
+            View view;
+            pcl::copyPointCloud(*reconstructed_scene_, *view.cloud_);
+            view.cloud_->sensor_origin_ = reconstructed_scene_->sensor_origin_;
+            view.cloud_->sensor_orientation_ = reconstructed_scene_->sensor_orientation_;
 
             for(size_t gt_id=0; gt_id < gt_file.size(); gt_id++)
             {
@@ -144,14 +164,14 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         visible_model_points_.push_back(visible_model_pts_tmp);
                         model_id_.push_back( model_instance );
                         transform_to_scene_.push_back(transform);
-                        std::vector<bool> obj_mask (pScenePCl_->points.size(), false);
+                        std::vector<bool> obj_mask (reconstructed_scene_->points.size(), false);
                         pixel_annotated_obj_in_first_view_.push_back ( obj_mask );
                         current_model_id = model_id_.size()-1;
                     }
 
 
-                    const float cx = (static_cast<float> (pScenePCl_->width) / 2.f - 0.5f);
-                    const float cy = (static_cast<float> (pScenePCl_->height) / 2.f - 0.5f);
+                    const float cx = (static_cast<float> (reconstructed_scene_->width) / 2.f - 0.5f);
+                    const float cy = (static_cast<float> (reconstructed_scene_->height) / 2.f - 0.5f);
 
                     for(size_t m_pt_id=0; m_pt_id < model_aligned->points.size(); m_pt_id++)
                     {
@@ -159,10 +179,10 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         const int u = static_cast<int> (f_ * mp.x / mp.z + cx);
                         const int v = static_cast<int> (f_ * mp.y / mp.z + cy);
 
-                        if(u<0 || u >= pScenePCl_->width || v<0 || v >= pScenePCl_->height) // model point outside field of view
+                        if(u<0 || u >= reconstructed_scene_->width || v<0 || v >= reconstructed_scene_->height) // model point outside field of view
                             continue;
 
-                        PointT sp = pScenePCl_->at(u,v);
+                        PointT sp = reconstructed_scene_->at(u,v);
 
                         if ( !pcl::isFinite(sp) )   // Model point is not visible from the view point (shiny spot, noise,...)
                             continue;
@@ -171,13 +191,39 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         {
                             visible_model_points_[current_model_id][m_pt_id] = true;
                             if( s_id == 0 )
-                                pixel_annotated_obj_in_first_view_[current_model_id][v*pScenePCl_->width + u] = true;
+                                pixel_annotated_obj_in_first_view_[current_model_id][v*reconstructed_scene_->width + u] = true;
                         }
                     }
                 }
             }
             std::cout << std::endl;
+
+//            if(s_id==0)
+//            {
+//                pcl::visualization::PCLVisualizer vis("obj_mask");
+//                vis.addPointCloud(pScenePCl_, "cloud");
+//                for (size_t m_id=0; m_id < model_id_.size(); m_id++)
+//                {
+//                    typename pcl::PointCloud<PointT>::Ptr highlight (new pcl::PointCloud<PointT>());
+//                    pcl::copyPointCloud(*pScenePCl_, pixel_annotated_obj_in_first_view_[m_id], *highlight);
+
+//                    const float r=50+rand()%205;
+//                    const float g=50+rand()%205;
+//                    const float b=50+rand()%205;
+
+//                    std::stringstream model_name;
+//                    model_name << m_id;
+//                    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> color (highlight, r, g, b);
+//                    vis.addPointCloud(highlight, color, model_name.str());
+//                    vis.addText(model_name.str(), 40, 15*m_id, 15, r/255, g/255, b/255,model_name.str());
+//                }
+//                vis.spin();
+//            }
+
+            view.transform_to_scene_ = transform_to_scene_;
+            views_.push_back(view);
         }
+//        visualize();
     }
     else
     {
@@ -208,9 +254,9 @@ void PcdGtAnnotator<PointT>::visualize()
     Eigen::Vector4f zero_origin;
     zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
 
-    pScenePCl_->sensor_origin_ = zero_origin;   // for correct visualization
-    pScenePCl_->sensor_orientation_ = Eigen::Quaternionf::Identity();
-    vis_->addPointCloud(pScenePCl_, "scene", viewports[vp_id++]);
+    reconstructed_scene_->sensor_origin_ = zero_origin;   // for correct visualization
+    reconstructed_scene_->sensor_orientation_ = Eigen::Quaternionf::Identity();
+    vis_->addPointCloud(reconstructed_scene_, "scene", viewports[vp_id++]);
     for (size_t m_id=0; m_id < model_id_.size(); m_id++)
     {
         size_t found = model_id_[m_id].find_last_of("_");
@@ -240,6 +286,9 @@ void PcdGtAnnotator<PointT>::clear ()
     visible_model_points_.clear();
     model_id_.clear();
     transform_to_scene_.clear();
+    views_.clear();
+    reconstructed_scene_.reset(new pcl::PointCloud<PointT>);
+    pixel_annotated_obj_in_first_view_.clear();
 }
 
 
@@ -249,7 +298,10 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
     bf::path path_bf = path;
 
     if(!bf::exists(path_bf))
-        bf::create_directory(path_bf);
+        bf::create_directories(path);
+
+//    pcl::visualization::PCLVisualizer vis("obj_mask");
+//    vis.addPointCloud(views_[0].cloud_, "cloud");
 
     for (size_t m_id=0; m_id < model_id_.size(); m_id++)
     {
@@ -258,6 +310,7 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
         ModelTPtr pModel;
         source_->getModelById( model_name, pModel );
         typename pcl::PointCloud<PointT>::Ptr visible_model ( new pcl::PointCloud<PointT>() );
+        typename pcl::PointCloud<PointT>::Ptr visible_model_aligned ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 0.003f );
         size_t num_vis_pts = 0;
         for (size_t v_id=0; v_id<visible_model_points_[m_id].size(); v_id++)
@@ -266,21 +319,35 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
         }
         std::cout << num_vis_pts << " visible points of total " << visible_model_points_[m_id].size() << std::endl;
         pcl::copyPointCloud( *model_cloud, visible_model_points_[ m_id ], *visible_model);
-        v4r::common::setCloudPose(transform_to_scene_[m_id], *visible_model);
-        pcl::io::savePCDFileBinary( path + "/" + model_id_[m_id] + ".pcd", *visible_model);
+        pcl::transformPointCloud( *visible_model, *visible_model_aligned, transform_to_scene_ [m_id]);
+        visible_model_aligned->sensor_orientation_ = views_.back().cloud_->sensor_orientation_;
+        visible_model_aligned->sensor_origin_ = views_.back().cloud_->sensor_origin_;
+        pcl::io::savePCDFileBinary( path + "/" + model_id_[m_id] + ".pcd", *visible_model_aligned);
+
+//        typename pcl::PointCloud<PointT>::Ptr highlight (new pcl::PointCloud<PointT>());
+//        pcl::copyPointCloud(*views_[0].cloud_, pixel_annotated_obj_in_first_view_[m_id], *highlight);
+
+//        const float r=50+rand()%205;
+//        const float g=50+rand()%205;
+//        const float b=50+rand()%205;
+
+//        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> color (highlight, r, g, b);
+//        vis.addPointCloud(highlight, color, model_name);
+//        vis.addText(model_name, 40, 15*m_id, 15, r/255, g/255, b/255,model_name);
 
         if( pixel_annotated_obj_in_first_view_.size() > m_id )
         {
-            std::vector<size_t> obj_mask_in_first_frame = v4r::common::createIndicesFromMask( pixel_annotated_obj_in_first_view_ [m_id] );
             std::ofstream mask;
-            mask.open( (path + "/" + model_name + "_mask.txt").c_str() );
-            for(size_t i=0; i < obj_mask_in_first_frame.size(); i++)
+            mask.open( (path + "/" + model_id_[m_id] + "_mask.txt").c_str() );
+            for(size_t i=0; i< pixel_annotated_obj_in_first_view_[m_id].size(); i++)
             {
-                mask << obj_mask_in_first_frame[i] << std::endl;
+                if(pixel_annotated_obj_in_first_view_[m_id][i])
+                    mask << i << std::endl;
             }
             mask.close();
         }
     }
+//    vis.spin();
 }
 
 
@@ -304,6 +371,7 @@ void PcdGtAnnotator<PointT>::printUsage(int argc, char ** argv)
 int
 main (int argc, char ** argv)
 {
+    srand (time(NULL));
     typedef pcl::PointXYZRGB PointT;
     v4r::PcdGtAnnotator<PointT> annotator;
     std::string scene_dir, output_dir;
@@ -346,6 +414,7 @@ main (int argc, char ** argv)
         sub_folder_names.push_back("");
     }
 
+    std::sort(sub_folder_names.begin(), sub_folder_names.end());
     annotator.init_source();
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {

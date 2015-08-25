@@ -40,6 +40,8 @@
   <build_depend>glut</build_depend>
   <build_depend>libdevil-dev</build_depend>
   <build_depend>libqt4-dev</build_depend>
+  <build_depend>libqt4-opengl-dev</build_depend>
+  <build_depend>libopenni2-dev</build_depend>
 
   <run_depend>libpcl-all-dev</run_depend>
   <run_depend>atlas</run_depend>
@@ -49,6 +51,8 @@
   <run_depend>glut</run_depend>
   <run_depend>libdevil-dev</run_depend>
   <run_depend>libqt4-dev</run_depend>
+  <run_depend>libqt4-opengl-dev</run_depend>
+  <run_depend>libopenni2-dev</run_depend>
 
   <export>
 	<build_type>cmake</build_type>
