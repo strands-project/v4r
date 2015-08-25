@@ -5,11 +5,19 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/search/octree.h>
 #include <pcl/common/transforms.h>
+#include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <iostream>
 #include <fstream>
 
-//-do_erosion 1 -radius 0.005 -dot_product 0.99 -normal_method 0 -chop_z 2 -transfer_latest_only 0 -do_sift_based_camera_pose_estimation 0 -scenes_dir /media/Data/datasets/TUW/test_set -input_mask_dir /home/thomas/Desktop/test -output_dir /home/thomas/Desktop/out_test/ -visualize 1
+class Result
+{
+public:
+    float recall_;
+    float precision_;
+    std::string model_id_;
+    std::string view_id_;
+};
 
 template<typename PointT> float
 computeRecall(const typename pcl::PointCloud<PointT>::ConstPtr &gt, const typename pcl::PointCloud<PointT>::ConstPtr &searchPoints, float radius=0.005f)
@@ -53,14 +61,17 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
 
-    std::string input_dir;
+    std::string input_dir, result_file;
     float radius=0.005f;
     bool visualize = false;
+    std::vector<Result> result;
+
     pcl::visualization::PCLVisualizer::Ptr vis_;
 
-    pcl::console::parse_argument (argc, argv,  "-visualize", visualize);
+    pcl::console::parse_argument (argc, argv, "-visualize", visualize);
     pcl::console::parse_argument (argc, argv, "-input_dir", input_dir);
     pcl::console::parse_argument (argc, argv, "-radius", radius);
+    pcl::console::parse_argument (argc, argv, "-result_file", result_file);
 
     if (input_dir.compare ("") == 0)
     {
@@ -77,11 +88,14 @@ main (int argc, char ** argv)
         sub_folder_names.push_back("");
     }
 
+    std::sort(sub_folder_names.begin(), sub_folder_names.end());
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {
         std::vector< std::string > obj_fn;
         const std::string sub_folder = input_dir + "/" + sub_folder_names[ sub_folder_id ];
         v4r::io::getFilesInDirectory(sub_folder, obj_fn, "", ".*_dol.pcd", false);
+
+        std::sort(obj_fn.begin(), obj_fn.end());
         for (size_t o_id=0; o_id<obj_fn.size(); o_id++)
         {
             const std::string dol_fn = sub_folder + "/" + obj_fn[ o_id ];
@@ -93,26 +107,57 @@ main (int argc, char ** argv)
             pcl::PointCloud<PointT>::Ptr obj_gt (new pcl::PointCloud<PointT>());
             pcl::io::loadPCDFile(gt_fn, *obj_gt);
 
-            pcl::transformPointCloud(*obj_dol, *obj_dol, v4r::common::RotTrans2Mat4f(obj_dol->sensor_orientation_, obj_dol->sensor_origin_) );
-            pcl::transformPointCloud( *obj_gt,  *obj_gt, v4r::common::RotTrans2Mat4f( obj_gt->sensor_orientation_,  obj_gt->sensor_origin_) );
 
-            Eigen::Vector4f zero_origin;
-            zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
-            obj_gt->sensor_origin_ = zero_origin;   // for correct visualization
-            obj_gt->sensor_orientation_ = Eigen::Quaternionf::Identity();
-            obj_dol->sensor_origin_ = zero_origin;   // for correct visualization
-            obj_dol->sensor_orientation_ = Eigen::Quaternionf::Identity();
+            pcl::PointCloud<PointT>::Ptr src (new pcl::PointCloud<PointT>());
+            pcl::PointCloud<PointT>::Ptr trgt (new pcl::PointCloud<PointT>());
 
-            std::cout << obj_fn[ o_id ] << ": " << computeRecall<PointT>(obj_gt, obj_dol, radius) << " and " << computeRecall<PointT>(obj_dol, obj_gt, radius) << std::endl;
+            pcl::transformPointCloud(*obj_dol, *src, v4r::common::RotTrans2Mat4f(obj_dol->sensor_orientation_, obj_dol->sensor_origin_));
+            pcl::transformPointCloud(*obj_gt, *trgt, v4r::common::RotTrans2Mat4f(obj_gt->sensor_orientation_, obj_gt->sensor_origin_));
+
+            pcl::IterativeClosestPoint<PointT, PointT> icp;
+            icp.setInputSource(src);
+            icp.setInputTarget(trgt);
+            icp.setMaxCorrespondenceDistance (0.02f);
+//            icp.setMaximumIterations (50);
+//            icp.setRANSACIterations(100);
+//            icp.setRANSACOutlierRejectionThreshold(0.003);
+//            icp.setEuclideanFitnessEpsilon(1e-9);
+//            icp.setTransformationEpsilon(1e-9);
+            pcl::PointCloud<PointT>::Ptr icp_aligned_cloud (new pcl::PointCloud<PointT>());
+            pcl::PointCloud<PointT>::Ptr icp_aligned_cloud2 (new pcl::PointCloud<PointT>());
+            icp.align(*icp_aligned_cloud, Eigen::Matrix4f::Identity());
+//            std::cout << "has converged:" << icp.hasConverged() << " score: " <<
+//                         icp.getFitnessScore() << std::endl;
+//            std::cout << icp.getFinalTransformation() << std::endl;
+            pcl::transformPointCloud(*obj_dol, *icp_aligned_cloud2, icp.getFinalTransformation());
+
+            Result res;
+            res.precision_ = computeRecall<PointT>(trgt, icp_aligned_cloud, radius);
+            res.recall_ = computeRecall<PointT>(icp_aligned_cloud, trgt, radius);
+            res.model_id_ = obj_fn[ o_id ];
+            res.view_id_ = sub_folder_names[ sub_folder_id ];
+            result.push_back(res);
+
+            std::cout << dol_fn << ": " << res.precision_ << " and " << res.recall_ << std::endl;
 
             if(visualize)
             {
                 vis_->removeAllPointClouds();
                 vis_->addPointCloud(obj_gt, "ground_truth");
-                vis_->addPointCloud(obj_dol, "dol");
+//                vis_->addPointCloud(obj_dol, "dol");
+                vis_->addPointCloud(icp_aligned_cloud, "icp aligned cloud");
+//                vis_->addPointCloud(icp_aligned_cloud2, "icp aligned cloud2");
                 vis_->spin();
             }
         }
     }
+
+    ofstream file;
+    file.open (result_file.c_str());
+    for(size_t i=0; i<result.size(); i++)
+    {
+        file << result[i].recall_ << " " << result[i].precision_ << " " << result[i].model_id_ << " " << result[i].view_id_ << std::endl;
+    }
+    file.close();
     return 0;
 }
