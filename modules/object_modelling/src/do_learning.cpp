@@ -781,21 +781,21 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     }
     else
     {
-        for (size_t view_id = 0; view_id < grph_.size(); view_id++)
+        if ( param_.do_sift_based_camera_pose_estimation_ )
         {
-            if( view.id_ == grph_[view_id].id_)
-                continue;
-
-            std::vector<CamConnect> transforms;
-            CamConnect edge;
-            edge.model_name_ = "camera_tracking";
-            edge.source_id_ = view.id_;
-            edge.target_id_ = grph_[view_id].id_;
-            edge.transformation_ = view.tracking_pose_.inverse() * grph_[view_id].tracking_pose_ ;
-            transforms.push_back( edge );
-
-            if ( param_.do_sift_based_camera_pose_estimation_ )
+            for (size_t view_id = 0; view_id < grph_.size(); view_id++)
             {
+                if( view.id_ == grph_[view_id].id_)
+                    continue;
+
+                std::vector<CamConnect> transforms;
+                CamConnect edge;
+                edge.model_name_ = "camera_tracking";
+                edge.source_id_ = view.id_;
+                edge.target_id_ = grph_[view_id].id_;
+                edge.transformation_ = view.tracking_pose_.inverse() * grph_[view_id].tracking_pose_ ;
+                transforms.push_back( edge );
+
                 try
                 {
                     edge.model_name_ = "sift_background_matching";
@@ -814,59 +814,56 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                     param_.do_sift_based_camera_pose_estimation_ = false;
                     std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
                 }
-            }
 
-            size_t best_transform_id = 0;
-            float lowest_edge_weight = std::numeric_limits<float>::max();
-            for ( size_t trans_id = 0; trans_id < transforms.size(); trans_id++ )
-            {
-                try
+                size_t best_transform_id = 0;
+                float lowest_edge_weight = std::numeric_limits<float>::max();
+                for ( size_t trans_id = 0; trans_id < transforms.size(); trans_id++ )
                 {
-                    Eigen::Matrix4f icp_refined_trans;
-                    transforms[ trans_id ].edge_weight = calcEdgeWeightAndRefineTf( grph_[view_id].cloud_, view.cloud_, icp_refined_trans, transforms[ trans_id ].transformation_);
-                    transforms[ trans_id ].transformation_ = icp_refined_trans,
-                    std::cout << "Edge weight is " << transforms[ trans_id ].edge_weight << " for edge connecting vertex " <<
-                                 transforms[ trans_id ].source_id_ << " and " << transforms[ trans_id ].target_id_ << " by " <<
-                                 transforms[ trans_id ].model_name_ << std::endl;
-
-                    if(transforms[ trans_id ].edge_weight < lowest_edge_weight)
+                    try
                     {
-                        lowest_edge_weight = transforms[ trans_id ].edge_weight;
-                        best_transform_id = trans_id;
+                        Eigen::Matrix4f icp_refined_trans;
+                        transforms[ trans_id ].edge_weight = calcEdgeWeightAndRefineTf( grph_[view_id].cloud_, view.cloud_, icp_refined_trans, transforms[ trans_id ].transformation_);
+                        transforms[ trans_id ].transformation_ = icp_refined_trans,
+                        std::cout << "Edge weight is " << transforms[ trans_id ].edge_weight << " for edge connecting vertex " <<
+                                     transforms[ trans_id ].source_id_ << " and " << transforms[ trans_id ].target_id_ << " by " <<
+                                     transforms[ trans_id ].model_name_ << std::endl;
+
+                        if(transforms[ trans_id ].edge_weight < lowest_edge_weight)
+                        {
+                            lowest_edge_weight = transforms[ trans_id ].edge_weight;
+                            best_transform_id = trans_id;
+                        }
+                    }
+                    catch (int e)
+                    {
+                        transforms[ trans_id ].edge_weight = std::numeric_limits<float>::max();
+                        param_.do_sift_based_camera_pose_estimation_ = false;
+                        std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
+                        break;
                     }
                 }
-                catch (int e)
+                boost::add_edge (transforms[best_transform_id].source_id_, transforms[best_transform_id].target_id_, transforms[best_transform_id], gs_);
+
+                boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
+                std::vector < Edge > spanning_tree;
+                boost::kruskal_minimum_spanning_tree(gs_, std::back_inserter(spanning_tree));
+
+                Graph grph_mst;
+                std::cout << "Print the edges in the MST:" << std::endl;
+                for (std::vector < Edge >::iterator ei = spanning_tree.begin(); ei != spanning_tree.end(); ++ei)
                 {
-                    transforms[ trans_id ].edge_weight = std::numeric_limits<float>::max();
-                    param_.do_sift_based_camera_pose_estimation_ = false;
-                    std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
-                    break;
+                    CamConnect my_e = weightmap[*ei];
+                    std::cout << "[" << source(*ei, gs_) << "->" << target(*ei, gs_) << "] with weight " << my_e.edge_weight << " by " << my_e.model_name_ << std::endl;
+                    boost::add_edge(source(*ei, gs_), target(*ei, gs_), weightmap[*ei], grph_mst);
                 }
-            }
-            boost::add_edge (transforms[best_transform_id].source_id_, transforms[best_transform_id].target_id_, transforms[best_transform_id], gs_);
-        }
 
-        if(param_.do_mst_refinement_)
-        {
-            boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
-            std::vector < Edge > spanning_tree;
-            boost::kruskal_minimum_spanning_tree(gs_, std::back_inserter(spanning_tree));
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_poses;
+                computeAbsolutePoses(grph_mst, absolute_poses);
 
-            Graph grph_mst;
-            std::cout << "Print the edges in the MST:" << std::endl;
-            for (std::vector < Edge >::iterator ei = spanning_tree.begin(); ei != spanning_tree.end(); ++ei)
-            {
-                CamConnect my_e = weightmap[*ei];
-                std::cout << "[" << source(*ei, gs_) << "->" << target(*ei, gs_) << "] with weight " << my_e.edge_weight << " by " << my_e.model_name_ << std::endl;
-                boost::add_edge(source(*ei, gs_), target(*ei, gs_), weightmap[*ei], grph_mst);
-            }
-
-            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_poses;
-            computeAbsolutePoses(grph_mst, absolute_poses);
-
-            for(size_t view_id=0; view_id<absolute_poses.size(); view_id++)
-            {
-                grph_[ view_id ].camera_pose_ = absolute_poses [ view_id ];
+                for(size_t v_id=0; v_id<absolute_poses.size(); v_id++)
+                {
+                    grph_[ v_id ].camera_pose_ = absolute_poses [ v_id ];
+                }
             }
         }
 
