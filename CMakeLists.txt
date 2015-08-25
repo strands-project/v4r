@@ -106,6 +106,7 @@ V4R_OPTION(WITH_PCL            "Include PCL support"                         ON)
 V4R_OPTION(WITH_QT4            "Include QT support"                          ON)
 V4R_OPTION(WITH_BOOST          "Include Boost support"                       ON)
 V4R_OPTION(WITH_EIGEN          "Include Eigen3 support"                      ON)
+V4R_OPTION(WITH_GLM            "Include GLM support"                         ON)
 
 # V4R build components
 # ===================================================
@@ -308,6 +309,7 @@ test_big_endian(WORDS_BIGENDIAN)
 include(cmake/V4RFindCeres.cmake)
 include(cmake/V4RFindLibsPerf.cmake)
 include(cmake/V4RFindEigen.cmake)
+include(cmake/V4RFindGLM.cmake)
 include(cmake/V4RFindPCL.cmake)
 include(cmake/V4RFindQt.cmake)
 include(cmake/V4RFindOpenCV.cmake)
@@ -659,6 +661,7 @@ status("    Use IPP Async:"  HAVE_IPP_A       THEN "YES" ELSE NO)
 endif(DEFINED WITH_IPP_A)
 
 status("    Use Eigen:"      HAVE_EIGEN       THEN "YES (ver ${EIGEN_WORLD_VERSION}.${EIGEN_MAJOR_VERSION}.${EIGEN_MINOR_VERSION})" ELSE NO)
+status("    Use GLM:"        HAVE_GLM         THEN "YES (ver ${GLM_VERSION})" ELSE NO)
 status("    Use Cuda:"       HAVE_CUDA        THEN "YES (ver ${CUDA_VERSION_STRING})" ELSE NO)
 status("    Use OpenCL:"     HAVE_OPENCL      THEN YES ELSE NO)
 

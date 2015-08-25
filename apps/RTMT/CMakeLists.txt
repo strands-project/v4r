@@ -33,6 +33,13 @@ if(HAVE_EDT)
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
 endif()
 
+if(HAVE_GLM)
+  v4r_include_directories(${GLM_INCLUDE_DIRS})
+else()
+  message(***RTMT requires GLM*****)
+  return()
+endif()
+
 if(HAVE_CERES)
   v4r_include_directories(${CERES_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${CERES_LIBRARIES})
