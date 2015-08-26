@@ -456,12 +456,8 @@ namespace v4r
         void
         initialize (bool force_retrain = false);
 
-
         void
-        reinitialize ();
-
-        void
-        reinitialize(const std::vector<std::string> & load_ids);
+        reinitialize(const std::vector<std::string> & load_ids = std::vector<std::string>());
 
         /**
          * \brief Performs recognition and pose estimation on the input cloud

@@ -286,7 +286,6 @@ namespace v4r
         load_views_ = true;
         compute_normals_ = false;
         load_into_memory_ = true;
-        model_list_to_load_.clear();
       }
 
       bool isModelIdInList(const std::string & id)
