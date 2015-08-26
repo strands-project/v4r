@@ -604,6 +604,10 @@ void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::Const
 bool SingleViewRecognizer::recognize ()
 {
     std::vector<bool> mask_hv;
+    models_->clear();
+    transforms_->clear();
+    models_verified_.clear();
+    transforms_verified_.clear();
 
     if(pSceneNormals_->points.size() == 0)
     {
@@ -621,6 +625,9 @@ bool SingleViewRecognizer::recognize ()
         pass.filter (*pInputCloud_);
         pcl::copyPointCloud(*pSceneNormals_, *pass.getIndices(), *pSceneNormals_);
     }
+
+    if( !pInputCloud_->points.size() )
+        return false;
 
     constructHypotheses();
     setModelsAndTransforms(*models_, *transforms_);

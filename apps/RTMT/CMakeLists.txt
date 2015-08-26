@@ -1,5 +1,5 @@
 SET(RTMT_DEPS v4r_core v4r_registration v4r_io v4r_common v4r_features v4r_keypoints v4r_reconstruction v4r_recognition siftgpu edt ceres)
-v4r_check_dependencies(${RTMT})
+v4r_check_dependencies(${RTMT_DEPS})
 
 if(NOT V4R_DEPENDENCIES_FOUND)
   message(***RTMT does not meed dependencies*****)
