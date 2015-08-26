@@ -39,16 +39,6 @@ add_definitions(-std=c++0x)
 add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
 add_definitions(-Dlinux -D__x86_64__)
 
-
-set(SOURCES
-  or_evaluator.cpp
-)
-
-set(HEADERS
-  or_evaluator.h
-  or_evaluator.hpp
-)
-
 set(FORMS
         mainwindow.ui
         params.ui

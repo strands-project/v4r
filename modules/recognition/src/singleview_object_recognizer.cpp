@@ -604,10 +604,14 @@ void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::Const
 bool SingleViewRecognizer::recognize ()
 {
     std::vector<bool> mask_hv;
-    models_->clear();
-    transforms_->clear();
-    models_verified_.clear();
+    model_ids_verified_.clear();
     transforms_verified_.clear();
+    models_verified_.clear();
+    aligned_models_.clear();
+    model_ids_.clear();
+
+    if(transforms_)
+        transforms_->clear();
 
     if(pSceneNormals_->points.size() == 0)
     {

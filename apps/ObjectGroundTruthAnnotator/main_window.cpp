@@ -885,7 +885,7 @@ MainWindow::MainWindow(int argc, char *argv[])
 
   inlier_ = 0.003f;
 
-  export_ground_truth_to_ = "";
+  export_ground_truth_to_ = "/tmp/exported_ground_truth/";
   icp_scene_to_model_ = false;//true;
 
   pcl::console::parse_argument (argc, argv, "-models_dir", dir_models_);
@@ -917,6 +917,7 @@ MainWindow::MainWindow(int argc, char *argv[])
     std::stringstream trans_file_ss;
     trans_file_ss << pcd_file_ << "/transformation_" << files[i];
     std::string trans = trans_file_ss.str();
+    boost::replace_all (trans, "cloud_", "");
     boost::replace_all (trans, ".pcd", ".txt");
     Eigen::Matrix4f transform;
     v4r::io::readMatrixFromFile(trans, transform);
