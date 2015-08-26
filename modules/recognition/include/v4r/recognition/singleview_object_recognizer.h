@@ -47,11 +47,6 @@ protected:
 
 
     boost::shared_ptr<v4r::MultiRecognitionPipeline<PointT> > multi_recog_;
-    std::string models_dir_;
-    std::string training_dir_sift_;
-    std::string training_dir_shot_;
-    std::string sift_structure_;
-    std::string training_dir_ourcvfh_;
     std::string idx_flann_fn_sift_;
     std::string idx_flann_fn_shot_;
 
@@ -137,6 +132,12 @@ public:
         int normal_computation_method_;
     }sv_params_;
 
+    std::string models_dir_;
+    std::string training_dir_ourcvfh_;
+    std::string training_dir_sift_;
+    std::string training_dir_shot_;
+    std::string sift_structure_;
+
     SingleViewRecognizer ()
     {
         sv_params_.do_sift_ = true;
@@ -184,6 +185,10 @@ public:
         cg_params_.max_time_for_cliques_computation_ = 100;
         cg_params_.dot_distance_ = 0.2;
         cg_params_.use_cg_graph_ = true;
+
+        training_dir_sift_ = "/tmp/sift_trained";
+        training_dir_shot_ = "/tmp/shot_trained";
+        training_dir_ourcvfh_ = "/tmp/ourcvfh_trained";
 
         pInputCloud_.reset(new pcl::PointCloud<PointT>);
         pSceneNormals_.reset(new pcl::PointCloud<pcl::Normal>);
@@ -278,43 +283,6 @@ public:
         transforms_verified = transforms_verified_;
     }
 
-    void getAllHypotheses(std::vector<std::string> &models, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms) const
-    {
-        models = model_ids_;
-        transforms = *transforms_;
-    }
-
-    void setModelsAndTransforms(const std::vector<std::string> &models, const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
-    {
-        aligned_models_.resize(models.size());
-        model_ids_.resize(models.size());
-        *transforms_ = transforms;
-
-        models_->clear();       // NOT IMPLEMENTED YET!!
-
-        for(size_t i=0; i<models.size(); i++)
-        {
-            boost::filesystem::path modelpath(models[i]);
-            model_ids_[i] =  modelpath.filename().string();
-            PointInTPtr pModelPCl ( new pcl::PointCloud<pcl::PointXYZRGB> );
-            PointInTPtr pModelPClTransformed ( new pcl::PointCloud<pcl::PointXYZRGB> );
-            PointInTPtr pModelPCl2 ( new pcl::PointCloud<pcl::PointXYZRGB> );
-            pcl::io::loadPCDFile ( models[i], * ( pModelPCl ) );
-
-            pcl::transformPointCloud ( *pModelPCl, *pModelPClTransformed, transforms[i] );
-
-            pcl::VoxelGrid<pcl::PointXYZRGB> sor;
-            float leaf = 0.005f;
-            sor.setLeafSize ( leaf, leaf, leaf );
-            sor.setInputCloud ( pModelPClTransformed );
-            sor.filter ( *pModelPCl2 );
-
-            aligned_models_[i] = pModelPCl2;
-            //models_ = models;
-            //transforms_ = transforms;
-        }
-    }
-
     void setModelsAndTransforms(const std::vector<ModelTPtr> &models, const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
     {
         aligned_models_.resize(models.size());
@@ -405,7 +373,7 @@ public:
      * @param model_ids - name of object models
      * @return
      */
-    bool retrain (const std::vector<std::string> &model_ids);
+    bool retrain (const std::vector<std::string> &model_ids = std::vector<std::string>());
 
     void printParams() const;
 };

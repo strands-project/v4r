@@ -131,7 +131,7 @@ namespace v4r
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);
-
+          std::sort(files.begin(), files.end());
           for (size_t i = 0; i < files.size (); i++)
           {
             ModelTPtr m(new ModelT());

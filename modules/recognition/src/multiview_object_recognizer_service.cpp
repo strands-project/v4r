@@ -1367,19 +1367,17 @@ bool MultiviewRecognizer::recognize
                         if (mask[i])
                         {
                             std::cout << "Verified:" << ids[i] << std::endl;
-                            pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified (aligned_models[i]);
                             std::stringstream name;
                             name << "verified" << i;
-                            go3d_vis_->addPointCloud<PointT> (aligned_models[i], handler_rgb_verified, name.str (), go_3d_viewports_[2]);
+                            go3d_vis_->addPointCloud<PointT> (aligned_models[i], name.str (), go_3d_viewports_[2]);
 
                             pcl::PointCloud<PointT>::Ptr inliers_outlier_cloud;
                             go3d.getInlierOutliersCloud((int)i, inliers_outlier_cloud);
 
                             {
-                                pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified (inliers_outlier_cloud);
                                 std::stringstream name;
                                 name << "verified_visible_" << i;
-                                go3d_vis_->addPointCloud<PointT> (inliers_outlier_cloud, handler_rgb_verified, name.str (), go_3d_viewports_[3]);
+                                go3d_vis_->addPointCloud<PointT> (inliers_outlier_cloud, name.str (), go_3d_viewports_[3]);
                             }
                         }
                     }

@@ -86,11 +86,6 @@ bool SingleViewRecognizer::retrain (const std::vector<std::string> &model_ids)
 
 void SingleViewRecognizer::constructHypotheses()
 {
-        if(pSceneNormals_->points.size() == 0)
-        {
-            std::cout << "No normals point cloud for scene given. Calculate normals of scene..." << std::endl;
-            v4r::common::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
-        }
 
     //    if(USE_SEGMENTATION_)
     //    {
@@ -609,6 +604,23 @@ void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::Const
 bool SingleViewRecognizer::recognize ()
 {
     std::vector<bool> mask_hv;
+
+    if(pSceneNormals_->points.size() == 0)
+    {
+        std::cout << "No normals point cloud for scene given. Calculate normals of scene..." << std::endl;
+        v4r::common::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
+    }
+
+    if( sv_params_.chop_at_z_ > 0)
+    {
+        pcl::PassThrough<PointT> pass;
+        pass.setFilterLimits ( 0.f, sv_params_.chop_at_z_ );
+        pass.setFilterFieldName ("z");
+        pass.setInputCloud (pInputCloud_);
+        pass.setKeepOrganized (true);
+        pass.filter (*pInputCloud_);
+        pcl::copyPointCloud(*pSceneNormals_, *pass.getIndices(), *pSceneNormals_);
+    }
 
     constructHypotheses();
     setModelsAndTransforms(*models_, *transforms_);
