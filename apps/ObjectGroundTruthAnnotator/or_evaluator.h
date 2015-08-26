@@ -32,7 +32,7 @@ namespace faat_pcl
       template<typename ModelPointT>
       struct GTModel
       {
-        boost::shared_ptr<faat_pcl::rec_3d_framework::Model<ModelPointT> > model_;
+        boost::shared_ptr<v4r::Model<ModelPointT> > model_;
         Eigen::Matrix4f transform_;
         float occlusion_;
         int inst_;
@@ -56,7 +56,7 @@ namespace faat_pcl
         {
         private:
           typedef typename pcl::PointCloud<ModelPointT>::ConstPtr ConstPointInTPtr;
-          typedef faat_pcl::rec_3d_framework::Model<ModelPointT> ModelT;
+          typedef v4r::Model<ModelPointT> ModelT;
           typedef boost::shared_ptr<ModelT> ModelTPtr;
           typedef GTModel<ModelPointT> GTModelT;
           typedef boost::shared_ptr<GTModelT> GTModelTPtr;
@@ -90,7 +90,7 @@ namespace faat_pcl
           std::string scene_file_extension_;
           std::string model_file_extension_;
 
-          typename boost::shared_ptr<Source<ModelPointT> > source_;
+          typename boost::shared_ptr<v4r::Source<ModelPointT> > source_;
           bool check_pose_;
           bool check_rotation_;
           float max_centroid_diff_;
@@ -153,7 +153,7 @@ namespace faat_pcl
           }
 
           void
-          setDataSource (typename boost::shared_ptr<Source<ModelPointT> > source)
+          setDataSource (typename boost::shared_ptr<v4r::Source<ModelPointT> > source)
           {
             source_ = source;
           }

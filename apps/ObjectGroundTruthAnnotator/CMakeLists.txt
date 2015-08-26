@@ -1,4 +1,4 @@
-SET(ObjectGroundTruthAnnotator_DEPS v4r_core v4r_registration v4r_io v4r_common v4r_features v4r_keypoints v4r_reconstruction v4r_recognition siftgpu edt)
+SET(ObjectGroundTruthAnnotator_DEPS v4r_core v4r_registration v4r_io v4r_common v4r_features v4r_keypoints v4r_reconstruction v4r_recognition edt)
 v4r_check_dependencies(${ObjectGroundTruthAnnotator_DEPS})
 
 if(NOT V4R_DEPENDENCIES_FOUND)
@@ -22,6 +22,11 @@ endif()
 if(HAVE_BOOST)
   v4r_include_directories(${BOOST_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
+endif()
+
+if(HAVE_EDT)
+  v4r_include_directories(${EDT_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${EDT_LIBRARIES})
 endif()
 
 if(HAVE_QT4)
@@ -53,7 +58,7 @@ QT4_WRAP_CPP(foo_MOC_SRCS main_window.h)
 
 include(${QT_USE_FILE})
 add_definitions(-DQT_NO_KEYWORDS)
-
+find_package(VTK REQUIRED)
 add_executable(GT6DOF GT6DOF.cpp ${foo_MOC_SRCS} main_window.cpp)
-target_link_libraries(GT6DOF ${ObjectGroundTruthAnnotator_DEPS} ${DEP_LIBS} ${QT_LIBRARIES} ${GL_LIBRARIES})
+target_link_libraries(GT6DOF ${ObjectGroundTruthAnnotator_DEPS} QVTK ${DEP_LIBS} ${QT_LIBRARIES} ${GL_LIBRARIES})
 

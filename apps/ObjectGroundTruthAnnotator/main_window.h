@@ -26,7 +26,7 @@ class MainWindow : public QObject
    Q_OBJECT
 
    typedef pcl::PointXYZRGB PointT;
-   typedef faat_pcl::rec_3d_framework::Model<PointT> ModelT;
+   typedef v4r::Model<PointT> ModelT;
    typedef boost::shared_ptr<ModelT> ModelTPtr;
 
 public:
@@ -243,7 +243,7 @@ private:
   QLabel * rot_step_label;
   std::vector<int> view_viewport;
 
-  boost::shared_ptr < faat_pcl::rec_3d_framework::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > source_;
+  boost::shared_ptr < v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > source_;
 
   std::vector<Eigen::Matrix4f> single_clouds_to_global_;
   std::vector< pcl::PointCloud<PointT>::Ptr, Eigen::aligned_allocator< pcl::PointCloud<PointT>::Ptr> > single_scenes_;

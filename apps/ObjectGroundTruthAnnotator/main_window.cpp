@@ -16,8 +16,9 @@
 #include <pcl/registration/icp.h>
 #include <vtkRenderWindow.h>
 #include <pcl/common/angles.h>
-#include <v4r/ORFramework/voxel_based_correspondence_estimation.h>
-#include <v4r/utils/filesystem_utils.h>
+#include <v4r/recognition//voxel_based_correspondence_estimation.h>
+#include <v4r/io/filesystem.h>
+#include <v4r/io/eigen.h>
 #include <iostream>
 #include <fstream>
 
@@ -279,7 +280,7 @@ void MainWindow::lock_with_icp()
             *merged_cloud += *cloud;
         }
     }
-    faat_pcl::utils::miscellaneous::voxelGridWithOctree(merged_cloud, *scene_merged_cloud_, 0.003f);
+    v4r::common::voxelGridWithOctree(merged_cloud, *scene_merged_cloud_, 0.003f);
 
     QString icp_iter_str = icp_iter_te_->toPlainText();
     bool *okay = new bool();
@@ -769,7 +770,7 @@ void MainWindow::save_model()
 
             std::stringstream camera_pose_out_fn_ss;
             camera_pose_out_fn_ss << gt_or_ouput_dir << "/transformation_ " << scene << ".txt";
-            v4r::utils::writeMatrixToFile(camera_pose_out_fn_ss.str(), single_clouds_to_global_[i]);
+            v4r::io::writeMatrixToFile(camera_pose_out_fn_ss.str(), single_clouds_to_global_[i]);
 
             // for occlusion computation------
             pcl::PointCloud<pcl::PointXYZ>::Ptr scene_cloudXYZ(new pcl::PointCloud<pcl::PointXYZ>);
@@ -814,7 +815,7 @@ void MainWindow::save_model()
                 std::stringstream pose_file_ss;
                 pose_file_ss << gt_or_ouput_dir << "/" << scene << "_" << model_id_replaced << "_" << id_c_it->second << ".txt";
                 std::cout << pose_file_ss.str() << std::endl;
-                v4r::utils::writeMatrixToFile(pose_file_ss.str(), transform);
+                v4r::io::writeMatrixToFile(pose_file_ss.str(), transform);
 
                 //compute occlusion value
                 size_t overlap = 0;
@@ -842,7 +843,7 @@ void MainWindow::save_model()
                 std::stringstream occlusion_file;
                 occlusion_file << gt_or_ouput_dir << "/" << scene << "_occlusion_" << model_id_replaced << "_" << id_c_it->second << ".txt";
                 std::cout << occlusion_file.str() << std::endl;
-                v4r::utils::writeFloatToFile(occlusion_file.str(), occlusion_value);
+                v4r::io::writeFloatToFile(occlusion_file.str(), occlusion_value);
             }
         }
     }
@@ -896,7 +897,7 @@ MainWindow::MainWindow(int argc, char *argv[])
   std::vector<std::string> files;
   std::stringstream scene_folder_ss;
   scene_folder_ss << pcd_file_ << "/original_clouds/";
-  v4r::utils::getFilesInDirectory( scene_folder_ss.str(), files, "", ".*.pcd", true);   // get scenes
+  v4r::io::getFilesInDirectory( scene_folder_ss.str(), files, "", ".*.pcd", true);   // get scenes
   std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
 
   for (size_t i = 0; i < files.size (); i++)
@@ -918,12 +919,12 @@ MainWindow::MainWindow(int argc, char *argv[])
     std::string trans = trans_file_ss.str();
     boost::replace_all (trans, ".pcd", ".txt");
     Eigen::Matrix4f transform;
-    v4r::utils::readMatrixFromFile(trans, transform);
+    v4r::io::readMatrixFromFile(trans, transform);
 
     single_clouds_to_global_.push_back(transform);
   }
 
-  source_.reset (new faat_pcl::rec_3d_framework::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>);
+  source_.reset (new v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>);
   source_->setPath (dir_models_);
   source_->setLoadViews (false);
   source_->setLoadIntoMemory(false);
