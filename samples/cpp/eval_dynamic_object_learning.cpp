@@ -14,8 +14,9 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
 
-    std::string scene_dir, input_mask_dir, output_dir, recognition_structure_dir;
+    std::string scene_dir, input_mask_dir, output_dir, output_rec_dir, recognition_structure_dir;
     bool visualize = false;
+    size_t min_mask_points = 50;
 
     v4r::object_modelling::DOL::Parameter param;
     pcl::console::parse_argument (argc, argv,  "-radius", param.radius_);
@@ -45,6 +46,7 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv, "-scenes_dir", scene_dir);
     pcl::console::parse_argument (argc, argv, "-input_mask_dir", input_mask_dir);
     pcl::console::parse_argument (argc, argv, "-output_dir", output_dir);
+    pcl::console::parse_argument (argc, argv, "-output_rec_dir", output_rec_dir);
     if(pcl::console::parse_argument (argc, argv, "-recognition_structure_dir", recognition_structure_dir) == -1)
     {
         recognition_structure_dir = "/tmp/recognition_structure_dir";
@@ -69,7 +71,21 @@ main (int argc, char ** argv)
     }
 
 
+    std::stringstream output_rec_model, output_rec_structure;
+    output_rec_model << output_rec_dir << "/models/";
+    output_rec_structure << output_rec_dir << "/recognition_structure/";
+
     v4r::io::createDirIfNotExist(output_dir);
+    v4r::io::createDirIfNotExist(output_rec_dir);
+    ofstream param_file;
+    param_file.open ((output_dir + "/param.nfo").c_str());
+    m.printParams(param_file);
+    param_file    <<  "stat_outlier_removal_meanK" << m.sor_params_.meanK_ << std::endl
+                  << "stat_outlier_removal_std_mul" << m.sor_params_.std_mul_ << std::endl
+                  << "inlier_threshold_plane_seg" << m.p_param_.inlDist << std::endl
+                  << "min_points_smooth_cluster" << m.p_param_.minPointsSmooth << std::endl
+                  << "min_plane_points" << m.p_param_.minPoints << std::endl;
+    param_file.close();
 
     std::vector< std::string> sub_folder_names;
     if(!v4r::io::getFoldersInDirectory( scene_dir, "", sub_folder_names) )
@@ -106,6 +122,9 @@ main (int argc, char ** argv)
             }
             initial_mask_file.close();
 
+            if ( mask.size() < min_mask_points) // not enough points to grow an object
+                continue;
+
 
             const std::string scene_path = scene_dir + "/" + sub_folder_names[ sub_folder_id ];
             std::vector< std::string > views;
@@ -137,6 +156,7 @@ main (int argc, char ** argv)
             std::string out_fn = mask_file_v[o_id];
             boost::replace_last (out_fn, "mask.txt", "dol.pcd");
             m.save_model(output_dir_w_sub, recognition_structure_dir, out_fn);
+            m.write_model_to_disk(output_rec_structure.str(), output_rec_structure.str(), sub_folder_names[ sub_folder_id ]);
             if (visualize)
                 m.visualize();
             m.clear();

@@ -423,24 +423,59 @@ DOL::erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<Poi
     return mask_out;
 }
 
+bool
+DOL::write_model_to_disk (const std::string &models_dir, const std::string &recognition_structure_dir, const std::string &model_name)
+{
+    std::stringstream export_to_rs;
+    export_to_rs << recognition_structure_dir << "/" << model_name << "/";
+    std::string export_to = export_to_rs.str();
+
+    v4r::io::createDirIfNotExist(recognition_structure_dir);
+    v4r::io::createDirIfNotExist(models_dir);
+    v4r::io::createDirIfNotExist(export_to);
+
+    //save recognition data with new poses
+    for(size_t i=0; i < keyframes_used_.size(); i++)
+    {
+        std::stringstream view_file;
+        view_file << export_to << "/cloud_" << setfill('0') << setw(8) << i << ".pcd";
+        pcl::io::savePCDFileBinary (view_file.str (), *(keyframes_used_[i]));
+        std::cout << view_file.str() << std::endl;
+
+        std::string path_pose (view_file.str());
+        boost::replace_last (path_pose, "cloud", "pose");
+        boost::replace_last (path_pose, ".pcd", ".txt");
+        v4r::io::writeMatrixToFile(path_pose, cameras_used_[i]);
+        std::cout << path_pose << std::endl;
+
+        std::string path_obj_indices (view_file.str());
+        boost::replace_last (path_obj_indices, "cloud", "object_indices");
+        pcl::io::savePCDFileBinary (path_obj_indices, object_indices_clouds_[i]);
+        std::cout << path_obj_indices << std::endl;
+    }
+
+    std::stringstream path_model;
+    path_model << models_dir << "/" << model_name;
+    pcl::io::savePCDFileBinary(path_model.str(), *cloud_normals_oriented_);
+
+    return true;
+}
+
 
 bool
 DOL::save_model (const std::string &models_dir, const std::string &recognition_structure_dir, const std::string &model_name)
 {
-    std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > keyframes_used;
     std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used;
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used;
-    std::vector<pcl::PointCloud<IndexPoint> > object_indices_clouds;
     std::vector<std::vector<float> > weights;
     std::vector<std::vector<size_t> > indices_used;
 
     size_t num_frames = grph_.size();
     weights.resize(num_frames);
     indices_used.resize(num_frames);
-    object_indices_clouds.resize(num_frames);
-    keyframes_used.resize(num_frames);
+    object_indices_clouds_.resize(num_frames);
+    keyframes_used_.resize(num_frames);
     normals_used.resize(num_frames);
-    cameras_used.resize(num_frames);
+    cameras_used_.resize(num_frames);
 
 
     // only used keyframes with have object points in them
@@ -449,26 +484,26 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
     {
         if ( v4r::common::createIndicesFromMask(grph_[view_id].obj_mask_step_.back()).size() )
         {
-            keyframes_used[ kept_keyframes ] = grph_[view_id].cloud_;
+            keyframes_used_[ kept_keyframes ] = grph_[view_id].cloud_;
             normals_used [ kept_keyframes ] = grph_[view_id].normal_;
-            cameras_used [ kept_keyframes ] = grph_[view_id].camera_pose_;
+            cameras_used_ [ kept_keyframes ] = grph_[view_id].camera_pose_;
             indices_used[ kept_keyframes ] = v4r::common::createIndicesFromMask( grph_[view_id].obj_mask_step_.back() );
 
-            object_indices_clouds[ kept_keyframes ].points.resize( indices_used[ kept_keyframes ].size());
+            object_indices_clouds_[ kept_keyframes ].points.resize( indices_used[ kept_keyframes ].size());
 
             for(size_t k=0; k < indices_used[ kept_keyframes ].size(); k++)
             {
-                object_indices_clouds[ kept_keyframes ].points[k].idx = (int)indices_used[ kept_keyframes ][k];
+                object_indices_clouds_[ kept_keyframes ].points[k].idx = (int)indices_used[ kept_keyframes ][k];
             }
             kept_keyframes++;
         }
     }
     weights.resize(kept_keyframes);
     indices_used.resize(kept_keyframes);
-    object_indices_clouds.resize(kept_keyframes);
-    keyframes_used.resize(kept_keyframes);
+    object_indices_clouds_.resize(kept_keyframes);
+    keyframes_used_.resize(kept_keyframes);
     normals_used.resize(kept_keyframes);
-    cameras_used.resize(kept_keyframes);
+    cameras_used_.resize(kept_keyframes);
 
     if ( kept_keyframes > 0)
     {
@@ -476,7 +511,7 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
         for(size_t i=0; i < kept_keyframes; i++)
         {
             v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
-            nm.setInputCloud(keyframes_used[i]);
+            nm.setInputCloud(keyframes_used_[i]);
             nm.setInputNormals(normals_used[i]);
             nm.setLateralSigma(0.001);
             nm.setMaxAngle(60.f);
@@ -487,9 +522,9 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
 
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
         v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nm_int_param_);
-        nmIntegration.setInputClouds(keyframes_used);
+        nmIntegration.setInputClouds(keyframes_used_);
         nmIntegration.setWeights(weights);
-        nmIntegration.setTransformations(cameras_used);
+        nmIntegration.setTransformations(cameras_used_);
         nmIntegration.setInputNormals(normals_used);
         nmIntegration.setIndices( indices_used );
         nmIntegration.compute(octree_cloud);
@@ -497,49 +532,19 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
         pcl::PointCloud<pcl::Normal>::Ptr octree_normals;
         nmIntegration.getOutputNormals(octree_normals);
 
-        std::stringstream export_to_rs;
-        export_to_rs << recognition_structure_dir << "/" << model_name << "/";
-        std::string export_to = export_to_rs.str();
-
-        v4r::io::createDirIfNotExist(recognition_structure_dir);
-        v4r::io::createDirIfNotExist(models_dir);
-        v4r::io::createDirIfNotExist(export_to);
-
-        std::cout << "Saving " << kept_keyframes << " keyframes from " << num_frames << "." << std::endl;
-
-        //save recognition data with new poses
-        for(size_t i=0; i < kept_keyframes; i++)
-        {
-            std::stringstream view_file;
-            view_file << export_to << "/cloud_" << setfill('0') << setw(8) << i << ".pcd";
-            pcl::io::savePCDFileBinary (view_file.str (), *(keyframes_used[i]));
-            std::cout << view_file.str() << std::endl;
-
-            std::string path_pose (view_file.str());
-            boost::replace_last (path_pose, "cloud", "pose");
-            boost::replace_last (path_pose, ".pcd", ".txt");
-            v4r::io::writeMatrixToFile(path_pose, cameras_used[i]);
-            std::cout << path_pose << std::endl;
-
-            std::string path_obj_indices (view_file.str());
-            boost::replace_last (path_obj_indices, "cloud", "object_indices");
-            pcl::io::savePCDFileBinary (path_obj_indices, object_indices_clouds[i]);
-            std::cout << path_obj_indices << std::endl;
-        }
-
-        std::stringstream path_model;
-        path_model << models_dir << "/" << model_name;
 
         pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr filtered_with_normals_oriented (new pcl::PointCloud<pcl::PointXYZRGBNormal>());
         pcl::concatenateFields(*octree_normals, *octree_cloud, *filtered_with_normals_oriented);
 
-        pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_normals_oriented (new pcl::PointCloud<pcl::PointXYZRGBNormal>());
         pcl::StatisticalOutlierRemoval<pcl::PointXYZRGBNormal> sor;
         sor.setInputCloud (filtered_with_normals_oriented);
         sor.setMeanK (50);
         sor.setStddevMulThresh (3.0);
-        sor.filter (*cloud_normals_oriented);
-        pcl::io::savePCDFileBinary(path_model.str(), *cloud_normals_oriented);
+        sor.filter (*cloud_normals_oriented_);
+
+        std::cout << "Saving " << kept_keyframes << " keyframes from " << num_frames << "." << std::endl;
+
+        write_model_to_disk(models_dir, recognition_structure_dir, model_name);
     }
     return true;
 }

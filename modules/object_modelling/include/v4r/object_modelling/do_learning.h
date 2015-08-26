@@ -16,6 +16,7 @@
 #include <v4r/core/macros.h>
 #include <v4r/keypoints/ClusterNormalsToPlanes.h>
 #include <v4r/keypoints/impl/PointTypes.hpp>
+#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/noise_model_based_cloud_integration.h>
 #include <v4r/object_modelling/model_view.h>
 
@@ -78,6 +79,7 @@ struct CamConnect
 class V4R_EXPORTS  DOL
 {
 public:
+
     class Parameter{
     public:
         double radius_;
@@ -149,6 +151,11 @@ protected:
     typedef boost::graph_traits < Graph >::edge_descriptor Edge;
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
     typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
+
+    std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > keyframes_used_;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used_;
+    std::vector<pcl::PointCloud<IndexPoint> > object_indices_clouds_;
+    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_normals_oriented_;
 
     Graph gs_;
     Parameter param_;
@@ -237,6 +244,8 @@ public:
         big_cloud_segmented_refined_.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>);
         vis_.reset();
         vis_reconstructed_.reset();
+
+        cloud_normals_oriented_.reset (new pcl::PointCloud<pcl::PointXYZRGBNormal>());
     }
 
     std::vector<bool>
@@ -264,6 +273,10 @@ public:
      * @return
      */
     bool save_model (const std::string &models_dir = "/tmp/dynamic_models/",
+                     const std::string &recognition_structure_dir = "/tmp/recognition_structure_dir/",
+                     const std::string &model_name = "new_dynamic_model.pcd");
+
+    bool write_model_to_disk (const std::string &models_dir = "/tmp/dynamic_models/",
                      const std::string &recognition_structure_dir = "/tmp/recognition_structure_dir/",
                      const std::string &model_name = "new_dynamic_model.pcd");
 
