@@ -90,13 +90,9 @@ namespace v4r
         float vy = y;
         float vz = z / 1.08883f;
 
-        assert(int(vx*4000) < 4000);
-        assert(int(vy*4000) < 4000);
-        assert(int(vz*4000) < 4000);
-
-        vx = sXYZ_LUT[int(vx*4000)];
-        vy = sXYZ_LUT[int(vy*4000)];
-        vz = sXYZ_LUT[int(vz*4000)];
+        vx = sXYZ_LUT[ std::min(int(vx*4000), 4000-1) ];
+        vy = sXYZ_LUT[ std::min(int(vy*4000), 4000-1) ];
+        vz = sXYZ_LUT[ std::min(int(vz*4000), 4000-1) ];
 
         L = 116.0f * vy - 16.0f;
         if (L > 100)

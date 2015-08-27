@@ -99,7 +99,7 @@ public:
 
         pcl::console::parse_argument (argc, argv,  "-hv_clutter_regularizer", r_.hv_params_.clutter_regularizer_);
         pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_ab", r_.hv_params_.color_sigma_ab_);
-        pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_al", r_.hv_params_.color_sigma_l_);
+        pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_l", r_.hv_params_.color_sigma_l_);
         pcl::console::parse_argument (argc, argv,  "-hv_detect_clutter", r_.hv_params_.detect_clutter_);
         pcl::console::parse_argument (argc, argv,  "-hv_duplicity_cm_weight", r_.hv_params_.duplicity_cm_weight_);
         pcl::console::parse_argument (argc, argv,  "-hv_histogram_specification", r_.hv_params_.histogram_specification_);
