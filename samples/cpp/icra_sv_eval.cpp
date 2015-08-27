@@ -305,21 +305,22 @@ public:
             boost::filesystem::remove_all(boost::filesystem::path(r_.training_dir_sift_));
             boost::filesystem::remove_all(boost::filesystem::path(r_.training_dir_shot_));
             boost::filesystem::remove_all(boost::filesystem::path(r_.training_dir_ourcvfh_));
-            boost::filesystem::remove(boost::filesystem::path(r_.idx_flann_fn_sift_);
-            boost::filesystem::remove(boost::filesystem::path(r_.idx_flann_fn_shot_);
+            boost::filesystem::remove(boost::filesystem::path(r_.idx_flann_fn_sift_));
+            boost::filesystem::remove(boost::filesystem::path(r_.idx_flann_fn_shot_));
 
             r_.initialize();
 
-            std::map<std::string, std::vector<std::string> >::iterator it = prun2ob.find(obj);
+            it = prun2ob.find(obj);
             for (size_t j=0; j<it->second.size(); j++)
             {
                 if (it->second[j].compare(patrol_run) == 0 ) // training = test
                     continue;
 
-                const std::string test_sequence = test_dir_ + "/" + patrol_run;
+                const std::string test_sequence = test_dir_ + "/" + it->second[j];
 
-                std::string views;
+                std::vector<std::string> views;
                 v4r::io::getFilesInDirectory( test_sequence, views, "", ".*.pcd", false);
+                std::sort(views.begin(), views.end());
                 for(size_t v_id=0; v_id < views.size(); v_id++)
                 {
                     const std::string fn = test_sequence + "/" + views[ v_id ];
@@ -333,6 +334,48 @@ public:
                     std::vector<ModelTPtr> verified_models;
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
                     r_.getModelsAndTransforms(verified_models, transforms_verified);
+                    rec_models_per_id_.clear();
+
+                    for(size_t m_id=0; m_id<verified_models.size(); m_id++)
+                    {
+                        std::cout << "********************" << verified_models[m_id]->id_ << std::endl;
+
+                        const std::string model_id = verified_models[m_id]->id_;
+                        const Eigen::Matrix4f tf = transforms_verified[m_id];
+
+                        size_t num_models_per_model_id;
+
+                        std::map<std::string, size_t>::iterator it_rec_mod;
+                        it_rec_mod = rec_models_per_id_.find(model_id);
+                        if(it_rec_mod == rec_models_per_id_.end())
+                        {
+                            rec_models_per_id_.insert(std::pair<std::string, size_t>(model_id, 1));
+                            num_models_per_model_id = 0;
+                        }
+                        else
+                        {
+                            num_models_per_model_id = it_rec_mod->second;
+                            it_rec_mod->second++;
+                        }
+
+                        std::stringstream out_fn;
+                        out_fn << out_dir_ << "/" << patrol_run << "/" << it->second[j];
+                        v4r::io::createDirIfNotExist(out_fn.str());
+                        out_fn << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_"
+                               << model_id.substr(0, model_id.length() - 4) << "_" << num_models_per_model_id << ".txt";
+
+                        ofstream or_file;
+                        or_file.open (out_fn.str().c_str());
+                        for (size_t row=0; row <4; row++)
+                        {
+                            for(size_t col=0; col<4; col++)
+                            {
+                                or_file << tf(row, col) << " ";
+                            }
+                        }
+                        or_file.close();
+                    }
+
                 }
             }
 
