@@ -81,6 +81,9 @@ public:
         pcl::console::parse_argument (argc, argv,  "-recognizer_structure_sift", r_.sift_structure_);
         pcl::console::parse_argument (argc, argv,  "-training_dir_ourcvfh", r_.training_dir_ourcvfh_);
 
+        pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_sift", r_.idx_flann_fn_sift_);
+        pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_shot", r_.idx_flann_fn_shot_);
+
         pcl::console::parse_argument (argc, argv,  "-chop_z", r_.sv_params_.chop_at_z_ );
         pcl::console::parse_argument (argc, argv,  "-icp_iterations", r_.sv_params_.icp_iterations_);
         pcl::console::parse_argument (argc, argv,  "-do_sift", r_.sv_params_.do_sift_);
