@@ -122,6 +122,10 @@ public:
         }
 
         r_.initialize();
+        ofstream param_file;
+        param_file.open ((out_dir_ + "/param.nfo").c_str());
+        r_.printParams(param_file);
+        param_file.close();
         r_.printParams();
         return true;
     }
