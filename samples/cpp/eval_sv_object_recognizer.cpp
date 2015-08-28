@@ -68,9 +68,6 @@ public:
 
     bool initialize(int argc, char ** argv)
     {
-        bool retrain;
-
-        pcl::console::parse_argument (argc, argv,  "-retrain", retrain);
         pcl::console::parse_argument (argc, argv,  "-visualize", visualize_);
         pcl::console::parse_argument (argc, argv,  "-out_dir", out_dir_);
         pcl::console::parse_argument (argc, argv,  "-test_dir", test_dir_);
@@ -117,13 +114,8 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_regularizer", r_.hv_params_.regularizer_);
         pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
 
-        if (retrain)
-        {
-            std::vector<std::string> models;
-            v4r::io::getFoldersInDirectory(r_.sift_structure_,"",models);
-            r_.retrain(models);
-        }
 
+        v4r::io::createDirIfNotExist(out_dir_);
         r_.initialize();
         ofstream param_file;
         param_file.open ((out_dir_ + "/param.nfo").c_str());
