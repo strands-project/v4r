@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.1 (2015-08-28)
+------------------
 * fixed some compiler warnings
   fixed out of range bug in GHV RGB2CIELAB when RGB color is white (255,255,255)
   fixed typo in parameter for eval sv
