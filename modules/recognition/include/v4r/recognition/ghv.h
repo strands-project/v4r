@@ -12,7 +12,7 @@
 #include <pcl/pcl_macros.h>
 #include "hypotheses_verification.h"
 //#include <pcl/recognition/3rdparty/metslib/mets.hh>
-#include <mets.hh>
+#include <metslib/mets.hh>
 #include <pcl/features/normal_3d.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <boost/graph/graph_traits.hpp>
@@ -90,13 +90,9 @@ namespace v4r
         float vy = y;
         float vz = z / 1.08883f;
 
-        assert(int(vx*4000) < 4000);
-        assert(int(vy*4000) < 4000);
-        assert(int(vz*4000) < 4000);
-
-        vx = sXYZ_LUT[int(vx*4000)];
-        vy = sXYZ_LUT[int(vy*4000)];
-        vz = sXYZ_LUT[int(vz*4000)];
+        vx = sXYZ_LUT[ std::min(int(vx*4000), 4000-1) ];
+        vy = sXYZ_LUT[ std::min(int(vy*4000), 4000-1) ];
+        vz = sXYZ_LUT[ std::min(int(vz*4000), 4000-1) ];
 
         L = 116.0f * vy - 16.0f;
         if (L > 100)

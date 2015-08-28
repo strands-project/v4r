@@ -1,5 +1,6 @@
 #include <v4r/recognition/linemod3d_recognizer.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/io/eigen.h>
 #include <v4r/common/pcl_opencv.h>
 #include <pcl/common/angles.h>
 //add functions
@@ -112,7 +113,7 @@ v4r::LineMod3DPipeline<PointInT>::initialize (bool force_retrain)
     {
       std::cout << models->at (i)->class_ << " " << models->at (i)->id_ << std::endl;
 
-      if (!source_->modelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
+      if (!source_->isModelAlreadyTrained(*models->at (i), training_dir_, descr_name_))
       {
         std::cout << "Model not trained..." << models->at (i)->views_->size () << std::endl;
         std::cout << "Model not trained... view filenames size:" << models->at (i)->view_filenames_.size () << std::endl;
@@ -386,7 +387,7 @@ v4r::LineMod3DPipeline<PointInT>::getPose (ModelT & model, int view_id, Eigen::M
   std::string path = source_->getModelDirectory (model, training_dir_);
   dir << path << "/pose_" << std::setfill ('0') << std::setw (8) << view_id << ".txt";
 
-  PersistenceUtils::readMatrixFromFile (dir.str (), pose_matrix);
+  v4r::io::readMatrixFromFile (dir.str (), pose_matrix);
 }
 
 

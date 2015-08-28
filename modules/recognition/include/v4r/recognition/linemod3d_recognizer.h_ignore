@@ -8,19 +8,18 @@
 #ifndef FAAT_PCL_REC_FRAMEWORK_LINEMOD3D_RECOGNIZER_H_
 #define FAAT_PCL_REC_FRAMEWORK_LINEMOD3D_RECOGNIZER_H_
 
+#include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/common/pcl_opencv.h>
+#include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/recognition/recognizer.h>
+#include <v4r/recognition/source.h>
+
 #include <pcl/common/common.h>
-#include <v4r/ORRecognition/hypotheses_verification.h>
-#include "source.h"
-#include "v4r/ORUtils/faat_3d_rec_framework_defines.h"
-#include "recognizer.h"
 #include <pcl/recognition/linemod/line_rgbd.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <v4r/ORUtils/pcl_opencv.h>
 
-namespace faat_pcl
+namespace v4r
 {
-  namespace rec_3d_framework
-  {
     /**
      * \brief Object recognition + 6DOF pose based on Linemod
      */
@@ -204,7 +203,6 @@ namespace faat_pcl
         void
         recognize ();
       };
-  }
 }
 
 #endif /* REC_FRAMEWORK_LOCAL_RECOGNIZER_H_ */

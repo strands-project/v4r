@@ -207,10 +207,23 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     flann_index_->buildIndex ();
 #else
     bf::path idx_file_path = filename;
-    if(bf::exists(idx_file_path)) {
+    if(bf::exists(idx_file_path))
+    {
       pcl::ScopeTime t("Loading flann index");
-      flann_index_ = new flann::Index<DistT> (flann_data_, flann::SavedIndexParams (filename));
-    } else {
+      try
+      {
+        flann_index_ = new flann::Index<DistT> (flann_data_, flann::SavedIndexParams (filename));
+      }
+      catch(std::runtime_error &e)
+      {
+          std::cerr << "Existing flann index cannot be loaded. Removing file and creating a new flann file..." << std::endl;
+          boost::filesystem::remove(boost::filesystem::path(filename));
+          flann_index_ = new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4));
+          flann_index_->buildIndex ();
+          flann_index_->save (filename);
+      }
+    } else
+    {
       pcl::ScopeTime t("Building and saving flann index");
       flann_index_ = new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4));
       flann_index_->buildIndex ();
@@ -332,7 +345,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           bool success = estimator_->estimate (models->at (i)->views_->at (v), processed, keypoints_pointcloud, signatures);
           std::cout << "success:" << success << std::endl;
 
-          if (success)
+          if (success && keypoints_pointcloud->points.size() && processed->points.size() && signatures->points.size())
           {
             std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
 
@@ -468,7 +481,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       }
     }
 
-    loadFeaturesAndCreateFLANN ();
+
+   loadFeaturesAndCreateFLANN ();
 
    if(ICP_iterations_ > 0 && icp_type_ == 1)
      source_->createVoxelGridAndDistanceTransform(VOXEL_SIZE_ICP_);

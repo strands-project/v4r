@@ -47,8 +47,6 @@ protected:
 
 
     boost::shared_ptr<v4r::MultiRecognitionPipeline<PointT> > multi_recog_;
-    std::string idx_flann_fn_sift_;
-    std::string idx_flann_fn_shot_;
 
     std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
@@ -69,16 +67,6 @@ protected:
     std::vector<pcl::PointCloud<PointT>::Ptr> verified_planes_;
 
     boost::shared_ptr < v4r::CorrespondenceGrouping<PointT, PointT> > cast_cg_alg_;
-
-//    boost::shared_ptr < v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>
-//            > model_only_source_;
-
-
-#ifdef SOC_VISUALIZE
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-    int v1_,v2_, v3_;
-#endif
-
 
 public:
     struct hv_params{
@@ -137,6 +125,8 @@ public:
     std::string training_dir_sift_;
     std::string training_dir_shot_;
     std::string sift_structure_;
+    std::string idx_flann_fn_sift_;
+    std::string idx_flann_fn_shot_;
 
     SingleViewRecognizer ()
     {
@@ -193,15 +183,8 @@ public:
         pInputCloud_.reset(new pcl::PointCloud<PointT>);
         pSceneNormals_.reset(new pcl::PointCloud<pcl::Normal>);
 
-//        model_only_source_.reset (new v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>);
-
-
-#ifdef SOC_VISUALIZE
-        vis_.reset (new pcl::visualization::PCLVisualizer ("classifier visualization"));
-        vis_->createViewPort(0,0,0.33,1.f, v1_);
-        vis_->createViewPort(0.33,0,0.66,1.f, v2_);
-        vis_->createViewPort(0.66,0,1,1.f, v3_);
-#endif
+        idx_flann_fn_sift_ = "sift_flann.idx";
+        idx_flann_fn_shot_ = "shot_flann.idx";
     }
 
     bool recognize ();
@@ -356,8 +339,6 @@ public:
 
     void multiplaneSegmentation();
 
-    void visualizeHypotheses();
-
     void constructHypotheses();
 
     void preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_cloud, std::vector<float> &fsv);
@@ -375,7 +356,7 @@ public:
      */
     bool retrain (const std::vector<std::string> &model_ids = std::vector<std::string>());
 
-    void printParams() const;
+    void printParams(std::ostream &ostr = std::cout) const;
 };
 }
 

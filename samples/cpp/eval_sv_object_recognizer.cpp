@@ -68,9 +68,6 @@ public:
 
     bool initialize(int argc, char ** argv)
     {
-        bool retrain;
-
-        pcl::console::parse_argument (argc, argv,  "-retrain", retrain);
         pcl::console::parse_argument (argc, argv,  "-visualize", visualize_);
         pcl::console::parse_argument (argc, argv,  "-out_dir", out_dir_);
         pcl::console::parse_argument (argc, argv,  "-test_dir", test_dir_);
@@ -80,6 +77,9 @@ public:
         pcl::console::parse_argument (argc, argv,  "-training_dir_shot", r_.training_dir_shot_);
         pcl::console::parse_argument (argc, argv,  "-recognizer_structure_sift", r_.sift_structure_);
         pcl::console::parse_argument (argc, argv,  "-training_dir_ourcvfh", r_.training_dir_ourcvfh_);
+
+        pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_sift", r_.idx_flann_fn_sift_);
+        pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_shot", r_.idx_flann_fn_shot_);
 
         pcl::console::parse_argument (argc, argv,  "-chop_z", r_.sv_params_.chop_at_z_ );
         pcl::console::parse_argument (argc, argv,  "-icp_iterations", r_.sv_params_.icp_iterations_);
@@ -99,7 +99,7 @@ public:
 
         pcl::console::parse_argument (argc, argv,  "-hv_clutter_regularizer", r_.hv_params_.clutter_regularizer_);
         pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_ab", r_.hv_params_.color_sigma_ab_);
-        pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_al", r_.hv_params_.color_sigma_l_);
+        pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_l", r_.hv_params_.color_sigma_l_);
         pcl::console::parse_argument (argc, argv,  "-hv_detect_clutter", r_.hv_params_.detect_clutter_);
         pcl::console::parse_argument (argc, argv,  "-hv_duplicity_cm_weight", r_.hv_params_.duplicity_cm_weight_);
         pcl::console::parse_argument (argc, argv,  "-hv_histogram_specification", r_.hv_params_.histogram_specification_);
@@ -114,14 +114,13 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_regularizer", r_.hv_params_.regularizer_);
         pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
 
-        if (retrain)
-        {
-            std::vector<std::string> models;
-            v4r::io::getFoldersInDirectory(r_.sift_structure_,"",models);
-            r_.retrain(models);
-        }
 
+        v4r::io::createDirIfNotExist(out_dir_);
         r_.initialize();
+        ofstream param_file;
+        param_file.open ((out_dir_ + "/param.nfo").c_str());
+        r_.printParams(param_file);
+        param_file.close();
         r_.printParams();
         return true;
     }

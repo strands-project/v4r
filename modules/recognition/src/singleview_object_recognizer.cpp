@@ -449,161 +449,17 @@ void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::Const
     }
 }
 
-//bool SingleViewRecognizer::hypothesesVerificationGpu(std::vector<bool> &mask_hv)
-//{
-//    std::cout << "=================================================================" << std::endl <<
-//                 "Verifying hypotheses on GPU with following parameters: " << std::endl <<
-//                 "*** Resolution: " << hv_params_.resolution_ << std::endl <<
-//                 "*** Inlier Threshold: " << hv_params_.inlier_threshold_ << std::endl <<
-//                 "*** Radius clutter: " << hv_params_.radius_clutter_ << std::endl <<
-//                 "*** Regularizer: " << hv_params_.regularizer_ << std::endl <<
-//                 "*** Clutter regularizer: " << hv_params_.clutter_regularizer_ << std::endl <<
-//                 "*** Color sigma L / AB: " << hv_params_.color_sigma_l_ << " / " << hv_params_.color_sigma_ab_ << std::endl <<
-//                 "=================================================================" << std::endl << std::endl;
-
-//    typename pcl::PointCloud<PointT>::Ptr pOcclusionCloud (new pcl::PointCloud<PointT>(*pInputCloud_));
-//    typename pcl::PointCloud<PointT>::Ptr pInputCloud_ds (new pcl::PointCloud<PointT>);
-//    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr pInputCloudWithNormals (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-//    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr pInputCloudWithNormals_ds (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-//    pcl::PointCloud<pcl::Normal>::Ptr pInputNormals_ds (new pcl::PointCloud<pcl::Normal>);
-
-//    assert(pInputCloud_->points.size() == pSceneNormals_->points.size());
-//    pInputCloudWithNormals->points.resize(pInputCloud_->points.size());
-//    size_t kept=0;
-//    for(size_t i=0; i<pInputCloud_->points.size(); i++)
-//    {
-//        if(pcl::isFinite(pInputCloud_->points[i])  && pcl::isFinite(pSceneNormals_->points[i]))
-//        {
-//            pInputCloudWithNormals->points[kept].getVector3fMap() = pInputCloud_->points[i].getVector3fMap();
-//            pInputCloudWithNormals->points[kept].getRGBVector3i() = pInputCloud_->points[i].getRGBVector3i();
-//            pInputCloudWithNormals->points[kept].getNormalVector3fMap() = pSceneNormals_->points[i].getNormalVector3fMap();
-//            kept++;
-//        }
-//    }
-//    pInputCloudWithNormals->points.resize(kept);
-
-//    pcl::VoxelGrid<pcl::PointXYZRGBNormal> voxel_grid_icp;
-//    voxel_grid_icp.setInputCloud (pInputCloudWithNormals);
-//    voxel_grid_icp.setDownsampleAllData(true);
-//    voxel_grid_icp.setLeafSize (hv_params_.resolution_ , hv_params_.resolution_ , hv_params_.resolution_ );
-//    voxel_grid_icp.filter (*pInputCloudWithNormals_ds);
-
-//    pInputCloud_ds->points.resize(pInputCloudWithNormals_ds->points.size());
-//    pInputNormals_ds->points.resize(pInputCloudWithNormals_ds->points.size());
-//    for(size_t i=0; i<pInputCloudWithNormals_ds->points.size(); i++)
-//    {
-//        pInputCloud_ds->points[i].getVector3fMap() = pInputCloudWithNormals_ds->points[i].getVector3fMap();
-//        if (!pcl_isfinite(pInputCloud_ds->points[i].x) || !pcl_isfinite(pInputCloud_ds->points[i].y) || !pcl_isfinite(pInputCloud_ds->points[i].z))
-//            std::cout << "Point is infinity." << std::endl;
-//        pInputCloud_ds->points[i].getRGBVector3i() = pInputCloudWithNormals_ds->points[i].getRGBVector3i();
-//        pInputNormals_ds->points[i].getNormalVector3fMap() = pInputCloudWithNormals_ds->points[i].getNormalVector3fMap();
-//    }
-
-//    std::cout << "cloud is organized:" << pInputCloud_ds->isOrganized() << std::endl;
-
-//    {
-//        pcl::ScopeTime t("finding planes...");
-//        //compute planes
-
-//        v4r::MultiPlaneSegmentation<PointT> mps;
-//        mps.setInputCloud(pInputCloud_);
-//        mps.setMinPlaneInliers(1000);
-//        mps.setResolution(hv_params_.resolution_);
-//        mps.setMergePlanes(true);
-//        mps.segment(false);
-//        planes_found_ = mps.getModels();
-//        std::cout << "Number of planes found in the scene:" << planes_found_.size() << std::endl;
-//    }
-
-////    pcl::NormalEstimationOMP<PointT, pcl::Normal> ne;
-////    ne.setRadiusSearch(0.02f);
-////    ne.setInputCloud (pInputCloud_ds);
-////    ne.compute (*pInputNormals_ds);
-
-//    typename v4r::recognition::GHVCudaWrapper<PointT> ghv;
-//    ghv.setInlierThreshold(hv_params_.inlier_threshold_);
-//    ghv.setOutlierWewight(hv_params_.regularizer_);
-//    ghv.setClutterWeight(hv_params_.clutter_regularizer_);
-//    ghv.setclutterRadius(hv_params_.radius_clutter_);
-//    ghv.setColorSigmas(hv_params_.color_sigma_l_, hv_params_.color_sigma_ab_);
-
-//    std::vector<typename pcl::PointCloud<PointT>::ConstPtr> aligned_models;
-//    std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals;
-//    std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> aligned_smooth_faces;
-
-//    aligned_models.resize (models_->size ());
-//    aligned_smooth_faces.resize (models_->size ());
-//    aligned_normals.resize (models_->size ());
-
-//    std::map<std::string, int> id_to_model_clouds;
-//    std::map<std::string, int>::iterator it;
-//    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations;
-//    std::vector<int> transforms_to_models;
-//    transforms_to_models.resize(models_->size());
-//    transformations.resize(models_->size());
-
-//    int individual_models = 0;
-
-//    for (size_t kk = 0; kk < models_->size (); kk++)
-//    {
-
-//        int pos = 0;
-//        it = id_to_model_clouds.find(models_->at(kk)->id_);
-//        if(it == id_to_model_clouds.end())
-//        {
-//            //not included yet
-//            ConstPointInTPtr model_cloud = models_->at (kk)->getAssembled (hv_params_.resolution_);
-//            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_->at (kk)->getNormalsAssembled (hv_params_.resolution_);
-//            aligned_models[individual_models] = model_cloud;
-//            aligned_normals[individual_models] = normal_cloud;
-//            pos = individual_models;
-
-//            id_to_model_clouds.insert(std::make_pair(models_->at(kk)->id_, individual_models));
-
-//            individual_models++;
-//        }
-//        else
-//        {
-//            pos = it->second;
-//        }
-
-//        transformations[kk] = transforms_->at(kk);
-//        transforms_to_models[kk] = pos;
-//    }
-
-//    aligned_models.resize(individual_models);
-//    aligned_normals.resize(individual_models);
-//    std::cout << "aligned models size:" << aligned_models.size() << " " << models_->size() << std::endl;
-
-//    ghv.setSceneCloud(pInputCloud_ds);
-//    ghv.setSceneNormals(pInputNormals_ds);
-//    ghv.setOcclusionCloud(pOcclusionCloud);
-//    ghv.addModelNormals(aligned_normals);
-//    ghv.addModels(aligned_models, transformations, transforms_to_models);
-
-//    if(add_planes_)
-//        ghv.addPlanarModels(planes_found_);
-
-//    ghv.verify();
-
-//    float t_cues = ghv.getCuesComputationTime();
-//    float t_opt = ghv.getOptimizationTime();
-//    int num_p = ghv.getNumberOfVisiblePoints();
-//    std::vector<bool> mask_hv_with_planes = ghv.getSolution();
-
-
-//    mask_hv.resize(transforms_->size ());
-//    for (size_t j = 0; j < transforms_->size (); j++)
-//    {
-//        mask_hv[j] = mask_hv_with_planes[j];
-//    }
-//    return true;
-//}
-
-
 bool SingleViewRecognizer::recognize ()
 {
     std::vector<bool> mask_hv;
+    model_ids_verified_.clear();
+    transforms_verified_.clear();
+    models_verified_.clear();
+    aligned_models_.clear();
+    model_ids_.clear();
+
+    if(transforms_)
+        transforms_->clear();
 
     if(pSceneNormals_->points.size() == 0)
     {
@@ -622,6 +478,19 @@ bool SingleViewRecognizer::recognize ()
         pcl::copyPointCloud(*pSceneNormals_, *pass.getIndices(), *pSceneNormals_);
     }
 
+    bool have_a_finite_pt = false;
+    for(size_t pt_id=0; pt_id<pInputCloud_->points.size(); pt_id++)
+    {
+        if ( pcl::isFinite (pInputCloud_->points[pt_id]) )
+        {
+            have_a_finite_pt = true;
+            break;
+        }
+    }
+
+    if(!have_a_finite_pt)
+        return false;
+
     constructHypotheses();
     setModelsAndTransforms(*models_, *transforms_);
     hypothesesVerification(mask_hv);
@@ -639,15 +508,13 @@ bool SingleViewRecognizer::recognize ()
     std::cout << "Number of models:" << model_ids_.size() <<
                  "Number of verified models:" << model_ids_verified_.size() << std::endl;
 
-    visualizeHypotheses();
-
     return true;
   }
 
 
-void SingleViewRecognizer::printParams() const
+void SingleViewRecognizer::printParams(std::ostream &ostr) const
 {
-    std::cout << "cg_size_thresh: " << cg_params_.cg_size_threshold_ << std::endl
+    ostr      << "cg_size_thresh: " << cg_params_.cg_size_threshold_ << std::endl
               << "cg_size: " << cg_params_.cg_size_ << std::endl
               << "cg_ransac_threshold: " << cg_params_.ransac_threshold_ << std::endl
               << "cg_dist_for_clutter_factor: " << cg_params_.dist_for_clutter_factor_ << std::endl
@@ -710,8 +577,6 @@ void SingleViewRecognizer::printParams() const
 
     if ( sv_params_.do_sift_ )
     {
-
-      std::string idx_flann_fn = "sift_flann.idx";
       std::string desc_name = "sift";
 
       boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>
@@ -755,7 +620,7 @@ void SingleViewRecognizer::printParams() const
 #endif
 
       boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > new_sift_local;
-      new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > (idx_flann_fn));
+      new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > (idx_flann_fn_sift_));
       new_sift_local->setDataSource (cast_source);
       new_sift_local->setTrainingDir (training_dir_sift_);
       new_sift_local->setDescriptorName (desc_name);
@@ -881,7 +746,6 @@ void SingleViewRecognizer::printParams() const
 
     if(sv_params_.do_shot_)
     {
-        std::string idx_flann_fn = "shot_flann.idx";
         std::string desc_name = "shot";
         bool use_cache = true;
         float test_sampling_density = 0.01f;
@@ -926,7 +790,7 @@ void SingleViewRecognizer::printParams() const
         cast_estimator = boost::dynamic_pointer_cast<v4r::LocalEstimator<PointT, pcl::Histogram<352> > > (estimator);
 
         boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
-        local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (idx_flann_fn));
+        local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (idx_flann_fn_shot_));
         local->setDataSource (cast_source);
         local->setTrainingDir (training_dir_shot_);
         local->setDescriptorName (desc_name);
@@ -955,70 +819,5 @@ void SingleViewRecognizer::printParams() const
 //    multi_recog_->setICPType(1);
     multi_recog_->setICPIterations(sv_params_.icp_iterations_);
     multi_recog_->initialize();
-  }
-
-  void SingleViewRecognizer::visualizeHypotheses()
-  {
-#ifdef SOC_VISUALIZE
-    vis_->removeAllPointClouds();
-    vis_->addPointCloud(scene, "scene", v1_);
-
-    for(size_t kk=0; kk < planes_found.size(); kk++)
-    {
-        std::stringstream pname;
-        pname << "plane_" << kk;
-        pcl::visualization::PointCloudColorHandlerRandom<PointT> scene_handler(planes_found[kk].plane_cloud_);
-        vis_->addPointCloud<PointT> (planes_found[kk].plane_cloud_, scene_handler, pname.str(), v2_);
-        pname << "chull";
-        vis_->addPolygonMesh (*planes_found[kk].convex_hull_, pname.str(), v2_);
-    }
-
-    if(models)
-    {
-        for (size_t j = 0; j < mask_hv.size (); j++)
-        {
-            std::stringstream name;
-            name << "cloud_" << j;
-
-            if(!mask_hv[j])
-            {
-                if(coming_from[j] == 0)
-                {
-                    ConstPointInTPtr model_cloud = models->at (j)->getAssembled (assembled_resolution);
-                    typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-                    pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
-                    pcl::visualization::PointCloudColorHandlerRGBField<PointT> random_handler (model_aligned);
-                    vis_->addPointCloud<PointT> (model_aligned, random_handler, name.str (), v2_);
-                }
-                continue;
-            }
-
-            if(coming_from[j] == 0)
-            {
-                verified_models->push_back(models->at(j));
-                verified_transforms->push_back(transforms->at(j));
-
-                ConstPointInTPtr model_cloud = models->at (j)->getAssembled (-1);
-                typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-                pcl::transformPointCloud (*model_cloud, *model_aligned, transforms->at (j));
-                std::cout << models->at (j)->id_ << std::endl;
-
-                pcl::visualization::PointCloudColorHandlerRGBField<PointT> random_handler (model_aligned);
-                vis_->addPointCloud<PointT> (model_aligned, random_handler, name.str (), v3_);
-            }
-            else
-            {
-                std::stringstream pname;
-                pname << "plane_v2_" << j;
-                pcl::visualization::PointCloudColorHandlerRandom<PointT> scene_handler(planes_found[j - models->size()].plane_cloud_);
-                vis_->addPointCloud<PointT> (planes_found[j - models->size()].plane_cloud_, scene_handler, pname.str(), v3_);
-                pname << "chull_v2";
-                vis_->addPolygonMesh (*planes_found[j - models->size()].convex_hull_, pname.str(), v3_);
-            }
-        }
-    }
-    vis_->spin ();
-#endif
-
   }
 }

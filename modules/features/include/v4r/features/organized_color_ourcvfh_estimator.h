@@ -173,7 +173,7 @@ namespace v4r
 
                     normals_.reset (new pcl::PointCloud<pcl::Normal>);
                     {
-                        pcl::ScopeTime time_estimate("Organized color OUR-CVFH normals");
+                        pcl::ScopeTime time_estimate2("Organized color OUR-CVFH normals");
                         normal_estimator_->estimate_organized(in, processed, normals_);
                     }
 
@@ -231,7 +231,7 @@ namespace v4r
                     {
                         for (size_t ti = 0; ti < cluster_tolerance_vector_.size (); ti++)
                         {
-                            pcl::ScopeTime t ("***************************************** Computing OURCVFH + color histogram...");
+                            pcl::ScopeTime tt ("***************************************** Computing OURCVFH + color histogram...");
 
                             cvfh.setEPSAngleThreshold (eps_angle_threshold_vector_[ei]);
                             cvfh.setCurvatureThreshold (curvature_threshold_vector_[ci]);

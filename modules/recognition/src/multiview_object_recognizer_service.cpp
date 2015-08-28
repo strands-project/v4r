@@ -1375,9 +1375,9 @@ bool MultiviewRecognizer::recognize
                             go3d.getInlierOutliersCloud((int)i, inliers_outlier_cloud);
 
                             {
-                                std::stringstream name;
-                                name << "verified_visible_" << i;
-                                go3d_vis_->addPointCloud<PointT> (inliers_outlier_cloud, name.str (), go_3d_viewports_[3]);
+                                std::stringstream name_verified_vis;
+                                name_verified_vis << "verified_visible_" << i;
+                                go3d_vis_->addPointCloud<PointT> (inliers_outlier_cloud, name_verified_vis.str (), go_3d_viewports_[3]);
                             }
                         }
                     }
