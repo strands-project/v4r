@@ -208,7 +208,7 @@ public:
             std::string line (linebuf);
             std::vector < std::string > strs_2;
             boost::split (strs_2, line, boost::is_any_of (","));
-            if (strs_2[2].length())
+            if (strs_2.size() > 2 && strs_2[2].length())
                 continue;
 
             const std::string patrol_run = strs_2[0];
