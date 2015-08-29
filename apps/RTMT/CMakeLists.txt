@@ -65,7 +65,7 @@ endif()
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GL REQUIRED gl)
 
-add_definitions(-std=c++0x)
+#add_definitions(-std=c++0x)
 add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
 add_definitions(-Dlinux -D__x86_64__)
 
