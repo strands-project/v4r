@@ -2,6 +2,13 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#21 <https://github.com/strands-project/v4r/issues/21>`_ from strands-project/added_install_commands
+  added install targets for apps
+* added install targets for apps
+* Contributors: Marc Hanheide
+
 1.0.2 (2015-08-29)
 ------------------
 * Merge pull request `#20 <https://github.com/strands-project/v4r/issues/20>`_ from strands-project/marc-hanheide-patch-1
