@@ -105,7 +105,8 @@ private:
     pcl::visualization::PCLVisualizer::Ptr vis_;
     std::map<std::string, size_t> rec_models_per_id_;
 
-    std::map<std::string, std::vector<std::string> > prun2ob;
+    std::map<std::string, std::vector<std::string> > ob2pr_train;
+    std::map<std::string, std::vector<std::string> > ob2pr_test;
 
 public:
     EvalSvRecognizer()
@@ -151,18 +152,19 @@ public:
 
     bool initialize(int argc, char ** argv)
     {
-        bool retrain;
+        std::string map_file_train, map_file_test;
 
-        std::string map_file;
-
-        pcl::console::parse_argument (argc, argv,  "-retrain", retrain);
         pcl::console::parse_argument (argc, argv,  "-visualize", visualize_);
         pcl::console::parse_argument (argc, argv,  "-out_dir", out_dir_);
         pcl::console::parse_argument (argc, argv,  "-test_dir", test_dir_);
         pcl::console::parse_argument (argc, argv,  "-dol_rec_dir", dol_rec_dir_);
         pcl::console::parse_argument (argc, argv,  "-offline_rec_dir", offline_rec_dir_);
         pcl::console::parse_argument (argc, argv,  "-training_dir_tmp", training_dir_tmp_);
-        pcl::console::parse_argument (argc, argv,  "-map_file", map_file);
+        pcl::console::parse_argument (argc, argv,  "-map_file_train", map_file_train);
+        pcl::console::parse_argument (argc, argv,  "-map_file_test", map_file_test);
+
+        pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_shot", r_.idx_flann_fn_shot_);
+        pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_sift", r_.idx_flann_fn_sift_);
 
         pcl::console::parse_argument (argc, argv,  "-chop_z", r_.sv_params_.chop_at_z_ );
         pcl::console::parse_argument (argc, argv,  "-icp_iterations", r_.sv_params_.icp_iterations_);
@@ -199,9 +201,13 @@ public:
 
         v4r::io::createDirIfNotExist(training_dir_tmp_ + "/models");
         v4r::io::createDirIfNotExist(training_dir_tmp_ + "/recognition_structure");
+        v4r::io::createDirIfNotExist(training_dir_tmp_ + "/sift_trained");
+        v4r::io::createDirIfNotExist(training_dir_tmp_ + "/shot_trained");
+        v4r::io::createDirIfNotExist(training_dir_tmp_ + "/ourcvfh_trained");
+        v4r::io::createDirIfNotExist(out_dir_);
 
         std::ifstream in;
-        in.open (map_file.c_str (), std::ifstream::in);
+        in.open (map_file_train.c_str (), std::ifstream::in);
         char linebuf[1024];
         while(in.getline (linebuf, 1024))
         {
@@ -213,8 +219,8 @@ public:
 
             const std::string patrol_run = strs_2[0];
             const std::string obj = strs_2[1];
-            std::map<std::string, std::vector<std::string> >::iterator it = prun2ob.find(obj);
-            if (it != prun2ob.end() )
+            std::map<std::string, std::vector<std::string> >::iterator it = ob2pr_train.find(obj);
+            if (it != ob2pr_train.end() )
             {
                 it->second.push_back(patrol_run);
             }
@@ -222,13 +228,38 @@ public:
             {
                 std::vector<std::string> pr_tmp;
                 pr_tmp.push_back(patrol_run);
-                prun2ob[obj] = pr_tmp;
+                ob2pr_train[obj] = pr_tmp;
             }
         }
+        in.close();
+
+        in.open (map_file_test.c_str (), std::ifstream::in);
+        while(in.getline (linebuf, 1024))
+        {
+            std::string line (linebuf);
+            std::vector < std::string > strs_2;
+            boost::split (strs_2, line, boost::is_any_of (","));
+            if (strs_2.size() > 2 && strs_2[2].length())
+                continue;
+
+            const std::string patrol_run = strs_2[0];
+            const std::string obj = strs_2[1];
+            std::map<std::string, std::vector<std::string> >::iterator it = ob2pr_test.find(obj);
+            if (it != ob2pr_test.end() )
+            {
+                it->second.push_back(patrol_run);
+            }
+            else
+            {
+                std::vector<std::string> pr_tmp;
+                pr_tmp.push_back(patrol_run);
+                ob2pr_test[obj] = pr_tmp;
+            }
+        }
+        in.close();
+
 
 //        r_.initialize();
-        r_.idx_flann_fn_shot_ = "/tmp/shot_flann.idx";
-        r_.idx_flann_fn_sift_ = "/tmp/sift_flann.idx";
         ofstream param_file;
         param_file.open ((out_dir_ + "/param.nfo").c_str());
         r_.printParams(param_file);
@@ -256,7 +287,7 @@ public:
             // find object belonging to patrol_run
             bool have_found = false;
             std::map<std::string, std::vector<std::string> >::iterator it;
-            for ( it = prun2ob.begin(); it != prun2ob.end(); it++)
+            for ( it = ob2pr_train.begin(); it != ob2pr_train.end(); it++)
             {
                 for (size_t pr=0; pr<it->second.size();pr++)
                 {
@@ -276,8 +307,14 @@ public:
 
             boost::filesystem::remove_all(boost::filesystem::path(training_dir_tmp_ + "/models/"));
             boost::filesystem::remove_all(boost::filesystem::path(training_dir_tmp_ + "/recognition_structure/"));
+            boost::filesystem::remove_all(boost::filesystem::path(training_dir_tmp_ + "/sift_trained/"));
+            boost::filesystem::remove_all(boost::filesystem::path(training_dir_tmp_ + "/shot_trained/"));
+            boost::filesystem::remove_all(boost::filesystem::path(training_dir_tmp_ + "/ourcvfh_trained/"));
             v4r::io::createDirIfNotExist(training_dir_tmp_ + "/models");
             v4r::io::createDirIfNotExist(training_dir_tmp_ + "/recognition_structure");
+            v4r::io::createDirIfNotExist(training_dir_tmp_ + "/sift_trained");
+            v4r::io::createDirIfNotExist(training_dir_tmp_ + "/shot_trained");
+            v4r::io::createDirIfNotExist(training_dir_tmp_ + "/ourcvfh_trained");
             std::string src = dol_rec_dir_ + "/recognition_structure/" + patrol_run + "_object.pcd";
             std::string dst = training_dir_tmp_ + "/recognition_structure/" + patrol_run + ".pcd";
             copyDir( boost::filesystem::path(src), boost::filesystem::path(dst));
@@ -298,12 +335,11 @@ public:
                 }
             }
 
-
             r_.models_dir_ = training_dir_tmp_ + "/models";
             r_.sift_structure_ = training_dir_tmp_ + "/recognition_structure";
-            r_.training_dir_sift_ = "/tmp/sift_trained";
-            r_.training_dir_shot_ = "/tmp/shot_trained";
-            r_.training_dir_ourcvfh_ = "/tmp/ourcvfh_trained";
+            r_.training_dir_sift_ = training_dir_tmp_ + "/sift_trained";
+            r_.training_dir_shot_ = training_dir_tmp_ + "/shot_trained";
+            r_.training_dir_ourcvfh_ = training_dir_tmp_ + "/ourcvfh_trained";
             boost::filesystem::remove_all(boost::filesystem::path(r_.training_dir_sift_));
             boost::filesystem::remove_all(boost::filesystem::path(r_.training_dir_shot_));
             boost::filesystem::remove_all(boost::filesystem::path(r_.training_dir_ourcvfh_));
@@ -312,12 +348,9 @@ public:
 
             r_.initialize();
 
-            it = prun2ob.find(obj);
+            it = ob2pr_test.find(obj);
             for (size_t j=0; j<it->second.size(); j++)
             {
-                if (it->second[j].compare(patrol_run) == 0 ) // training = test
-                    continue;
-
                 const std::string test_sequence = test_dir_ + "/" + it->second[j];
 
                 std::vector<std::string> views;
