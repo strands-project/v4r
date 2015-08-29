@@ -32,3 +32,10 @@ endif()
 
 add_executable(3dReconstructionBySiftAndMST main.cpp)
 target_link_libraries(3dReconstructionBySiftAndMST ${3D_SCENE_RECONSTRUCTION_BY_SIFT_AND_MST_DEPS} ${DEP_LIBS} ${GL_LIBRARIES})
+
+INSTALL(TARGETS 3dReconstructionBySiftAndMST
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
