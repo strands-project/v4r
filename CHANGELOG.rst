@@ -2,6 +2,14 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#20 <https://github.com/strands-project/v4r/issues/20>`_ from strands-project/marc-hanheide-patch-1
+  don't include FREAK headers
+* don't include FRAK headers
+  as this seems to fail in non-free opencv... see https://github.com/strands-project/v4r_ros_wrappers/pull/3
+* Contributors: Marc Hanheide, Michael Zillich
+
 1.0.1 (2015-08-28)
 ------------------
 * fixed some compiler warnings
