@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.4 (2015-08-29)
+------------------
 * Merge pull request `#22 <https://github.com/strands-project/v4r/issues/22>`_ from strands-project/marc-hanheide-patch-1
   disable C++11
 * disable C++11
