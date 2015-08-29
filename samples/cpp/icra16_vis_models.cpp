@@ -10,6 +10,7 @@
 
 #include <v4r/io/filesystem.h>
 #include <pcl/common/centroid.h>
+#include <pcl/common/transforms.h>
 #include <pcl/console/parse.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/cloud_viewer.h>
@@ -91,8 +92,6 @@ int main (int argc, char ** argv)
     pcl::visualization::PCLVisualizer vis("object models");
     std::vector<int> viewports = visualization_framework (vis, prun2ob.size(), 6);
 
-
-
     size_t col_id = 0;
     std::map<std::string, std::vector<std::string> >::iterator it;
     for ( it = prun2ob.begin(); it != prun2ob.end(); it++, col_id++ )
@@ -103,15 +102,31 @@ int main (int argc, char ** argv)
         pcl::io::loadPCDFile (filename.str(), *cloud);
 
         PointT centroid;
+//        EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
+
+//        // Extract the eigenvalues and eigenvectors
+//        EIGEN_ALIGN16 Eigen::Vector3f eigen_values;
+//        EIGEN_ALIGN16 Eigen::Matrix3f eigen_vectors;
         pcl::computeCentroid(*cloud, centroid);
+//        Eigen::Vector4f centroid2;
+
+
+//        pcl::computeCovarianceMatrix (*cloud, centroid2, covariance_matrix);
+//        pcl::eigen33 (covariance_matrix, eigen_vectors, eigen_values);
+
         for(size_t pt_id=0; pt_id<cloud->points.size(); pt_id++)
         {
             cloud->points[pt_id].x -= centroid.x;
             cloud->points[pt_id].y -= centroid.y;
             cloud->points[pt_id].z -= centroid.z;
         }
+//        pcl::PointCloud<PointT>::Ptr dummy (new pcl::PointCloud<PointT>());
+//        Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
+//        transform.block<3,3>(0,0) = eigen_vectors;
+//        pcl::transformPointCloud(*cloud,*dummy,transform);
 
-        vis.addPointCloud(cloud,it->first,viewports[col_id*6]);
+
+        vis.addPointCloud(cloud, it->first,viewports[col_id*6]);
         vis.addText(it->first, 10, 10, 12, 0, 0, 0, it->first, viewports[col_id*6]);
 
         for (size_t pr=0; pr<it->second.size();pr++)
