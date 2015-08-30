@@ -89,7 +89,7 @@ bool copyDir(const boost::filesystem::path &source, const boost::filesystem::pat
     return true;
 }
 
-class EvalSvRecognizer
+class EvalMvRecognizer
 {
 private:
     typedef pcl::PointXYZRGB PointT;
@@ -108,7 +108,7 @@ private:
     std::map<std::string, std::vector<std::string> > prun2ob;
 
 public:
-    EvalSvRecognizer()
+    EvalMvRecognizer()
     {
         out_dir_ = "/tmp/sv_recognition_out/";
         training_dir_tmp_ = "/tmp/recognition_dir/";
@@ -454,7 +454,7 @@ int
 main (int argc, char ** argv)
 {
     srand (time(NULL));
-    EvalSvRecognizer r_eval;
+    EvalMvRecognizer r_eval;
     r_eval.initialize(argc,argv);
     r_eval.eval();
     return 0;
