@@ -13,13 +13,13 @@
 class Result
 {
 public:
-    float recall_;
-    float precision_;
+    double recall_;
+    double precision_;
     std::string model_id_;
     std::string view_id_;
 };
 
-template<typename PointT> float
+template<typename PointT> double
 computeRecall(const typename pcl::PointCloud<PointT>::ConstPtr &gt, const typename pcl::PointCloud<PointT>::ConstPtr &searchPoints, float radius=0.005f)
 {
     if (!searchPoints->points.size())   // if no test points, everything is correct by definition
@@ -53,7 +53,7 @@ computeRecall(const typename pcl::PointCloud<PointT>::ConstPtr &gt, const typena
             }
         }
     }
-    return static_cast<float>( num_matches ) / searchPoints->points.size();
+    return static_cast<double>( num_matches ) / searchPoints->points.size();
 }
 
 int
@@ -91,6 +91,13 @@ main (int argc, char ** argv)
     std::sort(sub_folder_names.begin(), sub_folder_names.end());
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {
+        Result r;
+        double prec_accum = 0;
+        double rec_accum = 0;
+        size_t num_obj = 0;
+        r.model_id_ = "";
+        r.view_id_ = sub_folder_names[ sub_folder_id ];
+
         std::vector< std::string > obj_fn;
         const std::string sub_folder = input_dir + "/" + sub_folder_names[ sub_folder_id ];
         v4r::io::getFilesInDirectory(sub_folder, obj_fn, "", ".*_dol.pcd", false);
@@ -136,7 +143,10 @@ main (int argc, char ** argv)
             res.recall_ = computeRecall<PointT>(icp_aligned_cloud, trgt, radius);
             res.model_id_ = obj_fn[ o_id ];
             res.view_id_ = sub_folder_names[ sub_folder_id ];
-            result.push_back(res);
+
+            rec_accum += res.recall_;
+            prec_accum += res.precision_;
+            num_obj++;
 
             std::cout << dol_fn << ": " << res.precision_ << " and " << res.recall_ << std::endl;
 
@@ -150,6 +160,9 @@ main (int argc, char ** argv)
                 vis_->spin();
             }
         }
+        r.recall_ = rec_accum / num_obj;
+        r.precision_ = prec_accum / num_obj;
+        result.push_back(r);
     }
 
     ofstream file;
