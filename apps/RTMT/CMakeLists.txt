@@ -65,7 +65,7 @@ endif()
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GL REQUIRED gl)
 
-add_definitions(-std=c++0x)
+#add_definitions(-std=c++0x)
 add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
 add_definitions(-Dlinux -D__x86_64__)
 
@@ -115,4 +115,10 @@ message(STATUS "QT_LIBRARIES: ${QT_LIBRARIES}")
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${OPENNI2_INCLUDE_DIR})
 add_executable(RTMT ${SOURCES} ${HEADERS_MOC} ${FORMS_MOC})
 target_link_libraries(RTMT ${RTMT_DEPS} ${DEP_LIBS} ${QT_LIBRARIES} ${GL_LIBRARIES})
+
+INSTALL(TARGETS RTMT
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
 
