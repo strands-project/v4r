@@ -29,6 +29,8 @@ class MainWindow : public QObject
    typedef v4r::Model<PointT> ModelT;
    typedef boost::shared_ptr<ModelT> ModelTPtr;
 
+   Eigen::Vector4f zero_origin;
+
 public:
    MainWindow(int argc, char *argv[]);
 
@@ -152,21 +154,31 @@ public:
                cloud_name << "view_" << i;
                pviz_->removePointCloud("highlighted");
                pviz_->removePointCloud(cloud_name.str());
-
-               pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
-               pcl::transformPointCloud(*single_scenes_[i], *cloud, single_clouds_to_global_[i]);
-
-               pcl::visualization::PointCloudColorHandlerRGBField<PointT> scene_handlerRGB(cloud);
-               pviz_->addPointCloud(cloud, scene_handlerRGB, cloud_name.str(), pviz_v1_);
+               pviz_->addPointCloud(single_scenes_[i], cloud_name.str(), pviz_v1_);
 
                if(highlight)
                {
-                   pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler(cloud, 0, 0, 255);
-                   pviz_->addPointCloud(cloud, scene_handler, "highlighted", pviz_v1_);
+                   pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler(single_scenes_[i], 0, 0, 255);
+                   pviz_->addPointCloud(single_scenes_[i], scene_handler, "highlighted", pviz_v1_);
                }
            }
        }
        pviz_->spinOnce(0.1, true);
+   }
+
+   void clear()
+   {
+       single_clouds_to_global_.clear();
+       single_scenes_.clear();
+       sequence_hypotheses_.clear();
+       hypotheses_poses_.clear();
+
+       selected_hypothesis_ = -1;
+       selected_scene_ = -1;
+       scene_names_.clear();
+       scene_merged_cloud_.reset (new pcl::PointCloud<PointT>());
+       loaded_models_.clear();
+       pviz_->removePointCloud("highlighted");
    }
 
    void fillScene();
@@ -190,12 +202,14 @@ public Q_SLOTS:
   void yr_minus();
   void zr_plus();
   void zr_minus();
+  void next();
+  void prev();
   void enablePoseRefinmentButtons(bool flag);
   void updateSelectedHypothesis();
 //  void refine_pose_changed(int state);
 private:
 
-  void readResultsFile(std::string result_file);
+  void readResultsFile(const std::string &result_file);
   void fillHypotheses();
   void fillModels();
   void fillViews();
@@ -215,7 +229,7 @@ private:
   float pose_xsize_;
 
   std::string dir_models_;
-  std::string pcd_file_;
+  std::string base_path_;
   std::vector<pcl::PointCloud<PointT>::Ptr> model_clouds_;
 
   QWidget * mainWindow_;
@@ -235,6 +249,8 @@ private:
   QPushButton * yr_minus_;
   QPushButton * zr_plus_;
   QPushButton * zr_minus_;
+  QPushButton * next_;
+  QPushButton * prev_;
   QTextEdit *trans_step_sz_te_;
   QTextEdit *rot_step_sz_te_;
   QTextEdit *icp_iter_te_;
@@ -260,6 +276,11 @@ private:
   std::vector<std::string> scene_names_;
   bool icp_scene_to_model_;
   float inlier_;
+  std::vector< std::string> test_sequences_;
+  size_t sequence_id_;
+
+
+  int model_viewport_;
 };
 
 #endif /* AFFORDANCE_MANAGER_H_ */
