@@ -79,7 +79,7 @@ namespace PCLOpenCV
     cv::Mat cropped_image = image(cv::Rect(min_u, min_v, max_u - min_u, max_v - min_v));
 
     if(crop)
-        image = cropped_image;
+        image = cropped_image.clone();
   }
 
   template<class PointT>
