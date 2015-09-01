@@ -35,7 +35,7 @@ if(HAVE_QT4)
 add_definitions(${QT_DEFINITIONS})
 endif()
 
-add_definitions(-std=c++0x)
+#add_definitions(-std=c++0x)
 add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
 add_definitions(-Dlinux -D__x86_64__)
 
@@ -52,3 +52,8 @@ find_package(VTK REQUIRED)
 add_executable(GT6DOF GT6DOF.cpp ${foo_MOC_SRCS} main_window.cpp)
 target_link_libraries(GT6DOF ${ObjectGroundTruthAnnotator_DEPS} QVTK ${DEP_LIBS} ${QT_LIBRARIES} ${GL_LIBRARIES})
 
+INSTALL(TARGETS GT6DOF
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)

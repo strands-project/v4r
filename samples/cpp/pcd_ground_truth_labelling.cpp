@@ -55,6 +55,7 @@ public:
     std::string gt_dir_;
     std::string models_dir_;
     float threshold_;
+    bool first_view_only_;  // has been used for RA-L 16 paper, where were interested in the visible object in the first viewpoint
 
     PcdGtAnnotator()
     {
@@ -63,6 +64,7 @@ public:
         models_dir_ = "";
         gt_dir_ = "";
         threshold_ = 0.01f;
+        first_view_only_ = false;
         reconstructed_scene_.reset(new pcl::PointCloud<PointT>);
     }
 
@@ -99,13 +101,18 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
         {
             std::cerr << "Could not find any annotations in " << annotations_dir << ". " << std::endl;
         }
+        std::sort(gt_file.begin(), gt_file.end());
+
         std::sort(scene_view.begin(), scene_view.end());
         for (size_t s_id = 0; s_id < scene_view.size (); s_id++)
         {
+            if (first_view_only_ && s_id > 0)
+                    continue;
+
             std::vector<std::string> strs;
             boost::split (strs, scene_view[s_id], boost::is_any_of ("."));
-            std::string scene_file_wo_ext = strs[0];
-            std::string gt_occ_check = scene_file_wo_ext + "_occlusion_";
+            std::string scene_file_wo_ext = strs[0] + "_";
+            std::string gt_occ_check = scene_file_wo_ext + "occlusion_";
 
             std::string scene_full_file_path = scene_full_path + "/" + scene_view[s_id];
             pcl::io::loadPCDFile(scene_full_file_path, *reconstructed_scene_);
@@ -121,7 +128,7 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         gt_fn.compare(0, gt_occ_check.size(), gt_occ_check))
                 {
                     std::cout << gt_fn << std::endl;
-                    std::string model_instance = gt_fn.substr(scene_file_wo_ext.size() + 1);
+                    std::string model_instance = gt_fn.substr(scene_file_wo_ext.size());
                     std::vector<std::string> str_split;
                     boost::split (str_split, model_instance, boost::is_any_of ("."));
                     model_instance = str_split[0];
@@ -383,6 +390,7 @@ main (int argc, char ** argv)
     pcl::console::parse_argument (argc, argv, "-gt_dir", annotator.gt_dir_);
     pcl::console::parse_argument (argc, argv, "-visualize", visualize);
     pcl::console::parse_argument (argc, argv, "-threshold", annotator.threshold_);
+    pcl::console::parse_argument (argc, argv, "-first_view_only", annotator.first_view_only_);
 
 
     if (scene_dir.compare ("") == 0)

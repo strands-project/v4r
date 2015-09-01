@@ -8,13 +8,17 @@
  */
 
 #include <v4r/io/filesystem.h>
+#include <pcl/common/centroid.h>
 #include <pcl/console/parse.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <iostream>
 #include <math.h>
 #include <sstream>
+#include <opencv2/opencv.hpp>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/common/pcl_opencv.h>
+#include <v4r/io/filesystem.h>
 
 typedef pcl::PointXYZRGB PointT;
 
@@ -22,8 +26,15 @@ int main (int argc, char ** argv)
 {
     std::string path;
     int i_rows = 2;
+    bool center = false;
+    bool save_img = false;
+    std::string out_img_dir = "/tmp/my_imgages/";
     pcl::console::parse_argument (argc, argv, "-path", path);
     pcl::console::parse_argument (argc, argv, "-rows", i_rows);
+    pcl::console::parse_argument (argc, argv, "-center", center);
+    pcl::console::parse_argument (argc, argv, "-save_img", save_img);
+    pcl::console::parse_argument (argc, argv, "-out_img_dir", out_img_dir);
+
     size_t rows = static_cast<size_t>(i_rows);
 
     std::cout << "Visualizing all point clouds in folder " << path;
@@ -58,7 +69,6 @@ int main (int argc, char ** argv)
 #endif
 
         std::cout << "Visualizing " << full_path_ss.str() << std::endl;
-
 
         // Setting up the visualization
         int col_id = file_id%cols;
@@ -96,34 +106,30 @@ int main (int argc, char ** argv)
             std::cout << "Indices file " << full_indices_path_ss.str() << " does not exist." << std::endl;
         }
 
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler (cloud);
-        vis.addPointCloud<PointT> (cloud, rgb_handler, cloud_files[file_id], viewport[file_id]);
 
-#ifdef DEMONSTRATE
-        // Read depth and color values from each pixel value (just as an example how to access cloud elements)
-        for(size_t pt_id = 0; pt_id < cloud->points.size(); pt_id++)
+        if(save_img)
         {
-            float x,y,z,r,g,b;
-            PointT pt;
-            pt = cloud->points[pt_id];
+            std::stringstream filename;
+            v4r::io::createDirIfNotExist(out_img_dir);
+            filename << out_img_dir << "/" << file_id << ".jpg";
+            cv::Mat_ < cv::Vec3b > colorImage;
+            PCLOpenCV::ConvertPCLCloud2Image<PointT> (cloud, colorImage);
+            cv::imwrite( filename.str(), colorImage);
+        }
 
-            x = pt.x;
-            y = pt.y;
-            z = pt.z;
-            r = pt.r;
-            g = pt.g;
-            b = pt.b;
-
-            double lab_l, lab_a, lab_b;
-            v4r::Slic::convertRGBtoLAB(r, g, b, lab_l, lab_a, lab_b);
-            if((pt_id % 50000)==0)    //just output every 50000th point, otherwise it will take too long and produce too much output
+        if(center)
+        {
+            PointT centroid;
+            pcl::computeCentroid(*cloud, centroid);
+            for(size_t pt_id=0; pt_id<cloud->points.size(); pt_id++)
             {
-                std::cout << "XYZ: " << x << ", " << y << ", " << z
-                          << "; RGB " << r << ", " << g << ", " << b
-                          << "; LAB " << lab_l << ", " << lab_a << ", " << lab_b << std::endl;
+                cloud->points[pt_id].x -= centroid.x;
+                cloud->points[pt_id].y -= centroid.y;
+                cloud->points[pt_id].z -= centroid.z;
             }
         }
-#endif
+        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler (cloud);
+        vis.addPointCloud<PointT> (cloud, rgb_handler, cloud_files[file_id], viewport[file_id]);
     }
 
     for (size_t file_id=cloud_files.size(); file_id < rows*cols; file_id++)

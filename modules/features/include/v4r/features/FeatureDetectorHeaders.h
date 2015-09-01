@@ -35,7 +35,7 @@
 
 #include "FeatureDetector.h"
 #include "FeatureDetector_K_HARRIS.h"
-#include "FeatureDetector_D_FREAK.h"
+// #include "FeatureDetector_D_FREAK.h"
 #include "FeatureDetector_KD_ORB.h"
 #include "FeatureDetector_KD_FAST_IMGD.h"
 
