@@ -17,6 +17,7 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <boost/regex.hpp>
 #include <v4r/core/macros.h>
+#include <v4r/io/filesystem.h>
 
 namespace bf = boost::filesystem;
 
@@ -269,15 +270,11 @@ namespace v4r
         for (size_t i = 0; i < strs.size (); i++)
         {
           ss << strs[i] << "/";
-          bf::path trained_dir = ss.str ();
-          if (!bf::exists (trained_dir))
-          bf::create_directory (trained_dir);
+          v4r::io::createDirIfNotExist(ss.str ());
         }
 
         ss << id_str;
-        bf::path trained_dir = ss.str ();
-        if (!bf::exists (trained_dir))
-        bf::create_directory (trained_dir);
+        v4r::io::createDirIfNotExist(ss.str ());
       }
 
     public:

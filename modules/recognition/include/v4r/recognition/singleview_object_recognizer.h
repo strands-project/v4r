@@ -47,8 +47,6 @@ protected:
 
 
     boost::shared_ptr<v4r::MultiRecognitionPipeline<PointT> > multi_recog_;
-    std::string idx_flann_fn_sift_;
-    std::string idx_flann_fn_shot_;
 
     std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
@@ -127,6 +125,8 @@ public:
     std::string training_dir_sift_;
     std::string training_dir_shot_;
     std::string sift_structure_;
+    std::string idx_flann_fn_sift_;
+    std::string idx_flann_fn_shot_;
 
     SingleViewRecognizer ()
     {
@@ -182,6 +182,9 @@ public:
 
         pInputCloud_.reset(new pcl::PointCloud<PointT>);
         pSceneNormals_.reset(new pcl::PointCloud<pcl::Normal>);
+
+        idx_flann_fn_sift_ = "sift_flann.idx";
+        idx_flann_fn_shot_ = "shot_flann.idx";
     }
 
     bool recognize ();

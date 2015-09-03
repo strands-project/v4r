@@ -1,5 +1,5 @@
 #include <v4r/common/miscellaneous.h>
-#include <v4r/recognition/singleview_object_recognizer.h>
+#include <v4r/recognition/multiview_object_recognizer_service.h>
 #include <v4r/io/filesystem.h>
 
 #include <pcl/common/centroid.h>
@@ -12,21 +12,21 @@
 #include <stdlib.h>
 
 
-class evalSvRecognizer
+class EvalMvRecognizer
 {
 private:
     typedef pcl::PointXYZRGB PointT;
     typedef v4r::Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-    v4r::SingleViewRecognizer r_;
+    v4r::MultiviewRecognizer r_;
     std::string test_dir_, out_dir_;
     bool visualize_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
     std::map<std::string, size_t> rec_models_per_id_;
 
 public:
-    evalSvRecognizer()
+    EvalMvRecognizer()
     {
         out_dir_ = "/tmp/sv_recognition_out/";
         visualize_ = true;
@@ -81,6 +81,12 @@ public:
         pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_sift", r_.idx_flann_fn_sift_);
         pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_shot", r_.idx_flann_fn_shot_);
 
+        pcl::console::parse_argument (argc, argv,  "-scene_to_scene", r_.mv_params_.scene_to_scene_);
+        pcl::console::parse_argument (argc, argv,  "-use_robot_pose", r_.mv_params_.use_robot_pose_);
+        pcl::console::parse_argument (argc, argv,  "-extension_mode", r_.mv_params_.extension_mode_);
+        pcl::console::parse_argument (argc, argv,  "-max_vertices_in_graph",r_. mv_params_.max_vertices_in_graph_);
+        pcl::console::parse_argument (argc, argv,  "-distance_keypoints_get_discarded", r_.mv_params_.distance_keypoints_get_discarded_);
+
         pcl::console::parse_argument (argc, argv,  "-chop_z", r_.sv_params_.chop_at_z_ );
         pcl::console::parse_argument (argc, argv,  "-icp_iterations", r_.sv_params_.icp_iterations_);
         pcl::console::parse_argument (argc, argv,  "-do_sift", r_.sv_params_.do_sift_);
@@ -113,7 +119,6 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_radius_normals", r_.hv_params_.radius_normals_);
         pcl::console::parse_argument (argc, argv,  "-hv_regularizer", r_.hv_params_.regularizer_);
         pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
-
 
         v4r::io::createDirIfNotExist(out_dir_);
         r_.initialize();
@@ -153,8 +158,7 @@ public:
                 std::cout << "Recognizing file " << fn << std::endl;
                 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
                 pcl::io::loadPCDFile(fn, *cloud);
-                r_.setInputCloud(cloud);
-                r_.recognize();
+                r_.recognize(cloud, views[ v_id ]);
 
                 std::vector<ModelTPtr> verified_models;
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
@@ -209,7 +213,7 @@ int
 main (int argc, char ** argv)
 {
     srand (time(NULL));
-    evalSvRecognizer r_eval;
+    EvalMvRecognizer r_eval;
     r_eval.initialize(argc,argv);
     r_eval.eval();
     return 0;

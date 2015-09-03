@@ -577,8 +577,6 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
 
     if ( sv_params_.do_sift_ )
     {
-
-      std::string idx_flann_fn = "sift_flann.idx";
       std::string desc_name = "sift";
 
       boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>
@@ -622,7 +620,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
 #endif
 
       boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > new_sift_local;
-      new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > (idx_flann_fn));
+      new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > (idx_flann_fn_sift_));
       new_sift_local->setDataSource (cast_source);
       new_sift_local->setTrainingDir (training_dir_sift_);
       new_sift_local->setDescriptorName (desc_name);
@@ -748,7 +746,6 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
 
     if(sv_params_.do_shot_)
     {
-        std::string idx_flann_fn = "shot_flann.idx";
         std::string desc_name = "shot";
         bool use_cache = true;
         float test_sampling_density = 0.01f;
@@ -793,7 +790,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
         cast_estimator = boost::dynamic_pointer_cast<v4r::LocalEstimator<PointT, pcl::Histogram<352> > > (estimator);
 
         boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
-        local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (idx_flann_fn));
+        local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (idx_flann_fn_shot_));
         local->setDataSource (cast_source);
         local->setTrainingDir (training_dir_shot_);
         local->setDescriptorName (desc_name);
