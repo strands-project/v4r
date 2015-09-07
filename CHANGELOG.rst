@@ -2,6 +2,31 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#23 <https://github.com/strands-project/v4r/issues/23>`_ from strands-project/mergeLAMOR
+  Merge lamor
+* merged lamor STRANDS
+* Merge branch 'master' of github.com:strands-project/v4r into mergeLAMOR
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r into mergeLAMOR
+* added default param for printParams in MV recognizer
+  other minor changes
+* Update Readme.md
+* hopefully fixes bug in ourcvfh with different pcl versions
+  view_all_point_clouds_in_folder can now also save images to disk
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !35
+* catch SIFT FLANN exception when updating model database
+* flann idx now configurable
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !34
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !33
+* Contributors: Marc Hanheide, Thomas Fäulhammer
+
 1.0.5 (2015-08-30)
 ------------------
 
