@@ -1,5 +1,4 @@
 #include "v4r/registration/FeatureBasedRegistration.h"
-#include <v4r/features/sift_local_estimator.h>
 #include "v4r/common/impl/geometric_consistency.hpp"
 #include "v4r/common/graph_geometric_consistency.h"
 #include <pcl/registration/correspondence_estimation.h>
@@ -12,6 +11,12 @@
 #include <pcl/octree/octree_pointcloud_occupancy.h>
 #include <pcl/octree/impl/octree_base.hpp>
 #include <v4r/common/miscellaneous.h>
+
+#ifdef USE_SIFT_GPU
+#include <v4r/features/sift_local_estimator.h>
+#else
+#include <v4r/features/opencv_sift_local_estimator.h>
+#endif
 
 namespace v4r
 {
@@ -32,7 +37,11 @@ template<class PointT> void
 FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > & session_ranges)
 {
 
+#ifdef USE_SIFT_GPU
     typename v4r::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
+#else
+    typename v4r::OpenCVSIFTLocalEstimation<PointT, SIFTHistogram > estimator;
+#endif
 
     //computes features and keypoints for the views of all sessions using appropiate object indices
     size_t total_views = this->getTotalNumberOfClouds();

@@ -8,7 +8,6 @@
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
-#include <v4r/features/sift_local_estimator.h>
 #include <v4r/recognition/hv_go_3D.h>
 #include <v4r/registration/fast_icp_with_gc.h>
 #include <v4r/common/miscellaneous.h>
@@ -18,6 +17,11 @@
 #include <v4r/segmentation/segmentation_utils.h>
 #include <v4r/common/miscellaneous.h>
 
+#ifdef USE_SIFT_GPU
+#include <v4r/features/sift_local_estimator.h>
+#else
+#include <v4r/features/opencv_sift_local_estimator.h>
+#endif
 
 #ifdef __NVCC__
     #include <algorithm>
@@ -98,15 +102,22 @@ createBigPointCloudRecursive (Graph & grph, Vertex &vrtx_start, pcl::PointCloud<
 bool MultiviewRecognizer::
 calcSiftFeatures (Vertex &src, Graph &grph)
 {
+    boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypoints;
+#ifdef USE_SIFT_GPU
     boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT> > estimator;
     estimator.reset (new v4r::SIFTLocalEstimation<PointT, FeatureT>(sift_));
 
-    //    if(use_table_plane)
-    //        estimator->setIndices (*(grph[src].pIndices_above_plane));
-
-    boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypoints;
     bool ret = estimator->estimate (grph[src].pScenePCl_f, pSiftKeypoints, grph[src].pSiftSignatures_, grph[src].sift_keypoints_scales_);
     estimator->getKeypointIndices(grph[src].siftKeypointIndices_);
+#else
+    boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT > > estimator;
+    estimator.reset (new v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT >);
+
+    pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
+
+    bool ret = estimator->estimate (grph[src].pScenePCl_f, processed_foo, pSiftKeypoints, grph[src].pSiftSignatures_);
+    estimator->getKeypointIndices( grph[src].siftKeypointIndices_ );
+#endif
 
     return ret;
 

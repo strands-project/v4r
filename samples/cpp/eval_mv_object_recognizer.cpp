@@ -45,6 +45,9 @@ public:
             const std::string model_id = models[m_id]->id_.substr(0, models[m_id]->id_.length() - 4);
             std::stringstream model_text;
             model_text << model_id << "_" << m_id;
+
+            std::cout << "*************************" << model_text.str() << std::endl;
+
             pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
             pcl::PointCloud<PointT>::ConstPtr model_cloud = models[m_id]->getAssembled( 0.003f );
             pcl::transformPointCloud( *model_cloud, *model_aligned, transforms[m_id]);

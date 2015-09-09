@@ -1,3 +1,9 @@
+/*
+ * Author: Thomas Faeulhammer
+ * Date: August 2015
+ *
+ */
+
 #ifndef V4R_BINARY_ALGORITHMS_H__
 #define V4R_BINARY_ALGORITHMS_H__
 
@@ -88,6 +94,7 @@ namespace v4r
 
             return mask;
         }
+
 //    };
 }
 #endif

@@ -22,11 +22,10 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
 
-#define USE_SIFT_GPU
 //#define USE_CUDA
 
 #ifndef USE_SIFT_GPU
-    #include <v4r/recognition/opencv_sift_local_estimator.h>
+    #include <v4r/features/opencv_sift_local_estimator.h>
 #endif
 
 #ifdef USE_CUDA
@@ -552,8 +551,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
     multi_recog_.reset (new v4r::MultiRecognitionPipeline<PointT>);
 
     boost::shared_ptr < v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > gcg_alg (
-                new v4r::GraphGeometricConsistencyGrouping<
-                PointT, PointT>);
+                new v4r::GraphGeometricConsistencyGrouping<PointT, PointT>);
     gcg_alg->setGCThreshold (cg_params_.cg_size_threshold_);
     gcg_alg->setGCSize (cg_params_.cg_size_);
     gcg_alg->setRansacThreshold (cg_params_.ransac_threshold_);
@@ -606,21 +604,21 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
             throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
       }
 
-      boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
-      estimator.reset (new v4r::SIFTLocalEstimation<PointT, pcl::Histogram<128> >(sift_));
+      boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT > > estimator;
+      estimator.reset (new v4r::SIFTLocalEstimation<PointT, FeatureT >(sift_));
 
-      boost::shared_ptr < v4r::LocalEstimator<PointT, pcl::Histogram<128> > > cast_estimator;
-      cast_estimator = boost::dynamic_pointer_cast<v4r::SIFTLocalEstimation<PointT, pcl::Histogram<128> > > (estimator);
+      boost::shared_ptr < v4r::LocalEstimator<PointT, FeatureT > > cast_estimator;
+      cast_estimator = boost::dynamic_pointer_cast<v4r::SIFTLocalEstimation<PointT, FeatureT > > (estimator);
 #else
-      boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
-      estimator.reset (new v4r::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> >);
+      boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT > > estimator;
+      estimator.reset (new v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT >);
 
-      boost::shared_ptr < v4r::LocalEstimator<PointT, pcl::Histogram<128> > > cast_estimator;
-      cast_estimator = boost::dynamic_pointer_cast<v4r::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > (estimator);
+      boost::shared_ptr < v4r::LocalEstimator<PointT, FeatureT > > cast_estimator;
+      cast_estimator = boost::dynamic_pointer_cast<v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT > > (estimator);
 #endif
 
-      boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > new_sift_local;
-      new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > (idx_flann_fn_sift_));
+      boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > new_sift_local;
+      new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (idx_flann_fn_sift_));
       new_sift_local->setDataSource (cast_source);
       new_sift_local->setTrainingDir (training_dir_sift_);
       new_sift_local->setDescriptorName (desc_name);
@@ -634,7 +632,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       new_sift_local->initialize (false);
 
       boost::shared_ptr < v4r::Recognizer<PointT> > cast_recog;
-      cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<128> > > (
+      cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > (
                                                                                                                                         new_sift_local);
       std::cout << "Feature Type: " << cast_recog->getFeatureType() << std::endl;
       multi_recog_->addRecognizer (cast_recog);
