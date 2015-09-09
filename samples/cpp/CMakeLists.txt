@@ -20,10 +20,14 @@ if(HAVE_EDT)
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
 endif()
 
-
 if(HAVE_CERES)
   v4r_include_directories(${CERES_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${CERES_LIBRARIES})
+endif()
+
+if(HAVE_LIBSVM)
+  v4r_include_directories(${LIBSVM_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${LIBSVM_LIBRARIES})
 endif()
 
 v4r_check_dependencies(${V4R_CPP_SAMPLES_REQUIRED_DEPS})
