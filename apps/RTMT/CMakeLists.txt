@@ -1,4 +1,4 @@
-SET(RTMT_DEPS v4r_core v4r_registration v4r_io v4r_common v4r_features v4r_keypoints v4r_reconstruction v4r_recognition siftgpu edt ceres)
+SET(RTMT_DEPS v4r_core v4r_registration v4r_io v4r_common v4r_features v4r_keypoints v4r_reconstruction v4r_recognition edt ceres)
 v4r_check_dependencies(${RTMT_DEPS})
 
 if(NOT V4R_DEPENDENCIES_FOUND)
@@ -21,11 +21,6 @@ endif()
 if(HAVE_OPENCV)
   v4r_include_directories(${OPENCV_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${OPENCV_LIBRARIES})
-endif()
-
-if(HAVE_SIFTGPU)
-  v4r_include_directories(${SIFTGPU_INCLUDE_DIRS})
-  list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
 endif()
 
 if(HAVE_EDT)

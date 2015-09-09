@@ -9,7 +9,9 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <v4r/recognition/multi_pipeline_recognizer.h>
-#include <v4r/features/sift_local_estimator.h>
+#ifdef USE_SIFT_GPU
+    #include <v4r/features/sift_local_estimator.h>
+#endif
 #include <v4r/common/common_data_structures.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/core/macros.h>
@@ -51,7 +53,9 @@ protected:
     std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     pcl::PointIndices keypointIndices_;
+#ifdef USE_SIFT_GPU
     cv::Ptr<SiftGPU> sift_;
+#endif
     pcl::PointCloud<PointT>::Ptr pInputCloud_;
     pcl::PointCloud<pcl::Normal>::Ptr pSceneNormals_;
     boost::shared_ptr < std::vector<ModelTPtr> > models_;
@@ -221,6 +225,7 @@ public:
         training_dir_ourcvfh_ = training_dir_ourcvfh;
     }
 
+#ifdef USE_SIFT_GPU
     cv::Ptr<SiftGPU> getSift() const
     {
         return sift_;
@@ -230,6 +235,7 @@ public:
     {
         sift_ = value;
     }
+#endif
 
     void getSavedHypotheses(std::map<std::string, v4r::ObjectHypothesis<PointT> > & hypotheses) const
     {
