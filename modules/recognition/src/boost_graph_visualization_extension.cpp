@@ -50,7 +50,7 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
             std::stringstream name;
             name << cloud_name.str() << "_sv__hypothesis_" << hyp_id << view_id;
 
-            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
+            pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
             ConstPointInTPtr model_cloud = model->getAssembled (0.005f);
             pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
 
