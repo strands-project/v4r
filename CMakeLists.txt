@@ -102,6 +102,7 @@ V4R_OPTION(WITH_OPENCLAMDBLAS  "Include AMD OpenCL BLAS library support"     ON 
 V4R_OPTION(WITH_OPENCV         "Include OpenCV support"                      ON)
 V4R_OPTION(WITH_OPENNI2        "Include OpenNI support"                      ON)
 V4R_OPTION(WITH_SIFTGPU        "Include SiftGPU support"                     ON)
+V4R_OPTION(WITH_LIBSVM         "Include LIBSVM support"                      ON)
 V4R_OPTION(WITH_PCL            "Include PCL support"                         ON)
 V4R_OPTION(WITH_QT4            "Include QT support"                          ON)
 V4R_OPTION(WITH_BOOST          "Include Boost support"                       ON)
@@ -133,6 +134,7 @@ V4R_OPTION(BUILD_PNG                "Build libpng from source"           WIN32 O
 V4R_OPTION(BUILD_OPENEXR            "Build openexr from source"          (WIN32 OR ANDROID OR APPLE) AND NOT WINRT)
 V4R_OPTION(BUILD_TBB                "Download and build TBB from source" ANDROID )
 V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
+V4R_OPTION(BUILD_LIBSVM             "Download and build LIBSVM from source" ON)
 
 # V4R installation options
 # ===================================================
@@ -321,6 +323,7 @@ include(cmake/V4RFindBoost.cmake)
 
 include(cmake/V4RFindEDT.cmake)
 include(cmake/V4RFindSiftGPU.cmake)
+include(cmake/V4RFindLIBSVM.cmake)
 
 # --- Doxygen for documentation ---
 unset(DOXYGEN_FOUND CACHE)
@@ -564,6 +567,11 @@ if(WITH_SIFTGPU)
   status("    SiftGPU:"  SIFTGPU_FOUND  THEN "${SIFTGPU_LIBRARIES} (ver ${SIFTGPU_VERSION})" ELSE "build (ver ${SIFTGPU_VERSION})")
 else()
   status("    SiftGPU:"  "NO")
+endif()
+if(WITH_LIBSVM)
+  status("    LIBSVM:"  LIBSVM_FOUND  THEN "${LIBSVM_LIBRARIES} (ver ${LIBSVM_VERSION})" ELSE "build (ver ${LIBSVM_VERSION})")
+else()
+  status("    LIBSVM:"  "NO")
 endif()
 if(WITH_PCL AND HAVE_PCL)
   status("    PCL:"  "YES (ver ${PCL_VERSION})")
