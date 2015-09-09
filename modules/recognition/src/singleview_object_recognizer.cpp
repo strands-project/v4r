@@ -551,8 +551,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
     multi_recog_.reset (new v4r::MultiRecognitionPipeline<PointT>);
 
     boost::shared_ptr < v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > gcg_alg (
-                new v4r::GraphGeometricConsistencyGrouping<
-                PointT, PointT>);
+                new v4r::GraphGeometricConsistencyGrouping<PointT, PointT>);
     gcg_alg->setGCThreshold (cg_params_.cg_size_threshold_);
     gcg_alg->setGCSize (cg_params_.cg_size_);
     gcg_alg->setRansacThreshold (cg_params_.ransac_threshold_);

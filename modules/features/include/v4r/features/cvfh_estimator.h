@@ -9,6 +9,7 @@
 #define REC_FRAMEWORK_CVFH_ESTIMATOR_H_
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/core/macros.h>
 #include "global_estimator.h"
 #include "normal_estimator.h"
 #include <pcl/features/cvfh.h>

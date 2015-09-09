@@ -43,6 +43,7 @@
 #include <pcl/pcl_base.h>
 #include <pcl/correspondence.h>
 #include <pcl/console/print.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
@@ -52,7 +53,7 @@ namespace v4r
     * \ingroup recognition
     */
   template <typename PointModelT, typename PointSceneT>
-  class CorrespondenceGrouping : public pcl::PCLBase<PointModelT>
+  class V4R_EXPORTS CorrespondenceGrouping : public pcl::PCLBase<PointModelT>
   {
     public:
       typedef pcl::PointCloud<PointSceneT> SceneCloud;
