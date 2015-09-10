@@ -1,3 +1,9 @@
+/*
+ * Author: Thomas Faeulhammer
+ * Date: March, 2015
+ *
+ */
+
 #include <pcl/common/common.h>
 #include <pcl/console/parse.h>
 #include <pcl/io/pcd_io.h>
@@ -26,6 +32,8 @@
     #include <opencv2/gpu/gpu.hpp>
 #endif
 
+// ./cpp-example-mesh2pointcloud_auto -dir /media/Data/datasets/Cat200_ModelDatabase/reduced/ -bg_noise_level 0.05 -fg_noise_level 0.005 -img_width 103 -img_height 103 -render_upper_half_only 1 -subdivisions 2
+
 using namespace TomGine;
 
 int main(int argc, char *argv[])
@@ -47,11 +55,14 @@ int main(int argc, char *argv[])
 
     if ( pcl::console::parse_argument (argc, argv, "-dir", dir) == -1)
     {
-        std::cout << "Usage: mesh2pointcloud -dir model-file " <<
+        std::cout << "Usage: " << argv[0] << " -dir model-file " <<
                      "[-bg_noise_level background-noise-level (default: " << bg_noise_level << ")] " <<
                      "[-fg_noise_level object-noise-level (default: " << obj_noise_level << ")]" <<
-                     "[-img_width img_width (default: "   << img_width  << ")]" <<
-                     "[-img_height img_height (default: " << img_height << ")]" <<
+                     "[-img_width image_width (default: "   << img_width  << ")]" <<
+                     "[-img_height image_height (default: " << img_height << ")]" <<
+                     "[-render_upper_half_only (default: " << render_upper_half_only << ")]" <<
+                     "[-subdivisions number_of_generated_subdivisions(default: " << subdivisions << ")]" <<
+                     "[-polyhedron (default: " << polyhedron << ")]" <<
                      std::endl << std::endl;
         return 0;
     }
@@ -72,7 +83,6 @@ int main(int argc, char *argv[])
     std::normal_distribution<float> cam_pose_distribution(0.0, 1.0);
     std::normal_distribution<float>  bg_distribution (0.0, bg_noise_level);
     std::normal_distribution<float> obj_distribution (0.0, obj_noise_level);
-
 
 
     std::vector< std::string> folder_names;   // equal to class names
