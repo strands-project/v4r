@@ -17,7 +17,7 @@ typedef pcl::PointCloud<PointT> PointInT;
 typedef PointInT::ConstPtr ConstPointInTPtr;
 typedef boost::shared_ptr< PointInT > PointInTPtr;
 
-typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointInTPtr;
+typedef pcl::PointCloud<PointT>::ConstPtr ConstPointInTPtr;
 
 class BoostGraphVisualizer
 {

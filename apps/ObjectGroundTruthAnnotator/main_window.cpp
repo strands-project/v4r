@@ -21,6 +21,8 @@
 #include <v4r/io/eigen.h>
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <QKeyEvent>
 
 namespace bf = boost::filesystem;
 
@@ -100,6 +102,10 @@ void keyboard_callback (const pcl::visualization::KeyboardEvent& event, void* co
       {
         main_w->moveCurrentObject(2,-step);
       }
+      else if(key == 'd')
+      {
+        main_w->remove_selected();
+      }
     }
   }
   else {
@@ -141,16 +147,17 @@ void MainWindow::model_list_clicked(const QModelIndex & idx)
 void MainWindow::fillScene()
 {
     pviz_->removePointCloud("merged_cloud");
+    pviz_->removeAllPointClouds(pviz_v1_);
     scene_merged_cloud_.reset(new pcl::PointCloud<PointT>);
 
     for (size_t i = 0; i < single_scenes_.size (); i++)
     {
         std::stringstream cloud_name;
         cloud_name << "view_" << i;
-        pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
-        pcl::transformPointCloud(*single_scenes_[i], *cloud, single_clouds_to_global_[i]);
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> scene_handler(cloud);
-        pviz_->addPointCloud(cloud, scene_handler, cloud_name.str(), pviz_v1_);
+//        pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
+//        pcl::transformPointCloud(*single_scenes_[i], *cloud, single_clouds_to_global_[i]);
+        pcl::visualization::PointCloudColorHandlerRGBField<PointT> scene_handler(single_scenes_[i]);
+        pviz_->addPointCloud(single_scenes_[i], scene_handler, cloud_name.str(), pviz_v1_);
     }
 
     pviz_->spinOnce(0.1, true);
@@ -161,9 +168,9 @@ void MainWindow::fillModels()
   boost::shared_ptr<std::vector<ModelTPtr> > models = source_->getModels();
   size_t kk = (models->size ()) + 1;
   double x_step = 1.0 / (float)kk;
-  int viewport;
   model_clouds_.resize(models->size ());
 
+  pviz_models_->removeAllPointClouds();
 
   for (size_t i = 0; i < models->size (); i++)
   {
@@ -172,10 +179,10 @@ void MainWindow::fillModels()
 
     model_clouds_[i].reset(new pcl::PointCloud<PointT>);
     pcl::PointCloud<PointT>::ConstPtr model_cloud = models->at(i)->getAssembled(0.003f);
-    pviz_models_->createViewPort (i * x_step, 0, (i + 1) * x_step, 200, viewport);
+    pviz_models_->createViewPort (i * x_step, 0, (i + 1) * x_step, 200, model_viewport_);
 
     //create scale transform...
-    pviz_models_->addPointCloud(model_cloud, model_name.str(), viewport);
+    pviz_models_->addPointCloud(model_cloud, model_name.str(), model_viewport_);
     loaded_models_.push_back(models->at(i));
   }
 
@@ -206,7 +213,7 @@ void MainWindow::fillHypotheses()
 }
 
 
-void MainWindow::readResultsFile(std::string result_file)
+void MainWindow::readResultsFile(const std::string &result_file)
 {
     std::ifstream in;
     in.open (result_file.c_str (), std::ifstream::in);
@@ -222,7 +229,11 @@ void MainWindow::readResultsFile(std::string result_file)
         size_t k = 0;
         for (size_t i = 1; i < 17; i++, k++)
         {
-          matrix (k / 4, k % 4) = static_cast<float> (atof (strs_2[i].c_str ()));
+          std::stringstream Str;
+          Str << strs_2[i];
+          double d;
+          Str >> d;
+          matrix (k / 4, k % 4) = static_cast<float>(d);
         }
 
         std::cout << id << std::endl;
@@ -276,7 +287,10 @@ void MainWindow::lock_with_icp()
         if(selected_scene_!=i)
         {
             pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
-            pcl::transformPointCloud(*single_scenes_[i], *cloud, single_clouds_to_global_[i]);
+            pcl::transformPointCloud(*single_scenes_[i], *cloud, v4r::common::RotTrans2Mat4f(single_scenes_[i]->sensor_orientation_, single_scenes_[i]->sensor_origin_));
+
+            cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+            cloud->sensor_origin_ = zero_origin;
             *merged_cloud += *cloud;
         }
     }
@@ -347,7 +361,10 @@ void MainWindow::lock_with_icp()
     {
         pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
         pcl::PointCloud<PointT>::Ptr cloud_filtered(new pcl::PointCloud<PointT>);
-        pcl::transformPointCloud(*single_scenes_[ selected_scene_ ], *cloud, single_clouds_to_global_[ selected_scene_ ]);
+        Eigen::Matrix4f cloud_to_global = v4r::common::RotTrans2Mat4f(single_scenes_[ selected_scene_ ]->sensor_orientation_, single_scenes_[ selected_scene_ ]->sensor_origin_);
+        pcl::transformPointCloud(*single_scenes_[ selected_scene_ ], *cloud, cloud_to_global);
+        cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+        cloud->sensor_origin_ = zero_origin;
 
         pcl::PassThrough<PointT> pass;
         pass.setFilterLimits (0.f, 3);
@@ -359,7 +376,7 @@ void MainWindow::lock_with_icp()
 
         reg.setInputTarget(scene_merged_cloud_);
         reg.align (output);
-        single_clouds_to_global_[ selected_scene_ ] = reg.getFinalTransformation() * single_clouds_to_global_[ selected_scene_ ];
+        v4r::common::setCloudPose(reg.getFinalTransformation() * cloud_to_global , *single_scenes_[selected_scene_]);
         updateHighlightedScene();
     }
     std::cout << "ICP finished..." << std::endl;
@@ -452,7 +469,7 @@ void MainWindow::x_plus()
     }
     else if(selected_scene_>=0)
     {
-        single_clouds_to_global_[ selected_scene_ ] = single_clouds_to_global_[ selected_scene_ ] * m4f;
+        single_scenes_[ selected_scene_ ]->sensor_origin_[0] +=trans_step;
         updateHighlightedScene();
     }
 }
@@ -477,7 +494,7 @@ void MainWindow::x_minus()
     }
     else if(selected_scene_>=0)
     {
-        single_clouds_to_global_[ selected_scene_ ] = single_clouds_to_global_[ selected_scene_ ] * m4f;
+        single_scenes_[ selected_scene_ ]->sensor_origin_[0] -=trans_step;
         updateHighlightedScene();
     }
 }
@@ -578,7 +595,7 @@ void MainWindow::z_minus()
     }
     else if(selected_scene_>=0)
     {
-        single_clouds_to_global_[ selected_scene_ ] = single_clouds_to_global_[ selected_scene_ ] * m4f;
+        single_scenes_[ selected_scene_ ]->sensor_origin_[3] -= trans_step;
         updateHighlightedScene();
     }
 }
@@ -752,25 +769,52 @@ void MainWindow::zr_minus()
     }
 }
 
+void MainWindow::next()
+{
+    clear();
+    const std::string sequence_path = base_path_ + "/" + test_sequences_[++sequence_id_];
+    std::vector<std::string> files;
+    v4r::io::getFilesInDirectory( sequence_path, files, "", ".*.pcd", true);   // get scenes
+    std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
+    for (size_t i = 0; i < files.size (); i++)
+    {
+      scene_names_.push_back(files[i]);
+      const std::string file = sequence_path + "/" + files[i];
+      std::cout << files[i] << std::endl;
+
+      //read cloud
+      pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
+      pcl::io::loadPCDFile(file, *cloud);
+      single_scenes_.push_back(cloud);
+    }
+
+    std::stringstream filestr;
+    filestr << sequence_path << "/results_3d.txt";
+    readResultsFile(filestr.str());
+
+    fillScene ();
+    fillHypotheses ();
+    fillViews ();
+}
+void MainWindow::prev()
+{
+    clear();
+}
+
 void MainWindow::save_model()
 {
-    std::string gt_or_ouput_dir = export_ground_truth_to_;
-    if(gt_or_ouput_dir.compare("") != 0)
-    {
-        bf::path or_path = gt_or_ouput_dir;
-        if(!bf::exists(or_path))
-        {
-            bf::create_directory(or_path);
-        }
+    std::string gt_or_ouput_dir = export_ground_truth_to_ + "/" + test_sequences_[sequence_id_];
+    v4r::io::createDirIfNotExist(gt_or_ouput_dir);
 
         for (size_t i=0; i < single_scenes_.size(); i++)
         {
             std::string scene = scene_names_[i];
             boost::replace_all (scene, ".pcd", "");
+            const Eigen::Matrix4f tf = v4r::common::RotTrans2Mat4f(single_scenes_[i]->sensor_orientation_, single_scenes_[i]->sensor_origin_);
 
-            std::stringstream camera_pose_out_fn_ss;
-            camera_pose_out_fn_ss << gt_or_ouput_dir << "/transformation_ " << scene << ".txt";
-            v4r::io::writeMatrixToFile(camera_pose_out_fn_ss.str(), single_clouds_to_global_[i]);
+//            std::stringstream camera_pose_out_fn_ss;
+//            camera_pose_out_fn_ss << gt_or_ouput_dir << "/transformation_ " << scene << ".txt";
+//            v4r::io::writeMatrixToFile(camera_pose_out_fn_ss.str(), single_clouds_to_global_[i]);
 
             // for occlusion computation------
             pcl::PointCloud<pcl::PointXYZ>::Ptr scene_cloudXYZ(new pcl::PointCloud<pcl::PointXYZ>);
@@ -781,6 +825,7 @@ void MainWindow::save_model()
                 scene_cloudXYZ->points[pt_id].y = single_scenes_[i]->points[pt_id].y;
                 scene_cloudXYZ->points[pt_id].z = single_scenes_[i]->points[pt_id].z;
             }
+            pcl::transformPointCloud(*scene_cloudXYZ,*scene_cloudXYZ, tf);
 
             pcl::octree::OctreePointCloudSearch<pcl::PointXYZ> octree (0.001);
             octree.setInputCloud (scene_cloudXYZ);
@@ -810,7 +855,8 @@ void MainWindow::save_model()
                     id_c_it->second++;
                 }
 
-                Eigen::Matrix4f transform = single_clouds_to_global_[i].inverse() * hypotheses_poses_[k];
+                const Eigen::Matrix4f cloud_to_global = v4r::common::RotTrans2Mat4f(single_scenes_[i]->sensor_orientation_, single_scenes_[i]->sensor_origin_);
+                Eigen::Matrix4f transform = cloud_to_global.inverse() * hypotheses_poses_[k];
 
                 std::stringstream pose_file_ss;
                 pose_file_ss << gt_or_ouput_dir << "/" << scene << "_" << model_id_replaced << "_" << id_c_it->second << ".txt";
@@ -822,7 +868,7 @@ void MainWindow::save_model()
                 std::vector<int> indices;
                 pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
                 pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
-                pcl::transformPointCloud(*model_cloud, *model_aligned, transform);
+                pcl::transformPointCloud(*model_cloud, *model_aligned, hypotheses_poses_[k]);
 
                 for(size_t kk=0; kk < model_aligned->points.size(); kk++)
                 {
@@ -846,10 +892,9 @@ void MainWindow::save_model()
                 v4r::io::writeFloatToFile(occlusion_file.str(), occlusion_value);
             }
         }
-    }
 
         std::stringstream results_3d_file_ss;
-        results_3d_file_ss << pcd_file_ << "/results_3d_edited.txt";
+        results_3d_file_ss << base_path_ << "/results_3d_edited.txt";
         std::ofstream out;
         out.open(results_3d_file_ss.str().c_str());
 
@@ -885,44 +930,22 @@ MainWindow::MainWindow(int argc, char *argv[])
 
   inlier_ = 0.003f;
 
+  zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
+  sequence_id_ = 0;
+
   export_ground_truth_to_ = "/tmp/exported_ground_truth/";
   icp_scene_to_model_ = false;//true;
 
   pcl::console::parse_argument (argc, argv, "-models_dir", dir_models_);
   pcl::console::parse_argument (argc, argv, "-model_scale", model_scale_);
-  pcl::console::parse_argument (argc, argv, "-pcd_file", pcd_file_);
+  pcl::console::parse_argument (argc, argv, "-pcd_file", base_path_);
   pcl::console::parse_argument (argc, argv, "-export_ground_truth_to", export_ground_truth_to_);
   pcl::console::parse_argument (argc, argv, "-icp_scene_to_model", icp_scene_to_model_);
 
-  std::vector<std::string> files;
-  std::stringstream scene_folder_ss;
-  scene_folder_ss << pcd_file_ << "/original_clouds/";
-  v4r::io::getFilesInDirectory( scene_folder_ss.str(), files, "", ".*.pcd", true);   // get scenes
-  std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
-
-  for (size_t i = 0; i < files.size (); i++)
+  if(!v4r::io::getFoldersInDirectory( base_path_, "", test_sequences_) )
   {
-    scene_names_.push_back(files[i]);
-    std::cout << files[i] << std::endl;
-    std::stringstream filestr;
-    filestr << pcd_file_ << "/original_clouds/" << files[i];
-    std::string file = filestr.str ();
-
-    //read cloud
-    pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
-    pcl::io::loadPCDFile(file, *cloud);
-    single_scenes_.push_back(cloud);
-
-    //read transform
-    std::stringstream trans_file_ss;
-    trans_file_ss << pcd_file_ << "/transformation_" << files[i];
-    std::string trans = trans_file_ss.str();
-    boost::replace_all (trans, "cloud_", "");
-    boost::replace_all (trans, ".pcd", ".txt");
-    Eigen::Matrix4f transform;
-    v4r::io::readMatrixFromFile(trans, transform);
-
-    single_clouds_to_global_.push_back(transform);
+      std::cerr << "No subfolders in directory " << base_path_ << ". " << std::endl;
+      test_sequences_.push_back("");
   }
 
   source_.reset (new v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>);
@@ -932,10 +955,6 @@ MainWindow::MainWindow(int argc, char *argv[])
   std::string test = "irrelevant";
   source_->generate (test);
   source_->createVoxelGridAndDistanceTransform (0.005f);
-
-  std::stringstream filestr;
-  filestr << pcd_file_ << "/results_3d.txt";
-  readResultsFile(filestr.str());
 
   QApplication app(argc,argv);
   mainWindow_ = new QWidget;
@@ -973,6 +992,8 @@ MainWindow::MainWindow(int argc, char *argv[])
   yr_minus_ = new QPushButton("YR-");
   zr_plus_ = new QPushButton("ZR+");
   zr_minus_ = new QPushButton("ZR-");
+  next_ = new QPushButton("->");
+  prev_ = new QPushButton("<-");
   model_list_ = new QListView;
 
   QObject::connect(icp_button_, SIGNAL(clicked(bool)), this, SLOT(lock_with_icp()));
@@ -990,7 +1011,12 @@ MainWindow::MainWindow(int argc, char *argv[])
   QObject::connect(yr_minus_, SIGNAL(clicked(bool)), this, SLOT(yr_minus()));
   QObject::connect(zr_plus_, SIGNAL(clicked(bool)), this, SLOT(zr_plus()));
   QObject::connect(zr_minus_, SIGNAL(clicked(bool)), this, SLOT(zr_minus()));
+  QObject::connect(next_, SIGNAL(clicked(bool)), this, SLOT(next()));
+  QObject::connect(prev_, SIGNAL(clicked(bool)), this, SLOT(prev()));
   QObject::connect(model_list_, SIGNAL(clicked(const QModelIndex&)), this, SLOT(model_list_clicked(const QModelIndex&)));
+
+//  Qt::Key key = Qt::Key_Up;
+//  qDebug() << QKeySequence(key).toString(); // prints "Up"
 
   QHBoxLayout *trans_x = new QHBoxLayout;
   trans_x->addWidget(x_minus_);
@@ -1069,6 +1095,8 @@ MainWindow::MainWindow(int argc, char *argv[])
   layout_refine_pose_total->addLayout(layout_refine_pose_manually);
   layout_refine_pose_total->addLayout(icp_hbox);
   layout_refine_pose_total->addWidget(save_model_);
+  layout_refine_pose_total->addWidget(next_);
+  layout_refine_pose_total->addWidget(prev_);
 
   QHBoxLayout *layout_vis = new QHBoxLayout;
 
@@ -1080,7 +1108,7 @@ MainWindow::MainWindow(int argc, char *argv[])
 
   boost::shared_ptr<std::vector<ModelTPtr> > models = source_->getModels();
   size_t models_size = models->size();
-  size_t scenes_size = single_scenes_.size ();
+  size_t scenes_size = 20;//single_scenes_.size ();
 
   vtk_widget_models_ = new QVTKWidget;
   vtk_widget_models_->resize(models_size*model_xsize_, model_xsize_);
@@ -1122,17 +1150,38 @@ MainWindow::MainWindow(int argc, char *argv[])
   scroll_scenes_->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
   main_vl->addWidget(scroll_scenes_);
 
-  fillModels ();
-  fillScene ();
-  fillHypotheses ();
-  fillViews ();
-
   enablePoseRefinmentButtons(false);
   selected_hypothesis_ = -1;
   selected_scene_ = -1;
 
   mainWindow_->setLayout(main_vl);
   mainWindow_->show();
+
+  const std::string sequence_path = base_path_ + "/" + test_sequences_[sequence_id_];
+  std::vector<std::string> files;
+  v4r::io::getFilesInDirectory( sequence_path, files, "", ".*.pcd", true);   // get scenes
+  std::cout << "Number of scenes in directory is:" << files.size () << std::endl;
+  for (size_t i = 0; i < files.size (); i++)
+  {
+    scene_names_.push_back(files[i]);
+    const std::string file = sequence_path + "/" + files[i];
+    std::cout << files[i] << std::endl;
+
+    //read cloud
+    pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
+    pcl::io::loadPCDFile(file, *cloud);
+    single_scenes_.push_back(cloud);
+  }
+
+  std::stringstream filestr;
+  filestr << sequence_path << "/results_3d.txt";
+  readResultsFile(filestr.str());
+
+  fillModels ();
+  fillScene ();
+  fillHypotheses ();
+  fillViews ();
+
   app.exec();
 }
 

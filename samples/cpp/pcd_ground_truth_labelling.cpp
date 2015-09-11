@@ -186,7 +186,7 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         const int u = static_cast<int> (f_ * mp.x / mp.z + cx);
                         const int v = static_cast<int> (f_ * mp.y / mp.z + cy);
 
-                        if(u<0 || u >= reconstructed_scene_->width || v<0 || v >= reconstructed_scene_->height) // model point outside field of view
+                        if(u<0 || u >= (int)reconstructed_scene_->width || v<0 || v >= (int)reconstructed_scene_->height) // model point outside field of view
                             continue;
 
                         PointT sp = reconstructed_scene_->at(u,v);

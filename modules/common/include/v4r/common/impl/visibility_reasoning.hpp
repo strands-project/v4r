@@ -127,26 +127,26 @@ v4r::common::VisibilityReasoning<PointT>::computeFocalLength (int cx_, int cy_, 
 
 template<typename PointT>
 void
-v4r::common::VisibilityReasoning<PointT>::computeRangeImage (int cx_, int cy_, float f_, const typename pcl::PointCloud<PointT>::ConstPtr & cloud,
+v4r::common::VisibilityReasoning<PointT>::computeRangeImage (int width, int height, float f_, const typename pcl::PointCloud<PointT>::ConstPtr & cloud,
                                                                             typename pcl::PointCloud<PointT>::Ptr & range_image)
 {
   float cx, cy;
-  cx = static_cast<float> (cx_) / 2.f; //- 0.5f;
-  cy = static_cast<float> (cy_) / 2.f; // - 0.5f;
+  cx = static_cast<float> (width) / 2.f; //- 0.5f;
+  cy = static_cast<float> (height) / 2.f; // - 0.5f;
 
   float * depth_;
-  depth_ = new float[cx_ * cy_];
-  for (int i = 0; i < (cx_ * cy_); i++)
+  depth_ = new float[width * height];
+  for (int i = 0; i < (width * height); i++)
     depth_[i] = std::numeric_limits<float>::quiet_NaN ();
 
   range_image.reset(new pcl::PointCloud<PointT>);
-  range_image->width = cx_;
-  range_image->height = cy_;
-  range_image->points.resize(cx_ * cy_);
+  range_image->width = width;
+  range_image->height = height;
+  range_image->points.resize(width * height);
 
-  for(size_t u=0; u < cx_; u++)
+  for(size_t u=0; u < width; u++)
   {
-    for(size_t v=0; v < cy_; v++)
+    for(size_t v=0; v < height; v++)
     {
       range_image->at(u,v).x = std::numeric_limits<float>::quiet_NaN();
       range_image->at(u,v).y = std::numeric_limits<float>::quiet_NaN();
@@ -162,15 +162,13 @@ v4r::common::VisibilityReasoning<PointT>::computeRangeImage (int cx_, int cy_, f
     int u = static_cast<int> (f_ * x / z + cx);
     int v = static_cast<int> (f_ * y / z + cy);
 
-    if (u >= cx_ || v >= cy_ || u < 0 || v < 0)
+    if (u >= width || v >= height || u < 0 || v < 0)
       continue;
 
-    if ((z < depth_[u * cy_ + v]) || (!pcl_isfinite(depth_[u * cy_ + v])))
+    if ((z < depth_[u * height + v]) || (!pcl_isfinite(depth_[u * height + v])))
     {
-      depth_[u * cx_ + v] = z;
-      range_image->at(u,v).x = x;
-      range_image->at(u,v).y = y;
-      range_image->at(u,v).z = z;
+      depth_[u * width + v] = z;
+      range_image->at(u,v) = cloud->points[i];
     }
   }
 
