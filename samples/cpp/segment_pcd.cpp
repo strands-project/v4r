@@ -35,6 +35,7 @@ public:
         visualize_ = true;
         margin_ = 0;
         cloud_.reset(new pcl::PointCloud<PointT>());
+        seg_param_.seg_type_ = 1;
     }
 
     void printUsage(int argc, char ** argv)

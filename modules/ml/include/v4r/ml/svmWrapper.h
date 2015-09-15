@@ -62,7 +62,8 @@ namespace v4r
 
         void computeSvmModel(
                 const std::vector<std::vector<double> > &data_train,
-                const std::vector<double> &target_train);
+                const std::vector<double> &target_train,
+                const std::string &filename = std::string());
 
         void setNumClasses(const size_t num_classes)
         {

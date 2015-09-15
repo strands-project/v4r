@@ -520,10 +520,10 @@ void tgCamera::intrinsic2fwh()
   }
 }
 
-tgPose tgCamera::GetPose() const
+mat4 tgCamera::GetPose() const  // not sure if this is correct
 {
   printf("[tgCamera::GetPose()] Not implemented yet\n");
-  return tgPose();
+  return m_extrinsic;//tgPose();
 }
 
 vec2 tgCamera::GetTexCoords(vec3 point) const

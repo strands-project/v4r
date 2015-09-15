@@ -205,7 +205,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
     {
         pcl::apps::DominantPlaneSegmentation<PointT> dps;
         dps.setInputCloud (input_cloud_);
-        dps.setMaxZBounds (3.F);
+        dps.setMaxZBounds (param_.chop_at_z_);
         dps.setObjectMinHeight (param_.sensor_noise_max_);
         dps.setMinClusterSize (param_.min_cluster_size_);
         dps.setWSize (9);
