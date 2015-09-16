@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 
-class evalSvRecognizer
+class Recognizer
 {
 private:
     typedef pcl::PointXYZRGB PointT;
@@ -20,15 +20,13 @@ private:
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
     v4r::SingleViewRecognizer r_;
-    std::string test_dir_, out_dir_;
+    std::string test_dir_;
     bool visualize_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
-    std::map<std::string, size_t> rec_models_per_id_;
 
 public:
-    evalSvRecognizer()
+    Recognizer()
     {
-        out_dir_ = "/tmp/sv_recognition_out/";
         visualize_ = true;
     }
 
@@ -69,7 +67,6 @@ public:
     bool initialize(int argc, char ** argv)
     {
         pcl::console::parse_argument (argc, argv,  "-visualize", visualize_);
-        pcl::console::parse_argument (argc, argv,  "-out_dir", out_dir_);
         pcl::console::parse_argument (argc, argv,  "-test_dir", test_dir_);
 
         pcl::console::parse_argument (argc, argv,  "-models_dir", r_.models_dir_);
@@ -114,13 +111,7 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_regularizer", r_.hv_params_.regularizer_);
         pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
 
-
-        v4r::io::createDirIfNotExist(out_dir_);
         r_.initialize();
-        ofstream param_file;
-        param_file.open ((out_dir_ + "/param.nfo").c_str());
-        r_.printParams(param_file);
-        param_file.close();
         r_.printParams();
         return true;
     }
@@ -138,10 +129,6 @@ public:
         for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
         {
             const std::string sequence_path = test_dir_ + "/" + sub_folder_names[ sub_folder_id ];
-            const std::string out_path = out_dir_ + "/" + sub_folder_names[ sub_folder_id ];
-            v4r::io::createDirIfNotExist(out_path);
-
-            rec_models_per_id_.clear();
 
             std::vector< std::string > views;
             v4r::io::getFilesInDirectory(sequence_path, views, "", ".*.pcd", false);
@@ -159,45 +146,16 @@ public:
                 std::vector<ModelTPtr> verified_models;
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
                 r_.getModelsAndTransforms(verified_models, transforms_verified);
+
                 if (visualize_)
                     visualize_result(cloud, verified_models, transforms_verified);
 
                 for(size_t m_id=0; m_id<verified_models.size(); m_id++)
                 {
-                    std::cout << "********************" << verified_models[m_id]->id_ << std::endl;
+                    const std::string &model_id = verified_models[m_id]->id_;
+                    const Eigen::Matrix4f &tf = transforms_verified[m_id];
 
-                    const std::string model_id = verified_models[m_id]->id_;
-                    const Eigen::Matrix4f tf = transforms_verified[m_id];
-
-                    size_t num_models_per_model_id;
-
-                    std::map<std::string, size_t>::iterator it_rec_mod;
-                    it_rec_mod = rec_models_per_id_.find(model_id);
-                    if(it_rec_mod == rec_models_per_id_.end())
-                    {
-                        rec_models_per_id_.insert(std::pair<std::string, size_t>(model_id, 1));
-                        num_models_per_model_id = 0;
-                    }
-                    else
-                    {
-                        num_models_per_model_id = it_rec_mod->second;
-                        it_rec_mod->second++;
-                    }
-
-                    std::stringstream out_fn;
-                    out_fn << out_path << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_"
-                           << model_id.substr(0, model_id.length() - 4) << "_" << num_models_per_model_id << ".txt";
-
-                    ofstream or_file;
-                    or_file.open (out_fn.str().c_str());
-                    for (size_t row=0; row <4; row++)
-                    {
-                        for(size_t col=0; col<4; col++)
-                        {
-                            or_file << tf(row, col) << " ";
-                        }
-                    }
-                    or_file.close();
+                    std::cout << "******" << model_id << std::endl << tf << std::endl << std::endl;
                 }
             }
         }
@@ -209,7 +167,7 @@ int
 main (int argc, char ** argv)
 {
     srand (time(NULL));
-    evalSvRecognizer r_eval;
+    Recognizer r_eval;
     r_eval.initialize(argc,argv);
     r_eval.eval();
     return 0;

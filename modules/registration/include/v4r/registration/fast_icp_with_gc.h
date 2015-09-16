@@ -77,8 +77,7 @@ namespace v4r
 
       void
       visualizeICPNodes(typename std::vector<boost::shared_ptr<ICPNode<PointT> > > & nodes,
-                          pcl::visualization::PCLVisualizer & vis,
-                          std::string wname="icp nodes");
+                          pcl::visualization::PCLVisualizer & vis);
 
       bool
       filterHypothesesByPose(typename boost::shared_ptr< ICPNode<PointT> > & current,

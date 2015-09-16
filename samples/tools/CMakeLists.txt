@@ -2,8 +2,8 @@
 #  CMake file for C samples. See root CMakeLists.txt
 #
 # ----------------------------------------------------------------------------
-
-SET(V4R_CPP_SAMPLES_REQUIRED_DEPS v4r_common v4r_features v4r_keypoints v4r_recognition v4r_registration v4r_segmentation v4r_core v4r_io)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+SET(V4R_TOOLS_REQUIRED_DEPS v4r_common v4r_core v4r_features v4r_io v4r_keypoints v4r_ml v4r_recognition v4r_reconstruction v4r_registration v4r_segmentation v4r_tomgine )
 
 if(HAVE_PCL)
   v4r_include_directories(${PCL_INCLUDE_DIRS})
@@ -20,17 +20,31 @@ if(HAVE_EDT)
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
 endif()
 
-
 if(HAVE_CERES)
   v4r_include_directories(${CERES_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${CERES_LIBRARIES})
 endif()
 
-v4r_check_dependencies(${V4R_CPP_SAMPLES_REQUIRED_DEPS})
+if(HAVE_LIBSVM)
+  v4r_include_directories(${LIBSVM_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${LIBSVM_LIBRARIES})
+endif()
+
+if(HAVE_OPENGL)
+  v4r_include_directories(${OPENGL_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${OPENGL_LIBRARIES})
+endif()
+
+if(HAVE_ASSIMP)
+  v4r_include_directories(${ASSIMP_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${ASSIMP_LIBRARIES})
+endif()
+
+v4r_check_dependencies(${V4R_TOOLS_REQUIRED_DEPS})
 
 if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
-  project(cpp_samples)
-  v4r_include_modules(${V4R_CPP_SAMPLES_REQUIRED_DEPS})
+  project(tools_samples)
+  v4r_include_modules(${V4R_TOOLS_REQUIRED_DEPS})
 
   if(CMAKE_COMPILER_IS_GNUCXX AND NOT ENABLE_NOISY_WARNINGS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-function")
@@ -41,22 +55,16 @@ if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
   # ---------------------------------------------
   MACRO(V4R_DEFINE_CPP_EXAMPLE name srcs)
 
-    if("${srcs}" MATCHES "tutorial_code")
-      set(sample_kind tutorial)
-      set(sample_KIND TUTORIAL)
-      set(sample_subfolder "tutorials")
-    else()
-      set(sample_kind example)
-      set(sample_KIND EXAMPLE)
-      set(sample_subfolder "cpp")
-    endif()
+    set(sample_kind tools)
+    set(sample_KIND tools)
+    set(sample_subfolder "tools")
 
     set(the_target "${sample_kind}_${name}")
     add_executable(${the_target} ${srcs})
-    target_link_libraries(${the_target} ${V4R_LINKER_LIBS} ${V4R_CPP_SAMPLES_REQUIRED_DEPS} ${DEP_LIBS})
+    target_link_libraries(${the_target} ${V4R_LINKER_LIBS} ${V4R_TOOLS_REQUIRED_DEPS} ${DEP_LIBS})
 
     set_target_properties(${the_target} PROPERTIES
-      OUTPUT_NAME "cpp-${sample_kind}-${name}"
+      OUTPUT_NAME "${sample_kind}-${name}"
       PROJECT_LABEL "(${sample_KIND}) ${name}")
 
     if(ENABLE_SOLUTION_FOLDERS)
@@ -72,9 +80,9 @@ if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
     endif()
   ENDMACRO()
 
-  file(GLOB_RECURSE cpp_samples RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
+  file(GLOB_RECURSE tools_samples RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
   
-foreach(sample_filename ${cpp_samples})
+foreach(sample_filename ${tools_samples})
     get_filename_component(sample ${sample_filename} NAME_WE)
     V4R_DEFINE_CPP_EXAMPLE(${sample}  ${sample_filename})
   endforeach()
@@ -83,6 +91,6 @@ endif()
 if (INSTALL_C_EXAMPLES AND NOT WIN32)
   file(GLOB C_SAMPLES *.c *.cpp *.jpg *.png *.data makefile.* build_all.sh *.dsp *.cmd )
   install(FILES ${C_SAMPLES}
-          DESTINATION ${V4R_SAMPLES_SRC_INSTALL_PATH}/cpp
+          DESTINATION ${V4R_SAMPLES_SRC_INSTALL_PATH}/tools
           PERMISSIONS OWNER_READ GROUP_READ WORLD_READ COMPONENT samples)
 endif()

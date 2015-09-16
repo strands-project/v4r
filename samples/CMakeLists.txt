@@ -11,8 +11,9 @@ if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_LIST_DIR)
 # ----------------------------------------------------------------------------
 
 #add_subdirectory(c)
-add_subdirectory(cpp)
-#add_subdirectory(gpu)
+add_subdirectory(examples)
+add_subdirectory(eval)
+add_subdirectory(tools)
 #add_subdirectory(ocl)
 
 #
@@ -30,7 +31,9 @@ option(BUILD_EXAMPLES "Build samples" ON)
 find_package(V4R REQUIRED)
 
 #add_subdirectory(c)
-add_subdirectory(cpp)
+add_subdirectory(examples)
+add_subdirectory(eval)
+add_subdirectory(tools)
 #add_subdirectory(ocl)
 
 endif()

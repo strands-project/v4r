@@ -59,7 +59,7 @@ namespace v4r
           tss_ = t;
         }
 
-        float computeFocalLength(int cx, int cy, const typename pcl::PointCloud<PointT>::ConstPtr & cloud);
+        float computeFocalLength(int width, int height, const typename pcl::PointCloud<PointT>::ConstPtr & cloud);
 
         static void computeRangeImage(int width, int height, float fl, const typename pcl::PointCloud<PointT>::ConstPtr & cloud, typename pcl::PointCloud<PointT>::Ptr & range_image);
     };

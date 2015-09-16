@@ -119,6 +119,21 @@ createDirIfNotExist(const std::string & dirs)
     }
 }
 
+
+void
+createDirForFileIfNotExist(const std::string & filename)
+{
+    if (filename.length())
+    {
+        size_t sep = filename.find_last_of("\\/");
+        if (sep != std::string::npos)
+        {
+            std::string path = filename.substr(0, sep);
+            createDirIfNotExist(path);
+        }
+    }
+}
+
 }
 
 }

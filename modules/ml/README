@@ -1,0 +1,80 @@
+Random Forest Training:
+-----------------------
+
+// define labels to be trained
+std::vector<int> labels;    
+
+// for NYU depth dataset v2 this could be...
+labels.push_back(21);  	// wall  
+labels.push_back(11);  	// floor
+labels.push_back(3);  	// cabinet
+labels.push_back(5);	// chair
+labels.push_back(19);	// table
+labels.push_back(4);	// ceiling
+
+// load training data from files
+ClassificationData trainingData;
+trainingData.LoadFromDirectory("myTrainingDataDirectory", labels);
+
+// define Random Forest
+//   parameters:
+//   int nTrees
+//   int maxDepth (-1... find depth automatically)
+//   float baggingRatio
+//   int nFeaturesToTryAtEachNode
+//   float minInformationGain
+//   int nMinNumberOfPointsToSplit
+Forest rf(10, 20 , 0.1, 200, 0.02, 5);
+
+// train forest
+//   parameters:
+//   ClassificationData data
+//   bool refineWithAllDataAfterwards
+//   int verbosityLevel (0 - quiet, 3 - most detail)
+rf.TrainLarge(trainingData, false, 3);
+
+// save after training
+rf.SaveToFile("myforest");
+
+// Hard classification, returning label ID:
+std::vector<float> featureVector;
+// assuming featureVector contains values...
+int ID = rf.ClassifyPoint(featureVector);
+
+// Soft classification, returning probabilities for each label
+std::vector<float> labelProbabilities = rf.SoftClassify(featureVector);
+
+-------------------------
+
+Directory structure of training data:
+
+mytrainingdirectory
+ - 0001.data
+ - 0002.data
+ - 0003.data
+   ...
+ - 1242.data
+ - categories.txt
+
+-> for every label (the example above has 1242 labels) there is a corresponding data file containing all feature vectors of this label.
+   such a file looks like this:
+
+ 2.46917e-05  0.000273396  0.000204452     0.823049     0.170685     0.988113     0.993125
+ 3.20674e-05  0.000280648  0.000229576     0.829844     0.207543     0.987969     0.992765
+ 3.73145e-05  0.000279801  0.000257583     0.831597     0.235013     0.987825       0.9925
+ ...........  ...........  ...........  ...........  ...........  ...........  ........... 
+
+Each row: One feature vector (here 7 dimensional)
+
+IMPORTANT: Values separated by spaces, vectors separated by newline.
+           COLUMNS MUST ALL HAVE THE SAME CONSTANT WIDTH!!! CODE IS ASSUMING THAT FOR SPEED UP!
+           (here width is 12)
+
+The file categories.txt is necessary to define the label names and has a simple format like this:
+1	floor
+2	wall
+3	ceiling
+4	table
+5	chair
+6	furniture
+7	object
