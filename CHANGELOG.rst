@@ -2,6 +2,41 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#27 <https://github.com/strands-project/v4r/issues/27>`_ from strands-project/new_samples_structure
+  New samples structure
+* Merge pull request `#26 <https://github.com/strands-project/v4r/issues/26>`_ from strands-project/add-tomgine
+  Add tomgine
+* new samples structure
+* divide samples into examples, tools and evals
+* adds ESF classifier using new point cloud rendering based on TomGine (camera pose is not extracted right now)
+* Merge pull request `#24 <https://github.com/strands-project/v4r/issues/24>`_ from strands-project/sift_gpu_solution
+  Sift gpu solution
+* added initial segmentation example
+* updated usage output
+* added tomgine
+* added Random Forest and SVM
+* Merge remote-tracking branch 'sergey/add-libsvm' into add-libsvm
+* added RandomForest
+  fixed some warnings
+* Add libsvm 3rd-party library
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !37
+* reverted sv recognizer header file because otherwise cg pointer cast caused seg fault
+  fixed some warnings
+* make SIFT_GPU optional by setting BUILD_SIFTGPU in cmake
+* added segmentation dependency to samples
+* added binary vector increment
+  changed parameter name to avoid confusion in range image computation
+* merged
+* Merge branch 'master' into 'master'
+  Master
+  this hopefully includes all the changes from LaMoR Summer School + fixes for the Recognizer
+  See merge request !36
+* Contributors: Sergey Alexandrov, Thomas Fäulhammer
+
 1.0.6 (2015-09-07)
 ------------------
 * Merge pull request `#23 <https://github.com/strands-project/v4r/issues/23>`_ from strands-project/mergeLAMOR
