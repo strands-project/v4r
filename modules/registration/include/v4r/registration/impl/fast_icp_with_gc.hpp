@@ -65,8 +65,7 @@ namespace v4r
     template<typename PointT>
       inline void
       FastIterativeClosestPointWithGC<PointT>::visualizeICPNodes (typename std::vector<boost::shared_ptr<ICPNode<PointT> > > & nodes,
-                                                                  pcl::visualization::PCLVisualizer & icp_vis,
-                                                                  std::string wname)
+                                                                  pcl::visualization::PCLVisualizer & icp_vis)
       {
         int k = 0, l = 0, viewport = 0;
         int y_s = 0, x_s = 0;

@@ -1,0 +1,8 @@
+if(WITH_ASSIMP)
+  find_package(ASSIMP)
+  if(ASSIMP_FOUND)
+    set(ASSIMP_LIBRARIES "${ASSIMP_LIBRARIES}")
+    set(ASSIMP_INCLUDE_DIRS "${ASSIMP_INCLUDE_DIRS}")
+    set(HAVE_ASSIMP TRUE)
+  endif()
+endif()
