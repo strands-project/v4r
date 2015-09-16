@@ -2,8 +2,8 @@
 #  CMake file for C samples. See root CMakeLists.txt
 #
 # ----------------------------------------------------------------------------
-
-SET(V4R_EVAL_SAMPLES_REQUIRED_DEPS v4r_common v4r_core v4r_features v4r_io v4r_keypoints v4r_ml v4r_recognition v4r_reconstruction v4r_registration v4r_segmentation v4r_tomgine )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+SET(V4R_CPP_SAMPLES_REQUIRED_DEPS v4r_common v4r_core v4r_features v4r_io v4r_keypoints v4r_ml v4r_recognition v4r_reconstruction v4r_registration v4r_segmentation v4r_tomgine )
 
 if(HAVE_PCL)
   v4r_include_directories(${PCL_INCLUDE_DIRS})
@@ -18,11 +18,6 @@ endif()
 if(HAVE_EDT)
   v4r_include_directories(${EDT_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
-endif()
-
-if(HAVE_BOOST)
-  v4r_include_directories(${BOOST_INCLUDE_DIRS})
-  list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
 endif()
 
 if(HAVE_CERES)
@@ -45,11 +40,11 @@ if(HAVE_ASSIMP)
   list(APPEND DEP_LIBS ${ASSIMP_LIBRARIES})
 endif()
 
-v4r_check_dependencies(${V4R_EVAL_SAMPLES_REQUIRED_DEPS})
+v4r_check_dependencies(${V4R_CPP_SAMPLES_REQUIRED_DEPS})
 
 if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
   project(cpp_samples)
-  v4r_include_modules(${V4R_EVAL_SAMPLES_REQUIRED_DEPS})
+  v4r_include_modules(${V4R_CPP_SAMPLES_REQUIRED_DEPS})
 
   if(CMAKE_COMPILER_IS_GNUCXX AND NOT ENABLE_NOISY_WARNINGS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-function")
@@ -60,13 +55,13 @@ if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
   # ---------------------------------------------
   MACRO(V4R_DEFINE_CPP_EXAMPLE name srcs)
 
-      set(sample_kind eval)
-      set(sample_KIND EVAL)
+      set(sample_kind example)
+      set(sample_KIND EXAMPLE)
       set(sample_subfolder "cpp")
 
     set(the_target "${sample_kind}_${name}")
     add_executable(${the_target} ${srcs})
-    target_link_libraries(${the_target} ${V4R_LINKER_LIBS} ${V4R_EVAL_SAMPLES_REQUIRED_DEPS} ${DEP_LIBS})
+    target_link_libraries(${the_target} ${V4R_LINKER_LIBS} ${V4R_CPP_SAMPLES_REQUIRED_DEPS} ${DEP_LIBS})
 
     set_target_properties(${the_target} PROPERTIES
       OUTPUT_NAME "${sample_kind}-${name}"
@@ -96,7 +91,6 @@ endif()
 if (INSTALL_C_EXAMPLES AND NOT WIN32)
   file(GLOB C_SAMPLES *.c *.cpp *.jpg *.png *.data makefile.* build_all.sh *.dsp *.cmd )
   install(FILES ${C_SAMPLES}
-          DESTINATION ${V4R_SAMPLES_SRC_INSTALL_PATH}/eval
+          DESTINATION ${V4R_SAMPLES_SRC_INSTALL_PATH}/cpp
           PERMISSIONS OWNER_READ GROUP_READ WORLD_READ COMPONENT samples)
 endif()
-
