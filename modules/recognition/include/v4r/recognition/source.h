@@ -239,15 +239,15 @@ namespace v4r
         boost::split (strs, filename, boost::is_any_of ("/\\"));
         std::string name = strs[strs.size () - 1];
 
-        std::stringstream ss;
-        for (int i = 0; i < (static_cast<int> (strs.size ()) - 1); i++)
-        {
-          ss << strs[i];
-          if (i != (static_cast<int> (strs.size ()) - 1))
-          ss << "/";
-        }
+//        std::stringstream ss;
+//        for (int i = 0; i < (static_cast<int> (strs.size ()) - 1); i++)
+//        {
+//          ss << strs[i];
+////          if (i != (static_cast<int> (strs.size ()) - 1))
+////          ss << "/";
+//        }
 
-        classname = ss.str ();
+        classname = strs[0];
         id = name.substr (0, name.length () - 4);
       }
 

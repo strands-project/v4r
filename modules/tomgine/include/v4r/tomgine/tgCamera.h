@@ -156,7 +156,7 @@ public:
 	void Print() const;
 	
 	// Gets
-	TomGine::tgPose GetPose() const;
+    TomGine::mat4 GetPose() const;
 
   const vec3& GetF() const {return f;}
   const vec3& GetS() const {return s;}

@@ -35,6 +35,11 @@ else()
   return()
 endif()
 
+if(HAVE_OPENGL)
+  v4r_include_directories(${OPENGL_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${OPENGL_LIBRARIES})
+endif()
+
 if(HAVE_CERES)
   v4r_include_directories(${CERES_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${CERES_LIBRARIES})
@@ -109,7 +114,7 @@ message(STATUS "QT_LIBRARIES: ${QT_LIBRARIES}")
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${OPENNI2_INCLUDE_DIR})
 add_executable(RTMT ${SOURCES} ${HEADERS_MOC} ${FORMS_MOC})
-target_link_libraries(RTMT ${RTMT_DEPS} ${DEP_LIBS} ${QT_LIBRARIES} ${GL_LIBRARIES})
+target_link_libraries(RTMT ${RTMT_DEPS} ${DEP_LIBS} ${QT_LIBRARIES})
 
 INSTALL(TARGETS RTMT
   RUNTIME DESTINATION bin

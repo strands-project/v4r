@@ -1,3 +1,4 @@
+#include <v4r/io/filesystem.h>
 #include <v4r/ml/svmWrapper.h>
 #include <iostream>
 
@@ -205,9 +206,8 @@ bool svmSortOp (svmData i, svmData j) { return (i.y<j.y); }
                      "Total confusion matrix:" << std::endl << confusion_matrix << std::endl << std::endl;
     }
 
-    void svmWrapper::computeSvmModel(
-            const std::vector<std::vector<double> > &data_train,
-            const std::vector<double> &target_train)
+    void svmWrapper::computeSvmModel(const std::vector<std::vector<double> > &data_train,
+            const std::vector<double> &target_train, const std::string &filename)
     {
         ::svm_problem *svm_prob = new ::svm_problem;
 
@@ -228,6 +228,14 @@ bool svmSortOp (svmData i, svmData j) { return (i.y<j.y); }
             svm_prob->x[i][data_train[i].size()].index = -1;
         }
         svm_mod_ = ::svm_train(svm_prob, &svm_para_);
+
+        if(filename.length())
+        {
+            v4r::io::createDirForFileIfNotExist( filename );
+
+            if( ::svm_save_model(filename.c_str(), svm_mod_) == -1)
+                std::cerr << "Could not save svm model to file " << filename << ". " << std::endl;
+        }
     }
 
     void svmWrapper::shuffleTrainingData(std::vector<std::vector<double> > &data_train, std::vector<double> &target_train)

@@ -6,10 +6,10 @@
 
 #include <v4r/ml/svmWrapper.h>
 
-bool trainSVM(const std::string &training_data_file, const std::string &training_label_file, v4r::svmWrapper &svm, size_t &max_label);
+bool trainSVM(const std::string &training_data_file, const std::string &training_label_file, v4r::svmWrapper &svm, size_t &max_label, const std::string &svm_save_path = std::string());
 bool testSVM(const std::string &test_data_file, v4r::svmWrapper &svm, size_t max_labels);
 
-bool trainSVM(const std::string &training_data_file, const std::string &training_label_file, v4r::svmWrapper &svm, size_t &max_label)
+bool trainSVM(const std::string &training_data_file, const std::string &training_label_file, v4r::svmWrapper &svm, size_t &max_label, const std::string &svm_save_path)
 {
     std::vector<std::vector<double> > data_train;
     std::vector<double> target_train;
@@ -55,7 +55,7 @@ bool trainSVM(const std::string &training_data_file, const std::string &training
 //    svm.dokFoldCrossValidation(data_train, target_train, 5, exp2(-3), exp2(3), 2, exp2(-10), exp2(4), 4);
 //    svm.dokFoldCrossValidation(data_train, target_train, 5, svm.svm_para_.C / 2, svm.svm_para_.C * 2, 1.2, svm.svm_para_.gamma / 2, svm.svm_para_.gamma * 2, 1.2);
     svm.sortTrainingData(data_train, target_train);
-    svm.computeSvmModel(data_train, target_train);
+    svm.computeSvmModel(data_train, target_train, svm_save_path);
 
     return true;
 }
@@ -132,13 +132,15 @@ int main(int argc, char** argv)
     v4r::svmWrapper svm;
     std::string training_data_file,
             training_label_file,
-            test_data_file;
+            test_data_file,
+            svm_path = "/tmp/trained_libsvm.model";
 
     pcl::console::parse_argument (argc, argv, "-training_data_file", training_data_file);
     pcl::console::parse_argument (argc, argv, "-training_label_file", training_label_file);
     pcl::console::parse_argument (argc, argv, "-test_data_file", test_data_file);
+    pcl::console::parse_argument (argc, argv, "-save_trainded_svm_to", svm_path);
 
     size_t max_label; // num classes
-    trainSVM(training_data_file, training_label_file, svm, max_label);
+    trainSVM(training_data_file, training_label_file, svm, max_label, svm_path);
     testSVM(test_data_file, svm, max_label);
 }
