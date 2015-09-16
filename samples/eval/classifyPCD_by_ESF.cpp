@@ -15,13 +15,14 @@
 
 #include <pcl/console/parse.h>
 #include <pcl/common/centroid.h>
+#include <pcl/filters/passthrough.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
 class ShapeClassifier
 {
 private:
     typedef pcl::PointXYZ PointT;
-    std::string models_dir_, training_dir_, test_dir_;
+    std::string models_dir_, training_dir_, test_dir_, out_dir_;
     int knn_;
     typename boost::shared_ptr<v4r::Source<PointT> > source_;
     v4r::GlobalNNPipeline<flann::L1, PointT, pcl::ESFSignature640> classifier_;
@@ -39,6 +40,7 @@ public:
     ShapeClassifier()
     {
         training_dir_ = "/tmp/trained_models/";
+        out_dir_ = "/tmp/classification_results/";
         knn_ = 10;
         cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
         visualize_ = true;
@@ -53,6 +55,7 @@ public:
                   << "  -test_dir "  << "dir_with_pcd_files " << std::endl
                   << "  -models_dir " << "directory containing model files (.ply)  for training" << std::endl
                   << "  [-training_dir "   << "directory where trained features will be stored or loaded if they already exist (default: " << training_dir_ << ")] " << std::endl
+                  << "  [-out_dir "   << "directory where classification results will be stored (default: " << out_dir_ << ")] " << std::endl
                   << "  [-visualize " << "if true, visualizes results (default: " << visualize_ << ")] " << std::endl
                   << "  [-NN " << "number of nearest neighbor considered for classification (default: " << knn_ << ")] "
                   << "  [-seg_type " << "segmentation_method_used (default: " << seg_param_.seg_type_ << ")] "
@@ -113,6 +116,8 @@ public:
         for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
         {
             const std::string sequence_path = test_dir_ + "/" + sub_folder_names[ sub_folder_id ];
+            const std::string out_path = out_dir_ + "/" + sub_folder_names[ sub_folder_id ];
+            v4r::io::createDirIfNotExist(out_path);
 
             std::vector< std::string > views;
             v4r::io::getFilesInDirectory(sequence_path, views, "", ".*.pcd", false);
@@ -120,6 +125,8 @@ public:
             for (size_t v_id=0; v_id<views.size(); v_id++)
             {
                 const std::string fn = test_dir_ + "/" + sub_folder_names[sub_folder_id] + "/" + views[ v_id ];
+                std::string out_fn_prefix = out_path + "/" + views[ v_id ];
+                boost::replace_last(out_fn_prefix, ".pcd", ".anno_test");
 
                 std::cout << "Segmenting file " << fn << std::endl;
                 pcl::io::loadPCDFile(fn, *cloud_);
@@ -144,12 +151,48 @@ public:
                     classifier_.getConfidence(confidences_[i]);
                 }
 
+                write2disk(out_fn_prefix);
+
                 if(visualize_)
                     visualize();
 
             }
         }
     }
+
+
+    void write2disk(const std::string &out_filename)
+    {
+        v4r::io::createDirForFileIfNotExist(out_filename);
+
+        // only save classification result for cluster which is closest to the camera (w.r.t. to centroid)
+        int min_id=-1;
+        double min_centroid = std::numeric_limits<double>::max();
+
+        for(size_t i=0; i < found_clusters_.size(); i++)
+        {
+            typename pcl::PointCloud<PointT>::Ptr clusterXYZ (new pcl::PointCloud<PointT>());
+            pcl::copyPointCloud(*cloud_, found_clusters_[i], *clusterXYZ);
+            Eigen::Vector4f centroid;
+            pcl::compute3DCentroid (*clusterXYZ, centroid);
+
+//            double dist = centroid[0]*centroid[0] + centroid[1]*centroid[1] + centroid[2]*centroid[2];
+
+            if (centroid[2] < min_centroid) {
+                min_centroid = centroid[2];
+                min_id = i;
+            }
+        }
+
+        if(min_id>=0) {
+
+            ofstream f;
+            f.open (out_filename.c_str());
+            f << categories_[min_id][0];
+            f.close();
+        }
+    }
+
     void visualize()
     {
         if(!vis_)

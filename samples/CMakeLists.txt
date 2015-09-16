@@ -12,7 +12,7 @@ if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_LIST_DIR)
 
 #add_subdirectory(c)
 add_subdirectory(cpp)
-#add_subdirectory(gpu)
+add_subdirectory(eval)
 #add_subdirectory(ocl)
 
 #
@@ -31,6 +31,7 @@ find_package(V4R REQUIRED)
 
 #add_subdirectory(c)
 add_subdirectory(cpp)
+add_subdirectory(eval)
 #add_subdirectory(ocl)
 
 endif()
