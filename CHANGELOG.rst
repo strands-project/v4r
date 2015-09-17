@@ -2,6 +2,17 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#28 <https://github.com/strands-project/v4r/issues/28>`_ from strands-project/remove_c++11_flags_and_common_namespace
+  remove C++11 flags
+* remove C++11 flags
+  remove common namespace
+  remove duplicated files
+  divide samples in examples, evaluation and utility tools (enable examples by default in cmake)
+  add Qt Cache files in .gitignore list
+* Contributors: Thomas Fäulhammer
+
 1.0.7 (2015-09-16)
 ------------------
 * Merge pull request `#27 <https://github.com/strands-project/v4r/issues/27>`_ from strands-project/new_samples_structure
