@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.9 (2015-09-17)
+------------------
 * Merge branch 'master' of github.com:strands-project/v4r
 * fix Bloom issue with umlauts
 * Merge remote-tracking branch 'strands/master'
