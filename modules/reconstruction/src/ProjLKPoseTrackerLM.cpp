@@ -31,7 +31,7 @@
  */
 
 #include <v4r/reconstruction/ProjLKPoseTrackerLM.h>
-#include <v4r/common/impl/projectPointToImage.hpp>
+#include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r/reconstruction/impl/ReprojectionError.hpp>
 
 namespace v4r

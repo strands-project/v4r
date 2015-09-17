@@ -167,7 +167,7 @@ namespace v4r
 
           //get models in directory
           std::vector < std::string > folders;
-          v4r::utils::getFoldersInDirectory (path_, "", folders);
+          v4r::getFoldersInDirectory (path_, "", folders);
           std::cout << "There are " << folders.size() << " folders. " << std::endl;
 
           for (size_t i = 0; i < folders.size (); i++)
@@ -175,7 +175,7 @@ namespace v4r
               std::stringstream class_path;
               class_path << path_ << "/" << folders[i];
               std::vector < std::string > filesInRelFolder;
-              v4r::utils::getFilesInDirectory (class_path.str(), filesInRelFolder, "", ".*.pcd", false);
+              v4r::getFilesInDirectory (class_path.str(), filesInRelFolder, "", ".*.pcd", false);
               std::cout << "There are " <<  filesInRelFolder.size() << " files in folder " << folders[i] << ". " << std::endl;
 
               for (size_t kk = 0; kk < filesInRelFolder.size (); kk++)

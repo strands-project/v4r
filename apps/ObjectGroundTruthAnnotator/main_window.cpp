@@ -287,14 +287,14 @@ void MainWindow::lock_with_icp()
         if(selected_scene_!=i)
         {
             pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
-            pcl::transformPointCloud(*single_scenes_[i], *cloud, v4r::common::RotTrans2Mat4f(single_scenes_[i]->sensor_orientation_, single_scenes_[i]->sensor_origin_));
+            pcl::transformPointCloud(*single_scenes_[i], *cloud, v4r::RotTrans2Mat4f(single_scenes_[i]->sensor_orientation_, single_scenes_[i]->sensor_origin_));
 
             cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
             cloud->sensor_origin_ = zero_origin;
             *merged_cloud += *cloud;
         }
     }
-    v4r::common::voxelGridWithOctree(merged_cloud, *scene_merged_cloud_, 0.003f);
+    v4r::voxelGridWithOctree(merged_cloud, *scene_merged_cloud_, 0.003f);
 
     QString icp_iter_str = icp_iter_te_->toPlainText();
     bool *okay = new bool();
@@ -361,7 +361,7 @@ void MainWindow::lock_with_icp()
     {
         pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
         pcl::PointCloud<PointT>::Ptr cloud_filtered(new pcl::PointCloud<PointT>);
-        Eigen::Matrix4f cloud_to_global = v4r::common::RotTrans2Mat4f(single_scenes_[ selected_scene_ ]->sensor_orientation_, single_scenes_[ selected_scene_ ]->sensor_origin_);
+        Eigen::Matrix4f cloud_to_global = v4r::RotTrans2Mat4f(single_scenes_[ selected_scene_ ]->sensor_orientation_, single_scenes_[ selected_scene_ ]->sensor_origin_);
         pcl::transformPointCloud(*single_scenes_[ selected_scene_ ], *cloud, cloud_to_global);
         cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
         cloud->sensor_origin_ = zero_origin;
@@ -376,7 +376,7 @@ void MainWindow::lock_with_icp()
 
         reg.setInputTarget(scene_merged_cloud_);
         reg.align (output);
-        v4r::common::setCloudPose(reg.getFinalTransformation() * cloud_to_global , *single_scenes_[selected_scene_]);
+        v4r::setCloudPose(reg.getFinalTransformation() * cloud_to_global , *single_scenes_[selected_scene_]);
         updateHighlightedScene();
     }
     std::cout << "ICP finished..." << std::endl;
@@ -810,7 +810,7 @@ void MainWindow::save_model()
         {
             std::string scene = scene_names_[i];
             boost::replace_all (scene, ".pcd", "");
-            const Eigen::Matrix4f tf = v4r::common::RotTrans2Mat4f(single_scenes_[i]->sensor_orientation_, single_scenes_[i]->sensor_origin_);
+            const Eigen::Matrix4f tf = v4r::RotTrans2Mat4f(single_scenes_[i]->sensor_orientation_, single_scenes_[i]->sensor_origin_);
 
 //            std::stringstream camera_pose_out_fn_ss;
 //            camera_pose_out_fn_ss << gt_or_ouput_dir << "/transformation_ " << scene << ".txt";
@@ -855,7 +855,7 @@ void MainWindow::save_model()
                     id_c_it->second++;
                 }
 
-                const Eigen::Matrix4f cloud_to_global = v4r::common::RotTrans2Mat4f(single_scenes_[i]->sensor_orientation_, single_scenes_[i]->sensor_origin_);
+                const Eigen::Matrix4f cloud_to_global = v4r::RotTrans2Mat4f(single_scenes_[i]->sensor_orientation_, single_scenes_[i]->sensor_origin_);
                 Eigen::Matrix4f transform = cloud_to_global.inverse() * hypotheses_poses_[k];
 
                 std::stringstream pose_file_ss;

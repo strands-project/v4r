@@ -137,7 +137,7 @@ namespace v4r
 
       inline void
       uniformSamplingOfKeypoints (typename pcl::PointCloud<PointT>::Ptr & keypoint_cloud, std::vector<int> & indices_keypoints,
-                                  std::vector<int> & indices, v4r::common::UniformSamplingSharedVoxelGrid<PointT> & keypoint_extractor)
+                                  std::vector<int> & indices, v4r::UniformSamplingSharedVoxelGrid<PointT> & keypoint_extractor)
       {
 
         //pcl::UniformSampling<PointT> keypoint_extractor;

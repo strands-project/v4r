@@ -2,7 +2,7 @@
 #  CMake file for C samples. See root CMakeLists.txt
 #
 # ----------------------------------------------------------------------------
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 SET(V4R_TOOLS_REQUIRED_DEPS v4r_common v4r_core v4r_features v4r_io v4r_keypoints v4r_ml v4r_recognition v4r_reconstruction v4r_registration v4r_segmentation v4r_tomgine )
 
 if(HAVE_PCL)
@@ -42,7 +42,7 @@ endif()
 
 v4r_check_dependencies(${V4R_TOOLS_REQUIRED_DEPS})
 
-if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
+if(BUILD_TOOLS AND V4R_DEPENDENCIES_FOUND)
   project(tools_samples)
   v4r_include_modules(${V4R_TOOLS_REQUIRED_DEPS})
 
@@ -88,7 +88,7 @@ foreach(sample_filename ${tools_samples})
   endforeach()
 endif()
 
-if (INSTALL_C_EXAMPLES AND NOT WIN32)
+if (INSTALL_C_UTILITY_TOOLS AND NOT WIN32)
   file(GLOB C_SAMPLES *.c *.cpp *.jpg *.png *.data makefile.* build_all.sh *.dsp *.cmd )
   install(FILES ${C_SAMPLES}
           DESTINATION ${V4R_SAMPLES_SRC_INSTALL_PATH}/tools

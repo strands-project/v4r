@@ -16,7 +16,7 @@
 #include <pcl/common/time.h>
 #include <pcl/common/io.h>
 
-namespace faat_pcl
+namespace v4r
 {
     template<typename PointInT, typename PointOutT>
       class PreProcessorAndNormalEstimator

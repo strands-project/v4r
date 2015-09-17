@@ -2,8 +2,6 @@
 
 namespace v4r
 {
-  namespace common
-  {
       std::vector<int> pcl_visualizer::visualization_framework (pcl::visualization::PCLVisualizer &vis,
                                                 size_t number_of_views,
                                                 size_t number_of_subwindows_per_view,
@@ -37,5 +35,4 @@ namespace v4r
         }
         return viewportNr;
       }
-  }
 }

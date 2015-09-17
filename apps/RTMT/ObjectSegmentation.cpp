@@ -46,7 +46,7 @@
 #include <v4r/keypoints/impl/convertCloud.hpp>
 #include <v4r/keypoints/impl/convertNormals.hpp>
 #include <v4r/keypoints/impl/convertImage.hpp>
-#include <v4r/keypoints/impl/projectPointToImage.hpp>
+#include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/noise_model_based_cloud_integration.h>
 #include <v4r/registration/MvLMIcp.h>
@@ -816,7 +816,7 @@ void ObjectSegmentation::createObjectCloudFiltered()
   double lateral_sigma = 0.0015f;
   bool depth_edges = true;
 
-  v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+  v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
   std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > &ref_clouds = *clouds;
   std::vector< std::vector<float> > weights(ref_clouds.size());
   std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > ptr_clouds(ref_clouds.size());
@@ -848,7 +848,7 @@ void ObjectSegmentation::createObjectCloudFiltered()
           indices[i].push_back(j);
     }
 
-    v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
+    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
     octree_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
 
     nmIntegration.setInputClouds(ptr_clouds);

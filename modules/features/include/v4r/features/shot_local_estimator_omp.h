@@ -9,7 +9,7 @@
 #define FAAT_PCL_REC_FRAMEWORK_SHOT_LOCAL_ESTIMATOR_OMP_H_
 
 #include "local_estimator.h"
-#include "normal_estimator.h"
+#include <v4r/common/normal_estimator.h>
 #include <pcl/features/shot_omp.h>
 #include <pcl/io/pcd_io.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>

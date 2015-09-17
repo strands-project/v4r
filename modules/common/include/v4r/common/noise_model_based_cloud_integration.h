@@ -18,8 +18,6 @@
 
 namespace v4r
 {
-namespace utils
-{
 template<class PointT>
 class V4R_EXPORTS NMBasedCloudIntegration
 {
@@ -129,7 +127,7 @@ public:
     {
         indices_.resize(indices.size());
         for(size_t i=0; i<indices.size(); i++)
-            indices_[i] = v4r::common::convertVecInt2VecSizet(indices[i]);
+            indices_[i] = v4r::convertVecInt2VecSizet(indices[i]);
     }
 
     void
@@ -146,7 +144,6 @@ public:
         transformations_to_global_ = transforms;
     }
 };
-}
 }
 
 #endif /* NOISE_MODELS_H_ */

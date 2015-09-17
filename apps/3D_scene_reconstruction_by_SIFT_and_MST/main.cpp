@@ -193,7 +193,7 @@ public:
         {
             FeatureT searchFeature = src_sift_signatures[ keypointId ];
             int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-            v4r::common::nearestKSearch ( dst_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+            v4r::nearestKSearch ( dst_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
 
             pcl::Correspondence corr;
             corr.distance = distances[0][0];
@@ -263,7 +263,7 @@ public:
         bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
         estimator->getKeypointIndices( sift_keypoint_pcl_indices );
     #endif
-        sift_keypoint_indices = v4r::common::convertPCLIndices2VecSizet(sift_keypoint_pcl_indices);
+        sift_keypoint_indices = v4r::convertPCLIndices2VecSizet(sift_keypoint_pcl_indices);
         return ret;
     }
 
@@ -348,7 +348,7 @@ public:
 
 
                 boost::shared_ptr<flann::Index<DistT> > flann_index;
-                v4r::common::convertToFLANN<FeatureT, DistT>(grph_[view_b].sift_signatures_, flann_index );
+                v4r::convertToFLANN<FeatureT, DistT>(grph_[view_b].sift_signatures_, flann_index );
 
                 estimateViewTransformationBySIFT( *grph_[view_a].cloud_, *grph_[view_b].cloud_,
                                                   grph_[view_a].sift_keypoint_indices_, grph_[view_b].sift_keypoint_indices_,
@@ -467,7 +467,7 @@ int main (int argc, char ** argv)
                 const std::string full_path = path_sub + "/"  + files_intern[i];
                 pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
                 pcl::io::loadPCDFile (full_path, *cloud);
-                v4r::common::setCloudPose(abs_poses[i], *cloud);
+                v4r::setCloudPose(abs_poses[i], *cloud);
                 pcl::io::savePCDFileBinary(full_path, *cloud);
             }
         }

@@ -272,7 +272,7 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
             //      {
             //        pcl::ScopeTime t("finding correct indices...\n");
             //        std::vector<int> correct_indices;
-            //        v4r::ORUtils::miscellaneous::getIndicesFromCloud<PointInT>(processed, keypoints_cloud_, correct_indices);
+            //        v4r::ORmiscellaneous::getIndicesFromCloud<PointInT>(processed, keypoints_cloud_, correct_indices);
             pcl::copyPointCloud(*all_scene_normals, keypoint_indices_.indices, *scene_normals);
             //      }
         }

@@ -11,7 +11,7 @@
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include "ourcvfh_estimator.h"
 #include "organized_ourcvfh.h"
-#include "normal_estimator.h"
+#include <v4r/common/normal_estimator.h>
 #include <pcl/features/our_cvfh.h>
 #include <pcl/surface/mls.h>
 
