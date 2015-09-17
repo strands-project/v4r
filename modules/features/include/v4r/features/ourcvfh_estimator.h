@@ -9,7 +9,7 @@
 #define FAAT_PCL_REC_FRAMEWORK_OURCVFH_ESTIMATOR_H_
 
 #include "global_estimator.h"
-#include "normal_estimator.h"
+#include <v4r/common/normal_estimator.h>
 #include <pcl/features/our_cvfh.h>
 #include <pcl/surface/mls.h>
 #include <pcl/pcl_config.h>

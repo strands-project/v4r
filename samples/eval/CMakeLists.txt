@@ -47,7 +47,7 @@ endif()
 
 v4r_check_dependencies(${V4R_EVAL_SAMPLES_REQUIRED_DEPS})
 
-if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
+if(BUILD_EVALUATION_TOOLS AND V4R_DEPENDENCIES_FOUND)
   project(cpp_samples)
   v4r_include_modules(${V4R_EVAL_SAMPLES_REQUIRED_DEPS})
 
@@ -93,7 +93,7 @@ foreach(sample_filename ${cpp_samples})
   endforeach()
 endif()
 
-if (INSTALL_C_EXAMPLES AND NOT WIN32)
+if (INSTALL_C_EVALUATION_TOOLS AND NOT WIN32)
   file(GLOB C_SAMPLES *.c *.cpp *.jpg *.png *.data makefile.* build_all.sh *.dsp *.cmd )
   install(FILES ${C_SAMPLES}
           DESTINATION ${V4R_SAMPLES_SRC_INSTALL_PATH}/eval

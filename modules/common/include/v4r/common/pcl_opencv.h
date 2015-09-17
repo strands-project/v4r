@@ -13,7 +13,6 @@
 
 namespace PCLOpenCV
 {
-
     template<class PointT>
     void
     ConvertPCLCloud2Image (typename pcl::PointCloud<PointT>::Ptr &pcl_cloud, cv::Mat_<cv::Vec3b> &image)

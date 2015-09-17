@@ -27,6 +27,9 @@ cmake_minimum_required(VERSION 2.8)
 
 project(samples C CXX)
 option(BUILD_EXAMPLES "Build samples" ON)
+option(BUILD_EVALUATION_TOOLS "Build evaluation tools" ON)
+option(BUILD_UTILITY_TOOLS "Build utility tools" ON)
+
 
 find_package(V4R REQUIRED)
 

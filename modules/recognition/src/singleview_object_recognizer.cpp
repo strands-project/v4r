@@ -413,14 +413,14 @@ void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::Const
     if(occlusion_cloud->isOrganized())
     {
         //compute FSV for the model and occlusion_cloud
-        v4r::common::VisibilityReasoning<PointT> vr (525.f, 640, 480);
+        v4r::VisibilityReasoning<PointT> vr (525.f, 640, 480);
         vr.setThresholdTSS (0.01f);
 
         for(size_t i=0; i < models_->size(); i++)
         {
             pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_->at(i)->getNormalsAssembled (hv_params_.resolution_);
             pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
-            v4r::common::transformNormals(normal_cloud, normal_aligned, transforms_->at(i));
+            v4r::transformNormals(normal_cloud, normal_aligned, transforms_->at(i));
 
             if(models_->at(i)->getFlipNormalsBasedOnVP())
             {
@@ -463,7 +463,7 @@ bool SingleViewRecognizer::recognize ()
     if(pSceneNormals_->points.size() == 0)
     {
         std::cout << "No normals point cloud for scene given. Calculate normals of scene..." << std::endl;
-        v4r::common::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
+        v4r::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
     }
 
     if( sv_params_.chop_at_z_ > 0)

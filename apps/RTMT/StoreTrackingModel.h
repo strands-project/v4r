@@ -48,7 +48,7 @@
 #include <v4r/keypoints/ArticulatedObject.h>
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/keypoints/RigidTransformationRANSAC.h>
-#include <v4r/common/impl/projectPointToImage.hpp>
+#include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/keypoints/impl/convertImage.hpp>
 #include <v4r/features/FeatureDetectorHeaders.h>

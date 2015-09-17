@@ -12,8 +12,6 @@
 
 namespace v4r
 {
-  namespace common
-  {
     template<typename PointT>
     class VisibilityReasoning
     {
@@ -63,7 +61,6 @@ namespace v4r
 
         static void computeRangeImage(int width, int height, float fl, const typename pcl::PointCloud<PointT>::ConstPtr & cloud, typename pcl::PointCloud<PointT>::Ptr & range_image);
     };
-  }
 }
 
 #include <v4r/common/impl/visibility_reasoning.hpp>

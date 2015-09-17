@@ -276,7 +276,7 @@ namespace v4r
         boost::shared_ptr<std::vector<int> > ind_tgt;
         ind_tgt.reset (new std::vector<int>);
 
-        common::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
+        UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
         keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
         uniformSamplingOfKeypoints (tgt_keypoints, ind_tgt_cedges, *ind_tgt, keypoint_extractor);
         pcl::copyPointCloud (*target_, *ind_tgt, *tgt_keypoints);
@@ -332,7 +332,7 @@ namespace v4r
 
             boost::shared_ptr<std::vector<int> > ind_src;
             ind_src.reset (new std::vector<int>);
-            common::UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
+            UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
             keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
             keypoint_extractor.setVoxelGridValues (min_b, max_b);
             uniformSamplingOfKeypoints (src_keypoints, ind_src_cedges, *ind_src, keypoint_extractor);
@@ -489,7 +489,7 @@ namespace v4r
               //if (next_level_nodes_[k]->overlap_ > 0)
               //{
               //compute FSV fraction
-              common::VisibilityReasoning<PointT> vr (fl_, cx_, cy_);
+              VisibilityReasoning<PointT> vr (fl_, cx_, cy_);
               vr.setThresholdTSS (0.01);
 
               float fsv_ij = vr.computeFSV (target_, next_level_nodes_[k]->src_keypoints_); //, next_level_nodes_[k]->accum_transform_);

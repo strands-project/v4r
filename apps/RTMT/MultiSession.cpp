@@ -481,7 +481,7 @@ void MultiSession::createObjectCloudFiltered()
   double nm_integration_min_weight_ = 0.8f;
   bool depth_edges = true;
 
-  v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+  v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
   std::vector< std::vector<float> > weights(sessions_clouds_.size());
 
   nm.setLateralSigma(lateral_sigma);
@@ -498,7 +498,7 @@ void MultiSession::createObjectCloudFiltered()
       nm.getWeights(weights[i]);
     }
 
-    v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
+    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
     octree_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
 
     nmIntegration.setInputClouds(sessions_clouds_);
