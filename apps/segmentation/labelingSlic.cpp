@@ -1,7 +1,7 @@
 /*
     Labeling tool with Slic calculation
     <maintainer email="prodromou@acin.tuwien.ac.at">prodromou</maintainer>
-    <maintainer email="faeulhammer@acin.tuwien.ac.at">Fäulhammer</maintainer>
+    <maintainer email="faeulhammer@acin.tuwien.ac.at">Faeulhammer</maintainer>
 
     USAGE:
     key 0-9 > choose Label (0... background, 1-9 object labels)
