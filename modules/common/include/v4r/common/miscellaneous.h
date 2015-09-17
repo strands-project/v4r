@@ -16,8 +16,6 @@
 
 namespace v4r
 {
-namespace common
-{
 
 void V4R_EXPORTS computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
@@ -414,8 +412,6 @@ incrementVector(const std::vector<bool> &v, std::vector<bool> &inc_v)
         carry = v[ bit ] && carry;
     }
     return overflow;
-}
-
 }
 }
 

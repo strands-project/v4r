@@ -138,7 +138,7 @@ void faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>
                 //std::stringstream occ_file;
                 //occ_file << gt_dir_ << "/" << gt_data_main_iterator->first << "_occlusion_" << model_name << "_" << scene_map_iterator->second[i]->inst_  << ".txt";
                 std::cout << occ_file.str() << std::endl;
-                v4r::utils::writeFloatToFile(occ_file.str(), scene_map_iterator->second[i]->occlusion_);
+                v4r::writeFloatToFile(occ_file.str(), scene_map_iterator->second[i]->occlusion_);
 
                 /*pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> model_handler (model_aligned, 125, 125, 125);
                 vis.addPointCloud(model_aligned, model_handler, "lolo");
@@ -217,7 +217,7 @@ void faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>
                 final_trans = final_trans * trans;
 
                 scene_map_iterator->second[i]->transform_ = final_trans;
-                //faat_pcl::utils::writeMatrixToFile(pose_file.str(),model_inst->transform_);
+                //faat_pcl::writeMatrixToFile(pose_file.str(),model_inst->transform_);
                 /*pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> model_handler (model_aligned, 125, 125, 125);
                 vis.addPointCloud(model_aligned, model_handler, "lolo");
                 vis.addPointCloud(scene, "scene");
@@ -246,7 +246,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
 
   {
     std::string ext = scene_file_extension_;
-    v4r::utils::getFilesInDirectory  (scenes_dir_, scene_files, "", ext, true);
+    v4r::getFilesInDirectory  (scenes_dir_, scene_files, "", ext, true);
     std::cout << "Number of scenes:" << scene_files.size() << std::endl;
     for(size_t i=0; i < scene_files.size(); i++)
     {
@@ -257,7 +257,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
   //get models in models_dir
   {
     std::string ext = model_file_extension_;
-    v4r::utils::getFilesInDirectory (models_dir_, model_files, "", ext, true);
+    v4r::getFilesInDirectory (models_dir_, model_files, "", ext, true);
 
     std::stringstream model_ext;
     model_ext << "." << model_file_extension_;
@@ -338,7 +338,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
       std::vector<std::string> paths;
       std::stringstream pattern;
       pattern << seq_id << "_" <<  model_files_wo_extension[m] << "_.*.txt";
-      v4r::utils::getFilesInDirectory(ss.str(), paths, "", pattern.str(), true);
+      v4r::getFilesInDirectory(ss.str(), paths, "", pattern.str(), true);
       size_t max_inst = paths.size();
 
       for (size_t inst = 0; inst < max_inst; inst++)
@@ -355,7 +355,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
           if(!found)
             std::cout << "Model id not found!!!" << model_files[m] << std::endl;
 
-          v4r::utils::readMatrixFromFile( pose_file.str(), model_inst->transform_ );
+          v4r::readMatrixFromFile( pose_file.str(), model_inst->transform_ );
           //std::cout << model_inst->transform_ << std::endl;
           model_inst->inst_ = inst;
 
@@ -365,7 +365,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
           if (bf::exists (occ_path))
           {
             std::cout << occ_file.str () << std::endl;
-            v4r::utils::readFloatFromFile(occ_file.str(), model_inst->occlusion_);
+            v4r::readFloatFromFile(occ_file.str(), model_inst->occlusion_);
           }
           else
           {
@@ -446,8 +446,8 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::loa
 //            }
 //            vis.spin();
 
-            faat_pcl::utils::writeFloatToFile(occ_file.str(), model_inst->occlusion_);
-            //faat_pcl::utils::writeMatrixToFile(pose_file.str(),model_inst->transform_);*/
+            faat_pcl::writeFloatToFile(occ_file.str(), model_inst->occlusion_);
+            //faat_pcl::writeMatrixToFile(pose_file.str(),model_inst->transform_);*/
           }
 
           gt_data_main_iterator = gt_data_.find(scene_path);
@@ -494,7 +494,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cou
     std::string ext = scene_file_extension_;
     std::stringstream regex_ext_ss;
     regex_ext_ss << ".*." << ext;
-    v4r::utils::getFilesInDirectory( scenes_dir_, scene_files, "", regex_ext_ss.str(), true);
+    v4r::getFilesInDirectory( scenes_dir_, scene_files, "", regex_ext_ss.str(), true);
     std::cout << "Number of scenes:" << scene_files.size() << std::endl;
     for(size_t i=0; i < scene_files.size(); i++)
     {
@@ -507,7 +507,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cou
     std::string ext = model_file_extension_;
     std::stringstream regex_ext_ss;
     regex_ext_ss << ".*." << ext;
-    v4r::utils::getFilesInDirectory(models_dir_, model_files, "", regex_ext_ss.str(), true);
+    v4r::getFilesInDirectory(models_dir_, model_files, "", regex_ext_ss.str(), true);
 
     std::stringstream model_ext;
     model_ext << "." << model_file_extension_;
@@ -674,7 +674,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::sav
         pose_file_name << out_dir << "/" << scene_name << "_" << model_id << "_" << inst << ".txt";
         std::cout << pose_file_name.str() << std::endl;
 
-        v4r::utils::writeMatrixToFile (pose_file_name.str (),  rtrans.second->at(idx));
+        v4r::writeMatrixToFile (pose_file_name.str (),  rtrans.second->at(idx));
         //std::cout << model_id << " " << (*recog_id)->id_ << std::endl;
       }
     }
@@ -1571,7 +1571,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::upd
 
   std::stringstream pose_file_out;
   pose_file_out << gt_dir_ << "/" << sid << "_" << m_id << "_" << m_idx << ".txt";
-  v4r::utils::writeMatrixToFile (pose_file_out.str (), pose);
+  v4r::writeMatrixToFile (pose_file_out.str (), pose);
 }
 
 template<typename ModelPointT, typename SceneId>
@@ -1834,7 +1834,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cop
           std::stringstream pattern;
           pattern << scene_id << "_" <<  model_id << "_.*.txt";
 
-          v4r::utils::getFilesInDirectory(ss.str(), paths, "", pattern.str(), true);
+          v4r::getFilesInDirectory(ss.str(), paths, "", pattern.str(), true);
           int inst = static_cast<int>(paths.size());
           std::cout << "current instances:" << inst << std::endl;
 
@@ -1848,7 +1848,7 @@ faat_pcl::rec_3d_framework::or_evaluator::OREvaluator<ModelPointT, SceneId>::cop
             pose_file_name << out_dir << "/" << scene_name << "_" << model_id << "_" << inst << ".txt";
             //std::cout << pose_file_name.str() << std::endl;
 
-            v4r::utils::writeMatrixToFile (pose_file_name.str (), trans);
+            v4r::writeMatrixToFile (pose_file_name.str (), trans);
             inst++;
           }
           scene_map_iterator++;

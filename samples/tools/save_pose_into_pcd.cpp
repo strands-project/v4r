@@ -110,7 +110,7 @@ int main (int argc, char ** argv)
                 v4r::io::readMatrixFromFile(full_pose_path, global_trans);
 #endif
                 std::cout << global_trans << std::endl << std::endl;
-                v4r::common::setCloudPose(global_trans, *cloud);
+                v4r::setCloudPose(global_trans, *cloud);
                 pcl::io::savePCDFileBinary(full_path, *cloud);
             }
             else

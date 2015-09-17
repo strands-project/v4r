@@ -10,7 +10,7 @@
 
 #include <v4r/core/macros.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
-#include "normal_estimator.h"
+#include <v4r/common/normal_estimator.h>
 
 namespace v4r
 {

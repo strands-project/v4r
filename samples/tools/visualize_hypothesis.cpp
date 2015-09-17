@@ -62,7 +62,7 @@ int main (int argc, char ** argv)
     bool found = source->getModelById (model_name, model);
     pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
     pcl::PointCloud<PointT>::Ptr model_cloud_transformed(new pcl::PointCloud<PointT>(*model_cloud));
-    pcl::transformPointCloud(*model_cloud, *model_cloud_transformed, v4r::common::RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_) * transform);
+    pcl::transformPointCloud(*model_cloud, *model_cloud_transformed, v4r::RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_) * transform);
 
     vis.addPointCloud (cloud, "original_cloud");
     vis.addPointCloud (model_cloud_transformed, "model_cloud");

@@ -32,7 +32,7 @@
 
 #include "v4r/reconstruction/LKPoseTracker.h"
 #include "opencv2/video/tracking.hpp"
-#include <v4r/common/impl/projectPointToImage.hpp>
+#include <v4r/reconstruction/impl/projectPointToImage.hpp>
 
 namespace v4r
 {

@@ -8,13 +8,16 @@
 #ifndef V4R_REGISTRATION_VISIBILITY_REASONING_HPP_
 #define V4R_REGISTRATION_VISIBILITY_REASONING_HPP_
 
-#include "v4r/common/visibility_reasoning.h"
+#include <v4r/common/visibility_reasoning.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/angles.h>
 
+namespace v4r
+{
+
 template<typename PointT>
   int
-  v4r::common::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObserved (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+  VisibilityReasoning<PointT>::computeRangeDifferencesWhereObserved (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                                              const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                                                  std::vector<float> & range_diff)
   {
@@ -52,7 +55,7 @@ template<typename PointT>
 
   template<typename PointT>
     int
-    v4r::common::VisibilityReasoning<PointT>::computeRangeDifferencesWhereObservedWithIndicesBack (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+    VisibilityReasoning<PointT>::computeRangeDifferencesWhereObservedWithIndicesBack (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                                                               const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                                                               std::vector<float> & range_diff,
                                                                                                               std::vector<int> & indices)
@@ -94,7 +97,7 @@ template<typename PointT>
 
 template<typename PointT>
 float
-v4r::common::VisibilityReasoning<PointT>::computeFocalLength (int width, int height, const typename pcl::PointCloud<PointT>::ConstPtr & scene)
+VisibilityReasoning<PointT>::computeFocalLength (int width, int height, const typename pcl::PointCloud<PointT>::ConstPtr & scene)
 {
   float cx, cy;
   cx = static_cast<float> (width) / 2.f - 0.5f;
@@ -127,7 +130,7 @@ v4r::common::VisibilityReasoning<PointT>::computeFocalLength (int width, int hei
 
 template<typename PointT>
 void
-v4r::common::VisibilityReasoning<PointT>::computeRangeImage (int width, int height, float f_, const typename pcl::PointCloud<PointT>::ConstPtr & cloud,
+VisibilityReasoning<PointT>::computeRangeImage (int width, int height, float f_, const typename pcl::PointCloud<PointT>::ConstPtr & cloud,
                                                                             typename pcl::PointCloud<PointT>::Ptr & range_image)
 {
   float cx, cy;
@@ -212,7 +215,7 @@ v4r::common::VisibilityReasoning<PointT>::computeRangeImage (int width, int heig
 }
 
 template<typename PointT>
-float v4r::common::VisibilityReasoning<PointT>::computeOSV(const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+float VisibilityReasoning<PointT>::computeOSV(const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                       const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                       Eigen::Matrix4f pose_2_to_1)
 {
@@ -260,7 +263,7 @@ float v4r::common::VisibilityReasoning<PointT>::computeOSV(const typename pcl::P
 
 template<typename PointT>
   float
-  v4r::common::VisibilityReasoning<PointT>::computeFSV (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+  VisibilityReasoning<PointT>::computeFSV (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                    const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                    Eigen::Matrix4f pose_2_to_1)
   {
@@ -303,7 +306,7 @@ template<typename PointT>
 
   template<typename PointT>
     float
-    v4r::common::VisibilityReasoning<PointT>::computeFSVWithNormals (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
+    VisibilityReasoning<PointT>::computeFSVWithNormals (const typename pcl::PointCloud<PointT>::ConstPtr & im1,
                                                                                 const typename pcl::PointCloud<PointT>::ConstPtr & im2,
                                                                                 pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {
@@ -347,5 +350,5 @@ template<typename PointT>
 
       return fsv_val;
     }
-
+}
 #endif /* VISIBILITY_REASONING_HPP_ */

@@ -84,7 +84,7 @@ namespace v4r
 
             for(size_t i=0; i<v_indices.size(); i++)
             {
-                std::vector<bool> mask_tmp = v4r::common::createMaskFromIndices(v_indices[i], image_size);
+                std::vector<bool> mask_tmp = v4r::createMaskFromIndices(v_indices[i], image_size);
 
                 if(mask.size())
                     mask = binary_operation(mask, mask_tmp, BINARY_OPERATOR::OR);
