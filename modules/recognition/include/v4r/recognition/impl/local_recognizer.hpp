@@ -203,29 +203,28 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     }
 
 #if defined (_WIN32)
-    flann_index_ = new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4));
+    flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4)));
     flann_index_->buildIndex ();
 #else
-    bf::path idx_file_path = filename;
-    if(bf::exists(idx_file_path))
+    if(v4r::io::existsFile(filename))
     {
       pcl::ScopeTime t("Loading flann index");
       try
       {
-        flann_index_ = new flann::Index<DistT> (flann_data_, flann::SavedIndexParams (filename));
+        flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::SavedIndexParams (filename)));
       }
       catch(std::runtime_error &e)
       {
           std::cerr << "Existing flann index cannot be loaded. Removing file and creating a new flann file..." << std::endl;
           boost::filesystem::remove(boost::filesystem::path(filename));
-          flann_index_ = new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4));
+          flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4)));
           flann_index_->buildIndex ();
           flann_index_->save (filename);
       }
     } else
     {
       pcl::ScopeTime t("Building and saving flann index");
-      flann_index_ = new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4));
+      flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4)));
       flann_index_->buildIndex ();
       flann_index_->save (filename);
     }
@@ -243,11 +242,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index,
-                                                                                                     /*float * descr, int descr_size*/
-                                                                                                     flann::Matrix<float> & p, int k,
-                                                                                                     flann::Matrix<int> &indices,
-                                                                                                     flann::Matrix<float> &distances)
+  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index,
+                                                                               /*float * descr, int descr_size*/
+                                                                               flann::Matrix<float> & p, int k,
+                                                                               flann::Matrix<int> &indices,
+                                                                               flann::Matrix<float> &distances)
   {
     index->knnSearch (p, indices, distances, k, flann::SearchParams (kdtree_splits_));
   }
@@ -283,11 +282,12 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
     if(search_model_.compare("") == 0) {
       models = source_->getModels ();
-    } else {
+    }
+    else {
       models = source_->getModels (search_model_);
       //reset cache and flann structures
-      if(flann_index_ != 0)
-        delete flann_index_;
+      if(flann_index_)
+        flann_index_.reset();
 
       flann_models_.clear();
       poses_cache_.clear();

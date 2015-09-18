@@ -1,5 +1,5 @@
-#include "v4r/recognition/multiview_object_recognizer_service.h"
-#include "v4r/recognition/segmenter.h"
+#include <v4r/recognition/multiview_object_recognizer.h>
+#include <v4r/recognition/segmenter.h>
 
 #include <pcl/keypoints/sift_keypoint.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
@@ -21,25 +21,6 @@
 #include <v4r/features/sift_local_estimator.h>
 #else
 #include <v4r/features/opencv_sift_local_estimator.h>
-#endif
-
-#ifdef __NVCC__
-    #include <algorithm>
-    #include <cuda_runtime_api.h>
-    #include <thrust/copy.h>
-    #include <thrust/device_vector.h>
-    #include <thrust/device_ptr.h>
-    #include <thrust/gather.h>
-    #include <thrust/count.h>
-    #include <thrust/iterator/constant_iterator.h>
-    #include <thrust/sort.h>
-    #include <set>
-
-    #include <pcl/gpu/containers/device_array.h>
-    #include <pcl/gpu/containers/device_memory.h>
-    #include <pcl/gpu/containers/initialization.h>
-    #include <pcl/gpu/octree/octree.hpp>
-    #include <pcl/gpu/features/features.hpp>
 #endif
 
 namespace v4r
@@ -120,20 +101,6 @@ calcSiftFeatures (Vertex &src, Graph &grph)
 #endif
 
     return ret;
-
-    //----display-keypoints--------------------
-    /*pcl::visualization::PCLVisualizer::Ptr vis_temp (new pcl::visualization::PCLVisualizer);
-     pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified (grph[*it_vrtx].pScenePCl);
-     vis_temp->addPointCloud<PointT> (grph[*it_vrtx].pScenePCl, handler_rgb_verified, "Hypothesis_1");
-     pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified2 (grph[*it_vrtx].pSiftKeypoints);
-
-     for (size_t keyId = 0; keyId < grph[*it_vrtx].pSiftKeypoints->size (); keyId++)
-     {
-     std::stringstream sphere_name;
-     sphere_name << "sphere_" << keyId;
-     vis_temp->addSphere<PointT> (grph[*it_vrtx].pSiftKeypoints->at (keyId), 0.01, sphere_name.str ());
-     }
-     vis_temp->spin ();*/
 }
 
 void MultiviewRecognizer::
@@ -385,9 +352,9 @@ extendFeatureMatchesRecursive ( Graph &grph,
                                 continue;
                             }
 
-                            for(size_t j=0; j < num_existing_corrs; j++)
+                            for(size_t k=0; k < num_existing_corrs; k++)
                             {
-                                const pcl::Correspondence c_existing = it_existing_hyp->second.correspondences_to_inputcloud->at(j);
+                                const pcl::Correspondence c_existing = it_existing_hyp->second.correspondences_to_inputcloud->at(k);
                                 const PointT existing_model_pt = it_existing_hyp->second.correspondences_pointcloud->points[ c_existing.index_query ];
                                 pcl::PointXYZ existing_model_pt_XYZ;
                                 existing_model_pt_XYZ.getVector3fMap() = existing_model_pt.getVector3fMap();
@@ -438,9 +405,7 @@ extendFeatureMatchesRecursive ( Graph &grph,
     }
 }
 
-/*
- * Extends hypotheses construced from other views in graph by following "calling_out_edge" and recursively the other views
- */
+
 void MultiviewRecognizer::
 extendHypothesisRecursive ( Graph &grph, Vertex &vrtx_start, std::vector<Hypothesis<PointT> > &hyp_vec, bool use_unverified_hypotheses) //is directed edge (so the source of calling_edge is calling vertex)
 {
@@ -453,11 +418,10 @@ extendHypothesisRecursive ( Graph &grph, Vertex &vrtx_start, std::vector<Hypothe
 
         bool id_already_exists = false;
         //--check if hypothesis already exists
-        for ( std::vector<Hypothesis<PointT> >::const_iterator it_existing_hyp = hyp_vec.begin ();
-              it_existing_hyp != hyp_vec.end ();
-              ++it_existing_hyp )
+        std::vector<Hypothesis<PointT> >::const_iterator it_exist_hyp;
+        for ( it_exist_hyp = hyp_vec.begin (); it_exist_hyp != hyp_vec.end (); ++it_exist_hyp )
         {
-            if( it_hyp->id_ == it_existing_hyp->id_)
+            if( it_hyp->id_ == it_exist_hyp->id_)
             {
                 id_already_exists = true;
                 break;
@@ -627,49 +591,31 @@ calcEdgeWeight (Graph &grph, std::vector<Edge> &edges)
     }
 }
 
-bool MultiviewRecognizer::recognize
-(const pcl::PointCloud<PointT>::ConstPtr pInputCloud,
- const std::string &view_name,
- const std::vector<float> &global_transform)
+bool
+MultiviewRecognizer::recognize (const pcl::PointCloud<PointT>::ConstPtr cloud,
+                                const std::string &view_name,
+                                const std::vector<float> &global_transform)
 {
     std::cout << "=================================================================" << std::endl <<
                  "Started recognition for view " << view_name << " in scene " << scene_name_ <<
                  "=========================================================" << std::endl << std::endl;
 
-    double  total_time,
-            sv_hyp_construction_time,
-            sv_overhead_time,
-            mv_hyp_construct_time,
-            mv_hyp_ver_time,
-            mv_feat_ext_time,
-            mv_icp_time,
-            sv_total_time,
-            go3dIcpTime,
-            go3dVerification;
-
     size_t total_num_correspondences = 0;
-    pcl::ScopeTime total_pcl_time ("Multiview Recognition");
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pSceneNormals_f (new pcl::PointCloud<pcl::Normal> );
-    times_.clear();
 
-    assert(pInputCloud->width == 640 && pInputCloud->height == 480);    // otherwise the recognition library does not work
+    if (cloud->width != 640 || cloud->height != 480) {    // otherwise the recognition library does not work
+        std::cerr << "Size of input cloud is not 640x480." << std::endl;
+        return false;
+    }
+
     Vertex vrtx = boost::add_vertex ( grph_ );
-
-    pcl::copyPointCloud(*pInputCloud, *(grph_[vrtx].pScenePCl));
-
-    grph_[vrtx].pScenePCl->header.stamp = pInputCloud->header.stamp;
-    grph_[vrtx].pScenePCl->header.frame_id = view_name;
-
-    //    grph_[vrtx].pScenePCl = pInputCloud;
+    pcl::copyPointCloud(*cloud, *(grph_[vrtx].pScenePCl));
     grph_[vrtx].absolute_pose_ = Eigen::Matrix4f::Identity();
 
-    if( global_transform.size() == 16)
-    {
+    if( global_transform.size() == 16) {
         grph_[vrtx].transform_to_world_co_system_is_set_ = true;
-        for (size_t row=0; row <4; row++)
-        {
-            for(size_t col=0; col<4; col++)
-            {
+        for (size_t row=0; row <4; row++) {
+            for(size_t col=0; col<4; col++) {
                 grph_[vrtx].transform_to_world_co_system_(row, col) = global_transform[4*row + col];
             }
         }
@@ -686,21 +632,15 @@ bool MultiviewRecognizer::recognize
         pass.setKeepOrganized (true);
         pass.filter (*(grph_[vrtx].pScenePCl_f));
         grph_[vrtx].filteredSceneIndices_.indices = *(pass.getIndices());
-        grph_[vrtx].filteredSceneIndices_.header.stamp = pInputCloud->header.stamp;
+        grph_[vrtx].filteredSceneIndices_.header.stamp = cloud->header.stamp;
         grph_[vrtx].filteredSceneIndices_.header.frame_id = view_name;
     }
     //-----Normal estimation ---------------
-#ifdef __NVCC__
-    std::cerr << "Computing Normals on GPU..." << std::endl;
-    pcl::gpu::NormalEstimation::PointCloud cloud;
-#endif
-    v4r::computeNormals(grph_[vrtx].pScenePCl, grph_[vrtx].pSceneNormals, 2);
-
+    v4r::computeNormals(grph_[vrtx].pScenePCl, grph_[vrtx].pSceneNormals, sv_params_.normal_computation_method_);
     pcl::copyPointCloud(*(grph_[vrtx].pSceneNormals), grph_[vrtx].filteredSceneIndices_, *pSceneNormals_f);
     pcl::copyPointCloud(*(grph_[vrtx].pSceneNormals), grph_[vrtx].filteredSceneIndices_, *(grph_[vrtx].pSceneNormals_f));
 
     std::vector<Edge> new_edges;
-
     //--------------create-edges-between-views-by-Robot-Pose-----------------------------
     if( mv_params_.use_robot_pose_ )
     {
@@ -723,7 +663,6 @@ bool MultiviewRecognizer::recognize
     //----------calc-SIFT-features-create-edges-between-views-by-SIFT-----------------------------------
     if( mv_params_.scene_to_scene_)
     {
-        pcl::ScopeTime ticp ("SIFT scene to scene registration...");
         calcSiftFeatures ( vrtx, grph_ );
         std::cout << "keypoints: " << grph_[vrtx].siftKeypointIndices_.indices.size() << std::endl;
 
@@ -756,9 +695,9 @@ bool MultiviewRecognizer::recognize
     if( mv_params_.scene_to_scene_ )
     {
         setISPK<flann::L1, FeatureT > (grph_[vrtx].pSiftSignatures_,
-                                                                           grph_[vrtx].pScenePCl_f,
-                                                                           grph_[vrtx].siftKeypointIndices_,
-                                                                           v4r::SIFT);
+                                       grph_[vrtx].pScenePCl_f,
+                                       grph_[vrtx].siftKeypointIndices_,
+                                       v4r::SIFT);
     }
     setInputCloud(grph_[vrtx].pScenePCl_f, pSceneNormals_f);
     constructHypotheses();
@@ -776,38 +715,25 @@ bool MultiviewRecognizer::recognize
         sv_num_correspondences += it_hyp->second.correspondences_to_inputcloud->size();
     }
 
-    pcl::StopWatch sv_overhead_pcl_time;
-
     std::vector < pcl::Correspondences > corresp_clusters_sv;
 
-    {
-        pcl::ScopeTime sv_hyp_construction ("Constructing hypotheses from feature matches...");
-        constructHypothesesFromFeatureMatches(grph_[vrtx].hypotheses_,
-                                                                       grph_[vrtx].pKeypointsMultipipe_,
-                                                                       grph_[vrtx].pKeypointNormalsMultipipe_,
-                                                                       grph_[vrtx].hypothesis_sv_,
-                                                                       corresp_clusters_sv);
-        sv_hyp_construction_time = sv_hyp_construction.getTime();
-    }
+    constructHypothesesFromFeatureMatches(grph_[vrtx].hypotheses_,
+                                          grph_[vrtx].pKeypointsMultipipe_,
+                                          grph_[vrtx].pKeypointNormalsMultipipe_,
+                                          grph_[vrtx].hypothesis_sv_,
+                                          corresp_clusters_sv);
 
     poseRefinement();
     std::vector<bool> mask_hv_sv;
-    {
-        pcl::ScopeTime ticp ("Hypotheses verification...");
-        hypothesesVerification(mask_hv_sv);
-        getVerifiedPlanes(grph_[vrtx].verified_planes_);
-    }
+    hypothesesVerification(mask_hv_sv);
+    getVerifiedPlanes(grph_[vrtx].verified_planes_);
     for (size_t j = 0; j < grph_[vrtx].hypothesis_sv_.size(); j++)
     {
         grph_[vrtx].hypothesis_sv_[j].verified_ = mask_hv_sv[j];
     }
-
-    sv_overhead_time = sv_overhead_pcl_time.getTime();
-    sv_total_time = total_pcl_time.getTime();
     //----------END-call-single-view-recognizer------------------------------------------
-    pcl::StopWatch createEdgesFromHypMatchOnlineTimePcl;
+
     createEdgesFromHypothesisMatchOnline(vrtx, grph_, new_edges);
-    double createEdgesFromHypMatchOnlineTime = createEdgesFromHypMatchOnlineTimePcl.getTime();
 
     //---copy-vertices-to-graph_final----------------------------
     Vertex vrtx_final = boost::add_vertex ( grph_final_ );
@@ -820,7 +746,6 @@ bool MultiviewRecognizer::recognize
 
         if(new_edges.size()>1)  // take the "best" edge for transformation between the views
         {
-            pcl::ScopeTime ticp ("Calculating edge weights...");
             calcEdgeWeight (grph_, new_edges);
 
             //------find best edge from the freshly inserted view and add it to the final graph-----------------
@@ -850,12 +775,9 @@ bool MultiviewRecognizer::recognize
     }
 
     //---------Extend-hypotheses-from-other-view(s)------------------------------------------
-
     if ( mv_params_.extension_mode_ == 0 )
     {
         accumulatedHypotheses_.clear();
-
-        pcl::StopWatch mv_feat_ext_pcl_time;
         extendFeatureMatchesRecursive(grph_final_, vrtx_final, accumulatedHypotheses_, pAccumulatedKeypoints_, pAccumulatedKeypointNormals_);
         resetHopStatus(grph_final_);
 
@@ -864,30 +786,18 @@ bool MultiviewRecognizer::recognize
             total_num_correspondences += it_hyp->second.correspondences_to_inputcloud->size();
         }
 
-        mv_feat_ext_time = mv_feat_ext_pcl_time.getTime();
-
         std::vector < pcl::Correspondences > corresp_clusters_mv;
 
-        pcl::StopWatch mv_hyp_construct;
         constructHypothesesFromFeatureMatches(accumulatedHypotheses_,
-                                                                       pAccumulatedKeypoints_,
-                                                                       pAccumulatedKeypointNormals_,
-                                                                       grph_final_[vrtx_final].hypothesis_mv_,
-                                                                       corresp_clusters_mv);
-        mv_hyp_construct_time = mv_hyp_construct.getTime();
+                                              pAccumulatedKeypoints_,
+                                              pAccumulatedKeypointNormals_,
+                                              grph_final_[vrtx_final].hypothesis_mv_,
+                                              corresp_clusters_mv);
 
-        {
-            pcl::ScopeTime ticp("Multi-view ICP...");
-            poseRefinement();
-            mv_icp_time = ticp.getTime();
-        }
+        poseRefinement();
         std::vector<bool> mask_hv_mv;
-
-        pcl::StopWatch mv_hyp_ver_pcl_time;
         hypothesesVerification(mask_hv_mv);
-        mv_hyp_ver_time = mv_hyp_ver_pcl_time.getTime();
 
-        pcl::StopWatch augment_verified_hyp_pcl_time;
         for(size_t i=0; i<mask_hv_mv.size(); i++)
         {
             grph_final_[vrtx_final].hypothesis_mv_[i].verified_ = static_cast<int>(mask_hv_mv[i]);
@@ -939,8 +849,6 @@ bool MultiviewRecognizer::recognize
                 }
             }
         }
-        std::cout << "Augmentation of verified keypoint correspondences took "
-                  << augment_verified_hyp_pcl_time.getTime() << "ms.";
     }
     else if( mv_params_.extension_mode_ == 1 ) // transform full hypotheses (not single keypoint correspondences)
     {
@@ -951,31 +859,7 @@ bool MultiviewRecognizer::recognize
         {
             grph_final_[vrtx_final].hypothesis_mv_.push_back(grph_final_[vrtx_final].hypothesis_sv_[hyp_sv_id]);
         }
-        pcl::StopWatch mv_hyp_construct;
         extendHypothesisRecursive(grph_final_, vrtx_final, grph_final_[vrtx_final].hypothesis_mv_, use_unverified_single_view_hypotheses);
-        mv_hyp_construct_time = mv_hyp_construct.getTime();
-        //resetHopStatus(grph_final_);
-
-//        std::vector<ModelTPtr> mv_models;
-//        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> mv_transforms;
-//        for(size_t hyp_mv_id=0; hyp_mv_id<grph_final_[vrtx_final].hypothesis_mv_.size(); hyp_mv_id++)
-//        {
-//            mv_models.push_back(grph_final_[vrtx_final].hypothesis_mv_[hyp_mv_id].model_);
-//            mv_transforms.push_back(grph_final_[vrtx_final].hypothesis_mv_[hyp_mv_id].transform_);
-//        }
-//        setModelsAndTransforms(mv_models, mv_transforms);
-//        poseRefinement();
-
-//        std::vector<bool> mask_hv_mv;
-//        {
-//            pcl::ScopeTime ticp ("Hypotheses verification...");
-//            hypothesesVerification(mask_hv_mv);
-//            getVerifiedPlanes(grph_final_[vrtx_final].verified_planes_);
-//        }
-//        for (size_t j = 0; j < grph_final_[vrtx_final].hypothesis_mv_.size(); j++)
-//        {
-//            grph_final_[vrtx_final].hypothesis_mv_[j].verified_ = mask_hv_mv[j];
-//        }
 
         if(  mv_params_.go3d_ )
         {
@@ -1097,19 +981,15 @@ bool MultiviewRecognizer::recognize
                 big_cloud_go3D_normals = big_normals;
 
                 //Refine aligned models with ICP
-                pcl::StopWatch go3dIcpTimePcl;
                 if(go3d_icp_)
                 {
-                    pcl::ScopeTime t("GO3D ICP...\n");
                     float icp_max_correspondence_distance_ = 0.01f;
 
 #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
                     for(size_t kk=0; kk < grph_final_[vrtx_final].hypothesis_mv_.size(); kk++)
                     {
                         if(!grph_final_[vrtx_final].hypothesis_mv_[kk].extended_)
-                        {
                             continue;
-                        }
 
                         ModelTPtr model = grph_final_[vrtx_final].hypothesis_mv_[kk].model_;
 
@@ -1117,8 +997,8 @@ bool MultiviewRecognizer::recognize
                         boost::shared_ptr < distance_field::PropagationDistanceField<PointT> > dt;
                         model->getVGDT (dt);
 
-                        pcl::PointCloud<PointT>::ConstPtr cloud;
-                        dt->getInputCloud (cloud);
+                        pcl::PointCloud<PointT>::ConstPtr cloud_dt;
+                        dt->getInputCloud (cloud_dt);
 
                         Eigen::Matrix4f scene_to_model_trans = grph_final_[vrtx_final].hypothesis_mv_[kk].transform_.inverse ();
                         pcl::PointCloud<PointT>::Ptr cloud_voxelized_icp_transformed (new pcl::PointCloud<PointT> ());
@@ -1126,7 +1006,7 @@ bool MultiviewRecognizer::recognize
 
                         float thres = icp_max_correspondence_distance_ * 2.f;
                         PointT minPoint, maxPoint;
-                        pcl::getMinMax3D(*cloud, minPoint, maxPoint);
+                        pcl::getMinMax3D(*cloud_dt, minPoint, maxPoint);
                         minPoint.x -= thres;
                         minPoint.y -= thres;
                         minPoint.z -= thres;
@@ -1176,11 +1056,11 @@ bool MultiviewRecognizer::recognize
 
                             est->setVoxelRepresentationTarget (dt);
                             est->setInputSource (cloud_voxelized_icp_cropped);
-                            est->setInputTarget (cloud);
+                            est->setInputTarget (cloud_dt);
                             est->setMaxCorrespondenceDistance (icp_max_correspondence_distance_);
                             est->setMaxColorDistance (-1, -1);
 
-                            rej->setInputTarget (cloud);
+                            rej->setInputTarget (cloud_dt);
                             rej->setMaximumIterations (5000);
                             rej->setInlierThreshold (icp_max_correspondence_distance_);
                             rej->setInputSource (cloud_voxelized_icp_cropped);
@@ -1188,7 +1068,7 @@ bool MultiviewRecognizer::recognize
                             pcl::IterativeClosestPoint<PointT, PointT> reg;
                             reg.setCorrespondenceEstimation (est);
                             reg.addCorrespondenceRejector (rej);
-                            reg.setInputTarget (cloud); //model
+                            reg.setInputTarget (cloud_dt); //model
                             reg.setInputSource (cloud_voxelized_icp_cropped); //scene
                             reg.setMaximumIterations ( sv_params_.icp_iterations_ );
                             reg.setEuclideanFitnessEpsilon (1e-12);
@@ -1229,9 +1109,6 @@ bool MultiviewRecognizer::recognize
                     aligned_normals[kk] = normal_aligned;
                 }
 
-                go3dIcpTime = go3dIcpTimePcl.getTime();
-
-
                 //Instantiate HV go 3D, reimplement addModels that will reason about occlusions
                 //Set occlusion cloudS!!
                 //Set the absolute poses so we can go from the global coordinate system to the occlusion clouds
@@ -1244,7 +1121,6 @@ bool MultiviewRecognizer::recognize
                 cluster_tolerance_ = 0.015f;
                 setSmoothSegParameters (float t_eps, float curv_t, float dist_t, int min_points = 20)*/
 
-                pcl::StopWatch go3dVerificationTimePcl;
                 v4r::GO3D<PointT, PointT> go3d;
                 go3d.setResolution (hv_params_.resolution_);
                 go3d.setInlierThreshold (hv_params_.inlier_threshold_);
@@ -1312,8 +1188,6 @@ bool MultiviewRecognizer::recognize
                 {
                     grph_final_[vrtx_final].hypothesis_mv_[kk].verified_ = mask[kk];
                 }
-
-                go3dVerification =  go3dVerificationTimePcl.getTime();
 
                 if(visualize_output_go_3D && visualize_output_)
                 {
@@ -1425,24 +1299,8 @@ bool MultiviewRecognizer::recognize
     grph_[vrtx] = grph_final_[vrtx_final]; // shallow copy is okay here
 
     //-------Clean-up-graph-------------------
-    total_time = total_pcl_time.getTime();
-
     outputgraph ( grph_, "/tmp/complete_graph.dot" );
     outputgraph ( grph_final_, "/tmp/final_with_hypotheses_extension.dot" );
-
-    times_.push_back(total_time);
-    times_.push_back(sv_hyp_construction_time);
-    times_.push_back(sv_overhead_time);
-    times_.push_back(mv_hyp_construct_time);
-    times_.push_back(mv_hyp_ver_time);
-    times_.push_back(mv_feat_ext_time);
-    times_.push_back(mv_icp_time);
-    times_.push_back(total_num_correspondences);
-    times_.push_back(sv_num_correspondences);
-    times_.push_back(createEdgesFromHypMatchOnlineTime);
-    times_.push_back(go3dIcpTime);
-    times_.push_back(go3dVerification);
-    times_.push_back(sv_total_time);
 
     savePCDwithPose();
 
@@ -1465,10 +1323,8 @@ void v4r::MultiviewRecognizer::savePCDwithPose()
     for (std::pair<vertex_iter, vertex_iter> vp = vertices (grph_final_); vp.first != vp.second; ++vp.first)
     {
         v4r::setCloudPose(grph_final_[*vp.first].absolute_pose_, *grph_final_[*vp.first].pScenePCl);
-        std::stringstream view_filename_ss;
-        view_filename_ss << grph_final_[*vp.first].pScenePCl->header.frame_id
-                         <<  ".pcd";
-        pcl::io::savePCDFileBinary(view_filename_ss.str(), *(grph_final_[*vp.first].pScenePCl));
+        const std::string view_filename =  grph_final_[*vp.first].pScenePCl->header.frame_id + ".pcd";
+        pcl::io::savePCDFileBinary(view_filename, *(grph_final_[*vp.first].pScenePCl));
     }
 }
 

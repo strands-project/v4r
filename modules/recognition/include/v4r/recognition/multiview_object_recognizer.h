@@ -32,7 +32,6 @@ namespace v4r
 class V4R_EXPORTS MultiviewRecognizer : public SingleViewRecognizer
 {
 private:
-//    boost::shared_ptr<Recognizer> pSingleview_recognizer_;
     Graph grph_, grph_final_;
     std::string most_current_view_id_, scene_name_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pAccumulatedKeypoints_;
@@ -41,7 +40,6 @@ private:
     pcl::visualization::PCLVisualizer::Ptr vis_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer_;
 //    int vp_go3d_1, vp_go3d_2;
-    std::vector<double> times_;
 
     Eigen::Matrix4f current_global_transform_;
 
@@ -96,6 +94,10 @@ public:
      */
     void estimateViewTransformationByRobotPose ( const Vertex &src, const Vertex &trgt, Graph &grph, Edge &edge );
 
+
+    /**
+     * @brief Extends hypotheses construced from other views in graph by following "calling_out_edge" and recursively the other views
+     */
     void extendHypothesisRecursive ( Graph &grph, Vertex &vrtx_start, std::vector<Hypothesis<PointT> > &hyp_vec, bool use_unverified_hypotheses = false);
 
     /**
@@ -136,12 +138,7 @@ public:
         return scene_name_;
     }
 
-    void get_times(std::vector<double> &times) const
-    {
-        times = times_;
-    }
-
-    bool recognize (const pcl::PointCloud<PointT>::ConstPtr inputCloud,
+    bool recognize (const pcl::PointCloud<PointT>::ConstPtr cloud,
                     const std::string &view_name,
                     const std::vector<float> &global_transform = std::vector<float>());
 

@@ -1,5 +1,5 @@
 #include <v4r/common/miscellaneous.h>
-#include <v4r/recognition/multiview_object_recognizer_service.h>
+#include <v4r/recognition/multiview_object_recognizer.h>
 #include <v4r/io/filesystem.h>
 
 #include <pcl/common/centroid.h>
