@@ -75,7 +75,7 @@ public:
         pcl::console::parse_argument (argc, argv,  "-models_dir", r_.models_dir_);
         pcl::console::parse_argument (argc, argv,  "-training_dir_sift", r_.training_dir_sift_);
         pcl::console::parse_argument (argc, argv,  "-training_dir_shot", r_.training_dir_shot_);
-        pcl::console::parse_argument (argc, argv,  "-recognizer_structure_sift", r_.sift_structure_);
+        pcl::console::parse_argument (argc, argv,  "-recognition_structure_dir", r_.sift_structure_);
         pcl::console::parse_argument (argc, argv,  "-training_dir_ourcvfh", r_.training_dir_ourcvfh_);
 
         pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_sift", r_.idx_flann_fn_sift_);
@@ -154,7 +154,7 @@ public:
 
                 std::vector<ModelTPtr> verified_models;
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
-                r_.getModelsAndTransforms(verified_models, transforms_verified);
+                r_.getVerifiedHypotheses(verified_models, transforms_verified);
                 if (visualize_)
                     visualize_result(cloud, verified_models, transforms_verified);
 

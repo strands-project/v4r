@@ -43,9 +43,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/keypoints/impl/PoseIO.hpp>
-#include <v4r/keypoints/impl/convertCloud.hpp>
-#include <v4r/keypoints/impl/convertNormals.hpp>
-#include <v4r/keypoints/impl/convertImage.hpp>
+#include <v4r/common/convertCloud.h>
+#include <v4r/common/convertNormals.h>
+#include <v4r/common/convertImage.h>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/noise_model_based_cloud_integration.h>

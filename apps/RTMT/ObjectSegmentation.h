@@ -47,7 +47,7 @@
 #include <pcl/octree/octree_pointcloud.h>
 #include <pcl/io/pcd_io.h>
 #include "OctreeVoxelCentroidContainerXYZRGB.hpp"
-#include <v4r/keypoints/ZAdaptiveNormals.h>
+#include <v4r/common/ZAdaptiveNormals.h>
 #include <v4r/keypoints/ClusterNormalsToPlanes.h>
 #include <v4r/common/impl//DataMatrix2D.hpp>
 #include <v4r/keypoints/impl/triple.hpp>

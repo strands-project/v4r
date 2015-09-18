@@ -43,7 +43,7 @@
 #include <v4r/registration/MultiSessionModelling.h>
 #include <v4r/registration/FeatureBasedRegistration.h>
 #include <v4r/registration/StablePlanesRegistration.h>
-#include <v4r/keypoints/impl/convertImage.hpp>
+#include <v4r/common/convertImage.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/keypoints/impl/PoseIO.hpp>

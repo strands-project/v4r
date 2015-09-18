@@ -335,7 +335,7 @@ public:
         multi_recog_->getPoseRefinement(models_, transforms_);
     }
 
-    bool hypothesesVerification(std::vector<bool> &mask_hv);
+    std::vector<bool> hypothesesVerification();
 //    bool hypothesesVerificationGpu(std::vector<bool> &mask_hv);
 
     void multiplaneSegmentation();
@@ -345,8 +345,8 @@ public:
     void preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_cloud, std::vector<float> &fsv);
 
     void constructHypothesesFromFeatureMatches(std::map < std::string,v4r::ObjectHypothesis<PointT> > hypothesesInput,
-                                               pcl::PointCloud<PointT>::Ptr pKeypoints,
-                                               pcl::PointCloud<pcl::Normal>::Ptr pKeypointNormals,
+                                               const pcl::PointCloud<PointT>::Ptr pKeypoints,
+                                               const pcl::PointCloud<pcl::Normal>::Ptr pKeypointNormals,
                                                std::vector<Hypothesis<PointT> > &hypothesesOutput,
                                                std::vector <pcl::Correspondences> &corresp_clusters);
 

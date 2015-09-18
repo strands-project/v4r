@@ -20,6 +20,24 @@ namespace v4r
       template<class PointT>
         class V4R_EXPORTS NguyenNoiseModel
         {
+        public:
+            class Parameter
+            {
+            public:
+                float lateral_sigma_;
+                float max_angle_;
+                bool use_depth_edges_;
+                Parameter(
+                        float lateral_sigma = 0.002f,
+                        float max_angle = 70.f,
+                        bool use_depth_edges = true)
+                        :
+                          lateral_sigma_ (lateral_sigma),
+                          max_angle_ ( max_angle ),
+                          use_depth_edges_( use_depth_edges )
+                        {}
+            };
+
         private:
           typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
           typedef typename pcl::PointCloud<pcl::Normal>::Ptr PointNormalTPtr;
@@ -31,14 +49,9 @@ namespace v4r
           bool pose_set_;
 
         public:
-          struct nguyensNoiseModelParams
-          {
-              float lateral_sigma_;
-              float max_angle_;
-              bool use_depth_edges_;
-          }nguyens_noise_model_params_;
+          Parameter param_;
 
-          NguyenNoiseModel ();
+          NguyenNoiseModel (const Parameter &param=Parameter());
 
           //this is the pose used to align a cloud so that its aligned to the RF
           //defined on a plane (z-axis corresponds to the plane normal) and
@@ -59,13 +72,13 @@ namespace v4r
           void
           setMaxAngle(float f)
           {
-            nguyens_noise_model_params_.max_angle_ = f;
+            param_.max_angle_ = f;
           }
 
           void
           setUseDepthEdges(bool b)
           {
-            nguyens_noise_model_params_.use_depth_edges_ = b;
+            param_.use_depth_edges_ = b;
           }
 
           void
@@ -79,7 +92,7 @@ namespace v4r
           void
           setLateralSigma(float s)
           {
-            nguyens_noise_model_params_.lateral_sigma_ = s;
+            param_.lateral_sigma_ = s;
           }
 
           void

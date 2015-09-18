@@ -24,8 +24,8 @@
  */
 
 
-#include "v4r/keypoints/ZAdaptiveNormals.h"
-#include "v4r/keypoints/eigen.h"
+#include <v4r/common/eigen.h>
+#include <v4r/common/ZAdaptiveNormals.h>
 
 namespace v4r
 {

@@ -26,13 +26,13 @@
 #ifndef KP_ZADAPTIVE_NORMALS_HH
 #define KP_ZADAPTIVE_NORMALS_HH
 
-#include <v4r/core/macros.h>
 
 #include <iostream>
 #include <stdexcept>
 #include <omp.h>
 #include <math.h>
 #include <Eigen/Dense>
+#include <v4r/core/macros.h>
 #include <v4r/common/impl/DataMatrix2D.hpp>
 #include <v4r/common/impl/SmartPtr.hpp>
 

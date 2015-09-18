@@ -133,7 +133,7 @@ namespace v4r
       /** \brief Sets input and scene normals. The function does nothing and should be reimplemented in the subclasses when needed.
         */
       virtual void
-      setInputAndSceneNormals (pcl::PointCloud<pcl::Normal>::Ptr & /*input_n*/, pcl::PointCloud<pcl::Normal>::Ptr & /*scene_n*/)
+      setInputAndSceneNormals (const pcl::PointCloud<pcl::Normal>::Ptr & /*input_n*/, const pcl::PointCloud<pcl::Normal>::Ptr & /*scene_n*/)
       {
 
       }

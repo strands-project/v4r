@@ -42,7 +42,7 @@
 #include <v4r/keypoints/PartMotion6D.h>
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/keypoints/impl/Object.hpp>
-#include <v4r/keypoints/impl/convertPose.hpp>
+#include <v4r/common/convertPose.h>
 
 
 namespace v4r
