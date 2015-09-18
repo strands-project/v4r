@@ -59,13 +59,13 @@ gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
     return (i.distance < j.distance);
 }
 
-struct Vertex
+struct ViewD
 {
     int idx_;
     size_t degree_;
 
     bool
-    operator< (const Vertex & j) const
+    operator< (const ViewD & j) const
     {
         if (degree_ == j.degree_)
         {
@@ -79,7 +79,7 @@ struct Vertex
 struct vertexDegreeSorter
 {
     bool
-    operator() (const Vertex & i, const Vertex & j) const
+    operator() (const ViewD & i, const ViewD & j) const
     {
         return i < j;
     }

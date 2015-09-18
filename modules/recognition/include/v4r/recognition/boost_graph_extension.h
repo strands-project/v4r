@@ -41,18 +41,12 @@ public:
         verified_ = verified;
 
         if(extended && (origin_id < 0 || origin_id > sNum_hypotheses_))
-        {
             std::cerr << "Hypothesis got extended but does not have a valid origin id." << std::endl;
-        }
 
         if(origin_id)
-        {
             id_ = origin_id;
-        }
         else
-        {
             id_ = ++sNum_hypotheses_;
-        }
     }
 
     Hypothesis ( const ModelTPtr model, const Eigen::Matrix4f transform, const std::string origin = "", const bool extended = false, const bool verified = false, const size_t origin_id = 0)
@@ -65,18 +59,12 @@ public:
         verified_ = verified;
 
         if(extended && (origin_id < 0 || origin_id > sNum_hypotheses_))
-        {
             std::cerr << "Hypothesis got extended but does not have a valid origin id." << std::endl;
-        }
 
         if(origin_id)
-        {
             id_ = origin_id;
-        }
         else
-        {
             id_ = ++sNum_hypotheses_;
-        }
     }
 };
 
@@ -91,7 +79,6 @@ public:
     boost::shared_ptr< pcl::PointCloud<PointT> > pScenePCl;
     boost::shared_ptr< pcl::PointCloud<PointT> > pScenePCl_f;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pSceneNormals;
-    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pSceneNormals_f;
     pcl::PointIndices filteredSceneIndices_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pKeypointNormalsMultipipe_;
@@ -103,10 +90,10 @@ public:
     std::vector<Hypothesis<PointT> > hypothesis_mv_;
     Eigen::Matrix4f transform_to_world_co_system_;
     bool has_been_hopped_;
-    bool transform_to_world_co_system_is_set_;
     double cumulative_weight_to_new_vrtx_;
     pcl::PointIndices keypointIndices_;
     std::vector<pcl::PointCloud<PointT>::Ptr> verified_planes_;
+    size_t id_;
 
     //GO3D
     Eigen::Matrix4f absolute_pose_;
@@ -114,32 +101,32 @@ public:
     std::vector<int> nguyens_kept_indices_;
 };
 
-class myEdge
+class Edge
 {
 public:
-    myEdge();
+    Edge();
     Eigen::Matrix4f transformation;
     double edge_weight;
     std::string model_name;
-    std::string source_id, target_id;
+    size_t source_id, target_id;
 };
 
 
 using namespace boost;
 
-typedef adjacency_list < vecS, vecS, undirectedS, View, myEdge > Graph;
-typedef graph_traits < Graph >::vertex_descriptor Vertex;
-typedef graph_traits < Graph >::edge_descriptor Edge;
-typedef graph_traits<Graph>::vertex_iterator vertex_iter;
-typedef graph_traits<Graph>::edge_iterator edge_iter;
-typedef property_map<Graph, vertex_index_t>::type IndexMap;
+typedef adjacency_list < vecS, vecS, undirectedS, View, Edge > MVGraph;
+typedef graph_traits < MVGraph >::vertex_descriptor ViewD;
+typedef graph_traits < MVGraph >::edge_descriptor EdgeD;
+typedef graph_traits<MVGraph>::vertex_iterator vertex_iter;
+typedef graph_traits<MVGraph>::edge_iterator edge_iter;
+typedef property_map<MVGraph, vertex_index_t>::type IndexMap;
 
 
-void visualizeGraph ( const Graph & grph, pcl::visualization::PCLVisualizer::Ptr vis);
-void pruneGraph (Graph &grph, size_t num_remaining_vertices=2);
-void outputgraph ( Graph &map, const char* filename );
-void resetHopStatus(Graph &grph);
-Vertex getFurthestVertex ( Graph &grph);
+void visualizeGraph ( const MVGraph & grph, pcl::visualization::PCLVisualizer::Ptr vis);
+void pruneGraph (MVGraph &grph, size_t num_remaining_vertices=2);
+void outputgraph ( MVGraph &map, const char* filename );
+void resetHopStatus(MVGraph &grph);
+ViewD getFurthestVertex ( MVGraph &grph);
 //void shallowCopyVertexIntoOtherGraph(const Vertex vrtx_src, const Graph grph_src, Vertex &vrtx_target, Graph &grph_target);
 //void copyEdgeIntoOtherGraph(const Edge edge_src, const Graph grph_src, Edge &edge_target, Graph &grph_target);
 //std::vector<Vertex> my_node_reader ( std::string filename, Graph &g )

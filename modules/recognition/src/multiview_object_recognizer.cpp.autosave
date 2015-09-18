@@ -1012,7 +1012,6 @@ MultiviewRecognizer::recognize (const pcl::PointCloud<PointT>::ConstPtr cloud,
                 }
 
                 go3d.setObjectIds (ids);
-
                 go3d.verify ();
                 std::vector<bool> mask;
                 go3d.getMask (mask);

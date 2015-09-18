@@ -14,7 +14,7 @@ struct my_graph_writer
 
 struct my_edge_writer
 {
-	my_edge_writer ( Graph& g_ ) :
+    my_edge_writer ( MVGraph& g_ ) :
 		g ( g_ )
 	{
 	}
@@ -28,13 +28,13 @@ struct my_edge_writer
 		out << " [label=\"" << g[e].edge_weight << boost::filesystem::path ( g[e].model_name ).stem ().string () << "\"]" << std::endl;
 	}
 	;
-	Graph g;
+    MVGraph g;
 };
 
 struct my_node_writer
 {
     typedef pcl::PointXYZRGB PointT;
-	my_node_writer ( Graph& g_ ) :
+    my_node_writer ( MVGraph& g_ ) :
 		g ( g_ )
 	{
 	}
@@ -43,10 +43,10 @@ struct my_node_writer
 	void
 	operator() ( std::ostream& out, Vertex v )
 	{
-        out << " [label=\"" << g[v].pScenePCl->header.frame_id << "(" << boost::filesystem::path ( g[v].pScenePCl->header.frame_id ).stem ().string () << ")\"]"
+        out << " [label=\"" << g[v].id_ << "(" << g[v].id_ << ")\"]"
 		    << std::endl;
-        out << " [file=\"" << g[v].pScenePCl->header.frame_id << "\"]" << std::endl;
-        out << " [index=\"" << g[v].pScenePCl->header.frame_id << "\"]" << std::endl;
+        out << " [file=\"" << g[v].id_ << "\"]" << std::endl;
+        out << " [index=\"" << g[v].id_ << "\"]" << std::endl;
 
         for ( std::vector<Hypothesis<PointT> >::iterator it_hyp = g[v].hypothesis_sv_.begin (); it_hyp != g[v].hypothesis_sv_.end (); ++it_hyp )
 		{
@@ -61,10 +61,10 @@ struct my_node_writer
 		}
 	}
 	;
-	Graph g;
+    MVGraph g;
 };
 
-void outputgraph ( Graph& map, const char* filename )
+void outputgraph ( MVGraph& map, const char* filename )
 {
 	std::ofstream gout;
 	gout.open ( filename );
@@ -76,21 +76,17 @@ View::View ()
     pScenePCl.reset ( new pcl::PointCloud<pcl::PointXYZRGB> );
     pScenePCl_f.reset ( new pcl::PointCloud<pcl::PointXYZRGB> );
     pSceneNormals.reset ( new pcl::PointCloud<pcl::Normal> );
-    pSceneNormals_f.reset ( new pcl::PointCloud<pcl::Normal> );
     pKeypointNormalsMultipipe_.reset ( new pcl::PointCloud<pcl::Normal> );
 //    pIndices_above_plane.reset ( new pcl::PointIndices );
     pSiftSignatures_.reset ( new pcl::PointCloud<FeatureT> );
     has_been_hopped_ = false;
     cumulative_weight_to_new_vrtx_ = 0;
-    transform_to_world_co_system_is_set_ = false;
 }
 
-myEdge::myEdge()
+Edge::Edge()
 {
     edge_weight = std::numeric_limits<float>::max ();
     model_name = "";
-    source_id = "";
-    target_id = "";
 //    edge_weight_has_been_calculated_ = false;
 //    std::vector <cv::DMatch> matches;
 }
@@ -125,14 +121,14 @@ myEdge::myEdge()
 //    grph_target[edge_target].edge_weight_has_been_calculated_ = grph_src[edge_src].edge_weight_has_been_calculated_;
 //}
 
-void pruneGraph (Graph &grph, size_t num_remaining_vertices)
+void pruneGraph (MVGraph &grph, size_t num_remaining_vertices)
 {
     while(num_vertices(grph) > num_remaining_vertices)
     {
-        Vertex vrtxToKill = getFurthestVertex(grph);
+        ViewD vrtxToKill = getFurthestVertex(grph);
 
-        std::vector<Edge> edges_to_be_removed;
-        graph_traits<Graph>::out_edge_iterator out_i, out_end;
+        std::vector<EdgeD> edges_to_be_removed;
+        graph_traits<MVGraph>::out_edge_iterator out_i, out_end;
         for ( tie ( out_i, out_end ) = out_edges ( vrtxToKill, grph ); out_i != out_end; ++out_i )
         {
             edges_to_be_removed.push_back(*out_i);
@@ -145,7 +141,7 @@ void pruneGraph (Graph &grph, size_t num_remaining_vertices)
 
         edges_to_be_removed.clear();   // This should fix a problem with newer boost versions that in_edges and out_edges are not treated seperately any more for undirected edges
 
-        graph_traits<Graph>::in_edge_iterator in_i, in_end;
+        graph_traits<MVGraph>::in_edge_iterator in_i, in_end;
         for ( tie ( in_i, in_end ) = in_edges ( vrtxToKill, grph ); in_i != in_end; ++in_i )
         {
             edges_to_be_removed.push_back(*in_i);
@@ -159,7 +155,7 @@ void pruneGraph (Graph &grph, size_t num_remaining_vertices)
     }
 }
 
-void resetHopStatus(Graph &grph)
+void resetHopStatus(MVGraph &grph)
 {
     for (std::pair<vertex_iter, vertex_iter> vp = vertices ( grph ); vp.first != vp.second; ++vp.first )
     {
@@ -168,12 +164,12 @@ void resetHopStatus(Graph &grph)
 
 }
 
-Vertex getFurthestVertex ( Graph &grph)
+ViewD getFurthestVertex ( MVGraph &grph)
 {
     std::pair<vertex_iter, vertex_iter> vp; //vp.first = running iterator..... vp.second = last iterator
 
     vp = vertices ( grph );
-    Vertex furthest_vrtx = *vp.first;
+    ViewD furthest_vrtx = *vp.first;
     ++vp.first;
 
     for (; vp.first != vp.second; ++vp.first )

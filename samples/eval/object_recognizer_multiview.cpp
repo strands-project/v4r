@@ -154,20 +154,22 @@ public:
             std::vector< std::string > views;
             v4r::io::getFilesInDirectory(sequence_path, views, "", ".*.pcd", false);
             std::sort(views.begin(), views.end());
-            for (size_t v_id=0; v_id<views.size(); v_id++)
-            {
+            for (size_t v_id=0; v_id<views.size(); v_id++) {
                 const std::string fn = test_dir_ + "/" + sub_folder_names[sub_folder_id] + "/" + views[ v_id ];
 
                 std::cout << "Recognizing file " << fn << std::endl;
                 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
                 pcl::io::loadPCDFile(fn, *cloud);
-                r_.recognize(cloud, views[ v_id ]);
+
+                // The transformation is read from the .pcd file ( if correct, " pcl_viewer sequence_path/* " should align the clouds correctly)
+                const Eigen::Matrix4f tf = v4r::RotTrans2Mat4f(cloud->sensor_orientation_,cloud->sensor_origin_);
+                r_.recognize(cloud, tf);
 
                 std::vector<ModelTPtr> verified_models;
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
                 r_.getModelsAndTransforms(verified_models, transforms_verified);
-                if (visualize_)
-                    visualize_result(cloud, verified_models, transforms_verified);
+//                if (visualize_)
+//                    visualize_result(cloud, verified_models, transforms_verified);
 
                 for(size_t m_id=0; m_id<verified_models.size(); m_id++)
                 {
