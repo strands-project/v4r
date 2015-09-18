@@ -53,7 +53,7 @@
 #include <v4r/reconstruction/KeypointSlamRGBD2.h>
 #include <v4r/common/impl/DataMatrix2D.hpp>
 #include <v4r/keypoints/impl/triple.hpp>
-#include <v4r/keypoints/impl/convertCloud.hpp>
+#include <v4r/common/convertCloud.h>
 #include <v4r/keypoints/ClusterNormalsToPlanes.h>
 #include "OctreeVoxelCentroidContainerXYZRGB.hpp"
 

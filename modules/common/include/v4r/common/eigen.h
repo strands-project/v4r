@@ -864,7 +864,7 @@ namespace v4r
   umeyama (const Eigen::MatrixBase<Derived>& src, const Eigen::MatrixBase<OtherDerived>& dst, bool with_scaling = false);
 }
 
-#include "v4r/keypoints/impl/eigen.hpp"
+#include <v4r/common/impl/eigen.hpp>
 
 #if defined __SUNPRO_CC
 #  pragma enable_warn

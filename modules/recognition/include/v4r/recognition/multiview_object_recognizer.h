@@ -21,6 +21,8 @@
 #include <pcl/point_types.h>
 #include <pcl/search/impl/flann_search.hpp>
 
+#include <v4r/common/noise_models.h>
+
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 #include "boost_graph_extension.h"
@@ -32,7 +34,6 @@ namespace v4r
 class V4R_EXPORTS MultiviewRecognizer : public SingleViewRecognizer
 {
 private:
-//    boost::shared_ptr<Recognizer> pSingleview_recognizer_;
     Graph grph_, grph_final_;
     std::string most_current_view_id_, scene_name_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pAccumulatedKeypoints_;
@@ -41,7 +42,6 @@ private:
     pcl::visualization::PCLVisualizer::Ptr vis_;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer_;
 //    int vp_go3d_1, vp_go3d_2;
-    std::vector<double> times_;
 
     Eigen::Matrix4f current_global_transform_;
 
@@ -79,6 +79,8 @@ public:
         pAccumulatedKeypointNormals_.reset (new pcl::PointCloud<pcl::Normal>);
     }
 
+    v4r::noise_models::NguyenNoiseModel<PointT>::Parameter nm_param_;
+
     bool calcSiftFeatures(Vertex &src, Graph &grph);
 
     void estimateViewTransformationBySIFT ( const Vertex &src, const Vertex &trgt, Graph &grph,
@@ -96,6 +98,10 @@ public:
      */
     void estimateViewTransformationByRobotPose ( const Vertex &src, const Vertex &trgt, Graph &grph, Edge &edge );
 
+
+    /**
+     * @brief Extends hypotheses construced from other views in graph by following "calling_out_edge" and recursively the other views
+     */
     void extendHypothesisRecursive ( Graph &grph, Vertex &vrtx_start, std::vector<Hypothesis<PointT> > &hyp_vec, bool use_unverified_hypotheses = false);
 
     /**
@@ -136,16 +142,9 @@ public:
         return scene_name_;
     }
 
-    void get_times(std::vector<double> &times) const
-    {
-        times = times_;
-    }
-
-    bool recognize (const pcl::PointCloud<PointT>::ConstPtr inputCloud,
+    bool recognize (const pcl::PointCloud<PointT>::ConstPtr cloud,
                     const std::string &view_name,
                     const std::vector<float> &global_transform = std::vector<float>());
-
-//    void setPSingleview_recognizer(const boost::shared_ptr<Recognizer> &value);
 
     bool getVerifiedHypotheses(std::vector<ModelTPtr> &models,
                                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms) const
@@ -153,17 +152,12 @@ public:
         models.clear();
         transforms.clear();
 
-        if(num_vertices(grph_))
-        {
+        if(num_vertices(grph_)) {
             std::pair<vertex_iter, vertex_iter> vp;
-            for ( vp = vertices ( grph_ ); vp.first != vp.second; ++vp.first )
-            {
-                if (grph_[*vp.first].pScenePCl->header.frame_id.compare(most_current_view_id_) == 0)
-                {
-                    for(size_t i=0; i < grph_[*vp.first].hypothesis_mv_.size(); i++)
-                    {
-                        if(grph_[*vp.first].hypothesis_mv_[i].verified_)
-                        {
+            for ( vp = vertices ( grph_ ); vp.first != vp.second; ++vp.first ) {
+                if (grph_[*vp.first].pScenePCl->header.frame_id.compare(most_current_view_id_) == 0) {
+                    for(size_t i=0; i < grph_[*vp.first].hypothesis_mv_.size(); i++) {
+                        if(grph_[*vp.first].hypothesis_mv_[i].verified_) {
                             models.push_back(grph_[*vp.first].hypothesis_mv_[i].model_);
                             transforms.push_back(grph_[*vp.first].hypothesis_mv_[i].transform_);
                         }
@@ -183,17 +177,12 @@ public:
         models.clear();
         transforms.clear();
 
-        if(num_vertices(grph_))
-        {
+        if(num_vertices(grph_)) {
             std::pair<vertex_iter, vertex_iter> vp;
-            for ( vp = vertices ( grph_ ); vp.first != vp.second; ++vp.first )
-            {
-                if (grph_[*vp.first].pScenePCl->header.frame_id.compare(most_current_view_id_) == 0)
-                {
-                    for(size_t i=0; i < grph_[*vp.first].hypothesis_sv_.size(); i++)
-                    {
-                        if(grph_[*vp.first].hypothesis_sv_[i].verified_)
-                        {
+            for ( vp = vertices ( grph_ ); vp.first != vp.second; ++vp.first ) {
+                if (grph_[*vp.first].pScenePCl->header.frame_id.compare(most_current_view_id_) == 0) {
+                    for(size_t i=0; i < grph_[*vp.first].hypothesis_sv_.size(); i++) {
+                        if(grph_[*vp.first].hypothesis_sv_[i].verified_) {
                             models.push_back(grph_[*vp.first].hypothesis_sv_[i].model_);
                             transforms.push_back(grph_[*vp.first].hypothesis_sv_[i].transform_);
                         }

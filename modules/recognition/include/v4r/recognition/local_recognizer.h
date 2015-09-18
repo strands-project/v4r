@@ -105,7 +105,7 @@ namespace v4r
           std::string search_model_;
 
           flann::Matrix<float> flann_data_;
-          flann::Index<DistT> * flann_index_;
+          boost::shared_ptr<flann::Index<DistT> > flann_index_;
           //flann::NNIndex<DistT> * flann_index_;
 
           std::map< std::pair< ModelTPtr, int >, std::vector<int> > model_view_id_to_flann_models_;
@@ -151,7 +151,8 @@ namespace v4r
             data.rows = models.size ();
             data.cols = models[0].descr.size (); // number of histogram bins
 
-            flann::Matrix<float> flann_data (new float[models.size () * models[0].descr.size ()], models.size (), models[0].descr.size ());
+            float *empty_data = new float[models.size () * models[0].descr.size ()];
+            flann::Matrix<float> flann_data (empty_data, models.size (), models[0].descr.size ());
 
             for (size_t i = 0; i < data.rows; ++i)
               for (size_t j = 0; j < data.cols; ++j)
@@ -166,7 +167,7 @@ namespace v4r
           nearestKSearch (flann::Index<DistT> * index, float * descr, int descr_size, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);*/
 
           void
-          nearestKSearch (flann::Index<DistT> * index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);
+          nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);
 
           void
           getPose (const ModelT &model, int view_id, Eigen::Matrix4f & pose_matrix);
@@ -226,12 +227,17 @@ namespace v4r
 
           virtual void prepareSpecificCG(PointInTPtr & scene_cloud, PointInTPtr & scene_keypoints)
           {
-
+                (void)scene_cloud;
+                (void)scene_keypoints;
+                std::cerr << "This is a virtual function doing nothing!" << std::endl;
           }
 
           virtual void specificCG(PointInTPtr & scene_cloud, PointInTPtr & scene_keypoints, ObjectHypothesis<PointInT> & oh)
           {
-            //std::cout << "specificCG => this function does nothing..." << std::endl;
+              (void)scene_cloud;
+              (void)scene_keypoints;
+              (void)oh;
+              std::cerr << "This is a virtual function doing nothing!" << std::endl;
           }
 
           virtual void clearSpecificCG() {

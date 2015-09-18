@@ -136,7 +136,7 @@ public:
         sv_params_.add_planes_ = true;
         sv_params_.knn_shot_ = 1;
         sv_params_.knn_sift_ = 5;
-        sv_params_.normal_computation_method_ = 0;
+        sv_params_.normal_computation_method_ = 2;
 
         sv_params_.icp_iterations_ = 0;
         sv_params_.icp_type_ = 1;
@@ -305,11 +305,11 @@ public:
         }
     }
 
-    void setInputCloud(const pcl::PointCloud<PointT>::ConstPtr pInputCloud,
-                       const pcl::PointCloud<pcl::Normal>::ConstPtr pSceneNormals)
+    void setInputCloud(const pcl::PointCloud<PointT>::Ptr &cloud,
+                       const pcl::PointCloud<pcl::Normal>::Ptr &normals)
     {
-        pcl::copyPointCloud(*pInputCloud, *pInputCloud_);
-        pcl::copyPointCloud(*pSceneNormals, *pSceneNormals_);
+        pInputCloud_ = cloud;
+        pSceneNormals_ = normals;
         model_ids_verified_.clear();
         transforms_verified_.clear();
         models_verified_.clear();
@@ -323,10 +323,11 @@ public:
 //            models_->clear();
     }
 
-    void setInputCloud(const pcl::PointCloud<PointT>::ConstPtr pInputCloud)
+    void setInputCloud(const pcl::PointCloud<PointT>::Ptr &cloud)
     {
-        v4r::computeNormals(pInputCloud, pSceneNormals_, sv_params_.normal_computation_method_);
-        setInputCloud(pInputCloud, pSceneNormals_);
+        pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>());
+        v4r::computeNormals(cloud, normals, sv_params_.normal_computation_method_);
+        setInputCloud(cloud, normals);
     }
 
     void poseRefinement()
@@ -334,7 +335,7 @@ public:
         multi_recog_->getPoseRefinement(models_, transforms_);
     }
 
-    bool hypothesesVerification(std::vector<bool> &mask_hv);
+    std::vector<bool> hypothesesVerification();
 //    bool hypothesesVerificationGpu(std::vector<bool> &mask_hv);
 
     void multiplaneSegmentation();
@@ -344,8 +345,8 @@ public:
     void preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_cloud, std::vector<float> &fsv);
 
     void constructHypothesesFromFeatureMatches(std::map < std::string,v4r::ObjectHypothesis<PointT> > hypothesesInput,
-                                               pcl::PointCloud<PointT>::Ptr pKeypoints,
-                                               pcl::PointCloud<pcl::Normal>::Ptr pKeypointNormals,
+                                               const pcl::PointCloud<PointT>::Ptr pKeypoints,
+                                               const pcl::PointCloud<pcl::Normal>::Ptr pKeypointNormals,
                                                std::vector<Hypothesis<PointT> > &hypothesesOutput,
                                                std::vector <pcl::Correspondences> &corresp_clusters);
 

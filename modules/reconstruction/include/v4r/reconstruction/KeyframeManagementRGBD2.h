@@ -46,7 +46,7 @@
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/common/impl/DataMatrix2D.hpp>
 #include <v4r/features/FeatureDetector_KD_FAST_IMGD.h>
-#include <v4r/keypoints/ZAdaptiveNormals.h>
+#include <v4r/common/ZAdaptiveNormals.h>
 //#include "v4r/TomGine/tgTomGineThread.h"
 #include <v4r/common/impl/RandomNumbers.hpp>
 #include <v4r/core/macros.h>

@@ -34,7 +34,7 @@
 #include <pcl/common/io.h>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/keypoints/impl/toString.hpp>
-#include <v4r/keypoints/impl/convertCloud.hpp>
+#include <v4r/common/convertCloud.h>
 #include <v4r/keypoints/CodebookMatcher.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/sample_consensus/ransac.h>

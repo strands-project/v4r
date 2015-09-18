@@ -1,5 +1,5 @@
 #include <v4r/common/miscellaneous.h>
-#include <v4r/recognition/multiview_object_recognizer_service.h>
+#include <v4r/recognition/multiview_object_recognizer.h>
 #include <v4r/io/filesystem.h>
 
 #include <pcl/common/centroid.h>
@@ -75,7 +75,7 @@ public:
         pcl::console::parse_argument (argc, argv,  "-models_dir", r_.models_dir_);
         pcl::console::parse_argument (argc, argv,  "-training_dir_sift", r_.training_dir_sift_);
         pcl::console::parse_argument (argc, argv,  "-training_dir_shot", r_.training_dir_shot_);
-        pcl::console::parse_argument (argc, argv,  "-recognizer_structure_sift", r_.sift_structure_);
+        pcl::console::parse_argument (argc, argv,  "-recognition_structure_dir", r_.sift_structure_);
         pcl::console::parse_argument (argc, argv,  "-training_dir_ourcvfh", r_.training_dir_ourcvfh_);
 
         pcl::console::parse_argument (argc, argv,  "-idx_flann_fn_sift", r_.idx_flann_fn_sift_);
@@ -84,7 +84,7 @@ public:
         pcl::console::parse_argument (argc, argv,  "-scene_to_scene", r_.mv_params_.scene_to_scene_);
         pcl::console::parse_argument (argc, argv,  "-use_robot_pose", r_.mv_params_.use_robot_pose_);
         pcl::console::parse_argument (argc, argv,  "-extension_mode", r_.mv_params_.extension_mode_);
-        pcl::console::parse_argument (argc, argv,  "-max_vertices_in_graph",r_. mv_params_.max_vertices_in_graph_);
+        pcl::console::parse_argument (argc, argv,  "-max_vertices_in_graph", r_. mv_params_.max_vertices_in_graph_);
         pcl::console::parse_argument (argc, argv,  "-distance_keypoints_get_discarded", r_.mv_params_.distance_keypoints_get_discarded_);
 
         pcl::console::parse_argument (argc, argv,  "-chop_z", r_.sv_params_.chop_at_z_ );
@@ -93,6 +93,7 @@ public:
         pcl::console::parse_argument (argc, argv,  "-do_shot", r_.sv_params_.do_shot_);
         pcl::console::parse_argument (argc, argv,  "-do_ourcvfh", r_.sv_params_.do_ourcvfh_);
         pcl::console::parse_argument (argc, argv,  "-knn_sift", r_.sv_params_.knn_sift_);
+        pcl::console::parse_argument (argc, argv,  "-normal_method", r_.sv_params_.normal_computation_method_);
 
         pcl::console::parse_argument (argc, argv,  "-cg_size_thresh", r_.cg_params_.cg_size_threshold_);
         pcl::console::parse_argument (argc, argv,  "-cg_size", r_.cg_params_.cg_size_);
@@ -153,7 +154,7 @@ public:
 
                 std::vector<ModelTPtr> verified_models;
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
-                r_.getModelsAndTransforms(verified_models, transforms_verified);
+                r_.getVerifiedHypotheses(verified_models, transforms_verified);
                 if (visualize_)
                     visualize_result(cloud, verified_models, transforms_verified);
 

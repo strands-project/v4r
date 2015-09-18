@@ -251,7 +251,7 @@ namespace v4r
       bool
       recognize (std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations, std::vector<pcl::Correspondences> &clustered_corrs);
 
-      void setInputAndSceneNormals(pcl::PointCloud<pcl::Normal>::Ptr & input_n, pcl::PointCloud<pcl::Normal>::Ptr & scene_n)
+      void setInputAndSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr & input_n, const pcl::PointCloud<pcl::Normal>::Ptr & scene_n)
       {
         input_normals_ = input_n;
         scene_normals_ = scene_n;
