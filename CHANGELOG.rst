@@ -2,6 +2,29 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#31 <https://github.com/strands-project/v4r/issues/31>`_ from strands-project/namespace_update
+  Namespace update
+* namespace update
+  polishing multiview recognizer
+  add libsvm as system dependency
+* Merge remote-tracking branch 'sergey/find-system-libsvm' into namespace_update
+* Add CMake commands to detect system installation of LibSVM
+  The possibility to build LibSVM from source is preserved, but has to be
+  enabled by setting BUILD_LIBSVM option (which is now off by default).
+* rename multiview_object_recognizer
+  silence unused variable warning
+  removed unneccessary point cloud copy
+  normal method now a parameter
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !39
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !38
+* Contributors: Sergey Alexandrov, Thomas Fäulhammer
+
 1.0.9 (2015-09-17)
 ------------------
 * Merge branch 'master' of github.com:strands-project/v4r
