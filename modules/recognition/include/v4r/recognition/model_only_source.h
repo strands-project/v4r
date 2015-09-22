@@ -62,7 +62,7 @@ namespace v4r
         }
 
         void
-        loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model)
+        loadOrGenerate (const std::string & model_path, ModelT & model)
         {
           if(ext_.compare("pcd") == 0)
           {
@@ -131,7 +131,7 @@ namespace v4r
           std::cout << files.size() << std::endl;
 
           models_.reset (new std::vector<ModelTPtr>);
-
+          std::sort(files.begin(), files.end());
           for (size_t i = 0; i < files.size (); i++)
           {
             ModelTPtr m(new ModelT());
@@ -166,7 +166,7 @@ namespace v4r
             std::stringstream model_path;
             model_path << path_ << "/" << files[i];
             std::string path_model = model_path.str ();
-            loadOrGenerate (training_dir, path_model, *m);
+            loadOrGenerate (path_model, *m);
 
             models_->push_back (m);
 

@@ -114,7 +114,7 @@ namespace v4r
         }
 
         void
-        assembleModelFromViewsAndPoses(ModelT & model, std::vector<Eigen::Matrix4f> & poses) {
+        assembleModelFromViewsAndPoses(ModelT & model, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses) {
           for(size_t i=0; i < model.views_->size(); i++) {
             Eigen::Matrix4f inv = poses[i];
             typename pcl::PointCloud<PointInT>::Ptr global_cloud(new pcl::PointCloud<PointInT>);
@@ -174,7 +174,7 @@ namespace v4r
               }
             }
 
-            std::vector<Eigen::Matrix4f> poses_to_assemble_;
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_to_assemble_;
 
             for (size_t i = 0; i < view_filenames.size (); i++)
             {
@@ -193,7 +193,7 @@ namespace v4r
               std::stringstream pose_file;
               pose_file << pathmodel.str () << "/" << file_replaced1;
               Eigen::Matrix4f pose;
-              PersistenceUtils::readMatrixFromFile (pose_file.str (), pose);
+              PersistencereadMatrixFromFile (pose_file.str (), pose);
 
               if(pose_files_order_ != 0) {
                 //std::cout << "Transpose..." << std::endl;
@@ -249,7 +249,7 @@ namespace v4r
             std::vector < std::string > view_filenames;
 
             //read all views...compute voxel grid sizes
-            v4r::utils::getFilesInDirectory( (model_path, view_filenames, "", ".*.pcd", true);
+            v4r::getFilesInDirectory( (model_path, view_filenames, "", ".*.pcd", true);
             std::cout << view_filenames.size () << " " << model_path << std::endl;
             std::sort(view_filenames.begin(), view_filenames.end());
             std::vector<typename pcl::PointCloud<PointInT>::Ptr> view_clouds;
@@ -617,7 +617,7 @@ namespace v4r
               boost::replace_all (file_replaced1, ".pcd", ".txt");
 
               Eigen::Matrix4f pose;
-              PersistenceUtils::readMatrixFromFile (file_replaced1, pose);
+              PersistencereadMatrixFromFile (file_replaced1, pose);
 
               std::cout << pose << std::endl;
 
@@ -630,7 +630,7 @@ namespace v4r
 
               std::stringstream path_pose;
               path_pose << direc.str () << "/pose_" << i << ".txt";
-              v4r::PersistenceUtils::writeMatrixToFile (path_pose.str (), pose);
+              v4r::PersistencewriteMatrixToFile (path_pose.str (), pose);
             }
 
             loadOrGenerate (dir, model_path, model);*/
@@ -665,7 +665,7 @@ namespace v4r
 
           //get models in directory
           std::vector < std::string > files;
-          v4r::utils::getFilesInDirectory(path_, files, "", "", true);
+          v4r::getFilesInDirectory(path_, files, "", "", true);
 
           models_.reset (new std::vector<ModelTPtr>);
 

@@ -2,9 +2,6 @@
 
 namespace v4r
 {
-namespace common
-{
-
 
 template<typename PointType, typename DistType>
 void
@@ -49,7 +46,6 @@ void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointTy
     cloud.sensor_orientation_ = q;
 }
 
-}
 }
 
 

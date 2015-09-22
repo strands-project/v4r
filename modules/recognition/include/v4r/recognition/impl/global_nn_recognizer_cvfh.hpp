@@ -200,7 +200,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
                 std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
                 dir << path << "/roll_trans_" << descr_model.view_id << "_" << descr_model.descriptor_id << ".txt";
                 Eigen::Matrix4f pose_matrix;
-                PersistenceUtils::readMatrixFromFile2 (dir.str (), pose_matrix);
+                PersistencereadMatrixFromFile2 (dir.str (), pose_matrix);
                 std::pair<std::string, int> pair_model_view = std::make_pair (models->at (i)->id_, descr_model.view_id);
                 roll_trans_cache_[pair_model_view] = pose_matrix;
             }*/

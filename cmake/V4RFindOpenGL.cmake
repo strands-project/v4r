@@ -1,0 +1,8 @@
+if(WITH_OPENGL)
+  find_package(OpenGL)
+  if(OPENGL_FOUND)
+    set(OPENGL_LIBRARIES "${OPENGL_LIBRARIES}")
+    set(OPENGL_INCLUDE_DIRS "${OPENGL_INCLUDE_DIR}")
+    set(HAVE_OPENGL TRUE)
+  endif()
+endif()

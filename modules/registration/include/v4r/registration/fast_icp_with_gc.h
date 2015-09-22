@@ -77,8 +77,7 @@ namespace v4r
 
       void
       visualizeICPNodes(typename std::vector<boost::shared_ptr<ICPNode<PointT> > > & nodes,
-                          pcl::visualization::PCLVisualizer & vis,
-                          std::string wname="icp nodes");
+                          pcl::visualization::PCLVisualizer & vis);
 
       bool
       filterHypothesesByPose(typename boost::shared_ptr< ICPNode<PointT> > & current,
@@ -138,7 +137,7 @@ namespace v4r
 
       inline void
       uniformSamplingOfKeypoints (typename pcl::PointCloud<PointT>::Ptr & keypoint_cloud, std::vector<int> & indices_keypoints,
-                                  std::vector<int> & indices, v4r::common::UniformSamplingSharedVoxelGrid<PointT> & keypoint_extractor)
+                                  std::vector<int> & indices, v4r::UniformSamplingSharedVoxelGrid<PointT> & keypoint_extractor)
       {
 
         //pcl::UniformSampling<PointT> keypoint_extractor;

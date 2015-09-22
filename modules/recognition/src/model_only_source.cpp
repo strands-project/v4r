@@ -34,10 +34,10 @@ computeFacesImpl (typename v4r::Model<PointInT> & model)
     typename std::map <uint32_t, typename pcl::Supervoxel<PointInT>::Ptr>::iterator sv_itr,sv_itr_end;
     sv_itr = supervoxel_clusters.begin ();
     sv_itr_end = supervoxel_clusters.end ();
-    int i=0;
-    for ( ; sv_itr != sv_itr_end; ++sv_itr, i++)
+    int idx=0;
+    for ( ; sv_itr != sv_itr_end; ++sv_itr, idx++)
     {
-      label_to_idx[sv_itr->first] = i;
+      label_to_idx[sv_itr->first] = idx;
     }
 
     std::vector< std::vector<bool> > adjacent;
@@ -143,6 +143,7 @@ void
 computeFacesImpl <pcl::PointXYZ, pcl::PointXYZ>
     (v4r::Model<pcl::PointXYZ> & model)
 {
+    (void) model;
     PCL_WARN("Not implemented for pcl::PointXYZ... this function would be available for PCL1.7.2 or higher\n");
 }
 

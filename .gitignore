@@ -1,6 +1,7 @@
 
 # Project structure
 build
+build_debug
 bin
 lib
 doc
@@ -15,7 +16,10 @@ CMakeFiles
 Makefile
 cmake_install.cmake
 install_manifest.txt
-CMakeLists.txt.user # created by QT creator for instance
+
+# Qt cache
+CMakeLists.txt.user
+CMakeLists.txt.user.*
 
 # Precompiled Headers
 *.gch

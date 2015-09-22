@@ -9,7 +9,7 @@
 #define FAAT_PCL_REC_FRAMEWORK_OURCVFH_ESTIMATOR_H_
 
 #include "global_estimator.h"
-#include "normal_estimator.h"
+#include <v4r/common/normal_estimator.h>
 #include <pcl/features/our_cvfh.h>
 #include <pcl/surface/mls.h>
 #include <pcl/pcl_config.h>
@@ -251,10 +251,10 @@ namespace v4r
                 //std::cout << "Res:" << normal_estimator_->mesh_resolution_ << " Radius normals:" << radius << " Cluster tolerance:" << cluster_tolerance_radius << " " << eps_angle_threshold_ << " " << curvature_threshold_ << std::endl;
 
                 //std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > centroids_in;
-#if PCL_VERSION >= PCL_VERSION_CALC(1, 8, 0)
-                std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > centroids_in;
-#else
+#if PCL_VERSION <= 100800
                 std::vector<Eigen::Vector3f> centroids_in;
+#else
+                std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > centroids_in;
 #endif
                 std::vector<bool> valid_roll_transforms_in;
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_in;

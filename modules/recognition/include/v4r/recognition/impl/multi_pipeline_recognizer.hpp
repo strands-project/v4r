@@ -272,7 +272,7 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
             //      {
             //        pcl::ScopeTime t("finding correct indices...\n");
             //        std::vector<int> correct_indices;
-            //        v4r::ORUtils::miscellaneous::getIndicesFromCloud<PointInT>(processed, keypoints_cloud_, correct_indices);
+            //        v4r::ORmiscellaneous::getIndicesFromCloud<PointInT>(processed, keypoints_cloud_, correct_indices);
             pcl::copyPointCloud(*all_scene_normals, keypoint_indices_.indices, *scene_normals);
             //      }
         }
@@ -305,7 +305,7 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
                 object_ids.push_back(it_map->second.model_->id_);
             }
 
-            faat_pcl::MultiObjectGraphGeometricConsistencyGrouping<PointInT, PointInT> mo_gcc;
+            v4r::MultiObjectGraphGeometricConsistencyGrouping<PointInT, PointInT> mo_gcc;
             mo_gcc.setDotDistance(0.25f);
             mo_gcc.setGCSize(0.01);
             mo_gcc.setGCThreshold(3);

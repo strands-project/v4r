@@ -7,8 +7,7 @@
 #include <pcl/search/kdtree.h>
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
-#include <v4r/recognition/multiplane_segmentation.h>
-#include <v4r/features/sift_local_estimator.h>
+#include <v4r/segmentation/multiplane_segmentation.h>
 #include <v4r/recognition/hv_go_3D.h>
 #include <v4r/registration/fast_icp_with_gc.h>
 #include <v4r/common/miscellaneous.h>
@@ -18,6 +17,11 @@
 #include <v4r/segmentation/segmentation_utils.h>
 #include <v4r/common/miscellaneous.h>
 
+#ifdef USE_SIFT_GPU
+#include <v4r/features/sift_local_estimator.h>
+#else
+#include <v4r/features/opencv_sift_local_estimator.h>
+#endif
 
 #ifdef __NVCC__
     #include <algorithm>
@@ -98,15 +102,22 @@ createBigPointCloudRecursive (Graph & grph, Vertex &vrtx_start, pcl::PointCloud<
 bool MultiviewRecognizer::
 calcSiftFeatures (Vertex &src, Graph &grph)
 {
+    boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypoints;
+#ifdef USE_SIFT_GPU
     boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT> > estimator;
     estimator.reset (new v4r::SIFTLocalEstimation<PointT, FeatureT>(sift_));
 
-    //    if(use_table_plane)
-    //        estimator->setIndices (*(grph[src].pIndices_above_plane));
-
-    boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypoints;
     bool ret = estimator->estimate (grph[src].pScenePCl_f, pSiftKeypoints, grph[src].pSiftSignatures_, grph[src].sift_keypoints_scales_);
     estimator->getKeypointIndices(grph[src].siftKeypointIndices_);
+#else
+    boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT > > estimator;
+    estimator.reset (new v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT >);
+
+    pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
+
+    bool ret = estimator->estimate (grph[src].pScenePCl_f, processed_foo, pSiftKeypoints, grph[src].pSiftSignatures_);
+    estimator->getKeypointIndices( grph[src].siftKeypointIndices_ );
+#endif
 
     return ret;
 
@@ -149,7 +160,7 @@ estimateViewTransformationBySIFT ( const Vertex &src, const Vertex &trgt, Graph 
     {
         FeatureT searchFeature = grph[src].pSiftSignatures_->at ( keypointId );
         int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-        v4r::common::nearestKSearch ( flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+        v4r::nearestKSearch ( flann_index, searchFeature.histogram, size_feat, K, indices, distances );
 
         pcl::Correspondence corr;
         corr.distance = distances[0][0];
@@ -683,7 +694,7 @@ bool MultiviewRecognizer::recognize
     std::cerr << "Computing Normals on GPU..." << std::endl;
     pcl::gpu::NormalEstimation::PointCloud cloud;
 #endif
-    v4r::common::computeNormals(grph_[vrtx].pScenePCl, grph_[vrtx].pSceneNormals, 2);
+    v4r::computeNormals(grph_[vrtx].pScenePCl, grph_[vrtx].pSceneNormals, 2);
 
     pcl::copyPointCloud(*(grph_[vrtx].pSceneNormals), grph_[vrtx].filteredSceneIndices_, *pSceneNormals_f);
     pcl::copyPointCloud(*(grph_[vrtx].pSceneNormals), grph_[vrtx].filteredSceneIndices_, *(grph_[vrtx].pSceneNormals_f));
@@ -719,7 +730,7 @@ bool MultiviewRecognizer::recognize
         if (num_vertices(grph_)>1)
         {
             boost::shared_ptr< flann::Index<DistT> > flann_index;
-            v4r::common::convertToFLANN<FeatureT, DistT >( grph_[vrtx].pSiftSignatures_, flann_index );
+            v4r::convertToFLANN<FeatureT, DistT >( grph_[vrtx].pSiftSignatures_, flann_index );
 
             //#pragma omp parallel for
             vertex_iter vertexIt, vertexEnd;
@@ -982,7 +993,7 @@ bool MultiviewRecognizer::recognize
 
             const bool visualize_output_go_3D = true;
 
-            v4r::utils::noise_models::NguyenNoiseModel<PointT> nm;
+            v4r::noise_models::NguyenNoiseModel<PointT> nm;
             nm.setInputCloud(grph_final_[vrtx_final].pScenePCl_f);
             nm.setInputNormals(grph_final_[vrtx_final].pSceneNormals_f);
             nm.setLateralSigma(lateral_sigma);
@@ -1060,7 +1071,7 @@ bool MultiviewRecognizer::recognize
 
                 //obtain big cloud and occlusion clouds based on new noise model integration
                 pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
-                v4r::utils::NMBasedCloudIntegration<PointT> nmIntegration;
+                v4r::NMBasedCloudIntegration<PointT> nmIntegration;
                 nmIntegration.setInputClouds(original_clouds);
                 nmIntegration.setResolution(hv_params_.resolution_/4);
                 nmIntegration.setWeights(views_noise_weights);
@@ -1214,7 +1225,7 @@ bool MultiviewRecognizer::recognize
 
                     pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = model->getNormalsAssembled (hv_params_.resolution_);
                     pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
-                    v4r::common::transformNormals(normal_cloud, normal_aligned, trans);
+                    v4r::transformNormals(normal_cloud, normal_aligned, trans);
                     aligned_normals[kk] = normal_aligned;
                 }
 
@@ -1367,19 +1378,17 @@ bool MultiviewRecognizer::recognize
                         if (mask[i])
                         {
                             std::cout << "Verified:" << ids[i] << std::endl;
-                            pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified (aligned_models[i]);
                             std::stringstream name;
                             name << "verified" << i;
-                            go3d_vis_->addPointCloud<PointT> (aligned_models[i], handler_rgb_verified, name.str (), go_3d_viewports_[2]);
+                            go3d_vis_->addPointCloud<PointT> (aligned_models[i], name.str (), go_3d_viewports_[2]);
 
                             pcl::PointCloud<PointT>::Ptr inliers_outlier_cloud;
                             go3d.getInlierOutliersCloud((int)i, inliers_outlier_cloud);
 
                             {
-                                pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified (inliers_outlier_cloud);
-                                std::stringstream name;
-                                name << "verified_visible_" << i;
-                                go3d_vis_->addPointCloud<PointT> (inliers_outlier_cloud, handler_rgb_verified, name.str (), go_3d_viewports_[3]);
+                                std::stringstream name_verified_vis;
+                                name_verified_vis << "verified_visible_" << i;
+                                go3d_vis_->addPointCloud<PointT> (inliers_outlier_cloud, name_verified_vis.str (), go_3d_viewports_[3]);
                             }
                         }
                     }
@@ -1455,7 +1464,7 @@ void v4r::MultiviewRecognizer::savePCDwithPose()
 {
     for (std::pair<vertex_iter, vertex_iter> vp = vertices (grph_final_); vp.first != vp.second; ++vp.first)
     {
-        v4r::common::setCloudPose(grph_final_[*vp.first].absolute_pose_, *grph_final_[*vp.first].pScenePCl);
+        v4r::setCloudPose(grph_final_[*vp.first].absolute_pose_, *grph_final_[*vp.first].pScenePCl);
         std::stringstream view_filename_ss;
         view_filename_ss << grph_final_[*vp.first].pScenePCl->header.frame_id
                          <<  ".pcd";

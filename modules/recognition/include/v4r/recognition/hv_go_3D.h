@@ -12,7 +12,7 @@
 #include <pcl/pcl_macros.h>
 #include "hypotheses_verification.h"
 #include "ghv.h"
-#include <mets.hh>
+#include <metslib/mets.hh>
 #include <pcl/features/normal_3d.h>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -25,7 +25,7 @@
 namespace v4r
 {
   template<typename ModelT, typename SceneT>
-  //class FAAT_REC_API GO3D : public faat_pcl::GlobalHypothesesVerification_1<ModelT, SceneT>
+  //class FAAT_REC_API GO3D : public v4r::GlobalHypothesesVerification_1<ModelT, SceneT>
   class FAAT_REC_API GO3D : public v4r::GHV<ModelT, SceneT>
   {
     private:

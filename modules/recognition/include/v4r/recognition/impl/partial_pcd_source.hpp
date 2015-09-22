@@ -613,7 +613,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (s
 
       /*std::stringstream path_entropy;
       path_entropy << direc.str () << "/entropy_" << i << ".txt";
-      PersistenceUtils::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));*/
+      PersistencewriteFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));*/
 
       if(gen_organized_)
       {
@@ -700,11 +700,11 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (s
       std::stringstream path_pose;
       path_pose << direc.str () << "/pose_" << i << ".txt";
 
-      PersistenceUtils::writeMatrixToFile (path_pose.str (), model.poses_->at (i));
+      PersistencewriteMatrixToFile (path_pose.str (), model.poses_->at (i));
 
       std::stringstream path_entropy;
       path_entropy << direc.str () << "/entropy_" << i << ".txt";
-      PersistenceUtils::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
+      PersistencewriteFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
 
       if(gen_organized_)
       {

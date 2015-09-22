@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>v4r</name>
-  <version>1.0.0</version>
+  <version>1.0.7</version>
   <description>The Vision for Robotics Library of ACIN TUW (open source STRANDS version)</description>
 
   <maintainer email="faeulhammer@acin.tuwien.ac.at">Thomas Fäulhammer</maintainer>
@@ -33,21 +33,28 @@
   <build_depend>libpcl-all-dev</build_depend>
   <build_depend>libopenni-dev</build_depend>
   <build_depend>libceres-dev</build_depend>
-  <build_depend>atlas</build_depend>
   <build_depend>boost</build_depend>
   <build_depend>libopencv-dev</build_depend>
   <build_depend>libglew-dev</build_depend>
   <build_depend>glut</build_depend>
   <build_depend>libdevil-dev</build_depend>
+  <build_depend>libqt4-dev</build_depend>
+  <build_depend>libqt4-opengl-dev</build_depend>
+  <build_depend>libopenni2-dev</build_depend>
+  <build_depend>libglm-dev</build_depend>
+  <build_depend>assimp</build_depend>
 
   <run_depend>libpcl-all-dev</run_depend>
-  <run_depend>atlas</run_depend>
   <run_depend>libopencv-dev</run_depend>
   <run_depend>libceres-dev</run_depend>
   <run_depend>libglew-dev</run_depend>
   <run_depend>glut</run_depend>
   <run_depend>libdevil-dev</run_depend>
-
+  <run_depend>libqt4-dev</run_depend>
+  <run_depend>libqt4-opengl-dev</run_depend>
+  <run_depend>libopenni2-dev</run_depend>
+  <run_depend>assimp</run_depend>
+  
   <export>
 	<build_type>cmake</build_type>
   </export>

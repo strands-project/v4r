@@ -29,7 +29,7 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
     subwindow_title.push_back("verified hypotheses from single-view only");
     subwindow_title.push_back("generated multi-view hypotheses (previous + current observations)");
     subwindow_title.push_back("verified multi-view hypotheses");
-    viewportNr = v4r::common::pcl_visualizer::visualization_framework ( vis, num_vertices(grph), vis_rows);
+    viewportNr = v4r::pcl_visualizer::visualization_framework ( *vis, num_vertices(grph), vis_rows);
 
     std::pair<vertex_iter, vertex_iter> vp;
     size_t view_id = 0;
@@ -50,7 +50,7 @@ void BoostGraphVisualizer::visualizeGraph(const Graph &grph, pcl::visualization:
             std::stringstream name;
             name << cloud_name.str() << "_sv__hypothesis_" << hyp_id << view_id;
 
-            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
+            pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
             ConstPointInTPtr model_cloud = model->getAssembled (0.005f);
             pcl::transformPointCloud (*model_cloud, *model_aligned, trans);
 

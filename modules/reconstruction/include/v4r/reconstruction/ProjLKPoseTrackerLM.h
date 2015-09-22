@@ -40,7 +40,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <Eigen/Dense>
 #include <v4r/common/impl/SmartPtr.hpp>
-#include <v4r/reconstruction/impl/Object.hpp>
+#include <v4r/keypoints/impl/Object.hpp>
 #include <v4r/reconstruction/RefineProjectedPointLocationLK.h>
 #ifndef KP_NO_CERES_AVAILABLE
 #include <ceres/ceres.h>

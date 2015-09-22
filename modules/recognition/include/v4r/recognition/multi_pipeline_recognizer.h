@@ -154,6 +154,13 @@ namespace v4r
             scene_normals_ = normals;
             normals_set_ = true;
         }
+
+        void clear()
+        {
+            recognizers_.clear();
+            saved_object_hypotheses_.clear();
+            segmentation_indices_.clear();
+        }
     };
 }
 #endif /* MULTI_PIPELINE_RECOGNIZER_H_ */

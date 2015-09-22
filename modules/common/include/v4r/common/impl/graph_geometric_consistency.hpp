@@ -490,7 +490,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph(Gra
 
 /*template<typename PointModelT, typename PointSceneT>
 void
-faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::visualizeCorrespondences(const pcl::Correspondences & correspondences)
+v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::visualizeCorrespondences(const pcl::Correspondences & correspondences)
 {
   pcl::visualization::PCLVisualizer vis("model and scene keypoints");
   int v1, v2;
@@ -540,7 +540,7 @@ faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::visualize
 
 /*template<typename PointModelT, typename PointSceneT>
 void
-faat_pcl::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::visualizeGraph(GraphGGCG & g, std::string title)
+v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::visualizeGraph(GraphGGCG & g, std::string title)
 {
   pcl::visualization::PCLVisualizer vis(title);
   int v1, v2, v3;
@@ -1600,7 +1600,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
     if (!this->initCompute ())
     {
         PCL_ERROR(
-                    "[faat_pcl::GraphGeometricConsistencyGrouping::recognize()] Error! Model cloud or Scene cloud not set, please set them before calling again this function.\n");
+                    "[v4r::GraphGeometricConsistencyGrouping::recognize()] Error! Model cloud or Scene cloud not set, please set them before calling again this function.\n");
         return (false);
     }
 

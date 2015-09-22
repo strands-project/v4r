@@ -12,7 +12,7 @@
 #include "v4r/common/organized_edge_detection.h"
 
 template<typename PointT>
-v4r::utils::noise_models::NguyenNoiseModel<PointT>::NguyenNoiseModel ()
+v4r::noise_models::NguyenNoiseModel<PointT>::NguyenNoiseModel ()
 {
   nguyens_noise_model_params_.max_angle_ = 70.f;
   nguyens_noise_model_params_.lateral_sigma_ = 0.002f;
@@ -23,7 +23,7 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>::NguyenNoiseModel ()
 
 template<typename PointT>
 void
-v4r::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
+v4r::noise_models::NguyenNoiseModel<PointT>::compute ()
 {
   weights_.clear();
   weights_.resize(input_->points.size(), 1.f);
@@ -193,7 +193,7 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>::compute ()
 
 /*template<typename PointT>
 void
-v4r::utils::noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr & filtered, float w_t)
+v4r::noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr & filtered, float w_t)
 {
   Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
                         std::numeric_limits<float>::quiet_NaN(),
@@ -220,7 +220,7 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr &
 
 template<typename PointT>
 void
-v4r::utils::noise_models::NguyenNoiseModel<PointT>::getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t)
+v4r::noise_models::NguyenNoiseModel<PointT>::getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t)
 {
   Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
                         std::numeric_limits<float>::quiet_NaN(),
@@ -240,7 +240,7 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>::getFilteredCloudRemovingPoin
 
 template<typename PointT>
 void
-v4r::utils::noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t, std::vector<int> & kept)
+v4r::noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t, std::vector<int> & kept)
 {
     Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
                           std::numeric_limits<float>::quiet_NaN(),
@@ -260,5 +260,5 @@ v4r::utils::noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovingPoi
     }
 }
 
-template class V4R_EXPORTS v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB>;
-template class V4R_EXPORTS v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
+template class V4R_EXPORTS v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::noise_models::NguyenNoiseModel<pcl::PointXYZ>;

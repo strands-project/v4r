@@ -1,0 +1,15 @@
+if(WITH_GLM)
+  v4r_clear_vars(GLM_INCLUDE_PATH GLM_VERSION_MAJOR GLM_VERSION_MINOR GLM_VERSION_PATCH GLM_LIBRARIES GLM_VERSION GLM_INCLUDE_DIRS)
+  find_path(GLM_INCLUDE_PATH "glm.hpp"
+            PATHS /usr/local /opt /usr $ENV{GLM_ROOT}
+            PATH_SUFFIXES include/glm glm
+            DOC "The path to GLM headers"
+            CMAKE_FIND_ROOT_PATH_BOTH)
+  if(GLM_INCLUDE_PATH)
+    set(GLM_LIBRARIES "")
+    set(GLM_INCLUDE_DIRS "${GLM_INCLUDE_PATH}")
+    v4r_parse_header("${GLM_INCLUDE_PATH}/detail/setup.hpp" GLM_VERSION_LINES GLM_VERSION_MAJOR GLM_VERSION_MINOR GLM_VERSION_PATCH)
+    set(GLM_VERSION "${GLM_VERSION_MAJOR}.${GLM_VERSION_MINOR}.${GLM_VERSION_PATCH}")
+    set(HAVE_GLM TRUE)
+  endif()
+endif()

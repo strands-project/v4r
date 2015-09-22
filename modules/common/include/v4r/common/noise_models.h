@@ -15,8 +15,6 @@
 
 namespace v4r
 {
-  namespace utils
-  {
     namespace noise_models
     {
       template<class PointT>
@@ -106,7 +104,6 @@ namespace v4r
           void getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t, std::vector<int> & kept);
         };
     }
-  }
 }
 
 #endif /* NOISE_MODELS_H_ */

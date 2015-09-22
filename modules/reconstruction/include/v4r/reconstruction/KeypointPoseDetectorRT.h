@@ -44,7 +44,7 @@
 #include <v4r/features/FeatureDetectorHeaders.h>
 #include <v4r/keypoints/RigidTransformationRANSAC.h>
 #include <v4r/common/impl/DataMatrix2D.hpp>
-#include <v4r/reconstruction/impl/Object.hpp>
+#include <v4r/keypoints/impl/Object.hpp>
 
 
 namespace v4r

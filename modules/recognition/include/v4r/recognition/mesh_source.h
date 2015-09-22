@@ -9,15 +9,20 @@
 #define FAAT_PCL_REC_FRAMEWORK_MESH_SOURCE_H_
 
 #include "source.h"
-#include "v4r/common/faat_3d_rec_framework_defines.h"
 #include <pcl/apps/render_views_tesselated_sphere.h>
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
 #include "vtk_model_sampling.h"
 #include <boost/function.hpp>
 #include <vtkTransformPolyDataFilter.h>
+
+#include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/common/miscellaneous.h>
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
+#include <v4r/tomgine/tgTomGineThread.h>
+#include <v4r/tomgine/tgShapeCreator.h>
+#include <v4r/tomgine/PointCloudRendering.h>
 
 namespace v4r
 {
@@ -95,16 +100,13 @@ namespace v4r
         void
         loadInMemorySpecificModel(std::string & dir, ModelT & model)
         {
-          std::stringstream pathmodel;
-          pathmodel << dir << "/" << model.class_ << "/" << model.id_;
-          bf::path trained_dir = pathmodel.str ();
+          const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
 
           for (size_t i = 0; i < model.view_filenames_.size (); i++)
           {
-            std::stringstream view_file;
-            view_file << pathmodel.str () << "/" << model.view_filenames_[i];
+            const std::string view_file = pathmodel + "/" + model.view_filenames_[i];
             typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
-            pcl::io::loadPCDFile (view_file.str (), *cloud);
+            pcl::io::loadPCDFile (view_file, *cloud);
 
             model.views_->push_back (cloud);
 
@@ -117,19 +119,17 @@ namespace v4r
             boost::replace_all (file_replaced2, ".pcd", ".txt");
 
             //read pose as well
-            std::stringstream pose_file;
-            pose_file << pathmodel.str () << "/" << file_replaced1;
+            const std::string pose_file = pathmodel + "/" + file_replaced1;
 
             Eigen::Matrix4f pose;
-            v4r::io::readMatrixFromFile(pose_file.str (), pose);
+            v4r::io::readMatrixFromFile(pose_file, pose);
 
             model.poses_->push_back (pose);
 
             //read entropy as well
-            std::stringstream entropy_file;
-            entropy_file << pathmodel.str () << "/" << file_replaced2;
+            const std::string entropy_file = pathmodel + "/" + file_replaced2;
             float entropy = 0;
-            v4r::io::readFloatFromFile (entropy_file.str (), entropy);
+            v4r::io::readFloatFromFile (entropy_file, entropy);
             model.self_occlusions_->push_back (entropy);
 
           }
@@ -138,8 +138,7 @@ namespace v4r
         void
         loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model)
         {
-          std::stringstream pathmodel;
-          pathmodel << dir << "/" << model.class_ << "/" << model.id_;
+          const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
 
           model.views_.reset (new std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>);
           model.poses_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
@@ -158,7 +157,7 @@ namespace v4r
           vis.addPointCloudNormals<PointInT, pcl::Normal>(model.assembled_, model.normals_assembled_, 50, 0.02, "normals");
           vis.spin();*/
 
-          if (v4r::io::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view_prefix_.*.pcd", false) != -1)
+          if (v4r::io::getFilesInDirectory(pathmodel, model.view_filenames_, "", ".*view_.*.pcd", false) != -1)
           {
             if(load_into_memory_)
             {
@@ -194,56 +193,112 @@ namespace v4r
             mapper->SetInputConnection (filter_scale->GetOutputPort ());
             mapper->Update ();*/
 
-            vtkSmartPointer < vtkPLYReader > reader = vtkSmartPointer<vtkPLYReader>::New ();
-            reader->SetFileName (model_path.c_str ());
-            reader->Update();
+            int polyhedron = TomGine::tgShapeCreator::ICOSAHEDRON;
+            int img_width = resolution_;
+            int img_height = resolution_;
+            const bool scale = true;
+            const bool center = true;
+            TomGine::PointCloudRendering pcr( model_path, scale, center );
+            TomGine::tgModel sphere;
+            TomGine::tgShapeCreator::CreateSphere(sphere, radius_sphere_, tes_level_, polyhedron);
+//            sphere.m_line_width = 1.0f;
+            TomGine::tgCamera cam;
+            cam.SetViewport(img_width, img_height);
 
-            vtkSmartPointer < vtkTransform > trans = vtkSmartPointer<vtkTransform>::New ();
-            trans->Scale (model_scale_, model_scale_, model_scale_);
-            trans->Modified ();
-            trans->Update ();
+            // To preserve Kinect camera parameters (640x480 / f=525)
+            const float f = 200.f;
+            const float cx = img_width / 2.f;
+            const float cy = img_height / 2.f;
+            cam.SetIntrinsicCV(f, f, cx , cy, 0.01f, 10.0f);
+            int pc_id(-1);
 
-            vtkSmartPointer < vtkTransformPolyDataFilter > filter_scale = vtkSmartPointer<vtkTransformPolyDataFilter>::New ();
-            filter_scale->SetTransform (trans);
-            filter_scale->SetInputConnection(reader->GetOutputPort());
-            filter_scale->Update();
+            for(size_t i=0; i<sphere.m_vertices.size(); i++)
+            {
+                TomGine::vec3& pos = sphere.m_vertices[i].pos;
 
-            vtkSmartPointer < vtkPolyData > mapper = filter_scale->GetOutput();
-            mapper->Update ();
+                // set camera
+                if(cross(pos,TomGine::vec3(0,1,0)).length()<TomGine::epsilon)
+                    cam.LookAt(pos, TomGine::vec3(0,0,0), TomGine::vec3(0,0,1));
+                else
+                    cam.LookAt(pos, TomGine::vec3(0,0,0), TomGine::vec3(0,1,0));
+                cam.ApplyTransform();
+
+                const bool use_world_coordinate_system = false;
+                pcr.Generate(cam, use_world_coordinate_system);
+                const cv::Mat4f& pointcloud = pcr.GetPointCloud(i);
+
+                // convert to PCL point cloud
+                typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT>);
+                cloud->points.resize(pointcloud.rows * pointcloud.cols);
+
+                if (gen_organized_)
+                {
+                    cloud->width = pointcloud.cols;
+                    cloud->height = pointcloud.rows;
+                    for(size_t row_id=0; row_id<pointcloud.rows; row_id++) {
+                        for(size_t col_id=0; col_id<pointcloud.cols; col_id++){
+                            const cv::Vec4f pt = pointcloud.at<cv::Vec4f>(row_id, col_id);
+                            const float x = pt[0];
+                            const float y = pt[1];
+                            const float z = pt[2];
+//                            const float rgb = pt[3];
+
+                            PointInT &p = cloud->at(col_id, row_id);
+                            p.x = x;
+                            p.y = y;
+                            p.z = z;
+                        }
+                    }
+                }
+                else
+                {
+                    cloud->height = 1;
+                    size_t kept=0;
+                    for(size_t row_id=0; row_id<pointcloud.rows; row_id++) {
+                        for(size_t col_id=0; col_id<pointcloud.cols; col_id++){
+                            const cv::Vec4f pt = pointcloud.at<cv::Vec4f>(row_id, col_id);
+                            const float x = pt[0];
+                            const float y = pt[1];
+                            const float z = pt[2];
+//                            const float rgb = pt[3];
+
+                            if ( std::isfinite(z) ) {
+                                PointInT &p = cloud->points[kept];
+                                p.x = x;
+                                p.y = y;
+                                p.z = z;
+                                kept++;
+                            }
+                        }
+                    }
+                    cloud->points.resize(kept);
+                    cloud->width = kept;
+                }
+
+                TomGine::mat4 tg_pose = cam.GetPose();
+
+                Eigen::Matrix4f tf;
+                for(size_t row_id=0; row_id<4; row_id++)
+                    for(size_t col_id=0; col_id<4; col_id++)
+                        tf(col_id, row_id) = tg_pose.data[row_id*4 + col_id];
+
+                model.views_->push_back (cloud);
+                model.poses_->push_back (tf);
+                model.self_occlusions_->push_back (0); // NOT IMPLEMENTED
+            }
 			
             //generate views
-            pcl::apps::RenderViewsTesselatedSphere render_views;
-            render_views.setResolution (resolution_);
-            render_views.setUseVertices (false);
-            render_views.setRadiusSphere (radius_sphere_);
-            render_views.setComputeEntropies (true);
-            render_views.setTesselationLevel (tes_level_);
-            render_views.setViewAngle (view_angle_);
-            //render_views.addModelFromPolyData (mapper->GetInput ());
-            render_views.addModelFromPolyData (mapper);
-            render_views.setGenOrganized(gen_organized_);
-            render_views.setCamPosConstraints(campos_constraints_func_);
-			
-            render_views.generateViews ();
-			
-			std::vector<typename pcl::PointCloud<PointInT>::Ptr> views_xyz_orig;
-            std::vector < Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses;
-            std::vector<float> entropies;
-
-            render_views.getViews (views_xyz_orig);
-            render_views.getPoses (poses);
-            render_views.getEntropies (entropies);
-
-            model.views_.reset (new std::vector<typename pcl::PointCloud<PointInT>::Ptr> ());
-            model.poses_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > ());
-            model.self_occlusions_.reset (new std::vector<float> ());
-
-            for (size_t i = 0; i < views_xyz_orig.size (); i++)
-            {
-              model.views_->push_back (views_xyz_orig[i]);
-              model.poses_->push_back (poses[i]);
-              model.self_occlusions_->push_back (entropies[i]);
-            }
+//            pcl::apps::RenderViewsTesselatedSphere render_views;
+//            render_views.setUseVertices (false);
+//            render_views.setRadiusSphere (radius_sphere_);
+//            render_views.setComputeEntropies (true);
+//            render_views.setTesselationLevel (tes_level_);
+//            render_views.setViewAngle (view_angle_);
+//            //render_views.addModelFromPolyData (mapper->GetInput ());
+//            render_views.addModelFromPolyData (mapper);
+//            render_views.setGenOrganized(gen_organized_);
+//            render_views.setCamPosConstraints(campos_constraints_func_);
+//            render_views.generateViews ();
 
             std::stringstream direc;
             direc << dir << "/" << model.class_ << "/" << model.id_;
@@ -279,7 +334,7 @@ namespace v4r
         {
 
           //create training dir fs if not existent
-          createTrainingDir (training_dir);
+          v4r::io::createDirIfNotExist(training_dir);
 
           //get models in directory
           std::vector < std::string > files;

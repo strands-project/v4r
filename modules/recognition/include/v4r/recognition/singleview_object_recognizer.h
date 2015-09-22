@@ -47,13 +47,6 @@ protected:
 
 
     boost::shared_ptr<v4r::MultiRecognitionPipeline<PointT> > multi_recog_;
-    std::string models_dir_;
-    std::string training_dir_sift_;
-    std::string training_dir_shot_;
-    std::string sift_structure_;
-    std::string training_dir_ourcvfh_;
-    std::string idx_flann_fn_sift_;
-    std::string idx_flann_fn_shot_;
 
     std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
@@ -74,16 +67,6 @@ protected:
     std::vector<pcl::PointCloud<PointT>::Ptr> verified_planes_;
 
     boost::shared_ptr < v4r::CorrespondenceGrouping<PointT, PointT> > cast_cg_alg_;
-
-//    boost::shared_ptr < v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>
-//            > model_only_source_;
-
-
-#ifdef SOC_VISUALIZE
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-    int v1_,v2_, v3_;
-#endif
-
 
 public:
     struct hv_params{
@@ -137,6 +120,14 @@ public:
         int normal_computation_method_;
     }sv_params_;
 
+    std::string models_dir_;
+    std::string training_dir_ourcvfh_;
+    std::string training_dir_sift_;
+    std::string training_dir_shot_;
+    std::string sift_structure_;
+    std::string idx_flann_fn_sift_;
+    std::string idx_flann_fn_shot_;
+
     SingleViewRecognizer ()
     {
         sv_params_.do_sift_ = true;
@@ -185,18 +176,15 @@ public:
         cg_params_.dot_distance_ = 0.2;
         cg_params_.use_cg_graph_ = true;
 
+        training_dir_sift_ = "/tmp/sift_trained";
+        training_dir_shot_ = "/tmp/shot_trained";
+        training_dir_ourcvfh_ = "/tmp/ourcvfh_trained";
+
         pInputCloud_.reset(new pcl::PointCloud<PointT>);
         pSceneNormals_.reset(new pcl::PointCloud<pcl::Normal>);
 
-//        model_only_source_.reset (new v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>);
-
-
-#ifdef SOC_VISUALIZE
-        vis_.reset (new pcl::visualization::PCLVisualizer ("classifier visualization"));
-        vis_->createViewPort(0,0,0.33,1.f, v1_);
-        vis_->createViewPort(0.33,0,0.66,1.f, v2_);
-        vis_->createViewPort(0.66,0,1,1.f, v3_);
-#endif
+        idx_flann_fn_sift_ = "sift_flann.idx";
+        idx_flann_fn_shot_ = "shot_flann.idx";
     }
 
     bool recognize ();
@@ -278,43 +266,6 @@ public:
         transforms_verified = transforms_verified_;
     }
 
-    void getAllHypotheses(std::vector<std::string> &models, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms) const
-    {
-        models = model_ids_;
-        transforms = *transforms_;
-    }
-
-    void setModelsAndTransforms(const std::vector<std::string> &models, const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
-    {
-        aligned_models_.resize(models.size());
-        model_ids_.resize(models.size());
-        *transforms_ = transforms;
-
-        models_->clear();       // NOT IMPLEMENTED YET!!
-
-        for(size_t i=0; i<models.size(); i++)
-        {
-            boost::filesystem::path modelpath(models[i]);
-            model_ids_[i] =  modelpath.filename().string();
-            PointInTPtr pModelPCl ( new pcl::PointCloud<pcl::PointXYZRGB> );
-            PointInTPtr pModelPClTransformed ( new pcl::PointCloud<pcl::PointXYZRGB> );
-            PointInTPtr pModelPCl2 ( new pcl::PointCloud<pcl::PointXYZRGB> );
-            pcl::io::loadPCDFile ( models[i], * ( pModelPCl ) );
-
-            pcl::transformPointCloud ( *pModelPCl, *pModelPClTransformed, transforms[i] );
-
-            pcl::VoxelGrid<pcl::PointXYZRGB> sor;
-            float leaf = 0.005f;
-            sor.setLeafSize ( leaf, leaf, leaf );
-            sor.setInputCloud ( pModelPClTransformed );
-            sor.filter ( *pModelPCl2 );
-
-            aligned_models_[i] = pModelPCl2;
-            //models_ = models;
-            //transforms_ = transforms;
-        }
-    }
-
     void setModelsAndTransforms(const std::vector<ModelTPtr> &models, const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
     {
         aligned_models_.resize(models.size());
@@ -374,7 +325,7 @@ public:
 
     void setInputCloud(const pcl::PointCloud<PointT>::ConstPtr pInputCloud)
     {
-        v4r::common::computeNormals(pInputCloud, pSceneNormals_, sv_params_.normal_computation_method_);
+        v4r::computeNormals(pInputCloud, pSceneNormals_, sv_params_.normal_computation_method_);
         setInputCloud(pInputCloud, pSceneNormals_);
     }
 
@@ -387,8 +338,6 @@ public:
 //    bool hypothesesVerificationGpu(std::vector<bool> &mask_hv);
 
     void multiplaneSegmentation();
-
-    void visualizeHypotheses();
 
     void constructHypotheses();
 
@@ -405,9 +354,9 @@ public:
      * @param model_ids - name of object models
      * @return
      */
-    bool retrain (const std::vector<std::string> &model_ids);
+    bool retrain (const std::vector<std::string> &model_ids = std::vector<std::string>());
 
-    void printParams() const;
+    void printParams(std::ostream &ostr = std::cout) const;
 };
 }
 

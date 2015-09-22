@@ -363,12 +363,7 @@ namespace v4r
         virtual typename boost::shared_ptr<Source<PointInT> >
         getDataSource () const = 0;
 
-        virtual void reinitialize()
-        {
-
-        }
-
-        virtual void reinitialize(const std::vector<std::string> & load_ids)
+        virtual void reinitialize(const std::vector<std::string> & load_ids = std::vector<std::string>())
         {
 
         }

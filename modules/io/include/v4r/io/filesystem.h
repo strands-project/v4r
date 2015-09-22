@@ -53,6 +53,13 @@ namespace v4r
         V4R_EXPORTS void
         createDirIfNotExist(const std::string & dirs);
 
+        /** checks if the path for the filename already exists,
+         * otherwise creates it
+         * @param filename
+         */
+        V4R_EXPORTS void
+        createDirForFileIfNotExist(const std::string & filename);
+
       }
 
 }

@@ -221,9 +221,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           //source_->makeModelPersistent (models->at (i), training_dir_, descr_name_, static_cast<int> (v));
           std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
 
-          bf::path desc_dir = path;
-          if (!bf::exists (desc_dir))
-            bf::create_directory (desc_dir);
+          v4r::io::createDirIfNotExist(path);
 
           std::stringstream path_view;
           path_view << path << "/view_" << v << ".pcd";

@@ -17,6 +17,7 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <boost/regex.hpp>
 #include <v4r/core/macros.h>
+#include <v4r/io/filesystem.h>
 
 namespace bf = boost::filesystem;
 
@@ -238,24 +239,22 @@ namespace v4r
         boost::split (strs, filename, boost::is_any_of ("/\\"));
         std::string name = strs[strs.size () - 1];
 
-        std::stringstream ss;
-        for (int i = 0; i < (static_cast<int> (strs.size ()) - 1); i++)
-        {
-          ss << strs[i];
-          if (i != (static_cast<int> (strs.size ()) - 1))
-          ss << "/";
-        }
+//        std::stringstream ss;
+//        for (int i = 0; i < (static_cast<int> (strs.size ()) - 1); i++)
+//        {
+//          ss << strs[i];
+////          if (i != (static_cast<int> (strs.size ()) - 1))
+////          ss << "/";
+//        }
 
-        classname = ss.str ();
+        classname = strs[0];
         id = name.substr (0, name.length () - 4);
       }
 
       void
       createTrainingDir (const std::string & training_dir)
       {
-        bf::path trained_dir = training_dir;
-        if (!bf::exists (trained_dir))
-        bf::create_directory (trained_dir);
+        v4r::io::createDirIfNotExist(training_dir);
       }
 
       void
@@ -269,15 +268,11 @@ namespace v4r
         for (size_t i = 0; i < strs.size (); i++)
         {
           ss << strs[i] << "/";
-          bf::path trained_dir = ss.str ();
-          if (!bf::exists (trained_dir))
-          bf::create_directory (trained_dir);
+          v4r::io::createDirIfNotExist(ss.str ());
         }
 
         ss << id_str;
-        bf::path trained_dir = ss.str ();
-        if (!bf::exists (trained_dir))
-        bf::create_directory (trained_dir);
+        v4r::io::createDirIfNotExist(ss.str ());
       }
 
     public:
@@ -286,7 +281,6 @@ namespace v4r
         load_views_ = true;
         compute_normals_ = false;
         load_into_memory_ = true;
-        model_list_to_load_.clear();
       }
 
       bool isModelIdInList(const std::string & id)
@@ -388,7 +382,7 @@ namespace v4r
       }
 
       bool
-      getModelById (std::string & model_id, ModelTPtr & m)
+      getModelById (const std::string & model_id, ModelTPtr & m)
       {
 
         typename std::vector<ModelTPtr>::iterator it = models_->begin ();
@@ -424,25 +418,6 @@ namespace v4r
         }
 
         return models_;
-      }
-
-      void getFeaturesFromFile(const std::string &filename, const std::vector<float> &feature_vector)
-      {
-          if (!bf::exists (filename))
-          {
-              std::cout << "Cannot find a file under " << filename << ". Features cannot be loaded. " << std::endl;
-          }
-          else
-          {
-            //boost::numeric::ublas::matrix<double> m;
-            //std::ifstream s(filename);
-
-            //if (!s >> m)
-            //{
-            //    std::cout << "Failed to write to matrix" << std::endl;
-            //    return 1;
-            //}
-          }
       }
 
       bool
@@ -501,7 +476,8 @@ namespace v4r
         path_ = path;
       }
 
-      void setLoadViews(bool load) {
+      void setLoadViews(bool load)
+      {
         load_views_ = load;
       }
 

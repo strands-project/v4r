@@ -8,8 +8,9 @@
 #ifndef FAAT_PCL_REC_FRAMEWORK_GLOBAL_ESTIMATOR_H_
 #define FAAT_PCL_REC_FRAMEWORK_GLOBAL_ESTIMATOR_H_
 
+#include <v4r/core/macros.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
-#include "normal_estimator.h"
+#include <v4r/common/normal_estimator.h>
 
 namespace v4r
 {
@@ -47,13 +48,15 @@ namespace v4r
         virtual void
         setIndices(pcl::PointIndices & p_indices)
         {
-
+            (void) p_indices;
+            PCL_ERROR("This function is not implemented!");
         }
 
         virtual void
         setIndices(std::vector<int> & p_indices)
         {
-
+            (void) p_indices;
+            PCL_ERROR("This function is not implemented!");
         }
 
     };

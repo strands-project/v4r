@@ -33,7 +33,7 @@
 
 #include <v4r/reconstruction/RefineProjectedPointLocationLK.h>
 #include <v4r/keypoints/impl/invPose.hpp>
-#include <v4r/common/impl/projectPointToImage.hpp>
+#include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r/keypoints/impl/warpPatchHomography.hpp>
 #include <v4r/common/impl/Vector.hpp>
 #include <opencv2/highgui/highgui.hpp>

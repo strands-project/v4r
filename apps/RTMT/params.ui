@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Params</class>
+ <widget class="QWidget" name="Params">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>752</width>
+    <height>469</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Preferences</string>
+  </property>
+  <widget class="QTabWidget" name="Tracker">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>731</width>
+     <height>411</height>
+    </rect>
+   </property>
+   <property name="currentIndex">
+    <number>3</number>
+   </property>
+   <widget class="QWidget" name="sensorTab">
+    <attribute name="title">
+     <string>Sensor</string>
+    </attribute>
+    <widget class="QGroupBox" name="rgbGroupBox">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>341</width>
+       <height>341</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>OpenNI camera parameter</string>
+     </property>
+     <widget class="QWidget" name="gridLayoutWidget_3">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>30</y>
+        <width>331</width>
+        <height>81</height>
+       </rect>
+      </property>
+      <layout class="QGridLayout" name="rgbLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="fRgbLabel">
+         <property name="text">
+          <string>Focal lengths</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="cuRgbEdit">
+         <property name="text">
+          <string>320</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="fuRgbEdit">
+         <property name="text">
+          <string>525</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLineEdit" name="fvRgbEdit">
+         <property name="text">
+          <string>525</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="cRgbLabel">
+         <property name="text">
+          <string>Principal point</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QLineEdit" name="cvRgbEdit">
+         <property name="text">
+          <string>240</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QPushButton" name="applyButton">
+     <property name="geometry">
+      <rect>
+       <x>590</x>
+       <y>320</y>
+       <width>98</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Apply</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="ioTab">
+    <attribute name="title">
+     <string>Settings</string>
+    </attribute>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>701</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Path and model name</string>
+     </property>
+     <widget class="QLineEdit" name="editRGBDPath">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>30</y>
+        <width>621</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>./data</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushFindRGBDPath">
+      <property name="geometry">
+       <rect>
+        <x>650</x>
+        <y>30</y>
+        <width>31</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>...</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QLabel" name="label_4">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>120</y>
+       <width>241</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Data logging</string>
+     </property>
+    </widget>
+    <widget class="QWidget" name="layoutWidget10">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>145</y>
+       <width>562</width>
+       <height>184</height>
+      </rect>
+     </property>
+     <layout class="QFormLayout" name="formLayout">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="logPointClouds">
+        <property name="text">
+         <string>log point clouds</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLineEdit" name="logDeltaAngle">
+        <property name="text">
+         <string>15</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Min. delta angle to log an image</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLineEdit" name="logDeltaDistance">
+        <property name="text">
+         <string>1.0</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Min. delta camera distance to log an image</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLineEdit" name="prevVoxelGridSize">
+        <property name="text">
+         <string>0.01</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Preview voxel grid size</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLineEdit" name="prevZCutOff">
+        <property name="text">
+         <string>2.0</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Preview point cloud z-value cut off (camera coordinates)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="createPreviewCloud">
+        <property name="text">
+         <string>create prev. cloud</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QLineEdit" name="editModelName">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>73</y>
+       <width>621</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>modelname</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="tab">
+    <attribute name="title">
+     <string>Postprocessing</string>
+    </attribute>
+    <widget class="QLabel" name="label_6">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>12</y>
+       <width>281</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Bundle adjustment (Optimize Poses)</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_7">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>92</y>
+       <width>281</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Object segmentation</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="distCamAddProjections">
+     <property name="geometry">
+      <rect>
+       <x>32</x>
+       <y>44</y>
+       <width>146</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0.02</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_8">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>44</y>
+       <width>402</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Min. camera motion to select projections [m]</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_12">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>243</y>
+       <width>281</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Object modelling</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="vxSizeObject">
+     <property name="geometry">
+      <rect>
+       <x>32</x>
+       <y>273</y>
+       <width>146</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0.002</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_13">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>273</y>
+       <width>402</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Voxelgrid size for the final object model [m]</string>
+     </property>
+    </widget>
+    <widget class="QWidget" name="layoutWidget11">
+     <property name="geometry">
+      <rect>
+       <x>32</x>
+       <y>125</y>
+       <width>581</width>
+       <height>95</height>
+      </rect>
+     </property>
+     <layout class="QFormLayout" name="formLayout_2">
+      <item row="0" column="0">
+       <widget class="QLineEdit" name="inlDistPlane">
+        <property name="text">
+         <string>0.01</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_9">
+        <property name="text">
+         <string>Inlier distance for dominant plane segmentation [m]</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLineEdit" name="thrAngle">
+        <property name="text">
+         <string>30</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="label_11">
+        <property name="text">
+         <string>Max. deviation of normals for smooth surface clustering [°]</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLineEdit" name="minPointsPlane">
+        <property name="text">
+         <string>7000</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLabel" name="label_10">
+        <property name="text">
+         <string>Min. points to accept a dominant plane</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QCheckBox" name="use_dense_mv">
+     <property name="geometry">
+      <rect>
+       <x>34</x>
+       <y>344</y>
+       <width>281</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Use dense multiview optimization</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_18">
+     <property name="geometry">
+      <rect>
+       <x>190</x>
+       <y>306</y>
+       <width>402</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Minimal weight for noise model integration</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="nmMinWeight">
+     <property name="geometry">
+      <rect>
+       <x>32</x>
+       <y>306</y>
+       <width>146</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0.8</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="tab_5">
+    <attribute name="title">
+     <string>ROI Settings</string>
+    </attribute>
+    <widget class="QLabel" name="label_14">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>12</y>
+       <width>281</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Region of interesst (ROI)</string>
+     </property>
+    </widget>
+    <widget class="QWidget" name="layoutWidget11_2">
+     <property name="geometry">
+      <rect>
+       <x>31</x>
+       <y>45</y>
+       <width>581</width>
+       <height>95</height>
+      </rect>
+     </property>
+     <layout class="QFormLayout" name="formLayout_3">
+      <item row="0" column="0">
+       <widget class="QLineEdit" name="roi_scale_xy">
+        <property name="text">
+         <string>0.75</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_15">
+        <property name="text">
+         <string>XY-scale depending on the selected plane</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLineEdit" name="roi_scale_height">
+        <property name="text">
+         <string>0.75</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="label_16">
+        <property name="text">
+         <string>Height-scale depending on the selected plane</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLineEdit" name="roi_offs">
+        <property name="text">
+         <string>0.008</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLabel" name="label_17">
+        <property name="text">
+         <string>Offset for segmentation [m]</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QCheckBox" name="use_roi_segm">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>150</y>
+       <width>311</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Use ROI for object segmentation</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="tab_2">
+    <attribute name="title">
+     <string>Model</string>
+    </attribute>
+    <widget class="QLabel" name="label_19">
+     <property name="geometry">
+      <rect>
+       <x>180</x>
+       <y>80</y>
+       <width>427</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Threshold for codebook clustering</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="model_rnn_thr">
+     <property name="geometry">
+      <rect>
+       <x>28</x>
+       <y>80</y>
+       <width>146</width>
+       <height>27</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>0.55</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="model_create_cb">
+     <property name="geometry">
+      <rect>
+       <x>28</x>
+       <y>48</y>
+       <width>311</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Create codebook</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_20">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>12</y>
+       <width>281</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Tracking model</string>
+     </property>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QPushButton" name="okButton">
+   <property name="geometry">
+    <rect>
+     <x>642</x>
+     <y>430</y>
+     <width>98</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>OK</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>okButton</sender>
+   <signal>clicked()</signal>
+   <receiver>Params</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>530</x>
+     <y>418</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>294</x>
+     <y>218</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

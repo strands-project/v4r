@@ -50,25 +50,25 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
-faat_pcl::Kmeans<PointT>::Kmeans () 
+v4r::Kmeans<PointT>::Kmeans () 
   : cluster_field_name_ ("")
 {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
-faat_pcl::Kmeans<PointT>::~Kmeans ()
+v4r::Kmeans<PointT>::~Kmeans ()
 {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-faat_pcl::Kmeans<PointT>::k_means ()
+v4r::Kmeans<PointT>::k_means ()
 {
 }
 
 template <typename PointT> void
-faat_pcl::Kmeans<PointT>::cluster (std::vector<PointIndices> &clusters)
+v4r::Kmeans<PointT>::cluster (std::vector<PointIndices> &clusters)
 {
   if (!initCompute () ||
       (input_ != 0   && input_->points.empty ()) ||
@@ -189,7 +189,7 @@ faat_pcl::Kmeans<PointT>::cluster (std::vector<PointIndices> &clusters)
 
 
 
-#define PCL_INSTANTIATE_Kmeans(T) template class V4R_EXPORTS faat_pcl::Kmeans<T>;
+#define PCL_INSTANTIATE_Kmeans(T) template class V4R_EXPORTS v4r::Kmeans<T>;
 
 #endif    // FAAT_PCL_KMEANS_HPP_
 

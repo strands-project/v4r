@@ -1892,7 +1892,7 @@ v4r::GHV<ModelT, SceneT>::verify ()
 
     if(visualize_go_cues_)
     {
-//        visualize_cues_during_logger_ = boost::bind(&(faat_pcl::GHV<ModelT, SceneT>::visualizeGOCues), this, _1, _2, _3);
+//        visualize_cues_during_logger_ = boost::bind(&(v4r::GHV<ModelT, SceneT>::visualizeGOCues), this, _1, _2, _3);
 //        vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
     }
 
@@ -3586,4 +3586,4 @@ v4r::GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solu
     vis_go_cues_->spin();
 }
 
-#define PCL_INSTANTIATE_faatGoHV_1(T1,T2) template class FAAT_REC_API faat_pcl::GlobalHypothesesVerification_1<T1,T2>;
+#define PCL_INSTANTIATE_faatGoHV_1(T1,T2) template class FAAT_REC_API v4r::GlobalHypothesesVerification_1<T1,T2>;

@@ -150,7 +150,7 @@ public:
         std::vector < std::string > folders;
         //std::string ext_v[] = {"jpg", "JPG", "png", "PNG", "bmp", "BMP", "jpeg", "JPEG"};
 
-        v4r::utils::getFoldersInDirectory (path_, "", folders);
+        v4r::getFoldersInDirectory (path_, "", folders);
         std::cout << "There are " << folders.size() << " folders. " << std::endl;
 
         for (size_t i = 0; i < folders.size (); i++)
@@ -160,7 +160,7 @@ public:
 //            for(size_t ext_id=0; ext_id < sizeof(ext_v)/sizeof(ext_v[0]); ext_id++)
 //            {
                 std::vector < std::string > filesInRelFolder;
-                v4r::utils::getFilesInDirectory (class_path.str(), filesInRelFolder, "", ".*\\.(jpg|JPG|png|PNG|jpeg|JPEG|bmp|BMP)", false);
+                v4r::getFilesInDirectory (class_path.str(), filesInRelFolder, "", ".*\\.(jpg|JPG|png|PNG|jpeg|JPEG|bmp|BMP)", false);
                 std::cout << "There are " <<  filesInRelFolder.size() << " files in folder " << folders[i] << ". " << std::endl;
 
                 for (size_t kk = 0; kk < filesInRelFolder.size (); kk++)

@@ -16,8 +16,6 @@
 
 namespace v4r
 {
-namespace common
-{
 
 void V4R_EXPORTS computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
@@ -385,6 +383,35 @@ createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
     return out;
 }
 
+/**
+  * @brief: Increments a boolean vector by 1 (LSB at the end)
+  * @param v Input vector
+  * @param inc_v Incremented output vector
+  * @return overflow (true if overflow)
+  */
+inline V4R_EXPORTS bool
+incrementVector(const std::vector<bool> &v, std::vector<bool> &inc_v)
+{
+    inc_v = v;
+
+    bool overflow=true;
+    for(size_t bit=0; bit<v.size(); bit++)
+    {
+        if(!v[bit])
+        {
+            overflow = false;
+            break;
+        }
+    }
+
+    bool carry = v.back();
+    inc_v.back() = !v.back();
+    for(int bit=v.size()-2; bit>=0; bit--)
+    {
+        inc_v[bit] = v[ bit ] != carry;
+        carry = v[ bit ] && carry;
+    }
+    return overflow;
 }
 }
 

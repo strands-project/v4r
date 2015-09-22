@@ -1,0 +1,8 @@
+if(WITH_QT4)
+  find_package(Qt4 )
+  if(Qt4_FOUND)
+    set(QT4_LIBRARIES "${QT_LIBRARIES}")
+    set(QT4_INCLUDE_DIRS "${QT_INCLUDE_DIR} ${QT_INCLUDE_DIR}/QtOpenGL")
+    set(HAVE_QT4 TRUE)
+  endif()
+endif()

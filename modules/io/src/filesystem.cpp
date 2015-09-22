@@ -33,6 +33,7 @@ getFoldersInDirectory (const std::string & dir,
             relative_paths.push_back (path);
         }
     }
+    std::sort(relative_paths.begin(), relative_paths.end());
     return relative_paths.size();
 }
 
@@ -93,6 +94,7 @@ getFilesInDirectory (const std::string &dir,
                 relative_paths.push_back (path);
         }
     }
+    std::sort(relative_paths.begin(), relative_paths.end());
     return relative_paths.size();
 }
 
@@ -113,7 +115,22 @@ createDirIfNotExist(const std::string & dirs)
     boost::filesystem::path dir = dirs;
     if(!boost::filesystem::exists(dir))
     {
-        boost::filesystem::create_directory(dir);
+        boost::filesystem::create_directories(dir);
+    }
+}
+
+
+void
+createDirForFileIfNotExist(const std::string & filename)
+{
+    if (filename.length())
+    {
+        size_t sep = filename.find_last_of("\\/");
+        if (sep != std::string::npos)
+        {
+            std::string path = filename.substr(0, sep);
+            createDirIfNotExist(path);
+        }
     }
 }
 

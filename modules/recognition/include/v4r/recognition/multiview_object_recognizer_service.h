@@ -207,7 +207,7 @@ public:
     }
     void createBigPointCloudRecursive (Graph & grph, Vertex &vrtx_start, pcl::PointCloud<PointT>::Ptr & pAccumulatedPCl);
 
-    void printParams(std::ostream &ostr);
+    void printParams(std::ostream &ostr = std::cout);
 
     /**
      * @brief saves the current (full) graph structure into a file. If filename ends with .dot, it can be opened with xdot.

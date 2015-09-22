@@ -1,0 +1,5 @@
+# These paths will be created and populated by the `ExternalProject_Add`
+# command when the "libsvm" target is built.
+src/
+tmp/
+svm.h
