@@ -30,11 +30,10 @@
  *
  */
 
-#ifndef KP_LK_POSE_TRACKER_HH
-#define KP_LK_POSE_TRACKER_HH
+#ifndef KP_OBJECT_RECOGNIZER_R2_HH
+#define KP_OBJECT_RECOGNIZER_R2_HH
 
 #include <stdio.h>
-#include <iostream>
 #include <string>
 #include <stdexcept>
 #include <opencv2/core/core.hpp>
@@ -42,6 +41,8 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <Eigen/Dense>
 #include <v4r/common/impl/SmartPtr.hpp>
+#include <v4r/keypoints/CodebookMatcher.h>
+#include <v4r/features/FeatureDetectorHeaders.h>
 #include <v4r/keypoints/impl/Object.hpp>
 #include <v4r/core/macros.h>
 
@@ -51,92 +52,87 @@ namespace v4r
 
 
 /**
- * LKPoseTracker
+ * KeypointObjectRecognizerR2
  */
-class V4R_EXPORTS LKPoseTracker
+class V4R_EXPORTS KeypointObjectRecognizerR2
 {
 public:
   class Parameter
   {
   public:
-    cv::Size win_size;
-    int max_level;
-    cv::TermCriteria termcrit;
-    float max_error;
     double inl_dist;
     double eta_ransac;               // eta for pose ransac
     unsigned max_rand_trials;         // max. number of trials for pose ransac
     int pnp_method;            // cv::ITERATIVE, cv::P3P
     int nb_ransac_points;
-    Parameter(const cv::Size &_win_size=cv::Size(21,21), int _max_level=2,
-      const cv::TermCriteria &_termcrit=cv::TermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,20,0.03), 
-      float _max_error=100, double _inl_dist=2, double _eta_ransac=0.01, unsigned _max_rand_trials=2000,
-      int _pnp_method=cv::P3P, int _nb_ransac_points=4)
-    : win_size(_win_size), max_level(_max_level),
-      termcrit(_termcrit),
-      max_error(_max_error), inl_dist(_inl_dist), eta_ransac(_eta_ransac), max_rand_trials(_max_rand_trials),
-      pnp_method(_pnp_method), nb_ransac_points(_nb_ransac_points) {}
+    int use_n_views;
+    CodebookMatcher::Parameter cb_param;
+    Parameter(double _inl_dist=3, double _eta_ransac=0.01, unsigned _max_rand_trials=5000,
+      int _pnp_method=cv::P3P, int _nb_ransac_points=4, int _use_n_views=3,
+      const CodebookMatcher::Parameter &_cb_param=CodebookMatcher::Parameter())
+    : inl_dist(_inl_dist), eta_ransac(_eta_ransac), max_rand_trials(_max_rand_trials),
+      pnp_method(_pnp_method), nb_ransac_points(_nb_ransac_points), use_n_views(_use_n_views),
+      cb_param(_cb_param){}
   };
 
 private:
   Parameter param;
 
-  cv::Mat_<unsigned char> im_gray, im_last;
-  std::vector< cv::Point2f > im_points0, im_points1;
-  std::vector< int > inliers;
-
-  std::vector<unsigned char> status;
-  std::vector<float> error;
-
   float sqr_inl_dist;
-
-  Eigen::Matrix4f last_pose;
-  bool have_im_last;
 
   cv::Mat_<double> dist_coeffs;
   cv::Mat_<double> intrinsic;
+  
+  cv::Mat_<unsigned char> im_gray;
+  std::vector< cv::Point2f > im_points;
+  std::vector< int > inliers;
 
+  cv::Mat descs;
+  std::vector<cv::KeyPoint> keys;
+  std::vector< std::vector< cv::DMatch > > matches;
+  std::vector< cv::Point2f > query_pts;
+  std::vector< cv::Point3f > model_pts;
 
-  ObjectView::Ptr model;
+  Object::Ptr model;
+
+  CodebookMatcher::Ptr cbMatcher;
+  v4r::FeatureDetector::Ptr detector;
+  v4r::FeatureDetector::Ptr descEstimator;
 
   void ransacSolvePnP(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, Eigen::Matrix4f &pose, std::vector<int> &inliers);
   void getRandIdx(int size, int num, std::vector<int> &idx);
   unsigned countInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4f &pose);
   void getInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4f &pose, std::vector<int> &inliers);
 
-  inline void cvToEigen(const cv::Mat_<double> &R, const cv::Mat_<double> &t, Eigen::Matrix4f &pose);
+  inline void cvToEigen(const cv::Mat_<double> &R, const cv::Mat_<double> &t, Eigen::Matrix4f &pose); 
   inline bool contains(const std::vector<int> &idx, int num);
-
 
 
 
 public:
   cv::Mat dbg;
 
-  LKPoseTracker(const Parameter &p=Parameter());
-  ~LKPoseTracker();
+  KeypointObjectRecognizerR2(const Parameter &p=Parameter(),
+                             const v4r::FeatureDetector::Ptr &_detector=v4r::FeatureDetector::Ptr(),
+                             const v4r::FeatureDetector::Ptr &_descEstimator=new v4r::FeatureDetector_KD_FAST_IMGD(v4r::FeatureDetector_KD_FAST_IMGD::Parameter(10000, 1.44, 2, 17)));
+  ~KeypointObjectRecognizerR2();
 
-  void setLastFrame(const cv::Mat &image, const Eigen::Matrix4f &pose);
-  double detectIncremental(const cv::Mat &image, Eigen::Matrix4f &pose);
+  double detect(const cv::Mat &image, Eigen::Matrix4f &pose, int &view_idx);
 
-  double detect(const cv::Mat &image, Eigen::Matrix4f &pose);
+  void setModel(const Object::Ptr &_model);
 
-  void setModel(const ObjectView::Ptr &_model);
   void setCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs);
 
-  void getProjections(std::vector< std::pair<int,cv::Point2f> > &im_pts);
-
-  typedef SmartPtr< ::v4r::LKPoseTracker> Ptr;
-  typedef SmartPtr< ::v4r::LKPoseTracker const> ConstPtr;
+  typedef SmartPtr< ::v4r::KeypointObjectRecognizerR2> Ptr;
+  typedef SmartPtr< ::v4r::KeypointObjectRecognizerR2 const> ConstPtr;
 };
 
 
 /***************************** inline methods *******************************/
-
 /**
  * cvToEigen
  */
-inline void LKPoseTracker::cvToEigen(const cv::Mat_<double> &R, const cv::Mat_<double> &t, Eigen::Matrix4f &pose)
+inline void KeypointObjectRecognizerR2::cvToEigen(const cv::Mat_<double> &R, const cv::Mat_<double> &t, Eigen::Matrix4f &pose)
 {
   pose.setIdentity();
 
@@ -149,13 +145,14 @@ inline void LKPoseTracker::cvToEigen(const cv::Mat_<double> &R, const cv::Mat_<d
   pose(2,3) = t(2,0);
 }
 
-inline bool LKPoseTracker::contains(const std::vector<int> &idx, int num)
+inline bool KeypointObjectRecognizerR2::contains(const std::vector<int> &idx, int num)
 {
   for (unsigned i=0; i<idx.size(); i++)
     if (idx[i]==num)
       return true;
   return false;
 }
+
 
 
 

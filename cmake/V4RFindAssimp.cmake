@@ -1,6 +1,19 @@
 if(WITH_ASSIMP)
-  find_package(ASSIMP)
+  #find_package(ASSIMP)
+
+  #if(ASSIMP_FOUND)
+  #  set(ASSIMP_LIBRARIES "${ASSIMP_LIBRARIES}")
+  #  set(ASSIMP_INCLUDE_DIRS "${ASSIMP_INCLUDE_DIRS}")
+  #  set(HAVE_ASSIMP TRUE)
+  #endif()
+
+  find_package(PkgConfig REQUIRED)
+  pkg_search_module(ASSIMP REQUIRED assimp)
+
   if(ASSIMP_FOUND)
+    include_directories(${ASSIMP_INCLUDE_DIRS})
+    link_directories(${ASSIMP_LIBRARY_DIRS})
+    add_definitions(${ASSIMP_DEFINITIONS})
     set(ASSIMP_LIBRARIES "${ASSIMP_LIBRARIES}")
     set(ASSIMP_INCLUDE_DIRS "${ASSIMP_INCLUDE_DIRS}")
     set(HAVE_ASSIMP TRUE)
