@@ -82,7 +82,7 @@ endif()
 # Optional 3rd party components
 # ===================================================
 V4R_OPTION(WITH_VTK            "Include VTK library support (and build v4r_viz module eiher)"             ON  IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
-V4R_OPTION(WITH_ASSIMP         "Include ASSIMP support"                         ON)
+V4R_OPTION(WITH_ASSIMP         "Include Assimp (Open Asset Import library) support"                       ON)
 V4R_OPTION(WITH_CERES          "Include Ceres Support"                                         ON)
 V4R_OPTION(WITH_CUDA           "Include NVidia Cuda Runtime support"                                         ON  IF (NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_CUFFT          "Include NVidia Cuda Fast Fourier Transform (FFT) library support"            ON  IF (NOT IOS AND NOT WINRT) )
@@ -613,11 +613,10 @@ else()
   status("    OPENGL:"  "NO")
 endif()
 
-
 if(WITH_ASSIMP AND HAVE_ASSIMP)
-  status("    ASSIMP:"  "YES (ver ${ASSIMP_VERSION})")
+  status("    Assimp:"  "${ASSIMP_LIBRARIES} (ver ${ASSIMP_VERSION})")
 else()
-  status("    ASSIMP:"  "NO")
+  status("    Assimp:"  "NO")
 endif()
 
 if( WITH_GDAL )
