@@ -138,7 +138,7 @@ V4R_OPTION(BUILD_PNG                "Build libpng from source"           WIN32 O
 V4R_OPTION(BUILD_OPENEXR            "Build openexr from source"          (WIN32 OR ANDROID OR APPLE) AND NOT WINRT)
 V4R_OPTION(BUILD_TBB                "Download and build TBB from source" ANDROID )
 V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
-V4R_OPTION(BUILD_LIBSVM             "Download and build LIBSVM from source" ON)
+V4R_OPTION(BUILD_LIBSVM             "Download and build LIBSVM from source" OFF)
 
 # V4R installation options
 # ===================================================
