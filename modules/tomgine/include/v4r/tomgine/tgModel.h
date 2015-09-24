@@ -116,14 +116,14 @@ struct V4R_EXPORTS BoundingSphere{
 /** @brief Rectangle in 2D defined by a point (x,y), width and height. */
 struct V4R_EXPORTS tgRect2D{
   float x,y,w,h;
-  tgRect2D(float x, float y, float w, float h){ this->x=x; this->y=y; this->w=w; this->h=h;}
-  tgRect2D(){ this->x=0.0f; this->y=0.0f; this->w=1.0f; this->h=1.0f;}
+  tgRect2D(float _x, float _y, float _w, float _h) : x(_x), y(_y), w(_w), h(_h) { }
+  tgRect2D() : x(0.0f), y(0.0f), w(0.0f), h(1.0f) { }
 };
 
 struct V4R_EXPORTS tgRect2Di{
   int x,y, w,h;
-  tgRect2Di(int x, int y, int w, int h){ this->x=x; this->y=y; this->w=w; this->h=h;}
-  tgRect2Di(){ this->x=0; this->y=0; this->w=2; this->h=2;}
+  tgRect2Di(int _x, int _y, int _w, int _h) : x(_x), y(_y), w(_w), h(_h) { }
+  tgRect2Di() : x(0), y(0), w(2), h(2) { }
 };
 
 /** @brief Geometric representation of various primitives (triangles, quadrangles, lines, points, ...) */
@@ -167,11 +167,11 @@ public:
 
   /** @brief Save data access to vertices
    *  @param i	index of vertex in list m_vertices */
-  tgVertex	getVertex(unsigned int i){ if(i<m_vertices.size() && i>=0) return m_vertices[i]; else return tgVertex();}
+  tgVertex	getVertex(unsigned int i){ if(i<m_vertices.size()) return m_vertices[i]; else return tgVertex();}
 
   /** @brief Save data access to faces
    *  @param i	index of face in list m_faces */
-  tgFace		getFace(unsigned int i){ if(i<m_faces.size() && i>=0) return m_faces[i]; else return tgFace();}
+  tgFace		getFace(unsigned int i){ if(i<m_faces.size()) return m_faces[i]; else return tgFace();}
 
   /** @brief Draw all data in model. */
   virtual void Draw();
