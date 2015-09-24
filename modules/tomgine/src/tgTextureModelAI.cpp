@@ -1,5 +1,6 @@
 #include <v4r/tomgine/tgTextureModelAI.h>
 #include <assimp/cimport.h>
+#include <assimp/IOSystem.hpp>
 #include <assimp/Exporter.hpp>
 #include <assimp/postprocess.h>
 #include <stdexcept>

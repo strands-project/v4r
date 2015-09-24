@@ -90,7 +90,7 @@ typedef union
 struct V4R_EXPORTS vec2 {
 
   inline vec2() : x(0), y(0) { }
-  inline vec2(float x,float y) : x(x), y(y) { }
+  inline vec2(float _x, float _y) : x(_x), y(_y) { }
   inline vec2(const float *v) : x(v[0]), y(v[1]) { }
   inline vec2(const vec2 &v) : x(v.x), y(v.y) { }
 
@@ -114,16 +114,16 @@ struct V4R_EXPORTS vec2 {
   inline operator const float*() const { return (float*)&x; }
 
   inline float &operator[](int i) { return ((float*)&x)[i]; }
-  inline const float operator[](int i) const { return ((float*)&x)[i]; }
+  inline const float &operator[](int i) const { return ((float*)&x)[i]; }
 
   inline float length() const { return sqrt(x * x + y * y); }
   inline float normalize() {
-    float inv,length = sqrt(x * x + y * y);
-    if(length < epsilon) return 0.0;
-    inv = 1.0f / length;
+    float inv, len = sqrt(x * x + y * y);
+    if(len < epsilon) return 0.0;
+    inv = 1.0f / len;
     x *= inv;
     y *= inv;
-    return length;
+    return len;
   }
   inline void absolute(){
     x = abs(x);
@@ -192,13 +192,13 @@ inline std::istream& operator>>(std::istream& is, vec2& v)
 struct vec3 {
 
   inline vec3() : x(0), y(0), z(0) { }
-  inline vec3(float x,float y,float z) : x(x), y(y), z(z) { }
+  inline vec3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) { }
   inline vec3(const float *v) : x(v[0]), y(v[1]), z(v[2]) { }
   inline vec3(const vec2 &v) : x(v.x), y(v.y), z(0.0) { }
   inline vec3(const vec3 &v) : x(v.x), y(v.y), z(v.z) { }
   inline vec3(const vec4 &v);
 
-  inline const vec3& random(){ 	x = float(rand())/float(RAND_MAX);
+  inline const vec3& random(){  x = float(rand())/float(RAND_MAX);
                                 y = float(rand())/float(RAND_MAX);
                                 z = float(rand())/float(RAND_MAX);
                                 return *this;
@@ -228,17 +228,17 @@ struct vec3 {
   inline operator const float*() const { return (float*)&x; }
 
   inline float &operator[](int i) { return ((float*)&x)[i]; }
-  inline const float operator[](int i) const { return ((float*)&x)[i]; }
+  inline const float &operator[](int i) const { return ((float*)&x)[i]; }
 
   inline float length() const { return sqrt(x * x + y * y + z * z); }
   inline float normalize() {
-    float length = sqrt(x * x + y * y + z * z);
-    if(length < epsilon) return 0.0;
-    float inv = 1.0f / length;
+    float len = sqrt(x * x + y * y + z * z);
+    if(len < epsilon) return 0.0;
+    float inv = 1.0f / len;
     x *= inv;
     y *= inv;
     z *= inv;
-    return length;
+    return len;
   }
 
   inline float squaredNorm() const{
@@ -405,16 +405,16 @@ inline std::istream& operator>>(std::istream& is, vec3& v)
 struct vec4 {
 
   inline vec4() : x(0), y(0), z(0), w(1) { }
-  inline vec4(float x,float y,float z,float w) : x(x), y(y), z(z), w(w) { }
+  inline vec4(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w) { }
   inline vec4(const float *v) : x(v[0]), y(v[1]), z(v[2]), w(v[3]) { }
   inline vec4(const vec3 &v) : x(v.x), y(v.y), z(v.z), w(1) { }
-  inline vec4(const vec3 &v,float w) : x(v.x), y(v.y), z(v.z), w(w) { }
+  inline vec4(const vec3 &v, float _w) : x(v.x), y(v.y), z(v.z), w(_w) { }
   inline vec4(const vec4 &v) : x(v.x), y(v.y), z(v.z), w(v.w) { }
 
   inline void random(){ x = float(rand())/float(RAND_MAX);
                         y = float(rand())/float(RAND_MAX);
-                                            z = float(rand())/float(RAND_MAX);
-                                                                w = float(rand())/float(RAND_MAX); }
+                        z = float(rand())/float(RAND_MAX);
+                        w = float(rand())/float(RAND_MAX); }
 
   inline int operator==(const vec4 &v) const { return (fabs(x - v.x) < epsilon && fabs(y - v.y) < epsilon && fabs(z - v.z) < epsilon && fabs(w - v.w) < epsilon); }
   inline int operator!=(const vec4 &v) { return !(*this == v); }
@@ -437,18 +437,18 @@ struct vec4 {
   inline operator const float*() const { return (float*)&x; }
 
   inline float &operator[](int i) { return ((float*)&x)[i]; }
-  inline const float operator[](int i) const { return ((float*)&x)[i]; }
+  inline const float &operator[](int i) const { return ((float*)&x)[i]; }
 
   inline float length() const { return sqrt(x * x + y * y + z * z + w * w); }
   inline float normalize() {
-    float length = sqrt(x * x + y * y + z * z + w * w);
-    if(length < epsilon) return 0.0;
-    float inv = 1.0f / length;
+    float len = sqrt(x * x + y * y + z * z + w * w);
+    if(len < epsilon) return 0.0;
+    float inv = 1.0f / len;
     x *= inv;
     y *= inv;
     z *= inv;
     w *= inv;
-    return length;
+    return len;
   }
 
   union {
@@ -598,7 +598,7 @@ struct mat3 {
   operator const float*() const { return data; }
 
   float &operator[](int i) { return data[i]; }
-  const float operator[](int i) const { return data[i]; }
+  const float &operator[](int i) const { return data[i]; }
 
   mat3 transpose() const {
     mat3 ret;
@@ -608,14 +608,14 @@ struct mat3 {
     return ret;
   }
   float det() const {
-    float det;
-    det = data[0] * data[4] * data[8];
-    det += data[3] * data[7] * data[2];
-    det += data[6] * data[1] * data[5];
-    det -= data[6] * data[4] * data[2];
-    det -= data[3] * data[1] * data[8];
-    det -= data[0] * data[7] * data[5];
-    return det;
+    float d;
+    d = data[0] * data[4] * data[8];
+    d += data[3] * data[7] * data[2];
+    d += data[6] * data[1] * data[5];
+    d -= data[6] * data[4] * data[2];
+    d -= data[3] * data[1] * data[8];
+    d -= data[0] * data[7] * data[5];
+    return d;
   }
   mat3 inverse() const {
     mat3 ret;
@@ -905,7 +905,7 @@ struct mat4 {
   operator const float*() const { return data; }
 
   float &operator[](int i) { return data[i]; }
-  const float operator[](int i) const { return data[i]; }
+  const float &operator[](int i) const { return data[i]; }
 
   mat4 rotation() const {
     mat4 ret;
@@ -933,14 +933,14 @@ struct mat4 {
   }
 
   float det() const {
-    float det;
-    det = data[0] * data[5] * data[10];
-    det += data[4] * data[9] * data[2];
-    det += data[8] * data[1] * data[6];
-    det -= data[8] * data[5] * data[2];
-    det -= data[4] * data[1] * data[10];
-    det -= data[0] * data[9] * data[6];
-    return det;
+    float d;
+    d = data[0] * data[5] * data[10];
+    d += data[4] * data[9] * data[2];
+    d += data[8] * data[1] * data[6];
+    d -= data[8] * data[5] * data[2];
+    d -= data[4] * data[1] * data[10];
+    d -= data[0] * data[9] * data[6];
+    return d;
   }
 
   mat4 inverse() const {
@@ -1159,8 +1159,8 @@ struct quat {
   quat(const vec3 &dir,float angle) {
     set(dir,angle);
   }
-  quat(float x,float y,float z,float angle) {
-    set(x,y,z,angle);
+  quat(float _x, float _y, float _z, float _angle) {
+    set(_x, _y, _z, _angle);
   }
   quat(const mat3 &m) {
     float trace = m[0] + m[4] + m[8];
@@ -1191,7 +1191,7 @@ struct quat {
   operator const float*() const { return (float*)&x; }
 
   float &operator[](int i) { return ((float*)&x)[i]; }
-  const float operator[](int i) const { return ((float*)&x)[i]; }
+  const float &operator[](int i) const { return ((float*)&x)[i]; }
 
   quat operator*(const quat &q) const {
     quat ret;
@@ -1216,8 +1216,8 @@ struct quat {
       w = 1.0;
     }
   }
-  void set(float x,float y,float z,float angle) {
-    set(vec3(x,y,z),angle);
+  void set(float _x, float _y, float _z, float _angle) {
+    set(vec3(_x, _y, _z), _angle);
   }
 
   void slerp(const quat &q0,const quat &q1,float t) {
