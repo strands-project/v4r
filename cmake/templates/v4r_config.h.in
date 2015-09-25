@@ -94,13 +94,6 @@
 /* Intel Perceptual Computing SDK library */
 #cmakedefine HAVE_INTELPERC
 
-/* Intel Integrated Performance Primitives */
-#cmakedefine HAVE_IPP
-#cmakedefine HAVE_IPP_ICV_ONLY
-
-/* Intel IPP Async */
-#cmakedefine HAVE_IPP_A
-
 /* JPEG-2000 codec */
 #cmakedefine HAVE_JASPER
 
