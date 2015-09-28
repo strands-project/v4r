@@ -11,8 +11,8 @@
 #include <float.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
+//#include <pcl/point_cloud.h>
+//#include <pcl/point_types.h>
 
 
 namespace v4r

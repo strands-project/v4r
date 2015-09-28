@@ -46,14 +46,6 @@ string(REPLACE ";" " " V4R_INCLUDE_DIRS_CONFIGCMAKE "${V4R_INCLUDE_DIRS_CONFIGCM
 
 export(TARGETS ${V4RModules_TARGETS} FILE "${CMAKE_BINARY_DIR}/V4RModules.cmake")
 
-if(TARGET ippicv)
-  set(USE_IPPICV TRUE)
-  file(RELATIVE_PATH INSTALL_PATH_RELATIVE_IPPICV ${CMAKE_BINARY_DIR} ${IPPICV_LOCATION_PATH})
-else()
-  set(USE_IPPICV FALSE)
-  set(INSTALL_PATH_RELATIVE_IPPICV "non-existed-path")
-endif()
-
 configure_file("${V4R_SOURCE_DIR}/cmake/templates/V4RConfig.cmake.in" "${CMAKE_BINARY_DIR}/V4RConfig.cmake" @ONLY)
 configure_file("${V4R_SOURCE_DIR}/cmake/templates/V4RConfig-version.cmake.in" "${CMAKE_BINARY_DIR}/V4RConfig-version.cmake" @ONLY)
 
@@ -72,9 +64,6 @@ if(UNIX)
   #                <prefix>/(share|lib)/cmake/<name>*/                     (U)
   #                <prefix>/(share|lib)/<name>*/                           (U)
   #                <prefix>/(share|lib)/<name>*/(cmake|CMake)/             (U)
-  if(USE_IPPICV)
-    file(RELATIVE_PATH INSTALL_PATH_RELATIVE_IPPICV "${CMAKE_INSTALL_PREFIX}/${V4R_CONFIG_INSTALL_PATH}/" ${IPPICV_INSTALL_PATH})
-  endif()
   configure_file("${V4R_SOURCE_DIR}/cmake/templates/V4RConfig.cmake.in" "${CMAKE_BINARY_DIR}/unix-install/V4RConfig.cmake" @ONLY)
   configure_file("${V4R_SOURCE_DIR}/cmake/templates/V4RConfig-version.cmake.in" "${CMAKE_BINARY_DIR}/unix-install/V4RConfig-version.cmake" @ONLY)
   install(FILES "${CMAKE_BINARY_DIR}/unix-install/V4RConfig.cmake" DESTINATION ${V4R_CONFIG_INSTALL_PATH}/ COMPONENT dev)
