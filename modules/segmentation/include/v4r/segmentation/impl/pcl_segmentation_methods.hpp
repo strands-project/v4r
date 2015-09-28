@@ -84,7 +84,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
             std::cout << "Number of inliers for this plane:" << inlier_indices[i].indices.size () << std::endl;
             size_t remaining_points = 0;
             typename pcl::PointCloud<PointT>::Ptr plane_points (new pcl::PointCloud<PointT> (*input_cloud_));
-            for (int j = 0; j < plane_points->points.size (); j++)
+            for (size_t j = 0; j < plane_points->points.size (); j++)
             {
                 const Eigen::Vector3f xyz_p = plane_points->points[j].getVector3fMap ();
 
@@ -105,7 +105,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
 
             plane_inliers_counts[i] = remaining_points;
 
-            if ( remaining_points > max_inliers_found )
+            if ( (int)remaining_points > max_inliers_found )
             {
                 table_plane_selected = i;
                 max_inliers_found = remaining_points;
@@ -195,7 +195,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
 
         for (size_t i = 0; i < euclidean_label_indices.size (); i++)
         {
-            if (euclidean_label_indices[i].indices.size () >= param_.min_cluster_size_)
+            if ( (int)euclidean_label_indices[i].indices.size () >= param_.min_cluster_size_)
             {
                 indices.push_back (euclidean_label_indices[i]);
             }

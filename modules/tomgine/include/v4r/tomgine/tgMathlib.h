@@ -22,6 +22,7 @@
 #ifndef TG_MATHLIB_H
 #define TG_MATHLIB_H
 
+#include <complex>
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -126,8 +127,8 @@ struct V4R_EXPORTS vec2 {
     return len;
   }
   inline void absolute(){
-    x = abs(x);
-    y = abs(y);
+    x = std::abs(x);
+    y = std::abs(y);
   }
 
   union {
@@ -251,9 +252,9 @@ struct vec3 {
     z = v1.x * v2.y - v1.y * v2.x;
   }
   inline void absolute(){
-    x = abs(x);
-    y = abs(y);
-    z = abs(z);
+    x = std::abs(x);
+    y = std::abs(y);
+    z = std::abs(z);
   }
 
   void rotate(float alpha, vec3 r);
@@ -282,9 +283,9 @@ inline vec3 cross(const vec3 &v1,const vec3 &v2) {
 
 inline vec3 absolute(const vec3 &v1) {
   vec3 ret;
-  ret.x = abs(v1.x);
-  ret.y = abs(v1.y);
-  ret.z = abs(v1.z);
+  ret.x = std::abs(v1.x);
+  ret.y = std::abs(v1.y);
+  ret.z = std::abs(v1.z);
   return ret;
 }
 

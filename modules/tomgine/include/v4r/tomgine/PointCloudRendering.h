@@ -28,9 +28,9 @@ public:
   // const
   const std::vector<tgTextureModelAI*>& GetModels() const { return m_models; }
 
-  const size_t GetModelCount() const { return m_models.size(); }
+  size_t GetModelCount() const { return m_models.size(); }
 
-  const tgTextureModelAI& GetModel(size_t id) const { return (*m_models[id]); }
+   tgTextureModelAI& GetModel(size_t id) const { return (*m_models[id]); }
 
   const cv::Mat4f& GetPointCloud(size_t id) const { return m_pointclouds[id]; }
 
