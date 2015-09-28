@@ -250,9 +250,9 @@ namespace v4r
               int min_u, min_v; min_u = min_v = std::numeric_limits<int>::max();
               int max_u, max_v; max_u = max_v = 0;
 
-              for(int u=0; u < mask_cloud.width; u++)
+              for(int u=0; u < (int)mask_cloud.width; u++)
               {
-                for(int v=0; v < mask_cloud.height; v++)
+                for(int v=0; v < (int)mask_cloud.height; v++)
                 {
                   if(mask_cloud.at(u,v) > 0)
                   {
@@ -287,9 +287,9 @@ namespace v4r
               //std::cout << cloud_cropped.isOrganized() << cloud->isOrganized() << std::endl;
 
               int kept = 0;
-              for (int u = 0; u < mask_cloud.width; u++)
+              for (int u = 0; u < (int)mask_cloud.width; u++)
               {
-                for (int v = 0; v < mask_cloud.height; v++)
+                for (int v = 0; v < (int)mask_cloud.height; v++)
                 {
                   if (u >= min_u && u <= (max_u) && v >= min_v && v <= (max_v))
                   {

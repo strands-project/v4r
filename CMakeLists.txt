@@ -82,7 +82,7 @@ endif()
 # Optional 3rd party components
 # ===================================================
 V4R_OPTION(WITH_VTK            "Include VTK library support (and build v4r_viz module eiher)"             ON  IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
-V4R_OPTION(WITH_ASSIMP         "Include ASSIMP support"                         ON)
+V4R_OPTION(WITH_ASSIMP         "Include Assimp (Open Asset Import library) support"                       ON)
 V4R_OPTION(WITH_CERES          "Include Ceres Support"                                         ON)
 V4R_OPTION(WITH_CUDA           "Include NVidia Cuda Runtime support"                                         ON  IF (NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_CUFFT          "Include NVidia Cuda Fast Fourier Transform (FFT) library support"            ON  IF (NOT IOS AND NOT WINRT) )
@@ -124,7 +124,6 @@ V4R_OPTION(BUILD_PERF_TESTS         "Build performance tests"                   
 V4R_OPTION(BUILD_TESTS              "Build accuracy & regression tests"           ON  IF (NOT IOS) )
 V4R_OPTION(BUILD_WITH_DEBUG_INFO    "Include debug info into debug libs (not MSCV only)" ON )
 V4R_OPTION(BUILD_WITH_STATIC_CRT    "Enables use of staticaly linked CRT for staticaly linked V4R" ON IF MSVC )
-V4R_OPTION(BUILD_WITH_DYNAMIC_IPP   "Enables dynamic linking of IPP (only for standalone IPP)" OFF )
 V4R_OPTION(BUILD_FAT_JAVA_LIB       "Create fat java wrapper containing the whole V4R library" ON IF NOT BUILD_SHARED_LIBS AND CMAKE_COMPILER_IS_GNUCXX )
 V4R_OPTION(BUILD_ANDROID_SERVICE    "Build V4R Manager for Google Play" OFF IF ANDROID )
 V4R_OPTION(BUILD_CUDA_STUBS         "Build CUDA modules stubs when no CUDA SDK" OFF  IF (NOT IOS) )
@@ -613,11 +612,10 @@ else()
   status("    OPENGL:"  "NO")
 endif()
 
-
 if(WITH_ASSIMP AND HAVE_ASSIMP)
-  status("    ASSIMP:"  "YES (ver ${ASSIMP_VERSION})")
+  status("    Assimp:"  "${ASSIMP_LIBRARIES} (ver ${ASSIMP_VERSION})")
 else()
-  status("    ASSIMP:"  "NO")
+  status("    Assimp:"  "NO")
 endif()
 
 if( WITH_GDAL )
@@ -674,20 +672,6 @@ status("  Parallel framework:" TRUE THEN "${CV_PARALLEL_FRAMEWORK}" ELSE NO)
 # ========================== Other third-party libraries ==========================
 status("")
 status("  Other third-party libraries:")
-
-if(WITH_IPP AND HAVE_IPP)
-  status("    Use IPP:" "${IPP_VERSION_STR} [${IPP_VERSION_MAJOR}.${IPP_VERSION_MINOR}.${IPP_VERSION_BUILD}]")
-  status("         at:" "${IPP_ROOT_DIR}")
-  if(NOT HAVE_IPP_ICV_ONLY)
-    status("     linked:" BUILD_WITH_DYNAMIC_IPP THEN "dynamic" ELSE "static")
-  endif()
-else()
-  status("    Use IPP:"   WITH_IPP AND NOT HAVE_IPP THEN "IPP not found or implicitly disabled" ELSE NO)
-endif()
-
-if(DEFINED WITH_IPP_A)
-status("    Use IPP Async:"  HAVE_IPP_A       THEN "YES" ELSE NO)
-endif(DEFINED WITH_IPP_A)
 
 status("    Use Eigen:"      HAVE_EIGEN       THEN "YES (ver ${EIGEN_WORLD_VERSION}.${EIGEN_MAJOR_VERSION}.${EIGEN_MINOR_VERSION})" ELSE NO)
 status("    Use GLM:"        HAVE_GLM         THEN "YES (ver ${GLM_VERSION})" ELSE NO)

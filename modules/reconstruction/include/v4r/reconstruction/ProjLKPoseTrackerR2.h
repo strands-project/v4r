@@ -43,6 +43,7 @@
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/keypoints/impl/Object.hpp>
 #include <v4r/reconstruction/RefineProjectedPointLocationLK.h>
+#include <v4r/core/macros.h>
 
 
 namespace v4r
@@ -51,7 +52,7 @@ namespace v4r
 /**
  * ProjLKPoseTrackerR2
  */
-class ProjLKPoseTrackerR2
+class V4R_EXPORTS ProjLKPoseTrackerR2
 {
 public:
   class Parameter

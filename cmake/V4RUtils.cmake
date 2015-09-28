@@ -799,13 +799,6 @@ macro(v4r_get_all_libs _modules _extra _3rdparty)
     endforeach()
   endforeach()
 
-  # ippicv specific handling
-  list(FIND ${_extra} "ippicv" ippicv_idx)
-  if (${ippicv_idx} GREATER -1)
-    list(REMOVE_ITEM ${_extra} "ippicv")
-    list(INSERT ${_3rdparty} 0 "ippicv")
-  endif()
-
   # split 3rdparty libs and modules
   list(REMOVE_ITEM ${_modules} ${${_3rdparty}} ${${_extra}} non_empty_list)
 
