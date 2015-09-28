@@ -334,6 +334,7 @@ namespace v4r
         virtual void
         setSaveHypotheses(bool b)
         {
+            (void)b;
             PCL_WARN("Set save hypotheses is not implemented for this class.");
         }
 
@@ -341,6 +342,7 @@ namespace v4r
         void
         getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses) const
         {
+            (void)hypotheses;
             PCL_WARN("Get saved hypotheses is not implemented for this class.");
         }
 
@@ -348,6 +350,7 @@ namespace v4r
         void
         getKeypointCloud(PointInTPtr & keypoint_cloud) const
         {
+            (void)keypoint_cloud;
             PCL_WARN("Get keypoint cloud is not implemented for this class.");
         }
 
@@ -355,6 +358,7 @@ namespace v4r
         void
         getKeypointIndices(pcl::PointIndices & indices) const
         {
+            (void)indices;
             PCL_WARN("Get keypoint indices is not implemented for this class.");
         }
 
@@ -365,7 +369,8 @@ namespace v4r
 
         virtual void reinitialize(const std::vector<std::string> & load_ids = std::vector<std::string>())
         {
-
+            (void)load_ids;
+            PCL_WARN("Reinitialize is not implemented for this class.");
         }
 
         /*virtual void

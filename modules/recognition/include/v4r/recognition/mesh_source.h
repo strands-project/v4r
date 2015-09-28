@@ -235,8 +235,8 @@ namespace v4r
                 {
                     cloud->width = pointcloud.cols;
                     cloud->height = pointcloud.rows;
-                    for(size_t row_id=0; row_id<pointcloud.rows; row_id++) {
-                        for(size_t col_id=0; col_id<pointcloud.cols; col_id++){
+                    for(int row_id=0; row_id<pointcloud.rows; row_id++) {
+                        for(int col_id=0; col_id<pointcloud.cols; col_id++){
                             const cv::Vec4f pt = pointcloud.at<cv::Vec4f>(row_id, col_id);
                             const float x = pt[0];
                             const float y = pt[1];
@@ -254,8 +254,8 @@ namespace v4r
                 {
                     cloud->height = 1;
                     size_t kept=0;
-                    for(size_t row_id=0; row_id<pointcloud.rows; row_id++) {
-                        for(size_t col_id=0; col_id<pointcloud.cols; col_id++){
+                    for(int row_id=0; row_id<pointcloud.rows; row_id++) {
+                        for(int col_id=0; col_id<pointcloud.cols; col_id++){
                             const cv::Vec4f pt = pointcloud.at<cv::Vec4f>(row_id, col_id);
                             const float x = pt[0];
                             const float y = pt[1];
