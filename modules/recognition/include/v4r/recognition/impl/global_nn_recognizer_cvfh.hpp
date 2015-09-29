@@ -812,9 +812,9 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
               pcl::io::savePCDFileBinary (path_descriptor.str (), signatures[j]);
 
               //save roll transform
-              std::stringstream path_pose;
-              path_pose << path << "/roll_trans_" << v << "_" << j << ".txt";
-              v4r::io::writeMatrixToFile( path_pose.str (), transforms[j]);
+              std::stringstream path_pose2;
+              path_pose2 << path << "/roll_trans_" << v << "_" << j << ".txt";
+              v4r::io::writeMatrixToFile( path_pose2.str (), transforms[j]);
             }
           }
         }

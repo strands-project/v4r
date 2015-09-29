@@ -89,16 +89,15 @@ namespace v4r
         void
         loadInMemorySpecificModel(std::string & dir, ModelT & model)
         {
-          std::stringstream pathmodel;
-          pathmodel << dir << "/" << model.class_ << "/" << model.id_;
-          bf::path trained_dir = pathmodel.str ();
+          const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
+          bf::path trained_dir = pathmodel;
 
           if (bf::exists (trained_dir))
           {
             for (size_t i = 0; i < model.view_filenames_.size (); i++)
             {
               std::stringstream view_file;
-              view_file << pathmodel.str () << "/" << model.view_filenames_[i];
+              view_file << pathmodel << "/" << model.view_filenames_[i];
               typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
               pcl::io::loadPCDFile (view_file.str (), *cloud);
 
@@ -108,7 +107,7 @@ namespace v4r
 
               //read pose as well
               std::stringstream pose_file;
-              pose_file << pathmodel.str () << "/" << file_replaced1;
+              pose_file << pathmodel << "/" << file_replaced1;
               Eigen::Matrix4f pose;
               v4r::io::readMatrixFromFile( pose_file.str (), pose);
 
@@ -122,7 +121,7 @@ namespace v4r
               pcl::PointCloud<IndexPoint> obj_indices_cloud;
 
               std::stringstream oi_file;
-              oi_file << pathmodel.str () << "/" << file_replaced2;
+              oi_file << pathmodel << "/" << file_replaced2;
               pcl::io::loadPCDFile (oi_file.str(), obj_indices_cloud);
               pcl::PointIndices indices;
               indices.indices.resize(obj_indices_cloud.points.size());
@@ -138,14 +137,12 @@ namespace v4r
         void
         loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model)
         {
-
           std::cout << "loadOrGenerate" << std::endl;
 
-          std::stringstream pathmodel;
-          pathmodel << dir << "/" << model.class_ << "/" << model.id_;
-          bf::path trained_dir = pathmodel.str ();
+          const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
+          bf::path trained_dir = pathmodel;
 
-          std::cout << pathmodel.str () << std::endl;
+          std::cout << pathmodel << std::endl;
 
           model.views_.reset (new std::vector<typename pcl::PointCloud<PointInT>::Ptr>);
           model.indices_.reset (new std::vector<pcl::PointIndices>);
@@ -154,12 +151,10 @@ namespace v4r
 
           if (bf::exists (trained_dir))
           {
-
-            std::stringstream full_model;
-            full_model << path_ << "/" << "/" << model.class_ << "/" << model.id_;
+            const std::string full_model = path_ + "/" + model.class_ + "/" + model.id_;
             typename pcl::PointCloud<Full3DPointT>::Ptr modell (new pcl::PointCloud<Full3DPointT>);
             typename pcl::PointCloud<Full3DPointT>::Ptr modell_voxelized (new pcl::PointCloud<Full3DPointT>);
-            pcl::io::loadPCDFile(full_model.str(), *modell);
+            pcl::io::loadPCDFile(full_model, *modell);
 
             float voxel_grid_size = 0.003f;
             typename pcl::VoxelGrid<Full3DPointT> grid_;
@@ -175,7 +170,7 @@ namespace v4r
             pcl::copyPointCloud(*modell_voxelized, *model.normals_assembled_);
 
             //load views and poses
-            v4r::io::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view.*.pcd", false);
+            v4r::io::getFilesInDirectory(pathmodel, model.view_filenames_, "", ".*view.*.pcd", false);
 
             if(load_into_memory_)
             {
@@ -193,9 +188,7 @@ namespace v4r
           }
           else
           {
-
             //we just need to copy the views to the training directory
-
             std::cout << "we just need to copy the views to the training directory" << std::endl;
 
             std::stringstream direc_ms;
@@ -207,12 +200,9 @@ namespace v4r
             std::cout << model_structure_ << std::endl;
             std::cout << direc_ms.str() << std::endl;
 
-            std::stringstream view_prefix;
-            view_prefix << ".*" << view_prefix_ << ".*.pcd";
+            const std::string view_pattern = ".*" + view_prefix_ + ".*.pcd";
 
-            std::string vp = view_prefix.str();
-
-            v4r::io::getFilesInDirectory(direc_ms.str(), view_filenames, "", vp, false);
+            v4r::io::getFilesInDirectory(direc_ms.str(), view_filenames, "", view_pattern, false);
             std::cout << "Number of views" << model.class_ << " " << model.id_ << view_filenames.size () << std::endl;
 
             for (size_t i = 0; i < view_filenames.size (); i++)
@@ -424,10 +414,10 @@ namespace v4r
             else
             {
               std::stringstream ss;
-              for (int i = 0; i < (static_cast<int> (strs.size ()) - 1); i++)
+              for (int j = 0; j < (static_cast<int> (strs.size ()) - 1); j++)
               {
-                ss << strs[i];
-                if (i != (static_cast<int> (strs.size ()) - 1))
+                ss << strs[j];
+                if (j != (static_cast<int> (strs.size ()) - 1))
                   ss << "/";
               }
 
