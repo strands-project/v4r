@@ -252,12 +252,6 @@ namespace v4r
       }
 
       void
-      createTrainingDir (const std::string & training_dir)
-      {
-        v4r::io::createDirIfNotExist(training_dir);
-      }
-
-      void
       createClassAndModelDirectories (const std::string & training_dir, const std::string & class_str, const std::string & id_str)
       {
         std::vector < std::string > strs;
@@ -317,7 +311,7 @@ namespace v4r
       }
 
       virtual void
-      loadInMemorySpecificModelAndView(std::string & dir, ModelT & model, int view_id)
+      loadInMemorySpecificModelAndView(const std::string & dir, ModelT & model, int view_id)
       {
         (void)dir;
         (void)model;
@@ -326,7 +320,7 @@ namespace v4r
       }
 
       virtual void
-      loadInMemorySpecificModel(std::string & dir, ModelT & model)
+      loadInMemorySpecificModel(const std::string & dir, ModelT & model)
       {
         (void)dir;
         (void)model;
@@ -370,7 +364,7 @@ namespace v4r
        * \brief Generate model representation
        */
       virtual void
-      generate (std::string & training_dir)=0;
+      generate (const std::string & training_dir)=0;
 
       /**
        * \brief Get the generated model
@@ -401,7 +395,7 @@ namespace v4r
         return false;
       }
       boost::shared_ptr<std::vector<ModelTPtr> >
-      getModels (std::string & model_id)
+      getModels (const std::string & model_id)
       {
 
         typename std::vector<ModelTPtr>::iterator it = models_->begin ();
@@ -482,11 +476,10 @@ namespace v4r
       }
 
       void
-      createVoxelGridAndDistanceTransform(float res = 0.001f) {
+      createVoxelGridAndDistanceTransform(float res = 0.001f)
+      {
         for (size_t i = 0; i < models_->size (); i++)
-        {
           models_->at (i)->createVoxelGridAndDistanceTransform (res);
-        }
       }
     };
 }

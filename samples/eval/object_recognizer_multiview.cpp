@@ -162,8 +162,8 @@ public:
                 pcl::io::loadPCDFile(fn, *cloud);
 
                 // The transformation is read from the .pcd file ( if correct, " pcl_viewer sequence_path/* " should align the clouds correctly)
-                const Eigen::Matrix4f tf = v4r::RotTrans2Mat4f(cloud->sensor_orientation_,cloud->sensor_origin_);
-                r_.recognize(cloud, tf);
+                const Eigen::Matrix4f tf_gt = v4r::RotTrans2Mat4f(cloud->sensor_orientation_,cloud->sensor_origin_);
+                r_.recognize(cloud, tf_gt);
 
                 std::vector<ModelTPtr> verified_models;
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;

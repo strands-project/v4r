@@ -15,7 +15,7 @@
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
-v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model)
+v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (const std::string & dir, const std::string & model_path, ModelT & model)
 {
   std::stringstream pathmodel;
   pathmodel << dir << "/" << model.class_ << "/" << model.id_;
@@ -731,7 +731,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (s
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
-v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModelAndView(std::string & dir, ModelT & model, int view_id)
+v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModelAndView(const std::string & dir, ModelT & model, int view_id)
 {
   std::stringstream pathmodel;
   pathmodel << dir << "/" << model.class_ << "/" << model.id_;
@@ -806,7 +806,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::assembleModelFrom
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
-v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModel(std::string & dir, ModelT & model)
+v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModel(const std::string & dir, ModelT & model)
 {
   PCL_WARN("Loading into memory %d views \n", static_cast<int>(model.view_filenames_.size ()));
   std::stringstream pathmodel;

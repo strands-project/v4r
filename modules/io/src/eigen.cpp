@@ -46,7 +46,6 @@ writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
 bool
 readMatrixFromFile(const std::string &file, Eigen::Matrix4f & matrix, int padding)
 {
-
     std::ifstream in;
     in.open (file.c_str (), std::ifstream::in);
 

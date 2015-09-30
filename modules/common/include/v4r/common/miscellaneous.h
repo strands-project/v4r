@@ -17,7 +17,8 @@
 namespace v4r
 {
 
-void V4R_EXPORTS computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
+template<typename PointT> V4R_EXPORTS
+void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
                     int method);
 

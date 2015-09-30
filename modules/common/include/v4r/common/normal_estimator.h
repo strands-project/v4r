@@ -18,17 +18,17 @@
 
 namespace v4r
 {
-    template<typename PointInT, typename PointOutT>
+    template<typename PointT, typename PointOutT>
       class PreProcessorAndNormalEstimator
       {
 
-        typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+        typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
 
         float
-        computeMeshResolution (const PointInTPtr & input)
+        computeMeshResolution (const typename pcl::PointCloud<PointT>::ConstPtr & input)
         {
-          typedef typename pcl::KdTree<PointInT>::Ptr KdTreeInPtr;
-          KdTreeInPtr tree = boost::make_shared<pcl::KdTreeFLANN<PointInT> > (false);
+          typedef typename pcl::KdTree<PointT>::Ptr KdTreeInPtr;
+          KdTreeInPtr tree = boost::make_shared<pcl::KdTreeFLANN<PointT> > (false);
           tree->setInputCloud (input);
 
           std::vector<int> nn_indices (9);
@@ -140,9 +140,9 @@ namespace v4r
         estimate_organized(const PointInTPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals)
         {
             out = in;
-            typedef typename pcl::NormalEstimationOMP<PointInT, pcl::Normal> NormalEstimator_;
+            typedef typename pcl::NormalEstimationOMP<PointT, pcl::Normal> NormalEstimator_;
             NormalEstimator_ n3d;
-            typename pcl::search::KdTree<PointInT>::Ptr normals_tree (new pcl::search::KdTree<PointInT>);
+            typename pcl::search::KdTree<PointT>::Ptr normals_tree (new pcl::search::KdTree<PointT>);
             normals_tree->setInputCloud (out);
             n3d.setRadiusSearch (normal_radius_);
             n3d.setSearchMethod (normals_tree);
@@ -155,7 +155,7 @@ namespace v4r
         }
 
         void
-        estimate (const PointInTPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        estimate (const typename pcl::PointCloud<PointT>::ConstPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals)
         {
           if (compute_mesh_resolution_)
           {
@@ -172,7 +172,7 @@ namespace v4r
               voxel_grid_size = mesh_resolution_ * factor_voxel_grid_;
             }
 
-            pcl::VoxelGrid<PointInT> grid_;
+            pcl::VoxelGrid<PointT> grid_;
             grid_.setInputCloud (in);
             grid_.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
             grid_.setDownsampleAllData (true);
@@ -193,7 +193,7 @@ namespace v4r
           if (remove_outliers_)
           {
             //pcl::ScopeTime t ("remove_outliers_...");
-            PointInTPtr out2 (new pcl::PointCloud<PointInT> ());
+            PointInTPtr out2 (new pcl::PointCloud<PointT> ());
             float radius = normal_radius_;
             if (compute_mesh_resolution_)
             {
@@ -205,7 +205,7 @@ namespace v4r
             //in synthetic views the render grazes some parts of the objects
             //thus creating a very sparse set of points that causes the normals to be very noisy
             //remove these points
-            pcl::RadiusOutlierRemoval<PointInT> sor;
+            pcl::RadiusOutlierRemoval<PointT> sor;
             sor.setInputCloud (out);
             sor.setRadiusSearch (radius);
             sor.setMinNeighborsInRadius (min_n_radius_);
@@ -230,7 +230,7 @@ namespace v4r
 
           if (out->isOrganized () && !force_unorganized_)
           {
-            typedef typename pcl::IntegralImageNormalEstimation<PointInT, pcl::Normal> NormalEstimator_;
+            typedef typename pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> NormalEstimator_;
             NormalEstimator_ n3d;
             n3d.setNormalEstimationMethod (n3d.COVARIANCE_MATRIX);
             //n3d.setNormalEstimationMethod (n3d.AVERAGE_3D_GRADIENT);
@@ -249,9 +249,9 @@ namespace v4r
 
             if(only_on_indices_)
             {
-              PointInTPtr indices_cloud(new pcl::PointCloud<PointInT>);
+              PointInTPtr indices_cloud(new pcl::PointCloud<PointT>);
               pcl::copyPointCloud(*out, indices_, *indices_cloud);
-              typedef typename pcl::NormalEstimationOMP<PointInT, pcl::Normal> NormalEstimator_;
+              typedef typename pcl::NormalEstimationOMP<PointT, pcl::Normal> NormalEstimator_;
               NormalEstimator_ n3d;
               n3d.setRadiusSearch (radius);
               n3d.setInputCloud (indices_cloud);
@@ -287,9 +287,9 @@ namespace v4r
               out->width = j;
               out->height = 1;
 
-              typedef typename pcl::NormalEstimationOMP<PointInT, pcl::Normal> NormalEstimator_;
+              typedef typename pcl::NormalEstimationOMP<PointT, pcl::Normal> NormalEstimator_;
               NormalEstimator_ n3d;
-              typename pcl::search::KdTree<PointInT>::Ptr normals_tree (new pcl::search::KdTree<PointInT>);
+              typename pcl::search::KdTree<PointT>::Ptr normals_tree (new pcl::search::KdTree<PointT>);
               normals_tree->setInputCloud (out);
               n3d.setRadiusSearch (radius);
               n3d.setSearchMethod (normals_tree);

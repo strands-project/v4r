@@ -3,30 +3,30 @@
 #include <v4r/common/convertCloud.h>
 #include <v4r/common/convertNormals.h>
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/normal_estimator.h>
 #include <v4r/common/impl/miscellaneous.hpp>
 #include <v4r/common/ZAdaptiveNormals.h>
 #include <pcl/visualization/cloud_viewer.h>
 
 namespace v4r
 {
-void computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
+template<typename PointT>
+void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
                     int method)
 {
     normals.reset(new pcl::PointCloud<pcl::Normal>());
-    if (method < 0 || method > 3)
-        std::cerr << "Normal method specified (" << method << ") does not exist." << std::endl;
 
     if(method == 0)
     {
-        pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> n3d;
+        pcl::NormalEstimation<PointT, pcl::Normal> n3d;
         n3d.setRadiusSearch (0.01f);
         n3d.setInputCloud (cloud);
         n3d.compute (*normals);
     }
     else if(method == 1)
     {
-        pcl::IntegralImageNormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+        pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
         ne.setNormalEstimationMethod (ne.AVERAGE_3D_GRADIENT);
         ne.setMaxDepthChangeFactor(0.02f);
         ne.setNormalSmoothingSize(15.f);//20.0f);
@@ -37,7 +37,7 @@ void computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
     }
     else if(method == 2)
     {
-        pcl::NormalEstimationOMP<pcl::PointXYZRGB, pcl::Normal> ne;
+        pcl::NormalEstimationOMP<PointT, pcl::Normal> ne;
         ne.setRadiusSearch ( 0.02f );
         ne.setInputCloud ( cloud );
         ne.compute ( *normals );
@@ -54,9 +54,22 @@ void computeNormals(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
         nest.compute(*kp_cloud, *kp_normals_tmp);
         v4r::convertNormals(*kp_normals_tmp, *normals);
     }
+    else if(method==4)
+    {
+        boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;
+        normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal>);
+        normal_estimator->setCMR (false);
+        normal_estimator->setDoVoxelGrid (false);
+        normal_estimator->setRemoveOutliers (false);
+        normal_estimator->setValuesForCMRFalse (0.003f, 0.02f);
+        normal_estimator->setForceUnorganized(true);
+
+        typename pcl::PointCloud<PointT>::Ptr processed (new pcl::PointCloud<PointT>);
+        normal_estimator->estimate (cloud, processed, normals);
+    }
     else
     {
-        throw "not implemented";
+        throw std::runtime_error("Chosen normal computation method not implemented!");
     }
 
     // Normalize normals to unit length
@@ -80,6 +93,17 @@ template V4R_EXPORTS void setCloudPose<pcl::PointXYZ>(const Eigen::Matrix4f &tf,
 template V4R_EXPORTS void setCloudPose<pcl::PointXYZRGB>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGB> &cloud);
 template V4R_EXPORTS void setCloudPose<pcl::PointXYZRGBNormal>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud);
 template V4R_EXPORTS void setCloudPose<pcl::PointXYZRGBA>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBA> &cloud);
+
+template V4R_EXPORTS void
+computeNormals<pcl::PointXYZRGB>(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
+                    pcl::PointCloud<pcl::Normal>::Ptr &normals,
+                    int method);
+
+template V4R_EXPORTS void
+computeNormals<pcl::PointXYZ>(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud,
+                    pcl::PointCloud<pcl::Normal>::Ptr &normals,
+                    int method);
+
 }
 
 
@@ -148,3 +172,4 @@ template V4R_EXPORTS void
 pcl::copyPointCloud<pcl::Normal> (const pcl::PointCloud<pcl::Normal> &cloud_in,
                 const std::vector<bool> &indices,
                 pcl::PointCloud<pcl::Normal> &cloud_out);
+

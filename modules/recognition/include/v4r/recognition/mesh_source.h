@@ -40,7 +40,6 @@ namespace v4r
 
         using SourceT::path_;
         using SourceT::models_;
-        using SourceT::createTrainingDir;
         using SourceT::model_scale_;
         using SourceT::radius_normals_;
         using SourceT::compute_normals_;
@@ -98,7 +97,7 @@ namespace v4r
         }
 
         void
-        loadInMemorySpecificModel(std::string & dir, ModelT & model)
+        loadInMemorySpecificModel(const std::string & dir, ModelT & model)
         {
           const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
 
@@ -136,7 +135,7 @@ namespace v4r
         }
 
         void
-        loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model)
+        loadOrGenerate (const std::string & dir, const std::string & model_path, ModelT & model)
         {
           const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
 
@@ -330,10 +329,8 @@ namespace v4r
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
-        generate (std::string & training_dir)
+        generate (const std::string & training_dir)
         {
-
-          //create training dir fs if not existent
           v4r::io::createDirIfNotExist(training_dir);
 
           //get models in directory

@@ -43,7 +43,6 @@ namespace v4r
 
         using SourceT::path_;
         using SourceT::models_;
-        using SourceT::createTrainingDir;
         using SourceT::model_scale_;
         using SourceT::load_views_;
         using SourceT::load_into_memory_;
@@ -64,10 +63,10 @@ namespace v4r
         (const Eigen::Vector3f &)> campos_constraints_func_;
 
         void
-        loadInMemorySpecificModel(std::string & dir, ModelT & model);
+        loadInMemorySpecificModel(const std::string &dir, ModelT & model);
 
         void
-        loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model);
+        loadOrGenerate (const std::string &dir, const std::string &model_path, ModelT & model);
 
         void assembleModelFromViewsAndPoses(ModelT & model,
                                        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
@@ -94,7 +93,7 @@ namespace v4r
         }
 
         void
-        loadInMemorySpecificModelAndView(std::string & dir, ModelT & model, int view_id);
+        loadInMemorySpecificModelAndView(const std::string & dir, ModelT & model, int view_id);
 
         void
         setDotNormal (float f)
@@ -160,11 +159,9 @@ namespace v4r
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
-        generate (std::string & training_dir)
+        generate (const std::string & training_dir)
         {
-
-          //create training dir fs if not existent
-          createTrainingDir (training_dir);
+          v4r::io::createDirIfNotExist(training_dir);
 
           //get models in directory
           std::vector < std::string > files;

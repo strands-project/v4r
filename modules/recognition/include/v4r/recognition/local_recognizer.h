@@ -1,8 +1,9 @@
 /*
  * local_recognizer.h
  *
- *  Created on: Mar 24, 2012
- *      Author: aitor
+ *      Created on: Mar 24, 2012
+ *      Author: Aitor Aldoma
+ *      Maintainer: Thomas Faeulhammer
  */
 
 #ifndef FAAT_PCL_REC_FRAMEWORK_LOCAL_RECOGNIZER_H_
@@ -70,8 +71,8 @@ namespace v4r
           {
           public:
             ModelTPtr model;
-            int view_id;
-            int keypoint_id;
+            size_t view_id;
+            size_t keypoint_id;
             std::vector<float> descr;
           };
 
@@ -84,7 +85,10 @@ namespace v4r
           };
 
           /** \brief Directory where the trained structure will be saved */
-          std::string training_dir_;
+          std::string training_out_dir_;
+
+          /** \brief Directory containing views of the object */
+          std::string training_in_dir_;
 
           /** \brief Point cloud to be classified */
           //PointInTPtr input_;
@@ -101,6 +105,9 @@ namespace v4r
           /** \brief Descriptor name */
           std::string descr_name_;
 
+          /** \brief defines number of leading zeros in view filenames (e.g. cloud_00001.pcd -> length_ = 5) */
+          size_t view_id_length_;
+
           /** \brief Id of the model to be used */
           std::string search_model_;
 
@@ -108,16 +115,15 @@ namespace v4r
           boost::shared_ptr<flann::Index<DistT> > flann_index_;
           //flann::NNIndex<DistT> * flann_index_;
 
-          std::map< std::pair< ModelTPtr, int >, std::vector<int> > model_view_id_to_flann_models_;
+          std::map< std::pair< ModelTPtr, size_t >, std::vector<size_t> > model_view_id_to_flann_models_;
           std::vector<flann_model> flann_models_;
           std::vector<codebook_model> codebook_models_;
 
           bool use_cache_;
-          std::map<std::pair<std::string, int>, Eigen::Matrix4f, std::less<std::pair<std::string, int> >, Eigen::aligned_allocator<std::pair<std::pair<
-              std::string, int>, Eigen::Matrix4f> > > poses_cache_;
-          std::map<std::pair<std::string, int>, typename pcl::PointCloud<PointInT>::Ptr> keypoints_cache_;
-          std::map<std::pair<std::string, int>, pcl::PointCloud<pcl::Normal>::Ptr> normals_cache_;
-          std::map<std::pair<std::string, int>, pcl::PointCloud<IndexPoint>::Ptr> idxpoint_cache_;
+          std::map<std::pair<std::string, size_t>, Eigen::Matrix4f, std::less<std::pair<std::string, size_t> >, Eigen::aligned_allocator<std::pair<std::pair<
+              std::string, size_t>, Eigen::Matrix4f> > > poses_cache_;
+          std::map<std::pair<std::string, size_t>, typename pcl::PointCloud<PointInT>::Ptr> keypoints_cache_;
+          std::map<std::pair<std::string, size_t>, pcl::PointCloud<pcl::Normal>::Ptr> normals_cache_;
 
           float threshold_accept_model_hypothesis_;
           int kdtree_splits_;
@@ -131,6 +137,8 @@ namespace v4r
           std::string flann_index_fn_;
           std::string flann_data_fn_;
           bool use_codebook_;
+
+          int normal_computation_method_;
 
           bool save_hypotheses_;
           typename std::map<std::string, ObjectHypothesis<PointInT> > saved_object_hypotheses_;
@@ -169,20 +177,17 @@ namespace v4r
           void
           nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);
 
-          void
-          getPose (const ModelT &model, int view_id, Eigen::Matrix4f & pose_matrix);
+          Eigen::Matrix4f
+          getPose (const ModelT &model, size_t view_id);
 
           void
-          getNormals (const ModelT &model, int view_id, pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud);
+          getNormals (const ModelT &model, size_t view_id, pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud);
+
+          PointInT
+          getKeypoint (const ModelT & model, size_t view_id, size_t keypoint_id);
 
           void
-          getIndicesToProcessedAndNormals (ModelT & model, int view_id, pcl::PointCloud<IndexPoint>::Ptr & index_cloud);
-
-          void
-          getKeypoints (ModelT & model, int view_id, typename pcl::PointCloud<PointInT>::Ptr & keypoints_cloud);
-
-          void
-          getView (ModelT & model, int view_id, PointInTPtr & view);
+          getView (const ModelT & model, size_t view_id, PointInTPtr & view);
 
           void
           drawCorrespondences (const PointInTPtr & cloud,
@@ -267,6 +272,7 @@ namespace v4r
           distance_same_keypoint_ = 0.001f * 0.001f;
           max_descriptor_distance_ = std::numeric_limits<float>::infinity();
           correspondence_distance_constant_weight_ = 1.f;
+          normal_computation_method_ = 1;
         }
 
         size_t getFeatureType() const
@@ -444,9 +450,18 @@ namespace v4r
          * \brief Filesystem dir where to keep the generated training data
          */
         void
-        setTrainingDir (const std::string & dir)
+        setTrainingOutputDir (const std::string & dir)
         {
-          training_dir_ = dir;
+          training_out_dir_ = dir;
+        }
+
+        /**
+         * \brief Filesystem dir containing views of the object
+         */
+        void
+        setTrainingInputDir (const std::string & dir)
+        {
+          training_in_dir_ = dir;
         }
 
         void

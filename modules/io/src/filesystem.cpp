@@ -109,6 +109,13 @@ existsFile ( const std::string &rFile )
     }
 }
 
+bool
+existsFolder ( const std::string &rFolder )
+{
+    bf::path dir = rFolder;
+    return bf::exists (dir);
+}
+
 void
 createDirIfNotExist(const std::string & dirs)
 {

@@ -315,29 +315,10 @@ public:
     bool
     estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
     {
-
         keypoint_indices_.indices.clear();
-        if(indices_.indices.size() == 0)
-        {
-            indices_.indices.resize(in->points.size());
-            for(size_t i=0; i < indices_.indices.size(); i++)
-            {
-                indices_.indices[i] = i;
-            }
-        }
 
         processed.reset(new pcl::PointCloud<PointInT>);
         keypoints.reset(new pcl::PointCloud<PointInT>);
-
-        pcl::PointCloud<int> mask_cloud;
-        mask_cloud.width = in->width;
-        mask_cloud.height = in->height;
-        mask_cloud.points.resize(in->width * in->height);
-        for(size_t i=0; i < mask_cloud.points.size(); i++)
-            mask_cloud.points[i] = 0;
-
-        for(size_t i=0; i < indices_.indices.size(); i++)
-            mask_cloud.points[indices_.indices[i]] = 1;
 
         cv::Mat_ < cv::Vec3b > colorImage;
         PCLOpenCV::ConvertPCLCloud2Image<PointInT> (in, colorImage);
@@ -382,7 +363,7 @@ public:
             int u,v;
             v = (int)(ks[i].y+.5);
             u = (int)(ks[i].x+.5);
-            if(u >= 0 && v >= 0 && u < (int)mask_cloud.width && v < (int)mask_cloud.height && mask_cloud.at(u,v))
+            if(u >= 0 && v >= 0 && u < (int)in->width && v < (int)in->height)
             {
                 if(pcl_isfinite(in->at(u,v).z) && pcl_isfinite(in->at(u,v).x) && pcl_isfinite(in->at(u,v).y))
                 {
@@ -399,7 +380,7 @@ public:
         signatures->width = kept;
         signatures->resize(kept);
         keypoints->points.resize(kept);
-        pcl::copyPointCloud(*in, indices_, *processed);
+        pcl::copyPointCloud(*in, *processed);
         std::cout << "Number of SIFT features:" << kept << std::endl;
         indices_.indices.clear();
 

@@ -24,7 +24,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
 
     if (input_normal_cloud_->points.size() != input_cloud_->points.size())
     {
-        v4r::computeNormals(input_cloud_, input_normal_cloud_, 0);
+        v4r::computeNormals<PointT>(input_cloud_, input_normal_cloud_, 0);
     }
 
     if(param_.chop_at_z_ > 0)

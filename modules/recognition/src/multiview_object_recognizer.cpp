@@ -541,7 +541,7 @@ MultiviewRecognizer::recognize (const pcl::PointCloud<PointT>::ConstPtr cloud,
         v.filteredSceneIndices_.indices = *(pass.getIndices());
     }
 
-    v4r::computeNormals(v.pScenePCl, v.pSceneNormals, sv_params_.normal_computation_method_);
+    v4r::computeNormals<PointT>(v.pScenePCl, v.pSceneNormals, sv_params_.normal_computation_method_);
     pcl::copyPointCloud(*(v.pSceneNormals), v.filteredSceneIndices_, *pSceneNormals_f);
 
     std::vector<EdgeD> new_edges;

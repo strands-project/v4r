@@ -57,19 +57,19 @@ namespace v4r
         }
 
         void
-        setModelStructureDir(std::string dir)
+        setModelStructureDir(const std::string &dir)
         {
           model_structure_ = dir;
         }
 
         void
-        setPrefix (std::string & pre)
+        setPrefix (const std::string & pre)
         {
           view_prefix_ = pre;
         }
 
         void
-        loadInMemorySpecificModel(std::string & dir, ModelT & model)
+        loadInMemorySpecificModel(const std::string & dir, ModelT & model)
         {
           std::stringstream pathmodel;
           pathmodel << dir << "/" << model.class_ << "/" << model.id_;
@@ -115,7 +115,7 @@ namespace v4r
         }
 
         void
-        loadOrGenerate (std::string & model_path, ModelT & model)
+        loadOrGenerate (const std::string & model_path, ModelT & model)
         {
           model.views_.reset (new std::vector<typename pcl::PointCloud<PointInT>::Ptr>);
           model.indices_.reset (new std::vector<pcl::PointIndices>);
@@ -158,7 +158,7 @@ namespace v4r
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
-        generate (std::string & dummy)
+        generate (const std::string & dummy)
         {
           //create training dir fs if not existent
           //createTrainingDir (training_dir);
@@ -172,10 +172,9 @@ namespace v4r
 
           for (size_t i = 0; i < folders.size (); i++)
           {
-              std::stringstream class_path;
-              class_path << path_ << "/" << folders[i];
+              const std::string class_path = path_ + "/" + folders[i];
               std::vector < std::string > filesInRelFolder;
-              v4r::getFilesInDirectory (class_path.str(), filesInRelFolder, "", ".*.pcd", false);
+              v4r::getFilesInDirectory (class_path, filesInRelFolder, "", ".*.pcd", false);
               std::cout << "There are " <<  filesInRelFolder.size() << " files in folder " << folders[i] << ". " << std::endl;
 
               for (size_t kk = 0; kk < filesInRelFolder.size (); kk++)
@@ -193,11 +192,9 @@ namespace v4r
                   m->class_ = folders[i];
                   m->id_ = filesInRelFolder[kk];
 
-                  std::stringstream model_path;
-                  model_path << class_path.str() << "/" << filesInRelFolder[kk];
-                  std::string path_model = model_path.str ();
-                  std::cout << "Calling loadOrGenerate path_model: " << path_model << ", m_class: " << m->class_ << ", m_id: " << m->id_ << std::endl;
-                  loadOrGenerate (path_model, *m);
+                  const std::string model_path = class_path + "/" + filesInRelFolder[kk];
+                  std::cout << "Calling loadOrGenerate path_model: " << model_path << ", m_class: " << m->class_ << ", m_id: " << m->id_ << std::endl;
+                  loadOrGenerate (model_path, *m);
 
                   models_->push_back (m);
               }

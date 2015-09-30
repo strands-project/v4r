@@ -460,7 +460,7 @@ bool SingleViewRecognizer::recognize ()
 
     if(pSceneNormals_->points.size() == 0) {
         std::cout << "No normals point cloud for scene given. Calculate normals of scene..." << std::endl;
-        v4r::computeNormals(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
+        v4r::computeNormals<PointT>(pInputCloud_, pSceneNormals_, sv_params_.normal_computation_method_);
     }
 
     if( sv_params_.chop_at_z_ > 0) {
@@ -574,8 +574,8 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
           > mesh_source (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>);
       mesh_source->setPath (models_dir_);
       mesh_source->setModelStructureDir (sift_structure_);
-      mesh_source->setLoadViews (false);
-      mesh_source->generate (training_dir_sift_);
+      std::string foo;
+      mesh_source->generate (foo);
       mesh_source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
 
       boost::shared_ptr < v4r::Source<PointT> > cast_source;
@@ -612,7 +612,8 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > new_sift_local;
       new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (idx_flann_fn_sift_));
       new_sift_local->setDataSource (cast_source);
-      new_sift_local->setTrainingDir (training_dir_sift_);
+      new_sift_local->setTrainingOutputDir (training_dir_sift_);
+      new_sift_local->setTrainingInputDir (sift_structure_);
       new_sift_local->setDescriptorName (desc_name);
       new_sift_local->setICPIterations (sv_params_.icp_iterations_);
       new_sift_local->setFeatureEstimator (cast_estimator);
@@ -743,7 +744,8 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
         mesh_source->setPath (models_dir_);
         mesh_source->setModelStructureDir (sift_structure_);
         mesh_source->setLoadViews(false);
-        mesh_source->generate (training_dir_shot_);
+        std::string foo;
+        mesh_source->generate (foo);
         mesh_source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
 
         boost::shared_ptr < v4r::Source<PointT> > cast_source;
@@ -778,7 +780,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
         boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
         local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (idx_flann_fn_shot_));
         local->setDataSource (cast_source);
-        local->setTrainingDir (training_dir_shot_);
+        local->setTrainingOutputDir (training_dir_shot_);
         local->setDescriptorName (desc_name);
         local->setFeatureEstimator (cast_estimator);
 //        local->setCGAlgorithm (cast_cg_alg_);

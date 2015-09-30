@@ -45,7 +45,6 @@ protected:
     typedef flann::L1<float> DistT;
     typedef pcl::Histogram<128> FeatureT;
 
-
     boost::shared_ptr<v4r::MultiRecognitionPipeline<PointT> > multi_recog_;
 
     std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
@@ -326,7 +325,7 @@ public:
     void setInputCloud(const pcl::PointCloud<PointT>::Ptr &cloud)
     {
         pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>());
-        v4r::computeNormals(cloud, normals, sv_params_.normal_computation_method_);
+        v4r::computeNormals<PointT>(cloud, normals, sv_params_.normal_computation_method_);
         setInputCloud(cloud, normals);
     }
 
