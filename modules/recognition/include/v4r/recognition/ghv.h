@@ -24,16 +24,6 @@
 #include "ghv_opt.h"
 #include <v4r/common/common_data_structures.h>
 
-#ifdef _MSC_VER
-#ifdef FAAT_REC_EXPORTS
-#define FAAT_REC_API __declspec(dllexport)
-#else
-#define FAAT_REC_API __declspec(dllimport)
-#endif
-#else
-#define FAAT_REC_API
-#endif
-
 namespace v4r
 {
 
@@ -44,7 +34,7 @@ namespace v4r
    */
 
   template<typename ModelT, typename SceneT>
-    class FAAT_REC_API GHV : public v4r::HypothesisVerification<ModelT, SceneT>
+    class V4R_EXPORTS GHV : public v4r::HypothesisVerification<ModelT, SceneT>
     {
       friend class GHVmove_manager<ModelT, SceneT>;
       friend class GHVSAModel<ModelT, SceneT>;

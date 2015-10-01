@@ -151,7 +151,7 @@ v4r::MultiRecognitionPipeline<PointInT>::recognize()
                      it_map != object_hypotheses_single_pipeline.end (); it_map++)
                 {
                     std::string id = it_map->second.model_->id_;
-                    //std::cout << id << " " << it_map->second.correspondences_to_inputcloud->size() << std::endl;
+                    //std::cout << id << " " << it_map->second.model_scene_corresp->size() << std::endl;
 
                     it_map_oh = pObjectHypotheses_->find(id);
                     if(it_map_oh == pObjectHypotheses_->end())
@@ -159,9 +159,9 @@ v4r::MultiRecognitionPipeline<PointInT>::recognize()
                         if(keypoints_cloud_->points.size() > 0)
                         {
                             PCL_ERROR("is this happenning?\n");
-                            for(size_t kk=0; kk < it_map->second.correspondences_to_inputcloud->size(); kk++)
+                            for(size_t kk=0; kk < it_map->second.model_scene_corresp->size(); kk++)
                             {
-                                it_map->second.correspondences_to_inputcloud->at(kk).index_match += keypoints_cloud_->points.size();
+                                it_map->second.model_scene_corresp->at(kk).index_match += keypoints_cloud_->points.size();
                             }
                         }
 
@@ -174,22 +174,22 @@ v4r::MultiRecognitionPipeline<PointInT>::recognize()
                 typename pcl::PointCloud<PointInT>::Ptr correspondences_pointcloud; //points in model coordinates
                 pcl::PointCloud<pcl::Normal>::Ptr normals_pointcloud; //points in model coordinates
                 boost::shared_ptr<std::vector<float> > feature_distances_;
-                pcl::CorrespondencesPtr correspondences_to_inputcloud; //indices between correspondences_pointcloud and scene cloud (keypoints extracted by each local_recognizer)
+                pcl::CorrespondencesPtr model_scene_corresp; //indices between correspondences_pointcloud and scene cloud (keypoints extracted by each local_recognizer)
                 int num_corr_;
                 std::vector<int> indices_to_flann_models_;
              */
 
                         //update correspondences indices so they match each recognizer (keypoints_cloud to correspondences_pointcloud)
-                        for(size_t kk=0; kk < it_map->second.correspondences_to_inputcloud->size(); kk++)
+                        for(size_t kk=0; kk < it_map->second.model_scene_corresp->size(); kk++)
                         {
-                            pcl::Correspondence c = it_map->second.correspondences_to_inputcloud->at(kk);
+                            pcl::Correspondence c = it_map->second.model_scene_corresp->at(kk);
                             c.index_match += keypoints_cloud_->points.size();
-                            c.index_query += it_map_oh->second.correspondences_pointcloud->points.size();
-                            it_map_oh->second.correspondences_to_inputcloud->push_back(c);
+                            c.index_query += it_map_oh->second.model_keypoints->points.size();
+                            it_map_oh->second.model_scene_corresp->push_back(c);
                         }
 
-                        *it_map_oh->second.correspondences_pointcloud += * it_map->second.correspondences_pointcloud;
-                        *it_map_oh->second.normals_pointcloud += * it_map->second.normals_pointcloud;
+                        *it_map_oh->second.model_keypoints += * it_map->second.model_keypoints;
+                        *it_map_oh->second.model_kp_normals += * it_map->second.model_kp_normals;
                         it_map_oh->second.indices_to_flann_models_.insert(
                                     it_map_oh->second.indices_to_flann_models_.end(),
                                        it_map->second.indices_to_flann_models_.begin(),
@@ -295,12 +295,12 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
             std::vector<std::string> object_ids;
             for (it_map = pObjectHypotheses_->begin (); it_map != pObjectHypotheses_->end (); it_map++)
             {
-                if(it_map->second.correspondences_to_inputcloud->size() < 3)
+                if(it_map->second.model_scene_corresp->size() < 3)
                     continue;
 
                 models_normals.push_back((*it_map).second.normals_pointcloud);
                 models_clouds.push_back((*it_map).second.correspondences_pointcloud);
-                models_to_scene_correspondences.push_back((*it_map).second.correspondences_to_inputcloud);
+                models_to_scene_correspondences.push_back((*it_map).second.model_scene_corresp);
 
                 object_ids.push_back(it_map->second.model_->id_);
             }
@@ -320,7 +320,7 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
             std::vector < pcl::Correspondences > corresp_clusters;
             mo_gcc.cluster (corresp_clusters);
 
-            std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << " " << it_map->first << std::endl;*/
+            std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.model_scene_corresp->size () << " " << it_map->first << std::endl;*/
 
         }
         else
@@ -329,25 +329,25 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
             typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
             for (it_map = pObjectHypotheses_->begin (); it_map != pObjectHypotheses_->end (); it_map++)
             {
-                if(it_map->second.correspondences_to_inputcloud->size() < 3)
+                if(it_map->second.model_scene_corresp->size() < 3)
                     continue;
 
                 std::string id = it_map->second.model_->id_;
-                //std::cout << id << " " << it_map->second.correspondences_to_inputcloud->size() << std::endl;
+                //std::cout << id << " " << it_map->second.model_scene_corresp->size() << std::endl;
                 std::vector < pcl::Correspondences > corresp_clusters;
                 cg_algorithm_->setSceneCloud (keypoints_cloud_);
-                cg_algorithm_->setInputCloud ((*it_map).second.correspondences_pointcloud);
+                cg_algorithm_->setInputCloud ((*it_map).second.model_keypoints);
 
                 if(cg_algorithm_->getRequiresNormals())
                 {
                     //std::cout << "CG alg requires normals..." << ((*it_map).second.normals_pointcloud)->points.size() << " " << (scene_normals)->points.size() << std::endl;
-                    cg_algorithm_->setInputAndSceneNormals((*it_map).second.normals_pointcloud, scene_normals);
+                    cg_algorithm_->setInputAndSceneNormals((*it_map).second.model_kp_normals, scene_normals);
                 }
                 //we need to pass the keypoints_pointcloud and the specific object hypothesis
-                cg_algorithm_->setModelSceneCorrespondences ((*it_map).second.correspondences_to_inputcloud);
+                cg_algorithm_->setModelSceneCorrespondences ((*it_map).second.model_scene_corresp);
                 cg_algorithm_->cluster (corresp_clusters);
 
-                std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << " " << it_map->first << std::endl;
+                std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.model_scene_corresp->size () << " " << it_map->first << std::endl;
 
                 /*if(corresp_clusters.size() > 0)
             {
@@ -407,18 +407,18 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
                 //vis.addPointCloud<PointInT>(model_keypoints_trans, scene_handler, "model keypoints", v1);
 
                 float avg_distance = 0;
-                for(size_t kk=0; kk < (*it_map).second.correspondences_to_inputcloud->size (); kk++)
+                for(size_t kk=0; kk < (*it_map).second.model_scene_corresp->size (); kk++)
                 {
-                    pcl::Correspondence c = (*it_map).second.correspondences_to_inputcloud->at(kk);
+                    pcl::Correspondence c = (*it_map).second.model_scene_corresp->at(kk);
                     avg_distance += c.distance;
                 }
 
-                avg_distance /= static_cast<float>((*it_map).second.correspondences_to_inputcloud->size ());
+                avg_distance /= static_cast<float>((*it_map).second.model_scene_corresp->size ());
 
                 int step=1;
-                for(size_t kk=0; kk < (*it_map).second.correspondences_to_inputcloud->size (); kk+=step)
+                for(size_t kk=0; kk < (*it_map).second.model_scene_corresp->size (); kk+=step)
                 {
-                    pcl::Correspondence c = (*it_map).second.correspondences_to_inputcloud->at(kk);
+                    pcl::Correspondence c = (*it_map).second.model_scene_corresp->at(kk);
 
                     pcl::PointXYZ p1,p2;
                     p1.getVector3fMap() = keypoints_cloud_trans->points[c.index_match].getVector3fMap();
@@ -452,7 +452,7 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
                     //std::cout << "size cluster:" << corresp_clusters[i].size() << std::endl;
                     Eigen::Matrix4f best_trans;
                     typename pcl::registration::TransformationEstimationSVD < PointInT, PointInT > t_est;
-                    t_est.estimateRigidTransformation (*(*it_map).second.correspondences_pointcloud, *keypoints_cloud_, corresp_clusters[i], best_trans);
+                    t_est.estimateRigidTransformation (*(*it_map).second.model_keypoints, *keypoints_cloud_, corresp_clusters[i], best_trans);
 
                     models_->push_back ((*it_map).second.model_);
                     transforms_->push_back (best_trans);

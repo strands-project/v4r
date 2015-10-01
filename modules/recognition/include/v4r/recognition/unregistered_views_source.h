@@ -108,8 +108,8 @@ namespace v4r
               for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
                 indices.indices[kk] = obj_indices_cloud.points[kk].idx;
 
-              model.views_->push_back (cloud);
-              model.indices_->push_back(indices);
+              model.views_.push_back (cloud);
+              model.indices_.push_back(indices);
             //}
           //}
         }

@@ -31,7 +31,9 @@ public:
     }
 
     void visualize_result(const pcl::PointCloud<PointT>::ConstPtr &cloud, const std::vector<ModelTPtr> &models, const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
-    {
+    {        
+        r_.visualize();
+
         if(!vis_)
             vis_.reset ( new pcl::visualization::PCLVisualizer("Recognition Results") );
         vis_->removeAllPointClouds();

@@ -2,7 +2,8 @@
  * source.h
  *
  *  Created on: Mar 9, 2012
- *      Author: aitor
+ *      Author: Aitor Aldoma
+ *      Maintainer: Thomas Faeulhammer
  */
 
 #ifndef FAAT_PCL_REC_FRAMEWORK_VIEWS_SOURCE_H_
@@ -37,10 +38,10 @@ namespace v4r
       bool centroid_computed_;
 
     public:
-      boost::shared_ptr<std::vector<PointTPtr> > views_;
-      boost::shared_ptr< std::vector<pcl::PointIndices> > indices_;
-      boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > poses_;
-      boost::shared_ptr<std::vector<float> > self_occlusions_;
+      std::vector<PointTPtr> views_;
+      std::vector<pcl::PointIndices> indices_;
+      std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
+      std::vector<float>  self_occlusions_;
       std::string id_;
       std::string class_;
       PointTPtr assembled_;

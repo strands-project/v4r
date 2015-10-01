@@ -115,10 +115,10 @@ namespace v4r
 
         void
         assembleModelFromViewsAndPoses(ModelT & model, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses) {
-          for(size_t i=0; i < model.views_->size(); i++) {
+          for(size_t i=0; i < model.views_.size(); i++) {
             Eigen::Matrix4f inv = poses[i];
             typename pcl::PointCloud<PointInT>::Ptr global_cloud(new pcl::PointCloud<PointInT>);
-            pcl::transformPointCloud(*(model.views_->at(i)),*global_cloud, inv);
+            pcl::transformPointCloud(*(model.views_[i]),*global_cloud, inv);
             *(model.assembled_) += *global_cloud;
           }
         }
@@ -131,9 +131,9 @@ namespace v4r
           pathmodel << dir << "/" << model.class_ << "/" << model.id_;
           bf::path trained_dir = pathmodel.str ();
 
-          model.views_.reset (new std::vector<typename pcl::PointCloud<PointInT>::Ptr>);
-          model.poses_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-          model.self_occlusions_.reset (new std::vector<float>);
+          model.views_.clear();
+          model.poses_.clear();
+          model.self_occlusions_.clear();
 
           if (bf::exists (trained_dir))
           {
@@ -183,7 +183,7 @@ namespace v4r
               typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
               pcl::io::loadPCDFile (view_file.str (), *cloud);
 
-              model.views_->push_back (cloud);
+              model.views_.push_back (cloud);
 
               std::string file_replaced1 (view_filenames[i]);
               boost::replace_all (file_replaced1, "view", "pose");

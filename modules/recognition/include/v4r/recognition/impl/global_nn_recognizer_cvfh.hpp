@@ -737,11 +737,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           std::cout << "dir alredy exists..." << path << std::endl;
         }
 
-        std::cout << "Number of views..." << models->at (i)->views_->size () << std::endl;
-        for (size_t v = 0; v < models->at (i)->views_->size (); v++)
+        std::cout << "Number of views..." << models->at (i)->views_.size () << std::endl;
+        for (size_t v = 0; v < models->at (i)->views_.size (); v++)
         {
           PointInTPtr processed (new pcl::PointCloud<PointInT>);
-          PointInTPtr view = models->at (i)->views_->at (v);
+          PointInTPtr view = models->at (i)->views_[v];
 
           if (view->points.size () == 0)
             PCL_WARN("View has no points!!!\n");
@@ -765,11 +765,10 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           std::vector<pcl::PointCloud<FeatureT>, Eigen::aligned_allocator<pcl::PointCloud<FeatureT> > > signatures;
           std::vector < Eigen::Vector3f > centroids;
 
-          if(models->at(i)->indices_ && (models->at(i)->indices_->at (v).indices.size() > 0)
-                                     && micvfh_estimator_->acceptsIndices())
+          if(models->at(i)->indices_[v].indices.size() > 0 && micvfh_estimator_->acceptsIndices())
           {
-            std::cout << "micvfh_estimator accepts indices:" << micvfh_estimator_->acceptsIndices() << " size:" << models->at(i)->indices_->at (v).indices.size() << std::endl;
-            micvfh_estimator_->setIndices(models->at(i)->indices_->at (v));
+            std::cout << "micvfh_estimator accepts indices:" << micvfh_estimator_->acceptsIndices() << " size:" << models->at(i)->indices_[v].indices.size() << std::endl;
+            micvfh_estimator_->setIndices(models->at(i)->indices_[v]);
           }
 
           micvfh_estimator_->estimate (view, processed, signatures, centroids);
@@ -791,11 +790,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
           std::stringstream path_pose;
           path_pose << path << "/pose_" << v << ".txt";
-          v4r::io::writeMatrixToFile( path_pose.str (), models->at (i)->poses_->at (v));
+          v4r::io::writeMatrixToFile( path_pose.str (), models->at (i)->poses_[v]);
 
           std::stringstream path_entropy;
           path_entropy << path << "/entropy_" << v << ".txt";
-          v4r::io::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_->at (v));
+          v4r::io::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_[v]);
 
           //save signatures and centroids to disk
           for (size_t j = 0; j < signatures.size (); j++)
@@ -820,7 +819,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         }
 
         if(!source_->getLoadIntoMemory())
-          models->at (i)->views_->clear();
+          models->at (i)->views_.clear();
 
       }
       else
@@ -828,7 +827,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         //else skip model
         std::cout << "The model has already been trained..." << std::endl;
         //there is no need to keep the views in memory once the model has been trained
-        models->at (i)->views_->clear ();
+        models->at (i)->views_.clear ();
       }
     }
 

@@ -107,7 +107,7 @@ namespace v4r
             typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
             pcl::io::loadPCDFile (view_file, *cloud);
 
-            model.views_->push_back (cloud);
+            model.views_.push_back (cloud);
 
             std::string file_replaced1 (model.view_filenames_[i]);
             boost::replace_all (file_replaced1, "view", "pose");
@@ -123,13 +123,13 @@ namespace v4r
             Eigen::Matrix4f pose;
             v4r::io::readMatrixFromFile(pose_file, pose);
 
-            model.poses_->push_back (pose);
+            model.poses_.push_back (pose);
 
             //read entropy as well
             const std::string entropy_file = pathmodel + "/" + file_replaced2;
             float entropy = 0;
             v4r::io::readFloatFromFile (entropy_file, entropy);
-            model.self_occlusions_->push_back (entropy);
+            model.self_occlusions_.push_back (entropy);
 
           }
         }
@@ -139,9 +139,9 @@ namespace v4r
         {
           const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
 
-          model.views_.reset (new std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>);
-          model.poses_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-          model.self_occlusions_.reset (new std::vector<float>);
+          model.views_.clear();
+          model.poses_.clear();
+          model.self_occlusions_.clear();
           model.assembled_.reset (new pcl::PointCloud<pcl::PointXYZ>);
           uniform_sampling (model_path, 100000, *model.assembled_, model_scale_);
 
@@ -281,9 +281,9 @@ namespace v4r
                     for(size_t col_id=0; col_id<4; col_id++)
                         tf(col_id, row_id) = tg_pose.data[row_id*4 + col_id];
 
-                model.views_->push_back (cloud);
-                model.poses_->push_back (tf);
-                model.self_occlusions_->push_back (0); // NOT IMPLEMENTED
+                model.views_.push_back (cloud);
+                model.poses_.push_back (tf);
+                model.self_occlusions_.push_back (0); // NOT IMPLEMENTED
             }
 			
             //generate views
@@ -303,21 +303,21 @@ namespace v4r
             direc << dir << "/" << model.class_ << "/" << model.id_;
             this->createClassAndModelDirectories (dir, model.class_, model.id_);
 
-            for (size_t i = 0; i < model.views_->size (); i++)
+            for (size_t i = 0; i < model.views_.size (); i++)
             {
               //save generated model for future use
               std::stringstream path_view;
               path_view << direc.str () << "/view_" << i << ".pcd";
-              pcl::io::savePCDFileBinary (path_view.str (), *(model.views_->at (i)));
+              pcl::io::savePCDFileBinary (path_view.str (), *(model.views_[i]));
 
               std::stringstream path_pose;
               path_pose << direc.str () << "/pose_" << i << ".txt";
 
-              v4r::io::writeMatrixToFile( path_pose.str (), model.poses_->at (i));
+              v4r::io::writeMatrixToFile( path_pose.str (), model.poses_[i]);
 
               std::stringstream path_entropy;
               path_entropy << direc.str () << "/entropy_" << i << ".txt";
-              v4r::io::writeFloatToFile (path_entropy.str (), model.self_occlusions_->at (i));
+              v4r::io::writeFloatToFile (path_entropy.str (), model.self_occlusions_[i]);
             }
 
             loadOrGenerate (dir, model_path, model);

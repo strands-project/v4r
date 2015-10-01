@@ -210,13 +210,13 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     {
       if (!source_->isModelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
       {
-        for (size_t v = 0; v < models->at (i)->views_->size (); v++)
+        for (size_t v = 0; v < models->at (i)->views_.size (); v++)
         {
           PointInTPtr processed (new pcl::PointCloud<PointInT>);
           //pro view, compute signatures
           typename pcl::PointCloud<FeatureT>::CloudVectorType signatures;
           std::vector < Eigen::Vector3f > centroids;
-          estimator_->estimate (models->at (i)->views_->at (v), processed, signatures, centroids);
+          estimator_->estimate (models->at (i)->views_[v], processed, signatures, centroids);
 
           //source_->makeModelPersistent (models->at (i), training_dir_, descr_name_, static_cast<int> (v));
           std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
@@ -229,11 +229,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
           std::stringstream path_pose;
           path_pose << path << "/pose_" << v << ".txt";
-          v4r::io::writeMatrixToFile( path_pose.str (), models->at (i)->poses_->at (v));
+          v4r::io::writeMatrixToFile( path_pose.str (), models->at (i)->poses_[v]);
 
           std::stringstream path_entropy;
           path_entropy << path << "/entropy_" << v << ".txt";
-          v4r::io::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_->at (v));
+          v4r::io::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_[v]);
 
           //save signatures and centroids to disk
           for (size_t j = 0; j < signatures.size (); j++)

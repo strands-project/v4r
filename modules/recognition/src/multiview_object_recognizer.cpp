@@ -170,10 +170,10 @@ extendFeatureMatchesRecursive ( MVGraph &grph,
     {
         v4r::ObjectHypothesis<PointT> oh;
         oh.model_ = it_copy_hyp->second.model_;
-        oh.correspondences_pointcloud.reset(new pcl::PointCloud<PointT>(*(it_copy_hyp->second.correspondences_pointcloud)));
-        oh.normals_pointcloud.reset(new pcl::PointCloud<pcl::Normal>(*(it_copy_hyp->second.normals_pointcloud)));
-        oh.correspondences_to_inputcloud.reset(new pcl::Correspondences);
-        *(oh.correspondences_to_inputcloud) = *(it_copy_hyp->second.correspondences_to_inputcloud);
+        oh.model_keypoints.reset(new pcl::PointCloud<PointT>(*(it_copy_hyp->second.model_keypoints)));
+        oh.model_kp_normals.reset(new pcl::PointCloud<pcl::Normal>(*(it_copy_hyp->second.model_kp_normals)));
+        oh.model_scene_corresp.reset(new pcl::Correspondences);
+        *(oh.model_scene_corresp) = *(it_copy_hyp->second.model_scene_corresp);
         oh.indices_to_flann_models_ = it_copy_hyp->second.indices_to_flann_models_;
         hypotheses.insert(std::pair<std::string, v4r::ObjectHypothesis<PointT> >(it_copy_hyp->first, oh));
     }
@@ -235,49 +235,49 @@ extendFeatureMatchesRecursive ( MVGraph &grph,
                     if (it_existing_hyp == hypotheses.end()) {
                         PCL_ERROR("There are no hypotheses (feature matches) for this model yet.");
                         v4r::ObjectHypothesis<PointT> oh;
-                        oh.correspondences_pointcloud.reset(new pcl::PointCloud<PointT>
-                                                            (*(it_new_hyp->second.correspondences_pointcloud)));
-                        oh.normals_pointcloud.reset(new pcl::PointCloud<pcl::Normal>
-                                                    (*(it_new_hyp->second.normals_pointcloud)));
+                        oh.model_keypoints.reset(new pcl::PointCloud<PointT>
+                                                            (*(it_new_hyp->second.model_keypoints)));
+                        oh.model_kp_normals.reset(new pcl::PointCloud<pcl::Normal>
+                                                    (*(it_new_hyp->second.model_kp_normals)));
                         oh.indices_to_flann_models_ = it_new_hyp->second.indices_to_flann_models_;
-                        oh.correspondences_to_inputcloud.reset (new pcl::Correspondences);
-                        *(oh.correspondences_to_inputcloud) = *(it_new_hyp->second.correspondences_to_inputcloud);
-                        for(size_t i=0; i < oh.correspondences_to_inputcloud->size(); i++)
+                        oh.model_scene_corresp.reset (new pcl::Correspondences);
+                        *(oh.model_scene_corresp) = *(it_new_hyp->second.model_scene_corresp);
+                        for(size_t i=0; i < oh.model_scene_corresp->size(); i++)
                         {
-                            oh.correspondences_to_inputcloud->at(i).index_match += pKeypoints->points.size();
+                            oh.model_scene_corresp->at(i).index_match += pKeypoints->points.size();
                         }
                         hypotheses.insert(std::pair<std::string, v4r::ObjectHypothesis<PointT> >(id, oh));
                     }
 
                     else { //merge hypotheses
 
-                        assert( (it_new_hyp->second.correspondences_to_inputcloud->size() ==  it_new_hyp->second.correspondences_pointcloud->size() ) &&
-                                (it_new_hyp->second.correspondences_pointcloud->size()    == it_new_hyp->second.indices_to_flann_models_.size()) );
+                        assert( (it_new_hyp->second.model_scene_corresp->size() ==  it_new_hyp->second.model_keypoints->size() ) &&
+                                (it_new_hyp->second.model_keypoints->size()    == it_new_hyp->second.indices_to_flann_models_.size()) );
 
-                        size_t num_existing_corrs = it_existing_hyp->second.correspondences_to_inputcloud->size();
-                        size_t num_new_corrs = it_new_hyp->second.correspondences_to_inputcloud->size();
+                        size_t num_existing_corrs = it_existing_hyp->second.model_scene_corresp->size();
+                        size_t num_new_corrs = it_new_hyp->second.model_scene_corresp->size();
 
-                        it_existing_hyp->second.correspondences_to_inputcloud->resize( num_existing_corrs + num_new_corrs );
-                        it_existing_hyp->second.correspondences_pointcloud->resize( num_existing_corrs + num_new_corrs );
-                        it_existing_hyp->second.normals_pointcloud->resize( num_existing_corrs + num_new_corrs );
+                        it_existing_hyp->second.model_scene_corresp->resize( num_existing_corrs + num_new_corrs );
+                        it_existing_hyp->second.model_keypoints->resize( num_existing_corrs + num_new_corrs );
+                        it_existing_hyp->second.model_kp_normals->resize( num_existing_corrs + num_new_corrs );
                         it_existing_hyp->second.indices_to_flann_models_.resize( num_existing_corrs + num_new_corrs );
 
                         size_t kept_corrs = num_existing_corrs;
 
-                        for(size_t j=0; j < it_new_hyp->second.correspondences_to_inputcloud->size(); j++) {
+                        for(size_t j=0; j < it_new_hyp->second.model_scene_corresp->size(); j++) {
 
                             bool drop_new_correspondence = false;
 
-                            pcl::Correspondence c_new = it_new_hyp->second.correspondences_to_inputcloud->at(j);
+                            pcl::Correspondence c_new = it_new_hyp->second.model_scene_corresp->at(j);
                             const PointT new_kp = pNewKeypoints->points[c_new.index_match];
                             pcl::PointXYZ new_kp_XYZ;
                             new_kp_XYZ.getVector3fMap() = new_kp.getVector3fMap();
                             const pcl::Normal new_kp_normal = pNewKeypointNormals->points[c_new.index_match];
 
-                            const PointT new_model_pt = it_new_hyp->second.correspondences_pointcloud->points[ c_new.index_query ];
+                            const PointT new_model_pt = it_new_hyp->second.model_keypoints->points[ c_new.index_query ];
                             pcl::PointXYZ new_model_pt_XYZ;
                             new_model_pt_XYZ.getVector3fMap() = new_model_pt.getVector3fMap();
-                            const pcl::Normal new_model_normal = it_new_hyp->second.normals_pointcloud->points[ c_new.index_query ];
+                            const pcl::Normal new_model_normal = it_new_hyp->second.model_kp_normals->points[ c_new.index_query ];
 
                             int idx_to_flann_model = it_new_hyp->second.indices_to_flann_models_[j];
 
@@ -287,8 +287,8 @@ extendFeatureMatchesRecursive ( MVGraph &grph,
                             }
 
                             for(size_t k=0; k < num_existing_corrs; k++) {
-                                const pcl::Correspondence c_existing = it_existing_hyp->second.correspondences_to_inputcloud->at(k);
-                                const PointT existing_model_pt = it_existing_hyp->second.correspondences_pointcloud->points[ c_existing.index_query ];
+                                const pcl::Correspondence c_existing = it_existing_hyp->second.model_scene_corresp->at(k);
+                                const PointT existing_model_pt = it_existing_hyp->second.model_keypoints->points[ c_existing.index_query ];
                                 pcl::PointXYZ existing_model_pt_XYZ;
                                 existing_model_pt_XYZ.getVector3fMap() = existing_model_pt.getVector3fMap();
 
@@ -316,19 +316,19 @@ extendFeatureMatchesRecursive ( MVGraph &grph,
                                 it_existing_hyp->second.indices_to_flann_models_[kept_corrs] = idx_to_flann_model; //check that
                                 c_new.index_query = kept_corrs;
                                 c_new.index_match += num_keypoints_single_view;
-                                it_existing_hyp->second.correspondences_to_inputcloud->at(kept_corrs) = c_new;
-                                it_existing_hyp->second.correspondences_pointcloud->points[kept_corrs] = new_model_pt;
-                                it_existing_hyp->second.normals_pointcloud->points[kept_corrs] = new_model_normal;
+                                it_existing_hyp->second.model_scene_corresp->at(kept_corrs) = c_new;
+                                it_existing_hyp->second.model_keypoints->points[kept_corrs] = new_model_pt;
+                                it_existing_hyp->second.model_kp_normals->points[kept_corrs] = new_model_normal;
                                 kept_corrs++;
                             }
                         }
-                        it_existing_hyp->second.correspondences_to_inputcloud->resize( kept_corrs );
-                        it_existing_hyp->second.correspondences_pointcloud->resize( kept_corrs );
-                        it_existing_hyp->second.normals_pointcloud->resize( kept_corrs );
+                        it_existing_hyp->second.model_scene_corresp->resize( kept_corrs );
+                        it_existing_hyp->second.model_keypoints->resize( kept_corrs );
+                        it_existing_hyp->second.model_kp_normals->resize( kept_corrs );
                         it_existing_hyp->second.indices_to_flann_models_.resize( kept_corrs );
 
                         //                    std::cout << "INFO: Size for " << id <<
-                        //                                 " of correspondes_pointcloud after merge: " << it_existing_hyp->second.correspondences_pointcloud->points.size() << std::endl;
+                        //                                 " of correspondes_pointcloud after merge: " << it_existing_hyp->second.model_keypoints->points.size() << std::endl;
                     }
                 }
             }
@@ -652,7 +652,7 @@ MultiviewRecognizer::recognize (const pcl::PointCloud<PointT>::ConstPtr cloud,
         resetHopStatus(grph_final_);
 
         for(it_hyp = accumulatedHypotheses_.begin(); it_hyp != accumulatedHypotheses_.end(); ++it_hyp)
-            total_num_correspondences += it_hyp->second.correspondences_to_inputcloud->size();
+            total_num_correspondences += it_hyp->second.model_scene_corresp->size();
 
         std::vector < pcl::Correspondences > corresp_clusters_mv;
 
@@ -677,8 +677,8 @@ MultiviewRecognizer::recognize (const pcl::PointCloud<PointT>::ConstPtr cloud,
                         const pcl::Correspondence c = corresp_clusters_mv[i][jj];
                         const size_t kp_scene_idx = static_cast<size_t>(c.index_match);
                         const size_t kp_model_idx = static_cast<size_t>(c.index_query);
-                        const PointT keypoint_model = accumulatedHypotheses_[id].correspondences_pointcloud->points[kp_model_idx];
-                        const pcl::Normal keypoint_normal_model = accumulatedHypotheses_[id].normals_pointcloud->points[kp_model_idx];
+                        const PointT keypoint_model = accumulatedHypotheses_[id].model_keypoints->points[kp_model_idx];
+                        const pcl::Normal keypoint_normal_model = accumulatedHypotheses_[id].model_kp_normals->points[kp_model_idx];
                         const PointT keypoint_scene = pAccumulatedKeypoints_->points[kp_scene_idx];
                         const pcl::Normal keypoint_normal_scene = pAccumulatedKeypointNormals_->points[kp_scene_idx];
                         const int index_to_flann_models = accumulatedHypotheses_[id].indices_to_flann_models_[kp_model_idx];
@@ -690,16 +690,16 @@ MultiviewRecognizer::recognize (const pcl::PointCloud<PointT>::ConstPtr cloud,
                         // Also, we don't have to check if these new keypoints are redundant because this
                         // is already done in the function "extendFeatureMatchesRecursive(..)".
 
-                        if(kp_model_idx >= it_hyp_sv->second.correspondences_pointcloud->points.size()
+                        if(kp_model_idx >= it_hyp_sv->second.model_keypoints->points.size()
                                 && kp_scene_idx >= grph_final_[vrtx_final].pKeypointsMultipipe_->points.size()) {
 
                             pcl::Correspondence c_new = c;  // to keep hypothesis' class union member distance
                             c_new.index_match = grph_final_[vrtx_final].pKeypointsMultipipe_->points.size();
-                            c_new.index_query = it_hyp_sv->second.correspondences_pointcloud->points.size();
-                            it_hyp_sv->second.correspondences_to_inputcloud->push_back(c_new);
+                            c_new.index_query = it_hyp_sv->second.model_keypoints->points.size();
+                            it_hyp_sv->second.model_scene_corresp->push_back(c_new);
 
-                            it_hyp_sv->second.correspondences_pointcloud->points.push_back(keypoint_model);
-                            it_hyp_sv->second.normals_pointcloud->points.push_back(keypoint_normal_model);
+                            it_hyp_sv->second.model_keypoints->points.push_back(keypoint_model);
+                            it_hyp_sv->second.model_kp_normals->points.push_back(keypoint_normal_model);
                             it_hyp_sv->second.indices_to_flann_models_.push_back(index_to_flann_models);
                             grph_final_[vrtx_final].pKeypointsMultipipe_->points.push_back(keypoint_scene);
                             grph_final_[vrtx_final].pKeypointNormalsMultipipe_->points.push_back(keypoint_normal_scene);

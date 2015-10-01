@@ -21,12 +21,9 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (c
   pathmodel << dir << "/" << model.class_ << "/" << model.id_;
   bf::path trained_dir = pathmodel.str ();
 
-  model.views_.reset (new std::vector<typename pcl::PointCloud<PointInT>::Ptr>);
-  model.poses_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-  model.self_occlusions_.reset (new std::vector<float>);
   if(gen_organized_)
   {
-    model.indices_.reset(new std::vector<pcl::PointIndices>);
+    model.indices_.clear();
   }
 
   model.assembled_.reset (new pcl::PointCloud<OutModelPointT>);
@@ -735,12 +732,11 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
 {
   std::stringstream pathmodel;
   pathmodel << dir << "/" << model.class_ << "/" << model.id_;
-  bf::path trained_dir = pathmodel.str ();
 
-  model.views_->clear();
-  model.poses_->clear();
+  model.views_.clear();
+  model.poses_.clear();
   if(gen_organized_)
-   model.indices_->clear();
+    model.indices_.clear();
 
   int i = view_id;
   std::stringstream view_file;
@@ -749,7 +745,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
   typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
   pcl::io::loadPCDFile (view_file.str (), *cloud);
 
-  model.views_->push_back (cloud);
+  model.views_.push_back (cloud);
 
   std::string file_replaced1 (model.view_filenames_[i]);
   boost::replace_all (file_replaced1, "view", "pose");
@@ -766,7 +762,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
   Eigen::Matrix4f pose;
   v4r::io::readMatrixFromFile( pose_file.str (), pose);
 
-  model.poses_->push_back (pose);
+  model.poses_.push_back (pose);
 
   if(gen_organized_)
   {
@@ -782,7 +778,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
     for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
       indices.indices[kk] = obj_indices_cloud.points[kk].idx;
 
-    model.indices_->push_back(indices);
+    model.indices_.push_back(indices);
   }
 }
 
@@ -792,12 +788,12 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::assembleModelFrom
                                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
                                    std::vector<pcl::PointIndices> & indices,
                                    typename pcl::PointCloud<PointInT>::Ptr &model_cloud) {
-  for(size_t i=0; i < model.views_->size(); i++) {
+  for(size_t i=0; i < model.views_.size(); i++) {
     //Eigen::Matrix4f inv = poses[i].transpose();
     Eigen::Matrix4f inv = poses[i].inverse();
 
     typename pcl::PointCloud<PointInT>::Ptr global_cloud_only_indices(new pcl::PointCloud<PointInT>);
-    pcl::copyPointCloud(*(model.views_->at(i)), indices[i], *global_cloud_only_indices);
+    pcl::copyPointCloud(*(model.views_[i]), indices[i], *global_cloud_only_indices);
     typename pcl::PointCloud<PointInT>::Ptr global_cloud(new pcl::PointCloud<PointInT>);
     pcl::transformPointCloud(*global_cloud_only_indices,*global_cloud, inv);
     *(model_cloud) += *global_cloud;
@@ -811,15 +807,6 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
   PCL_WARN("Loading into memory %d views \n", static_cast<int>(model.view_filenames_.size ()));
   std::stringstream pathmodel;
   pathmodel << dir << "/" << model.class_ << "/" << model.id_;
-  bf::path trained_dir = pathmodel.str ();
-
-  model.views_.reset (new std::vector<typename pcl::PointCloud<PointInT>::Ptr>);
-  model.poses_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-  model.self_occlusions_.reset (new std::vector<float>);
-  if(gen_organized_)
-  {
-    model.indices_.reset(new std::vector<pcl::PointIndices>);
-  }
 
   for (size_t i = 0; i < model.view_filenames_.size (); i++)
   {
@@ -829,7 +816,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
     typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
     pcl::io::loadPCDFile (view_file.str (), *cloud);
 
-    model.views_->push_back (cloud);
+    model.views_.push_back (cloud);
 
     std::string file_replaced1 (model.view_filenames_[i]);
     boost::replace_all (file_replaced1, "view", "pose");
@@ -849,14 +836,14 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
     v4r::io::readMatrixFromFile( pose_file.str (), pose);
 
     std::cout << pose << std::endl;
-    model.poses_->push_back (pose);
+    model.poses_.push_back (pose);
 
     //read entropy as well
     std::stringstream entropy_file;
     entropy_file << pathmodel.str () << "/" << file_replaced2;
     float entropy = 0;
     v4r::io::readFloatFromFile (entropy_file.str (), entropy);
-    model.self_occlusions_->push_back (entropy);
+    model.self_occlusions_.push_back (entropy);
 
     if(gen_organized_)
     {
@@ -872,7 +859,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
       for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
         indices.indices[kk] = obj_indices_cloud.points[kk].idx;
 
-      model.indices_->push_back(indices);
+      model.indices_.push_back(indices);
     }
   }
 

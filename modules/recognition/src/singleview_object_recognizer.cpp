@@ -277,17 +277,15 @@ std::vector<bool> SingleViewRecognizer::hypothesesVerification()
     go->setObjectIds(model_ids_);
 #endif
 
-    //verify
-    {
-        pcl::ScopeTime t("Go verify");
-        go->verify ();
-    }
+    go->verify ();
+
     std::vector<bool> mask_hv_with_planes;
     verified_planes_.clear();
     go->getMask (mask_hv_with_planes);
 
     std::vector<int> coming_from;
     coming_from.resize(aligned_models_.size() + planes_found_.size());
+
     for(size_t j=0; j < aligned_models_.size(); j++)
         coming_from[j] = 0;
 
@@ -295,9 +293,8 @@ std::vector<bool> SingleViewRecognizer::hypothesesVerification()
         coming_from[aligned_models_.size() + j] = 1;
 
     for (size_t j = 0; j < aligned_models_.size (); j++)
-    {
         mask_hv[j] = mask_hv_with_planes[j];
-    }
+
     for (size_t j = 0; j < planes_found_.size(); j++)
     {
         if(mask_hv_with_planes[aligned_models_.size () + j])
@@ -342,58 +339,50 @@ void SingleViewRecognizer::constructHypothesesFromFeatureMatches(std::map < std:
 //#pragma omp parallel
     for (it_map = hypothesesInput.begin (); it_map != hypothesesInput.end (); it_map++)
     {
-        if(it_map->second.correspondences_to_inputcloud->size() < 3)
+        const v4r::ObjectHypothesis<PointT> &oh = it_map->second;
+
+        if((int)oh.model_scene_corresp->size() < cg_params_.cg_size_threshold_)
             continue;
 
         std::vector <pcl::Correspondences> corresp_clusters;
-        std::string id = it_map->second.model_->id_;
-        std::cout << id << ": " << it_map->second.correspondences_to_inputcloud->size() << std::endl;
+        std::string id = oh.model_->id_;
+        std::cout << id << ": " << oh.model_scene_corresp->size() << std::endl;
         cast_cg_alg_->setSceneCloud (pKeypoints);
-        cast_cg_alg_->setInputCloud ((*it_map).second.correspondences_pointcloud);
+        cast_cg_alg_->setInputCloud (oh.model_keypoints);
 
         if(cast_cg_alg_->getRequiresNormals())
         {
-            std::cout << "CG alg requires normals..." << ((*it_map).second.normals_pointcloud)->points.size() << " " << pKeypointNormals->points.size() << std::endl;
-            assert(pKeypoints->points.size() == pKeypointNormals->points.size());
-            cast_cg_alg_->setInputAndSceneNormals((*it_map).second.normals_pointcloud, pKeypointNormals);
+            std::cout << "CG alg requires normals..." << (oh.model_kp_normals)->points.size() << " " << pKeypointNormals->points.size() << std::endl;
+            assert(oh.scene_keypoints->points.size() == pKeypointNormals->points.size());
+            cast_cg_alg_->setInputAndSceneNormals(oh.model_kp_normals, pKeypointNormals);
         }
-        //we need to pass the keypoints_pointcloud and the specific object hypothesis
 
-        cast_cg_alg_->setModelSceneCorrespondences ((*it_map).second.correspondences_to_inputcloud);
+        cast_cg_alg_->setModelSceneCorrespondences (oh.model_scene_corresp);
         cast_cg_alg_->cluster (corresp_clusters);
 
-        std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << " " << it_map->first << std::endl;
+        std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.model_scene_corresp->size () << " " << it_map->first << std::endl;
         for (size_t i = 0; i < corresp_clusters.size (); i++)
         {
-            //std::cout << "size cluster:" << corresp_clusters[i].size() << std::endl;
             Eigen::Matrix4f best_trans;
             pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
-            t_est.estimateRigidTransformation (*(*it_map).second.correspondences_pointcloud, *pKeypoints, corresp_clusters[i], best_trans);
+            t_est.estimateRigidTransformation (*oh.model_keypoints, *pKeypoints, corresp_clusters[i], best_trans);
 
-            Hypothesis<PointT> ht_temp ( (*it_map).second.model_, best_trans );
+            Hypothesis<PointT> ht_temp ( oh.model_, best_trans );
             hypothesesOutput.push_back(ht_temp);
             corresp_clusters_hyp.push_back( corresp_clusters[i] );
-            models_->push_back( it_map->second.model_ );
-            model_ids_.push_back( it_map->second.model_->id_ );
+            models_->push_back( oh.model_ );
+            model_ids_.push_back( oh.model_->id_ );
             transforms_->push_back( best_trans );
 
-//            ModelTPtr m_with_faces;
-//            model_only_source_->getModelById((*it_map).second.model_->id_, m_with_faces);
-            ConstPointInTPtr model_cloud = (*it_map).second.model_->getAssembled (hv_params_.resolution_);
+            ConstPointInTPtr model_cloud = oh.model_->getAssembled (hv_params_.resolution_);
             pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
             pcl::transformPointCloud (*model_cloud, *model_aligned, best_trans);
             aligned_models_.push_back(model_aligned);
 
-//            pcl::PointCloud<pcl::PointXYZL>::Ptr faces = (*it_map).second.model_->getAssembledSmoothFaces(hv_params_.resolution_);
-//            pcl::PointCloud<pcl::PointXYZL>::Ptr faces_aligned(new pcl::PointCloud<pcl::PointXYZL>);
-//            pcl::transformPointCloud (*faces, *faces_aligned, best_trans);
-//            aligned_smooth_faces_.push_back(faces_aligned);
-
-            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = (*it_map).second.model_->getNormalsAssembled (hv_params_.resolution_);
+            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = oh.model_->getNormalsAssembled (hv_params_.resolution_);
             pcl::PointCloud<pcl::Normal>::Ptr normal_cloud(new pcl::PointCloud<pcl::Normal>(*normal_cloud_const) );
 
             const Eigen::Matrix3f rot   = transforms_->at(i).block<3, 3> (0, 0);
-//            const Eigen::Vector3f trans = transforms_->at(i).block<3, 1> (0, 3);
             for(size_t jj=0; jj < normal_cloud->points.size(); jj++)
             {
                 const pcl::Normal norm_pt = normal_cloud->points[jj];
@@ -807,5 +796,58 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
 //    multi_recog_->setICPType(1);
     multi_recog_->setICPIterations(sv_params_.icp_iterations_);
     multi_recog_->initialize();
+  }
+
+  void SingleViewRecognizer::visualize()
+  {
+      if(!vis_) {
+          vis_.reset(new pcl::visualization::PCLVisualizer("single-view recognition results"));
+          vis_->createViewPort(0,0,1,0.33,vp1_);
+          vis_->createViewPort(0,0.33,1,0.66,vp2_);
+          vis_->createViewPort(0,0.66,1,1,vp3_);
+          vis_->addText("input cloud", 10, 10, 20, 1, 1, 1, "input", vp1_);
+          vis_->addText("generated hypotheses", 10, 10, 20, 0, 0, 0, "generated hypotheses", vp2_);
+          vis_->addText("verified hypotheses", 10, 10, 20, 0, 0, 0, "verified hypotheses", vp3_);
+      }
+
+      vis_->removeAllPointClouds();
+      vis_->removeAllPointClouds(vp1_);
+      vis_->removeAllPointClouds(vp2_);
+      vis_->removeAllPointClouds(vp3_);
+
+      Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
+      pcl::PointCloud<PointT>::Ptr vis_cloud (new pcl::PointCloud<PointT>);
+      pcl::copyPointCloud(*pInputCloud_, *vis_cloud);
+      vis_cloud->sensor_origin_ = zero_origin;
+      vis_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+      vis_->addPointCloud(vis_cloud, "input cloud", vp1_);
+      vis_->setBackgroundColor(.0f, .0f, .0f, vp2_);
+
+      for(size_t i=0; i<models_->size(); i++)
+      {
+          ModelT &m = *models_->at(i);
+          const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
+          std::stringstream model_label;
+          model_label << model_id << "_" << i;
+          pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+          pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
+          pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_->at(i));
+          vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
+          vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
+      }
+
+      for(size_t i=0; i<models_verified_.size(); i++)
+      {
+          ModelT &m = *models_verified_[i];
+          const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
+          std::stringstream model_label;
+          model_label << model_id << "_v_" << i;
+          pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+          pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
+          pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_verified_[i]);
+          vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
+          vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
+      }
+      vis_->spin();
   }
 }

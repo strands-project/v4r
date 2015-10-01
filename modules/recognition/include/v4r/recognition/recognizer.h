@@ -2,7 +2,8 @@
  * recognizer.h
  *
  *  Created on: Feb 24, 2013
- *      Author: aitor
+ *      Author: Aitor Aldoma
+ *      Maintainer: Thomas Faeulhammer
  */
 
 #ifndef RECOGNIZER_H_
@@ -10,34 +11,44 @@
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/core/macros.h>
+#include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/recognition/voxel_based_correspondence_estimation.h>
+#include <v4r/recognition/source.h>
+
 #include <pcl/common/common.h>
-#include "voxel_based_correspondence_estimation.h"
-#include "source.h"
+#include <pcl/common/time.h>
+#include <pcl/filters/crop_box.h>
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/registration/transformation_estimation_point_to_plane_lls.h>
-#include "v4r/recognition/hypotheses_verification.h"
-#include <pcl/common/time.h>
-#include <pcl/filters/crop_box.h>
 
 namespace v4r
 {
-    template<typename PointInT>
-    class ObjectHypothesis
+    template<typename PointT>
+    class V4R_EXPORTS ObjectHypothesis
     {
-      typedef Model<PointInT> ModelT;
+      typedef Model<PointT> ModelT;
       typedef boost::shared_ptr<ModelT> ModelTPtr;
+
+      private:
+        boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
+        int vp1_, vp2_;
 
       public:
         ModelTPtr model_;
-        typename pcl::PointCloud<PointInT>::Ptr correspondences_pointcloud; //points in model coordinates
-        pcl::PointCloud<pcl::Normal>::Ptr normals_pointcloud; //points in model coordinates
+
+        typename pcl::PointCloud<PointT>::Ptr scene; // input point cloud of the scene
+        typename pcl::PointCloud<PointT>::Ptr scene_keypoints; // keypoints of the scene
+        typename pcl::PointCloud<PointT>::Ptr model_keypoints; //keypoints of model
+        pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals; //keypoint normals of model
 //        boost::shared_ptr<std::vector<float> > feature_distances_;
-        pcl::CorrespondencesPtr correspondences_to_inputcloud; //indices between correspondences_pointcloud and scene cloud
+        pcl::CorrespondencesPtr model_scene_corresp; //indices between model keypoints (index query) and scene cloud (index match)
 //        int num_corr_;
         std::vector<int> indices_to_flann_models_;
+
+        void visualize();
     };
 
     template<typename PointInT>

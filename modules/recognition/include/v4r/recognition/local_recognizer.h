@@ -149,8 +149,7 @@ namespace v4r
           float correspondence_distance_constant_weight_;
 
           //load features from disk and create flann structure
-          void
-          loadFeaturesAndCreateFLANN ();
+          void loadFeaturesAndCreateFLANN ();
 
           template <typename Type>
           inline void
@@ -174,20 +173,15 @@ namespace v4r
           /*void
           nearestKSearch (flann::Index<DistT> * index, float * descr, int descr_size, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);*/
 
-          void
-          nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);
+          void nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);
 
-          Eigen::Matrix4f
-          getPose (const ModelT &model, size_t view_id);
+          Eigen::Matrix4f getPose (const ModelT &model, size_t view_id);
 
-          void
-          getNormals (const ModelT &model, size_t view_id, pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud);
+          void getNormals (const ModelT &model, size_t view_id, pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud);
 
-          PointInT
-          getKeypoint (const ModelT & model, size_t view_id, size_t keypoint_id);
+          PointInT getKeypoint (const ModelT & model, size_t view_id, size_t keypoint_id);
 
-          void
-          getView (const ModelT & model, size_t view_id, PointInTPtr & view);
+          void getView (const ModelT & model, size_t view_id, PointInTPtr & view);
 
           void
           drawCorrespondences (const PointInTPtr & cloud,
@@ -209,7 +203,7 @@ namespace v4r
             for (size_t kk = 0; kk < correspondences.size (); kk++)
             {
               pcl::PointXYZ p;
-              p.getVector4fMap () = oh.correspondences_pointcloud->points[correspondences[kk].index_query].getVector4fMap ();
+              p.getVector4fMap () = oh.model_keypoints->points[correspondences[kk].index_query].getVector4fMap ();
               pcl::PointXYZ p_scene;
               p_scene.getVector4fMap () = keypoints_pointcloud->points[correspondences[kk].index_match].getVector4fMap ();
 
@@ -486,6 +480,16 @@ namespace v4r
 
         void
         recognize ();
+
+        void
+        clear()
+        {
+            signatures_.reset( new pcl::PointCloud<FeatureT> () );
+            keypoint_cloud_.reset( new pcl::PointCloud<PointInT> () );
+            processed_.reset( new pcl::PointCloud<PointInT>() );
+            input_.reset( new pcl::PointCloud<PointInT>() );
+            indices_.clear();
+        }
       };
 }
 

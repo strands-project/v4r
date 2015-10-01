@@ -73,12 +73,12 @@ public:
                                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
                                    std::vector<pcl::PointIndices> & indices,
                                    typename pcl::PointCloud<PointInT>::Ptr &model_cloud) {
-        for(size_t i=0; i < model.views_->size(); i++) {
+        for(size_t i=0; i < model.views_.size(); i++) {
             Eigen::Matrix4f inv = poses[i];
             inv = inv.inverse();
 
             typename pcl::PointCloud<PointInT>::Ptr global_cloud_only_indices(new pcl::PointCloud<PointInT>);
-            pcl::copyPointCloud(*(model.views_->at(i)), indices[i], *global_cloud_only_indices);
+            pcl::copyPointCloud(*(model.views_[i]), indices[i], *global_cloud_only_indices);
             typename pcl::PointCloud<PointInT>::Ptr global_cloud(new pcl::PointCloud<PointInT>);
             pcl::transformPointCloud(*global_cloud_only_indices,*global_cloud, inv);
             *(model_cloud) += *global_cloud;
@@ -112,8 +112,8 @@ public:
 
             //the recognizer assumes transformation from M to CC - i think!
             Eigen::Matrix4f pose_inv = pose.inverse();
-            model.poses_->push_back (pose_inv);
-            model.self_occlusions_->push_back (-1.f);
+            model.poses_.push_back (pose_inv);
+            model.self_occlusions_.push_back (-1.f);
 
             std::string file_replaced2 (model.view_filenames_[i]);
             boost::replace_all (file_replaced2, view_prefix_, indices_prefix_);
@@ -127,8 +127,8 @@ public:
             for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
                 indices.indices[kk] = obj_indices_cloud.points[kk].idx;
 
-            model.views_->push_back (cloud);
-            model.indices_->push_back(indices);
+            model.views_.push_back (cloud);
+            model.indices_.push_back(indices);
         }
     }
 
@@ -140,10 +140,10 @@ public:
         v4r::io::getFilesInDirectory(training_view_path, model.view_filenames_, "", view_pattern, false);
         std::cout << "Object class: " << model.class_ << ", id: " << model.id_ << ", views: " << model.view_filenames_.size() << std::endl;
 
-        model.views_.reset (new std::vector<typename pcl::PointCloud<PointInT>::Ptr>);
-        model.indices_.reset (new std::vector<pcl::PointIndices>);
-        model.poses_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-        model.self_occlusions_.reset (new std::vector<float>);
+        model.views_.clear();
+        model.indices_.clear();
+        model.poses_.clear();
+        model.self_occlusions_.clear();
 
         typename pcl::PointCloud<Full3DPointT>::Ptr modell (new pcl::PointCloud<Full3DPointT>);
         typename pcl::PointCloud<Full3DPointT>::Ptr modell_voxelized (new pcl::PointCloud<Full3DPointT>);
@@ -192,10 +192,10 @@ public:
                 for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
                     indices.indices[kk] = obj_indices_cloud.points[kk].idx;
 
-                model.views_->push_back (cloud);
-                model.indices_->push_back(indices);
-                model.poses_->push_back (pose_inv);
-                model.self_occlusions_->push_back (-1.f);
+                model.views_.push_back (cloud);
+                model.indices_.push_back(indices);
+                model.poses_.push_back (pose_inv);
+                model.self_occlusions_.push_back (-1.f);
             }
         }
     }

@@ -67,6 +67,9 @@ protected:
 
     boost::shared_ptr < v4r::CorrespondenceGrouping<PointT, PointT> > cast_cg_alg_;
 
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
+    int vp1_, vp2_, vp3_;
+
 public:
     struct hv_params{
             double resolution_;
@@ -357,6 +360,8 @@ public:
     bool retrain (const std::vector<std::string> &model_ids = std::vector<std::string>());
 
     void printParams(std::ostream &ostr = std::cout) const;
+
+    void visualize();
 };
 }
 
