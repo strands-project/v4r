@@ -12,12 +12,12 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
   v4r::GlobalNNPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
   {
-    boost::shared_ptr < std::vector<ModelTPtr> > models = source_->getModels ();
-    for (size_t i = 0; i < models->size (); i++)
+    std::vector<ModelTPtr> models = source_->getModels();
+
+    for (size_t i = 0; i < models.size (); i++)
     {
-      std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
-      //std::string path_class = source_->getModelClassDirectory (*models->at (i), training_dir_);
-      //std::cout << "I AM AT PATH: " << path << " for class directory: " << path_class << std::endl;
+      ModelTPtr m = models[i];
+      const std::string path = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
 
       bf::path inside = path;
       bf::directory_iterator end_itr;
@@ -36,14 +36,14 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         if (strs[0] == "descriptor")
         {
           std::string full_file_name = itr_in->path ().string ();
-          std::vector < std::string > strs;
-          boost::split (strs, full_file_name, boost::is_any_of ("/"));
+          std::vector < std::string > strs2;
+          boost::split (strs2, full_file_name, boost::is_any_of ("/"));
 
           typename pcl::PointCloud<FeatureT>::Ptr signature (new pcl::PointCloud<FeatureT>);
           pcl::io::loadPCDFile (full_file_name, *signature);
 
           flann_model descr_model;
-          descr_model.first = models->at (i);
+          descr_model.first = m;
           int size_feat = sizeof(signature->points[0].histogram) / sizeof(float);
           descr_model.second.resize (size_feat);
           memcpy (&descr_model.second[0], &signature->points[0].histogram[0], size_feat * sizeof(float));
@@ -90,13 +90,9 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     std::vector < Eigen::Vector3f > centroids;
 
     if (indices_.size ())
-    {
       pcl::copyPointCloud (*input_, indices_, *in);
-    }
     else
-    {
       in = input_;
-    }
 
     estimator_->estimate (in, processed, signatures, centroids);
     std::vector<index_score> indices_scores;
@@ -131,9 +127,10 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       }
 
       std::sort (indices_scores.begin (), indices_scores.end (), sortIndexScoresOp);
-      first_nn_category_ = flann_models_[indices_scores[0].idx_models_].first->class_;
+      flann_model &fm = flann_models_[indices_scores[0].idx_models_];
+      first_nn_category_ = fm.first->class_;
 
-      std::cout << "first id: " << flann_models_[indices_scores[0].idx_models_].first->id_ << std::endl;
+      std::cout << "first id: " << fm.first->id_ << std::endl;
 
       std::map<std::string, double> category_map;
       int num_n = std::min (NN_, static_cast<int> (indices_scores.size ()));
@@ -143,7 +140,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
       for (int i = 0; i < num_n; ++i)
       {
-        std::string cat = flann_models_[indices_scores[i].idx_models_].first->class_;
+        std::string cat = fm.first->class_;
         it = category_map.find (cat);
         if (it == category_map.end ())
         {
@@ -195,31 +192,31 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
     //use the source to know what has to be trained and what not, checking if the descr_name directory exists
     //unless force_retrain is true, then train everything
-    boost::shared_ptr < std::vector<ModelTPtr> > models = source_->getModels ();
-    std::cout << "Models size:" << models->size () << std::endl;
+    std::vector<ModelTPtr> models = source_->getModels();
+    std::cout << "Models size:" << models.size () << std::endl;
 
     if (force_retrain)
     {
-      for (size_t i = 0; i < models->size (); i++)
-      {
-        source_->removeDescDirectory (*models->at (i), training_dir_, descr_name_);
-      }
+      for (size_t i = 0; i < models.size (); i++)
+        source_->removeDescDirectory (*models[i], training_dir_, descr_name_);
     }
 
-    for (size_t i = 0; i < models->size (); i++)
+    for (size_t i = 0; i < models.size (); i++)
     {
-      if (!source_->isModelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
+      const ModelTPtr &m = models[i];
+
+      if (!source_->isModelAlreadyTrained (*m, training_dir_, descr_name_))
       {
-        for (size_t v = 0; v < models->at (i)->views_.size (); v++)
+        for (size_t v = 0; v < m->views_.size (); v++)
         {
           PointInTPtr processed (new pcl::PointCloud<PointInT>);
           //pro view, compute signatures
           typename pcl::PointCloud<FeatureT>::CloudVectorType signatures;
           std::vector < Eigen::Vector3f > centroids;
-          estimator_->estimate (models->at (i)->views_[v], processed, signatures, centroids);
+          estimator_->estimate (m->views_[v], processed, signatures, centroids);
 
           //source_->makeModelPersistent (models->at (i), training_dir_, descr_name_, static_cast<int> (v));
-          std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
+          std::string path = source_->getModelDescriptorDir (*m, training_dir_, descr_name_);
 
           v4r::io::createDirIfNotExist(path);
 
@@ -229,11 +226,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
           std::stringstream path_pose;
           path_pose << path << "/pose_" << v << ".txt";
-          v4r::io::writeMatrixToFile( path_pose.str (), models->at (i)->poses_[v]);
+          v4r::io::writeMatrixToFile( path_pose.str (), m->poses_[v]);
 
           std::stringstream path_entropy;
           path_entropy << path << "/entropy_" << v << ".txt";
-          v4r::io::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_[v]);
+          v4r::io::writeFloatToFile (path_entropy.str (), m->self_occlusions_[v]);
 
           //save signatures and centroids to disk
           for (size_t j = 0; j < signatures.size (); j++)

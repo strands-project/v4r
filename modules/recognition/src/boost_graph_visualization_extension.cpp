@@ -32,10 +32,10 @@ void BoostGraphVisualizer::visualizeGraph(const MVGraph &grph, pcl::visualizatio
     for ( vp = vertices ( grph ); vp.first != vp.second; ++vp.first ) {
         const View &v = grph[*vp.first];
 
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb ( v.pScenePCl_f );
+        pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb ( v.scene_f_ );
         std::stringstream cloud_name;
         cloud_name << "view_cloud_" << v.pScenePCl->header.frame_id <<  "_" << view_id;
-        vis->addPointCloud<pcl::PointXYZRGB> ( v.pScenePCl_f, handler_rgb, cloud_name.str (), viewportNr[view_id * vis_rows + 0] );
+        vis->addPointCloud<pcl::PointXYZRGB> ( v.scene_f_, handler_rgb, cloud_name.str (), viewportNr[view_id * vis_rows + 0] );
 
         for ( size_t hyp_id = 0; hyp_id < v.hypothesis_sv_.size(); hyp_id++ ) {
             //visualize models
@@ -104,6 +104,9 @@ void BoostGraphVisualizer::visualizeEdge (const EdgeD &edge, const MVGraph &grph
     ViewD src = source ( edge, grph );
     ViewD trgt = target ( edge, grph );
 
+    const View &v_src = grph[src];
+    const View &v_trgt = grph[trgt];
+
     Eigen::Matrix4f transform;
 
     if ( grph[edge].source_id == grph[src].id_)
@@ -117,14 +120,14 @@ void BoostGraphVisualizer::visualizeEdge (const EdgeD &edge, const MVGraph &grph
         edge_vis_.reset (new pcl::visualization::PCLVisualizer());
 
     edge_vis_->removeAllPointClouds();
-    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler_rgb_verified (grph[trgt].pScenePCl_f);
-    edge_vis_->addPointCloud<pcl::PointXYZRGB> (grph[trgt].pScenePCl_f, handler_rgb_verified, "Hypothesis_1");
+    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler_rgb_verified (v_src.scene_f_);
+    edge_vis_->addPointCloud<pcl::PointXYZRGB> (v_trgt.scene_f_, handler_rgb_verified, "Hypothesis_1");
     PointInTPtr transformed_PCl (new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl::transformPointCloud (*grph[src].pScenePCl_f, *transformed_PCl, transform);
+    pcl::transformPointCloud (*v_src.scene_f_, *transformed_PCl, transform);
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler_rgb_verified2 (transformed_PCl);
     edge_vis_->addPointCloud<pcl::PointXYZRGB> (transformed_PCl, handler_rgb_verified2, "Hypothesis_2");
     std::stringstream window_title;
-    window_title << "transform of source view_id " << grph[src].pScenePCl->header.frame_id << " to target view_id " << grph[trgt].pScenePCl->header.frame_id << " with edge " << grph[edge].model_name;
+    window_title << "transform of source view_id " << v_src.scene_f_->header.frame_id << " to target view_id " << v_trgt.scene_f_ << " with edge " << grph[edge].model_name;
     edge_vis_->setWindowName(window_title.str());
     edge_vis_->spin ();
 }
@@ -186,11 +189,11 @@ void BoostGraphVisualizer::visualizeWorkflow ( const ViewD &vrtx, const MVGraph 
      *pTotalCloud = *(v.pScenePCl);// + *keypointsVis;
      //*pTotalCloud += *extendedKeypointsVis;
 
-     pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb (v.pScenePCl_f);
-     keypoints_vis_->addPointCloud<PointT> (v.pScenePCl_f, handler_rgb, "total_v1", v1);
+     pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb (v.scene_f_);
+     keypoints_vis_->addPointCloud<PointT> (v.scene_f_, handler_rgb, "total_v1", v1);
 
-     pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb2 (v.pScenePCl_f);
-     keypoints_vis_->addPointCloud<PointT> (v.pScenePCl_f, handler_rgb2, "total_v2", v2);
+     pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb2 (v.scene_f_);
+     keypoints_vis_->addPointCloud<PointT> (v.scene_f_, handler_rgb2, "total_v2", v2);
      keypoints_vis_->spin ();
 
      keypoints_vis_->removeAllPointClouds(v1);

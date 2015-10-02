@@ -667,15 +667,14 @@ namespace v4r
           std::vector < std::string > files;
           v4r::getFilesInDirectory(path_, files, "", "", true);
 
-          models_.reset (new std::vector<ModelTPtr>);
+          models_.clear();
 
           for (size_t i = 0; i < files.size (); i++)
           {
-            ModelTPtr m(new ModelT());
+            ModelTPtr m(new ModelT);
 
             std::vector < std::string > strs;
             boost::split (strs, files[i], boost::is_any_of ("/\\"));
-            std::string name = strs[strs.size () - 1];
 
             if (strs.size () == 1)
             {
@@ -695,7 +694,6 @@ namespace v4r
               m->id_ = strs[strs.size () - 1];
             }
 
-            std::cout << m->class_ << " . " << m->id_ << std::endl;
             //check which of them have been trained using training_dir and the model_id_
             //load views, poses and self-occlusions for those that exist
             //generate otherwise
@@ -706,7 +704,7 @@ namespace v4r
             std::cout << "Model path..." << path_model << std::endl;
             loadOrGenerate (training_dir, path_model, *m);
 
-            models_->push_back (m);
+            models_.push_back (m);
 
             //std::cout << files[i] << std::endl;
           }

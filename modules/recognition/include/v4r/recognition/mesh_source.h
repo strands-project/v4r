@@ -2,7 +2,8 @@
  * ply_source.h
  *
  *  Created on: Mar 9, 2012
- *      Author: aitor
+ *      Author: Aitor Aldoma
+ *      Maintainer: Thomas Faeulhammer
  */
 
 #ifndef FAAT_PCL_REC_FRAMEWORK_MESH_SOURCE_H_
@@ -54,8 +55,6 @@ namespace v4r
 
       public:
 
-        using SourceT::setFilterDuplicateViews;
-
         MeshSource () :
         SourceT ()
         {
@@ -63,7 +62,7 @@ namespace v4r
           load_into_memory_ = true;
         }
 
-        ~MeshSource(){};
+        ~MeshSource(){}
 
         void
         setTesselationLevel (int lev)
@@ -161,14 +160,6 @@ namespace v4r
             if(load_into_memory_)
             {
               loadInMemorySpecificModel(dir, model);
-              /*typename pcl::PointCloud<PointInT>::Ptr model_cloud(new pcl::PointCloud<PointInT>);
-              assembleModelFromViewsAndPoses(model, *(model.poses_), *(model.indices_), model_cloud);
-
-              pcl::visualization::PCLVisualizer vis ("assembled model...");
-              pcl::visualization::PointCloudColorHandlerRGBField<PointInT> random_handler (model_cloud);
-              vis.addPointCloud<PointInT> (model_cloud, random_handler, "points");
-              vis.addCoordinateSystem(0.1);
-              vis.spin ();*/
             }
           }
           else
@@ -209,7 +200,6 @@ namespace v4r
             const float cx = img_width / 2.f;
             const float cy = img_height / 2.f;
             cam.SetIntrinsicCV(f, f, cx , cy, 0.01f, 10.0f);
-            int pc_id(-1);
 
             for(size_t i=0; i<sphere.m_vertices.size(); i++)
             {
@@ -337,7 +327,7 @@ namespace v4r
           std::vector < std::string > files;
           v4r::io::getFilesInDirectory(path_, files, "", ".*.ply", true);
 
-          models_.reset (new std::vector<ModelTPtr>);
+          models_.clear();
 
           for (size_t i = 0; i < files.size (); i++)
           {
@@ -353,7 +343,7 @@ namespace v4r
             std::string path_model = model_path.str ();
             loadOrGenerate (training_dir, path_model, *m);
 
-            models_->push_back (m);
+            models_.push_back (m);
           }
           std::cout << "End of generate function" << std::endl;
         }

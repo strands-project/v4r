@@ -28,7 +28,6 @@ struct camPosConstraints
 
         return false;
     }
-    ;
 };
 
 namespace v4r
@@ -53,15 +52,10 @@ protected:
     cv::Ptr<SiftGPU> sift_;
     pcl::PointCloud<PointT>::Ptr pInputCloud_;
     pcl::PointCloud<pcl::Normal>::Ptr pSceneNormals_;
-    boost::shared_ptr < std::vector<ModelTPtr> > models_;
-    std::vector<ModelTPtr> models_verified_;
-    boost::shared_ptr < std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_;
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified_;
-    std::vector<std::string> model_ids_verified_;
+    std::vector<ModelTPtr> models_, models_verified_;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_, transforms_verified_;
     std::vector<pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> aligned_models_;
     std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals_;
-    std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> aligned_smooth_faces_;
-    std::vector<std::string> model_ids_;
     std::vector<v4r::PlaneModel<PointT> > planes_found_;
     std::vector<pcl::PointCloud<PointT>::Ptr> verified_planes_;
 
@@ -123,10 +117,7 @@ public:
     }sv_params_;
 
     std::string models_dir_;
-    std::string training_dir_ourcvfh_;
-    std::string training_dir_sift_;
-    std::string training_dir_shot_;
-    std::string sift_structure_;
+    std::string training_dir_;
     std::string idx_flann_fn_sift_;
     std::string idx_flann_fn_shot_;
 
@@ -178,10 +169,6 @@ public:
         cg_params_.dot_distance_ = 0.2;
         cg_params_.use_cg_graph_ = true;
 
-        training_dir_sift_ = "/tmp/sift_trained";
-        training_dir_shot_ = "/tmp/shot_trained";
-        training_dir_ourcvfh_ = "/tmp/ourcvfh_trained";
-
         pInputCloud_.reset(new pcl::PointCloud<PointT>);
         pSceneNormals_.reset(new pcl::PointCloud<pcl::Normal>);
 
@@ -198,29 +185,14 @@ public:
         planes = verified_planes_;
     }
 
-    void setTraining_dir_sift(const std::string &training_dir_sift)
-    {
-        training_dir_sift_ = training_dir_sift;
-    }
-
-    void setTraining_dir_shot(const std::string &training_dir_shot)
-    {
-        training_dir_shot_ = training_dir_shot;
-    }
-
     void setModels_dir(const std::string &models_dir)
     {
         models_dir_ = models_dir;
     }
 
-    void setSift_structure(const std::string &sift_structure)
+    void set_training_dir(const std::string &dir)
     {
-        sift_structure_ = sift_structure;
-    }
-
-    void setTraining_dir_ourcvfh(const std::string &training_dir_ourcvfh)
-    {
-        training_dir_ourcvfh_ = training_dir_ourcvfh;
+        training_dir_ = dir;
     }
 
     cv::Ptr<SiftGPU> getSift() const
@@ -245,20 +217,13 @@ public:
 
     void getKeypointIndices(pcl::PointIndices &keypointIndices) const
     {
-        keypointIndices.header = keypointIndices_.header;
-        keypointIndices.indices = keypointIndices_.indices;
+        keypointIndices = keypointIndices_;
     }
 
     template <template<class > class Distance, typename FeatureT>
-    void setISPK(typename pcl::PointCloud<FeatureT>::Ptr & signatures, PointInTPtr & p, pcl::PointIndices & keypoint_indices, size_t feature_type)
+    void setFeatAndKeypoints(typename pcl::PointCloud<FeatureT>::Ptr & signatures, pcl::PointIndices & keypoint_indices, size_t feature_type)
     {
-        multi_recog_->setISPK<Distance, FeatureT>(signatures, p, keypoint_indices, feature_type);
-    }
-
-    void getModelsAndTransforms(std::vector<std::string> &models_verified, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms_verified) const
-    {
-        models_verified = model_ids_verified_;
-        transforms_verified = transforms_verified_;
+        multi_recog_->setFeatAndKeypoints<Distance, FeatureT>(signatures, keypoint_indices, feature_type);
     }
 
     void getModelsAndTransforms(std::vector<ModelTPtr> &models_verified,
@@ -272,31 +237,20 @@ public:
     {
         aligned_models_.resize(models.size());
         aligned_normals_.resize(models.size());
-        model_ids_.resize(models.size());
-        *transforms_ = transforms;
-        *models_ = models;
-//        aligned_smooth_faces_.resize (models_->size ());
+        transforms_ = transforms;
+        models_ = models;
 
         for(size_t i=0; i<models.size(); i++)
         {
-//            ModelTPtr m_with_faces;
-//            model_only_source_->getModelById(models.at(i)->id_, m_with_faces);
-
             ConstPointInTPtr model_cloud = models.at(i)->getAssembled (hv_params_.resolution_);
             pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
             pcl::transformPointCloud (*model_cloud, *model_aligned, transforms[i]);
             aligned_models_[i] = model_aligned;
-            model_ids_[i] = models.at(i)->id_;
-
-//            pcl::PointCloud<pcl::PointXYZL>::Ptr faces = models.at(i)->getAssembledSmoothFaces(hv_params_.resolution_);
-//            pcl::PointCloud<pcl::PointXYZL>::Ptr faces_aligned(new pcl::PointCloud<pcl::PointXYZL>);
-//            pcl::transformPointCloud (*faces, *faces_aligned, transforms[i]);
-//            aligned_smooth_faces_ [i] = faces_aligned;
 
             pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models.at(i)->getNormalsAssembled (hv_params_.resolution_);
             pcl::PointCloud<pcl::Normal>::Ptr normal_cloud(new pcl::PointCloud<pcl::Normal>(*normal_cloud_const) );
 
-            const Eigen::Matrix3f rot   = transforms_->at(i).block<3, 3> (0, 0);
+            const Eigen::Matrix3f rot = transforms_[i].block<3, 3> (0, 0);
 //            const Eigen::Vector3f trans = transforms_->at(i).block<3, 1> (0, 3);
             for(size_t jj=0; jj < normal_cloud->points.size(); jj++)
             {
@@ -312,17 +266,11 @@ public:
     {
         pInputCloud_ = cloud;
         pSceneNormals_ = normals;
-        model_ids_verified_.clear();
+        transforms_.clear();
         transforms_verified_.clear();
+        models_.clear();
         models_verified_.clear();
         aligned_models_.clear();
-        model_ids_.clear();
-
-        if(transforms_)
-            transforms_->clear();
-
-//        if(models_)
-//            models_->clear();
     }
 
     void setInputCloud(const pcl::PointCloud<PointT>::Ptr &cloud)

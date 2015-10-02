@@ -7,14 +7,14 @@ namespace v4r
 
 template <typename PointT>
 void
-ObjectHypothesis<PointT>::visualize()
+ObjectHypothesis<PointT>::visualize() const
 {
     std::cerr << "This function is not implemented for this point cloud type!" << std::endl;
 }
 
 template <>
 void
-ObjectHypothesis<pcl::PointXYZRGB>::visualize()
+ObjectHypothesis<pcl::PointXYZRGB>::visualize() const
 {
     if(!vis_)
     {

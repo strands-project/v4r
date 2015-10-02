@@ -24,11 +24,6 @@ namespace bf = boost::filesystem;
 
 namespace v4r
 {
-    /**
-     * \brief Model representation
-     * \author Aitor Aldoma
-     */
-
     template<typename PointT>
     class V4R_EXPORTS Model
     {
@@ -42,13 +37,12 @@ namespace v4r
       std::vector<pcl::PointIndices> indices_;
       std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
       std::vector<float>  self_occlusions_;
-      std::string id_;
-      std::string class_;
+      std::string class_, id_;
       PointTPtr assembled_;
       pcl::PointCloud<pcl::Normal>::Ptr normals_assembled_;
       std::vector<std::string> view_filenames_;
-      typename std::map<float, PointTPtrConst> voxelized_assembled_;
-      typename std::map<float, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
+      mutable typename std::map<float, PointTPtrConst> voxelized_assembled_;
+      mutable typename std::map<float, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
       //typename boost::shared_ptr<VoxelGridDistanceTransform<PointT> > dist_trans_;
       typename boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > dist_trans_;
 
@@ -128,7 +122,7 @@ namespace v4r
       }
 
       PointTPtrConst
-      getAssembled (float resolution)
+      getAssembled (float resolution) const
       {
         if(resolution <= 0)
           return assembled_;
@@ -152,7 +146,7 @@ namespace v4r
       }
 
       pcl::PointCloud<pcl::Normal>::ConstPtr
-      getNormalsAssembled (float resolution)
+      getNormalsAssembled (float resolution) const
       {
         if(resolution <= 0)
           return normals_assembled_;
@@ -220,10 +214,10 @@ namespace v4r
     protected:
       typedef Model<PointInT> ModelT;
       typedef boost::shared_ptr<ModelT> ModelTPtr;
+
+      std::vector<ModelTPtr> models_;
       std::string path_;
-      boost::shared_ptr<std::vector<ModelTPtr> > models_;
       float model_scale_;
-      bool filter_duplicate_views_;
       bool load_views_;
       float radius_normals_;
       bool compute_normals_;
@@ -235,18 +229,9 @@ namespace v4r
       void
       getIdAndClassFromFilename (const std::string & filename, std::string & id, std::string & classname)
       {
-
         std::vector < std::string > strs;
         boost::split (strs, filename, boost::is_any_of ("/\\"));
         std::string name = strs[strs.size () - 1];
-
-//        std::stringstream ss;
-//        for (int i = 0; i < (static_cast<int> (strs.size ()) - 1); i++)
-//        {
-//          ss << strs[i];
-////          if (i != (static_cast<int> (strs.size ()) - 1))
-////          ss << "/";
-//        }
 
         classname = strs[0];
         id = name.substr (0, name.length () - 4);
@@ -346,18 +331,14 @@ namespace v4r
         model_scale_ = s;
       }
 
-      void setFilterDuplicateViews(bool f) {
-        filter_duplicate_views_ = f;
-        std::cout << "setting filter duplicate views to " << f << std::endl;
-      }
       void
       voxelizeAllModels (float resolution)
       {
-        for (size_t i = 0; i < models_->size (); i++)
+        for (size_t i = 0; i < models_.size (); i++)
         {
-          models_->at (i)->getAssembled (resolution);
+          models_[i]->getAssembled (resolution);
           if(compute_normals_)
-            models_->at (i)->getNormalsAssembled (resolution);
+            models_[i]->getNormalsAssembled (resolution);
         }
       }
 
@@ -370,53 +351,28 @@ namespace v4r
       /**
        * \brief Get the generated model
        */
-      boost::shared_ptr<std::vector<ModelTPtr> >
-      getModels () const
+      std::vector<ModelTPtr>
+      getModels ()
       {
         return models_;
       }
 
       bool
-      getModelById (const std::string & model_id, ModelTPtr & m)
+      getModelById (const std::string & model_id, ModelTPtr & m) const
       {
-
-        typename std::vector<ModelTPtr>::iterator it = models_->begin ();
-        while (it != models_->end ())
+        for(size_t i=0; i<models_.size(); i++)
         {
-          if (model_id.compare ((*it)->id_) == 0)
-          {
-            m = *it;
-            return true;
-          } else
-          {
-            it++;
-          }
+            if(models_[i]->id_.compare(model_id)==0)
+            {
+                m = models_[i];
+                return true;
+            }
         }
-
         return false;
       }
-      boost::shared_ptr<std::vector<ModelTPtr> >
-      getModels (const std::string & model_id)
-      {
-
-        typename std::vector<ModelTPtr>::iterator it = models_->begin ();
-        while (it != models_->end ())
-        {
-          if (model_id.compare ((*it)->id_) != 0)
-          {
-            it = models_->erase (it);
-          }
-          else
-          {
-            it++;
-          }
-        }
-
-        return models_;
-      }
 
       bool
-      isModelAlreadyTrained (const ModelT m, const std::string & base_dir, const std::string & descr_name)
+      isModelAlreadyTrained (const ModelT m, const std::string & base_dir, const std::string & descr_name) const
       {
         std::stringstream dir;
         dir << base_dir << "/" << m.class_ << "/" << m.id_ << "/" << descr_name;
@@ -456,9 +412,9 @@ namespace v4r
       }
 
       void
-      removeDescDirectory (const ModelT m, const std::string & base_dir, const std::string & descr_name)
+      removeDescDirectory (const ModelT &m, const std::string & base_dir, const std::string & descr_name)
       {
-        std::string dir = getModelDescriptorDir (m, base_dir, descr_name);
+        const std::string dir = base_dir + "/" + m.class_ + "/" + m.id_ + "/" + descr_name;
 
         bf::path desc_dir = dir;
         if (bf::exists (desc_dir))
@@ -479,8 +435,8 @@ namespace v4r
       void
       createVoxelGridAndDistanceTransform(float res = 0.001f)
       {
-        for (size_t i = 0; i < models_->size (); i++)
-          models_->at (i)->createVoxelGridAndDistanceTransform (res);
+        for (size_t i = 0; i < models_.size (); i++)
+          models_[i]->createVoxelGridAndDistanceTransform (res);
       }
     };
 }

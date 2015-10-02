@@ -49,8 +49,8 @@ namespace v4r
 
         bool multi_object_correspondence_grouping_;
 
-        typename std::map<std::string, ObjectHypothesis<PointInT> > saved_object_hypotheses_;
-        boost::shared_ptr<std::map<std::string, ObjectHypothesis<PointInT> > > pObjectHypotheses_;
+        std::map<std::string, ObjectHypothesis<PointInT> > saved_object_hypotheses_;
+        std::map<std::string, ObjectHypothesis<PointInT> >  object_hypotheses_;
         typename pcl::PointCloud<PointInT>::Ptr keypoints_cloud_;
 
         pcl::PointIndices keypoint_indices_;
@@ -78,7 +78,7 @@ namespace v4r
         void
         getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses) const
         {
-          hypotheses = *pObjectHypotheses_;
+          hypotheses = object_hypotheses_;
         }
 
         void
@@ -91,8 +91,7 @@ namespace v4r
         void
         getKeypointIndices(pcl::PointIndices & indices) const
         {
-            indices.header = keypoint_indices_.header;
-            indices.indices = keypoint_indices_.indices;
+            indices = keypoint_indices_;
         }
 
         void initialize();
@@ -103,9 +102,8 @@ namespace v4r
 
         void correspondenceGrouping();
 
-        void getPoseRefinement(
-                boost::shared_ptr<std::vector<ModelTPtr> > models,
-                boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms);
+        void getPoseRefinement(const std::vector<ModelTPtr> &models,
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms);
 
         void recognize();
 
@@ -115,19 +113,17 @@ namespace v4r
         }
 
         template <template<class > class Distance, typename FeatureT>
-        void setISPK(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
-                     const PointInTPtr & p,
+        void setFeatAndKeypoints(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
                      const pcl::PointIndices & keypoint_indices,
                      size_t feature_type)
         {
           for (size_t i=0; i < recognizers_.size(); i++)
           {
-              std::cout << "Checking recognizer type: " << recognizers_[i]->getFeatureType() << std::endl;
               if(recognizers_[i]->getFeatureType() == feature_type)
               {
                   typename boost::shared_ptr<v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > cast_local_recognizer;
                   cast_local_recognizer = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > (recognizers_[i]);
-                  cast_local_recognizer->setISPK(signatures, p, keypoint_indices);
+                  cast_local_recognizer->setFeatAndKeypoints(signatures, keypoint_indices);
               }
           }
         }

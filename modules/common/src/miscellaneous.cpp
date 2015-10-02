@@ -104,6 +104,27 @@ computeNormals<pcl::PointXYZ>(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cl
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
                     int method);
 
+template V4R_EXPORTS void
+getIndicesFromCloud<pcl::PointXYZRGB, int>(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &full_input_cloud,
+                                           const pcl::PointCloud<pcl::PointXYZRGB> &search_points,
+                                           std::vector<int> &indices, float resolution);
+
+template V4R_EXPORTS void
+getIndicesFromCloud<pcl::PointXYZ, int>(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &full_input_cloud,
+                                           const pcl::PointCloud<pcl::PointXYZ> &search_points,
+                                           std::vector<int> &indices, float resolution);
+
+template V4R_EXPORTS void
+getIndicesFromCloud<pcl::PointXYZRGB, size_t>(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &full_input_cloud,
+                                           const pcl::PointCloud<pcl::PointXYZRGB> &search_points,
+                                           std::vector<size_t> &indices, float resolution);
+
+template V4R_EXPORTS void
+getIndicesFromCloud<pcl::PointXYZ, size_t>(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &full_input_cloud,
+                                           const pcl::PointCloud<pcl::PointXYZ> &search_points,
+                                           std::vector<size_t> &indices, float resolution);
+
+
 }
 
 

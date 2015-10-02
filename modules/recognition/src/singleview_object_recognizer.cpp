@@ -85,54 +85,16 @@ bool SingleViewRecognizer::retrain (const std::vector<std::string> &model_ids)
 
 void SingleViewRecognizer::constructHypotheses()
 {
-
-    //    if(USE_SEGMENTATION_)
-    //    {
-    //        std::vector<pcl::PointIndices> indices;
-    //        Eigen::Vector4f table_plane;
-    //        doSegmentation<PointT>(pInputCloud, pSceneNormals_, indices, table_plane);
-
-    //        std::vector<int> indices_above_plane;
-    //        for (int k = 0; k < pInputCloud->points.size (); k++)
-    //        {
-    //            Eigen::Vector3f xyz_p = pInputCloud->points[k].getVector3fMap ();
-    //            if (!pcl_isfinite (xyz_p[0]) || !pcl_isfinite (xyz_p[1]) || !pcl_isfinite (xyz_p[2]))
-    //                continue;
-
-    //            float val = xyz_p[0] * table_plane[0] + xyz_p[1] * table_plane[1] + xyz_p[2] * table_plane[2] + table_plane[3];
-    //            if (val >= 0.01)
-    //                indices_above_plane.push_back (static_cast<int> (k));
-    //        }
-
-    //        multi_recog_->setSegmentation(indices);
-    //        multi_recog_->setIndices(indices_above_plane);
-
-    //    }
-
         multi_recog_->setSceneNormals(pSceneNormals_);
         multi_recog_->setInputCloud (pInputCloud_);
         multi_recog_->setSaveHypotheses(true);
-        std::cout << "Is organized: " << pInputCloud_->isOrganized() << std::endl;
-        {
-            pcl::ScopeTime ttt ("Recognition");
-            multi_recog_->recognize ();
-        }
+        multi_recog_->recognize ();
         multi_recog_->getSavedHypotheses(hypotheses_);
         multi_recog_->getKeypointCloud(pKeypointsMultipipe_);
         multi_recog_->getKeypointIndices(keypointIndices_);
 
-        assert(pKeypointsMultipipe_->points.size() == keypointIndices_.indices.size());
-
         models_ = multi_recog_->getModels ();
         transforms_ = multi_recog_->getTransforms ();
-        std::cout << "Number of recognition hypotheses " << models_->size() << std::endl;
-
-//        aligned_models_.resize (models_->size ());
-        model_ids_.resize (models_->size ());
-        for (size_t kk = 0; kk < models_->size (); kk++)
-        {
-            model_ids_[kk] = models_->at (kk)->id_;
-        }
 }
 
 std::vector<bool> SingleViewRecognizer::hypothesesVerification()
@@ -247,9 +209,6 @@ std::vector<bool> SingleViewRecognizer::hypothesesVerification()
 #else
     go->addModels (aligned_models_, true);
 
-    if(aligned_models_.size() == aligned_smooth_faces_.size())
-        go->setSmoothFaces(aligned_smooth_faces_);
-
     go->addNormalsClouds(aligned_normals_);
 #endif
 
@@ -262,20 +221,15 @@ std::vector<bool> SingleViewRecognizer::hypothesesVerification()
         {
             std::stringstream plane_id;
             plane_id << "plane_" << kk;
-            model_ids_.push_back(plane_id.str());
         }
     }
 
-    if(model_ids_.size() == 0)
+    if(!models_.size())
     {
         std::cout << "No models to verify, returning... " << std::endl;
         std::cout << "Cancelling service request." << std::endl;
         return mask_hv;
     }
-
-#ifndef USE_CUDA
-    go->setObjectIds(model_ids_);
-#endif
 
     go->verify ();
 
@@ -327,10 +281,10 @@ void SingleViewRecognizer::constructHypothesesFromFeatureMatches(std::map < std:
 
     aligned_models_.clear();
     aligned_normals_.clear();
-    model_ids_.clear();
-    transforms_->clear();
-    models_->clear();
-    aligned_smooth_faces_.clear();
+    transforms_.clear();
+    models_.clear();
+    models_verified_.clear();
+    transforms_verified_.clear();
 
     hypothesesOutput.clear();
     std::map<std::string, v4r::ObjectHypothesis<PointT> >::iterator it_map;
@@ -345,14 +299,12 @@ void SingleViewRecognizer::constructHypothesesFromFeatureMatches(std::map < std:
             continue;
 
         std::vector <pcl::Correspondences> corresp_clusters;
-        std::string id = oh.model_->id_;
-        std::cout << id << ": " << oh.model_scene_corresp->size() << std::endl;
+        std::cout << oh.model_->id_ << ": " << oh.model_scene_corresp->size() << std::endl;
         cast_cg_alg_->setSceneCloud (pKeypoints);
         cast_cg_alg_->setInputCloud (oh.model_keypoints);
 
         if(cast_cg_alg_->getRequiresNormals())
         {
-            std::cout << "CG alg requires normals..." << (oh.model_kp_normals)->points.size() << " " << pKeypointNormals->points.size() << std::endl;
             assert(oh.scene_keypoints->points.size() == pKeypointNormals->points.size());
             cast_cg_alg_->setInputAndSceneNormals(oh.model_kp_normals, pKeypointNormals);
         }
@@ -370,9 +322,8 @@ void SingleViewRecognizer::constructHypothesesFromFeatureMatches(std::map < std:
             Hypothesis<PointT> ht_temp ( oh.model_, best_trans );
             hypothesesOutput.push_back(ht_temp);
             corresp_clusters_hyp.push_back( corresp_clusters[i] );
-            models_->push_back( oh.model_ );
-            model_ids_.push_back( oh.model_->id_ );
-            transforms_->push_back( best_trans );
+            models_.push_back( oh.model_ );
+            transforms_.push_back( best_trans );
 
             ConstPointInTPtr model_cloud = oh.model_->getAssembled (hv_params_.resolution_);
             pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
@@ -382,7 +333,7 @@ void SingleViewRecognizer::constructHypothesesFromFeatureMatches(std::map < std:
             pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = oh.model_->getNormalsAssembled (hv_params_.resolution_);
             pcl::PointCloud<pcl::Normal>::Ptr normal_cloud(new pcl::PointCloud<pcl::Normal>(*normal_cloud_const) );
 
-            const Eigen::Matrix3f rot   = transforms_->at(i).block<3, 3> (0, 0);
+            const Eigen::Matrix3f rot   = transforms_[i].block<3, 3> (0, 0);
             for(size_t jj=0; jj < normal_cloud->points.size(); jj++)
             {
                 const pcl::Normal norm_pt = normal_cloud->points[jj];
@@ -396,7 +347,7 @@ void SingleViewRecognizer::constructHypothesesFromFeatureMatches(std::map < std:
 void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::ConstPtr scene_cloud, std::vector<float> &fsv)
 {
     pcl::PointCloud<PointT>::Ptr occlusion_cloud (new pcl::PointCloud<PointT> (*scene_cloud));
-    fsv.resize(models_->size());
+    fsv.resize(models_.size());
 
     if(occlusion_cloud->isOrganized())
     {
@@ -404,13 +355,13 @@ void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::Const
         v4r::VisibilityReasoning<PointT> vr (525.f, 640, 480);
         vr.setThresholdTSS (0.01f);
 
-        for(size_t i=0; i < models_->size(); i++)
+        for(size_t i=0; i < models_.size(); i++)
         {
-            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_->at(i)->getNormalsAssembled (hv_params_.resolution_);
+            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_[i]->getNormalsAssembled (hv_params_.resolution_);
             pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
-            v4r::transformNormals(normal_cloud, normal_aligned, transforms_->at(i));
+            v4r::transformNormals(normal_cloud, normal_aligned, transforms_[i]);
 
-            if(models_->at(i)->getFlipNormalsBasedOnVP())
+            if(models_[i]->getFlipNormalsBasedOnVP())
             {
                 const Eigen::Vector3f viewpoint = Eigen::Vector3f(0,0,0);
 
@@ -438,14 +389,11 @@ void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::Const
 
 bool SingleViewRecognizer::recognize ()
 {
-    model_ids_verified_.clear();
+    transforms_.clear();
     transforms_verified_.clear();
+    models_.clear();
     models_verified_.clear();
     aligned_models_.clear();
-    model_ids_.clear();
-
-    if(transforms_)
-        transforms_->clear();
 
     if(pSceneNormals_->points.size() == 0) {
         std::cout << "No normals point cloud for scene given. Calculate normals of scene..." << std::endl;
@@ -474,20 +422,18 @@ bool SingleViewRecognizer::recognize ()
         return false;
 
     constructHypotheses();
-    setModelsAndTransforms(*models_, *transforms_);
+    setModelsAndTransforms(models_, transforms_);
 
     std::vector<bool> mask_hv = hypothesesVerification();
 
     for (size_t j = 0; j < mask_hv.size (); j++) {
         if( mask_hv[j] ) {
-            models_verified_.push_back(models_->at(j));
-            model_ids_verified_.push_back(model_ids_[j]);
-            transforms_verified_.push_back(transforms_->at(j));
+            models_verified_.push_back(models_[j]);
+            transforms_verified_.push_back(transforms_[j]);
         }
     }
 
-    std::cout << "Number of models:" << model_ids_.size() <<
-                 "Number of verified models:" << model_ids_verified_.size() << std::endl;
+    std::cout << "Number of models: " << models_.size() << ", number of verified models: " << models_verified_.size() << std::endl;
 
     return true;
   }
@@ -545,16 +491,6 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
 
     cast_cg_alg_ = boost::static_pointer_cast<v4r::CorrespondenceGrouping<PointT, PointT> > (gcg_alg);
 
-
-//    model_only_source_->setPath (models_dir_);
-//    model_only_source_->setLoadViews (false);
-//    model_only_source_->setModelScale(1);
-//    model_only_source_->setLoadIntoMemory(false);
-//    std::string test = "irrelevant";
-//    std::cout << "calling generate" << std::endl;
-//    model_only_source_->setExtension("pcd");
-//    model_only_source_->generate (test);
-
     if ( sv_params_.do_sift_ )
     {
       std::string desc_name = "sift";
@@ -562,7 +498,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>
           > mesh_source (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>);
       mesh_source->setPath (models_dir_);
-      mesh_source->setModelStructureDir (sift_structure_);
+      mesh_source->setModelStructureDir (training_dir_);
       std::string foo;
       mesh_source->generate (foo);
       mesh_source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
@@ -601,8 +537,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > new_sift_local;
       new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (idx_flann_fn_sift_));
       new_sift_local->setDataSource (cast_source);
-      new_sift_local->setTrainingOutputDir (training_dir_sift_);
-      new_sift_local->setTrainingInputDir (sift_structure_);
+      new_sift_local->setTrainingDir (training_dir_);
       new_sift_local->setDescriptorName (desc_name);
       new_sift_local->setICPIterations (sv_params_.icp_iterations_);
       new_sift_local->setFeatureEstimator (cast_estimator);
@@ -635,7 +570,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       source->setLoadIntoMemory(false);
       source->setGenOrganized(true);
       source->setWindowSizeAndFocalLength(640, 480, 575.f);
-      source->generate (training_dir_ourcvfh_);
+      source->generate (training_dir_);
       source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
 
       boost::shared_ptr<v4r::Source<PointT> > cast_source;
@@ -686,7 +621,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       boost::shared_ptr<v4r::GlobalNNCVFHRecognizer<v4r::Metrics::HistIntersectionUnionDistance, PointT, pcl::Histogram<1327> > > rf_color_ourcvfh_global_;
       rf_color_ourcvfh_global_.reset(new v4r::GlobalNNCVFHRecognizer<v4r::Metrics::HistIntersectionUnionDistance, PointT, pcl::Histogram<1327> >);
       rf_color_ourcvfh_global_->setDataSource (cast_source);
-      rf_color_ourcvfh_global_->setTrainingDir (training_dir_ourcvfh_);
+      rf_color_ourcvfh_global_->setTrainingDir (training_dir_);
       rf_color_ourcvfh_global_->setDescriptorName (desc_name);
       rf_color_ourcvfh_global_->setFeatureEstimator (cast_estimator);
       rf_color_ourcvfh_global_->setNN (50);
@@ -731,7 +666,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
         boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>
                 > mesh_source (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>);
         mesh_source->setPath (models_dir_);
-        mesh_source->setModelStructureDir (sift_structure_);
+        mesh_source->setModelStructureDir (training_dir_);
         mesh_source->setLoadViews(false);
         std::string foo;
         mesh_source->generate (foo);
@@ -769,7 +704,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
         boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
         local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (idx_flann_fn_shot_));
         local->setDataSource (cast_source);
-        local->setTrainingOutputDir (training_dir_shot_);
+        local->setTrainingDir(training_dir_);
         local->setDescriptorName (desc_name);
         local->setFeatureEstimator (cast_estimator);
 //        local->setCGAlgorithm (cast_cg_alg_);
@@ -823,15 +758,15 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       vis_->addPointCloud(vis_cloud, "input cloud", vp1_);
       vis_->setBackgroundColor(.0f, .0f, .0f, vp2_);
 
-      for(size_t i=0; i<models_->size(); i++)
+      for(size_t i=0; i<models_.size(); i++)
       {
-          ModelT &m = *models_->at(i);
+          ModelT &m = *models_[i];
           const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
           std::stringstream model_label;
           model_label << model_id << "_" << i;
           pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
           pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
-          pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_->at(i));
+          pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
           vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
           vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
       }

@@ -211,11 +211,11 @@ public:
         v4r::io::getFilesInDirectory (path_, files, "", ".*.pcd",  false);
         std::cout << "There are " << files.size() << " models." << std::endl;
 
-        models_.reset (new std::vector<ModelTPtr>);
+        models_.clear();
 
         for (size_t i = 0; i < files.size (); i++)
         {
-            ModelTPtr m(new ModelT());
+            ModelTPtr m(new ModelT);
 
             std::vector < std::string > strs;
             boost::split (strs, files[i], boost::is_any_of ("/\\"));
@@ -250,7 +250,7 @@ public:
             const std::string model_path = path_ + "/" + files[i];
             loadModel (model_path, *m);
 
-            models_->push_back (m);
+            models_.push_back (m);
         }
     }
 };

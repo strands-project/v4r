@@ -33,8 +33,8 @@ namespace v4r
       typedef boost::shared_ptr<ModelT> ModelTPtr;
 
       private:
-        boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-        int vp1_, vp2_;
+        mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
+        int vp1_;
 
       public:
         ModelTPtr model_;
@@ -43,12 +43,10 @@ namespace v4r
         typename pcl::PointCloud<PointT>::Ptr scene_keypoints; // keypoints of the scene
         typename pcl::PointCloud<PointT>::Ptr model_keypoints; //keypoints of model
         pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals; //keypoint normals of model
-//        boost::shared_ptr<std::vector<float> > feature_distances_;
         pcl::CorrespondencesPtr model_scene_corresp; //indices between model keypoints (index query) and scene cloud (index match)
-//        int num_corr_;
         std::vector<int> indices_to_flann_models_;
 
-        void visualize();
+        void visualize() const;
     };
 
     template<typename PointInT>
@@ -64,12 +62,8 @@ namespace v4r
         /** \brief Point cloud to be classified */
         PointInTPtr input_;
 
-        boost::shared_ptr<std::vector<ModelTPtr> > models_;
-        boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_;
-
-        //before HV
-        boost::shared_ptr<std::vector<ModelTPtr> > models_before_hv_;
-        boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_before_hv_;
+        std::vector<ModelTPtr> models_;
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
 
         int ICP_iterations_;
         int icp_type_;
@@ -85,8 +79,7 @@ namespace v4r
 
         void poseRefinement()
         {
-          pcl::ScopeTime ticp ("ICP ");
-          PointInTPtr cloud_voxelized_icp (new pcl::PointCloud<PointInT> ());
+          PointInTPtr scene_voxelized (new pcl::PointCloud<PointInT> ());
           pcl::VoxelGrid<PointInT> voxel_grid_icp;
           voxel_grid_icp.setInputCloud (input_);
           if(icp_scene_indices_ && icp_scene_indices_->indices.size() > 0)
@@ -94,33 +87,32 @@ namespace v4r
             voxel_grid_icp.setIndices(icp_scene_indices_);
           }
           voxel_grid_icp.setLeafSize (VOXEL_SIZE_ICP_, VOXEL_SIZE_ICP_, VOXEL_SIZE_ICP_);
-          voxel_grid_icp.filter (*cloud_voxelized_icp);
-          std::cout << "Number of hypotheses to ICP:" << models_->size () << std::endl;
+          voxel_grid_icp.filter (*scene_voxelized);
+
           switch (icp_type_)
           {
             case 0:
             {
     #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
-              for (int i = 0; i < static_cast<int> (models_->size ()); i++)
+              for (int i = 0; i < static_cast<int> (models_.size ()); i++)
               {
-
                 ConstPointInTPtr model_cloud;
                 PointInTPtr model_aligned (new pcl::PointCloud<PointInT>);
-                model_cloud = models_->at (i)->getAssembled (VOXEL_SIZE_ICP_);
-                pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_->at (i));
+                model_cloud = models_[i]->getAssembled (VOXEL_SIZE_ICP_);
+                pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_[i]);
 
                 typename pcl::registration::CorrespondenceRejectorSampleConsensus<PointInT>::Ptr
                                         rej (new pcl::registration::CorrespondenceRejectorSampleConsensus<PointInT> ());
 
-                rej->setInputTarget (cloud_voxelized_icp);
+                rej->setInputTarget (scene_voxelized);
                 rej->setMaximumIterations (1000);
                 rej->setInlierThreshold (0.005f);
                 rej->setInputSource (model_aligned);
 
                 pcl::IterativeClosestPoint<PointInT, PointInT> reg;
                 reg.addCorrespondenceRejector (rej);
-                reg.setInputTarget (cloud_voxelized_icp); //scene
-                reg.setInputSource (model_aligned); //model
+                reg.setInputTarget (scene_voxelized);
+                reg.setInputSource (model_aligned);
                 reg.setMaximumIterations (ICP_iterations_);
                 reg.setMaxCorrespondenceDistance (max_corr_distance_);
 
@@ -128,35 +120,32 @@ namespace v4r
                 reg.align (*output_);
 
                 Eigen::Matrix4f icp_trans = reg.getFinalTransformation ();
-                transforms_->at (i) = icp_trans * transforms_->at (i);
+                transforms_[i] = icp_trans * transforms_[i];
               }
             }
               break;
             default:
             {
-
-    #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
-              for (int i = 0; i < static_cast<int> (models_->size ()); i++)
+              #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
+              for (int i = 0; i < static_cast<int> (models_.size ()); i++)
               {
-
                 typename VoxelBasedCorrespondenceEstimation<PointInT, PointInT>::Ptr
                             est (new VoxelBasedCorrespondenceEstimation<PointInT, PointInT> ());
 
                 typename pcl::registration::CorrespondenceRejectorSampleConsensus<PointInT>::Ptr
                             rej (new pcl::registration::CorrespondenceRejectorSampleConsensus<PointInT> ());
 
-                Eigen::Matrix4f scene_to_model_trans = transforms_->at (i).inverse ();
-                //boost::shared_ptr<VoxelGridDistanceTransform<PointInT> > dt;
+                Eigen::Matrix4f scene_to_model_trans = transforms_[i].inverse ();
                 boost::shared_ptr<distance_field::PropagationDistanceField<PointInT> > dt;
-                models_->at (i)->getVGDT (dt);
+                models_[i]->getVGDT (dt);
 
                 PointInTPtr model_aligned (new pcl::PointCloud<PointInT>);
+                PointInTPtr cloud_voxelized_icp_cropped (new pcl::PointCloud<PointInT>);
                 typename pcl::PointCloud<PointInT>::ConstPtr cloud;
                 dt->getInputCloud(cloud);
                 model_aligned.reset(new pcl::PointCloud<PointInT>(*cloud));
 
-                PointInTPtr cloud_voxelized_icp_transformed (new pcl::PointCloud<PointInT> ());
-                pcl::transformPointCloud (*cloud_voxelized_icp, *cloud_voxelized_icp_transformed, scene_to_model_trans);
+                pcl::transformPointCloud (*scene_voxelized, *cloud_voxelized_icp_cropped, scene_to_model_trans);
 
                 PointInT minPoint, maxPoint;
                 pcl::getMinMax3D(*cloud, minPoint, maxPoint);
@@ -169,32 +158,26 @@ namespace v4r
                 maxPoint.z += max_corr_distance_;
 
                 pcl::CropBox<PointInT> cropFilter;
-                cropFilter.setInputCloud (cloud_voxelized_icp_transformed);
+                cropFilter.setInputCloud (cloud_voxelized_icp_cropped);
                 cropFilter.setMin(minPoint.getVector4fMap());
                 cropFilter.setMax(maxPoint.getVector4fMap());
-
-                PointInTPtr cloud_voxelized_icp_cropped (new pcl::PointCloud<PointInT> ());
                 cropFilter.filter (*cloud_voxelized_icp_cropped);
 
-                cloud_voxelized_icp_transformed = cloud_voxelized_icp_cropped;
-                //PointInTPtr cloud_voxelized_icp_transformed (new pcl::PointCloud<PointInT> ());
-                //pcl::transformPointCloud (*cloud_voxelized_icp, *cloud_voxelized_icp_transformed, scene_to_model_trans);
-
                 est->setVoxelRepresentationTarget (dt);
-                est->setInputSource (cloud_voxelized_icp_transformed);
+                est->setInputSource (cloud_voxelized_icp_cropped);
                 est->setInputTarget (model_aligned);
                 est->setMaxCorrespondenceDistance (max_corr_distance_);
 
                 rej->setInputTarget (model_aligned);
                 rej->setMaximumIterations (1000);
                 rej->setInlierThreshold (0.005f);
-                rej->setInputSource (cloud_voxelized_icp_transformed);
+                rej->setInputSource (cloud_voxelized_icp_cropped);
 
                 pcl::IterativeClosestPoint<PointInT, PointInT, float> reg;
                 reg.setCorrespondenceEstimation (est);
                 reg.addCorrespondenceRejector (rej);
                 reg.setInputTarget (model_aligned); //model
-                reg.setInputSource (cloud_voxelized_icp_transformed); //scene
+                reg.setInputSource (cloud_voxelized_icp_cropped); //scene
                 reg.setMaximumIterations (ICP_iterations_);
                 reg.setEuclideanFitnessEpsilon(1e-5);
                 reg.setTransformationEpsilon(0.001f * 0.001f);
@@ -210,19 +193,7 @@ namespace v4r
 
                 Eigen::Matrix4f icp_trans;
                 icp_trans = reg.getFinalTransformation () * scene_to_model_trans;
-                transforms_->at (i) = icp_trans.inverse ();
-
-                /*pcl::registration::DefaultConvergenceCriteria<float>::ConvergenceState conv_state;
-                conv_state = convergence_criteria->getConvergenceState();
-
-                if(conv_state != pcl::registration::DefaultConvergenceCriteria<float>::CONVERGENCE_CRITERIA_ITERATIONS
-                    && conv_state != pcl::registration::DefaultConvergenceCriteria<float>::CONVERGENCE_CRITERIA_NOT_CONVERGED
-                    && conv_state != pcl::registration::DefaultConvergenceCriteria<float>::CONVERGENCE_CRITERIA_NO_CORRESPONDENCES) {
-                  extra_weights_[i] = 1.f;
-                } else {
-                  extra_weights_[i] = 0.f;
-                }
-                std::cout << "Converged:" << reg.hasConverged() << " state:" << conv_state << std::endl;*/
+                transforms_[i] = icp_trans.inverse ();
               }
             }
           }
@@ -231,30 +202,27 @@ namespace v4r
         void
         hypothesisVerification ()
         {
-          models_before_hv_ = models_;
-          transforms_before_hv_ = transforms_;
-
           pcl::ScopeTime thv ("HV verification");
 
           std::vector<typename pcl::PointCloud<PointInT>::ConstPtr> aligned_models;
           std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals;
-          aligned_models.resize (models_->size ());
-          aligned_normals.resize (models_->size ());
+          aligned_models.resize (models_.size ());
+          aligned_normals.resize (models_.size ());
 
 #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
-          for (size_t i = 0; i < models_->size (); i++)
+          for (size_t i = 0; i < models_.size (); i++)
           {
             //we should get the resolution of the hv_algorithm here... then we can avoid to voxel grid again when computing the cues...
             //ConstPointInTPtr model_cloud = models_->at (i)->getAssembled (0.005f);
-            ConstPointInTPtr model_cloud = models_->at (i)->getAssembled (VOXEL_SIZE_ICP_);
+            ConstPointInTPtr model_cloud = models_[i]->getAssembled (VOXEL_SIZE_ICP_);
 
             PointInTPtr model_aligned (new pcl::PointCloud<PointInT>);
-            pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_->at (i));
+            pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_[i]);
             aligned_models[i] = model_aligned;
 
             if (hv_algorithm_->getRequiresNormals () && !recompute_hv_normals_)
             {
-              pcl::PointCloud<pcl::Normal>::ConstPtr normals_cloud = models_->at (i)->getNormalsAssembled (VOXEL_SIZE_ICP_);
+              pcl::PointCloud<pcl::Normal>::ConstPtr normals_cloud = models_[i]->getNormalsAssembled (VOXEL_SIZE_ICP_);
               pcl::PointCloud<pcl::Normal>::Ptr normals_aligned (new pcl::PointCloud<pcl::Normal>);
               normals_aligned->points.resize (normals_cloud->points.size ());
               normals_aligned->width = normals_cloud->width;
@@ -262,12 +230,12 @@ namespace v4r
               for (size_t k = 0; k < normals_cloud->points.size (); k++)
               {
                 Eigen::Vector3f nt (normals_cloud->points[k].normal_x, normals_cloud->points[k].normal_y, normals_cloud->points[k].normal_z);
-                normals_aligned->points[k].normal_x = static_cast<float> (transforms_->at (i) (0, 0) * nt[0] + transforms_->at (i) (0, 1) * nt[1]
-                    + transforms_->at (i) (0, 2) * nt[2]);
-                normals_aligned->points[k].normal_y = static_cast<float> (transforms_->at (i) (1, 0) * nt[0] + transforms_->at (i) (1, 1) * nt[1]
-                    + transforms_->at (i) (1, 2) * nt[2]);
-                normals_aligned->points[k].normal_z = static_cast<float> (transforms_->at (i) (2, 0) * nt[0] + transforms_->at (i) (2, 1) * nt[1]
-                    + transforms_->at (i) (2, 2) * nt[2]);
+                normals_aligned->points[k].normal_x = static_cast<float> (transforms_[i] (0, 0) * nt[0] + transforms_[i] (0, 1) * nt[1]
+                    + transforms_[i] (0, 2) * nt[2]);
+                normals_aligned->points[k].normal_y = static_cast<float> (transforms_[i] (1, 0) * nt[0] + transforms_[i] (1, 1) * nt[1]
+                    + transforms_[i] (1, 2) * nt[2]);
+                normals_aligned->points[k].normal_z = static_cast<float> (transforms_[i] (2, 0) * nt[0] + transforms_[i] (2, 1) * nt[1]
+                    + transforms_[i] (2, 2) * nt[2]);
 
                 //flip here based on vp?
                 pcl::flipNormalTowardsViewpoint (model_aligned->points[k], 0, 0, 0, normals_aligned->points[k].normal[0],
@@ -289,24 +257,20 @@ namespace v4r
           hv_algorithm_->verify ();
           hv_algorithm_->getMask (mask_hv);
 
-          boost::shared_ptr<std::vector<ModelTPtr> > models_temp;
-          boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_temp;
+          std::vector<ModelTPtr>  models_temp;
+          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_temp;
 
-          models_temp.reset (new std::vector<ModelTPtr>);
-          transforms_temp.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-
-          for (size_t i = 0; i < models_->size (); i++)
+          for (size_t i = 0; i < models_.size (); i++)
           {
             if (!mask_hv[i])
               continue;
 
-            models_temp->push_back (models_->at (i));
-            transforms_temp->push_back (transforms_->at (i));
+            models_temp.push_back (models_[i]);
+            transforms_temp.push_back (transforms_[i]);
           }
 
           models_ = models_temp;
           transforms_ = transforms_temp;
-
         }
 
       public:
@@ -326,11 +290,6 @@ namespace v4r
             std::cout << "Get feature type is not implemented for this recognizer. " << std::endl;
             return 0;
         }
-
-        /*virtual void setISPK(typename pcl::PointCloud<FeatureT>::Ptr & signatures, PointInTPtr & p, PointInTPtr & keypoints)
-        {
-          std::cerr << "Set ISPK is not implemented for this type of feature estimator. " << std::endl;
-        }*/
 
         virtual bool acceptsNormals() const
         {
@@ -399,28 +358,28 @@ namespace v4r
           input_ = cloud;
         }
 
-        boost::shared_ptr<std::vector<ModelTPtr> >
+        std::vector<ModelTPtr>
         getModels () const
         {
           return models_;
         }
 
-        boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > >
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
         getTransforms () const
         {
           return transforms_;
         }
 
-        boost::shared_ptr<std::vector<ModelTPtr> >
+        std::vector<ModelTPtr>
         getModelsBeforeHV () const
         {
-          return models_before_hv_;
+          return models_;
         }
 
-        boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > >
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
         getTransformsBeforeHV () const
         {
-          return transforms_before_hv_;
+          return transforms_;
         }
 
         void

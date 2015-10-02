@@ -124,21 +124,21 @@ namespace v4r
         void
         generate (std::string & training_dir)
         {
+          (void) training_dir;
           //get models in directory
           std::vector < std::string > files;
 
           v4r::io::getFilesInDirectory (path_, files, "", ".*.pcd", false);
           std::cout << files.size() << std::endl;
 
-          models_.reset (new std::vector<ModelTPtr>);
+          models_.clear();
           std::sort(files.begin(), files.end());
           for (size_t i = 0; i < files.size (); i++)
           {
-            ModelTPtr m(new ModelT());
+            ModelTPtr m(new ModelT);
 
             std::vector < std::string > strs;
             boost::split (strs, files[i], boost::is_any_of ("/\\"));
-            std::string name = strs[strs.size () - 1];
 
             if (strs.size () == 1)
             {
@@ -168,7 +168,7 @@ namespace v4r
             std::string path_model = model_path.str ();
             loadOrGenerate (path_model, *m);
 
-            models_->push_back (m);
+            models_.push_back (m);
 
             //std::cout << files[i] << std::endl;
           }

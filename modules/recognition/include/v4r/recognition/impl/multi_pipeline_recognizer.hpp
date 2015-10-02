@@ -54,27 +54,21 @@ v4r::MultiRecognitionPipeline<PointInT>::reinitialize(const std::vector<std::str
 template<typename PointInT>
 void
 v4r::MultiRecognitionPipeline<PointInT>::getPoseRefinement(
-        boost::shared_ptr<std::vector<ModelTPtr> > models,
-        boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms)
+        const std::vector<ModelTPtr> &models,
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
 {
     models_ = models;
     transforms_ = transforms;
     poseRefinement();
+    transforms = transforms_; //is this neccessary?
 }
 
 template<typename PointInT>
 void
 v4r::MultiRecognitionPipeline<PointInT>::recognize()
 {
-
-    /*if(models_)
-    models_->clear();
-
-  if(transforms_)
-    transforms_->clear();*/
-
-    models_.reset (new std::vector<ModelTPtr>);
-    transforms_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
+    models_.clear();
+    transforms_.clear();
 
     //first version... just call each recognizer independently...
     //more advanced version should compute normals and preprocess the input cloud so that
@@ -83,11 +77,10 @@ v4r::MultiRecognitionPipeline<PointInT>::recognize()
     if(cg_algorithm_)
         set_save_hypotheses_ = true;
 
-    std::cout << "set_save_hypotheses:" << set_save_hypotheses_ << std::endl;
-    std::cout << "recognizers size:" << recognizers_.size() << std::endl;
+    std::cout << "Number of recognizers:" << recognizers_.size() << std::endl;
 
     //typename std::map<std::string, ObjectHypothesis<PointInT> > object_hypotheses_;
-    pObjectHypotheses_.reset(new std::map<std::string, ObjectHypothesis<PointInT> >);
+    object_hypotheses_.clear();
     typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map_oh;
     keypoints_cloud_.reset(new pcl::PointCloud<PointInT>);
     keypoint_indices_.indices.clear();
@@ -98,27 +91,20 @@ v4r::MultiRecognitionPipeline<PointInT>::recognize()
 
         if(recognizers_[i]->requiresSegmentation())
         {
-            PCL_WARN("this recognizers requires segmentation...\n");
             if(recognizers_[i]->acceptsNormals() && normals_set_)
             {
-                PCL_WARN("recognizer accepts normals, setting them\n");
                 recognizers_[i]->setSceneNormals(scene_normals_);
-            }
-            else
-            {
-                std::cout << "normals set:" << normals_set_
-                          << "recognizer accepts normals:" << recognizers_[i]->acceptsNormals() << std::endl;
             }
 
             for(size_t c=0; c < segmentation_indices_.size(); c++)
             {
                 recognizers_[i]->setIndices(segmentation_indices_[c].indices);
                 recognizers_[i]->recognize();
-                boost::shared_ptr < std::vector<ModelTPtr> > models = recognizers_[i]->getModels ();
-                boost::shared_ptr < std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms = recognizers_[i]->getTransforms ();
+                std::vector<ModelTPtr> models_tmp = recognizers_[i]->getModels ();
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp = recognizers_[i]->getTransforms ();
 
-                models_->insert(models_->end(), models->begin(), models->end());
-                transforms_->insert(transforms_->end(), transforms->begin(), transforms->end());
+                models_.insert(models_.end(), models_tmp.begin(), models_tmp.end());
+                transforms_.insert(transforms_.end(), transforms_tmp.begin(), transforms_tmp.end());
                 input_icp_indices.insert(input_icp_indices.end(), segmentation_indices_[c].indices.begin(), segmentation_indices_[c].indices.end());
             }
         }
@@ -127,78 +113,66 @@ v4r::MultiRecognitionPipeline<PointInT>::recognize()
             recognizers_[i]->setSaveHypotheses(set_save_hypotheses_);
             recognizers_[i]->setIndices(indices_);
             recognizers_[i]->recognize();
-            boost::shared_ptr < std::vector<ModelTPtr> > models = recognizers_[i]->getModels ();
-            boost::shared_ptr < std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms = recognizers_[i]->getTransforms ();
 
             if(!set_save_hypotheses_)
             {
-                models_->insert(models_->end(), models->begin(), models->end());
-                transforms_->insert(transforms_->end(), transforms->begin(), transforms->end());
+                std::vector<ModelTPtr> models = recognizers_[i]->getModels ();
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms = recognizers_[i]->getTransforms ();
+
+                models_.insert(models_.end(), models.begin(), models.end());
+                transforms_.insert(transforms_.end(), transforms.begin(), transforms.end());
             }
             else
             {
-                typename std::map<std::string, ObjectHypothesis<PointInT> > object_hypotheses_single_pipeline;
-                typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
-                recognizers_[i]->getSavedHypotheses(object_hypotheses_single_pipeline);
+                typename std::map<std::string, ObjectHypothesis<PointInT> > oh_tmp;
+                recognizers_[i]->getSavedHypotheses(oh_tmp);
 
-                typename pcl::PointCloud<PointInT>::Ptr keypoints_cloud_single(new pcl::PointCloud<PointInT>);
-                recognizers_[i]->getKeypointCloud(keypoints_cloud_single);
-                pcl::PointIndices keypoint_indices_single;
-                recognizers_[i]->getKeypointIndices(keypoint_indices_single);
-                keypoint_indices_.header = keypoint_indices_single.header;
+                pcl::PointIndices kp_idx_tmp;
+                typename pcl::PointCloud<PointInT>::Ptr kp_tmp(new pcl::PointCloud<PointInT>);
+                recognizers_[i]->getKeypointCloud(kp_tmp);
+                recognizers_[i]->getKeypointIndices(kp_idx_tmp);
 
-                for (it_map = object_hypotheses_single_pipeline.begin ();
-                     it_map != object_hypotheses_single_pipeline.end (); it_map++)
+                typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it;
+                for (it = oh_tmp.begin (); it != oh_tmp.end (); it++)
                 {
-                    std::string id = it_map->second.model_->id_;
-                    //std::cout << id << " " << it_map->second.model_scene_corresp->size() << std::endl;
+                    const std::string id = it->second.model_->id_;
 
-                    it_map_oh = pObjectHypotheses_->find(id);
-                    if(it_map_oh == pObjectHypotheses_->end())
+                    it_map_oh = object_hypotheses_.find(id);
+                    if(it_map_oh == object_hypotheses_.end())   // no feature correspondences exist yet
                     {
-                        if(keypoints_cloud_->points.size() > 0)
+                        if(keypoints_cloud_->points.size())
                         {
-                            PCL_ERROR("is this happenning?\n");
-                            for(size_t kk=0; kk < it_map->second.model_scene_corresp->size(); kk++)
+                            std::cerr << "???" << std::endl;
+                            for(size_t kk=0; kk < it->second.model_scene_corresp->size(); kk++)
                             {
-                                it_map->second.model_scene_corresp->at(kk).index_match += keypoints_cloud_->points.size();
+                                it->second.model_scene_corresp->at(kk).index_match += keypoints_cloud_->points.size();
                             }
                         }
 
-                        pObjectHypotheses_->insert(std::pair<std::string, ObjectHypothesis<PointInT> >(id, it_map->second));
+                        object_hypotheses_.insert(std::pair<std::string, ObjectHypothesis<PointInT> >(id, it->second));
                     }
                     else
                     {
-                        //std::cout << "found... need to merge hypotheses" << std::endl;
-                        /*
-                typename pcl::PointCloud<PointInT>::Ptr correspondences_pointcloud; //points in model coordinates
-                pcl::PointCloud<pcl::Normal>::Ptr normals_pointcloud; //points in model coordinates
-                boost::shared_ptr<std::vector<float> > feature_distances_;
-                pcl::CorrespondencesPtr model_scene_corresp; //indices between correspondences_pointcloud and scene cloud (keypoints extracted by each local_recognizer)
-                int num_corr_;
-                std::vector<int> indices_to_flann_models_;
-             */
-
                         //update correspondences indices so they match each recognizer (keypoints_cloud to correspondences_pointcloud)
-                        for(size_t kk=0; kk < it_map->second.model_scene_corresp->size(); kk++)
+                        for(size_t kk=0; kk < it->second.model_scene_corresp->size(); kk++)
                         {
-                            pcl::Correspondence c = it_map->second.model_scene_corresp->at(kk);
+                            pcl::Correspondence c = it->second.model_scene_corresp->at(kk);
                             c.index_match += keypoints_cloud_->points.size();
                             c.index_query += it_map_oh->second.model_keypoints->points.size();
                             it_map_oh->second.model_scene_corresp->push_back(c);
                         }
 
-                        *it_map_oh->second.model_keypoints += * it_map->second.model_keypoints;
-                        *it_map_oh->second.model_kp_normals += * it_map->second.model_kp_normals;
+                        *it_map_oh->second.model_keypoints += * it->second.model_keypoints;
+                        *it_map_oh->second.model_kp_normals += * it->second.model_kp_normals;
                         it_map_oh->second.indices_to_flann_models_.insert(
                                     it_map_oh->second.indices_to_flann_models_.end(),
-                                       it_map->second.indices_to_flann_models_.begin(),
-                                       it_map->second.indices_to_flann_models_.end());
+                                    it->second.indices_to_flann_models_.begin(),
+                                    it->second.indices_to_flann_models_.end());
                     }
                 }
 
-                *keypoints_cloud_ += *keypoints_cloud_single;
-                keypoint_indices_.indices.insert(keypoint_indices_.indices.end(), keypoint_indices_single.indices.begin(), keypoint_indices_single.indices.end());
+                *keypoints_cloud_ += *kp_tmp;
+                keypoint_indices_.indices.insert(keypoint_indices_.indices.end(), kp_idx_tmp.indices.begin(), kp_idx_tmp.indices.end());
                 assert(keypoints_cloud_->points.size() == keypoint_indices_.indices.size());
             }
 
@@ -227,9 +201,9 @@ v4r::MultiRecognitionPipeline<PointInT>::recognize()
         poseRefinement();
     }
 
-    if (hv_algorithm_ && (models_->size () > 0) && (cg_algorithm_ || multi_object_correspondence_grouping_))
+    if (hv_algorithm_ && (models_.size () > 0) && (cg_algorithm_ || multi_object_correspondence_grouping_))
     {
-        std::cout << "Do hypothesis verification..." << models_->size () << std::endl;
+        std::cout << "Do hypothesis verification..." << models_.size () << std::endl;
         hypothesisVerification();
     }
 }
@@ -238,7 +212,7 @@ v4r::MultiRecognitionPipeline<PointInT>::recognize()
 template<typename PointInT>
 void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
 {
-    if(set_save_hypotheses_ && pObjectHypotheses_->size() > 0)
+    if(set_save_hypotheses_ && object_hypotheses_.size() > 0)
     {
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals(new pcl::PointCloud<pcl::Normal>);
         if(cg_algorithm_->getRequiresNormals())
@@ -327,7 +301,7 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
         {
             PCL_ERROR("set_save_hypotheses, doing correspondence grouping at MULTIpipeline level\n");
             typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
-            for (it_map = pObjectHypotheses_->begin (); it_map != pObjectHypotheses_->end (); it_map++)
+            for (it_map = object_hypotheses_.begin (); it_map != object_hypotheses_.end (); it_map++)
             {
                 if(it_map->second.model_scene_corresp->size() < 3)
                     continue;
@@ -454,8 +428,8 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
                     typename pcl::registration::TransformationEstimationSVD < PointInT, PointInT > t_est;
                     t_est.estimateRigidTransformation (*(*it_map).second.model_keypoints, *keypoints_cloud_, corresp_clusters[i], best_trans);
 
-                    models_->push_back ((*it_map).second.model_);
-                    transforms_->push_back (best_trans);
+                    models_.push_back ((*it_map).second.model_);
+                    transforms_.push_back (best_trans);
                 }
             }
         }

@@ -77,11 +77,11 @@ public:
     View();
     //View(const View &view);
     boost::shared_ptr< pcl::PointCloud<PointT> > pScenePCl;
-    boost::shared_ptr< pcl::PointCloud<PointT> > pScenePCl_f;
+    boost::shared_ptr< pcl::PointCloud<PointT> > scene_f_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pSceneNormals;
     pcl::PointIndices filteredSceneIndices_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
-    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pKeypointNormalsMultipipe_;
+    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
     std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<FeatureT > > pSiftSignatures_;
     std::vector<float> sift_keypoints_scales_;
@@ -91,7 +91,7 @@ public:
     Eigen::Matrix4f transform_to_world_co_system_;
     bool has_been_hopped_;
     double cumulative_weight_to_new_vrtx_;
-    pcl::PointIndices keypointIndices_;
+    pcl::PointIndices kp_indices_;
     std::vector<pcl::PointCloud<PointT>::Ptr> verified_planes_;
     size_t id_;
 

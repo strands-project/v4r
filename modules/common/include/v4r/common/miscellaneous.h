@@ -244,26 +244,26 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_in
  * @param indices
  * @param resolution (optional)
  */
-template<typename PointInT>
+template<typename PointT, typename Type>
 inline void
-getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_input_cloud,
-                    const typename pcl::PointCloud<PointInT>::ConstPtr & search_points,
-                    std::vector<size_t> & indices,
+getIndicesFromCloud(const typename pcl::PointCloud<PointT>::ConstPtr & full_input_cloud,
+                    const typename pcl::PointCloud<PointT> & search_pts,
+                    typename std::vector<Type> & indices,
                     float resolution = 0.005f)
 {
-    pcl::octree::OctreePointCloudSearch<PointInT> octree (resolution);
+    pcl::octree::OctreePointCloudSearch<PointT> octree (resolution);
     octree.setInputCloud (full_input_cloud);
     octree.addPointsFromInputCloud ();
 
     std::vector<int> pointIdxNKNSearch;
     std::vector<float> pointNKNSquaredDistance;
 
-    indices.resize( search_points->points.size() );
+    indices.resize( search_pts.points.size() );
     size_t kept=0;
 
-    for(size_t j=0; j < search_points->points.size(); j++)
+    for(size_t j=0; j < search_pts.points.size(); j++)
     {
-        if (octree.nearestKSearch (search_points->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
+        if (octree.nearestKSearch (search_pts.points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
         {
             indices[kept] = pointIdxNKNSearch[0];
             kept++;
