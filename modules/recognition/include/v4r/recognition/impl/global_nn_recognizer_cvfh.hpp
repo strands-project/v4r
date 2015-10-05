@@ -269,7 +269,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     {
         if(indices_.size() > 0)
         {
-            pcl::copyPointCloud (*input_, *in);
+            pcl::copyPointCloud (*scene_, *in);
             std::vector<bool> negative_indices(in->points.size(), true);
             for(size_t i=0; i < indices_.size(); i++)
                 negative_indices[indices_[i]] = false;
@@ -281,14 +281,14 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             }
         }
         else
-            in = input_;
+            in = scene_;
     }
     else
     {
         if (indices_.size () > 0)
-          pcl::copyPointCloud (*input_, indices_, *in);
+          pcl::copyPointCloud (*scene_, indices_, *in);
         else
-          in = input_;
+          in = scene_;
 
         /*{
           //pcl::ScopeTime t ("Estimate feature");
@@ -658,7 +658,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         }
 
         std::vector<bool> mask_hv;
-        hv_algorithm_->setSceneCloud (input_);
+        hv_algorithm_->setSceneCloud (scene_);
         hv_algorithm_->addModels (aligned_models, true);
         hv_algorithm_->verify ();
         hv_algorithm_->getMask (mask_hv);

@@ -55,7 +55,7 @@ namespace v4r
         typedef Model<PointInT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-        using Recognizer<PointInT>::input_;
+        using Recognizer<PointInT>::scene_;
         using Recognizer<PointInT>::models_;
         using Recognizer<PointInT>::transforms_;
         using Recognizer<PointInT>::ICP_iterations_;
@@ -66,9 +66,7 @@ namespace v4r
         using Recognizer<PointInT>::indices_;
         using Recognizer<PointInT>::hv_algorithm_;
         using Recognizer<PointInT>::setSceneNormals;
-
-        /** \brief Directory where the trained structure will be saved */
-        std::string training_dir_;
+        using Recognizer<PointInT>::training_dir_;
 
         /** \brief Model data source */
         typename boost::shared_ptr<Source<PointInT> > source_;
@@ -233,6 +231,7 @@ namespace v4r
           requires_segmentation_ = true;
           debug_level_ = 0;
           normals_set_ = false;
+          descr_name_ = "cvfh";
         }
 
         bool acceptsNormals() const
@@ -348,12 +347,6 @@ namespace v4r
         setDescriptorName (const std::string &name)
         {
           descr_name_ = name;
-        }
-
-        void
-        setTrainingDir (const std::string &dir)
-        {
-          training_dir_ = dir;
         }
 
         /**

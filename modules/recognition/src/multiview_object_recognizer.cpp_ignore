@@ -409,9 +409,7 @@ createEdgesFromHypothesisMatchOnline ( const ViewD new_vertex, MVGraph &grph, st
     for (boost::tie(vertexItA, vertexEndA) = vertices(grph_); vertexItA != vertexEndA; ++vertexItA)
     {
         if ( grph[*vertexItA].id_ == grph[new_vertex].id_ )
-        {
             continue;
-        }
 
         std::cout << " Checking vertex " << grph[*vertexItA].id_ << " which has " << grph[*vertexItA].hypothesis_mv_.size() << " hypotheses." << std::endl;
         for ( std::vector<Hypothesis<PointT> >::iterator it_hypA = grph[*vertexItA].hypothesis_mv_.begin (); it_hypA != grph[*vertexItA].hypothesis_mv_.end (); ++it_hypA )
@@ -450,7 +448,7 @@ calcEdgeWeight (MVGraph &grph, std::vector<EdgeD> &edges)
 #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
     for (size_t i=0; i<edges.size(); i++) //std::vector<Edge>::iterator edge_it = edges.begin(); edge_it!=edges.end(); ++edge_it)
     {
-        EdgeD edge = edges[i];
+        EdgeD &edge = edges[i];
 
         const ViewD vrtx_src = source ( edge, grph );
         const ViewD vrtx_trgt = target ( edge, grph );

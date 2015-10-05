@@ -22,7 +22,7 @@ namespace v4r
         std::vector<typename boost::shared_ptr<v4r::Recognizer<PointInT> > > recognizers_;
 
       private:
-        using Recognizer<PointInT>::input_;
+        using Recognizer<PointInT>::scene_;
         using Recognizer<PointInT>::models_;
         using Recognizer<PointInT>::transforms_;
         using Recognizer<PointInT>::ICP_iterations_;
@@ -45,15 +45,13 @@ namespace v4r
 
         typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointInT, PointInT> > cg_algorithm_;
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
+        typename pcl::PointCloud<PointInT>::Ptr scene_keypoints_;
+        pcl::PointIndices scene_kp_indices_;
+
         bool normals_set_;
 
-        bool multi_object_correspondence_grouping_;
-
         std::map<std::string, ObjectHypothesis<PointInT> > saved_object_hypotheses_;
-        std::map<std::string, ObjectHypothesis<PointInT> >  object_hypotheses_;
-        typename pcl::PointCloud<PointInT>::Ptr keypoints_cloud_;
-
-        pcl::PointIndices keypoint_indices_;
+        std::map<std::string, ObjectHypothesis<PointInT> >  object_hypotheses_mp_;
 
         bool set_save_hypotheses_;
 
@@ -61,13 +59,7 @@ namespace v4r
         MultiRecognitionPipeline () : Recognizer<PointInT>()
         {
             normals_set_ = false;
-            multi_object_correspondence_grouping_ = false;
             set_save_hypotheses_ = false;
-        }
-
-        void setMultiObjectCG(bool b)
-        {
-            multi_object_correspondence_grouping_ = b;
         }
 
         void setSaveHypotheses(bool set_save_hypotheses)
@@ -78,20 +70,19 @@ namespace v4r
         void
         getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses) const
         {
-          hypotheses = object_hypotheses_;
+          hypotheses = object_hypotheses_mp_;
         }
 
         void
         getKeypointCloud(PointInTPtr & keypoint_cloud) const
         {
-          keypoint_cloud = keypoints_cloud_;
+          keypoint_cloud = scene_keypoints_;
         }
-
 
         void
         getKeypointIndices(pcl::PointIndices & indices) const
         {
-            indices = keypoint_indices_;
+            indices = scene_kp_indices_;
         }
 
         void initialize();
@@ -149,13 +140,6 @@ namespace v4r
         {
             scene_normals_ = normals;
             normals_set_ = true;
-        }
-
-        void clear()
-        {
-            recognizers_.clear();
-            saved_object_hypotheses_.clear();
-            segmentation_indices_.clear();
         }
     };
 }

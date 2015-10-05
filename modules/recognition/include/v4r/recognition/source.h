@@ -40,7 +40,9 @@ namespace v4r
       std::string class_, id_;
       PointTPtr assembled_;
       pcl::PointCloud<pcl::Normal>::Ptr normals_assembled_;
-      std::vector<std::string> view_filenames_;
+      std::vector <std::string> view_filenames_;
+      PointTPtr keypoints_; //model keypoints
+      pcl::PointCloud<pcl::Normal>::Ptr kp_normals_; //keypoint normals
       mutable typename std::map<float, PointTPtrConst> voxelized_assembled_;
       mutable typename std::map<float, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
       //typename boost::shared_ptr<VoxelGridDistanceTransform<PointT> > dist_trans_;
@@ -176,9 +178,9 @@ namespace v4r
           voxelized_const->width = voxelized->width;
           voxelized_const->height = voxelized->height;
 
-          for(size_t i=0; i < voxelized_const->points.size(); i++) {
+          for(size_t i=0; i < voxelized_const->points.size(); i++)
             voxelized_const->points[i].getNormalVector4fMap() = voxelized->points[i].getNormalVector4fMap();
-          }
+
 
           normals_voxelized_assembled_[resolution] = voxelized_const;
           return voxelized_const;

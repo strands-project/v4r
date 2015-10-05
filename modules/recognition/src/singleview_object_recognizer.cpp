@@ -121,11 +121,14 @@ std::vector<bool> SingleViewRecognizer::hypothesesVerification()
 #ifdef USE_CUDA
     boost::shared_ptr<v4r::recognition::GHVCudaWrapper<PointT> > go (new v4r::recognition::GHVCudaWrapper<PointT>);
 #else
-    boost::shared_ptr<v4r::GHV<PointT, PointT> > go (new v4r::GHV<PointT, PointT>);
+    v4r::GHV<PointT, PointT>::ParameterGHV paramGHV;
+    paramGHV.resolution_ = hv_params_.resolution_;
+    paramGHV.occlusion_thres_ = hv_params_.occlusion_threshold_;
+    paramGHV.inliers_threshold_ = hv_params_.inlier_threshold_;
+
+    boost::shared_ptr<v4r::GHV<PointT, PointT> > go (new v4r::GHV<PointT, PointT>(paramGHV));
     //go->setRadiusNormals(0.03f);
-    go->setResolution (hv_params_.resolution_);
     go->setDetectClutter (hv_params_.detect_clutter_);
-    go->setOcclusionThreshold (hv_params_.occlusion_threshold_);
     go->setOptimizerType (hv_params_.optimizer_type_);
     go->setUseReplaceMoves(hv_params_.use_replace_moves_);
     go->setRadiusNormals (hv_params_.radius_normals_);
@@ -145,7 +148,6 @@ std::vector<bool> SingleViewRecognizer::hypothesesVerification()
 #endif
 
     assert(pSceneNormals_->points.size() == pInputCloud_->points.size());
-    go->setInlierThreshold (hv_params_.inlier_threshold_);
     go->setRadiusClutter (hv_params_.radius_clutter_);
     go->setRegularizer (hv_params_.regularizer_ );
     go->setClutterRegularizer (hv_params_.clutter_regularizer_);
@@ -295,29 +297,28 @@ void SingleViewRecognizer::constructHypothesesFromFeatureMatches(std::map < std:
     {
         const v4r::ObjectHypothesis<PointT> &oh = it_map->second;
 
-        if((int)oh.model_scene_corresp->size() < cg_params_.cg_size_threshold_)
+        if((int)oh.model_scene_corresp_->size() < cg_params_.cg_size_threshold_)
             continue;
 
         std::vector <pcl::Correspondences> corresp_clusters;
-        std::cout << oh.model_->id_ << ": " << oh.model_scene_corresp->size() << std::endl;
+        std::cout << oh.model_->id_ << ": " << oh.model_scene_corresp_->size() << std::endl;
         cast_cg_alg_->setSceneCloud (pKeypoints);
-        cast_cg_alg_->setInputCloud (oh.model_keypoints);
+        cast_cg_alg_->setInputCloud (oh.model_->keypoints_);
 
         if(cast_cg_alg_->getRequiresNormals())
         {
-            assert(oh.scene_keypoints->points.size() == pKeypointNormals->points.size());
-            cast_cg_alg_->setInputAndSceneNormals(oh.model_kp_normals, pKeypointNormals);
+            cast_cg_alg_->setInputAndSceneNormals(oh.model_->kp_normals_, oh.scene_normals_);
         }
 
-        cast_cg_alg_->setModelSceneCorrespondences (oh.model_scene_corresp);
+        cast_cg_alg_->setModelSceneCorrespondences (oh.model_scene_corresp_);
         cast_cg_alg_->cluster (corresp_clusters);
 
-        std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.model_scene_corresp->size () << " " << it_map->first << std::endl;
+        std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << oh.model_scene_corresp_->size () << " " << it_map->first << std::endl;
         for (size_t i = 0; i < corresp_clusters.size (); i++)
         {
             Eigen::Matrix4f best_trans;
             pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
-            t_est.estimateRigidTransformation (*oh.model_keypoints, *pKeypoints, corresp_clusters[i], best_trans);
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *pKeypoints, corresp_clusters[i], best_trans);
 
             Hypothesis<PointT> ht_temp ( oh.model_, best_trans );
             hypothesesOutput.push_back(ht_temp);

@@ -39,14 +39,14 @@ namespace v4r
       public:
         ModelTPtr model_;
 
-        typename pcl::PointCloud<PointT>::Ptr scene; // input point cloud of the scene
-        typename pcl::PointCloud<PointT>::Ptr scene_keypoints; // keypoints of the scene
-        typename pcl::PointCloud<PointT>::Ptr model_keypoints; //keypoints of model
-        pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals; //keypoint normals of model
-        pcl::CorrespondencesPtr model_scene_corresp; //indices between model keypoints (index query) and scene cloud (index match)
+        typename pcl::PointCloud<PointT>::Ptr scene_; // input point cloud of the scene
+        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
+        pcl::CorrespondencesPtr model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
         std::vector<int> indices_to_flann_models_;
 
         void visualize() const;
+
+//        ObjectHypothesis & operator+=(const ObjectHypothesis &rhs);
     };
 
     template<typename PointInT>
@@ -60,10 +60,11 @@ namespace v4r
 
       protected:
         /** \brief Point cloud to be classified */
-        PointInTPtr input_;
+        PointInTPtr scene_;
+        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
 
-        std::vector<ModelTPtr> models_;
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
+        std::vector<ModelTPtr> models_, models_verified_;
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_, transforms_verified_;
 
         int ICP_iterations_;
         int icp_type_;
@@ -74,6 +75,9 @@ namespace v4r
         bool recompute_hv_normals_;
         pcl::PointIndicesPtr icp_scene_indices_;
 
+        /** \brief Directory containing views of the object */
+        std::string training_dir_;
+
         /** \brief Hypotheses verification algorithm */
         typename boost::shared_ptr<v4r::HypothesisVerification<PointInT, PointInT> > hv_algorithm_;
 
@@ -81,7 +85,7 @@ namespace v4r
         {
           PointInTPtr scene_voxelized (new pcl::PointCloud<PointInT> ());
           pcl::VoxelGrid<PointInT> voxel_grid_icp;
-          voxel_grid_icp.setInputCloud (input_);
+          voxel_grid_icp.setInputCloud (scene_);
           if(icp_scene_indices_ && icp_scene_indices_->indices.size() > 0)
           {
             voxel_grid_icp.setIndices(icp_scene_indices_);
@@ -202,12 +206,12 @@ namespace v4r
         void
         hypothesisVerification ()
         {
-          pcl::ScopeTime thv ("HV verification");
-
           std::vector<typename pcl::PointCloud<PointInT>::ConstPtr> aligned_models;
           std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals;
           aligned_models.resize (models_.size ());
           aligned_normals.resize (models_.size ());
+          models_verified_.clear();
+          transforms_verified_.clear();
 
 #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
           for (size_t i = 0; i < models_.size (); i++)
@@ -247,7 +251,7 @@ namespace v4r
           }
 
           std::vector<bool> mask_hv;
-          hv_algorithm_->setSceneCloud (input_);
+          hv_algorithm_->setSceneCloud (scene_);
           if (hv_algorithm_->getRequiresNormals () && !recompute_hv_normals_)
           {
             hv_algorithm_->addNormalsClouds (aligned_normals);
@@ -257,20 +261,14 @@ namespace v4r
           hv_algorithm_->verify ();
           hv_algorithm_->getMask (mask_hv);
 
-          std::vector<ModelTPtr>  models_temp;
-          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_temp;
-
           for (size_t i = 0; i < models_.size (); i++)
           {
             if (!mask_hv[i])
               continue;
 
-            models_temp.push_back (models_[i]);
-            transforms_temp.push_back (transforms_[i]);
+            models_verified_.push_back (models_[i]);
+            transforms_verified_.push_back (transforms_[i]);
           }
-
-          models_ = models_temp;
-          transforms_ = transforms_temp;
         }
 
       public:
@@ -296,9 +294,9 @@ namespace v4r
             return false;
         }
 
-        virtual void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr & /*normals*/)
+        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
         {
-            PCL_WARN("Set scene normals is not implemented for this class.");
+            scene_normals_ = normals;
         }
 
         virtual void
@@ -355,7 +353,7 @@ namespace v4r
         void
         setInputCloud (const PointInTPtr & cloud)
         {
-          input_ = cloud;
+          scene_ = cloud;
         }
 
         std::vector<ModelTPtr>
@@ -394,6 +392,15 @@ namespace v4r
 
         void setVoxelSizeICP(float s) {
           VOXEL_SIZE_ICP_ = s;
+        }
+
+        /**
+         * \brief Filesystem dir containing training files
+         */
+        void
+        setTrainingDir (const std::string & dir)
+        {
+          training_dir_ = dir;
         }
 
         virtual bool requiresSegmentation() const

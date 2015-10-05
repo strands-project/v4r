@@ -46,7 +46,7 @@ namespace v4r
           typedef Model<PointT> ModelT;
           typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-          using Recognizer<PointT>::input_;
+          using Recognizer<PointT>::scene_;
           using Recognizer<PointT>::models_;
           using Recognizer<PointT>::transforms_;
           using Recognizer<PointT>::ICP_iterations_;
@@ -56,18 +56,17 @@ namespace v4r
           using Recognizer<PointT>::hv_algorithm_;
           using Recognizer<PointT>::poseRefinement;
           using Recognizer<PointT>::hypothesisVerification;
+          using Recognizer<PointT>::training_dir_;
 
           class flann_model
           {
           public:
             ModelTPtr model;
-            size_t view_id;
             size_t keypoint_id;
             std::vector<float> descr;
+            size_t view_id;
           };
 
-          /** \brief Directory containing views of the object */
-          std::string training_dir_;
 
           /** \brief Model data source */
           typename boost::shared_ptr<Source<PointT> > source_;
@@ -96,18 +95,14 @@ namespace v4r
           std::vector<flann_model> flann_models_;
 
           bool use_cache_;
-          std::map<std::pair<std::string, size_t>, Eigen::Matrix4f, std::less<std::pair<std::string, size_t> >, Eigen::aligned_allocator<std::pair<std::pair<
-              std::string, size_t>, Eigen::Matrix4f> > > poses_cache_;
-          std::map<std::pair<std::string, size_t>, typename pcl::PointCloud<PointT>::Ptr> keypoints_cache_;
-          std::map<std::pair<std::string, size_t>, pcl::PointCloud<pcl::Normal>::Ptr> normals_cache_;
 
           float threshold_accept_model_hypothesis_;
           int kdtree_splits_;
 
           typename pcl::PointCloud<FeatureT>::Ptr signatures_;
-          pcl::PointIndices keypoint_indices_;
+          typename pcl::PointCloud<PointT>::Ptr scene_keypoints_;
+          pcl::PointIndices scene_kp_indices_;
 
-          std::string cb_flann_index_fn_;
           std::string flann_index_fn_;
           std::string flann_data_fn_;
 
@@ -115,7 +110,6 @@ namespace v4r
 
           bool save_hypotheses_;
           typename std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;
-          typename pcl::PointCloud<PointT>::Ptr keypoint_cloud_;
           int knn_;
           float distance_same_keypoint_;
           float max_descriptor_distance_;
@@ -143,16 +137,11 @@ namespace v4r
             data = flann_data;
           }
 
-          /*void
-          nearestKSearch (flann::Index<DistT> * index, float * descr, int descr_size, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);*/
-
           void nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);
 
-          Eigen::Matrix4f getPose (const ModelT &model, size_t view_id);
+          pcl::Normal getKpNormal (const ModelT &model, size_t keypoint_id, size_t view_id=0);
 
-          void getNormals (const ModelT &model, size_t view_id, pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud);
-
-          PointT getKeypoint (const ModelT & model, size_t view_id, size_t keypoint_id);
+          PointT getKeypoint (const ModelT & model, size_t keypoint_id, size_t view_id=0);
 
           void getView (const ModelT & model, size_t view_id, typename pcl::PointCloud<PointT>::Ptr & view);
 
@@ -246,14 +235,13 @@ namespace v4r
         void
         getKeypointCloud(PointTPtr & keypoint_cloud) const
         {
-          keypoint_cloud = keypoint_cloud_;
+          keypoint_cloud = scene_keypoints_;
         }
 
         void
         getKeypointIndices(pcl::PointIndices & indices) const
         {
-            indices.header = keypoint_indices_.header;
-            indices.indices = keypoint_indices_.indices;
+            indices = scene_kp_indices_;
         }
 
         void
@@ -265,7 +253,7 @@ namespace v4r
               throw std::runtime_error("Provided signatures and keypoints are not valid!");
 
           feat_kp_set_from_outside_ = true;
-          keypoint_indices_ = keypoint_indices;
+          scene_kp_indices_ = keypoint_indices;
           signatures_ = signatures;
         }
 
@@ -348,15 +336,6 @@ namespace v4r
           descr_name_ = name;
         }
 
-
-        /**
-         * \brief Filesystem dir containing training files
-         */
-        void
-        setTrainingDir (const std::string & dir)
-        {
-          training_dir_ = dir;
-        }
 
         /**
          * \brief Initializes the FLANN structure from the provided source

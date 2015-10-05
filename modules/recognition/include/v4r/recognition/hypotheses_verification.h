@@ -57,6 +57,32 @@ namespace v4r
   template<typename ModelT, typename SceneT>
   class V4R_EXPORTS HypothesisVerification
   {
+  public:
+      class V4R_EXPORTS Parameter
+      {
+      public:
+          float resolution_; //The resolution of models and scene used to verify hypotheses (in meters)
+          float inliers_threshold_; // Threshold for inliers
+          float occlusion_thres_;    // occlusion threshold
+          int zbuffer_scene_resolution_; // Resolutions in pixel for the depth scene buffer
+          int zbuffer_self_occlusion_resolution_;
+          bool self_occlusions_reasoning_;
+
+          Parameter (
+                  float resolution = 0.005f,
+                  float inliers_threshold = 0.005f,
+                  float occlusion_thres = 0.005f,
+                  int zbuffer_scene_resolution = 100,
+                  int zbuffer_self_occlusion_resolution = 150,
+                  bool self_occlusions_reasoning =true)
+              : resolution_ (resolution),
+                inliers_threshold_(inliers_threshold),
+                occlusion_thres_ (occlusion_thres),
+                zbuffer_scene_resolution_(zbuffer_scene_resolution),
+                zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
+                self_occlusions_reasoning_(self_occlusions_reasoning)
+          {}
+      };
 
   protected:
     /*
@@ -102,31 +128,8 @@ namespace v4r
     typename std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> complete_models_;
 
     std::vector<typename pcl::PointCloud<pcl::Normal>::ConstPtr> complete_normal_models_;
-    /*
-     * \brief Resolutions in pixel for the depth scene buffer
-     */
-    int zbuffer_scene_resolution_;
-    /*
-     * \brief Resolutions in pixel for the depth model self-occlusion buffer
-     */
-    int zbuffer_self_occlusion_resolution_;
 
-    bool self_occlusions_reasoning_;
 
-    /*
-     * \brief The resolution of models and scene used to verify hypotheses (in meters)
-     */
-    float resolution_;
-
-    /*
-     * \brief Threshold for inliers
-     */
-    float inliers_threshold_;
-
-    /*
-     * \brief Threshold to consider a point being occluded
-     */
-    float occlusion_thres_;
 
     /*
      * \brief Whether the HV method requires normals or not, by default = false
@@ -140,83 +143,51 @@ namespace v4r
 
     std::vector<int> scene_sampled_indices_;
   public:
+    Parameter param_;
 
-    HypothesisVerification ()
+    HypothesisVerification (const Parameter &p = Parameter())
     {
-      zbuffer_scene_resolution_ = 100;
-      zbuffer_self_occlusion_resolution_ = 150;
-      resolution_ = 0.005f;
-      inliers_threshold_ = static_cast<float>(resolution_);
+      param_ = p;
       occlusion_cloud_set_ = false;
-      occlusion_thres_ = 0.005f;
       normals_set_ = false;
       requires_normals_ = false;
-      self_occlusions_reasoning_ = true;
     }
 
     void setSelfOcclusionsReasoning(bool b) {
-      self_occlusions_reasoning_ = b;
+      param_.self_occlusions_reasoning_ = b;
     }
 
     void setZBufferSelfOcclusionResolution(int r) {
-      zbuffer_self_occlusion_resolution_ = r;
+      param_.zbuffer_self_occlusion_resolution_ = r;
     }
 
     bool getRequiresNormals() {
       return requires_normals_;
     }
 
-    /*
-     *  \brief Sets the resolution of scene cloud and models used to verify hypotheses
-     *  mask r resolution
-     */
-    void
-    setResolution(float r) {
-      resolution_ = r;
-    }
 
-    /*
-     *  \brief Sets the occlusion threshold
-     *  mask t threshold
-     */
-    void
-    setOcclusionThreshold(float t) {
-      occlusion_thres_ = t;
-    }
-
-    /*
-     *  \brief Sets the resolution of scene cloud and models used to verify hypotheses
-     *  mask r resolution
-     */
-    void
-    setInlierThreshold(float r) {
-      inliers_threshold_ = r;
-    }
-
-    /*
-     *  \brief Returns a vector of booleans representing which hypotheses have been accepted/rejected (true/false)
+    /**
+     *  \brief: Returns a vector of booleans representing which hypotheses have been accepted/rejected (true/false)
      *  mask vector of booleans
      */
-
     void
     getMask (std::vector<bool> & mask)
     {
       mask = mask_;
     }
 
-    /*
+    /**
      *  \brief Sets the 3D complete models. NOTE: If addModels is called with occlusion_reasoning=true, then
      *  there is no need to call this function.
      *  mask models Vector of point clouds representing the models (in same coordinates as the scene_cloud_)
      */
-
     void
     addCompleteModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & complete_models)
     {
       complete_models_ = complete_models;
     }
 
-    /*
+    /**
      *  \brief Sets the normals of the 3D complete models and sets normals_set_ to true.
      *  Normals need to be added before calling the addModels method.
      *  complete_models The normals of the models.
@@ -228,14 +199,13 @@ namespace v4r
       normals_set_ = true;
     }
 
-    /*
+    /**
      *  \brief Sets the models (recognition hypotheses) - requires the scene_cloud_ to be set first if reasoning about occlusions
      *  mask models Vector of point clouds representing the models (in same coordinates as the scene_cloud_)
      */
     void
     addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning = false)
     {
-
       mask_.clear();
       if(!occlusion_cloud_set_) {
         PCL_WARN("Occlusion cloud not set, using scene_cloud instead...\n");
@@ -257,7 +227,7 @@ namespace v4r
           PCL_WARN("Scene not organized... filtering using computed depth buffer\n");
         }
 
-        v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (zbuffer_scene_resolution_, zbuffer_scene_resolution_, 1.f);
+        v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (param_.zbuffer_scene_resolution_, param_.zbuffer_scene_resolution_, 1.f);
         if (!occlusion_cloud_->isOrganized ())
         {
           zbuffer_scene.computeDepthMap (occlusion_cloud_, true);
@@ -270,11 +240,11 @@ namespace v4r
 
           //self-occlusions
           typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
-          typename v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_self_occlusion (zbuffer_self_occlusion_resolution_, zbuffer_self_occlusion_resolution_, 1.f);
+          typename v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_self_occlusion (param_.zbuffer_self_occlusion_resolution_, param_.zbuffer_self_occlusion_resolution_, 1.f);
           zbuffer_self_occlusion.computeDepthMap (models[i], true);
 
           std::vector<int> self_occlusion_indices;
-          zbuffer_self_occlusion.filter (models[i], self_occlusion_indices, occlusion_thres_);
+          zbuffer_self_occlusion.filter (models[i], self_occlusion_indices, param_.occlusion_thres_);
           pcl::copyPointCloud (*models[i], self_occlusion_indices, *filtered);
 
           typename pcl::PointCloud<ModelT>::ConstPtr const_filtered(new pcl::PointCloud<ModelT> (*filtered));
@@ -284,7 +254,7 @@ namespace v4r
           std::vector<int> indices_cloud_occlusion;
           if (occlusion_cloud_->isOrganized ())
           {
-            filtered = v4r::occlusion_reasoning::filter<ModelT,SceneT> (occlusion_cloud_, const_filtered, 525.f, occlusion_thres_, indices_cloud_occlusion);
+            filtered = v4r::occlusion_reasoning::filter<ModelT,SceneT> (occlusion_cloud_, const_filtered, 525.f, param_.occlusion_thres_, indices_cloud_occlusion);
             visible_indices_[i].resize(filtered->points.size());
             for(size_t k=0; k < indices_cloud_occlusion.size(); k++) {
               visible_indices_[i][k] = self_occlusion_indices[indices_cloud_occlusion[k]];
@@ -299,7 +269,7 @@ namespace v4r
           }
           else
           {
-            zbuffer_scene.filter (const_filtered, filtered, occlusion_thres_);
+            zbuffer_scene.filter (const_filtered, filtered, param_.occlusion_thres_);
           }
 
           visible_models_.push_back (filtered);
@@ -328,7 +298,7 @@ namespace v4r
       scene_cloud_ = scene_cloud;
       scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>());
 
-      if(resolution_ == -1)
+      if(param_.resolution_ == -1)
       {
         scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>(*scene_cloud));
       }
@@ -341,7 +311,7 @@ namespace v4r
         voxel_grid.filter (*scene_cloud_downsampled_);*/
 
         pcl::UniformSampling<SceneT> us;
-        us.setRadiusSearch(resolution_);
+        us.setRadiusSearch(param_.resolution_);
         us.setInputCloud(scene_cloud_);
         pcl::PointCloud<int> sampled_indices;
         us.compute(sampled_indices);
