@@ -68,9 +68,55 @@ namespace v4r
     typedef boost::adjacency_matrix<boost::undirectedS, int, boost::property<edge_component_t, std::size_t> > GraphGGCG;
     void cleanGraph2(GraphGGCG & g, int gc_thres);
     void cleanGraph(GraphGGCG & g, int gc_thres);
-    float max_time_allowed_cliques_comptutation_;
 
     public:
+      class V4R_EXPORTS Parameter
+      {
+      public:
+          int gc_threshold_;  //Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose
+          double gc_size_; // Resolution of the consensus set used to cluster correspondences together
+          double thres_dot_distance_;
+          bool use_graph_;
+          float dist_for_cluster_factor_;
+          int max_taken_correspondence_;
+          bool cliques_big_to_small_;
+          bool check_normals_orientation_;
+          float max_time_allowed_cliques_comptutation_;
+          float ransac_threshold_;
+          bool prune_;
+          bool prune_by_CC_;
+
+          Parameter(
+                  int gc_threshold = 3,
+                  double gc_size = 1.0, // 0.015
+                  double thres_dot_distance = 0.05f, // 0.2
+                  bool use_graph = true,
+                  float dist_for_cluster_factor = 3.f, //0
+                  int max_taken_correspondence = 5, // 2
+                  bool cliques_big_to_small = false,
+                  bool check_normals_orientation = true,
+                  float max_time_allowed_cliques_comptutation = std::numeric_limits<float>::infinity(), // 100
+                  float ransac_threshold = 0.015f,
+                  bool prune = false,
+                  bool prune_by_CC = false
+                  )
+          : gc_threshold_ (gc_threshold),
+            gc_size_ ( gc_size ),
+            thres_dot_distance_ ( thres_dot_distance ),
+            use_graph_ ( use_graph ),
+            dist_for_cluster_factor_ ( dist_for_cluster_factor ),
+            max_taken_correspondence_ ( max_taken_correspondence ),
+            cliques_big_to_small_ ( cliques_big_to_small ),
+            check_normals_orientation_ ( check_normals_orientation ),
+            max_time_allowed_cliques_comptutation_ ( max_time_allowed_cliques_comptutation ),
+            ransac_threshold_ ( ransac_threshold ),
+            prune_ ( prune ),
+            prune_by_CC_ ( prune_by_CC )
+      {}
+      };
+
+      Parameter param_;
+
       typedef pcl::PointCloud<PointModelT> PointCloud;
       typedef typename PointCloud::Ptr PointCloudPtr;
       typedef typename PointCloud::ConstPtr PointCloudConstPtr;
@@ -78,64 +124,53 @@ namespace v4r
       typedef typename v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::SceneCloudConstPtr SceneCloudConstPtr;
 
       /** \brief Constructor */
-      GraphGeometricConsistencyGrouping ()
-        : gc_threshold_ (3)
-        , gc_size_ (1.0)
-        , found_transformations_ ()
+      GraphGeometricConsistencyGrouping (const Parameter &p = Parameter())
       {
-        use_graph_ = true;
+        param_ = p;
         require_normals_ = true;
-        prune_ = false;
-        thres_dot_distance_ = 0.05f;
-        dist_for_cluster_factor_ = 3.f;
         visualize_graph_ = false;
-        prune_by_CC_ = false;
-        max_taken_correspondence_ = 5;
-        cliques_big_to_small_ = false;
-        check_normals_orientation_ = true;
-        max_time_allowed_cliques_comptutation_ = std::numeric_limits<float>::infinity();
       }
 
       inline
       void setMaxTimeForCliquesComputation(float t)
       {
-          max_time_allowed_cliques_comptutation_ = t;
+          param_.max_time_allowed_cliques_comptutation_ = t;
       }
 
       inline
       void setCheckNormalsOrientation(bool b)
       {
-        check_normals_orientation_ = b;
+        param_.check_normals_orientation_ = b;
       }
 
       inline
       void setSortCliques(bool b)
       {
-        cliques_big_to_small_ = b;
+        param_.cliques_big_to_small_ = b;
       }
 
       inline
       void setMaxTaken(int t)
       {
-        max_taken_correspondence_ = t;
+        param_.max_taken_correspondence_ = t;
       }
 
       inline
       void pruneByCC(bool b)
       {
-        prune_by_CC_ = b;
+        param_.prune_by_CC_ = b;
       }
 
       inline
       void setDistForClusterFactor(float f)
       {
-        dist_for_cluster_factor_ = f;
+        param_.dist_for_cluster_factor_ = f;
       }
 
       inline
       bool poseExists(Eigen::Matrix4f corr_rej_trans)
       {
-        if(!prune_)
+        if(!param_.prune_)
           return false;
 
         bool found = false;
@@ -148,7 +183,7 @@ namespace v4r
         {
           Eigen::Matrix4f transf_tmp = found_transformations_[t];
           Eigen::Vector3f trans_found = transf_tmp.block<3,1>(0,3);
-          if((trans - trans_found).norm() < gc_size_)
+          if((trans - trans_found).norm() < param_.gc_size_)
           {
             found = true;
             break;
@@ -170,36 +205,28 @@ namespace v4r
       inline
       void setPrune(bool b)
       {
-        prune_ = b;
+        param_.prune_ = b;
       }
 
       inline void
       setUseGraph (bool b)
       {
-        use_graph_ = b;
+        param_.use_graph_ = b;
       }
 
       inline
       void setDotDistance(double t)
       {
-        thres_dot_distance_ = t;
+        param_.thres_dot_distance_ = t;
       }
 
-      /** \brief Sets the minimum cluster size
-        * \param[in] threshold the minimum cluster size
-        */
-      inline void
-      setRansacThreshold (double threshold)
-      {
-        ransac_threshold_ = threshold;
-      }
       /** \brief Sets the minimum cluster size
         * \param[in] threshold the minimum cluster size 
         */
       inline void
       setGCThreshold (int threshold)
       {
-        gc_threshold_ = threshold;
+        param_.gc_threshold_ = threshold;
       }
 
       /** \brief Gets the minimum cluster size.
@@ -209,7 +236,7 @@ namespace v4r
       inline int
       getGCThreshold () const
       {
-        return (gc_threshold_);
+        return param_.gc_threshold_;
       }
 
       /** \brief Sets the consensus set resolution. This should be in metric units.
@@ -219,7 +246,7 @@ namespace v4r
       inline void
       setGCSize (double gc_size)
       {
-        gc_size_ = gc_size;
+        param_.gc_size_ = gc_size;
       }
 
       /** \brief Gets the consensus set resolution.
@@ -229,7 +256,16 @@ namespace v4r
       inline double
       getGCSize () const
       {
-        return (gc_size_);
+        return param_.gc_size_;
+      }
+
+      /** \brief Sets the minimum cluster size
+        * \param[in] threshold the minimum cluster size
+        */
+      inline void
+      setRansacThreshold (double threshold)
+      {
+        param_.ransac_threshold_ = threshold;
       }
 
       /** \brief The main function, recognizes instances of the model into the scene set by the user.
@@ -272,26 +308,9 @@ namespace v4r
       pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
 
       pcl::PointCloud<pcl::Normal>::Ptr input_normals_;
-      /** \brief Minimum cluster size. It shouldn't be less than 3, since at least 3 correspondences are needed to compute the 6DOF pose */
-      int gc_threshold_;
 
-      /** \brief Resolution of the consensus set used to cluster correspondences together*/
-      double gc_size_;
-
-      double ransac_threshold_;
-
-      double thres_dot_distance_;
-
-      bool use_graph_;
       bool visualize_graph_;
 
-      bool prune_;
-      bool prune_by_CC_;
-
-      float dist_for_cluster_factor_;
-      int max_taken_correspondence_;
-      bool cliques_big_to_small_;
-      bool check_normals_orientation_;
 
       /** \brief Transformations found by clusterCorrespondences method. */
       std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > found_transformations_;

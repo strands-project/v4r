@@ -66,30 +66,12 @@ protected:
 
 public:
     struct hv_params{
-            double resolution_;
-            double inlier_threshold_;
-            double radius_clutter_;
-            double regularizer_;
-            double clutter_regularizer_;
-            double occlusion_threshold_;
-            int optimizer_type_;
-            double color_sigma_l_;
-            double color_sigma_ab_;
-            bool use_supervoxels_;
-            bool detect_clutter_;
-            bool ignore_color_;
             double smooth_seg_params_eps_;
             double smooth_seg_params_curv_t_;
             double smooth_seg_params_dist_t_;
             int smooth_seg_params_min_points_;
-            int z_buffer_self_occlusion_resolution_;
-            bool use_replace_moves_;
             bool requires_normals_;
-            double radius_normals_;
             bool initial_status_;
-            double hyp_penalty_;
-            double duplicity_cm_weight_;
-            bool histogram_specification_;
     }hv_params_;
 
     struct cg_params{
@@ -116,6 +98,8 @@ public:
         int normal_computation_method_;
     }sv_params_;
 
+    float resolution_;
+
     std::string models_dir_;
     std::string training_dir_;
     std::string idx_flann_fn_sift_;
@@ -123,6 +107,8 @@ public:
 
     SingleViewRecognizer ()
     {
+        resolution_ = 0.005f;
+
         sv_params_.do_sift_ = true;
         sv_params_.do_shot_ = false;
         sv_params_.do_ourcvfh_ = false;
@@ -135,30 +121,12 @@ public:
         sv_params_.icp_type_ = 1;
         sv_params_.chop_at_z_ = 2.0f;
 
-        hv_params_.resolution_ = 0.005f;
-        hv_params_.inlier_threshold_ = 0.015;
-        hv_params_.radius_clutter_ = 0.03;
-        hv_params_.regularizer_ = 3;
-        hv_params_.clutter_regularizer_ = 5;
-        hv_params_.occlusion_threshold_ = 0.01;
-        hv_params_.optimizer_type_ = 0;
-        hv_params_.color_sigma_l_ = 0.5;
-        hv_params_.color_sigma_ab_ = 0.5;
-        hv_params_.use_supervoxels_ = false;
-        hv_params_.detect_clutter_ = true;
-        hv_params_.ignore_color_ = true;
         hv_params_.smooth_seg_params_eps_ = 0.1f;
         hv_params_.smooth_seg_params_curv_t_ = 0.04f;
         hv_params_.smooth_seg_params_dist_t_ = 0.01f;
         hv_params_.smooth_seg_params_min_points_ = 100;
-        hv_params_.z_buffer_self_occlusion_resolution_ = 250;
-        hv_params_.use_replace_moves_ = true;
         hv_params_.requires_normals_ = false;
-        hv_params_.radius_normals_ = 0.02f;
         hv_params_.initial_status_ = false;
-        hv_params_.hyp_penalty_ = 0.05f;
-        hv_params_.duplicity_cm_weight_ = 0.f;
-        hv_params_.histogram_specification_ = true;
 
         cg_params_.cg_size_threshold_ = 3;
         cg_params_.cg_size_ = 0.015;
@@ -242,12 +210,12 @@ public:
 
         for(size_t i=0; i<models.size(); i++)
         {
-            ConstPointInTPtr model_cloud = models.at(i)->getAssembled (hv_params_.resolution_);
+            ConstPointInTPtr model_cloud = models.at(i)->getAssembled (resolution_);
             pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
             pcl::transformPointCloud (*model_cloud, *model_aligned, transforms[i]);
             aligned_models_[i] = model_aligned;
 
-            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models.at(i)->getNormalsAssembled (hv_params_.resolution_);
+            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models.at(i)->getNormalsAssembled (resolution_);
             pcl::PointCloud<pcl::Normal>::Ptr normal_cloud(new pcl::PointCloud<pcl::Normal>(*normal_cloud_const) );
 
             const Eigen::Matrix3f rot = transforms_[i].block<3, 3> (0, 0);

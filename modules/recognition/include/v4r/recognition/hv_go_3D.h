@@ -30,41 +30,39 @@ namespace v4r
   {
 
   public:
-    class V4R_EXPORTS ParameterGO3D : public v4r::GHV<ModelT, SceneT>::ParameterGHV
+    class V4R_EXPORTS Parameter : public v4r::GHV<ModelT, SceneT>::Parameter
     {
     public:
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::color_sigma_ab_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::color_sigma_l_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::regularizer_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::radius_neighborhood_GO_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::radius_normals_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::duplicy_weight_test_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::duplicity_curvature_max_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::ignore_color_even_if_exists_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::max_iterations_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::clutter_regularizer_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::detect_clutter_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::res_occupancy_grid_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::w_occupied_multiple_cm_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::use_super_voxels_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::use_replace_moves_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::opt_type_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::active_hyp_penalty_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::multiple_assignment_penalize_by_one_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::d_weight_for_bad_normals_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::use_clutter_exp_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::use_histogram_specification_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::use_points_on_plane_side_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::best_color_weight_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::eps_angle_threshold_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::min_points_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::curvature_threshold_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::cluster_tolerance_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::stddev_threshold_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::use_mahalanobis_;
-         using v4r::GHV<ModelT, SceneT>::ParameterGHV::use_normals_from_visible_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::color_sigma_ab_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::color_sigma_l_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::regularizer_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::radius_neighborhood_clutter_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::radius_normals_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::duplicy_weight_test_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::duplicity_curvature_max_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::ignore_color_even_if_exists_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::max_iterations_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::clutter_regularizer_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::detect_clutter_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::res_occupancy_grid_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::w_occupied_multiple_cm_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::use_super_voxels_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::use_replace_moves_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::opt_type_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::active_hyp_penalty_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::multiple_assignment_penalize_by_one_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::d_weight_for_bad_normals_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::use_clutter_exp_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::use_histogram_specification_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::use_points_on_plane_side_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::best_color_weight_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::eps_angle_threshold_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::min_points_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::curvature_threshold_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::cluster_tolerance_;
+         using v4r::GHV<ModelT, SceneT>::Parameter::use_normals_from_visible_;
 
-        ParameterGO3D()
+        Parameter()
         {}
 
     };
@@ -77,7 +75,6 @@ namespace v4r
     using v4r::GHV<ModelT, SceneT>::visible_normal_models_;
     using v4r::GHV<ModelT, SceneT>::visible_indices_;
     using v4r::GHV<ModelT, SceneT>::complete_models_;
-    using v4r::GHV<ModelT, SceneT>::param_;
     using v4r::GHV<ModelT, SceneT>::normals_set_;
     using v4r::GHV<ModelT, SceneT>::requires_normals_;
     using v4r::GHV<ModelT, SceneT>::object_ids_;
@@ -187,11 +184,11 @@ namespace v4r
 
     public:
 
-      ParameterGO3D paramGO3D_;
+      Parameter param_;
 
-      GO3D(const ParameterGO3D &p=ParameterGO3D())
+      GO3D(const Parameter &p=Parameter())
       {
-         paramGO3D_ = p;
+         param_ = p;
       }
 
       /*void setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene_cloud_downsampled_GO3D,

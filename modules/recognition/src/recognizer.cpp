@@ -3,3 +3,6 @@
 
 template class V4R_EXPORTS v4r::ObjectHypothesis<pcl::PointXYZRGB>;
 template class V4R_EXPORTS v4r::ObjectHypothesis<pcl::PointXYZ>;
+
+template class V4R_EXPORTS v4r::Recognizer<pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::Recognizer<pcl::PointXYZ>;

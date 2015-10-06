@@ -1,4 +1,4 @@
-/*
+﻿/*
  * hv_go_1.h
  *
  *  Created on: Feb 27, 2013
@@ -101,7 +101,7 @@ namespace v4r
           B2 = -120.0f;
       }
     public:
-      class V4R_EXPORTS ParameterGHV : public HypothesisVerification<ModelT, SceneT>::Parameter
+      class V4R_EXPORTS Parameter : public HypothesisVerification<ModelT, SceneT>::Parameter
       {
       public:
           using HypothesisVerification<ModelT, SceneT>::Parameter::inliers_threshold_;
@@ -114,7 +114,7 @@ namespace v4r
           float color_sigma_ab_;
           float color_sigma_l_;
           float regularizer_;
-          float radius_neighborhood_GO_;
+          float radius_neighborhood_clutter_;
           float radius_normals_;
           float duplicy_weight_test_;
           float duplicity_curvature_max_;
@@ -141,18 +141,14 @@ namespace v4r
           float curvature_threshold_;
           float cluster_tolerance_;
 
-          //mahalanobis stuff
-          float stddev_threshold_;
-          bool use_mahalanobis_;
-
           bool use_normals_from_visible_;
 
-          ParameterGHV (
-                  float color_sigma_ab = 0.25f,
+          Parameter (
+                  float color_sigma_ab = 0.25f, // 0.5f
                   float color_sigma_l = 0.5f,
-                  float regularizer = 1.f,
-                  float radius_neighborhood_GO = 0.03f,
-                  float radius_normals = 0.01f,
+                  float regularizer = 1.f, // 3
+                  float radius_neighborhood_clutter = 0.03f,
+                  float radius_normals = 0.01f, // 0.02f
                   float duplicy_weight_test = 1.f,
                   float duplicity_curvature_max = 0.03f,
                   bool ignore_color_even_if_exists = true,
@@ -160,30 +156,28 @@ namespace v4r
                   float clutter_regularizer =  5.f,
                   bool detect_clutter = true,
                   float res_occupancy_grid = 0.005f,
-                  float w_occupied_multiple_cm = 2.f,
+                  float w_occupied_multiple_cm = 2.f, //0.f
                   bool use_super_voxels = false,
                   bool use_replace_moves = true,
-                  int opt_type = 2,
-                  float active_hyp_penalty = 0.f,
+                  int opt_type = 2, // 0
+                  float active_hyp_penalty = 0.05f, // 0.f
                   int multiple_assignment_penalize_by_one = 2,
                   float d_weight_for_bad_normals = 0.1f,
                   bool use_clutter_exp = false,
-                  bool use_histogram_specification = false,
+                  bool use_histogram_specification = false, // true
                   bool use_points_on_plane_side = true,
                   float best_color_weight = 0.8f,
                   double eps_angle_threshold = 0.25,
                   int min_points = 20,
                   float curvature_threshold = 0.04f,
                   float cluster_tolerance = 0.015f,
-                  float stddev_threshold = 1.f,
-                  bool use_mahalanobis = false,
                   bool use_normals_from_visible = false
                   )
               :
                 color_sigma_ab_ (color_sigma_ab),
                 color_sigma_l_ (color_sigma_l),
                 regularizer_ (regularizer),
-                radius_neighborhood_GO_ (radius_neighborhood_GO),
+                radius_neighborhood_clutter_ (radius_neighborhood_clutter),
                 radius_normals_ (radius_normals),
                 duplicy_weight_test_ (duplicy_weight_test),
                 duplicity_curvature_max_ (duplicity_curvature_max),
@@ -207,8 +201,6 @@ namespace v4r
                 min_points_ (min_points),
                 curvature_threshold_ (curvature_threshold),
                 cluster_tolerance_ (cluster_tolerance),
-                stddev_threshold_ (stddev_threshold),
-                use_mahalanobis_ (use_mahalanobis),
                 use_normals_from_visible_ (use_normals_from_visible)
           {}
       };
@@ -221,7 +213,6 @@ namespace v4r
       using v4r::HypothesisVerification<ModelT, SceneT>::visible_normal_models_;
       using v4r::HypothesisVerification<ModelT, SceneT>::visible_indices_;
       using v4r::HypothesisVerification<ModelT, SceneT>::complete_models_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::param_;
       using v4r::HypothesisVerification<ModelT, SceneT>::normals_set_;
       using v4r::HypothesisVerification<ModelT, SceneT>::requires_normals_;
       using v4r::HypothesisVerification<ModelT, SceneT>::occlusion_cloud_;
@@ -382,7 +373,7 @@ namespace v4r
       double
       getOccupiedMultipleW () const
       {
-        return paramGHV_.w_occupied_multiple_cm_;
+        return param_.w_occupied_multiple_cm_;
       }
 
       void
@@ -448,7 +439,7 @@ namespace v4r
       float
       getHypPenalty () const
       {
-        return paramGHV_.active_hyp_penalty_;
+        return param_.active_hyp_penalty_;
       }
 
       double
@@ -637,12 +628,12 @@ namespace v4r
       }
 
     public:
-      ParameterGHV paramGHV_;
+      Parameter param_;
 
-      GHV (const ParameterGHV &p=ParameterGHV()) :
+      GHV (const Parameter &p=Parameter()) :
         v4r::HypothesisVerification<ModelT, SceneT> ()
       {
-        paramGHV_ = p;
+        param_ = p;
         initial_temp_ = 1000;
         requires_normals_ = false;
         initial_status_ = false;
@@ -659,14 +650,8 @@ namespace v4r
 
       void setMeanAndCovariance(Eigen::VectorXf & mean, Eigen::MatrixXf & cov)
       {
-          paramGHV_.use_mahalanobis_ = true;
           mean_ = mean;
           inv_covariance_ = cov;
-      }
-
-      void setStdDevThreshold(float t)
-      {
-        paramGHV_.stddev_threshold_ = t;
       }
 
       void setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene,
@@ -679,12 +664,12 @@ namespace v4r
 
       void setUseClutterExp(bool b)
       {
-          paramGHV_.use_clutter_exp_ = b;
+          param_.use_clutter_exp_ = b;
       }
 
       void setWeightForBadNormals(float w)
       {
-          paramGHV_.d_weight_for_bad_normals_ = w;
+          param_.d_weight_for_bad_normals_ = w;
       }
 
       int getNumberOfVisiblePoints()
@@ -715,22 +700,22 @@ namespace v4r
 
       void setUseNormalsFromVisible(bool b)
       {
-          paramGHV_.use_normals_from_visible_ = b;
+          param_.use_normals_from_visible_ = b;
       }
 
       void setDuplicityWeightTest(float f)
       {
-          paramGHV_.duplicy_weight_test_ = f;
+          param_.duplicy_weight_test_ = f;
       }
 
       void setDuplicityMaxCurvature(float f)
       {
-          paramGHV_.duplicity_curvature_max_ = f;
+          param_.duplicity_curvature_max_ = f;
       }
 
       void setBestColorWeight(float bcw)
       {
-          paramGHV_.best_color_weight_ = bcw;
+          param_.best_color_weight_ = bcw;
       }
 
       void setVisualizeAccepted(bool b)
@@ -747,7 +732,7 @@ namespace v4r
 
       void setUsePointsOnPlaneSides(bool b)
       {
-          paramGHV_.use_points_on_plane_side_ = b;
+          param_.use_points_on_plane_side_ = b;
       }
 
       void setSmoothFaces(std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> & aligned_smooth_faces)
@@ -767,12 +752,12 @@ namespace v4r
 
       void setDuplicityCMWeight(float w)
       {
-          paramGHV_.w_occupied_multiple_cm_ = w;
+          param_.w_occupied_multiple_cm_ = w;
       }
 
       void setHistogramSpecification(bool b)
       {
-          paramGHV_.use_histogram_specification_ = b;
+          param_.use_histogram_specification_ = b;
       }
 
       void setNormalsForClutterTerm(pcl::PointCloud<pcl::Normal>::Ptr & normals)
@@ -782,17 +767,17 @@ namespace v4r
 
       void setUseSuperVoxels(bool use)
       {
-        paramGHV_.use_super_voxels_ = use;
+        param_.use_super_voxels_ = use;
       }
       void addPlanarModels(std::vector<v4r::PlaneModel<ModelT> > & models);
 
       void
       setSmoothSegParameters (float t_eps, float curv_t, float dist_t, int min_points = 20)
       {
-        paramGHV_.eps_angle_threshold_ = t_eps;
-        paramGHV_.min_points_ = min_points;
-        paramGHV_.curvature_threshold_ = curv_t;
-        paramGHV_.cluster_tolerance_ = dist_t;
+        param_.eps_angle_threshold_ = t_eps;
+        param_.min_points_ = min_points;
+        param_.curvature_threshold_ = curv_t;
+        param_.cluster_tolerance_ = dist_t;
       }
 
       void
@@ -814,7 +799,7 @@ namespace v4r
       void
       setHypPenalty (float p)
       {
-        paramGHV_.active_hyp_penalty_ = p;
+        param_.active_hyp_penalty_ = p;
       }
 
       void setMinContribution(int min)
@@ -859,13 +844,13 @@ namespace v4r
       void
       setUseReplaceMoves (bool u)
       {
-        paramGHV_.use_replace_moves_ = u;
+        param_.use_replace_moves_ = u;
       }
 
       void
       setOptimizerType (int t)
       {
-        paramGHV_.opt_type_ = t;
+        param_.opt_type_ = t;
       }
 
       void
@@ -874,32 +859,32 @@ namespace v4r
       void
       setIgnoreColor (bool i)
       {
-        paramGHV_.ignore_color_even_if_exists_ = i;
+        param_.ignore_color_even_if_exists_ = i;
       }
 
       void
       setColorSigma (float s)
       {
-        paramGHV_.color_sigma_ab_ = s;
-        paramGHV_.color_sigma_l_ = s;
+        param_.color_sigma_ab_ = s;
+        param_.color_sigma_l_ = s;
       }
 
       void setColorSigma(float s_l, float s_ab)
       {
-          paramGHV_.color_sigma_ab_ = s_ab;
-          paramGHV_.color_sigma_l_ = s_l;
+          param_.color_sigma_ab_ = s_ab;
+          param_.color_sigma_l_ = s_l;
       }
 
       void
       setRadiusNormals (float r)
       {
-        paramGHV_.radius_normals_ = r;
+        param_.radius_normals_ = r;
       }
 
       void
       setMaxIterations (int i)
       {
-        paramGHV_.max_iterations_ = i;
+        param_.max_iterations_ = i;
       }
 
       void
@@ -911,26 +896,26 @@ namespace v4r
       void
       setRegularizer (float r)
       {
-        paramGHV_.regularizer_ = r;
+        param_.regularizer_ = r;
         //w_occupied_multiple_cm_ = regularizer_;
       }
 
       void
       setRadiusClutter (float r)
       {
-        paramGHV_.radius_neighborhood_GO_ = r;
+        param_.radius_neighborhood_clutter_ = r;
       }
 
       void
       setClutterRegularizer (float cr)
       {
-        paramGHV_.clutter_regularizer_ = cr;
+        param_.clutter_regularizer_ = cr;
       }
 
       void
       setDetectClutter (bool d)
       {
-        paramGHV_.detect_clutter_ = d;
+        param_.detect_clutter_ = d;
       }
 
       //Same length as the recognition models

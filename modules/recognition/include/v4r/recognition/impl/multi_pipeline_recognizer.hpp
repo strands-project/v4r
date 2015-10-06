@@ -209,7 +209,7 @@ void v4r::MultiRecognitionPipeline<PointInT>::correspondenceGrouping()
     {
         ObjectHypothesis<PointInT> &oh = it_map->second;
 
-        if(oh.model_scene_corresp_->size() < cg_algorithm_->getGCThreshold())
+        if(oh.model_scene_corresp_->size() < 3)
             continue;
 
         oh.scene_normals_ = scene_normals_;

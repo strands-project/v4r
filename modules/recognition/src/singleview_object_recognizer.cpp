@@ -44,7 +44,7 @@ void SingleViewRecognizer::multiplaneSegmentation()
     v4r::MultiPlaneSegmentation<PointT> mps;
     mps.setInputCloud(pInputCloud_);
     mps.setMinPlaneInliers(1000);
-    mps.setResolution(hv_params_.resolution_);
+    mps.setResolution(resolution_);
     mps.setNormals(pSceneNormals_);
     mps.setMergePlanes(true);
     mps.segment();
@@ -99,59 +99,27 @@ void SingleViewRecognizer::constructHypotheses()
 
 std::vector<bool> SingleViewRecognizer::hypothesesVerification()
 {
-    std::cout << "=================================================================" << std::endl <<
-                 "Verifying hypotheses on CPU with following parameters: " << std::endl <<
-                 "*** Resolution: " << hv_params_.resolution_ << std::endl <<
-                 "*** Inlier Threshold: " << hv_params_.inlier_threshold_ << std::endl <<
-                 "*** Radius clutter: " << hv_params_.radius_clutter_ << std::endl <<
-                 "*** Regularizer: " << hv_params_.regularizer_ << std::endl <<
-                 "*** Clutter regularizer: " << hv_params_.clutter_regularizer_ << std::endl <<
-                 "*** Occlusion threshold: " << hv_params_.occlusion_threshold_ << std::endl <<
-                 "*** Optimizer type: " << hv_params_.optimizer_type_ << std::endl <<
-                 "*** Color sigma L / AB: " << hv_params_.color_sigma_l_ << " / " << hv_params_.color_sigma_ab_ << std::endl <<
-                 "*** Use supervoxels: " << hv_params_.use_supervoxels_ << std::endl <<
-                 "*** Use detect clutter: " << hv_params_.detect_clutter_ << std::endl <<
-                 "*** Use ignore colors: " << hv_params_.ignore_color_ << std::endl <<
-                 "=================================================================" << std::endl << std::endl;
-
-    std::vector<bool> mask_hv (aligned_models_.size());
+   std::vector<bool> mask_hv (aligned_models_.size());
     pcl::PointCloud<PointT>::Ptr occlusion_cloud (new pcl::PointCloud<PointT>(*pInputCloud_));
 
     //initialize go
 #ifdef USE_CUDA
     boost::shared_ptr<v4r::recognition::GHVCudaWrapper<PointT> > go (new v4r::recognition::GHVCudaWrapper<PointT>);
 #else
-    v4r::GHV<PointT, PointT>::ParameterGHV paramGHV;
-    paramGHV.resolution_ = hv_params_.resolution_;
-    paramGHV.occlusion_thres_ = hv_params_.occlusion_threshold_;
-    paramGHV.inliers_threshold_ = hv_params_.inlier_threshold_;
+    v4r::GHV<PointT, PointT>::Parameter paramGHV;
 
     boost::shared_ptr<v4r::GHV<PointT, PointT> > go (new v4r::GHV<PointT, PointT>(paramGHV));
     //go->setRadiusNormals(0.03f);
-    go->setDetectClutter (hv_params_.detect_clutter_);
-    go->setOptimizerType (hv_params_.optimizer_type_);
-    go->setUseReplaceMoves(hv_params_.use_replace_moves_);
-    go->setRadiusNormals (hv_params_.radius_normals_);
     go->setRequiresNormals(hv_params_.requires_normals_);
     go->setInitialStatus(hv_params_.initial_status_);
-    go->setIgnoreColor(hv_params_.ignore_color_);
-    go->setHistogramSpecification(hv_params_.histogram_specification_);
     go->setSmoothSegParameters(hv_params_.smooth_seg_params_eps_,
                                hv_params_.smooth_seg_params_curv_t_,
                                hv_params_.smooth_seg_params_dist_t_,
                                hv_params_.smooth_seg_params_min_points_);//0.1, 0.035, 0.005);
     go->setVisualizeGoCues(0);
-    go->setUseSuperVoxels(hv_params_.use_supervoxels_);
-    go->setZBufferSelfOcclusionResolution (hv_params_.z_buffer_self_occlusion_resolution_);
-    go->setHypPenalty (hv_params_.hyp_penalty_);
-    go->setDuplicityCMWeight(hv_params_.duplicity_cm_weight_);
 #endif
 
     assert(pSceneNormals_->points.size() == pInputCloud_->points.size());
-    go->setRadiusClutter (hv_params_.radius_clutter_);
-    go->setRegularizer (hv_params_.regularizer_ );
-    go->setClutterRegularizer (hv_params_.clutter_regularizer_);
-    go->setColorSigma (hv_params_.color_sigma_l_, hv_params_.color_sigma_ab_);
     go->setOcclusionCloud (occlusion_cloud);
     go->setSceneCloud (pInputCloud_);
     go->setNormalsForClutterTerm(pSceneNormals_);
@@ -183,8 +151,8 @@ std::vector<bool> SingleViewRecognizer::hypothesesVerification()
         if(it == id_to_model_clouds.end())
         {
             //not included yet
-            ConstPointInTPtr model_cloud = models_->at (kk)->getAssembled (hv_params_.resolution_);
-            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_->at (kk)->getNormalsAssembled (hv_params_.resolution_);
+            ConstPointInTPtr model_cloud = models_->at (kk)->getAssembled (resolution_);
+            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_->at (kk)->getNormalsAssembled (resolution_);
             aligned_models[individual_models] = model_cloud;
             aligned_normals[individual_models] = normal_cloud;
             pos = individual_models;
@@ -326,12 +294,12 @@ void SingleViewRecognizer::constructHypothesesFromFeatureMatches(std::map < std:
             models_.push_back( oh.model_ );
             transforms_.push_back( best_trans );
 
-            ConstPointInTPtr model_cloud = oh.model_->getAssembled (hv_params_.resolution_);
+            ConstPointInTPtr model_cloud = oh.model_->getAssembled (resolution_);
             pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
             pcl::transformPointCloud (*model_cloud, *model_aligned, best_trans);
             aligned_models_.push_back(model_aligned);
 
-            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = oh.model_->getNormalsAssembled (hv_params_.resolution_);
+            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = oh.model_->getNormalsAssembled (resolution_);
             pcl::PointCloud<pcl::Normal>::Ptr normal_cloud(new pcl::PointCloud<pcl::Normal>(*normal_cloud_const) );
 
             const Eigen::Matrix3f rot   = transforms_[i].block<3, 3> (0, 0);
@@ -358,7 +326,7 @@ void SingleViewRecognizer::preFilterWithFSV(const pcl::PointCloud<PointT>::Const
 
         for(size_t i=0; i < models_.size(); i++)
         {
-            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_[i]->getNormalsAssembled (hv_params_.resolution_);
+            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud = models_[i]->getNormalsAssembled (resolution_);
             pcl::PointCloud<pcl::Normal>::Ptr normal_aligned (new pcl::PointCloud<pcl::Normal>);
             v4r::transformNormals(normal_cloud, normal_aligned, transforms_[i]);
 
@@ -450,22 +418,9 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
               << "cg_max_time_for_cliques_computation: " << cg_params_.max_time_for_cliques_computation_ << std::endl
               << "cg_dot_distance: " << cg_params_.dot_distance_ << std::endl
               << "cg_use_cg_graph: " << cg_params_.use_cg_graph_ << std::endl
-              << "hv_resolution: " << hv_params_.resolution_ << std::endl
-              << "hv_inlier_threshold: " << hv_params_.inlier_threshold_ << std::endl
-              << "hv_radius_clutter: " << hv_params_.radius_clutter_ << std::endl
-              << "hv_regularizer: " << hv_params_.regularizer_ << std::endl
-              << "hv_clutter_regularizer: " << hv_params_.clutter_regularizer_ << std::endl
-              << "hv_occlusion_threshold: " << hv_params_.occlusion_threshold_ << std::endl
-              << "hv_optimizer_type: " << hv_params_.optimizer_type_ << std::endl
-              << "hv_color_sigma_l: " << hv_params_.color_sigma_l_ << std::endl
-              << "hv_color_sigma_ab: " << hv_params_.color_sigma_ab_ << std::endl
-              << "hv_use_supervoxels: " << hv_params_.use_supervoxels_ << std::endl
-              << "hv_detect_clutter: " << hv_params_.detect_clutter_ << std::endl
-              << "hv_ignore_color: " << hv_params_.ignore_color_ << std::endl
               << "chop_z: " << sv_params_.chop_at_z_ << std::endl
               << "icp_iterations: " << sv_params_.icp_iterations_ << std::endl
               << "icp_type: " << sv_params_.icp_type_ << std::endl
-              << "icp_voxel_size: " << hv_params_.resolution_ << std::endl
               << "do_sift: " << sv_params_.do_sift_ << std::endl
               << "do_shot: " << sv_params_.do_shot_ << std::endl
               << "do_ourcvfh: " << sv_params_.do_ourcvfh_ << std::endl
@@ -502,7 +457,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       mesh_source->setModelStructureDir (training_dir_);
       std::string foo;
       mesh_source->generate (foo);
-      mesh_source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
+      mesh_source->createVoxelGridAndDistanceTransform(resolution_);
 
       boost::shared_ptr < v4r::Source<PointT> > cast_source;
       cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (mesh_source);
@@ -536,7 +491,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
 #endif
 
       boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > new_sift_local;
-      new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (idx_flann_fn_sift_));
+      new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > ());
       new_sift_local->setDataSource (cast_source);
       new_sift_local->setTrainingDir (training_dir_);
       new_sift_local->setDescriptorName (desc_name);
@@ -572,7 +527,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       source->setGenOrganized(true);
       source->setWindowSizeAndFocalLength(640, 480, 575.f);
       source->generate (training_dir_);
-      source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
+      source->createVoxelGridAndDistanceTransform(resolution_);
 
       boost::shared_ptr<v4r::Source<PointT> > cast_source;
       cast_source = boost::static_pointer_cast<v4r::PartialPCDSource<pcl::PointXYZRGBNormal, PointT> > (source);
@@ -671,7 +626,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
         mesh_source->setLoadViews(false);
         std::string foo;
         mesh_source->generate (foo);
-        mesh_source->createVoxelGridAndDistanceTransform(hv_params_.resolution_);
+        mesh_source->createVoxelGridAndDistanceTransform(resolution_);
 
         boost::shared_ptr < v4r::Source<PointT> > cast_source;
         cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (mesh_source);
@@ -703,7 +658,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
         cast_estimator = boost::dynamic_pointer_cast<v4r::LocalEstimator<PointT, pcl::Histogram<352> > > (estimator);
 
         boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
-        local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (idx_flann_fn_shot_));
+        local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > ());
         local->setDataSource (cast_source);
         local->setTrainingDir(training_dir_);
         local->setDescriptorName (desc_name);
@@ -725,7 +680,7 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
     }
 
 //    multi_recog_->setSaveHypotheses(true);
-    multi_recog_->setVoxelSizeICP(hv_params_.resolution_);
+    multi_recog_->setVoxelSizeICP(resolution_);
     multi_recog_->setICPType(sv_params_.icp_type_);
     multi_recog_->setCGAlgorithm(gcg_alg);
 //    multi_recog_->setVoxelSizeICP(0.005f);

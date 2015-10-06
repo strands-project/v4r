@@ -103,7 +103,6 @@ namespace v4r
           typename pcl::PointCloud<PointT>::Ptr scene_keypoints_;
           pcl::PointIndices scene_kp_indices_;
 
-          std::string flann_index_fn_;
           std::string flann_data_fn_;
 
           int normal_computation_method_;
@@ -172,13 +171,12 @@ namespace v4r
 
       public:
 
-        LocalRecognitionPipeline (const std::string index_fn=std::string("index_flann.txt")) : Recognizer<PointT>()
+        LocalRecognitionPipeline () : Recognizer<PointT>()
         {
           use_cache_ = false;
           threshold_accept_model_hypothesis_ = 0.2f;
           kdtree_splits_ = 512;
           search_model_ = "";
-          flann_index_fn_ = index_fn;
           save_hypotheses_ = false;
           knn_ = 1;
           distance_same_keypoint_ = 0.001f * 0.001f;
@@ -257,12 +255,6 @@ namespace v4r
           signatures_ = signatures;
         }
 
-
-        void
-        setIndexFN(const std::string & in)
-        {
-          flann_index_fn_ = in;
-        }
 
         void
         setSearchModel (const std::string & id)

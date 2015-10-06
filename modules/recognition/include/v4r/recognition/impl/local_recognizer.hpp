@@ -96,7 +96,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreate
 
     std::string filename;
     convertToFLANN<flann_model> (flann_models_, flann_data_);
-    filename = flann_index_fn_;
+    filename = training_dir_ + "/" + descr_name_ + "_flann.idx";
 
     if(v4r::io::existsFile(filename)) // Loading flann index from frile
     {

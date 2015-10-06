@@ -39,6 +39,7 @@
 
 #include <pcl/pcl_macros.h>
 #include <v4r/core/macros.h>
+#include <v4r/common/common_data_structures.h>
 #include <v4r/common/occlusion_reasoning.h>
 #include <v4r/common/impl/occlusion_reasoning.hpp>
 #include <pcl/common/common.h>
@@ -70,10 +71,10 @@ namespace v4r
 
           Parameter (
                   float resolution = 0.005f,
-                  float inliers_threshold = 0.005f,
-                  float occlusion_thres = 0.005f,
+                  float inliers_threshold = 0.005f, // 0.015f
+                  float occlusion_thres = 0.005f, // 0.01f
                   int zbuffer_scene_resolution = 100,
-                  int zbuffer_self_occlusion_resolution = 150,
+                  int zbuffer_self_occlusion_resolution = 250,
                   bool self_occlusions_reasoning =true)
               : resolution_ (resolution),
                 inliers_threshold_(inliers_threshold),
@@ -165,6 +166,11 @@ namespace v4r
       return requires_normals_;
     }
 
+
+    float getResolution() const
+    {
+        return param_.resolution_;
+    }
 
     /**
      *  \brief: Returns a vector of booleans representing which hypotheses have been accepted/rejected (true/false)
@@ -282,6 +288,13 @@ namespace v4r
       normals_set_ = false;
     }
 
+    virtual
+    void addPlanarModels(typename std::vector<v4r::PlaneModel<ModelT> > & models)
+    {
+        (void) models;
+        std::cerr << "This method is not implemented for this object!" << std::endl;
+    }
+
     /*
      *  \brief Sets the scene cloud
      *  scene_cloud Point cloud representing the scene
@@ -342,6 +355,8 @@ namespace v4r
     virtual void
     verify ()=0;
   };
+
+
 
 }
 
