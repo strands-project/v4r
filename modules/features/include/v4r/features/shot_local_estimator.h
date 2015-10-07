@@ -34,6 +34,11 @@ namespace v4r
           return SHOT;
         }
 
+        std::string getFeatureDescriptorName() const
+        {
+            return "shot";
+        }
+
         bool estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 

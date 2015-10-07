@@ -66,10 +66,6 @@ protected:
 
 public:
     struct hv_params{
-            double smooth_seg_params_eps_;
-            double smooth_seg_params_curv_t_;
-            double smooth_seg_params_dist_t_;
-            int smooth_seg_params_min_points_;
             bool requires_normals_;
             bool initial_status_;
     }hv_params_;
@@ -121,12 +117,7 @@ public:
         sv_params_.icp_type_ = 1;
         sv_params_.chop_at_z_ = 2.0f;
 
-        hv_params_.smooth_seg_params_eps_ = 0.1f;
-        hv_params_.smooth_seg_params_curv_t_ = 0.04f;
-        hv_params_.smooth_seg_params_dist_t_ = 0.01f;
-        hv_params_.smooth_seg_params_min_points_ = 100;
         hv_params_.requires_normals_ = false;
-        hv_params_.initial_status_ = false;
 
         cg_params_.cg_size_threshold_ = 3;
         cg_params_.cg_size_ = 0.015;

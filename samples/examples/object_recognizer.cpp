@@ -33,7 +33,6 @@ private:
     std::string test_dir_;
     bool visualize_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
-    cv::Ptr<SiftGPU> sift_;
 
 public:
     class Parameter
@@ -74,7 +73,7 @@ public:
 
     Parameter param_;
 
-    void visualize_result(const pcl::PointCloud<PointT>::ConstPtr &cloud, const std::vector<ModelTPtr> &models, const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
+    void visualize_result(const pcl::PointCloud<PointT> &cloud, const std::vector<ModelTPtr> &models, const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
     {        
 //        r_.visualize();
 
@@ -82,7 +81,14 @@ public:
             vis_.reset ( new pcl::visualization::PCLVisualizer("Recognition Results") );
         vis_->removeAllPointClouds();
         vis_->removeAllShapes();
-        vis_->addPointCloud(cloud, "cloud");
+
+        pcl::PointCloud<PointT>::Ptr vis_cloud (new pcl::PointCloud<PointT>());
+        pcl::copyPointCloud(cloud, *vis_cloud);
+        vis_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+        Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
+        vis_cloud->sensor_origin_ = zero_origin;
+
+        vis_->addPointCloud(vis_cloud, "cloud");
 
         for(size_t m_id=0; m_id<models.size(); m_id++)
         {
@@ -93,37 +99,57 @@ public:
             pcl::PointCloud<PointT>::ConstPtr model_cloud = models[m_id]->getAssembled( 0.003f );
             pcl::transformPointCloud( *model_cloud, *model_aligned, transforms[m_id]);
 
-            //PointT centroid;
-            //pcl::computeCentroid(*model_aligned, centroid);
-            //centroid.x += cloud->sensor_origin_[0];
-            //centroid.y += cloud->sensor_origin_[1];
-            //centroid.z += cloud->sensor_origin_[2];
-            //const float r=50+rand()%205;
-            //const float g=50+rand()%205;
-            //const float b=50+rand()%205;
-            //vis_->addText3D(model_text.str(), centroid, 0.01, r/255, g/255, b/255);
+            PointT centroid;
+            pcl::computeCentroid(*model_aligned, centroid);
+            centroid.x += vis_cloud->sensor_origin_[0];
+            centroid.y += vis_cloud->sensor_origin_[1];
+            centroid.z += vis_cloud->sensor_origin_[2];
+            const float r=50+rand()%205;
+            const float g=50+rand()%205;
+            const float b=50+rand()%205;
+            vis_->addText3D(model_text.str(), centroid, 0.01, r/255, g/255, b/255);
 
-            model_aligned->sensor_orientation_ = cloud->sensor_orientation_;
-            model_aligned->sensor_origin_ = cloud->sensor_origin_;
+            model_aligned->sensor_orientation_ = vis_cloud->sensor_orientation_;
+            model_aligned->sensor_origin_ = vis_cloud->sensor_origin_;
             vis_->addPointCloud(model_aligned, model_text.str());
         }
-        vis_->spin();
+        vis_->spinOnce();
     }
 
     bool initialize(int argc, char ** argv)
     {
-        int icp_iterations = 10;
         float resolution = 0.005f;
         std::string models_dir, training_dir;
 
         v4r::GHV<PointT, PointT>::Parameter paramGHV;
         v4r::GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter paramGgcg;
+        v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT >::Parameter paramLocalRecSift;
+        v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> >::Parameter paramLocalRecShot;
 
         paramGgcg.gc_size_ = 0.015f;
         paramGgcg.thres_dot_distance_ = 0.2f;
         paramGgcg.dist_for_cluster_factor_ = 0;
         paramGgcg.max_taken_correspondence_ = 2;
         paramGgcg.max_time_allowed_cliques_comptutation_ = 100;
+
+        paramGHV.eps_angle_threshold_ = 0.1f;
+        paramGHV.min_points_ = 100;
+        paramGHV.cluster_tolerance_ = 0.01f;
+        paramGHV.use_histogram_specification_ = true;
+        paramGHV.w_occupied_multiple_cm_ = 0.f;
+        paramGHV.opt_type_ = 0;
+//        paramGHV.active_hyp_penalty_ = 0.f;
+        paramGHV.regularizer_ = 3;
+        paramGHV.color_sigma_ab_ = 0.5f;
+        paramGHV.radius_normals_ = 0.02f;
+        paramGHV.occlusion_thres_ = 0.01f;
+        paramGHV.inliers_threshold_ = 0.015f;
+
+        paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;
+        paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = 10;
+        paramLocalRecSift.save_hypotheses_ = paramLocalRecShot.save_hypotheses_ = true;
+        paramLocalRecShot.kdtree_splits_ = 128;
+        paramLocalRecShot.threshold_accept_model_hypothesis_ = 1;
 
         pcl::console::parse_argument (argc, argv,  "-visualize", visualize_);
         pcl::console::parse_argument (argc, argv,  "-test_dir", test_dir_);
@@ -132,12 +158,21 @@ public:
         pcl::console::parse_argument (argc, argv,  "-training_dir", training_dir);
 
         pcl::console::parse_argument (argc, argv,  "-chop_z", param_.chop_z_ );
-        pcl::console::parse_argument (argc, argv,  "-icp_iterations", icp_iterations);
         pcl::console::parse_argument (argc, argv,  "-do_sift", param_.do_sift_);
         pcl::console::parse_argument (argc, argv,  "-do_shot", param_.do_shot_);
         pcl::console::parse_argument (argc, argv,  "-do_ourcvfh", param_.do_ourcvfh_);
         pcl::console::parse_argument (argc, argv,  "-knn_sift", param_.knn_sift_);
         pcl::console::parse_argument (argc, argv,  "-knn_shot", param_.knn_shot_);
+        pcl::console::parse_argument (argc, argv,  "-normal_method", param_.normal_computation_method_);
+
+        paramLocalRecShot.normal_computation_method_ = paramLocalRecSift.normal_computation_method_;
+
+        int icp_iterations;
+        if(pcl::console::parse_argument (argc, argv,  "-icp_iterations", icp_iterations))
+        {
+            paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = icp_iterations;
+            rr_.setICPIterations( icp_iterations );
+        }
 
         pcl::console::parse_argument (argc, argv,  "-cg_size_thresh", paramGgcg.gc_threshold_);
         pcl::console::parse_argument (argc, argv,  "-cg_size", paramGgcg.gc_size_);
@@ -156,7 +191,7 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_histogram_specification", paramGHV.use_histogram_specification_);
         pcl::console::parse_argument (argc, argv,  "-hv_hyp_penalty", paramGHV.active_hyp_penalty_);
         pcl::console::parse_argument (argc, argv,  "-hv_ignore_color", paramGHV.ignore_color_even_if_exists_);
-//        pcl::console::parse_argument (argc, argv,  "-hv_initial_status", r_.hv_params_.initial_status_);
+        pcl::console::parse_argument (argc, argv,  "-hv_initial_status", paramGHV.initial_status_);
         pcl::console::parse_argument (argc, argv,  "-hv_inlier_threshold", paramGHV.inliers_threshold_);
         pcl::console::parse_argument (argc, argv,  "-hv_occlusion_threshold", paramGHV.occlusion_thres_);
         pcl::console::parse_argument (argc, argv,  "-hv_optimizer_type", paramGHV.opt_type_);
@@ -167,9 +202,6 @@ public:
 
         boost::shared_ptr < v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > gcg_alg (
                     new v4r::GraphGeometricConsistencyGrouping<PointT, PointT> (paramGgcg));
-
-        boost::shared_ptr < v4r::CorrespondenceGrouping<PointT, PointT> > cast_cg_alg_;
-        cast_cg_alg_ = boost::static_pointer_cast<v4r::CorrespondenceGrouping<PointT, PointT> > (gcg_alg);
 
         boost::shared_ptr <v4r::Source<PointT> > cast_source;
         if (param_.do_sift_ || param_.do_shot_ ) // for local recognizers we need this source type / training data
@@ -187,22 +219,8 @@ public:
         if (param_.do_sift_)
         {
 #ifdef USE_SIFT_GPU
-
-      if(!sift_) { //--create a new SIFT-GPU context
-          static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "1", "-pack"};
-          char * argvv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};
-
-          int argcc = sizeof(argvv) / sizeof(char*);
-          sift_ = new SiftGPU ();
-          sift_->ParseParam (argcc, argvv);
-
-          //create an OpenGL context for computation
-          if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
-            throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
-      }
-
       boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT > > estimator;
-      estimator.reset (new v4r::SIFTLocalEstimation<PointT, FeatureT >(sift_));
+      estimator.reset (new v4r::SIFTLocalEstimation<PointT, FeatureT >());
 
       boost::shared_ptr < v4r::LocalEstimator<PointT, FeatureT > > cast_estimator;
       cast_estimator = boost::dynamic_pointer_cast<v4r::SIFTLocalEstimation<PointT, FeatureT > > (estimator);
@@ -215,16 +233,12 @@ public:
 #endif
 
             boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > sift_r;
-            sift_r.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > ());
+            sift_r.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (paramLocalRecSift));
             sift_r->setDataSource (cast_source);
             sift_r->setTrainingDir (training_dir);
-            sift_r->setDescriptorName ("sift");
-            sift_r->setICPIterations (icp_iterations);
             sift_r->setFeatureEstimator (cast_estimator);
-            sift_r->setUseCache (true);
-            sift_r->setCGAlgorithm (cast_cg_alg_);
+//            sift_r->setCGAlgorithm (cast_cg_alg_);
             sift_r->setKnn (param_.knn_sift_);
-            sift_r->setSaveHypotheses(true);
             sift_r->initialize (false);
 
             boost::shared_ptr < v4r::Recognizer<PointT> > cast_recog;
@@ -237,8 +251,8 @@ public:
             boost::shared_ptr<v4r::UniformSamplingExtractor<PointT> > uniform_kp_extractor ( new v4r::UniformSamplingExtractor<PointT>);
             uniform_kp_extractor->setSamplingDensity (0.01f);
             uniform_kp_extractor->setFilterPlanar (true);
-            uniform_kp_extractor->setMaxDistance( param_.chop_z_ );
             uniform_kp_extractor->setThresholdPlanar(0.1);
+            uniform_kp_extractor->setMaxDistance( 50.0 ); // for training we want to consider all points (except nan values)
 
             boost::shared_ptr<v4r::KeypointExtractor<PointT> > keypoint_extractor = boost::static_pointer_cast<v4r::KeypointExtractor<PointT> > (uniform_kp_extractor);
 
@@ -260,20 +274,14 @@ public:
             cast_estimator = boost::dynamic_pointer_cast<v4r::LocalEstimator<PointT, pcl::Histogram<352> > > (estimator);
 
             boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
-            local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > ());
+            local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (paramLocalRecShot));
             local->setDataSource (cast_source);
             local->setTrainingDir(training_dir);
-            local->setDescriptorName ("shot");
             local->setFeatureEstimator (cast_estimator);
-            local->setCGAlgorithm (cast_cg_alg_);
-            local->setKnn(param_.knn_shot_);
-            local->setUseCache (true);
-            local->setThresholdAcceptHyp (1);
-            local->setICPIterations ( icp_iterations );
-            local->setKdtreeSplits (128);
-            local->setSaveHypotheses(true);
+//            local->setCGAlgorithm (cast_cg_alg_);
             local->initialize (false);
-            local->setMaxDescriptorDistance(std::numeric_limits<float>::infinity());
+
+            uniform_kp_extractor->setMaxDistance( param_.chop_z_ ); // for training we do not want this restriction
 
             boost::shared_ptr<v4r::Recognizer<PointT> > cast_recog;
             cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > (local);
@@ -340,7 +348,7 @@ public:
 
                 if (visualize_)
                 {
-                    visualize_result(cloud, verified_models, transforms_verified);
+                    visualize_result(*cloud, verified_models, transforms_verified);
                     rr_.visualize();
                 }
 

@@ -49,54 +49,72 @@ namespace v4r
 //        ObjectHypothesis & operator+=(const ObjectHypothesis &rhs);
     };
 
-    template<typename PointInT>
+    template<typename PointT>
     class V4R_EXPORTS Recognizer
     {
-      typedef Model<PointInT> ModelT;
+      typedef Model<PointT> ModelT;
       typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-      typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
-      typedef typename pcl::PointCloud<PointInT>::ConstPtr ConstPointInTPtr;
+      typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
+      typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
+
+      public:
+        class V4R_EXPORTS Parameter
+        {
+        public:
+            int icp_iterations_;
+            int icp_type_;
+            float voxel_size_icp_;
+            float max_corr_distance_;
+
+            Parameter(
+                    int icp_iterations = 30,
+                    int icp_type = 1,
+                    float voxel_size_icp = 0.0025f,
+                    float max_corr_distance = 0.02f)
+                : icp_iterations_ (icp_iterations),
+                  icp_type_ (icp_type),
+                  voxel_size_icp_ (voxel_size_icp),
+                  max_corr_distance_ (max_corr_distance)
+            {}
+        }param_;
 
       protected:
         /** \brief Point cloud to be classified */
-        PointInTPtr scene_;
+        PointTPtr scene_;
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
         mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
         mutable int vp1_, vp2_, vp3_;
 
         std::vector<ModelTPtr> models_, models_verified_;
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_, transforms_verified_;
-
-        int ICP_iterations_;
-        int icp_type_;
-        float VOXEL_SIZE_ICP_;
-        float max_corr_distance_;
+        std::vector<typename pcl::PointCloud<PointT>::Ptr > verified_planes_;
         bool requires_segmentation_;
         std::vector<int> indices_;
         bool recompute_hv_normals_;
         pcl::PointIndicesPtr icp_scene_indices_;
 
+        bool normals_set_;
+
         /** \brief Directory containing views of the object */
         std::string training_dir_;
 
         /** \brief Hypotheses verification algorithm */
-        typename boost::shared_ptr<v4r::HypothesisVerification<PointInT, PointInT> > hv_algorithm_;
+        typename boost::shared_ptr<v4r::HypothesisVerification<PointT, PointT> > hv_algorithm_;
 
         void poseRefinement();
         void hypothesisVerification ();
+        void visualizePlanes() const;
 
 
       public:
 
-        Recognizer()
+        Recognizer(const Parameter &p = Parameter())
         {
-          ICP_iterations_ = 30;
-          VOXEL_SIZE_ICP_ = 0.0025f;
-          icp_type_ = 1;
-          max_corr_distance_ = 0.02f;
+          param_ = p;
           requires_segmentation_ = false;
           recompute_hv_normals_ = true;
+          normals_set_ = false;
         }
 
         virtual size_t getFeatureType() const
@@ -110,11 +128,6 @@ namespace v4r
             return false;
         }
 
-        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
-        {
-            scene_normals_ = normals;
-        }
-
         virtual void
         setSaveHypotheses(bool b)
         {
@@ -124,18 +137,18 @@ namespace v4r
 
         virtual
         void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses) const
+        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > &oh) const
         {
-            (void)hypotheses;
-            PCL_WARN("Get saved hypotheses is not implemented for this class.");
+            (void)oh;
+            PCL_WARN("getSavedHypotheses is not implemented for this class.");
         }
 
         virtual
         void
-        getKeypointCloud(PointInTPtr & keypoint_cloud) const
+        getKeypointCloud(PointTPtr & cloud) const
         {
-            (void)keypoint_cloud;
-            PCL_WARN("Get keypoint cloud is not implemented for this class.");
+            (void)cloud;
+            PCL_WARN("getKeypointCloud is not implemented for this class.");
         }
 
         virtual
@@ -148,26 +161,26 @@ namespace v4r
 
         virtual void recognize () = 0;
 
-        virtual typename boost::shared_ptr<Source<PointInT> >
+        virtual typename boost::shared_ptr<Source<PointT> >
         getDataSource () const = 0;
 
-        virtual void reinitialize(const std::vector<std::string> & load_ids = std::vector<std::string>())
+        virtual void reinitialize(const std::vector<std::string> &load_ids = std::vector<std::string>())
         {
             (void)load_ids;
             PCL_WARN("Reinitialize is not implemented for this class.");
         }
 
         /*virtual void
-        setHVAlgorithm (typename boost::shared_ptr<pcl::HypothesisVerification<PointInT, PointInT> > & alg) = 0;*/
+        setHVAlgorithm (typename boost::shared_ptr<pcl::HypothesisVerification<PointT, PointT> > & alg) = 0;*/
 
         void
-        setHVAlgorithm (const typename boost::shared_ptr<v4r::HypothesisVerification<PointInT, PointInT> > & alg)
+        setHVAlgorithm (const typename boost::shared_ptr<v4r::HypothesisVerification<PointT, PointT> > & alg)
         {
           hv_algorithm_ = alg;
         }
 
         void
-        setInputCloud (const PointInTPtr & cloud)
+        setInputCloud (const PointTPtr & cloud)
         {
           scene_ = cloud;
         }
@@ -178,11 +191,13 @@ namespace v4r
           return models_;
         }
 
+
         std::vector<ModelTPtr>
         getVerifiedModels () const
         {
           return models_verified_;
         }
+
 
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
         getTransforms () const
@@ -190,24 +205,30 @@ namespace v4r
           return transforms_;
         }
 
+
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
         getVerifiedTransforms () const
         {
           return transforms_verified_;
         }
 
+
         void
         setICPIterations (int it)
         {
-          ICP_iterations_ = it;
+          param_.icp_iterations_ = it;
         }
 
-        void setICPType(int t) {
-          icp_type_ = t;
+
+        void setICPType(int t)
+        {
+          param_.icp_type_ = t;
         }
 
-        void setVoxelSizeICP(float s) {
-          VOXEL_SIZE_ICP_ = s;
+
+        void setVoxelSizeICP(float s)
+        {
+          param_.voxel_size_icp_ = s;
         }
 
         /**
@@ -219,13 +240,20 @@ namespace v4r
           training_dir_ = dir;
         }
 
+        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
+        {
+            scene_normals_ = normals;
+            normals_set_ = true;
+        }
+
         virtual bool requiresSegmentation() const
         {
           return requires_segmentation_;
         }
 
         virtual void
-        setIndices (const std::vector<int> & indices) {
+        setIndices (const std::vector<int> & indices)
+        {
           indices_ = indices;
         }
 

@@ -43,6 +43,12 @@ namespace v4r
             return SIFT;
         }
 
+
+        std::string getFeatureDescriptorName() const
+        {
+            return "sift_opencv";
+        }
+
         OpenCVSIFTLocalEstimation ()
         {
           const double threshold = 0.03;

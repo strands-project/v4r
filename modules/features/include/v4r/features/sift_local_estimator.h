@@ -40,6 +40,11 @@ public:
         return SIFT;
     }
 
+    std::string getFeatureDescriptorName() const
+    {
+        return "sift";
+    }
+
     bool
     estimate (const PointInTPtr & in, PointInTPtr & keypoints, FeatureTPtr & signatures, std::vector<float> & scales)
     {

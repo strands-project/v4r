@@ -15,66 +15,78 @@
 
 namespace v4r
 {
-    template<typename PointInT>
-    class V4R_EXPORTS MultiRecognitionPipeline : public Recognizer<PointInT>
+    template<typename PointT>
+    class V4R_EXPORTS MultiRecognitionPipeline : public Recognizer<PointT>
     {
+    public:
+        class Parameter : public Recognizer<PointT>::Parameter
+        {
+        public:
+            using Recognizer<PointT>::Parameter::icp_iterations_;
+            using Recognizer<PointT>::Parameter::icp_type_;
+            using Recognizer<PointT>::Parameter::voxel_size_icp_;
+            using Recognizer<PointT>::Parameter::max_corr_distance_;
+
+            bool save_hypotheses_;
+
+            Parameter(
+                    bool save_hypotheses = false
+                    )
+                :
+                  save_hypotheses_ ( save_hypotheses )
+            {}
+        }param_;
+
       protected:
-        std::vector<typename boost::shared_ptr<v4r::Recognizer<PointInT> > > recognizers_;
+        std::vector<typename boost::shared_ptr<v4r::Recognizer<PointT> > > recognizers_;
 
       private:
-        using Recognizer<PointInT>::scene_;
-        using Recognizer<PointInT>::models_;
-        using Recognizer<PointInT>::transforms_;
-        using Recognizer<PointInT>::ICP_iterations_;
-        using Recognizer<PointInT>::icp_type_;
-        using Recognizer<PointInT>::VOXEL_SIZE_ICP_;
-        using Recognizer<PointInT>::indices_;
-        using Recognizer<PointInT>::hv_algorithm_;
-        using Recognizer<PointInT>::setSceneNormals;
+        using Recognizer<PointT>::scene_;
+        using Recognizer<PointT>::scene_normals_;
+        using Recognizer<PointT>::models_;
+        using Recognizer<PointT>::normals_set_;
+        using Recognizer<PointT>::transforms_;
+        using Recognizer<PointT>::indices_;
+        using Recognizer<PointT>::hv_algorithm_;
 
-        using Recognizer<PointInT>::poseRefinement;
-        using Recognizer<PointInT>::hypothesisVerification;
-        using Recognizer<PointInT>::icp_scene_indices_;
+        using Recognizer<PointT>::poseRefinement;
+        using Recognizer<PointT>::hypothesisVerification;
+        using Recognizer<PointT>::icp_scene_indices_;
 
-        typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
-        typedef typename pcl::PointCloud<PointInT>::ConstPtr ConstPointInTPtr;
+        typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
+        typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
 
-        typedef Model<PointInT> ModelT;
+        typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
         std::vector<pcl::PointIndices> segmentation_indices_;
 
-        typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointInT, PointInT> > cg_algorithm_;
-        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
-        typename pcl::PointCloud<PointInT>::Ptr scene_keypoints_;
+        typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;
+        typename pcl::PointCloud<PointT>::Ptr scene_keypoints_;
         pcl::PointIndices scene_kp_indices_;
 
-        bool normals_set_;
+        std::map<std::string, ObjectHypothesis<PointT> > saved_object_hypotheses_;
+        std::map<std::string, ObjectHypothesis<PointT> >  object_hypotheses_mp_;
 
-        std::map<std::string, ObjectHypothesis<PointInT> > saved_object_hypotheses_;
-        std::map<std::string, ObjectHypothesis<PointInT> >  object_hypotheses_mp_;
-
-        bool set_save_hypotheses_;
 
       public:
-        MultiRecognitionPipeline () : Recognizer<PointInT>()
+        MultiRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>()
         {
-            normals_set_ = false;
-            set_save_hypotheses_ = false;
+            param_ = p;
         }
 
         void setSaveHypotheses(bool set_save_hypotheses)
         {
-            set_save_hypotheses_ = set_save_hypotheses;
+            param_.save_hypotheses_ = set_save_hypotheses;
         }
 
         void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses) const
+        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > & hypotheses) const
         {
           hypotheses = object_hypotheses_mp_;
         }
 
         void
-        getKeypointCloud(PointInTPtr & keypoint_cloud) const
+        getKeypointCloud(PointTPtr & keypoint_cloud) const
         {
           keypoint_cloud = scene_keypoints_;
         }
@@ -98,7 +110,7 @@ namespace v4r
 
         void recognize();
 
-        void addRecognizer(const typename boost::shared_ptr<v4r::Recognizer<PointInT> > & rec)
+        void addRecognizer(const typename boost::shared_ptr<v4r::Recognizer<PointT> > & rec)
         {
           recognizers_.push_back(rec);
         }
@@ -112,22 +124,22 @@ namespace v4r
           {
               if(recognizers_[i]->getFeatureType() == feature_type)
               {
-                  typename boost::shared_ptr<v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > cast_local_recognizer;
-                  cast_local_recognizer = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT> > (recognizers_[i]);
+                  typename boost::shared_ptr<v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT> > cast_local_recognizer;
+                  cast_local_recognizer = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT> > (recognizers_[i]);
                   cast_local_recognizer->setFeatAndKeypoints(signatures, keypoint_indices);
               }
           }
         }
 
         void
-        setCGAlgorithm (const typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointInT, PointInT> > & alg)
+        setCGAlgorithm (const typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > & alg)
         {
           cg_algorithm_ = alg;
         }
 
         bool isSegmentationRequired() const;
 
-        typename boost::shared_ptr<Source<PointInT> >
+        typename boost::shared_ptr<Source<PointT> >
         getDataSource () const;
 
         void
@@ -136,11 +148,6 @@ namespace v4r
           segmentation_indices_ = ind;
         }
 
-        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
-        {
-            scene_normals_ = normals;
-            normals_set_ = true;
-        }
     };
 }
 #endif /* MULTI_PIPELINE_RECOGNIZER_H_ */

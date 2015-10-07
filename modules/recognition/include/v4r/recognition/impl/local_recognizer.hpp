@@ -43,7 +43,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreate
 
             size_t kp_id_offset = 0;
 
-            if (use_cache_) //load model data (keypoints, pose and normals for each training view) and save them to cache
+            if (param_.use_cache_) //load model data (keypoints, pose and normals for each training view) and save them to cache
             {
                 std::stringstream pose_fn;
                 pose_fn << in_train_path << "/pose_" << setfill('0') << setw(view_id_length_) << descr_model.view_id << ".txt";
@@ -135,7 +135,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::nearestKSearch (boost
                                                                              flann::Matrix<int> &indices,
                                                                              flann::Matrix<float> &distances)
 {
-    index->knnSearch (p, indices, distances, k, flann::SearchParams (kdtree_splits_));
+    index->knnSearch (p, indices, distances, k, flann::SearchParams (param_.kdtree_splits_));
 }
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
@@ -160,6 +160,14 @@ template<template<class > class Distance, typename PointT, typename FeatureT>
 void
 v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_retrain)
 {
+    if(!estimator_)
+    {
+        std::cerr << "Keypoint and feature estimator is not set!" << std::endl;
+        return;
+    }
+
+    descr_name_ = estimator_->getFeatureDescriptorName();
+
     std::vector<ModelTPtr> models = source_->getModels();
 
     std::cout << "Models size:" << models.size () << std::endl;
@@ -232,7 +240,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool forc
 
                     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
                     pcl::PointCloud<pcl::Normal>::Ptr normals_keypoints(new pcl::PointCloud<pcl::Normal>);
-                    v4r::computeNormals<PointT>(m->views_[v], normals, normal_computation_method_);
+                    v4r::computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
                     pcl::copyPointCloud(*normals, obj_kp_indices, *normals_keypoints);
                     std::stringstream normals_fn; normals_fn << dir << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
                     pcl::io::savePCDFileBinary (normals_fn.str (), *normals_keypoints);
@@ -252,8 +260,8 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool forc
 
     loadFeaturesAndCreateFLANN ();
 
-    if(ICP_iterations_ > 0 && icp_type_ == 1)
-        source_->createVoxelGridAndDistanceTransform(VOXEL_SIZE_ICP_);
+    if(param_.icp_iterations_ > 0 && param_.icp_type_ == 1)
+        source_->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
 }
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
@@ -305,32 +313,32 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
     if (scene_keypoints_->points.size() != signatures_->points.size())
         throw std::runtime_error("Size of keypoint cloud is not equal to number of signatures!");
 
-    std::cout << "Number of scene keypoints:" << scene_keypoints_->points.size () <<  std::endl;
+    std::cout << "Number of scene keypoints: " << scene_keypoints_->points.size () <<  std::endl;
 
     obj_hypotheses_.clear();
 
     int size_feat = sizeof(signatures_->points[0].histogram) / sizeof(float);
 
-    flann::Matrix<float> distances (new float[knn_], 1, knn_);
-    flann::Matrix<int> indices (new int[knn_], 1, knn_);
+    flann::Matrix<float> distances (new float[param_.knn_], 1, param_.knn_);
+    flann::Matrix<int> indices (new int[param_.knn_], 1, param_.knn_);
     flann::Matrix<float> p (new float[size_feat], 1, size_feat);
 
     for (size_t idx = 0; idx < signatures_->points.size (); idx++)
     {
         memcpy (&p.ptr ()[0], &signatures_->points[idx].histogram[0], size_feat * sizeof(float));
-        nearestKSearch (flann_index_, p, knn_, indices, distances);
+        nearestKSearch (flann_index_, p, param_.knn_, indices, distances);
 
         int dist = distances[0][0];
-        if(dist > max_descriptor_distance_)
+        if(dist > param_.max_descriptor_distance_)
             continue;
 
-        std::vector<int> flann_models_indices(knn_);
-        std::vector<float> model_distances(knn_);
+        std::vector<int> flann_models_indices(param_.knn_);
+        std::vector<float> model_distances(param_.knn_);
 
         std::vector<PointT> corresponding_model_kps;
         std::vector<std::string> model_id_for_scene_keypoint;
 
-        for (size_t i = 0; i < knn_; i++)
+        for (size_t i = 0; i < param_.knn_; i++)
         {
             flann_models_indices[i] = indices[0][i];
             model_distances[i] = distances[0][i];
@@ -342,7 +350,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
             {
                 if(model_id_for_scene_keypoint[kk].compare( f.model->id_ ) == 0)
                 {
-                    if( (corresponding_model_kps[kk].getVector3fMap() - m_kp.getVector3fMap()).squaredNorm() < distance_same_keypoint_)
+                    if( (corresponding_model_kps[kk].getVector3fMap() - m_kp.getVector3fMap()).squaredNorm() < param_.distance_same_keypoint_)
                     {
                         found = true;
                         break;
@@ -378,8 +386,8 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
                 oh.model_scene_corresp_->resize (1);
                 oh.indices_to_flann_models_.resize(1);
 
-                oh.model_scene_corresp_->reserve (signatures_->points.size () * knn_);
-                oh.indices_to_flann_models_.reserve(signatures_->points.size () * knn_);
+                oh.model_scene_corresp_->reserve (signatures_->points.size () * param_.knn_);
+                oh.indices_to_flann_models_.reserve(signatures_->points.size () * param_.knn_);
 
                 oh.model_scene_corresp_->at (0) = pcl::Correspondence ((int)f.keypoint_id, scene_kp_indices_.indices[idx], m_dist);
                 oh.indices_to_flann_models_[0] = flann_models_indices[i];
@@ -403,25 +411,25 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
         oh.model_scene_corresp_->resize(num_corr);
     }
 
-    if( correspondence_distance_constant_weight_ != 1.f )
+    if( param_.correspondence_distance_constant_weight_ != 1.f )
     {
-        PCL_WARN("correspondence_distance_constant_weight_ activated! %f", correspondence_distance_constant_weight_);
+        PCL_WARN("correspondence_distance_constant_weight_ activated! %f", param_.correspondence_distance_constant_weight_);
         //go through the object hypotheses and multiply the correspondences distances by the weight
         //this is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
 
         for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
         {
             for(size_t k=0; k < (*it_map).second.model_scene_corresp_->size(); k++)
-                it_map->second.model_scene_corresp_->at(k).distance *= correspondence_distance_constant_weight_;
+                it_map->second.model_scene_corresp_->at(k).distance *= param_.correspondence_distance_constant_weight_;
         }
     }
 
-    if(!save_hypotheses_)    // correspondence grouping is not done outside
+    if(cg_algorithm_ && !param_.save_hypotheses_)    // correspondence grouping is not done outside
     {
         throw std::runtime_error("This has not been implemented properly!");
         pcl::PointCloud<pcl::Normal>::Ptr all_scene_normals(new pcl::PointCloud<pcl::Normal>);
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::computeNormals<PointT>(scene_, scene_normals, normal_computation_method_);
+        v4r::computeNormals<PointT>(scene_, scene_normals, param_.normal_computation_method_);
         v4r::getIndicesFromCloud(scene_, *scene_keypoints_, scene_kp_indices_.indices);
         pcl::copyPointCloud(*all_scene_normals, scene_kp_indices_, *scene_normals);
 
@@ -429,29 +437,13 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
 
         for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
         {
-//            size_t num_corr = oh.model_scene_corresp->size();
-//            pcl::PointCloud<PointT>::Ptr model_keypoints (new pcl::PointCloud<PointT>());
-//            pcl::PointCloud<PointT>::Ptr model_kp_normals (new pcl::PointCloud<PointT>());
-//            pcl::CorrespondencesPtr corr;
-//            model_keypoints->points.resize(num_corr);
-//            model_kp_normals->points.resize(num_corr);
-//            corr->resize(num_corr);
-
-//            for(size_t c_id=0; c_id<num_corr; c_id++)
-//            {
-//                const pcl::Correspondence &c = oh.model_scene_corresp[c_id];
-//                model_keypoints->points[c_id] = oh.model_->keypoints_[ c.index_query ];
-//                model_kp_normals->points[c_id] = oh.model_->kp_normals_[ c.index_query ];
-//            }
-
-
             ObjectHypothesis<PointT> &oh = it_map->second;
 
             std::vector < pcl::Correspondences > corresp_clusters;
             cg_algorithm_->setSceneCloud (oh.scene_);
             cg_algorithm_->setInputCloud (oh.model_->keypoints_);
 
-            if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
+            if(cg_algorithm_->getRequiresNormals())
             {
                 std::cout << "CG alg requires normals..." << oh.model_->kp_normals_->points.size() << " " << scene_normals->points.size() << std::endl;
                 cg_algorithm_->setInputAndSceneNormals(oh.model_->kp_normals_, oh.scene_normals_);
@@ -461,10 +453,10 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
             cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
             cg_algorithm_->cluster (corresp_clusters);
 
-            std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << oh.model_scene_corresp_->size () << " " << it_map->first << std::endl;
+            std::cout << "Instances: " << corresp_clusters.size () << " Total correspondences:" << oh.model_scene_corresp_->size () << " " << it_map->first << std::endl;
             std::vector<bool> good_indices_for_hypothesis (corresp_clusters.size (), true);
 
-            if (threshold_accept_model_hypothesis_ < 1.f)
+            if (param_.threshold_accept_model_hypothesis_ < 1.f)
             {
                 //sort the hypotheses for each model according to their correspondences and take those that are threshold_accept_model_hypothesis_ over the max cardinality
                 int max_cardinality = -1;
@@ -477,7 +469,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
 
                 for (size_t i = 0; i < corresp_clusters.size (); i++)
                 {
-                    if (static_cast<float> ((corresp_clusters[i]).size ()) < (threshold_accept_model_hypothesis_ * static_cast<float> (max_cardinality)))
+                    if (static_cast<float> ((corresp_clusters[i]).size ()) < (param_.threshold_accept_model_hypothesis_ * static_cast<float> (max_cardinality)))
                         good_indices_for_hypothesis[i] = false;
                 }
             }
@@ -505,13 +497,13 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
         std::cout << "Number of hypotheses:" << models_.size() << std::endl;
 
         //Prepare scene and model clouds for the pose refinement step
-        if (ICP_iterations_ > 0 || hv_algorithm_)
-            source_->voxelizeAllModels (VOXEL_SIZE_ICP_);
+        if ( param_.icp_iterations_ > 0 || hv_algorithm_ )
+            source_->voxelizeAllModels (param_.voxel_size_icp_);
 
-        if (ICP_iterations_ > 0)
+        if ( param_.icp_iterations_ > 0)
             poseRefinement();
 
-        if (hv_algorithm_ && (models_.size () > 0))
+        if ( hv_algorithm_ && models_.size() )
             hypothesisVerification();
     }
 }
@@ -529,7 +521,7 @@ template<template<class > class Distance, typename PointT, typename FeatureT>
 pcl::Normal
 v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT & model, size_t keypoint_id, size_t view_id)
 {
-    if (use_cache_)
+    if (param_.use_cache_)
         return model.kp_normals_->points[keypoint_id];
 
     pcl::PointCloud<pcl::Normal> normals_cloud;
@@ -550,7 +542,7 @@ template<template<class > class Distance, typename PointT, typename FeatureT>
 PointT
 v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const ModelT & model, size_t keypoint_id, size_t view_id)
 {
-    if (use_cache_)
+    if (param_.use_cache_)
         return model.keypoints_->points[keypoint_id];
 
     std::stringstream kp_fn; kp_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/" << descr_name_ + "/keypoints_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";

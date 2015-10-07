@@ -112,10 +112,6 @@ std::vector<bool> SingleViewRecognizer::hypothesesVerification()
     //go->setRadiusNormals(0.03f);
     go->setRequiresNormals(hv_params_.requires_normals_);
     go->setInitialStatus(hv_params_.initial_status_);
-    go->setSmoothSegParameters(hv_params_.smooth_seg_params_eps_,
-                               hv_params_.smooth_seg_params_curv_t_,
-                               hv_params_.smooth_seg_params_dist_t_,
-                               hv_params_.smooth_seg_params_min_points_);//0.1, 0.035, 0.005);
     go->setVisualizeGoCues(0);
 #endif
 
@@ -494,7 +490,6 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
       new_sift_local.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > ());
       new_sift_local->setDataSource (cast_source);
       new_sift_local->setTrainingDir (training_dir_);
-      new_sift_local->setDescriptorName (desc_name);
       new_sift_local->setICPIterations (sv_params_.icp_iterations_);
       new_sift_local->setFeatureEstimator (cast_estimator);
       new_sift_local->setUseCache (true);
@@ -661,7 +656,6 @@ void SingleViewRecognizer::printParams(std::ostream &ostr) const
         local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > ());
         local->setDataSource (cast_source);
         local->setTrainingDir(training_dir_);
-        local->setDescriptorName (desc_name);
         local->setFeatureEstimator (cast_estimator);
 //        local->setCGAlgorithm (cast_cg_alg_);
         local->setKnn(sv_params_.knn_shot_);

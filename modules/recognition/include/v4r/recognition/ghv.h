@@ -134,6 +134,7 @@ namespace v4r
           bool use_histogram_specification_;
           bool use_points_on_plane_side_;
           float best_color_weight_;
+          bool initial_status_;
 
           //smooth segmentation parameters
           double eps_angle_threshold_;
@@ -167,10 +168,11 @@ namespace v4r
                   bool use_histogram_specification = false, // true
                   bool use_points_on_plane_side = true,
                   float best_color_weight = 0.8f,
-                  double eps_angle_threshold = 0.25,
-                  int min_points = 20,
+                  bool initial_status = false,
+                  double eps_angle_threshold = 0.25, //0.1f
+                  int min_points = 20, // 100
                   float curvature_threshold = 0.04f,
-                  float cluster_tolerance = 0.015f,
+                  float cluster_tolerance = 0.015f, //0.01f;
                   bool use_normals_from_visible = false
                   )
               :
@@ -197,6 +199,7 @@ namespace v4r
                 use_histogram_specification_ (use_histogram_specification),
                 use_points_on_plane_side_ (use_points_on_plane_side),
                 best_color_weight_ (best_color_weight),
+                initial_status_ (initial_status),
                 eps_angle_threshold_ (eps_angle_threshold),
                 min_points_ (min_points),
                 curvature_threshold_ (curvature_threshold),
@@ -566,7 +569,6 @@ namespace v4r
       countPointsOnDifferentPlaneSides (const std::vector<bool> & sol, bool print=false);
 
       boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
-      bool initial_status_;
 
       void
       computeRGBHistograms (const std::vector<Eigen::Vector3f> & rgb_values, Eigen::MatrixXf & rgb,
@@ -636,7 +638,6 @@ namespace v4r
         param_ = p;
         initial_temp_ = 1000;
         requires_normals_ = false;
-        initial_status_ = false;
 
         min_contribution_ = 0;
         LS_short_circuit_ = false;
@@ -810,7 +811,7 @@ namespace v4r
       void
       setInitialStatus (bool b)
       {
-        initial_status_ = b;
+        param_.initial_status_ = b;
       }
 
       /*void logCosts() {
@@ -924,6 +925,12 @@ namespace v4r
       {
         extra_weights_.clear ();
         extra_weights_ = weights;
+      }
+
+      virtual
+      bool add_planes_is_posssible() const
+      {
+          return true;
       }
 
       void

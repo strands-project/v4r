@@ -57,10 +57,8 @@ namespace v4r
 
         using Recognizer<PointInT>::scene_;
         using Recognizer<PointInT>::models_;
+        using Recognizer<PointInT>::param_;
         using Recognizer<PointInT>::transforms_;
-        using Recognizer<PointInT>::ICP_iterations_;
-        using Recognizer<PointInT>::icp_type_;
-        using Recognizer<PointInT>::VOXEL_SIZE_ICP_;
         using Recognizer<PointInT>::poseRefinement;
         using Recognizer<PointInT>::requires_segmentation_;
         using Recognizer<PointInT>::indices_;

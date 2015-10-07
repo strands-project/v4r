@@ -50,6 +50,11 @@ namespace v4r
             return SHOT;
         }
 
+        std::string getFeatureDescriptorName() const
+        {
+            return "shot_omp";
+        }
+
         void
         setIndices(const std::vector<int> & p_indices)
         {

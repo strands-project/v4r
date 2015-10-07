@@ -1015,7 +1015,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                 tom.find_cliques (connected_graph, static_cast<int> (model_scene_corrs_->size ()));
                 if(tom.getMaxTimeReached())
                 {
-                    PCL_ERROR("Max time reached during clique computation %f!!\n", param_.max_time_allowed_cliques_comptutation_);
+                    PCL_WARN("Max time reached during clique computation %f!!\n", param_.max_time_allowed_cliques_comptutation_);
                     cliques_computation_possible_[c] = false;
                     c--;
                     analyzed_ccs--;

@@ -38,6 +38,49 @@ namespace v4r
     template<template<class > class Distance, typename PointT, typename FeatureT>
       class V4R_EXPORTS LocalRecognitionPipeline : public Recognizer<PointT>
       {
+      public:
+          class V4R_EXPORTS Parameter : public Recognizer<PointT>::Parameter
+          {
+          public:
+              using Recognizer<PointT>::Parameter::icp_iterations_;
+              using Recognizer<PointT>::Parameter::icp_type_;
+              using Recognizer<PointT>::Parameter::voxel_size_icp_;
+              using Recognizer<PointT>::Parameter::max_corr_distance_;
+
+              bool use_cache_;
+              float threshold_accept_model_hypothesis_;
+              int kdtree_splits_;
+              int knn_;
+              float distance_same_keypoint_;
+              float max_descriptor_distance_;
+              float correspondence_distance_constant_weight_;
+              int normal_computation_method_;
+              bool save_hypotheses_;
+
+
+              Parameter(
+                      bool use_cache = false,
+                      float threshold_accept_model_hypothesis = 0.2f,
+                      int kdtree_splits = 512,
+                      int knn = 1,
+                      float distance_same_keypoint = 0.001f * 0.001f,
+                      float max_descriptor_distance = std::numeric_limits<float>::infinity(),
+                      float correspondence_distance_constant_weight = 1.f,
+                      int normal_computation_method = 2,
+                      bool save_hypotheses = false
+                      )
+                  : use_cache_(use_cache),
+                    threshold_accept_model_hypothesis_ (threshold_accept_model_hypothesis),
+                    kdtree_splits_ (kdtree_splits),
+                    knn_ ( knn ),
+                    distance_same_keypoint_ ( distance_same_keypoint ),
+                    max_descriptor_distance_ ( max_descriptor_distance ),
+                    correspondence_distance_constant_weight_ ( correspondence_distance_constant_weight ),
+                    normal_computation_method_ ( normal_computation_method ),
+                    save_hypotheses_ ( save_hypotheses )
+              {}
+          }param_;
+
         protected:
           typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
           typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
@@ -49,9 +92,6 @@ namespace v4r
           using Recognizer<PointT>::scene_;
           using Recognizer<PointT>::models_;
           using Recognizer<PointT>::transforms_;
-          using Recognizer<PointT>::ICP_iterations_;
-          using Recognizer<PointT>::icp_type_;
-          using Recognizer<PointT>::VOXEL_SIZE_ICP_;
           using Recognizer<PointT>::indices_;
           using Recognizer<PointT>::hv_algorithm_;
           using Recognizer<PointT>::poseRefinement;
@@ -62,11 +102,10 @@ namespace v4r
           {
           public:
             ModelTPtr model;
+            size_t view_id;
             size_t keypoint_id;
             std::vector<float> descr;
-            size_t view_id;
           };
-
 
           /** \brief Model data source */
           typename boost::shared_ptr<Source<PointT> > source_;
@@ -94,25 +133,13 @@ namespace v4r
           std::map< std::pair< ModelTPtr, size_t >, std::vector<size_t> > model_view_id_to_flann_models_;
           std::vector<flann_model> flann_models_;
 
-          bool use_cache_;
-
-          float threshold_accept_model_hypothesis_;
-          int kdtree_splits_;
-
           typename pcl::PointCloud<FeatureT>::Ptr signatures_;
           typename pcl::PointCloud<PointT>::Ptr scene_keypoints_;
           pcl::PointIndices scene_kp_indices_;
 
           std::string flann_data_fn_;
 
-          int normal_computation_method_;
-
-          bool save_hypotheses_;
           typename std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;
-          int knn_;
-          float distance_same_keypoint_;
-          float max_descriptor_distance_;
-          float correspondence_distance_constant_weight_;
 
           //load features from disk and create flann structure
           void loadFeaturesAndCreateFLANN ();
@@ -171,18 +198,10 @@ namespace v4r
 
       public:
 
-        LocalRecognitionPipeline () : Recognizer<PointT>()
+        LocalRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>()
         {
-          use_cache_ = false;
-          threshold_accept_model_hypothesis_ = 0.2f;
-          kdtree_splits_ = 512;
+          param_ = p;
           search_model_ = "";
-          save_hypotheses_ = false;
-          knn_ = 1;
-          distance_same_keypoint_ = 0.001f * 0.001f;
-          max_descriptor_distance_ = std::numeric_limits<float>::infinity();
-          correspondence_distance_constant_weight_ = 1.f;
-          normal_computation_method_ = 1;
           feat_kp_set_from_outside_ = false;
         }
 
@@ -193,17 +212,17 @@ namespace v4r
 
         void setCorrespondenceDistanceConstantWeight(float w)
         {
-            correspondence_distance_constant_weight_ = w;
+            param_.correspondence_distance_constant_weight_ = w;
         }
 
         void setMaxDescriptorDistance(float d)
         {
-            max_descriptor_distance_ = d;
+            param_.max_descriptor_distance_ = d;
         }
 
         void setDistanceSameKeypoint(float d)
         {
-            distance_same_keypoint_ = d*d;
+            param_.distance_same_keypoint_ = d*d;
         }
 
         ~LocalRecognitionPipeline ()
@@ -214,13 +233,13 @@ namespace v4r
         void
         setKnn(int k)
         {
-          knn_ = k;
+          param_.knn_ = k;
         }
 
         void
         setSaveHypotheses(bool set)
         {
-          save_hypotheses_ = set;
+          param_.save_hypotheses_ = set;
         }
 
         virtual
@@ -265,13 +284,13 @@ namespace v4r
         void
         setThresholdAcceptHyp (float t)
         {
-          threshold_accept_model_hypothesis_ = t;
+          param_.threshold_accept_model_hypothesis_ = t;
         }
 
         void
         setKdtreeSplits (int n)
         {
-          kdtree_splits_ = n;
+          param_.kdtree_splits_ = n;
         }
 
         void
@@ -283,7 +302,7 @@ namespace v4r
         void
         setUseCache (bool u)
         {
-          use_cache_ = u;
+          param_.use_cache_ = u;
         }
 
         /**
@@ -317,15 +336,6 @@ namespace v4r
         setCGAlgorithm (const typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > & alg)
         {
           cg_algorithm_ = alg;
-        }
-
-        /**
-         * \brief Sets the descriptor name
-         */
-        void
-        setDescriptorName (const std::string & name)
-        {
-          descr_name_ = name;
         }
 
 

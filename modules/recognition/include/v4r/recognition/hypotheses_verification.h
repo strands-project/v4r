@@ -68,6 +68,7 @@ namespace v4r
           int zbuffer_scene_resolution_; // Resolutions in pixel for the depth scene buffer
           int zbuffer_self_occlusion_resolution_;
           bool self_occlusions_reasoning_;
+          bool add_planes_;
 
           Parameter (
                   float resolution = 0.005f,
@@ -75,13 +76,15 @@ namespace v4r
                   float occlusion_thres = 0.005f, // 0.01f
                   int zbuffer_scene_resolution = 100,
                   int zbuffer_self_occlusion_resolution = 250,
-                  bool self_occlusions_reasoning =true)
+                  bool self_occlusions_reasoning =true,
+                  bool add_planes = true)
               : resolution_ (resolution),
                 inliers_threshold_(inliers_threshold),
                 occlusion_thres_ (occlusion_thres),
                 zbuffer_scene_resolution_(zbuffer_scene_resolution),
                 zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
-                self_occlusions_reasoning_(self_occlusions_reasoning)
+                self_occlusions_reasoning_(self_occlusions_reasoning),
+                add_planes_ (add_planes)
           {}
       };
 
@@ -345,6 +348,37 @@ namespace v4r
     {
       occlusion_cloud_ = occ_cloud;
       occlusion_cloud_set_ = true;
+    }
+
+    virtual
+    void setNormalsForClutterTerm(pcl::PointCloud<pcl::Normal>::Ptr &)
+    {
+        std::cerr << "setNormalsForClutterTerm function is not implemented for this object!" << std::endl;
+    }
+
+    virtual
+    bool add_planes_is_posssible() const
+    {
+        return false;
+    }
+
+    virtual
+    void
+    setSmoothSegParameters (float t_eps, float curv_t, float dist_t, int min_points = 20)
+    {
+        (void)t_eps;
+        (void)curv_t;
+        (void)dist_t;
+        (void)min_points;
+        std::cerr << "setSmoothSegParameters function is not implemented for this object!" << std::endl;
+    }
+
+    virtual
+    void
+    setRequiresNormals(bool b)
+    {
+        (void) b;
+        std::cerr << "setRequiresNormals function is not implemented for this object!" << std::endl;
     }
 
     /*

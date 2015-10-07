@@ -613,7 +613,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
        * POSE REFINEMENT
        **/
 
-      if (ICP_iterations_ > 0)
+      if (param_.icp_iterations_ > 0)
       {
         poseRefinement();
       }
@@ -821,6 +821,6 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     //initialize FLANN structure
     loadFeaturesAndCreateFLANN ();
 
-    if(ICP_iterations_ > 0)
-      source_->createVoxelGridAndDistanceTransform(VOXEL_SIZE_ICP_);
+    if(param_.icp_iterations_ > 0)
+      source_->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
   }

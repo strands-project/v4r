@@ -218,6 +218,12 @@ namespace v4r
         occ_clouds_ = occ_clouds;
       }
 
+      virtual
+      bool add_planes_is_posssible() const
+      {
+          return true;
+      }
+
       void
       addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning = false);
 

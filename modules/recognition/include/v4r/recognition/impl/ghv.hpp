@@ -1921,7 +1921,7 @@ v4r::GHV<ModelT, SceneT>::verify ()
         {
             //TODO: Check for trivial case...
             //TODO: Check also the number of hypotheses and use exhaustive enumeration if smaller than 10
-            std::vector<bool> subsolution (cc_[c].size (), initial_status_);
+            std::vector<bool> subsolution (cc_[c].size (), param_.initial_status_);
 
             SAOptimize (cc_[c], subsolution);
 
@@ -1993,18 +1993,20 @@ inline void softBining(float val, int pos1, float bin_size, int max_pos, int & p
     float c1 = pos1 * bin_size + bin_size / 2;
     pos2 = 0;
     float c2 = 0;
-    if(pos1 == 0) {
+    if(pos1 == 0)
+    {
         pos2 = 1;
         c2 = pos2 * bin_size + bin_size / 2;
-    } else if(pos1 == (max_pos-1)) {
+    }
+    else if(pos1 == (max_pos-1)) {
         pos2 = max_pos-2;
         c2 = pos2 * bin_size + bin_size / 2;
-    } else {
-        if(val > c1) {
+    } else
+    {
+        if(val > c1)
             pos2 = pos1 + 1;
-        } else {
+        else
             pos2 = pos1 - 1;
-        }
 
         c2 = pos2 * bin_size + bin_size / 2;
     }

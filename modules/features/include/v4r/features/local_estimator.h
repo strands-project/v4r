@@ -394,6 +394,9 @@ public:
     {
         normals = normals_;
     }
+
+    virtual
+    std::string getFeatureDescriptorName() const = 0;
 };
 }
 

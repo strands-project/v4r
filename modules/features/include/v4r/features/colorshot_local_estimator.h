@@ -28,6 +28,11 @@ namespace v4r
         using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
 
       public:
+        std::string getFeatureDescriptorName() const
+        {
+            return "shot_color";
+        }
+
         bool
         estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
