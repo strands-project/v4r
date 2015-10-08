@@ -25,10 +25,6 @@ class V4R_EXPORTS SIFTLocalEstimation : public LocalEstimator<PointInT, FeatureT
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
     typedef typename pcl::PointCloud<FeatureT>::Ptr FeatureTPtr;
 
-    using LocalEstimator<PointInT, FeatureT>::support_radius_;
-    using LocalEstimator<PointInT, FeatureT>::normal_estimator_;
-    using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
-    using LocalEstimator<PointInT, FeatureT>::adaptative_MLS_;
     using LocalEstimator<PointInT, FeatureT>::keypoint_indices_;
     pcl::PointIndices indices_;
     cv::Ptr<SiftGPU> sift;

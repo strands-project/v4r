@@ -35,7 +35,7 @@ protected:
 public:
 
     void
-    setInputCloud (PointInTPtr & input)
+    setInputCloud (const PointInTPtr & input)
     {
         input_ = input;
     }
@@ -50,9 +50,10 @@ public:
     compute (PointOutTPtr & keypoints) = 0;
 
     virtual void
-    setNormals (const pcl::PointCloud<pcl::Normal>::Ptr & /*normals*/)
+    setNormals (const pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {
-
+        (void)normals;
+        std::cerr << "setNormals is not implemented for this object." << std::endl;
     }
 
     virtual bool
@@ -274,15 +275,13 @@ protected:
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
     std::vector<typename boost::shared_ptr<KeypointExtractor<PointInT> > > keypoint_extractor_; //this should be a vector
     pcl::PointIndices keypoint_indices_;
-    float support_radius_;
 
-    bool adaptative_MLS_;
 
     boost::shared_ptr<std::vector<std::vector<int> > > neighborhood_indices_;
     boost::shared_ptr<std::vector<std::vector<float> > > neighborhood_dist_;
 
     void
-    computeKeypoints (PointInTPtr & cloud, PointInTPtr & keypoints, pcl::PointCloud<pcl::Normal>::Ptr & normals)
+    computeKeypoints (const PointInTPtr & cloud, PointInTPtr & keypoints, const pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {
         keypoint_indices_.indices.clear();
         keypoints.reset (new pcl::PointCloud<PointInT>);
@@ -292,7 +291,7 @@ protected:
             if (keypoint_extractor_[i]->needNormals ())
                 keypoint_extractor_[i]->setNormals (normals);
 
-            keypoint_extractor_[i]->setSupportRadius (support_radius_);
+            keypoint_extractor_[i]->setSupportRadius (param_.support_radius_);
 
             PointInTPtr detected_keypoints;
             //std::vector<int> keypoint_indices;
@@ -307,9 +306,27 @@ protected:
 
 public:
 
-    LocalEstimator ()
+    class V4R_EXPORTS Parameter
     {
-        adaptative_MLS_ = false;
+    public:
+        int normal_computation_method_;
+        float support_radius_;
+        bool adaptative_MLS_;
+
+        Parameter(
+                int normal_computation_method = 2,
+                float support_radius = 0.04f,
+                bool adaptive_MLS = false)
+            :
+              normal_computation_method_ (normal_computation_method),
+              support_radius_ (support_radius),
+              adaptative_MLS_ (adaptive_MLS)
+        {}
+    }param_;
+
+    LocalEstimator (const Parameter &p = Parameter())
+    {
+        param_ = p;
         keypoint_extractor_.clear ();
     }
 
@@ -322,7 +339,7 @@ public:
     void
     setAdaptativeMLS (const bool b)
     {
-        adaptative_MLS_ = b;
+        param_.adaptative_MLS_ = b;
     }
 
     virtual bool acceptsIndices() const
@@ -357,12 +374,6 @@ public:
     virtual bool
     estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)=0;
 
-    void
-    setNormalEstimator (boost::shared_ptr<PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > & ne)
-    {
-        normal_estimator_ = ne;
-    }
-
     /**
          * \brief Right now only uniformSampling keypoint extractor is allowed
          */
@@ -381,7 +392,7 @@ public:
     void
     setSupportRadius (const float r)
     {
-        support_radius_ = r;
+        param_.support_radius_ = r;
     }
 
     virtual bool

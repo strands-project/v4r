@@ -298,18 +298,12 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
     {
       //pcl::ScopeTime t ("Estimate feature");
-      if(normals_set_)
+      if(scene_normals_ && scene_normals_->points.size() == scene_->points.size())
       {
-          std::cout << "normals_set OURCVFH:" << normals_set_ << std::endl;
-          std::cout << "uses organized data:" << micvfh_estimator_->getUsesOrganizedData() << std::endl;
+          std::cout << "normals set, uses organized data:" << micvfh_estimator_->getUsesOrganizedData() << std::endl;
+          if( micvfh_estimator_->getUsesOrganizedData())
+              micvfh_estimator_->setNormals(scene_normals_);
       }
-
-      if(normals_set_ && micvfh_estimator_->getUsesOrganizedData())
-      {
-          PCL_WARN("setting normals\n");
-          micvfh_estimator_->setNormals(scene_normals_);
-      }
-
       micvfh_estimator_->estimate (in, processed, signatures, centroids);
     }
 
@@ -320,7 +314,6 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     {
 
       {
-        pcl::ScopeTime t_matching ("Matching and roll...");
         if (use_single_categories_ && (categories_to_be_searched_.size () > 0))
         {
 
@@ -680,6 +673,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       }
 
     }
+    scene_normals_.reset();
   }
 
   template<template<class > class Distance, typename PointInT, typename FeatureT>

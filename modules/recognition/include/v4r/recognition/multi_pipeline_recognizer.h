@@ -19,20 +19,21 @@ namespace v4r
     class V4R_EXPORTS MultiRecognitionPipeline : public Recognizer<PointT>
     {
     public:
-        class Parameter : public Recognizer<PointT>::Parameter
+        class V4R_EXPORTS Parameter : public Recognizer<PointT>::Parameter
         {
         public:
             using Recognizer<PointT>::Parameter::icp_iterations_;
             using Recognizer<PointT>::Parameter::icp_type_;
             using Recognizer<PointT>::Parameter::voxel_size_icp_;
             using Recognizer<PointT>::Parameter::max_corr_distance_;
+            using Recognizer<PointT>::Parameter::normal_computation_method_;
 
             bool save_hypotheses_;
 
             Parameter(
                     bool save_hypotheses = false
                     )
-                :
+                : Recognizer<PointT>::Parameter(),
                   save_hypotheses_ ( save_hypotheses )
             {}
         }param_;
@@ -44,7 +45,6 @@ namespace v4r
         using Recognizer<PointT>::scene_;
         using Recognizer<PointT>::scene_normals_;
         using Recognizer<PointT>::models_;
-        using Recognizer<PointT>::normals_set_;
         using Recognizer<PointT>::transforms_;
         using Recognizer<PointT>::indices_;
         using Recognizer<PointT>::hv_algorithm_;
@@ -69,7 +69,7 @@ namespace v4r
 
 
       public:
-        MultiRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>()
+        MultiRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
         {
             param_ = p;
         }
@@ -83,6 +83,12 @@ namespace v4r
         getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > & hypotheses) const
         {
           hypotheses = object_hypotheses_mp_;
+        }
+
+        bool
+        getSaveHypothesesParam() const
+        {
+            return param_.save_hypotheses_;
         }
 
         void

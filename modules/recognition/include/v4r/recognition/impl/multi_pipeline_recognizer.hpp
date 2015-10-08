@@ -9,13 +9,14 @@
 #define MULTI_PIPELINE_RECOGNIZER_HPP_
 
 #include <v4r/recognition/multi_pipeline_recognizer.h>
-#include <v4r/common/normal_estimator.h>
-//#include "multi_object_graph_CG.h"
-//#include <pcl/visualization/pcl_visualizer.h>
+#include <v4r/common/miscellaneous.h>
+
+namespace v4r
+{
 
 template<typename PointT>
 void
-v4r::MultiRecognitionPipeline<PointT>::initialize()
+MultiRecognitionPipeline<PointT>::initialize()
 {
     if(param_.icp_iterations_ > 0 && param_.icp_type_ == 1)
     {
@@ -26,7 +27,7 @@ v4r::MultiRecognitionPipeline<PointT>::initialize()
 
 template<typename PointT>
 void
-v4r::MultiRecognitionPipeline<PointT>::reinitialize()
+MultiRecognitionPipeline<PointT>::reinitialize()
 {
     for(size_t i=0; i < recognizers_.size(); i++)
         recognizers_[i]->reinitialize();
@@ -36,7 +37,7 @@ v4r::MultiRecognitionPipeline<PointT>::reinitialize()
 
 template<typename PointT>
 void
-v4r::MultiRecognitionPipeline<PointT>::reinitialize(const std::vector<std::string> & load_ids)
+MultiRecognitionPipeline<PointT>::reinitialize(const std::vector<std::string> & load_ids)
 {
     for(size_t i=0; i < recognizers_.size(); i++)
         recognizers_[i]->reinitialize(load_ids);
@@ -46,7 +47,7 @@ v4r::MultiRecognitionPipeline<PointT>::reinitialize(const std::vector<std::strin
 
 template<typename PointT>
 void
-v4r::MultiRecognitionPipeline<PointT>::getPoseRefinement(
+MultiRecognitionPipeline<PointT>::getPoseRefinement(
         const std::vector<ModelTPtr> &models,
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
 {
@@ -58,7 +59,7 @@ v4r::MultiRecognitionPipeline<PointT>::getPoseRefinement(
 
 template<typename PointT>
 void
-v4r::MultiRecognitionPipeline<PointT>::recognize()
+MultiRecognitionPipeline<PointT>::recognize()
 {
     models_.clear();
     transforms_.clear();
@@ -83,8 +84,13 @@ v4r::MultiRecognitionPipeline<PointT>::recognize()
 
         if(recognizers_[i]->requiresSegmentation())
         {
-            if(recognizers_[i]->acceptsNormals() && normals_set_)
+            if( recognizers_[i]->acceptsNormals() )
+            {
+                if ( !scene_normals_ || scene_normals_->points.size() != scene_->points.size() )
+                    computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
+
                 recognizers_[i]->setSceneNormals(scene_normals_);
+            }
 
             for(size_t c=0; c < segmentation_indices_.size(); c++)
             {
@@ -100,11 +106,11 @@ v4r::MultiRecognitionPipeline<PointT>::recognize()
         }
         else
         {
-            recognizers_[i]->setSaveHypotheses(param_.save_hypotheses_);
+//            recognizers_[i]->setSaveHypotheses(param_.save_hypotheses_);  // shouldn't this be false?
             recognizers_[i]->setIndices(indices_);
             recognizers_[i]->recognize();
 
-            if(!param_.save_hypotheses_)
+            if(!recognizers_[i]->getSaveHypothesesParam())
             {
                 std::vector<ModelTPtr> models = recognizers_[i]->getModels ();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms = recognizers_[i]->getTransforms ();
@@ -172,10 +178,12 @@ v4r::MultiRecognitionPipeline<PointT>::recognize()
         if ( hv_algorithm_ && models_.size() )
             hypothesisVerification();
     }
+
+    scene_normals_.reset();
 }
 
 template<typename PointT>
-void v4r::MultiRecognitionPipeline<PointT>::correspondenceGrouping()
+void MultiRecognitionPipeline<PointT>::correspondenceGrouping()
 {
 //    pcl::PointCloud<pcl::Normal>::Ptr scene_kp_normals(new pcl::PointCloud<pcl::Normal>);
     if(cg_algorithm_->getRequiresNormals())
@@ -186,17 +194,8 @@ void v4r::MultiRecognitionPipeline<PointT>::correspondenceGrouping()
         all_scene_normals.reset(new pcl::PointCloud<pcl::Normal>);
         PointTPtr processed (new pcl::PointCloud<PointT>);
 
-        if(!normals_set_)
-        {
-            boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;
-            normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal>);
-            normal_estimator->setCMR (false);
-            normal_estimator->setDoVoxelGrid (false);
-            normal_estimator->setRemoveOutliers (false);
-            normal_estimator->setValuesForCMRFalse (0.003f, 0.02f);
-            normal_estimator->setForceUnorganized(true);
-            normal_estimator->estimate (scene_, processed, all_scene_normals);
-        }
+        if(!scene_normals_ || scene_normals_->points.size()!=scene_->points.size())
+            computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
         else
         {
             processed = scene_;
@@ -243,7 +242,7 @@ void v4r::MultiRecognitionPipeline<PointT>::correspondenceGrouping()
 
 template<typename PointT>
 bool
-v4r::MultiRecognitionPipeline<PointT>::isSegmentationRequired() const
+MultiRecognitionPipeline<PointT>::isSegmentationRequired() const
 {
     bool ret_value = false;
     for(size_t i=0; (i < recognizers_.size()) && !ret_value; i++)
@@ -253,13 +252,15 @@ v4r::MultiRecognitionPipeline<PointT>::isSegmentationRequired() const
 }
 
 template<typename PointT>
-typename boost::shared_ptr<v4r::Source<PointT> >
-v4r::MultiRecognitionPipeline<PointT>::getDataSource () const
+typename boost::shared_ptr<Source<PointT> >
+MultiRecognitionPipeline<PointT>::getDataSource () const
 {
     //NOTE: Assuming source is the same or contains the same models for all recognizers...
     //Otherwise, we should create a combined data source so that all models are present
 
     return recognizers_[0]->getDataSource();
+}
+
 }
 
 #endif /* MULTI_PIPELINE_RECOGNIZER_H_ */

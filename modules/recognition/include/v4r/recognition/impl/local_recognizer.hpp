@@ -313,8 +313,6 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
     if (scene_keypoints_->points.size() != signatures_->points.size())
         throw std::runtime_error("Size of keypoint cloud is not equal to number of signatures!");
 
-    std::cout << "Number of scene keypoints: " << scene_keypoints_->points.size () <<  std::endl;
-
     obj_hypotheses_.clear();
 
     int size_feat = sizeof(signatures_->points[0].histogram) / sizeof(float);
@@ -338,7 +336,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
         std::vector<PointT> corresponding_model_kps;
         std::vector<std::string> model_id_for_scene_keypoint;
 
-        for (size_t i = 0; i < param_.knn_; i++)
+        for (size_t i = 0; i < (size_t)param_.knn_; i++)
         {
             flann_models_indices[i] = indices[0][i];
             model_distances[i] = distances[0][i];
@@ -348,13 +346,11 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
             bool found = false; // check if a keypoint from same model and close distance already exists
             for(size_t kk=0; kk < corresponding_model_kps.size(); kk++)
             {
-                if(model_id_for_scene_keypoint[kk].compare( f.model->id_ ) == 0)
+                const float m_kp_dist = (corresponding_model_kps[kk].getVector3fMap() - m_kp.getVector3fMap()).squaredNorm();
+                if(model_id_for_scene_keypoint[kk].compare( f.model->id_ ) == 0 && m_kp_dist < param_.distance_same_keypoint_)
                 {
-                    if( (corresponding_model_kps[kk].getVector3fMap() - m_kp.getVector3fMap()).squaredNorm() < param_.distance_same_keypoint_)
-                    {
-                        found = true;
-                        break;
-                    }
+                    found = true;
+                    break;
                 }
             }
 
@@ -427,27 +423,24 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
     if(cg_algorithm_ && !param_.save_hypotheses_)    // correspondence grouping is not done outside
     {
         throw std::runtime_error("This has not been implemented properly!");
-        pcl::PointCloud<pcl::Normal>::Ptr all_scene_normals(new pcl::PointCloud<pcl::Normal>);
-        pcl::PointCloud<pcl::Normal>::Ptr scene_normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::computeNormals<PointT>(scene_, scene_normals, param_.normal_computation_method_);
-        v4r::getIndicesFromCloud(scene_, *scene_keypoints_, scene_kp_indices_.indices);
-        pcl::copyPointCloud(*all_scene_normals, scene_kp_indices_, *scene_normals);
+
+        if(!scene_normals_ || scene_normals_->points.size() != scene_->points.size())
+            v4r::computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
         prepareSpecificCG(scene_, scene_keypoints_);
 
         for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
         {
             ObjectHypothesis<PointT> &oh = it_map->second;
+            oh.scene_normals_ = scene_normals_;
 
             std::vector < pcl::Correspondences > corresp_clusters;
             cg_algorithm_->setSceneCloud (oh.scene_);
             cg_algorithm_->setInputCloud (oh.model_->keypoints_);
 
             if(cg_algorithm_->getRequiresNormals())
-            {
-                std::cout << "CG alg requires normals..." << oh.model_->kp_normals_->points.size() << " " << scene_normals->points.size() << std::endl;
                 cg_algorithm_->setInputAndSceneNormals(oh.model_->kp_normals_, oh.scene_normals_);
-            }
+
             //we need to pass the keypoints_pointcloud and the specific object hypothesis
             specificCG(scene_, scene_keypoints_, oh);
             cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
@@ -506,6 +499,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
         if ( hv_algorithm_ && models_.size() )
             hypothesisVerification();
     }
+    scene_normals_.reset();
 }
 
 template<template<class > class Distance, typename PointT, typename FeatureT>

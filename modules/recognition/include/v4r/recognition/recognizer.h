@@ -52,12 +52,6 @@ namespace v4r
     template<typename PointT>
     class V4R_EXPORTS Recognizer
     {
-      typedef Model<PointT> ModelT;
-      typedef boost::shared_ptr<ModelT> ModelTPtr;
-
-      typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
-      typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
-
       public:
         class V4R_EXPORTS Parameter
         {
@@ -66,20 +60,29 @@ namespace v4r
             int icp_type_;
             float voxel_size_icp_;
             float max_corr_distance_;
+            int normal_computation_method_;
 
             Parameter(
                     int icp_iterations = 30,
                     int icp_type = 1,
                     float voxel_size_icp = 0.0025f,
-                    float max_corr_distance = 0.02f)
+                    float max_corr_distance = 0.02f,
+                    int normal_computation_method = 2)
                 : icp_iterations_ (icp_iterations),
                   icp_type_ (icp_type),
                   voxel_size_icp_ (voxel_size_icp),
-                  max_corr_distance_ (max_corr_distance)
+                  max_corr_distance_ (max_corr_distance),
+                  normal_computation_method_ (normal_computation_method)
             {}
         }param_;
 
       protected:
+        typedef Model<PointT> ModelT;
+        typedef boost::shared_ptr<ModelT> ModelTPtr;
+
+        typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
+        typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
+
         /** \brief Point cloud to be classified */
         PointTPtr scene_;
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
@@ -88,13 +91,10 @@ namespace v4r
 
         std::vector<ModelTPtr> models_, models_verified_;
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_, transforms_verified_;
-        std::vector<typename pcl::PointCloud<PointT>::Ptr > verified_planes_;
+        std::vector<typename pcl::PointCloud<PointT>::Ptr > planes_verified_;
         bool requires_segmentation_;
         std::vector<int> indices_;
-        bool recompute_hv_normals_;
         pcl::PointIndicesPtr icp_scene_indices_;
-
-        bool normals_set_;
 
         /** \brief Directory containing views of the object */
         std::string training_dir_;
@@ -104,7 +104,6 @@ namespace v4r
 
         void poseRefinement();
         void hypothesisVerification ();
-        void visualizePlanes() const;
 
 
       public:
@@ -113,8 +112,6 @@ namespace v4r
         {
           param_ = p;
           requires_segmentation_ = false;
-          recompute_hv_normals_ = true;
-          normals_set_ = false;
         }
 
         virtual size_t getFeatureType() const
@@ -144,6 +141,14 @@ namespace v4r
         }
 
         virtual
+        bool
+        getSaveHypothesesParam() const
+        {
+            PCL_WARN("getSaveHypotheses is not implemented for this class.");
+            return false;
+        }
+
+        virtual
         void
         getKeypointCloud(PointTPtr & cloud) const
         {
@@ -170,23 +175,17 @@ namespace v4r
             PCL_WARN("Reinitialize is not implemented for this class.");
         }
 
-        /*virtual void
-        setHVAlgorithm (typename boost::shared_ptr<pcl::HypothesisVerification<PointT, PointT> > & alg) = 0;*/
-
-        void
-        setHVAlgorithm (const typename boost::shared_ptr<v4r::HypothesisVerification<PointT, PointT> > & alg)
+        void setHVAlgorithm (const typename boost::shared_ptr<v4r::HypothesisVerification<PointT, PointT> > & alg)
         {
           hv_algorithm_ = alg;
         }
 
-        void
-        setInputCloud (const PointTPtr & cloud)
+        void setInputCloud (const PointTPtr & cloud)
         {
           scene_ = cloud;
         }
 
-        std::vector<ModelTPtr>
-        getModels () const
+        std::vector<ModelTPtr> getModels () const
         {
           return models_;
         }
@@ -243,7 +242,6 @@ namespace v4r
         void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
         {
             scene_normals_ = normals;
-            normals_set_ = true;
         }
 
         virtual bool requiresSegmentation() const

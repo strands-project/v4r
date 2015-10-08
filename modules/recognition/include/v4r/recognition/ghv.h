@@ -176,6 +176,7 @@ namespace v4r
                   bool use_normals_from_visible = false
                   )
               :
+                HypothesisVerification<ModelT, SceneT>::Parameter(),
                 color_sigma_ab_ (color_sigma_ab),
                 color_sigma_l_ (color_sigma_l),
                 regularizer_ (regularizer),
@@ -206,21 +207,21 @@ namespace v4r
                 cluster_tolerance_ (cluster_tolerance),
                 use_normals_from_visible_ (use_normals_from_visible)
           {}
-      };
+      }param_;
 
     protected:
-      using v4r::HypothesisVerification<ModelT, SceneT>::mask_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::scene_downsampled_tree_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::visible_models_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::visible_normal_models_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::visible_indices_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::complete_models_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::normals_set_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::requires_normals_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::occlusion_cloud_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::scene_cloud_;
-      using v4r::HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
+      using HypothesisVerification<ModelT, SceneT>::mask_;
+      using HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
+      using HypothesisVerification<ModelT, SceneT>::scene_downsampled_tree_;
+      using HypothesisVerification<ModelT, SceneT>::visible_models_;
+      using HypothesisVerification<ModelT, SceneT>::visible_normal_models_;
+      using HypothesisVerification<ModelT, SceneT>::visible_indices_;
+      using HypothesisVerification<ModelT, SceneT>::complete_models_;
+      using HypothesisVerification<ModelT, SceneT>::normals_set_;
+      using HypothesisVerification<ModelT, SceneT>::requires_normals_;
+      using HypothesisVerification<ModelT, SceneT>::occlusion_cloud_;
+      using HypothesisVerification<ModelT, SceneT>::scene_cloud_;
+      using HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
 
       template<typename PointT, typename NormalT>
         inline void
@@ -580,7 +581,7 @@ namespace v4r
       void
       computeGSHistogram (const std::vector<float> & hsv_values, Eigen::MatrixXf & histogram, int hist_size = 255);
 
-      std::vector<v4r::PlaneModel<ModelT> > planar_models_;
+      std::vector<PlaneModel<ModelT> > planar_models_;
       std::map<int, int> model_to_planar_model_;
 
       typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
@@ -630,10 +631,8 @@ namespace v4r
       }
 
     public:
-      Parameter param_;
 
-      GHV (const Parameter &p=Parameter()) :
-        v4r::HypothesisVerification<ModelT, SceneT> ()
+      GHV (const Parameter &p=Parameter()) : HypothesisVerification<ModelT, SceneT> (p)
       {
         param_ = p;
         initial_temp_ = 1000;
@@ -770,7 +769,7 @@ namespace v4r
       {
         param_.use_super_voxels_ = use;
       }
-      void addPlanarModels(std::vector<v4r::PlaneModel<ModelT> > & models);
+      void addPlanarModels(std::vector<PlaneModel<ModelT> > & models);
 
       void
       setSmoothSegParameters (float t_eps, float curv_t, float dist_t, int min_points = 20)

@@ -348,7 +348,7 @@ namespace v4r
        * \brief Generate model representation
        */
       virtual void
-      generate (const std::string & training_dir)=0;
+      generate (const std::string & training_dir = std::string())=0;
 
       /**
        * \brief Get the generated model

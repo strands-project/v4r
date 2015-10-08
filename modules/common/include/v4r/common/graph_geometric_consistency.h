@@ -54,7 +54,7 @@
 namespace v4r
 {
   template<typename PointModelT, typename PointSceneT>
-  class V4R_EXPORTS GraphGeometricConsistencyGrouping : public v4r::CorrespondenceGrouping<PointModelT, PointSceneT>
+  class V4R_EXPORTS GraphGeometricConsistencyGrouping : public CorrespondenceGrouping<PointModelT, PointSceneT>
   {
 
     struct edge_component_t
@@ -113,18 +113,16 @@ namespace v4r
             prune_ ( prune ),
             prune_by_CC_ ( prune_by_CC )
       {}
-      };
-
-      Parameter param_;
+      }param_;
 
       typedef pcl::PointCloud<PointModelT> PointCloud;
       typedef typename PointCloud::Ptr PointCloudPtr;
       typedef typename PointCloud::ConstPtr PointCloudConstPtr;
 
-      typedef typename v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::SceneCloudConstPtr SceneCloudConstPtr;
+      typedef typename CorrespondenceGrouping<PointModelT, PointSceneT>::SceneCloudConstPtr SceneCloudConstPtr;
 
       /** \brief Constructor */
-      GraphGeometricConsistencyGrouping (const Parameter &p = Parameter())
+      GraphGeometricConsistencyGrouping (const Parameter &p = Parameter()) : CorrespondenceGrouping<PointModelT, PointSceneT>()
       {
         param_ = p;
         require_normals_ = true;
@@ -300,10 +298,10 @@ namespace v4r
       }
 
     protected:
-      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
-      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
-      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
-      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::require_normals_;
+      using CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
+      using CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
+      using CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
+      using CorrespondenceGrouping<PointModelT, PointSceneT>::require_normals_;
 
       pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
 

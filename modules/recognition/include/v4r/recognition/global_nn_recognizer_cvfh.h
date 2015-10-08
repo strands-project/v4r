@@ -56,6 +56,7 @@ namespace v4r
         typedef boost::shared_ptr<ModelT> ModelTPtr;
 
         using Recognizer<PointInT>::scene_;
+        using Recognizer<PointInT>::scene_normals_;
         using Recognizer<PointInT>::models_;
         using Recognizer<PointInT>::param_;
         using Recognizer<PointInT>::transforms_;
@@ -129,9 +130,6 @@ namespace v4r
           }
 
         };
-
-        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
-        bool normals_set_;
 
         flann::Matrix<float> flann_data_;
         flann::Index<DistT> * flann_index_;
@@ -228,19 +226,12 @@ namespace v4r
           OUR_CVFH_MAX_HYP_ = std::numeric_limits<int>::max();
           requires_segmentation_ = true;
           debug_level_ = 0;
-          normals_set_ = false;
           descr_name_ = "cvfh";
         }
 
         bool acceptsNormals() const
         {
             return true;
-        }
-
-        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
-        {
-            scene_normals_ = normals;
-            normals_set_ = true;
         }
 
         void setDebugLevel(int lev)

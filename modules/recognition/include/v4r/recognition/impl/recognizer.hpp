@@ -1,5 +1,7 @@
 #include <v4r/recognition/recognizer.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
+#include <pcl/common/centroid.h>
+#include <pcl/visualization/pcl_visualizer.h>
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 
@@ -18,9 +20,7 @@ void
 ObjectHypothesis<pcl::PointXYZRGB>::visualize() const
 {
     if(!vis_)
-    {
         vis_.reset(new pcl::visualization::PCLVisualizer("correspondences for hypothesis"));
-    }
 
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr model_cloud = model_->getAssembled( 0.003f );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_aligned ( new pcl::PointCloud<pcl::PointXYZRGB>() );
@@ -70,6 +70,7 @@ Recognizer<PointT>::hypothesisVerification ()
   std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals (models_.size ());
   models_verified_.clear();
   transforms_verified_.clear();
+  planes_verified_.clear();
 
   if(!models_.size())
   {
@@ -80,15 +81,16 @@ Recognizer<PointT>::hypothesisVerification ()
 
   for(size_t i=0; i<models_.size(); i++)
   {
+      const Eigen::Matrix4f &tf = transforms_[i];
       ConstPointTPtr model_cloud = models_[i]->getAssembled (hv_algorithm_->getResolution());
       typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
-      pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_[i]);
+      pcl::transformPointCloud (*model_cloud, *model_aligned, tf);
       aligned_models[i] = model_aligned;
 
       pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models_[i]->getNormalsAssembled (hv_algorithm_->getResolution());
       pcl::PointCloud<pcl::Normal>::Ptr normal_cloud(new pcl::PointCloud<pcl::Normal>(*normal_cloud_const) );
 
-      const Eigen::Matrix3f rot   = transforms_[i].block<3, 3> (0, 0);
+      const Eigen::Matrix3f rot = tf.block<3, 3> (0, 0);
       for(size_t jj=0; jj < normal_cloud->points.size(); jj++)
       {
           const pcl::Normal norm_pt = normal_cloud->points[jj];
@@ -162,7 +164,7 @@ Recognizer<PointT>::hypothesisVerification ()
   for (size_t j = 0; j < planes_found.size(); j++)
   {
       if(mask_hv_with_planes[aligned_models.size () + j])
-          verified_planes_.push_back(planes_found[j].plane_cloud_);
+          planes_verified_.push_back(planes_found[j].plane_cloud_);
   }
 
 }
@@ -342,30 +344,115 @@ Recognizer<PointT>::visualize() const
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_verified_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
+
+        PointT centroid;
+        pcl::computeCentroid(*model_aligned, centroid);
+        model_label << "_text3d";
+        vis_->addText3D(model_label.str(), centroid, 0.015, 0, 0, 0, model_label.str(), vp3_);
     }
 
-    visualizePlanes();
+    for(size_t plane_id=0; plane_id < planes_verified_.size(); plane_id++)
+    {
+        std::stringstream plane_name;
+        plane_name << "plane_" << plane_id;
+        planes_verified_[plane_id]->sensor_origin_ = zero_origin;
+        planes_verified_[plane_id]->sensor_orientation_ = Eigen::Quaternionf::Identity();
+        vis_->addPointCloud<PointT> ( planes_verified_[plane_id], plane_name.str (), vp3_ );
+    }
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
     vis_->spin();
 }
 
-template<typename PointT>
-void
-Recognizer<PointT>::visualizePlanes() const
+
+template<>
+V4R_EXPORTS void
+Recognizer<pcl::PointXYZRGB>::visualize() const
 {
+    typedef pcl::PointXYZRGB PointT;
+
+    if(!vis_) {
+        vis_.reset(new pcl::visualization::PCLVisualizer("single-view recognition results"));
+        vis_->createViewPort(0,0,1,0.33,vp1_);
+        vis_->createViewPort(0,0.33,1,0.66,vp2_);
+        vis_->createViewPort(0,0.66,1,1,vp3_);
+        vis_->addText("input cloud", 10, 10, 20, 1, 1, 1, "input", vp1_);
+        vis_->addText("generated hypotheses", 10, 10, 20, 0, 0, 0, "generated hypotheses", vp2_);
+        vis_->addText("verified hypotheses", 10, 10, 20, 0, 0, 0, "verified hypotheses", vp3_);
+    }
+
+    vis_->removeAllPointClouds();
+    vis_->removeAllPointClouds(vp1_);
+    vis_->removeAllPointClouds(vp2_);
+    vis_->removeAllPointClouds(vp3_);
+
     Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
-    for(size_t plane_id=0; plane_id < verified_planes_.size(); plane_id++)
+    typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr vis_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::copyPointCloud(*scene_, *vis_cloud);
+    vis_cloud->sensor_origin_ = zero_origin;
+    vis_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+    vis_->addPointCloud(vis_cloud, "input cloud", vp1_);
+    vis_->setBackgroundColor(.0f, .0f, .0f, vp2_);
+
+    for(size_t i=0; i<models_.size(); i++)
+    {
+        ModelT &m = *models_[i];
+        const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
+        std::stringstream model_label;
+        model_label << model_id << "_" << i;
+        typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
+        pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
+        vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
+    }
+    vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
+
+    for(size_t i=0; i<models_verified_.size(); i++)
+    {
+        ModelT &m = *models_verified_[i];
+        const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
+        std::stringstream model_label;
+        model_label << model_id << "_v_" << i;
+        typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
+        pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_verified_[i]);
+        vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
+
+        PointT centroid;
+        pcl::computeCentroid(*model_aligned, centroid);
+        model_label << "_text3d";
+        vis_->addText3D(model_label.str(), centroid, 0.015, 0, 0, 0, model_label.str(), vp3_);
+    }
+
+    for(size_t plane_id=0; plane_id < planes_verified_.size(); plane_id++)
     {
         std::stringstream plane_name;
         plane_name << "plane_" << plane_id;
-        verified_planes_[plane_id]->sensor_origin_ = zero_origin;
-        verified_planes_[plane_id]->sensor_orientation_ = Eigen::Quaternionf::Identity();
-        vis_->addPointCloud<PointT> ( verified_planes_[plane_id], plane_name.str (), vp3_ );
-    }
+        planes_verified_[plane_id]->sensor_origin_ = zero_origin;
+        planes_verified_[plane_id]->sensor_orientation_ = Eigen::Quaternionf::Identity();
+        pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb_handler ( planes_verified_[plane_id] );
+        vis_->addPointCloud<pcl::PointXYZRGB> ( planes_verified_[plane_id], rgb_handler, plane_name.str (), vp3_ );
+}
+    vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
+    vis_->spin();
 }
 
-//template <>
+//template<typename PointT>
 //void
+//Recognizer<PointT>::visualizePlanes() const
+//{
+//    Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
+//    for(size_t plane_id=0; plane_id < verified_planes_.size(); plane_id++)
+//    {
+//        std::stringstream plane_name;
+//        plane_name << "plane_" << plane_id;
+//        verified_planes_[plane_id]->sensor_origin_ = zero_origin;
+//        verified_planes_[plane_id]->sensor_orientation_ = Eigen::Quaternionf::Identity();
+//        vis_->addPointCloud<PointT> ( verified_planes_[plane_id], plane_name.str (), vp3_ );
+//    }
+//}
+
+//template <>
+//V4R_EXPORTS void
 //Recognizer<pcl::PointXYZRGB>::visualizePlanes() const
 //{
 //    Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;

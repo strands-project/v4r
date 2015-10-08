@@ -46,6 +46,7 @@ namespace v4r
               using Recognizer<PointT>::Parameter::icp_type_;
               using Recognizer<PointT>::Parameter::voxel_size_icp_;
               using Recognizer<PointT>::Parameter::max_corr_distance_;
+              using Recognizer<PointT>::Parameter::normal_computation_method_;
 
               bool use_cache_;
               float threshold_accept_model_hypothesis_;
@@ -54,7 +55,6 @@ namespace v4r
               float distance_same_keypoint_;
               float max_descriptor_distance_;
               float correspondence_distance_constant_weight_;
-              int normal_computation_method_;
               bool save_hypotheses_;
 
 
@@ -66,17 +66,16 @@ namespace v4r
                       float distance_same_keypoint = 0.001f * 0.001f,
                       float max_descriptor_distance = std::numeric_limits<float>::infinity(),
                       float correspondence_distance_constant_weight = 1.f,
-                      int normal_computation_method = 2,
                       bool save_hypotheses = false
                       )
-                  : use_cache_(use_cache),
+                  : Recognizer<PointT>::Parameter(),
+                    use_cache_(use_cache),
                     threshold_accept_model_hypothesis_ (threshold_accept_model_hypothesis),
                     kdtree_splits_ (kdtree_splits),
                     knn_ ( knn ),
                     distance_same_keypoint_ ( distance_same_keypoint ),
                     max_descriptor_distance_ ( max_descriptor_distance ),
                     correspondence_distance_constant_weight_ ( correspondence_distance_constant_weight ),
-                    normal_computation_method_ ( normal_computation_method ),
                     save_hypotheses_ ( save_hypotheses )
               {}
           }param_;
@@ -90,6 +89,7 @@ namespace v4r
           typedef boost::shared_ptr<ModelT> ModelTPtr;
 
           using Recognizer<PointT>::scene_;
+          using Recognizer<PointT>::scene_normals_;
           using Recognizer<PointT>::models_;
           using Recognizer<PointT>::transforms_;
           using Recognizer<PointT>::indices_;
@@ -198,7 +198,7 @@ namespace v4r
 
       public:
 
-        LocalRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>()
+        LocalRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
         {
           param_ = p;
           search_model_ = "";
@@ -240,6 +240,12 @@ namespace v4r
         setSaveHypotheses(bool set)
         {
           param_.save_hypotheses_ = set;
+        }
+
+        bool
+        getSaveHypothesesParam() const
+        {
+            return param_.save_hypotheses_;
         }
 
         virtual
