@@ -40,7 +40,6 @@ namespace v4r
         ModelTPtr model_;
 
         typename pcl::PointCloud<PointT>::Ptr scene_; // input point cloud of the scene
-        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
         pcl::CorrespondencesPtr model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
         std::vector<int> indices_to_flann_models_;
 

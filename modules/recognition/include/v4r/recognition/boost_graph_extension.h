@@ -76,16 +76,16 @@ private:
 public:
     View();
     //View(const View &view);
-    boost::shared_ptr< pcl::PointCloud<PointT> > pScenePCl;
+    boost::shared_ptr< pcl::PointCloud<PointT> > scene_;
     boost::shared_ptr< pcl::PointCloud<PointT> > scene_f_;
-    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pSceneNormals;
-    pcl::PointIndices filteredSceneIndices_;
+    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > scene_normals_;
+    pcl::PointIndices filtered_scene_indices_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
     std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
-    boost::shared_ptr< pcl::PointCloud<FeatureT > > pSiftSignatures_;
+    boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_;
     std::vector<float> sift_keypoints_scales_;
-    pcl::PointIndices siftKeypointIndices_;
+    pcl::PointIndices sift_kp_indices_;
     std::vector<Hypothesis<PointT> > hypothesis_sv_;
     std::vector<Hypothesis<PointT> > hypothesis_mv_;
     Eigen::Matrix4f transform_to_world_co_system_;
@@ -101,36 +101,65 @@ public:
     std::vector<int> nguyens_kept_indices_;
 };
 
-class Edge
+struct CamConnect
 {
-public:
-    Edge();
-    Eigen::Matrix4f transformation;
-    double edge_weight;
-    std::string model_name;
-    size_t source_id, target_id;
+    Eigen::Matrix4f transformation_;
+    float edge_weight_;
+    std::string model_name_;
+    size_t source_id_, target_id_;
+
+    explicit CamConnect(float w) :
+        edge_weight_(w)
+    {
+
+    }
+
+    CamConnect() : edge_weight_(std::numeric_limits<float>::max ())
+    {
+
+    }
+
+    bool operator<(const CamConnect& e) const {
+        if(edge_weight_ < e.edge_weight_)
+            return true;
+
+        return false;
+    }
+
+    bool operator<=(const CamConnect& e) const {
+        if(edge_weight_ <= e.edge_weight_)
+            return true;
+
+        return false;
+    }
+
+    bool operator>(const CamConnect& e) const {
+        if(edge_weight_ > e.edge_weight_)
+            return true;
+
+        return false;
+    }
+
+    bool operator>=(const CamConnect& e) const {
+        if(edge_weight_ >= e.edge_weight_)
+            return true;
+
+        return false;
+    }
 };
 
 
 using namespace boost;
 
-typedef adjacency_list < vecS, vecS, undirectedS, View, Edge > MVGraph;
-typedef graph_traits < MVGraph >::vertex_descriptor ViewD;
-typedef graph_traits < MVGraph >::edge_descriptor EdgeD;
-typedef graph_traits<MVGraph>::vertex_iterator vertex_iter;
-typedef graph_traits<MVGraph>::edge_iterator edge_iter;
-typedef property_map<MVGraph, vertex_index_t>::type IndexMap;
-
-
-void visualizeGraph ( const MVGraph & grph, pcl::visualization::PCLVisualizer::Ptr vis);
-void pruneGraph (MVGraph &grph, size_t num_remaining_vertices=2);
-void outputgraph ( MVGraph &map, const char* filename );
-void resetHopStatus(MVGraph &grph);
-ViewD getFurthestVertex ( MVGraph &grph);
+//void visualizeGraph ( const MVGraph & grph, pcl::visualization::PCLVisualizer::Ptr vis);
+//void pruneGraph (MVGraph &grph, size_t num_remaining_vertices=2);
+//void outputgraph ( MVGraph &map, const char* filename );
+//void resetHopStatus(MVGraph &grph);
+//ViewD getFurthestVertex ( MVGraph &grph);
 //void shallowCopyVertexIntoOtherGraph(const Vertex vrtx_src, const Graph grph_src, Vertex &vrtx_target, Graph &grph_target);
 //void copyEdgeIntoOtherGraph(const Edge edge_src, const Graph grph_src, Edge &edge_target, Graph &grph_target);
 //std::vector<Vertex> my_node_reader ( std::string filename, Graph &g )
 
-template<typename PointInT> size_t Hypothesis<PointInT>::sNum_hypotheses_ = 0;
+//template<typename PointInT> size_t Hypothesis<PointInT>::sNum_hypotheses_ = 0;
 
 #endif

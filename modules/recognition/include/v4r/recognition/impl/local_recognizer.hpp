@@ -422,72 +422,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
 
     if(cg_algorithm_ && !param_.save_hypotheses_)    // correspondence grouping is not done outside
     {
-        throw std::runtime_error("This has not been implemented properly!");
-
-        if(!scene_normals_ || scene_normals_->points.size() != scene_->points.size())
-            v4r::computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
-
-        prepareSpecificCG(scene_, scene_keypoints_);
-
-        for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
-        {
-            ObjectHypothesis<PointT> &oh = it_map->second;
-            oh.scene_normals_ = scene_normals_;
-
-            std::vector < pcl::Correspondences > corresp_clusters;
-            cg_algorithm_->setSceneCloud (oh.scene_);
-            cg_algorithm_->setInputCloud (oh.model_->keypoints_);
-
-            if(cg_algorithm_->getRequiresNormals())
-                cg_algorithm_->setInputAndSceneNormals(oh.model_->kp_normals_, oh.scene_normals_);
-
-            //we need to pass the keypoints_pointcloud and the specific object hypothesis
-            specificCG(scene_, scene_keypoints_, oh);
-            cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
-            cg_algorithm_->cluster (corresp_clusters);
-
-            std::cout << "Instances: " << corresp_clusters.size () << " Total correspondences:" << oh.model_scene_corresp_->size () << " " << it_map->first << std::endl;
-            std::vector<bool> good_indices_for_hypothesis (corresp_clusters.size (), true);
-
-            if (param_.threshold_accept_model_hypothesis_ < 1.f)
-            {
-                //sort the hypotheses for each model according to their correspondences and take those that are threshold_accept_model_hypothesis_ over the max cardinality
-                int max_cardinality = -1;
-                for (size_t i = 0; i < corresp_clusters.size (); i++)
-                {
-                    //std::cout <<  (corresp_clusters[i]).size() << " -- " << (*(*it_map).second.model_scene_corresp).size() << std::endl;
-                    if (max_cardinality < static_cast<int> (corresp_clusters[i].size ()))
-                        max_cardinality = static_cast<int> (corresp_clusters[i].size ());
-                }
-
-                for (size_t i = 0; i < corresp_clusters.size (); i++)
-                {
-                    if (static_cast<float> ((corresp_clusters[i]).size ()) < (param_.threshold_accept_model_hypothesis_ * static_cast<float> (max_cardinality)))
-                        good_indices_for_hypothesis[i] = false;
-                }
-            }
-
-            size_t kept = 0;
-            for (size_t i = 0; i < corresp_clusters.size (); i++)
-            {
-                if (!good_indices_for_hypothesis[i])
-                    continue;
-
-                Eigen::Matrix4f best_trans;
-                typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
-                t_est.estimateRigidTransformation (*oh.model_->keypoints_, *oh.scene_, corresp_clusters[i], best_trans);
-
-                models_.push_back (oh.model_);
-                transforms_.push_back (best_trans);
-
-                kept++;
-            }
-
-            std::cout << "kept " << kept << " out of " << corresp_clusters.size () << std::endl;
-        }
-        clearSpecificCG();
-
-        std::cout << "Number of hypotheses:" << models_.size() << std::endl;
+        correspondenceGrouping();
 
         //Prepare scene and model clouds for the pose refinement step
         if ( param_.icp_iterations_ > 0 || hv_algorithm_ )
@@ -550,4 +485,45 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const Mo
     PointT kp;
     kp.getVector4fMap () = pose_matrix * keypoint_cloud[ keypoint_id ].getVector4fMap ();
     return kp;
+}
+
+template<template<class > class Distance, typename PointT, typename FeatureT>
+void
+v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::correspondenceGrouping ()
+{
+    if(cg_algorithm_->getRequiresNormals() && (!scene_normals_ || scene_normals_->points.size() != scene_->points.size()))
+        v4r::computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
+
+    typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
+    for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
+    {
+        ObjectHypothesis<PointT> &oh = it_map->second;
+
+        if(oh.model_scene_corresp_->size() < 3)
+            continue;
+
+        std::vector < pcl::Correspondences > corresp_clusters;
+        cg_algorithm_->setSceneCloud (oh.scene_);
+        cg_algorithm_->setInputCloud (oh.model_->keypoints_);
+
+        if(cg_algorithm_->getRequiresNormals())
+            cg_algorithm_->setInputAndSceneNormals(oh.model_->kp_normals_, scene_normals_);
+
+        //we need to pass the keypoints_pointcloud and the specific object hypothesis
+        cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
+        cg_algorithm_->cluster (corresp_clusters);
+
+        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences:" << oh.model_scene_corresp_->size () << " " << it_map->first << std::endl;
+
+        size_t existing_hypotheses = models_.size();
+        models_.resize( existing_hypotheses + corresp_clusters.size () );
+        transforms_.resize( existing_hypotheses + corresp_clusters.size () );
+
+        for (size_t i = 0; i < corresp_clusters.size (); i++)
+        {
+            models_[existing_hypotheses + i] = oh.model_;
+            typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *oh.scene_, corresp_clusters[i], transforms_[existing_hypotheses + i]);
+        }
+    }
 }

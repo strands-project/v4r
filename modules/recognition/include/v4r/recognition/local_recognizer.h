@@ -49,7 +49,6 @@ namespace v4r
               using Recognizer<PointT>::Parameter::normal_computation_method_;
 
               bool use_cache_;
-              float threshold_accept_model_hypothesis_;
               int kdtree_splits_;
               int knn_;
               float distance_same_keypoint_;
@@ -57,10 +56,8 @@ namespace v4r
               float correspondence_distance_constant_weight_;
               bool save_hypotheses_;
 
-
               Parameter(
                       bool use_cache = false,
-                      float threshold_accept_model_hypothesis = 0.2f,
                       int kdtree_splits = 512,
                       int knn = 1,
                       float distance_same_keypoint = 0.001f * 0.001f,
@@ -70,7 +67,6 @@ namespace v4r
                       )
                   : Recognizer<PointT>::Parameter(),
                     use_cache_(use_cache),
-                    threshold_accept_model_hypothesis_ (threshold_accept_model_hypothesis),
                     kdtree_splits_ (kdtree_splits),
                     knn_ ( knn ),
                     distance_same_keypoint_ ( distance_same_keypoint ),
@@ -139,6 +135,7 @@ namespace v4r
 
           std::string flann_data_fn_;
 
+          /** \brief stores keypoint correspondences */
           typename std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;
 
           //load features from disk and create flann structure
@@ -171,29 +168,12 @@ namespace v4r
 
           void getView (const ModelT & model, size_t view_id, typename pcl::PointCloud<PointT>::Ptr & view);
 
+          void correspondenceGrouping();
+
 
           virtual void specificLoadFeaturesAndCreateFLANN()
           {
             std::cout << "specificLoadFeaturesAndCreateFLANN => this function does nothing..." << std::endl;
-          }
-
-          virtual void prepareSpecificCG(PointTPtr & scene_cloud, PointTPtr & scene_keypoints)
-          {
-                (void)scene_cloud;
-                (void)scene_keypoints;
-                std::cerr << "This is a virtual function doing nothing!" << std::endl;
-          }
-
-          virtual void specificCG(PointTPtr & scene_cloud, PointTPtr & scene_keypoints, ObjectHypothesis<PointT> & oh)
-          {
-              (void)scene_cloud;
-              (void)scene_keypoints;
-              (void)oh;
-              std::cerr << "This is a virtual function doing nothing!" << std::endl;
-          }
-
-          virtual void clearSpecificCG() {
-
           }
 
       public:
@@ -288,12 +268,6 @@ namespace v4r
         }
 
         void
-        setThresholdAcceptHyp (float t)
-        {
-          param_.threshold_accept_model_hypothesis_ = t;
-        }
-
-        void
         setKdtreeSplits (int n)
         {
           param_.kdtree_splits_ = n;
@@ -343,7 +317,6 @@ namespace v4r
         {
           cg_algorithm_ = alg;
         }
-
 
         /**
          * \brief Initializes the FLANN structure from the provided source

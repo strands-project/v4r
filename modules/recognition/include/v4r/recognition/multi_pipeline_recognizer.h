@@ -65,7 +65,7 @@ namespace v4r
         pcl::PointIndices scene_kp_indices_;
 
         std::map<std::string, ObjectHypothesis<PointT> > saved_object_hypotheses_;
-        std::map<std::string, ObjectHypothesis<PointT> >  object_hypotheses_mp_;
+        std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;
 
 
       public:
@@ -82,7 +82,7 @@ namespace v4r
         void
         getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > & hypotheses) const
         {
-          hypotheses = object_hypotheses_mp_;
+          hypotheses = obj_hypotheses_;
         }
 
         bool

@@ -74,7 +74,7 @@ MultiRecognitionPipeline<PointT>::recognize()
     std::cout << "Number of recognizers:" << recognizers_.size() << std::endl;
 
     //typename std::map<std::string, ObjectHypothesis<PointT> > object_hypotheses_;
-    object_hypotheses_mp_.clear();
+    obj_hypotheses_.clear();
     scene_keypoints_.reset(new pcl::PointCloud<PointT>);
     scene_kp_indices_.indices.clear();
 
@@ -137,9 +137,9 @@ MultiRecognitionPipeline<PointT>::recognize()
                 {
                     const std::string id = it_tmp->second.model_->id_;
 
-                    it_mp_oh = object_hypotheses_mp_.find(id);
-                    if(it_mp_oh == object_hypotheses_mp_.end())   // no feature correspondences exist yet
-                        object_hypotheses_mp_.insert(std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
+                    it_mp_oh = obj_hypotheses_.find(id);
+                    if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
+                        obj_hypotheses_.insert(std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
                     else
                     {
                         ObjectHypothesis<PointT> &oh = it_mp_oh->second;
@@ -183,45 +183,27 @@ MultiRecognitionPipeline<PointT>::recognize()
 }
 
 template<typename PointT>
-void MultiRecognitionPipeline<PointT>::correspondenceGrouping()
+void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
 {
-//    pcl::PointCloud<pcl::Normal>::Ptr scene_kp_normals(new pcl::PointCloud<pcl::Normal>);
-    if(cg_algorithm_->getRequiresNormals())
-    {
-        pcl::PointCloud<pcl::Normal>::Ptr all_scene_normals;
-
-        //compute them...
-        all_scene_normals.reset(new pcl::PointCloud<pcl::Normal>);
-        PointTPtr processed (new pcl::PointCloud<PointT>);
-
-        if(!scene_normals_ || scene_normals_->points.size()!=scene_->points.size())
-            computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
-        else
-        {
-            processed = scene_;
-            all_scene_normals = scene_normals_;
-        }
-//        pcl::copyPointCloud(*all_scene_normals, scene_kp_indices_.indices, *scene_kp_normals);
-    }
+    if(cg_algorithm_->getRequiresNormals() && (!scene_normals_ || scene_normals_->points.size() != scene_->points.size()))
+        v4r::computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
     typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
-    for (it_map = object_hypotheses_mp_.begin (); it_map != object_hypotheses_mp_.end (); it_map++)
+    for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
     {
         ObjectHypothesis<PointT> &oh = it_map->second;
 
         if(oh.model_scene_corresp_->size() < 3)
             continue;
 
-        oh.scene_normals_ = scene_normals_;
-
         std::vector < pcl::Correspondences > corresp_clusters;
-
         cg_algorithm_->setSceneCloud (oh.scene_);
         cg_algorithm_->setInputCloud (oh.model_->keypoints_);
 
         if(cg_algorithm_->getRequiresNormals())
-            cg_algorithm_->setInputAndSceneNormals(oh.model_->kp_normals_, oh.scene_normals_);
+            cg_algorithm_->setInputAndSceneNormals(oh.model_->kp_normals_, scene_normals_);
 
+        //we need to pass the keypoints_pointcloud and the specific object hypothesis
         cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
         cg_algorithm_->cluster (corresp_clusters);
 

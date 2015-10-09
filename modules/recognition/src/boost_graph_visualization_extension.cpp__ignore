@@ -34,7 +34,7 @@ void BoostGraphVisualizer::visualizeGraph(const MVGraph &grph, pcl::visualizatio
 
         pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb ( v.scene_f_ );
         std::stringstream cloud_name;
-        cloud_name << "view_cloud_" << v.pScenePCl->header.frame_id <<  "_" << view_id;
+        cloud_name << "view_cloud_" << v.scene_->header.frame_id <<  "_" << view_id;
         vis->addPointCloud<pcl::PointXYZRGB> ( v.scene_f_, handler_rgb, cloud_name.str (), viewportNr[view_id * vis_rows + 0] );
 
         for ( size_t hyp_id = 0; hyp_id < v.hypothesis_sv_.size(); hyp_id++ ) {
@@ -61,7 +61,7 @@ void BoostGraphVisualizer::visualizeGraph(const MVGraph &grph, pcl::visualizatio
         }
         for(size_t plane_id=0; plane_id < v.verified_planes_.size(); plane_id++) {
             std::stringstream plane_name;
-            plane_name << "plane_sv_" << plane_id << "_vrtx" << v.pScenePCl->header.frame_id <<  "_" << view_id;
+            plane_name << "plane_sv_" << plane_id << "_vrtx" << v.scene_->header.frame_id <<  "_" << view_id;
             pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler ( v.verified_planes_[plane_id] );
             vis->addPointCloud<PointT> ( v.verified_planes_[plane_id], rgb_handler, plane_name.str (), viewportNr[view_id * vis_rows + 2] );
         }
@@ -89,7 +89,7 @@ void BoostGraphVisualizer::visualizeGraph(const MVGraph &grph, pcl::visualizatio
 
         for(size_t plane_id=0; plane_id < v.verified_planes_.size(); plane_id++) {
             std::stringstream plane_name;
-            plane_name << "plane_mv_" << plane_id << "_vrtx" << v.pScenePCl->header.frame_id << "_" << view_id;
+            plane_name << "plane_mv_" << plane_id << "_vrtx" << v.scene_->header.frame_id << "_" << view_id;
             pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb_handler ( v.verified_planes_[plane_id] );
             vis->addPointCloud<PointT> ( v.verified_planes_[plane_id], rgb_handler, plane_name.str (), viewportNr[view_id * vis_rows + 4] );
         }
@@ -109,10 +109,10 @@ void BoostGraphVisualizer::visualizeEdge (const EdgeD &edge, const MVGraph &grph
 
     Eigen::Matrix4f transform;
 
-    if ( grph[edge].source_id == grph[src].id_)
-        transform = grph[edge].transformation;
-    else if (grph[edge].target_id == grph[src].id_ )
-        transform = grph[edge].transformation.inverse();
+    if ( grph[edge].source_id_ == grph[src].id_)
+        transform = grph[edge].transformation_;
+    else if (grph[edge].target_id_ == grph[src].id_ )
+        transform = grph[edge].transformation_.inverse();
     else
         PCL_ERROR("Something is messed up with the transformation!");
 
@@ -127,7 +127,7 @@ void BoostGraphVisualizer::visualizeEdge (const EdgeD &edge, const MVGraph &grph
     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler_rgb_verified2 (transformed_PCl);
     edge_vis_->addPointCloud<pcl::PointXYZRGB> (transformed_PCl, handler_rgb_verified2, "Hypothesis_2");
     std::stringstream window_title;
-    window_title << "transform of source view_id " << v_src.scene_f_->header.frame_id << " to target view_id " << v_trgt.scene_f_ << " with edge " << grph[edge].model_name;
+    window_title << "transform of source view_id " << v_src.scene_f_->header.frame_id << " to target view_id " << v_trgt.scene_f_ << " with edge " << grph[edge].model_name_;
     edge_vis_->setWindowName(window_title.str());
     edge_vis_->spin ();
 }
@@ -186,7 +186,7 @@ void BoostGraphVisualizer::visualizeWorkflow ( const ViewD &vrtx, const MVGraph 
      }
 
      pcl::PointCloud<PointT>::Ptr pTotalCloud  (new pcl::PointCloud<PointT>());
-     *pTotalCloud = *(v.pScenePCl);// + *keypointsVis;
+     *pTotalCloud = *(v.scene_);// + *keypointsVis;
      //*pTotalCloud += *extendedKeypointsVis;
 
      pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb (v.scene_f_);

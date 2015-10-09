@@ -213,7 +213,7 @@ public:
          * \brief Creates the model representation of the training set, generating views if needed
          */
     void
-    generate (const std::string &foo)
+    generate (const std::string &foo = std::string())
     {
         //get models in directory
         std::vector < std::string > files;

@@ -1,3 +1,4 @@
+
 #include <v4r/common/miscellaneous.h>
 #include <v4r/features/opencv_sift_local_estimator.h>
 #include <v4r/features/shot_local_estimator_omp.h>
@@ -6,6 +7,7 @@
 #include <v4r/recognition/ghv.h>
 #include <v4r/recognition/local_recognizer.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
+#include <v4r/recognition/multiview_object_recognizer.h>
 #include <v4r/recognition/recognizer.h>
 #include <v4r/recognition/registered_views_source.h>
 
@@ -21,7 +23,7 @@
 
 #define USE_SIFT_GPU
 
-class Recognizer
+class Rec
 {
 private:
     typedef pcl::PointXYZRGB PointT;
@@ -30,6 +32,8 @@ private:
     typedef pcl::Histogram<128> FeatureT;
 
     boost::shared_ptr<v4r::MultiRecognitionPipeline<PointT> > rr_;
+    v4r::MultiviewRecognizer<PointT> mv_r_;
+
     std::string test_dir_;
     bool visualize_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
@@ -37,7 +41,7 @@ private:
 
 public:
 
-    Recognizer()
+    Rec()
     {
         visualize_ = true;
         chop_z_ = std::numeric_limits<float>::max();
@@ -208,6 +212,9 @@ public:
         rr_->setHVAlgorithm( cast_hyp_pointer );
         rr_->setCGAlgorithm( gcg_alg );
 
+        boost::shared_ptr<v4r::Recognizer<PointT> > cast_recog  = boost::static_pointer_cast<v4r::MultiRecognitionPipeline<PointT> > (rr_);
+        mv_r_.setSingleViewRecognizer(cast_recog);
+
         return true;
     }
 
@@ -249,15 +256,16 @@ public:
                     pcl::copyPointCloud(*normals, *pass.getIndices(), *normals);
                 }
 
-                rr_->setInputCloud (cloud);
-                rr_->recognize();
+                mv_r_.setInputCloud (cloud);
+                mv_r_.setCameraPose(Eigen::Matrix4f::Identity());
+                mv_r_.recognize();
 
                 std::vector<ModelTPtr> verified_models = rr_->getVerifiedModels();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
                 transforms_verified = rr_->getVerifiedTransforms();
 
-                if (visualize_)
-                    rr_->visualize();
+//                if (visualize_)
+//                    rr_->visualize();
 
                 for(size_t m_id=0; m_id<verified_models.size(); m_id++)
                 {
@@ -275,7 +283,7 @@ int
 main (int argc, char ** argv)
 {
     srand (time(NULL));
-    Recognizer r_eval;
+    Rec r_eval;
     r_eval.initialize(argc,argv);
     r_eval.test();
     return 0;
