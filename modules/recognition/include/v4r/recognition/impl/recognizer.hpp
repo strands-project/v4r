@@ -105,15 +105,9 @@ Recognizer<PointT>::hypothesisVerification ()
   hv_algorithm_->setSceneCloud (scene_);
   hv_algorithm_->setNormalsForClutterTerm(scene_normals_);
   hv_algorithm_->addModels (aligned_models, true);
-  hv_algorithm_->addNormalsClouds(aligned_normals);
 
-  std::vector<bool> mask_hv;
   if (hv_algorithm_->getRequiresNormals ())
-  {
     hv_algorithm_->addNormalsClouds (aligned_normals);
-  }
-
-  hv_algorithm_->addModels (aligned_models, true);
 
   std::vector<v4r::PlaneModel<PointT> > planes_found;
   if(hv_algorithm_->param_.add_planes_ && hv_algorithm_->add_planes_is_posssible())
@@ -137,10 +131,8 @@ Recognizer<PointT>::hypothesisVerification ()
   }
 
   hv_algorithm_->verify ();
-  hv_algorithm_->getMask (mask_hv);
 
   std::vector<bool> mask_hv_with_planes;
-
   hv_algorithm_->getMask (mask_hv_with_planes);
 
   std::vector<int> coming_from (aligned_models.size() + planes_found.size());
@@ -153,9 +145,7 @@ Recognizer<PointT>::hypothesisVerification ()
 
   for (size_t j = 0; j < aligned_models.size (); j++)
   {
-      mask_hv[j] = mask_hv_with_planes[j];
-
-      if(mask_hv[j]) {
+      if(mask_hv_with_planes[j]) {
           models_verified_.push_back (models_[j]);
           transforms_verified_.push_back (transforms_[j]);
       }

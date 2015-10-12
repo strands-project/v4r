@@ -179,7 +179,7 @@ namespace v4r
           hv_algorithm_ = alg;
         }
 
-        void setInputCloud (const PointTPtr & cloud)
+        void setInputCloud (const PointTPtr cloud)
         {
           scene_ = cloud;
         }

@@ -61,7 +61,7 @@ protected:
 
     size_t id_;
 
-    std::vector<View> views_;
+    typename std::vector<View<PointT> > views_;
 
     std::string scene_name_;
     boost::shared_ptr< pcl::PointCloud<PointT> > pAccumulatedKeypoints_;
@@ -103,13 +103,6 @@ protected:
 
     bool computeAbsolutePoses (const Graph & grph, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses);
 
-#ifdef USE_SIFT_GPU
-    boost::shared_ptr < SIFTLocalEstimation<PointT, FeatureT> > estimator;
-#else
-    boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT, FeatureT > > estimator;
-#endif
-
-
     bool visualize_output_;
     void savePCDwithPose();
 
@@ -131,6 +124,7 @@ public:
         int extension_mode_; // defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
         int max_vertices_in_graph_;
         float resolution_;
+        float chop_z_;
 
         Parameter (
                 bool scene_to_scene = true,
@@ -141,7 +135,8 @@ public:
                 double distance_same_keypoint_ = 0.005f*0.005f,
                 int extension_mode = 0,
                 int max_vertices_in_graph = 3,
-                float resolution = 0.005f) :
+                float resolution = 0.005f,
+                float chop_z = std::numeric_limits<float>::max()) :
             Recognizer<PointT>::Parameter(),
             scene_to_scene_ (scene_to_scene),
             use_robot_pose_ (use_robot_pose),
@@ -151,7 +146,8 @@ public:
             distance_same_keypoint_ (distance_same_keypoint_),
             extension_mode_ (extension_mode),
             max_vertices_in_graph_ (max_vertices_in_graph),
-            resolution_ (resolution)
+            resolution_ (resolution),
+            chop_z_ (chop_z)
         {}
     }param_;
 
@@ -162,28 +158,6 @@ public:
         pAccumulatedKeypoints_.reset (new pcl::PointCloud<PointT>);
         pAccumulatedKeypointNormals_.reset (new pcl::PointCloud<pcl::Normal>);
         pose_ = Eigen::Matrix4f::Identity();
-
-        if(param_.scene_to_scene_) {
-            if(!sift_) { //--create a new SIFT-GPU context
-                static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "1", "-pack"};
-                char * argvv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};
-
-                int argcc = sizeof(argvv) / sizeof(char*);
-                sift_ = new SiftGPU ();
-                sift_->ParseParam (argcc, argvv);
-
-                //create an OpenGL context for computation
-                if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
-                  throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
-            }
-
-        #ifdef USE_SIFT_GPU
-            estimator.reset (new SIFTLocalEstimation<PointT, FeatureT>(sift_));
-        #else
-            estimator.reset (new OpenCVSIFTLocalEstimation<PointT, FeatureT >);
-        #endif
-        }
-
     }
 
     void setSingleViewRecognizer(const typename boost::shared_ptr<Recognizer<PointT> > & rec)
@@ -235,6 +209,11 @@ public:
     void visualizeOutput(bool vis)
     {
         visualize_output_ = vis;
+    }
+
+    void set_sift(cv::Ptr<SiftGPU> &sift)
+    {
+        sift_ = sift;
     }
 
 

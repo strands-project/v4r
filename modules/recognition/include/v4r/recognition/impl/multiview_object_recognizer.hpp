@@ -30,19 +30,24 @@ MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<Po
 {
     pcl::PointIndices sift_keypoint_pcl_indices;
 
+    if(!sift_signatures)
+        sift_signatures.reset(new pcl::PointCloud<FeatureT>);
+
+    if(!sift_keypoints)
+        sift_keypoints.reset(new pcl::PointCloud<PointT>);
+
 #ifdef USE_SIFT_GPU
-    (void) sift_keypoint_indices;
-    bool ret = estimator->estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-    estimator->getKeypointIndices( sift_keypoint_pcl_indices );
+    SIFTLocalEstimation<PointT, FeatureT> estimator(sift_);
+    bool ret = estimator.estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
 #else
     (void)sift_keypoint_scales; //silences compiler warning of unused variable
     pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
 
-    bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
-    estimator->getKeypointIndices( sift_keypoint_pcl_indices );
-
-    sift_keypoint_indices = sift_keypoint_pcl_indices.indices;
+    OpenCVSIFTLocalEstimation<PointT, FeatureT > estimator;
+    bool ret = estimator.estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
 #endif
+    estimator.getKeypointIndices( sift_keypoint_pcl_indices );
+    sift_keypoint_indices = sift_keypoint_pcl_indices.indices;
     return ret;
 }
 
@@ -180,8 +185,7 @@ MultiviewRecognizer<PointT>::computeAbsolutePosesRecursive (const Graph & grph,
 {
     boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
     boost::graph_traits<Graph>::out_edge_iterator ei, ei_end;
-    for (boost::tie (ei, ei_end) = boost::out_edges (start, grph); ei != ei_end; ++ei)
-    {
+    for (boost::tie (ei, ei_end) = boost::out_edges (start, grph); ei != ei_end; ++ei)  {
         ViewD targ = boost::target (*ei, grph);
         size_t target_id = boost::target (*ei, grph);
 
@@ -192,8 +196,7 @@ MultiviewRecognizer<PointT>::computeAbsolutePosesRecursive (const Graph & grph,
         CamConnect my_e = weightmap[*ei];
         Eigen::Matrix4f intern_accum;
         Eigen::Matrix4f trans = my_e.transformation_;
-        if( my_e.target_id_ != target_id)
-        {
+        if( my_e.target_id_ != target_id) {
             Eigen::Matrix4f trans_inv;
             trans_inv = trans.inverse();
             trans = trans_inv;
@@ -212,6 +215,11 @@ bool
 MultiviewRecognizer<PointT>::computeAbsolutePoses (const Graph & grph, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses)
 {
   size_t num_frames = boost::num_vertices(grph);
+  if (num_frames == 0) {
+      absolute_poses.push_back( views_[0].transform_to_world_co_system_ );
+      return false;
+  }
+
   absolute_poses.resize( num_frames );
   std::vector<bool> hop_list (num_frames, false);
   ViewD source_view = 0;
@@ -239,7 +247,7 @@ MultiviewRecognizer<PointT>::recognize ()
 
     size_t num_existing_views = views_.size();
     views_.resize(num_existing_views + 1);
-    View& v = views_.back();
+    View<PointT> &v = views_.back();
 
     v.id_ = id_++;
     v.scene_ = scene_;
@@ -247,7 +255,21 @@ MultiviewRecognizer<PointT>::recognize ()
     v.absolute_pose_ = pose_;    // this might be redundant
 
     computeNormals<PointT>(v.scene_, v.scene_normals_, param_.normal_computation_method_);
-    pcl::copyPointCloud(*v.scene_normals_, v.filtered_scene_indices_, *scene_normals_f);
+
+    if( param_.chop_z_ > 0) {
+        pcl::PassThrough<PointT> pass;
+        pass.setFilterLimits ( 0.f, param_.chop_z_ );
+        pass.setFilterFieldName ("z");
+        pass.setInputCloud (v.scene_);
+        pass.setKeepOrganized (true);
+        pass.filter (*v.scene_f_);
+        v.filtered_scene_indices_.indices = *pass.getIndices();
+        pcl::copyPointCloud(*v.scene_normals_, v.filtered_scene_indices_, *scene_normals_f);
+    }
+    else {
+        v.scene_f_ = v.scene_;
+        scene_normals_f = v.scene_normals_;
+    }
 
 
     if( param_.scene_to_scene_) {
@@ -262,7 +284,7 @@ MultiviewRecognizer<PointT>::recognize ()
 
     //=====================Pose Estimation=======================
     for (size_t view_id=0; view_id<views_.size(); view_id++) {
-        const View &w = views_[view_id];
+        const View<PointT> &w = views_[view_id];
         if( w.id_ ==  v.id_ )
             continue;
 
@@ -308,8 +330,7 @@ MultiviewRecognizer<PointT>::recognize ()
                                  e_tmp.source_id_ << " and " << e_tmp.target_id_ << " by " <<
                                  e_tmp.model_name_ << std::endl;
 
-                    if(e_tmp.edge_weight_ < lowest_edge_weight)
-                    {
+                    if(e_tmp.edge_weight_ < lowest_edge_weight) {
                         lowest_edge_weight = e_tmp.edge_weight_;
                         best_transform_id = trans_id;
                     }
@@ -330,8 +351,7 @@ MultiviewRecognizer<PointT>::recognize ()
 
     Graph grph_mst;
     std::cout << "Print the edges in the MST:" << std::endl;
-    for (std::vector < EdgeD >::iterator ei = spanning_tree.begin(); ei != spanning_tree.end(); ++ei)
-    {
+    for (std::vector < EdgeD >::iterator ei = spanning_tree.begin(); ei != spanning_tree.end(); ++ei) {
         CamConnect my_e = weightmap[*ei];
         std::cout << "[" << source(*ei, gs_) << "->" << target(*ei, gs_) << "] with weight " << my_e.edge_weight_ << " by " << my_e.model_name_ << std::endl;
         boost::add_edge(source(*ei, gs_), target(*ei, gs_), weightmap[*ei], grph_mst);
@@ -348,12 +368,73 @@ MultiviewRecognizer<PointT>::recognize ()
     rr_->setSceneNormals(scene_normals_f);
     rr_->recognize();
 
-    if(rr_->getSaveHypothesesParam())   // correspondence grouping is done already (so we get the full models) [Faeulhammer et al 2015, MVA paper]
-    {
+    if(rr_->getSaveHypothesesParam()) {  // correspondence grouping is done already (so we get the full models) [Faeulhammer et al 2015, MVA paper]
         rr_->getSavedHypotheses(v.hypotheses_);
         rr_->getKeypointCloud(v.pKeypointsMultipipe_);
         rr_->getKeypointIndices(v.kp_indices_);
         pcl::copyPointCloud(*scene_normals_f, v.kp_indices_, *v.kp_normals_);
+
+        obj_hypotheses_ = v.hypotheses_;
+
+        typename pcl::PointCloud<PointT>::Ptr accum_scene (new pcl::PointCloud<PointT>());
+        pcl::PointCloud<pcl::Normal>::Ptr accum_normals (new pcl::PointCloud<pcl::Normal>());
+        *accum_scene += *v.scene_f_;
+        *accum_normals += *scene_normals_f;
+
+        size_t num_existing_scene_pts = v.scene_f_->points.size();
+
+        for (size_t v_id=0; v_id<views_.size(); v_id++) {   // merge feature correspondences
+            const View<PointT> &w = views_[v_id];
+            if (w.id_ == v.id_)
+                continue;
+
+
+            //------ Transform keypoints and rotate normals----------
+            typename pcl::PointCloud<PointT> cloud_aligned_tmp;
+            pcl::transformPointCloud(*w.scene_f_, w.absolute_pose_, cloud_aligned_tmp);
+
+            pcl::PointCloud<pcl::Normal> normal_aligned_tmp;
+            normal_aligned_tmp.points.resize( w.filtered_scene_indices_.indices.size() );
+
+            const Eigen::Matrix3f rot = w.absolute_pose_.block<3, 3> (0, 0);
+            for (size_t n_id=0; n_id< w.filtered_scene_indices_.indices.size(); n_id++) {
+                const pcl::Normal &n = w.scene_normals_[ filtered_scene_indices_.indices [n_id] ];
+                normal_aligned_tmp.points[n_id].getNormalVector3fMap() = rot * n.getNormalVector3fMap ();
+            }
+
+
+            *accum_scene += cloud_aligned_tmp;
+            *accum_normals += normal_aligned_tmp;
+
+            typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_mp_oh;
+
+            typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_tmp;
+            for (it_tmp = w.hypotheses_.begin (); it_tmp != w.hypotheses_.end (); it_tmp++)
+            {
+                const std::string id = it_tmp->second.model_->id_;
+
+                it_mp_oh = obj_hypotheses_.find(id);
+                if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
+                    obj_hypotheses_.insert(std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
+                else
+                {
+                    ObjectHypothesis<PointT> &oh = it_mp_oh->second;
+                    const ObjectHypothesis<PointT> &new_oh = it_tmp->second;
+                    pcl::Correspondences model_scene_corresp_tmp = *new_oh.model_scene_corresp_;
+
+                    size_t num_existing_corr = oh.model_scene_corresp_->size();
+                    oh.model_scene_corresp_->resize( num_existing_corr + model_scene_corresp_tmp.size());
+                    size_t kept=0;
+                    for(size_t c_id=0; c_id< model_scene_corresp_tmp.size(); c_id++) {
+                        if(0) {
+                            oh.model_scene_corresp_->at( num_existing_corr + kept ) = new_oh.model_scene_corresp_->at(c_id);
+                            kept++;
+                        }
+                    }
+                    oh.model_scene_corresp_->resize(num_existing_corr + kept);
+                }
+            }
+        }
     }
     else    // we have to do the correspondence grouping ourselve [Faeulhammer et al 2015, ICRA paper]
     {

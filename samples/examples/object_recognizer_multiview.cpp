@@ -32,19 +32,19 @@ private:
     typedef pcl::Histogram<128> FeatureT;
 
     boost::shared_ptr<v4r::MultiRecognitionPipeline<PointT> > rr_;
-    v4r::MultiviewRecognizer<PointT> mv_r_;
+    boost::shared_ptr<v4r::MultiviewRecognizer<PointT> > mv_r_;
 
     std::string test_dir_;
     bool visualize_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
-    float chop_z_;
+
+    cv::Ptr<SiftGPU> sift_;
 
 public:
 
     Rec()
     {
         visualize_ = true;
-        chop_z_ = std::numeric_limits<float>::max();
     }
 
     bool initialize(int argc, char ** argv)
@@ -62,6 +62,7 @@ public:
         v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> >::Parameter paramLocalRecShot;
         v4r::MultiRecognitionPipeline<PointT>::Parameter paramMultiPipeRec;
         v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >::Parameter paramLocalEstimator;
+        v4r::MultiviewRecognizer<PointT>::Parameter paramMultiView;
 
         paramGgcg.gc_size_ = 0.015f;
         paramGgcg.thres_dot_distance_ = 0.2f;
@@ -91,7 +92,6 @@ public:
         pcl::console::parse_argument (argc, argv,  "-test_dir", test_dir_);
         pcl::console::parse_argument (argc, argv,  "-models_dir", models_dir);
         pcl::console::parse_argument (argc, argv,  "-training_dir", training_dir);
-        pcl::console::parse_argument (argc, argv,  "-chop_z", chop_z_ );
         pcl::console::parse_argument (argc, argv,  "-do_sift", do_sift);
         pcl::console::parse_argument (argc, argv,  "-do_shot", do_shot);
         pcl::console::parse_argument (argc, argv,  "-do_ourcvfh", do_ourcvfh);
@@ -111,6 +111,9 @@ public:
         int icp_iterations;
         if(pcl::console::parse_argument (argc, argv,  "-icp_iterations", icp_iterations) != -1)
             paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = paramMultiPipeRec.icp_iterations_ = icp_iterations;
+
+        pcl::console::parse_argument (argc, argv,  "-chop_z", paramMultiView.chop_z_ );
+        pcl::console::parse_argument (argc, argv,  "-max_vertices_in_graph", paramMultiView.max_vertices_in_graph_ );
 
         pcl::console::parse_argument (argc, argv,  "-cg_size_thresh", paramGgcg.gc_threshold_);
         pcl::console::parse_argument (argc, argv,  "-cg_size", paramGgcg.gc_size_);
@@ -157,7 +160,18 @@ public:
         if (do_sift)
         {
 #ifdef USE_SIFT_GPU
-      boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT > > estimator (new v4r::SIFTLocalEstimation<PointT, FeatureT >());
+        static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "1", "-pack"};
+        char * argvv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};
+
+        int argcc = sizeof(argvv) / sizeof(char*);
+        sift_ = new SiftGPU ();
+        sift_->ParseParam (argcc, argvv);
+
+        //create an OpenGL context for computation
+        if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
+          throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
+
+      boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT > > estimator (new v4r::SIFTLocalEstimation<PointT, FeatureT >(sift_));
       boost::shared_ptr < v4r::LocalEstimator<PointT, FeatureT > > cast_estimator = boost::dynamic_pointer_cast<v4r::SIFTLocalEstimation<PointT, FeatureT > > (estimator);
 #else
       boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT > > estimator (new v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT >);
@@ -198,7 +212,7 @@ public:
             local->setFeatureEstimator (cast_estimator);
             local->initialize (false);
 
-            uniform_kp_extractor->setMaxDistance( chop_z_ ); // for training we do not want this restriction
+            uniform_kp_extractor->setMaxDistance( paramMultiView.chop_z_ ); // for training we do not want this restriction
 
             boost::shared_ptr<v4r::Recognizer<PointT> > cast_recog;
             cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > (local);
@@ -213,7 +227,10 @@ public:
         rr_->setCGAlgorithm( gcg_alg );
 
         boost::shared_ptr<v4r::Recognizer<PointT> > cast_recog  = boost::static_pointer_cast<v4r::MultiRecognitionPipeline<PointT> > (rr_);
-        mv_r_.setSingleViewRecognizer(cast_recog);
+
+        mv_r_.reset(new v4r::MultiviewRecognizer<PointT>(paramMultiView));
+        mv_r_->setSingleViewRecognizer(cast_recog);
+        mv_r_->set_sift(sift_);
 
         return true;
     }
@@ -245,20 +262,9 @@ public:
 
                 pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>());
 
-                if( chop_z_ > 0)
-                {
-                    pcl::PassThrough<PointT> pass;
-                    pass.setFilterLimits ( 0.f, chop_z_ );
-                    pass.setFilterFieldName ("z");
-                    pass.setInputCloud (cloud);
-                    pass.setKeepOrganized (true);
-                    pass.filter (*cloud);
-                    pcl::copyPointCloud(*normals, *pass.getIndices(), *normals);
-                }
-
-                mv_r_.setInputCloud (cloud);
-                mv_r_.setCameraPose(Eigen::Matrix4f::Identity());
-                mv_r_.recognize();
+                mv_r_->setInputCloud (cloud);
+                mv_r_->setCameraPose(Eigen::Matrix4f::Identity());
+                mv_r_->recognize();
 
                 std::vector<ModelTPtr> verified_models = rr_->getVerifiedModels();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;

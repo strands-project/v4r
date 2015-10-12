@@ -14,9 +14,11 @@
 
 typedef pcl::Histogram<128> FeatureT;
 
+namespace v4r
+{
 
 template<typename PointInT>
-class Hypothesis
+class V4R_EXPORTS Hypothesis
 {
     typedef v4r::Model<PointInT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
@@ -68,31 +70,30 @@ public:
     }
 };
 
-class View
+template<typename PointT>
+class V4R_EXPORTS View
 {
-private:
-    typedef pcl::PointXYZRGB PointT;
 
 public:
     View();
     //View(const View &view);
-    boost::shared_ptr< pcl::PointCloud<PointT> > scene_;
-    boost::shared_ptr< pcl::PointCloud<PointT> > scene_f_;
+    typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_;
+    typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_f_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > scene_normals_;
     pcl::PointIndices filtered_scene_indices_;
-    boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
+    typename boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
-    std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
+    typename std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_;
     std::vector<float> sift_keypoints_scales_;
     pcl::PointIndices sift_kp_indices_;
-    std::vector<Hypothesis<PointT> > hypothesis_sv_;
-    std::vector<Hypothesis<PointT> > hypothesis_mv_;
+    typename std::vector<Hypothesis<PointT> > hypothesis_sv_;
+    typename std::vector<Hypothesis<PointT> > hypothesis_mv_;
     Eigen::Matrix4f transform_to_world_co_system_;
     bool has_been_hopped_;
     double cumulative_weight_to_new_vrtx_;
     pcl::PointIndices kp_indices_;
-    std::vector<pcl::PointCloud<PointT>::Ptr> verified_planes_;
+    std::vector<typename pcl::PointCloud<PointT>::Ptr> verified_planes_;
     size_t id_;
 
     //GO3D
@@ -101,7 +102,7 @@ public:
     std::vector<int> nguyens_kept_indices_;
 };
 
-struct CamConnect
+struct V4R_EXPORTS CamConnect
 {
     Eigen::Matrix4f transformation_;
     float edge_weight_;
@@ -148,7 +149,6 @@ struct CamConnect
     }
 };
 
-
 using namespace boost;
 
 //void visualizeGraph ( const MVGraph & grph, pcl::visualization::PCLVisualizer::Ptr vis);
@@ -162,4 +162,5 @@ using namespace boost;
 
 //template<typename PointInT> size_t Hypothesis<PointInT>::sNum_hypotheses_ = 0;
 
+}
 #endif
