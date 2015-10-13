@@ -83,7 +83,7 @@ public:
     pcl::PointIndices filtered_scene_indices_;
     typename boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
-    typename std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
+    typename std::map<std::string, ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_;
     std::vector<float> sift_keypoints_scales_;
     pcl::PointIndices sift_kp_indices_;

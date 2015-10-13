@@ -47,6 +47,13 @@ protected:
 
     using Recognizer<PointT>::scene_;
     using Recognizer<PointT>::scene_normals_;
+    using Recognizer<PointT>::models_;
+    using Recognizer<PointT>::transforms_;
+    using Recognizer<PointT>::hv_algorithm_;
+
+    using Recognizer<PointT>::poseRefinement;
+    using Recognizer<PointT>::hypothesisVerification;
+    using Recognizer<PointT>::icp_scene_indices_;
 
     boost::shared_ptr<Recognizer<PointT> > rr_;
 
@@ -106,6 +113,8 @@ protected:
     bool visualize_output_;
     void savePCDwithPose();
 
+    void correspondenceGrouping();
+
 public:
     class Parameter : public Recognizer<PointT>::Parameter
     {
@@ -121,6 +130,7 @@ public:
         bool go3d_;
         bool hyp_to_hyp_;   // if true adds edges for common object hypotheses
         double distance_same_keypoint_;
+        float same_keypoint_dot_product_;
         int extension_mode_; // defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
         int max_vertices_in_graph_;
         float resolution_;
@@ -133,6 +143,7 @@ public:
                 bool go3d = true,
                 bool hyp_to_hyp = false,
                 double distance_same_keypoint_ = 0.005f*0.005f,
+                float same_keypoint_dot_product = 0.8f,
                 int extension_mode = 0,
                 int max_vertices_in_graph = 3,
                 float resolution = 0.005f,
@@ -144,6 +155,7 @@ public:
             go3d_ (go3d),
             hyp_to_hyp_ (hyp_to_hyp),
             distance_same_keypoint_ (distance_same_keypoint_),
+            same_keypoint_dot_product_ (same_keypoint_dot_product),
             extension_mode_ (extension_mode),
             max_vertices_in_graph_ (max_vertices_in_graph),
             resolution_ (resolution),

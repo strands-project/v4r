@@ -381,65 +381,152 @@ MultiviewRecognizer<PointT>::recognize ()
         *accum_scene += *v.scene_f_;
         *accum_normals += *scene_normals_f;
 
-        size_t num_existing_scene_pts = v.scene_f_->points.size();
-
         for (size_t v_id=0; v_id<views_.size(); v_id++) {   // merge feature correspondences
             const View<PointT> &w = views_[v_id];
             if (w.id_ == v.id_)
                 continue;
 
-
             //------ Transform keypoints and rotate normals----------
+            const Eigen::Matrix4f tf  = w.absolute_pose_;
             typename pcl::PointCloud<PointT> cloud_aligned_tmp;
-            pcl::transformPointCloud(*w.scene_f_, w.absolute_pose_, cloud_aligned_tmp);
+            pcl::transformPointCloud(*w.scene_f_, cloud_aligned_tmp, tf);
 
             pcl::PointCloud<pcl::Normal> normal_aligned_tmp;
             normal_aligned_tmp.points.resize( w.filtered_scene_indices_.indices.size() );
 
-            const Eigen::Matrix3f rot = w.absolute_pose_.block<3, 3> (0, 0);
-            for (size_t n_id=0; n_id< w.filtered_scene_indices_.indices.size(); n_id++) {
-                const pcl::Normal &n = w.scene_normals_[ filtered_scene_indices_.indices [n_id] ];
+            const Eigen::Matrix3f rot = tf.block<3, 3> (0, 0);
+            for (size_t n_id=0; n_id < w.filtered_scene_indices_.indices.size(); n_id++) {
+                const pcl::Normal n = w.scene_normals_->points[ w.filtered_scene_indices_.indices [n_id] ];
                 normal_aligned_tmp.points[n_id].getNormalVector3fMap() = rot * n.getNormalVector3fMap ();
             }
 
-
-            *accum_scene += cloud_aligned_tmp;
-            *accum_normals += normal_aligned_tmp;
-
-            typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_mp_oh;
-
-            typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_tmp;
-            for (it_tmp = w.hypotheses_.begin (); it_tmp != w.hypotheses_.end (); it_tmp++)
-            {
-                const std::string id = it_tmp->second.model_->id_;
-
+            typename std::map<std::string, ObjectHypothesis<PointT> >::const_iterator it_t_tmp;   // hypotheses to be transferred
+            for (it_t_tmp = w.hypotheses_.begin (); it_t_tmp != w.hypotheses_.end (); ++it_t_tmp) {
+                const std::string id = it_t_tmp->second.model_->id_;
+                typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_mp_oh;
                 it_mp_oh = obj_hypotheses_.find(id);
-                if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
-                    obj_hypotheses_.insert(std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
-                else
-                {
-                    ObjectHypothesis<PointT> &oh = it_mp_oh->second;
-                    const ObjectHypothesis<PointT> &new_oh = it_tmp->second;
-                    pcl::Correspondences model_scene_corresp_tmp = *new_oh.model_scene_corresp_;
 
-                    size_t num_existing_corr = oh.model_scene_corresp_->size();
-                    oh.model_scene_corresp_->resize( num_existing_corr + model_scene_corresp_tmp.size());
+                if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
+                    obj_hypotheses_.insert(std::pair<std::string, ObjectHypothesis<PointT> >(id, it_t_tmp->second));
+
+                else {  // merge with existing object hypotheses
+                    ObjectHypothesis<PointT> &oh_existing = it_mp_oh->second;
+                    const ObjectHypothesis<PointT> &new_oh = it_t_tmp->second;
+
+                    size_t num_existing_corr = oh_existing.model_scene_corresp_->size();
+                    oh_existing.model_scene_corresp_->resize( num_existing_corr + new_oh.model_scene_corresp_->size());
                     size_t kept=0;
-                    for(size_t c_id=0; c_id< model_scene_corresp_tmp.size(); c_id++) {
-                        if(0) {
-                            oh.model_scene_corresp_->at( num_existing_corr + kept ) = new_oh.model_scene_corresp_->at(c_id);
+                    for(size_t c_id=0; c_id<new_oh.model_scene_corresp_->size(); c_id++) {
+                        pcl::Correspondence c_new = new_oh.model_scene_corresp_->at(c_id);
+                        const PointT m_kp_new = new_oh.model_->keypoints_->points[ c_new.index_query ];
+                        pcl::PointXYZ m_kp_new_XYZ;
+                        m_kp_new_XYZ.getVector3fMap() = m_kp_new.getVector3fMap();
+
+                        const PointT s_kp_new = cloud_aligned_tmp.points[ c_new.index_match ];
+                        pcl::PointXYZ s_kp_new_XYZ;
+                        s_kp_new_XYZ.getVector3fMap() = s_kp_new.getVector3fMap();
+                        const pcl::Normal s_kp_normal_new = normal_aligned_tmp.points[ c_new.index_match ];
+
+                        bool drop_new_correspondence = false;
+
+                        for(size_t cc_id=0; cc_id < num_existing_corr; cc_id++) {
+                            const pcl::Correspondence c_existing = oh_existing.model_scene_corresp_->at(cc_id);
+                            const PointT m_kp_existing = oh_existing.model_->keypoints_->points[ c_existing.index_query ];
+                            pcl::PointXYZ m_kp_existing_XYZ;
+                            m_kp_existing_XYZ.getVector3fMap() = m_kp_existing.getVector3fMap();
+
+                            const PointT s_kp_existing = accum_scene->points[ c_existing.index_match ];
+                            pcl::PointXYZ s_kp_existing_XYZ;
+                            s_kp_existing_XYZ.getVector3fMap() = s_kp_existing.getVector3fMap();
+                            const pcl::Normal s_kp_normal_existing = accum_normals->points[ c_existing.index_match ];
+
+                            float squaredDistModelKeypoints = pcl::squaredEuclideanDistance(m_kp_new_XYZ, m_kp_existing_XYZ);
+                            float squaredDistSceneKeypoints = pcl::squaredEuclideanDistance(s_kp_new_XYZ, s_kp_existing_XYZ);
+
+                            if( (squaredDistSceneKeypoints < param_.distance_same_keypoint_) &&
+                                    (s_kp_normal_new.getNormalVector3fMap().dot(s_kp_normal_existing.getNormalVector3fMap()) > param_.same_keypoint_dot_product_) &&
+                                    (squaredDistModelKeypoints < param_.distance_same_keypoint_)) {
+
+                                drop_new_correspondence = true;
+                                break;
+                            }
+                        }
+
+                        if (!drop_new_correspondence) {
+                            c_new.index_match += accum_scene->points.size();
+                            oh_existing.model_scene_corresp_->at( num_existing_corr + kept ) = c_new;
                             kept++;
                         }
                     }
-                    oh.model_scene_corresp_->resize(num_existing_corr + kept);
+                    oh_existing.model_scene_corresp_->resize(num_existing_corr + kept);
                 }
             }
+            *accum_scene += cloud_aligned_tmp;
+            *accum_normals += normal_aligned_tmp;
         }
+
+        scene_ = accum_scene;
+        scene_normals_ = accum_normals;
+
+        if(cg_algorithm_)
+        {
+            correspondenceGrouping();
+
+            if ( param_.icp_iterations_ > 0 )
+                poseRefinement();
+
+            if ( hv_algorithm_ && models_.size() )
+                hypothesisVerification();
+        }
+
+        scene_normals_.reset();
     }
     else    // we have to do the correspondence grouping ourselve [Faeulhammer et al 2015, ICRA paper]
     {
     }
 }
+
+template<typename PointT>
+void
+MultiviewRecognizer<PointT>::correspondenceGrouping ()
+{
+    if(cg_algorithm_->getRequiresNormals() && (!scene_normals_ || scene_normals_->points.size() != scene_->points.size()))
+        v4r::computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
+
+    typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
+    for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
+    {
+        ObjectHypothesis<PointT> &oh = it_map->second;
+
+        if(oh.model_scene_corresp_->size() < 3)
+            continue;
+
+        std::vector < pcl::Correspondences > corresp_clusters;
+        cg_algorithm_->setSceneCloud (oh.scene_);
+        cg_algorithm_->setInputCloud (oh.model_->keypoints_);
+
+        if(cg_algorithm_->getRequiresNormals())
+            cg_algorithm_->setInputAndSceneNormals(oh.model_->kp_normals_, scene_normals_);
+
+        //we need to pass the keypoints_pointcloud and the specific object hypothesis
+        cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
+        cg_algorithm_->cluster (corresp_clusters);
+
+        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences:" << oh.model_scene_corresp_->size () << " " << it_map->first << std::endl;
+
+        size_t existing_hypotheses = models_.size();
+        models_.resize( existing_hypotheses + corresp_clusters.size () );
+        transforms_.resize( existing_hypotheses + corresp_clusters.size () );
+
+        for (size_t i = 0; i < corresp_clusters.size (); i++)
+        {
+            models_[existing_hypotheses + i] = oh.model_;
+            typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *oh.scene_, corresp_clusters[i], transforms_[existing_hypotheses + i]);
+        }
+    }
+}
+
 
 template<typename PointT>
 void

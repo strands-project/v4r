@@ -133,7 +133,7 @@ MultiRecognitionPipeline<PointT>::recognize()
                 typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_mp_oh;
 
                 typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_tmp;
-                for (it_tmp = oh_tmp.begin (); it_tmp != oh_tmp.end (); it_tmp++)
+                for (it_tmp = oh_tmp.begin (); it_tmp != oh_tmp.end (); ++it_tmp)
                 {
                     const std::string id = it_tmp->second.model_->id_;
 

@@ -270,8 +270,8 @@ public:
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
                 transforms_verified = rr_->getVerifiedTransforms();
 
-//                if (visualize_)
-//                    rr_->visualize();
+                if (visualize_)
+                    mv_r_->visualize();
 
                 for(size_t m_id=0; m_id<verified_models.size(); m_id++)
                 {
