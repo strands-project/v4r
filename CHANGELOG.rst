@@ -2,6 +2,15 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#34 <https://github.com/strands-project/v4r/issues/34>`_ from strands-project/remove_tomgine
+  temporary remove Tomgine and everything related to it (i.e. object cl…
+* also comment computeCentroid in single-view object recognizer
+* comment computeCentroid to silence error
+* temporary remove Tomgine and everything related to it (i.e. object classification)
+* Contributors: Thomas Fäulhammer
+
 1.0.10 (2015-09-21)
 -------------------
 * Merge pull request `#31 <https://github.com/strands-project/v4r/issues/31>`_ from strands-project/namespace_update
