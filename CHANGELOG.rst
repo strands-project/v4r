@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.11 (2015-10-14)
+-------------------
 * Merge pull request `#34 <https://github.com/strands-project/v4r/issues/34>`_ from strands-project/remove_tomgine
   temporary remove Tomgine and everything related to it (i.e. object cl…
 * also comment computeCentroid in single-view object recognizer
