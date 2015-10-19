@@ -704,9 +704,9 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
     found_transformations_.clear ();
 
     //for the old gc...
-    pcl::CorrespondencesPtr sorted_corrs (new pcl::Correspondences (*model_scene_corrs_));
-    std::sort (sorted_corrs->begin (), sorted_corrs->end (), gcGraphCorrespSorter);
-    model_scene_corrs_ = sorted_corrs;
+//    pcl::CorrespondencesPtr sorted_corrs (new pcl::Correspondences (*model_scene_corrs_));
+//    std::sort (sorted_corrs->begin (), sorted_corrs->end (), gcGraphCorrespSorter);
+//    model_scene_corrs_ = sorted_corrs;
 
     if (!model_scene_corrs_)
     {

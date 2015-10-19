@@ -116,22 +116,23 @@ namespace v4r
 
         void recognize();
 
-        void addRecognizer(const typename boost::shared_ptr<v4r::Recognizer<PointT> > & rec)
+        void addRecognizer(typename boost::shared_ptr<v4r::Recognizer<PointT> > & rec)
         {
           recognizers_.push_back(rec);
         }
 
-        template <template<class > class Distance, typename FeatureT>
-        void setFeatAndKeypoints(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
-                     const pcl::PointIndices & keypoint_indices,
-                     size_t feature_type)
+        template <typename FeatureT>
+        void
+        setFeatAndKeypoints(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
+                            const pcl::PointIndices & keypoint_indices,
+                            size_t feature_type)
         {
           for (size_t i=0; i < recognizers_.size(); i++)
           {
               if(recognizers_[i]->getFeatureType() == feature_type)
               {
-                  typename boost::shared_ptr<v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT> > cast_local_recognizer;
-                  cast_local_recognizer = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT> > (recognizers_[i]);
+                  boost::shared_ptr<LocalRecognitionPipeline<flann::L1, PointT, FeatureT> > cast_local_recognizer
+                          = boost::static_pointer_cast<LocalRecognitionPipeline<flann::L1, PointT, FeatureT> > (recognizers_[i]);
                   cast_local_recognizer->setFeatAndKeypoints(signatures, keypoint_indices);
               }
           }

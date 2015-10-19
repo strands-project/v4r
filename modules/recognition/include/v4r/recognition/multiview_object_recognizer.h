@@ -55,7 +55,7 @@ protected:
     using Recognizer<PointT>::hypothesisVerification;
     using Recognizer<PointT>::icp_scene_indices_;
 
-    boost::shared_ptr<Recognizer<PointT> > rr_;
+    boost::shared_ptr<MultiRecognitionPipeline<PointT> > rr_;
 
     typedef boost::property<boost::edge_weight_t, CamConnect> EdgeWeightProperty;
     typedef boost::adjacency_list < boost::vecS, boost::vecS, boost::undirectedS, size_t, EdgeWeightProperty> Graph;
@@ -64,33 +64,22 @@ protected:
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
     typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
 
+
+    typedef typename std::map<std::string, ObjectHypothesis<PointT> > symHyp;
+
     Graph gs_;
 
     size_t id_;
 
-    typename std::vector<View<PointT> > views_;
+    typename std::map<size_t, View<PointT> > views_;
 
     std::string scene_name_;
-    boost::shared_ptr< pcl::PointCloud<PointT> > pAccumulatedKeypoints_;
-    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pAccumulatedKeypointNormals_;
-    std::map<std::string, ObjectHypothesis<PointT> > accumulatedHypotheses_;
-    pcl::visualization::PCLVisualizer::Ptr vis_;
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer_;
 
     /** \brief stores keypoint correspondences */
-    typename std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;
+    symHyp obj_hypotheses_;
 
     /** \brief Point-to-point correspondence grouping algorithm */
     typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > cg_algorithm_;
-
-    /** \brief all signatures/descriptors of the scene */
-    typename pcl::PointCloud<FeatureT>::Ptr signatures_;
-
-    /** \brief all keypoints of the scene */
-    typename pcl::PointCloud<PointT>::Ptr scene_keypoints_;
-
-    /** \brief indices of the keypoints with respect to the scene point cloud */
-    pcl::PointIndices scene_kp_indices_;
 
     Eigen::Matrix4f pose_;
 
@@ -102,16 +91,9 @@ protected:
     pcl::visualization::PCLVisualizer::Ptr go3d_vis_;
     std::vector<int> go_3d_viewports_;
 
-    bool computeAbsolutePosesRecursive (const Graph & grph,
-                                        const ViewD start,
-                                        const Eigen::Matrix4f &accum,
-                                        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses,
-                                        std::vector<bool> &hop_list);
+    bool computeAbsolutePose(CamConnect & e, bool &is_first_edge = false);
 
-    bool computeAbsolutePoses (const Graph & grph, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses);
-
-    bool visualize_output_;
-    void savePCDwithPose();
+    void pruneGraph();
 
     void correspondenceGrouping();
 
@@ -135,6 +117,7 @@ public:
         int max_vertices_in_graph_;
         float resolution_;
         float chop_z_;
+        bool do_noise_modelling_;
 
         Parameter (
                 bool scene_to_scene = true,
@@ -142,37 +125,36 @@ public:
                 bool use_gc_s2s = true,
                 bool go3d = true,
                 bool hyp_to_hyp = false,
-                double distance_same_keypoint_ = 0.005f*0.005f,
+                double distance_same_keypoint = 0.005f*0.005f,
                 float same_keypoint_dot_product = 0.8f,
                 int extension_mode = 0,
                 int max_vertices_in_graph = 3,
                 float resolution = 0.005f,
-                float chop_z = std::numeric_limits<float>::max()) :
+                float chop_z = std::numeric_limits<float>::max(),
+                bool do_noise_modelling = true) :
             Recognizer<PointT>::Parameter(),
             scene_to_scene_ (scene_to_scene),
             use_robot_pose_ (use_robot_pose),
             use_gc_s2s_ (use_gc_s2s),
             go3d_ (go3d),
             hyp_to_hyp_ (hyp_to_hyp),
-            distance_same_keypoint_ (distance_same_keypoint_),
+            distance_same_keypoint_ (distance_same_keypoint),
             same_keypoint_dot_product_ (same_keypoint_dot_product),
             extension_mode_ (extension_mode),
             max_vertices_in_graph_ (max_vertices_in_graph),
             resolution_ (resolution),
-            chop_z_ (chop_z)
+            chop_z_ (chop_z),
+            do_noise_modelling_ (do_noise_modelling)
         {}
     }param_;
 
     MultiviewRecognizer(const Parameter &p = Parameter()) : Recognizer<PointT>(p){
         param_ = p;
         id_ = 0;
-        visualize_output_ = false;
-        pAccumulatedKeypoints_.reset (new pcl::PointCloud<PointT>);
-        pAccumulatedKeypointNormals_.reset (new pcl::PointCloud<pcl::Normal>);
         pose_ = Eigen::Matrix4f::Identity();
     }
 
-    void setSingleViewRecognizer(const typename boost::shared_ptr<Recognizer<PointT> > & rec)
+    void setSingleViewRecognizer(const typename boost::shared_ptr<MultiRecognitionPipeline<PointT> > & rec)
     {
         rr_ = rec;
     }
@@ -208,19 +190,6 @@ public:
     std::string get_scene_name() const
     {
         return scene_name_;
-    }
-
-    bool getVerifiedHypotheses(std::vector<ModelTPtr> &models,
-                               std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms) const
-    {
-        return true;
-
-    }
-
-
-    void visualizeOutput(bool vis)
-    {
-        visualize_output_ = vis;
     }
 
     void set_sift(cv::Ptr<SiftGPU> &sift)

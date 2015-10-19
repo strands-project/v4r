@@ -270,6 +270,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
 {
     models_.clear();
     transforms_.clear();
+    scene_keypoints_.reset(new pcl::PointCloud<PointT>);
 
     if (feat_kp_set_from_outside_)
     {
@@ -280,7 +281,6 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
     else
     {
         signatures_.reset(new pcl::PointCloud<FeatureT>);
-        scene_keypoints_.reset(new pcl::PointCloud<PointT>);
         scene_kp_indices_.indices.clear();
 
         typename pcl::PointCloud<PointT>::Ptr processed(new pcl::PointCloud<PointT>);

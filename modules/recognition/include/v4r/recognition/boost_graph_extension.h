@@ -23,50 +23,20 @@ class V4R_EXPORTS Hypothesis
     typedef v4r::Model<PointInT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-    static size_t sNum_hypotheses_;
-
 public:
     ModelTPtr model_;
-    std::string model_id_, origin_;
     Eigen::Matrix4f transform_;
-    bool extended_;
+    size_t origin_view_id_;
     bool verified_;
     size_t id_;
 
-    // deprecated interface------
-    Hypothesis ( const std::string model_id, const Eigen::Matrix4f transform, const std::string origin = "", const bool extended = false, const bool verified = false, const size_t origin_id = 0)
+    Hypothesis ( const ModelTPtr model, const Eigen::Matrix4f transform, const size_t origin_view_id, const bool verified = false)
+        : model_ (model),
+          transform_ (transform),
+          origin_view_id_ (origin_view_id),
+          verified_ (verified)
     {
-        model_id_ = model_id;
-        transform_ = transform;
-        origin_ = origin;
-        extended_ = extended;
-        verified_ = verified;
-
-        if(extended && (origin_id < 0 || origin_id > sNum_hypotheses_))
-            std::cerr << "Hypothesis got extended but does not have a valid origin id." << std::endl;
-
-        if(origin_id)
-            id_ = origin_id;
-        else
-            id_ = ++sNum_hypotheses_;
-    }
-
-    Hypothesis ( const ModelTPtr model, const Eigen::Matrix4f transform, const std::string origin = "", const bool extended = false, const bool verified = false, const size_t origin_id = 0)
-    {
-        model_ = model;
-        model_id_ = model->id_;
-        transform_ = transform;
-        origin_ = origin;
-        extended_ = extended;
-        verified_ = verified;
-
-        if(extended && (origin_id < 0 || origin_id > sNum_hypotheses_))
-            std::cerr << "Hypothesis got extended but does not have a valid origin id." << std::endl;
-
-        if(origin_id)
-            id_ = origin_id;
-        else
-            id_ = ++sNum_hypotheses_;
+        id_++;
     }
 };
 
@@ -80,7 +50,7 @@ public:
     typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_;
     typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_f_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > scene_normals_;
-    pcl::PointIndices filtered_scene_indices_;
+    std::vector<int> filtered_scene_indices_;
     typename boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
     typename std::map<std::string, ObjectHypothesis<PointT> > hypotheses_;

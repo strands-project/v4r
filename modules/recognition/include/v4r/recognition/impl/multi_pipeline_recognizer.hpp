@@ -68,8 +68,6 @@ MultiRecognitionPipeline<PointT>::recognize()
     //more advanced version should compute normals and preprocess the input cloud so that
     //we avoid recomputing stuff shared among the different pipelines
     std::vector<int> input_icp_indices;
-    if(cg_algorithm_)
-        param_.save_hypotheses_ = true;
 
     std::cout << "Number of recognizers:" << recognizers_.size() << std::endl;
 
@@ -155,7 +153,7 @@ MultiRecognitionPipeline<PointT>::recognize()
         }
     }
 
-    if(cg_algorithm_)
+    if( !param_.save_hypotheses_ && cg_algorithm_)
     {
         correspondenceGrouping();
 
@@ -189,7 +187,7 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
         v4r::computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
     typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
-    for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
+    for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); ++it_map)
     {
         ObjectHypothesis<PointT> &oh = it_map->second;
 

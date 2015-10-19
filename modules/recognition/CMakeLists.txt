@@ -1,4 +1,5 @@
 set(the_description "Recognition")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 if(HAVE_SIFTGPU AND BUILD_SIFTGPU)
     add_definitions(-DUSE_SIFT_GPU)
 endif()

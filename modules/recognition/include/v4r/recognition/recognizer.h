@@ -39,6 +39,12 @@ namespace v4r
       public:
         ModelTPtr model_;
 
+        ObjectHypothesis()
+        {
+            model_scene_corresp_.reset(new pcl::Correspondences);
+            scene_.reset(new pcl::PointCloud<PointT>);
+        }
+
         typename pcl::PointCloud<PointT>::Ptr scene_; // input point cloud of the scene
         pcl::CorrespondencesPtr model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
         std::vector<int> indices_to_flann_models_;
@@ -46,6 +52,15 @@ namespace v4r
         void visualize() const;
 
 //        ObjectHypothesis & operator+=(const ObjectHypothesis &rhs);
+
+        ObjectHypothesis & operator=(const ObjectHypothesis &rhs)
+        {
+            *(this->model_scene_corresp_) = *rhs.model_scene_corresp_;
+            pcl::copyPointCloud(*rhs.scene_, *(this->scene_));
+            this->indices_to_flann_models_ = rhs.indices_to_flann_models_;
+            this->model_ = rhs.model_;
+            return *this;
+        }
     };
 
     template<typename PointT>
@@ -78,6 +93,8 @@ namespace v4r
       protected:
         typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
+
+        typedef typename std::map<std::string, ObjectHypothesis<PointT> > symHyp;
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
@@ -133,7 +150,7 @@ namespace v4r
 
         virtual
         void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > &oh) const
+        getSavedHypotheses(symHyp &oh) const
         {
             (void)oh;
             PCL_WARN("getSavedHypotheses is not implemented for this class.");
@@ -184,7 +201,8 @@ namespace v4r
           scene_ = cloud;
         }
 
-        std::vector<ModelTPtr> getModels () const
+        std::vector<ModelTPtr>
+        getModels () const
         {
           return models_;
         }

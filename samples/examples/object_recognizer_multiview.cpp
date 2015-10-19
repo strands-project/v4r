@@ -88,6 +88,8 @@ public:
         paramLocalRecSift.save_hypotheses_ = paramLocalRecShot.save_hypotheses_ = true;
         paramLocalRecShot.kdtree_splits_ = 128;
 
+        paramMultiPipeRec.save_hypotheses_ = true;
+
         pcl::console::parse_argument (argc, argv,  "-visualize", visualize_);
         pcl::console::parse_argument (argc, argv,  "-test_dir", test_dir_);
         pcl::console::parse_argument (argc, argv,  "-models_dir", models_dir);
@@ -97,6 +99,9 @@ public:
         pcl::console::parse_argument (argc, argv,  "-do_ourcvfh", do_ourcvfh);
         pcl::console::parse_argument (argc, argv,  "-knn_sift", paramLocalRecSift.knn_);
         pcl::console::parse_argument (argc, argv,  "-knn_shot", paramLocalRecShot.knn_);
+
+
+        pcl::console::parse_argument (argc, argv,  "-transfer_feature_matches", paramMultiPipeRec.save_hypotheses_);
 
         int normal_computation_method;
         if(pcl::console::parse_argument (argc, argv,  "-normal_method", normal_computation_method) != -1)
@@ -221,15 +226,16 @@ public:
         }
 
 
+        if(!paramMultiPipeRec.save_hypotheses_)
+            rr_->setCGAlgorithm( gcg_alg );
+
         boost::shared_ptr<v4r::GHV<PointT, PointT> > hyp_verification_method (new v4r::GHV<PointT, PointT>(paramGHV));
         boost::shared_ptr<v4r::HypothesisVerification<PointT,PointT> > cast_hyp_pointer = boost::static_pointer_cast<v4r::GHV<PointT, PointT> > (hyp_verification_method);
-        rr_->setHVAlgorithm( cast_hyp_pointer );
-        rr_->setCGAlgorithm( gcg_alg );
-
-        boost::shared_ptr<v4r::Recognizer<PointT> > cast_recog  = boost::static_pointer_cast<v4r::MultiRecognitionPipeline<PointT> > (rr_);
 
         mv_r_.reset(new v4r::MultiviewRecognizer<PointT>(paramMultiView));
-        mv_r_->setSingleViewRecognizer(cast_recog);
+        mv_r_->setSingleViewRecognizer(rr_);
+        mv_r_->setCGAlgorithm( gcg_alg );
+        mv_r_->setHVAlgorithm( cast_hyp_pointer );
         mv_r_->set_sift(sift_);
 
         return true;
@@ -260,10 +266,15 @@ public:
                 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
                 pcl::io::loadPCDFile(fn, *cloud);
 
-                pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>());
+                Eigen::Matrix4f tf = v4r::RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_);
+
+                // reset view point otherwise pcl visualization is potentially messed up
+                Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
+                cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+                cloud->sensor_origin_ = zero_origin;
 
                 mv_r_->setInputCloud (cloud);
-                mv_r_->setCameraPose(Eigen::Matrix4f::Identity());
+                mv_r_->setCameraPose(tf);
                 mv_r_->recognize();
 
                 std::vector<ModelTPtr> verified_models = rr_->getVerifiedModels();

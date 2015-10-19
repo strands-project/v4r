@@ -215,6 +215,7 @@ public:
     void
     generate (const std::string &foo = std::string())
     {
+        (void)foo;
         //get models in directory
         std::vector < std::string > files;
         v4r::io::getFilesInDirectory (path_, files, "", ".*.pcd",  false);
