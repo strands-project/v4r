@@ -5,9 +5,12 @@
 
 #include <pcl/visualization/pcl_visualizer.h>
 
+namespace v4r
+{
+
 template<template<class > class Distance, typename PointT, typename FeatureT>
 void
-v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN ()
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN ()
 {
     std::vector<ModelTPtr> models = source_->getModels();
 
@@ -19,7 +22,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreate
         const std::string descriptor_pattern = ".*descriptors.*.pcd";
 
         std::vector<std::string> desc_files;
-        v4r::io::getFilesInDirectory(out_train_path, desc_files, "", descriptor_pattern, false);
+        io::getFilesInDirectory(out_train_path, desc_files, "", descriptor_pattern, false);
         std::sort(desc_files.begin(), desc_files.end());
 
         for(size_t v_id=0; v_id<desc_files.size(); v_id++)
@@ -48,7 +51,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreate
                 std::stringstream pose_fn;
                 pose_fn << in_train_path << "/pose_" << setfill('0') << setw(view_id_length_) << descr_model.view_id << ".txt";
                 Eigen::Matrix4f pose_matrix;
-                v4r::io::readMatrixFromFile( pose_fn.str (), pose_matrix);
+                io::readMatrixFromFile( pose_fn.str (), pose_matrix);
 
                 std::stringstream dir_keypoints; dir_keypoints << out_train_path << "/keypoints_" << setfill('0') << setw(view_id_length_) << descr_model.view_id << ".pcd";
                 typename pcl::PointCloud<PointT>::Ptr keypoints (new pcl::PointCloud<PointT> ());
@@ -98,7 +101,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreate
     convertToFLANN<flann_model> (flann_models_, flann_data_);
     filename = training_dir_ + "/" + descr_name_ + "_flann.idx";
 
-    if(v4r::io::existsFile(filename)) // Loading flann index from frile
+    if(io::existsFile(filename)) // Loading flann index from frile
     {
         try
         {
@@ -129,7 +132,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreate
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 void
-v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index,
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index,
                                                                              /*float * descr, int descr_size*/
                                                                              flann::Matrix<float> & p, int k,
                                                                              flann::Matrix<int> &indices,
@@ -140,7 +143,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::nearestKSearch (boost
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 void
-v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::reinitialize(const std::vector<std::string> & load_ids)
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::reinitialize(const std::vector<std::string> & load_ids)
 {
     PCL_WARN("Reinitialize LocalRecognitionPipeline with list of load_ids\n");
     std::cout << "List of models being loaded:" << load_ids.size() << std::endl;
@@ -158,7 +161,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::reinitialize(const st
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 void
-v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_retrain)
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_retrain)
 {
     if(!estimator_)
     {
@@ -184,7 +187,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool forc
         std::cout << m->class_ << " " << m->id_ << std::endl;
         const std::string dir = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
 
-        if (!v4r::io::existsFolder(dir))
+        if (!io::existsFolder(dir))
         {
             std::cout << "Model not trained..." << m->views_.size () << std::endl;
             if(!source_->getLoadIntoMemory())
@@ -209,7 +212,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool forc
                 estimator_->getKeypointIndices(all_kp_indices);
 
                 // remove signatures and keypoints which do not belong to object
-                std::vector<bool> obj_mask = v4r::createMaskFromIndices(m->indices_[v].indices, m->views_[v]->points.size());
+                std::vector<bool> obj_mask = createMaskFromIndices(m->indices_[v].indices, m->views_[v]->points.size());
                 obj_kp_indices.indices.resize( all_kp_indices.indices.size() );
                 object_signatures->points.resize( all_kp_indices.indices.size() ) ;
                 size_t kept=0;
@@ -229,7 +232,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool forc
 
                 if (object_keypoints->points.size())
                 {
-                    v4r::io::createDirIfNotExist(dir);
+                    io::createDirIfNotExist(dir);
 
                     //save keypoints and descriptors to disk
                     std::stringstream kp_fn; kp_fn << dir << "/keypoints_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
@@ -240,7 +243,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool forc
 
                     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
                     pcl::PointCloud<pcl::Normal>::Ptr normals_keypoints(new pcl::PointCloud<pcl::Normal>);
-                    v4r::computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
+                    computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
                     pcl::copyPointCloud(*normals, obj_kp_indices, *normals_keypoints);
                     std::stringstream normals_fn; normals_fn << dir << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
                     pcl::io::savePCDFileBinary (normals_fn.str (), *normals_keypoints);
@@ -266,7 +269,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool forc
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 void
-v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
 {
     models_.clear();
     transforms_.clear();
@@ -362,7 +365,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
 
             float m_dist = model_distances[i];
 
-            typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
+            typename symHyp::iterator it_map;
             if ((it_map = obj_hypotheses_.find (f.model->id_)) != obj_hypotheses_.end ())
             {
                 ObjectHypothesis<PointT> &oh = it_map->second;
@@ -370,26 +373,17 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
                 pcl::Correspondence c ( (int)f.keypoint_id, scene_kp_indices_.indices[idx], m_dist);
                 oh.model_scene_corresp_->push_back(c);
                 oh.indices_to_flann_models_.push_back(flann_models_indices[i]);
-                assert(oh.indices_to_flann_models_.size() == oh.model_scene_corresp_->size());
-                //            (*it_map).second.num_corr_++;
             }
             else //create object hypothesis
             {
                 ObjectHypothesis<PointT> oh;
-                oh.scene_ = scene_;
-                oh.model_scene_corresp_.reset (new pcl::Correspondences ());
 
-                oh.model_scene_corresp_->resize (1);
-                oh.indices_to_flann_models_.resize(1);
-
+                oh.model_ = f.model;
                 oh.model_scene_corresp_->reserve (signatures_->points.size () * param_.knn_);
                 oh.indices_to_flann_models_.reserve(signatures_->points.size () * param_.knn_);
+                oh.model_scene_corresp_->push_back( pcl::Correspondence ((int)f.keypoint_id, scene_kp_indices_.indices[idx], m_dist) );
+                oh.indices_to_flann_models_.push_back( flann_models_indices[i] );
 
-                oh.model_scene_corresp_->at (0) = pcl::Correspondence ((int)f.keypoint_id, scene_kp_indices_.indices[idx], m_dist);
-                oh.indices_to_flann_models_[0] = flann_models_indices[i];
-                oh.model_ = f.model;
-
-                assert(oh.indices_to_flann_models_.size() == oh.model_scene_corresp_->size());
                 obj_hypotheses_[oh.model_->id_] = oh;
             }
         }
@@ -399,13 +393,9 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
     delete[] distances.ptr ();
     delete[] p.ptr ();
 
-    typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
+    typename symHyp::iterator it_map;
     for (it_map = obj_hypotheses_.begin(); it_map != obj_hypotheses_.end (); it_map++)
-    {   // WHAT? Is this because of the .reserve?
-        ObjectHypothesis<PointT> &oh = it_map->second;
-        size_t num_corr = oh.model_scene_corresp_->size();
-        oh.model_scene_corresp_->resize(num_corr);
-    }
+        it_map->second.model_scene_corresp_->shrink_to_fit();   // free memory
 
     if( param_.correspondence_distance_constant_weight_ != 1.f )
     {
@@ -439,7 +429,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 void
-v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getView (const ModelT & model, size_t view_id, typename pcl::PointCloud<PointT>::Ptr &view)
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::getView (const ModelT & model, size_t view_id, typename pcl::PointCloud<PointT>::Ptr &view)
 {
     view.reset (new pcl::PointCloud<PointT>);
     std::stringstream view_fn; view_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/" << descr_name_ + "/view_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
@@ -448,7 +438,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getView (const ModelT
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 pcl::Normal
-v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT & model, size_t keypoint_id, size_t view_id)
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT & model, size_t keypoint_id, size_t view_id)
 {
     if (param_.use_cache_)
         return model.kp_normals_->points[keypoint_id];
@@ -459,7 +449,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const Mo
 
     std::stringstream pose_fn; pose_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/pose_" << setfill('0') << setw(view_id_length_) << view_id << ".txt";
     Eigen::Matrix4f pose_matrix;
-    v4r::io::readMatrixFromFile( pose_fn.str (), pose_matrix);
+    io::readMatrixFromFile( pose_fn.str (), pose_matrix);
 
     pcl::Normal n;
     n.getNormalVector3fMap () = pose_matrix.block<3,3>(0,0) * normals_cloud.points[ keypoint_id ].getNormalVector3fMap ();
@@ -469,7 +459,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const Mo
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 PointT
-v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const ModelT & model, size_t keypoint_id, size_t view_id)
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const ModelT & model, size_t keypoint_id, size_t view_id)
 {
     if (param_.use_cache_)
         return model.keypoints_->points[keypoint_id];
@@ -480,7 +470,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const Mo
 
     std::stringstream pose_fn; pose_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/pose_" << setfill('0') << setw(view_id_length_) << view_id << ".txt";
     Eigen::Matrix4f pose_matrix;
-    v4r::io::readMatrixFromFile( pose_fn.str (), pose_matrix);
+    io::readMatrixFromFile( pose_fn.str (), pose_matrix);
 
     PointT kp;
     kp.getVector4fMap () = pose_matrix * keypoint_cloud[ keypoint_id ].getVector4fMap ();
@@ -489,10 +479,10 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const Mo
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 void
-v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::correspondenceGrouping ()
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::correspondenceGrouping ()
 {
     if(cg_algorithm_->getRequiresNormals() && (!scene_normals_ || scene_normals_->points.size() != scene_->points.size()))
-        v4r::computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
+        computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
     typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
     for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
@@ -503,7 +493,7 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::correspondenceGroupin
             continue;
 
         std::vector < pcl::Correspondences > corresp_clusters;
-        cg_algorithm_->setSceneCloud (oh.scene_);
+        cg_algorithm_->setSceneCloud (scene_);
         cg_algorithm_->setInputCloud (oh.model_->keypoints_);
 
         if(cg_algorithm_->getRequiresNormals())
@@ -523,7 +513,9 @@ v4r::LocalRecognitionPipeline<Distance, PointT, FeatureT>::correspondenceGroupin
         {
             models_[existing_hypotheses + i] = oh.model_;
             typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
-            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *oh.scene_, corresp_clusters[i], transforms_[existing_hypotheses + i]);
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, corresp_clusters[i], transforms_[existing_hypotheses + i]);
         }
     }
+}
+
 }

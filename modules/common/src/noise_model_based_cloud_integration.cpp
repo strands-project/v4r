@@ -82,7 +82,7 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
     {
         PointTPtr cloud(new pcl::PointCloud<PointT>);
         PointNormalTPtr normal_cloud(new pcl::PointCloud<pcl::Normal>);
-        v4r::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
+        v4r::transformNormals(*input_normals_[i], *normal_cloud, transformations_to_global_[i]);
         pcl::transformPointCloud(*input_clouds_used_[i], *cloud, transformations_to_global_[i]);
 
         /*float sum_curv = 0;

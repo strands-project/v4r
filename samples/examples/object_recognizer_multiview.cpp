@@ -67,7 +67,7 @@ public:
         paramGgcg.gc_size_ = 0.015f;
         paramGgcg.thres_dot_distance_ = 0.2f;
         paramGgcg.dist_for_cluster_factor_ = 0;
-        paramGgcg.max_taken_correspondence_ = 2;
+//        paramGgcg.max_taken_correspondence_ = 2;
         paramGgcg.max_time_allowed_cliques_comptutation_ = 100;
 
         paramGHV.eps_angle_threshold_ = 0.1f;

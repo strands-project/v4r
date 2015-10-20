@@ -195,7 +195,7 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
             continue;
 
         std::vector < pcl::Correspondences > corresp_clusters;
-        cg_algorithm_->setSceneCloud (oh.scene_);
+        cg_algorithm_->setSceneCloud (scene_);
         cg_algorithm_->setInputCloud (oh.model_->keypoints_);
 
         if(cg_algorithm_->getRequiresNormals())
@@ -215,7 +215,7 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
         {
             models_[existing_hypotheses + i] = oh.model_;
             typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
-            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *oh.scene_, corresp_clusters[i], transforms_[existing_hypotheses + i]);
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, corresp_clusters[i], transforms_[existing_hypotheses + i]);
         }
     }
 }

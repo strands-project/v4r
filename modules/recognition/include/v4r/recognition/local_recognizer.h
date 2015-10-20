@@ -79,6 +79,7 @@ namespace v4r
         protected:
           typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
           typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
+          typedef typename Recognizer<PointT>::symHyp symHyp;
 
           typedef Distance<float> DistT;
           typedef Model<PointT> ModelT;
@@ -335,7 +336,7 @@ namespace v4r
         void
         drawCorrespondences (const ObjectHypothesis<PointT> & oh)
         {
-          oh.visualize();
+          oh.visualize(*scene_);
         }
 
         /**
@@ -346,7 +347,7 @@ namespace v4r
         {
             typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it;
             for (it = obj_hypotheses_.begin(); it != obj_hypotheses_.end (); it++) {
-                it->second.visualize();
+                it->second.visualize(*scene_);
             }
         }
 

@@ -8,16 +8,22 @@
 namespace v4r
 {
 
+bool
+gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
+{
+    return (i.distance < j.distance);
+}
+
 template <typename PointT>
 void
-ObjectHypothesis<PointT>::visualize() const
+ObjectHypothesis<PointT>::visualize(const typename pcl::PointCloud<PointT> & scene) const
 {
     std::cerr << "This function is not implemented for this point cloud type!" << std::endl;
 }
 
 template <>
 void
-ObjectHypothesis<pcl::PointXYZRGB>::visualize() const
+ObjectHypothesis<pcl::PointXYZRGB>::visualize(const pcl::PointCloud<pcl::PointXYZRGB> & scene) const
 {
     if(!vis_)
         vis_.reset(new pcl::visualization::PCLVisualizer("correspondences for hypothesis"));
@@ -26,7 +32,7 @@ ObjectHypothesis<pcl::PointXYZRGB>::visualize() const
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_aligned ( new pcl::PointCloud<pcl::PointXYZRGB>() );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_vis ( new pcl::PointCloud<pcl::PointXYZRGB>() );
     Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
-    pcl::copyPointCloud( *scene_, *scene_vis);
+    pcl::copyPointCloud( scene, *scene_vis);
     scene_vis->sensor_origin_ = zero_origin;
     scene_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
     pcl::copyPointCloud( *model_cloud, *model_aligned);
@@ -38,28 +44,35 @@ ObjectHypothesis<pcl::PointXYZRGB>::visualize() const
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_colored_model ( new pcl::PointCloud<pcl::PointXYZRGB>() );
     kp_colored_scene->points.resize(model_scene_corresp_->size());
     kp_colored_model->points.resize(model_scene_corresp_->size());
-    for (size_t i=0; i<model_scene_corresp_->size(); i++)
-    {
-        const pcl::Correspondence &c = model_scene_corresp_->at(i);
-        pcl::PointXYZRGB kp_m = model_->keypoints_->points[c.index_query];
-        pcl::PointXYZRGB kp_s = scene_->points[c.index_match];
 
-        const float r = kp_m.r = kp_s.r = 100 + rand() % 155;
-        const float g = kp_m.g = kp_s.g = 100 + rand() % 155;
-        const float b = kp_m.b = kp_s.b = 100 + rand() % 155;
-        kp_colored_scene->points[i] = kp_s;
-        kp_colored_model->points[i] = kp_m;
-
-        std::stringstream ss; ss << "correspondence " << i;
-        vis_->addLine(kp_s, kp_m, r/255, g/255, b/255, ss.str());
-        vis_->addSphere(kp_s, 2, r/255, g/255, b/255, ss.str() + "kp_s", vp1_);
-        vis_->addSphere(kp_m, 2, r/255, g/255, b/255, ss.str() + "kp_m", vp1_);
-    }
+    pcl::CorrespondencesPtr sorted_corrs (new pcl::Correspondences (*model_scene_corresp_));
+    std::sort (sorted_corrs->begin (), sorted_corrs->end (), gcGraphCorrespSorter);
 
     vis_->addPointCloud(kp_colored_scene, "kps_s");
     vis_->addPointCloud(kp_colored_model, "kps_m");
 
-    vis_->spin();
+    for(size_t j=0; j<5; j++)
+    {
+        for (size_t i=(size_t)((j/5.f)*sorted_corrs->size()); i<(size_t)(((j+1.f)/5.f)*sorted_corrs->size()); i++)
+        {
+            const pcl::Correspondence &c = sorted_corrs->at(i);
+            pcl::PointXYZRGB kp_m = model_->keypoints_->points[c.index_query];
+            pcl::PointXYZRGB kp_s = scene.points[c.index_match];
+
+            const float r = kp_m.r = kp_s.r = 100 + rand() % 155;
+            const float g = kp_m.g = kp_s.g = 100 + rand() % 155;
+            const float b = kp_m.b = kp_s.b = 100 + rand() % 155;
+            kp_colored_scene->points[i] = kp_s;
+            kp_colored_model->points[i] = kp_m;
+
+            std::stringstream ss; ss << "correspondence " << i << j;
+            vis_->addLine(kp_s, kp_m, r/255, g/255, b/255, ss.str());
+            vis_->addSphere(kp_s, 2, r/255, g/255, b/255, ss.str() + "kp_s", vp1_);
+            vis_->addSphere(kp_m, 2, r/255, g/255, b/255, ss.str() + "kp_m", vp1_);
+        }
+        vis_->spin();
+    }
+
 }
 
 template<typename PointT>

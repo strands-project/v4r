@@ -42,21 +42,18 @@ namespace v4r
         ObjectHypothesis()
         {
             model_scene_corresp_.reset(new pcl::Correspondences);
-            scene_.reset(new pcl::PointCloud<PointT>);
         }
 
-        typename pcl::PointCloud<PointT>::Ptr scene_; // input point cloud of the scene
         pcl::CorrespondencesPtr model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
         std::vector<int> indices_to_flann_models_;
 
-        void visualize() const;
+        void visualize(const typename pcl::PointCloud<PointT> & scene) const;
 
 //        ObjectHypothesis & operator+=(const ObjectHypothesis &rhs);
 
         ObjectHypothesis & operator=(const ObjectHypothesis &rhs)
         {
             *(this->model_scene_corresp_) = *rhs.model_scene_corresp_;
-            pcl::copyPointCloud(*rhs.scene_, *(this->scene_));
             this->indices_to_flann_models_ = rhs.indices_to_flann_models_;
             this->model_ = rhs.model_;
             return *this;

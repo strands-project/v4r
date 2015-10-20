@@ -29,7 +29,7 @@ v4r::Registration::MultiSessionModelling<PointT>::computeFSV (PointCloudTPtr & c
     pcl::transformPointCloud(*cloud, indices, *model, pose);
 
     pcl::PointCloud<pcl::Normal>::Ptr model_normals (new pcl::PointCloud<pcl::Normal>);
-    v4r::transformNormals(normals, model_normals, indices, pose);
+    v4r::transformNormals(*normals, *model_normals, indices, pose);
 
     //Eigen::Matrix4f identity = Eigen::Matrix4f::Identity();
 
