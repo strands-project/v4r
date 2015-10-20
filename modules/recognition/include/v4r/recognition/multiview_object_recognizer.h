@@ -108,9 +108,9 @@ public:
 
         bool scene_to_scene_;
         bool use_robot_pose_;
+        bool hyp_to_hyp_;   // if true adds edges for common object hypotheses (not implemented atm)
         bool use_gc_s2s_;
         bool go3d_;
-        bool hyp_to_hyp_;   // if true adds edges for common object hypotheses
         double distance_same_keypoint_;
         float same_keypoint_dot_product_;
         int extension_mode_; // defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
@@ -118,33 +118,39 @@ public:
         float resolution_;
         float chop_z_;
         bool do_noise_modelling_;
+        bool compute_mst_; // if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true),
+                           // by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true)
+                           // from all the possible connection a Mimimum Spanning Tree is computed.
+                           // if false, it only uses the given pose for each point cloud
 
         Parameter (
                 bool scene_to_scene = true,
                 bool use_robot_pose = true,
+                bool hyp_to_hyp = false,
                 bool use_gc_s2s = true,
                 bool go3d = true,
-                bool hyp_to_hyp = false,
                 double distance_same_keypoint = 0.005f*0.005f,
                 float same_keypoint_dot_product = 0.8f,
                 int extension_mode = 0,
                 int max_vertices_in_graph = 3,
                 float resolution = 0.005f,
                 float chop_z = std::numeric_limits<float>::max(),
-                bool do_noise_modelling = true) :
+                bool do_noise_modelling = true,
+                bool compute_mst = true) :
             Recognizer<PointT>::Parameter(),
             scene_to_scene_ (scene_to_scene),
             use_robot_pose_ (use_robot_pose),
+            hyp_to_hyp_ (hyp_to_hyp),
             use_gc_s2s_ (use_gc_s2s),
             go3d_ (go3d),
-            hyp_to_hyp_ (hyp_to_hyp),
             distance_same_keypoint_ (distance_same_keypoint),
             same_keypoint_dot_product_ (same_keypoint_dot_product),
             extension_mode_ (extension_mode),
             max_vertices_in_graph_ (max_vertices_in_graph),
             resolution_ (resolution),
             chop_z_ (chop_z),
-            do_noise_modelling_ (do_noise_modelling)
+            do_noise_modelling_ (do_noise_modelling),
+            compute_mst_ (compute_mst)
         {}
     }param_;
 

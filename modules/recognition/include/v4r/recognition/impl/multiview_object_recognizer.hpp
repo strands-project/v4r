@@ -257,6 +257,7 @@ MultiviewRecognizer<PointT>::recognize ()
     v.id_ = id_;
     v.scene_ = scene_;
     v.transform_to_world_co_system_ = pose_;
+    v.absolute_pose_ = pose_;
 
     computeNormals<PointT>(v.scene_, v.scene_normals_, param_.normal_computation_method_);
 
@@ -275,154 +276,148 @@ MultiviewRecognizer<PointT>::recognize ()
     }
 
 
-    if( param_.scene_to_scene_) {   // compute SIFT keypoints for the scene (since neighborhood of keypoint
-                                    // matters for their SIFT descriptors, the descriptors are computed on the
-                                    // original rather than on the filtered point cloud. Keypoints at infinity
-                                    // are removed.
-        typename pcl::PointCloud<PointT>::Ptr sift_keypoints (new pcl::PointCloud<PointT>());
-        std::vector<int> sift_kp_indices;
-        boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_ (new  pcl::PointCloud<FeatureT>);
-        std::vector<float> sift_keypoints_scales;
+    if (param_.compute_mst_) {
+        if( param_.scene_to_scene_) {   // compute SIFT keypoints for the scene (since neighborhood of keypoint
+                                        // matters for their SIFT descriptors, the descriptors are computed on the
+                                        // original rather than on the filtered point cloud. Keypoints at infinity
+                                        // are removed.
+            typename pcl::PointCloud<PointT>::Ptr sift_keypoints (new pcl::PointCloud<PointT>());
+            std::vector<int> sift_kp_indices;
+            boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_ (new  pcl::PointCloud<FeatureT>);
+            std::vector<float> sift_keypoints_scales;
 
-        calcSiftFeatures( v.scene_, sift_keypoints, sift_kp_indices, sift_signatures_, sift_keypoints_scales);
+            calcSiftFeatures( v.scene_, sift_keypoints, sift_kp_indices, sift_signatures_, sift_keypoints_scales);
 
-        if(!v.sift_signatures_)
-            v.sift_signatures_.reset( new pcl::PointCloud<FeatureT>);
+            if(!v.sift_signatures_)
+                v.sift_signatures_.reset( new pcl::PointCloud<FeatureT>);
 
-        v.sift_kp_indices_.indices.reserve( sift_kp_indices.size() );
-        v.sift_signatures_->points.reserve( sift_signatures_->points.size() );
-        v.sift_keypoints_scales_.reserve( sift_keypoints_scales.size() );
-        size_t kept=0;
-        for (size_t i=0; i<sift_kp_indices.size(); i++) {   // remove infinte keypoints
-            if ( pcl::isFinite( v.scene_->points[sift_kp_indices[i]] ) ) {
-                v.sift_kp_indices_.indices.push_back( sift_kp_indices[i] );
-                v.sift_signatures_->points.push_back( sift_signatures_->points[i] );
-                v.sift_keypoints_scales_.push_back( sift_keypoints_scales[i] );
-                kept++;
+            v.sift_kp_indices_.indices.reserve( sift_kp_indices.size() );
+            v.sift_signatures_->points.reserve( sift_signatures_->points.size() );
+            v.sift_keypoints_scales_.reserve( sift_keypoints_scales.size() );
+            size_t kept=0;
+            for (size_t i=0; i<sift_kp_indices.size(); i++) {   // remove infinte keypoints
+                if ( pcl::isFinite( v.scene_->points[sift_kp_indices[i]] ) ) {
+                    v.sift_kp_indices_.indices.push_back( sift_kp_indices[i] );
+                    v.sift_signatures_->points.push_back( sift_signatures_->points[i] );
+                    v.sift_keypoints_scales_.push_back( sift_keypoints_scales[i] );
+                    kept++;
+                }
             }
+            v.sift_kp_indices_.indices.shrink_to_fit();
+            v.sift_signatures_->points.shrink_to_fit();
+            v.sift_keypoints_scales_.shrink_to_fit();
+            std::cout << "keypoints: " << v.sift_kp_indices_.indices.size() << std::endl;
+
+            // In addition to matching views, we can use the computed SIFT features for recognition
+            rr_->template setFeatAndKeypoints<FeatureT>(v.sift_signatures_, v.sift_kp_indices_, SIFT);
         }
-        v.sift_kp_indices_.indices.shrink_to_fit();
-        v.sift_signatures_->points.shrink_to_fit();
-        v.sift_keypoints_scales_.shrink_to_fit();
-        std::cout << "keypoints: " << v.sift_kp_indices_.indices.size() << std::endl;
-
-        // In addition to matching views, we can use the computed SIFT features for recognition
-        rr_->template setFeatAndKeypoints<FeatureT>(v.sift_signatures_, v.sift_kp_indices_, SIFT);
-    }
 
 
-    //=====================Pose Estimation=======================
-    for (size_t view_id=0; view_id<views_.size(); view_id++) {
-        const View<PointT> &w = views_[view_id];
-        if( w.id_ ==  v.id_ )
-            continue;
+        //=====================Pose Estimation=======================
+        for (size_t view_id=0; view_id<views_.size(); view_id++) {
+            const View<PointT> &w = views_[view_id];
+            if( w.id_ ==  v.id_ )
+                continue;
 
-        std::vector<CamConnect> transforms;
-        CamConnect edge;
-        edge.source_id_ = v.id_;
-        edge.target_id_ = w.id_;
+            std::vector<CamConnect> transforms;
+            CamConnect edge;
+            edge.source_id_ = v.id_;
+            edge.target_id_ = w.id_;
 
-        if(param_.scene_to_scene_) {
-            edge.model_name_ = "sift_background_matching";
+            if(param_.scene_to_scene_) {
+                edge.model_name_ = "sift_background_matching";
 
-            boost::shared_ptr< flann::Index<DistT> > flann_index;
-            convertToFLANN<FeatureT, DistT >( v.sift_signatures_, flann_index );
+                boost::shared_ptr< flann::Index<DistT> > flann_index;
+                convertToFLANN<FeatureT, DistT >( v.sift_signatures_, flann_index );
 
-            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
-            estimateViewTransformationBySIFT( *w.scene_, *v.scene_, w.sift_kp_indices_.indices, v.sift_kp_indices_.indices, *w.sift_signatures_, flann_index, sift_transforms);
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
+                estimateViewTransformationBySIFT( *w.scene_, *v.scene_, w.sift_kp_indices_.indices, v.sift_kp_indices_.indices, *w.sift_signatures_, flann_index, sift_transforms);
 
-            for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++) {
-                edge.transformation_ = sift_transforms[sift_tf_id];
-                transforms.push_back(edge);
+                for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++) {
+                    edge.transformation_ = sift_transforms[sift_tf_id];
+                    transforms.push_back(edge);
+                }
             }
-        }
 
-        if (param_.use_robot_pose_) {
-            edge.model_name_ = "given_pose";
-            Eigen::Matrix4f tf2wco_src = w.transform_to_world_co_system_;
-            Eigen::Matrix4f tf2wco_trgt = v.transform_to_world_co_system_;
-            edge.transformation_ = tf2wco_trgt.inverse() * tf2wco_src;
-            transforms.push_back ( edge );
-        }
+            if (param_.use_robot_pose_) {
+                edge.model_name_ = "given_pose";
+                Eigen::Matrix4f tf2wco_src = w.transform_to_world_co_system_;
+                Eigen::Matrix4f tf2wco_trgt = v.transform_to_world_co_system_;
+                edge.transformation_ = tf2wco_trgt.inverse() * tf2wco_src;
+                transforms.push_back ( edge );
+            }
 
-        if( transforms.size() ) {
-            size_t best_transform_id = 0;
-            float lowest_edge_weight = std::numeric_limits<float>::max();
+            if( transforms.size() ) {
+                size_t best_transform_id = 0;
+                float lowest_edge_weight = std::numeric_limits<float>::max();
 
 
-            for ( size_t trans_id = 0; trans_id < transforms.size(); trans_id++ ) {
-                CamConnect &e_tmp = transforms[trans_id];
+                for ( size_t trans_id = 0; trans_id < transforms.size(); trans_id++ ) {
+                    CamConnect &e_tmp = transforms[trans_id];
 
-                try {
-                    Eigen::Matrix4f icp_refined_trans;
-                    e_tmp.edge_weight_ = calcEdgeWeightAndRefineTf( w.scene_, v.scene_, icp_refined_trans, e_tmp.transformation_);
-                    e_tmp.transformation_ = icp_refined_trans,
-                    std::cout << "Edge weight is " << e_tmp.edge_weight_ << " for edge connecting vertex " <<
-                                 e_tmp.source_id_ << " and " << e_tmp.target_id_ << " by " <<
-                                 e_tmp.model_name_ << std::endl;
+                    try {
+                        Eigen::Matrix4f icp_refined_trans;
+                        e_tmp.edge_weight_ = calcEdgeWeightAndRefineTf( w.scene_, v.scene_, icp_refined_trans, e_tmp.transformation_);
+                        e_tmp.transformation_ = icp_refined_trans,
+                        std::cout << "Edge weight is " << e_tmp.edge_weight_ << " for edge connecting vertex " <<
+                                     e_tmp.source_id_ << " and " << e_tmp.target_id_ << " by " <<
+                                     e_tmp.model_name_ << std::endl;
 
-                    if(e_tmp.edge_weight_ < lowest_edge_weight) {
-                        lowest_edge_weight = e_tmp.edge_weight_;
-                        best_transform_id = trans_id;
+                        if(e_tmp.edge_weight_ < lowest_edge_weight) {
+                            lowest_edge_weight = e_tmp.edge_weight_;
+                            best_transform_id = trans_id;
+                        }
+                    }
+                    catch (int e) {
+                        e_tmp.edge_weight_ = std::numeric_limits<float>::max();
+                        std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
+                        continue;
                     }
                 }
-                catch (int e) {
-                    e_tmp.edge_weight_ = std::numeric_limits<float>::max();
-                    std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
-                    continue;
-                }
+                boost::add_edge ( transforms[best_transform_id].source_id_, transforms[best_transform_id].target_id_, transforms[best_transform_id], gs_);
             }
-
-            boost::add_edge ( transforms[best_transform_id].source_id_, transforms[best_transform_id].target_id_, transforms[best_transform_id], gs_);
         }
-    }
 
-    boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
-    std::vector < EdgeD > spanning_tree;
-    boost::kruskal_minimum_spanning_tree(gs_, std::back_inserter(spanning_tree));
+        boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
+        std::vector < EdgeD > spanning_tree;
+        boost::kruskal_minimum_spanning_tree(gs_, std::back_inserter(spanning_tree));
 
-    Graph grph_mst;
-    std::cout << "Print the edges in the MST:" << std::endl;
+        std::cout << "Print the edges in the MST:" << std::endl;
 
-    typename std::map<size_t, View<PointT> >::iterator v_it;
-    for (v_it = views_.begin(); v_it != views_.end(); ++v_it) {
-        v_it->second.absolute_pose_ = Eigen::Matrix4f::Identity();
-        v_it->second.has_been_hopped_ = false;
-    }
+        typename std::map<size_t, View<PointT> >::iterator v_it;
+        for (v_it = views_.begin(); v_it != views_.end(); ++v_it)
+            v_it->second.has_been_hopped_ = false;
 
-    bool is_first_edge = true;
-    std::vector<CamConnect> lose_edges;
+        bool is_first_edge = true;
+        std::vector<CamConnect> loose_edges;
 
-    for (std::vector < EdgeD >::iterator ei = spanning_tree.begin(); ei != spanning_tree.end(); ++ei) {
-        CamConnect e = weightmap[*ei];
-        if ( computeAbsolutePose(e, is_first_edge) )
-            boost::add_edge(e.source_id_, e.target_id_, e, grph_mst);
-        else
-            lose_edges.push_back(e);
-    }
+        for (std::vector < EdgeD >::iterator ei = spanning_tree.begin(); ei != spanning_tree.end(); ++ei) {
+            CamConnect e = weightmap[*ei];
+            if ( !computeAbsolutePose(e, is_first_edge) )
+                loose_edges.push_back(e);
+        }
 
-    while(lose_edges.size()) {
-        for (size_t i=0; i <lose_edges.size(); i++) {
-            if ( computeAbsolutePose( lose_edges[i], is_first_edge ) ) {
-                boost::add_edge(lose_edges[i].source_id_, lose_edges[i].target_id_, lose_edges[i], grph_mst);
-                lose_edges.erase(lose_edges.begin() + i);
+        while(loose_edges.size()) {
+            for (size_t i=0; i <loose_edges.size(); i++) {
+                if ( computeAbsolutePose( loose_edges[i], is_first_edge ) )
+                    loose_edges.erase(loose_edges.begin() + i);
             }
         }
     }
 
-    if(views_.size()>1) {
-        typename pcl::PointCloud<PointT>::Ptr registration_check (new pcl::PointCloud<PointT>);
-        typename std::map<size_t, View<PointT> >::const_iterator view_it;
-        for (view_it = views_.begin(); view_it != views_.end(); ++view_it) {   // merge feature correspondences
-            const View<PointT> &w = view_it->second;
-            typename pcl::PointCloud<PointT>::Ptr cloud_tmp (new pcl::PointCloud<PointT>);
-            pcl::transformPointCloud(*w.scene_, *cloud_tmp, w.absolute_pose_);
-            *registration_check += *cloud_tmp;
-        }
-        pcl::visualization::PCLVisualizer registration_vis("registration_check");
-        registration_vis.addPointCloud(registration_check);
-        registration_vis.spin();
-    }
+//    if(views_.size()>1) {
+//        typename pcl::PointCloud<PointT>::Ptr registration_check (new pcl::PointCloud<PointT>);
+//        typename std::map<size_t, View<PointT> >::const_iterator view_it;
+//        for (view_it = views_.begin(); view_it != views_.end(); ++view_it) {   // merge feature correspondences
+//            const View<PointT> &w = view_it->second;
+//            typename pcl::PointCloud<PointT>::Ptr cloud_tmp (new pcl::PointCloud<PointT>);
+//            pcl::transformPointCloud(*w.scene_, *cloud_tmp, w.absolute_pose_);
+//            *registration_check += *cloud_tmp;
+//        }
+//        pcl::visualization::PCLVisualizer registration_vis("registration_check");
+//        registration_vis.addPointCloud(registration_check);
+//        registration_vis.spin();
+//    }
 
     rr_->setInputCloud(v.scene_);
     rr_->setSceneNormals(v.scene_normals_);
@@ -430,17 +425,10 @@ MultiviewRecognizer<PointT>::recognize ()
 
     if(rr_->getSaveHypothesesParam()) {  // we have to do the correspondence grouping ourselve [Faeulhammer et al 2015, ICRA paper]
         rr_->getSavedHypotheses(v.hypotheses_);
-//        rr_->getKeypointCloud(v.pKeypointsMultipipe_);
-//        rr_->getKeypointIndices(v.kp_indices_);
-//        pcl::copyPointCloud(*v.scene_normals_, v.kp_indices_, *v.kp_normals_);
-
-        obj_hypotheses_ = v.hypotheses_;
 
         obj_hypotheses_.clear();
-        for (typename symHyp::const_iterator it = v.hypotheses_.begin (); it != v.hypotheses_.end (); ++it) {
-            ObjectHypothesis<PointT> new_oh = it->second;
-            obj_hypotheses_[it->first] = new_oh;
-        }
+        for (typename symHyp::const_iterator it = v.hypotheses_.begin (); it != v.hypotheses_.end (); ++it)
+            obj_hypotheses_[it->first] = it->second;
 
         const Eigen::Matrix4f &v_tf = v.absolute_pose_;
         typename pcl::PointCloud<PointT>::Ptr accum_scene (new pcl::PointCloud<PointT>());
@@ -567,7 +555,7 @@ MultiviewRecognizer<PointT>::recognize ()
 
             for(size_t i=0; i<w.hypothesis_mv_.size(); i++) {
                 Hypothesis<PointT> h = w.hypothesis_mv_[i];
-                v.hypothesis_mv_.push_back( Hypothesis<PointT>(h.model_, v.absolute_pose_ * w.absolute_pose_.inverse() * h.transform_, h.origin_view_id_, false) );
+                v.hypothesis_mv_.push_back( Hypothesis<PointT>(h.model_, v.absolute_pose_.inverse() * w.absolute_pose_ * h.transform_, h.origin_view_id_, false) );
             }
         }
 
@@ -654,7 +642,7 @@ MultiviewRecognizer<PointT>::recognize ()
     if ( param_.icp_iterations_ > 0 )
         poseRefinement();
 
-    if ( hv_algorithm_ && models_.size() )
+    if ( hv_algorithm_ && !models_.empty() )
         hypothesisVerification();
 
     scene_normals_.reset();

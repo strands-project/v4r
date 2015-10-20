@@ -119,6 +119,7 @@ public:
 
         pcl::console::parse_argument (argc, argv,  "-chop_z", paramMultiView.chop_z_ );
         pcl::console::parse_argument (argc, argv,  "-max_vertices_in_graph", paramMultiView.max_vertices_in_graph_ );
+        pcl::console::parse_argument (argc, argv,  "-compute_mst", paramMultiView.compute_mst_ );
 
         pcl::console::parse_argument (argc, argv,  "-cg_size_thresh", paramGgcg.gc_threshold_);
         pcl::console::parse_argument (argc, argv,  "-cg_size", paramGgcg.gc_size_);
