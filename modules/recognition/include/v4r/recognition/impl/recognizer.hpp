@@ -324,6 +324,8 @@ Recognizer<PointT>::visualize() const
     vis_->addPointCloud(vis_cloud, "input cloud", vp1_);
     vis_->setBackgroundColor(.0f, .0f, .0f, vp2_);
 
+    typename pcl::PointCloud<PointT>::Ptr accum_models ( new pcl::PointCloud<PointT>() );
+    typename pcl::PointCloud<PointT>::Ptr rendered_cloud ( new pcl::PointCloud<PointT>() );
     for(size_t i=0; i<models_.size(); i++)
     {
         ModelT &m = *models_[i];
@@ -334,7 +336,17 @@ Recognizer<PointT>::visualize() const
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
+        *accum_models = *model_aligned;
     }
+    pcl::visualization::PCLVisualizer virtual_rendering ("rendering");
+    virtual_rendering.addPointCloud(accum_models);
+    virtual_rendering.renderView(640,480,rendered_cloud);
+    virtual_rendering.spinOnce();
+    virtual_rendering.removeAllPointClouds();
+    virtual_rendering.addPointCloud(rendered_cloud);
+    std::cout << "Accum Models points: " << accum_models->points.size() << ", rendered cloud points: " << rendered_cloud->points.size() << std::endl;
+    virtual_rendering.spin();
+
     vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
 
     for(size_t i=0; i<models_verified_.size(); i++)
@@ -396,6 +408,8 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
     vis_->addPointCloud(vis_cloud, "input cloud", vp1_);
     vis_->setBackgroundColor(.0f, .0f, .0f, vp2_);
 
+    typename pcl::PointCloud<PointT>::Ptr accum_models ( new pcl::PointCloud<PointT>() );
+pcl::PointCloud<pcl::PointXYZ>::Ptr rendered_cloud(new pcl::PointCloud<pcl::PointXYZ>);
     for(size_t i=0; i<models_.size(); i++)
     {
         ModelT &m = *models_[i];
@@ -406,7 +420,17 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
+        *accum_models = *model_aligned;
     }
+    pcl::visualization::PCLVisualizer virtual_rendering ("rendering");
+    virtual_rendering.addPointCloud(accum_models);
+    virtual_rendering.renderView(640,480,rendered_cloud);
+    virtual_rendering.spinOnce();
+    virtual_rendering.removeAllPointClouds();
+    virtual_rendering.addPointCloud(rendered_cloud);
+    std::cout << "Accum Models points: " << accum_models->points.size() << ", rendered cloud points: " << rendered_cloud->points.size() << std::endl;
+    virtual_rendering.spin();
+
     vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
 
     for(size_t i=0; i<models_verified_.size(); i++)
