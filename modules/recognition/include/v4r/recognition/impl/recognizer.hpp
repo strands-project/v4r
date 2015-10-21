@@ -112,20 +112,23 @@ Recognizer<PointT>::hypothesisVerification ()
       aligned_normals[i] = normal_cloud;
   }
 
-  typename pcl::PointCloud<PointT>::Ptr occlusion_cloud (new pcl::PointCloud<PointT>(*scene_));
   hv_algorithm_->setRequiresNormals(false);
-  hv_algorithm_->setOcclusionCloud (occlusion_cloud);
+  hv_algorithm_->setOcclusionCloud (scene_);
   hv_algorithm_->setSceneCloud (scene_);
   hv_algorithm_->setNormalsForClutterTerm(scene_normals_);
   hv_algorithm_->addModels (aligned_models, true);
 
+  if(hv_algorithm_->uses_3D()) {
+//      hv_algorithm_->setOcclusionClouds();
+//      hv_algorithm_->setAbsolutePoses();
+  }
+
   if (hv_algorithm_->getRequiresNormals ())
-    hv_algorithm_->addNormalsClouds (aligned_normals);
+      hv_algorithm_->addNormalsClouds (aligned_normals);
 
   std::vector<v4r::PlaneModel<PointT> > planes_found;
   if(hv_algorithm_->param_.add_planes_ && hv_algorithm_->add_planes_is_posssible())
   {
-      //Multiplane segmentation
       v4r::MultiPlaneSegmentation<PointT> mps;
       mps.setInputCloud(scene_);
       mps.setMinPlaneInliers(1000);
@@ -134,13 +137,7 @@ Recognizer<PointT>::hypothesisVerification ()
       mps.setMergePlanes(true);
       mps.segment();
       planes_found = mps.getModels();
-
       hv_algorithm_->addPlanarModels(planes_found);
-      for(size_t kk=0; kk < planes_found.size(); kk++)
-      {
-          std::stringstream plane_id;
-          plane_id << "plane_" << kk;
-      }
   }
 
   hv_algorithm_->verify ();
@@ -324,8 +321,6 @@ Recognizer<PointT>::visualize() const
     vis_->addPointCloud(vis_cloud, "input cloud", vp1_);
     vis_->setBackgroundColor(.0f, .0f, .0f, vp2_);
 
-    typename pcl::PointCloud<PointT>::Ptr accum_models ( new pcl::PointCloud<PointT>() );
-    typename pcl::PointCloud<PointT>::Ptr rendered_cloud ( new pcl::PointCloud<PointT>() );
     for(size_t i=0; i<models_.size(); i++)
     {
         ModelT &m = *models_[i];
@@ -336,17 +331,7 @@ Recognizer<PointT>::visualize() const
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
-        *accum_models = *model_aligned;
     }
-    pcl::visualization::PCLVisualizer virtual_rendering ("rendering");
-    virtual_rendering.addPointCloud(accum_models);
-    virtual_rendering.renderView(640,480,rendered_cloud);
-    virtual_rendering.spinOnce();
-    virtual_rendering.removeAllPointClouds();
-    virtual_rendering.addPointCloud(rendered_cloud);
-    std::cout << "Accum Models points: " << accum_models->points.size() << ", rendered cloud points: " << rendered_cloud->points.size() << std::endl;
-    virtual_rendering.spin();
-
     vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
 
     for(size_t i=0; i<models_verified_.size(); i++)
@@ -408,8 +393,6 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
     vis_->addPointCloud(vis_cloud, "input cloud", vp1_);
     vis_->setBackgroundColor(.0f, .0f, .0f, vp2_);
 
-    typename pcl::PointCloud<PointT>::Ptr accum_models ( new pcl::PointCloud<PointT>() );
-pcl::PointCloud<pcl::PointXYZ>::Ptr rendered_cloud(new pcl::PointCloud<pcl::PointXYZ>);
     for(size_t i=0; i<models_.size(); i++)
     {
         ModelT &m = *models_[i];
@@ -420,17 +403,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr rendered_cloud(new pcl::PointCloud<pcl::Poin
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
-        *accum_models = *model_aligned;
     }
-    pcl::visualization::PCLVisualizer virtual_rendering ("rendering");
-    virtual_rendering.addPointCloud(accum_models);
-    virtual_rendering.renderView(640,480,rendered_cloud);
-    virtual_rendering.spinOnce();
-    virtual_rendering.removeAllPointClouds();
-    virtual_rendering.addPointCloud(rendered_cloud);
-    std::cout << "Accum Models points: " << accum_models->points.size() << ", rendered cloud points: " << rendered_cloud->points.size() << std::endl;
-    virtual_rendering.spin();
-
     vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
 
     for(size_t i=0; i<models_verified_.size(); i++)

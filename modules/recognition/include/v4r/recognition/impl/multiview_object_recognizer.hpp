@@ -189,8 +189,16 @@ MultiviewRecognizer<PointT>::pruneGraph ()
 
         views_.erase(lowest_vertex_id);
 
-        if (param_.compute_mst_)
-            remove_vertex(lowest_vertex_id, gs_);
+        if (param_.compute_mst_) {
+            std::pair<vertex_iter, vertex_iter> vp;
+            for (vp = vertices(gs_); vp.first != vp.second; ++vp.first) {
+                if (gs_[*vp.first] == lowest_vertex_id) {
+                    clear_vertex(*vp.first, gs_);
+                    remove_vertex(*vp.first, gs_); // iterator might be invalidated but we stop anyway
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -370,7 +378,29 @@ MultiviewRecognizer<PointT>::recognize ()
                         continue;
                     }
                 }
-                boost::add_edge ( transforms[best_transform_id].source_id_, transforms[best_transform_id].target_id_, transforms[best_transform_id], gs_);
+
+
+                bool found = false;
+                ViewD target_d;
+                std::pair<vertex_iter, vertex_iter> vp;
+                for (vp = vertices(gs_); vp.first != vp.second; ++vp.first) {
+                    if (gs_[*vp.first] == transforms[best_transform_id].target_id_) {
+                        target_d = *vp.first;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if(!found) {
+                    target_d = boost::add_vertex (gs_);
+                    gs_[target_d] = transforms[best_transform_id].target_id_;
+                }
+
+//                ViewD source_d = boost::add_vertex(transforms[best_transform_id].source_id_, gs_);
+//                gs_[source_d] = 1000;
+                ViewD src_D = boost::add_vertex (gs_);
+                gs_[src_D] = transforms[best_transform_id].source_id_;
+                boost::add_edge ( src_D, target_d, transforms[best_transform_id], gs_);
             }
         }
 

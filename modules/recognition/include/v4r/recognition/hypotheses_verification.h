@@ -89,12 +89,13 @@ namespace v4r
       };
 
   protected:
-    /*
-     * \brief Boolean vector indicating if a hypothesis is accepted/rejected (output of HV stage)
+    /**
+     * @brief Boolean vector indicating if a hypothesis is accepted/rejected (output of HV stage)
      */
     std::vector<bool> mask_;
-    /*
-     * \brief Scene point cloud
+
+    /**
+     * @brief Scene point cloud
      */
     typename pcl::PointCloud<SceneT>::ConstPtr scene_cloud_;
 
@@ -227,19 +228,13 @@ namespace v4r
       {
         //we need to reason about occlusions before setting the model
         if (scene_cloud_ == 0)
-        {
-          PCL_ERROR("setSceneCloud should be called before adding the model if reasoning about occlusions...");
-        }
-
-        if (!occlusion_cloud_->isOrganized ())
-        {
-          PCL_WARN("Scene not organized... filtering using computed depth buffer\n");
-        }
+          throw std::runtime_error("setSceneCloud should be called before adding the model if reasoning about occlusions...");
 
         v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (param_.zbuffer_scene_resolution_, param_.zbuffer_scene_resolution_, 1.f);
         if (!occlusion_cloud_->isOrganized ())
         {
-          zbuffer_scene.computeDepthMap (occlusion_cloud_, true);
+            PCL_WARN("Scene not organized... filtering using computed depth buffer\n");
+            zbuffer_scene.computeDepthMap (*occlusion_cloud_, true);
         }
 
         visible_indices_.resize(models.size());
@@ -250,36 +245,34 @@ namespace v4r
           //self-occlusions
           typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
           typename v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_self_occlusion (param_.zbuffer_self_occlusion_resolution_, param_.zbuffer_self_occlusion_resolution_, 1.f);
-          zbuffer_self_occlusion.computeDepthMap (models[i], true);
+          zbuffer_self_occlusion.computeDepthMap (*models[i], true);
 
           std::vector<int> self_occlusion_indices;
-          zbuffer_self_occlusion.filter (models[i], self_occlusion_indices, param_.occlusion_thres_);
+          zbuffer_self_occlusion.filter (*models[i], self_occlusion_indices, param_.occlusion_thres_);
           pcl::copyPointCloud (*models[i], self_occlusion_indices, *filtered);
 
           typename pcl::PointCloud<ModelT>::ConstPtr const_filtered(new pcl::PointCloud<ModelT> (*filtered));
           //typename pcl::PointCloud<ModelT>::ConstPtr const_filtered(new pcl::PointCloud<ModelT> (*models[i]));
+
           //scene-occlusions
 
           std::vector<int> indices_cloud_occlusion;
           if (occlusion_cloud_->isOrganized ())
           {
-            filtered = v4r::occlusion_reasoning::filter<ModelT,SceneT> (occlusion_cloud_, const_filtered, 525.f, param_.occlusion_thres_, indices_cloud_occlusion);
+            filtered = v4r::occlusion_reasoning::filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, 525.f, param_.occlusion_thres_, indices_cloud_occlusion);
             visible_indices_[i].resize(filtered->points.size());
-            for(size_t k=0; k < indices_cloud_occlusion.size(); k++) {
-              visible_indices_[i][k] = self_occlusion_indices[indices_cloud_occlusion[k]];
-            }
+
+            for(size_t k=0; k < indices_cloud_occlusion.size(); k++)
+                visible_indices_[i][k] = self_occlusion_indices[indices_cloud_occlusion[k]];
 
             if(normals_set_ && requires_normals_) {
               pcl::PointCloud<pcl::Normal>::Ptr filtered_normals (new pcl::PointCloud<pcl::Normal> ());
               pcl::copyPointCloud(*complete_normal_models_[i], visible_indices_[i], *filtered_normals);
               visible_normal_models_.push_back(filtered_normals);
             }
-
           }
           else
-          {
-            zbuffer_scene.filter (const_filtered, filtered, param_.occlusion_thres_);
-          }
+            zbuffer_scene.filter (*const_filtered, *filtered, param_.occlusion_thres_);
 
           visible_models_.push_back (filtered);
         }
@@ -306,7 +299,6 @@ namespace v4r
     void
     setSceneCloud (const typename pcl::PointCloud<SceneT>::Ptr & scene_cloud)
     {
-
       complete_models_.clear();
       visible_models_.clear();
       visible_normal_models_.clear();
@@ -315,9 +307,7 @@ namespace v4r
       scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>());
 
       if(param_.resolution_ == -1)
-      {
-        scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>(*scene_cloud));
-      }
+          scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>(*scene_cloud));
       else
       {
         /*pcl::VoxelGrid<SceneT> voxel_grid;
@@ -351,13 +341,21 @@ namespace v4r
     }
 
     virtual
-    void setNormalsForClutterTerm(pcl::PointCloud<pcl::Normal>::Ptr &)
+    void setNormalsForClutterTerm(pcl::PointCloud<pcl::Normal>::Ptr &n)
     {
+        (void) n;
         std::cerr << "setNormalsForClutterTerm function is not implemented for this object!" << std::endl;
     }
 
     virtual
     bool add_planes_is_posssible() const
+    {
+        return false;
+    }
+
+
+    virtual
+    bool uses_3D() const
     {
         return false;
     }
@@ -389,8 +387,6 @@ namespace v4r
     virtual void
     verify ()=0;
   };
-
-
 
 }
 

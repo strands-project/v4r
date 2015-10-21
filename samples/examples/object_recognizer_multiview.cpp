@@ -5,6 +5,7 @@
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/ghv.h>
+#include <v4r/recognition/hv_go_3D.h>
 #include <v4r/recognition/local_recognizer.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 #include <v4r/recognition/multiview_object_recognizer.h>
@@ -52,6 +53,7 @@ public:
         bool do_sift = true;
         bool do_shot = false;
         bool do_ourcvfh = false;
+        bool use_go3d = false;
 
         float resolution = 0.005f;
         std::string models_dir, training_dir;
@@ -97,6 +99,7 @@ public:
         pcl::console::parse_argument (argc, argv,  "-do_sift", do_sift);
         pcl::console::parse_argument (argc, argv,  "-do_shot", do_shot);
         pcl::console::parse_argument (argc, argv,  "-do_ourcvfh", do_ourcvfh);
+        pcl::console::parse_argument (argc, argv,  "-use_go3d", use_go3d);
         pcl::console::parse_argument (argc, argv,  "-knn_sift", paramLocalRecSift.knn_);
         pcl::console::parse_argument (argc, argv,  "-knn_shot", paramLocalRecShot.knn_);
 
@@ -230,8 +233,15 @@ public:
         if(!paramMultiPipeRec.save_hypotheses_)
             rr_->setCGAlgorithm( gcg_alg );
 
-        boost::shared_ptr<v4r::GHV<PointT, PointT> > hyp_verification_method (new v4r::GHV<PointT, PointT>(paramGHV));
-        boost::shared_ptr<v4r::HypothesisVerification<PointT,PointT> > cast_hyp_pointer = boost::static_pointer_cast<v4r::GHV<PointT, PointT> > (hyp_verification_method);
+        boost::shared_ptr<v4r::HypothesisVerification<PointT,PointT> > cast_hyp_pointer;
+        if(use_go3d) {
+            boost::shared_ptr<v4r::GO3D<PointT, PointT> > hyp_verification_method (new v4r::GO3D<PointT, PointT>(paramGHV));
+            cast_hyp_pointer = boost::static_pointer_cast<v4r::GO3D<PointT, PointT> > (hyp_verification_method);
+        }
+        else {
+            boost::shared_ptr<v4r::GHV<PointT, PointT> > hyp_verification_method (new v4r::GHV<PointT, PointT>(paramGHV));
+            cast_hyp_pointer = boost::static_pointer_cast<v4r::GHV<PointT, PointT> > (hyp_verification_method);
+        }
 
         mv_r_.reset(new v4r::MultiviewRecognizer<PointT>(paramMultiView));
         mv_r_->setSingleViewRecognizer(rr_);

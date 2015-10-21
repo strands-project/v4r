@@ -63,11 +63,10 @@ protected:
     typedef boost::graph_traits < Graph >::edge_descriptor EdgeD;
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
     typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
+    Graph gs_;
 
 
     typedef typename std::map<std::string, ObjectHypothesis<PointT> > symHyp;
-
-    Graph gs_;
 
     size_t id_;
 

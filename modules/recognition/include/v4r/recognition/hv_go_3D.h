@@ -62,9 +62,38 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::cluster_tolerance_;
          using GHV<ModelT, SceneT>::Parameter::use_normals_from_visible_;
 
-        Parameter()
-            : GHV<ModelT, SceneT>::Parameter()
-        {}
+        Parameter(const typename GHV<ModelT, SceneT>::Parameter &p = typename GHV<ModelT, SceneT>::Parameter())
+        {
+            color_sigma_ab_ = p.color_sigma_ab_;
+            color_sigma_l_ = p.color_sigma_l_;
+            regularizer_ = p.regularizer_;
+            radius_neighborhood_clutter_ = p.radius_neighborhood_clutter_;
+            radius_normals_ = p.radius_normals_;
+            duplicy_weight_test_ = p.duplicy_weight_test_;
+            duplicity_curvature_max_ = p.duplicity_curvature_max_;
+            ignore_color_even_if_exists_ = p.ignore_color_even_if_exists_;
+            max_iterations_ = p.max_iterations_;
+            clutter_regularizer_ = p.clutter_regularizer_;
+            detect_clutter_ = p.detect_clutter_;
+            res_occupancy_grid_ = p.res_occupancy_grid_;
+            w_occupied_multiple_cm_ = p.w_occupied_multiple_cm_;
+            use_super_voxels_ = p.use_super_voxels_;
+            use_replace_moves_ = p.use_replace_moves_;
+            opt_type_ = p.opt_type_;
+            active_hyp_penalty_ = p.active_hyp_penalty_;
+            multiple_assignment_penalize_by_one_ = p.multiple_assignment_penalize_by_one_;
+            d_weight_for_bad_normals_ = p.d_weight_for_bad_normals_;
+            use_clutter_exp_ = p.use_clutter_exp_;
+            use_histogram_specification_ = p.use_histogram_specification_;
+            use_points_on_plane_side_ = p.use_points_on_plane_side_;
+            best_color_weight_ = p.best_color_weight_;
+//            initial_status_ = p.initial_status_;
+            eps_angle_threshold_ = p.eps_angle_threshold_;
+            min_points_ = p.min_points_;
+            curvature_threshold_ = p.curvature_threshold_;
+            cluster_tolerance_ = p.cluster_tolerance_;
+            use_normals_from_visible_ = p.use_normals_from_visible_;
+        }
     }param_;
 
   private:
@@ -105,68 +134,6 @@ namespace v4r
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_poses_camera_to_global_;
     std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > occ_clouds_;
-
-    static float sRGB_LUT[256];
-    static float sXYZ_LUT[4000];
-
-    //////////////////////////////////////////////////////////////////////////////////////////////
-    void
-    RGB2CIELAB (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2)
-    {
-      if (sRGB_LUT[0] < 0)
-      {
-        for (int i = 0; i < 256; i++)
-        {
-          float f = static_cast<float> (i) / 255.0f;
-          if (f > 0.04045)
-            sRGB_LUT[i] = powf ((f + 0.055f) / 1.055f, 2.4f);
-          else
-            sRGB_LUT[i] = f / 12.92f;
-        }
-
-        for (int i = 0; i < 4000; i++)
-        {
-          float f = static_cast<float> (i) / 4000.0f;
-          if (f > 0.008856)
-            sXYZ_LUT[i] = static_cast<float> (powf (f, 0.3333f));
-          else
-            sXYZ_LUT[i] = static_cast<float>((7.787 * f) + (16.0 / 116.0));
-        }
-      }
-
-      float fr = sRGB_LUT[R];
-      float fg = sRGB_LUT[G];
-      float fb = sRGB_LUT[B];
-
-      // Use white = D65
-      const float x = fr * 0.412453f + fg * 0.357580f + fb * 0.180423f;
-      const float y = fr * 0.212671f + fg * 0.715160f + fb * 0.072169f;
-      const float z = fr * 0.019334f + fg * 0.119193f + fb * 0.950227f;
-
-      float vx = x / 0.95047f;
-      float vy = y;
-      float vz = z / 1.08883f;
-
-      vx = sXYZ_LUT[int(vx*4000)];
-      vy = sXYZ_LUT[int(vy*4000)];
-      vz = sXYZ_LUT[int(vz*4000)];
-
-      L = 116.0f * vy - 16.0f;
-      if (L > 100)
-        L = 100.0f;
-
-      A = 500.0f * (vx - vy);
-      if (A > 120)
-        A = 120.0f;
-      else if (A <- 120)
-        A = -120.0f;
-
-      B2 = 200.0f * (vy - vz);
-      if (B2 > 120)
-        B2 = 120.0f;
-      else if (B2<- 120)
-        B2 = -120.0f;
-    }
 
     typedef pcl::PointCloud<ModelT> CloudM;
     typedef pcl::PointCloud<SceneT> CloudS;
@@ -216,12 +183,6 @@ namespace v4r
         occ_clouds_ = occ_clouds;
       }
 
-      virtual
-      bool add_planes_is_posssible() const
-      {
-          return true;
-      }
-
       void
       addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning = false);
 
@@ -229,6 +190,12 @@ namespace v4r
       getVisibleModels()
       {
         return visible_models_;
+      }
+
+      virtual
+      bool uses_3D() const
+      {
+          return true;
       }
   };
 }

@@ -841,81 +841,14 @@ namespace v4r
         requires_normals_ = b;
       }
 
-      void
-      setUseReplaceMoves (bool u)
-      {
-        param_.use_replace_moves_ = u;
-      }
-
-      void
-      setOptimizerType (int t)
-      {
-        param_.opt_type_ = t;
-      }
 
       void
       verify ();
 
       void
-      setIgnoreColor (bool i)
-      {
-        param_.ignore_color_even_if_exists_ = i;
-      }
-
-      void
-      setColorSigma (float s)
-      {
-        param_.color_sigma_ab_ = s;
-        param_.color_sigma_l_ = s;
-      }
-
-      void setColorSigma(float s_l, float s_ab)
-      {
-          param_.color_sigma_ab_ = s_ab;
-          param_.color_sigma_l_ = s_l;
-      }
-
-      void
-      setRadiusNormals (float r)
-      {
-        param_.radius_normals_ = r;
-      }
-
-      void
-      setMaxIterations (int i)
-      {
-        param_.max_iterations_ = i;
-      }
-
-      void
       setInitialTemp (float t)
       {
         initial_temp_ = t;
-      }
-
-      void
-      setRegularizer (float r)
-      {
-        param_.regularizer_ = r;
-        //w_occupied_multiple_cm_ = regularizer_;
-      }
-
-      void
-      setRadiusClutter (float r)
-      {
-        param_.radius_neighborhood_clutter_ = r;
-      }
-
-      void
-      setClutterRegularizer (float cr)
-      {
-        param_.clutter_regularizer_ = cr;
-      }
-
-      void
-      setDetectClutter (bool d)
-      {
-        param_.detect_clutter_ = d;
       }
 
       //Same length as the recognition models
@@ -930,6 +863,12 @@ namespace v4r
       bool add_planes_is_posssible() const
       {
           return true;
+      }
+
+      virtual
+      bool uses_3D() const
+      {
+          return false;
       }
 
       void
