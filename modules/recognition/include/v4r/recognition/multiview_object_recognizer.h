@@ -48,6 +48,7 @@ protected:
     using Recognizer<PointT>::scene_;
     using Recognizer<PointT>::scene_normals_;
     using Recognizer<PointT>::models_;
+    using Recognizer<PointT>::model_or_plane_is_verified_;
     using Recognizer<PointT>::transforms_;
     using Recognizer<PointT>::hv_algorithm_;
 
@@ -116,7 +117,6 @@ public:
         int max_vertices_in_graph_;
         float resolution_;
         float chop_z_;
-        bool do_noise_modelling_;
         bool compute_mst_; // if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true),
                            // by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true)
                            // from all the possible connection a Mimimum Spanning Tree is computed.
@@ -134,7 +134,6 @@ public:
                 int max_vertices_in_graph = 3,
                 float resolution = 0.005f,
                 float chop_z = std::numeric_limits<float>::max(),
-                bool do_noise_modelling = true,
                 bool compute_mst = true) :
             Recognizer<PointT>::Parameter(),
             scene_to_scene_ (scene_to_scene),
@@ -148,7 +147,6 @@ public:
             max_vertices_in_graph_ (max_vertices_in_graph),
             resolution_ (resolution),
             chop_z_ (chop_z),
-            do_noise_modelling_ (do_noise_modelling),
             compute_mst_ (compute_mst)
         {}
     }param_;

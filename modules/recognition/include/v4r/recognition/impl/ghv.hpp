@@ -783,8 +783,6 @@ GHV<ModelT, SceneT>::initialize ()
 
     //compute cues
     {
-        std::cout << "specify histogram:" << param_.use_histogram_specification_ << " smooth faces size:" << models_smooth_faces_.size() << " color space:" << color_space_ << std::endl;
-
         valid_model_.resize(complete_models_.size (), true);
         {
             pcl::ScopeTime tcues ("Computing cues");
@@ -794,10 +792,9 @@ GHV<ModelT, SceneT>::initialize ()
             {
                 //create recognition model
                 recognition_models_[i].reset (new GHVRecognitionModel<ModelT> ());
-                if(!addModel(i, recognition_models_[i])) {
+
+                if( !addModel(i, recognition_models_[i]) ) // WARNING: Model is not valid !!
                     valid_model_[i] = false;
-                    PCL_WARN("Model is not valid\n");
-                }
             }
         }
 
@@ -917,7 +914,7 @@ void
 GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec,
                                                       const std::vector<float> & vec_float,
                                                       std::vector<int> & explained,
-                                                      std::vector<double> & explained_by_RM_distance_weighted,
+                                                      std::vector<double> & explained_by_RM_distance_weighted__not_used,
                                                       float sign,
                                                       int model_id)
 {
@@ -1356,15 +1353,12 @@ GHV<ModelT, SceneT>::fill_structures(std::vector<int> & cc_indices, std::vector<
     model.setSolution (initial_solution);
     model.setOptimizer (this);
 
-    std::cout << "*****************************" << std::endl;
-    std::cout << "Cost recomputing:" <<
-                 static_cast<mets::gol_type> ((good_information_ - bad_information_ - static_cast<double> (duplicity)
-                                               - static_cast<double> (occupied_multiple) * param_.w_occupied_multiple_cm_
-                                               - unexplained_in_neighboorhod - countActiveHypotheses (initial_solution) - countPointsOnDifferentPlaneSides(initial_solution)) * -1.f) << std::endl;
+//    std::cout << "*****************************" << std::endl;
+//    std::cout << "Cost recomputing:" << model.cost_ << std::endl;
 
-    //std::cout << countActiveHypotheses (initial_solution) << " points on diff plane sides:" << countPointsOnDifferentPlaneSides(initial_solution, false) << std::endl;
-    std::cout << "*****************************" << std::endl;
-    std::cout << std::endl;
+//    //std::cout << countActiveHypotheses (initial_solution) << " points on diff plane sides:" << countPointsOnDifferentPlaneSides(initial_solution, false) << std::endl;
+//    std::cout << "*****************************" << std::endl;
+//    std::cout << std::endl;
 }
 
 template<typename ModelT, typename SceneT>
@@ -1679,18 +1673,18 @@ GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool
 
     for(size_t i = 0; i < initial_solution.size(); i++) {
         if(initial_solution[i]) {
-            std::cout << "id: " << recognition_models_[i]->id_s_ << std::endl;
-            /*std::cout << "Median:" << recognition_models_[i]->median_ << std::endl;
-            std::cout << "Mean:" << recognition_models_[i]->mean_ << std::endl;
-            std::cout << "Color similarity:" << recognition_models_[i]->color_similarity_ << std::endl;*/
-            std::cout << "#outliers:" << recognition_models_[i]->outlier_indices_.size () << " " << recognition_models_[i]->outliers_weight_ << std::endl;
-            //std::cout << "#under table:" << recognition_models_[i]->model_constraints_value_ << std::endl;
-            std::cout << "#explained:" << recognition_models_[i]->explained_.size() << std::endl;
-            std::cout << "normal entropy:" << recognition_models_[i]->normal_entropy_ << std::endl;
-            std::cout << "color entropy:" << recognition_models_[i]->color_entropy_ << std::endl;
-            std::cout << "hyp penalty:" << recognition_models_[i]->hyp_penalty_ << std::endl;
-            std::cout << "color diff:" << recognition_models_[i]->color_diff_trhough_specification_ << std::endl;
-            std::cout << "Mean:" << recognition_models_[i]->mean_ << std::endl;
+//            std::cout << "id: " << recognition_models_[i]->id_s_ << std::endl;
+//            /*std::cout << "Median:" << recognition_models_[i]->median_ << std::endl;
+//            std::cout << "Mean:" << recognition_models_[i]->mean_ << std::endl;
+//            std::cout << "Color similarity:" << recognition_models_[i]->color_similarity_ << std::endl;*/
+//            std::cout << "#outliers:" << recognition_models_[i]->outlier_indices_.size () << " " << recognition_models_[i]->outliers_weight_ << std::endl;
+//            //std::cout << "#under table:" << recognition_models_[i]->model_constraints_value_ << std::endl;
+//            std::cout << "#explained:" << recognition_models_[i]->explained_.size() << std::endl;
+//            std::cout << "normal entropy:" << recognition_models_[i]->normal_entropy_ << std::endl;
+//            std::cout << "color entropy:" << recognition_models_[i]->color_entropy_ << std::endl;
+//            std::cout << "hyp penalty:" << recognition_models_[i]->hyp_penalty_ << std::endl;
+//            std::cout << "color diff:" << recognition_models_[i]->color_diff_trhough_specification_ << std::endl;
+//            std::cout << "Mean:" << recognition_models_[i]->mean_ << std::endl;
 
             typename boost::shared_ptr<GHVRecognitionModel<ModelT> > recog_model = recognition_models_[i];
 
@@ -2183,7 +2177,7 @@ GHV<ModelT, SceneT>::specifyRGBHistograms (Eigen::MatrixXf & src, Eigen::MatrixX
 
 template<typename ModelT, typename SceneT>
 bool
-GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, bool is_planar_model, int object_models_size)
+GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, int object_models_size)
 {
     //std::cout << visible_normal_models_.size() << " " << object_models_size << " " << complete_models_.size() << std::endl;
     if(visible_normal_models_.size() == static_cast<size_t>(object_models_size) && !param_.use_normals_from_visible_/*&& !is_planar_model*/)
@@ -2198,8 +2192,7 @@ GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel<Mode
         size_t kept = 0;
         for (size_t idx = 0; idx < recog_model->cloud_->points.size (); ++idx)
         {
-            if (pcl::isFinite(recog_model->cloud_->points[idx])
-                    && pcl::isFinite(model_normals->points[idx]) )
+            if ( pcl::isFinite(recog_model->cloud_->points[idx]) && pcl::isFinite(model_normals->points[idx]) )
             {
                 recog_model->cloud_->points[kept] = recog_model->cloud_->points[idx];
                 recog_model->normals_->points[kept] = model_normals->points[idx];
@@ -2215,11 +2208,8 @@ GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel<Mode
         recog_model->normals_->width = kept;
         recog_model->normals_->height = 1;
 
-        if (recog_model->cloud_->points.size () <= 0)
-        {
-            PCL_WARN("The model cloud has no points..\n");
+        if (recog_model->cloud_->points.empty())
             return false;
-        }
     }
     else
     {
@@ -2258,12 +2248,12 @@ GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel<Mode
 
         //check nans...
         kept = 0;
-        for (size_t i = 0; i < recog_model->normals_->points.size (); ++i)
+        for (size_t pt = 0; pt < recog_model->normals_->points.size (); pt++)
         {
-            if ( pcl::isFinite(recog_model->normals_->points[i]) )
+            if ( pcl::isFinite(recog_model->normals_->points[pt]) )
             {
-                recog_model->normals_->points[kept] = recog_model->normals_->points[i];
-                recog_model->cloud_->points[kept] = recog_model->cloud_->points[i];
+                recog_model->normals_->points[kept] = recog_model->normals_->points[pt];
+                recog_model->cloud_->points[kept] = recog_model->cloud_->points[pt];
                 kept++;
             }
         }
@@ -2282,16 +2272,14 @@ GHV<ModelT, SceneT>::handlingNormals (boost::shared_ptr<GHVRecognitionModel<Mode
 
 template<typename ModelT, typename SceneT>
 void
-GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model)
+GHV<ModelT, SceneT>::specifyColor(int id, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model)
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_cloud_specified(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::copyPointCloud(*recog_model->cloud_, *model_cloud_specified);
 
     bool smooth_faces_exist = false;
-    if(models_smooth_faces_.size() > i)
-    {
+    if(models_smooth_faces_.size() > id)
         smooth_faces_exist = true;
-    }
 
     std::vector< std::vector<int> > label_indices;
     std::vector< std::set<int> > label_explained_indices_points;
@@ -2301,7 +2289,7 @@ GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::shared
     if(smooth_faces_exist)
     {
         //use visible indices to check which points are visible
-        pcl::copyPointCloud(*models_smooth_faces_[i], visible_indices_[i], *visible_labels);
+        pcl::copyPointCloud(*models_smooth_faces_[id], visible_indices_[id], *visible_labels);
         recog_model->visible_labels_ = visible_labels;
 
         //specify using the smooth faces
@@ -2310,9 +2298,7 @@ GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::shared
         for(size_t k=0; k < visible_labels->points.size(); k++)
         {
             if(visible_labels->points[k].label > max_label)
-            {
                 max_label = visible_labels->points[k].label;
-            }
         }
 
         //std::cout << "max label:" << max_label << std::endl;
@@ -2379,9 +2365,7 @@ GHV<ModelT, SceneT>::specifyColor(int i, Eigen::MatrixXf & lookup, boost::shared
         label_indices.resize(1);
         label_explained_indices_points.resize(1);
         for(size_t k=0; k < recog_model->cloud_->points.size(); k++)
-        {
             label_indices[0].push_back(k);
-        }
 
         std::vector<std::pair<int, float> > label_index_distances;
         label_index_distances.resize(scene_cloud_downsampled_->points.size(), std::make_pair(-1, std::numeric_limits<float>::infinity()));
@@ -2698,7 +2682,7 @@ GHV<ModelT, SceneT>::addModel (int model_id, boost::shared_ptr<GHVRecognitionMod
         recog_model->id_s_ = object_ids_[model_id];
     }
 
-    if( ! handlingNormals(recog_model, model_id, is_planar_model, complete_models_.size() ) )
+    if( ! handlingNormals(recog_model, model_id, complete_models_.size() ) )
     {
         PCL_WARN("Handling normals returned false\n");
         return false;

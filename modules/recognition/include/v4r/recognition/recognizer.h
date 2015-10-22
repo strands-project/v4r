@@ -98,13 +98,21 @@ namespace v4r
 
         /** \brief Point cloud to be classified */
         PointTPtr scene_;
+
+
+        /** \brief Point cloud to be classified */
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
         mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
         mutable int vp1_, vp2_, vp3_;
 
-        std::vector<ModelTPtr> models_, models_verified_;
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_, transforms_verified_;
-        std::vector<typename pcl::PointCloud<PointT>::Ptr > planes_verified_;
+        /** @brief: generated object hypotheses from correspondence grouping (before verification) */
+        std::vector<ModelTPtr> models_;
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
+        std::vector<PlaneModel<PointT> > planes_;
+
+        /** @brief boolean vector defining if model or plane is verified (models are first in the vector and its size is equal to models_) */
+        std::vector<bool> model_or_plane_is_verified_;
+
         bool requires_segmentation_;
         std::vector<int> indices_;
         pcl::PointIndicesPtr icp_scene_indices_;
@@ -113,7 +121,7 @@ namespace v4r
         std::string training_dir_;
 
         /** \brief Hypotheses verification algorithm */
-        typename boost::shared_ptr<v4r::HypothesisVerification<PointT, PointT> > hv_algorithm_;
+        typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > hv_algorithm_;
 
         void poseRefinement();
         void hypothesisVerification ();
@@ -188,7 +196,7 @@ namespace v4r
             PCL_WARN("Reinitialize is not implemented for this class.");
         }
 
-        void setHVAlgorithm (const typename boost::shared_ptr<v4r::HypothesisVerification<PointT, PointT> > & alg)
+        void setHVAlgorithm (const typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > & alg)
         {
           hv_algorithm_ = alg;
         }
@@ -198,6 +206,10 @@ namespace v4r
           scene_ = cloud;
         }
 
+        /**
+         * @brief return all generated object hypotheses
+         * @return potential object model in the scene (not aligned to the scene)
+         */
         std::vector<ModelTPtr>
         getModels () const
         {
@@ -205,13 +217,32 @@ namespace v4r
         }
 
 
+        /**
+         * @brief returns only the models for the objects that have been verified
+         * @return verified object model of the scene (not aligned to the scene)
+         */
         std::vector<ModelTPtr>
         getVerifiedModels () const
         {
-          return models_verified_;
+            std::vector<ModelTPtr> models_verified;
+
+            if(model_or_plane_is_verified_.size() < models_.size()) {
+                std::cout << "Verification vector is not valid. Did you run hyphotheses verification?" << std::endl;
+                return models_verified;
+            }
+
+            for(size_t i=0; i<models_.size(); i++) {
+                if (model_or_plane_is_verified_[i])
+                    models_verified.push_back(models_[i]);
+            }
+            return models_verified;
         }
 
 
+        /**
+         * @brief return all transforms of generated object hypotheses with respect to the scene
+         * @return 4x4 homogenous transformation matrix
+         */
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
         getTransforms () const
         {
@@ -219,33 +250,30 @@ namespace v4r
         }
 
 
+        /**
+         * @brief returns only the transformations for the objects that have been verified
+         * @return 4x4 homogenous transformation matrix of verified model to the scene
+         */
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
         getVerifiedTransforms () const
         {
-          return transforms_verified_;
+          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
+
+          if(model_or_plane_is_verified_.size() < transforms_.size()) {
+              std::cout << "Verification vector is not valid. Did you run hyphotheses verification?" << std::endl;
+              return transforms_verified;
+          }
+
+          for(size_t i=0; i<transforms_.size(); i++) {
+              if (model_or_plane_is_verified_[i])
+                  transforms_verified.push_back(transforms_[i]);
+          }
+          return transforms_verified;
         }
 
-
-        void
-        setICPIterations (int it)
-        {
-          param_.icp_iterations_ = it;
-        }
-
-
-        void setICPType(int t)
-        {
-          param_.icp_type_ = t;
-        }
-
-
-        void setVoxelSizeICP(float s)
-        {
-          param_.voxel_size_icp_ = s;
-        }
 
         /**
-         * \brief Filesystem dir containing training files
+         * @brief Filesystem dir containing training files
          */
         void
         setTrainingDir (const std::string & dir)
@@ -253,10 +281,12 @@ namespace v4r
           training_dir_ = dir;
         }
 
+
         void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
         {
             scene_normals_ = normals;
         }
+
 
         virtual bool requiresSegmentation() const
         {

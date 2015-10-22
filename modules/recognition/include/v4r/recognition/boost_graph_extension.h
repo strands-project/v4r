@@ -17,57 +17,44 @@ typedef pcl::Histogram<128> FeatureT;
 namespace v4r
 {
 
-template<typename PointInT>
-class V4R_EXPORTS Hypothesis
-{
-    typedef v4r::Model<PointInT> ModelT;
-    typedef boost::shared_ptr<ModelT> ModelTPtr;
-
-public:
-    ModelTPtr model_;
-    Eigen::Matrix4f transform_;
-    size_t origin_view_id_;
-    bool verified_;
-    size_t id_;
-
-    Hypothesis ( const ModelTPtr model, const Eigen::Matrix4f transform, const size_t origin_view_id, const bool verified = false)
-        : model_ (model),
-          transform_ (transform),
-          origin_view_id_ (origin_view_id),
-          verified_ (verified)
-    {
-        id_++;
-    }
-};
-
 template<typename PointT>
 class V4R_EXPORTS View
 {
+protected:
+    typedef Model<PointT> ModelT;
+    typedef boost::shared_ptr<ModelT> ModelTPtr;
 
 public:
     View();
-    //View(const View &view);
     typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_;
     typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_f_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > scene_normals_;
     std::vector<int> filtered_scene_indices_;
+    Eigen::Matrix4f absolute_pose_;
     typename boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
     typename std::map<std::string, ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_;
     std::vector<float> sift_keypoints_scales_;
     pcl::PointIndices sift_kp_indices_;
-    typename std::vector<Hypothesis<PointT> > hypothesis_sv_;
-    typename std::vector<Hypothesis<PointT> > hypothesis_mv_;
     Eigen::Matrix4f transform_to_world_co_system_;
     bool has_been_hopped_;
     double cumulative_weight_to_new_vrtx_;
     pcl::PointIndices kp_indices_;
-    std::vector<typename pcl::PointCloud<PointT>::Ptr> verified_planes_;
     size_t id_;
 
+    /** @brief: generated object hypotheses from correspondence grouping (before verification) */
+    std::vector<ModelTPtr> models_;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
+    std::vector<PlaneModel<PointT> > planes_;
+
+    /** @brief boolean vector defining if model or plane is verified (models are first in the vector and its size is equal to models_) */
+    std::vector<bool> model_or_plane_is_verified_;
+
+    /** @brief vector defining from which view the object hypothesis comes from */
+    std::vector<size_t> origin_view_id_;
+
     //GO3D
-    Eigen::Matrix4f absolute_pose_;
     std::vector<float> nguyens_noise_model_weights_;
     std::vector<int> nguyens_kept_indices_;
 };
@@ -120,17 +107,5 @@ struct V4R_EXPORTS CamConnect
 };
 
 using namespace boost;
-
-//void visualizeGraph ( const MVGraph & grph, pcl::visualization::PCLVisualizer::Ptr vis);
-//void pruneGraph (MVGraph &grph, size_t num_remaining_vertices=2);
-//void outputgraph ( MVGraph &map, const char* filename );
-//void resetHopStatus(MVGraph &grph);
-//ViewD getFurthestVertex ( MVGraph &grph);
-//void shallowCopyVertexIntoOtherGraph(const Vertex vrtx_src, const Graph grph_src, Vertex &vrtx_target, Graph &grph_target);
-//void copyEdgeIntoOtherGraph(const Edge edge_src, const Graph grph_src, Edge &edge_target, Graph &grph_target);
-//std::vector<Vertex> my_node_reader ( std::string filename, Graph &g )
-
-//template<typename PointInT> size_t Hypothesis<PointInT>::sNum_hypotheses_ = 0;
-
 }
 #endif

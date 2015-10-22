@@ -25,8 +25,7 @@
 namespace v4r
 {
   template<typename ModelT, typename SceneT>
-  //class FAAT_REC_API GO3D : public v4r::GlobalHypothesesVerification_1<ModelT, SceneT>
-  class V4R_EXPORTS GO3D : public v4r::GHV<ModelT, SceneT>
+  class V4R_EXPORTS GO3D : public GHV<ModelT, SceneT>
   {
 
   public:
@@ -97,38 +96,38 @@ namespace v4r
     }param_;
 
   private:
-    using v4r::GHV<ModelT, SceneT>::mask_;
-    using v4r::GHV<ModelT, SceneT>::scene_cloud_downsampled_;
-    using v4r::GHV<ModelT, SceneT>::scene_downsampled_tree_;
-    using v4r::GHV<ModelT, SceneT>::visible_models_;
-    using v4r::GHV<ModelT, SceneT>::visible_normal_models_;
-    using v4r::GHV<ModelT, SceneT>::visible_indices_;
-    using v4r::GHV<ModelT, SceneT>::complete_models_;
-    using v4r::GHV<ModelT, SceneT>::normals_set_;
-    using v4r::GHV<ModelT, SceneT>::requires_normals_;
-    using v4r::GHV<ModelT, SceneT>::object_ids_;
-    using v4r::GHV<ModelT, SceneT>::extra_weights_;
-    using v4r::GHV<ModelT, SceneT>::scene_normals_;
-    using v4r::GHV<ModelT, SceneT>::recognition_models_;
-    using v4r::GHV<ModelT, SceneT>::computeRGBHistograms;
-    using v4r::GHV<ModelT, SceneT>::specifyRGBHistograms;
-    using v4r::GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods;
-    using v4r::GHV<ModelT, SceneT>::explained_by_RM_distance_weighted;
-    using v4r::GHV<ModelT, SceneT>::explained_by_RM_;
-    using v4r::GHV<ModelT, SceneT>::complete_cloud_occupancy_by_RM_;
-    using v4r::GHV<ModelT, SceneT>::octree_scene_downsampled_;
-    using v4r::GHV<ModelT, SceneT>::cc_;
-    using v4r::GHV<ModelT, SceneT>::n_cc_;
-    using v4r::GHV<ModelT, SceneT>::valid_model_;
-    using v4r::GHV<ModelT, SceneT>::clusters_cloud_rgb_;
-    using v4r::GHV<ModelT, SceneT>::clusters_cloud_;
-    using v4r::GHV<ModelT, SceneT>::points_explained_by_rm_;
-    using v4r::GHV<ModelT, SceneT>::extractEuclideanClustersSmooth;
-    using v4r::GHV<ModelT, SceneT>::complete_normal_models_;
-    using v4r::GHV<ModelT, SceneT>::scene_LAB_values_;
-    using v4r::GHV<ModelT, SceneT>::scene_RGB_values_;
-    using v4r::GHV<ModelT, SceneT>::scene_GS_values_;
-    using v4r::GHV<ModelT, SceneT>::computeClutterCueAtOnce;
+    using GHV<ModelT, SceneT>::mask_;
+    using GHV<ModelT, SceneT>::scene_cloud_downsampled_;
+    using GHV<ModelT, SceneT>::scene_downsampled_tree_;
+    using GHV<ModelT, SceneT>::visible_models_;
+    using GHV<ModelT, SceneT>::visible_normal_models_;
+    using GHV<ModelT, SceneT>::visible_indices_;
+    using GHV<ModelT, SceneT>::complete_models_;
+    using GHV<ModelT, SceneT>::normals_set_;
+    using GHV<ModelT, SceneT>::requires_normals_;
+    using GHV<ModelT, SceneT>::object_ids_;
+    using GHV<ModelT, SceneT>::extra_weights_;
+    using GHV<ModelT, SceneT>::scene_normals_;
+    using GHV<ModelT, SceneT>::recognition_models_;
+    using GHV<ModelT, SceneT>::computeRGBHistograms;
+    using GHV<ModelT, SceneT>::specifyRGBHistograms;
+    using GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods;
+    using GHV<ModelT, SceneT>::explained_by_RM_distance_weighted;
+    using GHV<ModelT, SceneT>::explained_by_RM_;
+    using GHV<ModelT, SceneT>::complete_cloud_occupancy_by_RM_;
+    using GHV<ModelT, SceneT>::octree_scene_downsampled_;
+    using GHV<ModelT, SceneT>::cc_;
+    using GHV<ModelT, SceneT>::n_cc_;
+    using GHV<ModelT, SceneT>::valid_model_;
+    using GHV<ModelT, SceneT>::clusters_cloud_rgb_;
+    using GHV<ModelT, SceneT>::clusters_cloud_;
+    using GHV<ModelT, SceneT>::points_explained_by_rm_;
+    using GHV<ModelT, SceneT>::extractEuclideanClustersSmooth;
+    using GHV<ModelT, SceneT>::complete_normal_models_;
+    using GHV<ModelT, SceneT>::scene_LAB_values_;
+    using GHV<ModelT, SceneT>::scene_RGB_values_;
+    using GHV<ModelT, SceneT>::scene_GS_values_;
+    using GHV<ModelT, SceneT>::computeClutterCueAtOnce;
 
     //typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
@@ -141,32 +140,12 @@ namespace v4r
     typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
     typedef typename pcl::NormalEstimation<SceneT, pcl::Normal> NormalEstimator_;
 
-    /*bool
-    addModel (int i, boost::shared_ptr<RecognitionModel<ModelT> > & recog_model);*/
-
-      //void initialize ();
-
-      /*bool
-      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, bool is_planar_model, int object_models_size);*/
-
     public:
 
       GO3D(const Parameter &p=Parameter()) : GHV<ModelT, SceneT>(p)
       {
          param_ = p;
       }
-
-      /*void setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene_cloud_downsampled_GO3D,
-                              typename pcl::PointCloud<pcl::Normal>::Ptr & scene_normals_go3D)
-      {
-          scene_cloud_downsampled_GO3D_ = scene_cloud_downsampled_GO3D;
-          scene_normals_go3D_ = scene_normals_go3D;
-      }
-
-      typename pcl::PointCloud<SceneT>::Ptr getSceneCloud()
-      {
-        return scene_cloud_downsampled_GO3D_;
-      }*/
 
       bool getInlierOutliersCloud(int hyp_idx, typename pcl::PointCloud<ModelT>::Ptr & cloud);
 
@@ -178,7 +157,7 @@ namespace v4r
       }
 
       void
-      setOcclusionsClouds(std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > & occ_clouds)
+      setOcclusionClouds(std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > & occ_clouds)
       {
         occ_clouds_ = occ_clouds;
       }

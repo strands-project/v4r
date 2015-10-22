@@ -205,7 +205,7 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
         cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
         cg_algorithm_->cluster (corresp_clusters);
 
-        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences:" << oh.model_scene_corresp_->size () << " " << it_map->first << std::endl;
+        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences: " << oh.model_scene_corresp_->size () << " " << it_map->first;
 
         size_t existing_hypotheses = models_.size();
         models_.resize( existing_hypotheses + corresp_clusters.size () );

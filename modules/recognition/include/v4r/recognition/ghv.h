@@ -321,7 +321,7 @@ namespace v4r
       void computeClutterCueAtOnce ();
 
       virtual bool
-      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, bool is_planar_model, int object_models_size);
+      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, int object_models_size);
 
       virtual bool
       addModel (int i, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
@@ -373,12 +373,6 @@ namespace v4r
       //mahalanobis stuff
       Eigen::MatrixXf inv_covariance_;
       Eigen::VectorXf mean_;
-
-      double
-      getOccupiedMultipleW () const
-      {
-        return param_.w_occupied_multiple_cm_;
-      }
 
       void
       setPreviousBadInfo (double f)
@@ -440,12 +434,6 @@ namespace v4r
         return previous_duplicity_complete_models_;
       }
 
-      float
-      getHypPenalty () const
-      {
-        return param_.active_hyp_penalty_;
-      }
-
       double
       getExplainedByIndices (const std::vector<int> & indices,
                              const std::vector<float> & explained_values,
@@ -468,8 +456,6 @@ namespace v4r
       updateUnexplainedVector (const std::vector<int> & unexplained_, const std::vector<float> & unexplained_distances, std::vector<double> & unexplained_by_RM,
                                std::vector<int> & explained, std::vector<int> & explained_by_RM, float val)
       {
-        {
-
           double add_to_unexplained = 0.0;
 
           for (size_t i = 0; i < unexplained_.size (); i++)
@@ -499,9 +485,7 @@ namespace v4r
             {
               //the hypothesis is being removed, check that there are no points that become unexplained and have clutter unexplained hypotheses
               if ((explained_by_RM[explained[i]] == 0) && (unexplained_by_RM[explained[i]] > 0))
-              {
                 add_to_unexplained += unexplained_by_RM[explained[i]]; //the points become unexplained
-              }
             }
             else
             {
@@ -515,12 +499,11 @@ namespace v4r
 
           //std::cout << add_to_unexplained << std::endl;
           previous_unexplained_ += add_to_unexplained;
-        }
       }
 
       void
       updateExplainedVector (const std::vector<int> & vec, const std::vector<float> & vec_float, std::vector<int> & explained_,
-                             std::vector<double> & explained_by_RM_distance_weighted, float sign, int model_id);
+                             std::vector<double> & explained_by_RM_distance_weighted__not_used, float sign, int model_id);
 
       void
       updateCMDuplicity (const std::vector<int> & vec, std::vector<int> & occupancy_vec, float sign);
@@ -662,16 +645,6 @@ namespace v4r
          scene_and_normals_set_from_outside_ = true;
       }
 
-      void setUseClutterExp(bool b)
-      {
-          param_.use_clutter_exp_ = b;
-      }
-
-      void setWeightForBadNormals(float w)
-      {
-          param_.d_weight_for_bad_normals_ = w;
-      }
-
       int getNumberOfVisiblePoints()
       {
           return number_of_visible_points_;
@@ -698,26 +671,6 @@ namespace v4r
           max_threads_ = t;
       }
 
-      void setUseNormalsFromVisible(bool b)
-      {
-          param_.use_normals_from_visible_ = b;
-      }
-
-      void setDuplicityWeightTest(float f)
-      {
-          param_.duplicy_weight_test_ = f;
-      }
-
-      void setDuplicityMaxCurvature(float f)
-      {
-          param_.duplicity_curvature_max_ = f;
-      }
-
-      void setBestColorWeight(float bcw)
-      {
-          param_.best_color_weight_ = bcw;
-      }
-
       void setVisualizeAccepted(bool b)
       {
           visualize_accepted_ = b;
@@ -728,11 +681,6 @@ namespace v4r
       {
           std::cout << "called color space" << cs << std::endl;
           color_space_ = cs;
-      }
-
-      void setUsePointsOnPlaneSides(bool b)
-      {
-          param_.use_points_on_plane_side_ = b;
       }
 
       void setSmoothFaces(std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> & aligned_smooth_faces)
@@ -750,25 +698,11 @@ namespace v4r
           LS_short_circuit_ = b;
       }
 
-      void setDuplicityCMWeight(float w)
-      {
-          param_.w_occupied_multiple_cm_ = w;
-      }
-
-      void setHistogramSpecification(bool b)
-      {
-          param_.use_histogram_specification_ = b;
-      }
-
       void setNormalsForClutterTerm(pcl::PointCloud<pcl::Normal>::Ptr & normals)
       {
           scene_normals_for_clutter_term_ = normals;
       }
 
-      void setUseSuperVoxels(bool use)
-      {
-        param_.use_super_voxels_ = use;
-      }
       void addPlanarModels(std::vector<PlaneModel<ModelT> > & models);
 
       void
@@ -791,26 +725,12 @@ namespace v4r
       {
         cost_logger_->writeToLog (of);
         if (all_costs_)
-        {
           cost_logger_->writeEachCostToLog (of);
-        }
-      }
-
-      void
-      setHypPenalty (float p)
-      {
-        param_.active_hyp_penalty_ = p;
       }
 
       void setMinContribution(int min)
       {
           min_contribution_ = min;
-      }
-
-      void
-      setInitialStatus (bool b)
-      {
-        param_.initial_status_ = b;
       }
 
       /*void logCosts() {

@@ -341,6 +341,21 @@ namespace v4r
     }
 
     virtual
+    void setAbsolutePoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses_camera_to_global)
+    {
+      (void)absolute_poses_camera_to_global;
+      std::cerr << "setAbsolutePoses function is not defined for this object!" << std::endl;
+    }
+
+    virtual
+    void
+    setOcclusionClouds(std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > & occ_clouds)
+    {
+        (void)occ_clouds;
+        std::cerr << "setOcclusionClouds function is not defined for this object!" << std::endl;
+    }
+
+    virtual
     void setNormalsForClutterTerm(pcl::PointCloud<pcl::Normal>::Ptr &n)
     {
         (void) n;

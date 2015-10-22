@@ -364,8 +364,7 @@ MultiviewRecognizer<PointT>::recognize ()
                         e_tmp.edge_weight_ = calcEdgeWeightAndRefineTf( w.scene_, v.scene_, icp_refined_trans, e_tmp.transformation_);
                         e_tmp.transformation_ = icp_refined_trans,
                         std::cout << "Edge weight is " << e_tmp.edge_weight_ << " for edge connecting vertex " <<
-                                     e_tmp.source_id_ << " and " << e_tmp.target_id_ << " by " <<
-                                     e_tmp.model_name_ << std::endl;
+                                     e_tmp.source_id_ << " and " << e_tmp.target_id_ << " by " <<  e_tmp.model_name_ ;
 
                         if(e_tmp.edge_weight_ < lowest_edge_weight) {
                             lowest_edge_weight = e_tmp.edge_weight_;
@@ -396,8 +395,6 @@ MultiviewRecognizer<PointT>::recognize ()
                     gs_[target_d] = transforms[best_transform_id].target_id_;
                 }
 
-//                ViewD source_d = boost::add_vertex(transforms[best_transform_id].source_id_, gs_);
-//                gs_[source_d] = 1000;
                 ViewD src_D = boost::add_vertex (gs_);
                 gs_[src_D] = transforms[best_transform_id].source_id_;
                 boost::add_edge ( src_D, target_d, transforms[best_transform_id], gs_);
@@ -536,22 +533,26 @@ MultiviewRecognizer<PointT>::recognize ()
         scene_ = accum_scene;
         scene_normals_ = accum_normals;
 
-        if(cg_algorithm_)
+        if(cg_algorithm_) {
             correspondenceGrouping();
+            v.models_ = models_;
+            v.transforms_ = transforms_;
+            v.origin_view_id_.resize(models_.size());
+            std::fill(v.origin_view_id_.begin(), v.origin_view_id_.end(), v.id_);
+            v.model_or_plane_is_verified_.resize(models_.size());
+            std::fill(v.model_or_plane_is_verified_.begin(), v.model_or_plane_is_verified_.end(), false);
+        }
 
 //        for(size_t m_id=0; m_id<transforms_.size(); m_id++) // transform hypotheses back from global coordinate system to current viewport
 //                transforms_[m_id] = v.absolute_pose_.inverse() * transforms_[m_id];
     }
     else {  // correspondence grouping is done already (so we get the full models) [Faeulhammer et al 2015, MVA paper]
-        std::vector<ModelTPtr> m_tmp = rr_->getModels();
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > tf_tmp = rr_->getTransforms ();
-
-        v.hypothesis_sv_.reserve(m_tmp.size());
-        v.hypothesis_mv_.reserve(m_tmp.size());
-        for(size_t i=0; i<m_tmp.size(); i++) {
-            v.hypothesis_sv_.push_back( Hypothesis<PointT>(m_tmp[i], tf_tmp[i], v.id_, false) );
-            v.hypothesis_mv_.push_back( Hypothesis<PointT>(m_tmp[i], tf_tmp[i], v.id_, false) );
-        }
+        v.models_ = rr_->getModels();
+        v.transforms_ = rr_->getTransforms ();
+        v.origin_view_id_.resize(v.models_.size());
+        std::fill(v.origin_view_id_.begin(), v.origin_view_id_.end(), v.id_);
+        v.model_or_plane_is_verified_.resize(v.models_.size());
+        std::fill(v.model_or_plane_is_verified_.begin(), v.model_or_plane_is_verified_.end(), false);
 
         typename std::map<size_t, View<PointT> >::const_iterator view_it;
         for (view_it = views_.begin(); view_it != views_.end(); ++view_it) {   // add hypotheses from other views
@@ -559,26 +560,25 @@ MultiviewRecognizer<PointT>::recognize ()
             if (w.id_ == v.id_)
                 continue;
 
-            for(size_t i=0; i<w.hypothesis_mv_.size(); i++) {
-                Hypothesis<PointT> h = w.hypothesis_mv_[i];
-                v.hypothesis_mv_.push_back( Hypothesis<PointT>(h.model_, v.absolute_pose_.inverse() * w.absolute_pose_ * h.transform_, h.origin_view_id_, false) );
+            for(size_t i=0; i<w.models_.size(); i++) {
+                if(w.model_or_plane_is_verified_[i]) {
+                    v.models_.push_back( w.models_[i] );
+                    v.transforms_.push_back( v.absolute_pose_.inverse() * w.absolute_pose_ * w.transforms_[i] );
+                    v.origin_view_id_.push_back( w.origin_view_id_[i] );
+                    v.model_or_plane_is_verified_.push_back( false );
+                }
             }
         }
 
-        models_.resize(v.hypothesis_mv_.size());
-        transforms_.resize(v.hypothesis_mv_.size());
-        for(size_t i=0; i<v.hypothesis_mv_.size(); i++) {
-            Hypothesis<PointT> &h = v.hypothesis_mv_[i];
-            models_[i] = h.model_;
-            transforms_[i] = h.transform_;
-        }
+        models_ = v.models_;
+        transforms_ = v.transforms_;
     }
 
-    if ( param_.do_noise_modelling_ ) {
+    if ( hv_algorithm_ && hv_algorithm_->uses_3D() ) {
         const double max_keypoint_dist_mv_ = 2.5f;
         const double nm_integration_min_weight_ = 0.25f;
 
-        v4r::noise_models::NguyenNoiseModel<PointT> nm (nm_param_);
+        noise_models::NguyenNoiseModel<PointT> nm (nm_param_);
         nm.setInputCloud(v.scene_);
         nm.setInputNormals( v.scene_normals_);
         nm.compute();
@@ -618,7 +618,7 @@ MultiviewRecognizer<PointT>::recognize ()
 
         //obtain big cloud and occlusion clouds based on new noise model integration
         typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
-        v4r::NMBasedCloudIntegration<PointT> nmIntegration;
+        NMBasedCloudIntegration<PointT> nmIntegration;
         nmIntegration.setInputClouds(original_clouds);
         nmIntegration.setResolution(0.001f);
         nmIntegration.setWeights(views_noise_weights);
@@ -635,11 +635,20 @@ MultiviewRecognizer<PointT>::recognize ()
         nmIntegration.getInputCloudsUsed(used_clouds);
 
         occlusion_clouds.resize(used_clouds.size());
-        for(size_t kk=0; kk < used_clouds.size(); kk++)
-            occlusion_clouds[kk].reset(new pcl::PointCloud<PointT>(*used_clouds[kk]));
+        for(size_t i=0; i < used_clouds.size(); i++)
+            occlusion_clouds[i].reset(new pcl::PointCloud<PointT>(*used_clouds[i]));
 
-//        scene_ = big_cloud_go3D = octree_cloud;
-//        scene_normals_ = big_cloud_go3D_normals = big_normals;
+        hv_algorithm_->setOcclusionClouds( occlusion_clouds );
+        hv_algorithm_->setAbsolutePoses( transforms_to_global );
+
+        //Instantiate HV go 3D, reimplement addModels that will reason about occlusions
+        //Set occlusion cloudS!!
+        //Set the absolute poses so we can go from the global coordinate system to the occlusion clouds
+        //TODO: Normals might be a problem!! We need normals from the models and normals from the scene, correctly oriented!
+        //right now, all normals from the scene will be oriented towards some weird 0, same for models actually
+
+        scene_ = big_cloud_go3D = octree_cloud;
+        scene_normals_ = big_cloud_go3D_normals = big_normals;
     }
 
     scene_ = v.scene_;
@@ -648,8 +657,10 @@ MultiviewRecognizer<PointT>::recognize ()
     if ( param_.icp_iterations_ > 0 )
         poseRefinement();
 
-    if ( hv_algorithm_ && !models_.empty() )
+    if ( hv_algorithm_ && !models_.empty() ) {
         hypothesisVerification();
+        v.model_or_plane_is_verified_ = model_or_plane_is_verified_;
+    }
 
     scene_normals_.reset();
 
@@ -679,7 +690,7 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
         cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
         cg_algorithm_->cluster (corresp_clusters);
 
-        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences:" << oh.model_scene_corresp_->size () << " " << it->first;
+        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first;
 //        oh.visualize(*scene_);
 
         size_t existing_hypotheses = models_.size();

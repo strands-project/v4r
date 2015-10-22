@@ -288,19 +288,14 @@ public:
                 mv_r_->setCameraPose(tf);
                 mv_r_->recognize();
 
-                std::vector<ModelTPtr> verified_models = rr_->getVerifiedModels();
-                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
-                transforms_verified = rr_->getVerifiedTransforms();
+                std::vector<ModelTPtr> verified_models = mv_r_->getVerifiedModels();
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified = mv_r_->getVerifiedTransforms();
 
                 if (visualize_)
                     mv_r_->visualize();
 
                 for(size_t m_id=0; m_id<verified_models.size(); m_id++)
-                {
-                    const std::string &model_id = verified_models[m_id]->id_;
-                    const Eigen::Matrix4f &tf = transforms_verified[m_id];
-                    std::cout << "******" << model_id << std::endl << tf << std::endl << std::endl;
-                }
+                    std::cout << "******" << verified_models[m_id]->id_ << std::endl <<  transforms_verified[m_id] << std::endl << std::endl;
             }
         }
         return true;
