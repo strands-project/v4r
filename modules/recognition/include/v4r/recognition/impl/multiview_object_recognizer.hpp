@@ -112,7 +112,7 @@ MultiviewRecognizer<PointT>::estimateViewTransformationBySIFT(const pcl::PointCl
     {
         FeatureT searchFeature = src_sift_signatures[ keypointId ];
         int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-        v4r::nearestKSearch ( dst_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+        nearestKSearch ( dst_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
 
         pcl::Correspondence corr;
         corr.distance = distances[0][0];
@@ -184,7 +184,7 @@ MultiviewRecognizer<PointT>::calcEdgeWeightAndRefineTf (const typename pcl::Poin
     float w_after_icp_ = std::numeric_limits<float>::max ();
     const float best_overlap_ = 0.75f;
 
-    v4r::FastIterativeClosestPointWithGC<pcl::PointXYZRGB> icp;
+    FastIterativeClosestPointWithGC<pcl::PointXYZRGB> icp;
     icp.setMaxCorrespondenceDistance ( 0.02f );
     icp.setInputSource ( cloud_src_wo_nan );
     icp.setInputTarget ( cloud_dst_wo_nan );
@@ -481,13 +481,14 @@ MultiviewRecognizer<PointT>::recognize ()
         rr_->getSavedHypotheses(v.hypotheses_);
 
         obj_hypotheses_.clear();
-        for (typename symHyp::const_iterator it = v.hypotheses_.begin (); it != v.hypotheses_.end (); ++it)
-            obj_hypotheses_[it->first] = it->second;
 
         typename pcl::PointCloud<PointT>::Ptr accum_scene (new pcl::PointCloud<PointT>());
-        pcl::transformPointCloud(*v.scene_, *accum_scene, v.absolute_pose_);
         pcl::PointCloud<pcl::Normal>::Ptr accum_normals (new pcl::PointCloud<pcl::Normal>());
-        v4r::transformNormals(*v.scene_normals_, *accum_normals, v.absolute_pose_);
+        *accum_scene = *v.scene_;
+        *accum_normals = *v.scene_normals_;
+
+        for (typename symHyp::const_iterator it = v.hypotheses_.begin (); it != v.hypotheses_.end (); ++it)
+            obj_hypotheses_[it->first] = it->second;
 
         typename std::map<size_t, View<PointT> >::const_iterator view_it;
         for (view_it = views_.begin(); view_it != views_.end(); ++view_it) {   // merge feature correspondences
@@ -496,7 +497,7 @@ MultiviewRecognizer<PointT>::recognize ()
                 continue;
 
             //------ Transform keypoints and rotate normals----------
-            Eigen::Matrix4f w_tf  = w.absolute_pose_;
+            Eigen::Matrix4f w_tf  = v.absolute_pose_.inverse() * w.absolute_pose_;
             typename pcl::PointCloud<PointT> cloud_aligned_tmp;
             pcl::transformPointCloud(*w.scene_, cloud_aligned_tmp, w_tf);
             pcl::PointCloud<pcl::Normal> normal_aligned_tmp;
@@ -566,6 +567,8 @@ MultiviewRecognizer<PointT>::recognize ()
         scene_normals_ = accum_normals;
 
         if(cg_algorithm_) {
+            models_.clear();
+            transforms_.clear();
             correspondenceGrouping();
             v.models_ = models_;
             v.transforms_ = transforms_;
