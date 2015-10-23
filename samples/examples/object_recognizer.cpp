@@ -47,15 +47,15 @@ public:
             pcl::PointCloud<PointT>::ConstPtr model_cloud = models[m_id]->getAssembled( 0.003f );
             pcl::transformPointCloud( *model_cloud, *model_aligned, transforms[m_id]);
 
-            PointT centroid;
-            pcl::computeCentroid(*model_aligned, centroid);
-            centroid.x += cloud->sensor_origin_[0];
-            centroid.y += cloud->sensor_origin_[1];
-            centroid.z += cloud->sensor_origin_[2];
-            const float r=50+rand()%205;
-            const float g=50+rand()%205;
-            const float b=50+rand()%205;
-            vis_->addText3D(model_text.str(), centroid, 0.01, r/255, g/255, b/255);
+            //PointT centroid;
+            //pcl::computeCentroid(*model_aligned, centroid);
+            //centroid.x += cloud->sensor_origin_[0];
+            //centroid.y += cloud->sensor_origin_[1];
+            //centroid.z += cloud->sensor_origin_[2];
+            //const float r=50+rand()%205;
+            //const float g=50+rand()%205;
+            //const float b=50+rand()%205;
+            //vis_->addText3D(model_text.str(), centroid, 0.01, r/255, g/255, b/255);
 
             model_aligned->sensor_orientation_ = cloud->sensor_orientation_;
             model_aligned->sensor_origin_ = cloud->sensor_origin_;
