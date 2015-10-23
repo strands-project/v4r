@@ -171,7 +171,6 @@ namespace v4r
 
           void correspondenceGrouping();
 
-
           virtual void specificLoadFeaturesAndCreateFLANN()
           {
             std::cout << "specificLoadFeaturesAndCreateFLANN => this function does nothing..." << std::endl;

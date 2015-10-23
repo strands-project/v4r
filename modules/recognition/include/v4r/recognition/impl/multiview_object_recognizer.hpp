@@ -1,3 +1,35 @@
+/******************************************************************************
+ * Copyright (c) 2015 Thomas Faeulhammer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
+
+/**
+*
+*      @author Thomas Faeulhammer (faeulhammer@acin.tuwien.ac.at)
+*      @date August, 2015
+*      @brief multiview object instance recognizer
+*      Reference(s): Faeulhammer et al, ICRA 2015
+*                    Faeulhammer et al, MVA 2015
+*/
+
 #include <pcl/keypoints/sift_keypoint.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
 #include <pcl/registration/icp.h>
@@ -336,7 +368,7 @@ MultiviewRecognizer<PointT>::recognize ()
                 convertToFLANN<FeatureT, DistT >( v.sift_signatures_, flann_index );
 
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
-                estimateViewTransformationBySIFT( *w.scene_, *v.scene_, w.sift_kp_indices_.indices, v.sift_kp_indices_.indices, *w.sift_signatures_, flann_index, sift_transforms);
+                estimateViewTransformationBySIFT( *w.scene_, *v.scene_, w.sift_kp_indices_.indices, v.sift_kp_indices_.indices, *w.sift_signatures_, flann_index, sift_transforms, param_.use_gc_s2s_);
 
                 for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++) {
                     edge.transformation_ = sift_transforms[sift_tf_id];
@@ -576,7 +608,6 @@ MultiviewRecognizer<PointT>::recognize ()
 
     if ( hv_algorithm_ && hv_algorithm_->uses_3D() ) {
         const double max_keypoint_dist_mv_ = 2.5f;
-        const double nm_integration_min_weight_ = 0.25f;
 
         noise_models::NguyenNoiseModel<PointT> nm (nm_param_);
         nm.setInputCloud(v.scene_);
@@ -623,7 +654,7 @@ MultiviewRecognizer<PointT>::recognize ()
         nmIntegration.setResolution(0.001f);
         nmIntegration.setWeights(views_noise_weights);
         nmIntegration.setTransformations(transforms_to_global);
-        nmIntegration.setMinWeight(nm_integration_min_weight_);
+        nmIntegration.setMinWeight(0.25f);
         nmIntegration.setInputNormals(normal_clouds);
         nmIntegration.setMinPointsPerVoxel(1);
         nmIntegration.setFinalResolution(0.001f);
@@ -651,13 +682,14 @@ MultiviewRecognizer<PointT>::recognize ()
         scene_normals_ = big_cloud_go3D_normals = big_normals;
     }
 
-    scene_ = v.scene_;
-    scene_normals_ = v.scene_normals_;
-
     if ( param_.icp_iterations_ > 0 )
         poseRefinement();
 
     if ( hv_algorithm_ && !models_.empty() ) {
+        if( !hv_algorithm_->uses_3D() ) {
+            scene_ = v.scene_;
+            scene_normals_ = v.scene_normals_;
+        }
         hypothesisVerification();
         v.model_or_plane_is_verified_ = model_or_plane_is_verified_;
     }
@@ -690,7 +722,7 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
         cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
         cg_algorithm_->cluster (corresp_clusters);
 
-        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first;
+        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first << std::endl;
 //        oh.visualize(*scene_);
 
         size_t existing_hypotheses = models_.size();

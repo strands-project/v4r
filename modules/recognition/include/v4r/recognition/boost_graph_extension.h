@@ -3,7 +3,6 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/graph/graph_traits.hpp>
-//#include <boost/graph/prim_minimum_spanning_tree.hpp>
 #include <pcl/PointIndices.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>

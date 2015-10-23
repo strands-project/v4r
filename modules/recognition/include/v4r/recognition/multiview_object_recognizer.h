@@ -1,20 +1,45 @@
-/*
-* multiview object instance recognizer
+/******************************************************************************
+ * Copyright (c) 2015 Thomas Faeulhammer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
+
+/**
 *
-*  Created on: March, 2015
-*      Author: Thomas Faeulhammer (faeulhammer@acin.tuwien.ac.at)
-*      Reference: Faeulhammer et al, ICRA 2015
-*                 Faeulhammer et al, MVA 2015
+*      @author Thomas Faeulhammer (faeulhammer@acin.tuwien.ac.at)
+*      @date August, 2015
+*      @brief multiview object instance recognizer
+*      Reference(s): Faeulhammer et al, ICRA 2015
+*                    Faeulhammer et al, MVA 2015
 */
 
-#ifndef MYGRAPHCLASSES_H
-#define MYGRAPHCLASSES_H
+#ifndef V4R_MULTIVIEW_OBJECT_RECOGNIZER_H__
+#define V4R_MULTIVIEW_OBJECT_RECOGNIZER_H__
 
 #include <vector>
 #include <iostream>
 #include <string>
 #include <sstream>
 
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
 #include <pcl/common/transforms.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
@@ -22,10 +47,7 @@
 #include <pcl/search/impl/flann_search.hpp>
 
 #include <v4r/common/noise_models.h>
-
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
-#include "boost_graph_extension.h"
+#include <v4r/recognition/boost_graph_extension.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 
 #ifdef USE_SIFT_GPU
@@ -84,12 +106,6 @@ protected:
     Eigen::Matrix4f pose_;
 
     cv::Ptr<SiftGPU> sift_;
-//    int vp_go3d_1, vp_go3d_2;
-
-    Eigen::Matrix4f current_global_transform_;
-
-    pcl::visualization::PCLVisualizer::Ptr go3d_vis_;
-    std::vector<int> go_3d_viewports_;
 
     bool computeAbsolutePose(CamConnect & e, bool &is_first_edge = false);
 
@@ -97,72 +113,10 @@ protected:
 
     void correspondenceGrouping();
 
-public:
-    class Parameter : public Recognizer<PointT>::Parameter
-    {
-    public:
-        using Recognizer<PointT>::Parameter::icp_iterations_;
-        using Recognizer<PointT>::Parameter::icp_type_;
-        using Recognizer<PointT>::Parameter::normal_computation_method_;
-        using Recognizer<PointT>::Parameter::voxel_size_icp_;
-
-        bool scene_to_scene_;
-        bool use_robot_pose_;
-        bool hyp_to_hyp_;   // if true adds edges for common object hypotheses (not implemented atm)
-        bool use_gc_s2s_;
-        bool go3d_;
-        double distance_same_keypoint_;
-        float same_keypoint_dot_product_;
-        int extension_mode_; // defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
-        int max_vertices_in_graph_;
-        float resolution_;
-        float chop_z_;
-        bool compute_mst_; // if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true),
-                           // by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true)
-                           // from all the possible connection a Mimimum Spanning Tree is computed.
-                           // if false, it only uses the given pose for each point cloud
-
-        Parameter (
-                bool scene_to_scene = true,
-                bool use_robot_pose = true,
-                bool hyp_to_hyp = false,
-                bool use_gc_s2s = true,
-                bool go3d = true,
-                double distance_same_keypoint = 0.005f*0.005f,
-                float same_keypoint_dot_product = 0.8f,
-                int extension_mode = 0,
-                int max_vertices_in_graph = 3,
-                float resolution = 0.005f,
-                float chop_z = std::numeric_limits<float>::max(),
-                bool compute_mst = true) :
-            Recognizer<PointT>::Parameter(),
-            scene_to_scene_ (scene_to_scene),
-            use_robot_pose_ (use_robot_pose),
-            hyp_to_hyp_ (hyp_to_hyp),
-            use_gc_s2s_ (use_gc_s2s),
-            go3d_ (go3d),
-            distance_same_keypoint_ (distance_same_keypoint),
-            same_keypoint_dot_product_ (same_keypoint_dot_product),
-            extension_mode_ (extension_mode),
-            max_vertices_in_graph_ (max_vertices_in_graph),
-            resolution_ (resolution),
-            chop_z_ (chop_z),
-            compute_mst_ (compute_mst)
-        {}
-    }param_;
-
-    MultiviewRecognizer(const Parameter &p = Parameter()) : Recognizer<PointT>(p){
-        param_ = p;
-        id_ = 0;
-        pose_ = Eigen::Matrix4f::Identity();
-    }
-
-    void setSingleViewRecognizer(const typename boost::shared_ptr<MultiRecognitionPipeline<PointT> > & rec)
-    {
-        rr_ = rec;
-    }
-
-    typename noise_models::NguyenNoiseModel<PointT>::Parameter nm_param_;
+    float calcEdgeWeightAndRefineTf (const typename pcl::PointCloud<PointT>::ConstPtr &cloud_src,
+                                    const typename pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
+                                    Eigen::Matrix4f &refined_transform,
+                                    const Eigen::Matrix4f &transform = Eigen::Matrix4f::Identity());
 
     bool calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
                            typename pcl::PointCloud<PointT>::Ptr &sift_keypoints,
@@ -179,15 +133,71 @@ public:
                                           std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
                                           bool use_gc = false );
 
+public:
+    class Parameter : public Recognizer<PointT>::Parameter
+    {
+    public:
+        using Recognizer<PointT>::Parameter::icp_iterations_;
+        using Recognizer<PointT>::Parameter::icp_type_;
+        using Recognizer<PointT>::Parameter::normal_computation_method_;
+        using Recognizer<PointT>::Parameter::voxel_size_icp_;
 
-    //    void calcMST ( const std::vector<Edge> &edges, const Graph &grph, std::vector<Edge> &edges_final );
-    //    void createEdgesFromHypothesisMatch ( Graph &grph, std::vector<Edge> &edges );
-    //    void selectLowestWeightEdgesFromParallelEdges ( const std::vector<Edge> &parallel_edges, const Graph &grph, std::vector<Edge> &single_edges );
+        bool scene_to_scene_;  // if true, tries to register two views based on SIFT background matching
+        bool use_robot_pose_;   // if true, uses given pose between two views as relative camera pose estimate
+        bool hyp_to_hyp_;   // if true adds edges for common object hypotheses (not implemented atm)
+        bool use_gc_s2s_;   // defines method used for SIFT background matching
+        double distance_same_keypoint_; // defines the minimum distance between two keypoints (of same model) to be seperated
+        float same_keypoint_dot_product_; // defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
+        int extension_mode_; // defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
+        int max_vertices_in_graph_; // maximum number of views taken into account (views selected in order of latest recognition calls)
+        float chop_z_;  // points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
+        bool compute_mst_; // if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true),
+                           // by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true)
+                           // from all the possible connection a Mimimum Spanning Tree is computed.
+                           // if false, it only uses the given pose for each point cloud
 
-    float calcEdgeWeightAndRefineTf (const typename pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                                    const typename pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                                    Eigen::Matrix4f &refined_transform,
-                                    const Eigen::Matrix4f &transform = Eigen::Matrix4f::Identity());
+        Parameter (
+                bool scene_to_scene = true,
+                bool use_robot_pose = true,
+                bool hyp_to_hyp = false,
+                bool use_gc_s2s = true,
+                double distance_same_keypoint = 0.005f*0.005f,
+                float same_keypoint_dot_product = 0.8f,
+                int extension_mode = 0,
+                int max_vertices_in_graph = 3,
+                float chop_z = std::numeric_limits<float>::max(),
+                bool compute_mst = true) :
+
+            Recognizer<PointT>::Parameter(),
+            scene_to_scene_ (scene_to_scene),
+            use_robot_pose_ (use_robot_pose),
+            hyp_to_hyp_ (hyp_to_hyp),
+            use_gc_s2s_ (use_gc_s2s),
+            distance_same_keypoint_ (distance_same_keypoint),
+            same_keypoint_dot_product_ (same_keypoint_dot_product),
+            extension_mode_ (extension_mode),
+            max_vertices_in_graph_ (max_vertices_in_graph),
+            chop_z_ (chop_z),
+            compute_mst_ (compute_mst)
+        {}
+    }param_;
+
+    MultiviewRecognizer(const Parameter &p = Parameter()) : Recognizer<PointT>(p){
+        param_ = p;
+        id_ = 0;
+        pose_ = Eigen::Matrix4f::Identity();
+    }
+
+    /**
+     * @brief sets the underlying single-view recognition
+     * @param single-view recognizer
+     */
+    void setSingleViewRecognizer(const typename boost::shared_ptr<MultiRecognitionPipeline<PointT> > & rec)
+    {
+        rr_ = rec;
+    }
+
+    typename noise_models::NguyenNoiseModel<PointT>::Parameter nm_param_;
 
 
     std::string get_scene_name() const
@@ -202,8 +212,7 @@ public:
 
 
     /** \brief Sets the algorithm for Correspondence Grouping (Hypotheses generation from keypoint correspondences) */
-    void
-    setCGAlgorithm (const typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > & alg)
+    void setCGAlgorithm (const typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > & alg)
     {
       cg_algorithm_ = alg;
     }
