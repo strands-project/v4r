@@ -329,19 +329,19 @@ MultiviewRecognizer<PointT>::recognize ()
 
             v.sift_kp_indices_.indices.reserve( sift_kp_indices.size() );
             v.sift_signatures_->points.reserve( sift_signatures_->points.size() );
-            v.sift_keypoints_scales_.reserve( sift_keypoints_scales.size() );
+//            v.sift_keypoints_scales_.reserve( sift_keypoints_scales.size() );
             size_t kept=0;
             for (size_t i=0; i<sift_kp_indices.size(); i++) {   // remove infinte keypoints
                 if ( pcl::isFinite( v.scene_->points[sift_kp_indices[i]] ) ) {
                     v.sift_kp_indices_.indices.push_back( sift_kp_indices[i] );
                     v.sift_signatures_->points.push_back( sift_signatures_->points[i] );
-                    v.sift_keypoints_scales_.push_back( sift_keypoints_scales[i] );
+//                    v.sift_keypoints_scales_.push_back( sift_keypoints_scales[i] );
                     kept++;
                 }
             }
             v.sift_kp_indices_.indices.shrink_to_fit();
             v.sift_signatures_->points.shrink_to_fit();
-            v.sift_keypoints_scales_.shrink_to_fit();
+//            v.sift_keypoints_scales_.shrink_to_fit();
             std::cout << "keypoints: " << v.sift_kp_indices_.indices.size() << std::endl;
 
             // In addition to matching views, we can use the computed SIFT features for recognition
@@ -482,10 +482,8 @@ MultiviewRecognizer<PointT>::recognize ()
 
         obj_hypotheses_.clear();
 
-        typename pcl::PointCloud<PointT>::Ptr accum_scene (new pcl::PointCloud<PointT>());
-        pcl::PointCloud<pcl::Normal>::Ptr accum_normals (new pcl::PointCloud<pcl::Normal>());
-        *accum_scene = *v.scene_;
-        *accum_normals = *v.scene_normals_;
+        typename pcl::PointCloud<PointT>::Ptr accum_scene (new pcl::PointCloud<PointT>(*v.scene_));
+        pcl::PointCloud<pcl::Normal>::Ptr accum_normals (new pcl::PointCloud<pcl::Normal>(*v.scene_normals_));
 
         for (typename symHyp::const_iterator it = v.hypotheses_.begin (); it != v.hypotheses_.end (); ++it)
             obj_hypotheses_[it->first] = it->second;
@@ -609,7 +607,12 @@ MultiviewRecognizer<PointT>::recognize ()
         transforms_ = v.transforms_;
     }
 
-    if ( hv_algorithm_ && hv_algorithm_->uses_3D() ) {
+    boost::shared_ptr<GO3D<PointT, PointT> > hv_algorithm_3d;
+
+    if( hv_algorithm_ )
+       hv_algorithm_3d = boost::dynamic_pointer_cast<GO3D<PointT, PointT>> (hv_algorithm_);
+
+    if ( hv_algorithm_3d ) {
         const double max_keypoint_dist_mv_ = 2.5f;
 
         noise_models::NguyenNoiseModel<PointT> nm (nm_param_);
@@ -638,7 +641,7 @@ MultiviewRecognizer<PointT>::recognize ()
         std::vector<typename pcl::PointCloud<PointT>::Ptr> original_clouds (views_.size());
         std::vector<pcl::PointCloud<pcl::Normal>::Ptr> normal_clouds (views_.size());
         std::vector<typename pcl::PointCloud<PointT>::ConstPtr> occlusion_clouds (views_.size());
-        std::vector < Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>  > transforms_to_global  (views_.size());
+        std::vector< Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>  > transforms_to_global  (views_.size());
 
         typename std::map<size_t, View<PointT> >::const_iterator v_it;
         size_t view_id = 0;
@@ -647,20 +650,20 @@ MultiviewRecognizer<PointT>::recognize ()
             views_noise_weights [view_id ] = w.nguyens_noise_model_weights_;
             original_clouds [view_id ] = w.scene_;
             normal_clouds [view_id] = w.scene_normals_;
-            transforms_to_global [view_id] = w.absolute_pose_;
+            transforms_to_global [view_id] = v.absolute_pose_.inverse() * w.absolute_pose_;
         }
 
         //obtain big cloud and occlusion clouds based on new noise model integration
         typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
         NMBasedCloudIntegration<PointT> nmIntegration;
-        nmIntegration.setInputClouds(original_clouds);
-        nmIntegration.setResolution(0.001f);
-        nmIntegration.setWeights(views_noise_weights);
-        nmIntegration.setTransformations(transforms_to_global);
-        nmIntegration.setMinWeight(0.25f);
-        nmIntegration.setInputNormals(normal_clouds);
         nmIntegration.setMinPointsPerVoxel(1);
         nmIntegration.setFinalResolution(0.001f);
+        nmIntegration.setResolution(0.001f);
+        nmIntegration.setMinWeight(0.25f);
+        nmIntegration.setInputClouds(original_clouds);
+        nmIntegration.setWeights(views_noise_weights);
+        nmIntegration.setTransformations(transforms_to_global);
+        nmIntegration.setInputNormals(normal_clouds);
         nmIntegration.compute(octree_cloud);
 
         std::vector<typename pcl::PointCloud<PointT>::Ptr> used_clouds;
@@ -672,8 +675,8 @@ MultiviewRecognizer<PointT>::recognize ()
         for(size_t i=0; i < used_clouds.size(); i++)
             occlusion_clouds[i].reset(new pcl::PointCloud<PointT>(*used_clouds[i]));
 
-        hv_algorithm_->setOcclusionClouds( occlusion_clouds );
-        hv_algorithm_->setAbsolutePoses( transforms_to_global );
+        hv_algorithm_3d->setOcclusionClouds( occlusion_clouds );
+        hv_algorithm_3d->setAbsolutePoses( transforms_to_global );
 
         //Instantiate HV go 3D, reimplement addModels that will reason about occlusions
         //Set occlusion cloudS!!
@@ -688,12 +691,88 @@ MultiviewRecognizer<PointT>::recognize ()
     if ( param_.icp_iterations_ > 0 )
         poseRefinement();
 
+    std::cout << "Pose Refinement done" << std::endl;
+
     if ( hv_algorithm_ && !models_.empty() ) {
-        if( !hv_algorithm_->uses_3D() ) {
+
+        if( !hv_algorithm_3d ) {
             scene_ = v.scene_;
             scene_normals_ = v.scene_normals_;
         }
+
         hypothesisVerification();
+
+        if( hv_algorithm_3d ) {
+            if(!go3d_vis_) {
+                go3d_vis_.reset(new pcl::visualization::PCLVisualizer("GO 3D visualization"));
+
+                for(size_t vp_id=1; vp_id<=6; vp_id++)
+                    go_3d_viewports_.push_back(vp_id);
+
+                go3d_vis_->createViewPort (0, 0, 0.5, 0.33, go_3d_viewports_[0]);
+                go3d_vis_->createViewPort (0.5, 0, 1, 0.33, go_3d_viewports_[1]);
+                go3d_vis_->createViewPort (0, 0.33, 0.5, 0.66, go_3d_viewports_[2]);
+                go3d_vis_->createViewPort (0.5, 0.33, 1, 0.66, go_3d_viewports_[3]);
+                go3d_vis_->createViewPort (0, 0.66, 0.5, 1, go_3d_viewports_[4]);
+                go3d_vis_->createViewPort (0.5, 0.66, 1, 1, go_3d_viewports_[5]);
+            }
+
+            for(size_t vp_id=0; vp_id<go_3d_viewports_.size(); vp_id++)
+                go3d_vis_->removeAllPointClouds(go_3d_viewports_[vp_id]);
+
+            pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler (scene_);
+            go3d_vis_->addPointCloud (scene_, handler, "big", go_3d_viewports_[0]);
+            pcl::io::savePCDFile<PointT>(std::string("/tmp/big_cloud_go3d.pcd"), *scene_);
+
+            /*pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler (big_cloud_vx_after_mv);
+    vis.addPointCloud (big_cloud_vx_after_mv, handler, "big", v1);*/
+
+            typename pcl::PointCloud<PointT>::Ptr all_hypotheses ( new pcl::PointCloud<PointT> );
+
+            for(size_t i=0; i < v.models_.size(); i++) {
+                typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
+                typename pcl::PointCloud<PointT>::ConstPtr model_cloud = v.models_[i]->getAssembled (hv_algorithm_3d->getResolution());
+                pcl::transformPointCloud (*model_cloud, *model_aligned, v.transforms_[i]);
+
+                pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified (model_aligned);
+                std::stringstream name;
+                name << "Hypothesis_model_" << i;
+                go3d_vis_->addPointCloud<PointT> (model_aligned, handler_rgb_verified, name.str (), go_3d_viewports_[1]);
+                *all_hypotheses += *model_aligned;
+
+
+                if (model_or_plane_is_verified_[i])  {
+                    name << "_verified";
+                    go3d_vis_->addPointCloud<PointT> (model_aligned, name.str (), go_3d_viewports_[2]);
+
+                    typename pcl::PointCloud<PointT>::Ptr inliers_outlier_cloud;
+                    hv_algorithm_3d->getInlierOutliersCloud((int)i, inliers_outlier_cloud);
+                    std::stringstream name_verified_vis; name_verified_vis << "verified_visible_" << i;
+                    go3d_vis_->addPointCloud<PointT> (inliers_outlier_cloud, name_verified_vis.str (), go_3d_viewports_[3]);
+                }
+            }
+
+            typename pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  hv_algorithm_3d->getSmoothClustersRGBCloud();
+            if(smooth_cloud_) {
+                pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
+                go3d_vis_->addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", go_3d_viewports_[4]);
+            }
+
+            if( hv_algorithm_3d->param_.add_planes_ )  {
+                for(size_t i=0; i < planes_.size(); i++) {
+                    if(!model_or_plane_is_verified_[i + v.models_.size()])
+                        continue;
+
+                    std::stringstream pname;
+                    pname << "plane_" << i;
+
+                    pcl::visualization::PointCloudColorHandlerRandom<PointT> scene_handler(planes_[i].plane_cloud_);
+                    go3d_vis_->addPointCloud<PointT> (planes_[i].plane_cloud_, scene_handler, pname.str(), go_3d_viewports_[2]);
+                }
+            }
+            go3d_vis_->setBackgroundColor(1,1,1);
+            go3d_vis_->spin ();
+        }
         v.model_or_plane_is_verified_ = model_or_plane_is_verified_;
     }
 

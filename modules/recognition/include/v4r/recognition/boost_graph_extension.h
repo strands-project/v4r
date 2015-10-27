@@ -30,11 +30,11 @@ public:
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > scene_normals_;
     std::vector<int> filtered_scene_indices_;
     Eigen::Matrix4f absolute_pose_;
-    typename boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
-    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
+//    typename boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
+//    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
     typename std::map<std::string, ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_;
-    std::vector<float> sift_keypoints_scales_;
+//    std::vector<float> sift_keypoints_scales_;
     pcl::PointIndices sift_kp_indices_;
     Eigen::Matrix4f transform_to_world_co_system_;
     bool has_been_hopped_;

@@ -72,6 +72,7 @@ protected:
     using Recognizer<PointT>::models_;
     using Recognizer<PointT>::model_or_plane_is_verified_;
     using Recognizer<PointT>::transforms_;
+    using Recognizer<PointT>::planes_;
     using Recognizer<PointT>::hv_algorithm_;
 
     using Recognizer<PointT>::poseRefinement;
@@ -88,6 +89,8 @@ protected:
     typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
     Graph gs_;
 
+    pcl::visualization::PCLVisualizer::Ptr go3d_vis_;
+    std::vector<int> go_3d_viewports_;
 
     typedef typename std::map<std::string, ObjectHypothesis<PointT> > symHyp;
 

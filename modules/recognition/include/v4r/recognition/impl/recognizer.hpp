@@ -1,5 +1,7 @@
 #include <v4r/common/miscellaneous.h>
 #include <v4r/recognition/recognizer.h>
+#include <v4r/recognition/ghv.h>
+#include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
 #include <pcl/common/centroid.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -104,26 +106,34 @@ Recognizer<PointT>::hypothesisVerification ()
       aligned_normals[i] = aligned_normal_tmp;
   }
 
-  hv_algorithm_->setRequiresNormals(false);
+
+  boost::shared_ptr<GHV<PointT, PointT> > hv_algorithm_ghv;
+  if( hv_algorithm_ )
+       hv_algorithm_ghv = boost::dynamic_pointer_cast<GHV<PointT, PointT>> (hv_algorithm_);
+
   hv_algorithm_->setOcclusionCloud (scene_);
   hv_algorithm_->setSceneCloud (scene_);
-  hv_algorithm_->setNormalsForClutterTerm(scene_normals_);
   hv_algorithm_->addModels (aligned_models, true);
 
   if (hv_algorithm_->getRequiresNormals ())
       hv_algorithm_->addNormalsClouds (aligned_normals);
 
-  if(hv_algorithm_->param_.add_planes_ && hv_algorithm_->add_planes_is_posssible())
-  {
-      MultiPlaneSegmentation<PointT> mps;
-      mps.setInputCloud(scene_);
-      mps.setMinPlaneInliers(1000);
-      mps.setResolution(hv_algorithm_->getResolution());
-      mps.setNormals(scene_normals_);
-      mps.setMergePlanes(true);
-      mps.segment();
-      planes_ = mps.getModels();
-      hv_algorithm_->addPlanarModels(planes_);
+  if( hv_algorithm_ghv ) {
+      hv_algorithm_ghv->setRequiresNormals(false);
+      hv_algorithm_ghv->setNormalsForClutterTerm(scene_normals_);
+
+      if( hv_algorithm_ghv->param_.add_planes_ ) {
+          MultiPlaneSegmentation<PointT> mps;
+          mps.setInputCloud(scene_);
+          mps.setMinPlaneInliers(1000);
+          mps.setResolution(hv_algorithm_->getResolution());
+          mps.setNormals(scene_normals_);
+          mps.setMergePlanes(true);
+          mps.segment();
+          planes_ = mps.getModels();
+          hv_algorithm_ghv->addPlanarModels(planes_);
+      }
+
   }
 
   hv_algorithm_->verify ();
@@ -138,10 +148,10 @@ Recognizer<PointT>::poseRefinement()
   PointTPtr scene_voxelized (new pcl::PointCloud<PointT> ());
   pcl::VoxelGrid<PointT> voxel_grid_icp;
   voxel_grid_icp.setInputCloud (scene_);
+
   if(icp_scene_indices_ && icp_scene_indices_->indices.size() > 0)
-  {
     voxel_grid_icp.setIndices(icp_scene_indices_);
-  }
+
   voxel_grid_icp.setLeafSize (param_.voxel_size_icp_, param_.voxel_size_icp_, param_.voxel_size_icp_);
   voxel_grid_icp.filter (*scene_voxelized);
 
@@ -150,11 +160,10 @@ Recognizer<PointT>::poseRefinement()
     case 0:
     {
 #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
-      for (int i = 0; i < static_cast<int> (models_.size ()); i++)
+      for (size_t i = 0; i < models_.size (); i++)
       {
-        ConstPointTPtr model_cloud;
+        ConstPointTPtr model_cloud = models_[i]->getAssembled (param_.voxel_size_icp_);
         PointTPtr model_aligned (new pcl::PointCloud<PointT>);
-        model_cloud = models_[i]->getAssembled (param_.voxel_size_icp_);
         pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_[i]);
 
         typename pcl::registration::CorrespondenceRejectorSampleConsensus<PointT>::Ptr
@@ -183,8 +192,9 @@ Recognizer<PointT>::poseRefinement()
     default:
     {
       #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
-      for (int i = 0; i < static_cast<int> (models_.size ()); i++)
+      for (size_t i = 0; i < models_.size(); i++)
       {
+//        std::cout << "Doing ICP for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
         typename VoxelBasedCorrespondenceEstimation<PointT, PointT>::Ptr
                     est (new VoxelBasedCorrespondenceEstimation<PointT, PointT> ());
 
@@ -196,12 +206,12 @@ Recognizer<PointT>::poseRefinement()
         models_[i]->getVGDT (dt);
 
         PointTPtr model_aligned (new pcl::PointCloud<PointT>);
-        PointTPtr cloud_voxelized_icp_cropped (new pcl::PointCloud<PointT>);
+        PointTPtr scene_voxelized_icp_cropped (new pcl::PointCloud<PointT>);
         typename pcl::PointCloud<PointT>::ConstPtr cloud;
         dt->getInputCloud(cloud);
         model_aligned.reset(new pcl::PointCloud<PointT>(*cloud));
 
-        pcl::transformPointCloud (*scene_voxelized, *cloud_voxelized_icp_cropped, scene_to_model_trans);
+        pcl::transformPointCloud (*scene_voxelized, *scene_voxelized_icp_cropped, scene_to_model_trans);
 
         PointT minPoint, maxPoint;
         pcl::getMinMax3D(*cloud, minPoint, maxPoint);
@@ -214,26 +224,26 @@ Recognizer<PointT>::poseRefinement()
         maxPoint.z += param_.max_corr_distance_;
 
         pcl::CropBox<PointT> cropFilter;
-        cropFilter.setInputCloud (cloud_voxelized_icp_cropped);
+        cropFilter.setInputCloud (scene_voxelized_icp_cropped);
         cropFilter.setMin(minPoint.getVector4fMap());
         cropFilter.setMax(maxPoint.getVector4fMap());
-        cropFilter.filter (*cloud_voxelized_icp_cropped);
+        cropFilter.filter (*scene_voxelized_icp_cropped);
 
         est->setVoxelRepresentationTarget (dt);
-        est->setInputSource (cloud_voxelized_icp_cropped);
+        est->setInputSource (scene_voxelized_icp_cropped);
         est->setInputTarget (model_aligned);
         est->setMaxCorrespondenceDistance (param_.max_corr_distance_);
 
         rej->setInputTarget (model_aligned);
         rej->setMaximumIterations (1000);
         rej->setInlierThreshold (0.005f);
-        rej->setInputSource (cloud_voxelized_icp_cropped);
+        rej->setInputSource (scene_voxelized_icp_cropped);
 
         pcl::IterativeClosestPoint<PointT, PointT, float> reg;
         reg.setCorrespondenceEstimation (est);
         reg.addCorrespondenceRejector (rej);
-        reg.setInputTarget (model_aligned); //model
-        reg.setInputSource (cloud_voxelized_icp_cropped); //scene
+        reg.setInputTarget (model_aligned);
+        reg.setInputSource (scene_voxelized_icp_cropped);
         reg.setMaximumIterations (param_.icp_iterations_);
         reg.setEuclideanFitnessEpsilon(1e-5);
         reg.setTransformationEpsilon(0.001f * 0.001f);
@@ -250,6 +260,9 @@ Recognizer<PointT>::poseRefinement()
         Eigen::Matrix4f icp_trans;
         icp_trans = reg.getFinalTransformation () * scene_to_model_trans;
         transforms_[i] = icp_trans.inverse ();
+
+//        std::cout << "Done ICP for model  " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
+
       }
     }
   }
@@ -324,7 +337,8 @@ Recognizer<PointT>::visualize() const
         plane_name << "plane_" << plane_id;
         planes_[plane_id].plane_cloud_->sensor_origin_ = zero_origin;
         planes_[plane_id].plane_cloud_->sensor_orientation_ = Eigen::Quaternionf::Identity();
-        vis_->addPointCloud<PointT> ( planes_[plane_id].plane_cloud_, plane_name.str (), vp3_ );
+        pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(planes_[plane_id].plane_cloud_);
+        vis_->addPointCloud<PointT> ( planes_[plane_id].plane_cloud_, plane_handler, plane_name.str (), vp3_ );
     }
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
     vis_->spin();
@@ -402,7 +416,8 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         plane_name << "plane_" << plane_id;
         planes_[plane_id].plane_cloud_->sensor_origin_ = zero_origin;
         planes_[plane_id].plane_cloud_->sensor_orientation_ = Eigen::Quaternionf::Identity();
-        vis_->addPointCloud<PointT> ( planes_[plane_id].plane_cloud_, plane_name.str (), vp3_ );
+        pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(planes_[plane_id].plane_cloud_);
+        vis_->addPointCloud<PointT> ( planes_[plane_id].plane_cloud_, plane_handler, plane_name.str (), vp3_ );
     }
 
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);

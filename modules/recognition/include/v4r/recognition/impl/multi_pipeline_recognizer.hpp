@@ -184,7 +184,7 @@ template<typename PointT>
 void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
 {
     if(cg_algorithm_->getRequiresNormals() && (!scene_normals_ || scene_normals_->points.size() != scene_->points.size()))
-        v4r::computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
+        computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
     typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
     for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); ++it_map)

@@ -60,39 +60,10 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::curvature_threshold_;
          using GHV<ModelT, SceneT>::Parameter::cluster_tolerance_;
          using GHV<ModelT, SceneT>::Parameter::use_normals_from_visible_;
+         using GHV<ModelT, SceneT>::Parameter::add_planes_;
 
-        Parameter(const typename GHV<ModelT, SceneT>::Parameter &p = typename GHV<ModelT, SceneT>::Parameter())
-        {
-            color_sigma_ab_ = p.color_sigma_ab_;
-            color_sigma_l_ = p.color_sigma_l_;
-            regularizer_ = p.regularizer_;
-            radius_neighborhood_clutter_ = p.radius_neighborhood_clutter_;
-            radius_normals_ = p.radius_normals_;
-            duplicy_weight_test_ = p.duplicy_weight_test_;
-            duplicity_curvature_max_ = p.duplicity_curvature_max_;
-            ignore_color_even_if_exists_ = p.ignore_color_even_if_exists_;
-            max_iterations_ = p.max_iterations_;
-            clutter_regularizer_ = p.clutter_regularizer_;
-            detect_clutter_ = p.detect_clutter_;
-            res_occupancy_grid_ = p.res_occupancy_grid_;
-            w_occupied_multiple_cm_ = p.w_occupied_multiple_cm_;
-            use_super_voxels_ = p.use_super_voxels_;
-            use_replace_moves_ = p.use_replace_moves_;
-            opt_type_ = p.opt_type_;
-            active_hyp_penalty_ = p.active_hyp_penalty_;
-            multiple_assignment_penalize_by_one_ = p.multiple_assignment_penalize_by_one_;
-            d_weight_for_bad_normals_ = p.d_weight_for_bad_normals_;
-            use_clutter_exp_ = p.use_clutter_exp_;
-            use_histogram_specification_ = p.use_histogram_specification_;
-            use_points_on_plane_side_ = p.use_points_on_plane_side_;
-            best_color_weight_ = p.best_color_weight_;
-//            initial_status_ = p.initial_status_;
-            eps_angle_threshold_ = p.eps_angle_threshold_;
-            min_points_ = p.min_points_;
-            curvature_threshold_ = p.curvature_threshold_;
-            cluster_tolerance_ = p.cluster_tolerance_;
-            use_normals_from_visible_ = p.use_normals_from_visible_;
-        }
+        Parameter()
+        {}
     }param_;
 
   private:

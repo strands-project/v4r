@@ -143,6 +143,7 @@ namespace v4r
           float cluster_tolerance_;
 
           bool use_normals_from_visible_;
+          bool add_planes_;
 
           Parameter (
                   float color_sigma_ab = 0.25f, // 0.5f
@@ -173,7 +174,8 @@ namespace v4r
                   int min_points = 20, // 100
                   float curvature_threshold = 0.04f,
                   float cluster_tolerance = 0.015f, //0.01f;
-                  bool use_normals_from_visible = false
+                  bool use_normals_from_visible = false,
+                  bool add_planes = true
                   )
               :
                 HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -205,7 +207,8 @@ namespace v4r
                 min_points_ (min_points),
                 curvature_threshold_ (curvature_threshold),
                 cluster_tolerance_ (cluster_tolerance),
-                use_normals_from_visible_ (use_normals_from_visible)
+                use_normals_from_visible_ (use_normals_from_visible),
+                add_planes_ (add_planes)
           {}
       }param_;
 
@@ -777,18 +780,6 @@ namespace v4r
       {
         extra_weights_.clear ();
         extra_weights_ = weights;
-      }
-
-      virtual
-      bool add_planes_is_posssible() const
-      {
-          return true;
-      }
-
-      virtual
-      bool uses_3D() const
-      {
-          return false;
       }
 
       void

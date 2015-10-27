@@ -68,7 +68,6 @@ namespace v4r
           int zbuffer_scene_resolution_; // Resolutions in pixel for the depth scene buffer
           int zbuffer_self_occlusion_resolution_;
           bool self_occlusions_reasoning_;
-          bool add_planes_;
 
           Parameter (
                   float resolution = 0.005f,
@@ -76,15 +75,13 @@ namespace v4r
                   float occlusion_thres = 0.005f, // 0.01f
                   int zbuffer_scene_resolution = 100,
                   int zbuffer_self_occlusion_resolution = 250,
-                  bool self_occlusions_reasoning =true,
-                  bool add_planes = true)
+                  bool self_occlusions_reasoning =true)
               : resolution_ (resolution),
                 inliers_threshold_(inliers_threshold),
                 occlusion_thres_ (occlusion_thres),
                 zbuffer_scene_resolution_(zbuffer_scene_resolution),
                 zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
-                self_occlusions_reasoning_(self_occlusions_reasoning),
-                add_planes_ (add_planes)
+                self_occlusions_reasoning_(self_occlusions_reasoning)
           {}
       };
 
@@ -99,24 +96,24 @@ namespace v4r
      */
     typename pcl::PointCloud<SceneT>::ConstPtr scene_cloud_;
 
-    /*
+    /**
      * \brief Scene point cloud
      */
     typename pcl::PointCloud<SceneT>::ConstPtr occlusion_cloud_;
 
     bool occlusion_cloud_set_;
 
-    /*
+    /**
      * \brief Downsampled scene point cloud
      */
      typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_;
 
-    /*
+    /**
      * \brief Scene tree of the downsampled cloud
      */
     typename pcl::search::KdTree<SceneT>::Ptr scene_downsampled_tree_;
 
-    /*
+    /**
      * \brief Vector of point clouds representing the 3D models after occlusion reasoning
 	 * the 3D models are pruned of occluded points, and only visible points are left. 
 	 * the coordinate system is that of the scene cloud
@@ -127,7 +124,7 @@ namespace v4r
 
     std::vector< std::vector<int> > visible_indices_;
 
-    /*
+    /**
      * \brief Vector of point clouds representing the complete 3D model (in same coordinates as the scene cloud)
      */
     typename std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> complete_models_;
@@ -136,12 +133,12 @@ namespace v4r
 
 
 
-    /*
+    /**
      * \brief Whether the HV method requires normals or not, by default = false
      */
     bool requires_normals_;
 
-    /*
+    /**
      * \brief Whether the normals have been set
      */
     bool normals_set_;
@@ -213,6 +210,7 @@ namespace v4r
      *  \brief Sets the models (recognition hypotheses) - requires the scene_cloud_ to be set first if reasoning about occlusions
      *  mask models Vector of point clouds representing the models (in same coordinates as the scene_cloud_)
      */
+    virtual
     void
     addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning = false)
     {
@@ -230,7 +228,7 @@ namespace v4r
         if (scene_cloud_ == 0)
           throw std::runtime_error("setSceneCloud should be called before adding the model if reasoning about occlusions...");
 
-        v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (param_.zbuffer_scene_resolution_, param_.zbuffer_scene_resolution_, 1.f);
+        occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (param_.zbuffer_scene_resolution_, param_.zbuffer_scene_resolution_, 1.f);
         if (!occlusion_cloud_->isOrganized ())
         {
             PCL_WARN("Scene not organized... filtering using computed depth buffer\n");
@@ -244,7 +242,7 @@ namespace v4r
 
           //self-occlusions
           typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
-          typename v4r::occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_self_occlusion (param_.zbuffer_self_occlusion_resolution_, param_.zbuffer_self_occlusion_resolution_, 1.f);
+          typename occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_self_occlusion (param_.zbuffer_self_occlusion_resolution_, param_.zbuffer_self_occlusion_resolution_, 1.f);
           zbuffer_self_occlusion.computeDepthMap (*models[i], true);
 
           std::vector<int> self_occlusion_indices;
@@ -259,7 +257,7 @@ namespace v4r
           std::vector<int> indices_cloud_occlusion;
           if (occlusion_cloud_->isOrganized ())
           {
-            filtered = v4r::occlusion_reasoning::filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, 525.f, param_.occlusion_thres_, indices_cloud_occlusion);
+            filtered = occlusion_reasoning::filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, 525.f, param_.occlusion_thres_, indices_cloud_occlusion);
             visible_indices_[i].resize(filtered->points.size());
 
             for(size_t k=0; k < indices_cloud_occlusion.size(); k++)
@@ -284,18 +282,10 @@ namespace v4r
       normals_set_ = false;
     }
 
-    virtual
-    void addPlanarModels(typename std::vector<v4r::PlaneModel<ModelT> > & models)
-    {
-        (void) models;
-        std::cerr << "This method is not implemented for this object!" << std::endl;
-    }
-
-    /*
+    /**
      *  \brief Sets the scene cloud
-     *  scene_cloud Point cloud representing the scene
+     *  \param scene_cloud Point cloud representing the scene
      */
-
     void
     setSceneCloud (const typename pcl::PointCloud<SceneT>::Ptr & scene_cloud)
     {
@@ -340,67 +330,13 @@ namespace v4r
       occlusion_cloud_set_ = true;
     }
 
-    virtual
-    void setAbsolutePoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses_camera_to_global)
-    {
-      (void)absolute_poses_camera_to_global;
-      std::cerr << "setAbsolutePoses function is not defined for this object!" << std::endl;
-    }
-
-    virtual
-    void
-    setOcclusionClouds(std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > & occ_clouds)
-    {
-        (void)occ_clouds;
-        std::cerr << "setOcclusionClouds function is not defined for this object!" << std::endl;
-    }
-
-    virtual
-    void setNormalsForClutterTerm(pcl::PointCloud<pcl::Normal>::Ptr &n)
-    {
-        (void) n;
-        std::cerr << "setNormalsForClutterTerm function is not implemented for this object!" << std::endl;
-    }
-
-    virtual
-    bool add_planes_is_posssible() const
-    {
-        return false;
-    }
-
-
-    virtual
-    bool uses_3D() const
-    {
-        return false;
-    }
-
-    virtual
-    void
-    setSmoothSegParameters (float t_eps, float curv_t, float dist_t, int min_points = 20)
-    {
-        (void)t_eps;
-        (void)curv_t;
-        (void)dist_t;
-        (void)min_points;
-        std::cerr << "setSmoothSegParameters function is not implemented for this object!" << std::endl;
-    }
-
-    virtual
-    void
-    setRequiresNormals(bool b)
-    {
-        (void) b;
-        std::cerr << "setRequiresNormals function is not implemented for this object!" << std::endl;
-    }
-
-    /*
+    /**
      *  \brief Function that performs the hypotheses verification, needs to be implemented in the subclasses
      *  This function modifies the values of mask_ and needs to be called after both scene and model have been added
      */
-
     virtual void
     verify ()=0;
+
   };
 
 }

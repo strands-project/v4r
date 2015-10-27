@@ -89,7 +89,7 @@ public:
         float resolution = 0.005f;
         std::string models_dir, training_dir;
 
-        v4r::GHV<PointT, PointT>::Parameter paramGHV;
+        v4r::GO3D<PointT, PointT>::Parameter paramGO3D;
         v4r::GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter paramGgcg;
         v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT >::Parameter paramLocalRecSift;
         v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> >::Parameter paramLocalRecShot;
@@ -103,18 +103,18 @@ public:
 //        paramGgcg.max_taken_correspondence_ = 2;
         paramGgcg.max_time_allowed_cliques_comptutation_ = 100;
 
-        paramGHV.eps_angle_threshold_ = 0.1f;
-        paramGHV.min_points_ = 100;
-        paramGHV.cluster_tolerance_ = 0.01f;
-        paramGHV.use_histogram_specification_ = true;
-        paramGHV.w_occupied_multiple_cm_ = 0.f;
-        paramGHV.opt_type_ = 0;
+        paramGO3D.eps_angle_threshold_ = 0.1f;
+        paramGO3D.min_points_ = 100;
+        paramGO3D.cluster_tolerance_ = 0.01f;
+        paramGO3D.use_histogram_specification_ = true;
+        paramGO3D.w_occupied_multiple_cm_ = 0.f;
+        paramGO3D.opt_type_ = 0;
 //        paramGHV.active_hyp_penalty_ = 0.f;
-        paramGHV.regularizer_ = 3;
-        paramGHV.color_sigma_ab_ = 0.5f;
-        paramGHV.radius_normals_ = 0.02f;
-        paramGHV.occlusion_thres_ = 0.01f;
-        paramGHV.inliers_threshold_ = 0.015f;
+        paramGO3D.regularizer_ = 3;
+        paramGO3D.color_sigma_ab_ = 0.5f;
+        paramGO3D.radius_normals_ = 0.02f;
+        paramGO3D.occlusion_thres_ = 0.01f;
+        paramGO3D.inliers_threshold_ = 0.015f;
 
         paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;
         paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = 10;
@@ -162,21 +162,21 @@ public:
         pcl::console::parse_argument (argc, argv,  "-cg_max_time_for_cliques_computation", paramGgcg.max_time_allowed_cliques_comptutation_);
         pcl::console::parse_argument (argc, argv,  "-cg_dot_distance", paramGgcg.thres_dot_distance_);
         pcl::console::parse_argument (argc, argv,  "-use_cg_graph", paramGgcg.use_graph_);
-        pcl::console::parse_argument (argc, argv,  "-hv_clutter_regularizer", paramGHV.clutter_regularizer_);
-        pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_ab", paramGHV.color_sigma_ab_);
-        pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_l", paramGHV.color_sigma_l_);
-        pcl::console::parse_argument (argc, argv,  "-hv_detect_clutter", paramGHV.detect_clutter_);
-        pcl::console::parse_argument (argc, argv,  "-hv_duplicity_cm_weight", paramGHV.w_occupied_multiple_cm_);
-        pcl::console::parse_argument (argc, argv,  "-hv_histogram_specification", paramGHV.use_histogram_specification_);
-        pcl::console::parse_argument (argc, argv,  "-hv_hyp_penalty", paramGHV.active_hyp_penalty_);
-        pcl::console::parse_argument (argc, argv,  "-hv_ignore_color", paramGHV.ignore_color_even_if_exists_);
-        pcl::console::parse_argument (argc, argv,  "-hv_initial_status", paramGHV.initial_status_);
-        pcl::console::parse_argument (argc, argv,  "-hv_inlier_threshold", paramGHV.inliers_threshold_);
-        pcl::console::parse_argument (argc, argv,  "-hv_occlusion_threshold", paramGHV.occlusion_thres_);
-        pcl::console::parse_argument (argc, argv,  "-hv_optimizer_type", paramGHV.opt_type_);
-        pcl::console::parse_argument (argc, argv,  "-hv_radius_clutter", paramGHV.radius_neighborhood_clutter_);
-        pcl::console::parse_argument (argc, argv,  "-hv_radius_normals", paramGHV.radius_normals_);
-        pcl::console::parse_argument (argc, argv,  "-hv_regularizer", paramGHV.regularizer_);
+        pcl::console::parse_argument (argc, argv,  "-hv_clutter_regularizer", paramGO3D.clutter_regularizer_);
+        pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_ab", paramGO3D.color_sigma_ab_);
+        pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_l", paramGO3D.color_sigma_l_);
+        pcl::console::parse_argument (argc, argv,  "-hv_detect_clutter", paramGO3D.detect_clutter_);
+        pcl::console::parse_argument (argc, argv,  "-hv_duplicity_cm_weight", paramGO3D.w_occupied_multiple_cm_);
+        pcl::console::parse_argument (argc, argv,  "-hv_histogram_specification", paramGO3D.use_histogram_specification_);
+        pcl::console::parse_argument (argc, argv,  "-hv_hyp_penalty", paramGO3D.active_hyp_penalty_);
+        pcl::console::parse_argument (argc, argv,  "-hv_ignore_color", paramGO3D.ignore_color_even_if_exists_);
+        pcl::console::parse_argument (argc, argv,  "-hv_initial_status", paramGO3D.initial_status_);
+        pcl::console::parse_argument (argc, argv,  "-hv_inlier_threshold", paramGO3D.inliers_threshold_);
+        pcl::console::parse_argument (argc, argv,  "-hv_occlusion_threshold", paramGO3D.occlusion_thres_);
+        pcl::console::parse_argument (argc, argv,  "-hv_optimizer_type", paramGO3D.opt_type_);
+        pcl::console::parse_argument (argc, argv,  "-hv_radius_clutter", paramGO3D.radius_neighborhood_clutter_);
+        pcl::console::parse_argument (argc, argv,  "-hv_radius_normals", paramGO3D.radius_normals_);
+        pcl::console::parse_argument (argc, argv,  "-hv_regularizer", paramGO3D.regularizer_);
 //        pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
 
         rr_.reset(new v4r::MultiRecognitionPipeline<PointT>(paramMultiPipeRec));
@@ -263,20 +263,22 @@ public:
         if(!paramMultiPipeRec.save_hypotheses_)
             rr_->setCGAlgorithm( gcg_alg );
 
-        boost::shared_ptr<v4r::HypothesisVerification<PointT,PointT> > cast_hyp_pointer;
+        boost::shared_ptr<v4r::HypothesisVerification<PointT,PointT> > cast_hv_pointer;
         if(use_go3d) {
-            boost::shared_ptr<v4r::GO3D<PointT, PointT> > hyp_verification_method (new v4r::GO3D<PointT, PointT>(paramGHV));
-            cast_hyp_pointer = boost::static_pointer_cast<v4r::GO3D<PointT, PointT> > (hyp_verification_method);
+            boost::shared_ptr<v4r::GO3D<PointT, PointT> > hyp_verification_method (new v4r::GO3D<PointT, PointT>(paramGO3D));
+            cast_hv_pointer = boost::static_pointer_cast<v4r::GO3D<PointT, PointT> > (hyp_verification_method);
         }
         else {
-            boost::shared_ptr<v4r::GHV<PointT, PointT> > hyp_verification_method (new v4r::GHV<PointT, PointT>(paramGHV));
-            cast_hyp_pointer = boost::static_pointer_cast<v4r::GHV<PointT, PointT> > (hyp_verification_method);
+
+            v4r::GHV<PointT, PointT>::Parameter paramGHV2 = paramGO3D;
+            boost::shared_ptr<v4r::GHV<PointT, PointT> > hyp_verification_method (new v4r::GHV<PointT, PointT>(paramGHV2));
+            cast_hv_pointer = boost::static_pointer_cast<v4r::GHV<PointT, PointT> > (hyp_verification_method);
         }
 
         mv_r_.reset(new v4r::MultiviewRecognizer<PointT>(paramMultiView));
         mv_r_->setSingleViewRecognizer(rr_);
         mv_r_->setCGAlgorithm( gcg_alg );
-        mv_r_->setHVAlgorithm( cast_hyp_pointer );
+        mv_r_->setHVAlgorithm( cast_hv_pointer );
         mv_r_->set_sift(sift_);
 
         return true;
