@@ -86,7 +86,7 @@ public:
         bool do_ourcvfh = false;
         bool use_go3d = false;
 
-        float resolution = 0.005f;
+        float resolution = 0.003f;
         std::string models_dir, training_dir;
 
         v4r::GO3D<PointT, PointT>::Parameter paramGO3D;
@@ -111,13 +111,11 @@ public:
         paramGO3D.opt_type_ = 0;
 //        paramGHV.active_hyp_penalty_ = 0.f;
         paramGO3D.regularizer_ = 3;
-        paramGO3D.color_sigma_ab_ = 0.5f;
         paramGO3D.radius_normals_ = 0.02f;
         paramGO3D.occlusion_thres_ = 0.01f;
         paramGO3D.inliers_threshold_ = 0.015f;
 
         paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;
-        paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = 10;
         paramLocalRecSift.save_hypotheses_ = paramLocalRecShot.save_hypotheses_ = true;
         paramLocalRecShot.kdtree_splits_ = 128;
 
@@ -161,7 +159,7 @@ public:
         pcl::console::parse_argument (argc, argv,  "-cg_max_taken", paramGgcg.max_taken_correspondence_);
         pcl::console::parse_argument (argc, argv,  "-cg_max_time_for_cliques_computation", paramGgcg.max_time_allowed_cliques_comptutation_);
         pcl::console::parse_argument (argc, argv,  "-cg_dot_distance", paramGgcg.thres_dot_distance_);
-        pcl::console::parse_argument (argc, argv,  "-use_cg_graph", paramGgcg.use_graph_);
+        pcl::console::parse_argument (argc, argv,  "-cg_use_graph", paramGgcg.use_graph_);
         pcl::console::parse_argument (argc, argv,  "-hv_clutter_regularizer", paramGO3D.clutter_regularizer_);
         pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_ab", paramGO3D.color_sigma_ab_);
         pcl::console::parse_argument (argc, argv,  "-hv_color_sigma_l", paramGO3D.color_sigma_l_);
@@ -177,6 +175,8 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_radius_clutter", paramGO3D.radius_neighborhood_clutter_);
         pcl::console::parse_argument (argc, argv,  "-hv_radius_normals", paramGO3D.radius_normals_);
         pcl::console::parse_argument (argc, argv,  "-hv_regularizer", paramGO3D.regularizer_);
+        pcl::console::parse_argument (argc, argv,  "-hv_plane_method", paramGO3D.plane_method_);
+        pcl::console::parse_argument (argc, argv,  "-hv_add_planes", paramGO3D.add_planes_);
 //        pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
 
         rr_.reset(new v4r::MultiRecognitionPipeline<PointT>(paramMultiPipeRec));
@@ -188,11 +188,11 @@ public:
         if (do_sift || do_shot ) // for local recognizers we need this source type / training data
         {
             boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > src
-                    (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>);
+                    (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>(resolution));
             src->setPath (models_dir);
             src->setModelStructureDir (training_dir);
             src->generate ();
-            src->createVoxelGridAndDistanceTransform(resolution);
+//            src->createVoxelGridAndDistanceTransform(resolution);
             cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (src);
         }
 
@@ -280,7 +280,6 @@ public:
         mv_r_->setCGAlgorithm( gcg_alg );
         mv_r_->setHVAlgorithm( cast_hv_pointer );
         mv_r_->set_sift(sift_);
-
         return true;
     }
 

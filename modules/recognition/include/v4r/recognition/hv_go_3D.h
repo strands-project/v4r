@@ -61,6 +61,7 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::cluster_tolerance_;
          using GHV<ModelT, SceneT>::Parameter::use_normals_from_visible_;
          using GHV<ModelT, SceneT>::Parameter::add_planes_;
+         using GHV<ModelT, SceneT>::Parameter::plane_method_;
 
         Parameter()
         {}

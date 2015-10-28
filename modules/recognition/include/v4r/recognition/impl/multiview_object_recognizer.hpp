@@ -691,88 +691,13 @@ MultiviewRecognizer<PointT>::recognize ()
     if ( param_.icp_iterations_ > 0 )
         poseRefinement();
 
-    std::cout << "Pose Refinement done" << std::endl;
-
     if ( hv_algorithm_ && !models_.empty() ) {
-
         if( !hv_algorithm_3d ) {
             scene_ = v.scene_;
             scene_normals_ = v.scene_normals_;
         }
 
         hypothesisVerification();
-
-        if( hv_algorithm_3d ) {
-            if(!go3d_vis_) {
-                go3d_vis_.reset(new pcl::visualization::PCLVisualizer("GO 3D visualization"));
-
-                for(size_t vp_id=1; vp_id<=6; vp_id++)
-                    go_3d_viewports_.push_back(vp_id);
-
-                go3d_vis_->createViewPort (0, 0, 0.5, 0.33, go_3d_viewports_[0]);
-                go3d_vis_->createViewPort (0.5, 0, 1, 0.33, go_3d_viewports_[1]);
-                go3d_vis_->createViewPort (0, 0.33, 0.5, 0.66, go_3d_viewports_[2]);
-                go3d_vis_->createViewPort (0.5, 0.33, 1, 0.66, go_3d_viewports_[3]);
-                go3d_vis_->createViewPort (0, 0.66, 0.5, 1, go_3d_viewports_[4]);
-                go3d_vis_->createViewPort (0.5, 0.66, 1, 1, go_3d_viewports_[5]);
-            }
-
-            for(size_t vp_id=0; vp_id<go_3d_viewports_.size(); vp_id++)
-                go3d_vis_->removeAllPointClouds(go_3d_viewports_[vp_id]);
-
-            pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler (scene_);
-            go3d_vis_->addPointCloud (scene_, handler, "big", go_3d_viewports_[0]);
-            pcl::io::savePCDFile<PointT>(std::string("/tmp/big_cloud_go3d.pcd"), *scene_);
-
-            /*pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler (big_cloud_vx_after_mv);
-    vis.addPointCloud (big_cloud_vx_after_mv, handler, "big", v1);*/
-
-            typename pcl::PointCloud<PointT>::Ptr all_hypotheses ( new pcl::PointCloud<PointT> );
-
-            for(size_t i=0; i < v.models_.size(); i++) {
-                typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT> );
-                typename pcl::PointCloud<PointT>::ConstPtr model_cloud = v.models_[i]->getAssembled (hv_algorithm_3d->getResolution());
-                pcl::transformPointCloud (*model_cloud, *model_aligned, v.transforms_[i]);
-
-                pcl::visualization::PointCloudColorHandlerRGBField<PointT> handler_rgb_verified (model_aligned);
-                std::stringstream name;
-                name << "Hypothesis_model_" << i;
-                go3d_vis_->addPointCloud<PointT> (model_aligned, handler_rgb_verified, name.str (), go_3d_viewports_[1]);
-                *all_hypotheses += *model_aligned;
-
-
-                if (model_or_plane_is_verified_[i])  {
-                    name << "_verified";
-                    go3d_vis_->addPointCloud<PointT> (model_aligned, name.str (), go_3d_viewports_[2]);
-
-                    typename pcl::PointCloud<PointT>::Ptr inliers_outlier_cloud;
-                    hv_algorithm_3d->getInlierOutliersCloud((int)i, inliers_outlier_cloud);
-                    std::stringstream name_verified_vis; name_verified_vis << "verified_visible_" << i;
-                    go3d_vis_->addPointCloud<PointT> (inliers_outlier_cloud, name_verified_vis.str (), go_3d_viewports_[3]);
-                }
-            }
-
-            typename pcl::PointCloud<pcl::PointXYZRGBA>::Ptr smooth_cloud_ =  hv_algorithm_3d->getSmoothClustersRGBCloud();
-            if(smooth_cloud_) {
-                pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (smooth_cloud_);
-                go3d_vis_->addPointCloud<pcl::PointXYZRGBA> (smooth_cloud_, random_handler, "smooth_cloud", go_3d_viewports_[4]);
-            }
-
-            if( hv_algorithm_3d->param_.add_planes_ )  {
-                for(size_t i=0; i < planes_.size(); i++) {
-                    if(!model_or_plane_is_verified_[i + v.models_.size()])
-                        continue;
-
-                    std::stringstream pname;
-                    pname << "plane_" << i;
-
-                    pcl::visualization::PointCloudColorHandlerRandom<PointT> scene_handler(planes_[i].plane_cloud_);
-                    go3d_vis_->addPointCloud<PointT> (planes_[i].plane_cloud_, scene_handler, pname.str(), go_3d_viewports_[2]);
-                }
-            }
-            go3d_vis_->setBackgroundColor(1,1,1);
-            go3d_vis_->spin ();
-        }
         v.model_or_plane_is_verified_ = model_or_plane_is_verified_;
     }
 

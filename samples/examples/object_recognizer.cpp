@@ -49,7 +49,7 @@ public:
         bool do_shot = false;
         bool do_ourcvfh = false;
 
-        float resolution = 0.005f;
+        float resolution = 0.003f;
         std::string models_dir, training_dir;
 
         v4r::GHV<PointT, PointT>::Parameter paramGHV;
@@ -142,11 +142,11 @@ public:
         if (do_sift || do_shot ) // for local recognizers we need this source type / training data
         {
             boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > src
-                    (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>);
+                    (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>(resolution));
             src->setPath (models_dir);
             src->setModelStructureDir (training_dir);
             src->generate ();
-            src->createVoxelGridAndDistanceTransform(resolution);
+//            src->createVoxelGridAndDistanceTransform(resolution);
             cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (src);
         }
 
@@ -236,8 +236,6 @@ public:
                 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
                 pcl::io::loadPCDFile(fn, *cloud);
 
-                pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>());
-
                 if( chop_z_ > 0)
                 {
                     pcl::PassThrough<PointT> pass;
@@ -246,7 +244,6 @@ public:
                     pass.setInputCloud (cloud);
                     pass.setKeepOrganized (true);
                     pass.filter (*cloud);
-                    pcl::copyPointCloud(*normals, *pass.getIndices(), *normals);
                 }
 
                 rr_->setInputCloud (cloud);

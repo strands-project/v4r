@@ -261,7 +261,6 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
   }
   else
   {
-    std::cout << "Unorganized" << std::endl;
     // Create the filtering object: downsample the dataset using a leaf size of 1cm
     pcl::VoxelGrid<PointT> vg;
     PointTCloudPtr cloud_filtered (new PointTCloud);
@@ -285,7 +284,6 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
     bool plane_found = true;
 
     PointTCloudPtr cloud_plane (new PointTCloud);
-    std::vector<pcl::PointIndices> plane_inliers_;
 
     //pcl::visualization::PCLVisualizer vis("vis");
     while (plane_found)

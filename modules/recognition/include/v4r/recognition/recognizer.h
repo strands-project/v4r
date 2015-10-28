@@ -96,7 +96,7 @@ namespace v4r
             int normal_computation_method_;
 
             Parameter(
-                    int icp_iterations = 30,
+                    int icp_iterations = 20,
                     int icp_type = 1,
                     float voxel_size_icp = 0.0025f,
                     float max_corr_distance = 0.02f,

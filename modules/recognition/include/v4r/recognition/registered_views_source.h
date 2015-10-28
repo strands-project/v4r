@@ -13,6 +13,8 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
+
+#include <v4r/core/macros.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
@@ -30,7 +32,7 @@ namespace v4r
      */
 
 template<typename Full3DPointT = pcl::PointXYZRGBNormal, typename PointInT = pcl::PointXYZRGB, typename OutModelPointT = pcl::PointXYZRGB>
-class RegisteredViewsSource : public Source<PointInT>
+class V4R_EXPORTS RegisteredViewsSource : public Source<PointInT>
 {
     typedef Source<PointInT> SourceT;
     typedef Model<OutModelPointT> ModelT;
@@ -41,6 +43,7 @@ class RegisteredViewsSource : public Source<PointInT>
     using SourceT::model_scale_;
     using SourceT::load_into_memory_;
     using SourceT::createClassAndModelDirectories;
+    using SourceT::resolution_;
 
     std::string model_structure_; //directory with all the views, indices, poses, etc...
     std::string view_prefix_;
@@ -48,8 +51,9 @@ class RegisteredViewsSource : public Source<PointInT>
     std::string pose_prefix_;
 
 public:
-    RegisteredViewsSource ()
+    RegisteredViewsSource (float resolution = 0.001f)
     {
+        resolution_ = resolution;
         view_prefix_ = std::string ("cloud");
         pose_prefix_ = std::string("pose");
         indices_prefix_ = std::string("object_indices");
@@ -91,7 +95,7 @@ public:
     loadInMemorySpecificModel(const std::string & dir, ModelT & model)
     {
         const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
-        if (!v4r::io::existsFolder(pathmodel)) {
+        if (!io::existsFolder(pathmodel)) {
             std::cerr << "Training directory " << pathmodel << " does not exist!" << std::endl;
             return;
         }
@@ -110,7 +114,7 @@ public:
             std::stringstream pose_file;
             pose_file << pathmodel << "/" << file_replaced1;
             Eigen::Matrix4f pose;
-            v4r::io::readMatrixFromFile( pose_file.str (), pose);
+            io::readMatrixFromFile( pose_file.str (), pose);
 
             //the recognizer assumes transformation from M to CC - i think!
             Eigen::Matrix4f pose_inv = pose.inverse();
@@ -139,7 +143,7 @@ public:
     {
         const std::string training_view_path = model_structure_ + "/" + model.class_ + "/" + model.id_;
         const std::string view_pattern = ".*" + view_prefix_ + ".*.pcd";
-        v4r::io::getFilesInDirectory(training_view_path, model.view_filenames_, "", view_pattern, false);
+        io::getFilesInDirectory(training_view_path, model.view_filenames_, "", view_pattern, false);
         std::cout << "Object class: " << model.class_ << ", id: " << model.id_ << ", views: " << model.view_filenames_.size() << std::endl;
 
         typename pcl::PointCloud<Full3DPointT>::Ptr modell (new pcl::PointCloud<Full3DPointT>);
@@ -178,7 +182,7 @@ public:
 
                 const std::string pose_file = training_view_path + "/" + file_replaced1;
                 Eigen::Matrix4f pose;
-                v4r::io::readMatrixFromFile( pose_file, pose);
+                io::readMatrixFromFile( pose_file, pose);
 
                 //the recognizer assumes transformation from M to CC - i think!
                 Eigen::Matrix4f pose_inv = pose.inverse();
@@ -218,7 +222,7 @@ public:
         (void)foo;
         //get models in directory
         std::vector < std::string > files;
-        v4r::io::getFilesInDirectory (path_, files, "", ".*.pcd",  false);
+        io::getFilesInDirectory (path_, files, "", ".*.pcd",  false);
         std::cout << "There are " << files.size() << " models." << std::endl;
 
         models_.clear();
@@ -262,6 +266,7 @@ public:
 
             models_.push_back (m);
         }
+        this->createVoxelGridAndDistanceTransform(resolution_);
     }
 };
 }

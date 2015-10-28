@@ -172,7 +172,8 @@ namespace v4r
         indices_to_keep.push_back(static_cast<int> (i));
       }
 
-      indices_to_keep.shrink_to_fit();
+      std::vector<int>(indices_to_keep.begin(), indices_to_keep.end()).swap(indices_to_keep);
+
       pcl::copyPointCloud (*to_be_filtered, indices_to_keep, *filtered);
       return filtered;
     }

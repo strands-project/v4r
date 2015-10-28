@@ -1,13 +1,36 @@
-/*
- * source.h
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma
  *
- *  Created on: Mar 9, 2012
- *      Author: Aitor Aldoma
- *      Maintainer: Thomas Faeulhammer
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
-#ifndef FAAT_PCL_REC_FRAMEWORK_VIEWS_SOURCE_H_
-#define FAAT_PCL_REC_FRAMEWORK_VIEWS_SOURCE_H_
+/**
+*
+*      @author Aitor Aldoma
+*      @author Thomas Faeulhammer (faeulhammer@acin.tuwien.ac.at)
+*      @date March, 2012
+*      @brief object model database
+*/
+
+#ifndef V4R_VIEWS_SOURCE_H_
+#define V4R_VIEWS_SOURCE_H_
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
@@ -71,9 +94,7 @@ namespace v4r
       Eigen::Vector4f getCentroid()
       {
         if(centroid_computed_)
-        {
           return centroid_;
-        }
 
         //compute
         pcl::compute3DCentroid(*assembled_, centroid_);
@@ -190,10 +211,10 @@ namespace v4r
       }
 
       void
-      createVoxelGridAndDistanceTransform(float res) {
+      createVoxelGridAndDistanceTransform(float resolution) {
         PointTPtrConst assembled (new pcl::PointCloud<PointT> ());
-        assembled = getAssembled(0.001f);
-        dist_trans_.reset(new distance_field::PropagationDistanceField<PointT>(res));
+        assembled = getAssembled(resolution);
+        dist_trans_.reset(new distance_field::PropagationDistanceField<PointT>(resolution));
         dist_trans_->setInputCloud(assembled);
         dist_trans_->compute();
       }
@@ -222,6 +243,7 @@ namespace v4r
       float model_scale_;
       bool load_views_;
       float radius_normals_;
+      float resolution_;
       bool compute_normals_;
       bool load_into_memory_;
 
@@ -250,16 +272,17 @@ namespace v4r
         for (size_t i = 0; i < strs.size (); i++)
         {
           ss << strs[i] << "/";
-          v4r::io::createDirIfNotExist(ss.str ());
+          io::createDirIfNotExist(ss.str ());
         }
 
         ss << id_str;
-        v4r::io::createDirIfNotExist(ss.str ());
+        io::createDirIfNotExist(ss.str ());
       }
 
     public:
 
-      Source() {
+      Source(float resolution = 0.001f) {
+        resolution_ = resolution;
         load_views_ = true;
         compute_normals_ = false;
         load_into_memory_ = true;
@@ -435,10 +458,10 @@ namespace v4r
       }
 
       void
-      createVoxelGridAndDistanceTransform(float res = 0.001f)
+      createVoxelGridAndDistanceTransform(float resolution)
       {
         for (size_t i = 0; i < models_.size (); i++)
-          models_[i]->createVoxelGridAndDistanceTransform (res);
+          models_[i]->createVoxelGridAndDistanceTransform (resolution);
       }
     };
 }

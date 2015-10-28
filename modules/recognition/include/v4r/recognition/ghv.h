@@ -111,15 +111,15 @@ namespace v4r
           using HypothesisVerification<ModelT, SceneT>::Parameter::zbuffer_self_occlusion_resolution_;
           using HypothesisVerification<ModelT, SceneT>::Parameter::self_occlusions_reasoning_;
 
-          float color_sigma_ab_;
-          float color_sigma_l_;
+          float color_sigma_ab_; /// @brief allowed illumination variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
+          float color_sigma_l_; /// @brief allowed chrominance (AB channel of LAB color space) variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
           float regularizer_;
           float radius_neighborhood_clutter_;
           float radius_normals_;
           float duplicy_weight_test_;
           float duplicity_curvature_max_;
           bool ignore_color_even_if_exists_;
-          int max_iterations_; //max iterations without improvement
+          int max_iterations_; /// @brief max iterations without improvement
           float clutter_regularizer_;
           bool detect_clutter_;
           float res_occupancy_grid_;
@@ -143,10 +143,13 @@ namespace v4r
           float cluster_tolerance_;
 
           bool use_normals_from_visible_;
-          bool add_planes_;
+
+          bool add_planes_;  /// @brief if true, adds planes as possible hypotheses (slower but decreases false positives especially for planes detected as flat objects like books)
+          int plane_method_; /// @brief defines which method to use for plane extraction (if add_planes_ is true). 0... Multiplane Segmentation, 1... ClusterNormalsForPlane segmentation
+          size_t min_plane_inliers_;
 
           Parameter (
-                  float color_sigma_ab = 0.25f, // 0.5f
+                  float color_sigma_ab = 0.5f,
                   float color_sigma_l = 0.5f,
                   float regularizer = 1.f, // 3
                   float radius_neighborhood_clutter = 0.03f,
@@ -175,7 +178,9 @@ namespace v4r
                   float curvature_threshold = 0.04f,
                   float cluster_tolerance = 0.015f, //0.01f;
                   bool use_normals_from_visible = false,
-                  bool add_planes = true
+                  bool add_planes = true,
+                  int plane_method = 0,
+                  size_t min_plane_inliers = 1000
                   )
               :
                 HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -208,7 +213,9 @@ namespace v4r
                 curvature_threshold_ (curvature_threshold),
                 cluster_tolerance_ (cluster_tolerance),
                 use_normals_from_visible_ (use_normals_from_visible),
-                add_planes_ (add_planes)
+                add_planes_ (add_planes),
+                plane_method_ (plane_method),
+                min_plane_inliers_ ( min_plane_inliers )
           {}
       }param_;
 

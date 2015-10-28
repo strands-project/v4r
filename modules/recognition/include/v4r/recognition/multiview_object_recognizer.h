@@ -50,6 +50,8 @@
 #include <v4r/recognition/boost_graph_extension.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 
+#include <SiftGPU/SiftGPU.h>
+
 #ifdef USE_SIFT_GPU
 #include <v4r/features/sift_local_estimator.h>
 #else
@@ -112,6 +114,7 @@ protected:
 
     bool computeAbsolutePose(CamConnect & e, bool &is_first_edge = false);
 
+    /** \brief removes vertices from graph if max_vertices_in_graph has been reached */
     void pruneGraph();
 
     void correspondenceGrouping();

@@ -150,8 +150,6 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
         }
     }
 
-    std::cout << "created indices" << std::endl;
-
     std::cout << big_cloud->points.size() << " " << weights_points_in_octree_.size() << std::endl;
 
     std::vector<bool> indices_big_cloud_keep(big_cloud->points.size(), true);
@@ -223,8 +221,8 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
             }*/
         }
 
-        std::cout << "iteration " << i << " finished..." << std::endl;
-        std::cout << infront_or_behind << " " << rejected << " " << big_cloud->points.size() << std::endl;
+//        std::cout << "iteration " << i << " finished..." << std::endl;
+//        std::cout << infront_or_behind << " " << rejected << " " << big_cloud->points.size() << std::endl;
     }
 
     {
