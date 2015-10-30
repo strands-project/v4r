@@ -146,7 +146,10 @@ namespace v4r
 
           bool add_planes_;  /// @brief if true, adds planes as possible hypotheses (slower but decreases false positives especially for planes detected as flat objects like books)
           int plane_method_; /// @brief defines which method to use for plane extraction (if add_planes_ is true). 0... Multiplane Segmentation, 1... ClusterNormalsForPlane segmentation
-          size_t min_plane_inliers_;
+          size_t min_plane_inliers_; /// @brief a planar cluster is only added as plane if it has at least min_plane_inliers_ points
+          double plane_inlier_distance_;          /// @brief Maximum inlier distance for plane clustering
+          double plane_thrAngle_;  /// @brief Threshold of normal angle for plane clustering
+          int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
 
           Parameter (
                   float color_sigma_ab = 0.5f,
@@ -180,7 +183,10 @@ namespace v4r
                   bool use_normals_from_visible = false,
                   bool add_planes = true,
                   int plane_method = 0,
-                  size_t min_plane_inliers = 1000
+                  size_t min_plane_inliers = 1000,
+                  double plane_inlier_distance = 0.02f,
+                  double plane_thrAngle = 30,
+                  int knn_plane_clustering_search = 10
                   )
               :
                 HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -215,7 +221,10 @@ namespace v4r
                 use_normals_from_visible_ (use_normals_from_visible),
                 add_planes_ (add_planes),
                 plane_method_ (plane_method),
-                min_plane_inliers_ ( min_plane_inliers )
+                min_plane_inliers_ ( min_plane_inliers ),
+                plane_inlier_distance_ ( plane_inlier_distance ),
+                plane_thrAngle_ ( plane_thrAngle ),
+                knn_plane_clustering_search_ ( knn_plane_clustering_search )
           {}
       }param_;
 

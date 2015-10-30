@@ -247,12 +247,14 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
             plane_normal = rotation * plane_normal;
             plane_normal.normalize();
 
+            typename pcl::PointCloud<PointT>::Ptr plane_cloud = plane.projectPlaneCloud();
+
             const float angle = pcl::rad2deg(acos(plane_normal.dot(Eigen::Vector3f::UnitZ())));
             std::cout << "Plane " << i << " has an angle:" << angle << std::endl;
             if(angle < param_.max_angle_plane_to_ground_)
             {
                 //select a point on the plane and transform it to check the height relative to the ground
-                Eigen::Vector4f point = plane.plane_cloud_->points[0].getVector4fMap();
+                Eigen::Vector4f point = plane_cloud->points[0].getVector4fMap();
                 point[3] = 1;
                 point = transform_to_world_ * point;
 
@@ -278,7 +280,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
                 //std::cout << "vertical plane, check if its big enough" << std::endl;
                 //std::cout << plane.plane_cloud_->points.size() << std::endl;
 
-                int size_plane = static_cast<int>(plane.plane_cloud_->points.size());
+                int size_plane = static_cast<int>(plane_cloud->points.size());
                 if(size_plane > param_.max_vertical_plane_size_)
                 {
                     for(size_t k=0; k < plane.inliers_.indices.size(); k++)

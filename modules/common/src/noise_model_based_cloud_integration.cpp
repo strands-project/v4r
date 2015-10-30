@@ -82,7 +82,7 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
     {
         PointTPtr cloud(new pcl::PointCloud<PointT>);
         PointNormalTPtr normal_cloud(new pcl::PointCloud<pcl::Normal>);
-        v4r::transformNormals(*input_normals_[i], *normal_cloud, transformations_to_global_[i]);
+        transformNormals(*input_normals_[i], *normal_cloud, transformations_to_global_[i]);
         pcl::transformPointCloud(*input_clouds_used_[i], *cloud, transformations_to_global_[i]);
 
         /*float sum_curv = 0;
@@ -150,8 +150,6 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
         }
     }
 
-    std::cout << big_cloud->points.size() << " " << weights_points_in_octree_.size() << std::endl;
-
     std::vector<bool> indices_big_cloud_keep(big_cloud->points.size(), true);
 
     for(size_t i=0; i < input_clouds_used_.size(); i++)
@@ -189,7 +187,7 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
             Eigen::Vector3f normal_from_cloud = input_normals_[i]->at (u,v).getNormalVector3fMap();
             Eigen::Vector3f normal_from_octree = octree_points_normals_->points[k].getNormalVector3fMap();
             Eigen::Vector3f normal_octree_trans;
-            v4r::transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
+            transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
 
             if(normal_octree_trans.dot(normal_from_cloud) < 0)
                 continue;
@@ -237,8 +235,6 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
                 kept++;
             }
         }
-
-        std::cout << kept << " " << indices_kept.size() << std::endl;
 
         indices_kept.resize(kept);
         pcl::copyPointCloud(*big_cloud, indices_kept, *big_cloud_filtered);
@@ -399,7 +395,7 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
     {
         PointTPtr cloud(new pcl::PointCloud<PointT>);
         PointNormalTPtr normal_cloud(new pcl::PointCloud<pcl::Normal>);
-        v4r::miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
+        miscellaneous::transformNormals(input_normals_[i], normal_cloud, transformations_to_global_[i]);
 
         pcl::transformPointCloud(*input_clouds_[i], *cloud, transformations_to_global_[i]);
         PointTPtr organized_cloud = input_clouds_[i];
@@ -457,7 +453,7 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
                 Eigen::Vector3f normal_from_cloud = input_normals_[i]->at (u,v).getNormalVector3fMap();
                 Eigen::Vector3f normal_from_octree = octree_points_normals_->points[indexVector[k]].getNormalVector3fMap();
                 Eigen::Vector3f normal_octree_trans;
-                v4r::miscellaneous::transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
+                miscellaneous::transformNormal(normal_from_octree, normal_octree_trans, global_to_cloud);
                 if(normal_octree_trans.dot(normal_from_cloud) < 0)
                 {
                     indices_octree_keep.push_back(indexVector[k]);
@@ -611,5 +607,5 @@ NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
 }
 
 template class V4R_EXPORTS NMBasedCloudIntegration<pcl::PointXYZRGB>;
-//template class v4r::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
+//template class noise_models::NguyenNoiseModel<pcl::PointXYZ>;
 }

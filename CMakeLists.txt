@@ -333,7 +333,7 @@ include(cmake/V4RFindBoost.cmake)
 include(cmake/V4RFindEDT.cmake)
 include(cmake/V4RFindSiftGPU.cmake)
 include(cmake/V4RFindLIBSVM.cmake)
-include(cmake/V4RFindMetslib.cmake)
+#include(cmake/V4RFindMetslib.cmake)
 
 # --- Doxygen for documentation ---
 unset(DOXYGEN_FOUND CACHE)

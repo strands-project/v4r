@@ -84,6 +84,7 @@ void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
 }
 
 template V4R_EXPORTS void convertToFLANN<pcl::Histogram<128>, flann::L1<float> > (const pcl::PointCloud<pcl::Histogram<128> >::ConstPtr & cloud, boost::shared_ptr< flann::Index<flann::L1<float> > > &flann_index); // explicit instantiation.
+template V4R_EXPORTS void convertToFLANN<pcl::Histogram<128>, flann::L2<float> > (const pcl::PointCloud<pcl::Histogram<128> >::ConstPtr & cloud, boost::shared_ptr< flann::Index<flann::L2<float> > > &flann_index); // explicit instantiation.
 template V4R_EXPORTS void nearestKSearch<flann::L1<float> > ( boost::shared_ptr< flann::Index< flann::L1<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
 flann::Matrix<float> &distances );
 template void V4R_EXPORTS nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,

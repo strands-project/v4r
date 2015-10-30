@@ -32,11 +32,11 @@
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/convertCloud.h>
 #include <v4r/common/convertNormals.h>
-#include <v4r/keypoints/ClusterNormalsToPlanes.h>
 #include <v4r/recognition/recognizer.h>
 #include <v4r/recognition/ghv.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
+#include <v4r/segmentation/ClusterNormalsToPlanesPCL.h>
 #include <pcl/common/centroid.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <stdlib.h>     /* srand, rand */
@@ -169,69 +169,14 @@ Recognizer<PointT>::hypothesisVerification ()
                 planes_ = mps.getModels();
             }
             else {
-                ClusterNormalsToPlanes::Parameter p_param;
+                typename ClusterNormalsToPlanesPCL<PointT>::Parameter p_param;
                 p_param.inlDistSmooth = 0.05f;
                 p_param.minPoints = hv_algorithm_ghv->param_.min_plane_inliers_;
-                ClusterNormalsToPlanes pest(p_param);
-                DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new DataMatrix2D<Eigen::Vector3f>() );
-                DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals( new DataMatrix2D<Eigen::Vector3f>() );
-                convertCloud(*scene_, *kp_cloud);
-                convertNormals(*scene_normals_, *kp_normals);
-
-                std::vector<ClusterNormalsToPlanes::Plane::Ptr> all_planes;
-                pest.compute(*kp_cloud, *kp_normals, all_planes);
-                planes_.reserve(all_planes.size());
-                for(size_t p_id=0; p_id < all_planes.size(); p_id++) {
-                    const ClusterNormalsToPlanes::Plane::Ptr &cpm = all_planes[p_id];
-                    if(cpm->is_plane) {
-                        PlaneModel<PointT> pm;
-                        typename pcl::PointCloud<PointT>::Ptr plane (new pcl::PointCloud<PointT>);
-                        pcl::copyPointCloud(*scene_, cpm->indices, *plane);
-                        pm.cloud_ = scene_;
-                        pm.plane_cloud_ = plane;
-                        pm.coefficients_.values.resize( 4 );
-                        pm.inliers_.indices = cpm->indices;
-
-                        Eigen::Vector4f clust_centroid;
-                        Eigen::Matrix3f clust_cov;
-                        pcl::computeMeanAndCovarianceMatrix (*plane, clust_cov, clust_centroid);
-                        Eigen::Vector4f plane_params;
-
-                        EIGEN_ALIGN16 Eigen::Vector3f::Scalar eigen_value;
-                        EIGEN_ALIGN16 Eigen::Vector3f eigen_vector;
-                        pcl::eigen33 (clust_cov, eigen_value, eigen_vector);
-                        plane_params[0] = eigen_vector[0];
-                        plane_params[1] = eigen_vector[1];
-                        plane_params[2] = eigen_vector[2];
-                        plane_params[3] = 0;
-                        plane_params[3] = -1 * plane_params.dot (clust_centroid);
-
-
-                        const Eigen::Vector4f vp = -clust_centroid;
-                        float cos_theta = vp.dot (plane_params);
-                        if (cos_theta < 0) {
-                            plane_params *= -1;
-                            plane_params[3] = 0;
-                            plane_params[3] = -1 * plane_params.dot (clust_centroid);
-                        }
-
-                        // Compute the curvature surface change
-                        float curvature;
-                        float eig_sum = clust_cov.coeff (0) + clust_cov.coeff (4) + clust_cov.coeff (8);
-                        if (eig_sum != 0)
-                            curvature = fabsf (eigen_value / eig_sum);
-                        else
-                            curvature = 0;
-
-                        if (curvature < hv_algorithm_ghv->param_.curvature_threshold_)  {
-                            pm.coefficients_.values[0] = plane_params[0];
-                            pm.coefficients_.values[1] = plane_params[1];
-                            pm.coefficients_.values[2] = plane_params[2];
-                            pm.coefficients_.values[3] = plane_params[3];
-                        }
-                        planes_.push_back(pm);
-                    }
-                }
+                p_param.inlDist = hv_algorithm_ghv->param_.plane_inlier_distance_;
+                p_param.thrAngle = hv_algorithm_ghv->param_.plane_thrAngle_;
+                p_param.K_ = hv_algorithm_ghv->param_.knn_plane_clustering_search_;
+                ClusterNormalsToPlanesPCL<PointT> pest(p_param);
+                pest.compute(scene_, *scene_normals_, planes_);
             }
 
             hv_algorithm_ghv->addPlanarModels(planes_);
@@ -425,23 +370,23 @@ Recognizer<PointT>::visualize() const
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
 
-        PointT centroid;
-        pcl::computeCentroid(*model_aligned, centroid);
-        model_label << "_text3d";
-        vis_->addText3D(model_label.str(), centroid, 0.015, 0, 0, 0, model_label.str(), vp3_);
+
     }
 
     for(size_t plane_id=0; plane_id < planes_.size(); plane_id++)
     {
-        if(!model_or_plane_is_verified_[models_.size() + plane_id])
-            continue;
-
         std::stringstream plane_name;
         plane_name << "plane_" << plane_id;
-        planes_[plane_id].plane_cloud_->sensor_origin_ = zero_origin;
-        planes_[plane_id].plane_cloud_->sensor_orientation_ = Eigen::Quaternionf::Identity();
-        pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(planes_[plane_id].plane_cloud_);
-        vis_->addPointCloud<PointT> ( planes_[plane_id].plane_cloud_, plane_handler, plane_name.str (), vp3_ );
+        typename pcl::PointCloud<PointT>::Ptr plane_cloud = planes_[plane_id].projectPlaneCloud();
+        pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(plane_cloud);
+        vis_->addPointCloud<PointT> ( plane_cloud, plane_handler, plane_name.str (), vp2_ );
+
+        if(model_or_plane_is_verified_[models_.size() + plane_id]) {
+            plane_name << "_verified";
+            typename pcl::PointCloud<PointT>::Ptr plane_cloud = planes_[plane_id].projectPlaneCloud();
+            pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(plane_cloud);
+            vis_->addPointCloud<PointT> ( plane_cloud, plane_handler, plane_name.str (), vp3_ );
+        }
     }
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
     vis_->spin();
@@ -503,24 +448,22 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
-
-        PointT centroid;
-        pcl::computeCentroid(*model_aligned, centroid);
-        model_label << "_text3d";
-        vis_->addText3D(model_label.str(), centroid, 0.015, 0, 0, 0, model_label.str(), vp3_);
     }
 
     for(size_t plane_id=0; plane_id < planes_.size(); plane_id++)
     {
-        if(!model_or_plane_is_verified_[models_.size() + plane_id])
-            continue;
-
         std::stringstream plane_name;
         plane_name << "plane_" << plane_id;
-        planes_[plane_id].plane_cloud_->sensor_origin_ = zero_origin;
-        planes_[plane_id].plane_cloud_->sensor_orientation_ = Eigen::Quaternionf::Identity();
-        pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(planes_[plane_id].plane_cloud_);
-        vis_->addPointCloud<PointT> ( planes_[plane_id].plane_cloud_, plane_handler, plane_name.str (), vp3_ );
+        pcl::PointCloud<PointT>::Ptr plane_cloud = planes_[plane_id].projectPlaneCloud();
+        pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(plane_cloud);
+        vis_->addPointCloud<PointT> ( plane_cloud, plane_handler, plane_name.str (), vp2_ );
+
+        if(model_or_plane_is_verified_[models_.size() + plane_id]) {
+            plane_name << "_verified";
+            typename pcl::PointCloud<PointT>::Ptr plane_cloud = planes_[plane_id].projectPlaneCloud();
+            pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(plane_cloud);
+            vis_->addPointCloud<PointT> ( plane_cloud, plane_handler, plane_name.str (), vp3_ );
+        }
     }
 
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);

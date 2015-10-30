@@ -635,7 +635,7 @@ MultiviewRecognizer<PointT>::recognize ()
         }
         v.nguyens_kept_indices_.resize(kept);
 
-        typename pcl::PointCloud<PointT>::Ptr big_cloud_go3D(new pcl::PointCloud<PointT>);
+       typename pcl::PointCloud<PointT>::Ptr big_cloud_go3D(new pcl::PointCloud<PointT>);
         pcl::PointCloud<pcl::Normal>::Ptr big_cloud_go3D_normals(new pcl::PointCloud<pcl::Normal>);
         std::vector< std::vector<float> > views_noise_weights (views_.size());
         std::vector<typename pcl::PointCloud<PointT>::Ptr> original_clouds (views_.size());
@@ -683,9 +683,14 @@ MultiviewRecognizer<PointT>::recognize ()
         //Set the absolute poses so we can go from the global coordinate system to the occlusion clouds
         //TODO: Normals might be a problem!! We need normals from the models and normals from the scene, correctly oriented!
         //right now, all normals from the scene will be oriented towards some weird 0, same for models actually
-
-        scene_ = big_cloud_go3D = octree_cloud;
-        scene_normals_ = big_cloud_go3D_normals = big_normals;
+   if (views_.size() > 1 ) { // don't do this if there is only one view otherwise point cloud is not kept organized and multi-plane segmentation takes longer
+            scene_ = big_cloud_go3D = octree_cloud;
+            scene_normals_ = big_cloud_go3D_normals = big_normals;
+        }
+        else {
+            scene_ = v.scene_;
+            scene_normals_ = v.scene_normals_;
+        }
     }
 
     if ( param_.icp_iterations_ > 0 )

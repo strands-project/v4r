@@ -131,6 +131,8 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_radius_clutter", paramGHV.radius_neighborhood_clutter_);
         pcl::console::parse_argument (argc, argv,  "-hv_radius_normals", paramGHV.radius_normals_);
         pcl::console::parse_argument (argc, argv,  "-hv_regularizer", paramGHV.regularizer_);
+        pcl::console::parse_argument (argc, argv,  "-hv_min_plane_inliers", (int&)paramGHV.min_plane_inliers_);
+        pcl::console::parse_argument (argc, argv,  "-knn_plane_clustering_search", paramGHV.knn_plane_clustering_search_);
 //        pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
 
         rr_.reset(new v4r::MultiRecognitionPipeline<PointT>(paramMultiPipeRec));

@@ -177,6 +177,10 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_regularizer", paramGO3D.regularizer_);
         pcl::console::parse_argument (argc, argv,  "-hv_plane_method", paramGO3D.plane_method_);
         pcl::console::parse_argument (argc, argv,  "-hv_add_planes", paramGO3D.add_planes_);
+        pcl::console::parse_argument (argc, argv,  "-hv_min_plane_inliers", (int&)paramGO3D.min_plane_inliers_);
+        pcl::console::parse_argument (argc, argv,  "-hv_plane_inlier_distance", paramGO3D.plane_inlier_distance_);
+        pcl::console::parse_argument (argc, argv,  "-hv_plane_thrAngle", paramGO3D.plane_thrAngle_);
+        pcl::console::parse_argument (argc, argv,  "-knn_plane_clustering_search", paramGO3D.knn_plane_clustering_search_);
 //        pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
 
         rr_.reset(new v4r::MultiRecognitionPipeline<PointT>(paramMultiPipeRec));
