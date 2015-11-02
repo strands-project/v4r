@@ -24,7 +24,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
 
     if (input_normal_cloud_->points.size() != input_cloud_->points.size())
     {
-        v4r::computeNormals(input_cloud_, input_normal_cloud_, 0);
+        v4r::computeNormals<PointT>(input_cloud_, input_normal_cloud_, 0);
     }
 
     if(param_.chop_at_z_ > 0)
@@ -84,7 +84,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
             std::cout << "Number of inliers for this plane:" << inlier_indices[i].indices.size () << std::endl;
             size_t remaining_points = 0;
             typename pcl::PointCloud<PointT>::Ptr plane_points (new pcl::PointCloud<PointT> (*input_cloud_));
-            for (int j = 0; j < plane_points->points.size (); j++)
+            for (size_t j = 0; j < plane_points->points.size (); j++)
             {
                 const Eigen::Vector3f xyz_p = plane_points->points[j].getVector3fMap ();
 
@@ -105,7 +105,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
 
             plane_inliers_counts[i] = remaining_points;
 
-            if ( remaining_points > max_inliers_found )
+            if ( (int)remaining_points > max_inliers_found )
             {
                 table_plane_selected = i;
                 max_inliers_found = remaining_points;
@@ -195,7 +195,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
 
         for (size_t i = 0; i < euclidean_label_indices.size (); i++)
         {
-            if (euclidean_label_indices[i].indices.size () >= param_.min_cluster_size_)
+            if ( (int)euclidean_label_indices[i].indices.size () >= param_.min_cluster_size_)
             {
                 indices.push_back (euclidean_label_indices[i]);
             }
@@ -247,12 +247,14 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
             plane_normal = rotation * plane_normal;
             plane_normal.normalize();
 
+            typename pcl::PointCloud<PointT>::Ptr plane_cloud = plane.projectPlaneCloud();
+
             const float angle = pcl::rad2deg(acos(plane_normal.dot(Eigen::Vector3f::UnitZ())));
             std::cout << "Plane " << i << " has an angle:" << angle << std::endl;
             if(angle < param_.max_angle_plane_to_ground_)
             {
                 //select a point on the plane and transform it to check the height relative to the ground
-                Eigen::Vector4f point = plane.plane_cloud_->points[0].getVector4fMap();
+                Eigen::Vector4f point = plane_cloud->points[0].getVector4fMap();
                 point[3] = 1;
                 point = transform_to_world_ * point;
 
@@ -278,7 +280,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
                 //std::cout << "vertical plane, check if its big enough" << std::endl;
                 //std::cout << plane.plane_cloud_->points.size() << std::endl;
 
-                int size_plane = static_cast<int>(plane.plane_cloud_->points.size());
+                int size_plane = static_cast<int>(plane_cloud->points.size());
                 if(size_plane > param_.max_vertical_plane_size_)
                 {
                     for(size_t k=0; k < plane.inliers_.indices.size(); k++)
@@ -381,7 +383,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
             cluster_.setClusterTolerance (0.03f);
             cluster_.setMinClusterSize (param_.min_cluster_size_);
 
-            typename pcl::PointCloud<PointT>::Ptr table_hull (new pcl::PointCloud<PointT> (*selected_plane.convex_hull_cloud_));
+            typename pcl::PointCloud<PointT>::Ptr table_hull (new pcl::PointCloud<PointT> ( *selected_plane.getConvexHullCloud() ));
 
             // Compute the plane coefficients
             Eigen::Vector4f model_coefficients;

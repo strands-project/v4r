@@ -1,12 +1,36 @@
-/*
- * source.h
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma
  *
- *  Created on: Mar 9, 2012
- *      Author: aitor
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
-#ifndef FAAT_PCL_REC_FRAMEWORK_VIEWS_SOURCE_H_
-#define FAAT_PCL_REC_FRAMEWORK_VIEWS_SOURCE_H_
+/**
+*
+*      @author Aitor Aldoma
+*      @author Thomas Faeulhammer (faeulhammer@acin.tuwien.ac.at)
+*      @date March, 2012
+*      @brief object model database
+*/
+
+#ifndef V4R_VIEWS_SOURCE_H_
+#define V4R_VIEWS_SOURCE_H_
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
@@ -23,11 +47,6 @@ namespace bf = boost::filesystem;
 
 namespace v4r
 {
-    /**
-     * \brief Model representation
-     * \author Aitor Aldoma
-     */
-
     template<typename PointT>
     class V4R_EXPORTS Model
     {
@@ -37,17 +56,18 @@ namespace v4r
       bool centroid_computed_;
 
     public:
-      boost::shared_ptr<std::vector<PointTPtr> > views_;
-      boost::shared_ptr< std::vector<pcl::PointIndices> > indices_;
-      boost::shared_ptr<std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > poses_;
-      boost::shared_ptr<std::vector<float> > self_occlusions_;
-      std::string id_;
-      std::string class_;
+      std::vector<PointTPtr> views_;
+      std::vector<pcl::PointIndices> indices_;
+      std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
+      std::vector<float>  self_occlusions_;
+      std::string class_, id_;
       PointTPtr assembled_;
       pcl::PointCloud<pcl::Normal>::Ptr normals_assembled_;
-      std::vector<std::string> view_filenames_;
-      typename std::map<float, PointTPtrConst> voxelized_assembled_;
-      typename std::map<float, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
+      std::vector <std::string> view_filenames_;
+      PointTPtr keypoints_; //model keypoints
+      pcl::PointCloud<pcl::Normal>::Ptr kp_normals_; //keypoint normals
+      mutable typename std::map<float, PointTPtrConst> voxelized_assembled_;
+      mutable typename std::map<float, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
       //typename boost::shared_ptr<VoxelGridDistanceTransform<PointT> > dist_trans_;
       typename boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > dist_trans_;
 
@@ -74,9 +94,7 @@ namespace v4r
       Eigen::Vector4f getCentroid()
       {
         if(centroid_computed_)
-        {
           return centroid_;
-        }
 
         //compute
         pcl::compute3DCentroid(*assembled_, centroid_);
@@ -127,7 +145,7 @@ namespace v4r
       }
 
       PointTPtrConst
-      getAssembled (float resolution)
+      getAssembled (float resolution) const
       {
         if(resolution <= 0)
           return assembled_;
@@ -151,7 +169,7 @@ namespace v4r
       }
 
       pcl::PointCloud<pcl::Normal>::ConstPtr
-      getNormalsAssembled (float resolution)
+      getNormalsAssembled (float resolution) const
       {
         if(resolution <= 0)
           return normals_assembled_;
@@ -181,9 +199,9 @@ namespace v4r
           voxelized_const->width = voxelized->width;
           voxelized_const->height = voxelized->height;
 
-          for(size_t i=0; i < voxelized_const->points.size(); i++) {
+          for(size_t i=0; i < voxelized_const->points.size(); i++)
             voxelized_const->points[i].getNormalVector4fMap() = voxelized->points[i].getNormalVector4fMap();
-          }
+
 
           normals_voxelized_assembled_[resolution] = voxelized_const;
           return voxelized_const;
@@ -193,10 +211,10 @@ namespace v4r
       }
 
       void
-      createVoxelGridAndDistanceTransform(float res) {
+      createVoxelGridAndDistanceTransform(float resolution) {
         PointTPtrConst assembled (new pcl::PointCloud<PointT> ());
-        assembled = getAssembled(0.001f);
-        dist_trans_.reset(new distance_field::PropagationDistanceField<PointT>(res));
+        assembled = getAssembled(resolution);
+        dist_trans_.reset(new distance_field::PropagationDistanceField<PointT>(resolution));
         dist_trans_->setInputCloud(assembled);
         dist_trans_->compute();
       }
@@ -219,12 +237,13 @@ namespace v4r
     protected:
       typedef Model<PointInT> ModelT;
       typedef boost::shared_ptr<ModelT> ModelTPtr;
+
+      std::vector<ModelTPtr> models_;
       std::string path_;
-      boost::shared_ptr<std::vector<ModelTPtr> > models_;
       float model_scale_;
-      bool filter_duplicate_views_;
       bool load_views_;
       float radius_normals_;
+      float resolution_;
       bool compute_normals_;
       bool load_into_memory_;
 
@@ -234,27 +253,12 @@ namespace v4r
       void
       getIdAndClassFromFilename (const std::string & filename, std::string & id, std::string & classname)
       {
-
         std::vector < std::string > strs;
         boost::split (strs, filename, boost::is_any_of ("/\\"));
         std::string name = strs[strs.size () - 1];
 
-//        std::stringstream ss;
-//        for (int i = 0; i < (static_cast<int> (strs.size ()) - 1); i++)
-//        {
-//          ss << strs[i];
-////          if (i != (static_cast<int> (strs.size ()) - 1))
-////          ss << "/";
-//        }
-
         classname = strs[0];
         id = name.substr (0, name.length () - 4);
-      }
-
-      void
-      createTrainingDir (const std::string & training_dir)
-      {
-        v4r::io::createDirIfNotExist(training_dir);
       }
 
       void
@@ -268,16 +272,17 @@ namespace v4r
         for (size_t i = 0; i < strs.size (); i++)
         {
           ss << strs[i] << "/";
-          v4r::io::createDirIfNotExist(ss.str ());
+          io::createDirIfNotExist(ss.str ());
         }
 
         ss << id_str;
-        v4r::io::createDirIfNotExist(ss.str ());
+        io::createDirIfNotExist(ss.str ());
       }
 
     public:
 
-      Source() {
+      Source(float resolution = 0.001f) {
+        resolution_ = resolution;
         load_views_ = true;
         compute_normals_ = false;
         load_into_memory_ = true;
@@ -317,7 +322,7 @@ namespace v4r
       }
 
       virtual void
-      loadInMemorySpecificModelAndView(std::string & dir, ModelT & model, int view_id)
+      loadInMemorySpecificModelAndView(const std::string & dir, ModelT & model, int view_id)
       {
         (void)dir;
         (void)model;
@@ -326,7 +331,7 @@ namespace v4r
       }
 
       virtual void
-      loadInMemorySpecificModel(std::string & dir, ModelT & model)
+      loadInMemorySpecificModel(const std::string & dir, ModelT & model)
       {
         (void)dir;
         (void)model;
@@ -351,18 +356,14 @@ namespace v4r
         model_scale_ = s;
       }
 
-      void setFilterDuplicateViews(bool f) {
-        filter_duplicate_views_ = f;
-        std::cout << "setting filter duplicate views to " << f << std::endl;
-      }
       void
       voxelizeAllModels (float resolution)
       {
-        for (size_t i = 0; i < models_->size (); i++)
+        for (size_t i = 0; i < models_.size (); i++)
         {
-          models_->at (i)->getAssembled (resolution);
+          models_[i]->getAssembled (resolution);
           if(compute_normals_)
-            models_->at (i)->getNormalsAssembled (resolution);
+            models_[i]->getNormalsAssembled (resolution);
         }
       }
 
@@ -370,58 +371,33 @@ namespace v4r
        * \brief Generate model representation
        */
       virtual void
-      generate (std::string & training_dir)=0;
+      generate (const std::string & training_dir = std::string())=0;
 
       /**
        * \brief Get the generated model
        */
-      boost::shared_ptr<std::vector<ModelTPtr> >
-      getModels () const
+      std::vector<ModelTPtr>
+      getModels ()
       {
         return models_;
       }
 
       bool
-      getModelById (const std::string & model_id, ModelTPtr & m)
+      getModelById (const std::string & model_id, ModelTPtr & m) const
       {
-
-        typename std::vector<ModelTPtr>::iterator it = models_->begin ();
-        while (it != models_->end ())
+        for(size_t i=0; i<models_.size(); i++)
         {
-          if (model_id.compare ((*it)->id_) == 0)
-          {
-            m = *it;
-            return true;
-          } else
-          {
-            it++;
-          }
+            if(models_[i]->id_.compare(model_id)==0)
+            {
+                m = models_[i];
+                return true;
+            }
         }
-
         return false;
       }
-      boost::shared_ptr<std::vector<ModelTPtr> >
-      getModels (std::string & model_id)
-      {
-
-        typename std::vector<ModelTPtr>::iterator it = models_->begin ();
-        while (it != models_->end ())
-        {
-          if (model_id.compare ((*it)->id_) != 0)
-          {
-            it = models_->erase (it);
-          }
-          else
-          {
-            it++;
-          }
-        }
-
-        return models_;
-      }
 
       bool
-      isModelAlreadyTrained (const ModelT m, const std::string & base_dir, const std::string & descr_name)
+      isModelAlreadyTrained (const ModelT m, const std::string & base_dir, const std::string & descr_name) const
       {
         std::stringstream dir;
         dir << base_dir << "/" << m.class_ << "/" << m.id_ << "/" << descr_name;
@@ -461,9 +437,9 @@ namespace v4r
       }
 
       void
-      removeDescDirectory (const ModelT m, const std::string & base_dir, const std::string & descr_name)
+      removeDescDirectory (const ModelT &m, const std::string & base_dir, const std::string & descr_name)
       {
-        std::string dir = getModelDescriptorDir (m, base_dir, descr_name);
+        const std::string dir = base_dir + "/" + m.class_ + "/" + m.id_ + "/" + descr_name;
 
         bf::path desc_dir = dir;
         if (bf::exists (desc_dir))
@@ -482,11 +458,10 @@ namespace v4r
       }
 
       void
-      createVoxelGridAndDistanceTransform(float res = 0.001f) {
-        for (size_t i = 0; i < models_->size (); i++)
-        {
-          models_->at (i)->createVoxelGridAndDistanceTransform (res);
-        }
+      createVoxelGridAndDistanceTransform(float resolution)
+      {
+        for (size_t i = 0; i < models_.size (); i++)
+          models_[i]->createVoxelGridAndDistanceTransform (resolution);
       }
     };
 }

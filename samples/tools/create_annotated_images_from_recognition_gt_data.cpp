@@ -2,7 +2,7 @@
  * create_images.cpp
  *
  *  Created on: Mar, 2014
- *      Author: Aitor Aldoma, Thomas Fäulhammer
+ *      Author: Aitor Aldoma, Thomas Faeulhammer
  */
 #include <opencv2/opencv.hpp>
 #include <pcl/console/parse.h>

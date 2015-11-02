@@ -44,16 +44,16 @@
 #include "params.h"
 #include <v4r/keypoints/impl/Object.hpp>
 #include <v4r/common/impl/DataMatrix2D.hpp>
-#include <v4r/keypoints/impl/convertCloud.hpp>
+#include <v4r/common/convertCloud.h>
 #include <v4r/keypoints/ArticulatedObject.h>
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/keypoints/RigidTransformationRANSAC.h>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r/keypoints/impl/invPose.hpp>
-#include <v4r/keypoints/impl/convertImage.hpp>
+#include <v4r/common/convertImage.h>
 #include <v4r/features/FeatureDetectorHeaders.h>
 #include <v4r/keypoints/io.h>
-#include <v4r/keypoints/ZAdaptiveNormals.h>
+#include <v4r/common/ZAdaptiveNormals.h>
 
 
 

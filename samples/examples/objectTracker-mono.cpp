@@ -45,11 +45,11 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <v4r/tracking/ObjectTrackerMono.h>
-#include <v4r/keypoints/impl/convertImage.hpp>
 #include <v4r/keypoints/ArticulatedObject.h>
-#include <v4r/keypoints/impl/convertPose.hpp>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/keypoints/impl/toString.hpp>
+#include <v4r/common/convertImage.h>
+#include <v4r/common/convertPose.h>
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r/keypoints/io.h>

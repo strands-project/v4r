@@ -37,7 +37,7 @@
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/keypoints/impl/PoseIO.hpp>
 #include <v4r/keypoints/RigidTransformationRANSAC.h>
-#include <v4r/keypoints/impl/convertImage.hpp>
+#include <v4r/common/convertImage.h>
 #include <v4r/keypoints/impl/toString.hpp>
 //#include "v4r/KeypointTools/ScopeTime.hpp"
 #include <pcl/io/pcd_io.h>

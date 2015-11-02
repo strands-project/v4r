@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
 namespace v4r
 {
@@ -46,6 +47,11 @@ writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
 bool
 readMatrixFromFile(const std::string &file, Eigen::Matrix4f & matrix, int padding)
 {
+    // check if file exists
+    boost::filesystem::path path = file;
+    if ( ! (boost::filesystem::exists ( path ) && boost::filesystem::is_regular_file(path)) )
+        throw std::runtime_error ("Given file path to read Matrix does not exist!");
+
 
     std::ifstream in;
     in.open (file.c_str (), std::ifstream::in);
@@ -84,7 +90,6 @@ bool
 getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid)
 {
     std::ifstream in;
-
     in.open (file.c_str (), std::ifstream::in);
 
     if (!in)

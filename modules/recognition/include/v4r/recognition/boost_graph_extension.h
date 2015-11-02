@@ -3,7 +3,6 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/graph/graph_traits.hpp>
-//#include <boost/graph/prim_minimum_spanning_tree.hpp>
 #include <pcl/PointIndices.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -14,136 +13,98 @@
 
 typedef pcl::Histogram<128> FeatureT;
 
-
-template<typename PointInT>
-class Hypothesis
+namespace v4r
 {
-    typedef v4r::Model<PointInT> ModelT;
+
+template<typename PointT>
+class V4R_EXPORTS View
+{
+protected:
+    typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
-
-    static size_t sNum_hypotheses_;
-
-public:
-    ModelTPtr model_;
-    std::string model_id_, origin_;
-    Eigen::Matrix4f transform_;
-    bool extended_;
-    bool verified_;
-    size_t id_;
-
-    // deprecated interface------
-    Hypothesis ( const std::string model_id, const Eigen::Matrix4f transform, const std::string origin = "", const bool extended = false, const bool verified = false, const size_t origin_id = 0)
-    {
-        model_id_ = model_id;
-        transform_ = transform;
-        origin_ = origin;
-        extended_ = extended;
-        verified_ = verified;
-
-        if(extended && (origin_id < 0 || origin_id > sNum_hypotheses_))
-        {
-            std::cerr << "Hypothesis got extended but does not have a valid origin id." << std::endl;
-        }
-
-        if(origin_id)
-        {
-            id_ = origin_id;
-        }
-        else
-        {
-            id_ = ++sNum_hypotheses_;
-        }
-    }
-
-    Hypothesis ( const ModelTPtr model, const Eigen::Matrix4f transform, const std::string origin = "", const bool extended = false, const bool verified = false, const size_t origin_id = 0)
-    {
-        model_ = model;
-        model_id_ = model->id_;
-        transform_ = transform;
-        origin_ = origin;
-        extended_ = extended;
-        verified_ = verified;
-
-        if(extended && (origin_id < 0 || origin_id > sNum_hypotheses_))
-        {
-            std::cerr << "Hypothesis got extended but does not have a valid origin id." << std::endl;
-        }
-
-        if(origin_id)
-        {
-            id_ = origin_id;
-        }
-        else
-        {
-            id_ = ++sNum_hypotheses_;
-        }
-    }
-};
-
-class View
-{
-private:
-    typedef pcl::PointXYZRGB PointT;
 
 public:
     View();
-    //View(const View &view);
-    boost::shared_ptr< pcl::PointCloud<PointT> > pScenePCl;
-    boost::shared_ptr< pcl::PointCloud<PointT> > pScenePCl_f;
-    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pSceneNormals;
-    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pSceneNormals_f;
-    pcl::PointIndices filteredSceneIndices_;
-    boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
-    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > pKeypointNormalsMultipipe_;
-    std::map<std::string, v4r::ObjectHypothesis<PointT> > hypotheses_;
-    boost::shared_ptr< pcl::PointCloud<FeatureT > > pSiftSignatures_;
-    std::vector<float> sift_keypoints_scales_;
-    pcl::PointIndices siftKeypointIndices_;
-    std::vector<Hypothesis<PointT> > hypothesis_sv_;
-    std::vector<Hypothesis<PointT> > hypothesis_mv_;
+    typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_;
+    typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_f_;
+    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > scene_normals_;
+    std::vector<int> filtered_scene_indices_;
+    Eigen::Matrix4f absolute_pose_;
+//    typename boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
+//    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
+    typename std::map<std::string, ObjectHypothesis<PointT> > hypotheses_;
+    boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_;
+//    std::vector<float> sift_keypoints_scales_;
+    pcl::PointIndices sift_kp_indices_;
     Eigen::Matrix4f transform_to_world_co_system_;
     bool has_been_hopped_;
-    bool transform_to_world_co_system_is_set_;
     double cumulative_weight_to_new_vrtx_;
-    pcl::PointIndices keypointIndices_;
-    std::vector<pcl::PointCloud<PointT>::Ptr> verified_planes_;
+    pcl::PointIndices kp_indices_;
+    size_t id_;
+
+    /** @brief: generated object hypotheses from correspondence grouping (before verification) */
+    std::vector<ModelTPtr> models_;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
+    std::vector<PlaneModel<PointT> > planes_;
+
+    /** @brief boolean vector defining if model or plane is verified (models are first in the vector and its size is equal to models_) */
+    std::vector<bool> model_or_plane_is_verified_;
+
+    /** @brief vector defining from which view the object hypothesis comes from */
+    std::vector<size_t> origin_view_id_;
 
     //GO3D
-    Eigen::Matrix4f absolute_pose_;
     std::vector<float> nguyens_noise_model_weights_;
     std::vector<int> nguyens_kept_indices_;
 };
 
-class myEdge
+struct V4R_EXPORTS CamConnect
 {
-public:
-    myEdge();
-    Eigen::Matrix4f transformation;
-    double edge_weight;
-    std::string model_name;
-    std::string source_id, target_id;
+    Eigen::Matrix4f transformation_;
+    float edge_weight_;
+    std::string model_name_;
+    size_t source_id_, target_id_;
+
+    explicit CamConnect(float w) :
+        edge_weight_(w)
+    {
+
+    }
+
+    CamConnect() : edge_weight_(std::numeric_limits<float>::max ())
+    {
+
+    }
+
+    bool operator<(const CamConnect& e) const {
+        if(edge_weight_ < e.edge_weight_)
+            return true;
+
+        return false;
+    }
+
+    bool operator<=(const CamConnect& e) const {
+        if(edge_weight_ <= e.edge_weight_)
+            return true;
+
+        return false;
+    }
+
+    bool operator>(const CamConnect& e) const {
+        if(edge_weight_ > e.edge_weight_)
+            return true;
+
+        return false;
+    }
+
+    bool operator>=(const CamConnect& e) const {
+        if(edge_weight_ >= e.edge_weight_)
+            return true;
+
+        return false;
+    }
 };
 
-
 using namespace boost;
-
-typedef adjacency_list < vecS, vecS, undirectedS, View, myEdge > Graph;
-typedef graph_traits < Graph >::vertex_descriptor Vertex;
-typedef graph_traits < Graph >::edge_descriptor Edge;
-typedef graph_traits<Graph>::vertex_iterator vertex_iter;
-typedef graph_traits<Graph>::edge_iterator edge_iter;
-typedef property_map<Graph, vertex_index_t>::type IndexMap;
-
-
-void visualizeGraph ( const Graph & grph, pcl::visualization::PCLVisualizer::Ptr vis);
-void pruneGraph (Graph &grph, size_t num_remaining_vertices=2);
-void outputgraph ( Graph &map, const char* filename );
-void resetHopStatus(Graph &grph);
-Vertex getFurthestVertex ( Graph &grph);
-//void shallowCopyVertexIntoOtherGraph(const Vertex vrtx_src, const Graph grph_src, Vertex &vrtx_target, Graph &grph_target);
-//void copyEdgeIntoOtherGraph(const Edge edge_src, const Graph grph_src, Edge &edge_target, Graph &grph_target);
-//std::vector<Vertex> my_node_reader ( std::string filename, Graph &g )
-
-template<typename PointInT> size_t Hypothesis<PointInT>::sNum_hypotheses_ = 0;
-
+}
 #endif

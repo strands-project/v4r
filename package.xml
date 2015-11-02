@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <package>
   <name>v4r</name>
-  <version>1.0.7</version>
+  <version>1.0.10</version>
   <description>The Vision for Robotics Library of ACIN TUW (open source STRANDS version)</description>
 
-  <maintainer email="faeulhammer@acin.tuwien.ac.at">Thomas Fäulhammer</maintainer>
+  <maintainer email="faeulhammer@acin.tuwien.ac.at">Thomas Faeulhammer</maintainer>
   <maintainer email="alexandrov@acin.tuwien.ac.at">Sergey Alexandrov</maintainer>
   <maintainer email="zillich@acin.tuwien.ac.at">Michael Zillich</maintainer>
 
@@ -43,6 +43,7 @@
   <build_depend>libopenni2-dev</build_depend>
   <build_depend>libglm-dev</build_depend>
   <build_depend>assimp</build_depend>
+  <build_depend>libsvm</build_depend>
 
   <run_depend>libpcl-all-dev</run_depend>
   <run_depend>libopencv-dev</run_depend>
@@ -54,6 +55,7 @@
   <run_depend>libqt4-opengl-dev</run_depend>
   <run_depend>libopenni2-dev</run_depend>
   <run_depend>assimp</run_depend>
+  <run_depend>libsvm</run_depend>
   
   <export>
 	<build_type>cmake</build_type>

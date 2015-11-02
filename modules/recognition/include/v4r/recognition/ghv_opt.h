@@ -585,7 +585,7 @@ namespace v4r
         best_ever_m.copy_from (s);
         const GHVSAModel<ModelT, SceneT>& ss = static_cast<const GHVSAModel<ModelT, SceneT>&> (sol);
         costs_.push_back (ss.cost_);
-        std::cout << "Move accepted:" << ss.cost_ << std::endl;
+//        std::cout << "Move accepted:" << ss.cost_ << std::endl;
 
         if(visualize_function_)
         {

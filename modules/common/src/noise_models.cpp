@@ -11,31 +11,31 @@
 #include "v4r/common/noise_models.h"
 #include "v4r/common/organized_edge_detection.h"
 
+namespace v4r {
+
 template<typename PointT>
-v4r::noise_models::NguyenNoiseModel<PointT>::NguyenNoiseModel ()
+noise_models::NguyenNoiseModel<PointT>::NguyenNoiseModel (const Parameter &param)
 {
-  nguyens_noise_model_params_.max_angle_ = 70.f;
-  nguyens_noise_model_params_.lateral_sigma_ = 0.002f;
-  nguyens_noise_model_params_.use_depth_edges_ = true;
+  param_ = param;
   pose_set_ = false;
   pose_to_plane_RF_ = Eigen::Matrix4f::Identity();
 }
 
 template<typename PointT>
 void
-v4r::noise_models::NguyenNoiseModel<PointT>::compute ()
+noise_models::NguyenNoiseModel<PointT>::compute ()
 {
   weights_.clear();
   weights_.resize(input_->points.size(), 1.f);
   discontinuity_edges_.indices.clear();
 
   //compute depth discontinuity edges
-  v4r::OrganizedEdgeBase<PointT, pcl::Label> oed;
+  OrganizedEdgeBase<PointT, pcl::Label> oed;
   oed.setDepthDisconThreshold (0.05f); //at 1m, adapted linearly with depth
   oed.setMaxSearchNeighbors(100);
-  oed.setEdgeType (v4r::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDING
-  | v4r::OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_OCCLUDED
-  | v4r::OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_NAN_BOUNDARY
+  oed.setEdgeType (OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDING
+  | OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_OCCLUDED
+  | OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_NAN_BOUNDARY
   );
   oed.setInputCloud (input_);
 
@@ -67,9 +67,9 @@ v4r::noise_models::NguyenNoiseModel<PointT>::compute ()
 
     o2p.normalize();
     float angle = pcl::rad2deg(acos(o2p.dot(np)));
-    if(angle > nguyens_noise_model_params_.max_angle_)
+    if(angle > param_.max_angle_)
     {
-      weights_[i] = 1.f - (angle - nguyens_noise_model_params_.max_angle_) / (90.f - nguyens_noise_model_params_.max_angle_);
+      weights_[i] = 1.f - (angle - param_.max_angle_) / (90.f - param_.max_angle_);
     }
     else
     {
@@ -81,7 +81,7 @@ v4r::noise_models::NguyenNoiseModel<PointT>::compute ()
   }
 
   //dilate edge pixels checking that the distance is ok and keeping always the minimum euclidean distance for each dilated pixel
-  if (nguyens_noise_model_params_.use_depth_edges_)
+  if (param_.use_depth_edges_)
   {
     pcl::PointCloud<pcl::PointXYZ>::Ptr edge_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     edge_cloud->width = input_->width;
@@ -139,7 +139,7 @@ v4r::noise_models::NguyenNoiseModel<PointT>::compute ()
               int idx_u_v = u * input_->width + v;
               float dist = dist_to_edge[idx_u_v] + (input_->at (v, u).getVector3fMap () - input_->at (kv, ku).getVector3fMap ()).norm ();
               //std::cout << dist << " " << lateral_sigma_ * 3.f << std::endl;
-              if (dist < (nguyens_noise_model_params_.lateral_sigma_ * 3.f))
+              if (dist < (param_.lateral_sigma_ * 3.f))
               {
                 //grow
                 edge_cloud2->at (kv, ku).getVector3fMap () = input_->at (kv, ku).getVector3fMap ();
@@ -168,7 +168,7 @@ v4r::noise_models::NguyenNoiseModel<PointT>::compute ()
 
       assert(pcl_isfinite(dist_to_edge[i]));
       //adapt weight
-      weights_[i] *= 1.f - 0.5f * std::exp((dist_to_edge[i] * dist_to_edge[i]) / (nguyens_noise_model_params_.lateral_sigma_ * nguyens_noise_model_params_.lateral_sigma_));
+      weights_[i] *= 1.f - 0.5f * std::exp((dist_to_edge[i] * dist_to_edge[i]) / (param_.lateral_sigma_ * param_.lateral_sigma_));
     }
   }
 
@@ -193,7 +193,7 @@ v4r::noise_models::NguyenNoiseModel<PointT>::compute ()
 
 /*template<typename PointT>
 void
-v4r::noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr & filtered, float w_t)
+noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr & filtered, float w_t)
 {
   Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
                         std::numeric_limits<float>::quiet_NaN(),
@@ -220,7 +220,7 @@ v4r::noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr & filter
 
 template<typename PointT>
 void
-v4r::noise_models::NguyenNoiseModel<PointT>::getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t)
+noise_models::NguyenNoiseModel<PointT>::getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t)
 {
   Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
                         std::numeric_limits<float>::quiet_NaN(),
@@ -240,7 +240,7 @@ v4r::noise_models::NguyenNoiseModel<PointT>::getFilteredCloudRemovingPoints(Poin
 
 template<typename PointT>
 void
-v4r::noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t, std::vector<int> & kept)
+noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t, std::vector<int> & kept)
 {
     Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
                           std::numeric_limits<float>::quiet_NaN(),
@@ -260,5 +260,7 @@ v4r::noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovingPoints(Poi
     }
 }
 
-template class V4R_EXPORTS v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB>;
-template class V4R_EXPORTS v4r::noise_models::NguyenNoiseModel<pcl::PointXYZ>;
+template class V4R_EXPORTS noise_models::NguyenNoiseModel<pcl::PointXYZRGB>;
+template class V4R_EXPORTS noise_models::NguyenNoiseModel<pcl::PointXYZ>;
+
+}

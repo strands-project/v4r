@@ -2,7 +2,7 @@
  * main_window.cpp
  *
  *  Created on: Jan, 2015
- *      Author: Aitor Aldoma, Thomas Fäulhammer
+ *      Author: Aitor Aldoma, Thomas Faeulhammer
  */
 
 #include "main_window.h"

@@ -2,7 +2,7 @@
  * affordance_manager.h
  *
  *  Created on: Jan 2015
- *      Author: Aitor Aldoma, Thomas Fäulhammer
+ *      Author: Aitor Aldoma, Thomas Faeulhammer
  */
 
 #ifndef MAIN_WINDOW_H_

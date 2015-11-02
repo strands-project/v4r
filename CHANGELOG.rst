@@ -2,6 +2,47 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.10 (2015-09-21)
+-------------------
+* Merge pull request `#31 <https://github.com/strands-project/v4r/issues/31>`_ from strands-project/namespace_update
+  Namespace update
+* namespace update
+  polishing multiview recognizer
+  add libsvm as system dependency
+* Merge remote-tracking branch 'sergey/find-system-libsvm' into namespace_update
+* Add CMake commands to detect system installation of LibSVM
+  The possibility to build LibSVM from source is preserved, but has to be
+  enabled by setting BUILD_LIBSVM option (which is now off by default).
+* rename multiview_object_recognizer
+  silence unused variable warning
+  removed unneccessary point cloud copy
+  normal method now a parameter
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !39
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !38
+* Contributors: Sergey Alexandrov, Thomas Fäulhammer
+
+1.0.9 (2015-09-17)
+------------------
+* Merge branch 'master' of github.com:strands-project/v4r
+* fix Bloom issue with umlauts
+* Merge remote-tracking branch 'strands/master'
+* Contributors: Thomas Fäulhammer
+
+1.0.8 (2015-09-17)
+------------------
+* Merge pull request `#28 <https://github.com/strands-project/v4r/issues/28>`_ from strands-project/remove_c++11_flags_and_common_namespace
+  remove C++11 flags
+* remove C++11 flags
+  remove common namespace
+  remove duplicated files
+  divide samples in examples, evaluation and utility tools (enable examples by default in cmake)
+  add Qt Cache files in .gitignore list
+* Contributors: Thomas Fäulhammer
+
 1.0.7 (2015-09-16)
 ------------------
 * Merge pull request `#27 <https://github.com/strands-project/v4r/issues/27>`_ from strands-project/new_samples_structure

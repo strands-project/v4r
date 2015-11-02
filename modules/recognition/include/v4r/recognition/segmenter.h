@@ -62,7 +62,7 @@ template<typename PointT>
 
       for (size_t i = 0; i < model_coefficients.size (); i++)
       {
-        Eigen::Vector4f table_plane = Eigen::Vector4f (model_coefficients[i].values[0], model_coefficients[i].values[1],
+        Eigen::Vector4f table_plane_tmp = Eigen::Vector4f (model_coefficients[i].values[0], model_coefficients[i].values[1],
                                                        model_coefficients[i].values[2], model_coefficients[i].values[3]);
 
         std::cout << "Number of inliers for this plane:" << inlier_indices[i].indices.size () << std::endl;
@@ -75,7 +75,7 @@ template<typename PointT>
           if (!pcl_isfinite (xyz_p[0]) || !pcl_isfinite (xyz_p[1]) || !pcl_isfinite (xyz_p[2]))
             continue;
 
-          float val = xyz_p[0] * table_plane[0] + xyz_p[1] * table_plane[1] + xyz_p[2] * table_plane[2] + table_plane[3];
+          float val = xyz_p[0] * table_plane_tmp[0] + xyz_p[1] * table_plane_tmp[1] + xyz_p[2] * table_plane_tmp[2] + table_plane_tmp[3];
 
           if (std::abs (val) > 0.01)
           {

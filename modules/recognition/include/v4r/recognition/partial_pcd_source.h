@@ -43,7 +43,6 @@ namespace v4r
 
         using SourceT::path_;
         using SourceT::models_;
-        using SourceT::createTrainingDir;
         using SourceT::model_scale_;
         using SourceT::load_views_;
         using SourceT::load_into_memory_;
@@ -64,10 +63,10 @@ namespace v4r
         (const Eigen::Vector3f &)> campos_constraints_func_;
 
         void
-        loadInMemorySpecificModel(std::string & dir, ModelT & model);
+        loadInMemorySpecificModel(const std::string &dir, ModelT & model);
 
         void
-        loadOrGenerate (std::string & dir, std::string & model_path, ModelT & model);
+        loadOrGenerate (const std::string &dir, const std::string &model_path, ModelT & model);
 
         void assembleModelFromViewsAndPoses(ModelT & model,
                                        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
@@ -94,7 +93,7 @@ namespace v4r
         }
 
         void
-        loadInMemorySpecificModelAndView(std::string & dir, ModelT & model, int view_id);
+        loadInMemorySpecificModelAndView(const std::string & dir, ModelT & model, int view_id);
 
         void
         setDotNormal (float f)
@@ -140,45 +139,26 @@ namespace v4r
           f_ = f;
         }
 
-//        bool
-//        isleafDirectory (bf::path & path)
-//        {
-//          bf::directory_iterator end_itr;
-//          bool no_dirs_inside = true;
-//          for (bf::directory_iterator itr (path); itr != end_itr; ++itr)
-//          {
-//            if (bf::is_directory (*itr))
-//            {
-//              no_dirs_inside = false;
-//            }
-//          }
-
-//          return no_dirs_inside;
-//        }
-
         /**
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
-        generate (std::string & training_dir)
+        generate (const std::string & training_dir)
         {
-
-          //create training dir fs if not existent
-          createTrainingDir (training_dir);
+          v4r::io::createDirIfNotExist(training_dir);
 
           //get models in directory
           std::vector < std::string > files;
           v4r::io::getFilesInDirectory(path_, files, "", ".*.pcd", false );
 
-          models_.reset (new std::vector<ModelTPtr>);
+          models_.clear();
 
           for (size_t i = 0; i < files.size (); i++)
           {
-            ModelTPtr m(new ModelT());
+            ModelTPtr m(new ModelT);
 
             std::vector < std::string > strs;
             boost::split (strs, files[i], boost::is_any_of ("/\\"));
-            std::string name = strs[strs.size () - 1];
 
             if (strs.size () == 1)
             {
@@ -208,11 +188,11 @@ namespace v4r
             model_path << path_ << "/" << files[i];
             std::string path_model = model_path.str ();
             loadOrGenerate (training_dir, path_model, *m);
-            models_->push_back (m);
+            models_.push_back (m);
             std::cout << files[i] << std::endl;
           }
 
-          std::cout << "Total number of models:" << models_->size () << std::endl;
+          std::cout << "Total number of models:" << models_.size () << std::endl;
         }
 
       };

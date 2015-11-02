@@ -110,15 +110,15 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
   v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
   {
 
-    boost::shared_ptr < std::vector<ModelTPtr> > models = source_->getModels ();
+    std::vector<ModelTPtr> models = source_->getModels();
 
     std::map < std::string, boost::shared_ptr<std::vector<int> > > single_categories;
     if (use_single_categories_)
     {
-      for (size_t i = 0; i < models->size (); i++)
+      for (size_t i = 0; i < models.size (); i++)
       {
         std::map<std::string, boost::shared_ptr<std::vector<int> > >::iterator it;
-        std::string cat_model = models->at (i)->class_;
+        std::string cat_model = models[i]->class_;
         it = single_categories.find (cat_model);
         if (it == single_categories.end ())
         {
@@ -128,9 +128,10 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       }
     }
 
-    for (size_t i = 0; i < models->size (); i++)
+    for (size_t i = 0; i < models.size (); i++)
     {
-      std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
+      ModelTPtr m = models[i];
+      const std::string path = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
       bf::path inside = path;
       bf::directory_iterator end_itr;
 
@@ -158,7 +159,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           pcl::io::loadPCDFile (full_file_name, *signature);
 
           flann_model descr_model;
-          descr_model.model = models->at (i);
+          descr_model.model = m;
           descr_model.view_id = view_id;
           descr_model.descriptor_id = descriptor_id;
 
@@ -169,7 +170,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           if (use_single_categories_)
           {
             std::map<std::string, boost::shared_ptr<std::vector<int> > >::iterator it;
-            std::string cat_model = models->at (i)->class_;
+            std::string cat_model = models[i]->class_;
             it = single_categories.find (cat_model);
             if (it == single_categories.end ())
             {
@@ -192,18 +193,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
             Eigen::Matrix4f pose_matrix;
             v4r::io::readMatrixFromFile (dir_pose.str (), pose_matrix);
-            std::pair<std::string, int> pair_model_view = std::make_pair (models->at (i)->id_, descr_model.view_id);
+            std::pair<std::string, int> pair_model_view = std::make_pair (m->id_, descr_model.view_id);
             poses_cache_[pair_model_view] = pose_matrix;
-
-            /*{
-                std::stringstream dir;
-                std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
-                dir << path << "/roll_trans_" << descr_model.view_id << "_" << descr_model.descriptor_id << ".txt";
-                Eigen::Matrix4f pose_matrix;
-                PersistencereadMatrixFromFile2 (dir.str (), pose_matrix);
-                std::pair<std::string, int> pair_model_view = std::make_pair (models->at (i)->id_, descr_model.view_id);
-                roll_trans_cache_[pair_model_view] = pose_matrix;
-            }*/
           }
         }
       }
@@ -265,9 +256,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
   v4r::GlobalNNCVFHRecognizer<Distance, PointInT, FeatureT>::recognize ()
   {
-
-    models_.reset (new std::vector<ModelTPtr>);
-    transforms_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
+    models_.clear();
+    transforms_.clear();
 
     PointInTPtr processed (new pcl::PointCloud<PointInT>);
     PointInTPtr in (new pcl::PointCloud<PointInT>);
@@ -279,7 +269,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     {
         if(indices_.size() > 0)
         {
-            pcl::copyPointCloud (*input_, *in);
+            pcl::copyPointCloud (*scene_, *in);
             std::vector<bool> negative_indices(in->points.size(), true);
             for(size_t i=0; i < indices_.size(); i++)
                 negative_indices[indices_[i]] = false;
@@ -291,14 +281,14 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
             }
         }
         else
-            in = input_;
+            in = scene_;
     }
     else
     {
         if (indices_.size () > 0)
-          pcl::copyPointCloud (*input_, indices_, *in);
+          pcl::copyPointCloud (*scene_, indices_, *in);
         else
-          in = input_;
+          in = scene_;
 
         /*{
           //pcl::ScopeTime t ("Estimate feature");
@@ -308,18 +298,12 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
     {
       //pcl::ScopeTime t ("Estimate feature");
-      if(normals_set_)
+      if(scene_normals_ && scene_normals_->points.size() == scene_->points.size())
       {
-          std::cout << "normals_set OURCVFH:" << normals_set_ << std::endl;
-          std::cout << "uses organized data:" << micvfh_estimator_->getUsesOrganizedData() << std::endl;
+          std::cout << "normals set, uses organized data:" << micvfh_estimator_->getUsesOrganizedData() << std::endl;
+          if( micvfh_estimator_->getUsesOrganizedData())
+              micvfh_estimator_->setNormals(scene_normals_);
       }
-
-      if(normals_set_ && micvfh_estimator_->getUsesOrganizedData())
-      {
-          PCL_WARN("setting normals\n");
-          micvfh_estimator_->setNormals(scene_normals_);
-      }
-
       micvfh_estimator_->estimate (in, processed, signatures, centroids);
     }
 
@@ -330,7 +314,6 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     {
 
       {
-        pcl::ScopeTime t_matching ("Matching and roll...");
         if (use_single_categories_ && (categories_to_be_searched_.size () > 0))
         {
 
@@ -605,8 +588,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
                 Eigen::Matrix4f hom_from_OC_to_CC;
                 hom_from_OC_to_CC = scale_mat * transformations[idx_input].inverse () * roll_view_pose * model_view_pose;
 
-                models_->push_back (m);
-                transforms_->push_back (hom_from_OC_to_CC);
+                models_.push_back (m);
+                transforms_.push_back (hom_from_OC_to_CC);
                 descriptor_distances_.push_back (static_cast<float> (indices_scores[i].score_));
               }
               else
@@ -623,7 +606,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
        * POSE REFINEMENT
        **/
 
-      if (ICP_iterations_ > 0)
+      if (param_.icp_iterations_ > 0)
       {
         poseRefinement();
       }
@@ -632,24 +615,24 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
        * HYPOTHESES VERIFICATION
        **/
 
-      if (hv_algorithm_ && models_->size() > 0)
+      if (hv_algorithm_ && models_.size())
       {
 
         pcl::ScopeTime t ("HYPOTHESES VERIFICATION");
 
         std::vector<typename pcl::PointCloud<PointInT>::ConstPtr> aligned_models;
-        aligned_models.resize (models_->size ());
+        aligned_models.resize (models_.size ());
 
-        for (size_t i = 0; i < models_->size (); i++)
+        for (size_t i = 0; i < models_.size (); i++)
         {
           ConstPointInTPtr model_cloud;
           PointInTPtr model_aligned (new pcl::PointCloud<PointInT>);
 
           if (compute_scale_)
           {
-            model_cloud = models_->at (i)->getAssembled (-1);
+            model_cloud = models_[i]->getAssembled (-1);
             PointInTPtr model_aligned_m (new pcl::PointCloud<PointInT>);
-            pcl::transformPointCloud (*model_cloud, *model_aligned_m, transforms_->at (i));
+            pcl::transformPointCloud (*model_cloud, *model_aligned_m, transforms_[i]);
             pcl::VoxelGrid<PointInT> voxel_grid_icp;
             voxel_grid_icp.setInputCloud (model_aligned_m);
             voxel_grid_icp.setLeafSize (0.005f, 0.005f, 0.005f);
@@ -657,8 +640,8 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           }
           else
           {
-            model_cloud = models_->at (i)->getAssembled (0.005f);
-            pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_->at (i));
+            model_cloud = models_[i]->getAssembled (0.005f);
+            pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_[i]);
           }
 
           //ConstPointInTPtr model_cloud = models_->at (i).getAssembled (0.005f);
@@ -668,24 +651,21 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         }
 
         std::vector<bool> mask_hv;
-        hv_algorithm_->setSceneCloud (input_);
+        hv_algorithm_->setSceneCloud (scene_);
         hv_algorithm_->addModels (aligned_models, true);
         hv_algorithm_->verify ();
         hv_algorithm_->getMask (mask_hv);
 
-        boost::shared_ptr < std::vector<ModelTPtr> > models_temp;
-        boost::shared_ptr < std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_temp;
+        std::vector<ModelTPtr> models_temp;
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_temp;
 
-        models_temp.reset (new std::vector<ModelTPtr>);
-        transforms_temp.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-
-        for (size_t i = 0; i < models_->size (); i++)
+        for (size_t i = 0; i < models_.size (); i++)
         {
           if (!mask_hv[i])
             continue;
 
-          models_temp->push_back (models_->at (i));
-          transforms_temp->push_back (transforms_->at (i));
+          models_temp.push_back (models_[i]);
+          transforms_temp.push_back (transforms_[i]);
         }
 
         models_ = models_temp;
@@ -693,6 +673,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       }
 
     }
+    scene_normals_.reset();
   }
 
   template<template<class > class Distance, typename PointInT, typename FeatureT>
@@ -709,25 +690,24 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
     //use the source to know what has to be trained and what not, checking if the descr_name directory exists
     //unless force_retrain is true, then train everything
-    boost::shared_ptr < std::vector<ModelTPtr> > models = source_->getModels ();
-    std::cout << "Models size:" << models->size () << std::endl;
+    std::vector<ModelTPtr> models = source_->getModels();
+    std::cout << "Models size:" << models.size () << std::endl;
 
     if (force_retrain)
     {
-      for (size_t i = 0; i < models->size (); i++)
-      {
-        source_->removeDescDirectory (*models->at (i), training_dir_, descr_name_);
-      }
+      for (size_t i = 0; i < models.size (); i++)
+        source_->removeDescDirectory (*models[i], training_dir_, descr_name_);
     }
 
-    for (size_t i = 0; i < models->size (); i++)
+    for (size_t i = 0; i < models.size (); i++)
     {
-      if (!source_->isModelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
+      ModelTPtr m = models[i];
+      if (!source_->isModelAlreadyTrained (*m, training_dir_, descr_name_))
       {
         if(!source_->getLoadIntoMemory())
-          source_->loadInMemorySpecificModel(training_dir_, *(models->at (i)));
+          source_->loadInMemorySpecificModel(training_dir_, *m);
 
-        std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
+        std::string path = source_->getModelDescriptorDir (*m, training_dir_, descr_name_);
 
         bf::path desc_dir = path;
         if (!bf::exists (desc_dir)) {
@@ -737,11 +717,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           std::cout << "dir alredy exists..." << path << std::endl;
         }
 
-        std::cout << "Number of views..." << models->at (i)->views_->size () << std::endl;
-        for (size_t v = 0; v < models->at (i)->views_->size (); v++)
+        std::cout << "Number of views..." << m->views_.size () << std::endl;
+        for (size_t v = 0; v < m->views_.size (); v++)
         {
           PointInTPtr processed (new pcl::PointCloud<PointInT>);
-          PointInTPtr view = models->at (i)->views_->at (v);
+          PointInTPtr view = m->views_[v];
 
           if (view->points.size () == 0)
             PCL_WARN("View has no points!!!\n");
@@ -765,11 +745,10 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           std::vector<pcl::PointCloud<FeatureT>, Eigen::aligned_allocator<pcl::PointCloud<FeatureT> > > signatures;
           std::vector < Eigen::Vector3f > centroids;
 
-          if(models->at(i)->indices_ && (models->at(i)->indices_->at (v).indices.size() > 0)
-                                     && micvfh_estimator_->acceptsIndices())
+          if(m->indices_[v].indices.size() > 0 && micvfh_estimator_->acceptsIndices())
           {
-            std::cout << "micvfh_estimator accepts indices:" << micvfh_estimator_->acceptsIndices() << " size:" << models->at(i)->indices_->at (v).indices.size() << std::endl;
-            micvfh_estimator_->setIndices(models->at(i)->indices_->at (v));
+            std::cout << "micvfh_estimator accepts indices:" << micvfh_estimator_->acceptsIndices() << " size:" << m->indices_[v].indices.size() << std::endl;
+            micvfh_estimator_->setIndices(m->indices_[v]);
           }
 
           micvfh_estimator_->estimate (view, processed, signatures, centroids);
@@ -791,11 +770,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
           std::stringstream path_pose;
           path_pose << path << "/pose_" << v << ".txt";
-          v4r::io::writeMatrixToFile( path_pose.str (), models->at (i)->poses_->at (v));
+          v4r::io::writeMatrixToFile( path_pose.str (), m->poses_[v]);
 
           std::stringstream path_entropy;
           path_entropy << path << "/entropy_" << v << ".txt";
-          v4r::io::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_->at (v));
+          v4r::io::writeFloatToFile (path_entropy.str (), m->self_occlusions_[v]);
 
           //save signatures and centroids to disk
           for (size_t j = 0; j < signatures.size (); j++)
@@ -812,15 +791,15 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
               pcl::io::savePCDFileBinary (path_descriptor.str (), signatures[j]);
 
               //save roll transform
-              std::stringstream path_pose;
-              path_pose << path << "/roll_trans_" << v << "_" << j << ".txt";
-              v4r::io::writeMatrixToFile( path_pose.str (), transforms[j]);
+              std::stringstream path_pose2;
+              path_pose2 << path << "/roll_trans_" << v << "_" << j << ".txt";
+              v4r::io::writeMatrixToFile( path_pose2.str (), transforms[j]);
             }
           }
         }
 
         if(!source_->getLoadIntoMemory())
-          models->at (i)->views_->clear();
+          m->views_.clear();
 
       }
       else
@@ -828,7 +807,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         //else skip model
         std::cout << "The model has already been trained..." << std::endl;
         //there is no need to keep the views in memory once the model has been trained
-        models->at (i)->views_->clear ();
+        m->views_.clear ();
       }
     }
 
@@ -836,6 +815,6 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     //initialize FLANN structure
     loadFeaturesAndCreateFLANN ();
 
-    if(ICP_iterations_ > 0)
-      source_->createVoxelGridAndDistanceTransform(VOXEL_SIZE_ICP_);
+    if(param_.icp_iterations_ > 0)
+      source_->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
   }

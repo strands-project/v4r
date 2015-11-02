@@ -1,8 +1,7 @@
-
+#include <v4r_config.h>
+#include <v4r/common/miscellaneous.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
-
-#include <v4r/common/miscellaneous.h>
 #include <v4r/registration/fast_icp_with_gc.h>
 #include <pcl/console/parse.h>
 #include <pcl/filters/passthrough.h>
@@ -18,9 +17,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
-#define USE_SIFT_GPU
-
-#ifdef USE_SIFT_GPU
+#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
 #else
 #include <v4r/features/opencv_sift_local_estimator.h>
@@ -97,7 +94,9 @@ private:
     typedef flann::L1<float> DistT;
     typedef pcl::Histogram<128> FeatureT;
 
+#ifdef HAVE_SIFTGPU
     cv::Ptr<SiftGPU> sift_;
+#endif
     std::vector<View> grph_;
 
     typedef boost::property<boost::edge_weight_t, CamConnect> EdgeWeightProperty;
@@ -247,7 +246,7 @@ public:
     {
         pcl::PointIndices sift_keypoint_pcl_indices;
 
-    #ifdef USE_SIFT_GPU
+    #ifdef HAVE_SIFTGPU
         boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT> > estimator;
         estimator.reset (new v4r::SIFTLocalEstimation<PointT, FeatureT>());
 

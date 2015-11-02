@@ -43,9 +43,11 @@
 #include <functional>
 #include <numeric>
 
+namespace v4r {
+
 template<typename ModelT, typename SceneT>
 bool
-v4r::GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx, typename pcl::PointCloud<ModelT>::Ptr & cloud)
+GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx, typename pcl::PointCloud<ModelT>::Ptr & cloud)
 {
   if(hyp_idx < 0 || hyp_idx > (recognition_models_.size() - 1))
     return false;
@@ -73,9 +75,8 @@ v4r::GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx, typename pcl::Poi
 
 template<typename ModelT, typename SceneT>
 void
-v4r::GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning)
+GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning)
 {
-  std::cout << "Called GO3D addModels" << std::endl;
   mask_.clear();
 
   if (!occlusion_reasoning)
@@ -86,7 +87,6 @@ v4r::GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<Model
     //pcl::visualization::PCLVisualizer vis("visible model");
     for (size_t i = 0; i < models.size (); i++)
     {
-
       //a point is occluded if it is occluded in all views
       typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
 
@@ -95,12 +95,11 @@ v4r::GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<Model
       {
         //transform model to camera coordinate
         typename pcl::PointCloud<ModelT>::Ptr model_in_view_coordinates(new pcl::PointCloud<ModelT> ());
-        Eigen::Matrix4f trans =  absolute_poses_camera_to_global_[k].inverse();
+        const Eigen::Matrix4f trans =  absolute_poses_camera_to_global_[k].inverse();
         pcl::transformPointCloud(*models[i], *model_in_view_coordinates, trans);
-        typename pcl::PointCloud<ModelT>::ConstPtr const_filtered(new pcl::PointCloud<ModelT> (*model_in_view_coordinates));
 
         std::vector<int> indices_cloud_occlusion;
-        filtered = v4r::occlusion_reasoning::filter<ModelT,SceneT> (occ_clouds_[k], const_filtered, 525.f, occlusion_thres_, indices_cloud_occlusion);
+        filtered = occlusion_reasoning::filter(*occ_clouds_[k], *model_in_view_coordinates, 525.f, param_.occlusion_thres_, indices_cloud_occlusion);
 
         std::vector<int> final_indices = indices_cloud_occlusion;
         final_indices.resize(indices_cloud_occlusion.size());
@@ -133,8 +132,6 @@ v4r::GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<Model
   normals_set_ = false;
 }
 
-template<typename ModelT, typename SceneT> float v4r::GO3D<ModelT, SceneT>::sRGB_LUT[256] = {- 1};
-template<typename ModelT, typename SceneT> float v4r::GO3D<ModelT, SceneT>::sXYZ_LUT[4000] = {- 1};
+template class V4R_EXPORTS GO3D<pcl::PointXYZRGB,pcl::PointXYZRGB>;
 
-//template class FAAT_REC_API v4r::GO3D<pcl::PointXYZ,pcl::PointXYZ>;
-template class FAAT_REC_API v4r::GO3D<pcl::PointXYZRGB,pcl::PointXYZRGB>;
+}

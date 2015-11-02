@@ -18,8 +18,8 @@ namespace v4r
   {
     private:
       typedef pcl::PointCloud<PointT> PointTCloud;
-      typedef typename PointTCloud::Ptr PointTCloudPtr;
-      typedef typename PointTCloud::ConstPtr PointTCloudConstPtr;
+      typedef typename pcl::PointCloud<PointT>::Ptr PointTCloudPtr;
+      typedef typename pcl::PointCloud<PointT>::ConstPtr PointTCloudConstPtr;
       PointTCloudPtr input_;
       int min_plane_inliers_;
       std::vector<PlaneModel<PointT> > models_;
@@ -53,20 +53,20 @@ namespace v4r
         min_plane_inliers_ = t;
       }
 
-      void setInputCloud(PointTCloudPtr & input)
+      void setInputCloud(const typename pcl::PointCloud<PointT>::Ptr & input)
       {
         input_ = input;
       }
 
       void segment(bool force_unorganized=false);
 
-      void setNormals(pcl::PointCloud<pcl::Normal>::Ptr & normal_cloud)
+      void setNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normal_cloud)
       {
           normal_cloud_ = normal_cloud;
           normals_set_ = true;
       }
 
-      std::vector<PlaneModel<PointT> > getModels()
+      std::vector<PlaneModel<PointT> > getModels() const
       {
         return models_;
       }

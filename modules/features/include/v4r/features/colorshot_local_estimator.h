@@ -10,7 +10,7 @@
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include "local_estimator.h"
-#include <v4r/common/normal_estimator.h>
+#include <v4r/common/miscellaneous.h>
 #include <pcl/features/shot.h>
 #include <pcl/io/pcd_io.h>
 
@@ -23,20 +23,18 @@ namespace v4r
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
         typedef typename pcl::PointCloud<FeatureT>::Ptr FeatureTPtr;
 
-        using LocalEstimator<PointInT, FeatureT>::support_radius_;
-        using LocalEstimator<PointInT, FeatureT>::normal_estimator_;
+        using LocalEstimator<PointInT, FeatureT>::param_;
         using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
 
       public:
+        std::string getFeatureDescriptorName() const
+        {
+            return "shot_color";
+        }
+
         bool
         estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
-
-          if (!normal_estimator_)
-          {
-            PCL_ERROR("SHOTLocalEstimation :: This feature needs normals... please provide a normal estimator\n");
-            return false;
-          }
 
           if (keypoint_extractor_.size() == 0)
           {
@@ -45,11 +43,7 @@ namespace v4r
           }
 
           pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-          normals.reset (new pcl::PointCloud<pcl::Normal>);
-          {
-            pcl::ScopeTime t ("Compute normals");
-            normal_estimator_->estimate (in, processed, normals);
-          }
+          v4r::computeNormals();normal_estimator_->estimate (in, processed, normals);
 
           //compute keypoints
           computeKeypoints(processed, keypoints, normals);
@@ -70,7 +64,7 @@ namespace v4r
           shot_estimate.setInputNormals (normals);
           shot_estimate.setInputCloud (keypoints);
           shot_estimate.setSearchSurface(processed);
-          shot_estimate.setRadiusSearch (support_radius_);
+          shot_estimate.setRadiusSearch (param_.support_radius_);
           shot_estimate.compute (*shots);
           signatures->resize (shots->points.size ());
           signatures->width = static_cast<int> (shots->points.size ());

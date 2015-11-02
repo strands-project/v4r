@@ -251,7 +251,7 @@ namespace v4r
                 //std::cout << "Res:" << normal_estimator_->mesh_resolution_ << " Radius normals:" << radius << " Cluster tolerance:" << cluster_tolerance_radius << " " << eps_angle_threshold_ << " " << curvature_threshold_ << std::endl;
 
                 //std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > centroids_in;
-#if PCL_VERSION <= 100800
+#if PCL_VERSION < 100800
                 std::vector<Eigen::Vector3f> centroids_in;
 #else
                 std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f> > centroids_in;

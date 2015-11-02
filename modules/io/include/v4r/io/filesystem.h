@@ -47,6 +47,13 @@ namespace v4r
         V4R_EXPORTS bool
         existsFile ( const std::string &rFile );
 
+        /** checks if a folder exists
+        * @param rFolder
+        * @return true if folder exsits
+        */
+        V4R_EXPORTS bool
+        existsFolder ( const std::string &rFolder );
+
         /** checks if folder already exists and if not, creates one
           * @param folder_name
           */

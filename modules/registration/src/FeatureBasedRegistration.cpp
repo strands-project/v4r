@@ -1,6 +1,7 @@
-#include "v4r/registration/FeatureBasedRegistration.h"
-#include "v4r/common/impl/geometric_consistency.hpp"
-#include "v4r/common/graph_geometric_consistency.h"
+#include <v4r_config.h>
+#include <v4r/registration/FeatureBasedRegistration.h>
+#include <v4r/common/impl/geometric_consistency.hpp>
+#include <v4r/common/graph_geometric_consistency.h>
 #include <pcl/registration/correspondence_estimation.h>
 #include <pcl/registration/impl/correspondence_estimation.hpp>
 #include <pcl/search/impl/kdtree.hpp>
@@ -12,7 +13,7 @@
 #include <pcl/octree/impl/octree_base.hpp>
 #include <v4r/common/miscellaneous.h>
 
-#ifdef USE_SIFT_GPU
+#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
 #else
 #include <v4r/features/opencv_sift_local_estimator.h>
@@ -37,7 +38,7 @@ template<class PointT> void
 FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > & session_ranges)
 {
 
-#ifdef USE_SIFT_GPU
+#ifdef HAVE_SIFTGPU
     typename v4r::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
 #else
     typename v4r::OpenCVSIFTLocalEstimation<PointT, SIFTHistogram > estimator;
@@ -188,7 +189,7 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         *kps_s1 += *transformed;
 
         typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::transformNormals(sift_normals_[t], normals, pose_inv);
+        v4r::transformNormals(*sift_normals_[t], *normals, pose_inv);
 
         *normals_s1 += *normals;
     }
@@ -201,7 +202,7 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         *kps_s2 += *transformed;
 
         typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::transformNormals(sift_normals_[t], normals, pose_inv);
+        v4r::transformNormals(*sift_normals_[t], *normals, pose_inv);
         *normals_s2 += *normals;
     }
 
