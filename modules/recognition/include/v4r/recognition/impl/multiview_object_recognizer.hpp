@@ -68,12 +68,12 @@ MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<Po
     if(!sift_keypoints)
         sift_keypoints.reset(new pcl::PointCloud<PointT>);
 
-#ifdef USE_SIFT_GPU
+#ifdef HAVE_SIFTGPU
     SIFTLocalEstimation<PointT, FeatureT> estimator(sift_);
     bool ret = estimator.estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
 #else
     (void)sift_keypoint_scales; //silences compiler warning of unused variable
-    pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
+    typename pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
 
     OpenCVSIFTLocalEstimation<PointT, FeatureT > estimator;
     bool ret = estimator.estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);

@@ -46,13 +46,14 @@
 #include <pcl/point_types.h>
 #include <pcl/search/impl/flann_search.hpp>
 
+#include <v4r_config.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/recognition/boost_graph_extension.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 
 #include <SiftGPU/SiftGPU.h>
 
-#ifdef USE_SIFT_GPU
+#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
 #else
 #include <v4r/features/opencv_sift_local_estimator.h>

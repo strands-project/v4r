@@ -1,7 +1,12 @@
+#include <v4r_config.h>
 #include <v4r/common/miscellaneous.h>
-#include <v4r/features/opencv_sift_local_estimator.h>
-#include <v4r/features/shot_local_estimator_omp.h>
 #include <v4r/features/sift_local_estimator.h>
+
+#ifndef HAVE_SIFTGPU
+#include <v4r/features/opencv_sift_local_estimator.h>
+#endif
+
+#include <v4r/features/shot_local_estimator_omp.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/ghv.h>
 #include <v4r/recognition/local_recognizer.h>
@@ -18,8 +23,6 @@
 #include <sstream>
 #include <time.h>
 #include <stdlib.h>
-
-#define USE_SIFT_GPU
 
 class Recognizer
 {
@@ -154,7 +157,7 @@ public:
 
         if (do_sift)
         {
-#ifdef USE_SIFT_GPU
+#ifdef HAVE_SIFTGPU
       boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT > > estimator (new v4r::SIFTLocalEstimation<PointT, FeatureT >());
       boost::shared_ptr < v4r::LocalEstimator<PointT, FeatureT > > cast_estimator = boost::dynamic_pointer_cast<v4r::SIFTLocalEstimation<PointT, FeatureT > > (estimator);
 #else

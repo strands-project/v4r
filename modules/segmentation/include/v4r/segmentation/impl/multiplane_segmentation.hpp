@@ -8,6 +8,7 @@
 #ifndef FAAT_PCL_3D_REC_FRAMEWORK_MULTIPLANE_SEGMENTATION_HPP_
 #define FAAT_PCL_3D_REC_FRAMEWORK_MULTIPLANE_SEGMENTATION_HPP_
 
+#include <v4r/common/miscellaneous.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/extract_indices.h>
@@ -17,7 +18,6 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
-#include <pcl/surface/convex_hull.h>
 //#include <pcl/visualization/pcl_visualizer.h>
 
 #include <pcl/segmentation/organized_multi_plane_segmentation.h>
@@ -179,8 +179,7 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
 
       //recompute coefficients based on distance to camera and normal?
       Eigen::Vector4f centroid;
-      typename pcl::PointCloud<PointT>::Ptr plane_cloud = pm.projectPlaneCloud(resolution_);
-      pcl::compute3DCentroid(*plane_cloud, centroid);
+      pcl::compute3DCentroid(*pm.cloud_, pm.inliers_, centroid);
       Eigen::Vector3f c(centroid[0],centroid[1],centroid[2]);
 
       Eigen::MatrixXf M_w(inlier_indices[i].indices.size(), 3);
@@ -188,10 +187,11 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
       float sum_w = 0.f;
       for(size_t k=0; k < inlier_indices[i].indices.size(); k++)
       {
-          float d_c = (plane_cloud->points[k].getVector3fMap()).norm();
+          const int &idx = inlier_indices[i].indices[k];
+          float d_c = (pm.cloud_->points[idx].getVector3fMap()).norm();
           float w_k = std::max(1.f - std::abs(1.f - d_c), 0.f);
           //w_k = 1.f;
-          M_w.row(k) = w_k * (plane_cloud->points[k].getVector3fMap() - c);
+          M_w.row(k) = w_k * (pm.cloud_->points[idx].getVector3fMap() - c);
           sum_w += w_k;
       }
 
@@ -221,37 +221,15 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
 
       for(size_t k=0; k < inlier_indices[i].indices.size(); k++)
       {
-          Eigen::Vector3f p = plane_cloud->points[k].getVector3fMap();
+          const int &idx = inlier_indices[i].indices[k];
+          Eigen::Vector3f p = pm.cloud_->points[idx].getVector3fMap();
           float val = n.dot(p) + d;
 
           if(std::abs(val) <= dist_threshold_)
-          {
-              clean_inlier_indices.indices.push_back(inlier_indices[i].indices[k]);
-          }
+              clean_inlier_indices.indices.push_back( idx );
       }
 
       pm.inliers_ = clean_inlier_indices;
-      plane_cloud = pm.projectPlaneCloud(resolution_);
-
-      /*Eigen::Vector4f model_coeffs;
-      model_coeffs[0] = model_coefficients[i].values[0];
-      model_coeffs[1] = model_coefficients[i].values[1];
-      model_coeffs[2] = model_coefficients[i].values[2];
-      model_coeffs[3] = model_coefficients[i].values[3];
-      std::cout << model_coeffs << std::endl;*/
-
-      //convex hull
-      pcl::ConvexHull<PointT> convex_hull;
-      convex_hull.setInputCloud (plane_cloud);
-      convex_hull.setDimension (2);
-      convex_hull.setComputeAreaVolume (false);
-      pcl::PolygonMeshPtr mesh_out(new pcl::PolygonMesh);
-      pm.convex_hull_cloud_.reset(new PointTCloud);
-      std::vector<pcl::Vertices> polygons;
-      convex_hull.reconstruct (*pm.convex_hull_cloud_, polygons);
-      convex_hull.reconstruct (*mesh_out);
-      pm.convex_hull_ = mesh_out;
-
       models_.push_back(pm);
     }
   }
@@ -265,74 +243,64 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
     float dist_threshold_ = 0.01f;
     vg.setLeafSize (leaf_size_, leaf_size_, leaf_size_);
     vg.filter (*cloud_filtered);
-    std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl;
+
+    std::vector<bool> pixel_has_not_been_labelled( cloud_filtered->points.size(), true );
 
     // Create the segmentation object for the planar model and set all the parameters
     pcl::SACSegmentation<PointT> seg;
-    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+    pcl::ModelCoefficients coefficients;
     seg.setOptimizeCoefficients (true);
     seg.setModelType (pcl::SACMODEL_PLANE);
     seg.setMethodType (pcl::SAC_RANSAC);
     seg.setMaxIterations (1000);
     seg.setDistanceThreshold (dist_threshold_);
 
-    bool plane_found = true;
+    PointTCloudPtr cloud_filtered_leftover (new PointTCloud (*cloud_filtered));
 
-    PointTCloudPtr cloud_plane (new PointTCloud);
-
-    //pcl::visualization::PCLVisualizer vis("vis");
-    while (plane_found)
+    while (1)
     {
       // Segment the largest planar component from the remaining cloud
-      seg.setInputCloud (cloud_filtered);
-      seg.segment (*inliers, *coefficients);
-      if (static_cast<int>(inliers->indices.size ()) < min_plane_inliers_)
-      {
-        std::cout << "Could not estimate a planar model big enough for the given dataset." << std::endl;
-        plane_found = false;
+      seg.setInputCloud (cloud_filtered_leftover);
+      pcl::PointIndices inliers_in_leftover;
+      seg.segment (inliers_in_leftover, coefficients);
+
+      std::cout << "inliers in left over: " << inliers_in_leftover.indices.size() << " of " << cloud_filtered_leftover->points.size() << std::endl;
+
+      if ( (int)inliers_in_leftover.indices.size () < min_plane_inliers_) // Could not estimate a(nother) planar model big enough for the given cloud.
         break;
+
+
+      // make indices correspond to complete downsampled cloud
+      pcl::PointIndices indices_in_original_cloud;
+      size_t current_index_in_leftover = 0;
+      size_t px=0;
+      indices_in_original_cloud.indices.resize(inliers_in_leftover.indices.size());
+      for(size_t inl_id=0; inl_id < inliers_in_leftover.indices.size(); inl_id++) {    // assumes indices are sorted in ascending order
+          bool found = false;
+          do {
+              if( pixel_has_not_been_labelled[px] ) {
+                  if( current_index_in_leftover == inliers_in_leftover.indices [inl_id] ) {
+                      indices_in_original_cloud.indices[ inl_id ] = px;
+                      found = true;
+                  }
+                  current_index_in_leftover++;
+              }
+              px++;
+          } while( !found );
       }
 
-      // Extract the planar inliers from the input cloud
-      pcl::ExtractIndices<PointT> extract;
-      extract.setInputCloud (cloud_filtered);
-      extract.setIndices (inliers);
-      extract.setNegative (false);
-      // Get the points associated with the planar surface
-      extract.filter (*cloud_plane);
-      std::cout << "PointCloud representing the planar component: " << cloud_plane->points.size () << " data points." << std::endl;
+      for(size_t i=0; i<indices_in_original_cloud.indices.size(); i++)
+          pixel_has_not_been_labelled[ indices_in_original_cloud.indices[i] ] = false;
+
 
       //save coefficients
         PlaneModel<PointT> pm;
-        pm.coefficients_ = *coefficients;
+        pm.coefficients_ = coefficients;
         pm.cloud_ = cloud_filtered;
-        pm.inliers_ = *inliers;
-        typename pcl::PointCloud<PointT>::Ptr plane_cloud = pm.projectPlaneCloud(resolution_);
-
-        //convex hull
-        pcl::ConvexHull<PointT> convex_hull;
-        convex_hull.setInputCloud (plane_cloud);
-        convex_hull.setDimension (2);
-        convex_hull.setComputeAreaVolume (false);
-        pcl::PolygonMeshPtr mesh_out(new pcl::PolygonMesh);
-
-        pm.convex_hull_cloud_.reset(new PointTCloud);
-        std::vector<pcl::Vertices> polygons;
-        convex_hull.reconstruct (*pm.convex_hull_cloud_, polygons);
-        convex_hull.reconstruct (*mesh_out);
-
-        pm.convex_hull_ = mesh_out;
+        pm.inliers_ = indices_in_original_cloud;
         models_.push_back(pm);
 
-      /*vis.addPointCloud(cloud_plane);
-      vis.spin();
-      vis.removeAllPointClouds();*/
-      // Remove the planar inliers, extract the rest
-      extract.setNegative (true);
-      PointTCloudPtr cloud_f(new PointTCloud);
-      extract.filter (*cloud_f);
-      *cloud_filtered = *cloud_f;
+        pcl::copyPointCloud(*cloud_filtered, pixel_has_not_been_labelled, *cloud_filtered_leftover);
     }
 
     std::cout << "Number of planes found:" << models_.size() << "organized:" << static_cast<int>(input_->isOrganized() && !force_unorganized) << std::endl;

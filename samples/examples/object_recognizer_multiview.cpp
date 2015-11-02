@@ -30,11 +30,15 @@
 *                    Faeulhammer et al, MVA 2015
 */
 
-
+#include <v4r_config.h>
 #include <v4r/common/miscellaneous.h>
-#include <v4r/features/opencv_sift_local_estimator.h>
-#include <v4r/features/shot_local_estimator_omp.h>
 #include <v4r/features/sift_local_estimator.h>
+
+#ifndef HAVE_SIFTGPU
+#include <v4r/features/opencv_sift_local_estimator.h>
+#endif
+
+#include <v4r/features/shot_local_estimator_omp.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/ghv.h>
 #include <v4r/recognition/hv_go_3D.h>
@@ -53,8 +57,6 @@
 #include <sstream>
 #include <time.h>
 #include <stdlib.h>
-
-#define USE_SIFT_GPU
 
 class Rec
 {
@@ -86,7 +88,7 @@ public:
         bool do_ourcvfh = false;
         bool use_go3d = false;
 
-        float resolution = 0.003f;
+        float resolution = 0.005f;
         std::string models_dir, training_dir;
 
         v4r::GO3D<PointT, PointT>::Parameter paramGO3D;
@@ -146,7 +148,7 @@ public:
 
         int icp_iterations;
         if(pcl::console::parse_argument (argc, argv,  "-icp_iterations", icp_iterations) != -1)
-            paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = paramMultiPipeRec.icp_iterations_ = icp_iterations;
+            paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = paramMultiPipeRec.icp_iterations_ = paramMultiView.icp_iterations_ = icp_iterations;
 
         pcl::console::parse_argument (argc, argv,  "-chop_z", paramMultiView.chop_z_ );
         pcl::console::parse_argument (argc, argv,  "-max_vertices_in_graph", paramMultiView.max_vertices_in_graph_ );
@@ -202,7 +204,7 @@ public:
 
         if (do_sift)
         {
-#ifdef USE_SIFT_GPU
+#ifdef HAVE_SIFTGPU
         static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "1", "-pack"};
         char * argvv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};
 

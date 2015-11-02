@@ -274,7 +274,7 @@ ClusterNormalsToPlanesPCL<PointT>::doClustering(const typename pcl::PointCloud<P
         else
             clusterNormalsUnorganized(cloud, normals, i, *plane);
 
-      if (plane->size()>=param.minPoints)
+      if (plane->size() >= param.minPoints)
           planes.push_back(plane);
     }
   }
@@ -391,7 +391,7 @@ ClusterNormalsToPlanesPCL<PointT>::compute(const typename pcl::PointCloud<PointT
         Eigen::Vector4f model_coeff;
         pcl::computePointNormal<PointT>(*pm.cloud_, pm.inliers_.indices, model_coeff, curvature);
         pm.coefficients_.values.resize(4);
-        pm.coefficients_.values[0] = model_coeff(0);
+        pm.coefficients_.values[0] = model_coeff [0];
         pm.coefficients_.values[1] = model_coeff [1];
         pm.coefficients_.values[2] = model_coeff [2];
         pm.coefficients_.values[3] = model_coeff [3];

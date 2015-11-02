@@ -383,7 +383,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
             cluster_.setClusterTolerance (0.03f);
             cluster_.setMinClusterSize (param_.min_cluster_size_);
 
-            typename pcl::PointCloud<PointT>::Ptr table_hull (new pcl::PointCloud<PointT> (*selected_plane.convex_hull_cloud_));
+            typename pcl::PointCloud<PointT>::Ptr table_hull (new pcl::PointCloud<PointT> ( *selected_plane.getConvexHullCloud() ));
 
             // Compute the plane coefficients
             Eigen::Vector4f model_coefficients;

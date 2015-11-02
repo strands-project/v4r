@@ -1,5 +1,2 @@
 set(the_description "Registration")
-if(HAVE_SIFTGPU AND BUILD_SIFTGPU)
-    add_definitions(-DUSE_SIFT_GPU)
-endif()
 v4r_define_module(registration REQUIRED v4r_core v4r_io v4r_features pcl ceres opencv OPTIONAL edt siftgpu)

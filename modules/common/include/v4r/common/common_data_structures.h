@@ -3,6 +3,7 @@
 
 #include <pcl/common/common.h>
 #include <pcl/io/io.h>
+#include <pcl/surface/convex_hull.h>
 #include <pcl/PolygonMesh.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/sample_consensus/sac_model_plane.h>
@@ -16,7 +17,6 @@ namespace v4r
     pcl::ModelCoefficients coefficients_;
 //    typename pcl::PointCloud<PointT>::Ptr plane_cloud_;
     pcl::PolygonMeshPtr convex_hull_;
-    typename pcl::PointCloud<PointT>::Ptr convex_hull_cloud_;
     typename pcl::PointCloud<PointT>::Ptr cloud_;
     pcl::PointIndices inliers_;
 
@@ -42,6 +42,35 @@ namespace v4r
       vg.filter (*plane_cloud);
       return plane_cloud;
     }
+
+    typename pcl::PointCloud<PointT>::Ptr
+    getConvexHullCloud() {
+        typename pcl::PointCloud<PointT>::Ptr convex_hull_cloud (new pcl::PointCloud<PointT>);
+
+        pcl::ConvexHull<PointT> convex_hull;
+        convex_hull.setInputCloud (projectPlaneCloud());
+        convex_hull.setDimension (2);
+        convex_hull.setComputeAreaVolume (false);
+        pcl::PolygonMeshPtr mesh_out(new pcl::PolygonMesh);
+
+        std::vector<pcl::Vertices> polygons;
+        convex_hull.reconstruct (*convex_hull_cloud, polygons);
+        convex_hull.reconstruct (*mesh_out);
+        convex_hull_ = mesh_out;
+
+        return convex_hull_cloud;
+    }
+
+    bool operator < (const PlaneModel& pm2) const
+    {
+        return (inliers_.indices.size() < pm2.inliers_.indices.size());
+    }
+
+    bool operator > (const PlaneModel& pm2) const
+    {
+        return (inliers_.indices.size() > pm2.inliers_.indices.size());
+    }
+
   };
 }
 
