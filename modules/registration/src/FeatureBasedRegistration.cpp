@@ -41,7 +41,7 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
 #ifdef HAVE_SIFTGPU
     typename v4r::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
 #else
-    typename OpenCVSIFTLocalEstimation<PointT, SIFTHistogram > estimator;
+    typename v4r::OpenCVSIFTLocalEstimation<PointT, SIFTHistogram > estimator;
 #endif
 
     //computes features and keypoints for the views of all sessions using appropiate object indices

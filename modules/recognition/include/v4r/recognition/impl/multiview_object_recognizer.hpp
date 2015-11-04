@@ -30,6 +30,7 @@
 *                    Faeulhammer et al, MVA 2015
 */
 
+#include <math.h>       // atan2
 #include <pcl/keypoints/sift_keypoint.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
 #include <pcl/registration/icp.h>
@@ -735,8 +736,6 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
         cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
         cg_algorithm_->cluster (corresp_clusters);
 
-        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first << std::endl;
-
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms (corresp_clusters.size());
         typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
 
@@ -746,13 +745,9 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
         if(param_.merge_close_hypotheses_) {
             std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > merged_transforms (corresp_clusters.size());
             std::vector<bool> cluster_has_been_taken(corresp_clusters.size(), false);
+            const double angle_thresh_rad = param_.merge_close_hypotheses_angle_ * M_PI / 180.f ;
 
-            const Eigen::Vector3f x(1,0,0);
-            const Eigen::Vector3f y(0,1,0);
-            const Eigen::Vector3f z(0,0,1);
-            const double cos_thresh = std::cos( param_.merge_close_hypotheses_angle_ * M_PI / 180.f );
             size_t kept=0;
-
             for (size_t i = 0; i < new_transforms.size(); i++) {
 
                 if (cluster_has_been_taken[i])
@@ -761,26 +756,20 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
                 cluster_has_been_taken[i] = true;
                 const Eigen::Vector3f centroid1 = new_transforms[i].block<3, 1> (0, 3);
                 const Eigen::Matrix3f rot1 = new_transforms[i].block<3, 3> (0, 0);
-                const Eigen::Vector3f rot1x = rot1 * x;
-                const Eigen::Vector3f rot1y = rot1 * y;
-                const Eigen::Vector3f rot1z = rot1 * z;
 
                 pcl::Correspondences merged_corrs = corresp_clusters[i];
 
                 for(size_t j=i; j < new_transforms.size(); j++) {
                     const Eigen::Vector3f centroid2 = new_transforms[j].block<3, 1> (0, 3);
                     const Eigen::Matrix3f rot2 = new_transforms[j].block<3, 3> (0, 0);
-                    const Eigen::Vector3f rot2x = rot2 * x;
-                    const Eigen::Vector3f rot2y = rot2 * y;
-                    const Eigen::Vector3f rot2z = rot2 * z;
+                    const Eigen::Matrix3f rot_diff = rot2 * rot1.transpose();
 
-                    double rotx = rot2x.dot(rot1x);
-                    double roty = rot2y.dot(rot1y);
-                    double rotz = rot2z.dot(rot1z);
+                    double rotx = atan2(rot_diff(2,1), rot_diff(2,2));
+                    double roty = atan2(-rot_diff(2,0), sqrt(rot_diff(2,1) * rot_diff(2,1) + rot_diff(2,2) * rot_diff(2,2)));
+                    double rotz = atan2(rot_diff(1,0), rot_diff(0,0));
+                    double dist = (centroid1 - centroid2).norm();
 
-                    if ( (centroid1 - centroid2).norm()  < param_.merge_close_hypotheses_dist_
-                         && (rotx < cos_thresh) && (roty < cos_thresh) && (rotz < cos_thresh) ) {
-
+                    if ( (dist < param_.merge_close_hypotheses_dist_) && (rotx < angle_thresh_rad) && (roty < angle_thresh_rad) && (rotz < angle_thresh_rad) ) {
                         merged_corrs.insert( merged_corrs.end(), corresp_clusters[j].begin(), corresp_clusters[j].end() );
                         cluster_has_been_taken[j] = true;
                     }
@@ -791,9 +780,9 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
             }
             merged_transforms.resize(kept);
             new_transforms = merged_transforms;
-
-            std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. " << std::endl;
         }
+
+        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first << std::endl;
 
         //        oh.visualize(*scene_);
 
