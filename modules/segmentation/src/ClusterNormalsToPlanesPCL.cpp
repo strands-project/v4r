@@ -253,6 +253,8 @@ template<typename PointT>
 void
 ClusterNormalsToPlanesPCL<PointT>::doClustering(const typename pcl::PointCloud<PointT>::Ptr &cloud, const pcl::PointCloud<pcl::Normal> &normals, std::vector<typename ClusterNormalsToPlanesPCL<PointT>::Plane::Ptr> &planes)
 {
+  mask_.clear();
+  queue_.clear();
   mask_.resize(cloud->points.size(), true);
   queue_.reserve(cloud->points.size());
 

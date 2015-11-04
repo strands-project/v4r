@@ -642,7 +642,6 @@ MultiviewRecognizer<PointT>::recognize ()
         std::vector< std::vector<float> > views_noise_weights (views_.size());
         std::vector<typename pcl::PointCloud<PointT>::Ptr> original_clouds (views_.size());
         std::vector<pcl::PointCloud<pcl::Normal>::Ptr> normal_clouds (views_.size());
-        std::vector<typename pcl::PointCloud<PointT>::ConstPtr> occlusion_clouds (views_.size());
         std::vector< Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>  > transforms_to_global  (views_.size());
 
         typename std::map<size_t, View<PointT> >::const_iterator v_it;
@@ -673,7 +672,7 @@ MultiviewRecognizer<PointT>::recognize ()
         nmIntegration.getOutputNormals(big_normals);
         nmIntegration.getInputCloudsUsed(used_clouds);
 
-        occlusion_clouds.resize(used_clouds.size());
+        std::vector<typename pcl::PointCloud<PointT>::ConstPtr> occlusion_clouds (used_clouds.size());
         for(size_t i=0; i < used_clouds.size(); i++)
             occlusion_clouds[i].reset(new pcl::PointCloud<PointT>(*used_clouds[i]));
 
@@ -737,17 +736,70 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
         cg_algorithm_->cluster (corresp_clusters);
 
         std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first << std::endl;
-//        oh.visualize(*scene_);
+
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms (corresp_clusters.size());
+        typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
+
+        for (size_t i = 0; i < corresp_clusters.size(); i++)
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, corresp_clusters[i], new_transforms[i]);
+
+        if(param_.merge_close_hypotheses_) {
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > merged_transforms (corresp_clusters.size());
+            std::vector<bool> cluster_has_been_taken(corresp_clusters.size(), false);
+
+            const Eigen::Vector3f x(1,0,0);
+            const Eigen::Vector3f y(0,1,0);
+            const Eigen::Vector3f z(0,0,1);
+            const double cos_thresh = std::cos( param_.merge_close_hypotheses_angle_ * M_PI / 180.f );
+            size_t kept=0;
+
+            for (size_t i = 0; i < new_transforms.size(); i++) {
+
+                if (cluster_has_been_taken[i])
+                    continue;
+
+                cluster_has_been_taken[i] = true;
+                const Eigen::Vector3f centroid1 = new_transforms[i].block<3, 1> (0, 3);
+                const Eigen::Matrix3f rot1 = new_transforms[i].block<3, 3> (0, 0);
+                const Eigen::Vector3f rot1x = rot1 * x;
+                const Eigen::Vector3f rot1y = rot1 * y;
+                const Eigen::Vector3f rot1z = rot1 * z;
+
+                pcl::Correspondences merged_corrs = corresp_clusters[i];
+
+                for(size_t j=i; j < new_transforms.size(); j++) {
+                    const Eigen::Vector3f centroid2 = new_transforms[j].block<3, 1> (0, 3);
+                    const Eigen::Matrix3f rot2 = new_transforms[j].block<3, 3> (0, 0);
+                    const Eigen::Vector3f rot2x = rot2 * x;
+                    const Eigen::Vector3f rot2y = rot2 * y;
+                    const Eigen::Vector3f rot2z = rot2 * z;
+
+                    double rotx = rot2x.dot(rot1x);
+                    double roty = rot2y.dot(rot1y);
+                    double rotz = rot2z.dot(rot1z);
+
+                    if ( (centroid1 - centroid2).norm()  < param_.merge_close_hypotheses_dist_
+                         && (rotx < cos_thresh) && (roty < cos_thresh) && (rotz < cos_thresh) ) {
+
+                        merged_corrs.insert( merged_corrs.end(), corresp_clusters[j].begin(), corresp_clusters[j].end() );
+                        cluster_has_been_taken[j] = true;
+                    }
+                }
+
+                t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, merged_corrs, merged_transforms[kept]);
+                kept++;
+            }
+            merged_transforms.resize(kept);
+            new_transforms = merged_transforms;
+
+            std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. " << std::endl;
+        }
+
+        //        oh.visualize(*scene_);
 
         size_t existing_hypotheses = models_.size();
-        models_.resize( existing_hypotheses + corresp_clusters.size() );
-        transforms_.resize( existing_hypotheses + corresp_clusters.size() );
-
-        for (size_t i = 0; i < corresp_clusters.size(); i++) {
-            models_[existing_hypotheses + i] = oh.model_ ;
-            typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
-            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, corresp_clusters[i], transforms_[existing_hypotheses + i]);
-        }
+        models_.resize( existing_hypotheses + new_transforms.size(), oh.model_  );
+        transforms_.insert(transforms_.end(), new_transforms.begin(), new_transforms.end());
     }
 }
 

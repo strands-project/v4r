@@ -148,20 +148,20 @@ public:
         using Recognizer<PointT>::Parameter::icp_type_;
         using Recognizer<PointT>::Parameter::normal_computation_method_;
         using Recognizer<PointT>::Parameter::voxel_size_icp_;
+        using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
+        using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
+        using Recognizer<PointT>::Parameter::merge_close_hypotheses_angle_;
 
-        bool scene_to_scene_;  // if true, tries to register two views based on SIFT background matching
-        bool use_robot_pose_;   // if true, uses given pose between two views as relative camera pose estimate
-        bool hyp_to_hyp_;   // if true adds edges for common object hypotheses (not implemented atm)
-        bool use_gc_s2s_;   // defines method used for SIFT background matching
-        double distance_same_keypoint_; // defines the minimum distance between two keypoints (of same model) to be seperated
-        float same_keypoint_dot_product_; // defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
-        int extension_mode_; // defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
-        int max_vertices_in_graph_; // maximum number of views taken into account (views selected in order of latest recognition calls)
-        float chop_z_;  // points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
-        bool compute_mst_; // if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true),
-                           // by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true)
-                           // from all the possible connection a Mimimum Spanning Tree is computed.
-                           // if false, it only uses the given pose for each point cloud
+        bool scene_to_scene_;  /// @brief if true, tries to register two views based on SIFT background matching
+        bool use_robot_pose_;   /// @brief if true, uses given pose between two views as relative camera pose estimate
+        bool hyp_to_hyp_;   /// @brief if true adds edges for common object hypotheses (not implemented atm)
+        bool use_gc_s2s_;   /// @brief defines method used for SIFT background matching
+        double distance_same_keypoint_; /// @brief defines the minimum distance between two keypoints (of same model) to be seperated
+        float same_keypoint_dot_product_; /// @brief defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
+        int extension_mode_; /// @brief defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
+        int max_vertices_in_graph_; /// @brief maximum number of views taken into account (views selected in order of latest recognition calls)
+        float chop_z_;  /// @brief points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
+        bool compute_mst_; /// @brief if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud
 
         Parameter (
                 bool scene_to_scene = true,
@@ -173,7 +173,8 @@ public:
                 int extension_mode = 0,
                 int max_vertices_in_graph = 3,
                 float chop_z = std::numeric_limits<float>::max(),
-                bool compute_mst = true) :
+                bool compute_mst = true
+                ) :
 
             Recognizer<PointT>::Parameter(),
             scene_to_scene_ (scene_to_scene),

@@ -389,8 +389,6 @@ Recognizer<PointT>::visualize() const
 
         if(model_or_plane_is_verified_[models_.size() + plane_id]) {
             plane_name << "_verified";
-            typename pcl::PointCloud<PointT>::Ptr plane_cloud = planes_[plane_id].projectPlaneCloud();
-            pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(plane_cloud);
             vis_->addPointCloud<PointT> ( plane_cloud, plane_handler, plane_name.str (), vp3_ );
         }
     }
@@ -466,8 +464,6 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
 
         if(model_or_plane_is_verified_[models_.size() + plane_id]) {
             plane_name << "_verified";
-            typename pcl::PointCloud<PointT>::Ptr plane_cloud = planes_[plane_id].projectPlaneCloud();
-            pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(plane_cloud);
             vis_->addPointCloud<PointT> ( plane_cloud, plane_handler, plane_name.str (), vp3_ );
         }
     }

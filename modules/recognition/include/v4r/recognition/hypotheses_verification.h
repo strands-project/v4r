@@ -159,18 +159,9 @@ namespace v4r
       requires_normals_ = false;
     }
 
-    void setSelfOcclusionsReasoning(bool b) {
-      param_.self_occlusions_reasoning_ = b;
-    }
-
-    void setZBufferSelfOcclusionResolution(int r) {
-      param_.zbuffer_self_occlusion_resolution_ = r;
-    }
-
     bool getRequiresNormals() {
       return requires_normals_;
     }
-
 
     float getResolution() const
     {
@@ -300,7 +291,7 @@ namespace v4r
       scene_cloud_ = scene_cloud;
       scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>());
 
-      if(param_.resolution_ == -1)
+      if(param_.resolution_ <= 0.f)
           scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>(*scene_cloud));
       else
       {

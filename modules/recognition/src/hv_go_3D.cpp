@@ -85,6 +85,7 @@ GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::C
     visible_models_ = models;
   else
   {
+    visible_indices_.clear();
     visible_indices_.resize(models.size());
     model_point_is_visible_.clear();
     model_point_is_visible_.resize(models.size());

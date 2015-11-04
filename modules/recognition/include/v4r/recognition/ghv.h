@@ -115,7 +115,7 @@ namespace v4r
           float color_sigma_ab_; /// @brief allowed illumination variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
           float color_sigma_l_; /// @brief allowed chrominance (AB channel of LAB color space) variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
           float regularizer_;
-          float radius_neighborhood_clutter_;
+          float radius_neighborhood_clutter_; /// @brief defines the maximum distance between two points to be checked for label consistency
           float radius_normals_;
           float duplicy_weight_test_;
           float duplicity_curvature_max_;
@@ -342,13 +342,13 @@ namespace v4r
       void computeClutterCueAtOnce ();
 
       virtual bool
-      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, int object_models_size);
+      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, size_t i, size_t object_models_size);
 
       virtual bool
-      addModel (int i, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
+      addModel (size_t i, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
 
       //Performs smooth segmentation of the scene cloud and compute the model cues
-      virtual void
+      virtual bool
       initialize ();
 
       pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
@@ -577,7 +577,7 @@ namespace v4r
 
       void
       computeRGBHistograms (const std::vector<Eigen::Vector3f> & rgb_values, Eigen::MatrixXf & rgb,
-                               int dim = 3, float min = 0.f, float max = 255.f, bool soft = false);
+                               int dim = 3, float min = 0.f, float max = 255.f);
 
       void
       specifyRGBHistograms (Eigen::MatrixXf & src, Eigen::MatrixXf & dst, Eigen::MatrixXf & lookup, int dim = 3);
@@ -586,7 +586,7 @@ namespace v4r
       computeGSHistogram (const std::vector<float> & hsv_values, Eigen::MatrixXf & histogram, int hist_size = 255);
 
       std::vector<PlaneModel<ModelT> > planar_models_;
-      std::map<int, int> model_to_planar_model_;
+      std::map<size_t, size_t> model_to_planar_model_;
 
       typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
 
@@ -603,7 +603,7 @@ namespace v4r
 
       std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> models_smooth_faces_;
 
-      void specifyColor(int i, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
+      void specifyColor(size_t i, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
 
       std::vector<float> scene_curvature_;
       std::vector<Eigen::Vector3f> scene_LAB_values_;
@@ -624,7 +624,7 @@ namespace v4r
       std::vector<vtkSmartPointer <vtkTransform> > poses_ply_;
 
       float t_cues_, t_opt_;
-      int number_of_visible_points_;
+      size_t number_of_visible_points_;
 
 
       //compute mahalanobis distance
@@ -783,8 +783,7 @@ namespace v4r
       }
 
 
-      void
-      verify ();
+      void verify();
 
       void
       setInitialTemp (float t)
