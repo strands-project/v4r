@@ -175,6 +175,7 @@ Recognizer<PointT>::hypothesisVerification ()
                 p_param.inlDist = hv_algorithm_ghv->param_.plane_inlier_distance_;
                 p_param.thrAngle = hv_algorithm_ghv->param_.plane_thrAngle_;
                 p_param.K_ = hv_algorithm_ghv->param_.knn_plane_clustering_search_;
+                p_param.normal_computation_method_ = param_.normal_computation_method_;
                 ClusterNormalsToPlanesPCL<PointT> pest(p_param);
                 pest.compute(scene_, *scene_normals_, planes_);
             }
@@ -202,6 +203,11 @@ Recognizer<PointT>::poseRefinement()
 
     voxel_grid_icp.setLeafSize (param_.voxel_size_icp_, param_.voxel_size_icp_, param_.voxel_size_icp_);
     voxel_grid_icp.filter (*scene_voxelized);
+
+    pcl::visualization::PCLVisualizer vis("pose");
+    int vp11, vp22;
+    vis.createViewPort(0,   0,   0.5, 1, vp11);
+    vis.createViewPort(0.5, 0,   1,   1, vp22);
 
     switch (param_.icp_type_)
     {

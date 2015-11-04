@@ -62,6 +62,7 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::use_normals_from_visible_;
          using GHV<ModelT, SceneT>::Parameter::add_planes_;
          using GHV<ModelT, SceneT>::Parameter::plane_method_;
+         using GHV<ModelT, SceneT>::Parameter::focal_length_;
 
         Parameter()
         {}
@@ -74,6 +75,7 @@ namespace v4r
     using GHV<ModelT, SceneT>::visible_models_;
     using GHV<ModelT, SceneT>::visible_normal_models_;
     using GHV<ModelT, SceneT>::visible_indices_;
+    using GHV<ModelT, SceneT>::model_point_is_visible_;
     using GHV<ModelT, SceneT>::complete_models_;
     using GHV<ModelT, SceneT>::normals_set_;
     using GHV<ModelT, SceneT>::requires_normals_;
@@ -134,6 +136,11 @@ namespace v4r
         occ_clouds_ = occ_clouds;
       }
 
+      /**
+       * @brief addModels Adds object hypotheses
+       * @param models set of object hypotheses (setAbsolutePoses must be called in advances!)
+       * @param occlusion_reasoning: if true, filters points which are not visible in any of the occlusion clouds (setOcclusionClouds must be called in advance!!)
+       */
       void
       addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning = false);
 

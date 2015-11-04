@@ -37,8 +37,10 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/impl/instantiate.hpp>
-#include "v4r/recognition/hv_go_3D.h"
-#include "v4r/common/impl/occlusion_reasoning.hpp"
+#include <v4r/common/impl/occlusion_reasoning.hpp>
+#include <v4r/common/miscellaneous.h>
+#include <v4r/common/binary_algorithms.h>
+#include <v4r/recognition/hv_go_3D.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <functional>
 #include <numeric>
@@ -84,44 +86,53 @@ GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::C
   else
   {
     visible_indices_.resize(models.size());
-    //pcl::visualization::PCLVisualizer vis("visible model");
+    model_point_is_visible_.clear();
+    model_point_is_visible_.resize(models.size());
+
     for (size_t i = 0; i < models.size (); i++)
-    {
+        model_point_is_visible_[i].resize(models[i]->points.size(), false);
+
       //a point is occluded if it is occluded in all views
-      typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
 
       //scene-occlusions
       for(size_t k=0; k < occ_clouds_.size(); k++)
       {
-        //transform model to camera coordinate
-        typename pcl::PointCloud<ModelT>::Ptr model_in_view_coordinates(new pcl::PointCloud<ModelT> ());
-        const Eigen::Matrix4f trans =  absolute_poses_camera_to_global_[k].inverse();
-        pcl::transformPointCloud(*models[i], *model_in_view_coordinates, trans);
+          const Eigen::Matrix4f trans =  absolute_poses_camera_to_global_[k].inverse();
 
-        std::vector<int> indices_cloud_occlusion;
-        filtered = occlusion_reasoning::filter(*occ_clouds_[k], *model_in_view_coordinates, 525.f, param_.occlusion_thres_, indices_cloud_occlusion);
+          for(size_t m=0; m<models.size(); m++)
+          {
+            //transform model to camera coordinate
+            typename pcl::PointCloud<ModelT> model_in_view_coordinates;
+            pcl::transformPointCloud(*models[m], model_in_view_coordinates, trans);
 
-        std::vector<int> final_indices = indices_cloud_occlusion;
-        final_indices.resize(indices_cloud_occlusion.size());
+            std::vector<bool> pt_is_occluded = occlusion_reasoning::computeOccludedPoints(*occ_clouds_[k], model_in_view_coordinates, param_.focal_length_, param_.occlusion_thres_, true);
+            std::vector<bool> model_point_is_visible_in_occ_k(models[m]->points.size(), false);
 
-        visible_indices_[i].insert(visible_indices_[i].end(), final_indices.begin(), final_indices.end());
+            for(size_t idx=0; idx<model_point_is_visible_[m].size(); idx++) {
+                if ( !pt_is_occluded[idx] ) {
+                    model_point_is_visible_[m][idx] = true;
+                    model_point_is_visible_in_occ_k[idx] = true;
+                }
+            }
+          }
       }
 
-      std::set<int> s( visible_indices_[i].begin(), visible_indices_[i].end() );
-      visible_indices_[i].assign( s.begin(), s.end() );
+    for (size_t i = 0; i < models.size (); i++) {
 
-      pcl::copyPointCloud(*models[i], visible_indices_[i], *filtered);
+      visible_indices_[i] = createIndicesFromMask<int>( model_point_is_visible_[i] );
+
+      typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
+      pcl::copyPointCloud(*models[i], model_point_is_visible_[i], *filtered);
 
       if(normals_set_ && requires_normals_) {
         pcl::PointCloud<pcl::Normal>::Ptr filtered_normals (new pcl::PointCloud<pcl::Normal> ());
-        pcl::copyPointCloud(*complete_normal_models_[i], visible_indices_[i], *filtered_normals);
+        pcl::copyPointCloud(*complete_normal_models_[i], model_point_is_visible_[i], *filtered_normals);
         visible_normal_models_.push_back(filtered_normals);
       }
 
-      /*pcl::visualization::PointCloudColorHandlerRGBField<ModelT> handler (filtered);
-      vis.addPointCloud(filtered, handler, "model");
-      vis.spin();
-      vis.removeAllPointClouds();*/
+//      pcl::visualization::PointCloudColorHandlerRGBField<ModelT> handler (filtered);
+//      vis.addPointCloud(filtered, handler, "model");
+//      vis.removeAllPointClouds();
 
       visible_models_.push_back (filtered);
     }

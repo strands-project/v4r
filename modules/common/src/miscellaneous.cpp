@@ -126,6 +126,15 @@ getIndicesFromCloud<pcl::PointXYZ, size_t>(const pcl::PointCloud<pcl::PointXYZ>:
                                            std::vector<size_t> &indices, float resolution);
 
 
+template V4R_EXPORTS
+std::vector<size_t>
+createIndicesFromMask(const std::vector<bool> &mask, bool invert);
+
+template V4R_EXPORTS
+std::vector<int>
+createIndicesFromMask(const std::vector<bool> &mask, bool invert);
+
+
 }
 
 

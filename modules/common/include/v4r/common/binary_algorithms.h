@@ -23,6 +23,7 @@ namespace v4r
             AND,
             AND_N, // this will negate the second argument
             OR,
+            OR_N, // this will negate the second argument
             XOR
         };
 
@@ -56,6 +57,11 @@ namespace v4r
                 if (operation == BINARY_OPERATOR::OR)
                 {
                     output_mask[i] = mask1[i] || mask2[i];
+                }
+                else
+                if (operation == BINARY_OPERATOR::OR_N)
+                {
+                    output_mask[i] = mask1[i] || !mask2[i];
                 }
                 else
                 if (operation == BINARY_OPERATOR::XOR)

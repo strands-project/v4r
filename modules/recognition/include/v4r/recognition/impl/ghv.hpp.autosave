@@ -238,10 +238,8 @@ GHV<ModelT, SceneT>::addPlanarModels(std::vector<PlaneModel<ModelT> > & models)
         plane_normal[2] = planar_models_[i].coefficients_.values[2];
 
         for(size_t k=0; k < filtered->points.size(); k++)
-        {
             normals->points[k].getNormalVector3fMap() = plane_normal;
-        }
-
+        
         visible_normal_models_.push_back(normals);
     }
 }

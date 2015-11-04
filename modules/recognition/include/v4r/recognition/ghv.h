@@ -110,6 +110,7 @@ namespace v4r
           using HypothesisVerification<ModelT, SceneT>::Parameter::zbuffer_scene_resolution_;
           using HypothesisVerification<ModelT, SceneT>::Parameter::zbuffer_self_occlusion_resolution_;
           using HypothesisVerification<ModelT, SceneT>::Parameter::self_occlusions_reasoning_;
+          using HypothesisVerification<ModelT, SceneT>::Parameter::focal_length_;
 
           float color_sigma_ab_; /// @brief allowed illumination variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
           float color_sigma_l_; /// @brief allowed chrominance (AB channel of LAB color space) variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
@@ -147,7 +148,7 @@ namespace v4r
           bool add_planes_;  /// @brief if true, adds planes as possible hypotheses (slower but decreases false positives especially for planes detected as flat objects like books)
           int plane_method_; /// @brief defines which method to use for plane extraction (if add_planes_ is true). 0... Multiplane Segmentation, 1... ClusterNormalsForPlane segmentation
           size_t min_plane_inliers_; /// @brief a planar cluster is only added as plane if it has at least min_plane_inliers_ points
-          double plane_inlier_distance_;          /// @brief Maximum inlier distance for plane clustering
+          double plane_inlier_distance_; /// @brief Maximum inlier distance for plane clustering
           double plane_thrAngle_;  /// @brief Threshold of normal angle for plane clustering
           int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
 
@@ -233,6 +234,7 @@ namespace v4r
       using HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
       using HypothesisVerification<ModelT, SceneT>::scene_downsampled_tree_;
       using HypothesisVerification<ModelT, SceneT>::visible_models_;
+      using HypothesisVerification<ModelT, SceneT>::model_point_is_visible_;
       using HypothesisVerification<ModelT, SceneT>::visible_normal_models_;
       using HypothesisVerification<ModelT, SceneT>::visible_indices_;
       using HypothesisVerification<ModelT, SceneT>::complete_models_;

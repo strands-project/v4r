@@ -113,7 +113,7 @@ protected:
 
     cv::Ptr<SiftGPU> sift_;
 
-    bool computeAbsolutePose(CamConnect & e, bool &is_first_edge = false);
+    bool computeAbsolutePose(CamConnect & e, bool is_first_edge = false);
 
     /** \brief removes vertices from graph if max_vertices_in_graph has been reached */
     void pruneGraph();

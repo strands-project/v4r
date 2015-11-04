@@ -114,7 +114,7 @@ public:
 //        paramGHV.active_hyp_penalty_ = 0.f;
         paramGO3D.regularizer_ = 3;
         paramGO3D.radius_normals_ = 0.02f;
-        paramGO3D.occlusion_thres_ = 0.01f;
+        paramGO3D.occlusion_thres_ = 0.02f;
         paramGO3D.inliers_threshold_ = 0.015f;
 
         paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;

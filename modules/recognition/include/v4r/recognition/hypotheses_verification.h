@@ -62,26 +62,29 @@ namespace v4r
       class V4R_EXPORTS Parameter
       {
       public:
-          float resolution_; //The resolution of models and scene used to verify hypotheses (in meters)
-          float inliers_threshold_; // Threshold for inliers
-          float occlusion_thres_;    // occlusion threshold
-          int zbuffer_scene_resolution_; // Resolutions in pixel for the depth scene buffer
+          float resolution_; /// @brief The resolution of models and scene used to verify hypotheses (in meters)
+          float inliers_threshold_; /// @brief Threshold for inliers
+          float occlusion_thres_;    /// @brief Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)
+          int zbuffer_scene_resolution_; /// @brief Resolutions in pixel for the depth scene buffer
           int zbuffer_self_occlusion_resolution_;
           bool self_occlusions_reasoning_;
+          float focal_length_; /// @brief defines the focal length used for back-projecting points to the image plane (used for occlusion / visibility reasoning)
 
           Parameter (
                   float resolution = 0.005f,
                   float inliers_threshold = 0.005f, // 0.015f
-                  float occlusion_thres = 0.005f, // 0.01f
+                  float occlusion_thres = 0.01f, // 0.005f
                   int zbuffer_scene_resolution = 100,
                   int zbuffer_self_occlusion_resolution = 250,
-                  bool self_occlusions_reasoning =true)
+                  bool self_occlusions_reasoning = true,
+                  float focal_length = 525.f)
               : resolution_ (resolution),
                 inliers_threshold_(inliers_threshold),
                 occlusion_thres_ (occlusion_thres),
                 zbuffer_scene_resolution_(zbuffer_scene_resolution),
                 zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
-                self_occlusions_reasoning_(self_occlusions_reasoning)
+                self_occlusions_reasoning_(self_occlusions_reasoning),
+                focal_length_ (focal_length)
           {}
       };
 
@@ -123,6 +126,7 @@ namespace v4r
     std::vector<typename pcl::PointCloud<pcl::Normal>::ConstPtr> visible_normal_models_;
 
     std::vector< std::vector<int> > visible_indices_;
+    std::vector< std::vector<bool> > model_point_is_visible_;
 
     /**
      * \brief Vector of point clouds representing the complete 3D model (in same coordinates as the scene cloud)
@@ -257,7 +261,7 @@ namespace v4r
           std::vector<int> indices_cloud_occlusion;
           if (occlusion_cloud_->isOrganized ())
           {
-            filtered = occlusion_reasoning::filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, 525.f, param_.occlusion_thres_, indices_cloud_occlusion);
+            filtered = occlusion_reasoning::filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, param_.focal_length_, param_.occlusion_thres_, indices_cloud_occlusion);
             visible_indices_[i].resize(filtered->points.size());
 
             for(size_t k=0; k < indices_cloud_occlusion.size(); k++)

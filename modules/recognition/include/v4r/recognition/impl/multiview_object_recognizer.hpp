@@ -236,7 +236,7 @@ MultiviewRecognizer<PointT>::pruneGraph ()
 
 template<typename PointT>
 bool
-MultiviewRecognizer<PointT>::computeAbsolutePose(CamConnect &e, bool &is_first_edge)
+MultiviewRecognizer<PointT>::computeAbsolutePose(CamConnect &e, bool is_first_edge)
 {
     size_t src = e.source_id_;
     size_t trgt = e.target_id_;
@@ -449,6 +449,8 @@ MultiviewRecognizer<PointT>::recognize ()
             CamConnect e = weightmap[*ei];
             if ( !computeAbsolutePose(e, is_first_edge) )
                 loose_edges.push_back(e);
+
+            is_first_edge = false;
         }
 
         while(loose_edges.size()) {
