@@ -846,7 +846,7 @@ GHV<ModelT, SceneT>::initialize()
                     pos_y = static_cast<size_t>( (complete_models_[i]->points[j].y - min_pt_all.y) / param_.res_occupancy_grid_);
                     pos_z = static_cast<size_t>( (complete_models_[i]->points[j].z - min_pt_all.z) / param_.res_occupancy_grid_);
 
-                    size_t idx = pos_z * size_z * size_y + pos_y * size_x + pos_x;
+                    size_t idx = pos_z * size_x * size_y + pos_y * size_x + pos_x;
 
                     if ( !banned_vector[idx] )
                     {
@@ -1142,11 +1142,10 @@ GHV<ModelT, SceneT>::updateCMDuplicity (const std::vector<int> & vec, std::vecto
     int add_to_duplicity_ = 0;
     for (size_t i = 0; i < vec.size (); i++)
     {
-
-        if(occupancy_vec.size() <= vec[i] || (vec.size() <= i))
+        if( (vec[i] > occupancy_vec.size() ) || ( i > vec.size()))
         {
             std::cout << occupancy_vec.size() << " " << vec[i] << " " << vec.size() << " " << i << std::endl;
-            assert(false);
+            throw std::runtime_error("something is wrong with the occupancy grid.");
         }
 
         bool prev_dup = occupancy_vec[vec[i]] > 1;
