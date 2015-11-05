@@ -204,11 +204,6 @@ Recognizer<PointT>::poseRefinement()
     voxel_grid_icp.setLeafSize (param_.voxel_size_icp_, param_.voxel_size_icp_, param_.voxel_size_icp_);
     voxel_grid_icp.filter (*scene_voxelized);
 
-    pcl::visualization::PCLVisualizer vis("pose");
-    int vp11, vp22;
-    vis.createViewPort(0,   0,   0.5, 1, vp11);
-    vis.createViewPort(0.5, 0,   1,   1, vp22);
-
     switch (param_.icp_type_)
     {
     case 0:
