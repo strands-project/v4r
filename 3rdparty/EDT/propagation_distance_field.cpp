@@ -1191,8 +1191,8 @@ int SignedPropagationDistanceField<PointT>::getDirectionNumber(int dx, int dy, i
 
 }
 
-template class distance_field::PropagationDistanceField<pcl::PointXYZ>;
-template class distance_field::PropagationDistanceField<pcl::PointXYZRGB>;
-template class distance_field::PropagationDistanceField<pcl::PointXYZRGBA>;
-template class distance_field::PropagationDistanceField<pcl::PointNormal>;
-template class distance_field::PropagationDistanceField<pcl::PointXYZRGBNormal>;
+template class __attribute__ ((visibility ("default"))) distance_field::PropagationDistanceField<pcl::PointXYZ>;
+template class __attribute__ ((visibility ("default"))) distance_field::PropagationDistanceField<pcl::PointXYZRGB>;
+template class __attribute__ ((visibility ("default"))) distance_field::PropagationDistanceField<pcl::PointXYZRGBA>;
+template class __attribute__ ((visibility ("default"))) distance_field::PropagationDistanceField<pcl::PointNormal>;
+template class __attribute__ ((visibility ("default"))) distance_field::PropagationDistanceField<pcl::PointXYZRGBNormal>;
