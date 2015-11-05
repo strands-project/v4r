@@ -334,6 +334,7 @@ public:
                 for(size_t m_id=0; m_id<verified_models.size(); m_id++)
                     std::cout << "******" << verified_models[m_id]->id_ << std::endl <<  transforms_verified[m_id] << std::endl << std::endl;
             }
+            mv_r_->clear(); // delete all stored information from last sequences
         }
         return true;
     }

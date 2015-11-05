@@ -89,11 +89,11 @@ namespace v4r
         class V4R_EXPORTS Parameter
         {
         public:
-            int icp_iterations_;
+            int icp_iterations_;    /// @brief number of icp iterations. If 0, no pose refinement will be done.
             int icp_type_;
             float voxel_size_icp_;
             float max_corr_distance_;
-            int normal_computation_method_;
+            int normal_computation_method_; /// @brief chosen normal computation method of the V4R library
             bool merge_close_hypotheses_; /// @brief if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined
             float merge_close_hypotheses_dist_; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
             float merge_close_hypotheses_angle_; /// @brief defines the maximum angle in degrees for clusters to be merged together
@@ -147,8 +147,7 @@ namespace v4r
         std::vector<int> indices_;
         pcl::PointIndicesPtr icp_scene_indices_;
 
-        /** \brief Directory containing views of the object */
-        std::string training_dir_;
+        std::string training_dir_; /// \brief Directory containing views of the object
 
         /** \brief Hypotheses verification algorithm */
         typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > hv_algorithm_;

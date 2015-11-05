@@ -237,6 +237,18 @@ public:
         return rr_->getDataSource();
     }
 
+    /**
+     * @brief clears all stored information from previous views
+     */
+    void clear()
+    {
+        models_.clear();
+        model_or_plane_is_verified_.clear();
+        transforms_.clear();
+        planes_.clear();
+        views_.clear();
+    }
+
     void recognize();
 
 };
