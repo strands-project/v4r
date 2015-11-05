@@ -77,26 +77,26 @@ namespace v4r
           double gc_size_; // Resolution of the consensus set used to cluster correspondences together
           double thres_dot_distance_;
           bool use_graph_;
-          float dist_for_cluster_factor_;
+          double dist_for_cluster_factor_;
           int max_taken_correspondence_;
           bool cliques_big_to_small_;
           bool check_normals_orientation_;
-          float max_time_allowed_cliques_comptutation_;
-          float ransac_threshold_;
+          double max_time_allowed_cliques_comptutation_;
+          double ransac_threshold_;
           bool prune_;
           bool prune_by_CC_;
 
           Parameter(
-                  int gc_threshold = 3,
-                  double gc_size = 1.0, // 0.015
-                  double thres_dot_distance = 0.05f, // 0.2
+                  int gc_threshold = 5,
+                  double gc_size = 0.015,
+                  double thres_dot_distance = 0.2f, // 0.05f
                   bool use_graph = true,
-                  float dist_for_cluster_factor = 3.f, //0
-                  int max_taken_correspondence = 2,//5, // 2
+                  double dist_for_cluster_factor = 0., //3.f
+                  int max_taken_correspondence = 2, //5
                   bool cliques_big_to_small = false,
                   bool check_normals_orientation = true,
-                  float max_time_allowed_cliques_comptutation = std::numeric_limits<float>::infinity(), // 100
-                  float ransac_threshold = 0.015f,
+                  double max_time_allowed_cliques_comptutation = std::numeric_limits<double>::infinity(), // 100
+                  double ransac_threshold = 0.015f,
                   bool prune = false,
                   bool prune_by_CC = false
                   )

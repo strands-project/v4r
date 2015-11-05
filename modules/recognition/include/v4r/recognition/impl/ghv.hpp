@@ -880,8 +880,8 @@ GHV<ModelT, SceneT>::initialize()
 }
 
 template<typename ModelT, typename SceneT>
-float
-GHV<ModelT, SceneT>::getCurvWeight(float p_curvature)
+double
+GHV<ModelT, SceneT>::getCurvWeight(double p_curvature)
 {
 
     if( param_.multiple_assignment_penalize_by_one_ == 2 )
@@ -895,18 +895,18 @@ GHV<ModelT, SceneT>::getCurvWeight(float p_curvature)
     /*if(p_curvature < duplicity_curvature_max)
         return 1.f;*/
 
-    float w = 1.f - std::min(1.f, p_curvature / param_.duplicity_curvature_max_);
+    double w = 1.f - std::min(1., p_curvature / param_.duplicity_curvature_max_);
     return w;
 }
 
 template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec,
-                                                      const std::vector<float> & vec_float,
-                                                      std::vector<int> & explained,
-                                                      std::vector<double> & explained_by_RM_distance_weighted__not_used,
-                                                      float sign,
-                                                      int model_id)
+                                            const std::vector<float> & vec_float,
+                                            std::vector<int> & explained,
+                                            std::vector<double> & explained_by_RM_distance_weighted__not_used,
+                                            float sign,
+                                            int model_id)
 {
     double add_to_explained = 0;
     double add_to_duplicity_ = 0;

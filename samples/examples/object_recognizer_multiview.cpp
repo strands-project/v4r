@@ -88,6 +88,10 @@ public:
         bool do_ourcvfh = false;
         bool use_go3d = false;
 
+        bool merge_close_hypotheses; /// @brief if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined
+        float merge_close_hypotheses_dist; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
+        float merge_close_hypotheses_angle; /// @brief defines the maximum angle in degrees for clusters to be merged together
+
         float resolution = 0.005f;
         std::string models_dir, training_dir;
 
@@ -99,24 +103,7 @@ public:
         v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >::Parameter paramLocalEstimator;
         v4r::MultiviewRecognizer<PointT>::Parameter paramMultiView;
 
-        paramGgcg.gc_size_ = 0.015f;
-        paramGgcg.thres_dot_distance_ = 0.2f;
-        paramGgcg.dist_for_cluster_factor_ = 0;
-//        paramGgcg.max_taken_correspondence_ = 2;
         paramGgcg.max_time_allowed_cliques_comptutation_ = 100;
-
-        paramGO3D.eps_angle_threshold_ = 0.1f;
-        paramGO3D.min_points_ = 100;
-        paramGO3D.cluster_tolerance_ = 0.01f;
-        paramGO3D.use_histogram_specification_ = true;
-        paramGO3D.w_occupied_multiple_cm_ = 0.f;
-        paramGO3D.opt_type_ = 0;
-//        paramGHV.active_hyp_penalty_ = 0.f;
-        paramGO3D.regularizer_ = 3;
-        paramGO3D.radius_normals_ = 0.02f;
-        paramGO3D.occlusion_thres_ = 0.02f;
-        paramGO3D.inliers_threshold_ = 0.015f;
-
         paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;
         paramLocalRecSift.save_hypotheses_ = paramLocalRecShot.save_hypotheses_ = true;
         paramLocalRecShot.kdtree_splits_ = 128;
@@ -150,6 +137,15 @@ public:
         if(pcl::console::parse_argument (argc, argv,  "-icp_iterations", icp_iterations) != -1)
             paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = paramMultiPipeRec.icp_iterations_ = paramMultiView.icp_iterations_ = icp_iterations;
 
+        if(pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses", merge_close_hypotheses) != -1)
+            paramLocalRecSift.merge_close_hypotheses_ = paramLocalRecShot.merge_close_hypotheses_ = paramMultiPipeRec.merge_close_hypotheses_ = paramMultiView.merge_close_hypotheses_ = merge_close_hypotheses;
+
+        if(pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses_dist", merge_close_hypotheses_dist) != -1)
+            paramLocalRecSift.merge_close_hypotheses_dist_ = paramLocalRecShot.merge_close_hypotheses_dist_ = paramMultiPipeRec.merge_close_hypotheses_dist_ = paramMultiView.merge_close_hypotheses_dist_ = merge_close_hypotheses_dist;
+
+        if(pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses_angle", merge_close_hypotheses_angle) != -1)
+            paramLocalRecSift.merge_close_hypotheses_angle_ = paramLocalRecShot.merge_close_hypotheses_angle_ = paramMultiPipeRec.merge_close_hypotheses_angle_ = paramMultiView.merge_close_hypotheses_angle_ = merge_close_hypotheses_angle;
+
         pcl::console::parse_argument (argc, argv,  "-chop_z", paramMultiView.chop_z_ );
         pcl::console::parse_argument (argc, argv,  "-max_vertices_in_graph", paramMultiView.max_vertices_in_graph_ );
         pcl::console::parse_argument (argc, argv,  "-compute_mst", paramMultiView.compute_mst_ );
@@ -179,10 +175,14 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_regularizer", paramGO3D.regularizer_);
         pcl::console::parse_argument (argc, argv,  "-hv_plane_method", paramGO3D.plane_method_);
         pcl::console::parse_argument (argc, argv,  "-hv_add_planes", paramGO3D.add_planes_);
-        pcl::console::parse_argument (argc, argv,  "-hv_min_plane_inliers", (int&)paramGO3D.min_plane_inliers_);
         pcl::console::parse_argument (argc, argv,  "-hv_plane_inlier_distance", paramGO3D.plane_inlier_distance_);
         pcl::console::parse_argument (argc, argv,  "-hv_plane_thrAngle", paramGO3D.plane_thrAngle_);
         pcl::console::parse_argument (argc, argv,  "-knn_plane_clustering_search", paramGO3D.knn_plane_clustering_search_);
+
+        int hv_min_plane_inliers;
+        if(pcl::console::parse_argument (argc, argv,  "-hv_min_plane_inliers", hv_min_plane_inliers) != -1)
+            paramGO3D.min_plane_inliers_ = static_cast<size_t>(hv_min_plane_inliers);
+
 //        pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
 
         rr_.reset(new v4r::MultiRecognitionPipeline<PointT>(paramMultiPipeRec));

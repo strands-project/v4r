@@ -112,36 +112,36 @@ namespace v4r
           using HypothesisVerification<ModelT, SceneT>::Parameter::self_occlusions_reasoning_;
           using HypothesisVerification<ModelT, SceneT>::Parameter::focal_length_;
 
-          float color_sigma_ab_; /// @brief allowed illumination variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
-          float color_sigma_l_; /// @brief allowed chrominance (AB channel of LAB color space) variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
-          float regularizer_;
-          float radius_neighborhood_clutter_; /// @brief defines the maximum distance between two points to be checked for label consistency
-          float radius_normals_;
-          float duplicy_weight_test_;
-          float duplicity_curvature_max_;
+          double color_sigma_ab_; /// @brief allowed illumination variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
+          double color_sigma_l_; /// @brief allowed chrominance (AB channel of LAB color space) variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
+          double regularizer_;
+          double radius_neighborhood_clutter_; /// @brief defines the maximum distance between two points to be checked for label consistency
+          double radius_normals_;
+          double duplicy_weight_test_;
+          double duplicity_curvature_max_;
           bool ignore_color_even_if_exists_;
           int max_iterations_; /// @brief max iterations without improvement
-          float clutter_regularizer_;
+          double clutter_regularizer_;
           bool detect_clutter_;
-          float res_occupancy_grid_;
-          float w_occupied_multiple_cm_;
+          double res_occupancy_grid_;
+          double w_occupied_multiple_cm_;
           bool use_super_voxels_;
           bool use_replace_moves_;
           int opt_type_;
-          float active_hyp_penalty_;
+          double active_hyp_penalty_;
           int multiple_assignment_penalize_by_one_;
-          float d_weight_for_bad_normals_;
+          double d_weight_for_bad_normals_;
           bool use_clutter_exp_;
           bool use_histogram_specification_;
           bool use_points_on_plane_side_;
-          float best_color_weight_;
+          double best_color_weight_;
           bool initial_status_;
 
           //smooth segmentation parameters
           double eps_angle_threshold_;
           int min_points_;
-          float curvature_threshold_;
-          float cluster_tolerance_;
+          double curvature_threshold_;
+          double cluster_tolerance_;
 
           bool use_normals_from_visible_;
 
@@ -153,34 +153,34 @@ namespace v4r
           int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
 
           Parameter (
-                  float color_sigma_ab = 0.5f,
-                  float color_sigma_l = 0.5f,
-                  float regularizer = 1.f, // 3
-                  float radius_neighborhood_clutter = 0.03f,
-                  float radius_normals = 0.01f, // 0.02f
-                  float duplicy_weight_test = 1.f,
-                  float duplicity_curvature_max = 0.03f,
+                  double color_sigma_ab = 0.5f,
+                  double color_sigma_l = 0.5f,
+                  double regularizer = 1.f, // 3
+                  double radius_neighborhood_clutter = 0.03f,
+                  double radius_normals = 0.02f, // 0.01f
+                  double duplicy_weight_test = 1.f,
+                  double duplicity_curvature_max = 0.03f,
                   bool ignore_color_even_if_exists = true,
                   int max_iterations = 5000,
-                  float clutter_regularizer =  5.f,
+                  double clutter_regularizer =  5.f,
                   bool detect_clutter = true,
-                  float res_occupancy_grid = 0.005f,
-                  float w_occupied_multiple_cm = 2.f, //0.f
+                  double res_occupancy_grid = 0.005f,
+                  double w_occupied_multiple_cm = 2.f, //0.f
                   bool use_super_voxels = false,
                   bool use_replace_moves = true,
-                  int opt_type = 2, // 0
-                  float active_hyp_penalty = 0.05f, // 0.f
+                  int opt_type = 0, // 2
+                  double active_hyp_penalty = 0.f, // 0.05f
                   int multiple_assignment_penalize_by_one = 2,
-                  float d_weight_for_bad_normals = 0.1f,
+                  double d_weight_for_bad_normals = 0.1f,
                   bool use_clutter_exp = false,
-                  bool use_histogram_specification = false, // true
+                  bool use_histogram_specification = true, // false
                   bool use_points_on_plane_side = true,
-                  float best_color_weight = 0.8f,
+                  double best_color_weight = 0.8f,
                   bool initial_status = false,
                   double eps_angle_threshold = 0.25, //0.1f
-                  int min_points = 20, // 100
-                  float curvature_threshold = 0.04f,
-                  float cluster_tolerance = 0.015f, //0.01f;
+                  int min_points = 100, // 20
+                  double curvature_threshold = 0.04f,
+                  double cluster_tolerance = 0.01f, //0.015f;
                   bool use_normals_from_visible = false,
                   bool add_planes = true,
                   int plane_method = 0,
@@ -616,7 +616,7 @@ namespace v4r
       typedef typename pcl::traits::fieldList<typename CloudS::PointType>::type FieldListS;
       typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
 
-      float getCurvWeight(float p_curvature);
+      double getCurvWeight(double p_curvature);
 
       int max_threads_;
 

@@ -91,22 +91,22 @@ namespace v4r
         public:
             int icp_iterations_;    /// @brief number of icp iterations. If 0, no pose refinement will be done.
             int icp_type_;
-            float voxel_size_icp_;
-            float max_corr_distance_;
+            double voxel_size_icp_;
+            double max_corr_distance_;
             int normal_computation_method_; /// @brief chosen normal computation method of the V4R library
             bool merge_close_hypotheses_; /// @brief if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined
-            float merge_close_hypotheses_dist_; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
-            float merge_close_hypotheses_angle_; /// @brief defines the maximum angle in degrees for clusters to be merged together
+            double merge_close_hypotheses_dist_; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
+            double merge_close_hypotheses_angle_; /// @brief defines the maximum angle in degrees for clusters to be merged together
 
             Parameter(
                     int icp_iterations = 20,
                     int icp_type = 1,
-                    float voxel_size_icp = 0.0025f,
-                    float max_corr_distance = 0.02f,
+                    double voxel_size_icp = 0.0025f,
+                    double max_corr_distance = 0.02f,
                     int normal_computation_method = 2,
                     bool merge_close_hypotheses = true,
-                    float merge_close_hypotheses_dist = 0.02f,
-                    float merge_close_hypotheses_angle = 10.f)
+                    double merge_close_hypotheses_dist = 0.02f,
+                    double merge_close_hypotheses_angle = 10.f)
                 : icp_iterations_ (icp_iterations),
                   icp_type_ (icp_type),
                   voxel_size_icp_ (voxel_size_icp),

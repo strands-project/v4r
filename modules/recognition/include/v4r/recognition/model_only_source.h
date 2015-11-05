@@ -122,7 +122,7 @@ namespace v4r
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
-        generate (std::string & training_dir)
+        generate (const std::string & training_dir)
         {
           (void) training_dir;
           //get models in directory

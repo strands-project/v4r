@@ -157,10 +157,10 @@ public:
         bool hyp_to_hyp_;   /// @brief if true adds edges for common object hypotheses (not implemented atm)
         bool use_gc_s2s_;   /// @brief defines method used for SIFT background matching
         double distance_same_keypoint_; /// @brief defines the minimum distance between two keypoints (of same model) to be seperated
-        float same_keypoint_dot_product_; /// @brief defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
+        double same_keypoint_dot_product_; /// @brief defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
         int extension_mode_; /// @brief defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
         int max_vertices_in_graph_; /// @brief maximum number of views taken into account (views selected in order of latest recognition calls)
-        float chop_z_;  /// @brief points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
+        double chop_z_;  /// @brief points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
         bool compute_mst_; /// @brief if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud
 
         Parameter (
@@ -169,10 +169,10 @@ public:
                 bool hyp_to_hyp = false,
                 bool use_gc_s2s = true,
                 double distance_same_keypoint = 0.005f*0.005f,
-                float same_keypoint_dot_product = 0.8f,
+                double same_keypoint_dot_product = 0.8f,
                 int extension_mode = 0,
                 int max_vertices_in_graph = 3,
-                float chop_z = std::numeric_limits<float>::max(),
+                double chop_z = std::numeric_limits<double>::max(),
                 bool compute_mst = true
                 ) :
 

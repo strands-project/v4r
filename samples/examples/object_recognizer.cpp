@@ -17,7 +17,6 @@
 #include <pcl/common/centroid.h>
 #include <pcl/console/parse.h>
 #include <pcl/filters/passthrough.h>
-#include <pcl/visualization/cloud_viewer.h>
 
 #include <iostream>
 #include <sstream>
@@ -35,7 +34,6 @@ private:
     boost::shared_ptr<v4r::MultiRecognitionPipeline<PointT> > rr_;
     std::string test_dir_;
     bool visualize_;
-    pcl::visualization::PCLVisualizer::Ptr vis_;
     float chop_z_;
 
 public:
@@ -51,7 +49,9 @@ public:
         bool do_sift = true;
         bool do_shot = false;
         bool do_ourcvfh = false;
-
+        bool merge_close_hypotheses; /// @brief if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined
+        float merge_close_hypotheses_dist; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
+        float merge_close_hypotheses_angle; /// @brief defines the maximum angle in degrees for clusters to be merged together
         float resolution = 0.003f;
         std::string models_dir, training_dir;
 
@@ -62,27 +62,8 @@ public:
         v4r::MultiRecognitionPipeline<PointT>::Parameter paramMultiPipeRec;
         v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >::Parameter paramLocalEstimator;
 
-        paramGgcg.gc_size_ = 0.015f;
-        paramGgcg.thres_dot_distance_ = 0.2f;
-        paramGgcg.dist_for_cluster_factor_ = 0;
-        paramGgcg.max_taken_correspondence_ = 2;
         paramGgcg.max_time_allowed_cliques_comptutation_ = 100;
-
-        paramGHV.eps_angle_threshold_ = 0.1f;
-        paramGHV.min_points_ = 100;
-        paramGHV.cluster_tolerance_ = 0.01f;
-        paramGHV.use_histogram_specification_ = true;
-        paramGHV.w_occupied_multiple_cm_ = 0.f;
-        paramGHV.opt_type_ = 0;
-//        paramGHV.active_hyp_penalty_ = 0.f;
-        paramGHV.regularizer_ = 3;
-        paramGHV.color_sigma_ab_ = 0.5f;
-        paramGHV.radius_normals_ = 0.02f;
-        paramGHV.occlusion_thres_ = 0.01f;
-        paramGHV.inliers_threshold_ = 0.015f;
-
         paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;
-        paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = 10;
         paramLocalRecSift.save_hypotheses_ = paramLocalRecShot.save_hypotheses_ = true;
         paramLocalRecShot.kdtree_splits_ = 128;
 
@@ -111,6 +92,15 @@ public:
         if(pcl::console::parse_argument (argc, argv,  "-icp_iterations", icp_iterations) != -1)
             paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = paramMultiPipeRec.icp_iterations_ = icp_iterations;
 
+        if(pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses", merge_close_hypotheses) != -1)
+            paramLocalRecSift.merge_close_hypotheses_ = paramLocalRecShot.merge_close_hypotheses_ = paramMultiPipeRec.merge_close_hypotheses_ = merge_close_hypotheses;
+
+        if(pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses_dist", merge_close_hypotheses_dist) != -1)
+            paramLocalRecSift.merge_close_hypotheses_dist_ = paramLocalRecShot.merge_close_hypotheses_dist_ = paramMultiPipeRec.merge_close_hypotheses_dist_= merge_close_hypotheses_dist;
+
+        if(pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses_angle", merge_close_hypotheses_angle) != -1)
+            paramLocalRecSift.merge_close_hypotheses_angle_ = paramLocalRecShot.merge_close_hypotheses_angle_ = paramMultiPipeRec.merge_close_hypotheses_angle_ = merge_close_hypotheses_angle;
+
         pcl::console::parse_argument (argc, argv,  "-cg_size_thresh", paramGgcg.gc_threshold_);
         pcl::console::parse_argument (argc, argv,  "-cg_size", paramGgcg.gc_size_);
         pcl::console::parse_argument (argc, argv,  "-cg_ransac_threshold", paramGgcg.ransac_threshold_);
@@ -134,7 +124,11 @@ public:
         pcl::console::parse_argument (argc, argv,  "-hv_radius_clutter", paramGHV.radius_neighborhood_clutter_);
         pcl::console::parse_argument (argc, argv,  "-hv_radius_normals", paramGHV.radius_normals_);
         pcl::console::parse_argument (argc, argv,  "-hv_regularizer", paramGHV.regularizer_);
-        pcl::console::parse_argument (argc, argv,  "-hv_min_plane_inliers", (int&)paramGHV.min_plane_inliers_);
+
+        int hv_min_plane_inliers;
+        if(pcl::console::parse_argument (argc, argv,  "-hv_min_plane_inliers", hv_min_plane_inliers) != -1)
+            paramGHV.min_plane_inliers_ = static_cast<size_t>(hv_min_plane_inliers);
+
         pcl::console::parse_argument (argc, argv,  "-knn_plane_clustering_search", paramGHV.knn_plane_clustering_search_);
 //        pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
 

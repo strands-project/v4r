@@ -165,25 +165,25 @@ void MainWindow::fillScene()
 
 void MainWindow::fillModels()
 {
-  boost::shared_ptr<std::vector<ModelTPtr> > models = source_->getModels();
-  size_t kk = (models->size ()) + 1;
+  std::vector<ModelTPtr> models = source_->getModels();
+  size_t kk = (models.size ()) + 1;
   double x_step = 1.0 / (float)kk;
-  model_clouds_.resize(models->size ());
+  model_clouds_.resize(models.size ());
 
   pviz_models_->removeAllPointClouds();
 
-  for (size_t i = 0; i < models->size (); i++)
+  for (size_t i = 0; i < models.size (); i++)
   {
     std::stringstream model_name;
     model_name << "poly_" << i;
 
     model_clouds_[i].reset(new pcl::PointCloud<PointT>);
-    pcl::PointCloud<PointT>::ConstPtr model_cloud = models->at(i)->getAssembled(0.003f);
+    pcl::PointCloud<PointT>::ConstPtr model_cloud = models.at(i)->getAssembled(0.003f);
     pviz_models_->createViewPort (i * x_step, 0, (i + 1) * x_step, 200, model_viewport_);
 
     //create scale transform...
     pviz_models_->addPointCloud(model_cloud, model_name.str(), model_viewport_);
-    loaded_models_.push_back(models->at(i));
+    loaded_models_.push_back(models.at(i));
   }
 
   pviz_models_->spinOnce(0.1, true);
@@ -1106,8 +1106,8 @@ MainWindow::MainWindow(int argc, char *argv[])
   pviz_scenes_ = new pcl::visualization::PCLVisualizer("viz_scenes",true);
   pviz_scenes_->registerMouseCallback (mouse_callback_scenes, (void*)(this));
 
-  boost::shared_ptr<std::vector<ModelTPtr> > models = source_->getModels();
-  size_t models_size = models->size();
+  std::vector<ModelTPtr> models = source_->getModels();
+  size_t models_size = models.size();
   size_t scenes_size = 20;//single_scenes_.size ();
 
   vtk_widget_models_ = new QVTKWidget;
