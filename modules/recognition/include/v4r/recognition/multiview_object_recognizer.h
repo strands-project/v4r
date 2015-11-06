@@ -80,7 +80,6 @@ protected:
 
     using Recognizer<PointT>::poseRefinement;
     using Recognizer<PointT>::hypothesisVerification;
-    using Recognizer<PointT>::icp_scene_indices_;
 
     boost::shared_ptr<MultiRecognitionPipeline<PointT> > rr_;
 

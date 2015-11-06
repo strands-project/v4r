@@ -134,7 +134,7 @@ void MainWindow::model_list_clicked(const QModelIndex & idx)
   selectScene(-1);
   ModelTPtr model = sequence_hypotheses_[ selected_hypothesis_ ];
 
-  pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
+  pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled( 3 );
   pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>(*model_cloud));
   pcl::transformPointCloud(*model_cloud, *cloud, hypotheses_poses_[ selected_hypothesis_ ]);
 
@@ -178,7 +178,7 @@ void MainWindow::fillModels()
     model_name << "poly_" << i;
 
     model_clouds_[i].reset(new pcl::PointCloud<PointT>);
-    pcl::PointCloud<PointT>::ConstPtr model_cloud = models.at(i)->getAssembled(0.003f);
+    pcl::PointCloud<PointT>::ConstPtr model_cloud = models.at(i)->getAssembled( 3 );
     pviz_models_->createViewPort (i * x_step, 0, (i + 1) * x_step, 200, model_viewport_);
 
     //create scale transform...
@@ -200,7 +200,7 @@ void MainWindow::fillHypotheses()
       std::stringstream model_name;
       model_name << "hypotheses_" << i;
 
-      pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[i]->getAssembled(0.003f);
+      pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[i]->getAssembled( 3 );
       pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>(*model_cloud));
       pcl::transformPointCloud(*cloud, *cloud, hypotheses_poses_[i]);
 
@@ -436,7 +436,7 @@ void MainWindow::updateSelectedHypothesis()
     if(selected_hypothesis_>=0)
     {
         pviz_->removePointCloud(model_name.str(), pviz_v2_);
-        pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[selected_hypothesis_]->getAssembled(0.003f);
+        pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[selected_hypothesis_]->getAssembled( 3 );
         pcl::PointCloud<PointT>::Ptr model_cloud_transformed(new pcl::PointCloud<PointT>(*model_cloud));
         pcl::transformPointCloud(*model_cloud, *model_cloud_transformed, hypotheses_poses_[selected_hypothesis_]);
 
@@ -866,7 +866,7 @@ void MainWindow::save_model()
                 //compute occlusion value
                 size_t overlap = 0;
                 std::vector<int> indices;
-                pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
+                pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled( 3 );
                 pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                 pcl::transformPointCloud(*model_cloud, *model_aligned, hypotheses_poses_[k]);
 

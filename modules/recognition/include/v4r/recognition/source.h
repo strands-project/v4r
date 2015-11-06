@@ -66,13 +66,13 @@ namespace v4r
       std::vector <std::string> view_filenames_;
       PointTPtr keypoints_; //model keypoints
       pcl::PointCloud<pcl::Normal>::Ptr kp_normals_; //keypoint normals
-      mutable typename std::map<float, PointTPtrConst> voxelized_assembled_;
-      mutable typename std::map<float, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
+      mutable typename std::map<int, PointTPtrConst> voxelized_assembled_;
+      mutable typename std::map<int, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
       //typename boost::shared_ptr<VoxelGridDistanceTransform<PointT> > dist_trans_;
       typename boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > dist_trans_;
 
       pcl::PointCloud<pcl::PointXYZL>::Ptr faces_cloud_labels_;
-      typename std::map<float, pcl::PointCloud<pcl::PointXYZL>::Ptr> voxelized_assembled_labels_;
+      typename std::map<int, pcl::PointCloud<pcl::PointXYZL>::Ptr> voxelized_assembled_labels_;
       bool flip_normals_based_on_vp_;
 
       Model()
@@ -122,14 +122,15 @@ namespace v4r
       }
 
       pcl::PointCloud<pcl::PointXYZL>::Ptr
-      getAssembledSmoothFaces (float resolution)
+      getAssembledSmoothFaces (int resolution_mm)
       {
-        if(resolution <= 0)
+        if(resolution_mm <= 0)
           return faces_cloud_labels_;
 
-        typename std::map<float, pcl::PointCloud<pcl::PointXYZL>::Ptr>::iterator it = voxelized_assembled_labels_.find (resolution);
+        typename std::map<int, pcl::PointCloud<pcl::PointXYZL>::Ptr>::iterator it = voxelized_assembled_labels_.find (resolution_mm);
         if (it == voxelized_assembled_labels_.end ())
         {
+          double resolution = resolution_mm / (double)1000.f;
           pcl::PointCloud<pcl::PointXYZL>::Ptr voxelized (new pcl::PointCloud<pcl::PointXYZL>);
           pcl::VoxelGrid<pcl::PointXYZL> grid;
           grid.setInputCloud (faces_cloud_labels_);
@@ -145,14 +146,15 @@ namespace v4r
       }
 
       PointTPtrConst
-      getAssembled (float resolution) const
+      getAssembled (int resolution_mm) const
       {
-        if(resolution <= 0)
+        if(resolution_mm <= 0)
           return assembled_;
 
-        typename std::map<float, PointTPtrConst>::iterator it = voxelized_assembled_.find (resolution);
+        typename std::map<int, PointTPtrConst>::iterator it = voxelized_assembled_.find (resolution_mm);
         if (it == voxelized_assembled_.end ())
         {
+          double resolution = (double)resolution_mm / 1000.f;
           PointTPtr voxelized (new pcl::PointCloud<PointT>);
           pcl::VoxelGrid<PointT> grid;
           grid.setInputCloud (assembled_);
@@ -169,14 +171,15 @@ namespace v4r
       }
 
       pcl::PointCloud<pcl::Normal>::ConstPtr
-      getNormalsAssembled (float resolution) const
+      getNormalsAssembled (int resolution_mm) const
       {
-        if(resolution <= 0)
+        if(resolution_mm <= 0)
           return normals_assembled_;
 
-        typename std::map<float, pcl::PointCloud<pcl::Normal>::ConstPtr >::iterator it = normals_voxelized_assembled_.find (resolution);
+        typename std::map<int, pcl::PointCloud<pcl::Normal>::ConstPtr >::iterator it = normals_voxelized_assembled_.find (resolution_mm);
         if (it == normals_voxelized_assembled_.end ())
         {
+          double resolution = resolution_mm / 1000.f;
           pcl::PointCloud<pcl::PointNormal>::Ptr voxelized (new pcl::PointCloud<pcl::PointNormal>);
           pcl::PointCloud<pcl::PointNormal>::Ptr assembled_with_normals (new pcl::PointCloud<pcl::PointNormal>);
           assembled_with_normals->points.resize(assembled_->points.size());
@@ -211,9 +214,10 @@ namespace v4r
       }
 
       void
-      createVoxelGridAndDistanceTransform(float resolution) {
+      createVoxelGridAndDistanceTransform(int resolution_mm) {
+        double resolution = (double)resolution_mm / 1000.f;
         PointTPtrConst assembled (new pcl::PointCloud<PointT> ());
-        assembled = getAssembled(resolution);
+        assembled = getAssembled(resolution_mm);
         dist_trans_.reset(new distance_field::PropagationDistanceField<PointT>(resolution));
         dist_trans_->setInputCloud(assembled);
         dist_trans_->compute();
@@ -357,13 +361,13 @@ namespace v4r
       }
 
       void
-      voxelizeAllModels (float resolution)
+      voxelizeAllModels (int resolution_mm)
       {
         for (size_t i = 0; i < models_.size (); i++)
         {
-          models_[i]->getAssembled (resolution);
+          models_[i]->getAssembled (resolution_mm);
           if(compute_normals_)
-            models_[i]->getNormalsAssembled (resolution);
+            models_[i]->getNormalsAssembled (resolution_mm);
         }
       }
 

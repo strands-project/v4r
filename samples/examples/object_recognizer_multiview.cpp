@@ -87,11 +87,6 @@ public:
         bool do_shot = false;
         bool do_ourcvfh = false;
         bool use_go3d = false;
-
-        bool merge_close_hypotheses; /// @brief if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined
-        float merge_close_hypotheses_dist; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
-        float merge_close_hypotheses_angle; /// @brief defines the maximum angle in degrees for clusters to be merged together
-
         float resolution = 0.005f;
         std::string models_dir, training_dir;
 
@@ -133,23 +128,15 @@ public:
                     normal_computation_method;
         }
 
-        int icp_iterations;
-        if(pcl::console::parse_argument (argc, argv,  "-icp_iterations", icp_iterations) != -1)
-            paramLocalRecSift.icp_iterations_ = paramLocalRecShot.icp_iterations_ = paramMultiPipeRec.icp_iterations_ = paramMultiView.icp_iterations_ = icp_iterations;
-
-        if(pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses", merge_close_hypotheses) != -1)
-            paramLocalRecSift.merge_close_hypotheses_ = paramLocalRecShot.merge_close_hypotheses_ = paramMultiPipeRec.merge_close_hypotheses_ = paramMultiView.merge_close_hypotheses_ = merge_close_hypotheses;
-
-        if(pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses_dist", merge_close_hypotheses_dist) != -1)
-            paramLocalRecSift.merge_close_hypotheses_dist_ = paramLocalRecShot.merge_close_hypotheses_dist_ = paramMultiPipeRec.merge_close_hypotheses_dist_ = paramMultiView.merge_close_hypotheses_dist_ = merge_close_hypotheses_dist;
-
-        if(pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses_angle", merge_close_hypotheses_angle) != -1)
-            paramLocalRecSift.merge_close_hypotheses_angle_ = paramLocalRecShot.merge_close_hypotheses_angle_ = paramMultiPipeRec.merge_close_hypotheses_angle_ = paramMultiView.merge_close_hypotheses_angle_ = merge_close_hypotheses_angle;
-
+        pcl::console::parse_argument (argc, argv,  "-icp_iterations", paramMultiView.icp_iterations_);
+        pcl::console::parse_argument (argc, argv,  "-icp_type", paramMultiView.icp_type_);
+        pcl::console::parse_argument (argc, argv,  "-max_corr_distance", paramMultiView.max_corr_distance_);
+        pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses", paramMultiView.merge_close_hypotheses_);
+        pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses_dist", paramMultiView.merge_close_hypotheses_dist_);
+        pcl::console::parse_argument (argc, argv,  "-merge_close_hypotheses_angle", paramMultiView.merge_close_hypotheses_angle_);
         pcl::console::parse_argument (argc, argv,  "-chop_z", paramMultiView.chop_z_ );
         pcl::console::parse_argument (argc, argv,  "-max_vertices_in_graph", paramMultiView.max_vertices_in_graph_ );
         pcl::console::parse_argument (argc, argv,  "-compute_mst", paramMultiView.compute_mst_ );
-
         pcl::console::parse_argument (argc, argv,  "-cg_size_thresh", paramGgcg.gc_threshold_);
         pcl::console::parse_argument (argc, argv,  "-cg_size", paramGgcg.gc_size_);
         pcl::console::parse_argument (argc, argv,  "-cg_ransac_threshold", paramGgcg.ransac_threshold_);

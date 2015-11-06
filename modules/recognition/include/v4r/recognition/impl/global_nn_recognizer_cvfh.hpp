@@ -640,11 +640,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           }
           else
           {
-            model_cloud = models_[i]->getAssembled (0.005f);
+            model_cloud = models_[i]->getAssembled ( 5 );
             pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_[i]);
           }
 
-          //ConstPointInTPtr model_cloud = models_->at (i).getAssembled (0.005f);
+          //ConstPointInTPtr model_cloud = models_->at (i).getAssembled ( 5 );
           //PointInTPtr model_aligned (new pcl::PointCloud<PointInT>);
           //pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_->at (i));
           aligned_models[i] = model_aligned;

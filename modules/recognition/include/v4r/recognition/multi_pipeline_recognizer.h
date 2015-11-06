@@ -25,7 +25,6 @@ namespace v4r
             using Recognizer<PointT>::Parameter::icp_iterations_;
             using Recognizer<PointT>::Parameter::icp_type_;
             using Recognizer<PointT>::Parameter::voxel_size_icp_;
-            using Recognizer<PointT>::Parameter::max_corr_distance_;
             using Recognizer<PointT>::Parameter::normal_computation_method_;
             using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
             using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
