@@ -224,7 +224,7 @@ private:
   pcl::visualization::PCLVisualizer * pviz_models_;
   pcl::visualization::PCLVisualizer * pviz_scenes_;
 
-  float model_scale_;
+  double model_scale_;
   float model_xsize_;
   float pose_xsize_;
 

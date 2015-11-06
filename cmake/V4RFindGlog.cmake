@@ -1,0 +1,8 @@
+if(WITH_GLOG)
+  find_package(Glog)
+  if(GLOG_FOUND)
+    set(GLOG_LIBRARIES "${GLOG_LIBRARY}")
+    set(GLOG_INCLUDE_DIRS "${GLOG_INCLUDE_DIR}")
+    set(HAVE_GLOG TRUE)
+  endif()
+endif()

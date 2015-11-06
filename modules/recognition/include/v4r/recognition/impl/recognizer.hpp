@@ -204,23 +204,14 @@ Recognizer<PointT>::poseRefinement()
     voxel_grid_icp.setLeafSize (param_.voxel_size_icp_, param_.voxel_size_icp_, param_.voxel_size_icp_);
     voxel_grid_icp.filter (*scene_voxelized);
 
-    pcl::visualization::PCLVisualizer vis;
-    int vp1, vp2, vp3, vp4;
-    vis.createViewPort(0,0,0.5,0.5,vp1);
-    vis.createViewPort(0.5,0,1,0.5,vp2);
-    vis.createViewPort(0,0.5,0.5,1,vp3);
-    vis.createViewPort(0.5,0.5,1,1,vp4);
-    vis.addPointCloud(scene_, "scene1", vp1);
-    vis.addPointCloud(scene_, "scene2", vp2);
-
     switch (param_.icp_type_)
     {
     case 0:
     {
-//#pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
+#pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
         for (size_t i = 0; i < models_.size (); i++)
         {
-            std::cout << "Doing ICP (type 0) for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
+//            std::cout << "Doing ICP (type 0) for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
             ConstPointTPtr model_cloud = models_[i]->getAssembled ( param_.resolution_mm_model_assembly_ );
             PointTPtr model_aligned (new pcl::PointCloud<PointT>);
             pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_[i]);
@@ -244,26 +235,16 @@ Recognizer<PointT>::poseRefinement()
             reg.align (*output_);
 
             Eigen::Matrix4f icp_trans = reg.getFinalTransformation ();
-//            transforms_[i] = icp_trans * transforms_[i];
-
-            vis.removePointCloud("model_before", vp1);
-            vis.removePointCloud("model_after", vp2);
-            vis.addPointCloud(model_aligned, "model_before", vp1);
-
             transforms_[i] = icp_trans * transforms_[i];
-            pcl::PointCloud<PointT> model_aligned_after;
-            pcl::transformPointCloud (*model_cloud, model_aligned_after, transforms_[i] );
-            vis.addPointCloud(model_aligned_after.makeShared(), "model_after", vp2);
-            vis.spin();
         }
     }
         break;
     default:
     {
-//#pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
+#pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
         for (size_t i = 0; i < models_.size(); i++)
         {
-            std::cout << "Doing ICP for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
+//            std::cout << "Doing ICP for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
             typename VoxelBasedCorrespondenceEstimation<PointT, PointT>::Ptr
                     est (new VoxelBasedCorrespondenceEstimation<PointT, PointT> ());
 
@@ -298,11 +279,6 @@ Recognizer<PointT>::poseRefinement()
             cropFilter.setMax(maxPoint.getVector4fMap());
             cropFilter.filter (*scene_voxelized_icp_cropped);
 
-            vis.removeAllPointClouds(vp3);
-            vis.removeAllPointClouds(vp4);
-            vis.addPointCloud(scene_voxelized_icp_cropped, "scene3", vp3);
-            vis.addPointCloud(model_aligned, "model3", vp3);
-
             est->setVoxelRepresentationTarget (dt);
             est->setInputSource (scene_voxelized_icp_cropped);
             est->setInputTarget (model_aligned);
@@ -311,11 +287,11 @@ Recognizer<PointT>::poseRefinement()
             rej->setInputSource (scene_voxelized_icp_cropped);
             rej->setInputTarget (model_aligned);
             rej->setMaximumIterations (1000);
-            rej->setInlierThreshold (0.03f);
+            rej->setInlierThreshold (0.005f);
 
             pcl::IterativeClosestPoint<PointT, PointT, float> reg;
-//            reg.setCorrespondenceEstimation (est);
-//            reg.addCorrespondenceRejector (rej);
+            reg.setCorrespondenceEstimation (est);
+            reg.addCorrespondenceRejector (rej);
             reg.setInputTarget (model_aligned);
             reg.setInputSource (scene_voxelized_icp_cropped);
             reg.setMaximumIterations (param_.icp_iterations_);
@@ -335,20 +311,7 @@ Recognizer<PointT>::poseRefinement()
 
             Eigen::Matrix4f icp_trans;
             icp_trans = reg.getFinalTransformation () * scene_to_model_trans;
-
-            // debugging with visualization
-            vis.removePointCloud("model_before", vp1);
-            vis.removePointCloud("model_after", vp2);
-            ConstPointTPtr model_cloud = models_[i]->getAssembled ( param_.resolution_mm_model_assembly_ );
-            pcl::PointCloud<PointT> model_aligned_before, model_aligned_after;
-            pcl::transformPointCloud (*model_cloud, model_aligned_before, transforms_[i]);
-            vis.addPointCloud(model_aligned_before.makeShared(), "model_before", vp1);
-
             transforms_[i] = icp_trans.inverse ();
-            pcl::transformPointCloud (*model_cloud, model_aligned_after, transforms_[i] );
-            vis.addPointCloud(model_aligned_after.makeShared(), "model_after", vp2);
-            vis.spin();
-
             //        std::cout << "Done ICP for model  " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
 
         }

@@ -73,15 +73,15 @@ namespace v4r
       class V4R_EXPORTS Parameter
       {
       public:
-          int gc_threshold_;  //Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose
-          double gc_size_; // Resolution of the consensus set used to cluster correspondences together
+          int gc_threshold_;  /// @brief Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose
+          double gc_size_; /// @brief Resolution of the consensus set used to cluster correspondences together
           double thres_dot_distance_;
           bool use_graph_;
           double dist_for_cluster_factor_;
           int max_taken_correspondence_;
           bool cliques_big_to_small_;
           bool check_normals_orientation_;
-          double max_time_allowed_cliques_comptutation_;
+          double max_time_allowed_cliques_comptutation_;    /// @brief if grouping correspondences takes more processing time in milli seconds than this defined value, correspondences will be no longer computed by this graph based approach but by the simpler greedy correspondence grouping algorithm
           double ransac_threshold_;
           bool prune_;
           bool prune_by_CC_;

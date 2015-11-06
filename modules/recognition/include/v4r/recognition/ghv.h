@@ -149,7 +149,7 @@ namespace v4r
           int plane_method_; /// @brief defines which method to use for plane extraction (if add_planes_ is true). 0... Multiplane Segmentation, 1... ClusterNormalsForPlane segmentation
           size_t min_plane_inliers_; /// @brief a planar cluster is only added as plane if it has at least min_plane_inliers_ points
           double plane_inlier_distance_; /// @brief Maximum inlier distance for plane clustering
-          double plane_thrAngle_;  /// @brief Threshold of normal angle for plane clustering
+          double plane_thrAngle_;  /// @brief Threshold of normal angle in degree for plane clustering
           int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
 
           Parameter (
@@ -184,7 +184,7 @@ namespace v4r
                   bool use_normals_from_visible = false,
                   bool add_planes = true,
                   int plane_method = 0,
-                  size_t min_plane_inliers = 1000,
+                  size_t min_plane_inliers = 5000,
                   double plane_inlier_distance = 0.02f,
                   double plane_thrAngle = 30,
                   int knn_plane_clustering_search = 10

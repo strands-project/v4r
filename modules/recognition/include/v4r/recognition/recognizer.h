@@ -92,7 +92,7 @@ namespace v4r
             int icp_iterations_;    /// @brief number of icp iterations. If 0, no pose refinement will be done.
             int icp_type_; /// @brief defines the icp method being used for pose refinement (0... regular ICP with CorrespondenceRejectorSampleConsensus, 1... crops point cloud of the scene to the bounding box of the model that is going to be refined)
             double voxel_size_icp_;
-            double max_corr_distance_; /// @brief defines the margin for the bounding box used when doing pose refinement of the cropped scene to the model
+            double max_corr_distance_; /// @brief defines the margin for the bounding box used when doing pose refinement with ICP of the cropped scene to the model
             int normal_computation_method_; /// @brief chosen normal computation method of the V4R library
             bool merge_close_hypotheses_; /// @brief if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined
             double merge_close_hypotheses_dist_; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
@@ -101,9 +101,9 @@ namespace v4r
 
             Parameter(
                     int icp_iterations = 0,
-                    int icp_type = 1,
+                    int icp_type = 0,
                     double voxel_size_icp = 0.0025f,
-                    double max_corr_distance = 0.05f,
+                    double max_corr_distance = 0.03f,
                     int normal_computation_method = 2,
                     bool merge_close_hypotheses = true,
                     double merge_close_hypotheses_dist = 0.02f,

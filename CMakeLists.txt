@@ -111,6 +111,7 @@ V4R_OPTION(WITH_QT4            "Include QT support"                          ON)
 V4R_OPTION(WITH_BOOST          "Include Boost support"                       ON)
 V4R_OPTION(WITH_EIGEN          "Include Eigen3 support"                      ON)
 V4R_OPTION(WITH_GLM            "Include GLM support"                         ON)
+V4R_OPTION(WITH_GLOG           "Include Google Logging support"              ON)
 
 # V4R build components
 # ===================================================
@@ -320,6 +321,7 @@ include(cmake/V4RFindCeres.cmake)
 include(cmake/V4RFindLibsPerf.cmake)
 include(cmake/V4RFindEigen.cmake)
 include(cmake/V4RFindGLM.cmake)
+include(cmake/V4RFindGlog.cmake)
 include(cmake/V4RFindOpenGL.cmake)
 include(cmake/V4RFindPCL.cmake)
 include(cmake/V4RFindQt.cmake)
@@ -630,6 +632,12 @@ if( WITH_GDAL )
   status("    GDAL:"   GDAL_FOUND THEN "${GDAL_LIBRARY}" ELSE "NO")
 else()
   status("    GDAL:"     "NO")
+endif()
+
+if(WITH_GLOG AND HAVE_GLOG)
+  status("    GLOG:"  "${GLOG_LIBRARIES}")
+else()
+  status("    GLOG:"  "NO")
 endif()
 
 # ========================== VIDEO IO ==========================
