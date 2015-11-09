@@ -37,7 +37,7 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/impl/instantiate.hpp>
-#include <v4r/common/impl/occlusion_reasoning.hpp>
+#include <v4r/common/impl/zbuffering.hpp>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/binary_algorithms.h>
 #include <v4r/recognition/hv_go_3D.h>
@@ -106,7 +106,7 @@ GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::C
             typename pcl::PointCloud<ModelT> model_in_view_coordinates;
             pcl::transformPointCloud(*models[m], model_in_view_coordinates, trans);
 
-            std::vector<bool> pt_is_occluded = occlusion_reasoning::computeOccludedPoints(*occ_clouds_[k], model_in_view_coordinates, param_.focal_length_, param_.occlusion_thres_, true);
+            std::vector<bool> pt_is_occluded = computeOccludedPoints(*occ_clouds_[k], model_in_view_coordinates, param_.focal_length_, param_.occlusion_thres_, true);
             std::vector<bool> model_point_is_visible_in_occ_k(models[m]->points.size(), false);
 
             for(size_t idx=0; idx<model_point_is_visible_[m].size(); idx++) {

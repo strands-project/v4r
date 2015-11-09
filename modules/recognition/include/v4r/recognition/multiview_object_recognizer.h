@@ -48,7 +48,7 @@
 
 #include <v4r_config.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/recognition/boost_graph_extension.h>
+#include <v4r/recognition/multiview_representation.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 
 #include <SiftGPU/SiftGPU.h>

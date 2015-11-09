@@ -9,6 +9,7 @@
 #define MULTI_PIPELINE_RECOGNIZER_HPP_
 
 #include <v4r/recognition/multi_pipeline_recognizer.h>
+#include <pcl/registration/transformation_estimation_svd.h>
 #include <v4r/common/miscellaneous.h>
 
 namespace v4r
@@ -80,7 +81,7 @@ MultiRecognitionPipeline<PointT>::recognize()
     {
         recognizers_[i]->setInputCloud(scene_);
 
-        if(recognizers_[i]->requiresSegmentation())
+        if(recognizers_[i]->requiresSegmentation()) // this might not work in the current state!!
         {
             if( recognizers_[i]->acceptsNormals() )
             {
@@ -92,7 +93,6 @@ MultiRecognitionPipeline<PointT>::recognize()
 
             for(size_t c=0; c < segmentation_indices_.size(); c++)
             {
-                recognizers_[i]->setIndices(segmentation_indices_[c].indices);
                 recognizers_[i]->recognize();
                 std::vector<ModelTPtr> models_tmp = recognizers_[i]->getModels ();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp = recognizers_[i]->getTransforms ();
@@ -105,7 +105,6 @@ MultiRecognitionPipeline<PointT>::recognize()
         else
         {
 //            recognizers_[i]->setSaveHypotheses(param_.save_hypotheses_);  // shouldn't this be false?
-            recognizers_[i]->setIndices(indices_);
             recognizers_[i]->recognize();
 
             if(!recognizers_[i]->getSaveHypothesesParam())
@@ -148,8 +147,6 @@ MultiRecognitionPipeline<PointT>::recognize()
                     }
                 }
             }
-
-            input_icp_indices.insert(input_icp_indices.end(), indices_.begin(), indices_.end());
         }
     }
 
@@ -160,13 +157,6 @@ MultiRecognitionPipeline<PointT>::recognize()
         if (param_.icp_iterations_ > 0 || hv_algorithm_)
         {
             //Prepare scene and model clouds for the pose refinement step
-
-            std::sort( input_icp_indices.begin(), input_icp_indices.end() );
-            input_icp_indices.erase( std::unique( input_icp_indices.begin(), input_icp_indices.end() ), input_icp_indices.end() );
-
-            pcl::PointIndices ind;
-            ind.indices = input_icp_indices;
-            icp_scene_indices_.reset(new pcl::PointIndices(ind));
             getDataSource()->voxelizeAllModels (param_.voxel_size_icp_);
         }
 

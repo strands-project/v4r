@@ -80,60 +80,91 @@ namespace v4r
         bool
         estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
-          if (!keypoint_extractor_.size() || !in || !in->points.size())
-            throw std::runtime_error("SHOTLocalEstimationOMP :: This feature needs a keypoint extractor and a non-empty input point cloud... please provide one");
+            (void) processed;
 
-          if(indices_.indices.size())
-              pcl::copyPointCloud(*in, indices_, *in);
+            if (!keypoint_extractor_.size() || !in || !in->points.size())
+                throw std::runtime_error("SHOTLocalEstimationOMP :: This feature needs a keypoint extractor and a non-empty input point cloud... please provide one");
 
-          processed = in;
+
+//          if( !indices_.indices.empty() )
+//          {
+//              pcl::copyPointCloud(*in, indices_, *in);
+//          }
+
+//          processed = in;
 
           //pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-          pcl::MovingLeastSquares<PointInT, PointInT> mls;
-          if (param_.adaptative_MLS_)
-          {
-            typename pcl::search::KdTree<PointInT>::Ptr tree;
-            Eigen::Vector4f centroid_cluster;
-            pcl::compute3DCentroid (*processed, centroid_cluster);
-            float dist_to_sensor = centroid_cluster.norm ();
-            float sigma = dist_to_sensor * 0.01f;
-            mls.setSearchMethod (tree);
-            mls.setSearchRadius (sigma);
-            mls.setUpsamplingMethod (mls.SAMPLE_LOCAL_PLANE);
-            mls.setUpsamplingRadius (0.002);
-            mls.setUpsamplingStepSize (0.001);
-            mls.setInputCloud (processed);
+//          if (param_.adaptative_MLS_)
+//          {
+//            typename pcl::search::KdTree<PointInT>::Ptr tree;
+//            Eigen::Vector4f centroid_cluster;
+//            pcl::compute3DCentroid (*processed, centroid_cluster);
+//            float dist_to_sensor = centroid_cluster.norm ();
+//            float sigma = dist_to_sensor * 0.01f;
 
-            PointInTPtr filtered (new pcl::PointCloud<PointInT>);
-            mls.process (*filtered);
-            filtered->is_dense = false;
-            processed = filtered;
+//            pcl::MovingLeastSquares<PointInT, PointInT> mls;
+//            mls.setSearchMethod (tree);
+//            mls.setSearchRadius (sigma);
+//            mls.setUpsamplingMethod (mls.SAMPLE_LOCAL_PLANE);
+//            mls.setUpsamplingRadius (0.002);
+//            mls.setUpsamplingStepSize (0.001);
+//            mls.setInputCloud (processed);
+
+//            PointInTPtr filtered (new pcl::PointCloud<PointInT>);
+//            mls.process (*filtered);
+//            filtered->is_dense = false;
+//            processed = filtered;
+//          }
+
+          if ( !normals_ || normals_->points.size() != in->points.size() )
+          {
+              normals_.reset(new pcl::PointCloud<pcl::Normal>());
+              v4r::computeNormals<PointInT>(in, normals_, param_.normal_computation_method_);
           }
 
+          this->computeKeypoints(in, keypoints, normals_);
 
-          normals_.reset (new pcl::PointCloud<pcl::Normal>);
-          v4r::computeNormals<PointInT>(processed, normals_, param_.normal_computation_method_);
-
-          this->computeKeypoints(processed, keypoints, normals_);
-
-          if (keypoints->points.size () == 0)
+          if( keypoints->points.empty() )
           {
-            PCL_WARN("SHOTLocalEstimationOMP :: No keypoints were found\n");
-            return false;
+              PCL_WARN("SHOTLocalEstimationOMP :: No keypoints were found\n");
+              return false;
           }
+
+      //            uniform_kp_extractor->setMaxDistance( 1000.0 ); // for training we want to consider all points (except nan values)
+
+          // filter inite points and normals before describing keypoint
+
+          pcl::PointCloud<pcl::Normal>::Ptr normals_filtered (new pcl::PointCloud<pcl::Normal>);
+          PointInTPtr cloud_filtered (new pcl::PointCloud<PointInT>);
+          cloud_filtered->points.resize(in->points.size());
+          normals_filtered->points.resize(normals_->points.size());
+          size_t kept=0;
+          for(size_t i=0; i<in->points.size(); i++)
+          {
+              if( pcl::isFinite(in->points[i]) && pcl::isFinite(normals_->points[i]))
+              {
+                  cloud_filtered->points[kept] = in->points[i];
+                  normals_filtered->points[kept] = normals_->points[i];
+                  kept++;
+              }
+          }
+          cloud_filtered->points.resize(kept);
+          normals_filtered->points.resize(kept);
+          cloud_filtered->height = normals_filtered->height = 1;
+          cloud_filtered->width = normals_filtered->width = kept;
 
           //compute signatures
           typedef typename pcl::SHOTEstimationOMP<PointInT, pcl::Normal, pcl::SHOT352> SHOTEstimator;
           typename pcl::search::KdTree<PointInT>::Ptr tree (new pcl::search::KdTree<PointInT>);
-          tree->setInputCloud (processed);
+          tree->setInputCloud (cloud_filtered);
 
           pcl::PointCloud<pcl::SHOT352>::Ptr shots (new pcl::PointCloud<pcl::SHOT352>);
           SHOTEstimator shot_estimate;
           shot_estimate.setNumberOfThreads (8);
           shot_estimate.setSearchMethod (tree);
           shot_estimate.setInputCloud (keypoints);
-          shot_estimate.setSearchSurface(processed);
-          shot_estimate.setInputNormals (normals_);
+          shot_estimate.setSearchSurface(cloud_filtered);
+          shot_estimate.setInputNormals (normals_filtered);
           shot_estimate.setRadiusSearch (param_.support_radius_);
           shot_estimate.compute (*shots);
 
@@ -143,18 +174,21 @@ namespace v4r
 
           int size_feat = sizeof(signatures->points[0].histogram) / sizeof(float);
 
-          size_t kept = 0;
+          kept = 0;
           for (size_t k = 0; k < shots->points.size (); k++)
           {
 
-            size_t NaNs = 0;
+            bool is_nan = false;
             for (int i = 0; i < size_feat; i++)
             {
               if (!pcl_isfinite(shots->points[k].descriptor[i]))
-                NaNs++;
+              {
+                is_nan = true;
+                break;
+              }
             }
 
-            if (NaNs)
+            if (!is_nan)
             {
               for (int i = 0; i < size_feat; i++)
                 signatures->points[kept].histogram[i] = shots->points[k].descriptor[i];
@@ -171,7 +205,8 @@ namespace v4r
           keypoints->width = kept;
           signatures->points.resize (kept);
           signatures->width = kept;
-          indices_.indices.clear ();
+          normals_.reset();
+
           return true;
         }
 

@@ -18,8 +18,7 @@
 #include <vtkSelection.h>
 #include <vtkCellArray.h>
 #include <vtkTransformFilter.h>
-#include "pcl/recognition/hv/occlusion_reasoning.h"
-#include "pcl/recognition/impl/hv/occlusion_reasoning.hpp"
+//#include "pcl/recognition/hv/occlusion_reasoning.h"
 #include <v4r/io/filesystem.h>
 #include "v4r/common/faat_3d_rec_framework_defines.h"
 

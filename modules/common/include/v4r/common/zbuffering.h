@@ -34,24 +34,24 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FAATPCL_RECOGNITION_OCCLUSION_REASONING_H_
-#define FAATPCL_RECOGNITION_OCCLUSION_REASONING_H_
+#ifndef V4R_ZBUFFERING_H_
+#define V4R_ZBUFFERING_H_
 
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/io.h>
 
+#include <v4r/core/macros.h>
+
+
 namespace v4r
 {
-  namespace occlusion_reasoning
-  {
     /**
      * \brief Class to reason about occlusions
      * \author Aitor Aldoma
      */
-
     template<typename ModelT, typename SceneT>
-      class ZBuffering
+      class V4R_EXPORTS ZBuffering
       {
       private:
         float f_;
@@ -392,11 +392,6 @@ namespace v4r
       pcl::copyPointCloud (to_be_filtered, indices_to_keep, *filtered);
       return filtered;
     }
-  }
 }
 
-#ifdef PCL_NO_PRECOMPILE
-#include <faat_pcl/recognition/impl/hv/occlusion_reasoning.hpp>
 #endif
-
-#endif /* PCL_RECOGNITION_OCCLUSION_REASONING_H_ */

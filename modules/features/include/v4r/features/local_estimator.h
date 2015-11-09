@@ -347,9 +347,9 @@ public:
         return false;
     }
 
-    virtual void getKeypointIndices(pcl::PointIndices & indices) const
+    void getKeypointIndices(pcl::PointIndices & indices) const
     {
-        indices.indices = keypoint_indices_.indices;
+        indices = keypoint_indices_;
     }
 
 //    void getKeypointIndices(std::vector<int> &keypoint_indices) const
@@ -404,6 +404,15 @@ public:
     void getNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals) const
     {
         normals = normals_;
+    }
+
+    /**
+     * @brief sets the normals point cloud of the scene
+     * @param normals
+     */
+    void setNormals(const pcl::PointCloud<pcl::Normal>::Ptr & normals)
+    {
+        normals_ = normals;
     }
 
     virtual

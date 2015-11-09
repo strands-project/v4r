@@ -34,31 +34,28 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FAATPCL_RECOGNITION_OCCLUSION_REASONING_HPP_
-#define FAATPCL_RECOGNITION_OCCLUSION_REASONING_HPP_
-
-#include "v4r/common/occlusion_reasoning.h"
+#include <v4r/common/zbuffering.h>
 
 namespace v4r
 {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 template<typename ModelT, typename SceneT>
-occlusion_reasoning::ZBuffering<ModelT, SceneT>::ZBuffering (int resx, int resy, float f) :
+ZBuffering<ModelT, SceneT>::ZBuffering (int resx, int resy, float f) :
   f_ (f), width_ (resx), height_ (resy), depth_ (NULL)
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 template<typename ModelT, typename SceneT>
-occlusion_reasoning::ZBuffering<ModelT, SceneT>::ZBuffering () :
+ZBuffering<ModelT, SceneT>::ZBuffering () :
   f_ (), width_ (), height_ (), depth_ (NULL)
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 template<typename ModelT, typename SceneT>
-occlusion_reasoning::ZBuffering<ModelT, SceneT>::~ZBuffering ()
+ZBuffering<ModelT, SceneT>::~ZBuffering ()
 {
   if (depth_ != NULL)
     delete[] depth_;
@@ -67,7 +64,7 @@ occlusion_reasoning::ZBuffering<ModelT, SceneT>::~ZBuffering ()
 ///////////////////////////////////////////////////////////////////////////////////////////
 template<typename ModelT, typename SceneT>
 void
-occlusion_reasoning::ZBuffering<ModelT, SceneT>::filter (const typename pcl::PointCloud<ModelT> & model,
+ZBuffering<ModelT, SceneT>::filter (const typename pcl::PointCloud<ModelT> & model,
                                                          typename pcl::PointCloud<ModelT> & filtered, float thres)
 {
   std::vector<int> indices_to_keep;
@@ -78,7 +75,7 @@ occlusion_reasoning::ZBuffering<ModelT, SceneT>::filter (const typename pcl::Poi
 ///////////////////////////////////////////////////////////////////////////////////////////
 template<typename ModelT, typename SceneT>
 void
-occlusion_reasoning::ZBuffering<ModelT, SceneT>::filter (const typename pcl::PointCloud<ModelT> & model,
+ZBuffering<ModelT, SceneT>::filter (const typename pcl::PointCloud<ModelT> & model,
                                                          std::vector<int> & indices_to_keep,
                                                          float thres)
 {
@@ -113,7 +110,7 @@ occlusion_reasoning::ZBuffering<ModelT, SceneT>::filter (const typename pcl::Poi
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 template<typename ModelT, typename SceneT> void
-occlusion_reasoning::ZBuffering<ModelT, SceneT>::computeDepthMap (const typename pcl::PointCloud<SceneT> & scene,
+ZBuffering<ModelT, SceneT>::computeDepthMap (const typename pcl::PointCloud<SceneT> & scene,
                                                                   bool compute_focal,
                                                                   bool smooth, int wsize)
 {
@@ -201,5 +198,3 @@ occlusion_reasoning::ZBuffering<ModelT, SceneT>::computeDepthMap (const typename
 }
 
 }
-
-#endif    // PCL_RECOGNITION_OCCLUSION_REASONING_HPP_

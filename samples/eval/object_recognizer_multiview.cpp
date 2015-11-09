@@ -129,7 +129,7 @@ public:
                 ("merge_close_hypotheses", po::value<bool>(&paramMultiView.merge_close_hypotheses_)->default_value(paramMultiView.merge_close_hypotheses_), "if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined")
                 ("merge_close_hypotheses_dist", po::value<double>(&paramMultiView.merge_close_hypotheses_dist_)->default_value(paramMultiView.merge_close_hypotheses_dist_), "defines the maximum distance of the centroids in meter for clusters to be merged together")
                 ("merge_close_hypotheses_angle", po::value<double>(&paramMultiView.merge_close_hypotheses_angle_)->default_value(paramMultiView.merge_close_hypotheses_angle_, boost::str(boost::format("%.2e") % paramMultiView.merge_close_hypotheses_angle_) ), "defines the maximum angle in degrees for clusters to be merged together")
-                ("chop_z", po::value<double>(&paramMultiView.chop_z_)->default_value(paramMultiView.chop_z_, boost::str(boost::format("%.2e") % paramMultiView.chop_z_) ), "points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)")
+                ("chop_z,z", po::value<double>(&paramMultiView.chop_z_)->default_value(paramMultiView.chop_z_, boost::str(boost::format("%.2e") % paramMultiView.chop_z_) ), "points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)")
                 ("max_vertices_in_graph", po::value<int>(&paramMultiView.max_vertices_in_graph_)->default_value(paramMultiView.max_vertices_in_graph_), "maximum number of views taken into account (views selected in order of latest recognition calls)")
                 ("compute_mst", po::value<bool>(&paramMultiView.compute_mst_)->default_value(paramMultiView.compute_mst_), "if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud ")
                 ("cg_size_thresh", po::value<int>(&paramGgcg.gc_threshold_)->default_value(paramGgcg.gc_threshold_), "Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose ")
@@ -154,14 +154,14 @@ public:
                 ("hv_optimizer_type", po::value<int>(&paramGO3D.opt_type_)->default_value(paramGO3D.opt_type_), " ")
                 ("hv_radius_clutter", po::value<double>(&paramGO3D.radius_neighborhood_clutter_)->default_value(paramGO3D.radius_neighborhood_clutter_, boost::str(boost::format("%.2e") % paramGO3D.radius_neighborhood_clutter_) ), "defines the maximum distance between two points to be checked for label consistency")
                 ("hv_radius_normals", po::value<double>(&paramGO3D.radius_normals_)->default_value(paramGO3D.radius_normals_, boost::str(boost::format("%.2e") % paramGO3D.radius_normals_) ), " ")
-                ("hv_regularizer", po::value<double>(&paramGO3D.regularizer_)->default_value(paramGO3D.regularizer_, boost::str(boost::format("%.2e") % paramGO3D.regularizer_) ), " ")
+                ("hv_regularizer,r", po::value<double>(&paramGO3D.regularizer_)->default_value(paramGO3D.regularizer_, boost::str(boost::format("%.2e") % paramGO3D.regularizer_) ), " ")
                 ("hv_plane_method", po::value<int>(&paramGO3D.plane_method_)->default_value(paramGO3D.plane_method_), "defines which method to use for plane extraction (if add_planes_ is true). 0... Multiplane Segmentation, 1... ClusterNormalsForPlane segmentation")
                 ("hv_add_planes", po::value<bool>(&paramGO3D.add_planes_)->default_value(paramGO3D.add_planes_), "if true, adds planes as possible hypotheses (slower but decreases false positives especially for planes detected as flat objects like books)")
                 ("hv_plane_inlier_distance", po::value<double>(&paramGO3D.plane_inlier_distance_)->default_value(paramGO3D.plane_inlier_distance_, boost::str(boost::format("%.2e") % paramGO3D.plane_inlier_distance_) ), "Maximum inlier distance for plane clustering")
                 ("hv_plane_thrAngle", po::value<double>(&paramGO3D.plane_thrAngle_)->default_value(paramGO3D.plane_thrAngle_, boost::str(boost::format("%.2e") % paramGO3D.plane_thrAngle_) ), "Threshold of normal angle in degree for plane clustering")
                 ("knn_plane_clustering_search", po::value<int>(&paramGO3D.knn_plane_clustering_search_)->default_value(paramGO3D.knn_plane_clustering_search_), "sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)")
                 ("hv_min_plane_inliers", po::value<size_t>(&paramGO3D.min_plane_inliers_)->default_value(paramGO3D.min_plane_inliers_), "a planar cluster is only added as plane if it has at least min_plane_inliers_ points")
-                ("normal_method", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "chosen normal computation method of the V4R library")
+                ("normal_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "chosen normal computation method of the V4R library")
        ;
 
         po::variables_map vm;
@@ -291,13 +291,32 @@ public:
         mv_r_->setHVAlgorithm( cast_hv_pointer );
         mv_r_->set_sift(sift_);
 
-
         v4r::io::createDirIfNotExist(out_dir_);
-        /**ofstream param_file;
+
+        // writing parameters to file
+        ofstream param_file;
         param_file.open ((out_dir_ + "/param.nfo").c_str());
-        r_.printParams(param_file);
+        for(const auto& it : vm)
+        {
+          param_file << "--" << it.first << " ";
+
+          auto& value = it.second.value();
+          if (auto v = boost::any_cast<double>(&value))
+            param_file << std::setprecision(3) << *v;
+          else if (auto v = boost::any_cast<std::string>(&value))
+            param_file << *v;
+          else if (auto v = boost::any_cast<bool>(&value))
+            param_file << *v;
+          else if (auto v = boost::any_cast<int>(&value))
+            param_file << *v;
+          else if (auto v = boost::any_cast<size_t>(&value))
+            param_file << *v;
+          else
+            param_file << "error";
+
+          param_file << " ";
+        }
         param_file.close();
-        r_.printParams();**/
 
         return true;
     }

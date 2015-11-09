@@ -213,7 +213,7 @@ GHV<ModelT, SceneT>::addPlanarModels(std::vector<PlaneModel<ModelT> > & models)
         typename pcl::PointCloud<SceneT>::Ptr plane_cloud = planar_models_[i].projectPlaneCloud();
         complete_models_.push_back(plane_cloud);
 
-        occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (param_.zbuffer_scene_resolution_, param_.zbuffer_scene_resolution_, 1.f);
+        ZBuffering<ModelT, SceneT> zbuffer_scene (param_.zbuffer_scene_resolution_, param_.zbuffer_scene_resolution_, 1.f);
         if (!occlusion_cloud_->isOrganized ())
             zbuffer_scene.computeDepthMap (*occlusion_cloud_, true);
 
@@ -224,7 +224,7 @@ GHV<ModelT, SceneT>::addPlanarModels(std::vector<PlaneModel<ModelT> > & models)
         std::vector<int> indices_cloud_occlusion;
 
         if (occlusion_cloud_->isOrganized ())
-            filtered = occlusion_reasoning::filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, param_.focal_length_, param_.occlusion_thres_, indices_cloud_occlusion);
+            filtered = filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, param_.focal_length_, param_.occlusion_thres_, indices_cloud_occlusion);
         else
             zbuffer_scene.filter (*const_filtered, *filtered, param_.occlusion_thres_);
 

@@ -62,7 +62,6 @@ namespace v4r
         using Recognizer<PointInT>::transforms_;
         using Recognizer<PointInT>::poseRefinement;
         using Recognizer<PointInT>::requires_segmentation_;
-        using Recognizer<PointInT>::indices_;
         using Recognizer<PointInT>::hv_algorithm_;
         using Recognizer<PointInT>::setSceneNormals;
         using Recognizer<PointInT>::training_dir_;

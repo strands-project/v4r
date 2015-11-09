@@ -91,7 +91,6 @@ namespace v4r
           using Recognizer<PointT>::scene_normals_;
           using Recognizer<PointT>::models_;
           using Recognizer<PointT>::transforms_;
-          using Recognizer<PointT>::indices_;
           using Recognizer<PointT>::hv_algorithm_;
           using Recognizer<PointT>::poseRefinement;
           using Recognizer<PointT>::hypothesisVerification;
@@ -273,12 +272,6 @@ namespace v4r
         setKdtreeSplits (int n)
         {
           param_.kdtree_splits_ = n;
-        }
-
-        void
-        setIndices (const std::vector<int> & indices)
-        {
-          indices_ = indices;
         }
 
         void

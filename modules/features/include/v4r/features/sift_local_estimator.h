@@ -112,7 +112,7 @@ public:
             u = (int)(ks[i].x+.5);
             if(u >= 0 && v >= 0 && u < mask_cloud.width && v < mask_cloud.height && mask_cloud.at(u,v))
             {
-                if(pcl_isfinite(in->at(u,v).z) && pcl_isfinite(in->at(u,v).x) && pcl_isfinite(in->at(u,v).y))
+                if( pcl::isFinite(in->at(u,v)))
                 {
                     keypoints->points[kept] = in->at(u,v);
                     keypoint_indices_.indices.push_back(v * in->width + u);

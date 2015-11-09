@@ -48,12 +48,10 @@ namespace v4r
         using Recognizer<PointT>::scene_normals_;
         using Recognizer<PointT>::models_;
         using Recognizer<PointT>::transforms_;
-        using Recognizer<PointT>::indices_;
         using Recognizer<PointT>::hv_algorithm_;
 
         using Recognizer<PointT>::poseRefinement;
         using Recognizer<PointT>::hypothesisVerification;
-        using Recognizer<PointT>::icp_scene_indices_;
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;

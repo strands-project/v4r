@@ -1,9 +1,12 @@
-#include <v4r/recognition/local_recognizer.h>
-#include <v4r/io/eigen.h>
 #include <v4r/common/miscellaneous.h>
-#include <sstream>
+#include <v4r/io/eigen.h>
+#include <v4r/recognition/local_recognizer.h>
 
+#include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/visualization/pcl_visualizer.h>
+
+#include <glog/logging.h>
+#include <sstream>
 
 namespace v4r
 {
@@ -200,13 +203,18 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                 typename pcl::PointCloud<PointT>::Ptr all_keypoints;
                 typename pcl::PointCloud<PointT>::Ptr object_keypoints (new pcl::PointCloud<PointT>);
                 typename pcl::PointCloud<PointT>::Ptr foo (new pcl::PointCloud<PointT>);
+                pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
 
                 std::vector<std::string> strs;
                 boost::split (strs, m->view_filenames_[v], boost::is_any_of ("_"));
                 boost::replace_last(strs[1], ".pcd", "");
                 view_id_length_ = strs[1].size();
 
+
+                computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
+
                 pcl::PointIndices all_kp_indices, obj_kp_indices;
+                estimator_->setNormals(normals);
                 bool success = estimator_->estimate (m->views_[v], foo, all_keypoints, all_signatures);
                 (void) success;
                 estimator_->getKeypointIndices(all_kp_indices);
@@ -241,9 +249,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                     std::stringstream desc_fn; desc_fn << dir << "/descriptors_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
                     pcl::io::savePCDFileBinary (desc_fn.str (), *object_signatures);
 
-                    pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
                     pcl::PointCloud<pcl::Normal>::Ptr normals_keypoints(new pcl::PointCloud<pcl::Normal>);
-                    computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
                     pcl::copyPointCloud(*normals, obj_kp_indices, *normals_keypoints);
                     std::stringstream normals_fn; normals_fn << dir << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
                     pcl::io::savePCDFileBinary (normals_fn.str (), *normals_keypoints);
@@ -278,31 +284,20 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
     if (feat_kp_set_from_outside_)
     {
         pcl::copyPointCloud(*scene_, scene_kp_indices_, *scene_keypoints_);
-        std::cout << "Signatures and Keypoints set from outside ..." << std::endl;
+        LOG(INFO) << "Signatures and Keypoints set from outside ...";
         feat_kp_set_from_outside_ = false;
     }
     else
     {
+        if(!estimator_)
+            LOG(FATAL) << "No feature estimator set!";
+
         signatures_.reset(new pcl::PointCloud<FeatureT>);
         scene_kp_indices_.indices.clear();
 
-        typename pcl::PointCloud<PointT>::Ptr processed(new pcl::PointCloud<PointT>);
-        if (indices_.size () > 0)
-        {
-            if(estimator_->acceptsIndices())
-            {
-                estimator_->setIndices(indices_);
-                estimator_->estimate (scene_, processed, scene_keypoints_, signatures_);
-            }
-            else
-            {
-                PointTPtr sub_input (new pcl::PointCloud<PointT>);
-                pcl::copyPointCloud (*scene_, indices_, *sub_input);
-                estimator_->estimate (sub_input, processed, scene_keypoints_, signatures_);
-            }
-        }
-        else
-            estimator_->estimate (scene_, processed, scene_keypoints_, signatures_);
+        estimator_->setNormals(scene_normals_);
+        typename pcl::PointCloud<PointT>::Ptr processed_foo;
+        estimator_->estimate (scene_, processed_foo, scene_keypoints_, signatures_);
 
         estimator_->getKeypointIndices(scene_kp_indices_);
     }

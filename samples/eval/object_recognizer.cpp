@@ -15,6 +15,7 @@
 #include <v4r/recognition/registered_views_source.h>
 
 #include <pcl/common/centroid.h>
+#include <pcl/common/time.h>
 #include <pcl/filters/passthrough.h>
 
 #include <iostream>
@@ -22,6 +23,7 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include <boost/any.hpp>
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
 
@@ -76,7 +78,7 @@ public:
                 ("models_dir,m", po::value<std::string>(&models_dir)->required(), "directory containing the model .pcd files")
                 ("training_dir", po::value<std::string>(&training_dir)->required(), "directory containing the training data (for each model there should be a folder with the same name as the model and inside this folder there must be training views of the model with pose and segmented indices)")
                 ("test_dir", po::value<std::string>(&test_dir_)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
-                ("out_dir", po::value<std::string>(&out_dir_)->default_value("/tmp/sv_recognition_out/"), "Output directory where recognition results will be stored.")
+                ("out_dir,o", po::value<std::string>(&out_dir_)->default_value("/tmp/sv_recognition_out/"), "Output directory where recognition results will be stored.")
                 ("visualize,v", po::value<bool>(&visualize_)->default_value(true), "If true, turns visualization on")
                 ("do_sift", po::value<bool>(&do_sift)->default_value(true), "if true, generates hypotheses using SIFT (visual texture information)")
                 ("do_shot", po::value<bool>(&do_shot)->default_value(false), "if true, generates hypotheses using SHOT (local geometrical properties)")
@@ -89,9 +91,9 @@ public:
                 ("merge_close_hypotheses", po::value<bool>(&paramMultiPipeRec.merge_close_hypotheses_)->default_value(paramMultiPipeRec.merge_close_hypotheses_), "if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined")
                 ("merge_close_hypotheses_dist", po::value<double>(&paramMultiPipeRec.merge_close_hypotheses_dist_)->default_value(paramMultiPipeRec.merge_close_hypotheses_dist_), "defines the maximum distance of the centroids in meter for clusters to be merged together")
                 ("merge_close_hypotheses_angle", po::value<double>(&paramMultiPipeRec.merge_close_hypotheses_angle_)->default_value(paramMultiPipeRec.merge_close_hypotheses_angle_, boost::str(boost::format("%.2e") % paramMultiPipeRec.merge_close_hypotheses_angle_) ), "defines the maximum angle in degrees for clusters to be merged together")
-                ("chop_z", po::value<double>(&chop_z_)->default_value(chop_z_, boost::str(boost::format("%.2e") % chop_z_) ), "points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)")
-                ("cg_size_thresh", po::value<int>(&paramGgcg.gc_threshold_)->default_value(paramGgcg.gc_threshold_), "Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose ")
-                ("cg_size,c", po::value<double>(&paramGgcg.gc_size_)->default_value(paramGgcg.gc_size_, boost::str(boost::format("%.2e") % paramGgcg.gc_size_) ), "Resolution of the consensus set used to cluster correspondences together ")
+                ("chop_z,z", po::value<double>(&chop_z_)->default_value(chop_z_, boost::str(boost::format("%.2e") % chop_z_) ), "points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)")
+                ("cg_size_thresh,c", po::value<int>(&paramGgcg.gc_threshold_)->default_value(paramGgcg.gc_threshold_), "Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose ")
+                ("cg_size", po::value<double>(&paramGgcg.gc_size_)->default_value(paramGgcg.gc_size_, boost::str(boost::format("%.2e") % paramGgcg.gc_size_) ), "Resolution of the consensus set used to cluster correspondences together ")
                 ("cg_ransac_threshold", po::value<double>(&paramGgcg.ransac_threshold_)->default_value(paramGgcg.ransac_threshold_, boost::str(boost::format("%.2e") % paramGgcg.ransac_threshold_) ), " ")
                 ("cg_dist_for_clutter_factor", po::value<double>(&paramGgcg.dist_for_cluster_factor_)->default_value(paramGgcg.dist_for_cluster_factor_, boost::str(boost::format("%.2e") % paramGgcg.dist_for_cluster_factor_) ), " ")
                 ("cg_max_taken", po::value<int>(&paramGgcg.max_taken_correspondence_)->default_value(paramGgcg.max_taken_correspondence_), " ")
@@ -112,14 +114,14 @@ public:
                 ("hv_optimizer_type", po::value<int>(&paramGHV.opt_type_)->default_value(paramGHV.opt_type_), " ")
                 ("hv_radius_clutter", po::value<double>(&paramGHV.radius_neighborhood_clutter_)->default_value(paramGHV.radius_neighborhood_clutter_, boost::str(boost::format("%.2e") % paramGHV.radius_neighborhood_clutter_) ), "defines the maximum distance between two points to be checked for label consistency")
                 ("hv_radius_normals", po::value<double>(&paramGHV.radius_normals_)->default_value(paramGHV.radius_normals_, boost::str(boost::format("%.2e") % paramGHV.radius_normals_) ), " ")
-                ("hv_regularizer", po::value<double>(&paramGHV.regularizer_)->default_value(paramGHV.regularizer_, boost::str(boost::format("%.2e") % paramGHV.regularizer_) ), " ")
+                ("hv_regularizer,r", po::value<double>(&paramGHV.regularizer_)->default_value(paramGHV.regularizer_, boost::str(boost::format("%.2e") % paramGHV.regularizer_) ), " ")
                 ("hv_plane_method", po::value<int>(&paramGHV.plane_method_)->default_value(paramGHV.plane_method_), "defines which method to use for plane extraction (if add_planes_ is true). 0... Multiplane Segmentation, 1... ClusterNormalsForPlane segmentation")
                 ("hv_add_planes", po::value<bool>(&paramGHV.add_planes_)->default_value(paramGHV.add_planes_), "if true, adds planes as possible hypotheses (slower but decreases false positives especially for planes detected as flat objects like books)")
                 ("hv_plane_inlier_distance", po::value<double>(&paramGHV.plane_inlier_distance_)->default_value(paramGHV.plane_inlier_distance_, boost::str(boost::format("%.2e") % paramGHV.plane_inlier_distance_) ), "Maximum inlier distance for plane clustering")
                 ("hv_plane_thrAngle", po::value<double>(&paramGHV.plane_thrAngle_)->default_value(paramGHV.plane_thrAngle_, boost::str(boost::format("%.2e") % paramGHV.plane_thrAngle_) ), "Threshold of normal angle in degree for plane clustering")
                 ("knn_plane_clustering_search", po::value<int>(&paramGHV.knn_plane_clustering_search_)->default_value(paramGHV.knn_plane_clustering_search_), "sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)")
                 ("hv_min_plane_inliers", po::value<size_t>(&paramGHV.min_plane_inliers_)->default_value(paramGHV.min_plane_inliers_), "a planar cluster is only added as plane if it has at least min_plane_inliers_ points")
-                ("normal_method", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "chosen normal computation method of the V4R library")
+                ("normal_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "chosen normal computation method of the V4R library")
        ;
 
         po::variables_map vm;
@@ -188,7 +190,7 @@ public:
             uniform_kp_extractor->setSamplingDensity (0.01f);
             uniform_kp_extractor->setFilterPlanar (true);
             uniform_kp_extractor->setThresholdPlanar(0.1);
-            uniform_kp_extractor->setMaxDistance( 1000.0 ); // for training we want to consider all points (except nan values)
+            uniform_kp_extractor->setMaxDistance( 100.0 ); // for training we want to consider all points (except nan values)
 
             boost::shared_ptr<v4r::KeypointExtractor<PointT> > keypoint_extractor = boost::static_pointer_cast<v4r::KeypointExtractor<PointT> > (uniform_kp_extractor);
             boost::shared_ptr<v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> > > estimator (new v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >(paramLocalEstimator));
@@ -219,11 +221,31 @@ public:
         rr_->setCGAlgorithm( gcg_alg );
         
         v4r::io::createDirIfNotExist(out_dir_);
-        /*ofstream param_file;
+
+        // writing parameters to file
+        ofstream param_file;
         param_file.open ((out_dir_ + "/param.nfo").c_str());
-        r_.printParams(param_file);
+        for(const auto& it : vm)
+        {
+          param_file << "--" << it.first << " ";
+
+          auto& value = it.second.value();
+          if (auto v = boost::any_cast<double>(&value))
+            param_file << std::setprecision(3) << *v;
+          else if (auto v = boost::any_cast<std::string>(&value))
+            param_file << *v;
+          else if (auto v = boost::any_cast<bool>(&value))
+            param_file << *v;
+          else if (auto v = boost::any_cast<int>(&value))
+            param_file << *v;
+          else if (auto v = boost::any_cast<size_t>(&value))
+            param_file << *v;
+          else
+            param_file << "error";
+
+          param_file << " ";
+        }
         param_file.close();
-        r_.printParams();*/
 
         return true;
     }
@@ -268,7 +290,16 @@ public:
                 }
 
                 rr_->setInputCloud (cloud);
+                pcl::StopWatch watch;
                 rr_->recognize();
+                double time = watch.getTimeSeconds();
+
+                std::stringstream out_fn;
+                out_fn << out_path << "/time.nfo";
+                ofstream or_file;
+                or_file.open (out_fn.str().c_str());
+                or_file << time;
+                or_file.close();
 
                 std::vector<ModelTPtr> verified_models = rr_->getVerifiedModels();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
@@ -299,7 +330,7 @@ public:
                         it_rec_mod->second++;
                     }
 
-                    std::stringstream out_fn;
+                    out_fn.str("");
                     out_fn << out_path << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_"
                            << model_id.substr(0, model_id.length() - 4) << "_" << num_models_per_model_id << ".txt";
 

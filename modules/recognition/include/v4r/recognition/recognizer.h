@@ -29,59 +29,19 @@
 *      @brief object instance recognizer
 */
 
-
 #ifndef RECOGNIZER_H_
 #define RECOGNIZER_H_
 
-#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/core/macros.h>
 #include <v4r/recognition/hypotheses_verification.h>
-#include <v4r/recognition/voxel_based_correspondence_estimation.h>
+#include <v4r/recognition/local_rec_object_hypotheses.h>
 #include <v4r/recognition/source.h>
 
 #include <pcl/common/common.h>
-#include <pcl/common/time.h>
-#include <pcl/filters/crop_box.h>
-#include <pcl/registration/correspondence_rejection_sample_consensus.h>
-#include <pcl/registration/transformation_estimation_svd.h>
-#include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/registration/transformation_estimation_point_to_plane_lls.h>
 
 namespace v4r
 {
-    template<typename PointT>
-    class V4R_EXPORTS ObjectHypothesis
-    {
-      typedef Model<PointT> ModelT;
-      typedef boost::shared_ptr<ModelT> ModelTPtr;
-
-      private:
-        mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-        int vp1_;
-
-      public:
-        ModelTPtr model_;
-
-        ObjectHypothesis()
-        {
-            model_scene_corresp_.reset(new pcl::Correspondences);
-        }
-
-        pcl::CorrespondencesPtr model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
-        std::vector<int> indices_to_flann_models_;
-
-        void visualize(const typename pcl::PointCloud<PointT> & scene) const;
-
-        ObjectHypothesis & operator=(const ObjectHypothesis &rhs)
-        {
-            *(this->model_scene_corresp_) = *rhs.model_scene_corresp_;
-            this->indices_to_flann_models_ = rhs.indices_to_flann_models_;
-            this->model_ = rhs.model_;
-            return *this;
-        }
-    };
-
     template<typename PointT>
     class V4R_EXPORTS Recognizer
     {
@@ -147,8 +107,6 @@ namespace v4r
         std::vector<bool> model_or_plane_is_verified_;
 
         bool requires_segmentation_;
-        std::vector<int> indices_;
-        pcl::PointIndicesPtr icp_scene_indices_;
 
         std::string training_dir_; /// \brief Directory containing views of the object
 
@@ -323,12 +281,6 @@ namespace v4r
         virtual bool requiresSegmentation() const
         {
           return requires_segmentation_;
-        }
-
-        virtual void
-        setIndices (const std::vector<int> & indices)
-        {
-          indices_ = indices;
         }
 
         void visualize () const;

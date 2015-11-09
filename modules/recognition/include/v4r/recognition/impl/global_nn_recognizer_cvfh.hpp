@@ -265,36 +265,7 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     std::vector<pcl::PointCloud<FeatureT>, Eigen::aligned_allocator<pcl::PointCloud<FeatureT> > > signatures;
     std::vector < Eigen::Vector3f > centroids;
 
-    if(micvfh_estimator_->getUsesOrganizedData())
-    {
-        if(indices_.size() > 0)
-        {
-            pcl::copyPointCloud (*scene_, *in);
-            std::vector<bool> negative_indices(in->points.size(), true);
-            for(size_t i=0; i < indices_.size(); i++)
-                negative_indices[indices_[i]] = false;
-
-            for(size_t i=0; i < in->points.size(); i++)
-            {
-                if(negative_indices[i])
-                    in->points[i].x = in->points[i].z = in->points[i].y = std::numeric_limits<float>::quiet_NaN();
-            }
-        }
-        else
-            in = scene_;
-    }
-    else
-    {
-        if (indices_.size () > 0)
-          pcl::copyPointCloud (*scene_, indices_, *in);
-        else
-          in = scene_;
-
-        /*{
-          //pcl::ScopeTime t ("Estimate feature");
-          micvfh_estimator_->estimate (in, processed, signatures, centroids);
-        }*/
-    }
+    in = scene_;
 
     {
       //pcl::ScopeTime t ("Estimate feature");

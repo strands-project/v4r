@@ -40,11 +40,9 @@
 #include <pcl/pcl_macros.h>
 #include <v4r/core/macros.h>
 #include <v4r/common/common_data_structures.h>
-#include <v4r/common/occlusion_reasoning.h>
-#include <v4r/common/impl/occlusion_reasoning.hpp>
+#include <v4r/common/zbuffering.h>
 #include <pcl/common/common.h>
 #include <pcl/search/kdtree.h>
-#include <pcl/filters/voxel_grid.h>
 #include <pcl/keypoints/uniform_sampling.h>
 
 namespace v4r
@@ -223,7 +221,7 @@ namespace v4r
         if (scene_cloud_ == 0)
           throw std::runtime_error("setSceneCloud should be called before adding the model if reasoning about occlusions...");
 
-        occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_scene (param_.zbuffer_scene_resolution_, param_.zbuffer_scene_resolution_, 1.f);
+        ZBuffering<ModelT, SceneT> zbuffer_scene (param_.zbuffer_scene_resolution_, param_.zbuffer_scene_resolution_, 1.f);
         if (!occlusion_cloud_->isOrganized ())
         {
             PCL_WARN("Scene not organized... filtering using computed depth buffer\n");
@@ -237,7 +235,7 @@ namespace v4r
 
           //self-occlusions
           typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
-          typename occlusion_reasoning::ZBuffering<ModelT, SceneT> zbuffer_self_occlusion (param_.zbuffer_self_occlusion_resolution_, param_.zbuffer_self_occlusion_resolution_, 1.f);
+          ZBuffering<ModelT, SceneT> zbuffer_self_occlusion (param_.zbuffer_self_occlusion_resolution_, param_.zbuffer_self_occlusion_resolution_, 1.f);
           zbuffer_self_occlusion.computeDepthMap (*models[i], true);
 
           std::vector<int> self_occlusion_indices;
@@ -252,7 +250,7 @@ namespace v4r
           std::vector<int> indices_cloud_occlusion;
           if (occlusion_cloud_->isOrganized ())
           {
-            filtered = occlusion_reasoning::filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, param_.focal_length_, param_.occlusion_thres_, indices_cloud_occlusion);
+            filtered = filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, param_.focal_length_, param_.occlusion_thres_, indices_cloud_occlusion);
             visible_indices_[i].resize(filtered->points.size());
 
             for(size_t k=0; k < indices_cloud_occlusion.size(); k++)
