@@ -61,7 +61,7 @@ namespace v4r
       {
       public:
           double resolution_; /// @brief The resolution of models and scene used to verify hypotheses (in meters)
-          double inliers_threshold_; /// @brief Threshold for inliers
+          double inliers_threshold_; /// @brief Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers
           double occlusion_thres_;    /// @brief Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)
           int zbuffer_scene_resolution_; /// @brief Resolutions in pixel for the depth scene buffer
           int zbuffer_self_occlusion_resolution_;

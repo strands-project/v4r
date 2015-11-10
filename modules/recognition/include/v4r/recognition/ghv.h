@@ -112,22 +112,22 @@ namespace v4r
           using HypothesisVerification<ModelT, SceneT>::Parameter::self_occlusions_reasoning_;
           using HypothesisVerification<ModelT, SceneT>::Parameter::focal_length_;
 
-          double color_sigma_ab_; /// @brief allowed illumination variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
-          double color_sigma_l_; /// @brief allowed chrominance (AB channel of LAB color space) variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
-          double regularizer_;
-          double radius_neighborhood_clutter_; /// @brief defines the maximum distance between two points to be checked for label consistency
+          double color_sigma_l_; /// @brief allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
+          double color_sigma_ab_; /// @brief allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
+          double regularizer_; /// @brief represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.
+          double radius_neighborhood_clutter_; /// @brief defines the maximum distance between an <i>explained</i> scene point <b>p</b> and other unexplained scene points such that they influence the clutter term associated with <b>p</b>
           double radius_normals_;
           double duplicy_weight_test_;
           double duplicity_curvature_max_;
           bool ignore_color_even_if_exists_;
           int max_iterations_; /// @brief max iterations without improvement
-          double clutter_regularizer_;
+          double clutter_regularizer_; /// @brief The penalty multiplier used to penalize unexplained scene points within the clutter influence radius <i>radius_neighborhood_clutter_</i> of an explained scene point when they belong to the same smooth segment.
           bool detect_clutter_;
           double res_occupancy_grid_;
           double w_occupied_multiple_cm_;
           bool use_super_voxels_;
           bool use_replace_moves_;
-          int opt_type_;
+          int opt_type_; /// @brief defines the optimization methdod<BR><BR> 0: Local search (converges quickly, but can easily get trapped in local minima),<BR> 1: Tabu Search,<BR> 4; Tabu Search + Local Search (Replace active hypotheses moves),<BR> else: Simulated Annealing
           double active_hyp_penalty_;
           int multiple_assignment_penalize_by_one_;
           double d_weight_for_bad_normals_;

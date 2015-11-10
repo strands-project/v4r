@@ -6,23 +6,18 @@
  *      Maintainer: Thomas Faeulhammer
  */
 
-#ifndef FAAT_PCL_REC_FRAMEWORK_LOCAL_RECOGNIZER_H_
-#define FAAT_PCL_REC_FRAMEWORK_LOCAL_RECOGNIZER_H_
+#ifndef V4R_LOCAL_RECOGNIZER_H_
+#define V4R_LOCAL_RECOGNIZER_H_
 
 #include <flann/flann.h>
 #include <pcl/common/common.h>
-#include "source.h"
-#include <v4r/features/local_estimator.h>
+
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/correspondence_grouping.h>
-#include <v4r/recognition//hypotheses_verification.h>
-#include "recognizer.h"
-
-inline bool
-correspSorter (const pcl::Correspondence & i, const pcl::Correspondence & j)
-{
-  return (i.distance < j.distance);
-}
+#include <v4r/features/local_estimator.h>
+#include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/recognition/recognizer.h>
+#include <v4r/recognition/source.h>
 
 namespace v4r
 {
