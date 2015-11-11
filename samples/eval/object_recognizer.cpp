@@ -295,7 +295,7 @@ public:
                 double time = watch.getTimeSeconds();
 
                 std::stringstream out_fn;
-                out_fn << out_path << "/time.nfo";
+                out_fn << out_path << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_time.nfo";
                 ofstream or_file;
                 or_file.open (out_fn.str().c_str());
                 or_file << time;

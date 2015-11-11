@@ -153,16 +153,16 @@ namespace v4r
           int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
 
           Parameter (
-                  double color_sigma_ab = 0.5f,
                   double color_sigma_l = 0.5f,
+                  double color_sigma_ab = 0.5f,
                   double regularizer = 1.f, // 3
                   double radius_neighborhood_clutter = 0.03f,
                   double radius_normals = 0.02f, // 0.01f
                   double duplicy_weight_test = 1.f,
                   double duplicity_curvature_max = 0.03f,
-                  bool ignore_color_even_if_exists = true,
+                  bool ignore_color_even_if_exists = false,
                   int max_iterations = 5000,
-                  double clutter_regularizer =  5.f,
+                  double clutter_regularizer =  3.f,
                   bool detect_clutter = true,
                   double res_occupancy_grid = 0.005f,
                   double w_occupied_multiple_cm = 2.f, //0.f
@@ -191,8 +191,8 @@ namespace v4r
                   )
               :
                 HypothesisVerification<ModelT, SceneT>::Parameter(),
-                color_sigma_ab_ (color_sigma_ab),
                 color_sigma_l_ (color_sigma_l),
+                color_sigma_ab_ (color_sigma_ab),
                 regularizer_ (regularizer),
                 radius_neighborhood_clutter_ (radius_neighborhood_clutter),
                 radius_normals_ (radius_normals),

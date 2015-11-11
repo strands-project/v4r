@@ -92,7 +92,7 @@ namespace v4r
                   double thres_dot_distance = 0.2f, // 0.05f
                   bool use_graph = true,
                   double dist_for_cluster_factor = 0., //3.f
-                  int max_taken_correspondence = 2, //5
+                  int max_taken_correspondence = 3, //5
                   bool cliques_big_to_small = false,
                   bool check_normals_orientation = true,
                   double max_time_allowed_cliques_comptutation = std::numeric_limits<double>::infinity(), // 100
