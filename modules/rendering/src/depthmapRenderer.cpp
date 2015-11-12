@@ -123,7 +123,13 @@ DepthmapRenderer::DepthmapRenderer(int resx, int resy)
     glfwMakeContextCurrent(context);
 
     glewExperimental = GL_TRUE;
-    glewInit();
+    GLenum err=glewInit();
+
+    if(err!=GLEW_OK){
+        std::stringstream s; s << "glewInit failed, aborting. " << err;
+        throw std::runtime_error(s.str());
+    }
+
     glGetError();
     //create framebuffer:
 
@@ -565,6 +571,11 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
 
     //disable culling
     glFrontFace(GL_FRONT_AND_BACK);
+    GLenum err = glGetError();
+    if( err != GL_NO_ERROR){
+        std::cerr << "Something wrong with opengl at rendering0.435 (" << err << ")" << std::endl;
+    }
+
     //render
     glDrawElements(
         GL_TRIANGLES,      // mode
@@ -572,10 +583,15 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
         GL_UNSIGNED_INT,   // type
         (void*)0           // element array buffer offset
     );
+    err = glGetError();
+    if( err != GL_NO_ERROR){
+        std::cerr << "Something wrong with opengl at rendering0.qwerw (" << err << ")" << std::endl;
+    }
 
     glFinish();
-    if(glGetError()){
-        std::cout << "Something wrong with opengl at rendering0.9" << std::endl;
+    err = glGetError();
+    if( err != GL_NO_ERROR){
+        std::cerr << "Something wrong with opengl at rendering0.9 (" << err << ")" << std::endl;
     }
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT|GL_SHADER_STORAGE_BARRIER_BIT);//not helping either
     //read buffers:
@@ -628,7 +644,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
     float visibleArea=0;
     float fullArea=0;
     int fullPixelCount=0;
-    for(int i=0;i<faceCount;i++){
+    for(int i=0; i<faceCount; i++){
         //std::cout << "pixel count face " << i << ": " << facePixelCount[i]<< std::endl;
         fullPixelCount+=facePixelCount[i];
         fullArea+=faceSurfaceArea[i].x;

@@ -77,7 +77,7 @@ int main(int argc, const char * argv[]) {
     std::vector<Eigen::Vector3f> sphere= renderer.createSphere(3,0);
 
     std::cout <<"[";
-    for(int i=0;i<sphere.size();i++){
+    for(size_t i=0; i<sphere.size(); i++){
 
         //get point from list
         Eigen::Vector3f point = sphere[i];
@@ -99,12 +99,8 @@ int main(int argc, const char * argv[]) {
         std::string file = ss.str();
         pcl::io::savePCDFileASCII (file, renderer.renderPointcloudColor(visible));
         std::cerr << "Saved data points to " << file << "." << std::endl;
-
-
-
         cv::waitKey();
     }
-
 
     return 0;
 }
