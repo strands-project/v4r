@@ -47,7 +47,7 @@
 #include "dmRenderObject.h"
 
 namespace v4r{
-const unsigned int maxMeshSize=1000000; //this will lead to a big ssbo^^ (16mb)
+const size_t maxMeshSize=1000000; //this will lead to a big ssbo^^ (16mb)
 /**
  * @brief The Renderer class
  * renders a depth map from a model (every model you can load via assimp)
@@ -100,9 +100,9 @@ private:
 
     //this here is to create points as part of a sphere
     //The next two i stole from thomas mörwald
-    int search_midpoint(int &index_start, int &index_end, unsigned &n_vertices, int &edge_walk,
+    int search_midpoint(int &index_start, int &index_end, size_t &n_vertices, int &edge_walk,
                        std::vector<int> &midpoint, std::vector<int> &start, std::vector<int> &end, std::vector<float> &vertices);
-    void subdivide(unsigned &n_vertices, unsigned &n_edges, unsigned &n_faces, std::vector<float> &vertices,
+    void subdivide(size_t &n_vertices, size_t &n_edges, size_t &n_faces, std::vector<float> &vertices,
                    std::vector<int> &faces);
 
 public:
@@ -122,7 +122,7 @@ public:
      * @param subdivisions there are 12 points by subdividing you add a lot more to them
      * @return vector of poses around a sphere
      */
-    std::vector<Eigen::Vector3f> createSphere(float r,int subdivisions);
+    std::vector<Eigen::Vector3f> createSphere(float r, size_t subdivisions);
 
     /**
      * @brief setIntrinsics
@@ -137,7 +137,7 @@ public:
      * @brief setModel
      * @param model
      */
-    void setModel(DepthmapRendererModel* model);
+    void setModel(DepthmapRendererModel* _model);
 
     /**
      * @brief getPoseLookingToCenterFrom
@@ -151,7 +151,7 @@ public:
      * @param pose
      * A 4x4 Matrix giving the pose
      */
-    void setCamPose(Eigen::Matrix4f pose);
+    void setCamPose(Eigen::Matrix4f _pose);
 
     /**
      * @brief renderDepthmap

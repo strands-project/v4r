@@ -40,15 +40,15 @@ DepthmapRendererModel::DepthmapRendererModel(std::string file)
     glm::dvec3 mean(0,0,0);
     //first count how many geometry we need + find out maxima and average...
     if(scene->HasMeshes()){
-        for(int i=0;i<scene->mNumMeshes;i++){
+        for(size_t i=0;i<scene->mNumMeshes;i++){
 
             vertexCount+=scene->mMeshes[i]->mNumVertices;
             //TODO: faces sind einzeln unterteilt
-            for(int j=0;j<scene->mMeshes[i]->mNumFaces;j++){
-                indexCount+=scene->mMeshes[i]->mFaces[i].mNumIndices;
+            for(size_t j=0;j<scene->mMeshes[i]->mNumFaces;j++){
+                indexCount += scene->mMeshes[i]->mFaces[i].mNumIndices;
             }
             std::cout << "Mesh nr:" << i << " faces:"<< scene->mMeshes[i]->mNumFaces << "  Vertices:"<< scene->mMeshes[i]->mNumVertices << std::endl;
-            for(int j=0;j<scene->mMeshes[i]->mNumVertices;j++){
+            for(size_t j=0;j<scene->mMeshes[i]->mNumVertices;j++){
                 //print out vertex data:
                 glm::vec3 vertex(scene->mMeshes[i]->mVertices[j].x,scene->mMeshes[i]->mVertices[j].y,scene->mMeshes[i]->mVertices[j].z);
                 //std::cout << " vertex:" <<vertex.x << " " << vertex.y << " " << vertex.z << std::endl;//Debug
@@ -66,8 +66,8 @@ DepthmapRendererModel::DepthmapRendererModel(std::string file)
     unsigned int k=0;
     unsigned int l=0;
     unsigned int m=0;
-    for(int i=0;i<scene->mNumMeshes;i++){
-        for(int j=0;j<scene->mMeshes[i]->mNumVertices;j++){
+    for(size_t i=0;i<scene->mNumMeshes;i++){
+        for(size_t j=0;j<scene->mMeshes[i]->mNumVertices;j++){
             Vertex v;
             v.pos=glm::vec3(scene->mMeshes[i]->mVertices[j].x,
                             scene->mMeshes[i]->mVertices[j].y,
@@ -87,8 +87,8 @@ DepthmapRendererModel::DepthmapRendererModel(std::string file)
             k++;
         }
 
-        for(int j=0;j<scene->mMeshes[i]->mNumFaces;j++){
-            for(int n=0;n<scene->mMeshes[i]->mFaces[j].mNumIndices;n++){
+        for(size_t j=0;j<scene->mMeshes[i]->mNumFaces;j++){
+            for(size_t n=0;n<scene->mMeshes[i]->mFaces[j].mNumIndices;n++){
 
                 indices[m]=scene->mMeshes[i]->mFaces[j].mIndices[n]+l;
                 m++;

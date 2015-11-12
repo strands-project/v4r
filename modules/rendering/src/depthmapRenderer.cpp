@@ -11,13 +11,12 @@ bool DepthmapRenderer::glfwRunning=false;
 
 
 
-int DepthmapRenderer::search_midpoint(int &index_start, int &index_end, unsigned &n_vertices, int &edge_walk,
+int DepthmapRenderer::search_midpoint(int &index_start, int &index_end, size_t &n_vertices, int &edge_walk,
     std::vector<int> &midpoint, std::vector<int> &start, std::vector<int> &end, std::vector<float> &vertices)
 {
-  int i;
-  for (i = 0; i < edge_walk; i++)
+  for (int i = 0; i < edge_walk; i++)
     if ((start[i] == index_start && end[i] == index_end) || (start[i] == index_end && end[i] == index_start)) {
-      int res = midpoint[i];
+      int res_tmp = midpoint[i];
 
       /* update the arrays */
       start[i] = start[edge_walk - 1];
@@ -25,7 +24,7 @@ int DepthmapRenderer::search_midpoint(int &index_start, int &index_end, unsigned
       midpoint[i] = midpoint[edge_walk - 1];
       edge_walk--;
 
-      return res;
+      return res_tmp;
     }
 
   /* vertex not in the list, so we add it */
@@ -52,12 +51,11 @@ int DepthmapRenderer::search_midpoint(int &index_start, int &index_end, unsigned
   return midpoint[edge_walk - 1];
 }
 
-void DepthmapRenderer::subdivide(unsigned &n_vertices, unsigned &n_edges, unsigned &n_faces, std::vector<float> &vertices, std::vector<int> &faces)
+void DepthmapRenderer::subdivide(size_t &n_vertices, size_t &n_edges, size_t &n_faces, std::vector<float> &vertices, std::vector<int> &faces)
 {
-    //Code i stole from thomas mörwald:
+    //Code i stole from thomas moerwald:
     int n_vertices_new = n_vertices + 2 * n_edges;
     int n_faces_new = 4 * n_faces;
-    unsigned i;
 
     int edge_walk = 0;
     n_edges = 2 * n_vertices + 3 * n_faces;
@@ -71,7 +69,7 @@ void DepthmapRenderer::subdivide(unsigned &n_vertices, unsigned &n_edges, unsign
     faces.resize(3 * n_faces_new);
     n_faces_new = 0;
 
-    for (i = 0; i < n_faces; i++) {
+    for (size_t i = 0; i < n_faces; i++) {
       int a = faces_old[3 * i];
       int b = faces_old[3 * i + 1];
       int c = faces_old[3 * i + 2];
@@ -417,11 +415,10 @@ DepthmapRenderer::~DepthmapRenderer()
     glDeleteBuffers(1,&zBuffer);
 }
 
-std::vector<Eigen::Vector3f> DepthmapRenderer::createSphere(float r, int subdivisions)
+std::vector<Eigen::Vector3f> DepthmapRenderer::createSphere(float r, size_t subdivisions)
 {
 
     std::vector<Eigen::Vector3f> result;
-    int i;
 
     float t = (1 + sqrt(5.0f)) / 2;
     float tau = t / sqrt(1 + t * t);
@@ -432,25 +429,27 @@ std::vector<Eigen::Vector3f> DepthmapRenderer::createSphere(float r, int subdivi
     int icosahedron_faces[] = { 4, 8, 7, 4, 7, 9, 5, 6, 11, 5, 10, 6, 0, 4, 3, 0, 3, 5, 2, 7, 1, 2, 1, 6, 8, 0, 11, 8, 11, 1, 9,
         10, 3, 9, 2, 10, 8, 4, 0, 11, 0, 5, 4, 9, 3, 5, 3, 10, 7, 8, 1, 6, 1, 11, 7, 2, 9, 6, 10, 2 };
 
-    unsigned int n_vertices = 12;
-    unsigned int n_faces = 20;
-    unsigned int n_edges = 30;
+    size_t n_vertices = 12;
+    size_t n_faces = 20;
+    size_t n_edges = 30;
 
 
-    std::vector<float> vertices;
-    std::vector<int> faces;
-    for (unsigned int i = 0; i < (3 * n_vertices); i++)
-      vertices.push_back(icosahedron_vertices[i]);
-    for (unsigned i = 0; i < (3 * n_faces); i++)
-      faces.push_back(icosahedron_faces[i]);
+    std::vector<float> vertices(3 * n_vertices);
+    std::vector<int> faces(3 * n_faces);
+
+    for (size_t i = 0; i < (3 * n_vertices); i++)
+      vertices[i]= icosahedron_vertices[i];
+
+    for (size_t i = 0; i < (3 * n_faces); i++)
+      faces[i] = icosahedron_faces[i];
 
 
 
-    for (i = 0; i < subdivisions; i++)
+    for (size_t i = 0; i < subdivisions; i++)
       subdivide(n_vertices, n_edges, n_faces, vertices, faces);
 
     // Copy vertices
-    for (i = 0; i < n_vertices; i++) {
+    for (size_t i = 0; i < n_vertices; i++) {
         Eigen::Vector3f v;
         v[0] = r * vertices[3 * i + 0];
         v[1] = r * vertices[3 * i + 1];
@@ -468,9 +467,9 @@ void DepthmapRenderer::setIntrinsics(float fx, float fy, float cx, float cy)
     fxycxy=glm::vec4(fx,fy,cx,cy);
 }
 
-void DepthmapRenderer::setModel(DepthmapRendererModel *model)
+void DepthmapRenderer::setModel(DepthmapRendererModel *_model)
 {
-    this->model=model;
+    this->model=_model;
 
     //bind shader:
     glBindVertexArray(VAO);
@@ -493,23 +492,24 @@ Eigen::Matrix4f DepthmapRenderer::getPoseLookingToCenterFrom(Eigen::Vector3f pos
     glm::vec3 pos(position[0],position[1],position[2]);
     glm::vec3 center(0,0,0);
 
-    glm::mat4 pose=glm::lookAt(pos,center,up);
+    glm::mat4 pose_tmp = glm::lookAt(pos,center,up);
+
     //transform to Eigen Matrix type
     Eigen::Matrix4f ePose;
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
-            ePose(i,j)=pose[i][j];
+    for(size_t i=0; i<4; i++){
+        for(size_t j=0; j<4; j++){
+            ePose(i,j) = pose_tmp[i][j];
         }
     }
     return ePose;
 }
 
-void DepthmapRenderer::setCamPose(Eigen::Matrix4f pose)
+void DepthmapRenderer::setCamPose(Eigen::Matrix4f _pose)
 {
     glm::mat4 gPose;
     for(int i=0;i<4;i++){
         for(int j=0;j<4;j++){
-            gPose[i][j]=pose(i,j);
+            gPose[i][j]=_pose(i,j);
         }
     }
     this->pose=gPose;
@@ -571,10 +571,10 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
 
     //disable culling
     glFrontFace(GL_FRONT_AND_BACK);
-    GLenum err = glGetError();
-    if( err != GL_NO_ERROR){
-        std::cerr << "Something wrong with opengl at rendering0.435 (" << err << ")" << std::endl;
-    }
+    GLenum err;
+
+    if( (err = glGetError()) != GL_NO_ERROR)
+        std::cerr << "An error occured during opengl function glFrontFace at rendering(" << err << ")" << std::endl;
 
     //render
     glDrawElements(
@@ -583,16 +583,13 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
         GL_UNSIGNED_INT,   // type
         (void*)0           // element array buffer offset
     );
-    err = glGetError();
-    if( err != GL_NO_ERROR){
-        std::cerr << "Something wrong with opengl at rendering0.qwerw (" << err << ")" << std::endl;
-    }
+    if( (err = glGetError()) != GL_NO_ERROR)
+        std::cerr << "An error occured during opengl function glDrawElements at rendering(" << err << ")" << std::endl;
 
     glFinish();
-    err = glGetError();
-    if( err != GL_NO_ERROR){
-        std::cerr << "Something wrong with opengl at rendering0.9 (" << err << ")" << std::endl;
-    }
+    if( (err = glGetError()) != GL_NO_ERROR)
+        std::cerr << "An error occured during opengl function glFinish at rendering(" << err << ")" << std::endl;
+
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT|GL_SHADER_STORAGE_BARRIER_BIT);//not helping either
     //read buffers:
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
@@ -600,7 +597,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
                                             GL_MAP_READ_BIT );
 
     //std::cout << ptr[0] << " visible triangles and " << ptr[1] << " invisible triangles" << std::endl;
-    unsigned int faceCount=ptr[0];
+    size_t faceCount = ptr[0];
     glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
@@ -614,12 +611,10 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
     //glGetTexImage(GL_TEXTURE_2D,0,GL_RED,GL_FLOAT,depthmap.data);
 
 
-
     //GET INDEX TEXTURE
     cv::Mat indexMap(res.y,res.x,CV_32SC1);
     glBindTexture(GL_TEXTURE_2D,indexTex);
     glGetTexImage(GL_TEXTURE_2D,0,GL_RED_INTEGER,GL_UNSIGNED_INT,indexMap.data);
-
 
     //GET SSBO DATA
     glm::vec2* faceSurfaceArea=new glm::vec2[faceCount];
@@ -636,15 +631,15 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
 
     for(int u=0;u<depthmap.rows;u++){
         for(int v=0;v<depthmap.cols;v++){
-            if(indexMap.at<unsigned int>(u,v)!=0){
-                facePixelCount[indexMap.at<unsigned int>(u,v)-1]++;
+            if(indexMap.at<int>(u,v)!=0){
+                facePixelCount[indexMap.at<int>(u,v)-1]++;
             }
         }
     }
     float visibleArea=0;
     float fullArea=0;
     int fullPixelCount=0;
-    for(int i=0; i<faceCount; i++){
+    for(size_t i=0; i<faceCount; i++){
         //std::cout << "pixel count face " << i << ": " << facePixelCount[i]<< std::endl;
         fullPixelCount+=facePixelCount[i];
         fullArea+=faceSurfaceArea[i].x;
@@ -665,7 +660,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
 
 
 
-    std::cout << "index value " << indexMap.at<unsigned int>(240,320) << std::endl;
+    std::cout << "index value " << indexMap.at<int>(240,320) << std::endl;
     //read depthbuffer
     //glBindRenderbuffer(GL_RENDERBUFFER, zBuffer);
     //glReadPixels(0,0,res.x,res.y,GL_DEPTH_COMPONENT,GL_FLOAT,depthmap.data);
@@ -695,17 +690,18 @@ pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visible
         }
     }
     cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(ePose.block(0,0,3,3)));
-    Eigen::Vector3f p=Eigen::Matrix3f(ePose.block(0,0,3,3))*Eigen::Vector3f(ePose(3,0),ePose(3,1),ePose(3,2));
-    cloud.sensor_origin_ = Eigen::Vector4f(p(0),p(1),p(2),1.0f);
+    Eigen::Vector3f trans = Eigen::Matrix3f(ePose.block(0,0,3,3))*Eigen::Vector3f(ePose(3,0),ePose(3,1),ePose(3,2));
+    cloud.sensor_origin_ = Eigen::Vector4f(trans(0), trans(1), trans(2), 1.0f);
 
     cv::Mat color;
     cv::Mat depth=renderDepthmap(visibleSurfaceArea,color);
-    for(int k=0;k<cloud.height;k++){
-        for(int j=0;j<cloud.width;j++){
+    for(size_t k=0;k<cloud.height;k++){
+        for(size_t j=0;j<cloud.width;j++){
             float d=depth.at<float>(k,j);
             if(d==0){
                 cloud.at(j,k)=pcl::PointXYZ(bad_point,bad_point,bad_point);
-            }else{
+            }
+            else{
                 pcl::PointXYZ p;
                 p.x=((float)j-fxycxy.z)/fxycxy.x*d;
                 p.y=((float)k-fxycxy.w)/fxycxy.y*d;
@@ -732,40 +728,45 @@ pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float 
 
     //set pose inside pcl structure
     Eigen::Matrix4f ePose;
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
+    for(size_t i=0; i<4; i++){
+        for(size_t j=0; j<4; j++){
             ePose(i,j)=pose[i][j];
         }
     }
     cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(ePose.block(0,0,3,3)));
-    Eigen::Vector3f p=Eigen::Matrix3f(ePose.block(0,0,3,3))*Eigen::Vector3f(ePose(3,0),ePose(3,1),ePose(3,2));
-    cloud.sensor_origin_ = Eigen::Vector4f(p(0),p(1),p(2),1.0f);
+    Eigen::Vector3f trans = Eigen::Matrix3f(ePose.block(0,0,3,3))*Eigen::Vector3f(ePose(3,0),ePose(3,1),ePose(3,2));
+    cloud.sensor_origin_ = Eigen::Vector4f(trans(0),trans(1),trans(2),1.0f);
 
     cv::Mat color;
-    cv::Mat depth=renderDepthmap(visibleSurfaceArea,color);
-    for(int k=0;k<cloud.height;k++){
-        for(int j=0;j<cloud.width;j++){
+    const cv::Mat depth = renderDepthmap(visibleSurfaceArea,color);
+    cv::vector<cv::Mat> color_channels(3);
+    cv::split(color, color_channels);
+    cv::Mat b, g, r;
+    b = color_channels[0];
+    g = color_channels[1];
+    r = color_channels[2];
+
+    for(size_t k=0;k<cloud.height;k++){
+        for(size_t j=0;j<cloud.width;j++){
             float d=depth.at<float>(k,j);
             if(d==0){
                 cloud.at(j,k).x=bad_point;
                 cloud.at(j,k).y=bad_point;
                 cloud.at(j,k).z=bad_point;
-            }else{
+            }
+            else{
                 pcl::PointXYZRGB p;
                 p.x=((float)j-fxycxy.z)/fxycxy.x*d;
                 p.y=((float)k-fxycxy.w)/fxycxy.y*d;
                 p.z=d;
-                glm::u8vec4 rgba=color.at<glm::u8vec4>(k,j);
-                p.r=rgba.r;
-                p.g=rgba.g;
-                p.b=rgba.b;
-
+                p.r = r.at<unsigned char>(k,j);
+                p.g = g.at<unsigned char>(k,j);
+                p.b = b.at<unsigned char>(k,j);
                 cloud.at(j,k)=p;
             }
 
         }
     }
-
 
     return cloud;
 }
