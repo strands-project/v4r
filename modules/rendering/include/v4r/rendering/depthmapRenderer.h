@@ -91,6 +91,10 @@ private:
     //the obligatory VAO
     GLuint VAO;
 
+    //Buffer for geometry
+    GLuint VBO;
+    GLuint IBO;
+
     //camera intrinsics:
     glm::vec4 fxycxy;
     glm::ivec2 res;

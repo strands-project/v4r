@@ -11,11 +11,6 @@ namespace v4r
 
 DepthmapRendererModel::DepthmapRendererModel(std::string file)
 {
-    //set buffer references to zero:
-
-    VBO=0;
-    IBO=0;
-
     vertexCount=0;
     indexCount=0;
     geometry=false;
@@ -43,11 +38,11 @@ DepthmapRendererModel::DepthmapRendererModel(std::string file)
         for(size_t i=0;i<scene->mNumMeshes;i++){
 
             vertexCount+=scene->mMeshes[i]->mNumVertices;
-            //TODO: faces sind einzeln unterteilt
+
             for(size_t j=0;j<scene->mMeshes[i]->mNumFaces;j++){
                 indexCount += scene->mMeshes[i]->mFaces[i].mNumIndices;
             }
-            std::cout << "Mesh nr:" << i << " faces:"<< scene->mMeshes[i]->mNumFaces << "  Vertices:"<< scene->mMeshes[i]->mNumVertices << std::endl;
+            //std::cout << "Mesh nr:" << i << " faces:"<< scene->mMeshes[i]->mNumFaces << "  Vertices:"<< scene->mMeshes[i]->mNumVertices << std::endl;
             for(size_t j=0;j<scene->mMeshes[i]->mNumVertices;j++){
                 //print out vertex data:
                 glm::vec3 vertex(scene->mMeshes[i]->mVertices[j].x,scene->mMeshes[i]->mVertices[j].y,scene->mMeshes[i]->mVertices[j].z);
@@ -116,21 +111,18 @@ DepthmapRendererModel::DepthmapRendererModel(std::string file)
 
 DepthmapRendererModel::~DepthmapRendererModel()
 {
-    //well! not much to destroy^^
-    if(VBO!=0){
-        //except for occational buffers
-        glDeleteBuffers(1,&VBO);
-        glDeleteBuffers(1,&IBO);
 
-        //delete VAO
-
-    }
     delete[] vertices;
     delete[] indices;
 }
 
-void DepthmapRendererModel::loadToGPU()
+void DepthmapRendererModel::loadToGPU(GLuint &VBO,GLuint &IBO)
 {
+
+    if(VBO){
+        glDeleteBuffers(1,&VBO);
+        glDeleteBuffers(1,&IBO);
+    }
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);

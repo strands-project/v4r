@@ -131,15 +131,14 @@ DepthmapRenderer::DepthmapRenderer(int resx, int resy)
     glGetError();
     //create framebuffer:
 
-    //create shader:
+    //Hardcoded shader:
     const char *vertex=
             "#version 450 \n\
             in vec4 pos;\n\
             out vec4 colorIn;\n\
             void main(){\n\
                gl_Position=vec4(pos.xyz,1);\n\
-colorIn=vec4(1,0.5,0.5,1);\n\
-colorIn=unpackUnorm4x8(floatBitsToUint(pos.w));\n\
+               colorIn=unpackUnorm4x8(floatBitsToUint(pos.w));\n\
             }";
     const char *geometry=
             "#version 450\n\
@@ -174,27 +173,20 @@ colorIn=unpackUnorm4x8(floatBitsToUint(pos.w));\n\
                 vec2 pp2=gl_Position.xy;\n\
                 vec4 p2=transformation*gl_in[1].gl_Position;\n\
                 z=-(transformation*gl_in[1].gl_Position).z;\n\
-color=colorIn[1];\n\
+                color=colorIn[1];\n\
                 EmitVertex();\n\
                 gl_Position=project(transformation*gl_in[2].gl_Position);\n\
                 vec4 p3=transformation*gl_in[2].gl_Position;\n\
                 vec2 pp3=gl_Position.xy;\n\
                 z=-(transformation*gl_in[2].gl_Position).z;\n\
-color=colorIn[2];\n\
+                color=colorIn[2];\n\
                 EmitVertex();\n\
                 //calc triangle surface area\n\
                 float A= length(cross(vec3(p1)/p1.w-vec3(p3)/p3.w,vec3(p2)/p2.w-vec3(p3)/p3.w));//TODO: Change this to correct pixel area calculation\n\
                 vec3 a=vec3((pp2.x-pp1.x)*float(viewportRes.x),(pp2.y-pp1.y)*float(viewportRes.y),0)*0.5;\n\
                 vec3 b=vec3((pp3.x-pp1.x)*float(viewportRes.x),(pp3.y-pp1.y)*float(viewportRes.y),0)*0.5;\n\
                 float Apix=length(cross(a,b))*0.5;\n\
-//A=1;\n\
-//Apix=1;\n\
                 AnPixCnt[ind]=vec2(A,Apix);\n\
-               /*if(cross(vec3(p1)/p1.w-vec3(p3)/p3.w,vec3(p2)/p2.w-vec3(p3)/p3.w).z>0){\n\
-                    atomicCounterIncrement(frontFacing);\n\
-                }else{\n\
-                    atomicCounterIncrement(backFacing);\n\
-                }*/\n\
             }";
     const char *fragment=
             "#version 450 \n\
@@ -216,8 +208,10 @@ color=colorIn[2];\n\
                indexOutput=index;//uintBitsToFloat(1234);\n\
                colorOutput=color;\n\
             }";
-    //load and compile shader:
-    std::cout << "compiling vertex shader:" << std::endl;
+
+
+    //Compile and link shader:
+    //std::cout << "compiling vertex shader:" << std::endl;
     GLuint vertexShader =glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader,1,(const GLchar**)&vertex,NULL);
     glCompileShader(vertexShader);
@@ -225,26 +219,24 @@ color=colorIn[2];\n\
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &status);
     char buffer[512];
     glGetShaderInfoLog(vertexShader, 512, NULL, buffer);
-    std::cout << buffer << std::endl;
+    //std::cout << buffer << std::endl;
 
-    std::cout << "compiling geometry shader:" << std::endl;
+    //std::cout << "compiling geometry shader:" << std::endl;
     GLuint geometryShader =glCreateShader(GL_GEOMETRY_SHADER);
     glShaderSource(geometryShader,1,(const GLchar**)&geometry,NULL);
     glCompileShader(geometryShader);
-
     glGetShaderiv(geometryShader, GL_COMPILE_STATUS, &status);
     glGetShaderInfoLog(geometryShader, 512, NULL, buffer);
-    std::cout << buffer << std::endl;
+    //std::cout << buffer << std::endl;
 
 
-    std::cout << "compiling fragment shader:" << std::endl;
+    //std::cout << "compiling fragment shader:" << std::endl;
     GLuint fragmentShader =glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader,1,(const GLchar**)&fragment,NULL);
     glCompileShader(fragmentShader);
-
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &status);
     glGetShaderInfoLog(fragmentShader, 512, NULL, buffer);
-    std::cout << buffer << std::endl;
+    //std::cout << buffer << std::endl;
 
     shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
@@ -254,10 +246,6 @@ color=colorIn[2];\n\
     glBindFragDataLocation(shaderProgram, 0, "depthOutput");
     glBindFragDataLocation(shaderProgram, 1, "indexOutput");
     glBindFragDataLocation(shaderProgram, 2, "colorOutput");
-    if(glGetError()){
-        std::cout << "something went wrong 0.2" << std::endl;
-    }
-
     glLinkProgram(shaderProgram);
 
     glGetProgramiv( shaderProgram, GL_LINK_STATUS, &status);
@@ -278,75 +266,39 @@ color=colorIn[2];\n\
         }
     }
 
-
-
-    if(glGetError()){
-        std::cout << "something went wrong 0.3" << std::endl;
-    }
-
+    //Get uniform locations:
     projectionUniform=glGetUniformLocation(shaderProgram,"projection");
-
-    if(glGetError()){
-        std::cout << "something went wrong 0.4" << std::endl;
-    }
-
     poseUniform = glGetUniformLocation(shaderProgram,"transformation");
-
-
     viewportResUniform = glGetUniformLocation(shaderProgram,"viewportRes");
 
-    if(glGetError()){
-        std::cout << "something went wrong 1" << std::endl;
-    }
-
-    //TODO: get the position attribute
+    //get attribute location
     posAttribute=glGetAttribLocation(shaderProgram,"pos");
 
-    if(glGetError()){
-        std::cout << "something went wrong" << std::endl;
-    }
-
-
-    if(glGetError()){
-        std::cout << "Something wrong with opengl3" << std::endl;
-    }
 
     //generate framebuffer:
-
     glGenFramebuffers(1,&FBO);
     glBindFramebuffer(GL_FRAMEBUFFER,FBO);
 
-
-    if(glGetError()){
-        std::cout << "Something wrong with opengl2.5" << std::endl;
-    }
-
-
+    //depth texture:
     glGenTextures(1,&depthTex);
     glBindTexture(GL_TEXTURE_2D,depthTex);
     glTexImage2D(GL_TEXTURE_2D, 0,GL_R32F, resx, resy, 0,GL_RED, GL_FLOAT, 0);
 
-
-
+    //index texture:
     glGenTextures(1,&indexTex);
     glBindTexture(GL_TEXTURE_2D,indexTex);
     glTexImage2D(GL_TEXTURE_2D, 0,GL_R32UI, resx, resy, 0,GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
 
-
+    //color texture:
     glGenTextures(1,&colorTex);
     glBindTexture(GL_TEXTURE_2D,colorTex);
     glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA8, resx, resy, 0,GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-
-
+    //z buffer
     glGenRenderbuffers(1, &zBuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, zBuffer);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32F, resx, resy);//GL_DEPTH_COMPONENT_32F //without the 32F?
     //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
-
-    if(glGetError()){
-        std::cout << "Something wrong with opengl2.1" << std::endl;
-    }
 
     glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_RENDERBUFFER,zBuffer);
     GLuint buffers[]={GL_COLOR_ATTACHMENT0,GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2};//last one is for debug
@@ -355,64 +307,64 @@ color=colorIn[2];\n\
     glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT1,GL_TEXTURE_2D,indexTex,0);
     glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2,GL_TEXTURE_2D,colorTex,0);
 
-
-    if(glGetError()){
-        std::cout << "Something wrong with opengl2" << std::endl;
-    }
-
-
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
         std::cout << "Framebuffer not complete" << std::endl;
     }
     glViewport(0,0,resx,resy);
 
-    if(glGetError()){
-        std::cout << "Something wrong with opengl1" << std::endl;
-    }
 
-    //two atomic counters to count thte front and backfacing triangles
+    //two atomic counters to give each triangle a specific index
     glGenBuffers(1, &atomicCounterBuffer);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
     glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint)*2, NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-
     glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, atomicCounterBuffer);
 
 
-
+    //shader storage buffer for storing surface area and theoretical pixel area for each pixel:
     glGenBuffers(1,&SSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER,SSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec2)*maxMeshSize, 0, GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, SSBO);
 
-    /*glGenBuffers(1, &backFacingAtomicBuffer);
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, backFacingAtomicBuffer);
-    glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);*/
-
-
-
     glGenVertexArrays(1,&VAO);
-    /*glBindVertexArray(VAO);
 
-    //add SSBO  to vertex array?
-    glBindVertexArray(0);*/
+    GLuint err;
+    if( (err = glGetError()) != GL_NO_ERROR)
+        std::cerr << "An OpenGL error occured during initialization (" << err << ")" << std::endl;
 
-    if(glGetError()){
-        std::cout << "Something wrong with opengl" << std::endl;
-    }
-
-
+    //There is no geometry defined yet!
+    VBO=0;
+    IBO=0;
 
 }
 
 DepthmapRenderer::~DepthmapRenderer()
 {
-    /*VERY VERY BIG TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-    //TODO: destruction and stuff
-
-
+    //delete the framebuffer:
     glDeleteTextures(1,&depthTex);
+    glDeleteTextures(1,&indexTex);
+    glDeleteTextures(1,&colorTex);
     glDeleteBuffers(1,&zBuffer);
+    glDeleteFramebuffers(1,&FBO);
+
+    //delete the shader:
+    glDeleteShader(shaderProgram);
+
+    //delete the VAO:
+    glDeleteVertexArrays(1,&VAO);
+    if(VBO){
+        glDeleteBuffers(1,&VBO);
+        glDeleteBuffers(1,&IBO);
+    }
+
+
+    //remaining buffers
+    glDeleteBuffers(1,&SSBO);
+    glDeleteBuffers(1,&atomicCounterBuffer);
+
+    //destroy the opengl context
+    glfwDestroyWindow(context);
 }
 
 std::vector<Eigen::Vector3f> DepthmapRenderer::createSphere(float r, size_t subdivisions)
@@ -474,7 +426,7 @@ void DepthmapRenderer::setModel(DepthmapRendererModel *_model)
     //bind shader:
     glBindVertexArray(VAO);
     glUseProgram(shaderProgram);
-    this->model->loadToGPU();
+    this->model->loadToGPU(VBO,IBO);
 
     //set vertexAttribArray
     glEnableVertexAttribArray(posAttribute);
@@ -521,36 +473,27 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
 {
     //load shader:
     glUseProgram(shaderProgram);
-    //set uniforms:
-   // glm::mat4 emptyPose;
+
+    //set the uniforms
     glUniformMatrix4fv(poseUniform,1,GL_FALSE,(float*)&pose);
     glUniform4f(projectionUniform,fxycxy.x/(float)res.x,fxycxy.y/(float)res.y,fxycxy.z/(float)res.x,fxycxy.w/(float)res.y);
     glUniform2i(viewportResUniform,res.x,res.y);
-    //glm::mat4 projection=projectionMatrixFromIntrinsics(fxycxy);//right now this is empty
-    //glUniformMatrix4fv(projectionUniform,1,GL_FALSE,(float*)&projection);
-
 
     //use vertex array object:
     glBindVertexArray(VAO);
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER,1,  SSBO);
-
-
     //activate fbo
     glBindFramebuffer(GL_FRAMEBUFFER,FBO);
-/*
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_RENDERBUFFER,zBuffer);
-    GLuint buffers[]={GL_COLOR_ATTACHMENT0};//last one is for debug
-    glDrawBuffers(1,buffers);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,tex,0);
-*/
+
+    //set viewport and clear buffers
     glViewport(0,0,res.x,res.y);
     glClearColor(0.0,0.0,0.0,1);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER,1,  SSBO);
 
-    //setup the atomic variables for counting the triangles
+    //setup the atomic variable for counting the triangles
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicCounterBuffer);
     GLuint* ptr = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint),
                                             GL_MAP_WRITE_BIT |
@@ -558,20 +501,9 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
                                             GL_MAP_UNSYNCHRONIZED_BIT);
     ptr[0] = 0;
     glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-    //glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
 
-    if(glGetError()){
-        std::cout << "Something wrong with opengl at rendering 1" << std::endl;
-    }
-
-    //disable culling
-    glFrontFace(GL_FRONT_AND_BACK);
-    GLenum err;
-
-    if( (err = glGetError()) != GL_NO_ERROR)
-        std::cerr << "An error occured during opengl function glFrontFace at rendering(" << err << ")" << std::endl;
-
+    //disable culling (Off by default but this would be the right moment)
     //render
     glDrawElements(
         GL_TRIANGLES,      // mode
@@ -579,12 +511,8 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
         GL_UNSIGNED_INT,   // type
         (void*)0           // element array buffer offset
     );
-    if( (err = glGetError()) != GL_NO_ERROR)
-        std::cerr << "An error occured during opengl function glDrawElements at rendering(" << err << ")" << std::endl;
 
     glFinish();
-    if( (err = glGetError()) != GL_NO_ERROR)
-        std::cerr << "An error occured during opengl function glFinish at rendering(" << err << ")" << std::endl;
 
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT|GL_SHADER_STORAGE_BARRIER_BIT);//not helping either
     //read buffers:
@@ -597,7 +525,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
     glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
-    std::cout << "face count " << faceCount << std::endl;
+    //std::cout << "face count " << faceCount << std::endl;
     //download fbo
 
     //GET DEPTH TEXTURE
@@ -607,24 +535,27 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
     //glGetTexImage(GL_TEXTURE_2D,0,GL_RED,GL_FLOAT,depthmap.data);
 
 
+
     //GET INDEX TEXTURE
     cv::Mat indexMap(res.y,res.x,CV_32SC1);
     glBindTexture(GL_TEXTURE_2D,indexTex);
     glGetTexImage(GL_TEXTURE_2D,0,GL_RED_INTEGER,GL_UNSIGNED_INT,indexMap.data);
 
+
     //GET SSBO DATA
     glm::vec2* faceSurfaceArea=new glm::vec2[faceCount];
     glBindBuffer(GL_ARRAY_BUFFER,SSBO);//GL_SHADER_STORAGE_BUFFER
     glGetBufferSubData(GL_ARRAY_BUFFER,0,sizeof(glm::vec2)*faceCount,faceSurfaceArea);
-    int* facePixelCount=new int[faceCount]();//hopefully initzialized with zero
 
     //GET COLOR TEXTURE
     cv::Mat colorMat(res.y,res.x,CV_8UC4);
     glBindTexture(GL_TEXTURE_2D,colorTex);
     glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,colorMat.data);
-    imshow("colorMat",colorMat);
+    //imshow("colorMat",colorMat);
     color=colorMat;
 
+    //get pixel count for every triangle
+    int* facePixelCount=new int[faceCount]();//hopefully initzialized with zero
     for(int u=0;u<depthmap.rows;u++){
         for(int v=0;v<depthmap.cols;v++){
             if(indexMap.at<int>(u,v)!=0){
@@ -635,7 +566,8 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
     float visibleArea=0;
     float fullArea=0;
     int fullPixelCount=0;
-    for(size_t i=0; i<faceCount; i++){
+    //Sum up the full surface area and the visible surface area
+    for(size_t i=0;i<faceCount;i++){
         //std::cout << "pixel count face " << i << ": " << facePixelCount[i]<< std::endl;
         fullPixelCount+=facePixelCount[i];
         fullArea+=faceSurfaceArea[i].x;
@@ -643,29 +575,17 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
         if(pixelForFace!=0){
             visibleArea+=faceSurfaceArea[i].x*float(facePixelCount[i])/pixelForFace;
         }
-        //if(facePixelCount[i]>0){
-        //    std::cout << "face" << i << std::endl;
-        //    std::cout << "visible pixel: " << facePixelCount[i] << " theoretically: " <<  faceSurfaceArea[i].y << std::endl;
-        //}
     }
-    //std::cout << "full pixel count" << fullPixelCount << std::endl;
-    //std::cout << "full Surface" << fullArea << std::endl;
-    //std::cout << "visible Area" << visibleArea << "in %:" << visibleArea/fullArea*100.0f<< std::endl;
-
+    //calc
     visible=visibleArea/fullArea;
 
 
+    GLuint err;
+    if( (err = glGetError()) != GL_NO_ERROR)
+        std::cerr << "A terrible OpenGL error occured during rendering (" << err << ")" << std::endl;
 
-    std::cout << "index value " << indexMap.at<int>((int)(fxycxy[3]+0.5), (int)(fxycxy[2]+0.5)) << std::endl;
-    //read depthbuffer
-    //glBindRenderbuffer(GL_RENDERBUFFER, zBuffer);
-    //glReadPixels(0,0,res.x,res.y,GL_DEPTH_COMPONENT,GL_FLOAT,depthmap.data);
-    std::cout << "depth value " << depthmap.at<float>((int)(fxycxy[3]+0.5), (int)(fxycxy[2]+0.5)) << std::endl;
-
-    if(glGetError()){
-        std::cout << "Something wrong with opengl at rendering" << std::endl;
-    }
-
+    delete[] facePixelCount;
+    delete[] faceSurfaceArea;
     return depthmap;
 }
 
@@ -759,6 +679,7 @@ pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float 
                 p.b = b.at<unsigned char>(k,j);
                 cloud.at(j,k)=p;
             }
+
         }
     }
 
