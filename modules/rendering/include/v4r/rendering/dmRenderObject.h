@@ -59,9 +59,6 @@ private:
     unsigned int indexCount;
 
 
-    //The buffer variables
-    GLuint VBO;
-    GLuint IBO;
 
     float scale;
     glm::vec3 offset;
@@ -71,9 +68,11 @@ private:
 
     /**
      * @brief loadToGPU
-     * Uploads geometry data to gpu
+     *        Uploads geometry data to GPU and returns the OpenGL handles for Vertex and Index Buffers
+     * @param VBO
+     * @param IBO
      */
-    void loadToGPU();
+    void loadToGPU(GLuint &VBO,GLuint &IBO);
 
     /**
      * @brief getIndexCount
@@ -127,7 +126,7 @@ public:
 
     /**
      * @brief getOffset
-     * @return the models get fitted into a unity sphere.... Scale and Ofset gives the shift and offset of the object
+     * @return the models get fitted into a unity sphere.... Scale and Offset gives the shift and offset of the object
      */
     Eigen::Vector3f getOffset();
 
