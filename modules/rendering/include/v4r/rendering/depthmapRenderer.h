@@ -179,7 +179,6 @@ public:
      * @return
      */
     pcl::PointCloud<pcl::PointXYZRGB> renderPointcloudColor(float &visibleSurfaceArea);
-
 };
 }
 

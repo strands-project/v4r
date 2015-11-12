@@ -47,8 +47,8 @@ int main(int argc, const char * argv[]) {
             ("visualize,v", po::value<bool>(&visualize)->default_value(true), "if true, visualizes the rendered depth and color map.")
             ("subdivisions,s", po::value<size_t>(&subdivisions)->default_value(0), "defines the number of subdivsions used for rendering")
             ("radius,r", po::value<float>(&radius)->default_value(3.0, boost::str(boost::format("%.2e") % radius)), "defines the radius used for rendering")
-            ("width,w", po::value<size_t>(&width)->default_value(640), "defines the image width")
-            ("height,h", po::value<size_t>(&height)->default_value(480), "defines the image height")
+            ("width", po::value<size_t>(&width)->default_value(640), "defines the image width")
+            ("height", po::value<size_t>(&height)->default_value(480), "defines the image height")
             ("fx", po::value<float>(&fx)->default_value(535.4, boost::str(boost::format("%.2e") % fx)), "defines the focal length in x direction used for rendering")
             ("fy", po::value<float>(&fy)->default_value(539.2, boost::str(boost::format("%.2e") % fy)), "defines the focal length in y direction used for rendering")
             ("cx", po::value<float>(&cx)->default_value(320.1, boost::str(boost::format("%.2e") % cx)), "defines the central point of projection in x direction used for rendering")
@@ -72,6 +72,8 @@ int main(int argc, const char * argv[]) {
         std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
         return false;
     }
+
+    CHECK( (cx < width) && (cy < height) && (cx > 0) && (cy > 0)) << "Parameters not valid!";
 
     v4r::DepthmapRenderer renderer(width, height);
     renderer.setIntrinsics(fx,fy,cx,cy);
@@ -103,18 +105,29 @@ int main(int argc, const char * argv[]) {
         cv::Mat color;
         cv::Mat depthmap = renderer.renderDepthmap(visible, color);
 
-        if(visualize) {
-            LOG(INFO) << visible << "% visible.";
-            cv::imshow("depthmap", depthmap*0.25);
-            cv::imshow("color", color);
-            cv::waitKey();
-        }
-
         //create and save the according pcd files
         std::stringstream ss; ss << out_dir << "/cloud_" << i << ".pcd";
         std::string file = ss.str();
-        pcl::io::savePCDFileBinary(file, renderer.renderPointcloudColor(visible));
+        if(model.hasColor()) {
+            pcl::PointCloud<pcl::PointXYZRGB> cloud = renderer.renderPointcloudColor(visible);
+            pcl::io::savePCDFileBinary(file, cloud);
+
+            if (visualize)
+                cv::imshow("color", color);
+        }
+        else {
+            pcl::PointCloud<pcl::PointXYZ> cloud = renderer.renderPointcloud(visible);
+            pcl::io::savePCDFileBinary(file, cloud);
+        }
+
         LOG(INFO) << "Saved data points to " << file << ".";
+
+        if(visualize) {
+            LOG(INFO) << visible << "% visible.";
+            cv::imshow("depthmap", depthmap*0.25);
+            cv::waitKey();
+        }
+
     }
 
     return 0;

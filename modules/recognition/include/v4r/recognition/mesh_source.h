@@ -21,9 +21,7 @@
 #include <v4r/common/miscellaneous.h>
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
-#include <v4r/tomgine/tgTomGineThread.h>
-#include <v4r/tomgine/tgShapeCreator.h>
-#include <v4r/tomgine/PointCloudRendering.h>
+#include <v4r/rendering/depthmapRenderer.h>
 
 namespace v4r
 {
@@ -149,43 +147,26 @@ namespace v4r
             model.computeNormalsAssembledCloud(radius_normals_);
           }
 
-          /*pcl::visualization::PCLVisualizer vis("results");
-          pcl::visualization::PointCloudColorHandlerCustom<PointInT> random_handler (model.assembled_, 255, 0, 0);
-          vis.addPointCloud<PointInT> (model.assembled_, random_handler, "points");
-          vis.addPointCloudNormals<PointInT, pcl::Normal>(model.assembled_, model.normals_assembled_, 50, 0.02, "normals");
-          vis.spin();*/
-
           if (v4r::io::getFilesInDirectory(pathmodel, model.view_filenames_, "", ".*view_.*.pcd", false) != -1)
           {
             if(load_into_memory_)
-            {
-              loadInMemorySpecificModel(dir, model);
-            }
+                loadInMemorySpecificModel(dir, model);
           }
           else
           {
+              int img_width = resolution_;
+              int img_height = resolution_;
 
-            //load PLY model and scale it
-            /*vtkSmartPointer < vtkPLYReader > reader = vtkSmartPointer<vtkPLYReader>::New ();
-            reader->SetFileName (model_path.c_str ());
-            reader->Update();
-
-            vtkSmartPointer < vtkTransform > trans = vtkSmartPointer<vtkTransform>::New ();
-            trans->Scale (model_scale_, model_scale_, model_scale_);
-            trans->Modified ();
-            trans->Update ();
-
-            vtkSmartPointer < vtkTransformFilter > filter_scale = vtkSmartPointer<vtkTransformFilter>::New ();
-            filter_scale->SetTransform (trans);
-            filter_scale->SetInputConnection (reader->GetOutputPort ());
-						  std::cout << "Step 4" << std::endl;
-            vtkSmartPointer < vtkPolyDataMapper > mapper = vtkSmartPointer<vtkPolyDataMapper>::New ();
-            mapper->SetInputConnection (filter_scale->GetOutputPort ());
-            mapper->Update ();*/
+              // To preserve Kinect camera parameters (640x480 / f=525)
+              const float f = 150.f;
+              const float cx = img_width / 2.f;
+              const float cy = img_height / 2.f;
+              DepthmapRenderer renderer(img_width, img_height);
+              renderer.setIntrinsics(f,f,cx,cy);
+              DepthmapRendererModel model(input);
+              renderer.setModel(&model);
 
             int polyhedron = TomGine::tgShapeCreator::ICOSAHEDRON;
-            int img_width = resolution_;
-            int img_height = resolution_;
             const bool scale = true;
             const bool center = true;
             TomGine::PointCloudRendering pcr( model_path, scale, center );
@@ -195,10 +176,6 @@ namespace v4r
             TomGine::tgCamera cam;
             cam.SetViewport(img_width, img_height);
 
-            // To preserve Kinect camera parameters (640x480 / f=525)
-            const float f = 200.f;
-            const float cx = img_width / 2.f;
-            const float cy = img_height / 2.f;
             cam.SetIntrinsicCV(f, f, cx , cy, 0.01f, 10.0f);
 
             for(size_t i=0; i<sphere.m_vertices.size(); i++)
@@ -275,19 +252,6 @@ namespace v4r
                 model.poses_.push_back (tf);
                 model.self_occlusions_.push_back (0); // NOT IMPLEMENTED
             }
-			
-            //generate views
-//            pcl::apps::RenderViewsTesselatedSphere render_views;
-//            render_views.setUseVertices (false);
-//            render_views.setRadiusSphere (radius_sphere_);
-//            render_views.setComputeEntropies (true);
-//            render_views.setTesselationLevel (tes_level_);
-//            render_views.setViewAngle (view_angle_);
-//            //render_views.addModelFromPolyData (mapper->GetInput ());
-//            render_views.addModelFromPolyData (mapper);
-//            render_views.setGenOrganized(gen_organized_);
-//            render_views.setCamPosConstraints(campos_constraints_func_);
-//            render_views.generateViews ();
 
             std::stringstream direc;
             direc << dir << "/" << model.class_ << "/" << model.id_;

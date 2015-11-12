@@ -115,7 +115,7 @@ DepthmapRenderer::DepthmapRenderer(int resx, int resy)
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-    context = glfwCreateWindow(640 , 480, "", NULL, 0);
+    context = glfwCreateWindow(resx , resy, "", NULL, 0);
 
     glfwWindowHint(GLFW_VISIBLE, GL_TRUE);
     glfwMakeContextCurrent(context);
@@ -529,13 +529,9 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
     //glm::mat4 projection=projectionMatrixFromIntrinsics(fxycxy);//right now this is empty
     //glUniformMatrix4fv(projectionUniform,1,GL_FALSE,(float*)&projection);
 
-    glm::vec4 test(fxycxy.x/(float)res.x,fxycxy.y/(float)res.y,fxycxy.z/(float)res.x,fxycxy.w/(float)res.y);
-
 
     //use vertex array object:
     glBindVertexArray(VAO);
-
-
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER,1,  SSBO);
 
@@ -660,11 +656,11 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
 
 
 
-    std::cout << "index value " << indexMap.at<int>(240,320) << std::endl;
+    std::cout << "index value " << indexMap.at<int>((int)(fxycxy[3]+0.5), (int)(fxycxy[2]+0.5)) << std::endl;
     //read depthbuffer
     //glBindRenderbuffer(GL_RENDERBUFFER, zBuffer);
     //glReadPixels(0,0,res.x,res.y,GL_DEPTH_COMPONENT,GL_FLOAT,depthmap.data);
-    std::cout << "depth value " << depthmap.at<float>(240,320) << std::endl;
+    std::cout << "depth value " << depthmap.at<float>((int)(fxycxy[3]+0.5), (int)(fxycxy[2]+0.5)) << std::endl;
 
     if(glGetError()){
         std::cout << "Something wrong with opengl at rendering" << std::endl;
@@ -709,7 +705,6 @@ pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visible
 
                 cloud.at(j,k)=p;
             }
-
         }
     }
 
@@ -764,7 +759,6 @@ pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float 
                 p.b = b.at<unsigned char>(k,j);
                 cloud.at(j,k)=p;
             }
-
         }
     }
 
