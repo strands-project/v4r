@@ -8,9 +8,12 @@
 #include <v4r/recognition/global_nn_classifier.h>
 #include <v4r/io/eigen.h>
 
+namespace v4r
+{
+
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::GlobalNNPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
+  GlobalNNPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
   {
     std::vector<ModelTPtr> models = source_->getModels();
 
@@ -18,6 +21,9 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     {
       ModelTPtr m = models[i];
       const std::string path = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
+
+//      std::vector<std::string> descriptor_files;
+      io::getFilesInDirectory(path, descriptor_files, "", ".*.txt", false);
 
       bf::path inside = path;
       bf::directory_iterator end_itr;
@@ -44,9 +50,9 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
           flann_model descr_model;
           descr_model.first = m;
-          int size_feat = sizeof(signature->points[0].histogram) / sizeof(float);
-          descr_model.second.resize (size_feat);
-          memcpy (&descr_model.second[0], &signature->points[0].histogram[0], size_feat * sizeof(float));
+//          int size_feat = sizeof(signature->points[0].histogram) / sizeof(float);
+//          descr_model.second.resize (size_feat);
+          memcpy (&descr_model.second[0], &signature->points[0].histogram[0], size_feat * sizeof(double));
 
           flann_models_.push_back (descr_model);
         }
@@ -60,71 +66,57 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::GlobalNNPipeline<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index, const flann_model &model,
+  GlobalNNPipeline<Distance, PointInT, FeatureT>::nearestKSearch (flann::Index<DistT> * index, const flann_model &model,
                                                                                          int k, flann::Matrix<int> &indices,
-                                                                                         flann::Matrix<float> &distances)
+                                                                                         flann::Matrix<double> &distances)
   {
-    flann::Matrix<float> p = flann::Matrix<float> (new float[model.second.size ()], 1, model.second.size ());
-    memcpy (&p.ptr ()[0], &model.second[0], p.cols * p.rows * sizeof(float));
+    flann::Matrix<double> p = flann::Matrix<double> (new double[model.second.size ()], 1, model.second.size ());
+    memcpy (&p.ptr ()[0], &model.second[0], p.cols * p.rows * sizeof(double));
 
     indices = flann::Matrix<int> (new int[k], 1, k);
-    distances = flann::Matrix<float> (new float[k], 1, k);
+    distances = flann::Matrix<float> (new double[k], 1, k);
     index->knnSearch (p, indices, distances, k, flann::SearchParams (512));
     delete[] p.ptr ();
   }
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::GlobalNNPipeline<Distance, PointInT, FeatureT>::classify ()
+  GlobalNNPipeline<Distance, PointInT, FeatureT>::classify ()
   {
-
     categories_.clear ();
     confidences_.clear ();
-
     first_nn_category_ = std::string ("");
 
-    PointInTPtr processed (new pcl::PointCloud<PointInT>);
     PointInTPtr in (new pcl::PointCloud<PointInT>);
-
-    typename pcl::PointCloud<FeatureT>::CloudVectorType signatures;
-    std::vector < Eigen::Vector3f > centroids;
+    std::vector<double> signature;
 
     if (indices_.size ())
       pcl::copyPointCloud (*input_, indices_, *in);
     else
       in = input_;
 
-    estimator_->estimate (in, processed, signatures, centroids);
+    estimator_->estimate (in, signature);
     std::vector<index_score> indices_scores;
 
-    if (signatures.size () > 0)
+    ModelTPtr empty;
+
+    flann_model histogram (empty, signature);
+    flann::Matrix<int> indices;
+    flann::Matrix<double> distances;
+    nearestKSearch (flann_index_, histogram, NN_, indices, distances);
+
+    //gather NN-search results
+    double score = 0;
+    for (size_t i = 0; i < NN_; ++i)
     {
-      for (size_t idx = 0; idx < signatures.size (); idx++)
-      {
-        float* hist = signatures[idx].points[0].histogram;
-        int size_feat = sizeof(signatures[idx].points[0].histogram) / sizeof(float);
-        std::vector<float> std_hist (hist, hist + size_feat);
-        ModelTPtr empty;
-
-        flann_model histogram (empty, std_hist);
-        flann::Matrix<int> indices;
-        flann::Matrix<float> distances;
-        nearestKSearch (flann_index_, histogram, NN_, indices, distances);
-
-        //gather NN-search results
-        double score = 0;
-        std::cout << "Looking for the first " << NN_ << " nearest neighbours. " << std::endl;
-        for (int i = 0; i < NN_; ++i)
-        {
-          score = distances[0][i];
-          index_score is;
-          is.idx_models_ = indices[0][i];
-          is.idx_input_ = static_cast<int> (idx);
-          is.score_ = score;
-          indices_scores.push_back (is);
-          std::cout << i << ": " << indices[0][i] << " with score " << score << " and model id: " << flann_models_[indices_scores[i].idx_models_].first->class_ << "/" << flann_models_[indices_scores[i].idx_models_].first->id_ <<std::endl;
-        }
-      }
+      score = distances[0][i];
+      index_score is;
+      is.idx_models_ = indices[0][i];
+      is.idx_input_ = static_cast<int> (idx);
+      is.score_ = score;
+      indices_scores.push_back (is);
+      std::cout << i << ": " << indices[0][i] << " with score " << score << " and model id: " << flann_models_[indices_scores[i].idx_models_].first->class_ << "/" << flann_models_[indices_scores[i].idx_models_].first->id_ <<std::endl;
+    }
 
       std::sort (indices_scores.begin (), indices_scores.end (), sortIndexScoresOp);
       flann_model &fm = flann_models_[indices_scores[0].idx_models_];
@@ -133,12 +125,12 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
       std::cout << "first id: " << fm.first->id_ << std::endl;
 
       std::map<std::string, double> category_map;
-      int num_n = std::min (NN_, static_cast<int> (indices_scores.size ()));
+      size_t num_n = std::min (NN_, indices_scores.size ());
 
       std::map<std::string, double>::iterator it;
       double normalization_term = 0;
 
-      for (int i = 0; i < num_n; ++i)
+      for (size_t i = 0; i < num_n; ++i)
       {
         std::string cat = fm.first->class_;
         it = category_map.find (cat);
@@ -177,17 +169,11 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
           categories_.push_back (final_indices_scores[i].model_name_);
           confidences_.push_back (final_indices_scores[i].score_);
       }
-    }
-    else
-    {
-      first_nn_category_ = std::string ("error");
-      categories_.push_back (first_nn_category_);
-    }
   }
 
 template<template<class > class Distance, typename PointInT, typename FeatureT>
   void
-  v4r::GlobalNNPipeline<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
+  GlobalNNPipeline<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
   {
 
     //use the source to know what has to be trained and what not, checking if the descr_name directory exists
@@ -211,14 +197,13 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
         {
           PointInTPtr processed (new pcl::PointCloud<PointInT>);
           //pro view, compute signatures
-          typename pcl::PointCloud<FeatureT>::CloudVectorType signatures;
-          std::vector < Eigen::Vector3f > centroids;
-          estimator_->estimate (m->views_[v], processed, signatures, centroids);
+          std::vector<double> signature;
+          estimator_->estimate (m->views_[v], signature);
 
           //source_->makeModelPersistent (models->at (i), training_dir_, descr_name_, static_cast<int> (v));
           std::string path = source_->getModelDescriptorDir (*m, training_dir_, descr_name_);
 
-          v4r::io::createDirIfNotExist(path);
+          io::createDirIfNotExist(path);
 
           std::stringstream path_view;
           path_view << path << "/view_" << v << ".pcd";
@@ -226,24 +211,26 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
 
           std::stringstream path_pose;
           path_pose << path << "/pose_" << v << ".txt";
-          v4r::io::writeMatrixToFile( path_pose.str (), m->poses_[v]);
+          io::writeMatrixToFile( path_pose.str (), m->poses_[v]);
 
           std::stringstream path_entropy;
           path_entropy << path << "/entropy_" << v << ".txt";
-          v4r::io::writeFloatToFile (path_entropy.str (), m->self_occlusions_[v]);
+          io::writeFloatToFile (path_entropy.str (), m->self_occlusions_[v]);
 
-          //save signatures and centroids to disk
-          for (size_t j = 0; j < signatures.size (); j++)
-          {
+          Eigen::Vector3f centroid;
+          pcl::compute3DCentroid(m->views_[v], centroid);
+
             std::stringstream path_centroid;
-            path_centroid << path << "/centroid_" << v << "_" << j << ".txt";
-            Eigen::Vector3f centroid (centroids[j][0], centroids[j][1], centroids[j][2]);
-            v4r::io::writeCentroidToFile (path_centroid.str (), centroid);
+            path_centroid << path << "/centroid_" << v << "_" << 0 << ".txt";
+            io::writeCentroidToFile (path_centroid.str (), centroid);
 
             std::stringstream path_descriptor;
-            path_descriptor << path << "/descriptor_" << v << "_" << j << ".pcd";
-            pcl::io::savePCDFileBinary (path_descriptor.str (), signatures[j]);
-          }
+            path_descriptor << path << "/descriptor_" << v << "_" << 0 << ".pcd";
+            std::ofstream f;
+            f.open(path_descriptor.str().c_str());
+            for(size_t j=0; j<signature.size(); j++)
+                f << signature[j] << " ";
+            f.close();
         }
 
       }
@@ -259,3 +246,4 @@ template<template<class > class Distance, typename PointInT, typename FeatureT>
     loadFeaturesAndCreateFLANN ();
   }
 
+}

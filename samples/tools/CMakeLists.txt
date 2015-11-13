@@ -78,6 +78,15 @@ if(BUILD_TOOLS AND V4R_DEPENDENCIES_FOUND)
       install(TARGETS ${the_target}
               RUNTIME DESTINATION "${V4R_SAMPLES_BIN_INSTALL_PATH}/${sample_subfolder}" COMPONENT samples)
     endif()
+
+    if (INSTALL_C_UTILITY_TOOLS AND NOT WIN32)
+      install(TARGETS ${the_target}
+              RUNTIME DESTINATION bin
+              LIBRARY DESTINATION lib
+              ARCHIVE DESTINATION lib
+              )
+    endif()
+
   ENDMACRO()
 
   file(GLOB_RECURSE tools_samples RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)

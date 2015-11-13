@@ -188,7 +188,7 @@ namespace v4r
       }
 
       /**
-       * \brief Generate model representation
+       * \brief Generate model representation of the training set, generating views if needed
        */
       virtual void
       generate (const std::string & training_dir = std::string())=0;

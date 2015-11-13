@@ -14,29 +14,35 @@
 
 namespace v4r
 {
-    template <typename PointInT, typename FeatureT>
+    template <typename PointInT>
     class V4R_EXPORTS GlobalEstimator {
       protected:
         bool computed_normals_;
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
-        typedef typename pcl::PointCloud<FeatureT>::Ptr FeatureTPtr;
-
         typename boost::shared_ptr<PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator_;
-
         pcl::PointCloud<pcl::Normal>::Ptr normals_;
 
       public:
+
+        /**
+         * @brief global feature description
+         * @param input cloud
+         * @param[out] signatures describing the point cloud
+         * @return
+         */
         virtual bool
-        estimate (const PointInTPtr & in, PointInTPtr & processed, std::vector<pcl::PointCloud<FeatureT>, Eigen::aligned_allocator<
-            pcl::PointCloud<FeatureT> > > & signatures, std::vector<Eigen::Vector3f> & centroids)=0;
+        estimate (const PointInTPtr & in, std::vector<float> & signature)=0;
 
         virtual bool computedNormals() = 0;
 
-        void setNormalEstimator(boost::shared_ptr<PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > & ne) {
+        void
+        setNormalEstimator(boost::shared_ptr<PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > & ne) {
           normal_estimator_ = ne;
         }
 
-        void getNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals) {
+        void
+        getNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        {
           normals = normals_;
         }
 

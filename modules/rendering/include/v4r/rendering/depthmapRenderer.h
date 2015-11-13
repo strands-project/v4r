@@ -165,7 +165,7 @@ public:
      *        a color image after calling this method. (otherwise it will be plain black)
      * @return a depthmap
      */
-    cv::Mat renderDepthmap(float &visibleSurfaceArea, cv::Mat &color);
+    cv::Mat renderDepthmap(float &visibleSurfaceArea, cv::Mat &color) const;
 
 
     /**
@@ -174,7 +174,7 @@ public:
      *        is visible.
      * @return
      */
-    pcl::PointCloud<pcl::PointXYZ> renderPointcloud(float &visibleSurfaceArea);
+    pcl::PointCloud<pcl::PointXYZ> renderPointcloud(float &visibleSurfaceArea) const;
 
     /**
      * @brief renderPointcloudColor
@@ -182,7 +182,7 @@ public:
      *        is visible.
      * @return
      */
-    pcl::PointCloud<pcl::PointXYZRGB> renderPointcloudColor(float &visibleSurfaceArea);
+    pcl::PointCloud<pcl::PointXYZRGB> renderPointcloudColor(float &visibleSurfaceArea) const;
 };
 }
 

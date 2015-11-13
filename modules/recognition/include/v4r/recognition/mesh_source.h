@@ -30,11 +30,11 @@ namespace v4r
      * \author Aitor Aldoma
      */
 
-    template<typename PointInT>
-      class V4R_EXPORTS MeshSource : public Source<PointInT>
+    template<typename PointT>
+      class V4R_EXPORTS MeshSource : public Source<PointT>
       {
-        typedef Source<PointInT> SourceT;
-        typedef Model<PointInT> ModelT;
+        typedef Source<PointT> SourceT;
+        typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
 
         using SourceT::path_;
@@ -50,6 +50,8 @@ namespace v4r
         float view_angle_;
         bool gen_organized_;
         boost::function<bool (const Eigen::Vector3f &)> campos_constraints_func_;
+
+        pcl::PointCloud<PointT> V4R_EXPORTS renderCloud (const DepthmapRenderer &renderer, float & visible);
 
       public:
 
@@ -94,223 +96,40 @@ namespace v4r
         }
 
         void
-        loadInMemorySpecificModel(const std::string & dir, ModelT & model)
+        loadOrGenerate (const std::string & dir, const std::string & model_path, ModelT & model);
+
+        void
+        generate (const std::string & training_dir = std::string())
         {
-          const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
+            v4r::io::createDirIfNotExist(training_dir);
 
-          for (size_t i = 0; i < model.view_filenames_.size (); i++)
-          {
-            const std::string view_file = pathmodel + "/" + model.view_filenames_[i];
-            typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
-            pcl::io::loadPCDFile (view_file, *cloud);
+            //get models in directory
+            std::vector < std::string > files;
+            v4r::io::getFilesInDirectory(path_, files, "", ".*.ply", true);
 
-            model.views_.push_back (cloud);
+            models_.clear();
 
-            std::string file_replaced1 (model.view_filenames_[i]);
-            boost::replace_all (file_replaced1, "view", "pose");
-            boost::replace_all (file_replaced1, ".pcd", ".txt");
+            for (size_t i = 0; i < files.size (); i++)
+            {
+                ModelTPtr m(new ModelT);
+                this->getIdAndClassFromFilename (files[i], m->id_, m->class_);
 
-            std::string file_replaced2 (model.view_filenames_[i]);
-            boost::replace_all (file_replaced2, "view", "entropy");
-            boost::replace_all (file_replaced2, ".pcd", ".txt");
+                //check which of them have been trained using training_dir and the model_id_
+                //load views, poses and self-occlusions for those that exist
+                //generate otherwise
+                std::cout << files[i] << std::endl;
+                std::stringstream model_path;
+                model_path << path_ << "/" << files[i];
+                std::string path_model = model_path.str ();
+                loadOrGenerate (training_dir, path_model, *m);
 
-            //read pose as well
-            const std::string pose_file = pathmodel + "/" + file_replaced1;
-
-            Eigen::Matrix4f pose;
-            v4r::io::readMatrixFromFile(pose_file, pose);
-
-            model.poses_.push_back (pose);
-
-            //read entropy as well
-            const std::string entropy_file = pathmodel + "/" + file_replaced2;
-            float entropy = 0;
-            v4r::io::readFloatFromFile (entropy_file, entropy);
-            model.self_occlusions_.push_back (entropy);
-
-          }
+                models_.push_back (m);
+            }
+            std::cout << "End of generate function" << std::endl;
         }
 
         void
-        loadOrGenerate (const std::string & dir, const std::string & model_path, ModelT & model)
-        {
-          const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
-
-          model.views_.clear();
-          model.poses_.clear();
-          model.self_occlusions_.clear();
-          model.assembled_.reset (new pcl::PointCloud<pcl::PointXYZ>);
-          uniform_sampling (model_path, 100000, *model.assembled_, model_scale_);
-
-          if(compute_normals_) {
-            std::cout << "Computing normals..." << std::endl;
-            model.computeNormalsAssembledCloud(radius_normals_);
-          }
-
-          if (v4r::io::getFilesInDirectory(pathmodel, model.view_filenames_, "", ".*view_.*.pcd", false) != -1)
-          {
-            if(load_into_memory_)
-                loadInMemorySpecificModel(dir, model);
-          }
-          else
-          {
-              int img_width = resolution_;
-              int img_height = resolution_;
-
-              // To preserve Kinect camera parameters (640x480 / f=525)
-              const float f = 150.f;
-              const float cx = img_width / 2.f;
-              const float cy = img_height / 2.f;
-              DepthmapRenderer renderer(img_width, img_height);
-              renderer.setIntrinsics(f,f,cx,cy);
-              DepthmapRendererModel model(input);
-              renderer.setModel(&model);
-
-            int polyhedron = TomGine::tgShapeCreator::ICOSAHEDRON;
-            const bool scale = true;
-            const bool center = true;
-            TomGine::PointCloudRendering pcr( model_path, scale, center );
-            TomGine::tgModel sphere;
-            TomGine::tgShapeCreator::CreateSphere(sphere, radius_sphere_, tes_level_, polyhedron);
-//            sphere.m_line_width = 1.0f;
-            TomGine::tgCamera cam;
-            cam.SetViewport(img_width, img_height);
-
-            cam.SetIntrinsicCV(f, f, cx , cy, 0.01f, 10.0f);
-
-            for(size_t i=0; i<sphere.m_vertices.size(); i++)
-            {
-                TomGine::vec3& pos = sphere.m_vertices[i].pos;
-
-                // set camera
-                if(cross(pos,TomGine::vec3(0,1,0)).length()<TomGine::epsilon)
-                    cam.LookAt(pos, TomGine::vec3(0,0,0), TomGine::vec3(0,0,1));
-                else
-                    cam.LookAt(pos, TomGine::vec3(0,0,0), TomGine::vec3(0,1,0));
-                cam.ApplyTransform();
-
-                const bool use_world_coordinate_system = false;
-                pcr.Generate(cam, use_world_coordinate_system);
-                const cv::Mat4f& pointcloud = pcr.GetPointCloud(i);
-
-                // convert to PCL point cloud
-                typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT>);
-                cloud->points.resize(pointcloud.rows * pointcloud.cols);
-
-                if (gen_organized_)
-                {
-                    cloud->width = pointcloud.cols;
-                    cloud->height = pointcloud.rows;
-                    for(int row_id=0; row_id<pointcloud.rows; row_id++) {
-                        for(int col_id=0; col_id<pointcloud.cols; col_id++){
-                            const cv::Vec4f pt = pointcloud.at<cv::Vec4f>(row_id, col_id);
-                            const float x = pt[0];
-                            const float y = pt[1];
-                            const float z = pt[2];
-//                            const float rgb = pt[3];
-
-                            PointInT &p = cloud->at(col_id, row_id);
-                            p.x = x;
-                            p.y = y;
-                            p.z = z;
-                        }
-                    }
-                }
-                else
-                {
-                    cloud->height = 1;
-                    size_t kept=0;
-                    for(int row_id=0; row_id<pointcloud.rows; row_id++) {
-                        for(int col_id=0; col_id<pointcloud.cols; col_id++){
-                            const cv::Vec4f pt = pointcloud.at<cv::Vec4f>(row_id, col_id);
-                            const float x = pt[0];
-                            const float y = pt[1];
-                            const float z = pt[2];
-//                            const float rgb = pt[3];
-
-                            if ( std::isfinite(z) ) {
-                                PointInT &p = cloud->points[kept];
-                                p.x = x;
-                                p.y = y;
-                                p.z = z;
-                                kept++;
-                            }
-                        }
-                    }
-                    cloud->points.resize(kept);
-                    cloud->width = kept;
-                }
-
-                TomGine::mat4 tg_pose = cam.GetPose();
-
-                Eigen::Matrix4f tf;
-                for(size_t row_id=0; row_id<4; row_id++)
-                    for(size_t col_id=0; col_id<4; col_id++)
-                        tf(col_id, row_id) = tg_pose.data[row_id*4 + col_id];
-
-                model.views_.push_back (cloud);
-                model.poses_.push_back (tf);
-                model.self_occlusions_.push_back (0); // NOT IMPLEMENTED
-            }
-
-            std::stringstream direc;
-            direc << dir << "/" << model.class_ << "/" << model.id_;
-            this->createClassAndModelDirectories (dir, model.class_, model.id_);
-
-            for (size_t i = 0; i < model.views_.size (); i++)
-            {
-              //save generated model for future use
-              std::stringstream path_view;
-              path_view << direc.str () << "/view_" << i << ".pcd";
-              pcl::io::savePCDFileBinary (path_view.str (), *(model.views_[i]));
-
-              std::stringstream path_pose;
-              path_pose << direc.str () << "/pose_" << i << ".txt";
-
-              v4r::io::writeMatrixToFile( path_pose.str (), model.poses_[i]);
-
-              std::stringstream path_entropy;
-              path_entropy << direc.str () << "/entropy_" << i << ".txt";
-              v4r::io::writeFloatToFile (path_entropy.str (), model.self_occlusions_[i]);
-            }
-
-            loadOrGenerate (dir, model_path, model);
-
-          }
-        }
-
-        /**
-         * \brief Creates the model representation of the training set, generating views if needed
-         */
-        void
-        generate (const std::string & training_dir)
-        {
-          v4r::io::createDirIfNotExist(training_dir);
-
-          //get models in directory
-          std::vector < std::string > files;
-          v4r::io::getFilesInDirectory(path_, files, "", ".*.ply", true);
-
-          models_.clear();
-
-          for (size_t i = 0; i < files.size (); i++)
-          {
-            ModelTPtr m(new ModelT);
-            this->getIdAndClassFromFilename (files[i], m->id_, m->class_);
-
-            //check which of them have been trained using training_dir and the model_id_
-            //load views, poses and self-occlusions for those that exist
-            //generate otherwise
-            std::cout << files[i] << std::endl;
-            std::stringstream model_path;
-            model_path << path_ << "/" << files[i];
-            std::string path_model = model_path.str ();
-            loadOrGenerate (training_dir, path_model, *m);
-
-            models_.push_back (m);
-          }
-          std::cout << "End of generate function" << std::endl;
-        }
+        loadInMemorySpecificModel(const std::string & dir, ModelT & model);
       };
 }
 

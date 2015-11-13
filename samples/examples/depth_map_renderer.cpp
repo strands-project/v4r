@@ -34,25 +34,25 @@ namespace po = boost::program_options;
 int main(int argc, const char * argv[]) {
     std::string input, out_dir;
     bool visualize;
-    size_t subdivisions, width, height;
-    float radius, fx, fy, cx, cy;
+    size_t subdivisions = 0, width = 640, height = 480;
+    float radius = 3.0, fx = 535.4, fy = 539.2, cx = 320.1, cy = 247.6;
 
     google::InitGoogleLogging(argv[0]);
 
-    po::options_description desc("Depth-Map Rendering\n======================================\n**Allowed options");
+    po::options_description desc("Depth-map and point cloud Rendering from mesh file\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
             ("input,i", po::value<std::string>(&input)->required(), "input model (.ply)")
             ("output,o", po::value<std::string>(&out_dir)->default_value("/tmp/rendered_pointclouds/"), "output directory to store the point cloud (.pcd) file")
             ("visualize,v", po::value<bool>(&visualize)->default_value(true), "if true, visualizes the rendered depth and color map.")
-            ("subdivisions,s", po::value<size_t>(&subdivisions)->default_value(0), "defines the number of subdivsions used for rendering")
-            ("radius,r", po::value<float>(&radius)->default_value(3.0, boost::str(boost::format("%.2e") % radius)), "defines the radius used for rendering")
-            ("width", po::value<size_t>(&width)->default_value(640), "defines the image width")
-            ("height", po::value<size_t>(&height)->default_value(480), "defines the image height")
-            ("fx", po::value<float>(&fx)->default_value(535.4, boost::str(boost::format("%.2e") % fx)), "defines the focal length in x direction used for rendering")
-            ("fy", po::value<float>(&fy)->default_value(539.2, boost::str(boost::format("%.2e") % fy)), "defines the focal length in y direction used for rendering")
-            ("cx", po::value<float>(&cx)->default_value(320.1, boost::str(boost::format("%.2e") % cx)), "defines the central point of projection in x direction used for rendering")
-            ("cy", po::value<float>(&cy)->default_value(247.6, boost::str(boost::format("%.2e") % cy)), "defines the central point of projection in y direction used for rendering")
+            ("subdivisions,s", po::value<size_t>(&subdivisions)->default_value(subdivisions), "defines the number of subdivsions used for rendering")
+            ("radius,r", po::value<float>(&radius)->default_value(radius, boost::str(boost::format("%.2e") % radius)), "defines the radius used for rendering")
+            ("width", po::value<size_t>(&width)->default_value(width), "defines the image width")
+            ("height", po::value<size_t>(&height)->default_value(height), "defines the image height")
+            ("fx", po::value<float>(&fx)->default_value(fx, boost::str(boost::format("%.2e") % fx)), "defines the focal length in x direction used for rendering")
+            ("fy", po::value<float>(&fy)->default_value(fy, boost::str(boost::format("%.2e") % fy)), "defines the focal length in y direction used for rendering")
+            ("cx", po::value<float>(&cx)->default_value(cx, boost::str(boost::format("%.2e") % cx)), "defines the central point of projection in x direction used for rendering")
+            ("cy", po::value<float>(&cy)->default_value(cy, boost::str(boost::format("%.2e") % cy)), "defines the central point of projection in y direction used for rendering")
     ;
 
     po::variables_map vm;

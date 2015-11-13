@@ -329,7 +329,6 @@ DepthmapRenderer::DepthmapRenderer(int resx, int resy)
 
     glGenVertexArrays(1,&VAO);
 
-    GLuint err;
     if( (err = glGetError()) != GL_NO_ERROR)
         std::cerr << "An OpenGL error occured during initialization (" << err << ")" << std::endl;
 
@@ -469,7 +468,7 @@ void DepthmapRenderer::setCamPose(Eigen::Matrix4f _pose)
 
 
 
-cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
+cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color) const
 {
     //load shader:
     glUseProgram(shaderProgram);
@@ -589,7 +588,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color)
     return depthmap;
 }
 
-pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visibleSurfaceArea)
+pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visibleSurfaceArea) const
 {
     const float bad_point = std::numeric_limits<float>::quiet_NaN();
     pcl::PointCloud<pcl::PointXYZ> cloud;
@@ -632,7 +631,7 @@ pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visible
     return cloud;
 }
 
-pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float &visibleSurfaceArea)
+pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float &visibleSurfaceArea) const
 {
     const float bad_point = std::numeric_limits<float>::quiet_NaN();
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
