@@ -70,8 +70,9 @@ readMatrixFromFile(const std::string &file, Eigen::Matrix4f & matrix, int paddin
     return true;
 }
 
+template<typename T>
 bool
-writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid)
+writeVectorToFile (const std::string &file, const typename std::vector<T>& val)
 {
     std::ofstream out (file.c_str ());
     if (!out)
@@ -80,7 +81,9 @@ writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid)
         return false;
     }
 
-    out << centroid[0] << " " << centroid[1] << " " << centroid[2] << std::endl;
+    for(size_t i=0; i<val.size(); i++)
+        out << val[i] << " ";
+
     out.close ();
 
     return true;
@@ -146,6 +149,10 @@ readFloatFromFile (const std::string &file, float& value)
     return true;
 }
 
+template V4R_EXPORTS bool writeVectorToFile<float> (const std::string &, const typename std::vector<float>&);
+template V4R_EXPORTS bool writeVectorToFile<double> (const std::string &, const typename std::vector<double>&);
+template V4R_EXPORTS bool writeVectorToFile<int> (const std::string &, const typename std::vector<int>&);
+template V4R_EXPORTS bool writeVectorToFile<size_t> (const std::string &, const typename std::vector<size_t>&);
 }
 
 }

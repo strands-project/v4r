@@ -1,35 +1,47 @@
-/*
- * ply_source.h
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma, Thomas Faeulhammer
  *
- *  Created on: Mar 9, 2012
- *      Author: Aitor Aldoma
- *      Maintainer: Thomas Faeulhammer
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
-#ifndef FAAT_PCL_REC_FRAMEWORK_MESH_SOURCE_H_
-#define FAAT_PCL_REC_FRAMEWORK_MESH_SOURCE_H_
 
-#include "source.h"
-#include <pcl/apps/render_views_tesselated_sphere.h>
-#include <pcl/io/io.h>
+#ifndef V4R_MESH_SOURCE_H_
+#define V4R_MESH_SOURCE_H_
+
 #include <pcl/io/pcd_io.h>
-#include "vtk_model_sampling.h"
 #include <boost/function.hpp>
-#include <vtkTransformPolyDataFilter.h>
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/rendering/depthmapRenderer.h>
+#include <v4r/recognition/source.h>
 
 namespace v4r
 {
     /**
      * \brief Data source class based on mesh models
-     * \author Aitor Aldoma
+     * \author Aitor Aldoma, Thomas Faeulhammer
+     * \date March, 2012
      */
-
     template<typename PointT>
       class V4R_EXPORTS MeshSource : public Source<PointT>
       {

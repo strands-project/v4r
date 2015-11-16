@@ -1,9 +1,25 @@
-﻿/*
- * hv_go_1.h
+﻿/******************************************************************************
+ * Copyright (c) 2013 Aitor Aldoma
  *
- *  Created on: Feb 27, 2013
- *      Author: aitor
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
 #ifndef FAAT_PCL_GHV_H_
 #define FAAT_PCL_GHV_H_
@@ -28,11 +44,11 @@ namespace v4r
 {
 
   /** \brief A hypothesis verification method proposed in
-   * "A Global Hypotheses Verification Method for 3D Object Recognition", A. Aldoma and F. Tombari and L. Di Stefano and Markus Vincze, ECCV 2012
-   * \author Aitor Aldoma
+   * "A Global Hypotheses Verification Method for 3D Object Recognition", A. Aldoma and F. Tombari and L. Di Stefano and Markus Vincze, ECCV 2012,
    * Extended with physical constraints and color information (see ICRA paper)
+   * \author Aitor Aldoma
+   * \date Feb, 2013
    */
-
   template<typename ModelT, typename SceneT>
     class V4R_EXPORTS GHV : public HypothesisVerification<ModelT, SceneT>
     {

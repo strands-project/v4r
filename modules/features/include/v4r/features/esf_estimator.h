@@ -75,6 +75,7 @@ namespace v4r
 
             const pcl::ESFSignature640 &pt = ESF_signature.points[0];
             const size_t feat_dim = (size_t)pt.descriptorSize();
+            signature.resize(feat_dim);
 
             for(size_t i=0; i<feat_dim; i++)
                 signature[i] = ESF_signature.points[0].histogram[i];

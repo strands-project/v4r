@@ -2,6 +2,7 @@
 #define V4R_IO_EIGEN_H_
 
 #include <string>
+#include <vector>
 
 #include <Eigen/Dense>
 
@@ -18,8 +19,10 @@ namespace v4r
         V4R_EXPORTS bool
         readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding=0);
 
-        V4R_EXPORTS bool
-        writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid);
+        template<typename T>
+        V4R_EXPORTS
+        bool
+        writeVectorToFile (const std::string &file, const typename std::vector<T> & centroid);
 
         V4R_EXPORTS bool
         getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid);

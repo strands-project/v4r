@@ -1,4 +1,5 @@
 #include <v4r/recognition/mesh_source.h>
+#include <v4r/recognition/vtk_model_sampling.h>
 
 namespace v4r
 {
@@ -34,10 +35,12 @@ MeshSource<PointT>::loadOrGenerate (const std::string & dir, const std::string &
         model.computeNormalsAssembledCloud(radius_normals_);
     }
 
-    if (v4r::io::getFilesInDirectory(pathmodel, model.view_filenames_, "", ".*view_.*.pcd", false) != -1)
+    if (v4r::io::existsFolder(pathmodel))
     {
-        if(load_into_memory_)
+        if(load_into_memory_) {
+            v4r::io::getFilesInDirectory(pathmodel, model.view_filenames_, "", ".*view_.*.pcd", false);
             loadInMemorySpecificModel(dir, model);
+        }
     }
     else
     {
@@ -63,7 +66,7 @@ MeshSource<PointT>::loadOrGenerate (const std::string & dir, const std::string &
             renderer.setCamPose(orientation);
             float visible;
             typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>(renderCloud(renderer, visible)));
-            Eigen::Matrix4f tf = v4r::RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_);
+            const Eigen::Matrix4f tf = v4r::RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_);
 
             // reset view point otherwise pcl visualization is potentially messed up
             Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
@@ -148,7 +151,6 @@ MeshSource<PointT>::loadInMemorySpecificModel(const std::string & dir, ModelT & 
         float entropy = 0;
         v4r::io::readFloatFromFile (entropy_file, entropy);
         model.self_occlusions_.push_back (entropy);
-
     }
 }
 
