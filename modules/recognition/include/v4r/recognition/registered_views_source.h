@@ -40,7 +40,6 @@ class V4R_EXPORTS RegisteredViewsSource : public Source<PointInT>
 
     using SourceT::path_;
     using SourceT::models_;
-    using SourceT::model_scale_;
     using SourceT::load_into_memory_;
     using SourceT::createClassAndModelDirectories;
     using SourceT::resolution_;

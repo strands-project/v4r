@@ -42,7 +42,6 @@ namespace v4r
 
         using SourceT::path_;
         using SourceT::models_;
-        using SourceT::model_scale_;
         using SourceT::load_views_;
         using SourceT::load_into_memory_;
 

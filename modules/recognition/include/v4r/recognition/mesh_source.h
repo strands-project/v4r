@@ -59,7 +59,6 @@ namespace v4r
         int tes_level_;
         int resolution_;
         float radius_sphere_;
-        float view_angle_;
         bool gen_organized_;
         boost::function<bool (const Eigen::Vector3f &)> campos_constraints_func_;
 
@@ -99,12 +98,6 @@ namespace v4r
         setRadiusSphere (float r)
         {
           radius_sphere_ = r;
-        }
-
-        void
-        setViewAngle (float a)
-        {
-          view_angle_ = a;
         }
 
         void

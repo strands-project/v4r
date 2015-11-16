@@ -52,7 +52,7 @@ MeshSource<PointT>::loadOrGenerate (const std::string & dir, const std::string &
         const float cx = img_width / 2.f;
         const float cy = img_height / 2.f;
         DepthmapRenderer renderer(img_width, img_height);
-        renderer.setIntrinsics(f,f,cx,cy);
+        renderer.setIntrinsics(f, f, cx, cy);
         DepthmapRendererModel rmodel(model_path);
         renderer.setModel(&rmodel);
 

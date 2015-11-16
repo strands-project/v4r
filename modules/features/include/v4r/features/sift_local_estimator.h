@@ -67,7 +67,7 @@ public:
             mask_cloud.points[indices_.indices[i]] = 1;
 
         cv::Mat_ < cv::Vec3b > colorImage;
-        PCLOpenCV::ConvertPCLCloud2Image<PointInT> (in, colorImage);
+        v4r::ConvertPCLCloud2Image<PointInT> (in, colorImage);
         cv::Mat grayImage;
         cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
 
@@ -276,7 +276,7 @@ public:
         std::cout << "Number of keypoints:" << ks.size() << std::endl;
 
         cv::Mat_ < cv::Vec3b > colorImage;
-        PCLOpenCV::ConvertPCLCloud2Image<PointInT> (in, colorImage);
+        v4r::ConvertPCLCloud2Image<PointInT> (in, colorImage);
         cv::Mat grayImage;
         cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
 
@@ -322,7 +322,7 @@ public:
         keypoints.reset(new pcl::PointCloud<PointInT>);
 
         cv::Mat_ < cv::Vec3b > colorImage;
-        PCLOpenCV::ConvertPCLCloud2Image<PointInT> (in, colorImage);
+        v4r::ConvertPCLCloud2Image<PointInT> (in, colorImage);
         cv::Mat grayImage;
         cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
 

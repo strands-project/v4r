@@ -88,15 +88,9 @@ GlobalNNClassifier<Distance, PointInT>::classify ()
     confidences_.clear ();
     first_nn_category_ = std::string ("");
 
-    PointInTPtr in (new pcl::PointCloud<PointInT>);
-    std::vector<float> signature;
-
-    if (indices_.size ())
-        pcl::copyPointCloud (*input_, indices_, *in);
-    else
-        in = input_;
-
-    estimator_->estimate (in, signature);
+    estimator_->setInput(input_);
+    estimator_->setIndices(indices_);
+    std::vector<float> signature = estimator_->estimate ();
     std::vector<index_score> indices_scores;
 
     ModelTPtr empty;
@@ -208,7 +202,8 @@ GlobalNNClassifier<Distance, PointInT>::initialize (bool force_retrain)
             for (size_t v = 0; v < m->views_.size (); v++)
             {
                 std::vector<float> signature;
-                estimator_->estimate (m->views_[v], signature);
+                estimator_->setInput(m->views_[v]);
+                signature = estimator_->estimate ();
 
                 std::stringstream path_entropy;
                 path_entropy << out_dir << "/entropy_" << v << ".txt";

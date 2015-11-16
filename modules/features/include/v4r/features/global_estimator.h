@@ -1,12 +1,29 @@
-/*
- * estimator.h
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma, Thomas Faeulhammer
  *
- *  Created on: Mar 22, 2012
- *      Author: aitor
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
-#ifndef FAAT_PCL_REC_FRAMEWORK_GLOBAL_ESTIMATOR_H_
-#define FAAT_PCL_REC_FRAMEWORK_GLOBAL_ESTIMATOR_H_
+
+#ifndef V4R_GLOBAL_ESTIMATOR_H_
+#define V4R_GLOBAL_ESTIMATOR_H_
 
 #include <v4r/core/macros.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
@@ -14,55 +31,47 @@
 
 namespace v4r
 {
-    template <typename PointInT>
+    template <typename PointT>
     class V4R_EXPORTS GlobalEstimator {
       protected:
         bool computed_normals_;
-        typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
-        typename boost::shared_ptr<PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator_;
+        typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
+        typename boost::shared_ptr<PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator_;
         pcl::PointCloud<pcl::Normal>::Ptr normals_;
+        PointInTPtr input_cloud_; /// @brief point cloud containing the object
+        std::vector<int> indices_; /// @brief indices of the point cloud belonging to the object
+
 
       public:
 
         /**
          * @brief global feature description
-         * @param input cloud
-         * @param[out] signatures describing the point cloud
-         * @return
+         * @return signatures describing the point cloud
          */
-        virtual bool
-        estimate (const PointInTPtr & in, std::vector<float> & signature)=0;
+        virtual std::vector<float>
+        estimate ()=0;
 
-        virtual bool computedNormals() = 0;
-
+        /** @brief sets the normals of the point cloud belonging to the object (optional) */
         void
-        setNormalEstimator(boost::shared_ptr<PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > & ne) {
-          normal_estimator_ = ne;
+        setNormals(const pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        {
+          normals_ = normals;
         }
 
+
+        /** @brief sets the indices of the point cloud belonging to the object */
         void
-        getNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        setIndices(const std::vector<int> & p_indices)
         {
-          normals = normals_;
+            indices_ = p_indices;
         }
 
-        virtual bool acceptsIndices()
-        {
-            return false;
-        }
 
-        virtual void
-        setIndices(pcl::PointIndices & p_indices)
+        /** @brief sets the input cloud containing the object to be classified */
+        void
+        setInput(const PointInTPtr & in)
         {
-            (void) p_indices;
-            PCL_ERROR("This function is not implemented!");
-        }
-
-        virtual void
-        setIndices(std::vector<int> & p_indices)
-        {
-            (void) p_indices;
-            PCL_ERROR("This function is not implemented!");
+            input_cloud_ = in;
         }
 
     };

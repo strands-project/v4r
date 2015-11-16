@@ -42,7 +42,7 @@ init(v4r::GlobalNNClassifier<flann::L1, PointT> &esf_classifier) {
     mesh_source->setPath (MODELS_DIR_);
     mesh_source->setResolution (150);
     mesh_source->setTesselationLevel (0);
-    mesh_source->setViewAngle (57.f);
+//    mesh_source->setViewAngle (57.f);
     mesh_source->setRadiusSphere (3.f);
     mesh_source->setModelScale (1.f);
     mesh_source->setTesselationLevel(1);
