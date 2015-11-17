@@ -71,7 +71,7 @@ namespace v4r
           Parameter (
                   double resolution = 0.005f,
                   double inliers_threshold = 0.015f, // 0.005f
-                  double occlusion_thres = 0.01f, // 0.005f
+                  double occlusion_thres = 0.02f, // 0.005f
                   int zbuffer_scene_resolution = 100,
                   int zbuffer_self_occlusion_resolution = 250,
                   bool self_occlusions_reasoning = true,

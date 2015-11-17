@@ -169,8 +169,8 @@ namespace v4r
           int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
 
           Parameter (
-                  double color_sigma_l = 0.5f,
-                  double color_sigma_ab = 0.5f,
+                  double color_sigma_l = 0.6f,
+                  double color_sigma_ab = 0.6f,
                   double regularizer = 1.f, // 3
                   double radius_neighborhood_clutter = 0.03f,
                   double radius_normals = 0.02f, // 0.01f
@@ -184,7 +184,7 @@ namespace v4r
                   double w_occupied_multiple_cm = 2.f, //0.f
                   bool use_super_voxels = false,
                   bool use_replace_moves = true,
-                  int opt_type = 0, // 2
+                  int opt_type = 0,
                   double active_hyp_penalty = 0.f, // 0.05f
                   int multiple_assignment_penalize_by_one = 2,
                   double d_weight_for_bad_normals = 0.1f,

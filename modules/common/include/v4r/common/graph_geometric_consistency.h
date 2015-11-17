@@ -95,7 +95,7 @@ namespace v4r
                   int max_taken_correspondence = 3, //5
                   bool cliques_big_to_small = false,
                   bool check_normals_orientation = true,
-                  double max_time_allowed_cliques_comptutation = std::numeric_limits<double>::infinity(), // 100
+                  double max_time_allowed_cliques_comptutation = 100, //std::numeric_limits<double>::infinity()
                   double ransac_threshold = 0.015f,
                   bool prune = false,
                   bool prune_by_CC = false
