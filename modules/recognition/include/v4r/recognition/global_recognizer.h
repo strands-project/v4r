@@ -65,7 +65,6 @@ public:
     void
     setInputCloud (const PointInTPtr & cloud)
     {
-
         input_ = cloud;
     }
 
