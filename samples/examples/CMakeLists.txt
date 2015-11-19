@@ -35,9 +35,9 @@ if(HAVE_OPENGL)
   list(APPEND DEP_LIBS ${OPENGL_LIBRARIES})
 endif()
 
-if(HAVE_GLFW)
-  v4r_include_directories(${GLFW_INCLUDE_DIRS})
-  list(APPEND DEP_LIBS ${GLFW_LIBRARIES})
+if(HAVE_GLFW3)
+  v4r_include_directories(${GLFW3_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${GLFW3_LIBRARIES})
 endif()
 
 if(HAVE_GLEW)
