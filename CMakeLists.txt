@@ -406,6 +406,9 @@ if(BUILD_EXAMPLES)
   add_subdirectory(samples)
 endif()
 
+# Figure out the list of dependencies
+v4r_get_all_libs(deps_modules deps_extra deps_3rdparty)
+
 # ----------------------------------------------------------------------------
 # Finalization: generate configuration-based files
 # ----------------------------------------------------------------------------
@@ -482,7 +485,6 @@ status("    Linker flags (Release):" ${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_SHARED
 status("    Linker flags (Debug):"   ${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_SHARED_LINKER_FLAGS_DEBUG})
 
 # ========================== Dependencies ============================
-v4r_get_all_libs(deps_modules deps_extra deps_3rdparty)
 status("    Extra dependencies:" ${deps_extra})
 status("    3rdparty dependencies:" ${deps_3rdparty})
 
