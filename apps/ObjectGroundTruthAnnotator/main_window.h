@@ -59,7 +59,7 @@ public:
        std::stringstream model_name;
        model_name << "hypotheses_" << selected_hypothesis_;
 
-       pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[selected_hypothesis_]->getAssembled(0.003f);
+       pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[selected_hypothesis_]->getAssembled( 3 );
        pcl::PointCloud<PointT>::Ptr model_cloud_transformed(new pcl::PointCloud<PointT>(*model_cloud));
        pcl::transformPointCloud(*model_cloud, *model_cloud_transformed, hypotheses_poses_[selected_hypothesis_]);
 
@@ -90,7 +90,7 @@ public:
      std::stringstream model_name;
      model_name << "hypotheses_" << i;
 
-     pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[i]->getAssembled(0.003f);
+     pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[i]->getAssembled( 3 );
      pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>(*model_cloud));
      pcl::transformPointCloud(*cloud, *cloud, hypotheses_poses_[i]);
 
@@ -224,7 +224,7 @@ private:
   pcl::visualization::PCLVisualizer * pviz_models_;
   pcl::visualization::PCLVisualizer * pviz_scenes_;
 
-  float model_scale_;
+  double model_scale_;
   float model_xsize_;
   float pose_xsize_;
 

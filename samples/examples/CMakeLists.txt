@@ -3,7 +3,7 @@
 #
 # ----------------------------------------------------------------------------
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-SET(V4R_CPP_SAMPLES_REQUIRED_DEPS v4r_common v4r_core v4r_features v4r_io v4r_keypoints v4r_ml v4r_recognition v4r_reconstruction v4r_registration v4r_segmentation )
+SET(V4R_CPP_SAMPLES_REQUIRED_DEPS v4r_common v4r_core v4r_features v4r_io v4r_keypoints v4r_ml v4r_recognition v4r_reconstruction v4r_registration v4r_rendering v4r_segmentation v4r_tracking)
 
 if(HAVE_PCL)
   v4r_include_directories(${PCL_INCLUDE_DIRS})
@@ -35,9 +35,24 @@ if(HAVE_OPENGL)
   list(APPEND DEP_LIBS ${OPENGL_LIBRARIES})
 endif()
 
+if(HAVE_GLFW3)
+  v4r_include_directories(${GLFW3_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${GLFW3_LIBRARIES})
+endif()
+
+if(HAVE_GLEW)
+  v4r_include_directories(${GLEW_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${GLEW_LIBRARIES})
+endif()
+
 if(HAVE_ASSIMP)
   v4r_include_directories(${ASSIMP_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${ASSIMP_LIBRARIES})
+endif()
+
+if(HAVE_GLOG)
+  v4r_include_directories(${GLOG_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${GLOG_LIBRARIES})
 endif()
 
 v4r_check_dependencies(${V4R_CPP_SAMPLES_REQUIRED_DEPS})
@@ -78,6 +93,15 @@ if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
       install(TARGETS ${the_target}
               RUNTIME DESTINATION "${V4R_SAMPLES_BIN_INSTALL_PATH}/${sample_subfolder}" COMPONENT samples)
     endif()
+
+    if (INSTALL_C_EXAMPLES AND NOT WIN32)
+      install(TARGETS ${the_target}
+              RUNTIME DESTINATION bin
+              LIBRARY DESTINATION lib
+              ARCHIVE DESTINATION lib
+              )
+    endif()
+
   ENDMACRO()
 
   file(GLOB_RECURSE cpp_samples RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)

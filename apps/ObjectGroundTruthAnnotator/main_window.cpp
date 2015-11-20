@@ -7,7 +7,6 @@
 
 #include "main_window.h"
 #include <boost/filesystem.hpp>
-#include <pcl/console/parse.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/io/pcd_io.h>
@@ -24,7 +23,10 @@
 #include <string>
 #include <QKeyEvent>
 
+#include <boost/program_options.hpp>
+
 namespace bf = boost::filesystem;
+namespace po = boost::program_options;
 
 void
 mouse_callback_scenes (const pcl::visualization::MouseEvent& mouse_event, void* cookie)
@@ -134,7 +136,7 @@ void MainWindow::model_list_clicked(const QModelIndex & idx)
   selectScene(-1);
   ModelTPtr model = sequence_hypotheses_[ selected_hypothesis_ ];
 
-  pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
+  pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled( 3 );
   pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>(*model_cloud));
   pcl::transformPointCloud(*model_cloud, *cloud, hypotheses_poses_[ selected_hypothesis_ ]);
 
@@ -165,25 +167,25 @@ void MainWindow::fillScene()
 
 void MainWindow::fillModels()
 {
-  boost::shared_ptr<std::vector<ModelTPtr> > models = source_->getModels();
-  size_t kk = (models->size ()) + 1;
+  std::vector<ModelTPtr> models = source_->getModels();
+  size_t kk = (models.size ()) + 1;
   double x_step = 1.0 / (float)kk;
-  model_clouds_.resize(models->size ());
+  model_clouds_.resize(models.size ());
 
   pviz_models_->removeAllPointClouds();
 
-  for (size_t i = 0; i < models->size (); i++)
+  for (size_t i = 0; i < models.size (); i++)
   {
     std::stringstream model_name;
     model_name << "poly_" << i;
 
     model_clouds_[i].reset(new pcl::PointCloud<PointT>);
-    pcl::PointCloud<PointT>::ConstPtr model_cloud = models->at(i)->getAssembled(0.003f);
+    pcl::PointCloud<PointT>::ConstPtr model_cloud = models.at(i)->getAssembled( 3 );
     pviz_models_->createViewPort (i * x_step, 0, (i + 1) * x_step, 200, model_viewport_);
 
     //create scale transform...
     pviz_models_->addPointCloud(model_cloud, model_name.str(), model_viewport_);
-    loaded_models_.push_back(models->at(i));
+    loaded_models_.push_back(models.at(i));
   }
 
   pviz_models_->spinOnce(0.1, true);
@@ -200,7 +202,7 @@ void MainWindow::fillHypotheses()
       std::stringstream model_name;
       model_name << "hypotheses_" << i;
 
-      pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[i]->getAssembled(0.003f);
+      pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[i]->getAssembled( 3 );
       pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>(*model_cloud));
       pcl::transformPointCloud(*cloud, *cloud, hypotheses_poses_[i]);
 
@@ -436,7 +438,7 @@ void MainWindow::updateSelectedHypothesis()
     if(selected_hypothesis_>=0)
     {
         pviz_->removePointCloud(model_name.str(), pviz_v2_);
-        pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[selected_hypothesis_]->getAssembled(0.003f);
+        pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[selected_hypothesis_]->getAssembled( 3 );
         pcl::PointCloud<PointT>::Ptr model_cloud_transformed(new pcl::PointCloud<PointT>(*model_cloud));
         pcl::transformPointCloud(*model_cloud, *model_cloud_transformed, hypotheses_poses_[selected_hypothesis_]);
 
@@ -866,7 +868,7 @@ void MainWindow::save_model()
                 //compute occlusion value
                 size_t overlap = 0;
                 std::vector<int> indices;
-                pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
+                pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled( 3 );
                 pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                 pcl::transformPointCloud(*model_cloud, *model_aligned, hypotheses_poses_[k]);
 
@@ -936,15 +938,37 @@ MainWindow::MainWindow(int argc, char *argv[])
   export_ground_truth_to_ = "/tmp/exported_ground_truth/";
   icp_scene_to_model_ = false;//true;
 
-  pcl::console::parse_argument (argc, argv, "-models_dir", dir_models_);
-  pcl::console::parse_argument (argc, argv, "-model_scale", model_scale_);
-  pcl::console::parse_argument (argc, argv, "-pcd_file", base_path_);
-  pcl::console::parse_argument (argc, argv, "-export_ground_truth_to", export_ground_truth_to_);
-  pcl::console::parse_argument (argc, argv, "-icp_scene_to_model", icp_scene_to_model_);
+  po::options_description desc("Ground-Truth Annotation Tool\n======================================\n**Allowed options");
+  desc.add_options()
+          ("help,h", "produce help message")
+          ("models_dir,m", po::value<std::string>(&dir_models_)->required(), "directory containing the model .pcd files")
+          ("pcd_file,p", po::value<std::string>(&base_path_)->required(), "Directory with the to be annotated scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" and it also looks for an initial annotation file \"results_3d.txt\". If this annotation file exists, the program reads each row as \"\\path\\to\\object_model.pcd t11 t12 t13 t14 t21 ...  t34 .. 0 0 0 1\" where t are elements of the 4x4 homogenous transformation matrix bringing the model into the world coordinate system. If the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition.")
+          ("export_ground_truth_to,o", po::value<std::string>(&export_ground_truth_to_)->default_value("/tmp/exported_ground_truth/"), "Output directory")
+          ("icp_scene_to_model", po::value<bool>(&icp_scene_to_model_)->default_value(false), "if true, does pose refinement.")
+          ("model_scale", po::value<double>(&model_scale_)->default_value(model_scale_), "model scale")
+;
+
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  if (vm.count("help"))
+  {
+      std::cout << desc << std::endl;
+      return;
+  }
+
+  try
+  {
+      po::notify(vm);
+  }
+  catch(std::exception& e)
+  {
+      std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
+      return;
+  }
 
   if(!v4r::io::getFoldersInDirectory( base_path_, "", test_sequences_) )
   {
-      std::cerr << "No subfolders in directory " << base_path_ << ". " << std::endl;
+      std::cerr << "No subfolders in directory " << base_path_ << ". " << std::endl << std::endl << desc << std::endl;
       test_sequences_.push_back("");
   }
 
@@ -1106,8 +1130,8 @@ MainWindow::MainWindow(int argc, char *argv[])
   pviz_scenes_ = new pcl::visualization::PCLVisualizer("viz_scenes",true);
   pviz_scenes_->registerMouseCallback (mouse_callback_scenes, (void*)(this));
 
-  boost::shared_ptr<std::vector<ModelTPtr> > models = source_->getModels();
-  size_t models_size = models->size();
+  std::vector<ModelTPtr> models = source_->getModels();
+  size_t models_size = models.size();
   size_t scenes_size = 20;//single_scenes_.size ();
 
   vtk_widget_models_ = new QVTKWidget;

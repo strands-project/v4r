@@ -43,6 +43,7 @@
 #include <Eigen/Dense>
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/keypoints/impl/Object.hpp>
+#include <v4r/core/macros.h>
 
 
 namespace v4r
@@ -52,7 +53,7 @@ namespace v4r
 /**
  * LKPoseTracker
  */
-class LKPoseTracker
+class V4R_EXPORTS LKPoseTracker
 {
 public:
   class Parameter

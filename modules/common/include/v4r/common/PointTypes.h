@@ -110,6 +110,29 @@ public:
   inline const float& operator[](int i) const { return pt[i]; }
 };
 
+/**
+ * PointXYZ (might be wrong!!!!)
+ */
+class PointXYZ
+{
+public:
+  Eigen::Vector3f pt;
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  PointXYZ() : pt(Eigen::Vector3f(NaNf,NaNf,NaNf)) {}
+
+  inline Eigen::Vector3f &getVector3fMap() {
+    return pt;
+  }
+  inline const Eigen::Vector3f &getVector3fMap() const {
+    return pt;
+  }
+
+  inline float& operator[](int i) { return pt[i]; }
+  inline const float& operator[](int i) const { return pt[i]; }
+};
+
 
 } //--END--
 

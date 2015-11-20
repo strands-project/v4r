@@ -94,13 +94,6 @@
 /* Intel Perceptual Computing SDK library */
 #cmakedefine HAVE_INTELPERC
 
-/* Intel Integrated Performance Primitives */
-#cmakedefine HAVE_IPP
-#cmakedefine HAVE_IPP_ICV_ONLY
-
-/* Intel IPP Async */
-#cmakedefine HAVE_IPP_A
-
 /* JPEG-2000 codec */
 #cmakedefine HAVE_JASPER
 
@@ -187,3 +180,13 @@
 
 /* gPhoto2 library */
 #cmakedefine HAVE_GPHOTO2
+
+#cmakedefine HAVE_SIFTGPU
+#cmakedefine HAVE_LIBSVM
+#cmakedefine HAVE_METSLIB
+#cmakedefine HAVE_PCL
+#cmakedefine HAVE_OPENCV
+#cmakedefine HAVE_CERES
+#cmakedefine HAVE_ASSIMP
+
+

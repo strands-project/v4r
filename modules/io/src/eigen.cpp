@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
 namespace v4r
 {
@@ -46,6 +47,11 @@ writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix)
 bool
 readMatrixFromFile(const std::string &file, Eigen::Matrix4f & matrix, int padding)
 {
+    // check if file exists
+    boost::filesystem::path path = file;
+    if ( ! (boost::filesystem::exists ( path ) && boost::filesystem::is_regular_file(path)) )
+        throw std::runtime_error ("Given file path to read Matrix does not exist!");
+
 
     std::ifstream in;
     in.open (file.c_str (), std::ifstream::in);
@@ -64,8 +70,9 @@ readMatrixFromFile(const std::string &file, Eigen::Matrix4f & matrix, int paddin
     return true;
 }
 
+template<typename T>
 bool
-writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid)
+writeVectorToFile (const std::string &file, const typename std::vector<T>& val)
 {
     std::ofstream out (file.c_str ());
     if (!out)
@@ -74,7 +81,9 @@ writeCentroidToFile (const std::string &file, const Eigen::Vector3f & centroid)
         return false;
     }
 
-    out << centroid[0] << " " << centroid[1] << " " << centroid[2] << std::endl;
+    for(size_t i=0; i<val.size(); i++)
+        out << val[i] << " ";
+
     out.close ();
 
     return true;
@@ -84,7 +93,6 @@ bool
 getCentroidFromFile (const std::string &file, Eigen::Vector3f & centroid)
 {
     std::ifstream in;
-
     in.open (file.c_str (), std::ifstream::in);
 
     if (!in)
@@ -141,6 +149,10 @@ readFloatFromFile (const std::string &file, float& value)
     return true;
 }
 
+template V4R_EXPORTS bool writeVectorToFile<float> (const std::string &, const typename std::vector<float>&);
+template V4R_EXPORTS bool writeVectorToFile<double> (const std::string &, const typename std::vector<double>&);
+template V4R_EXPORTS bool writeVectorToFile<int> (const std::string &, const typename std::vector<int>&);
+template V4R_EXPORTS bool writeVectorToFile<size_t> (const std::string &, const typename std::vector<size_t>&);
 }
 
 }

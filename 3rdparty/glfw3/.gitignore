@@ -1,0 +1,6 @@
+# These paths will be created and populated by the `ExternalProject_Add`
+# command when the "glfw3" target is built.
+include/
+lib/
+src/
+tmp/
