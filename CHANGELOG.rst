@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2015-11-20)
+------------------
 * Merge pull request `#35 <https://github.com/strands-project/v4r/issues/35>`_ from strands-project/recognition_update
   Recognition update
 * Merge remote-tracking branch 'v4r_root/recognition_update' into recognition_update1
