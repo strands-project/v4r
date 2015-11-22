@@ -11,7 +11,7 @@
 #include "local_estimator.h"
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <pcl/io/pcd_io.h>
-#include <v4r/ORUtils/pcl_opencv.h>
+#include <v4r/common/pcl_opencv.h>
 #include <v4rexternal/siftpp/PSiftpp.hh>
 
 namespace v4r
@@ -23,11 +23,9 @@ namespace v4r
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
         typedef typename pcl::PointCloud<FeatureT>::Ptr FeatureTPtr;
 
-        using LocalEstimator<PointInT, FeatureT>::support_radius_;
-        using LocalEstimator<PointInT, FeatureT>::normal_estimator_;
         using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
-          using LocalEstimator<PointInT, FeatureT>::adaptative_MLS_;
-          using LocalEstimator<PointInT, FeatureT>::keypoint_indices_;
+        using LocalEstimator<PointInT, FeatureT>::keypoint_indices_;
+
         pcl::PointIndices indices_;
         //cv::Ptr<cv::FeatureDetector> detectorPtr_;
         //cv::Ptr<cv::DescriptorExtractor> descriptorPtr_;
@@ -73,7 +71,7 @@ namespace v4r
             mask_cloud.points[indices_.indices[i]] = 1;
 
           cv::Mat_ < cv::Vec3b > colorImage;
-          PCLOpenCV::ConvertPCLCloud2Image<PointInT> (in, colorImage);
+          v4r::ConvertPCLCloud2Image<PointInT> (in, colorImage);
           cv::Mat grayImage;
           cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
 

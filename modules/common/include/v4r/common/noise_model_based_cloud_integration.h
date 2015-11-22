@@ -127,7 +127,7 @@ public:
     {
         indices_.resize(indices.size());
         for(size_t i=0; i<indices.size(); i++)
-            indices_[i] = v4r::convertVecInt2VecSizet(indices[i]);
+            indices_[i] = convertVecInt2VecSizet(indices[i]);
     }
 
     void

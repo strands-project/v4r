@@ -133,9 +133,11 @@ namespace v4r
       /** \brief Sets input and scene normals. The function does nothing and should be reimplemented in the subclasses when needed.
         */
       virtual void
-      setInputAndSceneNormals (const pcl::PointCloud<pcl::Normal>::Ptr & /*input_n*/, const pcl::PointCloud<pcl::Normal>::Ptr & /*scene_n*/)
+      setInputAndSceneNormals (const pcl::PointCloud<pcl::Normal>::Ptr & input_n, const pcl::PointCloud<pcl::Normal>::Ptr & scene_n)
       {
-
+          (void)input_n;
+          (void)scene_n;
+          std::cerr << "setInputAndSceneNormals is not implemented for this object!" << std::endl;
       }
 
       /** \brief Clusters the input correspondences belonging to different model instances.

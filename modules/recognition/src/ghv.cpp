@@ -42,5 +42,5 @@
 template<typename ModelT, typename SceneT> float v4r::GHV<ModelT, SceneT>::sRGB_LUT[256] = {- 1};
 template<typename ModelT, typename SceneT> float v4r::GHV<ModelT, SceneT>::sXYZ_LUT[4000] = {- 1};
 
-template class FAAT_REC_API v4r::GHV<pcl::PointXYZ,pcl::PointXYZ>;
-template class FAAT_REC_API v4r::GHV<pcl::PointXYZRGB,pcl::PointXYZRGB>;
+template class V4R_EXPORTS v4r::GHV<pcl::PointXYZ,pcl::PointXYZ>;
+template class V4R_EXPORTS v4r::GHV<pcl::PointXYZRGB,pcl::PointXYZRGB>;

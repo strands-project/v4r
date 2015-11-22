@@ -1,1023 +1,558 @@
-#include <v4r/recognition/local_recognizer.h>
-#include <v4r/io/eigen.h>
 #include <v4r/common/miscellaneous.h>
+#include <v4r/io/eigen.h>
+#include <v4r/recognition/local_recognizer.h>
 
-//#include <pcl/visualization/pcl_visualizer.h>
-template<template<class > class Distance, typename PointInT, typename FeatureT>
-  void
-  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::loadFeaturesAndCreateFLANN ()
-  {
-    boost::shared_ptr < std::vector<ModelTPtr> > models = source_->getModels ();
-    std::cout << "Models size:" << models->size () << std::endl;
-    std::cout << "use cache:" << static_cast<int>(use_cache_) << std::endl;
-    int idx_flann_models = 0;
-    for (size_t i = 0; i < models->size (); i++)
+#include <pcl/registration/transformation_estimation_svd.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
+#include <glog/logging.h>
+#include <sstream>
+
+namespace v4r
+{
+
+template<template<class > class Distance, typename PointT, typename FeatureT>
+void
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN ()
+{
+    std::vector<ModelTPtr> models = source_->getModels();
+
+    for (size_t i = 0; i < models.size (); i++)
     {
-      pcl::ScopeTime t("Model finished");
+        ModelTPtr m = models[i];
+        const std::string out_train_path = training_dir_  + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
+        const std::string in_train_path = training_dir_  + "/" + m->class_ + "/" + m->id_ + "/";
+        const std::string descriptor_pattern = ".*descriptors.*.pcd";
 
-      std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
-      bf::path inside = path;
-      bf::directory_iterator end_itr;
+        std::vector<std::string> desc_files;
+        io::getFilesInDirectory(out_train_path, desc_files, "", descriptor_pattern, false);
+        std::sort(desc_files.begin(), desc_files.end());
 
-      for (bf::directory_iterator itr_in (inside); itr_in != end_itr; ++itr_in)
-      {
-#if BOOST_FILESYSTEM_VERSION == 3
-        std::string file_name = (itr_in->path ().filename ()).string();
-#else
-        std::string file_name = (itr_in->path ()).filename ();
-#endif
-
-        std::vector < std::string > strs;
-        boost::split (strs, file_name, boost::is_any_of ("_"));
-
-        if (strs[0] == "descriptor")
+        for(size_t v_id=0; v_id<desc_files.size(); v_id++)
         {
-          //std::cout << "Using cache:" << (int)use_cache_ << std::endl;
-          std::string full_file_name = itr_in->path ().string ();
-          std::string name = file_name.substr (0, file_name.length () - 4);
-          std::vector < std::string > strs;
-          boost::split (strs, name, boost::is_any_of ("_"));
+            const std::string signature_file_name = out_train_path + "/" + desc_files[v_id];
+            typename pcl::PointCloud<FeatureT>::Ptr signature (new pcl::PointCloud<FeatureT> ());
+            pcl::io::loadPCDFile (signature_file_name, *signature);
+            int size_feat = sizeof(signature->points[0].histogram) / sizeof(float);
 
-          flann_model descr_model;
-          descr_model.model = models->at (i);
-          descr_model.view_id = atoi (strs[1].c_str ());
+            std::string view_name = desc_files[v_id];
+            boost::replace_last(view_name, ".pcd", "");
+            std::vector < std::string > strs;
+            boost::split (strs, view_name, boost::is_any_of ("_"));
+            view_id_length_ = strs[1].size();
 
-          if (use_cache_)
-          {
+            flann_model descr_model;
+            descr_model.model = m;
 
-            std::stringstream dir_keypoints;
-            std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
-            dir_keypoints << path << "/keypoint_indices_" << descr_model.view_id << ".pcd";
+            std::istringstream iss(strs[1]);
+            iss >> descr_model.view_id;
 
-            std::stringstream dir_pose;
-            dir_pose << path << "/pose_" << descr_model.view_id << ".txt";
+            size_t kp_id_offset = 0;
 
-            Eigen::Matrix4f pose_matrix;
-            v4r::io::readMatrixFromFile( dir_pose.str (), pose_matrix);
-            std::pair<std::string, int> pair_model_view = std::make_pair (models->at (i)->id_, descr_model.view_id);
-            poses_cache_[pair_model_view] = pose_matrix;
-
-            //load keypoints and save them to cache
-            typename pcl::PointCloud<PointInT>::Ptr keypoints (new pcl::PointCloud<PointInT> ());
-            pcl::io::loadPCDFile (dir_keypoints.str (), *keypoints);
-            keypoints_cache_[pair_model_view] = keypoints;
-
-            if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
+            if (param_.use_cache_) //load model data (keypoints, pose and normals for each training view) and save them to cache
             {
-              std::stringstream dir_normals;
-              dir_normals << path << "/normals_" << descr_model.view_id << ".pcd";
-              pcl::PointCloud<pcl::Normal>::Ptr normals_cloud (new pcl::PointCloud<pcl::Normal> ());
-              pcl::io::loadPCDFile (dir_normals.str (), *normals_cloud);
-              normals_cache_[pair_model_view] = normals_cloud;
+                std::stringstream pose_fn;
+                pose_fn << in_train_path << "/pose_" << setfill('0') << setw(view_id_length_) << descr_model.view_id << ".txt";
+                Eigen::Matrix4f pose_matrix;
+                io::readMatrixFromFile( pose_fn.str (), pose_matrix);
 
-              std::stringstream dir_idxpoint;
-              dir_idxpoint << path << "/keypoints_indices_to_processed_and_normals_" << descr_model.view_id << ".pcd";
-              pcl::PointCloud<IndexPoint>::Ptr index_cloud (new pcl::PointCloud<IndexPoint> ());
-              pcl::io::loadPCDFile (dir_idxpoint.str (), *index_cloud);
-              idxpoint_cache_[pair_model_view] = index_cloud;
+                std::stringstream dir_keypoints; dir_keypoints << out_train_path << "/keypoints_" << setfill('0') << setw(view_id_length_) << descr_model.view_id << ".pcd";
+                typename pcl::PointCloud<PointT>::Ptr keypoints (new pcl::PointCloud<PointT> ());
+                pcl::io::loadPCDFile (dir_keypoints.str (), *keypoints);
+
+                std::stringstream dir_normals; dir_normals << out_train_path << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << descr_model.view_id << ".pcd";
+                pcl::PointCloud<pcl::Normal>::Ptr kp_normals (new pcl::PointCloud<pcl::Normal> ());
+                pcl::io::loadPCDFile (dir_normals.str (), *kp_normals);
+
+                for (size_t kp_id=0; kp_id<keypoints->points.size(); kp_id++)
+                {
+                    keypoints->points[ kp_id ].getVector4fMap () = pose_matrix * keypoints->points[ kp_id ].getVector4fMap ();
+                    kp_normals->points[ kp_id ].getNormalVector3fMap () = pose_matrix.block<3,3>(0,0) * kp_normals->points[ kp_id ].getNormalVector3fMap ();
+                }
+
+                if( !m->keypoints_ )
+                    m->keypoints_.reset(new pcl::PointCloud<PointT>());
+
+                if ( !m->kp_normals_ )
+                    m->kp_normals_.reset(new pcl::PointCloud<pcl::Normal>());
+
+                kp_id_offset = m->keypoints_->points.size();
+
+                m->keypoints_->points.insert(m->keypoints_->points.end(),
+                                             keypoints->points.begin(),
+                                             keypoints->points.end());
+
+                m->kp_normals_->points.insert(m->kp_normals_->points.end(),
+                                             kp_normals->points.begin(),
+                                             kp_normals->points.end());
             }
-          }
 
-          typename pcl::PointCloud<FeatureT>::Ptr signature (new pcl::PointCloud<FeatureT> ());
-          pcl::io::loadPCDFile (full_file_name, *signature);
-
-          int size_feat = sizeof(signature->points[0].histogram) / sizeof(float);
-
-          std::vector<int> idx_flann_models_for_this_view;
-          idx_flann_models_for_this_view.reserve(signature->points.size ());
-
-          for (size_t dd = 0; dd < signature->points.size (); dd++)
-          {
-            descr_model.keypoint_id = static_cast<int> (dd);
-            descr_model.descr.resize (size_feat);
-
-            memcpy (&descr_model.descr[0], &signature->points[dd].histogram[0], size_feat * sizeof(float));
-
-            flann_models_.push_back (descr_model);
-            idx_flann_models_for_this_view.push_back(idx_flann_models);
-            idx_flann_models++;
-          }
-
-          std::pair< ModelTPtr, int > pp = std::make_pair(descr_model.model,descr_model.view_id);
-          model_view_id_to_flann_models_[pp] = idx_flann_models_for_this_view;
-
+            for (size_t dd = 0; dd < signature->points.size (); dd++)
+            {
+                descr_model.keypoint_id = kp_id_offset + dd;
+                descr_model.descr.resize (size_feat);
+                memcpy (&descr_model.descr[0], &signature->points[dd].histogram[0], size_feat * sizeof(float));
+                flann_models_.push_back (descr_model);
+            }
         }
-      }
     }
 
     specificLoadFeaturesAndCreateFLANN();
     std::cout << "Number of features:" << flann_models_.size () << std::endl;
 
-    /*if (use_codebook_)
-    {
-      //testing fastRNN...
-      std::string filename_codebook_data;
-      std::stringstream f;
-      f << cb_flann_index_fn_ << "_data.txt";
-      filename_codebook_data = f.str ();
-
-      fast_rnn::fastRNN frnn;
-      if (frnn.load_data (filename_codebook_data) > 0)
-      {
-
-      }
-      else
-      {
-        std::cout << "Generating codebook... this might take several minutes..." << std::endl;
-        std::vector<std::vector<double> > fast_rnn_data;
-        for (size_t i = 0; i < flann_models_.size (); i++)
-        {
-          std::vector<double> newOne = std::vector<double> (flann_models_[i].descr.begin (), flann_models_[i].descr.end ());
-          fast_rnn_data.push_back (newOne);
-        }
-        frnn.setData (fast_rnn_data);
-
-        {
-          pcl::ScopeTime t ("fast rnn");
-          frnn.do_clustering ();
-        }
-
-        frnn.save_data(filename_codebook_data);
-      }
-
-      std::vector<std::vector<float> > cluster_centers;
-      std::vector<unsigned int> assignments;
-      frnn.getCentersAndAssignments (cluster_centers, assignments);
-
-      //take
-      codebook_models_.resize (cluster_centers.size ());
-      std::cout << "Number of codewords:" << codebook_models_.size () << std::endl;
-      for (size_t i = 0; i < codebook_models_.size (); i++)
-      {
-        codebook_models_[i].descr = cluster_centers[i];
-        codebook_models_[i].cluster_idx_ = i;
-      }
-
-      int higher_than_thres = 0;
-      for (size_t i = 0; i < assignments.size (); i++)
-      {
-        //boost::shared_ptr<flann_model> model_ptr;
-        //model_ptr.reset(&flann_models_[i]);
-        assert(assignments[i] < codebook_models_.size());
-        codebook_models_[assignments[i]].clustered_indices_to_flann_models_.push_back (i);
-
-        float diff = 0.f;
-        for(size_t k=0; k < codebook_models_[assignments[i]].descr.size(); k++)
-        {
-          diff += std::pow(codebook_models_[assignments[i]].descr[k] - flann_models_[i].descr[k],2);
-        }
-
-        diff = sqrt(diff);
-
-        float thres = 0.2f;
-        if(diff > thres) {
-          PCL_WARN("Descriptor distance to codeword center higher than %f ---- %f\n", thres, diff);
-          higher_than_thres++;
-        }
-      }
-
-//      int valid = 0;
-//      for (size_t i = 0; i < codebook_models_.size (); i++) {
-//        if(codebook_models_[i].clustered_indices_to_flann_models_.size() < 50) {
-//          codebook_models_[valid] = codebook_models_[i];
-//          valid++;
-//        }
-//        else
-//        {
-//          PCL_WARN("Too many descriptors in codeword... %d\n", codebook_models_[i].clustered_indices_to_flann_models_.size());
-//        }
-//      }
-
-//      codebook_models_.resize(valid);
-
-      PCL_INFO("Farther away than threshold %d\n", higher_than_thres);
-    }*/
-
     std::string filename;
-    if(codebook_models_.size() > 0) {
-      convertToFLANN<codebook_model> (codebook_models_, flann_data_);
-      filename = cb_flann_index_fn_;
-    } else {
-      convertToFLANN<flann_model> (flann_models_, flann_data_);
-      filename = flann_index_fn_;
-    }
+    convertToFLANN<flann_model> (flann_models_, flann_data_);
+    filename = training_dir_ + "/" + descr_name_ + "_flann.idx";
 
-#if defined (_WIN32)
-    flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4)));
-    flann_index_->buildIndex ();
-#else
-    if(v4r::io::existsFile(filename))
+    if(io::existsFile(filename)) // Loading flann index from frile
     {
-      pcl::ScopeTime t("Loading flann index");
-      try
-      {
-        flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::SavedIndexParams (filename)));
-      }
-      catch(std::runtime_error &e)
-      {
-          std::cerr << "Existing flann index cannot be loaded. Removing file and creating a new flann file..." << std::endl;
-          boost::filesystem::remove(boost::filesystem::path(filename));
-          flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4)));
-          flann_index_->buildIndex ();
-          flann_index_->save (filename);
-      }
-    } else
-    {
-      pcl::ScopeTime t("Building and saving flann index");
-      flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4)));
-      flann_index_->buildIndex ();
-      flann_index_->save (filename);
+        try
+        {
+            flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::SavedIndexParams (filename)));
+        }
+        catch(std::runtime_error &e)
+        {
+            std::cerr << "Existing flann index cannot be loaded. Removing file and creating a new flann file." << std::endl;
+            boost::filesystem::remove(boost::filesystem::path(filename));
+            flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4)));
+            flann_index_->buildIndex ();
+            flann_index_->save (filename);
+        }
     }
-#endif
+    else // Building and saving flann index
+    {
+        flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4)));
+        flann_index_->buildIndex ();
+        flann_index_->save (filename);
+    }
 
     //once the descriptors in flann_models_ have benn converted to flann_data_, i can delete them
     for(size_t i=0; i < flann_models_.size(); i++)
-      flann_models_[i].descr.clear();
-
-    for(size_t i=0; i < codebook_models_.size(); i++)
-      codebook_models_[i].descr.clear();
+        flann_models_[i].descr.clear();
 
     std::cout << "End load feature and create flann" << std::endl;
-  }
+}
 
-template<template<class > class Distance, typename PointInT, typename FeatureT>
-  void
-  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index,
-                                                                               /*float * descr, int descr_size*/
-                                                                               flann::Matrix<float> & p, int k,
-                                                                               flann::Matrix<int> &indices,
-                                                                               flann::Matrix<float> &distances)
-  {
-    index->knnSearch (p, indices, distances, k, flann::SearchParams (kdtree_splits_));
-  }
+template<template<class > class Distance, typename PointT, typename FeatureT>
+void
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index,
+                                                                             /*float * descr, int descr_size*/
+                                                                             flann::Matrix<float> & p, int k,
+                                                                             flann::Matrix<int> &indices,
+                                                                             flann::Matrix<float> &distances)
+{
+    index->knnSearch (p, indices, distances, k, flann::SearchParams (param_.kdtree_splits_));
+}
 
-  template<template<class > class Distance, typename PointInT, typename FeatureT>
-  void
-  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::reinitialize(const std::vector<std::string> & load_ids)
-  {
-      PCL_WARN("Reinitialize LocalRecognitionPipeline with list of load_ids\n");
-      std::cout << "List of models being loaded:" << load_ids.size() << std::endl;
+template<template<class > class Distance, typename PointT, typename FeatureT>
+void
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::reinitialize(const std::vector<std::string> & load_ids)
+{
+    PCL_WARN("Reinitialize LocalRecognitionPipeline with list of load_ids\n");
+    std::cout << "List of models being loaded:" << load_ids.size() << std::endl;
 
-      for(size_t i=0; i < load_ids.size(); i++)
-      {
+    for(size_t i=0; i < load_ids.size(); i++)
         std::cout << " ---------- " << load_ids[i] << std::endl;
-      }
 
-      flann_models_.clear();
-      poses_cache_.clear();
-      keypoints_cache_.clear();
-      normals_cache_.clear();
+    flann_models_.clear();
 
-      source_->setModelList(load_ids);
-      source_->generate(training_dir_);
+    source_->setModelList(load_ids);
+    source_->generate(training_dir_);
 
-      initialize(false);
-  }
+    initialize(false);
+}
 
-template<template<class > class Distance, typename PointInT, typename FeatureT>
-  void
-  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::initialize (bool force_retrain)
-  {
-    boost::shared_ptr < std::vector<ModelTPtr> > models;
-
-    if(search_model_.compare("") == 0) {
-      models = source_->getModels ();
-    }
-    else {
-      models = source_->getModels (search_model_);
-      //reset cache and flann structures
-      if(flann_index_)
-        flann_index_.reset();
-
-      flann_models_.clear();
-      poses_cache_.clear();
-      keypoints_cache_.clear();
-      normals_cache_.clear();
+template<template<class > class Distance, typename PointT, typename FeatureT>
+void
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_retrain)
+{
+    if(!estimator_)
+    {
+        std::cerr << "Keypoint and feature estimator is not set!" << std::endl;
+        return;
     }
 
-    std::cout << "Models size:" << models->size () << std::endl;
+    descr_name_ = estimator_->getFeatureDescriptorName();
+
+    std::vector<ModelTPtr> models = source_->getModels();
+
+    std::cout << "Models size:" << models.size () << std::endl;
 
     if (force_retrain)
     {
-      for (size_t i = 0; i < models->size (); i++)
-      {
-        source_->removeDescDirectory (*models->at (i), training_dir_, descr_name_);
-      }
+        for (size_t i = 0; i < models.size (); i++)
+            source_->removeDescDirectory (*models[i], training_dir_, descr_name_);
     }
 
-    for (size_t i = 0; i < models->size (); i++)
+    for (size_t i = 0; i < models.size (); i++)
     {
-      std::cout << models->at (i)->class_ << " " << models->at (i)->id_ << std::endl;
+        ModelTPtr &m = models[i];
+        std::cout << m->class_ << " " << m->id_ << std::endl;
+        const std::string dir = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
 
-      if (!source_->isModelAlreadyTrained (*models->at (i), training_dir_, descr_name_))
-      {
-        std::cout << "Model not trained..." << models->at (i)->views_->size () << std::endl;
-        if(!source_->getLoadIntoMemory())
-          source_->loadInMemorySpecificModel(training_dir_, *(models->at (i)));
-
-        std::cout << "number of views:" << models->at (i)->views_->size () << " " << source_->getLoadIntoMemory() << std::endl;
-        for (size_t v = 0; v < models->at (i)->views_->size (); v++)
+        if (!io::existsFolder(dir))
         {
-          PointInTPtr processed (new pcl::PointCloud<PointInT>);
-          typename pcl::PointCloud<FeatureT>::Ptr signatures (new pcl::PointCloud<FeatureT> ());
-          PointInTPtr keypoints_pointcloud;
+            std::cout << "Model not trained..." << m->views_.size () << std::endl;
+            if(!source_->getLoadIntoMemory())
+                source_->loadInMemorySpecificModel(training_dir_, *m);
 
-          if(models->at(i)->indices_)
-          {
-              std::cout << models->at(i)->indices_->at (v).indices.size() << " " << estimator_->acceptsIndices() << std::endl;
-          }
-          else
-          {
-              std::cout << "indices are not defined";
-          }
-
-          if(models->at(i)->indices_ && (models->at(i)->indices_->at (v).indices.size() > 0)
-                                     && estimator_->acceptsIndices())
-          {
-            std::cout << "accepts indices:" << estimator_->acceptsIndices() << " size:" << models->at(i)->indices_->at (v).indices.size() << std::endl;
-            estimator_->setIndices(models->at(i)->indices_->at (v));
-          }
-          else
-          {
-              std::cout << "accepts indices:" << estimator_->acceptsIndices() << std::endl;
-          }
-
-          bool success = estimator_->estimate (models->at (i)->views_->at (v), processed, keypoints_pointcloud, signatures);
-          std::cout << "success:" << success << std::endl;
-
-          if (success && keypoints_pointcloud->points.size() && processed->points.size() && signatures->points.size())
-          {
-            std::string path = source_->getModelDescriptorDir (*models->at (i), training_dir_, descr_name_);
-
-            bf::path desc_dir = path;
-            if (!bf::exists (desc_dir))
-              bf::create_directory (desc_dir);
-
-            std::stringstream path_view;
-            path_view << path << "/view_" << v << ".pcd";
-            pcl::io::savePCDFileBinary (path_view.str (), *processed);
-
-            std::stringstream path_pose;
-            path_pose << path << "/pose_" << v << ".txt";
-            v4r::io::writeMatrixToFile( path_pose.str (), models->at (i)->poses_->at (v));
-
-            if(v < models->at (i)->self_occlusions_->size()) {
-              std::stringstream path_entropy;
-              path_entropy << path << "/entropy_" << v << ".txt";
-              v4r::io::writeFloatToFile (path_entropy.str (), models->at (i)->self_occlusions_->at (v));
-            }
-
-            //save keypoints and signatures to disk
-            std::stringstream keypoints_sstr;
-            keypoints_sstr << path << "/keypoint_indices_" << v << ".pcd";
-            pcl::io::savePCDFileBinary (keypoints_sstr.str (), *keypoints_pointcloud);
-
-            std::stringstream path_descriptor;
-            path_descriptor << path << "/descriptor_" << v << ".pcd";
-            pcl::io::savePCDFileBinary (path_descriptor.str (), *signatures);
-
-            if(estimator_->needNormals())
+            for (size_t v = 0; v < m->view_filenames_.size(); v++)
             {
-              PCL_WARN("estimator needs normals\n");
-
-              //save normals to disk...
-              std::stringstream normals_sstr;
-              normals_sstr << path << "/normals_" << v << ".pcd";
-              pcl::PointCloud<pcl::Normal>::Ptr normals;
-              estimator_->getNormals(normals);
-              pcl::io::savePCDFileBinary (normals_sstr.str (), *normals);
-
-              //use the keypoints point cloud to find the NN in processed, so we can have indices between keypoints and processed,normals
-              pcl::octree::OctreePointCloudSearch<PointInT> octree (0.005);
-              octree.setInputCloud (processed);
-              octree.addPointsFromInputCloud ();
-
-              std::vector<int> pointIdxNKNSearch;
-              std::vector<float> pointNKNSquaredDistance;
-              pcl::PointCloud<IndexPoint> keypoints_indices_to_processed;
-              for(size_t j=0; j < keypoints_pointcloud->points.size(); j++)
-              {
-                if (octree.nearestKSearch (keypoints_pointcloud->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
-                {
-                  IndexPoint ip;
-                  ip.idx = pointIdxNKNSearch[0];
-                  keypoints_indices_to_processed.push_back(ip);
-                }
-              }
-
-              std::stringstream kitp_sstr;
-              kitp_sstr << path << "/keypoints_indices_to_processed_and_normals_" << v << ".pcd";
-              pcl::io::savePCDFileBinary (kitp_sstr.str (), keypoints_indices_to_processed);
-            }
-            else
-            {
-              PCL_WARN("estimator does not need normals\n");
-
-              //the cg alg require normals but the estimator did not compute them, compute them now
-              if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
-              {
-                PCL_ERROR("Need to compute normals due to the cg algorithm\n");
-                boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator;
-                normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal>);
-                normal_estimator->setCMR (false);
-                normal_estimator->setDoVoxelGrid (false);
-                normal_estimator->setRemoveOutliers (false);
-                normal_estimator->setValuesForCMRFalse (0.003f, 0.02f);
-                normal_estimator->setForceUnorganized(true);
-
-                if(estimator_->acceptsIndices())
-                {
-                  pcl::PointIndices indices;
-                  estimator_->getKeypointIndices(indices);
-                  normal_estimator->setIndices(indices.indices);
-                }
-                PointInTPtr processed (new pcl::PointCloud<PointInT>);
+                typename pcl::PointCloud<FeatureT>::Ptr all_signatures (new pcl::PointCloud<FeatureT> ());
+                typename pcl::PointCloud<FeatureT>::Ptr object_signatures (new pcl::PointCloud<FeatureT> ());
+                typename pcl::PointCloud<PointT>::Ptr all_keypoints;
+                typename pcl::PointCloud<PointT>::Ptr object_keypoints (new pcl::PointCloud<PointT>);
+                typename pcl::PointCloud<PointT>::Ptr foo (new pcl::PointCloud<PointT>);
                 pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-                normal_estimator->estimate (models->at (i)->views_->at (v), processed, normals);
 
-                std::stringstream normals_sstr;
-                normals_sstr << path << "/normals_" << v << ".pcd";
-                pcl::io::savePCDFileBinary (normals_sstr.str (), *normals);
+                std::vector<std::string> strs;
+                boost::split (strs, m->view_filenames_[v], boost::is_any_of ("_"));
+                boost::replace_last(strs[1], ".pcd", "");
+                view_id_length_ = strs[1].size();
 
-                //use the keypoints point cloud to find the NN in processed, so we can have indices between keypoints and processed,normals
-                pcl::octree::OctreePointCloudSearch<PointInT> octree (0.005);
-                octree.setInputCloud (processed);
-                octree.addPointsFromInputCloud ();
 
-                std::vector<int> pointIdxNKNSearch;
-                std::vector<float> pointNKNSquaredDistance;
-                pcl::PointCloud<IndexPoint> keypoints_indices_to_processed;
-                for(size_t j=0; j < keypoints_pointcloud->points.size(); j++)
+                computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
+
+                pcl::PointIndices all_kp_indices, obj_kp_indices;
+                estimator_->setNormals(normals);
+                bool success = estimator_->estimate (m->views_[v], foo, all_keypoints, all_signatures);
+                (void) success;
+                estimator_->getKeypointIndices(all_kp_indices);
+
+                // remove signatures and keypoints which do not belong to object
+                std::vector<bool> obj_mask = createMaskFromIndices(m->indices_[v].indices, m->views_[v]->points.size());
+                obj_kp_indices.indices.resize( all_kp_indices.indices.size() );
+                object_signatures->points.resize( all_kp_indices.indices.size() ) ;
+                size_t kept=0;
+                for (size_t kp_id = 0; kp_id < all_kp_indices.indices.size(); kp_id++)
                 {
-                  if (octree.nearestKSearch (keypoints_pointcloud->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
-                  {
-                    IndexPoint ip;
-                    ip.idx = pointIdxNKNSearch[0];
-                    keypoints_indices_to_processed.push_back(ip);
-                  }
+                    const int idx = all_kp_indices.indices[kp_id];
+                    if ( obj_mask[idx] )
+                    {
+                        obj_kp_indices.indices[kept] = idx;
+                        object_signatures->points[kept] = all_signatures->points[kp_id];
+                        kept++;
+                    }
                 }
+                object_signatures->points.resize( kept );
+                obj_kp_indices.indices.resize( kept );
+                pcl::copyPointCloud( *m->views_[v], obj_kp_indices, *object_keypoints);
 
-                std::stringstream kitp_sstr;
-                kitp_sstr << path << "/keypoints_indices_to_processed_and_normals_" << v << ".pcd";
-                pcl::io::savePCDFileBinary (kitp_sstr.str (), keypoints_indices_to_processed);
+                if (object_keypoints->points.size())
+                {
+                    io::createDirIfNotExist(dir);
 
-                //should we take the normals from the model?
-              }
-              else
-              {
-                  PCL_WARN("gc algorithm does not need normals\n");
-              }
+                    //save keypoints and descriptors to disk
+                    std::stringstream kp_fn; kp_fn << dir << "/keypoints_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
+                    pcl::io::savePCDFileBinary (kp_fn.str (), *object_keypoints);
+
+                    std::stringstream desc_fn; desc_fn << dir << "/descriptors_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
+                    pcl::io::savePCDFileBinary (desc_fn.str (), *object_signatures);
+
+                    pcl::PointCloud<pcl::Normal>::Ptr normals_keypoints(new pcl::PointCloud<pcl::Normal>);
+                    pcl::copyPointCloud(*normals, obj_kp_indices, *normals_keypoints);
+                    std::stringstream normals_fn; normals_fn << dir << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
+                    pcl::io::savePCDFileBinary (normals_fn.str (), *normals_keypoints);
+                }
             }
-          }
-        }
 
-        if(!source_->getLoadIntoMemory())
-          models->at (i)->views_->clear();
-
-      } else {
-        std::cout << "Model already trained..." << std::endl;
-        //there is no need to keep the views in memory once the model has been trained
-        models->at (i)->views_->clear();
-      }
-    }
-
-
-   loadFeaturesAndCreateFLANN ();
-
-   if(ICP_iterations_ > 0 && icp_type_ == 1)
-     source_->createVoxelGridAndDistanceTransform(VOXEL_SIZE_ICP_);
-
-  }
-
-template<template<class > class Distance, typename PointInT, typename FeatureT>
-  void
-  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::recognize ()
-  {
-
-    models_.reset (new std::vector<ModelTPtr>);
-    transforms_.reset (new std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >);
-
-    PointInTPtr processed;
-    typename pcl::PointCloud<FeatureT>::Ptr signatures (new pcl::PointCloud<FeatureT> ());
-    PointInTPtr keypoints_pointcloud;
-
-    {
-      pcl::ScopeTime t("Compute keypoints and features");
-      if (signatures_ != 0 && processed_ != 0 && (signatures_->size () == keypoints_input_->points.size ()))
-      {
-        keypoints_pointcloud = keypoints_input_;
-        signatures = signatures_;
-        processed = processed_;
-        std::cout << "Using the ISPK ..." << std::endl;
-      }
-      else
-      {
-        processed.reset( (new pcl::PointCloud<PointInT>));
-        if (indices_.size () > 0)
-        {
-          if(estimator_->acceptsIndices())
-          {
-            estimator_->setIndices(indices_);
-            estimator_->estimate (input_, processed, keypoints_pointcloud, signatures);
-          }
-          else
-          {
-            PointInTPtr sub_input (new pcl::PointCloud<PointInT>);
-            pcl::copyPointCloud (*input_, indices_, *sub_input);
-            estimator_->estimate (sub_input, processed, keypoints_pointcloud, signatures);
-          }
+            if(!source_->getLoadIntoMemory())
+                m->views_.clear();
         }
         else
         {
-          estimator_->estimate (input_, processed, keypoints_pointcloud, signatures);
+            std::cout << "Model already trained..." << std::endl;
+            //there is no need to keep the views in memory once the model has been trained
+            m->views_.clear();
         }
-
-        processed_ = processed;
-        estimator_->getKeypointIndices(keypoint_indices_);
-      }
-      std::cout << "Number of keypoints:" << keypoints_pointcloud->points.size () << std::endl;
-
-      for(size_t i=0; i<keypoints_pointcloud->points.size(); i++)
-      {
-          assert(pcl::isFinite(keypoints_pointcloud->points[i]));
-      }
     }
 
-    keypoint_cloud_ = keypoints_pointcloud;
+    loadFeaturesAndCreateFLANN ();
 
-    int size_feat = sizeof(signatures->points[0].histogram) / sizeof(float);
+    if(param_.icp_iterations_ > 0 && param_.icp_type_ == 1)
+        source_->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
+}
 
-    //feature matching and object hypotheses
-    typename std::map<std::string, ObjectHypothesis<PointInT> > object_hypotheses;
+template<template<class > class Distance, typename PointT, typename FeatureT>
+void
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
+{
+    models_.clear();
+    transforms_.clear();
+    scene_keypoints_.reset(new pcl::PointCloud<PointT>);
+
+    if (feat_kp_set_from_outside_)
     {
-//      double time_pk = 0;
-
-      flann::Matrix<int> indices;
-      flann::Matrix<float> distances;
-      distances = flann::Matrix<float> (new float[knn_], 1, knn_);
-      indices = flann::Matrix<int> (new int[knn_], 1, knn_);
-
-      Eigen::Matrix4f homMatrixPose;
-      typename pcl::PointCloud<PointInT>::Ptr keypoints (new pcl::PointCloud<PointInT> ());
-      pcl::PointCloud<pcl::Normal>::Ptr normals_model_view_cloud (new pcl::PointCloud<pcl::Normal> ());
-      pcl::PointCloud<IndexPoint>::Ptr indices_from_keypoints_to_normals (new pcl::PointCloud<IndexPoint> ());
-      PointInT model_keypoint;
-      pcl::Normal model_view_normal;
-
-      flann::Matrix<float> p = flann::Matrix<float> (new float[size_feat], 1, size_feat);
-
-      pcl::ScopeTime t("Generating object hypotheses");
-      for (size_t idx = 0; idx < signatures->points.size (); idx++)
-      {
-        memcpy (&p.ptr ()[0], &signatures->points[idx].histogram[0], size_feat * sizeof(float));
-        nearestKSearch (flann_index_, p, knn_, indices, distances);
-
-        int dist = distances[0][0];
-        if(dist > max_descriptor_distance_)
-            continue;
-
-        std::vector<int> flann_models_indices;
-        std::vector<float> model_distances;
-        if(use_codebook_) {
-          //indices[0][0] points to the codebook entry
-          int cb_entry = indices[0][0];
-//          int cb_entries = static_cast<int>(codebook_models_[cb_entry].clustered_indices_to_flann_models_.size());
-          //std::cout << "Codebook entries:" << cb_entries << " " << cb_entry << " " << codebook_models_.size() << std::endl;
-          flann_models_indices = codebook_models_[cb_entry].clustered_indices_to_flann_models_;
-          model_distances.reserve(flann_models_indices.size());
-          for(size_t ii=0; ii < flann_models_indices.size(); ii++)
-          {
-              model_distances.push_back(dist);
-          }
-        } else {
-          flann_models_indices.reserve(knn_);
-          model_distances.reserve(knn_);
-          for(size_t ii=0; ii < knn_; ii++)
-          {
-            flann_models_indices.push_back(indices[0][ii]);
-            model_distances.push_back(distances[0][ii]);
-          }
-        }
-
-        std::vector<PointInT> model_keypoints_for_scene_keypoint;
-        std::vector<std::string> model_id_for_scene_keypoint;
-
-        for (size_t ii = 0; ii < flann_models_indices.size(); ii++)
-        {
-//          {
-//            boost::posix_time::ptime start_time (boost::posix_time::microsec_clock::local_time ());
-           getPose (*(flann_models_.at (flann_models_indices[ii]).model), flann_models_.at (flann_models_indices[ii]).view_id, homMatrixPose);
-           getKeypoints (*(flann_models_.at (flann_models_indices[ii]).model), flann_models_.at (flann_models_indices[ii]).view_id, keypoints);
-
-//            boost::posix_time::ptime end_time = boost::posix_time::microsec_clock::local_time ();
-//            time_pk += (end_time - start_time).total_microseconds ();
-//          }
-
-          //assert(normals_model_view_cloud->points.size() == processed->points.size());
-          //homMatrixPose should go from model to view (inverse from view to model)
-          model_keypoint.getVector4fMap () = homMatrixPose.inverse () * keypoints->points[flann_models_.at (flann_models_indices[ii]).keypoint_id].getVector4fMap ();
-          if(model_keypoints_for_scene_keypoint.size() != 0)
-          {
-            bool found = false;
-            for(size_t kk=0; kk < model_keypoints_for_scene_keypoint.size(); kk++)
-            {
-
-              if(model_id_for_scene_keypoint[kk].compare(flann_models_.at (flann_models_indices[kk]).model->id_) == 0)
-              {
-                if( (model_keypoints_for_scene_keypoint[kk].getVector3fMap() - model_keypoint.getVector3fMap()).squaredNorm() < distance_same_keypoint_)
-                {
-                  found = true;
-                  break;
-                }
-              }
-            }
-
-            if(found)
-              continue;
-          }
-          else
-          {
-            model_keypoints_for_scene_keypoint.push_back(model_keypoint);
-            model_id_for_scene_keypoint.push_back(flann_models_.at (flann_models_indices[ii]).model->id_);
-          }
-
-          if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
-          {
-            getNormals (*(flann_models_.at (flann_models_indices[ii]).model), flann_models_.at (flann_models_indices[ii]).view_id, normals_model_view_cloud);
-            getIndicesToProcessedAndNormals (*(flann_models_.at (flann_models_indices[ii]).model), flann_models_.at (flann_models_indices[ii]).view_id, indices_from_keypoints_to_normals);
-            int normal_idx = indices_from_keypoints_to_normals->points[flann_models_.at (flann_models_indices[ii]).keypoint_id].idx;
-            model_view_normal.getNormalVector3fMap () = homMatrixPose.block<3,3>(0,0).inverse () * normals_model_view_cloud->points[normal_idx].getNormalVector3fMap ();
-          }
-
-          float dist = model_distances[ii];
-
-          typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
-          if ((it_map = object_hypotheses.find (flann_models_.at (flann_models_indices[ii]).model->id_)) != object_hypotheses.end ())
-          {
-            it_map->second.correspondences_pointcloud->points.push_back(model_keypoint);
-            //if(estimator_->needNormals())
-            if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
-            {
-              it_map->second.normals_pointcloud->points.push_back(model_view_normal);
-            }
-
-            pcl::Correspondence c ( it_map->second.correspondences_pointcloud->points.size()-1, static_cast<int> (idx), dist);
-            it_map->second.correspondences_to_inputcloud->push_back(c);
-//            (*(*it_map).second.feature_distances_).push_back(dist);
-            it_map->second.indices_to_flann_models_.push_back(flann_models_indices[ii]);
-            assert(it_map->second.indices_to_flann_models_.size() == it_map->second.correspondences_to_inputcloud->size());
-//            (*it_map).second.num_corr_++;
-          }
-          else
-          {
-            //create object hypothesis
-            ObjectHypothesis<PointInT> oh;
-            oh.correspondences_pointcloud.reset (new pcl::PointCloud<PointInT> ());
-            //if(estimator_->needNormals())
-            if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
-            {
-              oh.normals_pointcloud.reset (new pcl::PointCloud<pcl::Normal> ());
-              oh.normals_pointcloud->points.resize (1);
-              oh.normals_pointcloud->points.reserve (signatures->points.size ());
-              oh.normals_pointcloud->points[0] = model_view_normal;
-            }
-
-//            oh.feature_distances_.reset (new std::vector<float>);
-            oh.correspondences_to_inputcloud.reset (new pcl::Correspondences ());
-
-            oh.correspondences_pointcloud->points.resize (1);
-            oh.correspondences_to_inputcloud->resize (1);
-//            oh.feature_distances_->resize (1);
-            oh.indices_to_flann_models_.resize(1);
-
-            oh.correspondences_pointcloud->points.reserve (signatures->points.size ());
-            oh.correspondences_to_inputcloud->reserve (signatures->points.size ());
-//            oh.feature_distances_->reserve (signatures->points.size ());
-            oh.indices_to_flann_models_.reserve(signatures->points.size ());
-
-            oh.correspondences_pointcloud->points[0] = model_keypoint;
-            oh.correspondences_to_inputcloud->at (0) = pcl::Correspondence (0, static_cast<int> (idx), dist);
-//            oh.feature_distances_->at (0) = dist;
-            oh.indices_to_flann_models_[0] = flann_models_indices[ii];
-//            oh.num_corr_ = 1;
-            oh.model_ = flann_models_.at (flann_models_indices[ii]).model;
-
-            assert(oh.indices_to_flann_models_.size() == oh.correspondences_to_inputcloud->size());
-            object_hypotheses[oh.model_->id_] = oh;
-          }
-        }
-      }
-
-      delete[] indices.ptr ();
-      delete[] distances.ptr ();
-      delete[] p.ptr ();
-
-      typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
-      for (it_map = object_hypotheses.begin(); it_map != object_hypotheses.end (); it_map++) {
-
-//          std::cout << "Showing local recognizer keypoints for " << it_map->first << std::endl;
-//                     pcl::visualization::PCLVisualizer viewer("Keypoint Viewer for local recognizer");
-//                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-//                     ConstPointInTPtr model_cloud_templated = it_map->second.model_->getAssembled (0.003f);
-//                     pcl::copyPointCloud(*model_cloud_templated, *model_cloud);
-//                     pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> handler_rgb (model_cloud);
-//                     viewer.addPointCloud<pcl::PointXYZRGB>(model_cloud, handler_rgb, "scene");
-
-//                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pKeypointCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-//                     PointInTPtr pKeypointCloudTemplated = it_map->second.correspondences_pointcloud;
-//                     pcl::copyPointCloud(*pKeypointCloudTemplated, *pKeypointCloud);
-//                     viewer.addPointCloudNormals<pcl::PointXYZRGB,pcl::Normal>(pKeypointCloud, it_map->second.normals_pointcloud, 5, 0.04);
-//                     viewer.spin();
-
-        ObjectHypothesis<PointInT> oh = (*it_map).second;
-        size_t num_corr = oh.correspondences_to_inputcloud->size();
-        oh.correspondences_pointcloud->points.resize(num_corr);
-        if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
-          oh.normals_pointcloud->points.resize(num_corr);
-
-        oh.correspondences_to_inputcloud->resize(num_corr);
-//        oh.feature_distances_->resize(num_corr);
-      }
-
-      //std::cout << "Time nearest searches:" << time_nn / 1000.f << " ms" << std::endl;
-//      std::cout << "Time pose/keypoint get:" << time_pk / 1000.f << " ms" << std::endl;
-    }
-
-    if(save_hypotheses_)
-    {
-      pcl::ScopeTime t("Saving hypotheses...");
-
-      if(correspondence_distance_constant_weight_ != 1.f)
-      {
-          PCL_WARN("correspondence_distance_constant_weight_ activated! %f", correspondence_distance_constant_weight_);
-          //go through the object hypotheses and multiply the correspondences distances by the weight
-          //this is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
-          typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
-          for (it_map = object_hypotheses.begin (); it_map != object_hypotheses.end (); it_map++)
-          {
-              for(size_t k=0; k < (*it_map).second.correspondences_to_inputcloud->size(); k++)
-              {
-                  (*it_map).second.correspondences_to_inputcloud->at(k).distance *= correspondence_distance_constant_weight_;
-              }
-          }
-      }
-
-      saved_object_hypotheses_ = object_hypotheses;
+        pcl::copyPointCloud(*scene_, scene_kp_indices_, *scene_keypoints_);
+        LOG(INFO) << "Signatures and Keypoints set from outside ...";
+        feat_kp_set_from_outside_ = false;
     }
     else
     {
-      typename std::map<std::string, ObjectHypothesis<PointInT> >::iterator it_map;
+        if(!estimator_)
+            LOG(FATAL) << "No feature estimator set!";
 
-      {
-        pcl::PointCloud<pcl::Normal>::Ptr scene_normals(new pcl::PointCloud<pcl::Normal>);
-        if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
+        signatures_.reset(new pcl::PointCloud<FeatureT>);
+        scene_kp_indices_.indices.clear();
+
+        estimator_->setNormals(scene_normals_);
+        typename pcl::PointCloud<PointT>::Ptr processed_foo;
+        estimator_->estimate (scene_, processed_foo, scene_keypoints_, signatures_);
+
+        estimator_->getKeypointIndices(scene_kp_indices_);
+    }
+
+    for(size_t i=0; i<scene_keypoints_->points.size(); i++)
+    {
+        if(!pcl::isFinite(scene_keypoints_->points[i]))
+            throw std::runtime_error("Keypoint is not finite!");
+    }
+
+    if (scene_keypoints_->points.size() != signatures_->points.size())
+        throw std::runtime_error("Size of keypoint cloud is not equal to number of signatures!");
+
+    obj_hypotheses_.clear();
+
+    int size_feat = sizeof(signatures_->points[0].histogram) / sizeof(float);
+
+    flann::Matrix<float> distances (new float[param_.knn_], 1, param_.knn_);
+    flann::Matrix<int> indices (new int[param_.knn_], 1, param_.knn_);
+    flann::Matrix<float> p (new float[size_feat], 1, size_feat);
+
+    for (size_t idx = 0; idx < signatures_->points.size (); idx++)
+    {
+        memcpy (&p.ptr ()[0], &signatures_->points[idx].histogram[0], size_feat * sizeof(float));
+        nearestKSearch (flann_index_, p, param_.knn_, indices, distances);
+
+        int dist = distances[0][0];
+        if(dist > param_.max_descriptor_distance_)
+            continue;
+
+        std::vector<int> flann_models_indices(param_.knn_);
+        std::vector<float> model_distances(param_.knn_);
+
+        std::vector<PointT> corresponding_model_kps;
+        std::vector<std::string> model_id_for_scene_keypoint;
+
+        for (size_t i = 0; i < (size_t)param_.knn_; i++)
         {
-          pcl::PointCloud<pcl::Normal>::Ptr all_scene_normals;
+            flann_models_indices[i] = indices[0][i];
+            model_distances[i] = distances[0][i];
+            const flann_model &f = flann_models_[flann_models_indices[i] ];
+            PointT m_kp = getKeypoint (*f.model, f.keypoint_id, f.view_id);
 
-          if(estimator_->needNormals())
-          {
-            estimator_->getNormals(all_scene_normals);
-          }
-          else
-          {
-            //compute them...
-            PCL_ERROR("Need to compute normals due to the cg algorithm\n");
-            all_scene_normals.reset(new pcl::PointCloud<pcl::Normal>);
-            boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal> > normal_estimator;
-            normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointInT, pcl::Normal>);
-            normal_estimator->setCMR (false);
-            normal_estimator->setDoVoxelGrid (false);
-            normal_estimator->setRemoveOutliers (false);
-            normal_estimator->setValuesForCMRFalse (0.003f, 0.02f);
-            normal_estimator->setForceUnorganized(true);
-            PointInTPtr processed (new pcl::PointCloud<PointInT>);
-            normal_estimator->estimate (input_, processed, all_scene_normals);
-          }
-          std::vector<int> correct_indices;
-          v4r::getIndicesFromCloud<PointInT>(processed, keypoints_pointcloud, correct_indices);
-          pcl::copyPointCloud(*all_scene_normals, correct_indices, *scene_normals);
-        }
-
-        prepareSpecificCG(processed, keypoints_pointcloud);
-        pcl::ScopeTime t("Geometric verification, RANSAC and transform estimation");
-        for (it_map = object_hypotheses.begin (); it_map != object_hypotheses.end (); it_map++)
-        {
-          std::vector < pcl::Correspondences > corresp_clusters;
-          cg_algorithm_->setSceneCloud (keypoints_pointcloud);
-          cg_algorithm_->setInputCloud ((*it_map).second.correspondences_pointcloud);
-
-          if((cg_algorithm_ && cg_algorithm_->getRequiresNormals()) || save_hypotheses_)
-          {
-            std::cout << "CG alg requires normals..." << ((*it_map).second.normals_pointcloud)->points.size() << " " << (scene_normals)->points.size() << std::endl;
-            cg_algorithm_->setInputAndSceneNormals((*it_map).second.normals_pointcloud, scene_normals);
-          }
-          //we need to pass the keypoints_pointcloud and the specific object hypothesis
-          specificCG(processed, keypoints_pointcloud, it_map->second);
-          cg_algorithm_->setModelSceneCorrespondences ((*it_map).second.correspondences_to_inputcloud);
-          cg_algorithm_->cluster (corresp_clusters);
-
-          std::cout << "Instances:" << corresp_clusters.size () << " Total correspondences:" << (*it_map).second.correspondences_to_inputcloud->size () << " " << it_map->first << std::endl;
-          std::vector<bool> good_indices_for_hypothesis (corresp_clusters.size (), true);
-
-          if (threshold_accept_model_hypothesis_ < 1.f)
-          {
-            //sort the hypotheses for each model according to their correspondences and take those that are threshold_accept_model_hypothesis_ over the max cardinality
-            int max_cardinality = -1;
-            for (size_t i = 0; i < corresp_clusters.size (); i++)
+            bool found = false; // check if a keypoint from same model and close distance already exists
+            for(size_t kk=0; kk < corresponding_model_kps.size(); kk++)
             {
-              //std::cout <<  (corresp_clusters[i]).size() << " -- " << (*(*it_map).second.correspondences_to_inputcloud).size() << std::endl;
-              if (max_cardinality < static_cast<int> (corresp_clusters[i].size ()))
-              {
-                max_cardinality = static_cast<int> (corresp_clusters[i].size ());
-              }
+                const float m_kp_dist = (corresponding_model_kps[kk].getVector3fMap() - m_kp.getVector3fMap()).squaredNorm();
+                if(model_id_for_scene_keypoint[kk].compare( f.model->id_ ) == 0 && m_kp_dist < param_.distance_same_keypoint_)
+                {
+                    found = true;
+                    break;
+                }
             }
 
-            for (size_t i = 0; i < corresp_clusters.size (); i++)
+            if(found)
+                continue;
+
+            corresponding_model_kps.push_back( m_kp );
+            model_id_for_scene_keypoint.push_back( f.model->id_ );
+
+            float m_dist = model_distances[i];
+
+            typename symHyp::iterator it_map;
+            if ((it_map = obj_hypotheses_.find (f.model->id_)) != obj_hypotheses_.end ())
             {
-              if (static_cast<float> ((corresp_clusters[i]).size ()) < (threshold_accept_model_hypothesis_ * static_cast<float> (max_cardinality)))
-              {
-                good_indices_for_hypothesis[i] = false;
-              }
+                ObjectHypothesis<PointT> &oh = it_map->second;
+
+                pcl::Correspondence c ( (int)f.keypoint_id, scene_kp_indices_.indices[idx], m_dist);
+                oh.model_scene_corresp_->push_back(c);
+                oh.indices_to_flann_models_.push_back(flann_models_indices[i]);
             }
-          }
+            else //create object hypothesis
+            {
+                ObjectHypothesis<PointT> oh;
 
-          int keeping = 0;
-          for (size_t i = 0; i < corresp_clusters.size (); i++)
-          {
+                oh.model_ = f.model;
+                oh.model_scene_corresp_->reserve (signatures_->points.size () * param_.knn_);
+                oh.indices_to_flann_models_.reserve(signatures_->points.size () * param_.knn_);
+                oh.model_scene_corresp_->push_back( pcl::Correspondence ((int)f.keypoint_id, scene_kp_indices_.indices[idx], m_dist) );
+                oh.indices_to_flann_models_.push_back( flann_models_indices[i] );
 
-            if (!good_indices_for_hypothesis[i])
-              continue;
-
-            //drawCorrespondences (processed, it_map->second, keypoints_pointcloud, corresp_clusters[i]);
-
-            Eigen::Matrix4f best_trans;
-            typename pcl::registration::TransformationEstimationSVD < PointInT, PointInT > t_est;
-            t_est.estimateRigidTransformation (*(*it_map).second.correspondences_pointcloud, *keypoints_pointcloud, corresp_clusters[i], best_trans);
-
-            models_->push_back ((*it_map).second.model_);
-            transforms_->push_back (best_trans);
-
-            keeping++;
-          }
-
-          std::cout << "kept " << keeping << " out of " << corresp_clusters.size () << std::endl;
+                obj_hypotheses_[oh.model_->id_] = oh;
+            }
         }
+    }
 
-        clearSpecificCG();
-      }
+    delete[] indices.ptr ();
+    delete[] distances.ptr ();
+    delete[] p.ptr ();
 
-      std::cout << "Number of hypotheses:" << models_->size() << std::endl;
+    typename symHyp::iterator it_map;
+    for (it_map = obj_hypotheses_.begin(); it_map != obj_hypotheses_.end (); it_map++)
+        it_map->second.model_scene_corresp_->shrink_to_fit();   // free memory
 
-      if (ICP_iterations_ > 0 || hv_algorithm_) {
+    if( param_.correspondence_distance_constant_weight_ != 1.f )
+    {
+        PCL_WARN("correspondence_distance_constant_weight_ activated! %f", param_.correspondence_distance_constant_weight_);
+        //go through the object hypotheses and multiply the correspondences distances by the weight
+        //this is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
+
+        for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
+        {
+            for(size_t k=0; k < (*it_map).second.model_scene_corresp_->size(); k++)
+                it_map->second.model_scene_corresp_->at(k).distance *= param_.correspondence_distance_constant_weight_;
+        }
+    }
+
+    if(cg_algorithm_ && !param_.save_hypotheses_)    // correspondence grouping is not done outside
+    {
+        correspondenceGrouping();
+
         //Prepare scene and model clouds for the pose refinement step
-        source_->voxelizeAllModels (VOXEL_SIZE_ICP_);
-      }
+        if ( param_.icp_iterations_ > 0 || hv_algorithm_ )
+            source_->voxelizeAllModels (param_.voxel_size_icp_);
 
-      /**
-       * POSE REFINEMENT
-       **/
+        if ( param_.icp_iterations_ > 0)
+            poseRefinement();
 
-      if (ICP_iterations_ > 0)
-      {
-        poseRefinement();
-      }
-
-      /**
-       * HYPOTHESES VERIFICATION
-       **/
-
-      if (hv_algorithm_ && (models_->size () > 0))
-      {
-        hypothesisVerification();
-      }
+        if ( hv_algorithm_ && models_.size() )
+            hypothesisVerification();
     }
-  }
-
-template<template<class > class Distance, typename PointInT, typename FeatureT>
-void
-v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getView (ModelT & model, int view_id, PointInTPtr & view)
-{
-  view.reset (new pcl::PointCloud<PointInT>);
-  std::stringstream dir;
-  std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
-  dir << path << "/view_" << view_id << ".pcd";
-  pcl::io::loadPCDFile (dir.str (), *view);
+    scene_normals_.reset();
 }
 
-template<template<class > class Distance, typename PointInT, typename FeatureT>
+template<template<class > class Distance, typename PointT, typename FeatureT>
 void
-v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getIndicesToProcessedAndNormals (ModelT & model,
-                                                                                                                       int view_id,
-                                                                                                                       pcl::PointCloud<IndexPoint>::Ptr & index_cloud)
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::getView (const ModelT & model, size_t view_id, typename pcl::PointCloud<PointT>::Ptr &view)
 {
-
-  if (use_cache_)
-   {
-   typedef std::pair<std::string, int> mv_pair;
-   mv_pair pair_model_view = std::make_pair (model.id_, view_id);
-
-   std::map<mv_pair, pcl::PointCloud<IndexPoint>::Ptr, std::less<mv_pair>,
-                     Eigen::aligned_allocator<std::pair<mv_pair, pcl::PointCloud<IndexPoint>::Ptr > > >::iterator it =
-                         idxpoint_cache_.find (pair_model_view);
-
-   if (it != idxpoint_cache_.end ())
-   {
-     index_cloud = it->second;
-     return;
-   }
-
-  }
-
-  std::stringstream dir;
-  std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
-  dir << path << "/keypoints_indices_to_processed_and_normals_" << view_id << ".pcd";
-
-  pcl::io::loadPCDFile (dir.str (), *index_cloud);
+    view.reset (new pcl::PointCloud<PointT>);
+    std::stringstream view_fn; view_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/" << descr_name_ + "/view_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
+    pcl::io::loadPCDFile (view_fn.str (), *view);
 }
 
-template<template<class > class Distance, typename PointInT, typename FeatureT>
-void
-v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getNormals (const ModelT & model, int view_id,
-                                                                                                pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud)
+template<template<class > class Distance, typename PointT, typename FeatureT>
+pcl::Normal
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT & model, size_t keypoint_id, size_t view_id)
 {
+    if (param_.use_cache_)
+        return model.kp_normals_->points[keypoint_id];
 
-  if (use_cache_)
-   {
-   typedef std::pair<std::string, int> mv_pair;
-   mv_pair pair_model_view = std::make_pair (model.id_, view_id);
+    pcl::PointCloud<pcl::Normal> normals_cloud;
+    std::stringstream normals_fn; normals_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/" << descr_name_ + "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
+    pcl::io::loadPCDFile (normals_fn.str(), normals_cloud);
 
-   std::map<mv_pair, pcl::PointCloud<pcl::Normal>::Ptr, std::less<mv_pair>,
-                     Eigen::aligned_allocator<std::pair<mv_pair, pcl::PointCloud<pcl::Normal>::Ptr > > >::iterator it =
-       normals_cache_.find (pair_model_view);
+    std::stringstream pose_fn; pose_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/pose_" << setfill('0') << setw(view_id_length_) << view_id << ".txt";
+    Eigen::Matrix4f pose_matrix;
+    io::readMatrixFromFile( pose_fn.str (), pose_matrix);
 
-   if (it != normals_cache_.end ())
-   {
-     normals_cloud = it->second;
-     return;
-   }
-
-  }
-
-  std::stringstream dir;
-  std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
-  dir << path << "/normals_" << view_id << ".pcd";
-
-  pcl::io::loadPCDFile (dir.str (), *normals_cloud);
+    pcl::Normal n;
+    n.getNormalVector3fMap () = pose_matrix.block<3,3>(0,0) * normals_cloud.points[ keypoint_id ].getNormalVector3fMap ();
+    return n;
 }
 
 
-template<template<class > class Distance, typename PointInT, typename FeatureT>
-  void
-  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getPose (const ModelT & model, int view_id, Eigen::Matrix4f & pose_matrix)
-  {
+template<template<class > class Distance, typename PointT, typename FeatureT>
+PointT
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const ModelT & model, size_t keypoint_id, size_t view_id)
+{
+    if (param_.use_cache_)
+        return model.keypoints_->points[keypoint_id];
 
-    if (use_cache_)
+    std::stringstream kp_fn; kp_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/" << descr_name_ + "/keypoints_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
+    pcl::PointCloud<PointT> keypoint_cloud;
+    pcl::io::loadPCDFile (kp_fn.str(), keypoint_cloud);
+
+    std::stringstream pose_fn; pose_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/pose_" << setfill('0') << setw(view_id_length_) << view_id << ".txt";
+    Eigen::Matrix4f pose_matrix;
+    io::readMatrixFromFile( pose_fn.str (), pose_matrix);
+
+    PointT kp;
+    kp.getVector4fMap () = pose_matrix * keypoint_cloud[ keypoint_id ].getVector4fMap ();
+    return kp;
+}
+
+template<template<class > class Distance, typename PointT, typename FeatureT>
+void
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::correspondenceGrouping ()
+{
+    if(cg_algorithm_->getRequiresNormals() && (!scene_normals_ || scene_normals_->points.size() != scene_->points.size()))
+        computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
+
+    typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it;
+    for (it = obj_hypotheses_.begin (); it != obj_hypotheses_.end (); it++)
     {
-      typedef std::pair<std::string, int> mv_pair;
-      mv_pair pair_model_view = std::make_pair (model.id_, view_id);
+        ObjectHypothesis<PointT> &oh = it->second;
 
-      std::map<mv_pair, Eigen::Matrix4f, std::less<mv_pair>, Eigen::aligned_allocator<std::pair<mv_pair, Eigen::Matrix4f> > >::iterator it =
-          poses_cache_.find (pair_model_view);
+        if(oh.model_scene_corresp_->size() < 3)
+            continue;
 
-      if (it != poses_cache_.end ())
-      {
-        pose_matrix = it->second;
-        return;
-      }
+        std::vector < pcl::Correspondences > corresp_clusters;
+        cg_algorithm_->setSceneCloud (scene_);
+        cg_algorithm_->setInputCloud (oh.model_->keypoints_);
 
+        if(cg_algorithm_->getRequiresNormals())
+            cg_algorithm_->setInputAndSceneNormals(oh.model_->kp_normals_, scene_normals_);
+
+        //we need to pass the keypoints_pointcloud and the specific object hypothesis
+        cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
+        cg_algorithm_->cluster (corresp_clusters);
+
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms (corresp_clusters.size());
+        typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
+
+        for (size_t i = 0; i < corresp_clusters.size(); i++)
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, corresp_clusters[i], new_transforms[i]);
+
+        if(param_.merge_close_hypotheses_) {
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > merged_transforms (corresp_clusters.size());
+            std::vector<bool> cluster_has_been_taken(corresp_clusters.size(), false);
+            const double angle_thresh_rad = param_.merge_close_hypotheses_angle_ * M_PI / 180.f ;
+
+            size_t kept=0;
+            for (size_t i = 0; i < new_transforms.size(); i++) {
+
+                if (cluster_has_been_taken[i])
+                    continue;
+
+                cluster_has_been_taken[i] = true;
+                const Eigen::Vector3f centroid1 = new_transforms[i].block<3, 1> (0, 3);
+                const Eigen::Matrix3f rot1 = new_transforms[i].block<3, 3> (0, 0);
+
+                pcl::Correspondences merged_corrs = corresp_clusters[i];
+
+                for(size_t j=i; j < new_transforms.size(); j++) {
+                    const Eigen::Vector3f centroid2 = new_transforms[j].block<3, 1> (0, 3);
+                    const Eigen::Matrix3f rot2 = new_transforms[j].block<3, 3> (0, 0);
+                    const Eigen::Matrix3f rot_diff = rot2 * rot1.transpose();
+
+                    double rotx = atan2(rot_diff(2,1), rot_diff(2,2));
+                    double roty = atan2(-rot_diff(2,0), sqrt(rot_diff(2,1) * rot_diff(2,1) + rot_diff(2,2) * rot_diff(2,2)));
+                    double rotz = atan2(rot_diff(1,0), rot_diff(0,0));
+                    double dist = (centroid1 - centroid2).norm();
+
+                    if ( (dist < param_.merge_close_hypotheses_dist_) && (rotx < angle_thresh_rad) && (roty < angle_thresh_rad) && (rotz < angle_thresh_rad) ) {
+                        merged_corrs.insert( merged_corrs.end(), corresp_clusters[j].begin(), corresp_clusters[j].end() );
+                        cluster_has_been_taken[j] = true;
+                    }
+                }
+
+                t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, merged_corrs, merged_transforms[kept]);
+                kept++;
+            }
+            merged_transforms.resize(kept);
+            new_transforms = merged_transforms;
+        }
+
+        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first << std::endl;
+
+
+        //        oh.visualize(*scene_);
+
+        size_t existing_hypotheses = models_.size();
+        models_.resize( existing_hypotheses + new_transforms.size(), oh.model_  );
+        transforms_.insert(transforms_.end(), new_transforms.begin(), new_transforms.end());
     }
+}
 
-    std::stringstream dir;
-    std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
-    dir << path << "/pose_" << view_id << ".txt";
-
-    v4r::io::readMatrixFromFile( dir.str (), pose_matrix);
-  }
-
-template<template<class > class Distance, typename PointInT, typename FeatureT>
-  void
-  v4r::LocalRecognitionPipeline<Distance, PointInT, FeatureT>::getKeypoints (
-                                                                                               ModelT & model,
-                                                                                               int view_id,
-                                                                                               typename pcl::PointCloud<PointInT>::Ptr & keypoints_cloud)
-  {
-
-    if (use_cache_)
-    {
-      std::pair<std::string, int> pair_model_view = std::make_pair (model.id_, view_id);
-      typename std::map<std::pair<std::string, int>, PointInTPtr>::iterator it = keypoints_cache_.find (pair_model_view);
-
-      if (it != keypoints_cache_.end ())
-      {
-        keypoints_cloud = it->second;
-        return;
-      }
-
-    }
-
-    std::stringstream dir;
-    std::string path = source_->getModelDescriptorDir (model, training_dir_, descr_name_);
-    dir << path << "/keypoint_indices_" << view_id << ".pcd";
-
-    pcl::io::loadPCDFile (dir.str (), *keypoints_cloud);
-  }
+}

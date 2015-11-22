@@ -1,72 +1,82 @@
-/*
- * vfh_estimator.h
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma, Thomas Faeulhammer
  *
- *  Created on: Mar 22, 2012
- *      Author: aitor
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
 #ifndef REC_FRAMEWORK_ESF_ESTIMATOR_H_
 #define REC_FRAMEWORK_ESF_ESTIMATOR_H_
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/core/macros.h>
-#include "global_estimator.h"
+#include <v4r/features/global_estimator.h>
+
 #include <pcl/features/esf.h>
+#include <glog/logging.h>
 
 namespace v4r
 {
-    template<typename PointInT, typename FeatureT>
-      class V4R_EXPORTS ESFEstimation : public GlobalEstimator<PointInT, FeatureT>
+    template<typename PointT>
+      class V4R_EXPORTS ESFEstimation : public GlobalEstimator<PointT>
       {
+      private:
+          using GlobalEstimator<PointT>::indices_;
+          using GlobalEstimator<PointT>::input_cloud_;
 
-        typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+          typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
+          PointInTPtr processed_;
 
       public:
-        bool
-        estimate (const PointInTPtr & in, PointInTPtr & processed,
-                  typename pcl::PointCloud<FeatureT>::CloudVectorType & signatures,
-                  std::vector<Eigen::Vector3f> & centroids)
-        {
-
-          if(!in)
+          std::vector<float>
+          estimate ()
           {
-              PCL_ERROR("ESFEstimation, input is empty!");
-              return false;
+            std::vector<float> signature;
+
+            CHECK(input_cloud_ && !input_cloud_->points.empty());
+
+            if(!indices_.empty()) {
+                processed_.reset(new pcl::PointCloud<PointT>);
+                pcl::copyPointCloud(*input_cloud_, indices_, *processed_);
+            }
+            else
+                processed_ = input_cloud_;
+
+
+            typedef typename pcl::ESFEstimation<PointT, pcl::ESFSignature640> ESFEstimation;
+            pcl::PointCloud<pcl::ESFSignature640> ESF_signature;
+            ESFEstimation esf;
+            esf.setInputCloud (processed_);
+            esf.compute (ESF_signature);
+
+            const pcl::ESFSignature640 &pt = ESF_signature.points[0];
+            const size_t feat_dim = (size_t) ((double)(sizeof(pt.histogram)) / sizeof(pt.histogram[0]));
+            signature.resize(feat_dim);
+
+            for(size_t i=0; i<feat_dim; i++)
+                signature[i] = pt.histogram[i];
+
+            indices_.clear();
+
+            return signature;
           }
-
-          if(in->points.size() == 0)
-          {
-              PCL_ERROR("ESFEstimation, input has no points!");
-              return false;
-          }
-
-          typedef typename pcl::ESFEstimation<PointInT, FeatureT> ESFEstimation;
-          pcl::PointCloud<FeatureT> ESF_signature;
-
-          ESFEstimation esf;
-          esf.setInputCloud (in);
-          esf.compute (ESF_signature);
-
-          signatures.resize (1);
-          centroids.resize (1);
-
-          signatures[0] = ESF_signature;
-
-          Eigen::Vector4f centroid4f;
-          pcl::compute3DCentroid (*in, centroid4f);
-          centroids[0] = Eigen::Vector3f (centroid4f[0], centroid4f[1], centroid4f[2]);
-
-          pcl::copyPointCloud(*in, *processed);
-
-          return true;
-        }
-
-        bool
-        computedNormals ()
-        {
-          return false;
-        }
       };
 }
 
-#endif /* REC_FRAMEWORK_ESF_ESTIMATOR_H_ */
+#endif

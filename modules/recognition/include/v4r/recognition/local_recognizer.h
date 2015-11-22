@@ -1,27 +1,46 @@
-/*
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma, Thomas Faeulhammer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
+
+
+/**
  * local_recognizer.h
  *
- *  Created on: Mar 24, 2012
- *      Author: aitor
+ *      @date Mar 24, 2012
+ *      @author Aitor Aldoma, Thomas Faeulhammer
  */
 
-#ifndef FAAT_PCL_REC_FRAMEWORK_LOCAL_RECOGNIZER_H_
-#define FAAT_PCL_REC_FRAMEWORK_LOCAL_RECOGNIZER_H_
+#ifndef V4R_LOCAL_RECOGNIZER_H_
+#define V4R_LOCAL_RECOGNIZER_H_
 
 #include <flann/flann.h>
 #include <pcl/common/common.h>
-#include "source.h"
-#include <v4r/features/local_estimator.h>
+
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/correspondence_grouping.h>
-#include <v4r/recognition//hypotheses_verification.h>
-#include "recognizer.h"
-
-inline bool
-correspSorter (const pcl::Correspondence & i, const pcl::Correspondence & j)
-{
-  return (i.distance < j.distance);
-}
+#include <v4r/features/local_estimator.h>
+#include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/recognition/recognizer.h>
+#include <v4r/recognition/source.h>
 
 namespace v4r
 {
@@ -34,115 +53,113 @@ namespace v4r
      * \author Aitor Aldoma, Federico Tombari
      */
 
-    template<template<class > class Distance, typename PointInT, typename FeatureT>
-      class V4R_EXPORTS LocalRecognitionPipeline : public Recognizer<PointInT>
+    template<template<class > class Distance, typename PointT, typename FeatureT>
+      class V4R_EXPORTS LocalRecognitionPipeline : public Recognizer<PointT>
       {
+      public:
+          class V4R_EXPORTS Parameter : public Recognizer<PointT>::Parameter
+          {
+          public:
+              using Recognizer<PointT>::Parameter::icp_iterations_;
+              using Recognizer<PointT>::Parameter::icp_type_;
+              using Recognizer<PointT>::Parameter::voxel_size_icp_;
+              using Recognizer<PointT>::Parameter::normal_computation_method_;
+              using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
+              using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
+              using Recognizer<PointT>::Parameter::merge_close_hypotheses_angle_;
+
+              bool use_cache_;
+              int kdtree_splits_;
+              int knn_;
+              float distance_same_keypoint_;
+              float max_descriptor_distance_;
+              float correspondence_distance_constant_weight_;
+              bool save_hypotheses_;
+
+              Parameter(
+                      bool use_cache = false,
+                      int kdtree_splits = 512,
+                      int knn = 1,
+                      float distance_same_keypoint = 0.001f * 0.001f,
+                      float max_descriptor_distance = std::numeric_limits<float>::infinity(),
+                      float correspondence_distance_constant_weight = 1.f,
+                      bool save_hypotheses = false
+                      )
+                  : Recognizer<PointT>::Parameter(),
+                    use_cache_(use_cache),
+                    kdtree_splits_ (kdtree_splits),
+                    knn_ ( knn ),
+                    distance_same_keypoint_ ( distance_same_keypoint ),
+                    max_descriptor_distance_ ( max_descriptor_distance ),
+                    correspondence_distance_constant_weight_ ( correspondence_distance_constant_weight ),
+                    save_hypotheses_ ( save_hypotheses )
+              {}
+          }param_;
+
         protected:
-          typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
-          typedef typename pcl::PointCloud<PointInT>::ConstPtr ConstPointInTPtr;
+          typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
+          typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
+          typedef typename Recognizer<PointT>::symHyp symHyp;
 
           typedef Distance<float> DistT;
-          typedef Model<PointInT> ModelT;
+          typedef Model<PointT> ModelT;
           typedef boost::shared_ptr<ModelT> ModelTPtr;
-          /*struct ObjectHypothesis
-          {
-            ModelTPtr model_;
-            typename pcl::PointCloud<PointInT>::Ptr correspondences_pointcloud; //points in model coordinates
-            pcl::PointCloud<pcl::Normal>::Ptr normals_pointcloud; //points in model coordinates
-            boost::shared_ptr<std::vector<float> > feature_distances_;
-            pcl::CorrespondencesPtr correspondences_to_inputcloud; //indices between correspondences_pointcloud and scene cloud
-            int num_corr_;
-            std::vector<int> indices_to_flann_models_;
-          };*/
 
-          using Recognizer<PointInT>::input_;
-          using Recognizer<PointInT>::models_;
-          using Recognizer<PointInT>::transforms_;
-          using Recognizer<PointInT>::ICP_iterations_;
-          using Recognizer<PointInT>::icp_type_;
-          using Recognizer<PointInT>::VOXEL_SIZE_ICP_;
-          using Recognizer<PointInT>::indices_;
-          using Recognizer<PointInT>::hv_algorithm_;
-          using Recognizer<PointInT>::poseRefinement;
-          using Recognizer<PointInT>::hypothesisVerification;
+          using Recognizer<PointT>::scene_;
+          using Recognizer<PointT>::scene_normals_;
+          using Recognizer<PointT>::models_;
+          using Recognizer<PointT>::transforms_;
+          using Recognizer<PointT>::hv_algorithm_;
+          using Recognizer<PointT>::poseRefinement;
+          using Recognizer<PointT>::hypothesisVerification;
+          using Recognizer<PointT>::training_dir_;
 
           class flann_model
           {
           public:
             ModelTPtr model;
-            int view_id;
-            int keypoint_id;
+            size_t view_id;
+            size_t keypoint_id;
             std::vector<float> descr;
           };
 
-          class codebook_model
-          {
-            public:
-              int cluster_idx_;
-              std::vector<float> descr;
-              std::vector<int> clustered_indices_to_flann_models_;
-          };
-
-          /** \brief Directory where the trained structure will be saved */
-          std::string training_dir_;
-
-          /** \brief Point cloud to be classified */
-          //PointInTPtr input_;
-
           /** \brief Model data source */
-          typename boost::shared_ptr<Source<PointInT> > source_;
+          typename boost::shared_ptr<Source<PointT> > source_;
 
           /** \brief Computes a feature */
-          typename boost::shared_ptr<LocalEstimator<PointInT, FeatureT> > estimator_;
+          typename boost::shared_ptr<LocalEstimator<PointT, FeatureT> > estimator_;
 
           /** \brief Point-to-point correspondence grouping algorithm */
-          typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointInT, PointInT> > cg_algorithm_;
+          typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > cg_algorithm_;
 
           /** \brief Descriptor name */
           std::string descr_name_;
 
+          /** \brief defines number of leading zeros in view filenames (e.g. cloud_00001.pcd -> length_ = 5) */
+          size_t view_id_length_;
+
           /** \brief Id of the model to be used */
           std::string search_model_;
 
+          bool feat_kp_set_from_outside_;
+
           flann::Matrix<float> flann_data_;
           boost::shared_ptr<flann::Index<DistT> > flann_index_;
-          //flann::NNIndex<DistT> * flann_index_;
 
-          std::map< std::pair< ModelTPtr, int >, std::vector<int> > model_view_id_to_flann_models_;
+          std::map< std::pair< ModelTPtr, size_t >, std::vector<size_t> > model_view_id_to_flann_models_;
           std::vector<flann_model> flann_models_;
-          std::vector<codebook_model> codebook_models_;
 
-          bool use_cache_;
-          std::map<std::pair<std::string, int>, Eigen::Matrix4f, std::less<std::pair<std::string, int> >, Eigen::aligned_allocator<std::pair<std::pair<
-              std::string, int>, Eigen::Matrix4f> > > poses_cache_;
-          std::map<std::pair<std::string, int>, typename pcl::PointCloud<PointInT>::Ptr> keypoints_cache_;
-          std::map<std::pair<std::string, int>, pcl::PointCloud<pcl::Normal>::Ptr> normals_cache_;
-          std::map<std::pair<std::string, int>, pcl::PointCloud<IndexPoint>::Ptr> idxpoint_cache_;
-
-          float threshold_accept_model_hypothesis_;
-          int kdtree_splits_;
-
-          PointInTPtr keypoints_input_;
-          PointInTPtr processed_;
           typename pcl::PointCloud<FeatureT>::Ptr signatures_;
-          pcl::PointIndices keypoint_indices_;
+          typename pcl::PointCloud<PointT>::Ptr scene_keypoints_;
+          pcl::PointIndices scene_kp_indices_;
 
-          std::string cb_flann_index_fn_;
-          std::string flann_index_fn_;
           std::string flann_data_fn_;
-          bool use_codebook_;
 
-          bool save_hypotheses_;
-          typename std::map<std::string, ObjectHypothesis<PointInT> > saved_object_hypotheses_;
-          PointInTPtr keypoint_cloud_;
-          int knn_;
-          float distance_same_keypoint_;
-          float max_descriptor_distance_;
-          float correspondence_distance_constant_weight_;
+          /** \brief stores keypoint correspondences */
+          typename std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;
 
           //load features from disk and create flann structure
-          void
-          loadFeaturesAndCreateFLANN ();
+          void loadFeaturesAndCreateFLANN ();
 
           template <typename Type>
           inline void
@@ -163,110 +180,28 @@ namespace v4r
             data = flann_data;
           }
 
-          /*void
-          nearestKSearch (flann::Index<DistT> * index, float * descr, int descr_size, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);*/
+          void nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);
 
-          void
-          nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances);
+          pcl::Normal getKpNormal (const ModelT &model, size_t keypoint_id, size_t view_id=0);
 
-          void
-          getPose (const ModelT &model, int view_id, Eigen::Matrix4f & pose_matrix);
+          PointT getKeypoint (const ModelT & model, size_t keypoint_id, size_t view_id=0);
 
-          void
-          getNormals (const ModelT &model, int view_id, pcl::PointCloud<pcl::Normal>::Ptr & normals_cloud);
+          void getView (const ModelT & model, size_t view_id, typename pcl::PointCloud<PointT>::Ptr & view);
 
-          void
-          getIndicesToProcessedAndNormals (ModelT & model, int view_id, pcl::PointCloud<IndexPoint>::Ptr & index_cloud);
-
-          void
-          getKeypoints (ModelT & model, int view_id, typename pcl::PointCloud<PointInT>::Ptr & keypoints_cloud);
-
-          void
-          getView (ModelT & model, int view_id, PointInTPtr & view);
-
-          void
-          drawCorrespondences (const PointInTPtr & cloud,
-                               const ObjectHypothesis<PointInT> & oh,
-                               const PointInTPtr & keypoints_pointcloud,
-                               const pcl::Correspondences & correspondences)
-          {
-            pcl::visualization::PCLVisualizer vis_corresp_;
-            vis_corresp_.setWindowName("correspondences...");
-            pcl::visualization::PointCloudColorHandlerCustom<PointInT> random_handler (cloud, 255, 0, 0);
-            vis_corresp_.addPointCloud<PointInT> (cloud, random_handler, "points");
-
-            typename pcl::PointCloud<PointInT>::ConstPtr cloud_sampled;
-            cloud_sampled = oh.model_->getAssembled (0.0025f);
-
-            pcl::visualization::PointCloudColorHandlerCustom<PointInT> random_handler_sampled (cloud_sampled, 0, 0, 255);
-            vis_corresp_.addPointCloud<PointInT> (cloud_sampled, random_handler_sampled, "sampled");
-
-            for (size_t kk = 0; kk < correspondences.size (); kk++)
-            {
-              pcl::PointXYZ p;
-              p.getVector4fMap () = oh.correspondences_pointcloud->points[correspondences[kk].index_query].getVector4fMap ();
-              pcl::PointXYZ p_scene;
-              p_scene.getVector4fMap () = keypoints_pointcloud->points[correspondences[kk].index_match].getVector4fMap ();
-
-              std::stringstream line_name;
-              line_name << "line_" << kk;
-
-              vis_corresp_.addLine<pcl::PointXYZ, pcl::PointXYZ> (p_scene, p, line_name.str ());
-            }
-
-            vis_corresp_.spin ();
-            vis_corresp_.removeAllPointClouds();
-            vis_corresp_.removeAllShapes();
-            vis_corresp_.close();
-          }
+          void correspondenceGrouping();
 
           virtual void specificLoadFeaturesAndCreateFLANN()
           {
             std::cout << "specificLoadFeaturesAndCreateFLANN => this function does nothing..." << std::endl;
           }
 
-          virtual void prepareSpecificCG(PointInTPtr & scene_cloud, PointInTPtr & scene_keypoints)
-          {
-                (void)scene_cloud;
-                (void)scene_keypoints;
-                std::cerr << "This is a virtual function doing nothing!" << std::endl;
-          }
-
-          virtual void specificCG(PointInTPtr & scene_cloud, PointInTPtr & scene_keypoints, ObjectHypothesis<PointInT> & oh)
-          {
-              (void)scene_cloud;
-              (void)scene_keypoints;
-              (void)oh;
-              std::cerr << "This is a virtual function doing nothing!" << std::endl;
-          }
-
-          virtual void clearSpecificCG() {
-
-          }
-
-//          virtual void cgVerificationAndPoseEstimation(
-//                    PointInTPtr keypoints_pointcloud,
-//                    PointInTPtr processed,
-//                    pcl::PointCloud<pcl::Normal>::Ptr scene_normal,
-//                    std::map<std::string, ObjectHypothesis<PointInT> > &object_hypotheses);
-
       public:
 
-        LocalRecognitionPipeline (const std::string index_fn=std::string("index_flann.txt"),
-                                     const std::string cb_index_fn=std::string("index_codebook.txt")) : Recognizer<PointInT>()
+        LocalRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
         {
-          use_cache_ = false;
-          threshold_accept_model_hypothesis_ = 0.2f;
-          kdtree_splits_ = 512;
+          param_ = p;
           search_model_ = "";
-          flann_index_fn_ = index_fn;
-          cb_flann_index_fn_ = cb_index_fn;
-          use_codebook_ = false;
-          save_hypotheses_ = false;
-          knn_ = 1;
-          distance_same_keypoint_ = 0.001f * 0.001f;
-          max_descriptor_distance_ = std::numeric_limits<float>::infinity();
-          correspondence_distance_constant_weight_ = 1.f;
+          feat_kp_set_from_outside_ = false;
         }
 
         size_t getFeatureType() const
@@ -276,17 +211,17 @@ namespace v4r
 
         void setCorrespondenceDistanceConstantWeight(float w)
         {
-            correspondence_distance_constant_weight_ = w;
+            param_.correspondence_distance_constant_weight_ = w;
         }
 
         void setMaxDescriptorDistance(float d)
         {
-            max_descriptor_distance_ = d;
+            param_.max_descriptor_distance_ = d;
         }
 
         void setDistanceSameKeypoint(float d)
         {
-            distance_same_keypoint_ = d*d;
+            param_.distance_same_keypoint_ = d*d;
         }
 
         ~LocalRecognitionPipeline ()
@@ -294,61 +229,56 @@ namespace v4r
 
         }
 
-        void setKnn(int k)
+        void
+        setKnn(int k)
         {
-          knn_ = k;
+          param_.knn_ = k;
         }
 
-        void setSaveHypotheses(bool set)
+        void
+        setSaveHypotheses(bool set)
         {
-          save_hypotheses_ = set;
+          param_.save_hypotheses_ = set;
+        }
+
+        bool
+        getSaveHypothesesParam() const
+        {
+            return param_.save_hypotheses_;
         }
 
         virtual
         void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointInT> > & hypotheses) const
+        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > & hypotheses) const
         {
-          hypotheses = saved_object_hypotheses_;
+          hypotheses = obj_hypotheses_;
         }
 
-        void getKeypointCloud(PointInTPtr & keypoint_cloud) const
+        void
+        getKeypointCloud(PointTPtr & keypoint_cloud) const
         {
-          keypoint_cloud = keypoint_cloud_;
+          keypoint_cloud = scene_keypoints_;
         }
 
-        void getKeypointIndices(pcl::PointIndices & indices) const
+        void
+        getKeypointIndices(pcl::PointIndices & indices) const
         {
-            indices.header = keypoint_indices_.header;
-            indices.indices = keypoint_indices_.indices;
+            indices = scene_kp_indices_;
         }
 
-        void setISPK(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
-                     const PointInTPtr & p,
-                     const pcl::PointIndices & keypoint_indices)
+        void
+        setFeatAndKeypoints(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
+                                 const pcl::PointIndices & keypoint_indices)
         {  
-          keypoint_indices_.header = keypoint_indices.header;
-          keypoint_indices_.indices = keypoint_indices.indices;
-          keypoints_input_.reset(new pcl::PointCloud<PointInT>());
-          pcl::copyPointCloud(*p, keypoint_indices.indices, *keypoints_input_);
-          //keypoints_input_ = keypoints;
+          if(!signatures || signatures->points.size()==0 ||
+                  (signatures->points.size()!=keypoint_indices.indices.size()))
+              throw std::runtime_error("Provided signatures and keypoints are not valid!");
+
+          feat_kp_set_from_outside_ = true;
+          scene_kp_indices_ = keypoint_indices;
           signatures_ = signatures;
-          processed_ = p;
-
         }
 
-        void setUseCodebook(bool t) {
-          use_codebook_ = t;
-        }
-
-        void setIndexFN(const std::string & in)
-        {
-          flann_index_fn_ = in;
-        }
-
-        void setCodebookFN(const std::string & in)
-        {
-          cb_flann_index_fn_ = in;
-        }
 
         void
         setSearchModel (const std::string & id)
@@ -357,39 +287,27 @@ namespace v4r
         }
 
         void
-        setThresholdAcceptHyp (float t)
-        {
-          threshold_accept_model_hypothesis_ = t;
-        }
-
-        void
         setKdtreeSplits (int n)
         {
-          kdtree_splits_ = n;
-        }
-
-        void
-        setIndices (const std::vector<int> & indices)
-        {
-          indices_ = indices;
+          param_.kdtree_splits_ = n;
         }
 
         void
         setUseCache (bool u)
         {
-          use_cache_ = u;
+          param_.use_cache_ = u;
         }
 
         /**
          * \brief Sets the model data source_
          */
         void
-        setDataSource (const typename boost::shared_ptr<Source<PointInT> > & source)
+        setDataSource (const typename boost::shared_ptr<Source<PointT> > & source)
         {
           source_ = source;
         }
 
-        typename boost::shared_ptr<Source<PointInT> >
+        typename boost::shared_ptr<Source<PointT> >
         getDataSource () const
         {
           return source_;
@@ -399,7 +317,7 @@ namespace v4r
          * \brief Sets the local feature estimator
          */
         void
-        setFeatureEstimator (const typename boost::shared_ptr<LocalEstimator<PointInT, FeatureT> > & feat)
+        setFeatureEstimator (const typename boost::shared_ptr<LocalEstimator<PointT, FeatureT> > & feat)
         {
           estimator_ = feat;
         }
@@ -408,57 +326,15 @@ namespace v4r
          * \brief Sets the CG algorithm
          */
         void
-        setCGAlgorithm (const typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointInT, PointInT> > & alg)
+        setCGAlgorithm (const typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > & alg)
         {
           cg_algorithm_ = alg;
-        }
-
-        /**
-         * \brief Sets the HV algorithm
-         */
-        /*void
-        setHVAlgorithm (typename boost::shared_ptr<pcl::HypothesisVerification<PointInT, PointInT> > & alg)
-        {
-          hv_algorithm_ = alg;
-        }*/
-
-        /**
-         * \brief Sets the input cloud to be classified
-         */
-        /*void
-        setInputCloud (const PointInTPtr & cloud)
-        {
-          input_ = cloud;
-        }*/
-
-        /**
-         * \brief Sets the descriptor name
-         */
-        void
-        setDescriptorName (const std::string & name)
-        {
-          descr_name_ = name;
-        }
-
-        /**
-         * \brief Filesystem dir where to keep the generated training data
-         */
-        void
-        setTrainingDir (const std::string & dir)
-        {
-          training_dir_ = dir;
-        }
-
-        void
-        getProcessed(PointInTPtr & cloud) const {
-          cloud = processed_;
         }
 
         /**
          * \brief Initializes the FLANN structure from the provided source
          * It does training for the models that havent been trained yet
          */
-
         void
         initialize (bool force_retrain = false);
 
@@ -466,9 +342,30 @@ namespace v4r
         reinitialize(const std::vector<std::string> & load_ids = std::vector<std::string>());
 
         /**
+         * @brief Visualizes all found correspondences between scene and model
+         * @param object model to be visualized
+         */
+        void
+        drawCorrespondences (const ObjectHypothesis<PointT> & oh)
+        {
+          oh.visualize(*scene_);
+        }
+
+        /**
+         * @brief Visualizes all found correspondences between scene and models
+         */
+        void
+        drawCorrespondences()
+        {
+            typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it;
+            for (it = obj_hypotheses_.begin(); it != obj_hypotheses_.end (); it++) {
+                it->second.visualize(*scene_);
+            }
+        }
+
+        /**
          * \brief Performs recognition and pose estimation on the input cloud
          */
-
         void
         recognize ();
       };

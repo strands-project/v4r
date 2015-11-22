@@ -1,12 +1,29 @@
-/*
- * ply_source.h
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma
  *
- *  Created on: Mar 9, 2012
- *      Author: aitor
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
-#ifndef FAAT_PCL_REC_FRAMEWORK_MODEL_VIEWS_SOURCE_H_
-#define FAAT_PCL_REC_FRAMEWORK_MODEL_VIEWS_SOURCE_H_
+
+#ifndef V4R_MODEL_VIEWS_SOURCE_H_
+#define V4R_MODEL_VIEWS_SOURCE_H_
 
 #include "source.h"
 #include <pcl/io/io.h>
@@ -122,23 +139,23 @@ namespace v4r
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
-        generate (std::string & training_dir)
+        generate (const std::string & training_dir)
         {
+          (void) training_dir;
           //get models in directory
           std::vector < std::string > files;
 
           v4r::io::getFilesInDirectory (path_, files, "", ".*.pcd", false);
           std::cout << files.size() << std::endl;
 
-          models_.reset (new std::vector<ModelTPtr>);
+          models_.clear();
           std::sort(files.begin(), files.end());
           for (size_t i = 0; i < files.size (); i++)
           {
-            ModelTPtr m(new ModelT());
+            ModelTPtr m(new ModelT);
 
             std::vector < std::string > strs;
             boost::split (strs, files[i], boost::is_any_of ("/\\"));
-            std::string name = strs[strs.size () - 1];
 
             if (strs.size () == 1)
             {
@@ -168,7 +185,7 @@ namespace v4r
             std::string path_model = model_path.str ();
             loadOrGenerate (path_model, *m);
 
-            models_->push_back (m);
+            models_.push_back (m);
 
             //std::cout << files[i] << std::endl;
           }
@@ -176,4 +193,4 @@ namespace v4r
       };
 }
 
-#endif /* REC_FRAMEWORK_MESH_SOURCE_H_ */
+#endif

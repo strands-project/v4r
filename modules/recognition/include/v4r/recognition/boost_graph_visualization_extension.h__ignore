@@ -28,16 +28,13 @@ private:
 
 public:
     BoostGraphVisualizer(){
-
     }
 
-    void visualizeEdge (const Edge &edge, const Graph &grph);
+    void visualizeEdge (const EdgeD &edge, const MVGraph &grph);
 
-    void visualizeGraph ( const Graph & grph, pcl::visualization::PCLVisualizer::Ptr &vis);
+    void visualizeGraph ( const MVGraph & grph, pcl::visualization::PCLVisualizer::Ptr &vis);
 
-    void visualizeWorkflow ( const Vertex &vrtx, const Graph &grph, boost::shared_ptr< pcl::PointCloud<PointT> > pAccumulatedKeypoints);
-
-    void createImage(const Vertex &src, const Graph &grph, std::string outputfile);
+    void visualizeWorkflow ( const ViewD &vrtx, const MVGraph &grph, boost::shared_ptr< pcl::PointCloud<PointT> > pAccumulatedKeypoints);
 };
 
 #endif // BOOST_GRAPH_VISUALIZATION_EXTENSION_H

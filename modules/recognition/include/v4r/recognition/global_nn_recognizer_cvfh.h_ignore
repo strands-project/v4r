@@ -55,20 +55,16 @@ namespace v4r
         typedef Model<PointInT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-        using Recognizer<PointInT>::input_;
+        using Recognizer<PointInT>::scene_;
+        using Recognizer<PointInT>::scene_normals_;
         using Recognizer<PointInT>::models_;
+        using Recognizer<PointInT>::param_;
         using Recognizer<PointInT>::transforms_;
-        using Recognizer<PointInT>::ICP_iterations_;
-        using Recognizer<PointInT>::icp_type_;
-        using Recognizer<PointInT>::VOXEL_SIZE_ICP_;
         using Recognizer<PointInT>::poseRefinement;
         using Recognizer<PointInT>::requires_segmentation_;
-        using Recognizer<PointInT>::indices_;
         using Recognizer<PointInT>::hv_algorithm_;
         using Recognizer<PointInT>::setSceneNormals;
-
-        /** \brief Directory where the trained structure will be saved */
-        std::string training_dir_;
+        using Recognizer<PointInT>::training_dir_;
 
         /** \brief Model data source */
         typename boost::shared_ptr<Source<PointInT> > source_;
@@ -133,9 +129,6 @@ namespace v4r
           }
 
         };
-
-        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
-        bool normals_set_;
 
         flann::Matrix<float> flann_data_;
         flann::Index<DistT> * flann_index_;
@@ -232,18 +225,12 @@ namespace v4r
           OUR_CVFH_MAX_HYP_ = std::numeric_limits<int>::max();
           requires_segmentation_ = true;
           debug_level_ = 0;
-          normals_set_ = false;
+          descr_name_ = "cvfh";
         }
 
         bool acceptsNormals() const
         {
             return true;
-        }
-
-        void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
-        {
-            scene_normals_ = normals;
-            normals_set_ = true;
         }
 
         void setDebugLevel(int lev)
@@ -348,12 +335,6 @@ namespace v4r
         setDescriptorName (const std::string &name)
         {
           descr_name_ = name;
-        }
-
-        void
-        setTrainingDir (const std::string &dir)
-        {
-          training_dir_ = dir;
         }
 
         /**
