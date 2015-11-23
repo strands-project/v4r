@@ -24,12 +24,10 @@ template<typename PointT>
 void
 NMBasedCloudIntegration<PointT>::compute (const PointTPtr & output)
 {
-
     input_clouds_used_.resize(input_clouds_.size());
+
     for(size_t i=0; i < input_clouds_.size(); i++)
-    {
         input_clouds_used_[i].reset(new pcl::PointCloud<PointT>(*input_clouds_[i]));
-    }
 
     //process clouds and weights to remove points based on distance and add weights based on noise
     float bad_value = std::numeric_limits<float>::quiet_NaN();

@@ -59,7 +59,7 @@ gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
     return (i.distance < j.distance);
 }
 
-struct ViewD
+struct V4R_EXPORTS ViewD
 {
     int idx_;
     size_t degree_;
@@ -76,7 +76,7 @@ struct ViewD
     }
 };
 
-struct vertexDegreeSorter
+struct V4R_EXPORTS vertexDegreeSorter
 {
     bool
     operator() (const ViewD & i, const ViewD & j) const
@@ -86,7 +86,7 @@ struct vertexDegreeSorter
 };
 
 template<typename Graph>
-class save_cliques
+class V4R_EXPORTS save_cliques
 {
 
 public:
@@ -157,7 +157,7 @@ class FAATPCL_CliquesException: public std::exception
 } myex;
 
 template<typename Graph>
-class Tomita
+class V4R_EXPORTS Tomita
 {
     typedef std::set<typename boost::graph_traits<Graph>::vertex_descriptor> SetType;
     typedef std::vector<typename boost::graph_traits<Graph>::vertex_descriptor> VectorType;
@@ -359,7 +359,7 @@ public:
     }
 };
 
-struct ExtendedClique
+struct V4R_EXPORTS ExtendedClique
 {
     std::vector<long unsigned int> * correspondences_;
     float avg_descriptor_distance_;
