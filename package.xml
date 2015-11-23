@@ -59,6 +59,7 @@
   <run_depend>libqt4-dev</run_depend>
   <run_depend>libqt4-opengl-dev</run_depend>
   <run_depend>libopenni2-dev</run_depend>
+  <run_depend>libglm-dev</run_depend>
   <run_depend>assimp</run_depend>
   <run_depend>libsvm</run_depend>
   <run_depend>libgoogle-glog-dev</run_depend>
