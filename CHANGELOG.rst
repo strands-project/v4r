@@ -2,6 +2,13 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#37 <https://github.com/strands-project/v4r/issues/37>`_ from strands-project/add_glm_run_dependency
+  add glm also as run dependency
+* add glm also as run dependency
+* Contributors: Thomas Fäulhammer
+
 1.1.0 (2015-11-20)
 ------------------
 * Merge pull request `#35 <https://github.com/strands-project/v4r/issues/35>`_ from strands-project/recognition_update
