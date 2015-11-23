@@ -45,7 +45,7 @@
 namespace v4r
 {
   template <typename PointInT, typename PointOutT>
-  class Edge
+  class V4R_EXPORTS Edge
   {
     private:
       typedef typename pcl::PointCloud<PointInT> PointCloudIn;

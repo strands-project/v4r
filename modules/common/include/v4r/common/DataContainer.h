@@ -47,7 +47,7 @@ namespace v4r
 /**
  * DataContainer
  */
-class DataContainer
+class V4R_EXPORTS DataContainer
 {
 public:
   enum Type

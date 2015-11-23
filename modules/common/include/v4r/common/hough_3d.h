@@ -150,7 +150,7 @@ namespace v4r
     * \ingroup recognition
     */
   template<typename PointModelT, typename PointSceneT, typename PointModelRfT = pcl::ReferenceFrame, typename PointSceneRfT = pcl::ReferenceFrame>
-  class Hough3DGrouping : public v4r::CorrespondenceGrouping<PointModelT, PointSceneT>
+  class V4R_EXPORTS Hough3DGrouping : public v4r::CorrespondenceGrouping<PointModelT, PointSceneT>
   {
     public:
       typedef pcl::PointCloud<PointModelRfT> ModelRfCloud;

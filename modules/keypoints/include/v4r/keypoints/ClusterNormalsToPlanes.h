@@ -32,7 +32,7 @@ public:
   /**
    * @brief The Parameter class
    */
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     double thrAngle;             // Threshold of angle for normal clustering
@@ -53,7 +53,7 @@ public:
   /**
    * @brief The Plane class
    */
-  class Plane
+  class V4R_EXPORTS Plane
   {
   public:
     bool is_plane;

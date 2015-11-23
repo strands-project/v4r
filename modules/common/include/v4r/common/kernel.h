@@ -37,12 +37,13 @@
 
 #ifndef FAAT_PCL_2D_KERNEL_H_
 #define FAAT_PCL_2D_KERNEL_H_
+#include <v4r/core/macros.h>
 #include <pcl/pcl_base.h>
 #include <pcl/point_types.h>
 namespace v4r
 {
   template<typename PointT>
-  class kernel
+  class V4R_EXPORTS kernel
   {
     public:
 

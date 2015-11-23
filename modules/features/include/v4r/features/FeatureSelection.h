@@ -48,7 +48,7 @@
 namespace v4r 
 {
 
-class FeatureSelection
+class V4R_EXPORTS FeatureSelection
 {
 public:
   class Parameter

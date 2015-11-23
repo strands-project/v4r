@@ -42,7 +42,7 @@
 namespace v4r 
 {
 
-class ComputeImGradientDescriptors
+class V4R_EXPORTS ComputeImGradientDescriptors
 {
 public:
   class Parameter

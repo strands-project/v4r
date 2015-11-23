@@ -42,7 +42,7 @@
 namespace v4r 
 {
 
-class FeatureDetector_KD_ORB : public FeatureDetector
+class V4R_EXPORTS FeatureDetector_KD_ORB : public FeatureDetector
 {
 public:
   class Parameter
