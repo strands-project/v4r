@@ -9,7 +9,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <v4r/recognition/model_only_source.h>
 #include <v4r/common/miscellaneous.h>
-#include <v4r/common/occlusion_reasoning.h>
+#include <v4r/common/zbuffering.h>
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>

@@ -31,13 +31,20 @@
 
 namespace v4r
 {
-  template<class PointT>
-  V4R_EXPORTS void
-  ConvertPCLCloud2Image (const typename pcl::PointCloud<PointT>::Ptr &pcl_cloud, cv::Mat_<cv::Vec3b> &image, bool crop = false);
+  template<typename PointT>
+  V4R_EXPORTS cv::Mat
+  ConvertPcd2Image (const typename pcl::PointCloud<PointT> &cloud);
+
+
+  template<typename PointT>
+  V4R_EXPORTS cv::Mat
+  ConvertPCLCloud2Image(const typename pcl::PointCloud<PointT> &cloud,
+                        const std::vector<int> &cluster_idx,
+                        size_t out_height, size_t out_width);
 
   template<class PointT>
-  V4R_EXPORTS void
-  ConvertPCLCloud2DepthImage (const typename pcl::PointCloud<PointT>::Ptr &pcl_cloud, cv::Mat_<float> &image);
+  V4R_EXPORTS cv::Mat
+  ConvertPCLCloud2DepthImage (const typename pcl::PointCloud<PointT> &cloud);
 
   template<class PointT>
   V4R_EXPORTS void
@@ -54,25 +61,32 @@ namespace v4r
                                     float cy = 239.5f);
 
 
-  template<typename PointT>
-  V4R_EXPORTS cv::Mat
-  ConvertPCLCloud2Image(const typename pcl::PointCloud<PointT> &cloud,
-                        const std::vector<int> &cluster_idx,
-                        size_t out_height, size_t out_width);
+  /**
+    * @brief transforms an RGB-D point cloud into an image with fixed size
+    * @param RGB-D cloud
+    * @param indices of the points belonging to the object
+    * @param out_height
+    * @param out_width
+    * @return image
+    */
+   template<typename PointT>
+   V4R_EXPORTS
+   cv::Mat
+   ConvertPCLCloud2ImageFixedSize(const pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx, size_t out_height, size_t out_width);
 
 
- /**
-   * @brief transforms an RGB-D point cloud into an image with fixed size
-   * @param RGB-D cloud
-   * @param indices of the points belonging to the object
-   * @param out_height
-   * @param out_width
-   * @return image
-   */
-  template<typename PointT>
-  V4R_EXPORTS
-  cv::Mat
-  pcl2imageFixedSize(const pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx, size_t out_height, size_t out_width);
+   /**
+     * @brief computes the depth map of a point cloud with fixed size output
+     * @param RGB-D cloud
+     * @param indices of the points belonging to the object
+     * @param out_height
+     * @param out_width
+     * @return depth image (float)
+     */
+    template<typename PointT>
+    V4R_EXPORTS
+    cv::Mat
+    ConvertPCLCloud2DepthImageFixedSize(const pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx, size_t out_height, size_t out_width);
 }
 
 #endif /* PCL_OPENCV_H_ */
