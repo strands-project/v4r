@@ -301,7 +301,7 @@ include(CheckFunctionExists)
 include(CheckIncludeFile)
 
 CHECK_INCLUDE_FILE(pthread.h HAVE_LIBPTHREAD)
-set(V4R_LINKER_LIBS ${V4R_LINKER_LIBS} X11 Xrandr Xinerama Xcursor)
+set(V4R_LINKER_LIBS ${V4R_LINKER_LIBS} X11 Xrandr Xinerama Xcursor Xxf86vm)
 set(V4R_LINKER_LIBS ${V4R_LINKER_LIBS} dl m pthread rt)
 
 include(cmake/V4RModule.cmake)
