@@ -303,7 +303,7 @@ void imageCreator<PointT>::recognizeAndVisualize (const std::string & sub_folder
             std::stringstream image_path;
             image_path << rel_path.str() << "/" << scene_file_wo_ext << ".jpg";
 
-            cv::Mat colorImage = v4r::ConvertPcd2Image (*gt_cloud_organized);
+            cv::Mat colorImage = v4r::ConvertPCLCloud2Image (*gt_cloud_organized);
             /*cv::namedWindow("image");
                 cv::imshow("image", colorImage);
                 cv::waitKey(0);*/
@@ -320,7 +320,7 @@ void imageCreator<PointT>::recognizeAndVisualize (const std::string & sub_folder
             image_path.str("");
             image_path << rel_path.str() << "/" << scene_file_wo_ext << ".jpg";
 
-            colorImage = v4r::ConvertPcd2Image (*pScenePCl_organized);
+            colorImage = v4r::ConvertPCLCloud2Image (*pScenePCl_organized);
             cv::imwrite(image_path.str(), colorImage);
         }
     }

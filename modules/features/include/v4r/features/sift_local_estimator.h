@@ -66,7 +66,7 @@ public:
         for(size_t i=0; i < indices_.indices.size(); i++)
             mask_cloud.points[indices_.indices[i]] = 1;
 
-        cv::Mat colorImage = ConvertPcd2Image(*in);
+        cv::Mat colorImage = ConvertPCLCloud2Image(*in);
         cv::Mat grayImage;
         cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
 
@@ -320,7 +320,7 @@ public:
         processed.reset(new pcl::PointCloud<PointInT>);
         keypoints.reset(new pcl::PointCloud<PointInT>);
 
-        cv::Mat colorImage = ConvertPcd2Image (*in);
+        cv::Mat colorImage = ConvertPCLCloud2Image (*in);
         cv::Mat grayImage;
         cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
 

@@ -95,10 +95,11 @@ int main(int argc, char** argv)
 
 
             // convert point cloud
-            cv::Mat rgb =  v4r::ConvertPcd2Image(cloud);
+            cv::Mat rgb =  v4r::ConvertPCLCloud2Image(cloud);
             cv::Mat rgb_cropped = v4r::ConvertPCLCloud2ImageFixedSize(cloud, indices.indices, img_height, img_width);
             cv::Mat depth = v4r::ConvertPCLCloud2DepthImage(cloud);
             cv::Mat depth_cropped = v4r::ConvertPCLCloud2DepthImageFixedSize(cloud, indices.indices, img_height, img_width);
+            cv::Mat depth_cropped_unsigned = v4r::ConvertPCLCloud2UnsignedDepthImageFixedSize(cloud, indices.indices, img_height, img_width);
 
 
             // save to disk
@@ -110,6 +111,8 @@ int main(int argc, char** argv)
             cv::imwrite(fn.str(), depth);
             fn.str(""); fn << output_dir << "/" << id << "_depth_cropped.png";
             cv::imwrite(fn.str(), depth_cropped);
+            fn.str(""); fn << output_dir << "/" << id << "_depth_cropped_unsigned.png";
+            cv::imwrite(fn.str(), depth_cropped_unsigned);
 
             // add to file list
             file2label.push_back( std::pair<std::string, size_t> ( fn.str(), sub_folder_id ));
