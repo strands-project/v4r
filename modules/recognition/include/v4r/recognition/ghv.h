@@ -199,7 +199,7 @@ namespace v4r
                   double cluster_tolerance = 0.01f, //0.015f;
                   bool use_normals_from_visible = false,
                   bool add_planes = true,
-                  int plane_method = 0,
+                  int plane_method = 1,
                   size_t min_plane_inliers = 5000,
                   double plane_inlier_distance = 0.02f,
                   double plane_thrAngle = 30,

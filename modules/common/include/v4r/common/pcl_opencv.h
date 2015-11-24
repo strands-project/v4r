@@ -80,6 +80,13 @@ namespace v4r
 
 
 
+  /**
+   *@brief converts a point cloud to an image and crops it to a fixed size
+   * @param[in] cloud
+   * @param[in] cluster_idx object indices
+   * @param[in] desired output height of the image
+   * @param[in] desired output width of the image
+   */
   template<typename PointT>
   V4R_EXPORTS
   inline cv::Mat
@@ -241,91 +248,7 @@ namespace v4r
           }
       }
       return ConvertPCLCloud2Image (organized_cloud, crop);
-  }
-
-
-  /**
-    * @brief transforms an RGB-D point cloud into an image with fixed size
-    * @param RGB-D cloud
-    * @param indices of the points belonging to the object
-    * @param out_height
-    * @param out_width
-    * @return image
-    */
-   template<typename PointT>
-   V4R_EXPORTS
-   inline cv::Mat
-   ConvertPCLCloud2ImageFixedSize(const pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx, size_t out_height, size_t out_width)
-   {
-       volatile int min_u, min_v, max_u, max_v;
-       max_u = max_v = 0;
-       min_u = cloud.width;
-       min_v = cloud.height;
-
-   //    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cluster_tmp(new pcl::PointCloud<pcl::PointXYZRGB>);
-   //    pcl::copyPointCloud(cloud,cluster_idx,*cluster_tmp);
-   //    pcl::visualization::PCLVisualizer vis("vis");
-   //    vis.addPointCloud(cluster_tmp,"cloud");
-   //    vis.spin();
-
-       for(size_t idx=0; idx<cluster_idx.size(); idx++) {
-           int u = cluster_idx[idx] % cloud.width;
-           int v = (int) (cluster_idx[idx] / cloud.width);
-
-           if (u>max_u)
-               max_u = u;
-
-           if (v>max_v)
-               max_v = v;
-
-           if (u<min_u)
-               min_u = u;
-
-           if (v<min_v)
-               min_v = v;
-       }
-
-       if ( (int)out_width > (max_u-min_u) ) {
-           int margin_x = out_width - (max_u - min_u);
-
-           volatile int margin_x_left = margin_x / 2.f;
-           min_u = std::max (0, min_u - margin_x_left);
-           volatile int margin_x_right = out_width - (max_u - min_u);
-           max_u = std::min ((int)cloud.width, max_u + margin_x_right);
-           margin_x_left = out_width - (max_u - min_u);
-           min_u = std::max (0, min_u - margin_x_left);
-       }
-
-       if ( (int)out_height > (max_v - min_v) ) {
-           int margin_y = out_height - (max_v - min_v);
-           volatile int margin_y_left = margin_y / 2.f;
-           min_v = std::max (0, min_v - margin_y_left);
-           volatile int margin_y_right = out_height - (max_v - min_v);
-           max_v = std::min ((int)cloud.height, max_v + margin_y_right);
-           margin_y_left = out_height - (max_v - min_v);
-           min_v = std::max (0, min_v - margin_y_left);
-       }
-
-       cv::Mat_<cv::Vec3b> image(max_v - min_v, max_u - min_u);
-
-       for (int row = 0; row < image.rows; row++) {
-         for (int col = 0; col < image.cols; col++) {
-           cv::Vec3b & cvp = image.at<cv::Vec3b> (row, col);
-           int position = (row + min_v) * cloud.width + (col + min_u);
-           const pcl::PointXYZRGB &pt = cloud.points[position];
-
-           cvp[0] = pt.b;
-           cvp[1] = pt.g;
-           cvp[2] = pt.r;
-         }
-       }
-
-       cv::Mat_<cv::Vec3b> dst(out_height, out_width);
-       cv::resize(image, dst, dst.size(), 0, 0, cv::INTER_CUBIC);
-
-       return dst;
-   }
-
+  }  
 
    /**
      * @brief computes the depth map of a point cloud with fixed size output
