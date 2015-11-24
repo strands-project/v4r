@@ -41,15 +41,15 @@ namespace v4r
   struct GHVRecognitionModel
   {
     public:
-      std::vector<int> explained_; //indices vector referencing explained_by_RM_
-      std::vector<float> explained_distances_; //closest distances to the scene for point i
-      std::vector<int> unexplained_in_neighborhood; //indices vector referencing unexplained_by_RM_neighboorhods
-      std::vector<float> unexplained_in_neighborhood_weights; //weights for the points not being explained in the neighborhood of a hypothesis
-      std::vector<int> outlier_indices_; //outlier indices of this model
+      std::vector<int> explained_; /// @brief explained scene points by_RM_
+      std::vector<float> explained_distances_; /// @brief closest distances to the scene for point i
+      std::vector<int> unexplained_in_neighborhood; /// @brief indices vector referencing unexplained_by_RM_neighboorhods
+      std::vector<float> unexplained_in_neighborhood_weights; /// @brief weights for the points not being explained in the neighborhood of a hypothesis
+      std::vector<int> outlier_indices_; /// @brief outlier indices of this model
       std::vector<int> color_outliers_indices_;
       std::vector<int> outliers_3d_indices_;
       std::vector<int> complete_cloud_occupancy_indices_;
-      std::vector<bool> scene_point_explained_by_hypothesis_; //boolean vector indicating if a scene point is explained by this model or not
+      std::vector<bool> scene_point_explained_by_hypothesis_; /// @brief boolean vector indicating if a scene point is explained by this model or not
       typename pcl::PointCloud<ModelT>::Ptr cloud_;
       typename pcl::PointCloud<ModelT>::Ptr complete_cloud_;
       typename pcl::PointCloud<pcl::Normal>::Ptr complete_cloud_normals_;
@@ -57,8 +57,8 @@ namespace v4r
       float outliers_weight_;
       pcl::PointCloud<pcl::Normal>::Ptr normals_;
       pcl::PointCloud<pcl::Normal>::Ptr normals_from_visible_;
-      int id_;
-      float extra_weight_; //descriptor distance weight for instance
+      size_t id_;
+      float extra_weight_; /// @brief descriptor distance weight for instance
       float color_similarity_;
       float median_;
       float mean_;
@@ -69,7 +69,7 @@ namespace v4r
       std::vector<Eigen::Vector3f> cloud_LAB_original_;
       std::vector<Eigen::Vector3f> cloud_RGB_;
       std::vector<float> cloud_GS_;
-      float min_contribution_; //based on the amount of explained points and the amount of information in the hypotheses
+      float min_contribution_; /// @brief based on the amount of explained points and the amount of information in the hypotheses
       std::vector<float> normal_angle_histogram_;
       std::vector<float> color_diff_histogram_;
       float normal_entropy_;

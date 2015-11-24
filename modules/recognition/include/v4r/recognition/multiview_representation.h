@@ -1,15 +1,13 @@
-#ifndef BOOST_GRAPH_EXTENSION_H
-#define BOOST_GRAPH_EXTENSION_H
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/graph/graph_traits.hpp>
+#ifndef MULTI_VIEW_REPRESENTATION_H
+#define MULTI_VIEW_REPRESENTATION_H
 #include <pcl/PointIndices.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include <v4r/recognition/source.h>
-#include <v4r/recognition/recognizer.h>
+#include <v4r/common/common_data_structures.h>
+#include <v4r/recognition/model.h>
+#include <v4r/recognition/local_rec_object_hypotheses.h>
 
 typedef pcl::Histogram<128> FeatureT;
 
@@ -105,6 +103,5 @@ struct V4R_EXPORTS CamConnect
     }
 };
 
-using namespace boost;
 }
 #endif

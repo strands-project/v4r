@@ -1,9 +1,12 @@
-#include <v4r/recognition/local_recognizer.h>
-#include <v4r/io/eigen.h>
 #include <v4r/common/miscellaneous.h>
-#include <sstream>
+#include <v4r/io/eigen.h>
+#include <v4r/recognition/local_recognizer.h>
 
+#include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/visualization/pcl_visualizer.h>
+
+#include <glog/logging.h>
+#include <sstream>
 
 namespace v4r
 {
@@ -200,13 +203,18 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                 typename pcl::PointCloud<PointT>::Ptr all_keypoints;
                 typename pcl::PointCloud<PointT>::Ptr object_keypoints (new pcl::PointCloud<PointT>);
                 typename pcl::PointCloud<PointT>::Ptr foo (new pcl::PointCloud<PointT>);
+                pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
 
                 std::vector<std::string> strs;
                 boost::split (strs, m->view_filenames_[v], boost::is_any_of ("_"));
                 boost::replace_last(strs[1], ".pcd", "");
                 view_id_length_ = strs[1].size();
 
+
+                computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
+
                 pcl::PointIndices all_kp_indices, obj_kp_indices;
+                estimator_->setNormals(normals);
                 bool success = estimator_->estimate (m->views_[v], foo, all_keypoints, all_signatures);
                 (void) success;
                 estimator_->getKeypointIndices(all_kp_indices);
@@ -241,9 +249,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                     std::stringstream desc_fn; desc_fn << dir << "/descriptors_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
                     pcl::io::savePCDFileBinary (desc_fn.str (), *object_signatures);
 
-                    pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
                     pcl::PointCloud<pcl::Normal>::Ptr normals_keypoints(new pcl::PointCloud<pcl::Normal>);
-                    computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
                     pcl::copyPointCloud(*normals, obj_kp_indices, *normals_keypoints);
                     std::stringstream normals_fn; normals_fn << dir << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
                     pcl::io::savePCDFileBinary (normals_fn.str (), *normals_keypoints);
@@ -278,31 +284,20 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
     if (feat_kp_set_from_outside_)
     {
         pcl::copyPointCloud(*scene_, scene_kp_indices_, *scene_keypoints_);
-        std::cout << "Signatures and Keypoints set from outside ..." << std::endl;
+        LOG(INFO) << "Signatures and Keypoints set from outside ...";
         feat_kp_set_from_outside_ = false;
     }
     else
     {
+        if(!estimator_)
+            LOG(FATAL) << "No feature estimator set!";
+
         signatures_.reset(new pcl::PointCloud<FeatureT>);
         scene_kp_indices_.indices.clear();
 
-        typename pcl::PointCloud<PointT>::Ptr processed(new pcl::PointCloud<PointT>);
-        if (indices_.size () > 0)
-        {
-            if(estimator_->acceptsIndices())
-            {
-                estimator_->setIndices(indices_);
-                estimator_->estimate (scene_, processed, scene_keypoints_, signatures_);
-            }
-            else
-            {
-                PointTPtr sub_input (new pcl::PointCloud<PointT>);
-                pcl::copyPointCloud (*scene_, indices_, *sub_input);
-                estimator_->estimate (sub_input, processed, scene_keypoints_, signatures_);
-            }
-        }
-        else
-            estimator_->estimate (scene_, processed, scene_keypoints_, signatures_);
+        estimator_->setNormals(scene_normals_);
+        typename pcl::PointCloud<PointT>::Ptr processed_foo;
+        estimator_->estimate (scene_, processed_foo, scene_keypoints_, signatures_);
 
         estimator_->getKeypointIndices(scene_kp_indices_);
     }
@@ -484,10 +479,10 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::correspondenceGrouping ()
     if(cg_algorithm_->getRequiresNormals() && (!scene_normals_ || scene_normals_->points.size() != scene_->points.size()))
         computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
-    typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
-    for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); it_map++)
+    typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it;
+    for (it = obj_hypotheses_.begin (); it != obj_hypotheses_.end (); it++)
     {
-        ObjectHypothesis<PointT> &oh = it_map->second;
+        ObjectHypothesis<PointT> &oh = it->second;
 
         if(oh.model_scene_corresp_->size() < 3)
             continue;
@@ -503,18 +498,60 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::correspondenceGrouping ()
         cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
         cg_algorithm_->cluster (corresp_clusters);
 
-        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences: " << oh.model_scene_corresp_->size () << " " << it_map->first << std::endl;
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms (corresp_clusters.size());
+        typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
+
+        for (size_t i = 0; i < corresp_clusters.size(); i++)
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, corresp_clusters[i], new_transforms[i]);
+
+        if(param_.merge_close_hypotheses_) {
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > merged_transforms (corresp_clusters.size());
+            std::vector<bool> cluster_has_been_taken(corresp_clusters.size(), false);
+            const double angle_thresh_rad = param_.merge_close_hypotheses_angle_ * M_PI / 180.f ;
+
+            size_t kept=0;
+            for (size_t i = 0; i < new_transforms.size(); i++) {
+
+                if (cluster_has_been_taken[i])
+                    continue;
+
+                cluster_has_been_taken[i] = true;
+                const Eigen::Vector3f centroid1 = new_transforms[i].block<3, 1> (0, 3);
+                const Eigen::Matrix3f rot1 = new_transforms[i].block<3, 3> (0, 0);
+
+                pcl::Correspondences merged_corrs = corresp_clusters[i];
+
+                for(size_t j=i; j < new_transforms.size(); j++) {
+                    const Eigen::Vector3f centroid2 = new_transforms[j].block<3, 1> (0, 3);
+                    const Eigen::Matrix3f rot2 = new_transforms[j].block<3, 3> (0, 0);
+                    const Eigen::Matrix3f rot_diff = rot2 * rot1.transpose();
+
+                    double rotx = atan2(rot_diff(2,1), rot_diff(2,2));
+                    double roty = atan2(-rot_diff(2,0), sqrt(rot_diff(2,1) * rot_diff(2,1) + rot_diff(2,2) * rot_diff(2,2)));
+                    double rotz = atan2(rot_diff(1,0), rot_diff(0,0));
+                    double dist = (centroid1 - centroid2).norm();
+
+                    if ( (dist < param_.merge_close_hypotheses_dist_) && (rotx < angle_thresh_rad) && (roty < angle_thresh_rad) && (rotz < angle_thresh_rad) ) {
+                        merged_corrs.insert( merged_corrs.end(), corresp_clusters[j].begin(), corresp_clusters[j].end() );
+                        cluster_has_been_taken[j] = true;
+                    }
+                }
+
+                t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, merged_corrs, merged_transforms[kept]);
+                kept++;
+            }
+            merged_transforms.resize(kept);
+            new_transforms = merged_transforms;
+        }
+
+        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first << std::endl;
+
+
+        //        oh.visualize(*scene_);
 
         size_t existing_hypotheses = models_.size();
-        models_.resize( existing_hypotheses + corresp_clusters.size () );
-        transforms_.resize( existing_hypotheses + corresp_clusters.size () );
-
-        for (size_t i = 0; i < corresp_clusters.size (); i++)
-        {
-            models_[existing_hypotheses + i] = oh.model_;
-            typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
-            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, corresp_clusters[i], transforms_[existing_hypotheses + i]);
-        }
+        models_.resize( existing_hypotheses + new_transforms.size(), oh.model_  );
+        transforms_.insert(transforms_.end(), new_transforms.begin(), new_transforms.end());
     }
 }
 

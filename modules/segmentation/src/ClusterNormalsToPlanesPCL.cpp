@@ -5,6 +5,7 @@
  * @author Johann Prankl (prankl@acin.tuwien.ac.at)
  */
 
+#include <v4r/common/miscellaneous.h>
 #include <v4r/segmentation/ClusterNormalsToPlanesPCL.h>
 #include <pcl/features/normal_3d.h>
 
@@ -252,6 +253,8 @@ template<typename PointT>
 void
 ClusterNormalsToPlanesPCL<PointT>::doClustering(const typename pcl::PointCloud<PointT>::Ptr &cloud, const pcl::PointCloud<pcl::Normal> &normals, std::vector<typename ClusterNormalsToPlanesPCL<PointT>::Plane::Ptr> &planes)
 {
+  mask_.clear();
+  queue_.clear();
   mask_.resize(cloud->points.size(), true);
   queue_.reserve(cloud->points.size());
 
@@ -328,16 +331,33 @@ ClusterNormalsToPlanesPCL<PointT>::compute(const typename pcl::PointCloud<PointT
 {
   std::vector<typename ClusterNormalsToPlanesPCL<PointT>::Plane::Ptr> planes;
 
-  doClustering(_cloud, _normals, planes);
+
+  PlaneModel<PointT> pm;
+
+  if ( ! _cloud->isOrganized() ) {
+      // Create the filtering object: downsample the dataset using a leaf size of 1cm
+      pcl::VoxelGrid<PointT> vg;
+      typename pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>);
+      vg.setInputCloud (_cloud);
+      float leaf_size_ = 0.005f;
+      vg.setLeafSize (leaf_size_, leaf_size_, leaf_size_);
+      vg.filter (*cloud_filtered);
+      pm.cloud_ = cloud_filtered;
+      pcl::PointCloud<pcl::Normal>::Ptr normals_ds (new pcl::PointCloud<pcl::Normal>);
+      computeNormals<PointT>(pm.cloud_, normals_ds, 2);
+      doClustering(pm.cloud_, *normals_ds, planes);
+  }
+  else {
+      pm.cloud_ = _cloud;
+      doClustering(pm.cloud_, _normals, planes);
+  }
+
   _planes.clear();
 
   if (param.least_squares_refinement) {
       for (size_t i=0; i<planes.size(); i++) {
           if( !planes[i]->is_plane )
               continue;
-
-          PlaneModel<PointT> pm;
-          pm.cloud_ = _cloud;
           pm.inliers_.indices = planes[i]->indices;
           float curvature;
           Eigen::Vector4f model_coeff;

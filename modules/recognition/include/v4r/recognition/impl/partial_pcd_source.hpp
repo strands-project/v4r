@@ -249,7 +249,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (c
       typename pcl::PointCloud<Full3DPointT>::Ptr filtered (new pcl::PointCloud<Full3DPointT> ());
       typename pcl::PointCloud<Full3DPointT>::ConstPtr model_cloud_trans_const (new pcl::PointCloud<Full3DPointT> (*model_cloud_trans));
 
-      //typename pcl::occlusion_reasoning::ZBuffering<Full3DPointT, Full3DPointT> zbuffer_self_occlusion (cx_, cy_, 525.f);
+      //typename pcl::ZBuffering<Full3DPointT, Full3DPointT> zbuffer_self_occlusion (cx_, cy_, 525.f);
       //zbuffer_self_occlusion.computeDepthMap (model_cloud_trans_const, true);
 
       {

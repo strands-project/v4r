@@ -25,8 +25,10 @@ namespace v4r
             using Recognizer<PointT>::Parameter::icp_iterations_;
             using Recognizer<PointT>::Parameter::icp_type_;
             using Recognizer<PointT>::Parameter::voxel_size_icp_;
-            using Recognizer<PointT>::Parameter::max_corr_distance_;
             using Recognizer<PointT>::Parameter::normal_computation_method_;
+            using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
+            using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
+            using Recognizer<PointT>::Parameter::merge_close_hypotheses_angle_;
 
             bool save_hypotheses_;
 
@@ -46,12 +48,10 @@ namespace v4r
         using Recognizer<PointT>::scene_normals_;
         using Recognizer<PointT>::models_;
         using Recognizer<PointT>::transforms_;
-        using Recognizer<PointT>::indices_;
         using Recognizer<PointT>::hv_algorithm_;
 
         using Recognizer<PointT>::poseRefinement;
         using Recognizer<PointT>::hypothesisVerification;
-        using Recognizer<PointT>::icp_scene_indices_;
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;

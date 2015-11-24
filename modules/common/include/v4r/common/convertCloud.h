@@ -21,21 +21,21 @@ namespace v4r
 {
 
 
-inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, v4r::DataMatrix2D<v4r::PointXYZRGB> &kp_cloud)
+inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, DataMatrix2D<PointXYZRGB> &kp_cloud)
 {
   kp_cloud.resize(cloud.height, cloud.width);
 
   for (unsigned i=0; i<cloud.points.size(); i++)
   {
     const pcl::PointXYZRGB &pt = cloud.points[i];
-    v4r::PointXYZRGB &kp = kp_cloud.data[i];
+    PointXYZRGB &kp = kp_cloud.data[i];
 
     kp.pt = pt.getVector4fMap();
     kp.rgb = pt.rgb;
   }
 }
 
-inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, v4r::DataMatrix2D<Eigen::Vector3f> &kp_cloud, cv::Mat_<cv::Vec3b> &image)
+inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, DataMatrix2D<Eigen::Vector3f> &kp_cloud, cv::Mat_<cv::Vec3b> &image)
 {
   kp_cloud.resize(cloud.height, cloud.width);
   image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
@@ -49,7 +49,7 @@ inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, v4r::Da
   }
 }
 
-inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, v4r::DataMatrix2D<Eigen::Vector3f> &kp_cloud)
+inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, DataMatrix2D<Eigen::Vector3f> &kp_cloud)
 {
   kp_cloud.resize(cloud.height, cloud.width);
 
@@ -61,7 +61,7 @@ inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, v4r::Da
   }
 }
 
-inline void convertCloud(const pcl::PointCloud<pcl::PointXYZ> &cloud, v4r::DataMatrix2D<Eigen::Vector3f> &kp_cloud)
+inline void convertCloud(const pcl::PointCloud<pcl::PointXYZ> &cloud, DataMatrix2D<Eigen::Vector3f> &kp_cloud)
 {
   kp_cloud.resize(cloud.height, cloud.width);
 
@@ -73,7 +73,7 @@ inline void convertCloud(const pcl::PointCloud<pcl::PointXYZ> &cloud, v4r::DataM
   }
 }
 
-inline void convertCloud(const v4r::DataMatrix2D<v4r::PointXYZRGB> &kp_cloud, pcl::PointCloud<pcl::PointXYZRGB> &pcl_cloud)
+inline void convertCloud(const DataMatrix2D<PointXYZRGB> &kp_cloud, pcl::PointCloud<pcl::PointXYZRGB> &pcl_cloud)
 {
   pcl_cloud.points.resize(kp_cloud.data.size());
   pcl_cloud.width = kp_cloud.cols;
@@ -82,7 +82,7 @@ inline void convertCloud(const v4r::DataMatrix2D<v4r::PointXYZRGB> &kp_cloud, pc
 
   for (unsigned i=0; i<pcl_cloud.points.size(); i++)
   {
-    const v4r::PointXYZRGB &kp = kp_cloud.data[i];
+    const PointXYZRGB &kp = kp_cloud.data[i];
     pcl::PointXYZRGB &pt = pcl_cloud.points[i];
 
     pt.getVector4fMap() = kp.pt;
@@ -90,7 +90,7 @@ inline void convertCloud(const v4r::DataMatrix2D<v4r::PointXYZRGB> &kp_cloud, pc
   }
 }
 
-inline void convertCloud(const v4r::DataMatrix2D<v4r::PointXYZ> &kp_cloud, pcl::PointCloud<pcl::PointXYZ> &pcl_cloud)
+inline void convertCloud(const DataMatrix2D<PointXYZ> &kp_cloud, pcl::PointCloud<pcl::PointXYZ> &pcl_cloud)
 {
   pcl_cloud.points.resize(kp_cloud.data.size());
   pcl_cloud.width = kp_cloud.cols;
@@ -99,7 +99,7 @@ inline void convertCloud(const v4r::DataMatrix2D<v4r::PointXYZ> &kp_cloud, pcl::
 
   for (unsigned i=0; i<pcl_cloud.points.size(); i++)
   {
-    const v4r::PointXYZ &kp = kp_cloud.data[i];
+    const PointXYZ &kp = kp_cloud.data[i];
     pcl::PointXYZ &pt = pcl_cloud.points[i];
 
     pt.getVector3fMap() = kp.pt;

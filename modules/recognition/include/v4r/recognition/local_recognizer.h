@@ -1,28 +1,46 @@
-/*
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma, Thomas Faeulhammer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
+
+
+/**
  * local_recognizer.h
  *
- *      Created on: Mar 24, 2012
- *      Author: Aitor Aldoma
- *      Maintainer: Thomas Faeulhammer
+ *      @date Mar 24, 2012
+ *      @author Aitor Aldoma, Thomas Faeulhammer
  */
 
-#ifndef FAAT_PCL_REC_FRAMEWORK_LOCAL_RECOGNIZER_H_
-#define FAAT_PCL_REC_FRAMEWORK_LOCAL_RECOGNIZER_H_
+#ifndef V4R_LOCAL_RECOGNIZER_H_
+#define V4R_LOCAL_RECOGNIZER_H_
 
 #include <flann/flann.h>
 #include <pcl/common/common.h>
-#include "source.h"
-#include <v4r/features/local_estimator.h>
+
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/correspondence_grouping.h>
-#include <v4r/recognition//hypotheses_verification.h>
-#include "recognizer.h"
-
-inline bool
-correspSorter (const pcl::Correspondence & i, const pcl::Correspondence & j)
-{
-  return (i.distance < j.distance);
-}
+#include <v4r/features/local_estimator.h>
+#include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/recognition/recognizer.h>
+#include <v4r/recognition/source.h>
 
 namespace v4r
 {
@@ -45,8 +63,10 @@ namespace v4r
               using Recognizer<PointT>::Parameter::icp_iterations_;
               using Recognizer<PointT>::Parameter::icp_type_;
               using Recognizer<PointT>::Parameter::voxel_size_icp_;
-              using Recognizer<PointT>::Parameter::max_corr_distance_;
               using Recognizer<PointT>::Parameter::normal_computation_method_;
+              using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
+              using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
+              using Recognizer<PointT>::Parameter::merge_close_hypotheses_angle_;
 
               bool use_cache_;
               int kdtree_splits_;
@@ -89,7 +109,6 @@ namespace v4r
           using Recognizer<PointT>::scene_normals_;
           using Recognizer<PointT>::models_;
           using Recognizer<PointT>::transforms_;
-          using Recognizer<PointT>::indices_;
           using Recognizer<PointT>::hv_algorithm_;
           using Recognizer<PointT>::poseRefinement;
           using Recognizer<PointT>::hypothesisVerification;
@@ -271,12 +290,6 @@ namespace v4r
         setKdtreeSplits (int n)
         {
           param_.kdtree_splits_ = n;
-        }
-
-        void
-        setIndices (const std::vector<int> & indices)
-        {
-          indices_ = indices;
         }
 
         void

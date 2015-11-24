@@ -183,7 +183,7 @@
 
 #cmakedefine HAVE_SIFTGPU
 #cmakedefine HAVE_LIBSVM
-#cmakedefine HAVE_METS
+#cmakedefine HAVE_METSLIB
 #cmakedefine HAVE_PCL
 #cmakedefine HAVE_OPENCV
 #cmakedefine HAVE_CERES
