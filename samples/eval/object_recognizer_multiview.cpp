@@ -49,6 +49,7 @@
 #include <v4r/recognition/registered_views_source.h>
 
 #include <pcl/common/centroid.h>
+#include <pcl/common/time.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/visualization/cloud_viewer.h>
 
@@ -114,7 +115,7 @@ public:
                 ("models_dir,m", po::value<std::string>(&models_dir_)->required(), "directory containing the model .pcd files")
                 ("training_dir", po::value<std::string>(&training_dir)->required(), "directory containing the training data (for each model there should be a folder with the same name as the model and inside this folder there must be training views of the model with pose and segmented indices)")
                 ("test_dir", po::value<std::string>(&test_dir_)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
-                ("out_dir", po::value<std::string>(&out_dir_)->default_value("/tmp/mv_recognition_out/"), "Output directory where recognition results will be stored.")
+                ("out_dir,o", po::value<std::string>(&out_dir_)->default_value("/tmp/mv_recognition_out/"), "Output directory where recognition results will be stored.")
                 ("visualize,v", po::value<bool>(&visualize_)->default_value(true), "If true, turns visualization on")
                 ("do_sift", po::value<bool>(&do_sift)->default_value(true), "if true, generates hypotheses using SIFT (visual texture information)")
                 ("do_shot", po::value<bool>(&do_shot)->default_value(false), "if true, generates hypotheses using SHOT (local geometrical properties)")
@@ -132,11 +133,11 @@ public:
                 ("chop_z,z", po::value<double>(&paramMultiView.chop_z_)->default_value(paramMultiView.chop_z_, boost::str(boost::format("%.2e") % paramMultiView.chop_z_) ), "points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)")
                 ("max_vertices_in_graph", po::value<int>(&paramMultiView.max_vertices_in_graph_)->default_value(paramMultiView.max_vertices_in_graph_), "maximum number of views taken into account (views selected in order of latest recognition calls)")
                 ("compute_mst", po::value<bool>(&paramMultiView.compute_mst_)->default_value(paramMultiView.compute_mst_), "if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud ")
-                ("cg_size_thresh", po::value<int>(&paramGgcg.gc_threshold_)->default_value(paramGgcg.gc_threshold_), "Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose ")
+                ("cg_size_thresh", po::value<size_t>(&paramGgcg.gc_threshold_)->default_value(paramGgcg.gc_threshold_), "Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose ")
                 ("cg_size,c", po::value<double>(&paramGgcg.gc_size_)->default_value(paramGgcg.gc_size_, boost::str(boost::format("%.2e") % paramGgcg.gc_size_) ), "Resolution of the consensus set used to cluster correspondences together ")
                 ("cg_ransac_threshold", po::value<double>(&paramGgcg.ransac_threshold_)->default_value(paramGgcg.ransac_threshold_, boost::str(boost::format("%.2e") % paramGgcg.ransac_threshold_) ), " ")
                 ("cg_dist_for_clutter_factor", po::value<double>(&paramGgcg.dist_for_cluster_factor_)->default_value(paramGgcg.dist_for_cluster_factor_, boost::str(boost::format("%.2e") % paramGgcg.dist_for_cluster_factor_) ), " ")
-                ("cg_max_taken", po::value<int>(&paramGgcg.max_taken_correspondence_)->default_value(paramGgcg.max_taken_correspondence_), " ")
+                ("cg_max_taken", po::value<size_t>(&paramGgcg.max_taken_correspondence_)->default_value(paramGgcg.max_taken_correspondence_), " ")
                 ("cg_max_time_for_cliques_computation", po::value<double>(&paramGgcg.max_time_allowed_cliques_comptutation_)->default_value(100.d, "100.0"), " if grouping correspondences takes more processing time in milliseconds than this defined value, correspondences will be no longer computed by this graph based approach but by the simpler greedy correspondence grouping algorithm")
                 ("cg_dot_distance", po::value<double>(&paramGgcg.thres_dot_distance_)->default_value(paramGgcg.thres_dot_distance_, boost::str(boost::format("%.2e") % paramGgcg.thres_dot_distance_) ) ,"")
                 ("cg_use_graph", po::value<bool>(&paramGgcg.use_graph_)->default_value(paramGgcg.use_graph_), " ")
@@ -161,6 +162,8 @@ public:
                 ("hv_plane_thrAngle", po::value<double>(&paramGO3D.plane_thrAngle_)->default_value(paramGO3D.plane_thrAngle_, boost::str(boost::format("%.2e") % paramGO3D.plane_thrAngle_) ), "Threshold of normal angle in degree for plane clustering")
                 ("knn_plane_clustering_search", po::value<int>(&paramGO3D.knn_plane_clustering_search_)->default_value(paramGO3D.knn_plane_clustering_search_), "sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)")
                 ("hv_min_plane_inliers", po::value<size_t>(&paramGO3D.min_plane_inliers_)->default_value(paramGO3D.min_plane_inliers_), "a planar cluster is only added as plane if it has at least min_plane_inliers_ points")
+                ("visualize_go3d_cues", po::value<bool>(&paramGO3D.visualize_cues_)->default_value(paramGO3D.visualize_cues_), "If true, visualizes cues computated at the go3d verification stage such as inlier, outlier points. Mainly used for debugging.")
+                ("visualize_go_cues_", po::value<bool>(&paramGO3D.visualize_go_cues_)->default_value(paramGO3D.visualize_go_cues_), "If true, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
                 ("normal_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "chosen normal computation method of the V4R library")
        ;
 
@@ -361,7 +364,15 @@ public:
 
                 mv_r_->setInputCloud (cloud);
                 mv_r_->setCameraPose(tf);
+
+                pcl::StopWatch watch;
                 mv_r_->recognize();
+                double time = watch.getTimeSeconds();
+                std::stringstream out_fn;
+                out_fn << out_path << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_time.nfo";
+                ofstream or_file (out_fn.str().c_str());
+                or_file << time;
+                or_file.close();
 
                 std::vector<ModelTPtr> verified_models = mv_r_->getVerifiedModels();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified = mv_r_->getVerifiedTransforms();
@@ -394,7 +405,7 @@ public:
                         it_rec_mod->second++;
                     }
 
-                    std::stringstream out_fn;
+                    out_fn.str("");
                     out_fn << out_path << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_"
                            << model_id.substr(0, model_id.length() - 4) << "_" << num_models_per_model_id << ".txt";
 

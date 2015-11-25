@@ -21,6 +21,7 @@
 #include <fstream>
 #include <pcl/common/time.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 namespace v4r
 {
@@ -63,13 +64,20 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::add_planes_;
          using GHV<ModelT, SceneT>::Parameter::plane_method_;
          using GHV<ModelT, SceneT>::Parameter::focal_length_;
+         using GHV<ModelT, SceneT>::Parameter::visualize_go_cues_;
 
-        Parameter()
+         bool visualize_cues_;
+
+        Parameter(
+                    bool visualize_cues = false
+                 )
+            : visualize_cues_( visualize_cues )
         {}
     }param_;
 
   private:
     using GHV<ModelT, SceneT>::mask_;
+    using GHV<ModelT, SceneT>::scene_cloud_;
     using GHV<ModelT, SceneT>::scene_cloud_downsampled_;
     using GHV<ModelT, SceneT>::scene_downsampled_tree_;
     using GHV<ModelT, SceneT>::visible_models_;
@@ -105,8 +113,11 @@ namespace v4r
 
     //typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_poses_camera_to_global_;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_camera_poses_;
     std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > occ_clouds_;
+
+    mutable pcl::visualization::PCLVisualizer::Ptr vis_;
+    mutable int vp1_, vp2_;
 
     typedef pcl::PointCloud<ModelT> CloudM;
     typedef pcl::PointCloud<SceneT> CloudS;
@@ -121,20 +132,30 @@ namespace v4r
          param_ = p;
       }
 
-      bool getInlierOutliersCloud(int hyp_idx, typename pcl::PointCloud<ModelT>::Ptr & cloud);
+      /**
+       * @brief getInlierOutliersCloud
+       * @param hyp_idx
+       * @return colored point cloud with green points representing inliers and red points outliers
+       */
+      pcl::PointCloud<pcl::PointXYZRGB> getInlierOutliersCloud(int hyp_idx) const;
 
-      //for each cloud, we will need a pose
-      //then the models will be checked against all of them
-      void setAbsolutePoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses_camera_to_global)
+
+      /**
+       * @brief for each cloud, we will need a pose. Then the models will be checked against all of them
+       */
+      void
+      setAbsolutePoses(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_camera_poses)
       {
-        absolute_poses_camera_to_global_ = absolute_poses_camera_to_global;
+        absolute_camera_poses_ = absolute_camera_poses;
       }
 
+
       void
-      setOcclusionClouds(std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > & occ_clouds)
+      setOcclusionClouds(const std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > & occ_clouds)
       {
         occ_clouds_ = occ_clouds;
       }
+
 
       /**
        * @brief addModels Adds object hypotheses
@@ -145,7 +166,7 @@ namespace v4r
       addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning = false);
 
       std::vector<typename pcl::PointCloud<ModelT>::ConstPtr>
-      getVisibleModels()
+      getVisibleModels() const
       {
         return visible_models_;
       }
@@ -155,6 +176,8 @@ namespace v4r
       {
           return true;
       }
+
+      void visualize() const;
   };
 }
 

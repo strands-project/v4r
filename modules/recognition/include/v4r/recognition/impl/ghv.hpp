@@ -758,18 +758,15 @@ GHV<ModelT, SceneT>::initialize()
 
     //compute cues
     {
-        valid_model_.resize(complete_models_.size (), true);
+        valid_model_.resize(complete_models_.size ());
         {
             pcl::ScopeTime tcues ("Computing cues");
             recognition_models_.resize (complete_models_.size ());
 #pragma omp parallel for schedule(dynamic, 1) num_threads(std::min(max_threads_, omp_get_num_procs()))
             for (size_t i = 0; i < complete_models_.size (); i++)
             {
-                //create recognition model
                 recognition_models_[i].reset (new GHVRecognitionModel<ModelT> ());
-
-                if( !addModel(i, recognition_models_[i]) ) // WARNING: Model is not valid !!
-                    valid_model_[i] = false;
+                valid_model_[i] = addModel(i, recognition_models_[i]); // check if model is valid
             }
         }
 
@@ -788,7 +785,7 @@ GHV<ModelT, SceneT>::initialize()
             return false;
         }
 
-        //compute the bounding boxes for the models
+        //compute the bounding boxes for the models to create an occupancy grid
         {
             pcl::ScopeTime tcues ("complete_cloud_occupancy_by_RM_");
             ModelT min_pt_all, max_pt_all;
@@ -881,7 +878,7 @@ GHV<ModelT, SceneT>::initialize()
 
 template<typename ModelT, typename SceneT>
 double
-GHV<ModelT, SceneT>::getCurvWeight(double p_curvature)
+GHV<ModelT, SceneT>::getCurvWeight(double p_curvature) const
 {
 
     if( param_.multiple_assignment_penalize_by_one_ == 2 )
@@ -1557,11 +1554,8 @@ GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool
     cost_logger_.reset(new GHVCostFunctionLogger<ModelT, SceneT>(*best));
     mets::noimprove_termination_criteria noimprove (param_.max_iterations_);
 
-    if(visualize_go_cues_)
-    {
+    if(param_.visualize_go_cues_)
         cost_logger_->setVisualizeFunction(visualize_cues_during_logger_);
-    }
-
 
     switch( param_.opt_type_ )
     {
@@ -1598,13 +1592,12 @@ GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool
     }
     case 4:
     {
-
-        GHVmove_manager<ModelT, SceneT> neigh (static_cast<int> (cc_indices.size ()), false);
-        neigh.setExplainedPointIntersections(intersect_map);
+        GHVmove_manager<ModelT, SceneT> neigh4 (static_cast<int> (cc_indices.size ()), false);
+        neigh4.setExplainedPointIntersections(intersect_map);
 
         mets::simple_tabu_list tabu_list ( initial_solution.size() * sqrt ( 1.0*initial_solution.size() ) ) ;
         mets::best_ever_criteria aspiration_criteria ;
-        mets::tabu_search<GHVmove_manager<ModelT, SceneT> > tabu_search(model,  *(cost_logger_.get()), neigh, tabu_list, aspiration_criteria, noimprove);
+        mets::tabu_search<GHVmove_manager<ModelT, SceneT> > tabu_search(model,  *(cost_logger_.get()), neigh4, tabu_list, aspiration_criteria, noimprove);
         //mets::tabu_search<move_manager> tabu_search(model, best_recorder, neigh, tabu_list, aspiration_criteria, noimprove);
 
         {
@@ -1618,13 +1611,14 @@ GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool
             std::cout << "Tabu search finished... starting LS with RM" << std::endl;
 
             //after TS, we do LS with RM
-            GHVmove_manager<ModelT, SceneT> neigh (static_cast<int> (cc_indices.size ()), true);
-            neigh.setExplainedPointIntersections(intersect_map);
+            GHVmove_manager<ModelT, SceneT> neigh4RM (static_cast<int> (cc_indices.size ()), true);
+            neigh4RM.setExplainedPointIntersections(intersect_map);
 
-            mets::local_search<GHVmove_manager<ModelT, SceneT> > local ( model, *(cost_logger_.get()), neigh, 0, false);
+            mets::local_search<GHVmove_manager<ModelT, SceneT> > local ( model, *(cost_logger_.get()), neigh4RM, 0, false);
             {
                 pcl::ScopeTime t_local_search ("local search...");
                 local.search ();
+                (void)t_local_search;
             }
         }
         break;
@@ -1871,11 +1865,8 @@ void GHV<ModelT, SceneT>::verify()
         t_cues_ = static_cast<float>(t.getTimeSeconds());
     }
 
-    if(visualize_go_cues_)
-    {
-//        visualize_cues_during_logger_ = boost::bind(&(GHV<ModelT, SceneT>::visualizeGOCues), this, _1, _2, _3);
-//        vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
-    }
+    if(param_.visualize_go_cues_)
+        visualize_cues_during_logger_ = boost::bind(&GHV<ModelT, SceneT>::visualizeGOCues, this, _1, _2, _3);
 
     n_cc_ = 1;
     cc_.resize(1);
@@ -3223,6 +3214,7 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
     }
 }
 
+
 //######### VISUALIZATION FUNCTIONS #####################
 
 template<typename ModelT, typename SceneT>
@@ -3277,32 +3269,23 @@ GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::PointCloud<p
 
 template<typename ModelT, typename SceneT>
 void
-GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
-                                                float cost, int times_evaluated)
+GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution, float cost, int times_evaluated) const
 {
-    std::cout << "visualizeGOCues:" << visualize_go_cues_ << std::endl;
+    if(!vis_go_cues_) {
+        vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
+        vis_go_cues_->createViewPort(0, 0, 0.5, 0.5, viewport_scene_cues_);
+        vis_go_cues_->createViewPort(0.5, 0, 1, 0.5, viewport_model_cues_);
+        vis_go_cues_->createViewPort(0.5, 0.5, 1, 1, viewport_smooth_seg_);
+        vis_go_cues_->createViewPort(0, 0.5, 0.5, 1, viewport_scene_and_hypotheses_);
+    }
 
     vis_go_cues_->removeAllPointClouds();
     vis_go_cues_->removeAllShapes();
 
-    int viewport_scene_and_hypotheses_;
-    int viewport_model_cues_;
-    int viewport_smooth_seg_;
-    int viewport_scene_cues_;
-
-    vis_go_cues_->createViewPort(0, 0, 0.5, 0.5, viewport_scene_cues_);
-    vis_go_cues_->createViewPort(0.5, 0, 1, 0.5, viewport_model_cues_);
-    vis_go_cues_->createViewPort(0.5, 0.5, 1, 1, viewport_smooth_seg_);
-    vis_go_cues_->createViewPort(0, 0.5, 0.5, 1, viewport_scene_and_hypotheses_);
-
-    std::string cost_str;
     std::ostringstream out;
+    out << "Cost: " << std::setprecision(2) << cost << " , #Evaluations: " << times_evaluated;
 
-    out << "Cost: " << std::setprecision(2) << cost;
-    out << " , #Evaluations: " << times_evaluated;
-    cost_str = out.str();
-
-    bool for_paper_ = true;
+    bool for_paper_ = false;
     bool show_weights_with_color_fading_ = true;
 
     if(for_paper_)
@@ -3312,11 +3295,10 @@ GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
     else
     {
         vis_go_cues_->setBackgroundColor (0, 0, 0);
-        vis_go_cues_->addText (cost_str, 1, 30, 16, 1, 1, 1, "cost_text", viewport_scene_and_hypotheses_);
+        vis_go_cues_->addText (out.str(), 1, 30, 16, 1, 1, 1, "cost_text", viewport_scene_and_hypotheses_);
         vis_go_cues_->addText ("Model inliers & outliers", 1, 30, 16, 1, 1, 1, "inliers_outliers", viewport_model_cues_);
-        vis_go_cues_->addText ("Smooth segmentation", 1, 30, 16, 1, 1, 1, "smoot", viewport_smooth_seg_);
+        vis_go_cues_->addText ("Smooth segmentation", 1, 30, 16, 1, 1, 1, "smooth", viewport_smooth_seg_);
         vis_go_cues_->addText ("Explained, multiple assignment & clutter", 1, 30, 16, 1, 1, 1, "scene_cues", viewport_scene_cues_);
-
     }
 
     //scene
@@ -3348,9 +3330,9 @@ GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
             }
             else
             {
-                int model_id = i;
+                size_t model_id = i;
                 bool is_planar_model = false;
-                std::map<size_t, size_t>::iterator it1;
+                std::map<size_t, size_t>::const_iterator it1;
                 it1 = model_to_planar_model_.find(model_id);
                 if(it1 != model_to_planar_model_.end())
                     is_planar_model = true;
@@ -3506,4 +3488,3 @@ GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
 }
 
 }
-#define PCL_INSTANTIATE_faatGoHV_1(T1,T2) template class FAAT_REC_API GlobalHypothesesVerification_1<T1,T2>;

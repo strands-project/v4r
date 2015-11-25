@@ -707,6 +707,9 @@ MultiviewRecognizer<PointT>::recognize ()
 
         hypothesisVerification();
         v.model_or_plane_is_verified_ = model_or_plane_is_verified_;
+
+        if( hv_algorithm_3d && hv_algorithm_3d->param_.visualize_cues_)
+            hv_algorithm_3d->visualize();
     }
 
     scene_normals_.reset();

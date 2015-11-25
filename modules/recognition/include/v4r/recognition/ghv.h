@@ -21,8 +21,8 @@
  *
  ******************************************************************************/
 
-#ifndef FAAT_PCL_GHV_H_
-#define FAAT_PCL_GHV_H_
+#ifndef V4R_GHV_H_
+#define V4R_GHV_H_
 
 #include <pcl/common/common.h>
 #include <pcl/pcl_macros.h>
@@ -167,6 +167,7 @@ namespace v4r
           double plane_inlier_distance_; /// @brief Maximum inlier distance for plane clustering
           double plane_thrAngle_;  /// @brief Threshold of normal angle in degree for plane clustering
           int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
+          bool visualize_go_cues_; /// @brief visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
 
           Parameter (
                   double color_sigma_l = 0.6f,
@@ -178,7 +179,7 @@ namespace v4r
                   double duplicity_curvature_max = 0.03f,
                   bool ignore_color_even_if_exists = false,
                   int max_iterations = 5000,
-                  double clutter_regularizer =  3.f,
+                  double clutter_regularizer =  1.f, //3.f,
                   bool detect_clutter = true,
                   double res_occupancy_grid = 0.005f,
                   double w_occupied_multiple_cm = 2.f, //0.f
@@ -203,7 +204,8 @@ namespace v4r
                   size_t min_plane_inliers = 5000,
                   double plane_inlier_distance = 0.02f,
                   double plane_thrAngle = 30,
-                  int knn_plane_clustering_search = 10
+                  int knn_plane_clustering_search = 10,
+                  bool visualize_go_cues = false
                   )
               :
                 HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -241,9 +243,14 @@ namespace v4r
                 min_plane_inliers_ ( min_plane_inliers ),
                 plane_inlier_distance_ ( plane_inlier_distance ),
                 plane_thrAngle_ ( plane_thrAngle ),
-                knn_plane_clustering_search_ ( knn_plane_clustering_search )
+                knn_plane_clustering_search_ ( knn_plane_clustering_search ),
+                visualize_go_cues_ ( visualize_go_cues )
           {}
       }param_;
+
+    private:
+      mutable int viewport_scene_and_hypotheses_, viewport_model_cues_, viewport_smooth_seg_, viewport_scene_cues_;
+
 
     protected:
       using HypothesisVerification<ModelT, SceneT>::mask_;
@@ -611,11 +618,10 @@ namespace v4r
       std::vector<std::vector<float> > points_one_plane_sides_;
 
       boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
-      int visualize_go_cues_;
 
-      void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval);
+      void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval) const;
 
-      boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_go_cues_;
+      mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
 
       std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> models_smooth_faces_;
 
@@ -632,7 +638,7 @@ namespace v4r
       typedef typename pcl::traits::fieldList<typename CloudS::PointType>::type FieldListS;
       typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
 
-      double getCurvWeight(double p_curvature);
+      double getCurvWeight(double p_curvature) const;
 
       int max_threads_;
 
@@ -660,7 +666,6 @@ namespace v4r
 
         min_contribution_ = 0;
         LS_short_circuit_ = false;
-        visualize_go_cues_ = 0; //0 - No visualization, 1 - accepted moves
         color_space_ = 0;
         visualize_accepted_ = false;
 
@@ -682,17 +687,17 @@ namespace v4r
          scene_and_normals_set_from_outside_ = true;
       }
 
-      int getNumberOfVisiblePoints()
+      int getNumberOfVisiblePoints() const
       {
           return number_of_visible_points_;
       }
 
-      float getCuesComputationTime()
+      float getCuesComputationTime() const
       {
           return t_cues_;
       }
 
-      float getOptimizationTime()
+      float getOptimizationTime() const
       {
           return t_opt_;
       }
@@ -723,11 +728,6 @@ namespace v4r
       void setSmoothFaces(std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> & aligned_smooth_faces)
       {
           models_smooth_faces_ = aligned_smooth_faces;
-      }
-
-      void setVisualizeGoCues(int v)
-      {
-        visualize_go_cues_ = v;
       }
 
       void setLSShortCircuit(bool b)
@@ -775,13 +775,13 @@ namespace v4r
        }*/
 
       pcl::PointCloud<pcl::PointXYZL>::Ptr
-      getSmoothClusters ()
+      getSmoothClusters () const
       {
         return clusters_cloud_;
       }
 
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr
-      getSmoothClustersRGBCloud ()
+      getSmoothClustersRGBCloud () const
       {
         return clusters_cloud_rgb_;
       }
@@ -825,4 +825,4 @@ namespace v4r
     };
 }
 
-#endif //FAAT_PCL_GHV_H_
+#endif

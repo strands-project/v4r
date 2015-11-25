@@ -588,10 +588,8 @@ namespace v4r
 //        std::cout << "Move accepted:" << ss.cost_ << std::endl;
 
         if(visualize_function_)
-        {
-            std::cout << "Going to visuailze cues when logging..." << std::endl;
             visualize_function_(ss.solution_, ss.cost_, times_evaluated_);
-        }
+
         return true;
       }
       return false;
