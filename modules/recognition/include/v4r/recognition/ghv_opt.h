@@ -21,24 +21,14 @@
 #include <map>
 #include <iostream>
 #include <fstream>
-//#include <faat_pcl/utils/voxel_dist_transform.h>
-
-#ifdef _MSC_VER
-#ifdef FAAT_REC_EXPORTS
-#define FAAT_REC_API __declspec(dllexport)
-#else
-#define FAAT_REC_API __declspec(dllimport)
-#endif
-#else
-#define FAAT_REC_API
-#endif
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
 
   //Helper classes
   template<typename ModelT>
-  struct GHVRecognitionModel
+  struct V4R_EXPORTS GHVRecognitionModel
   {
     public:
       std::vector<int> explained_; /// @brief explained scene points by_RM_
@@ -83,7 +73,7 @@ namespace v4r
       std::vector<std::vector<float> > inlier_distances_;
   };
 
-  template<typename ModelT, typename SceneT> class GHV;
+  template<typename ModelT, typename SceneT> class V4R_EXPORTS GHV;
 
   template<typename ModelT, typename SceneT>
   class GHVSAModel : public mets::evaluable_solution
