@@ -146,12 +146,14 @@ namespace v4r
           int opt_type_; /// @brief defines the optimization methdod<BR><BR> 0: Local search (converges quickly, but can easily get trapped in local minima),<BR> 1: Tabu Search,<BR> 4; Tabu Search + Local Search (Replace active hypotheses moves),<BR> else: Simulated Annealing
           double active_hyp_penalty_;
           int multiple_assignment_penalize_by_one_;
-          double d_weight_for_bad_normals_;
+          double d_weight_for_bad_normals_; /// @brief specifies the weight an outlier is multiplied with in case the corresponding scene point's orientation is facing away from the camera more than a certain threshold and potentially has inherent noise
           bool use_clutter_exp_;
           bool use_histogram_specification_;
           bool use_points_on_plane_side_;
           double best_color_weight_;
-          bool initial_status_;
+          bool initial_status_; /// @brief sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.
+          int color_space_; /// @brief specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
+          int outliers_weight_computation_method_; /// @brief defines the method used for computing the overall outlier weight. 0... mean, 1... median
 
           //smooth segmentation parameters
           double eps_angle_threshold_;
@@ -194,6 +196,8 @@ namespace v4r
                   bool use_points_on_plane_side = true,
                   double best_color_weight = 0.8f,
                   bool initial_status = false,
+                  int color_space = 0,
+                  int outliers_weight_computation_method = 0,
                   double eps_angle_threshold = 0.25, //0.1f
                   int min_points = 100, // 20
                   double curvature_threshold = 0.04f,
@@ -233,6 +237,8 @@ namespace v4r
                 use_points_on_plane_side_ (use_points_on_plane_side),
                 best_color_weight_ (best_color_weight),
                 initial_status_ (initial_status),
+                color_space_ (color_space),
+                outliers_weight_computation_method_ (outliers_weight_computation_method),
                 eps_angle_threshold_ (eps_angle_threshold),
                 min_points_ (min_points),
                 curvature_threshold_ (curvature_threshold),
@@ -631,7 +637,6 @@ namespace v4r
       std::vector<Eigen::Vector3f> scene_LAB_values_;
       std::vector<Eigen::Vector3f> scene_RGB_values_;
       std::vector<float> scene_GS_values_;
-      int color_space_;
       bool visualize_accepted_;
       typedef pcl::PointCloud<ModelT> CloudM;
       typedef pcl::PointCloud<SceneT> CloudS;
@@ -666,7 +671,6 @@ namespace v4r
 
         min_contribution_ = 0;
         LS_short_circuit_ = false;
-        color_space_ = 0;
         visualize_accepted_ = false;
 
         max_threads_ = 1;
@@ -716,13 +720,6 @@ namespace v4r
       void setVisualizeAccepted(bool b)
       {
           visualize_accepted_ = b;
-      }
-
-      //0 for LAB (specifying L), 1 for RGB (specifying all)
-      void setColorSpace(int cs)
-      {
-          std::cout << "called color space" << cs << std::endl;
-          color_space_ = cs;
       }
 
       void setSmoothFaces(std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> & aligned_smooth_faces)

@@ -35,12 +35,12 @@ namespace v4r
       std::vector<float> explained_distances_; /// @brief closest distances to the scene for point i
       std::vector<int> unexplained_in_neighborhood; /// @brief indices vector referencing unexplained_by_RM_neighboorhods
       std::vector<float> unexplained_in_neighborhood_weights; /// @brief weights for the points not being explained in the neighborhood of a hypothesis
-      std::vector<int> outlier_indices_; /// @brief outlier indices of this model
-      std::vector<int> color_outliers_indices_;
-      std::vector<int> outliers_3d_indices_;
+      std::vector<int> outlier_indices_; /// @brief outlier indices of this model (coming from all types)
+      std::vector<int> color_outliers_indices_; /// @brief all model points that have a scene point nearby but whose color does not match
+      std::vector<int> outliers_3d_indices_;    /// @brief all model points that do not have a scene point nearby
       std::vector<int> complete_cloud_occupancy_indices_;
       std::vector<bool> scene_point_explained_by_hypothesis_; /// @brief boolean vector indicating if a scene point is explained by this model or not
-      typename pcl::PointCloud<ModelT>::Ptr cloud_;
+      typename pcl::PointCloud<ModelT>::Ptr visible_cloud_;
       typename pcl::PointCloud<ModelT>::Ptr complete_cloud_;
       typename pcl::PointCloud<pcl::Normal>::Ptr complete_cloud_normals_;
       float bad_information_;
@@ -58,7 +58,7 @@ namespace v4r
       std::vector<Eigen::Vector3f> cloud_LAB_;
       std::vector<Eigen::Vector3f> cloud_LAB_original_;
       std::vector<Eigen::Vector3f> cloud_RGB_;
-      std::vector<float> cloud_GS_;
+      std::vector<float> cloud_GS_; /// @brief Grayscale cloud
       float min_contribution_; /// @brief based on the amount of explained points and the amount of information in the hypotheses
       std::vector<float> normal_angle_histogram_;
       std::vector<float> color_diff_histogram_;
@@ -76,7 +76,7 @@ namespace v4r
   template<typename ModelT, typename SceneT> class V4R_EXPORTS GHV;
 
   template<typename ModelT, typename SceneT>
-  class GHVSAModel : public mets::evaluable_solution
+  class V4R_EXPORTS GHVSAModel : public mets::evaluable_solution
   {
 
     typedef GHV<ModelT, SceneT> SAOptimizerT;
@@ -140,23 +140,22 @@ namespace v4r
       cost_ = opt_->evaluateSolution (solution_, index); //this will udpate the cost function in opt_
     }
     void
-    setSolution (std::vector<bool> & sol)
+    setSolution (const std::vector<bool> & sol)
     {
       solution_ = sol;
     }
 
     void
-    setOptimizer (SAOptimizerT * opt)
+    setOptimizer (SAOptimizerT *opt)
     {
       opt_ = opt;
     }
   };
 
-  /*
-   * Represents a generic move from which all move types should inherit
+  /**
+   * @brief Represents a generic move from which all move types should inherit
    */
-
-  class GHVgeneric_move : public mets::mana_move
+  class V4R_EXPORTS GHVgeneric_move : public mets::mana_move
   {
   public:
     virtual mets::gol_type
@@ -175,14 +174,13 @@ namespace v4r
     operator== (const mets::mana_move&) const = 0;
   };
 
-  /*
-   * Represents a move that deactivates an active hypothesis replacing it by an inactive one
+  /**
+   * @brief Represents a move that deactivates an active hypothesis replacing it by an inactive one
    * Such moves should be done when the temperature is low
    * It is based on the intersection of explained points between hypothesis
    */
-
   template<typename ModelT, typename SceneT>
-  class GHVreplace_hyp_move : public GHVgeneric_move
+  class V4R_EXPORTS GHVreplace_hyp_move : public GHVgeneric_move
   {
     int i_, j_; //i_ is an active hypothesis, j_ is an inactive hypothesis
     int sol_size_;
@@ -254,10 +252,10 @@ namespace v4r
     }*/
   };
 
-  /*
-   * Represents a move, activate/deactivate an hypothesis
-   */
 
+  /**
+   * @brief Represents a move, activate/deactivate an hypothesis
+   */
   template<typename ModelT, typename SceneT>
   class GHVmove : public GHVgeneric_move
   {
@@ -321,7 +319,7 @@ namespace v4r
   };
 
   template<typename ModelT, typename SceneT>
-    class GHVmove_activate : public GHVgeneric_move
+    class V4R_EXPORTS GHVmove_activate : public GHVgeneric_move
     {
       int index_;
     public:
@@ -446,7 +444,7 @@ namespace v4r
       };
 
     template<typename ModelT, typename SceneT>
-      class GHVmove_manager
+      class V4R_EXPORTS GHVmove_manager
       {
         bool use_replace_moves_;
       public:
@@ -492,7 +490,7 @@ namespace v4r
       };
 
   template<typename ModelT, typename SceneT>
-  class GHVCostFunctionLogger : public mets::solution_recorder
+  class V4R_EXPORTS GHVCostFunctionLogger : public mets::solution_recorder
   {
     std::vector<float> costs_;
     std::vector<float> costs_each_time_evaluated_;
@@ -610,8 +608,7 @@ namespace v4r
     }
 
   protected:
-    /// @brief Records the best solution
-    mets::evaluable_solution& best_ever_m;
+    mets::evaluable_solution& best_ever_m;   /// @brief Records the best solution
   };
 }
 #endif /* FAAT_PCL_HV_GO_OPT_H_ */

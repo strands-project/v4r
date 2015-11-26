@@ -65,6 +65,7 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::plane_method_;
          using GHV<ModelT, SceneT>::Parameter::focal_length_;
          using GHV<ModelT, SceneT>::Parameter::visualize_go_cues_;
+         using GHV<ModelT, SceneT>::Parameter::color_space_;
 
          bool visualize_cues_;
 

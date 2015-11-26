@@ -56,7 +56,7 @@ GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx) const
 
     const boost::shared_ptr<GHVRecognitionModel<ModelT> > &recog_model = recognition_models_[hyp_idx];
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
-    cloud.points.resize( recog_model->cloud_->points.size() );
+    cloud.points.resize( recog_model->visible_cloud_->points.size() );
 
     for(size_t i=0; i < cloud.points.size(); i++)
     {
@@ -64,7 +64,7 @@ GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx) const
         pt.g = 255;
         pt.r = pt.b = 0;
 
-        const ModelT &m_pt = recog_model->cloud_->points[i];
+        const ModelT &m_pt = recog_model->visible_cloud_->points[i];
         pt.x = m_pt.x;
         pt.y = m_pt.y;
         pt.z = m_pt.z;
