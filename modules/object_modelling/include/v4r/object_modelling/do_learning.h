@@ -15,7 +15,7 @@
 #include <SiftGPU/SiftGPU.h>
 #include <v4r/core/macros.h>
 #include <v4r/keypoints/ClusterNormalsToPlanes.h>
-#include <v4r/keypoints/impl/PointTypes.hpp>
+#include <v4r/common/PointTypes.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/noise_model_based_cloud_integration.h>
 #include <v4r/object_modelling/model_view.h>
@@ -138,7 +138,7 @@ public:
     }sor_params_;
 
     v4r::ClusterNormalsToPlanes::Parameter p_param_;
-    v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nm_int_param_;
+    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nm_int_param_;
 
 protected:
     typedef pcl::PointXYZRGB PointT;
@@ -349,25 +349,6 @@ public:
      */
     void createBigCloud();
 
-<<<<<<< HEAD
-
-    /**
-     * @brief given indices of an image or pointcloud, this function create a boolean mask of the indices
-     * @param objectIndices
-     * @param image_size
-     * @param object_mask (output)
-     */
-    static std::vector<bool> createMaskFromIndices(const std::vector<size_t> &indices,
-                                size_t image_size);
-    static std::vector<bool> createMaskFromIndices(const std::vector<int> &indices,
-                               size_t image_size);
-    static std::vector<bool> createMaskFromVecIndices(const std::vector<std::vector<int> > &indices,
-                                size_t image_size);
-
-    static std::vector<size_t> createIndicesFromMask(const std::vector<bool> &mask, bool invert=false);
-
-=======
->>>>>>> included plane merge
     void computeNormals(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                         pcl::PointCloud<pcl::Normal>::Ptr &normals, int method);
 

@@ -56,7 +56,7 @@ DOL::createBigCloud()
              keyframes_used[ kept_keyframes ] = grph_[view_id].cloud_;
              normals_used [ kept_keyframes ] = grph_[view_id].normal_;
              cameras_used [ kept_keyframes ] = grph_[view_id].camera_pose_;
-             indices_used[ kept_keyframes ] = createIndicesFromMask( grph_[view_id].obj_mask_step_.back() );
+             indices_used[ kept_keyframes ] = createIndicesFromMask<size_t>( grph_[view_id].obj_mask_step_.back() );
 
              object_indices_clouds[ kept_keyframes ].points.resize( indices_used[ kept_keyframes ].size());
 
@@ -79,7 +79,7 @@ DOL::createBigCloud()
          //compute noise weights
          for(size_t i=0; i < kept_keyframes; i++)
          {
-             v4r::utils::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+             v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
              nm.setInputCloud(keyframes_used[i]);
              nm.setInputNormals(normals_used[i]);
              nm.setLateralSigma(0.001);
@@ -90,7 +90,7 @@ DOL::createBigCloud()
          }
 
          pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-         v4r::utils::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nm_int_param_);
+         v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nm_int_param_);
          nmIntegration.setInputClouds(keyframes_used);
          nmIntegration.setWeights(weights);
          nmIntegration.setTransformations(cameras_used);
@@ -133,7 +133,7 @@ DOL::visualize_clusters()
     subwindow_title.push_back("original");
     subwindow_title.push_back("filtered");
     subwindow_title.push_back("passed");
-    std::vector<int> viewports = v4r::common::pcl_visualizer::visualization_framework (*vis_seg_, grph_.size(), 3, subwindow_title);
+    std::vector<int> viewports = v4r::pcl_visualizer::visualization_framework (*vis_seg_, grph_.size(), 3, subwindow_title);
 
     vis_seg_->removeAllPointClouds();
 
@@ -232,7 +232,7 @@ DOL::visualize()
     subwindow_title.push_back("after 2D erosion");
 
     size_t num_subwindows = grph_.back().obj_mask_step_.size() + 3;
-    vis_viewpoint_ = v4r::common::pcl_visualizer::visualization_framework (*vis_, grph_.size(), num_subwindows, subwindow_title);
+    vis_viewpoint_ = v4r::pcl_visualizer::visualization_framework (*vis_, grph_.size(), num_subwindows, subwindow_title);
 
     for (size_t view_id = 0; view_id < grph_.size(); view_id++)
     {
@@ -303,21 +303,17 @@ DOL::writeImagesToDisk(const std::string &path, bool crop)
     {
         std::stringstream filename;
         filename << path << "/" << view_id << ".jpg";
-        cv::Mat_ < cv::Vec3b > colorImage;
-        PCLOpenCV::ConvertPCLCloud2Image<PointT> (grph_[view_id].cloud_, colorImage);
-        cv::imwrite( filename.str(), colorImage);
+        cv::imwrite( filename.str(), ConvertPCLCloud2Image(*grph_[view_id].cloud_));
 
         std::stringstream filename_sv;
         filename_sv << path << "/" << view_id << "_sv.jpg";
-        PCLOpenCV::ConvertPCLCloud2Image<pcl::PointXYZRGBA> (grph_[view_id].supervoxel_cloud_organized_, colorImage);
-        cv::imwrite( filename_sv.str(), colorImage);
+        cv::imwrite( filename_sv.str(), ConvertPCLCloud2Image (*grph_[view_id].supervoxel_cloud_organized_));
 
         std::stringstream filename_filtered;
         filename_filtered << path << "/" << view_id << "_filtered.jpg";
         pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>());
         pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].scene_points_, *cloud_filtered);
-        PCLOpenCV::ConvertUnorganizedPCLCloud2Image<PointT> (cloud_filtered, colorImage);
-        cv::imwrite( filename_filtered.str(), colorImage);
+        cv::imwrite( filename_filtered.str(), ConvertUnorganizedPCLCloud2Image (*cloud_filtered) );
 
         std::stringstream filename_search_points;
         filename_search_points << path << "/" << view_id << "_search_pts.jpg";
@@ -349,24 +345,20 @@ DOL::writeImagesToDisk(const std::string &path, bool crop)
         }
 
         *cloud_with_search_pts += *search_pts;
-        PCLOpenCV::ConvertUnorganizedPCLCloud2Image<PointT> (cloud_with_search_pts, colorImage);
-        cv::imwrite( filename_search_points.str(), colorImage);
+        cv::imwrite( filename_search_points.str(), ConvertUnorganizedPCLCloud2Image (*cloud_with_search_pts) );
 
 
         for(size_t step_id=0; step_id<grph_[view_id].obj_mask_step_.size(); step_id++)
         {
             if (grph_[view_id].is_pre_labelled_ && step_id==0) // initial indices already shown in other subwindow
-            {
                 continue;
-            }
 
             pcl::PointCloud<PointT>::Ptr segmented (new pcl::PointCloud<PointT>());
             pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].obj_mask_step_[step_id], *segmented);
 
             std::stringstream filename_step;
             filename_step << path << "/" << view_id << "_step_" << step_id << ".jpg";
-            PCLOpenCV::ConvertUnorganizedPCLCloud2Image<PointT> (segmented, colorImage, crop);
-            cv::imwrite( filename_step.str(), colorImage);
+            cv::imwrite( filename_step.str(), ConvertUnorganizedPCLCloud2Image (*segmented, crop) );
         }
     }
 }
