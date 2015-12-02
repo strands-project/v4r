@@ -498,17 +498,17 @@ void MultiSession::createObjectCloudFiltered()
       nm.getWeights(weights[i]);
     }
 
-    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
+    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nmparam;
+    nmparam.octree_resolution_ = om_params.vx_size_object;
+    nmparam.min_weight_ = nm_integration_min_weight_;
+    nmparam.final_resolution_ = om_params.vx_size_object;
+    nmparam.min_points_per_voxel_ = 1;
     octree_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-
+    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration(nmparam);
     nmIntegration.setInputClouds(sessions_clouds_);
-    nmIntegration.setResolution(om_params.vx_size_object);
     nmIntegration.setWeights(weights);
     nmIntegration.setTransformations(output_poses);
-    nmIntegration.setMinWeight(nm_integration_min_weight_);
     nmIntegration.setInputNormals(normals);
-    nmIntegration.setMinPointsPerVoxel(1);
-    nmIntegration.setFinalResolution(om_params.vx_size_object);
     nmIntegration.setIndices( sessions_cloud_indices_ );
     nmIntegration.compute(octree_cloud);
 

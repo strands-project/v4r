@@ -121,6 +121,11 @@ namespace v4r
           recognizers_.push_back(rec);
         }
 
+        void clearRecognizers()
+        {
+            recognizers_.clear();
+        }
+
         template <typename FeatureT>
         void
         setFeatAndKeypoints(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,

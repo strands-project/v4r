@@ -657,12 +657,15 @@ MultiviewRecognizer<PointT>::recognize ()
         }
 
         //obtain big cloud and occlusion clouds based on new noise model integration
+
+
         typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
-        NMBasedCloudIntegration<PointT> nmIntegration;
-        nmIntegration.setMinPointsPerVoxel(1);
-        nmIntegration.setFinalResolution(0.001f);
-        nmIntegration.setResolution(0.001f);
-        nmIntegration.setMinWeight(0.25f);
+        typename NMBasedCloudIntegration<PointT>::Parameter nmparam;
+        nmparam.octree_resolution_ = 0.001f;
+        nmparam.min_weight_ = 0.25f;
+        nmparam.final_resolution_ = 0.001f;
+        nmparam.min_points_per_voxel_ = 1;
+        NMBasedCloudIntegration<PointT> nmIntegration (nmparam);
         nmIntegration.setInputClouds(original_clouds);
         nmIntegration.setWeights(views_noise_weights);
         nmIntegration.setTransformations(transforms_to_global);

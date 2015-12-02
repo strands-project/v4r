@@ -14,7 +14,6 @@
 #include <v4r/recognition/recognizer.h>
 #include <v4r/recognition/registered_views_source.h>
 
-#include <pcl/common/centroid.h>
 #include <pcl/common/time.h>
 #include <pcl/filters/passthrough.h>
 

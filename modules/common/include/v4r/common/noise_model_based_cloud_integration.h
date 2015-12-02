@@ -1,9 +1,26 @@
-/*
- * noise_models.h
+/******************************************************************************
+ * Copyright (c) 2013 Aitor Aldoma, Thomas Faeulhammer
  *
- *  Created on: Oct 28, 2013
- *      Author: aitor
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
+
 
 #ifndef NMBasedCloudIntegration_H
 #define NMBasedCloudIntegration_H
@@ -14,10 +31,18 @@
 #include <pcl/octree/impl/octree_iterator.hpp>
 
 #include <v4r/core/macros.h>
-#include "v4r/common/miscellaneous.h"
+#include <v4r/common/miscellaneous.h>
 
 namespace v4r
 {
+
+/**
+ * @brief reconstructs a point cloud from several input clouds. Each point of the input cloud is associated with a weight
+ * which states the measurement confidence ( 0... max noise level, 1... very confident). Each point is accumulated into a
+ * big cloud and then reprojected into the various image planes of the input clouds to check for conflicting points.
+ * Conflicting points will be removed and the remaining points put into an octree
+ *
+ */
 template<class PointT>
 class V4R_EXPORTS NMBasedCloudIntegration
 {
@@ -25,29 +50,35 @@ public:
     class V4R_EXPORTS Parameter
     {
     public:
-        int min_points_per_voxel_;
+        int min_points_per_voxel_;  /// @brief the minimum number of points in a leaf of the octree of the big cloud.
         float final_resolution_;
-        float octree_resolution_;
+        float octree_resolution_;   /// @brief resolution of the octree of the big point cloud
         float min_weight_;
-        float threshold_ss_;
-        float max_distance_;
+        float threshold_ss_;    /// @brief distance in m to check wheter a point from the accumulated cloud is explained by a point from an input cloud
+        float max_distance_;    /// @brief each point further away than this distance will be assigned the maximum noise level (and so neglected)
+        float focal_length_;   /// @brief focal length of the cameras; used for reprojection of the points into each image plane
+        bool average_;  /// @brief if true, takes the average color (for each color componenent) and normal within all the points in the leaf of the octree. Otherwise, it takes the point within the octree with the best noise weight
         Parameter(
-                int min_points_per_voxel=0,
+                int min_points_per_voxel = 0,
                 float final_resolution = 0.001f,
                 float octree_resolution =  0.005f,
                 float min_weight = 0.9f,
                 float threshold_ss = 0.003f,
-                float max_distance = 5.f) :
+                float max_distance = 5.f,
+                float focal_length = 525.f,
+                bool average = false ) :
             min_points_per_voxel_(min_points_per_voxel),
             final_resolution_(final_resolution),
             octree_resolution_(octree_resolution),
             min_weight_ (min_weight),
             threshold_ss_(threshold_ss),
-            max_distance_(max_distance)
+            max_distance_(max_distance),
+            focal_length_ (focal_length),
+            average_ (average)
         {
 
         }
-    };
+    }param_;
 
 private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
@@ -55,26 +86,21 @@ private:
     std::vector<PointTPtr> input_clouds_;
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations_to_global_;
     std::vector<std::vector<float> > noise_weights_;
+    std::vector<std::vector<float> > sigmas_;
     typename boost::shared_ptr<pcl::octree::OctreePointCloudPointVector<PointT> > octree_;
-    std::vector<float> weights_points_in_octree_;
+    std::vector<float> big_cloud_weights_;
     std::vector<PointNormalTPtr> input_normals_;
-    PointNormalTPtr octree_points_normals_;
+    PointNormalTPtr big_cloud_normals_;
     PointNormalTPtr output_normals_;
     std::vector<PointTPtr> input_clouds_used_;
     std::vector<std::vector<size_t> > indices_;
 
 public:
-    Parameter param_;
     NMBasedCloudIntegration (const Parameter &p=Parameter());
 
     void getInputCloudsUsed(std::vector<PointTPtr> & input_clouds_used) const
     {
         input_clouds_used = input_clouds_used_;
-    }
-
-    void setThresholdSameSurface(float f)
-    {
-        param_.threshold_ss_ = f;
     }
 
     void getOutputNormals(PointNormalTPtr & output) const
@@ -92,28 +118,6 @@ public:
     setInputNormals (const std::vector<PointNormalTPtr> & input)
     {
         input_normals_ = input;
-    }
-
-    void
-    setResolution(float r)  // deprecated
-    {
-        param_.octree_resolution_ = r;
-    }
-
-    void setFinalResolution(float r)  // deprecated
-    {
-        param_.final_resolution_ = r;
-    }
-
-    void setMinPointsPerVoxel(int n)  // deprecated
-    {
-        param_.min_points_per_voxel_ = n;
-    }
-
-    void
-    setMinWeight(float m_w)  // deprecated
-    {
-        param_.min_weight_ = m_w;
     }
 
     void
@@ -137,6 +141,12 @@ public:
     setWeights (const std::vector<std::vector<float> > & weights)
     {
         noise_weights_ = weights;
+    }
+
+    void
+    setSigmas (const std::vector<std::vector<float> > & sigmas)
+    {
+        sigmas_ = sigmas;
     }
 
     void setTransformations(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & transforms)

@@ -257,15 +257,16 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
         }
 
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-        v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration;
+        v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nmparam;
+        nmparam.octree_resolution_ = 0.005f;
+        nmparam.min_weight_ = 0.75f;
+        nmparam.final_resolution_ = 0.005f;
+        nmparam.min_points_per_voxel_ = 1;
+        v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nmparam);
         nmIntegration.setInputClouds(clouds);
-        nmIntegration.setResolution(0.005f);
         nmIntegration.setWeights(weights);
         nmIntegration.setTransformations(poses);
-        nmIntegration.setMinWeight(0.75f);
         nmIntegration.setInputNormals(normals);
-        nmIntegration.setMinPointsPerVoxel(1);
-        nmIntegration.setFinalResolution(0.005f);
         nmIntegration.setIndices(indices);
         nmIntegration.compute(octree_cloud);
 

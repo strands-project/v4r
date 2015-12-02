@@ -11,6 +11,10 @@
 #include "v4r/common/noise_models.h"
 #include "v4r/common/organized_edge_detection.h"
 
+#include <opencv2/opencv.hpp>
+#include <v4r/common/pcl_opencv.h>
+#include <fstream>
+
 namespace v4r {
 
 template<typename PointT>
@@ -26,7 +30,9 @@ void
 noise_models::NguyenNoiseModel<PointT>::compute ()
 {
   weights_.clear();
+  sigmas_.clear();
   weights_.resize(input_->points.size(), 1.f);
+  sigmas_.resize(input_->points.size(), 0.f);
   discontinuity_edges_.indices.clear();
 
   //compute depth discontinuity edges
@@ -46,18 +52,20 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
   for (size_t j = 0; j < indices2.size (); j++)
   {
     for (size_t i = 0; i < indices2[j].indices.size (); i++)
-    {
-      discontinuity_edges_.indices.push_back(indices2[j].indices[i]);
-    }
+        discontinuity_edges_.indices.push_back(indices2[j].indices[i]);
   }
 
   for(size_t i=0; i < input_->points.size(); i++)
   {
+      float sigma_lateral = 0.f;
+      float sigma_axial = 0.f;
+      float z = input_->points[i].z;
     const Eigen::Vector3f & np = normals_->points[i].getNormalVector3fMap();
 
-    if(!pcl_isfinite(input_->points[i].z) || !pcl_isfinite(np[2]))
+    if(!pcl_isfinite(z) || !pcl_isfinite(np[2]))
     {
       weights_[i] = 0;
+      sigmas_[i] = std::numeric_limits<float>::max();
       continue;
     }
 
@@ -67,6 +75,12 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
 
     o2p.normalize();
     float angle = pcl::rad2deg(acos(o2p.dot(np)));
+
+    sigma_lateral = (0.8 + 0.034 * angle / (90.f - angle)) * z / param_.focal_length_;
+    sigma_axial = 0.0012 + 0.0019 * ( z - 0.4 ) * ( z - 0.4 ) + 0.0001 * angle * angle / ( sqrt(z) * (90 - angle) * (90 - angle));
+
+    sigmas_[i] = sqrt(sigma_lateral * sigma_lateral + sigma_axial * sigma_axial);
+
     if(angle > param_.max_angle_)
     {
       weights_[i] = 1.f - (angle - param_.max_angle_) / (90.f - param_.max_angle_);
@@ -97,19 +111,17 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
     for (size_t i = 0; i < discontinuity_edges_.indices.size (); i++)
       edge_cloud->points[discontinuity_edges_.indices[i]].getVector3fMap () = input_->points[discontinuity_edges_.indices[i]].getVector3fMap ();
 
-    int wsize = 5;
-    int wsize2 = wsize / 2;
-    int dilate_iterations = 3;
+    int wsize2 = param_.dilate_width_ / 2;
 
-    /*pcl::visualization::PCLVisualizer vis("DILATION");
-     vis.addPointCloud(edge_cloud);
-     vis.spin();*/
+//     pcl::visualization::PCLVisualizer vis("DILATION");
+//     vis.addPointCloud(edge_cloud);
+//     vis.spin();
 
     std::vector<float> dist_to_edge(input_->points.size(), std::numeric_limits<float>::infinity());
     for (size_t i = 0; i < discontinuity_edges_.indices.size (); i++)
       dist_to_edge[discontinuity_edges_.indices[i]] = 0.f;
 
-    for (int i = 0; i < dilate_iterations; i++)
+    for (int i = 0; i < param_.dilate_iterations_; i++)
     {
 
       pcl::PointCloud<pcl::PointXYZ>::Ptr edge_cloud2 (new pcl::PointCloud<pcl::PointXYZ> (*edge_cloud));
@@ -153,9 +165,10 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
       }
 
       edge_cloud = edge_cloud2;
-      /*vis.removeAllPointClouds();
-       vis.addPointCloud(edge_cloud);
-       vis.spin();*/
+//      vis.removeAllPointClouds();
+//      vis.addPointCloud(edge_cloud);
+//      vis.spin();
+
     }
 
     for (int i = 0; i < weights_.size (); i++)
@@ -163,13 +176,34 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
       int v, u;
       v = i / input_->width;
       u = i % input_->width;
+
       if (!pcl_isfinite(edge_cloud->at(u,v).z))
         continue;
 
       assert(pcl_isfinite(dist_to_edge[i]));
       //adapt weight
-      weights_[i] *= 1.f - 0.5f * std::exp((dist_to_edge[i] * dist_to_edge[i]) / (param_.lateral_sigma_ * param_.lateral_sigma_));
+      weights_[i] *= 1.f - 0.5f * std::exp(-(dist_to_edge[i] * dist_to_edge[i]) / (param_.lateral_sigma_ * param_.lateral_sigma_));
+
+      float sigma_edge = std::exp(-(dist_to_edge[i] * dist_to_edge[i]) / (param_.lateral_sigma_ * param_.lateral_sigma_));
+
+      sigmas_[i] = sqrt(sigmas_[i] * sigmas_[i] + sigma_edge * sigma_edge);
     }
+
+//    cv::imwrite("/tmp/image.png", v4r::ConvertPCLCloud2Image<PointT>(*input_));
+//    ofstream dist_file("/tmp/dist_to_edge.txt");
+//    ofstream weight_file("/tmp/weights.txt");
+//    ofstream sigma_file("/tmp/sigmas.txt");
+
+//    for (int i = 0; i < weights_.size (); i++)
+//    {
+//      dist_file << dist_to_edge[i] << " ";
+//      weight_file << weights_[i] << " ";
+//      sigma_file << sigmas_[i] << " ";
+//    }
+//    dist_file.close();
+//    weight_file.close();
+//    sigma_file.close();
+
   }
 
   for(size_t i=0; i < input_->points.size(); i++)
@@ -261,6 +295,6 @@ noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovingPoints(PointTPt
 }
 
 template class V4R_EXPORTS noise_models::NguyenNoiseModel<pcl::PointXYZRGB>;
-template class V4R_EXPORTS noise_models::NguyenNoiseModel<pcl::PointXYZ>;
+//template class V4R_EXPORTS noise_models::NguyenNoiseModel<pcl::PointXYZ>;
 
 }

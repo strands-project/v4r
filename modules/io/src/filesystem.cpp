@@ -141,6 +141,66 @@ createDirForFileIfNotExist(const std::string & filename)
     }
 }
 
+
+bool
+copyDir(const std::string &src, const std::string &dst)
+{
+    const boost::filesystem::path source(src);
+    const boost::filesystem::path destination(dst);
+
+    namespace fs = boost::filesystem;
+
+    try
+    {
+        // Check whether the function call is valid
+        if( !fs::exists(source) || !fs::is_directory(source) )
+        {
+            std::cerr << "Source directory " << source.string() << " does not exist or is not a directory." << std::endl;
+            return false;
+        }
+
+        if( fs::exists(destination) )
+        {
+            std::cerr << "Destination directory " << destination.string() << " already exists." << std::endl;
+            return false;
+        }
+
+        // Create the destination directory
+        if( !fs::create_directory(destination) )
+        {
+            std::cerr << "Unable to create destination directory"<< destination.string() << std::endl;
+            return false;
+        }
+    }
+    catch(fs::filesystem_error const & e)
+    {
+        std::cerr << e.what() << '\n';
+        return false;
+    }
+
+    // Iterate through the source directory
+    for( fs::directory_iterator file(source); file != fs::directory_iterator(); ++file )
+    {
+        try
+        {
+            fs::path current(file->path());
+            if(fs::is_directory(current))
+            {
+                // Found directory: Recursion
+                if( !copyDir( current.string(), dst + "/" + current.filename().string() ) )
+                    return false;
+            }
+            else // Found file: Copy
+                fs::copy_file( current.string(), dst + "/" + current.filename().string() );
+        }
+        catch(fs::filesystem_error const & e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+    return true;
+}
+
 }
 
 }
