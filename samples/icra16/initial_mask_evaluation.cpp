@@ -138,8 +138,8 @@ main (int argc, char ** argv)
         pcl::PointCloud<PointT>::Ptr masked_cloud_src (new pcl::PointCloud<PointT>());
         pcl::PointCloud<PointT>::Ptr targ_gt (new pcl::PointCloud<PointT>());
 
-        pcl::transformPointCloud(*masked_cloud_filtered, *masked_cloud_src, v4r::common::RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_));
-        pcl::transformPointCloud(*gt_cloud, *targ_gt, v4r::common::RotTrans2Mat4f(gt_cloud->sensor_orientation_, gt_cloud->sensor_origin_));
+        pcl::transformPointCloud(*masked_cloud_filtered, *masked_cloud_src, v4r::RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_));
+        pcl::transformPointCloud(*gt_cloud, *targ_gt, v4r::RotTrans2Mat4f(gt_cloud->sensor_orientation_, gt_cloud->sensor_origin_));
 
         if(visualize)
         {

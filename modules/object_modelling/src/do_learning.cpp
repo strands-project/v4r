@@ -465,16 +465,15 @@ DOL::write_model_to_disk (const std::string &models_dir, const std::string &reco
 bool
 DOL::save_model (const std::string &models_dir, const std::string &recognition_structure_dir, const std::string &model_name)
 {
-    std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used;
-    std::vector<std::vector<float> > weights;
-    std::vector<std::vector<size_t> > indices_used;
-
     size_t num_frames = grph_.size();
-    weights.resize(num_frames);
-    indices_used.resize(num_frames);
+
+    std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used (num_frames);
+    std::vector<std::vector<float> > weights (num_frames);
+    std::vector<std::vector<float> > sigmas (num_frames);
+    std::vector<std::vector<size_t> > indices_used (num_frames);
+
     object_indices_clouds_.resize(num_frames);
     keyframes_used_.resize(num_frames);
-    normals_used.resize(num_frames);
     cameras_used_.resize(num_frames);
 
 
@@ -518,12 +517,14 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
             nm.setUseDepthEdges(true);
             nm.compute();
             nm.getWeights(weights[i]);
+            sigmas[i] = nm.getSigmas();
         }
 
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
         NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nm_int_param_);
         nmIntegration.setInputClouds(keyframes_used_);
         nmIntegration.setWeights(weights);
+        nmIntegration.setSigmas(sigmas);
         nmIntegration.setTransformations(cameras_used_);
         nmIntegration.setInputNormals(normals_used);
         nmIntegration.setIndices( indices_used );
@@ -712,7 +713,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     pcl::PointCloud<pcl::Normal>::Ptr normals_filtered (new pcl::PointCloud<pcl::Normal>());
     std::vector<ClusterNormalsToPlanes::Plane::Ptr> planes;
 
-    computeNormals(view.cloud_, view.normal_, param_.normal_method_);
+    computeNormals<PointT>(view.cloud_, view.normal_, param_.normal_method_);
     extractPlanePoints(view.cloud_, view.normal_, planes);
 
     octree_.setInputCloud ( view.cloud_ );

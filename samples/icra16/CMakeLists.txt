@@ -20,10 +20,6 @@ if(HAVE_EDT)
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
 endif()
 
-if(HAVE_BOOST)
-  v4r_include_directories(${BOOST_INCLUDE_DIRS})
-  list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
-endif()
 
 if(HAVE_CERES)
   v4r_include_directories(${CERES_INCLUDE_DIRS})
@@ -33,7 +29,7 @@ endif()
 v4r_check_dependencies(${V4R_ICRA16_SAMPLES_REQUIRED_DEPS})
 
 if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
-  project(cpp_samples)
+  project(icra_samples)
   v4r_include_modules(${V4R_ICRA16_SAMPLES_REQUIRED_DEPS})
 
   if(CMAKE_COMPILER_IS_GNUCXX AND NOT ENABLE_NOISY_WARNINGS)
@@ -44,23 +40,16 @@ if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)
   #      Define executable targets
   # ---------------------------------------------
   MACRO(V4R_DEFINE_CPP_EXAMPLE name srcs)
-
-    if("${srcs}" MATCHES "tutorial_code")
-      set(sample_kind tutorial)
-      set(sample_KIND TUTORIAL)
-      set(sample_subfolder "tutorials")
-    else()
-      set(sample_kind example)
-      set(sample_KIND EXAMPLE)
+      set(sample_kind icra16)
+      set(sample_KIND ICRA16)
       set(sample_subfolder "cpp")
-    endif()
 
     set(the_target "${sample_kind}_${name}")
     add_executable(${the_target} ${srcs})
     target_link_libraries(${the_target} ${V4R_LINKER_LIBS} ${V4R_ICRA16_SAMPLES_REQUIRED_DEPS} ${DEP_LIBS})
 
     set_target_properties(${the_target} PROPERTIES
-      OUTPUT_NAME "icra16-${sample_kind}-${name}"
+      OUTPUT_NAME "${sample_kind}-${name}"
       PROJECT_LABEL "(${sample_KIND}) ${name}")
 
     if(ENABLE_SOLUTION_FOLDERS)

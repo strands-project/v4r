@@ -20,20 +20,14 @@ namespace object_modelling
 void
 DOL::createBigCloud()
 {
-     std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > keyframes_used;
-     std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used;
-     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used;
-     std::vector<pcl::PointCloud<IndexPoint> > object_indices_clouds;
-     std::vector<std::vector<float> > weights;
-     std::vector<std::vector<size_t> > indices_used;
-
      size_t num_frames = grph_.size();
-     weights.resize(num_frames);
-     indices_used.resize(num_frames);
-     object_indices_clouds.resize(num_frames);
-     keyframes_used.resize(num_frames);
-     normals_used.resize(num_frames);
-     cameras_used.resize(num_frames);
+     std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > keyframes_used (num_frames);
+     std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used (num_frames);
+     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used (num_frames);
+     std::vector<pcl::PointCloud<IndexPoint> > object_indices_clouds (num_frames);
+     std::vector<std::vector<float> > weights (num_frames);
+     std::vector<std::vector<float> > sigmas (num_frames);
+     std::vector<std::vector<size_t> > indices_used (num_frames);
 
      // only used keyframes with have object points in them
      size_t kept_keyframes=0;
@@ -68,6 +62,7 @@ DOL::createBigCloud()
          }
      }
      weights.resize(kept_keyframes);
+     sigmas.resize(kept_keyframes);
      indices_used.resize(kept_keyframes);
      object_indices_clouds.resize(kept_keyframes);
      keyframes_used.resize(kept_keyframes);
@@ -87,12 +82,14 @@ DOL::createBigCloud()
              nm.setUseDepthEdges(true);
              nm.compute();
              nm.getWeights(weights[i]);
+             sigmas[i] = nm.getSigmas();
          }
 
          pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
          v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nm_int_param_);
          nmIntegration.setInputClouds(keyframes_used);
          nmIntegration.setWeights(weights);
+         nmIntegration.setSigmas(sigmas);
          nmIntegration.setTransformations(cameras_used);
          nmIntegration.setInputNormals(normals_used);
          nmIntegration.setIndices( indices_used );
