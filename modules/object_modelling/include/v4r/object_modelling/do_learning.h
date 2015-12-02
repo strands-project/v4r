@@ -130,7 +130,7 @@ public:
         {
         }
 
-    };
+    }param_;
 
     struct {
         int meanK_ = 10;
@@ -158,7 +158,6 @@ protected:
     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_normals_oriented_;
 
     Graph gs_;
-    Parameter param_;
 
     pcl::PointCloud<PointT>::Ptr big_cloud_;
     pcl::PointCloud<PointT>::Ptr big_cloud_segmented_;
@@ -348,9 +347,6 @@ public:
      *  reconstructed point cloud of scene and object model
      */
     void createBigCloud();
-
-    void computeNormals(const pcl::PointCloud<PointT>::ConstPtr &cloud,
-                        pcl::PointCloud<pcl::Normal>::Ptr &normals, int method);
 
     bool calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
                            pcl::PointCloud<PointT>::Ptr &sift_keypoints,

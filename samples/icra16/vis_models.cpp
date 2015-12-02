@@ -27,7 +27,12 @@ typedef pcl::PointXYZRGB PointT;
 std::vector<int> visualization_framework (pcl::visualization::PCLVisualizer &vis,
                                           size_t number_of_views,
                                           size_t number_of_subwindows_per_view,
-                                          const std::vector<std::string> &title_subwindows = std::vector<std::string>())
+                                          const std::vector<std::string> &title_subwindows = std::vector<std::string>());
+
+std::vector<int> visualization_framework (pcl::visualization::PCLVisualizer &vis,
+                                          size_t number_of_views,
+                                          size_t number_of_subwindows_per_view,
+                                          const std::vector<std::string> &title_subwindows)
 {
   vis.removeAllPointClouds();
   vis.removeAllShapes();
@@ -131,8 +136,7 @@ int main (int argc, char ** argv)
 
         std::stringstream img_fn_off;
         img_fn_off << "/tmp/" << col_id << ".jpg";
-        PCLOpenCV::ConvertUnorganizedPCLCloud2Image<PointT> (cloud, colorImage, true);
-        cv::imwrite( img_fn_off.str(), colorImage);
+        cv::imwrite( img_fn_off.str(), v4r::ConvertUnorganizedPCLCloud2Image(*cloud, true));
 
 
         vis.addPointCloud(cloud, it->first,viewports[col_id*6]);
@@ -147,8 +151,7 @@ int main (int argc, char ** argv)
 
             std::stringstream img_fn;
             img_fn << "/tmp/" << pr << "_" << col_id << ".jpg";
-            PCLOpenCV::ConvertUnorganizedPCLCloud2Image<PointT> (cloud, colorImage, false);
-            cv::imwrite( img_fn.str(), colorImage);
+            cv::imwrite( img_fn.str(), v4r::ConvertUnorganizedPCLCloud2Image(*cloud, false));
 
             pcl::computeCentroid(*cloud, centroid);
             for(size_t pt_id=0; pt_id<cloud->points.size(); pt_id++)

@@ -234,7 +234,7 @@ main (int argc, char ** argv)
                 const std::string view_file = scene_path + "/" + views[ v_id ];
                 pcl::PointCloud<PointT>::Ptr pCloud(new pcl::PointCloud<PointT>());
                 pcl::io::loadPCDFile(view_file, *pCloud);
-                const Eigen::Matrix4f trans = v4r::common::RotTrans2Mat4f(pCloud->sensor_orientation_, pCloud->sensor_origin_);
+                const Eigen::Matrix4f trans = v4r::RotTrans2Mat4f(pCloud->sensor_orientation_, pCloud->sensor_origin_);
 
 
                 Eigen::Vector4f zero_origin;

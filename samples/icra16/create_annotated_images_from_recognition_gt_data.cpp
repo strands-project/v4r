@@ -302,13 +302,10 @@ void imageCreator<PointT>::recognizeAndVisualize (const std::string & sub_folder
 
             std::stringstream image_path;
             image_path << rel_path.str() << "/" << scene_file_wo_ext << ".jpg";
-
-            cv::Mat_ < cv::Vec3b > colorImage;
-            PCLOpenCV::ConvertPCLCloud2Image<PointT> (gt_cloud_organized, colorImage);
             /*cv::namedWindow("image");
                 cv::imshow("image", colorImage);
                 cv::waitKey(0);*/
-            cv::imwrite(image_path.str(), colorImage);
+            cv::imwrite(image_path.str(), ConvertPCLCloud2Image (*gt_cloud_organized) );
 
             rel_path.str("");
             rel_path << scene_images_path << "/";
@@ -320,9 +317,7 @@ void imageCreator<PointT>::recognizeAndVisualize (const std::string & sub_folder
 
             image_path.str("");
             image_path << rel_path.str() << "/" << scene_file_wo_ext << ".jpg";
-
-            PCLOpenCV::ConvertPCLCloud2Image<PointT> (pScenePCl_organized, colorImage);
-            cv::imwrite(image_path.str(), colorImage);
+            cv::imwrite(image_path.str(), ConvertPCLCloud2Image (*pScenePCl_organized) );
         }
     }
     else

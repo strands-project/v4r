@@ -126,8 +126,8 @@ main (int argc, char ** argv)
             pcl::PointCloud<PointT>::Ptr src (new pcl::PointCloud<PointT>());
             pcl::PointCloud<PointT>::Ptr trgt (new pcl::PointCloud<PointT>());
 
-            pcl::transformPointCloud(*obj_dol, *src, v4r::common::RotTrans2Mat4f(obj_dol->sensor_orientation_, obj_dol->sensor_origin_));
-            pcl::transformPointCloud(*obj_gt, *trgt, v4r::common::RotTrans2Mat4f(obj_gt->sensor_orientation_, obj_gt->sensor_origin_));
+            pcl::transformPointCloud(*obj_dol, *src, v4r::RotTrans2Mat4f(obj_dol->sensor_orientation_, obj_dol->sensor_origin_));
+            pcl::transformPointCloud(*obj_gt, *trgt, v4r::RotTrans2Mat4f(obj_gt->sensor_orientation_, obj_gt->sensor_origin_));
 
             pcl::IterativeClosestPoint<PointT, PointT> icp;
             icp.setInputSource(src);
