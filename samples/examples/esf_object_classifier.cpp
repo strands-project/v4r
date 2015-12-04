@@ -161,7 +161,7 @@ int main(int argc, char** argv)
             const std::string fn = sequence_path + "/" + views[ v_id ];
             std::string out_fn = out_dir_full + "/" + views[ v_id ];
             boost::replace_all(out_fn, ".pcd", ".anno_test");
-            of.open(out_fn);
+            of.open(out_fn.c_str());
 
             std::cout << "Segmenting file " << fn << std::endl;
             pcl::io::loadPCDFile(fn, *cloud);

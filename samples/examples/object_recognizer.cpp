@@ -6,6 +6,7 @@
 #include <v4r/features/opencv_sift_local_estimator.h>
 #endif
 
+//#include <v4r/features/ourcvfh_estimator.h>
 #include <v4r/features/shot_local_estimator_omp.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/ghv.h>
@@ -208,6 +209,10 @@ public:
             cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > (local);
             LOG(INFO) << "Feature Type: " << cast_recog->getFeatureType();
             rr_->addRecognizer(cast_recog);
+        }
+        if(do_ourcvfh)
+        {
+
         }
 
 
