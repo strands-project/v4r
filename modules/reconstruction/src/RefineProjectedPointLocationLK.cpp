@@ -76,7 +76,7 @@ void RefineProjectedPointLocationLK::getIntensityDifference(const cv::Mat_<unsig
   {
     for (int u = -hw ; u <= hw ; u++)  
     {
-      diff(v+hh,u+hw) = getInterpolated(im1, pt1.x+u, pt1.y+v) - getInterpolated(im2, pt2.x+u, pt2.y+v);
+      diff(v+hh,u+hw) = getInterpolated(im1, pt1.x+u, pt1.y+v) - im2(pt2.y+v, pt2.x+u);
     }
   }
 }
