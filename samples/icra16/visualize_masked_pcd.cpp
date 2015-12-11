@@ -1,4 +1,4 @@
-//-scene_path /media/Data/datasets/TUW/test_set/set_00006/00000.pcd -mask_path /home/thomas/Documents/TUW_dol_eval/set_00006/burti_0_mask_85.txt
+//-s /media/Data/datasets/TUW/test_set/set_00006/00000.pcd -m /home/thomas/Documents/TUW_dol_eval/set_00006/burti_0_mask_85.txt
 
 /*
  *  Created on: Aug, 2015
@@ -8,19 +8,38 @@
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/io/filesystem.h>
-#include <pcl/console/parse.h>
+#include <boost/program_options.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <iostream>
 #include <fstream>
 
+namespace po = boost::program_options;
 
 int main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
     std::string path_s, path_o;
-    pcl::console::parse_argument (argc, argv, "-scene_path", path_s);
-    pcl::console::parse_argument (argc, argv, "-mask_path", path_o);
+    po::options_description desc("Visualize segmentation mask\n======================================\n**Allowed options");
+    desc.add_options()
+            ("help,h", "produce help message")
+            ("scene_path,s", po::value<std::string>(&path_s)->required(), "input .pcd files where mask is applied to")
+            ("mask_path,m", po::value<std::string>(&path_o)->required(), "mask file with indices of the object")
+     ;
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    if (vm.count("help")) {
+        std::cout << desc << std::endl;
+        return false;
+    }
+
+    try { po::notify(vm); }
+
+    catch(std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
+        return false;
+    }
 
     std::cout << path_s << " " << path_o << std::endl;
 
