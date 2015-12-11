@@ -12,6 +12,7 @@
 #include <v4r/common/miscellaneous.h>
 
 #include <pcl/common/transforms.h>
+#include <pcl/filters/passthrough.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -24,7 +25,9 @@
 namespace po = boost::program_options;
 
 int main(int argc, const char * argv[]) {
-    std::string test_dir;
+    std::string test_dir, out_dir;
+    float chop_z = std::numeric_limits<float>::max();
+    bool visualize;
 
     google::InitGoogleLogging(argv[0]);
 
@@ -43,6 +46,7 @@ int main(int argc, const char * argv[]) {
     desc.add_options()
             ("help,h", "produce help message")
             ("test_dir", po::value<std::string>(&test_dir)->required(), "directory containing point clouds")
+            ("out_dir,o", po::value<std::string>(&out_dir), "output directory where the registered cloud will be stored. If not set, nothing will be written to distk")
             ("resolution,r", po::value<float>(&nm_int_param.octree_resolution_)->default_value(nm_int_param.octree_resolution_), "")
             ("min_points_per_voxel,n", po::value<int>(&nm_int_param.min_points_per_voxel_)->default_value(nm_int_param.min_points_per_voxel_), "")
             ("min_weight,w", po::value<float>(&nm_int_param.min_weight_)->default_value(nm_int_param.min_weight_), "")
@@ -54,7 +58,9 @@ int main(int argc, const char * argv[]) {
             ("dilate_iterations,i", po::value<int>(&nm_param.dilate_iterations_)->default_value(nm_param.dilate_iterations_), "")
             ("dilate_width", po::value<int>(&nm_param.dilate_width_)->default_value(nm_param.dilate_width_), "")
             ("normal_method", po::value<int>(&normal_method)->default_value(normal_method), "method used for normal computation")
-            ;
+            ("chop_z,z", po::value<float>(&chop_z)->default_value(chop_z), "cut of distance in m ")
+            ("visualize,v", po::bool_switch(&visualize), "turn visualization on")
+    ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     if (vm.count("help"))
@@ -85,9 +91,13 @@ int main(int argc, const char * argv[]) {
 
 
     int vp1, vp2;
-    pcl::visualization::PCLVisualizer vis("registered cloud");
-    vis.createViewPort(0,0,0.5,1,vp1);
-    vis.createViewPort(0.5,0,1,1,vp2);
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> vis;
+    if(visualize)
+    {
+        vis.reset( new pcl::visualization::PCLVisualizer("registered cloud") );
+        vis->createViewPort(0,0,0.5,1,vp1);
+        vis->createViewPort(0.5,0,1,1,vp2);
+    }
 
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {
@@ -120,6 +130,13 @@ int main(int argc, const char * argv[]) {
             clouds[v_id]->sensor_orientation_ = Eigen::Quaternionf::Identity();
             clouds[v_id]->sensor_origin_ = zero_origin;
 
+            pcl::PassThrough<pcl::PointXYZRGB> pass;
+            pass.setInputCloud (clouds[v_id]);
+            pass.setFilterFieldName ("z");
+            pass.setFilterLimits (0.f, chop_z);
+            pass.setKeepOrganized(true);
+            pass.filter (*clouds[v_id]);
+
             v4r::computeNormals<pcl::PointXYZRGB>( clouds[v_id], normals[v_id], normal_method);
 
             v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm (nm_param);
@@ -145,11 +162,21 @@ int main(int argc, const char * argv[]) {
 
         std::cout << "Size cloud unfiltered: " << big_cloud_unfiltered->points.size() << ", filtered: " << octree_cloud->points.size() << std::endl;
 
-        vis.removeAllPointClouds(vp1);
-        vis.removeAllPointClouds(vp2);
-        vis.addPointCloud(big_cloud_unfiltered, "unfiltered_cloud", vp1);
-        vis.addPointCloud(octree_cloud, "filtered_cloud", vp2);
-        vis.spin();
+        if(visualize)
+        {
+            vis->removeAllPointClouds(vp1);
+            vis->removeAllPointClouds(vp2);
+            vis->addPointCloud(big_cloud_unfiltered, "unfiltered_cloud", vp1);
+            vis->addPointCloud(octree_cloud, "filtered_cloud", vp2);
+            vis->spin();
+        }
 
+        if(vm.count("out_dir"))
+        {
+            const std::string out_path = out_dir + "/" + sub_folder_names[sub_folder_id];
+            v4r::io::createDirIfNotExist(out_path);
+            pcl::io::savePCDFileBinary(out_path + "/registered_cloud_filtered.pcd", *octree_cloud);
+            pcl::io::savePCDFileBinary(out_path + "/registered_cloud_unfiltered.pcd", *big_cloud_unfiltered);
+        }
     }
 }
