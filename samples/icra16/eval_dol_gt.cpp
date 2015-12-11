@@ -1,5 +1,9 @@
-// -input_dir /media/Data/datasets/TUW/icra_dol_evals -result_file /media/Data/datasets/TUW/icra_dol_evals/TUW_100.txt -radius 0.02
-//-input_dir /media/Data/eval_tmp/willow_002 -result_file /media/Data/eval_tmp/willow_002.txt -radius 0.02
+// deprecated
+//-i /media/Data/datasets/TUW/icra_dol_evals -o /media/Data/datasets/TUW/icra_dol_evals/TUW_100.txt -r 0.02
+//-i /media/Data/eval_tmp/willow_002 -o /media/Data/eval_tmp/willow_002.txt -r 0.02
+
+// new
+// -i /home/thomas/Desktop/out_TUW -g /media/Data/datasets/TUW/TUW_gt_models -o /home/thomas/TUW_icra16_results.txt -r 0.02 -s _dol.pcd
 
 #include <v4r/io/filesystem.h>
 #include <v4r/common/miscellaneous.h>
@@ -12,6 +16,9 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <iostream>
 #include <fstream>
+#include <boost/program_options.hpp>
+
+namespace po = boost::program_options;
 
 class Result
 {
@@ -22,6 +29,14 @@ public:
     std::string model_id_;
     std::string view_id_;
 };
+
+bool hasEnding (const std::string  &fullString, const std::string &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
 
 template<typename PointT> double
 computeRecall(const typename pcl::PointCloud<PointT>::ConstPtr &gt, const typename pcl::PointCloud<PointT>::ConstPtr &searchPoints, double &avg_error, float radius=0.005f)
@@ -68,23 +83,42 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
 
-    std::string input_dir, result_file;
+    std::string input_dir, gt_dir, output_file, suffix = "_dol.pcd";
     float radius=0.005f;
     bool visualize = false;
     std::vector<Result> result;
 
     pcl::visualization::PCLVisualizer::Ptr vis_;
 
-    pcl::console::parse_argument (argc, argv, "-visualize", visualize);
-    pcl::console::parse_argument (argc, argv, "-input_dir", input_dir);
-    pcl::console::parse_argument (argc, argv, "-radius", radius);
-    pcl::console::parse_argument (argc, argv, "-result_file", result_file);
+    po::options_description desc("Evaluation Dynamic Object Learning with Ground Truth\n======================================\n **Allowed options");
+    desc.add_options()
+            ("help,h", "produce help message")
+            ("input_dir,i", po::value<std::string>(&input_dir)->required(), "directory containing the learnt object model as .pcd files")
+            ("gt_dir,g", po::value<std::string>(&gt_dir)->required(), "directory containing the ground-truth object models as .pcd files")
+            ("output_file,o", po::value<std::string>(&output_file)->required(), "output file")
+            ("suffix,s", po::value<std::string>(&suffix)->default_value(suffix), "File name suffix for files containing the learnt object models")
+            ("radius,r", po::value<float>(&radius)->default_value(radius), "directory containing the model .pcd files")
+            ("visualize,v", po::bool_switch(&visualize), "turn visualization on")
+    ;
 
-    if (input_dir.compare ("") == 0)
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    if (vm.count("help"))
     {
-        PCL_ERROR("Set the input directory. Usage -input_dir [path_to_dir].\n");
-        return -1;
+        std::cout << desc << std::endl;
+        return false;
     }
+
+    try
+    {
+        po::notify(vm);
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
+        return false;
+    }
+
     if(visualize)
         vis_.reset( new pcl::visualization::PCLVisualizer("gt and dol object") );
 
@@ -94,6 +128,9 @@ main (int argc, char ** argv)
         std::cerr << "No subfolders in directory " << input_dir << ". " << std::endl;
         sub_folder_names.push_back("");
     }
+
+    Result r_total;
+    size_t total_num_obj = 0;
 
     std::sort(sub_folder_names.begin(), sub_folder_names.end());
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
@@ -107,21 +144,27 @@ main (int argc, char ** argv)
         r.view_id_ = sub_folder_names[ sub_folder_id ];
 
         std::vector< std::string > obj_fn;
-        const std::string sub_folder = input_dir + "/" + sub_folder_names[ sub_folder_id ];
-        v4r::io::getFilesInDirectory(sub_folder, obj_fn, "", ".*_dol.pcd", false);
+        const std::string sub_folder_learnt_objects = input_dir + "/" + sub_folder_names[ sub_folder_id ];
+        const std::string sub_folder_gt_objects = gt_dir + "/" + sub_folder_names[ sub_folder_id ];
+        v4r::io::getFilesInDirectory(sub_folder_learnt_objects, obj_fn, "", ".*" + suffix, false);
+
 
         std::sort(obj_fn.begin(), obj_fn.end());
         for (size_t o_id=0; o_id<obj_fn.size(); o_id++)
         {
-            const std::string dol_fn = sub_folder + "/" + obj_fn[ o_id ];
+            const std::string dol_fn = sub_folder_learnt_objects + "/" + obj_fn[ o_id ];
+
+            if (hasEnding( dol_fn, "_ds_dol.pcd") ) // we don't want to process the downsampled version (used for finman et al)
+                continue;
+
             pcl::PointCloud<PointT>::Ptr obj_dol (new pcl::PointCloud<PointT>());
             pcl::io::loadPCDFile(dol_fn, *obj_dol);
 
-            std::string gt_fn = dol_fn;
-            boost::replace_last (gt_fn, "_dol.pcd", ".pcd");
+            std::string gt_fn = obj_fn[ o_id ];
+            boost::replace_last (gt_fn, suffix, ".pcd");
+            gt_fn = sub_folder_gt_objects + "/" + gt_fn;
             pcl::PointCloud<PointT>::Ptr obj_gt (new pcl::PointCloud<PointT>());
             pcl::io::loadPCDFile(gt_fn, *obj_gt);
-
 
             pcl::PointCloud<PointT>::Ptr src (new pcl::PointCloud<PointT>());
             pcl::PointCloud<PointT>::Ptr trgt (new pcl::PointCloud<PointT>());
@@ -175,14 +218,24 @@ main (int argc, char ** argv)
         r.recall_ = rec_accum / num_obj;
         r.precision_ = prec_accum / num_obj;
         result.push_back(r);
+
+        r_total.error_ += error_accum;
+        r_total.recall_ += rec_accum;
+        r_total.precision_ += prec_accum;
+        total_num_obj += num_obj;
     }
 
+    r_total.error_ /= static_cast<float>(total_num_obj);
+    r_total.recall_ /= static_cast<float>(total_num_obj);
+    r_total.precision_ /= static_cast<float>(total_num_obj);
+
     ofstream file;
-    file.open (result_file.c_str());
+    file.open (output_file.c_str());
     for(size_t i=0; i<result.size(); i++)
     {
         file << result[i].recall_ << " " << result[i].precision_ << " " << result[i].model_id_ << " " << result[i].view_id_ << " " << result[i].error_ << std::endl;
     }
+    file << std::endl << r_total.recall_ << " " << r_total.precision_ << " " << r_total.model_id_ << " mean " << r_total.error_ << std::endl;
     file.close();
     return 0;
 }

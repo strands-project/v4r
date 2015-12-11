@@ -1,4 +1,3 @@
-
 #include <v4r/common/miscellaneous.h>
 #include <v4r/object_modelling/do_learning.h>
 #include <v4r/io/filesystem.h>
@@ -6,6 +5,7 @@
 #include <pcl/io/pcd_io.h>
 #include <iostream>
 #include <fstream>
+
 #include <time.h>
 
 #include <boost/any.hpp>
@@ -13,20 +13,30 @@
 
 namespace po = boost::program_options;
 
-//-radius 0.01 -dot_product 0.95 -normal_method 1 -chop_z 1.8  -scenes_dir  /media/Data/datasets/TUW/test_set_icra16 -input_mask_dir /media/Data/datasets/TUW/TUW_gt_models -output_dir /home/thomas/Documents/TUW_dol_eval/ -visualize 0 -min_plane_points 100 -ratio_cluster_occluded 0.75 -ratio_cluster_obj_supported 0.25 -inlier_threshold_plane_seg 0.05
+//--do_erosion 1 --radius 0.005 --dot_product 0.99 --normal_method 0 -z 2 --transfer_latest_only 0 --do_sift_based_camera_pose_estimation 0 -s /media/Data/datasets/TUW_new/test_set_icra16 -m /media/Data/datasets/TUW/TUW_gt_models_first -o /home/thomas/Desktop/out_TUW/
 
+//deprecated
 //-do_erosion 1 -radius 0.005 -dot_product 0.99 -normal_method 0 -chop_z 2 -transfer_latest_only 0 -do_sift_based_camera_pose_estimation 0 -scenes_dir /media/Data/datasets/TUW/test_set -input_mask_dir /home/thomas/Desktop/test -output_dir /home/thomas/Desktop/out_test/ -visualize 1
+
+double getTimeDiff(timeval a, timeval b);
+
+double getTimeDiff(timeval a, timeval b)
+{
+    double first = a.tv_sec + (a.tv_usec/1000000.0);
+    double second = b.tv_sec + (b.tv_usec/1000000.0);
+
+    return (first - second)*1000;
+}
 
 int
 main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
 
-    std::string scene_dir, input_mask_dir, output_dir = "/tmp/dol/", output_rec_dir="/tmp/dol_rec/",
-            recognition_structure_dir = "/tmp/recognition_structure_dir";
-
+    std::string scene_dir, input_mask_dir, output_dir, output_rec_dir="/tmp/dol/", recognition_structure_dir="/tmp/dol_rec/";
     bool visualize = false;
     size_t min_mask_points = 50;
+    bool first_frame_only=false; // used for evaluation when only using the first view
 
     v4r::object_modelling::DOL m;
 
@@ -37,7 +47,7 @@ main (int argc, char ** argv)
             ("input_mask_dir,m", po::value<std::string>(&input_mask_dir)->required(), "directory containing the object masks used as a seed to learn the object in the first cloud")
             ("output_dir,o", po::value<std::string>(&output_dir)->default_value(output_dir), "Output directory where the model and parameter values will be stored")
             ("output_rec_dir", po::value<std::string>(&output_rec_dir)->default_value(output_rec_dir), "Output directory where the learnt model will be saved as recognition model (3D model + training views)")
-            //("recognition_structure_dir", po::value<std::string>(&recognition_structure_dir)->default_value(recognition_structure_dir), "")
+            ("recognition_structure_dir", po::value<std::string>(&recognition_structure_dir)->default_value(recognition_structure_dir), "")
 
             ("radius,r", po::value<double>(&m.param_.radius_)->default_value(m.param_.radius_), "Radius used for region growing. Neighboring points within this distance are candidates for clustering it to the object model.")
             ("dot_product", po::value<double>(&m.param_.eps_angle_)->default_value(m.param_.eps_angle_), "Threshold for the normals dot product used for region growing. Neighboring points with a surface normal within this threshold are candidates for clustering it to the object model.")
@@ -102,8 +112,6 @@ main (int argc, char ** argv)
                   << "min_plane_points" << m.p_param_.minPoints << std::endl;
     param_file.close();
 
-    srand(time(NULL));
-
     std::vector< std::string> sub_folder_names;
     if(!v4r::io::getFoldersInDirectory( scene_dir, "", sub_folder_names) )
     {
@@ -113,11 +121,10 @@ main (int argc, char ** argv)
 
     std::sort(sub_folder_names.begin(), sub_folder_names.end());
 
+    v4r::io::createDirIfNotExist(output_dir + "/models");
+
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {
-        const std::string output_dir_w_sub = output_dir + "/" + sub_folder_names[ sub_folder_id ];
-        v4r::io::createDirIfNotExist(output_dir_w_sub);
-
         const std::string annotations_dir = input_mask_dir + "/" + sub_folder_names[ sub_folder_id ];
         std::vector< std::string > mask_file_v;
         v4r::io::getFilesInDirectory(annotations_dir, mask_file_v, "", ".*.txt", false);
@@ -142,93 +149,6 @@ main (int argc, char ** argv)
             if ( mask.size() < min_mask_points) // not enough points to grow an object
                 continue;
 
-            cv::Mat mask_img = cv::Mat(480, 640, CV_8UC1);
-            for(int r=0; r < mask_img.rows; r++)
-                for(int c=0; c < mask_img.cols; c++)
-                    mask_img.at<unsigned char>(r,c) = 0;
-
-            for(size_t i=0; i < mask.size(); i++)
-            {
-                int r,c;
-                r = mask[i] / mask_img.cols;
-                c = mask[i] % mask_img.cols;
-
-                mask_img.at<unsigned char>(r,c) = 255;
-            }
-            cv::Mat const structure_elem = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
-            cv::Mat close_result;
-            cv::morphologyEx(mask_img, close_result, cv::MORPH_CLOSE, structure_elem);
-
-            cv::Mat mask_img_out = cv::Mat(480, 640, CV_8UC1);
-
-            for (size_t noise_width = 5; noise_width < 81; noise_width=noise_width+10)
-            {
-//                cv::Mat mask_dst;/*
-//                cv::erode(close_result, mask_dst, cv::Mat(), cv::Point(-1,-1), 1+std::floor(noise_width/4));
-//                cv::blur( close_result, mask_img_out, cv::Size(noise_width, noise_width));
-                cv::GaussianBlur(close_result, mask_img_out, cv::Size(noise_width, noise_width), 0, 0, cv::BORDER_DEFAULT );
-//                cv::medianBlur( close_result, mask_img_out, noise_width);
-//                cv::Mat mask_img = cv::Mat(480, 640, CV_8UC1);
-//                for(size_t r=0; r < mask_img_out.rows; r++)
-//                {
-//                    for(size_t c=0; c < mask_img_out.cols; c++)
-//                    {
-//                        int tmp = std::abs( mask_img_out.at<unsigned char>(r,c) - (int)128);
-//                        mask_img_out.at<unsigned char>(r,c) = tmp;
-//                    }
-//                 }
-//                cv::namedWindow("mask");
-//                cv::imshow("mask",mask_img);
-//                cv::namedWindow("close");
-//                cv::imshow("close",close_result);
-//                cv::namedWindow("mask_img_out");
-//                cv::imshow("mask_img_out",mask_img_out);
-//                cv::namedWindow("diff");
-                cv::Mat diff = cv::abs(mask_img_out-close_result);
-//                std::cout << diff << std::endl;
-//                cv::imshow("diff", diff);
-
-                cv::Mat noise = cv::Mat(480, 640, CV_8UC1);
-                for(int r=0; r < mask_img.rows; r++)
-                {
-                    for(int c=0; c < mask_img.cols; c++)
-                    {
-                        if (diff.at<unsigned char>(r,c) > 5)
-                        {
-                            if (rand()%255 > 128)
-                                noise.at<unsigned char>(r,c)  = 255;
-                            else
-                                noise.at<unsigned char>(r,c)  = 0;
-                        }
-                        else
-                            noise.at<unsigned char>(r,c) = mask_img.at<unsigned char>(r,c);
-                    }
-                }
-
-             std::ofstream f;
-             std::string out_mask_fn = output_dir_w_sub + "/" + mask_file_v[o_id];
-             std::stringstream suffix_mask;
-             suffix_mask << "mask_" << noise_width << ".txt";
-             boost::replace_last (out_mask_fn, "mask.txt", suffix_mask.str());
-             f.open(out_mask_fn.c_str());
-             std::vector<size_t> mask_pertubated;
-             for(int r=0; r < mask_img.rows; r++)
-             {
-                 for(int c=0; c < mask_img.cols; c++)
-                 {
-                     if (noise.at<unsigned char>(r,c)  > 128)
-                     {
-                         const int idx = r*640+c;
-                         mask_pertubated.push_back(idx);
-                         f << idx << std::endl;
-                     }
-                 }
-             }
-             f.close();
-//                cv::namedWindow("noise");
-//                cv::imshow("noise", cv::abs(noise));
-//                cv::waitKey(0);
-//                continue;
 
             const std::string scene_path = scene_dir + "/" + sub_folder_names[ sub_folder_id ];
             std::vector< std::string > views;
@@ -238,6 +158,9 @@ main (int argc, char ** argv)
 
             std::cout << "Learning object from mask " << mask_file << " for scene " << scene_path << std::endl;
 
+            timeval start, stop;
+
+            gettimeofday(&start, NULL);
             for(size_t v_id=0; v_id<views.size(); v_id++)
             {
                 const std::string view_file = scene_path + "/" + views[ v_id ];
@@ -252,21 +175,27 @@ main (int argc, char ** argv)
                 pCloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
 
                 if (v_id==0)
-                    m.learn_object(*pCloud, trans, mask_pertubated);
+                    m.learn_object(*pCloud, trans, mask);
                 else
-                    m.learn_object(*pCloud, trans);
+                {
+                    if(!first_frame_only)
+                        m.learn_object(*pCloud, trans);
+                }
             }
+            gettimeofday(&stop, NULL);
 
-            std::string out_fn = mask_file_v[o_id];
-            std::stringstream suffix;
-            suffix << "dol_" << noise_width << ".pcd";
-            boost::replace_last (out_fn, "mask.txt", suffix.str());
-            m.save_model(output_dir_w_sub, recognition_structure_dir, out_fn);
-            m.write_model_to_disk(output_rec_model.str(), output_rec_structure.str(), sub_folder_names[ sub_folder_id ]+"_object.pcd");
+            m.save_model(output_dir + "/models", output_dir + "/training_data/", sub_folder_names[ sub_folder_id ] + "_dol.pcd");
+//            m.write_model_to_disk(output_rec_model.str(), output_rec_structure.str(), sub_folder_names[ sub_folder_id ]+"_object.pcd");
             if (visualize)
                 m.visualize();
             m.clear();
-            }
+
+            // write running time to file
+            std::string timing_fn = output_dir + "/" + sub_folder_names[ sub_folder_id ] + "_timing.nfo";
+            double learning_time = getTimeDiff(stop, start);
+            ofstream f( timing_fn.c_str() );
+            f << learning_time;
+            f.close();
         }
     }
     return 0;

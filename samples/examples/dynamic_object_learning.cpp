@@ -8,7 +8,6 @@
 
 #include <boost/any.hpp>
 #include <boost/program_options.hpp>
-#include <glog/logging.h>
 
 namespace po = boost::program_options;
 
@@ -19,7 +18,7 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
 
-    std::string scene_dir, input_mask_dir, output_dir;
+    std::string scene_dir, input_mask_dir, output_dir = "/tmp/dol/";
     bool visualize;
     size_t min_mask_points = 50;
 
@@ -28,8 +27,12 @@ main (int argc, char ** argv)
     po::options_description desc("Dynamic Object Learning\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
-            ("radius", po::value<double>( &m.param_.radius_ )->default_value( m.param_.radius_ ), "")
-            ("dot_product", po::value<double>( &m.param_.eps_angle_ )->default_value( m.param_.eps_angle_ ), "")
+            ("scenes_dir,s", po::value<std::string>(&scene_dir )->required(), "input directory with .pcd files of the scenes. Each folder is considered as seperate sequence. Views are sorted alphabetically and object mask is applied on first view.")
+            ("input_mask_dir,m", po::value<std::string>(&input_mask_dir )->required(), "directory containing the object masks used as a seed to learn the object in the first cloud")
+            ("output_dir,o", po::value<std::string>(&output_dir )->default_value(output_dir), "Output directory where the model and parameter values will be stored")
+
+            ("radius,r", po::value<double>( &m.param_.radius_ )->default_value( m.param_.radius_ ), "Radius used for region growing. Neighboring points within this distance are candidates for clustering it to the object model.")
+            ("dot_product", po::value<double>( &m.param_.eps_angle_ )->default_value( m.param_.eps_angle_ ), "Threshold for the normals dot product used for region growing. Neighboring points with a surface normal within this threshold are candidates for clustering it to the object model.")
             ("dist_threshold_growing", po::value<double>( &m.param_.dist_threshold_growing_ )->default_value( m.param_.dist_threshold_growing_ ), "")
             ("seed_res", po::value<double>( &m.param_.seed_resolution_ )->default_value( m.param_.seed_resolution_ ), "")
             ("voxel_res", po::value<double>( &m.param_.voxel_resolution_ )->default_value( m.param_.voxel_resolution_ ), "")
@@ -38,22 +41,19 @@ main (int argc, char ** argv)
             ("do_mst_refinement", po::value<bool>( &m.param_.do_mst_refinement_ )->default_value( m.param_.do_mst_refinement_ ), "")
             ("do_sift_based_camera_pose_estimation", po::value<bool>( &m.param_.do_sift_based_camera_pose_estimation_ )->default_value( m.param_.do_sift_based_camera_pose_estimation_ ), "")
             ("transfer_latest_only", po::value<bool>( &m.param_.transfer_indices_from_latest_frame_only_ )->default_value( m.param_.transfer_indices_from_latest_frame_only_ ), "")
-            ("chop_z", po::value<double>( &m.param_.chop_z_ )->default_value( m.param_.chop_z_ ), "")
+            ("chop_z,z", po::value<double>( &m.param_.chop_z_ )->default_value( m.param_.chop_z_ ), "Cut-off distance of the input clouds with respect to the camera. Points further away than this distance will be ignored.")
             ("normal_method", po::value<int>( &m.param_.normal_method_ )->default_value( m.param_.normal_method_ ), "")
             ("ratio_cluster_obj_supported", po::value<double>( &m.param_.ratio_cluster_obj_supported_ )->default_value( m.param_.ratio_cluster_obj_supported_ ), "")
             ("ratio_cluster_occluded", po::value<double>( &m.param_.ratio_cluster_occluded_ )->default_value( m.param_.ratio_cluster_occluded_ ), "")
-            ("visualize", po::value<bool>( &visualize )->default_value( false ), "")
 
-            ("stat_outlier_removal_meanK", po::value<int>( &m.sor_params_.meanK_ )->default_value( m.sor_params_.meanK_ ), "")
-            ("stat_outlier_removal_std_mul", po::value<double>( &m.sor_params_.std_mul_ )->default_value( m.sor_params_.std_mul_ ), "")
+            ("stat_outlier_removal_meanK", po::value<int>( &m.sor_params_.meanK_ )->default_value( m.sor_params_.meanK_ ), "MeanK used for statistical outlier removal (see PCL documentation)")
+            ("stat_outlier_removal_std_mul", po::value<double>( &m.sor_params_.std_mul_ )->default_value( m.sor_params_.std_mul_ ), "Standard Deviation multiplier used for statistical outlier removal (see PCL documentation)")
             ("inlier_threshold_plane_seg", po::value<double>( &m.p_param_.inlDist )->default_value( m.p_param_.inlDist ), "")
-            ("min_points_smooth_cluster", po::value<int>( &m.p_param_.minPointsSmooth )->default_value( m.p_param_.minPointsSmooth ), "")
-            ("min_plane_points", po::value<int>( &m.p_param_.minPoints )->default_value( m.p_param_.minPoints ), "")
-            ("smooth_clustering", po::value<bool>( &m.p_param_.smooth_clustering )->default_value( m.p_param_.smooth_clustering ), "")
+            ("min_points_smooth_cluster", po::value<int>( &m.p_param_.minPointsSmooth )->default_value( m.p_param_.minPointsSmooth ), "Minimum number of points for a cluster")
+            ("min_plane_points", po::value<int>( &m.p_param_.minPoints )->default_value( m.p_param_.minPoints ), "Minimum number of points for a cluster to be a candidate for a plane")
+            ("smooth_clustering", po::value<bool>( &m.p_param_.smooth_clustering )->default_value( m.p_param_.smooth_clustering ), "If true, does smooth clustering. Otherwise only plane clustering.")
 
-            ("scenes_dir", po::value<std::string>(&scene_dir )->required(), "")
-            ("input_mask_dir", po::value<std::string>(&input_mask_dir )->required(), "")
-            ("output_dir", po::value<std::string>(&output_dir )->required(), "")
+            ("visualize,v", po::bool_switch(&visualize), "turn visualization on")
    ;
 
     po::variables_map vm;
