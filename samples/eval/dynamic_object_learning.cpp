@@ -33,7 +33,7 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
 
-    std::string scene_dir, input_mask_dir, output_dir, output_rec_dir="/tmp/dol/", recognition_structure_dir="/tmp/dol_rec/";
+    std::string scene_dir, input_mask_dir, output_dir;
     bool visualize = false;
     size_t min_mask_points = 50;
     bool first_frame_only=false; // used for evaluation when only using the first view
@@ -45,9 +45,7 @@ main (int argc, char ** argv)
             ("help,h", "produce help message")
             ("scenes_dir,s", po::value<std::string>(&scene_dir)->required(), "input directory with .pcd files of the scenes. Each folder is considered as seperate sequence. Views are sorted alphabetically and object mask is applied on first view.")
             ("input_mask_dir,m", po::value<std::string>(&input_mask_dir)->required(), "directory containing the object masks used as a seed to learn the object in the first cloud")
-            ("output_dir,o", po::value<std::string>(&output_dir)->default_value(output_dir), "Output directory where the model and parameter values will be stored")
-            ("output_rec_dir", po::value<std::string>(&output_rec_dir)->default_value(output_rec_dir), "Output directory where the learnt model will be saved as recognition model (3D model + training views)")
-            ("recognition_structure_dir", po::value<std::string>(&recognition_structure_dir)->default_value(recognition_structure_dir), "")
+            ("output_dir,o", po::value<std::string>(&output_dir)->default_value(output_dir), "Output directory where the model, training data, timing information and parameter values will be stored")
 
             ("radius,r", po::value<double>(&m.param_.radius_)->default_value(m.param_.radius_), "Radius used for region growing. Neighboring points within this distance are candidates for clustering it to the object model.")
             ("dot_product", po::value<double>(&m.param_.eps_angle_)->default_value(m.param_.eps_angle_), "Threshold for the normals dot product used for region growing. Neighboring points with a surface normal within this threshold are candidates for clustering it to the object model.")
@@ -94,13 +92,7 @@ main (int argc, char ** argv)
 
     m.initSIFT();
 
-    std::stringstream output_rec_model, output_rec_structure;
-    output_rec_model << output_rec_dir << "/models/";
-    output_rec_structure << output_rec_dir << "/recognition_structure/";
-
     v4r::io::createDirIfNotExist(output_dir);
-    v4r::io::createDirIfNotExist(output_rec_model.str());
-    v4r::io::createDirIfNotExist(output_rec_structure.str());
 
     ofstream param_file;
     param_file.open ((output_dir + "/param.nfo").c_str());
@@ -185,13 +177,12 @@ main (int argc, char ** argv)
             gettimeofday(&stop, NULL);
 
             m.save_model(output_dir + "/models", output_dir + "/training_data/", sub_folder_names[ sub_folder_id ] + "_dol.pcd");
-//            m.write_model_to_disk(output_rec_model.str(), output_rec_structure.str(), sub_folder_names[ sub_folder_id ]+"_object.pcd");
             if (visualize)
                 m.visualize();
             m.clear();
 
             // write running time to file
-            std::string timing_fn = output_dir + "/" + sub_folder_names[ sub_folder_id ] + "_timing.nfo";
+            const std::string timing_fn = output_dir + "/" + sub_folder_names[ sub_folder_id ] + "_timing.nfo";
             double learning_time = getTimeDiff(stop, start);
             ofstream f( timing_fn.c_str() );
             f << learning_time;
