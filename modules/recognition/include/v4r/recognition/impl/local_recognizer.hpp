@@ -209,6 +209,8 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                 boost::split (strs, m->view_filenames_[v], boost::is_any_of ("_"));
                 boost::replace_last(strs[1], ".pcd", "");
                 view_id_length_ = strs[1].size();
+                int view_id;
+                std::istringstream ( strs[1] ) >> view_id;
 
 
                 computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
@@ -243,15 +245,15 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                     io::createDirIfNotExist(dir);
 
                     //save keypoints and descriptors to disk
-                    std::stringstream kp_fn; kp_fn << dir << "/keypoints_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
+                    std::stringstream kp_fn; kp_fn << dir << "/keypoints_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
                     pcl::io::savePCDFileBinary (kp_fn.str (), *object_keypoints);
 
-                    std::stringstream desc_fn; desc_fn << dir << "/descriptors_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
+                    std::stringstream desc_fn; desc_fn << dir << "/descriptors_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
                     pcl::io::savePCDFileBinary (desc_fn.str (), *object_signatures);
 
                     pcl::PointCloud<pcl::Normal>::Ptr normals_keypoints(new pcl::PointCloud<pcl::Normal>);
                     pcl::copyPointCloud(*normals, obj_kp_indices, *normals_keypoints);
-                    std::stringstream normals_fn; normals_fn << dir << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
+                    std::stringstream normals_fn; normals_fn << dir << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
                     pcl::io::savePCDFileBinary (normals_fn.str (), *normals_keypoints);
                 }
             }
