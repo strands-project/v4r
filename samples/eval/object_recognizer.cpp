@@ -267,7 +267,7 @@ public:
             const std::string out_path = out_dir_ + "/" + sub_folder_names[ sub_folder_id ];
             v4r::io::createDirIfNotExist(out_path);
 
-            rec_models_per_id_.clear();
+            rec_models_per_id_.clear();     // shouldn't this go inside next for?
 
             std::vector< std::string > views;
             v4r::io::getFilesInDirectory(sequence_path, views, "", ".*.pcd", false);

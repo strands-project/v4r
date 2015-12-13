@@ -2,7 +2,6 @@
 #  CMake file for C samples. See root CMakeLists.txt
 #
 # ----------------------------------------------------------------------------
-
 SET(V4R_ICRA16_SAMPLES_REQUIRED_DEPS v4r_common v4r_features v4r_keypoints v4r_recognition v4r_registration v4r_segmentation v4r_core v4r_io v4r_object_modelling)
 
 if(HAVE_PCL)
@@ -20,10 +19,19 @@ if(HAVE_EDT)
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
 endif()
 
-
 if(HAVE_CERES)
   v4r_include_directories(${CERES_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${CERES_LIBRARIES})
+endif()
+
+if(HAVE_BOOST)
+  v4r_include_directories(${BOOST_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
+endif()
+
+if(HAVE_GLOG)
+  v4r_include_directories(${GLOG_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${GLOG_LIBRARIES})
 endif()
 
 v4r_check_dependencies(${V4R_ICRA16_SAMPLES_REQUIRED_DEPS})

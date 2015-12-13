@@ -110,10 +110,10 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
     //std::cout << (end_time - start_time).total_microseconds () << " microsecs" << std::endl;
     double cost = (good_info - bad_info - duplicity - unexplained_info - duplicity_cm - countActiveHypotheses (active) - countPointsOnDifferentPlaneSides(active)) * -1.f;
 
-    std::cout << "COST: " << cost << " (good info: " << good_info << ", bad _info: " << bad_info << ", duplicity:" << duplicity <<
-                 ", unexplained_info: " << unexplained_info << ", duplicity_cm: " << duplicity_cm <<
-                 ", ActiveHypotheses: " << countActiveHypotheses (active) <<
-                 ", PointsOnDifferentPlaneSides: " <<  countPointsOnDifferentPlaneSides(active) << ")" << std::endl;
+//    std::cout << "COST: " << cost << " (good info: " << good_info << ", bad _info: " << bad_info << ", duplicity:" << duplicity <<
+//                 ", unexplained_info: " << unexplained_info << ", duplicity_cm: " << duplicity_cm <<
+//                 ", ActiveHypotheses: " << countActiveHypotheses (active) <<
+//                 ", PointsOnDifferentPlaneSides: " <<  countPointsOnDifferentPlaneSides(active) << ")" << std::endl;
 
 
     if(cost_logger_) {
