@@ -253,7 +253,7 @@ public:
 
         v4r::io::getFilesInDirectory(in_model_dir_, model_list, "", ".*.pcd", false);
         std::sort(model_list.begin(), model_list.end());
-        for (size_t replaced_m_id=1; replaced_m_id<model_list.size(); replaced_m_id++)
+        for (size_t replaced_m_id=0; replaced_m_id<model_list.size(); replaced_m_id++)
         {
             const std::string replaced_model = model_list [replaced_m_id];
 
