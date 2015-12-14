@@ -241,7 +241,7 @@ public:
         std::cout << "There are " << files.size() << " models." << std::endl;
 
         models_.clear();
-
+        std::sort(files.begin(), files.end());
         for (size_t i = 0; i < files.size (); i++)
         {
             ModelTPtr m(new ModelT);
