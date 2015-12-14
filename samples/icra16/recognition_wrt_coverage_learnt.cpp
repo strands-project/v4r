@@ -295,6 +295,8 @@ public:
 
         v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB>::Parameter nm_param;
 
+
+        // iterate through all models and evaluate one after another
         v4r::io::getFilesInDirectory(in_turntable_ + "/models", model_list, "", ".*.pcd", false);
         std::sort(model_list.begin(), model_list.end());
         for (size_t replaced_m_id=0; replaced_m_id<model_list.size(); replaced_m_id++)
@@ -406,6 +408,10 @@ public:
             {
                 const std::string search_path = in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd";
                 training_views.clear();
+
+                if(!v4r::io::existsFolder(search_path)) // in case that object modelling for a patrol run was not succesful skip it
+                    continue;
+
                 v4r::io::getFilesInDirectory(search_path, training_views, "", ".*cloud.*.pcd");
                 training_views = sortViews(training_views);
 

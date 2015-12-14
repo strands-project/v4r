@@ -103,11 +103,9 @@ public:
     {
         std::ofstream f;
         f.open (filename.c_str());
-        for (size_t i=0; i < eval_pr_.size(); i++)
-        {
-            const Eval &e = eval_pr_[i];
-            f << e.eval_id_ << " " << e.tp_ << " " << e.fp_ << " " << e.fn_ << std::endl;
-        }
+        f << num_trained_views_ << " " << num_total_views_ << " " << num_visible_pts_ << " " << num_total_pts_ << " " <<
+             static_cast<float>(num_visible_pts_)/num_total_pts_ << " " << avg_precision()  <<
+             " " << avg_recall() << " " << precision() << " " << recall() << std::endl;
         f.close();
     }
 
@@ -153,11 +151,11 @@ struct less_f_score
 int main(int argc, char ** argv)
 {
 
-    std::string anno_gt = "/media/Data/datasets/icra16/gt_annotations_new";
-    std::string models_dir = "/media/Data/datasets/icra16/models";
-    std::string rec_results = "/home/thomas/icra_rec_partial/cereal_box.pcd";
-    std::string test_set_root_dir = "/media/Data/datasets/icra16/keyframes/controlled_ba";
-    std::string out_file = "/tmp/eval_partial_model_rec_results.txt";
+    std::string anno_gt = "/home/thomas/Documents/icra16/gt_annotations";
+    std::string models_dir = "/home/thomas/Documents/icra16/turntable_models/models";
+    std::string rec_results = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage/turntable";
+    std::string test_set_root_dir = "/home/thomas/Documents/icra16/keyframes/controlled_ba";
+    std::string out_dir = "/tmp/eval_partial_model_rec_results/";
 
     po::options_description desc("Evaluation of partial model recognition results\n**Allowed options");
     desc.add_options()
@@ -166,184 +164,123 @@ int main(int argc, char ** argv)
             ("rec_results,r", po::value<std::string>(&rec_results)->default_value(rec_results), "")
             ("models_dir,m", po::value<std::string>(&models_dir)->default_value(models_dir), "")
             ("test_set_root_dir,t", po::value<std::string>(&test_set_root_dir)->default_value(test_set_root_dir), "")
-  ;
-     po::variables_map vm;
-     po::store(po::parse_command_line(argc, argv, desc), vm);
-     if (vm.count("help"))
-     {
-         std::cout << desc << std::endl;
-         return false;
-     }
-
-     try
-     {
-         po::notify(vm);
-     }
-     catch(std::exception& e)
-     {
-         std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
-         return false;
-     }
-
-     std::vector<std::string> models;
-     v4r::io::getFilesInDirectory(models_dir, models, "", ".*.pcd", false);
-     for(size_t m_id=0; m_id < models.size(); m_id++)
-     {
-         boost::replace_last(models[m_id], ".pcd", "");
-     }
-
-    std::vector<std::string> eval_ids;
-    v4r::io::getFoldersInDirectory(rec_results, "", eval_ids);
-    std::vector<TotalEval> evals(eval_ids.size());
-
-    std::ofstream f(out_file.c_str());
-
-    for(size_t e_id=0; e_id<eval_ids.size(); e_id++)
+            ;
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    if (vm.count("help"))
     {
-        const std::string eval_fn = rec_results + "/" + eval_ids[e_id];
-
-        std::ifstream info_f ( (eval_fn + "/model_info.txt"));
-        std::string model_foo;
-
-        TotalEval te;
-        te.path_ = eval_fn;
-        info_f >> model_foo >> te.num_trained_views_ >> te.num_total_views_ >> te.num_visible_pts_ >> te.num_total_pts_;
-        info_f.close();
-
-        std::vector<std::string> test_runs;
-        v4r::io::getFoldersInDirectory(eval_fn, "", test_runs);
-        for(size_t r_id=0; r_id<test_runs.size(); r_id++)
-        {
-            const std::string or_set = te.path_ + "/" + test_runs[r_id];
-            const std::string test_set = test_set_root_dir + "/" + test_runs[r_id];
-            const std::string anno_gt_set = anno_gt + "/" + test_runs[r_id];
-
-            std::vector<std::string> views;
-            v4r::io::getFilesInDirectory(test_set, views, "", ".*.pcd", true);
-
-            for(size_t v_id=0; v_id < views.size(); v_id++)
-            {
-                std::string cloud_name (views[v_id]);
-                boost::replace_last(cloud_name, ".pcd", "");
-                TotalEval::Eval e;
-
-                for(size_t m_id=0; m_id<models.size(); m_id++)
-                {
-                    const std::string anno_search_pattern = ".*" + cloud_name + "_" + models[m_id] + ".*.txt";
-
-                    std::vector<std::string> annos_gt, annos_or;
-                    v4r::io::getFilesInDirectory(anno_gt_set, annos_gt, "", anno_search_pattern, false);
-                    v4r::io::getFilesInDirectory(or_set, annos_or, "", anno_search_pattern, false);
-
-                    e.fp_ += std::max<int>(0, (int)annos_or.size() - (int)annos_gt.size());
-                    e.fn_ += std::max<int>(0, (int)annos_gt.size() - (int)annos_or.size());
-                    e.tp_ += std::min<int>(annos_gt.size(), annos_or.size());
-
-                    int a=1;
-                    a;
-                }
-                te.eval_pr_.push_back(e);
-
-
-//                for(size_t a_id=0; a_id < annos_gt.size(); a_id++)
-//                {
-//                    std::string occlusion_pattern (views[v_id]);
-//                    boost::replace_last(occlusion_pattern, ".pcd", "_occlusion_");
-
-//                    if(annos_gt[a_id].compare(0, occlusion_pattern.length(), occlusion_pattern) == 0) // ignore occlusion files
-//                        continue;
-
-//                    std::string anno_file = anno_gt_set + "/" + annos_gt[a_id];
-//                    std::string anno_occlusion_file = annos_gt[a_id];
-//                    boost::replace_first(anno_occlusion_file, cloud_name, cloud_name + "_occlusion");
-//                    std::ifstream occ_f ( (anno_gt_set + "/" + anno_occlusion_file).c_str());
-//                    float occlusion_value;
-//                    occ_f >> occlusion_value;
-//                    occ_f.close();
-
-//                    if (occlusion_value > .95)
-//                        continue;
-
-//                    std::vector<std::string> string_parts;
-//                    boost::split (string_parts, annos_gt[a_id], boost::is_any_of ("_"));
-//                    std::string search_pattern = string_parts[0];
-//                    for(size_t s_id=1; s_id < string_parts.size()-1; s_id++)
-//                        search_pattern += "_" + string_parts[s_id];
-
-//                    bool found = false;
-//                    for (size_t or_id=0; or_id < annos_or.size(); or_id++)
-//                    {
-//                        found=true;
-//                    }
-//                }
-
-            }
-
-
-//            TotalEval::Eval epr;
-//            epr.eval_name_ = prefix;
-//            epr.eval_id_ = test_runs[r_id];
-//            boost::replace_all(epr.eval_id_, "patrol_run_", "");
-//            size_t num_views = 0;
-
-//            std::vector<std::string> views;
-//            v4r::io::getFoldersInDirectory(prefix,"",views);
-//            for(size_t t_id=0; t_id<views.size(); t_id++)
-//            {
-//                const std::string test_res_path = prefix + "/" + views[t_id];
-
-//                std::vector<std::string> file_rel;
-//                v4r::io::getFilesInDirectory(test_res_path, file_rel, "", ".*.txt", true);
-
-//                for(size_t r_id=0; r_id<file_rel.size(); r_id++)
-//                {
-//                    const std::string file = test_res_path + "/" + file_rel[ r_id ];
-//                    if( file.find("_patrol_run") != std::string::npos)
-//                    {
-//                        std::cout << file << "***************" << std::endl;
-//                        epr.tp_++;
-//                    }
-//                    else
-//                    {
-//                        std::cout << file << std::endl;
-//                        epr.fp_++;
-//                    }
-//                }
-
-//                num_views+= views_per_run[ views[t_id] ];
-//            }
-//            if ( ((int)num_views - (int)epr.tp_) < 0)
-//                std::cout<< "WHAT???" << std::endl;
-//            epr.fn_ = num_views - epr.tp_;
-//            te.total_fn_ += epr.fn_;
-//            te.total_tp_ += epr.tp_;
-//            te.total_fp_ += epr.fp_;
-//            te.eval_pr_.push_back(epr);
-
-//            TotalEval::Eval &e_obj = object_based_eval_tmp[ pr2obj[test_runs[r_id]] ];
-//            e_obj.fp_ += epr.fp_;
-//            e_obj.tp_ += epr.tp_;
-//            e_obj.fn_ += epr.fn_;
-//        }
-//        te.f_score_ = te.fscore();
-//        online_evals.push_back(te);
-//        online_evals_obj_based.push_back(object_based_eval_tmp);
-//        std::cout << "====================================================================" << std::endl;
-        }
-        evals[e_id] = te;
-
-        std::cout << te.num_trained_views_ << " " << te.num_total_views_ << " " <<
-                     te.num_visible_pts_ << " " << te.num_total_pts_ << " " <<
-                     static_cast<float>(te.num_visible_pts_)/te.num_total_pts_ << " " << te.avg_precision()  <<
-                     " " << te.avg_recall() << " " << te.precision() << " " << te.recall() << std::endl;
-
-        f << te.num_trained_views_ << " " << te.num_total_views_ << " " <<
-                     te.num_visible_pts_ << " " << te.num_total_pts_ << " " <<
-                     static_cast<float>(te.num_visible_pts_)/te.num_total_pts_ << " " << te.avg_precision()  <<
-                     " " << te.avg_recall() << " " << te.precision() << " " << te.recall() << std::endl;
-
+        std::cout << desc << std::endl;
+        return false;
     }
-    f.close();
+
+    try
+    {
+        po::notify(vm);
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
+        return false;
+    }
+
+    std::vector<std::string> models;
+    v4r::io::getFilesInDirectory(models_dir, models, "", ".*.pcd", false);
+    for(size_t m_id=0; m_id < models.size(); m_id++)
+    {
+        boost::replace_last(models[m_id], ".pcd", "");
+    }
+
+    std::vector<std::string> eval_sets;
+    v4r::io::getFoldersInDirectory(rec_results, "", eval_sets);
+
+    for(size_t set_id=0; set_id<eval_sets.size(); set_id++)
+    {
+        const std::string eval_path = rec_results + "/" + eval_sets[set_id];
+
+        std::vector<std::string> eval_ids;
+        v4r::io::getFoldersInDirectory(eval_path, "", eval_ids);
+        std::vector<TotalEval> evals(eval_ids.size());
+
+        const std::string out_fn = out_dir + "/" + eval_sets[set_id] + "/rec_rate_wrt_coverage_result.txt";
+        v4r::io::createDirForFileIfNotExist(out_fn);
+        std::ofstream f(out_fn.c_str());
+
+        for(size_t e_id=0; e_id<eval_ids.size(); e_id++)
+        {
+            const std::string eval_fn = eval_path + "/" + eval_ids[e_id];
+
+            std::ifstream info_f ( (eval_fn + "/model_info.txt"));
+            std::string model_foo;
+
+            TotalEval te;
+            te.path_ = eval_fn;
+            info_f >> model_foo >> te.num_trained_views_ >> te.num_total_views_ >> te.num_visible_pts_ >> te.num_total_pts_;
+            info_f.close();
+
+            std::vector<std::string> test_runs;
+            v4r::io::getFoldersInDirectory(eval_fn, "", test_runs);
+            for(size_t r_id=0; r_id<test_runs.size(); r_id++)
+            {
+                const std::string or_set = te.path_ + "/" + test_runs[r_id];
+                const std::string test_set = test_set_root_dir + "/" + test_runs[r_id];
+                const std::string anno_gt_set = anno_gt + "/" + test_runs[r_id];
+
+                std::vector<std::string> views;
+
+                if(!v4r::io::existsFile(te.path_ + "/" + test_runs[r_id] + "/taken_views.nfo"))
+                {
+                    v4r::io::getFilesInDirectory(test_set, views, "", ".*.pcd", true);
+                }
+                else
+                {
+                    std::ifstream tv_f((te.path_ + "/" + test_runs[r_id] + "/taken_views.nfo").c_str());
+                    std::string line;
+                    while (std::getline(tv_f, line))
+                    {
+                        views.push_back(line);
+                    }
+                }
+
+
+                for(size_t v_id=0; v_id < views.size(); v_id++)
+                {
+                    std::string cloud_name (views[v_id]);
+                    boost::replace_last(cloud_name, ".pcd", "");
+                    TotalEval::Eval e;
+
+                    for(size_t m_id=0; m_id<models.size(); m_id++)
+                    {
+                        const std::string anno_search_pattern = ".*" + cloud_name + "_" + models[m_id] + ".*.txt";
+
+                        std::vector<std::string> annos_gt, annos_or;
+
+                        if(!v4r::io::existsFolder(anno_gt_set)) // if there are no annotations for this run, just skip
+                            continue;
+
+                        v4r::io::getFilesInDirectory(anno_gt_set, annos_gt, "", anno_search_pattern, false);
+                        v4r::io::getFilesInDirectory(or_set, annos_or, "", anno_search_pattern, false);
+
+                        e.fp_ += std::max<int>(0, (int)annos_or.size() - (int)annos_gt.size());
+                        e.fn_ += std::max<int>(0, (int)annos_gt.size() - (int)annos_or.size());
+                        e.tp_ += std::min<int>(annos_gt.size(), annos_or.size());
+                    }
+                    te.eval_pr_.push_back(e);
+                }
+                evals[e_id] = te;
+            }
+            std::cout << te.num_trained_views_ << " " << te.num_total_views_ << " " <<
+                         te.num_visible_pts_ << " " << te.num_total_pts_ << " " <<
+                         static_cast<float>(te.num_visible_pts_)/te.num_total_pts_ << " " << te.avg_precision()  <<
+                         " " << te.avg_recall() << " " << te.precision() << " " << te.recall() << std::endl;
+
+
+            f << te.num_trained_views_ << " " << te.num_total_views_ << " " <<
+                 te.num_visible_pts_ << " " << te.num_total_pts_ << " " <<
+                 static_cast<float>(te.num_visible_pts_)/te.num_total_pts_ << " " << te.avg_precision()  <<
+                 " " << te.avg_recall() << " " << te.precision() << " " << te.recall() << std::endl;
+        }
+        f.close();
+    }
 
     return 0;
 }
