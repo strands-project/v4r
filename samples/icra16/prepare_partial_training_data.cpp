@@ -63,6 +63,7 @@ private:
     std::string out_results_;
     std::vector<std::string> model_list;
     bool visualize_;
+    size_t step_size_start_training_views_, step_size_test_views_;
 
     // recognition stuff
     v4r::GHV<PointT, PointT>::Parameter paramGHV;
@@ -108,9 +109,9 @@ public:
     EvalPartialModelRecognizer(const Parameter &p = Parameter())
     {
         param_ = p;
-        out_tmp_model_dir_ = "/tmp/models/";
-        out_tmp_training_dir_ = "/tmp/training_dir/";
-        out_results_ = "/tmp/rec_results";
+        out_tmp_model_dir_ = "/tmp/modelss/";
+        out_tmp_training_dir_ = "/tmp/training_dirr/";
+        out_results_ = "/tmp/rec_resultss";
 
 
         paramGgcg.max_time_allowed_cliques_comptutation_ = 100;
@@ -118,6 +119,8 @@ public:
         paramLocalRecSift.save_hypotheses_ = paramLocalRecShot.save_hypotheses_ = true;
         paramLocalRecShot.kdtree_splits_ = 128;
         visualize_ = false;
+        step_size_start_training_views_ = 1;
+        step_size_test_views_ = 1;
     }
 
 
@@ -131,6 +134,9 @@ public:
                 ("in_training_dir", po::value<std::string>(&in_training_dir_)->required(), "input training directory")
                 ("test_dir,t", po::value<std::string>(&test_dir_)->required(), "test directory")
                 ("info_file,i", po::value<std::string>(&info_file_)->required(), "which describes which test folder belongs to which object (format: \"test_folder_id patrol_run_id object_name\\n\")")
+                ("out_dir,o", po::value<std::string>(&out_results_)->default_value(out_results_), "output directory")
+                ("step_size_start_training_views_", po::value<size_t>(&step_size_start_training_views_)->default_value(step_size_start_training_views_), "step size taking from one bunch of partial views to the next")
+                ("step_size_test_views_", po::value<size_t>(&step_size_test_views_)->default_value(step_size_test_views_), "step size taking from one bunch of partial views to the next")
 
                 ("do_sift", po::value<bool>(&param_.do_sift_)->default_value(param_.do_sift_), "if true, generates hypotheses using SIFT (visual texture information)")
                 ("do_shot", po::value<bool>(&param_.do_shot_)->default_value(param_.do_shot_), "if true, generates hypotheses using SHOT (local geometrical properties)")
@@ -161,7 +167,7 @@ public:
                 ("hv_hyp_penalty", po::value<double>(&paramGHV.active_hyp_penalty_)->default_value(paramGHV.active_hyp_penalty_, boost::str(boost::format("%.2e") % paramGHV.active_hyp_penalty_) ), " ")
                 ("hv_ignore_color", po::value<bool>(&paramGHV.ignore_color_even_if_exists_)->default_value(paramGHV.ignore_color_even_if_exists_), " ")
                 ("hv_initial_status", po::value<bool>(&paramGHV.initial_status_)->default_value(paramGHV.initial_status_), "sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.")
-                ("hv_color_space", po::value<int>(&paramGHV.color_space_)->default_value(paramGHV.color_space_), "specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)")
+                ("hv_color_space", po::value<int>(&paramGHV.color_space_)->default_value(paramGHV.color_space_), "specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ?)")
                 ("hv_inlier_threshold", po::value<double>(&paramGHV.inliers_threshold_)->default_value(paramGHV.inliers_threshold_, boost::str(boost::format("%.2e") % paramGHV.inliers_threshold_) ), "Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers")
                 ("hv_occlusion_threshold", po::value<double>(&paramGHV.occlusion_thres_)->default_value(paramGHV.occlusion_thres_, boost::str(boost::format("%.2e") % paramGHV.occlusion_thres_) ), "Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)")
                 ("hv_optimizer_type", po::value<int>(&paramGHV.opt_type_)->default_value(paramGHV.opt_type_), "defines the optimization methdod. 0: Local search (converges quickly, but can easily get trapped in local minima), 1: Tabu Search, 4; Tabu Search + Local Search (Replace active hypotheses moves), else: Simulated Annealing")
@@ -247,7 +253,7 @@ public:
 
         v4r::io::getFilesInDirectory(in_model_dir_, model_list, "", ".*.pcd", false);
         std::sort(model_list.begin(), model_list.end());
-        for (size_t replaced_m_id=0; replaced_m_id<model_list.size(); replaced_m_id++)
+        for (size_t replaced_m_id=1; replaced_m_id<model_list.size(); replaced_m_id++)
         {
             const std::string replaced_model = model_list [replaced_m_id];
 
@@ -284,6 +290,14 @@ public:
             std::vector<pcl::PointCloud<IndexPoint>::Ptr > obj_indices_cloud ( training_views.size() );
             std::vector<std::vector<float> > weights ( training_views.size() );
             std::vector<std::vector<float> > sigmas ( training_views.size() );
+            std::vector<std::string> pose_fns = training_views;
+            std::vector<std::string> obj_indices_fns = training_views;
+            std::vector<std::string> shot_descriptor_fns = training_views;
+            std::vector<std::string> shot_keypoint_fns = training_views;
+            std::vector<std::string> shot_keypoint_normal_fns = training_views;
+            std::vector<std::string> sift_descriptor_fns = training_views;
+            std::vector<std::string> sift_keypoint_fns = training_views;
+            std::vector<std::string> sift_keypoint_normal_fns = training_views;
 
             const size_t num_training_views = training_views.size();
 
@@ -294,19 +308,26 @@ public:
                 training_clouds[v_id].reset( new pcl::PointCloud<PointT>);
                 normal_clouds[v_id].reset( new pcl::PointCloud<pcl::Normal>);
                 pcl::io::loadPCDFile ( training_view, *training_clouds[v_id] );
-                std::string path_pose ( training_view );
-                boost::replace_last (path_pose, "cloud", "pose");
-                boost::replace_last (path_pose, ".pcd", ".txt");
-                v4r::io::readMatrixFromFile ( path_pose, cameras[v_id]);
+                boost::replace_last (pose_fns[v_id], "cloud_", "pose_");
+                boost::replace_last (pose_fns[v_id], ".pcd", ".txt");
+                v4r::io::readMatrixFromFile ( in_training_dir_ + "/" + replaced_model + "/" + pose_fns[v_id], cameras[v_id]);
 
-                std::string path_obj_indices (training_view);
-                boost::replace_last (path_obj_indices, "cloud", "object_indices");
+                boost::replace_last (obj_indices_fns[v_id], "cloud_", "object_indices_");
 
                 obj_indices_cloud[v_id].reset (new pcl::PointCloud<IndexPoint>);
-                pcl::io::loadPCDFile (path_obj_indices, *obj_indices_cloud[v_id]);
+                pcl::io::loadPCDFile ( in_training_dir_ + "/" + replaced_model + "/" + obj_indices_fns[v_id], *obj_indices_cloud[v_id]);
                 obj_indices[v_id].resize(obj_indices_cloud[v_id]->points.size());
                 for(size_t kk=0; kk < obj_indices_cloud[v_id]->points.size(); kk++)
                     obj_indices[v_id][kk] = obj_indices_cloud[v_id]->points[kk].idx;
+
+
+                boost::replace_last (sift_descriptor_fns[v_id], "cloud_", "sift/descriptors_");
+                boost::replace_last (sift_keypoint_fns[v_id], "cloud_", "sift/keypoints_");
+                boost::replace_last (sift_keypoint_normal_fns[v_id], "cloud_", "sift/keypoint_normals_");
+
+                boost::replace_last (shot_descriptor_fns[v_id], "cloud_", "shot_omp/descriptors_");
+                boost::replace_last (shot_keypoint_fns[v_id], "cloud_", "shot_omp/keypoints_");
+                boost::replace_last (shot_keypoint_normal_fns[v_id], "cloud_", "shot_omp/keypoint_normals_");
 
                 v4r::computeNormals<PointT>( training_clouds[v_id], normal_clouds[v_id], param_.normal_method_);
 
@@ -353,10 +374,16 @@ public:
                 std::vector<std::vector<float> > weights_used ( num_used_v );
                 std::vector<std::vector<float> > sigmas_used ( num_used_v );
 
-                for (size_t start_v = 0; start_v < num_training_views; start_v++)
+                for (size_t start_v = 0; start_v < num_training_views; start_v+=step_size_start_training_views_)
                 {
                     boost::filesystem::remove_all( out_tmp_training_dir_replaced_model );
                     v4r::io::createDirIfNotExist( out_tmp_training_dir_replaced_model );
+
+                    if(param_.do_sift_)
+                        v4r::io::createDirIfNotExist( out_tmp_training_dir_replaced_model  + "/sift");
+
+                    if(param_.do_sift_)
+                        v4r::io::createDirIfNotExist( out_tmp_training_dir_replaced_model  + "/shot_omp");
 
                     for (size_t v_id_rel=0; v_id_rel<num_used_v; v_id_rel++)
                     {
@@ -369,16 +396,15 @@ public:
                         weights_used [ v_id_rel ] = weights [ v_id ];
                         sigmas_used [ v_id_rel ] = sigmas [ v_id ];
 
-                        const std::string out_cloud_file = out_tmp_training_dir_replaced_model + "/" + training_views[v_id];
-                        std::string path_pose ( out_cloud_file );
-                        boost::replace_last (path_pose, "cloud", "pose");
-                        boost::replace_last (path_pose, ".pcd", ".txt");
-                        std::string path_obj_indices ( out_cloud_file );
-                        boost::replace_last (path_obj_indices, "cloud", "object_indices");
-
-                        pcl::io::savePCDFileBinary ( out_cloud_file, *training_clouds [ v_id ] );
-                        v4r::io::writeMatrixToFile ( path_pose, cameras [ v_id ] );
-                        pcl::io::savePCDFileBinary ( path_obj_indices, *obj_indices_cloud[ v_id ] );
+                        bf::create_symlink(in_training_dir_ + "/" + replaced_model + "/" + training_views[v_id], out_tmp_training_dir_replaced_model + "/" + training_views[v_id]);
+                        bf::create_symlink(in_training_dir_ + "/" + replaced_model + "/" + pose_fns[v_id], out_tmp_training_dir_replaced_model + "/" + pose_fns[v_id]);
+                        bf::create_symlink(in_training_dir_ + "/" + replaced_model + "/" + obj_indices_fns[v_id], out_tmp_training_dir_replaced_model + "/" + obj_indices_fns[v_id]);
+                        bf::create_symlink(in_training_dir_ + "/" + replaced_model + "/" + sift_descriptor_fns[v_id], out_tmp_training_dir_replaced_model + "/" + sift_descriptor_fns[v_id]);
+                        bf::create_symlink(in_training_dir_ + "/" + replaced_model + "/" + sift_keypoint_fns[v_id], out_tmp_training_dir_replaced_model + "/" + sift_keypoint_fns[v_id]);
+                        bf::create_symlink(in_training_dir_ + "/" + replaced_model + "/" + sift_keypoint_normal_fns[v_id], out_tmp_training_dir_replaced_model + "/" + sift_keypoint_normal_fns[v_id]);
+                        bf::create_symlink(in_training_dir_ + "/" + replaced_model + "/" + shot_descriptor_fns[v_id], out_tmp_training_dir_replaced_model + "/" + shot_descriptor_fns[v_id]);
+                        bf::create_symlink(in_training_dir_ + "/" + replaced_model + "/" + shot_keypoint_fns[v_id], out_tmp_training_dir_replaced_model + "/" + shot_keypoint_fns[v_id]);
+                        bf::create_symlink(in_training_dir_ + "/" + replaced_model + "/" + shot_keypoint_normal_fns[v_id], out_tmp_training_dir_replaced_model + "/" + shot_keypoint_normal_fns[v_id]);
                     }
 
                     nmIntegration.setInputClouds( training_clouds_used );
@@ -432,6 +458,10 @@ public:
     void
     setUpRecognizer( )
     {
+        boost::filesystem::remove(boost::filesystem::path(out_tmp_training_dir_ + "/sift_flann.idx"));
+        boost::filesystem::remove(boost::filesystem::path(out_tmp_training_dir_ + "/shot_omp_flann.idx"));
+        rr_->clearRecognizers();
+
         boost::shared_ptr <v4r::Source<PointT> > cast_source;
         if ( param_.do_sift_ || param_.do_shot_ ) // for local recognizers we need this source type / training data
         {
@@ -459,7 +489,6 @@ public:
             sift_r->setDataSource (cast_source);
             sift_r->setTrainingDir ( out_tmp_training_dir_ );
             sift_r->setFeatureEstimator (cast_estimator);
-            sift_r->initialize (false);
 
             boost::shared_ptr < v4r::Recognizer<PointT> > cast_recog;
             cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > (sift_r);
@@ -486,7 +515,6 @@ public:
             local->setDataSource (cast_source);
             local->setTrainingDir( out_tmp_training_dir_ );
             local->setFeatureEstimator (cast_estimator);
-            local->initialize (false);
 
             uniform_kp_extractor->setMaxDistance( param_.chop_z_ ); // for training we do not want this restriction
 
@@ -496,6 +524,7 @@ public:
             rr_->addRecognizer(cast_recog);
         }
 
+        rr_->initialize(false);
 
         boost::shared_ptr<v4r::GHV<PointT, PointT> > hyp_verification_method (new v4r::GHV<PointT, PointT>(paramGHV));
         boost::shared_ptr<v4r::HypothesisVerification<PointT,PointT> > cast_hyp_pointer = boost::static_pointer_cast<v4r::GHV<PointT, PointT> > (hyp_verification_method);
@@ -506,14 +535,17 @@ public:
     void
     recognize(const std::vector<std::string> &test_folders, const std::string &out_dir)
     {
+        std::vector<std::string> taken_test_views;
         for(size_t t_id=0; t_id<test_folders.size(); t_id++)
         {
             std::vector< std::string > views;
             v4r::io::getFilesInDirectory( test_folders[t_id], views, "", ".*.pcd", false);
             std::sort(views.begin(), views.end());
-            for(size_t v_id=0; v_id<views.size(); v_id++)
+
+            for(size_t v_id=0; v_id<views.size(); v_id+=step_size_test_views_)
             {
                 const std::string test_fn = test_folders[t_id] + "/" + views[v_id];
+                taken_test_views.push_back(views[v_id]);
                 LOG(INFO) << "Recognizing file " << test_fn;
                 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
                 pcl::io::loadPCDFile(test_fn, *cloud);
@@ -587,6 +619,12 @@ public:
                 }
             }
         }
+        // save the views that were tested by this configuration
+        const std::string taken_views_fn = out_dir + "/taken_views.nfo";
+        std::ofstream f (taken_views_fn.c_str());
+        for(size_t tt_id=0; tt_id<taken_test_views.size(); tt_id++)
+            f << taken_test_views[tt_id] << std::endl;
+        f.close();
     }
 };
 
