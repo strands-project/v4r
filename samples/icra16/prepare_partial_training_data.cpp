@@ -535,13 +535,12 @@ public:
     void
     recognize(const std::vector<std::string> &test_folders, const std::string &out_dir)
     {
-        std::vector<std::string> taken_test_views;
         for(size_t t_id=0; t_id<test_folders.size(); t_id++)
         {
             std::vector< std::string > views;
             v4r::io::getFilesInDirectory( test_folders[t_id], views, "", ".*.pcd", false);
             std::sort(views.begin(), views.end());
-
+            std::vector<std::string> taken_test_views;
             for(size_t v_id=0; v_id<views.size(); v_id+=step_size_test_views_)
             {
                 const std::string test_fn = test_folders[t_id] + "/" + views[v_id];
@@ -618,13 +617,13 @@ public:
                     or_file.close();
                 }
             }
+            // save the views that were tested by this configuration
+            const std::string taken_views_fn = out_dir + "/" + test_folders[t_id].substr(test_folders[t_id].rfind("/") + 1) + "/taken_views.nfo";
+            std::ofstream f (taken_views_fn.c_str());
+            for(size_t tt_id=0; tt_id<taken_test_views.size(); tt_id++)
+                f << taken_test_views[tt_id] << std::endl;
+            f.close();
         }
-        // save the views that were tested by this configuration
-        const std::string taken_views_fn = out_dir + "/taken_views.nfo";
-        std::ofstream f (taken_views_fn.c_str());
-        for(size_t tt_id=0; tt_id<taken_test_views.size(); tt_id++)
-            f << taken_test_views[tt_id] << std::endl;
-        f.close();
     }
 };
 
