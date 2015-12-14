@@ -180,10 +180,30 @@ namespace v4r
         virtual typename boost::shared_ptr<Source<PointT> >
         getDataSource () const = 0;
 
-        virtual void reinitialize(const std::vector<std::string> &load_ids = std::vector<std::string>())
+        virtual bool
+        initialize(bool force_retrain)
         {
-            (void)load_ids;
-            PCL_WARN("Reinitialize is not implemented for this class.");
+            (void) force_retrain;
+            PCL_WARN("initialize is not implemented for this class.");
+            return true;
+        }
+
+        virtual void
+        reinitialize()
+        {
+            PCL_WARN("reinitialize is not implemented for this class.");
+        }
+
+        virtual void
+        reinitializeSourceOnly()
+        {
+            PCL_WARN("reinitializeSource is not implemented for this class.");
+        }
+
+        virtual void
+        reinitializeRecOnly()
+        {
+            PCL_WARN("reinitializeRec is not implemented for this class.");
         }
 
         void setHVAlgorithm (const typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > & alg)

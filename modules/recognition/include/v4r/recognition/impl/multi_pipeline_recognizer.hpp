@@ -16,14 +16,22 @@ namespace v4r
 {
 
 template<typename PointT>
-void
-MultiRecognitionPipeline<PointT>::initialize()
+bool
+MultiRecognitionPipeline<PointT>::initialize(bool force_retrain)
 {
+    for(int i=0; i < (int)recognizers_.size(); i++) {
+        if(!recognizers_[i]->initialize(force_retrain)) {   // if model database changed, train whole model database again and start all over
+            reinitialize();
+        }
+    }
+
     if(param_.icp_iterations_ > 0 && param_.icp_type_ == 1)
     {
         for(size_t i=0; i < recognizers_.size(); i++)
             recognizers_[i]->getDataSource()->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
     }
+
+    return true;
 }
 
 template<typename PointT>
@@ -31,20 +39,44 @@ void
 MultiRecognitionPipeline<PointT>::reinitialize()
 {
     for(size_t i=0; i < recognizers_.size(); i++)
-        recognizers_[i]->reinitialize();
+        recognizers_[i]->reinitializeSourceOnly();
 
-    initialize();
-}
-
-template<typename PointT>
-void
-MultiRecognitionPipeline<PointT>::reinitialize(const std::vector<std::string> & load_ids)
-{
     for(size_t i=0; i < recognizers_.size(); i++)
-        recognizers_[i]->reinitialize(load_ids);
+        recognizers_[i]->reinitializeRecOnly();
 
-    initialize();
+    initialize(false);
 }
+
+
+//template<typename PointT>
+//void
+//MultiRecognitionPipeline<PointT>::reinitialize()
+//{
+
+//    // reinitialize source (but be aware to not do it twice)
+//    std::vector<boost::shared_ptr<Source<PointT> > > common_sources;
+
+//    for(size_t i=0; i < recognizers_.size(); i++) {
+//        boost::shared_ptr<Source<PointT> > src = recognizers_[i]->getDataSource();
+
+//        bool src_is_already_shared_by_other_recognizer = false;
+//        for(size_t jj=0; jj<common_sources; jj++)
+//        {
+//            if ( src == common_sources ) {
+//                src_is_already_shared_by_other_recognizer = true;
+//                break;
+//            }
+//        }
+//        if (!src_is_already_shared_by_other_recognizer)
+//            common_sources.push_back(src);
+//    }
+
+
+//    for(size_t i=0; i < recognizers_.size(); i++)
+//        recognizers_[i]->reinitialize();
+
+//    initialize();
+//}
 
 template<typename PointT>
 void

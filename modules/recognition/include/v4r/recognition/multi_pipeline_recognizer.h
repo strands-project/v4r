@@ -103,13 +103,14 @@ namespace v4r
             indices = scene_kp_indices_;
         }
 
-        void initialize();
+        bool
+        initialize(bool force_retrain = false);
 
-        void reinitialize();
+        void
+        reinitialize();
 
-        void reinitialize(const std::vector<std::string> & load_ids);
-
-        void correspondenceGrouping();
+        void
+        correspondenceGrouping();
 
         void getPoseRefinement(const std::vector<ModelTPtr> &models,
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms);
@@ -124,6 +125,8 @@ namespace v4r
         void clearRecognizers()
         {
             recognizers_.clear();
+            saved_object_hypotheses_.clear();
+            obj_hypotheses_.clear();
         }
 
         template <typename FeatureT>
