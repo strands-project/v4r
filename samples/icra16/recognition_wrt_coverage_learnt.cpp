@@ -433,9 +433,9 @@ public:
                 std::vector<std::string> sift_keypoint_fns = training_views;
                 std::vector<std::string> sift_keypoint_normal_fns = training_views;
 
-                const size_t num_training_views = training_views.size();
+                const size_t num_training_views_l = training_views.size();
 
-                for(size_t v_id = 0; v_id < num_training_views; v_id++)
+                for(size_t v_id = 0; v_id < num_training_views_l; v_id++)
                 {
                     const std::string training_view = search_path + "/" + training_views[v_id];
 
@@ -478,7 +478,7 @@ public:
                 size_t eval_id = 0;
 
                 // now create partial model from successive training views
-                for (size_t num_used_v = num_training_views-1; num_used_v > 0; num_used_v--)
+                for (size_t num_used_v = num_training_views_l; num_used_v > 0; num_used_v--)
                 {
                     std::vector<pcl::PointCloud<PointT>::Ptr > training_clouds_used ( num_used_v );
                     std::vector<pcl::PointCloud<pcl::Normal>::Ptr > normal_clouds_used ( num_used_v );
@@ -502,7 +502,7 @@ public:
 
                         for (size_t v_id_rel=0; v_id_rel<num_used_v; v_id_rel++)
                         {
-                            size_t v_id = ( start_v + v_id_rel ) % num_training_views;
+                            size_t v_id = ( start_v + v_id_rel ) % num_training_views_l;
 
                             training_clouds_used [ v_id_rel ] = training_clouds [ v_id ];
                             normal_clouds_used [ v_id_rel ] = normal_clouds [ v_id ];
@@ -542,10 +542,10 @@ public:
 
                         // get all test sequences that belong to the object model
                         std::vector<std::string> test_files;
-                        ifstream info(info_file_.c_str());
-                        std::string test_id, patrol_run_id, object_id;
-                        while (info >> test_id >> patrol_run_id >> object_id) {
-                            if (hasEnding(object_id, replaced_model)) {
+                        ifstream info2(info_file_.c_str());
+                        std::string test_id2, patrol_run_id2, object_id2;
+                        while (info2 >> test_id >> patrol_run_id >> object_id) {
+                            if (hasEnding(object_id, replaced_model) && test_id2.compare(test_id)) {
                                 std::cout << object_id << std::endl;
                                 test_files.push_back( test_dir_ + "/" + test_id);
                             }
@@ -558,7 +558,7 @@ public:
                         v4r::io::createDirIfNotExist( result_dir_tmp.str() );
                         const std::string model_info_fn = result_dir_tmp.str() + "/model_info.txt";
                         ofstream f( model_info_fn.c_str());
-                        f << replaced_model << " " << num_used_v << " " << num_training_views << " " <<
+                        f << replaced_model << " " << num_used_v << " " << num_training_views_l << " " <<
                              cloud_filtered.points.size() << " " << total_points <<std::endl;
                         f.close();
 
