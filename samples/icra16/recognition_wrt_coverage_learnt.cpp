@@ -544,10 +544,10 @@ public:
                         std::vector<std::string> test_files;
                         ifstream info2(info_file_.c_str());
                         std::string test_id2, patrol_run_id2, object_id2;
-                        while (info2 >> test_id >> patrol_run_id >> object_id) {
-                            if (hasEnding(object_id, replaced_model) && test_id2.compare(test_id)) {
-                                std::cout << object_id << std::endl;
-                                test_files.push_back( test_dir_ + "/" + test_id);
+                        while (info2 >> test_id2 >> patrol_run_id2 >> object_id2) {
+                            if (hasEnding(object_id2, replaced_model) && test_id2.compare(test_id)) {
+                                std::cout << object_id2 << std::endl;
+                                test_files.push_back( test_dir_ + "/" + test_id2);
                             }
                         }
 
