@@ -179,7 +179,7 @@ public:
                 ("step_size_start_training_views_", po::value<size_t>(&step_size_start_training_views_)->default_value(step_size_start_training_views_), "step size taking from one bunch of partial views to the next")
                 ("step_size_test_views_", po::value<size_t>(&step_size_test_views_)->default_value(step_size_test_views_), "step size taking from one bunch of partial views to the next")
                 ("in_learnt", po::value<std::string>(&in_learnt_)->required(), "input model directory procuded by dynamic object learning")
-                ("tmp_dir", po::value<size_t>(&out_tmp_)->default_value(out_tmp_), "directory where temporary training database is stored")
+                ("tmp_dir", po::value<std::string>(&out_tmp_)->default_value(out_tmp_), "directory where temporary training database is stored")
 
                 ("do_sift", po::value<bool>(&param_.do_sift_)->default_value(param_.do_sift_), "if true, generates hypotheses using SIFT (visual texture information)")
                 ("do_shot", po::value<bool>(&param_.do_shot_)->default_value(param_.do_shot_), "if true, generates hypotheses using SHOT (local geometrical properties)")
