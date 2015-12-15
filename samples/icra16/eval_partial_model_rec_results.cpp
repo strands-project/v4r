@@ -153,7 +153,8 @@ int main(int argc, char ** argv)
 
     std::string anno_gt = "/home/thomas/Documents/icra16/gt_annotations";
     std::string models_dir = "/home/thomas/Documents/icra16/turntable_models/models";
-    std::string rec_results = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage/turntable";
+//    std::string rec_results = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage/turntable";
+    std::string rec_results = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage/controlled_001";
     std::string test_set_root_dir = "/home/thomas/Documents/icra16/keyframes/controlled_ba";
     std::string out_dir = "/tmp/eval_partial_model_rec_results/";
 
@@ -185,10 +186,9 @@ int main(int argc, char ** argv)
 
     std::vector<std::string> models;
     v4r::io::getFilesInDirectory(models_dir, models, "", ".*.pcd", false);
+
     for(size_t m_id=0; m_id < models.size(); m_id++)
-    {
         boost::replace_last(models[m_id], ".pcd", "");
-    }
 
     std::vector<std::string> eval_sets;
     v4r::io::getFoldersInDirectory(rec_results, "", eval_sets);
@@ -196,26 +196,44 @@ int main(int argc, char ** argv)
     for(size_t set_id=0; set_id<eval_sets.size(); set_id++)
     {
         const std::string eval_path = rec_results + "/" + eval_sets[set_id];
+#ifndef TURNTABLE
+        std::vector<std::string> runs;
+        v4r::io::getFoldersInDirectory(eval_path, "", runs);
+
+        for(size_t lr_id=0; lr_id<runs.size(); lr_id++)
+        {
+#endif
 
         std::vector<std::string> eval_ids;
+#ifdef TURNTABLE
+        const std::string out_fn = out_dir + "/" + eval_sets[set_id] + "/rec_rate_wrt_coverage_result.txt";
         v4r::io::getFoldersInDirectory(eval_path, "", eval_ids);
+#else
+        v4r::io::getFoldersInDirectory(eval_path + "/" + runs[lr_id], "", eval_ids);
+        const std::string out_fn = out_dir + "/" + eval_sets[set_id] + "/" + runs[lr_id] + "/rec_rate_wrt_coverage_result.txt";
+#endif
         std::vector<TotalEval> evals(eval_ids.size());
 
-        const std::string out_fn = out_dir + "/" + eval_sets[set_id] + "/rec_rate_wrt_coverage_result.txt";
         v4r::io::createDirForFileIfNotExist(out_fn);
         std::ofstream f(out_fn.c_str());
 
         for(size_t e_id=0; e_id<eval_ids.size(); e_id++)
         {
+#ifdef TURNTABLE
             const std::string eval_fn = eval_path + "/" + eval_ids[e_id];
+#else
+            const std::string eval_fn = eval_path + "/" + runs[lr_id] + "/" + eval_ids[e_id];
+#endif
 
             std::ifstream info_f ( (eval_fn + "/model_info.txt"));
-            std::string model_foo;
+            std::string current_model;
 
             TotalEval te;
             te.path_ = eval_fn;
-            info_f >> model_foo >> te.num_trained_views_ >> te.num_total_views_ >> te.num_visible_pts_ >> te.num_total_pts_;
+            info_f >> current_model >> te.num_trained_views_ >> te.num_total_views_ >> te.num_visible_pts_ >> te.num_total_pts_;
             info_f.close();
+
+            boost::replace_last(current_model, ".pcd", "");
 
             std::vector<std::string> test_runs;
             v4r::io::getFoldersInDirectory(eval_fn, "", test_runs);
@@ -236,9 +254,7 @@ int main(int argc, char ** argv)
                     std::ifstream tv_f((te.path_ + "/" + test_runs[r_id] + "/taken_views.nfo").c_str());
                     std::string line;
                     while (std::getline(tv_f, line))
-                    {
                         views.push_back(line);
-                    }
                 }
 
 
@@ -258,7 +274,20 @@ int main(int argc, char ** argv)
                             continue;
 
                         v4r::io::getFilesInDirectory(anno_gt_set, annos_gt, "", anno_search_pattern, false);
+
+#ifdef TURNTABLE
                         v4r::io::getFilesInDirectory(or_set, annos_or, "", anno_search_pattern, false);
+#else
+                        if(current_model.compare(models[m_id]) == 0)
+                        {
+                            const std::string anno_search_pattern_learnt = ".*" + cloud_name + "_" + runs[lr_id] + ".*.txt";
+                            v4r::io::getFilesInDirectory(or_set, annos_or, "", anno_search_pattern_learnt, false);
+                        }
+                        else
+                        {
+                            v4r::io::getFilesInDirectory(or_set, annos_or, "", anno_search_pattern, false);
+                        }
+#endif
 
                         e.fp_ += std::max<int>(0, (int)annos_or.size() - (int)annos_gt.size());
                         e.fn_ += std::max<int>(0, (int)annos_gt.size() - (int)annos_or.size());
@@ -280,6 +309,10 @@ int main(int argc, char ** argv)
                  " " << te.avg_recall() << " " << te.precision() << " " << te.recall() << std::endl;
         }
         f.close();
+
+#ifndef TURNTABLE
+        }
+#endif
     }
 
     return 0;

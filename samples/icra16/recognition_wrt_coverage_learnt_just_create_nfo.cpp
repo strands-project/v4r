@@ -132,11 +132,10 @@ public:
         bool do_sift_;
         bool do_shot_;
         bool do_ourcvfh_;
-        float resolution_;
 
         Parameter
         ( int normal_method = 2,
-          float vox_res = 0.01f,
+          float vox_res = 0.03f,
           float chop_z = std::numeric_limits<float>::max(),
           bool do_sift = true,
           bool do_shot = true,
@@ -147,15 +146,14 @@ public:
               chop_z_ (chop_z),
               do_sift_ (do_sift),
               do_shot_ (do_shot),
-              do_ourcvfh_ (do_ourcvfh),
-              resolution_ (resolution)
+              do_ourcvfh_ (do_ourcvfh)
         {}
     }param_;
 
     EvalPartialModelRecognizer(const Parameter &p = Parameter())
     {
         param_ = p;
-        out_tmp_ = "/tmp/";
+        out_tmp_ = "/tmp/delete_me/";
         out_results_ = "/tmp/icra16_rec_results";
 
         paramGgcg.max_time_allowed_cliques_comptutation_ = 100;
@@ -249,9 +247,6 @@ public:
         paramLocalRecSift.normal_computation_method_ = paramLocalRecShot.normal_computation_method_ =
                 paramMultiPipeRec.normal_computation_method_ = paramLocalEstimator.normal_computation_method_ = param_.normal_method_;
 
-        rr_.reset(new v4r::MultiRecognitionPipeline<PointT>(paramMultiPipeRec));
-        gcg_alg_.reset ( new v4r::GraphGeometricConsistencyGrouping<PointT, PointT> (paramGgcg));
-
         // writing parameters to file
         v4r::io::createDirIfNotExist( out_results_ );
         ofstream param_file( (out_results_ + "/param.nfo").c_str());
@@ -291,11 +286,12 @@ public:
         nm_int_param.final_resolution_ = 0.002f;
         nm_int_param.min_points_per_voxel_ = 1;
         nm_int_param.min_weight_ = 0.5f;
-        nm_int_param.octree_resolution_ = 0.002f;
+        nm_int_param.octree_resolution_ = 0.005f;
         nm_int_param.threshold_ss_ = 0.01f;
 
         v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB>::Parameter nm_param;
 
+        pcl::visualization::PCLVisualizer vis;
 
         // iterate through all models and evaluate one after another
         v4r::io::getFilesInDirectory(in_turntable_ + "/models", model_list, "", ".*.pcd", false);
@@ -304,25 +300,8 @@ public:
         {
             const std::string replaced_model = model_list [replaced_m_id];
 
-            bf::remove_all(bf::path(out_tmp_ + "/training_data/"));
             bf::remove_all(bf::path(out_tmp_ + "/models/"));
-            v4r::io::createDirIfNotExist(out_tmp_ + "/training_data/");
             v4r::io::createDirIfNotExist(out_tmp_ + "/models/");
-
-            // copy all remaining models from model database which are not the one to be tested (they serve as false positives)
-            for (size_t m_id=0; m_id<model_list.size(); m_id++)
-            {
-                if( m_id == replaced_m_id )
-                    continue;
-                else
-                {
-                    const std::string model_name = model_list[m_id];
-                    bf::create_symlink( in_turntable_ + "/models/" + model_name, out_tmp_ + "/models/" + model_name );
-                    bf::create_directory_symlink( in_turntable_ + "/training_data/" + model_name, out_tmp_ + "/training_data/" + model_name);
-                    //                    v4r::io::copyDir(in_training_dir_ + "/" + model_name, out_tmp_training_dir_ + "/" + model_name);
-                }
-            }
-
 
             // COMPUTE COVERAGE OF TURNTABLE OBJECT
             std::vector<std::string> training_views;
@@ -391,8 +370,6 @@ public:
             size_t total_points = cloud_filtered.points.size();
             size_t total_points_oc = octree_cloud->points.size();
 
-            std::string out_tmp_training_dir_replaced_model = out_tmp_ + "/training_data/" + replaced_model;
-
 
             // now we know how much the object occupies when modelled on a turntable
             // get all test sequences that belong to the object model
@@ -426,12 +403,6 @@ public:
                 sigmas.resize ( training_views.size() );
                 pose_fns = training_views;
                 obj_indices_fns = training_views;
-                std::vector<std::string> shot_descriptor_fns = training_views;
-                std::vector<std::string> shot_keypoint_fns = training_views;
-                std::vector<std::string> shot_keypoint_normal_fns = training_views;
-                std::vector<std::string> sift_descriptor_fns = training_views;
-                std::vector<std::string> sift_keypoint_fns = training_views;
-                std::vector<std::string> sift_keypoint_normal_fns = training_views;
 
                 const size_t num_training_views = training_views.size();
 
@@ -453,14 +424,6 @@ public:
                     obj_indices[v_id].resize(obj_indices_cloud[v_id]->points.size());
                     for(size_t kk=0; kk < obj_indices_cloud[v_id]->points.size(); kk++)
                         obj_indices[v_id][kk] = obj_indices_cloud[v_id]->points[kk].idx;
-
-                    boost::replace_last (sift_descriptor_fns[v_id], "cloud_", "sift/descriptors_");
-                    boost::replace_last (sift_keypoint_fns[v_id], "cloud_", "sift/keypoints_");
-                    boost::replace_last (sift_keypoint_normal_fns[v_id], "cloud_", "sift/keypoint_normals_");
-
-                    boost::replace_last (shot_descriptor_fns[v_id], "cloud_", "shot_omp/descriptors_");
-                    boost::replace_last (shot_keypoint_fns[v_id], "cloud_", "shot_omp/keypoints_");
-                    boost::replace_last (shot_keypoint_normal_fns[v_id], "cloud_", "shot_omp/keypoint_normals_");
 
                     v4r::computeNormals<PointT>( training_clouds[v_id], normal_clouds[v_id], param_.normal_method_);
 
@@ -488,18 +451,8 @@ public:
                     std::vector<std::vector<float> > sigmas_used ( num_used_v );
 
                     //                for (size_t start_v = 0; start_v < num_training_views; start_v+=step_size_start_training_views_)
-                    out_tmp_training_dir_replaced_model = out_tmp_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd";
                     size_t start_v=0;
                     {
-                        boost::filesystem::remove_all( out_tmp_training_dir_replaced_model );
-                        v4r::io::createDirIfNotExist( out_tmp_training_dir_replaced_model );
-
-                        if(param_.do_sift_)
-                            v4r::io::createDirIfNotExist( out_tmp_training_dir_replaced_model  + "/sift");
-
-                        if(param_.do_sift_)
-                            v4r::io::createDirIfNotExist( out_tmp_training_dir_replaced_model  + "/shot_omp");
-
                         for (size_t v_id_rel=0; v_id_rel<num_used_v; v_id_rel++)
                         {
                             size_t v_id = ( start_v + v_id_rel ) % num_training_views;
@@ -511,15 +464,54 @@ public:
                             weights_used [ v_id_rel ] = weights [ v_id ];
                             sigmas_used [ v_id_rel ] = sigmas [ v_id ];
 
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + training_views[v_id], out_tmp_training_dir_replaced_model + "/" + training_views[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + pose_fns[v_id], out_tmp_training_dir_replaced_model + "/" + pose_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + obj_indices_fns[v_id], out_tmp_training_dir_replaced_model + "/" + obj_indices_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + sift_descriptor_fns[v_id], out_tmp_training_dir_replaced_model + "/" + sift_descriptor_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + sift_keypoint_fns[v_id], out_tmp_training_dir_replaced_model + "/" + sift_keypoint_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + sift_keypoint_normal_fns[v_id], out_tmp_training_dir_replaced_model + "/" + sift_keypoint_normal_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + shot_descriptor_fns[v_id], out_tmp_training_dir_replaced_model + "/" + shot_descriptor_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + shot_keypoint_fns[v_id], out_tmp_training_dir_replaced_model + "/" + shot_keypoint_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + shot_keypoint_normal_fns[v_id], out_tmp_training_dir_replaced_model + "/" + shot_keypoint_normal_fns[v_id]);
+
+                           // check for double walls
+                            pcl::PointCloud<PointT>::Ptr current_cloud = training_clouds_used [v_id];
+
+                            float f = 525.0f;
+                            float cx = 319.5f;
+                            float cy = 239.5f;
+
+                            for(size_t compare_cloud_id=0; compare_cloud_id < v_id_rel; compare_cloud_id++)
+                            {
+                                const pcl::PointCloud<PointT>::Ptr compare_cloud (new pcl::PointCloud<PointT>);
+
+                                Eigen::Matrix4f tf2current_cloud = cameras_used[ v_id].inverse() * cameras_used [ compare_cloud_id ];
+                                pcl::transformPointCloud(*training_clouds_used[ compare_cloud_id ], *compare_cloud, tf2current_cloud);
+
+                                vis.removeAllPointClouds();
+                                vis.addPointCloud(compare_cloud, "cloud_A");
+                                vis.addPointCloud(current_cloud, "cloud_B");
+                                vis.spin();
+
+                                for(size_t pt_id_b=0; pt_id_b<compare_cloud->points.size(); pt_id_b++)
+                                {
+                                    const PointT &pt_b = compare_cloud->points[pt_id_b];
+
+                                    if (!pcl::isFinite(pt_b))
+                                        continue;
+
+                                    float x = pt_b.x;
+                                    float y = pt_b.y;
+                                    float z = pt_b.z;
+                                    int u = static_cast<int> (f * x / z + cx);
+                                    int v = static_cast<int> (f * y / z + cy);
+
+                                    if(u<0 ||  u>=current_cloud->width || v<0 || v>=current_cloud->height)
+                                        continue;
+
+                                    PointT &pt_a = current_cloud->at(u,v);
+
+                                    if( ( (pt_b.z - pt_a.z) < 0.05f) && ( (pt_b.z - pt_a.z) > 0) )
+                                    {
+                                        pt_a.x = std::numeric_limits<float>::quiet_NaN();
+                                        pt_a.y = std::numeric_limits<float>::quiet_NaN();
+                                        pt_a.z = std::numeric_limits<float>::quiet_NaN();
+                                        sigmas_used[v_id][u*current_cloud->width + v] = std::numeric_limits<float>::quiet_NaN();
+                                    }
+
+                                }
+                            }
                         }
 
                         nmIntegration.setInputClouds( training_clouds_used );
@@ -533,11 +525,12 @@ public:
                         sor.setInputCloud (octree_cloud);
                         sor.setLeafSize ( param_.vox_res_, param_.vox_res_, param_.vox_res_);
                         sor.filter ( cloud_filtered );
+                        size_t visible_pts = cloud_filtered.points.size();
 
                         pcl::io::savePCDFileBinary(out_tmp_ + "/models/" + runs_with_replaced_model[m_run_id] + ".pcd", *octree_cloud);
 
-                        std::cout << cloud_filtered.points.size() << " / " << total_points << " visible."
-                                  << static_cast<float>(cloud_filtered.points.size()) / total_points << " "
+                        std::cout << cloud_filtered.points.size() << " / " << total_points << " visible "
+                                  << static_cast<float>(visible_pts) / total_points << " "
                                   << static_cast<float>(octree_cloud->points.size()) / total_points_oc <<std::endl;
 
                         // get all test sequences that belong to the object model
@@ -551,194 +544,19 @@ public:
                             }
                         }
 
-                        setUpRecognizer();
-
                         std::stringstream result_dir_tmp;
                         result_dir_tmp << out_results_ << "/" << replaced_model << "/" << runs_with_replaced_model[m_run_id] << "/" << eval_id;
                         v4r::io::createDirIfNotExist( result_dir_tmp.str() );
                         const std::string model_info_fn = result_dir_tmp.str() + "/model_info.txt";
                         ofstream f( model_info_fn.c_str());
                         f << replaced_model << " " << num_used_v << " " << num_training_views << " " <<
-                             cloud_filtered.points.size() << " " << total_points <<std::endl;
+                             visible_pts << " " << total_points <<std::endl;
                         f.close();
-
-                        recognize( test_files, result_dir_tmp.str() );
 
                         eval_id++;
                     }
                 }
             }
-        }
-    }
-
-    void
-    setUpRecognizer( )
-    {
-        boost::filesystem::remove(boost::filesystem::path(out_tmp_ + "/training_data/sift_flann.idx"));
-        boost::filesystem::remove(boost::filesystem::path(out_tmp_ + "/training_data/shot_omp_flann.idx"));
-        rr_->clearRecognizers();
-
-        boost::shared_ptr <v4r::Source<PointT> > cast_source;
-        if ( param_.do_sift_ || param_.do_shot_ ) // for local recognizers we need this source type / training data
-        {
-            boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > src
-                    (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>( param_.resolution_ ));
-            src->setPath ( out_tmp_ + "/models/" );
-            src->setModelStructureDir ( out_tmp_ + "/training_data" );
-            src->generate ();
-            //            src->createVoxelGridAndDistanceTransform(resolution);
-            cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (src);
-        }
-
-        if ( param_.do_sift_ )
-        {
-#ifdef HAVE_SIFTGPU
-            boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT > > estimator (new v4r::SIFTLocalEstimation<PointT, FeatureT >());
-            boost::shared_ptr < v4r::LocalEstimator<PointT, FeatureT > > cast_estimator = boost::dynamic_pointer_cast<v4r::SIFTLocalEstimation<PointT, FeatureT > > (estimator);
-#else
-            boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT > > estimator (new v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT >);
-            boost::shared_ptr < v4r::LocalEstimator<PointT, FeatureT > > cast_estimator = boost::dynamic_pointer_cast<v4r::OpenCVSIFTLocalEstimation<PointT, FeatureT > > (estimator);
-#endif
-
-            boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > sift_r;
-            sift_r.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (paramLocalRecSift));
-            sift_r->setDataSource (cast_source);
-            sift_r->setTrainingDir ( out_tmp_ + "/training_data" );
-            sift_r->setFeatureEstimator (cast_estimator);
-
-            boost::shared_ptr < v4r::Recognizer<PointT> > cast_recog;
-            cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > (sift_r);
-            LOG(INFO) << "Feature Type: " << cast_recog->getFeatureType();
-            rr_->addRecognizer (cast_recog);
-        }
-        if ( param_.do_shot_ )
-        {
-            boost::shared_ptr<v4r::UniformSamplingExtractor<PointT> > uniform_kp_extractor ( new v4r::UniformSamplingExtractor<PointT>);
-            uniform_kp_extractor->setSamplingDensity (0.01f);
-            uniform_kp_extractor->setFilterPlanar (true);
-            uniform_kp_extractor->setThresholdPlanar(0.1);
-            uniform_kp_extractor->setMaxDistance( 100.0 ); // for training we want to consider all points (except nan values)
-
-            boost::shared_ptr<v4r::KeypointExtractor<PointT> > keypoint_extractor = boost::static_pointer_cast<v4r::KeypointExtractor<PointT> > (uniform_kp_extractor);
-            boost::shared_ptr<v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> > > estimator (new v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >(paramLocalEstimator));
-            estimator->addKeypointExtractor (keypoint_extractor);
-
-            boost::shared_ptr<v4r::LocalEstimator<PointT, pcl::Histogram<352> > > cast_estimator;
-            cast_estimator = boost::dynamic_pointer_cast<v4r::LocalEstimator<PointT, pcl::Histogram<352> > > (estimator);
-
-            boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
-            local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (paramLocalRecShot));
-            local->setDataSource (cast_source);
-            local->setTrainingDir( out_tmp_ + "/training_data" );
-            local->setFeatureEstimator (cast_estimator);
-
-            uniform_kp_extractor->setMaxDistance( param_.chop_z_ ); // for training we do not want this restriction
-
-            boost::shared_ptr<v4r::Recognizer<PointT> > cast_recog;
-            cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > (local);
-            LOG(INFO) << "Feature Type: " << cast_recog->getFeatureType();
-            rr_->addRecognizer(cast_recog);
-        }
-
-        rr_->initialize(false);
-
-        boost::shared_ptr<v4r::GHV<PointT, PointT> > hyp_verification_method (new v4r::GHV<PointT, PointT>(paramGHV));
-        boost::shared_ptr<v4r::HypothesisVerification<PointT,PointT> > cast_hyp_pointer = boost::static_pointer_cast<v4r::GHV<PointT, PointT> > (hyp_verification_method);
-        rr_->setHVAlgorithm( cast_hyp_pointer );
-        rr_->setCGAlgorithm( gcg_alg_ );
-    }
-
-    void
-    recognize(const std::vector<std::string> &test_folders, const std::string &out_dir)
-    {
-        for(size_t t_id=0; t_id<test_folders.size(); t_id++)
-        {
-            std::vector< std::string > views;
-            v4r::io::getFilesInDirectory( test_folders[t_id], views, "", ".*.pcd", false);
-            std::sort(views.begin(), views.end());
-            std::vector<std::string> taken_test_views;
-            for(size_t v_id=0; v_id<views.size(); v_id+=step_size_test_views_)
-            {
-                const std::string test_fn = test_folders[t_id] + "/" + views[v_id];
-                taken_test_views.push_back(views[v_id]);
-                LOG(INFO) << "Recognizing file " << test_fn;
-                pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
-                pcl::io::loadPCDFile(test_fn, *cloud);
-
-                if( param_.chop_z_ > 0)
-                {
-                    pcl::PassThrough<PointT> pass;
-                    pass.setFilterLimits ( 0.f, param_.chop_z_ );
-                    pass.setFilterFieldName ("z");
-                    pass.setInputCloud (cloud);
-                    pass.setKeepOrganized (true);
-                    pass.filter (*cloud);
-                }
-
-                rr_->setInputCloud (cloud);
-                pcl::StopWatch watch;
-                rr_->recognize();
-                double time = watch.getTimeSeconds();
-
-                std::stringstream out_fn;
-                out_fn << out_dir << "/" << test_folders[t_id].substr(test_folders[t_id].rfind("/") + 1) << "/"
-                       << views[v_id].substr(0, views[v_id].length()-4) << "_time.nfo";
-                ofstream time_file (out_fn.str().c_str());
-                time_file << time;
-                time_file.close();
-
-                std::vector<ModelTPtr> verified_models = rr_->getVerifiedModels();
-                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
-                transforms_verified = rr_->getVerifiedTransforms();
-
-                if (visualize_)
-                    rr_->visualize();
-
-                std::map<std::string, size_t> rec_models_per_id;
-                for(size_t m_id=0; m_id<verified_models.size(); m_id++)
-                {
-                    LOG(INFO) << "********************" << verified_models[m_id]->id_ << std::endl;
-
-                    const std::string model_id = verified_models[m_id]->id_;
-                    const Eigen::Matrix4f tf = transforms_verified[m_id];
-
-                    size_t num_models_per_model_id;
-
-                    std::map<std::string, size_t>::iterator it_rec_mod;
-                    it_rec_mod = rec_models_per_id.find(model_id);
-                    if(it_rec_mod == rec_models_per_id.end())
-                    {
-                        rec_models_per_id.insert(std::pair<std::string, size_t>(model_id, 1));
-                        num_models_per_model_id = 0;
-                    }
-                    else
-                    {
-                        num_models_per_model_id = it_rec_mod->second;
-                        it_rec_mod->second++;
-                    }
-
-                    out_fn.str("");
-                    out_fn << out_dir << "/" << test_folders[t_id].substr(test_folders[t_id].rfind("/") + 1) << "/" <<
-                              views[v_id].substr(0, views[v_id].length()-4) << "_" <<
-                              model_id.substr(0, model_id.length() - 4) << "_" <<
-                              num_models_per_model_id << ".txt";
-
-                    v4r::io::createDirForFileIfNotExist(out_fn.str());
-
-                    ofstream or_file (out_fn.str().c_str());
-                    for (size_t row=0; row <4; row++) {
-                        for(size_t col=0; col<4; col++)
-                            or_file << tf(row, col) << " ";
-                    }
-                    or_file.close();
-                }
-            }
-            // save the views that were tested by this configuration
-            const std::string taken_views_fn = out_dir + "/" + test_folders[t_id].substr(test_folders[t_id].rfind("/") + 1) + "/taken_views.nfo";
-            std::ofstream f (taken_views_fn.c_str());
-            for(size_t tt_id=0; tt_id<taken_test_views.size(); tt_id++)
-                f << taken_test_views[tt_id] << std::endl;
-            f.close();
         }
     }
 };
