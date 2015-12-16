@@ -414,6 +414,9 @@ public:
                 if(!v4r::io::existsFolder(search_path)) // in case that object modelling for a patrol run was not succesful skip it
                     continue;
 
+                bf::create_symlink( in_learnt_ + "/models/" + runs_with_replaced_model[m_run_id] + ".pcd", out_tmp_ + "/models/" + runs_with_replaced_model[m_run_id] + ".pcd" );
+                bf::create_directory_symlink( in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd", out_tmp_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd");
+
                 v4r::io::getFilesInDirectory(search_path, training_views, "", ".*cloud.*.pcd");
                 training_views = sortViews(training_views);
 
@@ -427,16 +430,10 @@ public:
                 sigmas.resize ( training_views.size() );
                 pose_fns = training_views;
                 obj_indices_fns = training_views;
-                std::vector<std::string> shot_descriptor_fns = training_views;
-                std::vector<std::string> shot_keypoint_fns = training_views;
-                std::vector<std::string> shot_keypoint_normal_fns = training_views;
-                std::vector<std::string> sift_descriptor_fns = training_views;
-                std::vector<std::string> sift_keypoint_fns = training_views;
-                std::vector<std::string> sift_keypoint_normal_fns = training_views;
 
-                const size_t num_training_views = training_views.size();
+                const size_t num_training_views_l = training_views.size();
 
-                for(size_t v_id = 0; v_id < num_training_views; v_id++)
+                for(size_t v_id = 0; v_id < num_training_views_l; v_id++)
                 {
                     const std::string training_view = search_path + "/" + training_views[v_id];
 
@@ -455,14 +452,6 @@ public:
                     for(size_t kk=0; kk < obj_indices_cloud[v_id]->points.size(); kk++)
                         obj_indices[v_id][kk] = obj_indices_cloud[v_id]->points[kk].idx;
 
-                    boost::replace_last (sift_descriptor_fns[v_id], "cloud_", "sift/descriptors_");
-                    boost::replace_last (sift_keypoint_fns[v_id], "cloud_", "sift/keypoints_");
-                    boost::replace_last (sift_keypoint_normal_fns[v_id], "cloud_", "sift/keypoint_normals_");
-
-                    boost::replace_last (shot_descriptor_fns[v_id], "cloud_", "shot_omp/descriptors_");
-                    boost::replace_last (shot_keypoint_fns[v_id], "cloud_", "shot_omp/keypoints_");
-                    boost::replace_last (shot_keypoint_normal_fns[v_id], "cloud_", "shot_omp/keypoint_normals_");
-
                     v4r::computeNormals<PointT>( training_clouds[v_id], normal_clouds[v_id], param_.normal_method_);
 
                     v4r::noise_models::NguyenNoiseModel<PointT> nm (nm_param);
@@ -479,7 +468,7 @@ public:
                 size_t eval_id = 0;
 
                 // now create partial model from successive training views
-                size_t num_used_v = num_training_views;
+                size_t num_used_v = num_training_views_l;
 //                for (size_t num_used_v = num_training_views-1; num_used_v > 0; num_used_v--)
                 {
                     std::vector<pcl::PointCloud<PointT>::Ptr > training_clouds_used ( num_used_v );
@@ -493,15 +482,6 @@ public:
                     out_tmp_training_dir_replaced_model = out_tmp_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd";
                     size_t start_v=0;
                     {
-                        boost::filesystem::remove_all( out_tmp_training_dir_replaced_model );
-                        v4r::io::createDirIfNotExist( out_tmp_training_dir_replaced_model );
-
-                        if(param_.do_sift_)
-                            v4r::io::createDirIfNotExist( out_tmp_training_dir_replaced_model  + "/sift");
-
-                        if(param_.do_sift_)
-                            v4r::io::createDirIfNotExist( out_tmp_training_dir_replaced_model  + "/shot_omp");
-
                         for (size_t v_id_rel=0; v_id_rel<num_used_v; v_id_rel++)
                         {
                             size_t v_id = ( start_v + v_id_rel ) % num_training_views;
@@ -512,16 +492,6 @@ public:
                             obj_indices_used [ v_id_rel ] = obj_indices [ v_id ];
                             weights_used [ v_id_rel ] = weights [ v_id ];
                             sigmas_used [ v_id_rel ] = sigmas [ v_id ];
-
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + training_views[v_id], out_tmp_training_dir_replaced_model + "/" + training_views[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + pose_fns[v_id], out_tmp_training_dir_replaced_model + "/" + pose_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + obj_indices_fns[v_id], out_tmp_training_dir_replaced_model + "/" + obj_indices_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + sift_descriptor_fns[v_id], out_tmp_training_dir_replaced_model + "/" + sift_descriptor_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + sift_keypoint_fns[v_id], out_tmp_training_dir_replaced_model + "/" + sift_keypoint_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + sift_keypoint_normal_fns[v_id], out_tmp_training_dir_replaced_model + "/" + sift_keypoint_normal_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + shot_descriptor_fns[v_id], out_tmp_training_dir_replaced_model + "/" + shot_descriptor_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + shot_keypoint_fns[v_id], out_tmp_training_dir_replaced_model + "/" + shot_keypoint_fns[v_id]);
-                            bf::create_symlink(in_learnt_ + "/training_data/" + runs_with_replaced_model[m_run_id] + ".pcd/" + shot_keypoint_normal_fns[v_id], out_tmp_training_dir_replaced_model + "/" + shot_keypoint_normal_fns[v_id]);
                         }
 
                         nmIntegration.setInputClouds( training_clouds_used );
@@ -536,7 +506,7 @@ public:
                         sor.setLeafSize ( param_.vox_res_, param_.vox_res_, param_.vox_res_);
                         sor.filter ( cloud_filtered );
 
-                        pcl::io::savePCDFileBinary(out_tmp_ + "/models/" + runs_with_replaced_model[m_run_id] + ".pcd", *octree_cloud);
+//                        pcl::io::savePCDFileBinary(out_tmp_ + "/models/" + runs_with_replaced_model[m_run_id] + ".pcd", *octree_cloud);
 
                         std::cout << cloud_filtered.points.size() << " / " << total_points << " visible."
                                   << static_cast<float>(cloud_filtered.points.size()) / total_points << " "
@@ -544,12 +514,12 @@ public:
 
                         // get all test sequences that belong to the object model
                         std::vector<std::string> test_files;
-                        ifstream info(info_file_controlled_.c_str());
-                        std::string test_id, patrol_run_id, object_id;
-                        while (info >> test_id >> patrol_run_id >> object_id) {
-                            if (hasEnding(object_id, replaced_model)) {
-                                std::cout << object_id << std::endl;
-                                test_files.push_back( test_dir_ + "/" + test_id);
+                        ifstream info2(info_file_controlled_.c_str());
+                        std::string test_id2, patrol_run_id2, object_id2;
+                        while (info2 >> test_id2 >> patrol_run_id2 >> object_id2) {
+                            if (hasEnding(object_id2, replaced_model)) {
+                                std::cout << object_id2 << std::endl;
+                                test_files.push_back( test_dir_ + "/" + test_id2);
                             }
                         }
 
