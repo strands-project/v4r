@@ -1,4 +1,4 @@
-#include <v4r/recognition/boost_graph_extension.h>
+#include <v4r/recognition/multiview_representation.h>
 
 namespace v4r
 {

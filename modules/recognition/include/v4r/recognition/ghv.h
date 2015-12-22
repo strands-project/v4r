@@ -1,12 +1,28 @@
-﻿/*
- * hv_go_1.h
+﻿/******************************************************************************
+ * Copyright (c) 2013 Aitor Aldoma
  *
- *  Created on: Feb 27, 2013
- *      Author: aitor
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
-#ifndef FAAT_PCL_GHV_H_
-#define FAAT_PCL_GHV_H_
+#ifndef V4R_GHV_H_
+#define V4R_GHV_H_
 
 #include <pcl/common/common.h>
 #include <pcl/pcl_macros.h>
@@ -28,11 +44,11 @@ namespace v4r
 {
 
   /** \brief A hypothesis verification method proposed in
-   * "A Global Hypotheses Verification Method for 3D Object Recognition", A. Aldoma and F. Tombari and L. Di Stefano and Markus Vincze, ECCV 2012
-   * \author Aitor Aldoma
+   * "A Global Hypotheses Verification Method for 3D Object Recognition", A. Aldoma and F. Tombari and L. Di Stefano and Markus Vincze, ECCV 2012,
    * Extended with physical constraints and color information (see ICRA paper)
+   * \author Aitor Aldoma
+   * \date Feb, 2013
    */
-
   template<typename ModelT, typename SceneT>
     class V4R_EXPORTS GHV : public HypothesisVerification<ModelT, SceneT>
     {
@@ -110,88 +126,95 @@ namespace v4r
           using HypothesisVerification<ModelT, SceneT>::Parameter::zbuffer_scene_resolution_;
           using HypothesisVerification<ModelT, SceneT>::Parameter::zbuffer_self_occlusion_resolution_;
           using HypothesisVerification<ModelT, SceneT>::Parameter::self_occlusions_reasoning_;
+          using HypothesisVerification<ModelT, SceneT>::Parameter::focal_length_;
 
-          float color_sigma_ab_; /// @brief allowed illumination variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
-          float color_sigma_l_; /// @brief allowed chrominance (AB channel of LAB color space) variance of object hypotheses (between 0 and 1, the higher the fewer objects get rejected)
-          float regularizer_;
-          float radius_neighborhood_clutter_;
-          float radius_normals_;
-          float duplicy_weight_test_;
-          float duplicity_curvature_max_;
+          double color_sigma_l_; /// @brief allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
+          double color_sigma_ab_; /// @brief allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
+          double regularizer_; /// @brief represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.
+          double radius_neighborhood_clutter_; /// @brief defines the maximum distance between an <i>explained</i> scene point <b>p</b> and other unexplained scene points such that they influence the clutter term associated with <b>p</b>
+          double radius_normals_;
+          double duplicy_weight_test_;
+          double duplicity_curvature_max_;
           bool ignore_color_even_if_exists_;
           int max_iterations_; /// @brief max iterations without improvement
-          float clutter_regularizer_;
+          double clutter_regularizer_; /// @brief The penalty multiplier used to penalize unexplained scene points within the clutter influence radius <i>radius_neighborhood_clutter_</i> of an explained scene point when they belong to the same smooth segment.
           bool detect_clutter_;
-          float res_occupancy_grid_;
-          float w_occupied_multiple_cm_;
+          double res_occupancy_grid_;
+          double w_occupied_multiple_cm_;
           bool use_super_voxels_;
           bool use_replace_moves_;
-          int opt_type_;
-          float active_hyp_penalty_;
+          int opt_type_; /// @brief defines the optimization methdod<BR><BR> 0: Local search (converges quickly, but can easily get trapped in local minima),<BR> 1: Tabu Search,<BR> 4; Tabu Search + Local Search (Replace active hypotheses moves),<BR> else: Simulated Annealing
+          double active_hyp_penalty_;
           int multiple_assignment_penalize_by_one_;
-          float d_weight_for_bad_normals_;
+          double d_weight_for_bad_normals_; /// @brief specifies the weight an outlier is multiplied with in case the corresponding scene point's orientation is facing away from the camera more than a certain threshold and potentially has inherent noise
           bool use_clutter_exp_;
           bool use_histogram_specification_;
           bool use_points_on_plane_side_;
-          float best_color_weight_;
-          bool initial_status_;
+          double best_color_weight_;
+          bool initial_status_; /// @brief sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.
+          int color_space_; /// @brief specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
+          int outliers_weight_computation_method_; /// @brief defines the method used for computing the overall outlier weight. 0... mean, 1... median
 
           //smooth segmentation parameters
           double eps_angle_threshold_;
           int min_points_;
-          float curvature_threshold_;
-          float cluster_tolerance_;
+          double curvature_threshold_;
+          double cluster_tolerance_;
 
           bool use_normals_from_visible_;
 
           bool add_planes_;  /// @brief if true, adds planes as possible hypotheses (slower but decreases false positives especially for planes detected as flat objects like books)
           int plane_method_; /// @brief defines which method to use for plane extraction (if add_planes_ is true). 0... Multiplane Segmentation, 1... ClusterNormalsForPlane segmentation
           size_t min_plane_inliers_; /// @brief a planar cluster is only added as plane if it has at least min_plane_inliers_ points
-          double plane_inlier_distance_;          /// @brief Maximum inlier distance for plane clustering
-          double plane_thrAngle_;  /// @brief Threshold of normal angle for plane clustering
+          double plane_inlier_distance_; /// @brief Maximum inlier distance for plane clustering
+          double plane_thrAngle_;  /// @brief Threshold of normal angle in degree for plane clustering
           int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
+          bool visualize_go_cues_; /// @brief visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
 
           Parameter (
-                  float color_sigma_ab = 0.5f,
-                  float color_sigma_l = 0.5f,
-                  float regularizer = 1.f, // 3
-                  float radius_neighborhood_clutter = 0.03f,
-                  float radius_normals = 0.01f, // 0.02f
-                  float duplicy_weight_test = 1.f,
-                  float duplicity_curvature_max = 0.03f,
-                  bool ignore_color_even_if_exists = true,
+                  double color_sigma_l = 0.6f,
+                  double color_sigma_ab = 0.6f,
+                  double regularizer = 1.f, // 3
+                  double radius_neighborhood_clutter = 0.03f,
+                  double radius_normals = 0.02f, // 0.01f
+                  double duplicy_weight_test = 1.f,
+                  double duplicity_curvature_max = 0.03f,
+                  bool ignore_color_even_if_exists = false,
                   int max_iterations = 5000,
-                  float clutter_regularizer =  5.f,
+                  double clutter_regularizer =  1.f, //3.f,
                   bool detect_clutter = true,
-                  float res_occupancy_grid = 0.005f,
-                  float w_occupied_multiple_cm = 2.f, //0.f
+                  double res_occupancy_grid = 0.005f,
+                  double w_occupied_multiple_cm = 2.f, //0.f
                   bool use_super_voxels = false,
                   bool use_replace_moves = true,
-                  int opt_type = 2, // 0
-                  float active_hyp_penalty = 0.05f, // 0.f
+                  int opt_type = 0,
+                  double active_hyp_penalty = 0.f, // 0.05f
                   int multiple_assignment_penalize_by_one = 2,
-                  float d_weight_for_bad_normals = 0.1f,
+                  double d_weight_for_bad_normals = 0.1f,
                   bool use_clutter_exp = false,
-                  bool use_histogram_specification = false, // true
+                  bool use_histogram_specification = true, // false
                   bool use_points_on_plane_side = true,
-                  float best_color_weight = 0.8f,
+                  double best_color_weight = 0.8f,
                   bool initial_status = false,
+                  int color_space = 0,
+                  int outliers_weight_computation_method = 0,
                   double eps_angle_threshold = 0.25, //0.1f
-                  int min_points = 20, // 100
-                  float curvature_threshold = 0.04f,
-                  float cluster_tolerance = 0.015f, //0.01f;
+                  int min_points = 100, // 20
+                  double curvature_threshold = 0.04f,
+                  double cluster_tolerance = 0.01f, //0.015f;
                   bool use_normals_from_visible = false,
                   bool add_planes = true,
-                  int plane_method = 0,
-                  size_t min_plane_inliers = 1000,
+                  int plane_method = 1,
+                  size_t min_plane_inliers = 5000,
                   double plane_inlier_distance = 0.02f,
                   double plane_thrAngle = 30,
-                  int knn_plane_clustering_search = 10
+                  int knn_plane_clustering_search = 10,
+                  bool visualize_go_cues = false
                   )
               :
                 HypothesisVerification<ModelT, SceneT>::Parameter(),
-                color_sigma_ab_ (color_sigma_ab),
                 color_sigma_l_ (color_sigma_l),
+                color_sigma_ab_ (color_sigma_ab),
                 regularizer_ (regularizer),
                 radius_neighborhood_clutter_ (radius_neighborhood_clutter),
                 radius_normals_ (radius_normals),
@@ -214,6 +237,8 @@ namespace v4r
                 use_points_on_plane_side_ (use_points_on_plane_side),
                 best_color_weight_ (best_color_weight),
                 initial_status_ (initial_status),
+                color_space_ (color_space),
+                outliers_weight_computation_method_ (outliers_weight_computation_method),
                 eps_angle_threshold_ (eps_angle_threshold),
                 min_points_ (min_points),
                 curvature_threshold_ (curvature_threshold),
@@ -224,15 +249,21 @@ namespace v4r
                 min_plane_inliers_ ( min_plane_inliers ),
                 plane_inlier_distance_ ( plane_inlier_distance ),
                 plane_thrAngle_ ( plane_thrAngle ),
-                knn_plane_clustering_search_ ( knn_plane_clustering_search )
+                knn_plane_clustering_search_ ( knn_plane_clustering_search ),
+                visualize_go_cues_ ( visualize_go_cues )
           {}
       }param_;
+
+    private:
+      mutable int viewport_scene_and_hypotheses_, viewport_model_cues_, viewport_smooth_seg_, viewport_scene_cues_;
+
 
     protected:
       using HypothesisVerification<ModelT, SceneT>::mask_;
       using HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
       using HypothesisVerification<ModelT, SceneT>::scene_downsampled_tree_;
       using HypothesisVerification<ModelT, SceneT>::visible_models_;
+      using HypothesisVerification<ModelT, SceneT>::model_point_is_visible_;
       using HypothesisVerification<ModelT, SceneT>::visible_normal_models_;
       using HypothesisVerification<ModelT, SceneT>::visible_indices_;
       using HypothesisVerification<ModelT, SceneT>::complete_models_;
@@ -340,13 +371,13 @@ namespace v4r
       void computeClutterCueAtOnce ();
 
       virtual bool
-      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, int i, int object_models_size);
+      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, size_t i, size_t object_models_size);
 
       virtual bool
-      addModel (int i, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
+      addModel (size_t i, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
 
       //Performs smooth segmentation of the scene cloud and compute the model cues
-      virtual void
+      virtual bool
       initialize ();
 
       pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
@@ -575,7 +606,7 @@ namespace v4r
 
       void
       computeRGBHistograms (const std::vector<Eigen::Vector3f> & rgb_values, Eigen::MatrixXf & rgb,
-                               int dim = 3, float min = 0.f, float max = 255.f, bool soft = false);
+                               int dim = 3, float min = 0.f, float max = 255.f);
 
       void
       specifyRGBHistograms (Eigen::MatrixXf & src, Eigen::MatrixXf & dst, Eigen::MatrixXf & lookup, int dim = 3);
@@ -584,7 +615,7 @@ namespace v4r
       computeGSHistogram (const std::vector<float> & hsv_values, Eigen::MatrixXf & histogram, int hist_size = 255);
 
       std::vector<PlaneModel<ModelT> > planar_models_;
-      std::map<int, int> model_to_planar_model_;
+      std::map<size_t, size_t> model_to_planar_model_;
 
       typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
 
@@ -593,28 +624,26 @@ namespace v4r
       std::vector<std::vector<float> > points_one_plane_sides_;
 
       boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
-      int visualize_go_cues_;
 
-      void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval);
+      void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval) const;
 
-      boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_go_cues_;
+      mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
 
       std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> models_smooth_faces_;
 
-      void specifyColor(int i, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
+      void specifyColor(size_t i, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
 
       std::vector<float> scene_curvature_;
       std::vector<Eigen::Vector3f> scene_LAB_values_;
       std::vector<Eigen::Vector3f> scene_RGB_values_;
       std::vector<float> scene_GS_values_;
-      int color_space_;
       bool visualize_accepted_;
       typedef pcl::PointCloud<ModelT> CloudM;
       typedef pcl::PointCloud<SceneT> CloudS;
       typedef typename pcl::traits::fieldList<typename CloudS::PointType>::type FieldListS;
       typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
 
-      float getCurvWeight(float p_curvature);
+      double getCurvWeight(double p_curvature) const;
 
       int max_threads_;
 
@@ -622,7 +651,7 @@ namespace v4r
       std::vector<vtkSmartPointer <vtkTransform> > poses_ply_;
 
       float t_cues_, t_opt_;
-      int number_of_visible_points_;
+      size_t number_of_visible_points_;
 
 
       //compute mahalanobis distance
@@ -642,8 +671,6 @@ namespace v4r
 
         min_contribution_ = 0;
         LS_short_circuit_ = false;
-        visualize_go_cues_ = 0; //0 - No visualization, 1 - accepted moves
-        color_space_ = 0;
         visualize_accepted_ = false;
 
         max_threads_ = 1;
@@ -664,17 +691,17 @@ namespace v4r
          scene_and_normals_set_from_outside_ = true;
       }
 
-      int getNumberOfVisiblePoints()
+      int getNumberOfVisiblePoints() const
       {
           return number_of_visible_points_;
       }
 
-      float getCuesComputationTime()
+      float getCuesComputationTime() const
       {
           return t_cues_;
       }
 
-      float getOptimizationTime()
+      float getOptimizationTime() const
       {
           return t_opt_;
       }
@@ -695,21 +722,9 @@ namespace v4r
           visualize_accepted_ = b;
       }
 
-      //0 for LAB (specifying L), 1 for RGB (specifying all)
-      void setColorSpace(int cs)
-      {
-          std::cout << "called color space" << cs << std::endl;
-          color_space_ = cs;
-      }
-
       void setSmoothFaces(std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> & aligned_smooth_faces)
       {
           models_smooth_faces_ = aligned_smooth_faces;
-      }
-
-      void setVisualizeGoCues(int v)
-      {
-        visualize_go_cues_ = v;
       }
 
       void setLSShortCircuit(bool b)
@@ -757,13 +772,13 @@ namespace v4r
        }*/
 
       pcl::PointCloud<pcl::PointXYZL>::Ptr
-      getSmoothClusters ()
+      getSmoothClusters () const
       {
         return clusters_cloud_;
       }
 
       pcl::PointCloud<pcl::PointXYZRGBA>::Ptr
-      getSmoothClustersRGBCloud ()
+      getSmoothClustersRGBCloud () const
       {
         return clusters_cloud_rgb_;
       }
@@ -781,8 +796,7 @@ namespace v4r
       }
 
 
-      void
-      verify ();
+      void verify();
 
       void
       setInitialTemp (float t)
@@ -808,4 +822,4 @@ namespace v4r
     };
 }
 
-#endif //FAAT_PCL_GHV_H_
+#endif

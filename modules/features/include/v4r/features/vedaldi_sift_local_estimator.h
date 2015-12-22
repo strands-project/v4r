@@ -71,7 +71,7 @@ namespace v4r
             mask_cloud.points[indices_.indices[i]] = 1;
 
           cv::Mat_ < cv::Vec3b > colorImage;
-          PCLOpenCV::ConvertPCLCloud2Image<PointInT> (in, colorImage);
+          v4r::ConvertPCLCloud2Image<PointInT> (in, colorImage);
           cv::Mat grayImage;
           cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
 

@@ -65,38 +65,38 @@ namespace v4r
     }
     edge_component;
 
-    typedef boost::adjacency_matrix<boost::undirectedS, int, boost::property<edge_component_t, std::size_t> > GraphGGCG;
-    void cleanGraph2(GraphGGCG & g, int gc_thres);
-    void cleanGraph(GraphGGCG & g, int gc_thres);
+    typedef boost::adjacency_matrix<boost::undirectedS, size_t, boost::property<edge_component_t, std::size_t> > GraphGGCG;
+    void cleanGraph2(GraphGGCG & g, size_t gc_thres);
+    void cleanGraph(GraphGGCG & g, size_t gc_thres);
 
     public:
       class V4R_EXPORTS Parameter
       {
       public:
-          int gc_threshold_;  //Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose
-          double gc_size_; // Resolution of the consensus set used to cluster correspondences together
+          size_t gc_threshold_;  /// @brief Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose
+          double gc_size_; /// @brief Resolution of the consensus set used to cluster correspondences together
           double thres_dot_distance_;
           bool use_graph_;
-          float dist_for_cluster_factor_;
-          int max_taken_correspondence_;
+          double dist_for_cluster_factor_;
+          size_t max_taken_correspondence_;
           bool cliques_big_to_small_;
           bool check_normals_orientation_;
-          float max_time_allowed_cliques_comptutation_;
-          float ransac_threshold_;
+          double max_time_allowed_cliques_comptutation_;    /// @brief if grouping correspondences takes more processing time in milli seconds than this defined value, correspondences will be no longer computed by this graph based approach but by the simpler greedy correspondence grouping algorithm
+          double ransac_threshold_;
           bool prune_;
           bool prune_by_CC_;
 
           Parameter(
-                  int gc_threshold = 3,
-                  double gc_size = 1.0, // 0.015
-                  double thres_dot_distance = 0.05f, // 0.2
+                  size_t gc_threshold = 5,
+                  double gc_size = 0.015,
+                  double thres_dot_distance = 0.2f, // 0.05f
                   bool use_graph = true,
-                  float dist_for_cluster_factor = 3.f, //0
-                  int max_taken_correspondence = 2,//5, // 2
+                  double dist_for_cluster_factor = 0., //3.f
+                  size_t max_taken_correspondence = 3, //5
                   bool cliques_big_to_small = false,
                   bool check_normals_orientation = true,
-                  float max_time_allowed_cliques_comptutation = std::numeric_limits<float>::infinity(), // 100
-                  float ransac_threshold = 0.015f,
+                  double max_time_allowed_cliques_comptutation = 100, //std::numeric_limits<double>::infinity()
+                  double ransac_threshold = 0.015f,
                   bool prune = false,
                   bool prune_by_CC = false
                   )
@@ -148,7 +148,7 @@ namespace v4r
       }
 
       inline
-      void setMaxTaken(int t)
+      void setMaxTaken(size_t t)
       {
         param_.max_taken_correspondence_ = t;
       }
@@ -222,7 +222,7 @@ namespace v4r
         * \param[in] threshold the minimum cluster size 
         */
       inline void
-      setGCThreshold (int threshold)
+      setGCThreshold (size_t threshold)
       {
         param_.gc_threshold_ = threshold;
       }
@@ -231,7 +231,7 @@ namespace v4r
         * 
         * \return the minimum cluster size used by GC.
         */
-      inline int
+      inline size_t
       getGCThreshold () const
       {
         return param_.gc_threshold_;

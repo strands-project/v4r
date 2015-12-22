@@ -50,7 +50,7 @@ namespace v4r
 class V4R_EXPORTS RigidTransformationRANSAC
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     double inl_dist;

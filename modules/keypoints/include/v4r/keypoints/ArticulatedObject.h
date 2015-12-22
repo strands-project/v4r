@@ -111,7 +111,7 @@ public:
 /*************************************************************************** 
  * ArticulatedObject 
  */
-class ArticulatedObject : public Object, public PartMotion6D
+class V4R_EXPORTS ArticulatedObject : public Object, public PartMotion6D
 {
 public:
   std::string version;

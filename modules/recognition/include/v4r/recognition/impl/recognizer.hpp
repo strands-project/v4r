@@ -35,90 +35,28 @@
 #include <v4r/recognition/recognizer.h>
 #include <v4r/recognition/ghv.h>
 #include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/recognition/voxel_based_correspondence_estimation.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
 #include <v4r/segmentation/ClusterNormalsToPlanesPCL.h>
+
 #include <pcl/common/centroid.h>
+#include <pcl/filters/crop_box.h>
+#include <pcl/registration/correspondence_rejection_sample_consensus.h>
+#include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
+
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 
 namespace v4r
 {
 
-bool
-gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
-{
-    return (i.distance < j.distance);
-}
-
-template <typename PointT>
-void
-ObjectHypothesis<PointT>::visualize(const typename pcl::PointCloud<PointT> & scene) const
-{
-    (void)scene;
-    std::cerr << "This function is not implemented for this point cloud type!" << std::endl;
-}
-
-template <>
-void
-ObjectHypothesis<pcl::PointXYZRGB>::visualize(const pcl::PointCloud<pcl::PointXYZRGB> & scene) const
-{
-    if(!vis_)
-        vis_.reset(new pcl::visualization::PCLVisualizer("correspondences for hypothesis"));
-
-    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr model_cloud = model_->getAssembled( 0.003f );
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_aligned ( new pcl::PointCloud<pcl::PointXYZRGB>() );
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_vis ( new pcl::PointCloud<pcl::PointXYZRGB>() );
-    Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
-    pcl::copyPointCloud( scene, *scene_vis);
-    scene_vis->sensor_origin_ = zero_origin;
-    scene_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
-    pcl::copyPointCloud( *model_cloud, *model_aligned);
-    vis_->addPointCloud(scene_vis, "scene");
-    vis_->addPointCloud(model_aligned, "model_aligned");
-    vis_->addPointCloudNormals<pcl::PointXYZRGB, pcl::Normal> (model_->keypoints_, model_->kp_normals_, 10, 0.05, "normals_model");
-
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_colored_scene ( new pcl::PointCloud<pcl::PointXYZRGB>() );
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_colored_model ( new pcl::PointCloud<pcl::PointXYZRGB>() );
-    kp_colored_scene->points.resize(model_scene_corresp_->size());
-    kp_colored_model->points.resize(model_scene_corresp_->size());
-
-    pcl::CorrespondencesPtr sorted_corrs (new pcl::Correspondences (*model_scene_corresp_));
-    std::sort (sorted_corrs->begin (), sorted_corrs->end (), gcGraphCorrespSorter);
-
-    vis_->addPointCloud(kp_colored_scene, "kps_s");
-    vis_->addPointCloud(kp_colored_model, "kps_m");
-
-    for(size_t j=0; j<5; j++)
-    {
-        for (size_t i=(size_t)((j/5.f)*sorted_corrs->size()); i<(size_t)(((j+1.f)/5.f)*sorted_corrs->size()); i++)
-        {
-            const pcl::Correspondence &c = sorted_corrs->at(i);
-            pcl::PointXYZRGB kp_m = model_->keypoints_->points[c.index_query];
-            pcl::PointXYZRGB kp_s = scene.points[c.index_match];
-
-            const float r = kp_m.r = kp_s.r = 100 + rand() % 155;
-            const float g = kp_m.g = kp_s.g = 100 + rand() % 155;
-            const float b = kp_m.b = kp_s.b = 100 + rand() % 155;
-            kp_colored_scene->points[i] = kp_s;
-            kp_colored_model->points[i] = kp_m;
-
-            std::stringstream ss; ss << "correspondence " << i << j;
-            vis_->addLine(kp_s, kp_m, r/255, g/255, b/255, ss.str());
-            vis_->addSphere(kp_s, 2, r/255, g/255, b/255, ss.str() + "kp_s", vp1_);
-            vis_->addSphere(kp_m, 2, r/255, g/255, b/255, ss.str() + "kp_m", vp1_);
-        }
-        vis_->spin();
-    }
-
-}
-
 template<typename PointT>
 void
 Recognizer<PointT>::hypothesisVerification ()
 {
     std::vector<typename pcl::PointCloud<PointT>::ConstPtr> aligned_models (models_.size ());
-    std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals (models_.size ());
+    std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_model_normals (models_.size ());
 
     model_or_plane_is_verified_.clear();
     planes_.clear();
@@ -133,12 +71,12 @@ Recognizer<PointT>::hypothesisVerification ()
     {
         typename pcl::PointCloud<PointT>::Ptr aligned_model_tmp (new pcl::PointCloud<PointT>);
         pcl::PointCloud<pcl::Normal>::Ptr aligned_normal_tmp (new pcl::PointCloud<pcl::Normal>);
-        ConstPointTPtr model_cloud = models_[i]->getAssembled (hv_algorithm_->getResolution());
+        ConstPointTPtr model_cloud = models_[i]->getAssembled ( param_.resolution_mm_model_assembly_ );
         pcl::transformPointCloud (*model_cloud, *aligned_model_tmp, transforms_[i]);
         aligned_models[i] = aligned_model_tmp;
         pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models_[i]->getNormalsAssembled (hv_algorithm_->getResolution());
         transformNormals(*normal_cloud_const, *aligned_normal_tmp, transforms_[i]);
-        aligned_normals[i] = aligned_normal_tmp;
+        aligned_model_normals[i] = aligned_normal_tmp;
     }
 
 
@@ -151,7 +89,7 @@ Recognizer<PointT>::hypothesisVerification ()
     hv_algorithm_->addModels (aligned_models, true);
 
     if (hv_algorithm_->getRequiresNormals ())
-        hv_algorithm_->addNormalsClouds (aligned_normals);
+        hv_algorithm_->addNormalsClouds (aligned_model_normals);
 
     if( hv_algorithm_ghv ) {
         hv_algorithm_ghv->setRequiresNormals(false);
@@ -175,6 +113,7 @@ Recognizer<PointT>::hypothesisVerification ()
                 p_param.inlDist = hv_algorithm_ghv->param_.plane_inlier_distance_;
                 p_param.thrAngle = hv_algorithm_ghv->param_.plane_thrAngle_;
                 p_param.K_ = hv_algorithm_ghv->param_.knn_plane_clustering_search_;
+                p_param.normal_computation_method_ = param_.normal_computation_method_;
                 ClusterNormalsToPlanesPCL<PointT> pest(p_param);
                 pest.compute(scene_, *scene_normals_, planes_);
             }
@@ -196,10 +135,6 @@ Recognizer<PointT>::poseRefinement()
     PointTPtr scene_voxelized (new pcl::PointCloud<PointT> ());
     pcl::VoxelGrid<PointT> voxel_grid_icp;
     voxel_grid_icp.setInputCloud (scene_);
-
-    if(icp_scene_indices_ && icp_scene_indices_->indices.size() > 0)
-        voxel_grid_icp.setIndices(icp_scene_indices_);
-
     voxel_grid_icp.setLeafSize (param_.voxel_size_icp_, param_.voxel_size_icp_, param_.voxel_size_icp_);
     voxel_grid_icp.filter (*scene_voxelized);
 
@@ -210,7 +145,8 @@ Recognizer<PointT>::poseRefinement()
 #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
         for (size_t i = 0; i < models_.size (); i++)
         {
-            ConstPointTPtr model_cloud = models_[i]->getAssembled (param_.voxel_size_icp_);
+//            std::cout << "Doing ICP (type 0) for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
+            ConstPointTPtr model_cloud = models_[i]->getAssembled ( param_.resolution_mm_model_assembly_ );
             PointTPtr model_aligned (new pcl::PointCloud<PointT>);
             pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_[i]);
 
@@ -242,7 +178,7 @@ Recognizer<PointT>::poseRefinement()
 #pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
         for (size_t i = 0; i < models_.size(); i++)
         {
-            //        std::cout << "Doing ICP for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
+//            std::cout << "Doing ICP for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
             typename VoxelBasedCorrespondenceEstimation<PointT, PointT>::Ptr
                     est (new VoxelBasedCorrespondenceEstimation<PointT, PointT> ());
 
@@ -282,10 +218,10 @@ Recognizer<PointT>::poseRefinement()
             est->setInputTarget (model_aligned);
             est->setMaxCorrespondenceDistance (param_.max_corr_distance_);
 
+            rej->setInputSource (scene_voxelized_icp_cropped);
             rej->setInputTarget (model_aligned);
             rej->setMaximumIterations (1000);
             rej->setInlierThreshold (0.005f);
-            rej->setInputSource (scene_voxelized_icp_cropped);
 
             pcl::IterativeClosestPoint<PointT, PointT, float> reg;
             reg.setCorrespondenceEstimation (est);
@@ -305,10 +241,11 @@ Recognizer<PointT>::poseRefinement()
             typename pcl::PointCloud<PointT>::Ptr output_ (new pcl::PointCloud<PointT> ());
             reg.align (*output_);
 
+            std::cout << "ICP: iterations: " << param_.icp_iterations_ << ", fitness_score: " << reg.getFitnessScore() << std::endl;
+
             Eigen::Matrix4f icp_trans;
             icp_trans = reg.getFinalTransformation () * scene_to_model_trans;
             transforms_[i] = icp_trans.inverse ();
-
             //        std::cout << "Done ICP for model  " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
 
         }
@@ -350,7 +287,7 @@ Recognizer<PointT>::visualize() const
         std::stringstream model_label;
         model_label << model_id << "_" << i;
         typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
     }
@@ -366,11 +303,9 @@ Recognizer<PointT>::visualize() const
         std::stringstream model_label;
         model_label << model_id << "_v_" << i;
         typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
-
-
     }
 
     for(size_t plane_id=0; plane_id < planes_.size(); plane_id++)
@@ -383,8 +318,6 @@ Recognizer<PointT>::visualize() const
 
         if(model_or_plane_is_verified_[models_.size() + plane_id]) {
             plane_name << "_verified";
-            typename pcl::PointCloud<PointT>::Ptr plane_cloud = planes_[plane_id].projectPlaneCloud();
-            pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(plane_cloud);
             vis_->addPointCloud<PointT> ( plane_cloud, plane_handler, plane_name.str (), vp3_ );
         }
     }
@@ -394,7 +327,8 @@ Recognizer<PointT>::visualize() const
 
 
 template<>
-V4R_EXPORTS void
+void
+V4R_EXPORTS
 Recognizer<pcl::PointXYZRGB>::visualize() const
 {
     typedef pcl::PointXYZRGB PointT;
@@ -429,7 +363,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         std::stringstream model_label;
         model_label << model_id << "_" << i;
         typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
     }
@@ -437,7 +371,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
 
     for(size_t i=0; i<models_.size(); i++)
     {
-        if(!model_or_plane_is_verified_[i])
+        if(i >= model_or_plane_is_verified_.size() || !model_or_plane_is_verified_[i])
             continue;
 
         ModelT &m = *models_[i];
@@ -445,7 +379,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         std::stringstream model_label;
         model_label << model_id << "_v_" << i;
         typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 0.003f );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
     }
@@ -460,8 +394,6 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
 
         if(model_or_plane_is_verified_[models_.size() + plane_id]) {
             plane_name << "_verified";
-            typename pcl::PointCloud<PointT>::Ptr plane_cloud = planes_[plane_id].projectPlaneCloud();
-            pcl::visualization::PointCloudColorHandlerRandom<PointT> plane_handler(plane_cloud);
             vis_->addPointCloud<PointT> ( plane_cloud, plane_handler, plane_name.str (), vp3_ );
         }
     }

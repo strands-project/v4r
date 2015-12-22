@@ -1,0 +1,8 @@
+if(WITH_GLEW)
+  find_package(GLEW)
+  if(GLEW_FOUND)
+    set(GLEW_LIBRARIES "${GLEW_LIBRARIES}")
+    set(GLEW_INCLUDE_DIRS "${GLEW_INCLUDE_DIR}")
+    set(HAVE_GLEW TRUE)
+  endif()
+endif()

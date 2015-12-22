@@ -4,5 +4,3 @@
 
 template class V4R_EXPORTS v4r::Source<pcl::PointXYZ>;
 template class V4R_EXPORTS v4r::Source<pcl::PointXYZRGB>;
-template class V4R_EXPORTS v4r::Model<pcl::PointXYZ>;
-template class V4R_EXPORTS v4r::Model<pcl::PointXYZRGB>;

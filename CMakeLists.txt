@@ -97,7 +97,6 @@ V4R_OPTION(WITH_QT             "Build with Qt Backend support"               OFF
 V4R_OPTION(WITH_OPENMP         "Include OpenMP support"                      ON)
 V4R_OPTION(WITH_PTHREADS_PF    "Use pthreads-based parallel_for"             ON   IF (NOT WIN32) )
 V4R_OPTION(WITH_EDT            "Include EDT support"                         ON   IF (NOT IOS) )
-V4R_OPTION(WITH_METS           "Include METSLIB support"                     ON )
 V4R_OPTION(WITH_OPENCL         "Include OpenCL Runtime support"              NOT ANDROID IF (NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_OPENCL_SVM     "Include OpenCL Shared Virtual Memory support" OFF ) # experimental
 V4R_OPTION(WITH_OPENCLAMDFFT   "Include AMD OpenCL FFT library support"      ON   IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
@@ -105,12 +104,16 @@ V4R_OPTION(WITH_OPENCLAMDBLAS  "Include AMD OpenCL BLAS library support"     ON 
 V4R_OPTION(WITH_OPENCV         "Include OpenCV support"                      ON)
 V4R_OPTION(WITH_OPENNI2        "Include OpenNI support"                      ON)
 V4R_OPTION(WITH_SIFTGPU        "Include SiftGPU support"                     ON)
+V4R_OPTION(WITH_METSLIB        "Include METSlib support"                     ON)
 V4R_OPTION(WITH_LIBSVM         "Include LIBSVM support"                      ON)
 V4R_OPTION(WITH_PCL            "Include PCL support"                         ON)
 V4R_OPTION(WITH_QT4            "Include QT support"                          ON)
 V4R_OPTION(WITH_BOOST          "Include Boost support"                       ON)
 V4R_OPTION(WITH_EIGEN          "Include Eigen3 support"                      ON)
+V4R_OPTION(WITH_GLFW3          "Include GLFW3 support"                       ON)
 V4R_OPTION(WITH_GLM            "Include GLM support"                         ON)
+V4R_OPTION(WITH_GLEW            "Include GLEW support"                         ON)
+V4R_OPTION(WITH_GLOG           "Include Google Logging support"              ON)
 
 # V4R build components
 # ===================================================
@@ -132,14 +135,15 @@ V4R_OPTION(BUILD_CUDA_STUBS         "Build CUDA modules stubs when no CUDA SDK" 
 # 3rd party libs
 V4R_OPTION(BUILD_ZLIB               "Build zlib from source"             WIN32 OR APPLE )
 V4R_OPTION(BUILD_EDT                "Build libedt from source"           ON)
-V4R_OPTION(BUILD_METS               "Build metslib from source"           ON)
 V4R_OPTION(BUILD_JASPER             "Build libjasper from source"        WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_JPEG               "Build libjpeg from source"          WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_PNG                "Build libpng from source"           WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_OPENEXR            "Build openexr from source"          (WIN32 OR ANDROID OR APPLE) AND NOT WINRT)
 V4R_OPTION(BUILD_TBB                "Download and build TBB from source" ANDROID )
 V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
+V4R_OPTION(BUILD_METSLIB            "Download and build METSlib from source" ON)
 V4R_OPTION(BUILD_LIBSVM             "Download and build LIBSVM from source" OFF)
+V4R_OPTION(BUILD_GLFW3              "Download and build GLFW3 from source"   ON)
 
 # V4R installation options
 # ===================================================
@@ -297,6 +301,7 @@ include(CheckFunctionExists)
 include(CheckIncludeFile)
 
 CHECK_INCLUDE_FILE(pthread.h HAVE_LIBPTHREAD)
+set(V4R_LINKER_LIBS ${V4R_LINKER_LIBS} X11 Xrandr Xinerama Xcursor)
 set(V4R_LINKER_LIBS ${V4R_LINKER_LIBS} dl m pthread rt)
 
 include(cmake/V4RModule.cmake)
@@ -319,7 +324,10 @@ include(cmake/V4RFindAssimp.cmake)
 include(cmake/V4RFindCeres.cmake)
 include(cmake/V4RFindLibsPerf.cmake)
 include(cmake/V4RFindEigen.cmake)
+include(cmake/V4RFindGlew.cmake)
+include(cmake/V4RFindGLFW3.cmake)
 include(cmake/V4RFindGLM.cmake)
+include(cmake/V4RFindGlog.cmake)
 include(cmake/V4RFindOpenGL.cmake)
 include(cmake/V4RFindPCL.cmake)
 include(cmake/V4RFindQt.cmake)
@@ -332,8 +340,8 @@ include(cmake/V4RFindBoost.cmake)
 
 include(cmake/V4RFindEDT.cmake)
 include(cmake/V4RFindSiftGPU.cmake)
+include(cmake/V4RFindMETSlib.cmake)
 include(cmake/V4RFindLIBSVM.cmake)
-#include(cmake/V4RFindMetslib.cmake)
 
 # --- Doxygen for documentation ---
 unset(DOXYGEN_FOUND CACHE)
@@ -398,6 +406,9 @@ endif()
 if(BUILD_EXAMPLES)
   add_subdirectory(samples)
 endif()
+
+# Figure out the list of dependencies
+v4r_get_all_libs(deps_modules deps_extra deps_3rdparty)
 
 # ----------------------------------------------------------------------------
 # Finalization: generate configuration-based files
@@ -475,7 +486,6 @@ status("    Linker flags (Release):" ${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_SHARED
 status("    Linker flags (Debug):"   ${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_SHARED_LINKER_FLAGS_DEBUG})
 
 # ========================== Dependencies ============================
-v4r_get_all_libs(deps_modules deps_extra deps_3rdparty)
 status("    Extra dependencies:" ${deps_extra})
 status("    3rdparty dependencies:" ${deps_3rdparty})
 
@@ -578,15 +588,15 @@ if(WITH_SIFTGPU)
 else()
   status("    SiftGPU:"  "NO")
 endif()
+if(WITH_METSLIB)
+  status("    METSlib:"  METSLIB_FOUND  THEN "${METSLIB_LIBRARIES} (ver ${METSLIB_VERSION})" ELSE "build (ver ${METSLIB_VERSION})")
+else()
+  status("    METSlib:"  "NO")
+endif()
 if(WITH_LIBSVM)
   status("    LIBSVM:"  LIBSVM_FOUND  THEN "${LIBSVM_LIBRARIES} (ver ${LIBSVM_VERSION})" ELSE "build (ver ${LIBSVM_VERSION})")
 else()
   status("    LIBSVM:"  "NO")
-endif()
-if(WITH_METS)
-  status("    METS:"  METS_FOUND  THEN "${METS_LIBRARIES} (ver ${METS_VERSION})" ELSE "build (ver ${METS_VERSION})")
-else()
-  status("    METS:"  "NO")
 endif()
 if(WITH_PCL AND HAVE_PCL)
   status("    PCL:"  "YES (ver ${PCL_VERSION})")
@@ -630,6 +640,12 @@ if( WITH_GDAL )
   status("    GDAL:"   GDAL_FOUND THEN "${GDAL_LIBRARY}" ELSE "NO")
 else()
   status("    GDAL:"     "NO")
+endif()
+
+if(WITH_GLOG AND HAVE_GLOG)
+  status("    GLOG:"  "${GLOG_LIBRARIES}")
+else()
+  status("    GLOG:"  "NO")
 endif()
 
 # ========================== VIDEO IO ==========================
@@ -685,6 +701,8 @@ status("    Use Eigen:"      HAVE_EIGEN       THEN "YES (ver ${EIGEN_WORLD_VERSI
 status("    Use GLM:"        HAVE_GLM         THEN "YES (ver ${GLM_VERSION})" ELSE NO)
 status("    Use Cuda:"       HAVE_CUDA        THEN "YES (ver ${CUDA_VERSION_STRING})" ELSE NO)
 status("    Use OpenCL:"     HAVE_OPENCL      THEN YES ELSE NO)
+status("    Use GLFW3:"      HAVE_GLFW3       THEN "YES (ver ${GLFW3_VERSION})" ELSE NO)
+status("    Use GLEW:"       HAVE_GLEW        THEN YES ELSE NO)
 
 if(HAVE_CUDA)
   status("")

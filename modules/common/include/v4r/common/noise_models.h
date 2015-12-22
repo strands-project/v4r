@@ -27,16 +27,29 @@ namespace v4r
                 float lateral_sigma_;
                 float max_angle_;
                 bool use_depth_edges_;
+                float focal_length_;
+                float weight_edge_;
+                int dilate_width_;
+                int dilate_iterations_;
+
                 Parameter(
                         float lateral_sigma = 0.002f,
                         float max_angle = 70.f,
-                        bool use_depth_edges = true)
+                        bool use_depth_edges = true,
+                        float focal_length = 525.f,
+                        float weight_edge = 5.f,
+                        int dilate_width = 5,
+                        int dilate_iterations = 3)
                         :
                           lateral_sigma_ (lateral_sigma),
                           max_angle_ ( max_angle ),
-                          use_depth_edges_( use_depth_edges )
+                          use_depth_edges_( use_depth_edges ),
+                          focal_length_ (focal_length),
+                          weight_edge_ (weight_edge),
+                          dilate_width_ (dilate_width),
+                          dilate_iterations_ (dilate_iterations)
                         {}
-            };
+            }param_;
 
         private:
           typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
@@ -44,12 +57,12 @@ namespace v4r
           PointTPtr input_;
           PointNormalTPtr normals_;
           std::vector<float> weights_;
+          std::vector<float> sigmas_;
           pcl::PointIndices discontinuity_edges_;
           Eigen::Matrix4f pose_to_plane_RF_;
           bool pose_set_;
 
         public:
-          Parameter param_;
 
           NguyenNoiseModel (const Parameter &param=Parameter());
 
@@ -108,6 +121,12 @@ namespace v4r
           getWeights (std::vector<float> & weights) const
           {
             weights = weights_;
+          }
+
+          std::vector<float>
+          getSigmas () const
+          {
+            return sigmas_;
           }
 
           //void getFilteredCloud(PointTPtr & filtered, float w_t);

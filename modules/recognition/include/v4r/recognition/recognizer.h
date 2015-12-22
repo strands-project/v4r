@@ -29,59 +29,19 @@
 *      @brief object instance recognizer
 */
 
-
 #ifndef RECOGNIZER_H_
 #define RECOGNIZER_H_
 
-#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/core/macros.h>
 #include <v4r/recognition/hypotheses_verification.h>
-#include <v4r/recognition/voxel_based_correspondence_estimation.h>
+#include <v4r/recognition/local_rec_object_hypotheses.h>
 #include <v4r/recognition/source.h>
 
 #include <pcl/common/common.h>
-#include <pcl/common/time.h>
-#include <pcl/filters/crop_box.h>
-#include <pcl/registration/correspondence_rejection_sample_consensus.h>
-#include <pcl/registration/transformation_estimation_svd.h>
-#include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/registration/transformation_estimation_point_to_plane_lls.h>
 
 namespace v4r
 {
-    template<typename PointT>
-    class V4R_EXPORTS ObjectHypothesis
-    {
-      typedef Model<PointT> ModelT;
-      typedef boost::shared_ptr<ModelT> ModelTPtr;
-
-      private:
-        mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-        int vp1_;
-
-      public:
-        ModelTPtr model_;
-
-        ObjectHypothesis()
-        {
-            model_scene_corresp_.reset(new pcl::Correspondences);
-        }
-
-        pcl::CorrespondencesPtr model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
-        std::vector<int> indices_to_flann_models_;
-
-        void visualize(const typename pcl::PointCloud<PointT> & scene) const;
-
-        ObjectHypothesis & operator=(const ObjectHypothesis &rhs)
-        {
-            *(this->model_scene_corresp_) = *rhs.model_scene_corresp_;
-            this->indices_to_flann_models_ = rhs.indices_to_flann_models_;
-            this->model_ = rhs.model_;
-            return *this;
-        }
-    };
-
     template<typename PointT>
     class V4R_EXPORTS Recognizer
     {
@@ -89,23 +49,35 @@ namespace v4r
         class V4R_EXPORTS Parameter
         {
         public:
-            int icp_iterations_;
-            int icp_type_;
-            float voxel_size_icp_;
-            float max_corr_distance_;
-            int normal_computation_method_;
+            int icp_iterations_;    /// @brief number of icp iterations. If 0, no pose refinement will be done.
+            int icp_type_; /// @brief defines the icp method being used for pose refinement (0... regular ICP with CorrespondenceRejectorSampleConsensus, 1... crops point cloud of the scene to the bounding box of the model that is going to be refined)
+            double voxel_size_icp_;
+            double max_corr_distance_; /// @brief defines the margin for the bounding box used when doing pose refinement with ICP of the cropped scene to the model
+            int normal_computation_method_; /// @brief chosen normal computation method of the V4R library
+            bool merge_close_hypotheses_; /// @brief if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined
+            double merge_close_hypotheses_dist_; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
+            double merge_close_hypotheses_angle_; /// @brief defines the maximum angle in degrees for clusters to be merged together
+            int resolution_mm_model_assembly_; /// @brief the resolution in millimeters of the model when it gets assembled into a point cloud
 
             Parameter(
-                    int icp_iterations = 20,
-                    int icp_type = 1,
-                    float voxel_size_icp = 0.0025f,
-                    float max_corr_distance = 0.02f,
-                    int normal_computation_method = 2)
+                    int icp_iterations = 0,
+                    int icp_type = 0,
+                    double voxel_size_icp = 0.0025f,
+                    double max_corr_distance = 0.03f,
+                    int normal_computation_method = 2,
+                    bool merge_close_hypotheses = true,
+                    double merge_close_hypotheses_dist = 0.02f,
+                    double merge_close_hypotheses_angle = 10.f,
+                    int resolution_mm_model_assembly = 3)
                 : icp_iterations_ (icp_iterations),
                   icp_type_ (icp_type),
                   voxel_size_icp_ (voxel_size_icp),
                   max_corr_distance_ (max_corr_distance),
-                  normal_computation_method_ (normal_computation_method)
+                  normal_computation_method_ (normal_computation_method),
+                  merge_close_hypotheses_ (merge_close_hypotheses),
+                  merge_close_hypotheses_dist_ (merge_close_hypotheses_dist),
+                  merge_close_hypotheses_angle_ (merge_close_hypotheses_angle),
+                  resolution_mm_model_assembly_ (resolution_mm_model_assembly)
             {}
         }param_;
 
@@ -135,11 +107,8 @@ namespace v4r
         std::vector<bool> model_or_plane_is_verified_;
 
         bool requires_segmentation_;
-        std::vector<int> indices_;
-        pcl::PointIndicesPtr icp_scene_indices_;
 
-        /** \brief Directory containing views of the object */
-        std::string training_dir_;
+        std::string training_dir_; /// \brief Directory containing views of the object
 
         /** \brief Hypotheses verification algorithm */
         typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > hv_algorithm_;
@@ -211,10 +180,30 @@ namespace v4r
         virtual typename boost::shared_ptr<Source<PointT> >
         getDataSource () const = 0;
 
-        virtual void reinitialize(const std::vector<std::string> &load_ids = std::vector<std::string>())
+        virtual bool
+        initialize(bool force_retrain)
         {
-            (void)load_ids;
-            PCL_WARN("Reinitialize is not implemented for this class.");
+            (void) force_retrain;
+            PCL_WARN("initialize is not implemented for this class.");
+            return true;
+        }
+
+        virtual void
+        reinitialize()
+        {
+            PCL_WARN("reinitialize is not implemented for this class.");
+        }
+
+        virtual void
+        reinitializeSourceOnly()
+        {
+            PCL_WARN("reinitializeSource is not implemented for this class.");
+        }
+
+        virtual void
+        reinitializeRecOnly()
+        {
+            PCL_WARN("reinitializeRec is not implemented for this class.");
         }
 
         void setHVAlgorithm (const typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > & alg)
@@ -312,12 +301,6 @@ namespace v4r
         virtual bool requiresSegmentation() const
         {
           return requires_segmentation_;
-        }
-
-        virtual void
-        setIndices (const std::vector<int> & indices)
-        {
-          indices_ = indices;
         }
 
         void visualize () const;

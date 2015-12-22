@@ -1,0 +1,18 @@
+if(WITH_METSLIB)
+  if(BUILD_METSLIB)
+    v4r_clear_vars(METSLIB_FOUND)
+  else()
+    message(WARNING "METSlib support is enabled, but building from source is disabled. "
+                    "This option is not implemented, so you will need to write rules to "
+                    "find system-wide installation of METSlib yourself.")
+  endif()
+  if(NOT METSLIB_FOUND)
+    v4r_clear_vars(METSLIB_LIBRARY METSLIB_INCLUDE_DIRS METSLIB_VERSION)
+    set(METSLIB_LIBRARY metslib)
+    add_subdirectory("${V4R_SOURCE_DIR}/3rdparty/metslib")
+    set(METSLIB_LIBRARIES "")
+    set(METSLIB_INCLUDE_DIRS "${${METSLIB_LIBRARY}_INCLUDE_DIR}")
+    set(METSLIB_VERSION "${${METSLIB_LIBRARY}_VERSION}")
+    set(HAVE_METSLIB YES)
+  endif()
+endif()

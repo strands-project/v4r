@@ -9,20 +9,29 @@
 #define MULTI_PIPELINE_RECOGNIZER_HPP_
 
 #include <v4r/recognition/multi_pipeline_recognizer.h>
+#include <pcl/registration/transformation_estimation_svd.h>
 #include <v4r/common/miscellaneous.h>
 
 namespace v4r
 {
 
 template<typename PointT>
-void
-MultiRecognitionPipeline<PointT>::initialize()
+bool
+MultiRecognitionPipeline<PointT>::initialize(bool force_retrain)
 {
+    for(int i=0; i < (int)recognizers_.size(); i++) {
+        if(!recognizers_[i]->initialize(force_retrain)) {   // if model database changed, train whole model database again and start all over
+            reinitialize();
+        }
+    }
+
     if(param_.icp_iterations_ > 0 && param_.icp_type_ == 1)
     {
         for(size_t i=0; i < recognizers_.size(); i++)
             recognizers_[i]->getDataSource()->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
     }
+
+    return true;
 }
 
 template<typename PointT>
@@ -30,20 +39,44 @@ void
 MultiRecognitionPipeline<PointT>::reinitialize()
 {
     for(size_t i=0; i < recognizers_.size(); i++)
-        recognizers_[i]->reinitialize();
+        recognizers_[i]->reinitializeSourceOnly();
 
-    initialize();
-}
-
-template<typename PointT>
-void
-MultiRecognitionPipeline<PointT>::reinitialize(const std::vector<std::string> & load_ids)
-{
     for(size_t i=0; i < recognizers_.size(); i++)
-        recognizers_[i]->reinitialize(load_ids);
+        recognizers_[i]->reinitializeRecOnly();
 
-    initialize();
+    initialize(false);
 }
+
+
+//template<typename PointT>
+//void
+//MultiRecognitionPipeline<PointT>::reinitialize()
+//{
+
+//    // reinitialize source (but be aware to not do it twice)
+//    std::vector<boost::shared_ptr<Source<PointT> > > common_sources;
+
+//    for(size_t i=0; i < recognizers_.size(); i++) {
+//        boost::shared_ptr<Source<PointT> > src = recognizers_[i]->getDataSource();
+
+//        bool src_is_already_shared_by_other_recognizer = false;
+//        for(size_t jj=0; jj<common_sources; jj++)
+//        {
+//            if ( src == common_sources ) {
+//                src_is_already_shared_by_other_recognizer = true;
+//                break;
+//            }
+//        }
+//        if (!src_is_already_shared_by_other_recognizer)
+//            common_sources.push_back(src);
+//    }
+
+
+//    for(size_t i=0; i < recognizers_.size(); i++)
+//        recognizers_[i]->reinitialize();
+
+//    initialize();
+//}
 
 template<typename PointT>
 void
@@ -80,7 +113,7 @@ MultiRecognitionPipeline<PointT>::recognize()
     {
         recognizers_[i]->setInputCloud(scene_);
 
-        if(recognizers_[i]->requiresSegmentation())
+        if(recognizers_[i]->requiresSegmentation()) // this might not work in the current state!!
         {
             if( recognizers_[i]->acceptsNormals() )
             {
@@ -92,7 +125,6 @@ MultiRecognitionPipeline<PointT>::recognize()
 
             for(size_t c=0; c < segmentation_indices_.size(); c++)
             {
-                recognizers_[i]->setIndices(segmentation_indices_[c].indices);
                 recognizers_[i]->recognize();
                 std::vector<ModelTPtr> models_tmp = recognizers_[i]->getModels ();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp = recognizers_[i]->getTransforms ();
@@ -105,7 +137,6 @@ MultiRecognitionPipeline<PointT>::recognize()
         else
         {
 //            recognizers_[i]->setSaveHypotheses(param_.save_hypotheses_);  // shouldn't this be false?
-            recognizers_[i]->setIndices(indices_);
             recognizers_[i]->recognize();
 
             if(!recognizers_[i]->getSaveHypothesesParam())
@@ -148,8 +179,6 @@ MultiRecognitionPipeline<PointT>::recognize()
                     }
                 }
             }
-
-            input_icp_indices.insert(input_icp_indices.end(), indices_.begin(), indices_.end());
         }
     }
 
@@ -160,13 +189,6 @@ MultiRecognitionPipeline<PointT>::recognize()
         if (param_.icp_iterations_ > 0 || hv_algorithm_)
         {
             //Prepare scene and model clouds for the pose refinement step
-
-            std::sort( input_icp_indices.begin(), input_icp_indices.end() );
-            input_icp_indices.erase( std::unique( input_icp_indices.begin(), input_icp_indices.end() ), input_icp_indices.end() );
-
-            pcl::PointIndices ind;
-            ind.indices = input_icp_indices;
-            icp_scene_indices_.reset(new pcl::PointIndices(ind));
             getDataSource()->voxelizeAllModels (param_.voxel_size_icp_);
         }
 
@@ -186,10 +208,10 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
     if(cg_algorithm_->getRequiresNormals() && (!scene_normals_ || scene_normals_->points.size() != scene_->points.size()))
         computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
-    typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it_map;
-    for (it_map = obj_hypotheses_.begin (); it_map != obj_hypotheses_.end (); ++it_map)
+    typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it;
+    for (it = obj_hypotheses_.begin (); it != obj_hypotheses_.end (); ++it)
     {
-        ObjectHypothesis<PointT> &oh = it_map->second;
+        ObjectHypothesis<PointT> &oh = it->second;
 
         if(oh.model_scene_corresp_->size() < 3)
             continue;
@@ -205,18 +227,59 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
         cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
         cg_algorithm_->cluster (corresp_clusters);
 
-        std::cout << "Instances: " << corresp_clusters.size () << ", total correspondences: " << oh.model_scene_corresp_->size () << " " << it_map->first << std::endl;
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms (corresp_clusters.size());
+        typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
+
+        for (size_t i = 0; i < corresp_clusters.size(); i++)
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, corresp_clusters[i], new_transforms[i]);
+
+        if(param_.merge_close_hypotheses_) {
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > merged_transforms (corresp_clusters.size());
+            std::vector<bool> cluster_has_been_taken(corresp_clusters.size(), false);
+            const double angle_thresh_rad = param_.merge_close_hypotheses_angle_ * M_PI / 180.f ;
+
+            size_t kept=0;
+            for (size_t i = 0; i < new_transforms.size(); i++) {
+
+                if (cluster_has_been_taken[i])
+                    continue;
+
+                cluster_has_been_taken[i] = true;
+                const Eigen::Vector3f centroid1 = new_transforms[i].block<3, 1> (0, 3);
+                const Eigen::Matrix3f rot1 = new_transforms[i].block<3, 3> (0, 0);
+
+                pcl::Correspondences merged_corrs = corresp_clusters[i];
+
+                for(size_t j=i; j < new_transforms.size(); j++) {
+                    const Eigen::Vector3f centroid2 = new_transforms[j].block<3, 1> (0, 3);
+                    const Eigen::Matrix3f rot2 = new_transforms[j].block<3, 3> (0, 0);
+                    const Eigen::Matrix3f rot_diff = rot2 * rot1.transpose();
+
+                    double rotx = atan2(rot_diff(2,1), rot_diff(2,2));
+                    double roty = atan2(-rot_diff(2,0), sqrt(rot_diff(2,1) * rot_diff(2,1) + rot_diff(2,2) * rot_diff(2,2)));
+                    double rotz = atan2(rot_diff(1,0), rot_diff(0,0));
+                    double dist = (centroid1 - centroid2).norm();
+
+                    if ( (dist < param_.merge_close_hypotheses_dist_) && (rotx < angle_thresh_rad) && (roty < angle_thresh_rad) && (rotz < angle_thresh_rad) ) {
+                        merged_corrs.insert( merged_corrs.end(), corresp_clusters[j].begin(), corresp_clusters[j].end() );
+                        cluster_has_been_taken[j] = true;
+                    }
+                }
+
+                t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, merged_corrs, merged_transforms[kept]);
+                kept++;
+            }
+            merged_transforms.resize(kept);
+            new_transforms = merged_transforms;
+        }
+
+        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first << std::endl;
+
+        //        oh.visualize(*scene_);
 
         size_t existing_hypotheses = models_.size();
-        models_.resize( existing_hypotheses + corresp_clusters.size () );
-        transforms_.resize( existing_hypotheses + corresp_clusters.size () );
-
-        for (size_t i = 0; i < corresp_clusters.size (); i++)
-        {
-            models_[existing_hypotheses + i] = oh.model_;
-            typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
-            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_, corresp_clusters[i], transforms_[existing_hypotheses + i]);
-        }
+        models_.resize( existing_hypotheses + new_transforms.size(), oh.model_  );
+        transforms_.insert(transforms_.end(), new_transforms.begin(), new_transforms.end());
     }
 }
 

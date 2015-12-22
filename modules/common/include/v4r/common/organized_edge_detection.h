@@ -40,6 +40,7 @@
 
 #include <pcl/pcl_base.h>
 #include <pcl/PointIndices.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
@@ -55,7 +56,7 @@ namespace v4r
     * \author Changhyun Choi
     */
   template <typename PointT, typename PointLT>
-  class OrganizedEdgeBase : public pcl::PCLBase<PointT>
+  class V4R_EXPORTS OrganizedEdgeBase : public pcl::PCLBase<PointT>
   {
     typedef typename pcl::PointCloud<PointT> PointCloud;
     typedef typename PointCloud::Ptr PointCloudPtr;
@@ -180,7 +181,7 @@ namespace v4r
   };
 
   template <typename PointT, typename PointLT>
-  class OrganizedEdgeFromRGB : virtual public OrganizedEdgeBase<PointT, PointLT>
+  class V4R_EXPORTS OrganizedEdgeFromRGB : virtual public OrganizedEdgeBase<PointT, PointLT>
   {
     typedef typename pcl::PointCloud<PointT> PointCloud;
     typedef typename PointCloud::Ptr PointCloudPtr;
@@ -266,7 +267,7 @@ namespace v4r
   };
 
   template <typename PointT, typename PointNT, typename PointLT>
-  class OrganizedEdgeFromNormals : virtual public OrganizedEdgeBase<PointT, PointLT>
+  class V4R_EXPORTS OrganizedEdgeFromNormals : virtual public OrganizedEdgeBase<PointT, PointLT>
   {
     typedef typename pcl::PointCloud<PointT> PointCloud;
     typedef typename PointCloud::Ptr PointCloudPtr;
@@ -376,7 +377,7 @@ namespace v4r
   };
 
   template <typename PointT, typename PointNT, typename PointLT>
-  class OrganizedEdgeFromRGBNormals : public OrganizedEdgeFromRGB<PointT, PointLT>, public OrganizedEdgeFromNormals<PointT, PointNT, PointLT>
+  class V4R_EXPORTS OrganizedEdgeFromRGBNormals : public OrganizedEdgeFromRGB<PointT, PointLT>, public OrganizedEdgeFromNormals<PointT, PointNT, PointLT>
   {
     typedef typename pcl::PointCloud<PointT> PointCloud;
     typedef typename PointCloud::Ptr PointCloudPtr;

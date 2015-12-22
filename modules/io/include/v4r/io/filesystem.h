@@ -67,6 +67,14 @@ namespace v4r
         V4R_EXPORTS void
         createDirForFileIfNotExist(const std::string & filename);
 
+
+        /** @brief copies a directory from source to destination
+          * @param path of source directory
+          * @param path of destination directory
+          */
+        V4R_EXPORTS bool
+        copyDir(const std::string &source, const std::string &destination);
+
       }
 
 }

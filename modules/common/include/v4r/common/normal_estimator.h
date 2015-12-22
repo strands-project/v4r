@@ -15,11 +15,12 @@
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/common/time.h>
 #include <pcl/common/io.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
     template<typename PointT, typename PointOutT>
-      class PreProcessorAndNormalEstimator
+      class V4R_EXPORTS PreProcessorAndNormalEstimator
       {
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;

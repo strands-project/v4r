@@ -48,7 +48,7 @@
 
 #include <v4r_config.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/recognition/boost_graph_extension.h>
+#include <v4r/recognition/multiview_representation.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 
 #include <SiftGPU/SiftGPU.h>
@@ -80,7 +80,6 @@ protected:
 
     using Recognizer<PointT>::poseRefinement;
     using Recognizer<PointT>::hypothesisVerification;
-    using Recognizer<PointT>::icp_scene_indices_;
 
     boost::shared_ptr<MultiRecognitionPipeline<PointT> > rr_;
 
@@ -113,7 +112,7 @@ protected:
 
     cv::Ptr<SiftGPU> sift_;
 
-    bool computeAbsolutePose(CamConnect & e, bool &is_first_edge = false);
+    bool computeAbsolutePose(CamConnect & e, bool is_first_edge = false);
 
     /** \brief removes vertices from graph if max_vertices_in_graph has been reached */
     void pruneGraph();
@@ -148,20 +147,20 @@ public:
         using Recognizer<PointT>::Parameter::icp_type_;
         using Recognizer<PointT>::Parameter::normal_computation_method_;
         using Recognizer<PointT>::Parameter::voxel_size_icp_;
+        using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
+        using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
+        using Recognizer<PointT>::Parameter::merge_close_hypotheses_angle_;
 
-        bool scene_to_scene_;  // if true, tries to register two views based on SIFT background matching
-        bool use_robot_pose_;   // if true, uses given pose between two views as relative camera pose estimate
-        bool hyp_to_hyp_;   // if true adds edges for common object hypotheses (not implemented atm)
-        bool use_gc_s2s_;   // defines method used for SIFT background matching
-        double distance_same_keypoint_; // defines the minimum distance between two keypoints (of same model) to be seperated
-        float same_keypoint_dot_product_; // defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
-        int extension_mode_; // defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
-        int max_vertices_in_graph_; // maximum number of views taken into account (views selected in order of latest recognition calls)
-        float chop_z_;  // points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
-        bool compute_mst_; // if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true),
-                           // by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true)
-                           // from all the possible connection a Mimimum Spanning Tree is computed.
-                           // if false, it only uses the given pose for each point cloud
+        bool scene_to_scene_;  /// @brief if true, tries to register two views based on SIFT background matching
+        bool use_robot_pose_;   /// @brief if true, uses given pose between two views as relative camera pose estimate
+        bool hyp_to_hyp_;   /// @brief if true adds edges for common object hypotheses (not implemented atm)
+        bool use_gc_s2s_;   /// @brief defines method used for SIFT background matching
+        double distance_same_keypoint_; /// @brief defines the minimum distance between two keypoints (of same model) to be seperated
+        double same_keypoint_dot_product_; /// @brief defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
+        int extension_mode_; /// @brief defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
+        int max_vertices_in_graph_; /// @brief maximum number of views taken into account (views selected in order of latest recognition calls)
+        double chop_z_;  /// @brief points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
+        bool compute_mst_; /// @brief if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud
 
         Parameter (
                 bool scene_to_scene = true,
@@ -169,11 +168,12 @@ public:
                 bool hyp_to_hyp = false,
                 bool use_gc_s2s = true,
                 double distance_same_keypoint = 0.005f*0.005f,
-                float same_keypoint_dot_product = 0.8f,
+                double same_keypoint_dot_product = 0.8f,
                 int extension_mode = 0,
                 int max_vertices_in_graph = 3,
-                float chop_z = std::numeric_limits<float>::max(),
-                bool compute_mst = true) :
+                double chop_z = std::numeric_limits<double>::max(),
+                bool compute_mst = true
+                ) :
 
             Recognizer<PointT>::Parameter(),
             scene_to_scene_ (scene_to_scene),
@@ -234,6 +234,18 @@ public:
     getDataSource () const
     {
         return rr_->getDataSource();
+    }
+
+    /**
+     * @brief clears all stored information from previous views
+     */
+    void clear()
+    {
+        models_.clear();
+        model_or_plane_is_verified_.clear();
+        transforms_.clear();
+        planes_.clear();
+        views_.clear();
     }
 
     void recognize();

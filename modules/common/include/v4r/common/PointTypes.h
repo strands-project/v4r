@@ -8,6 +8,7 @@
 #ifndef KP_POINT_TYPES_HPP
 #define KP_POINT_TYPES_HPP
 
+#include <v4r/core/macros.h>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -22,7 +23,7 @@ const float NaNf = std::numeric_limits<float>::quiet_NaN();
 /**
  * PointXYZRGB
  */
-class PointXYZRGB
+class V4R_EXPORTS PointXYZRGB
 {
 public:
   Eigen::Vector4f pt;
@@ -61,7 +62,7 @@ public:
 /**
  * PointXYZNormalRGB
  */
-class PointXYZNormalRGB
+class V4R_EXPORTS PointXYZNormalRGB
 {
 public:
   Eigen::Vector4f pt;
@@ -113,7 +114,7 @@ public:
 /**
  * PointXYZ (might be wrong!!!!)
  */
-class PointXYZ
+class V4R_EXPORTS PointXYZ
 {
 public:
   Eigen::Vector3f pt;

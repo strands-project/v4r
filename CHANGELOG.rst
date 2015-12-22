@@ -2,6 +2,171 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.1 (2015-11-23)
+------------------
+* Merge pull request `#37 <https://github.com/strands-project/v4r/issues/37>`_ from strands-project/add_glm_run_dependency
+  add glm also as run dependency
+* add glm also as run dependency
+* Contributors: Thomas Fäulhammer
+
+1.1.0 (2015-11-20)
+------------------
+* Merge pull request `#35 <https://github.com/strands-project/v4r/issues/35>`_ from strands-project/recognition_update
+  Recognition update
+* Merge remote-tracking branch 'v4r_root/recognition_update' into recognition_update1
+* Merge branch 'fix_glfw3' into 'recognition_update'
+  Fix glfw3 and undefined references to X*
+  See merge request !47
+* add multiple X11 linker libs
+* Fix variable names in examples CMakeLists
+* Merge remote-tracking branch 'sergey/fix-glfw3' into recognition_update1
+* Export 3rdparty include directories into config file
+* undo insert HAVE_V4R_RENDERING
+* add some x*libraries in package.xml to hopefully solve undefined references
+* Merge remote-tracking branch 'sergey/fix-glfw3' into recognition_update1
+* added description for go3d parameter
+* Properly add GLFW3 third-party library
+* Merge branch 'fixes-for-recognition-update' into 'recognition_update'
+  Fixes for recognition update
+  This fixes a few compilation problems in the current recognition update branch.
+  See merge request !46
+* Fix "invalid suffix 'd' on floating constant" error
+* Add missing dependency (rendering depends on GLM)
+* added glog as dependency (otherwise linking potentially fails)
+* updated parameters for sv recognition
+* added conversion function from point cloud to fixed sized image
+  removed unused parameters in global estimator
+  changed namespace of pclopencv to v4r
+* computing histogram size by sizeof to make esf estimator compatible with PCL 1.7.1
+* remove template parameter Feature from global classifier and make it a vector instead
+  added esf object classifier again
+* tmp commit
+* Merge remote-tracking branch 'simon/recognition_update' into recognition_update1
+  Conflicts:
+  modules/rendering/src/depthmapRenderer.cpp
+* tmp commit (conditional saving of pcd as xyz or xyzrgb) before merging simons update
+* Cleaned up the code and sorted out some culprits.
+* fixed datatype for colormap
+  fixed some warnings
+  added program options for radius, subdivision, camera intrinsics,...
+* added glGetError queries.
+* added rendering + example
+  added glew, glfw find package
+* updated some more parameter descriptions
+* renamed occlusion reasoning into zbuffering and removed second layer namespace
+  seperated classes into seperate files
+  renamed boost graph extenstion into multi-view representation
+  fixed shot recognizer (removed indices), parameters are now written to file
+* added GLOG dependency
+  using boost program option for object recognizer examples and Ground-truth annotator
+* use integer key for model assembly (instead of float) - resolution for it is now a parameter
+  temporary included visualization for pose refinement
+* parameters are now double (instead of float) to be easily accessible from outside via ros getparam
+  default parameters change
+  updated ground truth annotator and evaluations for recognizer to new framework
+* added clear multiview data
+* Properly export template instantiations in EDT
+* Fix METSlib third-party library
+* removed visualization reminiscent in single-view recognizer
+* fixed wrong index computation in 3D occupancy grid
+  removed siftgpu library from necessary dependency in reconstruction app
+* fixed wrong angle difference calculation when clustering object hypotheses [TODO: make parameter accesible from outside]
+* (hopefully) fixes crash when no valid recognition model is found
+  merging close hypotheses is now possible (generate less hypotheses, refines pose by these larger correspondence set)
+* using mask instead of indices in go3d addModels function
+  increased default occlusion threshold
+  can be compiled with clang again
+* fixed multiplane segmentation in unorganized point clouds (TODO: downsample cloud)
+  replaced USE_SIFT_GPU definitions with HAVE_SIFTGPU
+  v4r_config.h now presents status of HAVE_SIFTGPU
+* added pcl version of ClusterNormalsToPlane (works for unorganized point clouds now)
+  TODO: fix multiplane segmentation method
+* install metslib header files
+  fixed go3d
+  createVoxelGridAndDistanceTransforms is now called inside generate (for registered views source) TODO: Check influence of resolution paramter!
+  added some description and licenses
+* temporary commit with GO3D visualization
+* fixed wrong transformation of keypoints when using -transfer_feature_matches 1
+* added mising tracking dependency
+* recognizer:
+  - added license
+  - removed unused variables
+  - moved internally used public methods to protected
+* go3d implemented but results not satisfying (parameter not good?)
+* pruningGrap in Multiview Object Recognizer is working
+  [TODO: Finish Go3D Hypothesis Verification Integration]
+* failed try of point cloud rendering with vtk
+* when using compute_mst, it crashes after using pruneGraph
+* absolute pose computation seems to work
+* absolute pose computation seems to work
+* added merging of feat correspondences
+* tmp commit
+* temporary commit (single-view recognizer correspondence grouping seems broken)
+* adding parameter classes
+  remove redundant variables
+  getting rid of singleview_object_recognizer class
+  local estimator uses normal estimator from v4r common now
+  Reimplementation of multiview recognizer just started (NOT WORKING / COMPILING)
+* single view object recognizer almost ready
+* tmp commit
+  getting rid of redundnant single_view object recognizer class
+* correspondences in recognizer are now stored as indexes to original cloud
+  this should reduce memory requirement
+  New parameter class for Hypotheses Verification methods (different results to before - TODO: double check default parameters!)
+* only training dir parameter neccessary any more
+  improved code readability
+* temporary commit (signatures not initialized) otherwise it seems to work
+* overall update of training procedure
+* recognizer structure sift parameter was named inconsistently
+  fixed some warnings
+* this includes the changes from gitlab v4r version made by @alexandrox88
+  - fixes assimp in tomgine
+  - remove ipp
+  adds object tracking
+  fixes a few warnings
+* SOMETHING SEEMS TO BE WRONG WITH THE TRANSFORMS
+  namespace update
+  polishing multiview recognizer
+  add libsvm as system dependency
+* merged remove_tomgine
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* Merge branch 'remove-ipp' into 'master'
+  Remove all mentions of IPP (Intel Performance Primitives)
+  Remove all mentions of IPP (Intel Performance Primitives). This remained from OpenCV scripts.
+  See merge request !43
+* Remove all mentions of IPP (Intel Performance Primitives)
+* Merge branch 'fix-tomgine-assimp' into 'master'
+  Fix Assimp dependency
+  This merge request fixes missing Assimp include in Tomgine and updates the CMake script for finding the package.
+  See merge request !42
+* Update Assimp finder script
+* Add missing AssImp include in tomgine
+* Fix a few warnings in tomgine
+* Merge branch 'master' into 'master'
+  Master
+  created a tracking module and added the monocular object tracker from RTMT
+  See merge request !41
+* Merge branch 'find-system-libsvm' into 'master'
+  Add CMake commands to detect system installation of LibSVM
+  The possibility to build LibSVM from source is preserved, but has to be enabled by setting BUILD_LIBSVM option (which is now off by default).
+  See merge request !40
+* added monocular camera pose tracker (lk/ keypoint based) from RTMT
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* test
+* test
+* mv test
+* just a test file
+* Contributors: Johann Prankl, Markus Bajones, Sergey Alexandrov, Thomas Fäulhammer, simon.schreiberhuber@gmx.net
+
+1.0.11 (2015-10-14)
+-------------------
+* Merge pull request `#34 <https://github.com/strands-project/v4r/issues/34>`_ from strands-project/remove_tomgine
+  temporary remove Tomgine and everything related to it (i.e. object cl…
+* also comment computeCentroid in single-view object recognizer
+* comment computeCentroid to silence error
+* temporary remove Tomgine and everything related to it (i.e. object classification)
+* Contributors: Thomas Fäulhammer
+
 1.0.10 (2015-09-21)
 -------------------
 * Merge pull request `#31 <https://github.com/strands-project/v4r/issues/31>`_ from strands-project/namespace_update

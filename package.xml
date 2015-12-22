@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>v4r</name>
-  <version>1.0.10</version>
+  <version>1.1.1</version>
   <description>The Vision for Robotics Library of ACIN TUW (open source STRANDS version)</description>
 
   <maintainer email="faeulhammer@acin.tuwien.ac.at">Thomas Faeulhammer</maintainer>
@@ -44,6 +44,11 @@
   <build_depend>libglm-dev</build_depend>
   <build_depend>assimp</build_depend>
   <build_depend>libsvm</build_depend>
+  <build_depend>libgoogle-glog-dev</build_depend>
+  <build_depend>libx11-dev</build_depend>
+  <build_depend>libxinerama-dev</build_depend>
+  <build_depend>libxi-dev</build_depend>
+  <build_depend>libxrandr</build_depend>
 
   <run_depend>libpcl-all-dev</run_depend>
   <run_depend>libopencv-dev</run_depend>
@@ -54,8 +59,14 @@
   <run_depend>libqt4-dev</run_depend>
   <run_depend>libqt4-opengl-dev</run_depend>
   <run_depend>libopenni2-dev</run_depend>
+  <run_depend>libglm-dev</run_depend>
   <run_depend>assimp</run_depend>
   <run_depend>libsvm</run_depend>
+  <run_depend>libgoogle-glog-dev</run_depend>
+  <run_depend>libx11-dev</run_depend>
+  <run_depend>libxinerama-dev</run_depend>
+  <run_depend>libxi-dev</run_depend>
+  <run_depend>libxrandr</run_depend>
   
   <export>
 	<build_type>cmake</build_type>
