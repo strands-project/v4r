@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <map>
@@ -7,6 +8,9 @@
 #include <iostream>
 #include <string>
 #include <v4r/io/filesystem.h>
+
+
+//#define TURNTABLE
 
 namespace po = boost::program_options;
 
@@ -153,10 +157,16 @@ int main(int argc, char ** argv)
 
     std::string anno_gt = "/home/thomas/Documents/icra16/gt_annotations";
     std::string models_dir = "/home/thomas/Documents/icra16/turntable_models/models";
-//    std::string rec_results = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage/turntable";
-    std::string rec_results = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage/controlled_001";
+#ifdef TURNTABLE
+    std::string rec_results = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage/turntable";
+    std::string out_dir = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage_eval/turntable";
+#else
+//    std::string rec_results = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage/controlled";
+//    std::string out_dir = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage_eval/controlled";
+    std::string rec_results = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage/uncontrolled";
+    std::string out_dir = "/home/thomas/Documents/icra16/test_results/rec_rate_wrt_coverage_eval/uncontrolled";
+#endif
     std::string test_set_root_dir = "/home/thomas/Documents/icra16/keyframes/controlled_ba";
-    std::string out_dir = "/tmp/eval_partial_model_rec_results/";
 
     po::options_description desc("Evaluation of partial model recognition results\n**Allowed options");
     desc.add_options()
@@ -183,6 +193,9 @@ int main(int argc, char ** argv)
         std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
         return false;
     }
+
+
+    boost::filesystem::remove_all(boost::filesystem::path(out_dir));
 
     std::vector<std::string> models;
     v4r::io::getFilesInDirectory(models_dir, models, "", ".*.pcd", false);
@@ -239,6 +252,10 @@ int main(int argc, char ** argv)
             v4r::io::getFoldersInDirectory(eval_fn, "", test_runs);
             for(size_t r_id=0; r_id<test_runs.size(); r_id++)
             {
+#ifndef TURNTABLE
+                if(test_runs[r_id] == runs[lr_id])  // don't test on trained sequence
+                    continue;
+#endif
                 const std::string or_set = te.path_ + "/" + test_runs[r_id];
                 const std::string test_set = test_set_root_dir + "/" + test_runs[r_id];
                 const std::string anno_gt_set = anno_gt + "/" + test_runs[r_id];
@@ -289,8 +306,27 @@ int main(int argc, char ** argv)
                         }
 #endif
 
+                        size_t fn = std::max<int>(0, (int)annos_gt.size() - (int)annos_or.size());
+                        if(fn>0) // check if the object was actually visible
+                        {
+                            const std::string anno_occlusion_search_pattern = ".*" + cloud_name + "_occlusion_" + models[m_id] + ".*.txt";
+                            std::vector<std::string> annos_occ_gt;
+                            v4r::io::getFilesInDirectory(anno_gt_set, annos_occ_gt, "", anno_occlusion_search_pattern, false);
+
+                            for(size_t o=0; o<annos_occ_gt.size(); o++)
+                            {
+                                std::ifstream occ_s( (anno_gt_set + "/" + annos_occ_gt[o]).c_str());
+                                float occ;
+                                occ_s >> occ;
+                                occ_s.close();
+
+                                if(occ>0.95)    // if the object is occluded by more than 95% neglect it
+                                    fn--;
+                            }
+                        }
+
                         e.fp_ += std::max<int>(0, (int)annos_or.size() - (int)annos_gt.size());
-                        e.fn_ += std::max<int>(0, (int)annos_gt.size() - (int)annos_or.size());
+                        e.fn_ += std::max<int>(0, fn);
                         e.tp_ += std::min<int>(annos_gt.size(), annos_or.size());
                     }
                     te.eval_pr_.push_back(e);

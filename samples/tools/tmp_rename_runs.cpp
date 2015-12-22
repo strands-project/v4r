@@ -21,22 +21,19 @@ namespace bf = boost::filesystem;
 int
 main (int argc, char ** argv)
 {
-    const std::string info_file = "/home/thomas/Documents/icra16_keyframes/controlled_run.nfo";
-    const std::string input_dir = "/media/Data/datasets/icra16/learnt_models";
-    const std::string out_dir = "/home/thomas/learnt_models/";
-
-    v4r::io::createDirIfNotExist(out_dir + "/models");
-    v4r::io::createDirIfNotExist(out_dir + "/training_dir");
+    const std::string info_file = "/home/thomas/Documents/icra16/keyframes/uncontrolled_run.nfo";
+    const std::string runs = "/media/Data/datasets/icra16/object_masks/uncontrolled";
+    const std::string runs_old = "/media/Data/datasets/icra16/keyframes/uncontrolled";
+    const std::string bag_files = "/media/Data/datasets/icra16/bag_files";
 
     std::ifstream info(info_file.c_str());
     std::string test_id, patrol_run_id, object_id;
     while (info >> test_id >> patrol_run_id >> object_id) {
-        const std::string src_training_dir = input_dir + "/recognition_structure/" + patrol_run_id + "_object.pcd";
-        if (v4r::io::existsFolder(src_training_dir)) {
-            v4r::io::copyDir( src_training_dir, out_dir + "/training_dir/" + test_id + ".pcd");
-            bf::copy_file( input_dir + "/models/"  + patrol_run_id + "_object.pcd",
-                           out_dir + "/models/" + test_id + ".pcd");
-        }
+            const std::string mask_file = runs_old + "/" + test_id + "/mask.txt";
+            const std::string dst_file = runs + "/" + test_id + "/mask.txt";
+            v4r::io::createDirForFileIfNotExist(dst_file);
+            if(v4r::io::existsFile(mask_file) && !v4r::io::existsFile(dst_file))
+                bf::copy_file(mask_file, dst_file);
     }
 
     return 0;

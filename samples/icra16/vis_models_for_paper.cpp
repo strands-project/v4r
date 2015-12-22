@@ -173,6 +173,7 @@ int main (int argc, char ** argv)
 
         std::stringstream img_fn;
         img_fn << "/tmp/" << vp_id << "_" << num_instances_per_model[vp_id]  << ".jpg";
+        std::cout << "Saving cloud for run " << test_id << " to file: " << img_fn.str() << std::endl;
         cv::imwrite( img_fn.str(), v4r::ConvertUnorganizedPCLCloud2Image(*cloud, true));
 
     }
@@ -212,7 +213,9 @@ int main (int argc, char ** argv)
 
         std::stringstream img_fn;
         img_fn << "/tmp/" << vp_id << "_" << num_instances_per_model[vp_id] + max_num_controlled_runs << ".jpg";
+        std::cout << "Saving cloud for run " << test_id << " to file: " << img_fn.str() << std::endl;
         cv::imwrite( img_fn.str(), v4r::ConvertUnorganizedPCLCloud2Image(*cloud, true));
+
 
         vis.addPointCloud(cloud_demeaned, "cloud_uncontrolled_" + test_id, viewports[vp_id * (max_num_controlled_runs + max_num_uncontrolled_runs+1)  + num_instances_per_model[vp_id]+max_num_controlled_runs ]);
     }

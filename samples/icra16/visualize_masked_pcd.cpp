@@ -55,15 +55,15 @@ int main (int argc, char ** argv)
     pcl::PointCloud<PointT>::Ptr obj_cloud (new pcl::PointCloud<PointT>);
     pcl::io::loadPCDFile (path_s, *cloud);
 
+    pcl::PointIndices pind;
+
     if(0)
     {
         pcl::PointCloud<IndexPoint> obj_indices_cloud;
         pcl::io::loadPCDFile(path_o, obj_indices_cloud);
-        pcl::PointIndices indices;
-        indices.indices.resize(obj_indices_cloud.points.size());
+        pind.indices.resize(obj_indices_cloud.points.size());
         for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
-            indices.indices[kk] = obj_indices_cloud.points[kk].idx;
-        pcl::copyPointCloud(*cloud, indices, *obj_cloud);
+            pind.indices[kk] = obj_indices_cloud.points[kk].idx;
     }
     else
     {
@@ -71,17 +71,22 @@ int main (int argc, char ** argv)
         mask_file.open( path_o.c_str() );
 
         int idx_tmp;
-        pcl::PointIndices pind;
+
         while (mask_file >> idx_tmp)
-        {
             pind.indices.push_back(idx_tmp);
-        }
+
         mask_file.close();
-        pcl::copyPointCloud(*cloud, pind, *obj_cloud);
     }
+
+    if(pind.indices.empty())
+        std::cerr << "Input Mask is empty!" << std::endl;
+
+    pcl::copyPointCloud(*cloud, pind, *obj_cloud);
 
     vis.addPointCloud (cloud, "original_cloud", v1);
     vis.addPointCloud (obj_cloud, "segmented_cloud", v2);
+    vis.resetCameraViewpoint("segmented_cloud");
+    vis.resetCamera();
     vis.spin();
     return true;
 }
