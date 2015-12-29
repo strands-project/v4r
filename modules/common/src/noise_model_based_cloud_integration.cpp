@@ -62,7 +62,7 @@ compute (const PointTPtr & output)
             if(!pcl_isfinite(input_clouds_used_[i]->points[k].z))
                 continue;
 
-            if(sigmas_[i][k] > 1.f)
+            if(sigmas_combined_[i][k] > 1.f)
             {
                 input_clouds_used_[i]->points[k].x = input_clouds_used_[i]->points[k].y = input_clouds_used_[i]->points[k].z = bad_value;
                 noise_weights_[i][k] = 0.f;
@@ -99,7 +99,9 @@ compute (const PointTPtr & output)
 
     PointTPtr big_cloud(new pcl::PointCloud<PointT>);
     big_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>);
-    big_cloud_weights_.resize(0);
+    big_cloud_weights_.clear();
+    big_cloud_sigmas_.clear();
+    big_cloud_origin_cloud_id_.clear();
 
     for(size_t i=0; i < input_clouds_used_.size(); i++)
     {
@@ -121,30 +123,38 @@ compute (const PointTPtr & output)
         if (indices_.empty())
         {
             *big_cloud += *cloud;
-            big_cloud_weights_.insert(big_cloud_weights_.end(), sigmas_[i].begin(), sigmas_[i].end());
             *big_cloud_normals_ += *normal_cloud;
+
+            big_cloud_weights_.insert(big_cloud_weights_.end(), sigmas_combined_[i].begin(), sigmas_combined_[i].end());
+            big_cloud_sigmas_.insert(big_cloud_sigmas_.end(), sigmas_[i].begin(), sigmas_[i].end());
+
+            std::vector<int> origin(cloud->points.size(), i);
+            big_cloud_origin_cloud_id_.insert(big_cloud_origin_cloud_id_.end(), origin.begin(), origin.end());
         }
         else
         {
             pcl::copyPointCloud(*cloud, indices_[i], *cloud);
             *big_cloud += *cloud;
 
-            for (size_t j=0;j<indices_[i].size();j++)
-                big_cloud_weights_.push_back(sigmas_[i][indices_[i][j]]);
+            pcl::copyPointCloud(*normal_cloud, indices_[i], *normal_cloud);
+            *big_cloud_normals_ += *normal_cloud;
+
+            for (size_t j=0;j<indices_[i].size();j++) {
+                big_cloud_weights_.push_back(sigmas_combined_[i][indices_[i][j]]);
+                big_cloud_sigmas_.push_back(sigmas_[i][indices_[i][j]]);
+            }
 
 
-            PointNormalTPtr normal_cloud_filtered(new pcl::PointCloud<pcl::Normal>);
-            pcl::copyPointCloud(*normal_cloud, indices_[i], *normal_cloud_filtered);
-            *big_cloud_normals_ += *normal_cloud_filtered;
+            std::vector<int> origin(indices_[i].size(), i);
+            big_cloud_origin_cloud_id_.insert(big_cloud_origin_cloud_id_.end(), origin.begin(), origin.end());
 
-            std::cout << "input size: " << input_clouds_used_[i]->points.size() << std::endl;
-            std::cout << "filtered size: " << cloud->points.size() << std::endl;
-            std::cout << "bigcloud size: " << big_cloud->points.size() << std::endl;
-            std::cout << "noise weights size: " << noise_weights_[i].size() << std::endl;
-            std::cout << "weights octree size: " << big_cloud_weights_.size() << std::endl;
-            std::cout << "normal cloud size: " << normal_cloud->points.size() << std::endl;
-            std::cout << "normal cloud filtered size: " << normal_cloud_filtered->points.size() << std::endl;
-            std::cout << std::endl;
+            std::cout << "input size: " << input_clouds_used_[i]->points.size() << std::endl
+                      << "filtered size: " << cloud->points.size() << std::endl
+                      << "filtered normal cloud size: " << normal_cloud->points.size() << std::endl
+                      << "bigcloud size: " << big_cloud->points.size() << std::endl
+                      << "noise weights size: " << noise_weights_[i].size() << std::endl
+                      << "weights octree size: " << big_cloud_weights_.size() << std::endl
+                      << std::endl;
         }
     }
 
@@ -243,20 +253,21 @@ compute (const PointTPtr & output)
     octree_->addPointsFromInputCloud();
 
     size_t leaf_node_counter = 0;
-    typename pcl::octree::OctreePointCloudPointVector<PointT>::LeafNodeIterator it2;
+    typename pcl::octree::OctreePointCloudPointVector<PointT>::LeafNodeIterator leaf_it;
     const typename pcl::octree::OctreePointCloudPointVector<PointT>::LeafNodeIterator it2_end = octree_->leaf_end();
 
-    output->points.resize(big_cloud_weights_.size());
+    output->points.resize(big_cloud_sigmas_.size());
     output_normals_.reset(new pcl::PointCloud<pcl::Normal>);
-    output_normals_->points.resize(big_cloud_weights_.size());
+    output_normals_->points.resize(big_cloud_sigmas_.size());
 
     size_t kept = 0;
     size_t total_used = 0;
 
-    for (it2 = octree_->leaf_begin(); it2 != it2_end; ++it2)
+    for (leaf_it = octree_->leaf_begin(); leaf_it != it2_end; ++leaf_it)
     {
         ++leaf_node_counter;
-        pcl::octree::OctreeContainerPointIndices& container = it2.getLeafContainer();
+        pcl::octree::OctreeContainerPointIndices& container = leaf_it.getLeafContainer();
+
         // add points from leaf node to indexVector
         std::vector<int> indexVector;
         container.getPointIndices (indexVector);
@@ -295,7 +306,6 @@ compute (const PointTPtr & output)
                 g += octree_->getInputCloud()->points[indexVector[k]].g;
                 b += octree_->getInputCloud()->points[indexVector[k]].b;
 
-
                 Eigen::Vector3f normal = big_cloud_normals_->points[indexVector[k]].getNormalVector3fMap();
                 normal.normalize();
                 n.getNormalVector3fMap() = n.getNormalVector3fMap() + normal;
@@ -318,6 +328,71 @@ compute (const PointTPtr & output)
             n.getNormalVector3fMap() = n.getNormalVector3fMap() / used;
             n.getNormalVector3fMap()[3] = 0;
             n.curvature /= used;
+        }
+        else if(param_.weighted_average_)
+        {
+            // take only point with max probability
+            float max_prob = std::numeric_limits<float>::min();
+
+            std::vector<PointInfo> pts (indexVector.size());
+
+            for(size_t k=0; k < indexVector.size(); k++)
+            {
+                int origin = big_cloud_origin_cloud_id_ [ indexVector[k] ];
+                const Eigen::Matrix4f &tf = transformations_to_global_[ origin ];
+
+                Eigen::Matrix3f sigma = Eigen::Matrix3f::Zero(), sigma_aligned = Eigen::Matrix3f::Zero();
+                sigma(0,0) = big_cloud_sigmas_[ indexVector[k] ][0];  //lateral
+                sigma(1,1) = big_cloud_sigmas_[ indexVector[k] ][0];  //lateral
+                sigma(2,2) = big_cloud_sigmas_[ indexVector[k] ][1];  //axial
+
+                Eigen::Matrix3f rotation = tf.block<3,3>(0,0); // or inverse?
+                sigma_aligned = rotation * sigma * rotation.transpose();
+
+                pts[k].probability = 1/ sqrt(2 * M_PI * sigma_aligned.determinant());
+                pts[k].index_in_big_cloud = indexVector[k];
+                pts[k].distance_to_depth_discontinuity = big_cloud_sigmas_[ indexVector[k] ][2];
+
+
+
+//                if (prob>max_prob)
+//                {
+//                    p.getVector3fMap() = octree_->getInputCloud()->points[indexVector[k]].getVector3fMap();
+//                    p.r = octree_->getInputCloud()->points[indexVector[k]].r;
+//                    p.g = octree_->getInputCloud()->points[indexVector[k]].g;
+//                    p.b = octree_->getInputCloud()->points[indexVector[k]].b;
+
+//                    n.getNormalVector3fMap() = big_cloud_normals_->points[indexVector[k]].getNormalVector3fMap();
+//                    n.curvature = big_cloud_normals_->points[indexVector[k]].curvature;
+//                    used++;
+
+//                    max_prob = prob;
+//                }
+            }
+
+            std::sort(pts.begin(), pts.end());
+
+            for(const auto &pt_tmp : pts)
+            {
+                if (pt_tmp.distance_to_depth_discontinuity > 0.003f)
+                {
+                    const PointT &pt = octree_->getInputCloud()->points[ pt_tmp.index_in_big_cloud ];
+                    p.getVector3fMap() = pt.getVector3fMap();
+                    p.r = pt.r;
+                    p.g = pt.g;
+                    p.b = pt.b;
+
+                    n.getNormalVector3fMap() = big_cloud_normals_->points[ pt_tmp.index_in_big_cloud ].getNormalVector3fMap();
+                    n.curvature = big_cloud_normals_->points[ pt_tmp.index_in_big_cloud ].curvature;
+                    used++;
+                    break;
+                }
+            }
+
+            if(used == 0)
+                continue;
+
+            total_used++;
         }
         else
         {

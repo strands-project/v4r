@@ -57,7 +57,8 @@ namespace v4r
           PointTPtr input_;
           PointNormalTPtr normals_;
           std::vector<float> weights_;
-          std::vector<float> sigmas_;
+          std::vector<float> sigmas_combined_;
+          std::vector<std::vector<float> > sigmas_; /// @brief for each pixel save lateral [idx=0] and axial sigma [idx=1] as well as Euclidean distance to depth discontinuity [idx=2]
           pcl::PointIndices discontinuity_edges_;
           Eigen::Matrix4f pose_to_plane_RF_;
           bool pose_set_;
@@ -124,6 +125,12 @@ namespace v4r
           }
 
           std::vector<float>
+          getSigmasCombined () const
+          {
+            return sigmas_combined_;
+          }
+
+          std::vector<std::vector<float> >
           getSigmas () const
           {
             return sigmas_;
