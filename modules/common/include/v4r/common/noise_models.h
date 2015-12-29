@@ -17,6 +17,10 @@ namespace v4r
 {
     namespace noise_models
     {
+
+    /**
+       * @brief: Computes Kinect noise parameters for an organized point cloud according to Nguyen et al.
+       */
       template<class PointT>
         class V4R_EXPORTS NguyenNoiseModel
         {

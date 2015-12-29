@@ -41,37 +41,36 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
     OrganizedEdgeBase<PointT, pcl::Label> oed;
     oed.setDepthDisconThreshold (0.05f); //at 1m, adapted linearly with depth
     oed.setMaxSearchNeighbors(100);
-    oed.setEdgeType (OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDING
+    oed.setEdgeType (  OrganizedEdgeBase<PointT,           pcl::Label>::EDGELABEL_OCCLUDING
                      | OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_OCCLUDED
                      | OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_NAN_BOUNDARY
                      );
     oed.setInputCloud (input_);
 
     pcl::PointCloud<pcl::Label>::Ptr labels (new pcl::PointCloud<pcl::Label>);
-    std::vector<pcl::PointIndices> indices2;
-    oed.compute (*labels, indices2);
+    std::vector<pcl::PointIndices> edge_indices;
+    oed.compute (*labels, edge_indices);
 
-    for (size_t j = 0; j < indices2.size (); j++)
+    for (size_t j = 0; j < edge_indices.size (); j++)
     {
-        for (size_t i = 0; i < indices2[j].indices.size (); i++)
-            discontinuity_edges_.indices.push_back(indices2[j].indices[i]);
+        for (size_t i = 0; i < edge_indices[j].indices.size (); i++)
+            discontinuity_edges_.indices.push_back(edge_indices[j].indices[i]);
     }
 
     for(size_t i=0; i < input_->points.size(); i++)
     {
         float sigma_lateral = 0.f;
         float sigma_axial = 0.f;
-        float z = input_->points[i].z;
-        const Eigen::Vector3f & np = normals_->points[i].getNormalVector3fMap();
+        const PointT &pt = input_->points[i];
+        const pcl::Normal &n = normals_->points[i];
+        const Eigen::Vector3f & np = n.getNormalVector3fMap();
 
         sigmas_[i].resize(3, std::numeric_limits<float>::max());
+        sigmas_combined_[i] = std::numeric_limits<float>::max();
+        weights_[i] = 0;
 
-        if(!pcl_isfinite(z) || !pcl_isfinite(np[2]))
-        {
-            weights_[i] = 0;
-            sigmas_combined_[i] = std::numeric_limits<float>::max();
+        if( !pcl::isFinite(pt) || !pcl::isFinite(n) )
             continue;
-        }
 
         //origin to pint
         //Eigen::Vector3f o2p = input_->points[i].getVector3fMap() * -1.f;
@@ -80,13 +79,12 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
         o2p.normalize();
         float angle = pcl::rad2deg(acos(o2p.dot(np)));
 
-        sigma_lateral = (0.8 + 0.034 * angle / (90.f - angle)) * z / param_.focal_length_;
-        sigma_axial = 0.0012 + 0.0019 * ( z - 0.4 ) * ( z - 0.4 ) + 0.0001 * angle * angle / ( sqrt(z) * (90 - angle) * (90 - angle));
+        sigma_lateral = (0.8 + 0.034 * angle / (90.f - angle)) * pt.z / param_.focal_length_;
+        sigma_axial = 0.0012 + 0.0019 * ( pt.z - 0.4 ) * ( pt.z - 0.4 ) + 0.0001 * angle * angle / ( sqrt(pt.z) * (90 - angle) * (90 - angle));
 
         sigmas_[i][0] = sigma_lateral;
         sigmas_[i][1] = sigma_axial;
-
-        sigmas_combined_[i] = sqrt(sigma_lateral * sigma_lateral + sigma_axial * sigma_axial);
+        sigmas_combined_[i] = sqrt(sigma_lateral * sigma_lateral + sigma_lateral * sigma_lateral + sigma_axial * sigma_axial); // lateral is two-dimensional, axial only one dimension
 
         if(angle > param_.max_angle_)
         {
@@ -101,137 +99,66 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
         //weights_[i] = 1.f - ( angle )
     }
 
-    //dilate edge pixels checking that the distance is ok and keeping always the minimum euclidean distance for each dilated pixel
+    //compute distance (in pixels) to edge for each pixel
     if (param_.use_depth_edges_)
     {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr edge_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-        edge_cloud->width = input_->width;
-        edge_cloud->height = input_->height;
-        edge_cloud->points.resize (input_->points.size ());
+        std::vector<float> dist_to_edge_3d(input_->points.size(), std::numeric_limits<float>::infinity());
+        std::vector<float> dist_to_edge_px(input_->points.size(), std::numeric_limits<float>::infinity());
 
-        Eigen::Vector3f nan3f (std::numeric_limits<float>::quiet_NaN (), std::numeric_limits<float>::quiet_NaN (),
-                               std::numeric_limits<float>::quiet_NaN ());
+        int wdw_size = 5;
 
-        for (size_t i = 0; i < edge_cloud->points.size (); i++)
-            edge_cloud->points[i].getVector3fMap () = nan3f;
+        for (const auto &idx_start : discontinuity_edges_.indices) {
+            dist_to_edge_3d[idx_start] = 0.f;
+            dist_to_edge_px[idx_start] = 0.f;
 
-        for (size_t i = 0; i < discontinuity_edges_.indices.size (); i++)
-            edge_cloud->points[discontinuity_edges_.indices[i]].getVector3fMap () = input_->points[discontinuity_edges_.indices[i]].getVector3fMap ();
+            int row_start = idx_start / input_->width;
+            int col_start = idx_start % input_->width;
 
-        int wsize2 = param_.dilate_width_ / 2;
-
-        //     pcl::visualization::PCLVisualizer vis("DILATION");
-        //     vis.addPointCloud(edge_cloud);
-        //     vis.spin();
-
-        std::vector<float> dist_to_edge(input_->points.size(), std::numeric_limits<float>::infinity());
-
-        for (size_t i = 0; i < discontinuity_edges_.indices.size (); i++)
-            dist_to_edge[discontinuity_edges_.indices[i]] = 0.f;
-
-        for (int i = 0; i < param_.dilate_iterations_; i++)
-        {
-            pcl::PointCloud<pcl::PointXYZ>::Ptr edge_cloud2 (new pcl::PointCloud<pcl::PointXYZ> (*edge_cloud));
-
-            for (int v = wsize2; v < static_cast<int>(input_->width - wsize2); v++)
+            for (int row_k = (row_start - wdw_size); row_k <= (row_start + wdw_size); row_k++)
             {
-                for (int u = wsize2; u < static_cast<int>(input_->height - wsize2); u++)
+                for (int col_k = (col_start - wdw_size); col_k <= (col_start + wdw_size); col_k++)
                 {
-                    if (!pcl_isfinite(edge_cloud->at(v,u).z))
+                    if( col_k<0 || row_k < 0 || col_k >= input_->width || row_k >= input_->height || row_k == row_start || col_k == col_start)
                         continue;
 
-                    //try growing edge cloud, checking that distance is smaller than 3*lateral_sigma
-                    for (int kv = (v - wsize2); kv <= (v + wsize2); kv++)
-                    {
-                        for (int ku = (u - wsize2); ku <= (u + wsize2); ku++)
-                        {
-                            if (pcl_isfinite(edge_cloud->at(kv,ku).z)) //already edge pixel
-                                continue;
+                    int idx_k = row_k * input_->width + col_k;
 
-                            if (!pcl_isfinite(input_->at(kv,ku).z))
-                                continue;
+                    float dist_3d = dist_to_edge_3d[idx_start] + (input_->points[idx_start].getVector3fMap () - input_->points[idx_k].getVector3fMap ()).norm ();
+                    float dist_px = dist_to_edge_px[idx_start] + sqrt( (col_k-col_start)*(col_k-col_start) + (row_k-row_start)*(row_k-row_start));
 
-                            if (!pcl_isfinite(input_->at(v,u).z))
-                                continue;
+                    if( dist_px < dist_to_edge_px[idx_k] )
+                        dist_to_edge_px[idx_k] = dist_px;
 
-                            //std::cout << u << " " << v << " " << ku << " " << kv << std::endl;
-                            int idx_u_v = u * input_->width + v;
-                            float dist = dist_to_edge[idx_u_v] + (input_->at (v, u).getVector3fMap () - input_->at (kv, ku).getVector3fMap ()).norm ();
-                            //std::cout << dist << " " << lateral_sigma_ * 3.f << std::endl;
-                            if (dist < (param_.lateral_sigma_ * 3.f))
-                            {
-                                //grow
-                                edge_cloud2->at (kv, ku).getVector3fMap () = input_->at (kv, ku).getVector3fMap ();
-
-                                int idx = ku * input_->width + kv;
-                                dist_to_edge[idx] = std::min(dist_to_edge[idx], dist);
-                            }
-                        }
-                    }
+                    if( dist_3d < dist_to_edge_3d[idx_k] )
+                        dist_to_edge_3d[idx_k] = dist_3d;
                 }
             }
-
-            edge_cloud = edge_cloud2;
-            //      vis.removeAllPointClouds();
-            //      vis.addPointCloud(edge_cloud);
-            //      vis.spin();
-
         }
 
-        for (int i = 0; i < input_->points.size (); i++)
-        {
-            int v, u;
-            v = i / input_->width;
-            u = i % input_->width;
-
-            if (!pcl_isfinite(edge_cloud->at(u,v).z))
-                continue;
-
-            assert(pcl_isfinite(dist_to_edge[i]));
-
-            sigmas_[i][2] = dist_to_edge[i];
-
-            //adapt weight
-            weights_[i] *= 1.f - 0.5f * std::exp(-(dist_to_edge[i] * dist_to_edge[i]) / (param_.lateral_sigma_ * param_.lateral_sigma_));
-
-            //      float sigma_edge = std::exp(-(dist_to_edge[i] * dist_to_edge[i]) / (param_.lateral_sigma_ * param_.lateral_sigma_));
-
-            //      sigmas_[i] = sqrt(sigmas_[i] * sigmas_[i] + sigma_edge * sigma_edge);
+//        std::ofstream f ("/tmp/test.txt");
+        for (int i = 0; i < input_->points.size (); i++) {
+            sigmas_[i][2] = dist_to_edge_px[i];
+//            f << dist_to_edge_px[i] << " ";
         }
-
-        //    cv::imwrite("/tmp/image.png", v4r::ConvertPCLCloud2Image<PointT>(*input_));
-        //    ofstream dist_file("/tmp/dist_to_edge.txt");
-        //    ofstream weight_file("/tmp/weights.txt");
-        //    ofstream sigma_file("/tmp/sigmas.txt");
-
-        //    for (int i = 0; i < weights_.size (); i++)
-        //    {
-        //      dist_file << dist_to_edge[i] << " ";
-        //      weight_file << weights_[i] << " ";
-        //      sigma_file << sigmas_[i] << " ";
-        //    }
-        //    dist_file.close();
-        //    weight_file.close();
-        //    sigma_file.close();
-
+//        f.close();
     }
 
-    for(size_t i=0; i < input_->points.size(); i++)
-    {
-        if(weights_[i] < 0.f)
-            weights_[i] = 0.f;
+//    for(size_t i=0; i < input_->points.size(); i++)
+//    {
+//        if(weights_[i] < 0.f)
+//            weights_[i] = 0.f;
 
-        else
-        {
-            if(pose_set_)
-            {
-                Eigen::Vector4f p = input_->points[i].getVector4fMap();
-                p = pose_to_plane_RF_ * p;
-                weights_[i] *= 1.f - 0.25f * std::max(0.f, (0.01f - p[2]) / 0.01f);
-                //std::cout << p[2] << " " << 0.25f * std::max(0.f, 0.01f - p[2]) << std::endl;
-            }
-        }
-    }
+//        else
+//        {
+//            if(pose_set_)
+//            {
+//                Eigen::Vector4f p = input_->points[i].getVector4fMap();
+//                p = pose_to_plane_RF_ * p;
+//                weights_[i] *= 1.f - 0.25f * std::max(0.f, (0.01f - p[2]) / 0.01f);
+//                //std::cout << p[2] << " " << 0.25f * std::max(0.f, 0.01f - p[2]) << std::endl;
+//            }
+//        }
+//    }
 }
 
 /*template<typename PointT>

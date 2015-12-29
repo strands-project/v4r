@@ -53,9 +53,6 @@ public:
         int min_points_per_voxel_;  /// @brief the minimum number of points in a leaf of the octree of the big cloud.
         float final_resolution_;
         float octree_resolution_;   /// @brief resolution of the octree of the big point cloud
-        float min_weight_;
-        float threshold_ss_;    /// @brief distance in m to check wheter a point from the accumulated cloud is explained by a point from an input cloud
-        float max_distance_;    /// @brief each point further away than this distance will be assigned the maximum noise level (and so neglected)
         float focal_length_;   /// @brief focal length of the cameras; used for reprojection of the points into each image plane
         bool average_;  /// @brief if true, takes the average color (for each color componenent) and normal within all the points in the leaf of the octree. Otherwise, it takes the point within the octree with the best noise weight
         bool weighted_average_;
@@ -63,47 +60,45 @@ public:
                 int min_points_per_voxel = 0,
                 float final_resolution = 0.001f,
                 float octree_resolution =  0.005f,
-                float min_weight = 0.9f,
-                float threshold_ss = 0.003f,
-                float max_distance = 5.f,
                 float focal_length = 525.f,
                 bool average = false,
                 bool weighted_average = true) :
             min_points_per_voxel_(min_points_per_voxel),
             final_resolution_(final_resolution),
             octree_resolution_(octree_resolution),
-            min_weight_ (min_weight),
-            threshold_ss_(threshold_ss),
-            max_distance_(max_distance),
             focal_length_ (focal_length),
             average_ (average),
             weighted_average_ (weighted_average)
         {
-
         }
     }param_;
 
 private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
     typedef typename pcl::PointCloud<pcl::Normal>::Ptr PointNormalTPtr;
+
     std::vector<PointTPtr> input_clouds_;
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations_to_global_;
-    std::vector<std::vector<float> > noise_weights_;
-    std::vector<std::vector<float> > sigmas_combined_;
-    std::vector<std::vector<std::vector<float> > > sigmas_; /// @brief for each cloud, for each pixel represent lateral [idx=0] and axial [idx=1] as well as distance to closest depth discontinuity [idx=2]
-    typename boost::shared_ptr<pcl::octree::OctreePointCloudPointVector<PointT> > octree_;
-    std::vector<float> big_cloud_weights_;
-    std::vector<std::vector<float> > big_cloud_sigmas_;
     std::vector<PointNormalTPtr> input_normals_;
+    std::vector<std::vector<size_t> > indices_; /// @brief Indices of the object in each cloud (remaining points will be ignored)
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations_to_global_; /// @brief transform aligning the input point clouds when multiplied
+    std::vector<std::vector<std::vector<float> > > sigmas_; /// @brief for each cloud, for each pixel represent lateral [idx=0] and axial [idx=1] as well as distance to closest depth discontinuity [idx=2]
+
+    typename boost::shared_ptr<pcl::octree::OctreePointCloudPointVector<PointT> > octree_;
+    std::vector<std::vector<float> > big_cloud_sigmas_;
     PointNormalTPtr big_cloud_normals_;
     std::vector<int> big_cloud_origin_cloud_id_;    /// @brief saves the index of the input cloud vector for each point in the big cloud (to know from which camera the point comes from)
     PointNormalTPtr output_normals_;
-    std::vector<PointTPtr> input_clouds_used_;
-    std::vector<std::vector<size_t> > indices_;
 
     struct PointInfo{
-        Eigen::Vector3f position;
-        Eigen::Vector3f normal;
+        PointT pt;
+        pcl::Normal normal;
+
+        // for each point store the number of viewpoints in which the point
+            //  [0] is occluded;
+            //  [1] can be explained by a nearby point;
+            //  [2] could be seen but does not make sense (i.e. the view-ray is not blocked, but there is no sensed point)
+        size_t occluded_, explained_, violated_;
+
         int index_in_big_cloud;
         float distance_to_depth_discontinuity;
         float probability;
@@ -113,15 +108,20 @@ private:
         {
             return probability > other.probability;
         }
+
+        PointInfo()
+        {
+            occluded_ = explained_ = violated_ = 0;
+        }
     };
 
 public:
     NMBasedCloudIntegration (const Parameter &p=Parameter());
 
-    void getInputCloudsUsed(std::vector<PointTPtr> & input_clouds_used) const
-    {
-        input_clouds_used = input_clouds_used_;
-    }
+//    void getInputCloudsUsed(std::vector<PointTPtr> & input_clouds_used) const
+//    {
+//        input_clouds_used = input_clouds_used_;
+//    }
 
     void getOutputNormals(PointNormalTPtr & output) const
     {
@@ -156,18 +156,6 @@ public:
 
     void
     compute (const PointTPtr &output);
-
-    void
-    setWeights (const std::vector<std::vector<float> > & weights)
-    {
-        noise_weights_ = weights;
-    }
-
-    void
-    setSigmasCombined (const std::vector<std::vector<float> > & sigmas)
-    {
-        sigmas_combined_ = sigmas;
-    }
 
     void
     setSigmas (const std::vector<std::vector<std::vector<float> > > & sigmas)
