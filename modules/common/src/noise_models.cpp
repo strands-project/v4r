@@ -1,10 +1,3 @@
-/*
- * noise_models.cpp
- *
- *  Created on: Oct 28, 2013
- *      Author: aitor
- */
-
 #include <pcl/common/angles.h>
 #include <v4r/common/organized_edge_detection.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -18,23 +11,16 @@
 namespace v4r {
 
 template<typename PointT>
-noise_models::NguyenNoiseModel<PointT>::NguyenNoiseModel (const Parameter &param)
+NguyenNoiseModel<PointT>::NguyenNoiseModel (const Parameter &param)
 {
     param_ = param;
-    pose_set_ = false;
-    pose_to_plane_RF_ = Eigen::Matrix4f::Identity();
 }
 
 template<typename PointT>
 void
-noise_models::NguyenNoiseModel<PointT>::compute ()
+NguyenNoiseModel<PointT>::compute ()
 {
-    weights_.clear();
-    sigmas_combined_.clear();
-    sigmas_.clear();
-    weights_.resize(input_->points.size(), 1.f);
-    sigmas_combined_.resize(input_->points.size(), 0.f);
-    sigmas_.resize(input_->points.size());
+    pt_properties_.resize(input_->points.size());
     discontinuity_edges_.indices.clear();
 
     //compute depth discontinuity edges
@@ -57,6 +43,9 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
             discontinuity_edges_.indices.push_back(edge_indices[j].indices[i]);
     }
 
+//    pcl::visualization::PCLVisualizer vis;
+//    vis.addPointCloud(input_);
+
     for(size_t i=0; i < input_->points.size(); i++)
     {
         float sigma_lateral = 0.f;
@@ -65,9 +54,7 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
         const pcl::Normal &n = normals_->points[i];
         const Eigen::Vector3f & np = n.getNormalVector3fMap();
 
-        sigmas_[i].resize(3, std::numeric_limits<float>::max());
-        sigmas_combined_[i] = std::numeric_limits<float>::max();
-        weights_[i] = 0;
+        pt_properties_[i].resize(3, std::numeric_limits<float>::max());
 
         if( !pcl::isFinite(pt) || !pcl::isFinite(n) )
             continue;
@@ -82,30 +69,19 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
         sigma_lateral = (0.8 + 0.034 * angle / (90.f - angle)) * pt.z / param_.focal_length_;
         sigma_axial = 0.0012 + 0.0019 * ( pt.z - 0.4 ) * ( pt.z - 0.4 ) + 0.0001 * angle * angle / ( sqrt(pt.z) * (90 - angle) * (90 - angle));
 
-        sigmas_[i][0] = sigma_lateral;
-        sigmas_[i][1] = sigma_axial;
-        sigmas_combined_[i] = sqrt(sigma_lateral * sigma_lateral + sigma_lateral * sigma_lateral + sigma_axial * sigma_axial); // lateral is two-dimensional, axial only one dimension
-
-        if(angle > param_.max_angle_)
-        {
-            weights_[i] = 1.f - (angle - param_.max_angle_) / (90.f - param_.max_angle_);
-        }
-        else
-        {
-            //weights_[i] = 1.f - 0.2f * ((std::max(angle, 30.f) - 30.f) / (max_angle_ - 30.f));
-        }
-
-        //std::cout << angle << " " << weights_[i] << std::endl;
-        //weights_[i] = 1.f - ( angle )
-    }
+//        std::cout << "angle: " << angle << ", sigma_lateral: " << sigma_lateral << ", sigma axial: " << sigma_axial << std::endl;
+//        vis.removeAllShapes();
+//        vis.addSphere(input_->points[i], 0.03f, 1,0,0);
+//        vis.spin();
+        pt_properties_[i][0] = sigma_lateral;
+        pt_properties_[i][1] = sigma_axial;
+   }
 
     //compute distance (in pixels) to edge for each pixel
     if (param_.use_depth_edges_)
     {
         std::vector<float> dist_to_edge_3d(input_->points.size(), std::numeric_limits<float>::infinity());
         std::vector<float> dist_to_edge_px(input_->points.size(), std::numeric_limits<float>::infinity());
-
-        int wdw_size = 5;
 
         for (const auto &idx_start : discontinuity_edges_.indices) {
             dist_to_edge_3d[idx_start] = 0.f;
@@ -114,9 +90,9 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
             int row_start = idx_start / input_->width;
             int col_start = idx_start % input_->width;
 
-            for (int row_k = (row_start - wdw_size); row_k <= (row_start + wdw_size); row_k++)
+            for (int row_k = (row_start - param_.edge_radius_); row_k <= (row_start + param_.edge_radius_); row_k++)
             {
-                for (int col_k = (col_start - wdw_size); col_k <= (col_start + wdw_size); col_k++)
+                for (int col_k = (col_start - param_.edge_radius_); col_k <= (col_start + param_.edge_radius_); col_k++)
                 {
                     if( col_k<0 || row_k < 0 || col_k >= input_->width || row_k >= input_->height || row_k == row_start || col_k == col_start)
                         continue;
@@ -137,100 +113,13 @@ noise_models::NguyenNoiseModel<PointT>::compute ()
 
 //        std::ofstream f ("/tmp/test.txt");
         for (int i = 0; i < input_->points.size (); i++) {
-            sigmas_[i][2] = dist_to_edge_px[i];
-//            f << dist_to_edge_px[i] << " ";
+            pt_properties_[i][2] = dist_to_edge_px[i];
+//            f << dist_to_edge_px[i] << std::endl;
         }
 //        f.close();
     }
-
-//    for(size_t i=0; i < input_->points.size(); i++)
-//    {
-//        if(weights_[i] < 0.f)
-//            weights_[i] = 0.f;
-
-//        else
-//        {
-//            if(pose_set_)
-//            {
-//                Eigen::Vector4f p = input_->points[i].getVector4fMap();
-//                p = pose_to_plane_RF_ * p;
-//                weights_[i] *= 1.f - 0.25f * std::max(0.f, (0.01f - p[2]) / 0.01f);
-//                //std::cout << p[2] << " " << 0.25f * std::max(0.f, 0.01f - p[2]) << std::endl;
-//            }
-//        }
-//    }
 }
 
-/*template<typename PointT>
-void
-noise_models::NguyenNoiseModel<PointT>::getFilteredCloud(PointTPtr & filtered, float w_t)
-{
-  Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
-                        std::numeric_limits<float>::quiet_NaN(),
-                        std::numeric_limits<float>::quiet_NaN());
-  filtered.reset(new pcl::PointCloud<PointT>(*input_));
-  for(size_t i=0; i < input_->points.size(); i++)
-  {
-    if(weights_[i] < w_t)
-    {
-      //filtered->points[i].getVector3fMap() = nan3f;
-      filtered->points[i].r = 255;
-      filtered->points[i].g = 0;
-      filtered->points[i].b = 0;
-    }
-
-    if(!pcl_isfinite( input_->points[i].z))
-    {
-      filtered->points[i].r = 255;
-      filtered->points[i].g = 255;
-      filtered->points[i].b = 0;
-    }
-  }
-}*/
-
-template<typename PointT>
-void
-noise_models::NguyenNoiseModel<PointT>::getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t)
-{
-    Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
-                          std::numeric_limits<float>::quiet_NaN(),
-                          std::numeric_limits<float>::quiet_NaN());
-
-    filtered.reset(new pcl::PointCloud<PointT>(*input_));
-    for(size_t i=0; i < input_->points.size(); i++)
-    {
-        if(weights_[i] < w_t)
-        {
-            filtered->points[i].x = std::numeric_limits<float>::quiet_NaN();
-            filtered->points[i].y = std::numeric_limits<float>::quiet_NaN();
-            filtered->points[i].z = std::numeric_limits<float>::quiet_NaN();
-        }
-    }
-}
-
-template<typename PointT>
-void
-noise_models::NguyenNoiseModel<PointT>:: getFilteredCloudRemovingPoints(PointTPtr & filtered, float w_t, std::vector<int> & kept)
-{
-    Eigen::Vector3f nan3f(std::numeric_limits<float>::quiet_NaN(),
-                          std::numeric_limits<float>::quiet_NaN(),
-                          std::numeric_limits<float>::quiet_NaN());
-
-    filtered.reset(new pcl::PointCloud<PointT>(*input_));
-    for(size_t i=0; i < input_->points.size(); i++)
-    {
-        if(weights_[i] < w_t)
-        {
-            filtered->points[i].getVector3fMap() = nan3f;
-        }
-        else
-        {
-            kept.push_back(i);
-        }
-    }
-}
-
-template class V4R_EXPORTS noise_models::NguyenNoiseModel<pcl::PointXYZRGB>;
-//template class V4R_EXPORTS noise_models::NguyenNoiseModel<pcl::PointXYZ>;
-
+template class V4R_EXPORTS NguyenNoiseModel<pcl::PointXYZRGB>;
+//template class V4R_EXPORTS NguyenNoiseModel<pcl::PointXYZ>;
 }

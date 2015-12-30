@@ -7,7 +7,7 @@
 #include <opencv2/opencv.hpp>
 
 #include <v4r/io/filesystem.h>
-#include <v4r/common/noise_model_based_cloud_integration.h>
+#include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/miscellaneous.h>
 
@@ -32,32 +32,24 @@ int main(int argc, const char * argv[]) {
     google::InitGoogleLogging(argv[0]);
 
     v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nm_int_param;
-    nm_int_param.final_resolution_ = 0.002f;
     nm_int_param.min_points_per_voxel_ = 1;
-    nm_int_param.min_weight_ = 0.5f;
     nm_int_param.octree_resolution_ = 0.002f;
-    nm_int_param.threshold_ss_ = 0.01f;
 
-    v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB>::Parameter nm_param;
+    v4r::NguyenNoiseModel<pcl::PointXYZRGB>::Parameter nm_param;
 
     int normal_method = 2;
 
     po::options_description desc("Noise model based cloud integration\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
-            ("test_dir", po::value<std::string>(&test_dir)->required(), "directory containing point clouds")
+            ("input_dir,i", po::value<std::string>(&test_dir)->required(), "directory containing point clouds")
             ("out_dir,o", po::value<std::string>(&out_dir), "output directory where the registered cloud will be stored. If not set, nothing will be written to distk")
             ("resolution,r", po::value<float>(&nm_int_param.octree_resolution_)->default_value(nm_int_param.octree_resolution_), "")
-            ("min_points_per_voxel,n", po::value<int>(&nm_int_param.min_points_per_voxel_)->default_value(nm_int_param.min_points_per_voxel_), "")
-            ("min_weight,w", po::value<float>(&nm_int_param.min_weight_)->default_value(nm_int_param.min_weight_), "")
-            ("threshold,t", po::value<float>(&nm_int_param.threshold_ss_)->default_value(nm_int_param.threshold_ss_), "")
-            ("final_resolution,f", po::value<float>(&nm_int_param.final_resolution_)->default_value(nm_int_param.final_resolution_), "")
-            ("lateral_sigma", po::value<float>(&nm_param.lateral_sigma_)->default_value(nm_param.lateral_sigma_), "")
-            ("max_angle", po::value<float>(&nm_param.max_angle_)->default_value(nm_param.max_angle_), "")
+            ("min_points_per_voxel", po::value<int>(&nm_int_param.min_points_per_voxel_)->default_value(nm_int_param.min_points_per_voxel_), "")
+            ("threshold_explained", po::value<float>(&nm_int_param.threshold_explained_)->default_value(nm_int_param.threshold_explained_), "")
             ("use_depth_edges", po::value<bool>(&nm_param.use_depth_edges_)->default_value(nm_param.use_depth_edges_), "")
-            ("dilate_iterations,i", po::value<int>(&nm_param.dilate_iterations_)->default_value(nm_param.dilate_iterations_), "")
-            ("dilate_width", po::value<int>(&nm_param.dilate_width_)->default_value(nm_param.dilate_width_), "")
-            ("normal_method", po::value<int>(&normal_method)->default_value(normal_method), "method used for normal computation")
+            ("edge_radius", po::value<int>(&nm_param.edge_radius_)->default_value(nm_param.edge_radius_), "")
+            ("normal_method,n", po::value<int>(&normal_method)->default_value(normal_method), "method used for normal computation")
             ("chop_z,z", po::value<float>(&chop_z)->default_value(chop_z), "cut of distance in m ")
             ("visualize,v", po::bool_switch(&visualize), "turn visualization on")
     ;
@@ -80,8 +72,8 @@ int main(int argc, const char * argv[]) {
     }
 
 
-    std::vector< std::string> sub_folder_names;
-    if(!v4r::io::getFoldersInDirectory( test_dir, "", sub_folder_names) )
+    std::vector< std::string> sub_folder_names  = v4r::io::getFoldersInDirectory( test_dir);
+    if( sub_folder_names.empty() )
     {
         std::cerr << "No subfolders in directory " << test_dir << ". " << std::endl;
         sub_folder_names.push_back("");
@@ -103,16 +95,13 @@ int main(int argc, const char * argv[]) {
     {
         const std::string sequence_path = test_dir + "/" + sub_folder_names[ sub_folder_id ];
 
-        std::vector< std::string > views;
-        v4r::io::getFilesInDirectory(sequence_path, views, "", ".*.pcd", false);
+        std::vector< std::string > views = v4r::io::getFilesInDirectory(sequence_path, ".*.pcd", false);
         std::sort(views.begin(), views.end());
-
 
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr big_cloud_unfiltered (new pcl::PointCloud<pcl::PointXYZRGB>);
         std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > clouds (views.size());
         std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals (views.size());
-        std::vector<std::vector<float> > weights (views.size());
-        std::vector<std::vector<float> > sigmas (views.size());
+        std::vector<std::vector<std::vector<float> > > pt_properties (views.size());
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > camera_transforms (views.size());
 
         for (size_t v_id=0; v_id<views.size(); v_id++)
@@ -120,8 +109,7 @@ int main(int argc, const char * argv[]) {
             clouds[v_id].reset ( new pcl::PointCloud<pcl::PointXYZRGB>);
             normals[v_id].reset ( new pcl::PointCloud<pcl::Normal>);
 
-            const std::string fn = sequence_path + "/" + views[ v_id ];
-            pcl::io::loadPCDFile(fn, *clouds[v_id]);
+            pcl::io::loadPCDFile(views[ v_id ], *clouds[v_id]);
 
             camera_transforms[v_id] = v4r::RotTrans2Mat4f(clouds[v_id]->sensor_orientation_, clouds[v_id]->sensor_origin_);
 
@@ -139,12 +127,11 @@ int main(int argc, const char * argv[]) {
 
             v4r::computeNormals<pcl::PointXYZRGB>( clouds[v_id], normals[v_id], normal_method);
 
-            v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm (nm_param);
+            v4r::NguyenNoiseModel<pcl::PointXYZRGB> nm (nm_param);
             nm.setInputCloud(clouds[v_id]);
             nm.setInputNormals(normals[v_id]);
             nm.compute();
-            nm.getWeights(weights[v_id]);
-            sigmas[v_id] = nm.getSigmas();
+            pt_properties[v_id] = nm.getPointProperties();
 
             pcl::PointCloud<pcl::PointXYZRGB> cloud_aligned;
             pcl::transformPointCloud( *clouds[v_id], cloud_aligned, camera_transforms[v_id]);
@@ -154,8 +141,7 @@ int main(int argc, const char * argv[]) {
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
         v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nm_int_param);
         nmIntegration.setInputClouds(clouds);
-        nmIntegration.setWeights(weights);
-        nmIntegration.setSigmas(sigmas);
+        nmIntegration.setPointProperties(pt_properties);
         nmIntegration.setTransformations(camera_transforms);
         nmIntegration.setInputNormals(normals);
         nmIntegration.compute(octree_cloud);
