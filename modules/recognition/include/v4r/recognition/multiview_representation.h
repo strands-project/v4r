@@ -52,8 +52,8 @@ public:
     std::vector<size_t> origin_view_id_;
 
     //GO3D
-    std::vector<float> nguyens_noise_model_weights_;
-    std::vector<int> nguyens_kept_indices_;
+    std::vector<std::vector<float> >  pt_properties_; /// @brief noise properties for each point
+//    std::vector<int> nguyens_kept_indices_;
 };
 
 struct V4R_EXPORTS CamConnect

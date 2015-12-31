@@ -39,8 +39,6 @@
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/miscellaneous.h>
-#include <v4r/common/noise_models.h>
-#include <v4r/common/noise_model_based_cloud_integration.h>
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/recognition/hv_go_3D.h>
 #include <v4r/registration/fast_icp_with_gc.h>
@@ -617,69 +615,43 @@ MultiviewRecognizer<PointT>::recognize ()
        hv_algorithm_3d = boost::dynamic_pointer_cast<GO3D<PointT, PointT>> (hv_algorithm_);
 
     if ( hv_algorithm_3d ) {
-        const double max_keypoint_dist_mv_ = 2.5f;
 
-        noise_models::NguyenNoiseModel<PointT> nm (nm_param_);
+        NguyenNoiseModel<PointT> nm (nm_param_);
         nm.setInputCloud(v.scene_);
         nm.setInputNormals( v.scene_normals_);
         nm.compute();
-        nm.getWeights(v.nguyens_noise_model_weights_);
+        v.pt_properties_ = nm.getPointProperties();
 
-        typename pcl::PointCloud<PointT>::Ptr foo_filtered;
-        std::vector<int> kept_indices;
-        nm.getFilteredCloudRemovingPoints(foo_filtered, 0.8f, kept_indices);
-
-        // finally filter by distance and store kept indices in vertex
-        v.nguyens_kept_indices_.resize(kept_indices.size());
-        size_t kept=0;
-        for(size_t i=0; i < kept_indices.size(); i++) {
-            const float dist = v.scene_->points[kept_indices[i]].getVector3fMap().norm();
-            if(dist < max_keypoint_dist_mv_)
-                v.nguyens_kept_indices_[kept++] = kept_indices[i];
-        }
-        v.nguyens_kept_indices_.resize(kept);
-
-       typename pcl::PointCloud<PointT>::Ptr big_cloud_go3D(new pcl::PointCloud<PointT>);
-        pcl::PointCloud<pcl::Normal>::Ptr big_cloud_go3D_normals(new pcl::PointCloud<pcl::Normal>);
-        std::vector< std::vector<float> > views_noise_weights (views_.size());
         std::vector<typename pcl::PointCloud<PointT>::Ptr> original_clouds (views_.size());
         std::vector<pcl::PointCloud<pcl::Normal>::Ptr> normal_clouds (views_.size());
         std::vector< Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>  > transforms_to_global  (views_.size());
+        std::vector<std::vector<std::vector<float> > > pt_properties (views_.size());
 
         typename std::map<size_t, View<PointT> >::const_iterator v_it;
         size_t view_id = 0;
         for (v_it = views_.begin(); v_it != views_.end(); ++v_it, view_id++) {
             const View<PointT> &w = v_it->second;
-            views_noise_weights [view_id ] = w.nguyens_noise_model_weights_;
             original_clouds [view_id ] = w.scene_;
             normal_clouds [view_id] = w.scene_normals_;
             transforms_to_global [view_id] = v.absolute_pose_.inverse() * w.absolute_pose_;
+            pt_properties [view_id ] = w.pt_properties_;
         }
 
-        //obtain big cloud and occlusion clouds based on new noise model integration
-
+        //obtain big cloud and occlusion clouds based on noise model integration
 
         typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
-        typename NMBasedCloudIntegration<PointT>::Parameter nmparam;
-        nmparam.octree_resolution_ = 0.001f;
-        nmparam.min_weight_ = 0.25f;
-        nmparam.final_resolution_ = 0.001f;
-        nmparam.min_points_per_voxel_ = 1;
-        NMBasedCloudIntegration<PointT> nmIntegration (nmparam);
+        NMBasedCloudIntegration<PointT> nmIntegration (nmInt_param_);
         nmIntegration.setInputClouds(original_clouds);
-        nmIntegration.setWeights(views_noise_weights);
         nmIntegration.setTransformations(transforms_to_global);
         nmIntegration.setInputNormals(normal_clouds);
+        nmIntegration.setPointProperties(pt_properties);
         nmIntegration.compute(octree_cloud);
-
-        std::vector<typename pcl::PointCloud<PointT>::Ptr> used_clouds;
         pcl::PointCloud<pcl::Normal>::Ptr big_normals(new pcl::PointCloud<pcl::Normal>);
         nmIntegration.getOutputNormals(big_normals);
-        nmIntegration.getInputCloudsUsed(used_clouds);
 
-        std::vector<typename pcl::PointCloud<PointT>::ConstPtr> occlusion_clouds (used_clouds.size());
-        for(size_t i=0; i < used_clouds.size(); i++)
-            occlusion_clouds[i].reset(new pcl::PointCloud<PointT>(*used_clouds[i]));
+        std::vector<typename pcl::PointCloud<PointT>::ConstPtr> occlusion_clouds (original_clouds.size());
+        for(size_t i=0; i < original_clouds.size(); i++)
+            occlusion_clouds[i].reset(new pcl::PointCloud<PointT>(*original_clouds[i]));
 
         hv_algorithm_3d->setOcclusionClouds( occlusion_clouds );
         hv_algorithm_3d->setAbsolutePoses( transforms_to_global );
@@ -690,8 +662,8 @@ MultiviewRecognizer<PointT>::recognize ()
         //TODO: Normals might be a problem!! We need normals from the models and normals from the scene, correctly oriented!
         //right now, all normals from the scene will be oriented towards some weird 0, same for models actually
    if (views_.size() > 1 ) { // don't do this if there is only one view otherwise point cloud is not kept organized and multi-plane segmentation takes longer
-            scene_ = big_cloud_go3D = octree_cloud;
-            scene_normals_ = big_cloud_go3D_normals = big_normals;
+            scene_ = octree_cloud;
+            scene_normals_ = big_normals;
         }
         else {
             scene_ = v.scene_;

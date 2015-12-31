@@ -57,10 +57,8 @@ class V4R_EXPORTS RegisteredViewsSource : public Source<PointInT>
     using SourceT::path_;
     using SourceT::models_;
     using SourceT::load_into_memory_;
-    using SourceT::createClassAndModelDirectories;
     using SourceT::resolution_;
 
-    std::string model_structure_; //directory with all the views, indices, poses, etc...
     std::string view_prefix_;
     std::string indices_prefix_;
     std::string pose_prefix_;
@@ -73,12 +71,6 @@ public:
         pose_prefix_ = std::string("pose");
         indices_prefix_ = std::string("object_indices");
         load_into_memory_ = false;
-    }
-
-    void
-    setModelStructureDir(const std::string &dir)
-    {
-        model_structure_ = dir;
     }
 
     void
@@ -107,63 +99,60 @@ public:
     }
 
     void
-    loadInMemorySpecificModel(const std::string & dir, ModelT & model)
+    loadInMemorySpecificModel(ModelT &model)
     {
-        const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
-        if (!io::existsFolder(pathmodel)) {
-            std::cerr << "Training directory " << pathmodel << " does not exist!" << std::endl;
+        const std::string training_view_path = path_ + "/" + model.class_ + "/" + model.id_ + "/views/";
+
+        if (!v4r::io::existsFolder(training_view_path)) {
+            std::cerr << "Training directory " << training_view_path << " does not exist!" << std::endl;
             return;
         }
 
-        for (size_t i = 0; i < model.view_filenames_.size (); i++)
+        model.views_.resize( model.view_filenames_.size() );
+        model.indices_.resize( model.view_filenames_.size() );
+        model.poses_.resize( model.view_filenames_.size() );
+        model.self_occlusions_.resize( model.view_filenames_.size() );
+
+        for (size_t i=0; i<model.view_filenames_.size(); i++)
         {
-            const std::string view_file = pathmodel + "/" + model.view_filenames_[i];
-            typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
-            pcl::io::loadPCDFile (view_file, *cloud);
+            // load training view
+            const std::string view_file = training_view_path + "/" + model.view_filenames_[i];
+            model.views_[i].reset( new pcl::PointCloud<PointInT> () );
+            pcl::io::loadPCDFile (view_file, *model.views_[i]);
 
-            std::string file_replaced1 (model.view_filenames_[i]);
-            boost::replace_all (file_replaced1, view_prefix_, pose_prefix_);
-            boost::replace_all (file_replaced1, ".pcd", ".txt");
+            // read pose
+            std::string pose_fn (view_file);
+            boost::replace_last (pose_fn, view_prefix_, pose_prefix_);
+            boost::replace_last (pose_fn, ".pcd", ".txt");
+            Eigen::Matrix4f pose = io::readMatrixFromFile( pose_fn );
+            model.poses_[i] = pose.inverse(); //the recognizer assumes transformation from M to CC - i think!
 
-            //read pose as well
-            std::stringstream pose_file;
-            pose_file << pathmodel << "/" << file_replaced1;
-            Eigen::Matrix4f pose;
-            io::readMatrixFromFile( pose_file.str (), pose);
+            // read object mask
+            model.indices_[i].indices.clear();
+            std::string obj_indices_fn (view_file);
+            boost::replace_last (obj_indices_fn, view_prefix_, indices_prefix_);
+            boost::replace_last (obj_indices_fn, ".pcd", ".txt");
+            std::ifstream f ( obj_indices_fn.c_str() );
+            int idx;
+            while (f >> idx)
+                model.indices_[i].indices.push_back(idx);
+            f.close();
 
-            //the recognizer assumes transformation from M to CC - i think!
-            Eigen::Matrix4f pose_inv = pose.inverse();
-            model.poses_.push_back (pose_inv);
-            model.self_occlusions_.push_back (-1.f);
-
-            std::string file_replaced2 (model.view_filenames_[i]);
-            boost::replace_all (file_replaced2, view_prefix_, indices_prefix_);
-            pcl::PointCloud<IndexPoint> obj_indices_cloud;
-
-            std::stringstream oi_file;
-            oi_file << pathmodel << "/" << file_replaced2;
-            pcl::io::loadPCDFile (oi_file.str(), obj_indices_cloud);
-            pcl::PointIndices indices;
-            indices.indices.resize(obj_indices_cloud.points.size());
-            for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
-                indices.indices[kk] = obj_indices_cloud.points[kk].idx;
-
-            model.views_.push_back (cloud);
-            model.indices_.push_back(indices);
+            model.self_occlusions_[i] = -1.f;
         }
     }
 
     void
-    loadModel (const std::string &model_path, ModelT & model)
+    loadModel (ModelT & model)
     {
-        const std::string training_view_path = model_structure_ + "/" + model.class_ + "/" + model.id_;
+        const std::string training_view_path = path_ + model.class_ + "/" + model.id_ + "/views/";
         const std::string view_pattern = ".*" + view_prefix_ + ".*.pcd";
-        io::getFilesInDirectory(training_view_path, model.view_filenames_, "", view_pattern, false);
+        model.view_filenames_ = io::getFilesInDirectory(training_view_path, view_pattern, false);
         std::cout << "Object class: " << model.class_ << ", id: " << model.id_ << ", views: " << model.view_filenames_.size() << std::endl;
 
         typename pcl::PointCloud<Full3DPointT>::Ptr modell (new pcl::PointCloud<Full3DPointT>);
         typename pcl::PointCloud<Full3DPointT>::Ptr modell_voxelized (new pcl::PointCloud<Full3DPointT>);
-        pcl::io::loadPCDFile(model_path, *modell);
+        pcl::io::loadPCDFile(path_ + model.class_ + "/" + model.id_ + "/3D_model.pcd", *modell);
 
         float voxel_grid_size = 0.003f;
         typename pcl::VoxelGrid<Full3DPointT> grid_;
@@ -185,37 +174,31 @@ public:
             model.poses_.resize( model.view_filenames_.size() );
             model.self_occlusions_.resize( model.view_filenames_.size() );
 
-            for (size_t i = 0; i < model.view_filenames_.size (); i++)
+            for (size_t i=0; i<model.view_filenames_.size(); i++)
             {
-                const std::string view_file = training_view_path + model.view_filenames_[i];
-                typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
-                pcl::io::loadPCDFile (view_file, *cloud);
+                // load training view
+                const std::string view_file = training_view_path + "/" + model.view_filenames_[i];
+                model.views_[i].reset( new pcl::PointCloud<PointInT> () );
+                pcl::io::loadPCDFile (view_file, *model.views_[i]);
 
-                std::string file_replaced1 (model.view_filenames_[i]);
-                boost::replace_all (file_replaced1, view_prefix_, pose_prefix_);
-                boost::replace_all (file_replaced1, ".pcd", ".txt");
+                // read pose
+                std::string pose_fn (view_file);
+                boost::replace_last (pose_fn, view_prefix_, pose_prefix_);
+                boost::replace_last (pose_fn, ".pcd", ".txt");
+                Eigen::Matrix4f pose = io::readMatrixFromFile( pose_fn );
+                model.poses_[i] = pose.inverse(); //the recognizer assumes transformation from M to CC - i think!
 
-                const std::string pose_file = training_view_path + "/" + file_replaced1;
-                Eigen::Matrix4f pose;
-                io::readMatrixFromFile( pose_file, pose);
+                // read object mask
+                model.indices_[i].indices.clear();
+                std::string obj_indices_fn (view_file);
+                boost::replace_last (obj_indices_fn, view_prefix_, indices_prefix_);
+                boost::replace_last (obj_indices_fn, ".pcd", ".txt");
+                std::ifstream f ( obj_indices_fn.c_str() );
+                int idx;
+                while (f >> idx)
+                    model.indices_[i].indices.push_back(idx);
+                f.close();
 
-                //the recognizer assumes transformation from M to CC - i think!
-                Eigen::Matrix4f pose_inv = pose.inverse();
-
-                std::string file_replaced2 (model.view_filenames_[i]);
-                boost::replace_all (file_replaced2, view_prefix_, indices_prefix_);
-                pcl::PointCloud<IndexPoint> obj_indices_cloud;
-
-                const std::string oi_file = training_view_path + "/" + file_replaced2;
-                pcl::io::loadPCDFile (oi_file, obj_indices_cloud);
-                pcl::PointIndices indices;
-                indices.indices.resize(obj_indices_cloud.points.size());
-                for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
-                    indices.indices[kk] = obj_indices_cloud.points[kk].idx;
-
-                model.views_[i] = cloud;
-                model.indices_[i] = indices;
-                model.poses_[i] = pose_inv;
                 model.self_occlusions_[i] = -1.f;
             }
         }
@@ -232,22 +215,18 @@ public:
          * \brief Creates the model representation of the training set, generating views if needed
          */
     void
-    generate (const std::string &foo = std::string())
+    generate ()
     {
-        (void)foo;
-        //get models in directory
-        std::vector < std::string > files;
-        io::getFilesInDirectory (path_, files, "", ".*.pcd",  false);
-        std::cout << "There are " << files.size() << " models." << std::endl;
-
         models_.clear();
-        std::sort(files.begin(), files.end());
-        for (size_t i = 0; i < files.size (); i++)
+        std::vector < std::string > model_files = io::getFilesInDirectory (path_, ".3D_model.pcd",  true);
+        std::cout << "There are " << model_files.size() << " models." << std::endl;
+
+        for (size_t i = 0; i < model_files.size (); i++)
         {
             ModelTPtr m(new ModelT);
 
             std::vector < std::string > strs;
-            boost::split (strs, files[i], boost::is_any_of ("/\\"));
+            boost::split (strs, model_files[i], boost::is_any_of ("/\\"));
             //            std::string name = strs[strs.size () - 1];
 
             if (strs.size () == 1)
@@ -275,10 +254,7 @@ public:
             //check which of them have been trained using training_dir and the model_id_
             //load views, poses and self-occlusions for those that exist
             //generate otherwise
-
-            const std::string model_path = path_ + "/" + files[i];
-            loadModel (model_path, *m);
-
+            loadModel (*m);
             models_.push_back (m);
         }
         this->createVoxelGridAndDistanceTransform(resolution_);

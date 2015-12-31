@@ -32,7 +32,7 @@ namespace po = boost::program_options;
 
 typedef pcl::PointXYZ PointT;
 
-std::string MODELS_DIR_, TRAINING_DIR_;
+std::string MODELS_DIR_;
 int KNN_;
 
 void
@@ -46,7 +46,7 @@ init(v4r::GlobalNNClassifier<flann::L1, PointT> &esf_classifier) {
     mesh_source->setRadiusSphere (3.f);
     mesh_source->setModelScale (1.f);
     mesh_source->setTesselationLevel(1);
-    mesh_source->generate (TRAINING_DIR_);
+    mesh_source->generate ();
 
     boost::shared_ptr<v4r::Source<PointT> > source;
     source = boost::static_pointer_cast<v4r::MeshSource<PointT> > (mesh_source);
@@ -58,7 +58,7 @@ init(v4r::GlobalNNClassifier<flann::L1, PointT> &esf_classifier) {
     cast_estimator = boost::dynamic_pointer_cast<v4r::ESFEstimation<PointT> > (estimator);
 
     esf_classifier.setDataSource(source);
-    esf_classifier.setTrainingDir(TRAINING_DIR_);
+//    esf_classifier.setTrainingDir(TRAINING_DIR_);
     esf_classifier.setDescriptorName("esf");
     esf_classifier.setFeatureEstimator (cast_estimator);
     esf_classifier.setNN(KNN_);
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
     desc.add_options()
             ("help,h", "produce help message")
             ("models_dir,m", po::value<std::string>(&MODELS_DIR_)->required(), "model directory")
-            ("training_dir", po::value<std::string>(&TRAINING_DIR_)->required(), "directory used for training")
+//            ("training_dir", po::value<std::string>(&TRAINING_DIR_)->required(), "directory used for training")
             ("test_dir", po::value<std::string>(&test_dir)->required(), "directory used for testing")
             ("out_dir", po::value<std::string>(&out_dir)->default_value(out_dir), "output directory")
             ("do_esf,e", po::value<bool>(&do_esf)->default_value(do_esf), "if true, includes esf classification (shape based).")

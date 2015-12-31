@@ -54,6 +54,11 @@ if(HAVE_GLOG)
   list(APPEND DEP_LIBS ${GLOG_LIBRARIES})
 endif()
 
+if(HAVE_BOOST)
+  v4r_include_directories(${BOOST_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
+endif()
+
 v4r_check_dependencies(${V4R_CPP_SAMPLES_REQUIRED_DEPS})
 
 if(BUILD_EXAMPLES AND V4R_DEPENDENCIES_FOUND)

@@ -48,6 +48,7 @@
 
 #include <v4r_config.h>
 #include <v4r/common/noise_models.h>
+#include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <v4r/recognition/multiview_representation.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 
@@ -102,8 +103,7 @@ protected:
 
     std::string scene_name_;
 
-    /** \brief stores keypoint correspondences */
-    symHyp obj_hypotheses_;
+    symHyp obj_hypotheses_; /// \brief stores keypoint correspondences
 
     /** \brief Point-to-point correspondence grouping algorithm */
     typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > cg_algorithm_;
@@ -138,6 +138,9 @@ protected:
                                           boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
                                           std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
                                           bool use_gc = false );
+
+    typename NguyenNoiseModel<PointT>::Parameter nm_param_;
+    typename NMBasedCloudIntegration<PointT>::Parameter nmInt_param_;
 
 public:
     class Parameter : public Recognizer<PointT>::Parameter
@@ -204,17 +207,25 @@ public:
         rr_ = rec;
     }
 
-    typename noise_models::NguyenNoiseModel<PointT>::Parameter nm_param_;
-
 
     std::string get_scene_name() const
     {
         return scene_name_;
     }
 
-    void set_sift(cv::Ptr<SiftGPU> &sift)
+    void setSift(cv::Ptr<SiftGPU> &sift)
     {
         sift_ = sift;
+    }
+
+    void setNoiseModelParameters(const typename NguyenNoiseModel<PointT>::Parameter &p)
+    {
+        nm_param_ = p;
+    }
+
+    void setNoiseModelIntegrationParameters(const typename NMBasedCloudIntegration<PointT>::Parameter &p)
+    {
+        nmInt_param_ = p;
     }
 
 
@@ -239,7 +250,7 @@ public:
     /**
      * @brief clears all stored information from previous views
      */
-    void clear()
+    void cleanUp()
     {
         models_.clear();
         model_or_plane_is_verified_.clear();
@@ -249,7 +260,6 @@ public:
     }
 
     void recognize();
-
 };
 }
 

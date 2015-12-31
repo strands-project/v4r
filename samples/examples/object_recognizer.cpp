@@ -153,7 +153,6 @@ public:
             boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > src
                     (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>(resolution));
             src->setPath (models_dir);
-            src->setModelStructureDir (training_dir);
             src->generate ();
 //            src->createVoxelGridAndDistanceTransform(resolution);
             cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (src);
@@ -172,7 +171,7 @@ public:
             boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > sift_r;
             sift_r.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (paramLocalRecSift));
             sift_r->setDataSource (cast_source);
-            sift_r->setTrainingDir (training_dir);
+            sift_r->setModelsDir (training_dir);
             sift_r->setFeatureEstimator (cast_estimator);
 
             boost::shared_ptr < v4r::Recognizer<PointT> > cast_recog;
@@ -198,7 +197,7 @@ public:
             boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
             local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (paramLocalRecShot));
             local->setDataSource (cast_source);
-            local->setTrainingDir(training_dir);
+            local->setModelsDir(training_dir);
             local->setFeatureEstimator (cast_estimator);
 
             uniform_kp_extractor->setMaxDistance( chop_z_ ); // for training we do not want this restriction

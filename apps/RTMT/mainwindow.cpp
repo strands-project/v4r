@@ -498,7 +498,7 @@ void MainWindow::on_SavePointClouds_clicked()
 
   if ( ok_save && model_name.isNull() == false )
   {
-    if (boost::filesystem::exists(m_params->get_rgbd_path()+std::string("/recognition_structure/")+model_name.toStdString()+std::string(".pcd")))
+    if (boost::filesystem::exists( m_params->get_rgbd_path() + "/" + model_name.toStdString()+ "/views/") )
     {
       int ret = QMessageBox::warning(this, tr("Store point clouds for recognition"),
                                      tr("The directory exists!\n"
@@ -534,7 +534,7 @@ void MainWindow::on_SaveTrackerModel_clicked()
 
   if ( ok && object_name.isNull() == false )
   {
-    if (boost::filesystem::exists(m_params->get_rgbd_path()+std::string("/")+object_name.toStdString()+std::string(".ao")))
+    if (boost::filesystem::exists(m_params->get_rgbd_path() + "/" + object_name.toStdString() + "/tracking_model.ao"))
     {
       int ret = QMessageBox::warning(this, tr("Store tracking model"),
                                      tr("The object file exists!\n"

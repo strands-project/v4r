@@ -12,19 +12,16 @@
 #include <pcl/common/angles.h>
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
+#include <fstream>
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
-v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (const std::string & dir, const std::string & model_path, ModelT & model)
+v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (const std::string & model_path, ModelT & model)
 {
-  std::stringstream pathmodel;
-  pathmodel << dir << "/" << model.class_ << "/" << model.id_;
-  bf::path trained_dir = pathmodel.str ();
+  const std::string pathmodel = path_ + "/" + model.class_ + "/" + model.id_ + "/views/";
 
   if(gen_organized_)
-  {
-    model.indices_.clear();
-  }
+      model.indices_.clear();
 
   model.assembled_.reset (new pcl::PointCloud<OutModelPointT>);
   model.normals_assembled_.reset (new pcl::PointCloud<pcl::Normal>);
@@ -35,24 +32,17 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (c
   pcl::copyPointCloud (*model_cloud, *model.assembled_);
   pcl::copyPointCloud (*model_cloud, *model.normals_assembled_);
 
-  if (bf::exists (trained_dir))
+  if (v4r::io::existsFolder(pathmodel)) //load views, poses and self-occlusions
   {
-    //load views, poses and self-occlusions
+    model.view_filenames_ = v4r::io::getFilesInDirectory(pathmodel, ".*view.*.pcd", false);
 
-    v4r::io::getFilesInDirectory(pathmodel.str (), model.view_filenames_, "", ".*view.*.pcd", false);
-    std::sort(model.view_filenames_.begin(), model.view_filenames_.end());
     if(load_into_memory_)
-    {
-      loadInMemorySpecificModel(dir, model);
-    }
+      loadInMemorySpecificModel(model);
   }
   else
   {
     std::cout << "We need to generate views..." << std::endl;
-
-    std::stringstream direc;
-    direc << dir << "/" << model.class_ << "/" << model.id_;
-    this->createClassAndModelDirectories (dir, model.class_, model.id_);
+    const std::string direc = path_ + "/" + model.class_ + "/" + model.id_;
 
     //create camera positions taking into account constraints
     vtkSmartPointer < vtkPlatonicSolidSource > ico = vtkSmartPointer<vtkPlatonicSolidSource>::New ();
@@ -600,12 +590,12 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (c
       views_orig.push_back (filtered2);*/
 
       std::stringstream path_view;
-      path_view << direc.str () << "/view_" << std::setfill ('0') << std::setw (8) << cam_id << ".pcd";
+      path_view << direc << "/view_" << std::setfill ('0') << std::setw (8) << cam_id << ".pcd";
       std::cout << filtered2->points.size() << std::endl;
       pcl::io::savePCDFileBinary (path_view.str (), *filtered2);
 
       std::stringstream path_pose;
-      path_pose << direc.str () << "/pose_" << std::setfill ('0') << std::setw (8) << cam_id << ".txt";
+      path_pose << direc << "/pose_" << std::setfill ('0') << std::setw (8) << cam_id << ".txt";
       v4r::io::writeMatrixToFile( path_pose.str (), final_mat);
 
       /*std::stringstream path_entropy;
@@ -627,7 +617,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (c
         }
 
         std::stringstream path_oi;
-        path_oi << direc.str () << "/object_indices_" << std::setfill ('0') << std::setw (8) << cam_id << ".pcd";
+        path_oi << direc << "/object_indices_" << std::setfill ('0') << std::setw (8) << cam_id << ".pcd";
         pcl::io::savePCDFileBinary(path_oi.str(), obj_indices_cloud);
         //model.indices_->push_back (indices_cloud);
       }
@@ -722,7 +712,7 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (c
       }
     }*/
 
-    loadOrGenerate (dir, model_path, model);
+    loadOrGenerate (model_path, model);
   }
 }
 
@@ -802,79 +792,50 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::assembleModelFrom
 
 template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
 void
-v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModel(const std::string & dir, ModelT & model)
+v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModel(ModelT & model)
 {
-  PCL_WARN("Loading into memory %d views \n", static_cast<int>(model.view_filenames_.size ()));
-  std::stringstream pathmodel;
-  pathmodel << dir << "/" << model.class_ << "/" << model.id_;
+  std::cout << "Loading into memory " << model.view_filenames_.size () << " views." << std::endl;
+
+  const std::string path_views = path_ + "/" + model.class_ + "/" + model.id_ + "/views/";
+
+  model.views_.resize( model.view_filenames_.size() );
+  model.indices_.resize( model.view_filenames_.size() );
+  model.poses_.resize( model.view_filenames_.size() );
+  model.self_occlusions_.resize( model.view_filenames_.size() );
 
   for (size_t i = 0; i < model.view_filenames_.size (); i++)
   {
-    std::stringstream view_file;
-    view_file << pathmodel.str () << "/" << model.view_filenames_[i];
-    std::cout << view_file.str() << std::endl;
+    const std::string view_file = path_views + "/" + model.view_filenames_[i];
     typename pcl::PointCloud<PointInT>::Ptr cloud (new pcl::PointCloud<PointInT> ());
-    pcl::io::loadPCDFile (view_file.str (), *cloud);
+    pcl::io::loadPCDFile (view_file, *cloud);
+    model.views_[i] = cloud;
 
-    model.views_.push_back (cloud);
+    std::string pose_fn (view_file);
+    boost::replace_last (pose_fn, "view", "pose");
+    boost::replace_last (pose_fn, ".pcd", ".txt");
+    v4r::io::readMatrixFromFile( pose_fn, model.poses_[i]);
 
-    std::string file_replaced1 (model.view_filenames_[i]);
-    boost::replace_all (file_replaced1, "view", "pose");
-    boost::replace_all (file_replaced1, ".pcd", ".txt");
-
-    std::string file_replaced2 (model.view_filenames_[i]);
-    boost::replace_all (file_replaced2, "view", "entropy");
-    boost::replace_all (file_replaced2, ".pcd", ".txt");
-
-    //read pose as well
-    std::stringstream pose_file;
-    pose_file << pathmodel.str () << "/" << file_replaced1;
-
-    std::cout << pose_file.str() << std::endl;
-
-    Eigen::Matrix4f pose;
-    v4r::io::readMatrixFromFile( pose_file.str (), pose);
-
-    std::cout << pose << std::endl;
-    model.poses_.push_back (pose);
-
-    //read entropy as well
-    std::stringstream entropy_file;
-    entropy_file << pathmodel.str () << "/" << file_replaced2;
-    float entropy = 0;
-    v4r::io::readFloatFromFile (entropy_file.str (), entropy);
-    model.self_occlusions_.push_back (entropy);
+    std::string entropy_fn (view_file);
+    boost::replace_last (entropy_fn, "view", "entropy");
+    boost::replace_last (entropy_fn, ".pcd", ".txt");
+    if(v4r::io::existsFile(entropy_fn))
+        v4r::io::readFloatFromFile (entropy_fn, model.self_occlusions_[i]);
+    else
+        model.self_occlusions_[i] = 0;
 
     if(gen_organized_)
     {
-      std::string file_replaced3 (model.view_filenames_[i]);
-      boost::replace_all (file_replaced3, "view", "object_indices");
-      pcl::PointCloud<IndexPoint> obj_indices_cloud;
-
-      std::stringstream oi_file;
-      oi_file << pathmodel.str () << "/" << file_replaced3;
-      pcl::io::loadPCDFile (oi_file.str(), obj_indices_cloud);
-      pcl::PointIndices indices;
-      indices.indices.resize(obj_indices_cloud.points.size());
-      for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
-        indices.indices[kk] = obj_indices_cloud.points[kk].idx;
-
-      model.indices_.push_back(indices);
+      model.indices_[i].indices.clear();
+      std::string obj_indices_fn (view_file);
+      boost::replace_last (obj_indices_fn, "view", "object_indices");
+      boost::replace_last (obj_indices_fn, ".pcd", ".txt");
+      std::ifstream f (obj_indices_fn);
+      int idx;
+      while (f >> idx)
+          model.indices_[i].indices.push_back(idx);
+      f.close();
     }
   }
-
-/*if(gen_organized_)
-{
-    typename pcl::PointCloud<PointInT>::Ptr model_cloud(new pcl::PointCloud<PointInT>);
-    assembleModelFromViewsAndPoses(model, *(model.poses_), *(model.indices_), model_cloud);
-
-    pcl::visualization::PCLVisualizer vis ("assembled model...");
-    pcl::visualization::PointCloudColorHandlerRGBField<PointInT> random_handler (model_cloud);
-    vis.addPointCloud<PointInT> (model_cloud, random_handler, "points");
-    vis.addCoordinateSystem(0.1);
-    vis.spin ();
-}*/
-
 }
 
 #endif /* PARTIAL_PCD_SOURCE_H_ */

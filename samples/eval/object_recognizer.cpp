@@ -74,9 +74,8 @@ public:
         po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
         desc.add_options()
                 ("help,h", "produce help message")
-                ("models_dir,m", po::value<std::string>(&models_dir)->required(), "directory containing the model .pcd files")
-                ("training_dir", po::value<std::string>(&training_dir)->required(), "directory containing the training data (for each model there should be a folder with the same name as the model and inside this folder there must be training views of the model with pose and segmented indices)")
-                ("test_dir", po::value<std::string>(&test_dir_)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
+                ("models_dir,m", po::value<std::string>(&models_dir)->required(), "directory containing the object models")
+                ("test_dir,t", po::value<std::string>(&test_dir_)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
                 ("out_dir,o", po::value<std::string>(&out_dir_)->default_value("/tmp/sv_recognition_out/"), "Output directory where recognition results will be stored.")
                 ("visualize,v", po::value<bool>(&visualize_)->default_value(true), "If true, turns visualization on")
                 ("do_sift", po::value<bool>(&do_sift)->default_value(true), "if true, generates hypotheses using SIFT (visual texture information)")
@@ -157,7 +156,6 @@ public:
             boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > src
                     (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>(resolution));
             src->setPath (models_dir);
-            src->setModelStructureDir (training_dir);
             src->generate ();
 //            src->createVoxelGridAndDistanceTransform(resolution);
             cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (src);
@@ -176,7 +174,7 @@ public:
             boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > sift_r;
             sift_r.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (paramLocalRecSift));
             sift_r->setDataSource (cast_source);
-            sift_r->setTrainingDir (training_dir);
+            sift_r->setModelsDir (models_dir);
             sift_r->setFeatureEstimator (cast_estimator);
 
             boost::shared_ptr < v4r::Recognizer<PointT> > cast_recog;
@@ -202,7 +200,7 @@ public:
             boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
             local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (paramLocalRecShot));
             local->setDataSource (cast_source);
-            local->setTrainingDir(training_dir);
+            local->setModelsDir(models_dir);
             local->setFeatureEstimator (cast_estimator);
 
             uniform_kp_extractor->setMaxDistance( chop_z_ ); // for training we do not want this restriction
@@ -230,16 +228,16 @@ public:
           param_file << "--" << it.first << " ";
 
           auto& value = it.second.value();
-          if (auto v = boost::any_cast<double>(&value))
-            param_file << std::setprecision(3) << *v;
-          else if (auto v = boost::any_cast<std::string>(&value))
-            param_file << *v;
-          else if (auto v = boost::any_cast<bool>(&value))
-            param_file << *v;
-          else if (auto v = boost::any_cast<int>(&value))
-            param_file << *v;
-          else if (auto v = boost::any_cast<size_t>(&value))
-            param_file << *v;
+          if (auto v_double = boost::any_cast<double>(&value))
+            param_file << std::setprecision(3) << *v_double;
+          else if (auto v_string = boost::any_cast<std::string>(&value))
+            param_file << *v_string;
+          else if (auto v_bool = boost::any_cast<bool>(&value))
+            param_file << *v_bool;
+          else if (auto v_int = boost::any_cast<int>(&value))
+            param_file << *v_int;
+          else if (auto v_size_t = boost::any_cast<size_t>(&value))
+            param_file << *v_size_t;
           else
             param_file << "error";
 
@@ -252,28 +250,25 @@ public:
 
     bool test()
     {
-        std::vector< std::string> sub_folder_names;
-        if(!v4r::io::getFoldersInDirectory( test_dir_, "", sub_folder_names) )
+        std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir_);
+        if(sub_folder_names.empty())
         {
             std::cerr << "No subfolders in directory " << test_dir_ << ". " << std::endl;
             sub_folder_names.push_back("");
         }
 
-        std::sort(sub_folder_names.begin(), sub_folder_names.end());
-        for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
+        for (const auto &sub_folder_name : sub_folder_names)
         {
-            const std::string sequence_path = test_dir_ + "/" + sub_folder_names[ sub_folder_id ];
-            const std::string out_path = out_dir_ + "/" + sub_folder_names[ sub_folder_id ];
+            const std::string sequence_path = test_dir_ + "/" + sub_folder_name;
+            const std::string out_path = out_dir_ + "/" + sub_folder_name;
             v4r::io::createDirIfNotExist(out_path);
 
             rec_models_per_id_.clear();
 
-            std::vector< std::string > views;
-            v4r::io::getFilesInDirectory(sequence_path, views, "", ".*.pcd", false);
-            std::sort(views.begin(), views.end());
+            std::vector< std::string > views = v4r::io::getFilesInDirectory(sequence_path, ".*.pcd", false);
             for (size_t v_id=0; v_id<views.size(); v_id++)
             {
-                const std::string fn = test_dir_ + "/" + sub_folder_names[sub_folder_id] + "/" + views[ v_id ];
+                const std::string fn = sequence_path + "/" + views[ v_id ];
 
                 LOG(INFO) << "Recognizing file " << fn;
                 pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
@@ -296,9 +291,9 @@ public:
 
                 std::stringstream out_fn;
                 out_fn << out_path << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_time.nfo";
-                ofstream or_file (out_fn.str().c_str());
-                or_file << time;
-                or_file.close();
+                ofstream time_f (out_fn.str().c_str());
+                time_f << time;
+                time_f.close();
 
                 std::vector<ModelTPtr> verified_models = rr_->getVerifiedModels();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
@@ -333,14 +328,11 @@ public:
                     out_fn << out_path << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_"
                            << model_id.substr(0, model_id.length() - 4) << "_" << num_models_per_model_id << ".txt";
 
-                    ofstream or_file;
-                    or_file.open (out_fn.str().c_str());
+                    ofstream or_file (out_fn.str().c_str());
                     for (size_t row=0; row <4; row++)
                     {
                         for(size_t col=0; col<4; col++)
-                        {
                             or_file << tf(row, col) << " ";
-                        }
                     }
                     or_file.close();
                 }

@@ -61,10 +61,10 @@ namespace v4r
         (const Eigen::Vector3f &)> campos_constraints_func_;
 
         void
-        loadInMemorySpecificModel(const std::string &dir, ModelT & model);
+        loadInMemorySpecificModel(ModelT & model);
 
         void
-        loadOrGenerate (const std::string &dir, const std::string &model_path, ModelT & model);
+        loadOrGenerate (const std::string &model_path, ModelT & model);
 
         void assembleModelFromViewsAndPoses(ModelT & model,
                                        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
@@ -141,22 +141,17 @@ namespace v4r
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
-        generate (const std::string & training_dir)
+        generate ()
         {
-          v4r::io::createDirIfNotExist(training_dir);
-
-          //get models in directory
-          std::vector < std::string > files;
-          v4r::io::getFilesInDirectory(path_, files, "", ".*.pcd", false );
-
           models_.clear();
+          std::vector < std::string > files = v4r::io::getFilesInDirectory(path_, ".3D_model.pcd", false );
 
-          for (size_t i = 0; i < files.size (); i++)
+          for (const auto & model_fn : files )
           {
             ModelTPtr m(new ModelT);
 
             std::vector < std::string > strs;
-            boost::split (strs, files[i], boost::is_any_of ("/\\"));
+            boost::split (strs, model_fn, boost::is_any_of ("/\\"));
 
             if (strs.size () == 1)
             {
@@ -182,12 +177,10 @@ namespace v4r
             //load views, poses and self-occlusions for those that exist
             //generate otherwise
 
-            std::stringstream model_path;
-            model_path << path_ << "/" << files[i];
-            std::string path_model = model_path.str ();
-            loadOrGenerate (training_dir, path_model, *m);
+            const std::string path_model = path_ + "/" + model_fn;
+            loadOrGenerate (path_model, *m);
             models_.push_back (m);
-            std::cout << files[i] << std::endl;
+            std::cout << model_fn << std::endl;
           }
 
           std::cout << "Total number of models:" << models_.size () << std::endl;

@@ -51,8 +51,7 @@ public:
         source_->setPath (models_dir_);
         source_->setLoadViews (false);
         source_->setLoadIntoMemory(false);
-        std::string test = "irrelevant";
-        source_->generate (test);
+        source_->generate ();
     }
 
     void recognizeAndVisualize(const std::string & sub_folder_name = "");

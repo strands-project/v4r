@@ -38,7 +38,7 @@
 #include <pcl/sample_consensus/sac_model_plane.h>
 #include <pcl/filters/voxel_grid.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/common/noise_model_based_cloud_integration.h>
+#include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <v4r/registration/MvLMIcp.h>
 #include <v4r/registration/MultiSessionModelling.h>
 #include <v4r/registration/FeatureBasedRegistration.h>
@@ -201,75 +201,57 @@ void MultiSession::object_modelling_parameter_changed(const ObjectModelling& par
  */
 bool MultiSession::savePointClouds(const std::string &_folder, const std::string &_modelname)
 {
-  if (octree_cloud.get()==0 || big_normals.get()==0 || clouds.get()==0 ||
-      octree_cloud->size()==0 || octree_cloud->points.size()!=big_normals->points.size() || clouds->size()!=sessions_cloud_indices_.size())
+  if (octree_cloud.get()==0 || big_normals.get()==0 || clouds.get()==0 || clouds->empty() ||
+      octree_cloud->empty() || octree_cloud->points.size()!=big_normals->points.size() || clouds->size()!=sessions_cloud_indices_.size())
     return false;
 
   char filename[PATH_MAX];
-
-  // create directories
-  boost::filesystem::create_directories(_folder+std::string("/recognition_structure/")+_modelname+std::string(".pcd"));
-  boost::filesystem::create_directories(_folder+std::string("/models"));
+  boost::filesystem::create_directories(_folder + "/models/" + _modelname + "/views" );
 
   // create model cloud with normals and save it
   pcl::PointCloud<pcl::PointXYZRGBNormal> ncloud;
   pcl::concatenateFields(*octree_cloud, *big_normals, ncloud);
-  pcl::io::savePCDFileBinary(_folder+std::string("/models/")+_modelname+std::string(".pcd"), ncloud);
+  pcl::io::savePCDFileBinary(_folder + "/models/" + _modelname + "/3D_model.pcd", ncloud);
 
   // store data
-  unsigned z=0;
-  pcl::PointCloud<IndexPoint> obj_indices_cloud;
   cv::Mat image;
 
-  std::string cloud_names = _folder+std::string("/recognition_structure/")+_modelname+std::string(".pcd/cloud_%08d.pcd");
-  std::string image_names = _folder+std::string("/recognition_structure/")+_modelname+std::string(".pcd/image_%08d.jpg");
-  std::string pose_names = _folder+std::string("/recognition_structure/")+_modelname+std::string(".pcd/pose_%08d.txt");
-  std::string mask_names = _folder+std::string("/recognition_structure/")+_modelname+std::string(".pcd/mask_%08d.png");
-  std::string idx_names = _folder+std::string("/recognition_structure/")+_modelname+std::string(".pcd/object_indices_%08d.pcd");
+  std::string cloud_names = _folder + "/models/" + _modelname + "/views/cloud_%08d.pcd";
+  std::string image_names = _folder + "/models/" + _modelname + "/views/image_%08d.jpg";
+  std::string pose_names = _folder + "/models/" + _modelname + "/views/pose_%08d.txt";
+  std::string mask_names = _folder + "/models/" + _modelname + "/views/mask_%08d.png";
+  std::string idx_names = _folder + "/models/" + _modelname + "/views/object_indices_%08d.pcd";
 
   for (unsigned i=0; i<clouds->size(); i++)
   {
-    std::vector<int> &ids = sessions_cloud_indices_[i];
-
-    if (ids.size()==0) continue;
+    if (sessions_cloud_indices_[i].empty()) continue;
 
     // store indices
-    snprintf(filename,PATH_MAX, idx_names.c_str(), z);
-
-    obj_indices_cloud.points.resize(ids.size());
-    obj_indices_cloud.width = ids.size();
-    obj_indices_cloud.height = 1;
-    obj_indices_cloud.is_dense = true;
-
-    for(unsigned j=0; j < ids.size(); j++)
-      obj_indices_cloud.points[j].idx = ids[j];
-
-    pcl::io::savePCDFileBinary(filename, obj_indices_cloud);
+    snprintf(filename, PATH_MAX, idx_names.c_str(), i);
+    std::ofstream mask_f (filename);
+    for(unsigned j=0; j < sessions_cloud_indices_[i].size(); j++)
+        mask_f << sessions_cloud_indices_[i][j];
+    mask_f.close();
 
     // store cloud
-    snprintf(filename,PATH_MAX, cloud_names.c_str(), z);
+    snprintf(filename, PATH_MAX, cloud_names.c_str(), i);
     pcl::io::savePCDFileBinary(filename, *clouds->at(i).second);
 
     // store image
     v4r::convertImage(*clouds->at(i).second, image);
-    snprintf(filename,PATH_MAX, image_names.c_str(), z);
+    snprintf(filename, PATH_MAX, image_names.c_str(), i);
     cv::imwrite(filename, image);
 
     // store poses
-    snprintf(filename,PATH_MAX, pose_names.c_str(), z);
+    snprintf(filename, PATH_MAX, pose_names.c_str(), i);
     v4r::writePose(filename, std::string(), output_poses[i]);
 
     // store masks
-    snprintf(filename,PATH_MAX, mask_names.c_str(), z);
+    snprintf(filename, PATH_MAX, mask_names.c_str(), i);
     cv::imwrite(filename, masks[i]);
-
-    z++;
   }
 
-  if (z>0)
-    return true;
-
-  return false;
+  return true;
 }
 
 
@@ -476,46 +458,32 @@ void MultiSession::createObjectCloudFiltered()
   if (clouds->size()==0 || masks.size()!=clouds->size())
     return;
 
-  double max_angle = 70.f;
-  double lateral_sigma = 0.0015f;
-  double nm_integration_min_weight_ = 0.8f;
-  bool depth_edges = true;
+  v4r::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+  std::vector< std::vector<std::vector<float> > > pt_properties (sessions_clouds_.size());
 
-  v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
-  std::vector< std::vector<float> > weights(sessions_clouds_.size());
-
-  nm.setLateralSigma(lateral_sigma);
-  nm.setMaxAngle(max_angle);
-  nm.setUseDepthEdges(depth_edges);
-
-  if (sessions_clouds_.size()>0)
+  if (!sessions_clouds_.empty())
   {
     for (unsigned i=0; i<sessions_clouds_.size(); i++)
     {
       nm.setInputCloud(sessions_clouds_[i]);
       nm.setInputNormals(normals[i]);
       nm.compute();
-      nm.getWeights(weights[i]);
+      pt_properties[i] = nm.getPointProperties();
     }
 
     v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nmparam;
     nmparam.octree_resolution_ = om_params.vx_size_object;
-    nmparam.min_weight_ = nm_integration_min_weight_;
-    nmparam.final_resolution_ = om_params.vx_size_object;
     nmparam.min_points_per_voxel_ = 1;
     octree_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+    big_normals.reset(new pcl::PointCloud<pcl::Normal>);
     v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration(nmparam);
     nmIntegration.setInputClouds(sessions_clouds_);
-    nmIntegration.setWeights(weights);
+    nmIntegration.setPointProperties(pt_properties);
     nmIntegration.setTransformations(output_poses);
     nmIntegration.setInputNormals(normals);
     nmIntegration.setIndices( sessions_cloud_indices_ );
     nmIntegration.compute(octree_cloud);
-
-    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> used_clouds;
-    big_normals.reset(new pcl::PointCloud<pcl::Normal>);
     nmIntegration.getOutputNormals(big_normals);
-    nmIntegration.getInputCloudsUsed(used_clouds);
 
     Sensor::AlignedPointXYZRGBVector &ref_oc = *oc_cloud;
     pcl::PointCloud<pcl::PointXYZRGB> &ref_occ = *octree_cloud;

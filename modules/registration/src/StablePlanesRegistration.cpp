@@ -8,7 +8,7 @@
 #include <pcl/registration/icp.h>
 #include <pcl/surface/convex_hull.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/common/noise_model_based_cloud_integration.h>
+#include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/common/angles.h>
 
@@ -228,14 +228,11 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
     {
 
         int clouds_session = session_ranges[i].second - session_ranges[i].first + 1;
-        std::vector<std::vector<float> > weights(clouds_session);
+        std::vector<std::vector<std::vector<float> > > pt_properties (clouds_session);
         std::vector<typename pcl::PointCloud<PointT>::Ptr> clouds(clouds_session);
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses(clouds_session);
         std::vector<std::vector<int> > indices(clouds_session);
         std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals(clouds_session);
-
-        float lateral_sigma = 0.001f;
-        float max_angle = 60.f;
 
         int k=0;
         for(int t=session_ranges[i].first; t <= session_ranges[i].second; t++, k++)
@@ -246,31 +243,25 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
             normals[k] = this->getNormal(t);
             indices[k] = this->getIndices(t);
 
-            v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+            v4r::NguyenNoiseModel<PointT> nm;
             nm.setInputCloud(clouds[k]);
             nm.setInputNormals(normals[k]);
-            nm.setLateralSigma(lateral_sigma);
-            nm.setMaxAngle(max_angle);
-            nm.setUseDepthEdges(true);
             nm.compute();
-            nm.getWeights(weights[k]);
+            pt_properties[k] = nm.getPointProperties();
         }
 
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+        typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
+        pcl::PointCloud<pcl::Normal>::Ptr big_normals(new pcl::PointCloud<pcl::Normal>);
         v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nmparam;
         nmparam.octree_resolution_ = 0.005f;
-        nmparam.min_weight_ = 0.75f;
-        nmparam.final_resolution_ = 0.005f;
         nmparam.min_points_per_voxel_ = 1;
         v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nmparam);
         nmIntegration.setInputClouds(clouds);
-        nmIntegration.setWeights(weights);
         nmIntegration.setTransformations(poses);
         nmIntegration.setInputNormals(normals);
         nmIntegration.setIndices(indices);
+        nmIntegration.setPointProperties(pt_properties);
         nmIntegration.compute(octree_cloud);
-
-        pcl::PointCloud<pcl::Normal>::Ptr big_normals(new pcl::PointCloud<pcl::Normal>);
         nmIntegration.getOutputNormals(big_normals);
 
         partial_models_with_normals_[i].reset (new pcl::PointCloud<pcl::PointXYZRGBNormal>());

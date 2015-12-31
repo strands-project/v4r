@@ -112,7 +112,7 @@ namespace v4r
           using Recognizer<PointT>::hv_algorithm_;
           using Recognizer<PointT>::poseRefinement;
           using Recognizer<PointT>::hypothesisVerification;
-          using Recognizer<PointT>::training_dir_;
+          using Recognizer<PointT>::models_dir_;
 
           class flann_model
           {
@@ -349,7 +349,7 @@ namespace v4r
         reinitializeSourceOnly()
         {
             flann_models_.clear();
-            source_->generate(training_dir_);
+            source_->generate();
         }
 
         void

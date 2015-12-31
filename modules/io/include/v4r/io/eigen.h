@@ -16,8 +16,11 @@ namespace v4r
         V4R_EXPORTS bool
         writeMatrixToFile (const std::string &file, const Eigen::Matrix4f & matrix);
 
-        V4R_EXPORTS bool
-        readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding=0);
+        DEPRECATED(V4R_EXPORTS bool
+        readMatrixFromFile (const std::string &file, Eigen::Matrix4f & matrix, int padding=0));
+
+        V4R_EXPORTS Eigen::Matrix4f
+        readMatrixFromFile (const std::string &file, int padding=0);
 
         template<typename T>
         V4R_EXPORTS

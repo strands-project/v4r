@@ -77,8 +77,7 @@ public:
         source_->setPath (models_dir_);
         source_->setLoadViews (false);
         source_->setLoadIntoMemory(false);
-        std::string test = "irrelevant";
-        source_->generate (test);
+        source_->generate ();
     }
 
     void annotate(const std::string &scenes_dir, const std::string & scene_id = "");

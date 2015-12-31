@@ -21,8 +21,8 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
     for (size_t i = 0; i < models.size (); i++)
     {
         ModelTPtr m = models[i];
-        const std::string out_train_path = training_dir_  + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
-        const std::string in_train_path = training_dir_  + "/" + m->class_ + "/" + m->id_ + "/";
+        const std::string out_train_path = models_dir_  + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
+        const std::string in_train_path = models_dir_  + "/" + m->class_ + "/" + m->id_ + "/views/";
 
         for(size_t v_id=0; v_id< m->view_filenames_.size(); v_id++)
         {
@@ -96,7 +96,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
 
     std::string filename;
     convertToFLANN<flann_model> (flann_models_, flann_data_);
-    filename = training_dir_ + "/" + descr_name_ + "_flann.idx";
+    filename = models_dir_ + "/" + descr_name_ + "_flann.idx";
 
     if(io::existsFile(filename)) // Loading flann index from frile
     {
@@ -146,14 +146,14 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
     if (force_retrain)
     {
         for (size_t i = 0; i < models.size (); i++)
-            source_->removeDescDirectory (*models[i], training_dir_, descr_name_);
+            source_->removeDescDirectory (*models[i], models_dir_, descr_name_);
     }
 
     for (size_t i = 0; i < models.size (); i++)
     {
         ModelTPtr &m = models[i];
         std::cout << m->class_ << " " << m->id_ << std::endl;
-        const std::string dir = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
+        const std::string dir = models_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
 
         if (!io::existsFolder(dir))
         {
@@ -161,7 +161,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
             if(!source_->getLoadIntoMemory())
             {
                 try{
-                    source_->loadInMemorySpecificModel(training_dir_, *m);
+                    source_->loadInMemorySpecificModel(*m);
                 }
                 catch (std::runtime_error &e)
                 {
@@ -217,7 +217,6 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                     std::string keypoint_basename (m->view_filenames_[v]);
                     boost::replace_last(keypoint_basename, "cloud_", "/keypoints_");
                     pcl::io::savePCDFileBinary (dir + keypoint_basename, *object_keypoints);
-
 
                     std::string kp_normals_basename (m->view_filenames_[v]);
                     boost::replace_last(kp_normals_basename, "cloud_", "/keypoint_normals_");
@@ -401,7 +400,7 @@ void
 LocalRecognitionPipeline<Distance, PointT, FeatureT>::getView (const ModelT & model, const std::string &view_id, typename pcl::PointCloud<PointT>::Ptr &view)
 {
     view.reset (new pcl::PointCloud<PointT>);
-    pcl::io::loadPCDFile (training_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + descr_name_ + "/" + view_id, *view);
+    pcl::io::loadPCDFile (models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + descr_name_ + "/" + view_id, *view);
 }
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
@@ -420,7 +419,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT 
     boost::replace_last(pose_basename, "cloud_", "pose_");
     boost::replace_last(pose_basename, ".pcd", ".txt");
     Eigen::Matrix4f pose_matrix;
-    io::readMatrixFromFile( training_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename, pose_matrix);
+    io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename, pose_matrix);
 
     pcl::Normal n;
     n.getNormalVector3fMap () = pose_matrix.block<3,3>(0,0) * normals_cloud.points[ keypoint_id ].getNormalVector3fMap ();
@@ -438,13 +437,13 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const ModelT 
     std::string keypoint_basename (view_id);
     boost::replace_last(keypoint_basename, "cloud_", descr_name_ + "/" + "keypoints_");
     pcl::PointCloud<PointT> keypoint_cloud;
-    pcl::io::loadPCDFile (training_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + keypoint_basename, keypoint_cloud);
+    pcl::io::loadPCDFile (models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + keypoint_basename, keypoint_cloud);
 
     std::string pose_basename (view_id);
     boost::replace_last(pose_basename, "cloud_", "pose_");
     boost::replace_last(pose_basename, ".pcd", ".txt");
     Eigen::Matrix4f pose_matrix;
-    io::readMatrixFromFile( training_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename, pose_matrix);
+    io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename, pose_matrix);
 
     PointT kp;
     kp.getVector4fMap () = pose_matrix * keypoint_cloud[ keypoint_id ].getVector4fMap ();

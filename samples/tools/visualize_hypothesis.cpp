@@ -35,8 +35,7 @@ int main (int argc, char ** argv)
     source->setPath (path_m);
     source->setLoadViews (false);
     source->setLoadIntoMemory(false);
-    std::string test = "irrelevant";
-    source->generate (test);
+    source->generate ();
     source->createVoxelGridAndDistanceTransform (0.005f);
 
     pcl::visualization::PCLVisualizer vis;

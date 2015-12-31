@@ -81,24 +81,6 @@ namespace v4r
         id = name.substr (0, name.length () - 4);
       }
 
-      void
-      createClassAndModelDirectories (const std::string & training_dir, const std::string & class_str, const std::string & id_str)
-      {
-        std::vector < std::string > strs;
-        boost::split (strs, class_str, boost::is_any_of ("/\\"));
-
-        std::stringstream ss;
-        ss << training_dir << "/";
-        for (size_t i = 0; i < strs.size (); i++)
-        {
-          ss << strs[i] << "/";
-          io::createDirIfNotExist(ss.str ());
-        }
-
-        ss << id_str;
-        io::createDirIfNotExist(ss.str ());
-      }
-
     public:
 
       Source(float resolution = 0.001f) {
@@ -142,18 +124,16 @@ namespace v4r
       }
 
       virtual void
-      loadInMemorySpecificModelAndView(const std::string & dir, ModelT & model, int view_id)
+      loadInMemorySpecificModelAndView(ModelT & model, int view_id)
       {
-        (void)dir;
         (void)model;
         (void)view_id;
         PCL_ERROR("This function is not implemented in this Source class\n");
       }
 
       virtual void
-      loadInMemorySpecificModel(const std::string & dir, ModelT & model)
+      loadInMemorySpecificModel(ModelT & model)
       {
-        (void)dir;
         (void)model;
         PCL_ERROR("This function is not implemented in this Source class\n");
       }
@@ -165,7 +145,8 @@ namespace v4r
       }
 
       void
-      setRadiusNormals(float r) {
+      setRadiusNormals(float r)
+      {
         radius_normals_ = r;
         compute_normals_ = true;
       }
@@ -191,7 +172,7 @@ namespace v4r
        * \brief Generate model representation of the training set, generating views if needed
        */
       virtual void
-      generate (const std::string & training_dir = std::string())=0;
+      generate ()=0;
 
       /**
        * \brief Get the generated model
@@ -217,43 +198,27 @@ namespace v4r
       }
 
       bool
-      isModelAlreadyTrained (const ModelT m, const std::string & base_dir, const std::string & descr_name) const
+      isModelAlreadyTrained (const ModelT m, const std::string & descr_name) const
       {
-        std::stringstream dir;
-        dir << base_dir << "/" << m.class_ << "/" << m.id_ << "/" << descr_name;
-        bf::path desc_dir = dir.str ();
-        if (bf::exists (desc_dir))
-        {
-          std::cout << dir.str () << " exists..." << std::endl;
-          return true;
-        }
-
-        std::cout << dir.str () << " does not exist..." << std::endl;
-        return false;
+        return v4r::io::existsFolder( path_ + "/" + m.class_ + "/" + m.id_ + "/" + descr_name );
       }
 
       std::string
-      getModelDescriptorDir (const ModelT m, const std::string & base_dir, const std::string & descr_name)
+      getModelDescriptorDir (const ModelT m, const std::string & descr_name)
       {
-        std::stringstream dir;
-        dir << base_dir << "/" << m.class_ << "/" << m.id_ << "/" << descr_name;
-        return dir.str ();
+        return path_ + "/" + m.class_ + "/" + m.id_ + "/" + descr_name;
       }
 
       std::string
-      getModelDirectory (const ModelT m, const std::string & base_dir)
+      getModelDirectory (const ModelT m)
       {
-        std::stringstream dir;
-        dir << base_dir << "/" << m.class_ << "/" << m.id_;
-        return dir.str ();
+        return path_ + "/" + m.class_ + "/" + m.id_;
       }
 
       std::string
-      getModelClassDirectory (const ModelT m, const std::string & base_dir)
+      getModelClassDirectory (const ModelT m)
       {
-        std::stringstream dir;
-        dir << base_dir << "/" << m.class_;
-        return dir.str ();
+        return path_ + "/" + m.class_;
       }
 
       void
@@ -263,7 +228,7 @@ namespace v4r
 
         bf::path desc_dir = dir;
         if (bf::exists (desc_dir))
-        bf::remove_all (desc_dir);
+            bf::remove_all (desc_dir);
       }
 
       void
@@ -281,7 +246,7 @@ namespace v4r
       createVoxelGridAndDistanceTransform(float resolution)
       {
         for (size_t i = 0; i < models_.size (); i++)
-          models_[i]->createVoxelGridAndDistanceTransform (resolution);
+            models_[i]->createVoxelGridAndDistanceTransform (resolution);
       }
     };
 }

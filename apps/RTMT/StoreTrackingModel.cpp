@@ -269,7 +269,7 @@ void StoreTrackingModel::saveTrackingModel()
 
   boost::filesystem::create_directories(folder);
 
-  std::string model_name = folder+"/"+objectname+".ao";
+  std::string model_name = folder + "/" + objectname + "/tracking_model.ao";
 
   v4r::io::write(model_name, model);
 

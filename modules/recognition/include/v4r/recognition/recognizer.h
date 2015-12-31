@@ -108,7 +108,7 @@ namespace v4r
 
         bool requires_segmentation_;
 
-        std::string training_dir_; /// \brief Directory containing views of the object
+        std::string models_dir_; /// \brief Directory containing the object models
 
         /** \brief Hypotheses verification algorithm */
         typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > hv_algorithm_;
@@ -286,9 +286,9 @@ namespace v4r
          * @brief Filesystem dir containing training files
          */
         void
-        setTrainingDir (const std::string & dir)
+        setModelsDir (const std::string & dir)
         {
-          training_dir_ = dir;
+          models_dir_ = dir;
         }
 
 

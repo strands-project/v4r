@@ -92,7 +92,6 @@ public:
         bool do_ourcvfh;
         bool use_go3d;
         float resolution = 0.005f;
-        std::string training_dir;
 
         // Parameter classes
         v4r::GO3D<PointT, PointT>::Parameter paramGO3D;
@@ -102,6 +101,9 @@ public:
         v4r::MultiRecognitionPipeline<PointT>::Parameter paramMultiPipeRec;
         v4r::SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >::Parameter paramLocalEstimator;
         v4r::MultiviewRecognizer<PointT>::Parameter paramMultiView;
+        v4r::NguyenNoiseModel<PointT>::Parameter nm_param;
+        v4r::NMBasedCloudIntegration<PointT>::Parameter nmInt_param;
+        nmInt_param.octree_resolution_ = 0.001f;
 
         paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;
         paramLocalRecSift.save_hypotheses_ = paramLocalRecShot.save_hypotheses_ = true;
@@ -112,9 +114,8 @@ public:
         po::options_description desc("Multiview Object Instance Recognizer\n======================================**Reference(s): Faeulhammer et al, ICRA / MVA 2015\n **Allowed options");
         desc.add_options()
                 ("help,h", "produce help message")
-                ("models_dir,m", po::value<std::string>(&models_dir_)->required(), "directory containing the model .pcd files")
-                ("training_dir", po::value<std::string>(&training_dir)->required(), "directory containing the training data (for each model there should be a folder with the same name as the model and inside this folder there must be training views of the model with pose and segmented indices)")
-                ("test_dir", po::value<std::string>(&test_dir_)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
+                ("models_dir,m", po::value<std::string>(&models_dir_)->required(), "directory containing the object models")
+                ("test_dir,t", po::value<std::string>(&test_dir_)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
                 ("out_dir,o", po::value<std::string>(&out_dir_)->default_value("/tmp/mv_recognition_out/"), "Output directory where recognition results will be stored.")
                 ("visualize,v", po::value<bool>(&visualize_)->default_value(true), "If true, turns visualization on")
                 ("do_sift", po::value<bool>(&do_sift)->default_value(true), "if true, generates hypotheses using SIFT (visual texture information)")
@@ -167,6 +168,8 @@ public:
                 ("visualize_go3d_cues", po::value<bool>(&paramGO3D.visualize_cues_)->default_value(paramGO3D.visualize_cues_), "If true, visualizes cues computated at the go3d verification stage such as inlier, outlier points. Mainly used for debugging.")
                 ("visualize_go_cues_", po::value<bool>(&paramGO3D.visualize_go_cues_)->default_value(paramGO3D.visualize_go_cues_), "If true, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
                 ("normal_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "chosen normal computation method of the V4R library")
+                ("octree_radius", po::value<float>(&nmInt_param.octree_resolution_)->default_value(nmInt_param.octree_resolution_, boost::str(boost::format("%.2e") % nmInt_param.octree_resolution_)), "resolution of the octree in the noise model based cloud registration used for hypothesis verification")
+                ("edge_radius_px", po::value<float>(&nmInt_param.edge_radius_px_)->default_value(nmInt_param.edge_radius_px_, boost::str(boost::format("%.2e") % nmInt_param.edge_radius_px_)), "points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed in the noise model based cloud registration used for hypothesis verification")
        ;
 
         po::variables_map vm;
@@ -191,9 +194,6 @@ public:
                 paramMultiPipeRec.normal_computation_method_ = paramLocalEstimator.normal_computation_method_ =
                 paramMultiView.normal_computation_method_ = normal_computation_method;
 
-
-//        pcl::console::parse_argument (argc, argv,  "-hv_requires_normals", r_.hv_params_.requires_normals_);
-
         rr_.reset(new v4r::MultiRecognitionPipeline<PointT>(paramMultiPipeRec));
 
         boost::shared_ptr < v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > gcg_alg (
@@ -205,7 +205,6 @@ public:
             boost::shared_ptr < v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > src
                     (new v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>(resolution));
             src->setPath (models_dir_);
-            src->setModelStructureDir (training_dir);
             src->generate ();
 //            src->createVoxelGridAndDistanceTransform(resolution);
             cast_source = boost::static_pointer_cast<v4r::RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (src);
@@ -235,12 +234,11 @@ public:
             boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > sift_r;
             sift_r.reset (new v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (paramLocalRecSift));
             sift_r->setDataSource (cast_source);
-            sift_r->setTrainingDir (training_dir);
+            sift_r->setModelsDir (models_dir_);
             sift_r->setFeatureEstimator (cast_estimator);
 
             boost::shared_ptr < v4r::Recognizer<PointT> > cast_recog;
             cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > (sift_r);
-            LOG(INFO) << "Feature Type: " << cast_recog->getFeatureType();
             rr_->addRecognizer (cast_recog);
         }
         if (do_shot)
@@ -261,14 +259,13 @@ public:
             boost::shared_ptr<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > local;
             local.reset(new v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (paramLocalRecShot));
             local->setDataSource (cast_source);
-            local->setTrainingDir(training_dir);
+            local->setModelsDir(models_dir_);
             local->setFeatureEstimator (cast_estimator);
 
             uniform_kp_extractor->setMaxDistance( paramMultiView.chop_z_ ); // for training we do not want this restriction
 
             boost::shared_ptr<v4r::Recognizer<PointT> > cast_recog;
             cast_recog = boost::static_pointer_cast<v4r::LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > (local);
-            std::cout << "Feature Type: " << cast_recog->getFeatureType() << std::endl;
             rr_->addRecognizer(cast_recog);
         }
 
@@ -290,10 +287,12 @@ public:
         }
 
         mv_r_.reset(new v4r::MultiviewRecognizer<PointT>(paramMultiView));
+        mv_r_->setNoiseModelIntegrationParameters(nmInt_param);
+        mv_r_->setNoiseModelParameters(nm_param);
         mv_r_->setSingleViewRecognizer(rr_);
         mv_r_->setCGAlgorithm( gcg_alg );
         mv_r_->setHVAlgorithm( cast_hv_pointer );
-        mv_r_->set_sift(sift_);
+        mv_r_->setSift(sift_);
 
         v4r::io::createDirIfNotExist(out_dir_);
 
@@ -305,16 +304,16 @@ public:
           param_file << "--" << it.first << " ";
 
           auto& value = it.second.value();
-          if (auto v = boost::any_cast<double>(&value))
-            param_file << std::setprecision(3) << *v;
-          else if (auto v = boost::any_cast<std::string>(&value))
-            param_file << *v;
-          else if (auto v = boost::any_cast<bool>(&value))
-            param_file << *v;
-          else if (auto v = boost::any_cast<int>(&value))
-            param_file << *v;
-          else if (auto v = boost::any_cast<size_t>(&value))
-            param_file << *v;
+          if (auto v_double = boost::any_cast<double>(&value))
+            param_file << std::setprecision(3) << *v_double;
+          else if (auto v_string = boost::any_cast<std::string>(&value))
+            param_file << *v_string;
+          else if (auto v_bool = boost::any_cast<bool>(&value))
+            param_file << *v_bool;
+          else if (auto v_int = boost::any_cast<int>(&value))
+            param_file << *v_int;
+          else if (auto v_size_t = boost::any_cast<size_t>(&value))
+            param_file << *v_size_t;
           else
             param_file << "error";
 
@@ -371,9 +370,9 @@ public:
                 double time = watch.getTimeSeconds();
                 std::stringstream out_fn;
                 out_fn << out_path << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_time.nfo";
-                ofstream or_file (out_fn.str().c_str());
-                or_file << time;
-                or_file.close();
+                ofstream time_f (out_fn.str().c_str());
+                time_f << time;
+                time_f.close();
 
                 std::vector<ModelTPtr> verified_models = mv_r_->getVerifiedModels();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified = mv_r_->getVerifiedTransforms();
@@ -410,9 +409,7 @@ public:
                     out_fn << out_path << "/" << views[v_id].substr(0, views[v_id].length()-4) << "_"
                            << model_id.substr(0, model_id.length() - 4) << "_" << num_models_per_model_id << ".txt";
 
-                    ofstream or_file;
-                    or_file.open (out_fn.str().c_str());
-
+                    ofstream or_file (out_fn.str().c_str());
                     results_3d << models_dir_ + "/" + model_id << " ";
                     for (size_t row=0; row <4; row++)
                     {
@@ -427,7 +424,7 @@ public:
                 }
                 results_3d.close();
             }
-            mv_r_->clear(); // delete all stored information from last sequences
+            mv_r_->cleanUp(); // delete all stored information from last sequences
         }
         return true;
     }

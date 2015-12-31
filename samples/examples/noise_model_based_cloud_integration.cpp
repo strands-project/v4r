@@ -72,14 +72,14 @@ int main(int argc, const char * argv[]) {
     }
 
 
-    std::vector< std::string> sub_folder_names  = v4r::io::getFoldersInDirectory( test_dir);
-    if( sub_folder_names.empty() )
+    std::vector< std::string> folder_names  = v4r::io::getFoldersInDirectory( test_dir);
+    if( folder_names.empty() )
     {
         std::cerr << "No subfolders in directory " << test_dir << ". " << std::endl;
-        sub_folder_names.push_back("");
+        folder_names.push_back("");
     }
 
-    std::sort(sub_folder_names.begin(), sub_folder_names.end());
+    std::sort(folder_names.begin(), folder_names.end());
 
 
     int vp1, vp2;
@@ -91,11 +91,9 @@ int main(int argc, const char * argv[]) {
         vis->createViewPort(0.5,0,1,1,vp2);
     }
 
-    for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
+    for (size_t sub_folder_id=0; sub_folder_id < folder_names.size(); sub_folder_id++)
     {
-        const std::string sequence_path = test_dir + "/" + sub_folder_names[ sub_folder_id ];
-
-        std::vector< std::string > views = v4r::io::getFilesInDirectory(sequence_path, ".*.pcd", false);
+        std::vector< std::string > views = v4r::io::getFilesInDirectory(folder_names[ sub_folder_id ], ".*.pcd", false);
         std::sort(views.begin(), views.end());
 
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr big_cloud_unfiltered (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -159,7 +157,7 @@ int main(int argc, const char * argv[]) {
 
         if(vm.count("out_dir"))
         {
-            const std::string out_path = out_dir + "/" + sub_folder_names[sub_folder_id];
+            const std::string out_path = out_dir + "/" + folder_names[sub_folder_id];
             v4r::io::createDirIfNotExist(out_path);
             pcl::io::savePCDFileBinary(out_path + "/registered_cloud_filtered.pcd", *octree_cloud);
             pcl::io::savePCDFileBinary(out_path + "/registered_cloud_unfiltered.pcd", *big_cloud_unfiltered);

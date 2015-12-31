@@ -101,17 +101,12 @@ namespace v4r
         }
 
         void
-        loadOrGenerate (const std::string & dir, const std::string & model_path, ModelT & model);
+        loadOrGenerate (const std::string & model_path, ModelT & model);
 
         void
-        generate (const std::string & training_dir = std::string())
+        generate ()
         {
-            v4r::io::createDirIfNotExist(training_dir);
-
-            //get models in directory
-            std::vector < std::string > files;
-            v4r::io::getFilesInDirectory(path_, files, "", ".*.ply", true);
-
+            std::vector < std::string > files = v4r::io::getFilesInDirectory(path_, ".*.ply", true);
             models_.clear();
 
             for (size_t i = 0; i < files.size (); i++)
@@ -123,10 +118,8 @@ namespace v4r
                 //load views, poses and self-occlusions for those that exist
                 //generate otherwise
                 std::cout << files[i] << std::endl;
-                std::stringstream model_path;
-                model_path << path_ << "/" << files[i];
-                std::string path_model = model_path.str ();
-                loadOrGenerate (training_dir, path_model, *m);
+                std::string path_model = path_ + "/" + files[i];
+                loadOrGenerate (path_model, *m);
 
                 models_.push_back (m);
             }
@@ -134,7 +127,7 @@ namespace v4r
         }
 
         void
-        loadInMemorySpecificModel(const std::string & dir, ModelT & model);
+        loadInMemorySpecificModel(ModelT & model);
       };
 }
 

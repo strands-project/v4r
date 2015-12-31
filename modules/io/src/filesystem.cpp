@@ -3,7 +3,9 @@
 #include <iostream>
 
 #include <boost/algorithm/string.hpp>
+#define BOOST_NO_CXX11_SCOPED_ENUMS
 #include <boost/filesystem.hpp>
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
 #include <boost/regex.hpp>
 
 namespace bf = boost::filesystem;
@@ -35,6 +37,23 @@ getFoldersInDirectory (const std::string & dir,
     }
     std::sort(relative_paths.begin(), relative_paths.end());
     return relative_paths.size();
+}
+
+std::vector<std::string>
+getFoldersInDirectory (const std::string & dir)
+{
+    std::vector<std::string> relative_paths;
+
+    bf::path dir_bf = dir;
+    bf::directory_iterator end_itr;
+    for (bf::directory_iterator itr (dir_bf); itr != end_itr; ++itr)
+    {
+        if (bf::is_directory (*itr))
+            relative_paths.push_back (dir + itr->path ().filename ().string());
+    }
+    std::sort(relative_paths.begin(), relative_paths.end());
+
+    return relative_paths;
 }
 
 int
@@ -98,6 +117,49 @@ getFilesInDirectory (const std::string &dir,
     return relative_paths.size();
 }
 
+
+std::vector<std::string>
+getFilesInDirectory (const std::string &dir,
+                     const std::string &regex_pattern,
+                     bool recursive)
+{
+    std::vector<std::string> relative_paths;
+
+    if ( !v4r::io::existsFolder( dir ) ) {
+        std::cerr << dir << " is not a directory!" << std::endl;
+    }
+    else
+    {
+        bf::path dir_bf = dir;
+        bf::directory_iterator end_itr;
+        for (bf::directory_iterator itr (dir_bf); itr != end_itr; ++itr)
+        {
+            const std::string file = itr->path().filename().string ();
+
+            //check if its a directory, then get files in it
+            if (bf::is_directory (*itr))
+            {
+                if (recursive)
+                {
+                    std::vector<std::string> files_in_subfolder  = getFilesInDirectory ( dir + "/" + file, regex_pattern, recursive);
+                    for (const auto &sub_file : files_in_subfolder)
+                        relative_paths.push_back( dir + "/" + sub_file );
+                }
+            }
+            else
+            {
+                //check for correct file pattern (extension,..) and then add, otherwise ignore..
+                boost::smatch what;
+                const boost::regex file_filter( regex_pattern );
+                if( boost::regex_match( file, what, file_filter ) )
+                    relative_paths.push_back ( dir + "/" + file);
+            }
+        }
+        std::sort(relative_paths.begin(), relative_paths.end());
+    }
+    return relative_paths;
+}
+
 bool
 existsFile ( const std::string &rFile )
 {
@@ -117,13 +179,10 @@ existsFolder ( const std::string &rFolder )
 }
 
 void
-createDirIfNotExist(const std::string & dirs)
+createDirIfNotExist(const std::string & dir)
 {
-    boost::filesystem::path dir = dirs;
-    if(!boost::filesystem::exists(dir))
-    {
-        boost::filesystem::create_directories(dir);
-    }
+    if(!bf::exists(dir))
+        bf::create_directories(dir);
 }
 
 
@@ -145,55 +204,53 @@ createDirForFileIfNotExist(const std::string & filename)
 bool
 copyDir(const std::string &src, const std::string &dst)
 {
-    const boost::filesystem::path source(src);
-    const boost::filesystem::path destination(dst);
-
-    namespace fs = boost::filesystem;
+    const bf::path source(src);
+    const bf::path destination(dst);
 
     try
     {
         // Check whether the function call is valid
-        if( !fs::exists(source) || !fs::is_directory(source) )
+        if( !bf::exists(source) || !bf::is_directory(source) )
         {
             std::cerr << "Source directory " << source.string() << " does not exist or is not a directory." << std::endl;
             return false;
         }
 
-        if( fs::exists(destination) )
+        if( bf::exists(destination) )
         {
             std::cerr << "Destination directory " << destination.string() << " already exists." << std::endl;
             return false;
         }
 
         // Create the destination directory
-        if( !fs::create_directory(destination) )
+        if( !bf::create_directory(destination) )
         {
             std::cerr << "Unable to create destination directory"<< destination.string() << std::endl;
             return false;
         }
     }
-    catch(fs::filesystem_error const & e)
+    catch(bf::filesystem_error const & e)
     {
         std::cerr << e.what() << '\n';
         return false;
     }
 
     // Iterate through the source directory
-    for( fs::directory_iterator file(source); file != fs::directory_iterator(); ++file )
+    for( bf::directory_iterator file(source); file != bf::directory_iterator(); ++file )
     {
         try
         {
-            fs::path current(file->path());
-            if(fs::is_directory(current))
+            bf::path current(file->path());
+            if(bf::is_directory(current))
             {
                 // Found directory: Recursion
                 if( !copyDir( current.string(), dst + "/" + current.filename().string() ) )
                     return false;
             }
             else // Found file: Copy
-                fs::copy_file( current.string(), dst + "/" + current.filename().string() );
+                bf::copy_file( current.string(), dst + "/" + current.filename().string() );
         }
-        catch(fs::filesystem_error const & e)
+        catch(bf::filesystem_error const & e)
         {
             std::cerr << e.what() << std::endl;
         }

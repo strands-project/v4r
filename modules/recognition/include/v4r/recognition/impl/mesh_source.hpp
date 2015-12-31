@@ -20,9 +20,9 @@ MeshSource<PointT>::renderCloud (const DepthmapRenderer &renderer, float &visibl
 
 template<typename PointT>
 void
-MeshSource<PointT>::loadOrGenerate (const std::string & dir, const std::string & model_path, ModelT & model)
+MeshSource<PointT>::loadOrGenerate (const std::string & model_path, ModelT & model)
 {
-    const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
+    const std::string pathmodel = path_ + "/" + model.class_ + "/" + model.id_;
 
     model.views_.clear();
     model.poses_.clear();
@@ -38,8 +38,8 @@ MeshSource<PointT>::loadOrGenerate (const std::string & dir, const std::string &
     if (v4r::io::existsFolder(pathmodel))
     {
         if(load_into_memory_) {
-            v4r::io::getFilesInDirectory(pathmodel, model.view_filenames_, "", ".*view_.*.pcd", false);
-            loadInMemorySpecificModel(dir, model);
+            model.view_filenames_ = v4r::io::getFilesInDirectory(pathmodel, ".*view_.*.pcd", false);
+            loadInMemorySpecificModel(model);
         }
     }
     else
@@ -92,65 +92,54 @@ MeshSource<PointT>::loadOrGenerate (const std::string & dir, const std::string &
             model.self_occlusions_.push_back (0); // NOT IMPLEMENTED
         }
 
-        std::stringstream direc; direc << dir << "/" << model.class_ << "/" << model.id_;
-        this->createClassAndModelDirectories (dir, model.class_, model.id_);
+        const std::string direc = path_ + "/" + model.class_ + "/" + model.id_ + "/views/";
+        v4r::io::createDirIfNotExist(direc);
 
         for (size_t i = 0; i < model.views_.size (); i++)
         {
             //save generated model for future use
             std::stringstream path_view;
-            path_view << direc.str () << "/view_" << i << ".pcd";
+            path_view << direc << "/view_" << i << ".pcd";
             pcl::io::savePCDFileBinary (path_view.str (), *(model.views_[i]));
 
             std::stringstream path_pose;
-            path_pose << direc.str () << "/pose_" << i << ".txt";
-
+            path_pose << direc << "/pose_" << i << ".txt";
             v4r::io::writeMatrixToFile( path_pose.str (), model.poses_[i]);
 
             std::stringstream path_entropy;
-            path_entropy << direc.str () << "/entropy_" << i << ".txt";
+            path_entropy << direc << "/entropy_" << i << ".txt";
             v4r::io::writeFloatToFile (path_entropy.str (), model.self_occlusions_[i]);
         }
 
-        loadOrGenerate (dir, model_path, model);
+        loadOrGenerate ( model_path, model);
     }
 }
 
 template<typename PointT>
 void
-MeshSource<PointT>::loadInMemorySpecificModel(const std::string & dir, ModelT & model)
+MeshSource<PointT>::loadInMemorySpecificModel(ModelT & model)
 {
-    const std::string pathmodel = dir + "/" + model.class_ + "/" + model.id_;
+    const std::string pathmodel = path_ + "/" + model.class_ + "/" + model.id_;
+
+    model.poses_.resize( model.view_filenames_.size() );
+    model.views_.resize( model.view_filenames_.size() );
+    model.self_occlusions_.resize( model.view_filenames_.size(), 0);
 
     for (size_t i = 0; i < model.view_filenames_.size (); i++)
     {
         const std::string view_file = pathmodel + "/" + model.view_filenames_[i];
-        typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT> ());
-        pcl::io::loadPCDFile (view_file, *cloud);
+        model.views_[i].reset(new pcl::PointCloud<PointT> ());
+        pcl::io::loadPCDFile (view_file, *model.views_[i]);
 
-        model.views_.push_back (cloud);
+        std::string pose_fn (view_file);
+        boost::replace_last (pose_fn, "view", "pose");
+        boost::replace_last (pose_fn, ".pcd", ".txt");
+        model.poses_[i] = v4r::io::readMatrixFromFile(pose_fn);
 
-        std::string file_replaced1 (model.view_filenames_[i]);
-        boost::replace_all (file_replaced1, "view", "pose");
-        boost::replace_all (file_replaced1, ".pcd", ".txt");
-
-        std::string file_replaced2 (model.view_filenames_[i]);
-        boost::replace_all (file_replaced2, "view", "entropy");
-        boost::replace_all (file_replaced2, ".pcd", ".txt");
-
-        //read pose as well
-        const std::string pose_file = pathmodel + "/" + file_replaced1;
-
-        Eigen::Matrix4f pose;
-        v4r::io::readMatrixFromFile(pose_file, pose);
-
-        model.poses_.push_back (pose);
-
-        //read entropy as well
-        const std::string entropy_file = pathmodel + "/" + file_replaced2;
-        float entropy = 0;
-        v4r::io::readFloatFromFile (entropy_file, entropy);
-        model.self_occlusions_.push_back (entropy);
+        std::string entropy_fn (view_file);
+        boost::replace_last (entropy_fn, "view", "entropy");
+        boost::replace_last (entropy_fn, ".pcd", ".txt");
+        v4r::io::readFloatFromFile (entropy_fn, model.self_occlusions_[i]);
     }
 }
 
