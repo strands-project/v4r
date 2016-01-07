@@ -10,7 +10,7 @@
 
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 #include <pcl/registration/transformation_estimation_svd.h>
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/normals.h>
 
 namespace v4r
 {

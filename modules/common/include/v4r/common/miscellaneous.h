@@ -32,20 +32,14 @@
 #define V4R_COMMON_MISCELLANEOUS_H_
 
 #include <pcl/common/common.h>
-#include <pcl/features/integral_image_normal.h>
-#include <pcl/features/normal_3d_omp.h>
+#include <pcl/kdtree/flann.h>
+#include <pcl/octree/octree.h>
 #include <pcl/octree/octree_pointcloud_pointvector.h>
 #include <pcl/octree/impl/octree_iterator.hpp>
-
 #include <v4r/core/macros.h>
 
 namespace v4r
 {
-
-template<typename PointT> V4R_EXPORTS
-void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
-                    pcl::PointCloud<pcl::Normal>::Ptr &normals,
-                    int method);
 
 inline void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
                              pcl::PointCloud<pcl::Normal> & normals_aligned,

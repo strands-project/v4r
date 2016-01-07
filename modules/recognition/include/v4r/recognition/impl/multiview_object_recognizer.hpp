@@ -38,7 +38,7 @@
 #include <pcl/search/kdtree.h>
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/normals.h>
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/recognition/hv_go_3D.h>
 #include <v4r/registration/fast_icp_with_gc.h>

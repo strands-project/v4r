@@ -114,9 +114,8 @@ namespace v4r
           }
           else if(ext_.compare("ply") == 0)
           {
-
               typename pcl::PointCloud<PointInT>::Ptr model_cloud(new pcl::PointCloud<PointInT>());
-              uniform_sampling (model_path, 100000, *model_cloud, model_scale_);
+              uniform_sampling<PointInT> (model_path, 100000, *model_cloud, model_scale_);
 
               float resolution = 0.001f;
               pcl::VoxelGrid<PointInT> grid_;

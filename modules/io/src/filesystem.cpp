@@ -49,7 +49,7 @@ getFoldersInDirectory (const std::string & dir)
     for (bf::directory_iterator itr (dir_bf); itr != end_itr; ++itr)
     {
         if (bf::is_directory (*itr))
-            relative_paths.push_back (dir + itr->path ().filename ().string());
+            relative_paths.push_back (itr->path ().filename ().string());
     }
     std::sort(relative_paths.begin(), relative_paths.end());
 
@@ -130,9 +130,9 @@ getFilesInDirectory (const std::string &dir,
     }
     else
     {
-        bf::path dir_bf = dir;
+        bf::path bf_dir  = dir;
         bf::directory_iterator end_itr;
-        for (bf::directory_iterator itr (dir_bf); itr != end_itr; ++itr)
+        for (bf::directory_iterator itr ( bf_dir ); itr != end_itr; ++itr)
         {
             const std::string file = itr->path().filename().string ();
 
@@ -143,7 +143,7 @@ getFilesInDirectory (const std::string &dir,
                 {
                     std::vector<std::string> files_in_subfolder  = getFilesInDirectory ( dir + "/" + file, regex_pattern, recursive);
                     for (const auto &sub_file : files_in_subfolder)
-                        relative_paths.push_back( dir + "/" + sub_file );
+                        relative_paths.push_back( file + "/" + sub_file );
                 }
             }
             else
@@ -152,7 +152,7 @@ getFilesInDirectory (const std::string &dir,
                 boost::smatch what;
                 const boost::regex file_filter( regex_pattern );
                 if( boost::regex_match( file, what, file_filter ) )
-                    relative_paths.push_back ( dir + "/" + file);
+                    relative_paths.push_back ( file);
             }
         }
         std::sort(relative_paths.begin(), relative_paths.end());

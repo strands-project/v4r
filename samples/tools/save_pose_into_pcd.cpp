@@ -103,11 +103,10 @@ int main (int argc, char ** argv)
                 std::cout << "Transform to world coordinate system: " << std::endl;
                 Eigen::Matrix4f global_trans;
 #ifdef USE_WILLOW_DATASET
-                Eigen::Matrix4f global_trans_inv;
-                v4r::io::readMatrixFromFile(full_pose_path, global_trans_inv, 1);
+                Eigen::Matrix4f global_trans_inv =  v4r::io::readMatrixFromFile(full_pose_path, 1);
                 global_trans = global_trans_inv.inverse();
 #else
-                v4r::io::readMatrixFromFile(full_pose_path, global_trans);
+                global_trans = v4r::io::readMatrixFromFile(full_pose_path);
 #endif
                 std::cout << global_trans << std::endl << std::endl;
                 v4r::setCloudPose(global_trans, *cloud);

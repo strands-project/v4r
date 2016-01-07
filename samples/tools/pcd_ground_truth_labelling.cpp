@@ -149,8 +149,7 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                     source_->getModelById(model_name, pModel);
 
                     std::string gt_full_file_path = annotations_dir + "/" + gt_fn;
-                    Eigen::Matrix4f transform;
-                    v4r::io::readMatrixFromFile(gt_full_file_path, transform);
+                    Eigen::Matrix4f transform = v4r::io::readMatrixFromFile(gt_full_file_path);
 
                     typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled(0.003f);
                     typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());

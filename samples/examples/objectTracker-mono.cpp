@@ -350,13 +350,3 @@ void drawCoordinateSystem(cv::Mat &im, const Eigen::Matrix4f &pose, const cv::Ma
 }
 
 
-
-
-
-
-
-
-
-
-
-

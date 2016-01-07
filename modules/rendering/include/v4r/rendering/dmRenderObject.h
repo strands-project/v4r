@@ -88,7 +88,7 @@ public:
      * @brief DepthmapRendererModel loads the geometry data and creates the necessary opengl ressources
      * @param file filename of the geometry file
      */
-    DepthmapRendererModel(std::string file);
+    DepthmapRendererModel(const std::string &file);
 
 
     ~DepthmapRendererModel();

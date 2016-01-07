@@ -1,4 +1,5 @@
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/normals.h>
 #include <v4r/io/eigen.h>
 #include <v4r/recognition/local_recognizer.h>
 
@@ -45,8 +46,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
                 boost::replace_last(pose_basename, "cloud_", "/pose_");
                 boost::replace_last(pose_basename, ".pcd", ".txt");
 
-                Eigen::Matrix4f pose_matrix;
-                io::readMatrixFromFile( in_train_path + pose_basename, pose_matrix);
+                Eigen::Matrix4f pose_matrix = io::readMatrixFromFile( in_train_path + pose_basename);
 
                 std::string keypoint_basename (m->view_filenames_[v_id]);
                 boost::replace_last(keypoint_basename, "cloud_", + "/keypoints_");
@@ -418,8 +418,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT 
     std::string pose_basename (view_id);
     boost::replace_last(pose_basename, "cloud_", "pose_");
     boost::replace_last(pose_basename, ".pcd", ".txt");
-    Eigen::Matrix4f pose_matrix;
-    io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename, pose_matrix);
+    Eigen::Matrix4f pose_matrix = io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename);
 
     pcl::Normal n;
     n.getNormalVector3fMap () = pose_matrix.block<3,3>(0,0) * normals_cloud.points[ keypoint_id ].getNormalVector3fMap ();
@@ -442,8 +441,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const ModelT 
     std::string pose_basename (view_id);
     boost::replace_last(pose_basename, "cloud_", "pose_");
     boost::replace_last(pose_basename, ".pcd", ".txt");
-    Eigen::Matrix4f pose_matrix;
-    io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename, pose_matrix);
+    Eigen::Matrix4f pose_matrix = io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename);
 
     PointT kp;
     kp.getVector4fMap () = pose_matrix * keypoint_cloud[ keypoint_id ].getVector4fMap ();

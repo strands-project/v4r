@@ -9,7 +9,7 @@
 #include <v4r/io/filesystem.h>
 #include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/normals.h>
 
 #include <pcl/common/transforms.h>
 #include <pcl/filters/passthrough.h>
@@ -27,7 +27,7 @@ namespace po = boost::program_options;
 int main(int argc, const char * argv[]) {
     std::string test_dir, out_dir;
     float chop_z = std::numeric_limits<float>::max();
-    bool visualize;
+    bool visualize=false;
 
     google::InitGoogleLogging(argv[0]);
 
@@ -72,15 +72,10 @@ int main(int argc, const char * argv[]) {
     }
 
 
-    std::vector< std::string> folder_names  = v4r::io::getFoldersInDirectory( test_dir);
+    std::vector< std::string> folder_names  = v4r::io::getFoldersInDirectory( test_dir );
+
     if( folder_names.empty() )
-    {
-        std::cerr << "No subfolders in directory " << test_dir << ". " << std::endl;
         folder_names.push_back("");
-    }
-
-    std::sort(folder_names.begin(), folder_names.end());
-
 
     int vp1, vp2;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis;
@@ -91,10 +86,10 @@ int main(int argc, const char * argv[]) {
         vis->createViewPort(0.5,0,1,1,vp2);
     }
 
-    for (size_t sub_folder_id=0; sub_folder_id < folder_names.size(); sub_folder_id++)
+    for (const std::string &sub_folder : folder_names)
     {
-        std::vector< std::string > views = v4r::io::getFilesInDirectory(folder_names[ sub_folder_id ], ".*.pcd", false);
-        std::sort(views.begin(), views.end());
+        const std::string test_seq = test_dir + "/" + sub_folder;
+        std::vector< std::string > views = v4r::io::getFilesInDirectory(test_seq, ".*.pcd", false);
 
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr big_cloud_unfiltered (new pcl::PointCloud<pcl::PointXYZRGB>);
         std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > clouds (views.size());
@@ -107,7 +102,7 @@ int main(int argc, const char * argv[]) {
             clouds[v_id].reset ( new pcl::PointCloud<pcl::PointXYZRGB>);
             normals[v_id].reset ( new pcl::PointCloud<pcl::Normal>);
 
-            pcl::io::loadPCDFile(views[ v_id ], *clouds[v_id]);
+            pcl::io::loadPCDFile(test_seq + "/" + views[ v_id ], *clouds[v_id]);
 
             camera_transforms[v_id] = v4r::RotTrans2Mat4f(clouds[v_id]->sensor_orientation_, clouds[v_id]->sensor_origin_);
 
@@ -157,7 +152,7 @@ int main(int argc, const char * argv[]) {
 
         if(vm.count("out_dir"))
         {
-            const std::string out_path = out_dir + "/" + folder_names[sub_folder_id];
+            const std::string out_path = out_dir + "/" + sub_folder;
             v4r::io::createDirIfNotExist(out_path);
             pcl::io::savePCDFileBinary(out_path + "/registered_cloud_filtered.pcd", *octree_cloud);
             pcl::io::savePCDFileBinary(out_path + "/registered_cloud_unfiltered.pcd", *big_cloud_unfiltered);
