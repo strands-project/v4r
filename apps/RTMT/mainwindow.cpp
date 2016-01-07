@@ -423,6 +423,10 @@ void MainWindow::on_undoOptimize_clicked()
 
 void MainWindow::on_SegmentObject_clicked()
 {
+  // stop camera otherwise it will occupy the window
+  m_sensor->stop();
+  m_ui->statusLabel->setText("Status: Stopped camera");
+
   idx_seg = 0;
   num_clouds = m_sensor->getClouds()->size();
   m_segmentation->setData(m_sensor->getCameras(), m_sensor->getClouds() );

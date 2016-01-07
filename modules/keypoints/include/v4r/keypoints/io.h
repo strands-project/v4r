@@ -41,31 +41,13 @@
 #include <v4r/keypoints/ArticulatedObject.h>
 #include <v4r/keypoints/impl/ArticulatedObject_serialization.hpp>
 
-
 namespace v4r
 {
-
-
-/*************************************************************************** 
- * io 
- */
-class V4R_EXPORTS io
+namespace io
 {
-public:
-  io() {};
-
-  /** write **/
-  static bool write(const std::string &file, const ArticulatedObject::Ptr &model);
-
-  /** read **/
-  static bool read(const std::string &file, ArticulatedObject::Ptr &model);
-};
-
-
-
-
-
-} //--END--
+  V4R_EXPORTS bool write(const std::string &file, const ArticulatedObject::Ptr &model);
+  V4R_EXPORTS bool read(const std::string &file, ArticulatedObject::Ptr &model);
+}
+}
 
 #endif
-

@@ -57,18 +57,7 @@
 #include <pcl/surface/mls.h>
 #endif
 
-
-
 using namespace std;
-
-struct IndexPoint
-{
-  int idx;
-};
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (IndexPoint,
-    (int, idx, idx)
-)
 
 
 /**
@@ -321,7 +310,7 @@ bool ObjectSegmentation::savePointClouds(const std::string &_folder, const std::
   std::string image_names = _folder + "/models/" + _modelname + "/views/image_%08d.jpg";
   std::string pose_names = _folder + "/models/" + _modelname + "/views/pose_%08d.txt";
   std::string mask_names = _folder + "/models/" + _modelname + "/views/mask_%08d.png";
-  std::string idx_names = _folder + "/models/" + _modelname + "/views/object_indices_%08d.pcd";
+  std::string idx_names = _folder + "/models/" + _modelname + "/views/object_indices_%08d.txt";
 
 
   for (unsigned i=0; i<clouds->size(); i++)
@@ -332,7 +321,7 @@ bool ObjectSegmentation::savePointClouds(const std::string &_folder, const std::
     snprintf(filename, PATH_MAX, idx_names.c_str(), i);
     std::ofstream mask_f (filename);
     for(unsigned j=0; j < indices[i].size(); j++)
-        mask_f << indices[i][j];
+        mask_f << indices[i][j] << std::endl;
     mask_f.close();
 
     // store cloud
