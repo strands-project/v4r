@@ -3,4 +3,3 @@
 
 template class V4R_EXPORTS v4r::MeshSource<pcl::PointXYZ>;
 template class V4R_EXPORTS v4r::MeshSource<pcl::PointXYZRGB>;
-

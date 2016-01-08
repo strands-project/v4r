@@ -1,9 +1,25 @@
-/*
- * partial_pcd_source.h
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma
  *
- *  Created on: Jul 3, 2012
- *      Author: aitor
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
 #ifndef FAAT_PCL_PARTIAL_PCD_SOURCE_H_
 #define FAAT_PCL_PARTIAL_PCD_SOURCE_H_
@@ -61,10 +77,10 @@ namespace v4r
         (const Eigen::Vector3f &)> campos_constraints_func_;
 
         void
-        loadInMemorySpecificModel(const std::string &dir, ModelT & model);
+        loadInMemorySpecificModel(ModelT & model);
 
         void
-        loadOrGenerate (const std::string &dir, const std::string &model_path, ModelT & model);
+        loadOrGenerate (const std::string &model_path, ModelT & model);
 
         void assembleModelFromViewsAndPoses(ModelT & model,
                                        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
@@ -141,56 +157,45 @@ namespace v4r
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
-        generate (const std::string & training_dir)
+        generate ()
         {
-          v4r::io::createDirIfNotExist(training_dir);
-
-          //get models in directory
-          std::vector < std::string > files;
-          v4r::io::getFilesInDirectory(path_, files, "", ".*.pcd", false );
-
           models_.clear();
+          std::vector < std::string > model_files = v4r::io::getFilesInDirectory(path_, ".3D_model.pcd", true );
+          std::cout << "There are " << model_files.size() << " models." << std::endl;
 
-          for (size_t i = 0; i < files.size (); i++)
+          for (const std::string &model_file : model_files)
           {
-            ModelTPtr m(new ModelT);
+              ModelTPtr m(new ModelT);
 
-            std::vector < std::string > strs;
-            boost::split (strs, files[i], boost::is_any_of ("/\\"));
+              std::vector < std::string > strs;
+              boost::split (strs, model_file, boost::is_any_of ("/\\"));
+              //            std::string name = strs[strs.size () - 1];
 
-            if (strs.size () == 1)
-            {
-              m->id_ = strs[0];
-              m->class_ = strs[strs.size () - 1];
-            }
-            else
-            {
-              std::stringstream ss;
-              for (int k = 0; k < (static_cast<int> (strs.size ()) - 1); k++)
+              if (strs.size () == 2)  // class_name/id_name/3D_model.pcd
               {
-                ss << strs[k];
-                if (k != (static_cast<int> (strs.size ()) - 1))
-                  ss << "/";
+                  m->id_ = strs[0];
+              }
+              else if (strs.size()==3)
+              {
+                  m->class_ = strs[0];
+                  m->id_ = strs[1];
+              }
+              else
+              {
+                  std::cerr << "Given path " << path_ << " does not have required file structure: (optional: object_class_name)/object_id_name/3D_model.pcd !" << std::endl;
+                  m->id_ = strs[0];
               }
 
-              m->class_ = ss.str ();
-              m->id_ = strs[strs.size () - 1];
-            }
+              //check if the model has to be loaded according to the list
+              if(!this->isModelIdInList(m->id_))
+                  continue;
 
-            std::cout << m->class_ << " . " << m->id_ << std::endl;
-            //check which of them have been trained using training_dir and the model_id_
-            //load views, poses and self-occlusions for those that exist
-            //generate otherwise
-
-            std::stringstream model_path;
-            model_path << path_ << "/" << files[i];
-            std::string path_model = model_path.str ();
-            loadOrGenerate (training_dir, path_model, *m);
-            models_.push_back (m);
-            std::cout << files[i] << std::endl;
+              //check which of them have been trained using training_dir and the model_id_
+              //load views, poses and self-occlusions for those that exist
+              //generate otherwise
+              loadOrGenerate (path_ + "/" + model_file, *m);
+              models_.push_back (m);
           }
-
-          std::cout << "Total number of models:" << models_.size () << std::endl;
         }
 
       };

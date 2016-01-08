@@ -56,7 +56,7 @@ void
 Recognizer<PointT>::hypothesisVerification ()
 {
     std::vector<typename pcl::PointCloud<PointT>::ConstPtr> aligned_models (models_.size ());
-    std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_normals (models_.size ());
+    std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_model_normals (models_.size ());
 
     model_or_plane_is_verified_.clear();
     planes_.clear();
@@ -76,7 +76,7 @@ Recognizer<PointT>::hypothesisVerification ()
         aligned_models[i] = aligned_model_tmp;
         pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models_[i]->getNormalsAssembled (hv_algorithm_->getResolution());
         transformNormals(*normal_cloud_const, *aligned_normal_tmp, transforms_[i]);
-        aligned_normals[i] = aligned_normal_tmp;
+        aligned_model_normals[i] = aligned_normal_tmp;
     }
 
 
@@ -89,7 +89,7 @@ Recognizer<PointT>::hypothesisVerification ()
     hv_algorithm_->addModels (aligned_models, true);
 
     if (hv_algorithm_->getRequiresNormals ())
-        hv_algorithm_->addNormalsClouds (aligned_normals);
+        hv_algorithm_->addNormalsClouds (aligned_model_normals);
 
     if( hv_algorithm_ghv ) {
         hv_algorithm_ghv->setRequiresNormals(false);

@@ -84,7 +84,7 @@ namespace v4r
           if(ext_.compare("pcd") == 0)
           {
               std::stringstream full_model;
-              full_model << path_ << "/" << "/" << model.class_ << "/" << model.id_;
+              full_model << path_ << "/" << model.class_ << "/" << model.id_;
               typename pcl::PointCloud<Full3DPointT>::Ptr modell (new pcl::PointCloud<Full3DPointT>);
               typename pcl::PointCloud<Full3DPointT>::Ptr modell_voxelized (new pcl::PointCloud<Full3DPointT>);
               pcl::io::loadPCDFile(full_model.str(), *modell);
@@ -114,9 +114,8 @@ namespace v4r
           }
           else if(ext_.compare("ply") == 0)
           {
-
               typename pcl::PointCloud<PointInT>::Ptr model_cloud(new pcl::PointCloud<PointInT>());
-              uniform_sampling (model_path, 100000, *model_cloud, model_scale_);
+              uniform_sampling<PointInT> (model_path, 100000, *model_cloud, model_scale_);
 
               float resolution = 0.001f;
               pcl::VoxelGrid<PointInT> grid_;
@@ -139,17 +138,12 @@ namespace v4r
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
-        generate (const std::string & training_dir)
+        generate ()
         {
-          (void) training_dir;
-          //get models in directory
-          std::vector < std::string > files;
-
-          v4r::io::getFilesInDirectory (path_, files, "", ".*.pcd", false);
+          models_.clear();
+          std::vector < std::string > files = v4r::io::getFilesInDirectory (path_, ".3D_model.pcd", false);
           std::cout << files.size() << std::endl;
 
-          models_.clear();
-          std::sort(files.begin(), files.end());
           for (size_t i = 0; i < files.size (); i++)
           {
             ModelTPtr m(new ModelT);
@@ -176,13 +170,11 @@ namespace v4r
             }
 
             std::cout << m->class_ << " . " << m->id_ << std::endl;
+
             //check which of them have been trained using training_dir and the model_id_
             //load views, poses and self-occlusions for those that exist
             //generate otherwise
-
-            std::stringstream model_path;
-            model_path << path_ << "/" << files[i];
-            std::string path_model = model_path.str ();
+            std::string path_model = path_ + "/" + files[i];
             loadOrGenerate (path_model, *m);
 
             models_.push_back (m);

@@ -35,8 +35,7 @@ int main (int argc, char ** argv)
     source->setPath (path_m);
     source->setLoadViews (false);
     source->setLoadIntoMemory(false);
-    std::string test = "irrelevant";
-    source->generate (test);
+    source->generate ();
     source->createVoxelGridAndDistanceTransform (0.005f);
 
     pcl::visualization::PCLVisualizer vis;
@@ -46,8 +45,7 @@ int main (int argc, char ** argv)
     pcl::io::loadPCDFile (path_s, *cloud);
 
 
-    Eigen::Matrix4f transform;
-    v4r::io::readMatrixFromFile(path_p, transform);
+    Eigen::Matrix4f transform = v4r::io::readMatrixFromFile(path_p);
 
 //    std::vector < std::string > parts;
 //    boost::split (parts, path_p, boost::is_any_of ("/"));

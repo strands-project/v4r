@@ -260,7 +260,7 @@ void KeypointSlamRGBD2::setKeyframe(int idx, Eigen::Matrix4f &pose)
 void KeypointSlamRGBD2::setCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs)
 {
   reset();
-  dist_coeffs = cv::Mat_<double>();
+  dist_coeffs = cv::Mat_<double>::zeros(1,8);
 
   if (_intrinsic.type() != CV_64F)
     _intrinsic.convertTo(intrinsic, CV_64F);
@@ -268,9 +268,13 @@ void KeypointSlamRGBD2::setCameraParameter(const cv::Mat &_intrinsic, const cv::
 
   if (!_dist_coeffs.empty())
   {
-    dist_coeffs = cv::Mat_<double>::zeros(1,8);
-    for (int i=0; i<_dist_coeffs.cols*_dist_coeffs.rows; i++)
-      dist_coeffs(0,i) = _dist_coeffs.at<double>(0,i);
+      for (int row_id=0; row_id<_dist_coeffs.rows; row_id++)
+      {
+          for (int col_id=0; col_id<_dist_coeffs.cols; col_id++)
+          {
+              dist_coeffs(0, row_id * dist_coeffs.rows + col_id) = _dist_coeffs.at<double>(row_id, col_id);
+          }
+      }
   }
 
   kpTracker->setTargetCameraParameter(intrinsic, dist_coeffs);

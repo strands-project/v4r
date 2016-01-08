@@ -2,8 +2,7 @@
 #  CMake file for C samples. See root CMakeLists.txt
 #
 # ----------------------------------------------------------------------------
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-SET(V4R_TOOLS_REQUIRED_DEPS v4r_common v4r_core v4r_features v4r_io v4r_keypoints v4r_ml v4r_recognition v4r_reconstruction v4r_registration v4r_segmentation v4r_tomgine )
+SET(V4R_TOOLS_REQUIRED_DEPS v4r_common v4r_core v4r_features v4r_io v4r_keypoints v4r_ml v4r_recognition v4r_reconstruction v4r_registration v4r_rendering v4r_segmentation v4r_tracking)
 
 if(HAVE_PCL)
   v4r_include_directories(${PCL_INCLUDE_DIRS})
@@ -40,9 +39,19 @@ if(HAVE_ASSIMP)
   list(APPEND DEP_LIBS ${ASSIMP_LIBRARIES})
 endif()
 
+if(HAVE_GLOG)
+  v4r_include_directories(${GLOG_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${GLOG_LIBRARIES})
+endif()
+
+if(HAVE_BOOST)
+  v4r_include_directories(${BOOST_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
+endif()
+
 v4r_check_dependencies(${V4R_TOOLS_REQUIRED_DEPS})
 
-if(BUILD_TOOLS AND V4R_DEPENDENCIES_FOUND)
+if(BUILD_UTILITY_TOOLS AND V4R_DEPENDENCIES_FOUND)
   project(tools_samples)
   v4r_include_modules(${V4R_TOOLS_REQUIRED_DEPS})
 

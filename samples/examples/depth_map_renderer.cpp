@@ -1,7 +1,4 @@
 //
-//  viewer.cpp
-//  LyonViewer
-//
 //  Created by Simon Schreiberhuber on 01.04.15.
 //  Copyright (c) 2015 Simon Schreiberhuber. All rights reserved.
 //

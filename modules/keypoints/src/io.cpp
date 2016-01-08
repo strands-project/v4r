@@ -34,12 +34,10 @@
 
 namespace v4r
 {
+namespace io
+{
 
-
-/** 
- * write 
- */
-bool io::write(const std::string &file, const ArticulatedObject::Ptr &model)
+bool write(const std::string &file, const ArticulatedObject::Ptr &model)
 {
   if (model.get()==0)
     return false;
@@ -51,10 +49,8 @@ bool io::write(const std::string &file, const ArticulatedObject::Ptr &model)
   return true;
 }
 
-/** 
- * read 
- */
-bool io::read(const std::string &file, ArticulatedObject::Ptr &model)
+
+bool read(const std::string &file, ArticulatedObject::Ptr &model)
 {
   model.reset(new ArticulatedObject());
 
@@ -69,7 +65,7 @@ bool io::read(const std::string &file, ArticulatedObject::Ptr &model)
 }
 
 
-
+}
 } //--END--
 
 

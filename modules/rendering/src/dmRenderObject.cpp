@@ -9,7 +9,7 @@
 namespace v4r
 {
 
-DepthmapRendererModel::DepthmapRendererModel(std::string file)
+DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
 {
     vertexCount=0;
     indexCount=0;

@@ -38,6 +38,7 @@
 #ifndef FAAT_PCL_2D_CONVOLUTION_H
 #define FAAT_PCL_2D_CONVOLUTION_H
 
+#include <v4r/core/macros.h>
 #include <pcl/pcl_base.h>
 #include <pcl/filters/filter.h>
 #include <pcl/point_types.h>
@@ -59,7 +60,7 @@ namespace v4r
 
   /** \brief A 2D convolution class. */ 
   template <typename PointT>
-  class Convolution : public pcl::Filter<PointT>
+  class V4R_EXPORTS Convolution : public pcl::Filter<PointT>
   {
     public:
       using pcl::Filter<PointT>::input_;

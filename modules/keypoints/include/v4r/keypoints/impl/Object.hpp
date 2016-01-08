@@ -54,7 +54,7 @@ class V4R_EXPORTS Object;
 /***********************************************************************
  * GlobalPoint
  */
-class GlobalPoint
+class V4R_EXPORTS GlobalPoint
 {
 public:
   int cnt;                   // view instance counter

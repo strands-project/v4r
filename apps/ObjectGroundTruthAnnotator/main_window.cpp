@@ -976,8 +976,7 @@ MainWindow::MainWindow(int argc, char *argv[])
   source_->setPath (dir_models_);
   source_->setLoadViews (false);
   source_->setLoadIntoMemory(false);
-  std::string test = "irrelevant";
-  source_->generate (test);
+  source_->generate ();
   source_->createVoxelGridAndDistanceTransform (0.005f);
 
   QApplication app(argc,argv);

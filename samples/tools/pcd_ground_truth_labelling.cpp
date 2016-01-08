@@ -4,19 +4,23 @@
  */
 #include <iostream>
 #include <fstream>
-#include <pcl/console/parse.h>
+#include <boost/program_options.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <v4r/recognition/model_only_source.h>
 #include <v4r/common/miscellaneous.h>
-#include <v4r/common/occlusion_reasoning.h>
+#include <v4r/common/zbuffering.h>
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
 #include <time.h>
 #include <stdlib.h>
 
-//-gt_dir /media/Data/datasets/TUW/annotations -output_dir /home/thomas/Desktop/test -scenes_dir /media/Data/datasets/TUW/test_set_static/ -models_dir /media/Data/datasets/TUW/models -threshold 0.01 -visualize 0
+namespace po = boost::program_options;
+
+//-g /media/Data/datasets/TUW/annotations -o /tmp/bla -s /media/Data/datasets/TUW/test_set_static/ -m /media/Data/datasets/TUW/models -t 0.01 -v
+//-g /media/Data/datasets/willow/annotations -o /tmp/bla -s /media/Data/datasets/willow_dataset_new/willow_large_dataset -m /media/Data/datasets/willow_dataset/models -t 0.01 -v
+
 
 namespace v4r
 {
@@ -37,11 +41,10 @@ public:
     };
 
 private:
-    typedef v4r::Model<PointT> ModelT;
+    typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
     typename pcl::PointCloud<PointT>::Ptr reconstructed_scene_;
     boost::shared_ptr < v4r::ModelOnlySource<pcl::PointXYZRGBNormal, PointT> > source_;
-    float f_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
     std::vector<int> viewports_;
 
@@ -55,7 +58,8 @@ public:
     std::string gt_dir_;
     std::string models_dir_;
     float threshold_;
-    bool first_view_only_;  // has been used for RA-L 16 paper, where were interested in the visible object in the first viewpoint
+    float f_;
+    bool first_view_only_;  // has been used for RA-L 16 paper, where we were interested in the visible object in the first viewpoint
 
     PcdGtAnnotator()
     {
@@ -73,8 +77,7 @@ public:
         source_->setPath (models_dir_);
         source_->setLoadViews (false);
         source_->setLoadIntoMemory(false);
-        std::string test = "irrelevant";
-        source_->generate (test);
+        source_->generate ();
     }
 
     void annotate(const std::string &scenes_dir, const std::string & scene_id = "");
@@ -146,8 +149,7 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                     source_->getModelById(model_name, pModel);
 
                     std::string gt_full_file_path = annotations_dir + "/" + gt_fn;
-                    Eigen::Matrix4f transform;
-                    v4r::io::readMatrixFromFile(gt_full_file_path, transform);
+                    Eigen::Matrix4f transform = v4r::io::readMatrixFromFile(gt_full_file_path);
 
                     typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled(0.003f);
                     typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
@@ -194,7 +196,7 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         if ( !pcl::isFinite(sp) )   // Model point is not visible from the view point (shiny spot, noise,...)
                             continue;
 
-                        if( (mp.z - threshold_ - sp.z) < 0 )
+                        if( std::abs(mp.z - sp.z) < threshold_ )
                         {
                             visible_model_points_[current_model_id][m_pt_id] = true;
                             if( s_id == 0 )
@@ -329,6 +331,10 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
         pcl::transformPointCloud( *visible_model, *visible_model_aligned, transform_to_scene_ [m_id]);
         visible_model_aligned->sensor_orientation_ = views_.back().cloud_->sensor_orientation_;
         visible_model_aligned->sensor_origin_ = views_.back().cloud_->sensor_origin_;
+
+        if(visible_model_aligned->points.empty())
+            continue;
+
         pcl::io::savePCDFileBinary( path + "/" + model_id_[m_id] + ".pcd", *visible_model_aligned);
 
 //        typename pcl::PointCloud<PointT>::Ptr highlight (new pcl::PointCloud<PointT>());
@@ -356,23 +362,7 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
     }
 //    vis.spin();
 }
-
-
-template<typename PointT>
-void PcdGtAnnotator<PointT>::printUsage(int argc, char ** argv)
-{
-    (void)argc;
-    std::cout << std::endl << std::endl
-              << "Usage " << argv[0]
-              << "-models_dir /path/to/models/ "
-              << "-gt_dir /path/to/annotations/ "
-              << "-scenes_dir /path/to/input_PCDs/ "
-              << "-output_dir /path/to/output/ "
-              << "[-visualize 1] "
-              << std::endl << std::endl;
 }
-}
-
 
 
 int
@@ -381,38 +371,38 @@ main (int argc, char ** argv)
     srand (time(NULL));
     typedef pcl::PointXYZRGB PointT;
     v4r::PcdGtAnnotator<PointT> annotator;
-    std::string scene_dir, output_dir;
+    std::string scene_dir, output_dir = "/tmp/annotated_pcds";
     bool visualize = false;
 
-    pcl::console::parse_argument (argc, argv, "-scenes_dir", scene_dir);
-    pcl::console::parse_argument (argc, argv, "-output_dir", output_dir);
-    pcl::console::parse_argument (argc, argv, "-models_dir", annotator.models_dir_);
-    pcl::console::parse_argument (argc, argv, "-gt_dir", annotator.gt_dir_);
-    pcl::console::parse_argument (argc, argv, "-visualize", visualize);
-    pcl::console::parse_argument (argc, argv, "-threshold", annotator.threshold_);
-    pcl::console::parse_argument (argc, argv, "-first_view_only", annotator.first_view_only_);
+    po::options_description desc("Pixel-wise annotation of point clouds using recognition results represented as ground-truth object pose\n======================================\n **Allowed options");
+    desc.add_options()
+            ("help,h", "produce help message")
+            ("scenes_dir,s", po::value<std::string>(&scene_dir)->required(), "directory containing the scene .pcd files")
+            ("models_dir,m", po::value<std::string>(&annotator.models_dir_)->required(), "directory containing the model .pcd files")
+            ("gt_dir,g", po::value<std::string>(&annotator.gt_dir_)->required(), "directory containing recognition results")
+            ("output_dir,o", po::value<std::string>(&output_dir)->default_value(output_dir), "output directory")
+            ("threshold,t", po::value<float>(&annotator.threshold_)->default_value(annotator.threshold_), "Threshold in m for a point to be counted as inlier")
+            ("focal_length,f", po::value<float>(&annotator.f_)->default_value(annotator.f_), "Threshold in m for a point to be counted as inlier")
+            ("visualize,v", po::bool_switch(&visualize), "turn visualization on")
+            ("first_view_only", po::bool_switch(&annotator.first_view_only_), "if true, outputs the visible object model in the first view only")
+    ;
 
-
-    if (scene_dir.compare ("") == 0)
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    if (vm.count("help"))
     {
-        PCL_ERROR("Set the directory containing scenes. Usage -pcd_file files [dir].\n");
-        v4r::PcdGtAnnotator<PointT>::printUsage(argc, argv);
-        return -1;
+        std::cout << desc << std::endl;
+        return false;
     }
 
-    if (output_dir.compare ("") == 0)
+    try
     {
-        PCL_ERROR("Set the directory for saving the models using the -output_dir [dir] option\n");
-        v4r::PcdGtAnnotator<PointT>::printUsage(argc, argv);
-        return -1;
+        po::notify(vm);
     }
-
-    bf::path models_dir_path = annotator.models_dir_;
-    if (!bf::exists (models_dir_path))
+    catch(std::exception& e)
     {
-        PCL_ERROR("Models dir path %s does not exist, use -models_dir [dir] option\n", annotator.models_dir_.c_str());
-        v4r::PcdGtAnnotator<PointT>::printUsage(argc, argv);
-        return -1;
+        std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
+        return false;
     }
 
     std::vector< std::string> sub_folder_names;

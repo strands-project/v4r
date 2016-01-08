@@ -1,4 +1,5 @@
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/normals.h>
 #include <v4r/io/eigen.h>
 #include <v4r/recognition/local_recognizer.h>
 
@@ -12,57 +13,50 @@ namespace v4r
 {
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
-void
+bool
 LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN ()
 {
     std::vector<ModelTPtr> models = source_->getModels();
+    flann_models_.clear();
 
     for (size_t i = 0; i < models.size (); i++)
     {
         ModelTPtr m = models[i];
-        const std::string out_train_path = training_dir_  + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
-        const std::string in_train_path = training_dir_  + "/" + m->class_ + "/" + m->id_ + "/";
-        const std::string descriptor_pattern = ".*descriptors.*.pcd";
+        const std::string out_train_path = models_dir_  + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
+        const std::string in_train_path = models_dir_  + "/" + m->class_ + "/" + m->id_ + "/views/";
 
-        std::vector<std::string> desc_files;
-        io::getFilesInDirectory(out_train_path, desc_files, "", descriptor_pattern, false);
-        std::sort(desc_files.begin(), desc_files.end());
-
-        for(size_t v_id=0; v_id<desc_files.size(); v_id++)
+        for(size_t v_id=0; v_id< m->view_filenames_.size(); v_id++)
         {
-            const std::string signature_file_name = out_train_path + "/" + desc_files[v_id];
-            typename pcl::PointCloud<FeatureT>::Ptr signature (new pcl::PointCloud<FeatureT> ());
-            pcl::io::loadPCDFile (signature_file_name, *signature);
-            int size_feat = sizeof(signature->points[0].histogram) / sizeof(float);
+            std::string signature_basename (m->view_filenames_[v_id]);
+            boost::replace_last(signature_basename, "cloud_", "/descriptors_");
 
-            std::string view_name = desc_files[v_id];
-            boost::replace_last(view_name, ".pcd", "");
-            std::vector < std::string > strs;
-            boost::split (strs, view_name, boost::is_any_of ("_"));
-            view_id_length_ = strs[1].size();
+            typename pcl::PointCloud<FeatureT>::Ptr signature (new pcl::PointCloud<FeatureT> ());
+            pcl::io::loadPCDFile (out_train_path + signature_basename, *signature);
+            int size_feat = sizeof(signature->points[0].histogram) / sizeof(float);
 
             flann_model descr_model;
             descr_model.model = m;
-
-            std::istringstream iss(strs[1]);
-            iss >> descr_model.view_id;
+            descr_model.view_id = m->view_filenames_[v_id];
 
             size_t kp_id_offset = 0;
 
             if (param_.use_cache_) //load model data (keypoints, pose and normals for each training view) and save them to cache
             {
-                std::stringstream pose_fn;
-                pose_fn << in_train_path << "/pose_" << setfill('0') << setw(view_id_length_) << descr_model.view_id << ".txt";
-                Eigen::Matrix4f pose_matrix;
-                io::readMatrixFromFile( pose_fn.str (), pose_matrix);
+                std::string pose_basename (m->view_filenames_[v_id]);
+                boost::replace_last(pose_basename, "cloud_", "/pose_");
+                boost::replace_last(pose_basename, ".pcd", ".txt");
 
-                std::stringstream dir_keypoints; dir_keypoints << out_train_path << "/keypoints_" << setfill('0') << setw(view_id_length_) << descr_model.view_id << ".pcd";
+                Eigen::Matrix4f pose_matrix = io::readMatrixFromFile( in_train_path + pose_basename);
+
+                std::string keypoint_basename (m->view_filenames_[v_id]);
+                boost::replace_last(keypoint_basename, "cloud_", + "/keypoints_");
                 typename pcl::PointCloud<PointT>::Ptr keypoints (new pcl::PointCloud<PointT> ());
-                pcl::io::loadPCDFile (dir_keypoints.str (), *keypoints);
+                pcl::io::loadPCDFile (out_train_path + keypoint_basename, *keypoints);
 
-                std::stringstream dir_normals; dir_normals << out_train_path << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << descr_model.view_id << ".pcd";
+                std::string kp_normals_basename (m->view_filenames_[v_id]);
+                boost::replace_last(kp_normals_basename, "cloud_", "/keypoint_normals_");
                 pcl::PointCloud<pcl::Normal>::Ptr kp_normals (new pcl::PointCloud<pcl::Normal> ());
-                pcl::io::loadPCDFile (dir_normals.str (), *kp_normals);
+                pcl::io::loadPCDFile (out_train_path + kp_normals_basename, *kp_normals);
 
                 for (size_t kp_id=0; kp_id<keypoints->points.size(); kp_id++)
                 {
@@ -102,7 +96,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
 
     std::string filename;
     convertToFLANN<flann_model> (flann_models_, flann_data_);
-    filename = training_dir_ + "/" + descr_name_ + "_flann.idx";
+    filename = models_dir_ + "/" + descr_name_ + "_flann.idx";
 
     if(io::existsFile(filename)) // Loading flann index from frile
     {
@@ -114,9 +108,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
         {
             std::cerr << "Existing flann index cannot be loaded. Removing file and creating a new flann file." << std::endl;
             boost::filesystem::remove(boost::filesystem::path(filename));
-            flann_index_.reset( new flann::Index<DistT> (flann_data_, flann::KDTreeIndexParams (4)));
-            flann_index_->buildIndex ();
-            flann_index_->save (filename);
+            return false;
         }
     }
     else // Building and saving flann index
@@ -131,45 +123,18 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
         flann_models_[i].descr.clear();
 
     std::cout << "End load feature and create flann" << std::endl;
+    return true;
 }
 
-template<template<class > class Distance, typename PointT, typename FeatureT>
-void
-LocalRecognitionPipeline<Distance, PointT, FeatureT>::nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index,
-                                                                             /*float * descr, int descr_size*/
-                                                                             flann::Matrix<float> & p, int k,
-                                                                             flann::Matrix<int> &indices,
-                                                                             flann::Matrix<float> &distances)
-{
-    index->knnSearch (p, indices, distances, k, flann::SearchParams (param_.kdtree_splits_));
-}
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
-void
-LocalRecognitionPipeline<Distance, PointT, FeatureT>::reinitialize(const std::vector<std::string> & load_ids)
-{
-    PCL_WARN("Reinitialize LocalRecognitionPipeline with list of load_ids\n");
-    std::cout << "List of models being loaded:" << load_ids.size() << std::endl;
-
-    for(size_t i=0; i < load_ids.size(); i++)
-        std::cout << " ---------- " << load_ids[i] << std::endl;
-
-    flann_models_.clear();
-
-    source_->setModelList(load_ids);
-    source_->generate(training_dir_);
-
-    initialize(false);
-}
-
-template<template<class > class Distance, typename PointT, typename FeatureT>
-void
+bool
 LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_retrain)
 {
     if(!estimator_)
     {
         std::cerr << "Keypoint and feature estimator is not set!" << std::endl;
-        return;
+        return false;
     }
 
     descr_name_ = estimator_->getFeatureDescriptorName();
@@ -181,20 +146,30 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
     if (force_retrain)
     {
         for (size_t i = 0; i < models.size (); i++)
-            source_->removeDescDirectory (*models[i], training_dir_, descr_name_);
+            source_->removeDescDirectory (*models[i], models_dir_, descr_name_);
     }
 
     for (size_t i = 0; i < models.size (); i++)
     {
         ModelTPtr &m = models[i];
         std::cout << m->class_ << " " << m->id_ << std::endl;
-        const std::string dir = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
+        const std::string dir = models_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
 
         if (!io::existsFolder(dir))
         {
             std::cout << "Model not trained..." << m->views_.size () << std::endl;
             if(!source_->getLoadIntoMemory())
-                source_->loadInMemorySpecificModel(training_dir_, *m);
+            {
+                try{
+                    source_->loadInMemorySpecificModel(*m);
+                }
+                catch (std::runtime_error &e)
+                {
+                    std::cerr << "Load In Memory Specific Model failed. If this within a multi-pipeline recognizer, I will re-initialize now." << std::endl;
+                    return false;
+                }
+            }
+
 
             for (size_t v = 0; v < m->view_filenames_.size(); v++)
             {
@@ -204,12 +179,6 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                 typename pcl::PointCloud<PointT>::Ptr object_keypoints (new pcl::PointCloud<PointT>);
                 typename pcl::PointCloud<PointT>::Ptr foo (new pcl::PointCloud<PointT>);
                 pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-
-                std::vector<std::string> strs;
-                boost::split (strs, m->view_filenames_[v], boost::is_any_of ("_"));
-                boost::replace_last(strs[1], ".pcd", "");
-                view_id_length_ = strs[1].size();
-
 
                 computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
 
@@ -238,21 +207,22 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                 obj_kp_indices.indices.resize( kept );
                 pcl::copyPointCloud( *m->views_[v], obj_kp_indices, *object_keypoints);
 
-                if (object_keypoints->points.size())
+                if (object_keypoints->points.size()) //save descriptors and keypoints to disk
                 {
                     io::createDirIfNotExist(dir);
+                    std::string descriptor_basename (m->view_filenames_[v]);
+                    boost::replace_last(descriptor_basename, "cloud_", "/descriptors_");
+                    pcl::io::savePCDFileBinary (dir + descriptor_basename, *object_signatures);
 
-                    //save keypoints and descriptors to disk
-                    std::stringstream kp_fn; kp_fn << dir << "/keypoints_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
-                    pcl::io::savePCDFileBinary (kp_fn.str (), *object_keypoints);
+                    std::string keypoint_basename (m->view_filenames_[v]);
+                    boost::replace_last(keypoint_basename, "cloud_", "/keypoints_");
+                    pcl::io::savePCDFileBinary (dir + keypoint_basename, *object_keypoints);
 
-                    std::stringstream desc_fn; desc_fn << dir << "/descriptors_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
-                    pcl::io::savePCDFileBinary (desc_fn.str (), *object_signatures);
-
+                    std::string kp_normals_basename (m->view_filenames_[v]);
+                    boost::replace_last(kp_normals_basename, "cloud_", "/keypoint_normals_");
                     pcl::PointCloud<pcl::Normal>::Ptr normals_keypoints(new pcl::PointCloud<pcl::Normal>);
                     pcl::copyPointCloud(*normals, obj_kp_indices, *normals_keypoints);
-                    std::stringstream normals_fn; normals_fn << dir << "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << v << ".pcd";
-                    pcl::io::savePCDFileBinary (normals_fn.str (), *normals_keypoints);
+                    pcl::io::savePCDFileBinary (dir + kp_normals_basename, *normals_keypoints);
                 }
             }
 
@@ -267,10 +237,13 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
         }
     }
 
-    loadFeaturesAndCreateFLANN ();
+    if (!loadFeaturesAndCreateFLANN ())
+        return false;
 
     if(param_.icp_iterations_ > 0 && param_.icp_type_ == 1)
         source_->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
+
+    return true;
 }
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
@@ -424,27 +397,28 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 void
-LocalRecognitionPipeline<Distance, PointT, FeatureT>::getView (const ModelT & model, size_t view_id, typename pcl::PointCloud<PointT>::Ptr &view)
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::getView (const ModelT & model, const std::string &view_id, typename pcl::PointCloud<PointT>::Ptr &view)
 {
     view.reset (new pcl::PointCloud<PointT>);
-    std::stringstream view_fn; view_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/" << descr_name_ + "/view_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
-    pcl::io::loadPCDFile (view_fn.str (), *view);
+    pcl::io::loadPCDFile (models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + descr_name_ + "/" + view_id, *view);
 }
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 pcl::Normal
-LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT & model, size_t keypoint_id, size_t view_id)
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT & model, size_t keypoint_id, const std::string &view_id)
 {
     if (param_.use_cache_)
         return model.kp_normals_->points[keypoint_id];
 
+    std::string kp_normals_basename (view_id);
+    boost::replace_last(kp_normals_basename, "cloud_", descr_name_ + "/" + "keypoint_normals_");
     pcl::PointCloud<pcl::Normal> normals_cloud;
-    std::stringstream normals_fn; normals_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/" << descr_name_ + "/keypoint_normals_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
-    pcl::io::loadPCDFile (normals_fn.str(), normals_cloud);
+    pcl::io::loadPCDFile (kp_normals_basename, normals_cloud);
 
-    std::stringstream pose_fn; pose_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/pose_" << setfill('0') << setw(view_id_length_) << view_id << ".txt";
-    Eigen::Matrix4f pose_matrix;
-    io::readMatrixFromFile( pose_fn.str (), pose_matrix);
+    std::string pose_basename (view_id);
+    boost::replace_last(pose_basename, "cloud_", "pose_");
+    boost::replace_last(pose_basename, ".pcd", ".txt");
+    Eigen::Matrix4f pose_matrix = io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename);
 
     pcl::Normal n;
     n.getNormalVector3fMap () = pose_matrix.block<3,3>(0,0) * normals_cloud.points[ keypoint_id ].getNormalVector3fMap ();
@@ -454,18 +428,20 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT 
 
 template<template<class > class Distance, typename PointT, typename FeatureT>
 PointT
-LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const ModelT & model, size_t keypoint_id, size_t view_id)
+LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const ModelT & model, size_t keypoint_id, const std::string &view_id)
 {
     if (param_.use_cache_)
         return model.keypoints_->points[keypoint_id];
 
-    std::stringstream kp_fn; kp_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/" << descr_name_ + "/keypoints_" << setfill('0') << setw(view_id_length_) << view_id << ".pcd";
+    std::string keypoint_basename (view_id);
+    boost::replace_last(keypoint_basename, "cloud_", descr_name_ + "/" + "keypoints_");
     pcl::PointCloud<PointT> keypoint_cloud;
-    pcl::io::loadPCDFile (kp_fn.str(), keypoint_cloud);
+    pcl::io::loadPCDFile (models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + keypoint_basename, keypoint_cloud);
 
-    std::stringstream pose_fn; pose_fn << training_dir_ << "/" << model.class_ << "/" << model.id_ << "/pose_" << setfill('0') << setw(view_id_length_) << view_id << ".txt";
-    Eigen::Matrix4f pose_matrix;
-    io::readMatrixFromFile( pose_fn.str (), pose_matrix);
+    std::string pose_basename (view_id);
+    boost::replace_last(pose_basename, "cloud_", "pose_");
+    boost::replace_last(pose_basename, ".pcd", ".txt");
+    Eigen::Matrix4f pose_matrix = io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename);
 
     PointT kp;
     kp.getVector4fMap () = pose_matrix * keypoint_cloud[ keypoint_id ].getVector4fMap ();
