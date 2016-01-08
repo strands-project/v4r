@@ -55,7 +55,8 @@
 #include <v4r/tracking/ObjectTrackerMono.h>
 
 #include <pcl/io/grabber.h>
-#include <pcl/io/openni2_grabber.h>
+//#include <pcl/io/openni2_grabber.h>
+#include <pcl/io/openni_grabber.h>
 
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
@@ -231,7 +232,8 @@ public:
             {
                 try
                 {
-                    interface_.reset( new pcl::io::OpenNI2Grabber() );
+//                    interface_.reset( new pcl::io::OpenNI2Grabber() );
+                    interface_.reset( new pcl::io::OpenNIGrabber() );
                     boost::function<void (const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f = boost::bind (&ObjTrackerMono::cloud_cb, this, _1);
                     interface_->registerCallback (f);
                 }
