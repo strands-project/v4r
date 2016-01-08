@@ -2,6 +2,47 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#40 <https://github.com/strands-project/v4r/issues/40>`_ from strands-project/recognition_dev
+  Recognition dev
+* use openni instead of openni2
+* rename object tracker
+* updated object tracker and RTMT saves tracking model correctly
+* seperated normal computation methods into new file
+  using using namespace v4r in samples for (i) brevity, (ii) conformity with ROS wrappers
+  changed some deprecated interfaces
+  split header files into impl (.hpp) files mainly to avoid c++11 neccessity when including with ROS
+* temporary backup commit
+* noise model based cloud integration update (also moved to registration module)
+  uses properties (1) lateral noise, (2) axial noise, (3) distance in px to depth discontinuity
+* backup commit
+* first try for new noise modelling
+* Merge branch 'fix_KeypointSlamRGBD' into recognition_dev
+* fixed problem when training views do not start with cloud_000000.pcd
+  TODO: re-initialize problem still exists (if training database is altered, flann matrix will be wrong - have to remove *_flann.idx manually right now)
+  fixed trigraph warnings
+* use absolute value when checking reprojected poitns in ground truth annotation
+  added parameters for noise model based integration demo program
+* since image2 only takes integer values, we do not need to interpolate (checked by Hannes)
+* add zero padding in interpolationfunction to avoid assertion error in Debug mode
+  add fix from Hannes
+* fix seg fault when dist_coeffs is 2x4 matrix instead of 1x8
+* small fix (avoid ourcvfh)
+* rewrite noise model based integration so that it uses really equation from Nguyen et al paper.
+* tmp commit
+* tmp commit
+* replaced a few integer and long unsigned integer by size_t to hopefully make it working on 32bit machines
+  added visualization functions for hypotheses verification
+* some more changes in pcl2opencv
+* change pcl2opencv interfaces
+* added tools again
+* Merge remote-tracking branch 'strands/master' into add_v4r_exports
+* added a few more V4R_EXPORTS (visibility attribute) for classes
+  added cmake_minimum_required version (cmake 2.8.8 apparently can not handle url hash tags)
+* add v4r_export for tomita
+* Contributors: Thomas Fäulhammer
+
 1.1.1 (2015-11-23)
 ------------------
 * Merge pull request `#37 <https://github.com/strands-project/v4r/issues/37>`_ from strands-project/add_glm_run_dependency
