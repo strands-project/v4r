@@ -233,7 +233,7 @@ public:
                 try
                 {
 //                    interface_.reset( new pcl::io::OpenNI2Grabber() );
-                    interface_.reset( new pcl::io::OpenNIGrabber() );
+                    interface_.reset( new pcl::OpenNIGrabber() );
                     boost::function<void (const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)> f = boost::bind (&ObjTrackerMono::cloud_cb, this, _1);
                     interface_->registerCallback (f);
                 }
