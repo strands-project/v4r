@@ -32,13 +32,14 @@
 #define __DM_RENDERER_OBJECT__
 
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <glm/glm.hpp>
 #include <GL/glew.h>
+#include <GL/gl.h>
+
+
 #include <eigen3/Eigen/Eigen>
 #include <v4r/core/macros.h>
+
+
 
 namespace v4r{
 
@@ -48,12 +49,9 @@ class V4R_EXPORTS DepthmapRendererModel{
 private:
     friend class DepthmapRenderer;
 
-    struct Vertex{
-        glm::vec3 pos;
-        glm::u8vec4 rgba;
-    };
+    struct Vertex;
 
-    Vertex *vertices; //the last float contains the color
+    Vertex *vertices;
     unsigned int *indices;
     int vertexCount;
     unsigned int indexCount;
@@ -61,8 +59,7 @@ private:
 
 
     float scale;
-    glm::vec3 offset;
-
+    Eigen::Vector3f offset;
     bool color;
     bool geometry;
 
