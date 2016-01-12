@@ -422,7 +422,6 @@ DepthmapRenderer::~DepthmapRenderer()
         glDeleteBuffers(1,&IBO);
     }
 
-
     //remaining buffers
     glDeleteBuffers(1,&SSBO);
     glDeleteBuffers(1,&atomicCounterBuffer);
@@ -477,8 +476,6 @@ std::vector<Eigen::Vector3f> DepthmapRenderer::createSphere(float r, size_t subd
 
 void DepthmapRenderer::setIntrinsics(float fx, float fy, float cx, float cy)
 {
-    //set and calculate projection matrix
-    //fxycxy=glm::vec4(fx,fy,cx,cy);
     fxycxy=Eigen::Vector4f(fx,fy,cx,cy);
 }
 
