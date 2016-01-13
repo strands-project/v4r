@@ -39,8 +39,7 @@ GlobalNNClassifier<Distance, PointInT>::loadFeaturesAndCreateFLANN ()
         const ModelTPtr &m = models[i];
         const std::string path = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
 
-        std::vector<std::string> descriptor_files;
-        io::getFilesInDirectory(path, descriptor_files, "", ".*descriptor.*.txt", false);
+        std::vector<std::string> descriptor_files = io::getFilesInDirectory(path, ".*descriptor.*.txt", false);
 
         for(std::string d:descriptor_files)
         {
