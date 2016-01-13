@@ -1,13 +1,20 @@
 #include <v4r/rendering/dmRenderObject.h>
 #include <iostream>
+
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #include <glm/glm.hpp>
 
 #include <GL/glew.h>
 #include <GL/gl.h>
-#include <GLFW/glfw3.h>
 
 namespace v4r
 {
+struct DepthmapRendererModel::Vertex{
+    glm::vec3 pos;
+    glm::u8vec4 rgba;
+};
 
 DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
 {
@@ -92,9 +99,7 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
         l+=scene->mMeshes[i]->mNumVertices;
     }
 
-
-
-    offset=-glm::vec3(mean);
+    offset=Eigen::Vector3f(-mean.x,-mean.y,-mean.z);
 
     scale=1.0f/(float)maxDistToCenter;
 
@@ -155,7 +160,7 @@ bool DepthmapRendererModel::hasColor()
 }
 
 Eigen::Vector3f DepthmapRendererModel::getOffset(){
-    return Eigen::Vector3f(offset.x,offset.y,offset.z);
+    return offset;
 }
 
 }

@@ -71,7 +71,9 @@ namespace v4r
 
         std::string mesh_dir_;
 
-        pcl::PointCloud<PointT> V4R_EXPORTS renderCloud (const DepthmapRenderer &renderer, float & visible);
+        boost::shared_ptr<DepthmapRenderer> renderer_;
+
+        pcl::PointCloud<PointT> V4R_EXPORTS renderCloud (const DepthmapRenderer &renderer_, float & visible);
 
       public:
 

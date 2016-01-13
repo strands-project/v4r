@@ -226,6 +226,12 @@ public:
     {
         view_prefix_ = pre;
     }
+
+    std::string
+    getViewPrefix() const
+    {
+        return view_prefix_;
+    }
 };
 }
 
