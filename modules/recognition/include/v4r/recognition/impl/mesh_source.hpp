@@ -22,7 +22,7 @@ template<typename PointT>
 void
 MeshSource<PointT>::loadOrGenerate (const std::string & model_path, ModelT & model)
 {
-    const std::string views_path = path_ + "/" + model.class_ + "/" + model.id_;
+    const std::string views_path = path_ + "/" + model.class_ + "/" + model.id_ + "/views";
 
     model.views_.clear();
     model.poses_.clear();
@@ -36,7 +36,7 @@ MeshSource<PointT>::loadOrGenerate (const std::string & model_path, ModelT & mod
     if (v4r::io::existsFolder(views_path))
     {
         if(load_into_memory_) {
-            model.view_filenames_ = v4r::io::getFilesInDirectory(views_path, ".*view_.*.pcd", false);
+            model.view_filenames_ = v4r::io::getFilesInDirectory(views_path, ".*" + view_prefix_ + ".*.pcd", false);
             loadInMemorySpecificModel(model);
         }
     }
@@ -116,7 +116,7 @@ template<typename PointT>
 void
 MeshSource<PointT>::loadInMemorySpecificModel(ModelT & model)
 {
-    const std::string pathmodel = path_ + "/" + model.class_ + "/" + model.id_;
+    const std::string pathmodel = path_ + "/" + model.class_ + "/" + model.id_ + "/views";
 
     model.poses_.resize( model.view_filenames_.size() );
     model.views_.resize( model.view_filenames_.size() );

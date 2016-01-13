@@ -141,6 +141,9 @@ int main (int argc, char ** argv)
 
         if(center)
         {
+#if PCL_VERSION < 100702
+            std::cout << "Centering is not implemented on your PCL version!" << std::endl;
+#else
             PointT centroid;
             pcl::computeCentroid(*cloud, centroid);
             for(size_t pt_id=0; pt_id<cloud->points.size(); pt_id++) {
@@ -148,6 +151,7 @@ int main (int argc, char ** argv)
                 cloud->points[pt_id].y -= centroid.y;
                 cloud->points[pt_id].z -= centroid.z;
             }
+#endif
         }
         if(multi_view) { // Setting up the visualization
             int col_id = file_id%cols;

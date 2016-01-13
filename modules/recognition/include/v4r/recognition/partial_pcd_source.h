@@ -60,6 +60,8 @@ namespace v4r
         using SourceT::models_;
         using SourceT::load_views_;
         using SourceT::load_into_memory_;
+        using SourceT::view_prefix_;
+        using SourceT::pose_prefix_;
 
         bool use_vertices_;
         int tes_level_;
