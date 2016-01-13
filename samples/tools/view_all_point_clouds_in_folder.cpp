@@ -120,8 +120,7 @@ int main (int argc, char ** argv)
 
         if( v4r::io::existsFile( full_pose_path ) )
         {
-            Eigen::Matrix4f tf;
-            v4r::io::readMatrixFromFile(full_pose_path, tf);
+            Eigen::Matrix4f tf = v4r::io::readMatrixFromFile(full_pose_path);
             const Eigen::Matrix4f tf_inv = tf.inverse();
             pcl::transformPointCloud(*cloud, *cloud, tf_inv);
         }
