@@ -124,7 +124,7 @@ V4R_OPTION(BUILD_v4r_apps           "Build utility applications (used for exampl
 V4R_OPTION(BUILD_DOCS               "Create build rules for V4R Documentation"    ON  IF NOT WINRT)
 V4R_OPTION(BUILD_EXAMPLES           "Build all examples"                          ON )
 V4R_OPTION(BUILD_EVALUATION_TOOLS   "Build all evaluation tools"                          OFF )
-V4R_OPTION(BUILD_UTILITY_TOOLS              "Build all utility tools"                          OFF )
+V4R_OPTION(BUILD_UTILITY_TOOLS              "Build all utility tools"                          ON )
 V4R_OPTION(BUILD_PACKAGE            "Enables 'make package_source' command"       ON  IF NOT WINRT)
 V4R_OPTION(BUILD_PERF_TESTS         "Build performance tests"                     ON  IF (NOT IOS) )
 V4R_OPTION(BUILD_TESTS              "Build accuracy & regression tests"           ON  IF (NOT IOS) )
