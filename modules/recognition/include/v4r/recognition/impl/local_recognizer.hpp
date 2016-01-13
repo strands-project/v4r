@@ -28,7 +28,7 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
         for(size_t v_id=0; v_id< m->view_filenames_.size(); v_id++)
         {
             std::string signature_basename (m->view_filenames_[v_id]);
-            boost::replace_last(signature_basename, "cloud_", "/descriptors_");
+            boost::replace_last(signature_basename, source_->getViewPrefix(), "/descriptors_");
 
             typename pcl::PointCloud<FeatureT>::Ptr signature (new pcl::PointCloud<FeatureT> ());
             pcl::io::loadPCDFile (out_train_path + signature_basename, *signature);
@@ -43,18 +43,18 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
             if (param_.use_cache_) //load model data (keypoints, pose and normals for each training view) and save them to cache
             {
                 std::string pose_basename (m->view_filenames_[v_id]);
-                boost::replace_last(pose_basename, "cloud_", "/pose_");
+                boost::replace_last(pose_basename, source_->getViewPrefix(), "/pose_");
                 boost::replace_last(pose_basename, ".pcd", ".txt");
 
                 Eigen::Matrix4f pose_matrix = io::readMatrixFromFile( in_train_path + pose_basename);
 
                 std::string keypoint_basename (m->view_filenames_[v_id]);
-                boost::replace_last(keypoint_basename, "cloud_", + "/keypoints_");
+                boost::replace_last(keypoint_basename, source_->getViewPrefix(), + "/keypoints_");
                 typename pcl::PointCloud<PointT>::Ptr keypoints (new pcl::PointCloud<PointT> ());
                 pcl::io::loadPCDFile (out_train_path + keypoint_basename, *keypoints);
 
                 std::string kp_normals_basename (m->view_filenames_[v_id]);
-                boost::replace_last(kp_normals_basename, "cloud_", "/keypoint_normals_");
+                boost::replace_last(kp_normals_basename, source_->getViewPrefix(), "/keypoint_normals_");
                 pcl::PointCloud<pcl::Normal>::Ptr kp_normals (new pcl::PointCloud<pcl::Normal> ());
                 pcl::io::loadPCDFile (out_train_path + kp_normals_basename, *kp_normals);
 
@@ -79,6 +79,9 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
                 m->kp_normals_->points.insert(m->kp_normals_->points.end(),
                                              kp_normals->points.begin(),
                                              kp_normals->points.end());
+
+//                size_t existing_kp = m->kp_info_.size();
+//                m->kp_info_.resize(existing_kp + keypoints->points.size());
             }
 
             for (size_t dd = 0; dd < signature->points.size (); dd++)
@@ -205,21 +208,22 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                 }
                 object_signatures->points.resize( kept );
                 obj_kp_indices.indices.resize( kept );
+
                 pcl::copyPointCloud( *m->views_[v], obj_kp_indices, *object_keypoints);
 
                 if (object_keypoints->points.size()) //save descriptors and keypoints to disk
                 {
                     io::createDirIfNotExist(dir);
                     std::string descriptor_basename (m->view_filenames_[v]);
-                    boost::replace_last(descriptor_basename, "cloud_", "/descriptors_");
+                    boost::replace_last(descriptor_basename, source_->getViewPrefix(), "/descriptors_");
                     pcl::io::savePCDFileBinary (dir + descriptor_basename, *object_signatures);
 
                     std::string keypoint_basename (m->view_filenames_[v]);
-                    boost::replace_last(keypoint_basename, "cloud_", "/keypoints_");
+                    boost::replace_last(keypoint_basename, source_->getViewPrefix(), "/keypoints_");
                     pcl::io::savePCDFileBinary (dir + keypoint_basename, *object_keypoints);
 
                     std::string kp_normals_basename (m->view_filenames_[v]);
-                    boost::replace_last(kp_normals_basename, "cloud_", "/keypoint_normals_");
+                    boost::replace_last(kp_normals_basename, source_->getViewPrefix(), "/keypoint_normals_");
                     pcl::PointCloud<pcl::Normal>::Ptr normals_keypoints(new pcl::PointCloud<pcl::Normal>);
                     pcl::copyPointCloud(*normals, obj_kp_indices, *normals_keypoints);
                     pcl::io::savePCDFileBinary (dir + kp_normals_basename, *normals_keypoints);
@@ -411,12 +415,12 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKpNormal (const ModelT 
         return model.kp_normals_->points[keypoint_id];
 
     std::string kp_normals_basename (view_id);
-    boost::replace_last(kp_normals_basename, "cloud_", descr_name_ + "/" + "keypoint_normals_");
+    boost::replace_last(kp_normals_basename, source_->getViewPrefix(), descr_name_ + "/keypoint_normals_");
     pcl::PointCloud<pcl::Normal> normals_cloud;
     pcl::io::loadPCDFile (kp_normals_basename, normals_cloud);
 
     std::string pose_basename (view_id);
-    boost::replace_last(pose_basename, "cloud_", "pose_");
+    boost::replace_last(pose_basename, source_->getViewPrefix(), "/pose_");
     boost::replace_last(pose_basename, ".pcd", ".txt");
     Eigen::Matrix4f pose_matrix = io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename);
 
@@ -434,12 +438,12 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::getKeypoint (const ModelT 
         return model.keypoints_->points[keypoint_id];
 
     std::string keypoint_basename (view_id);
-    boost::replace_last(keypoint_basename, "cloud_", descr_name_ + "/" + "keypoints_");
+    boost::replace_last(keypoint_basename, source_->getViewPrefix(), descr_name_ + "/keypoints_");
     pcl::PointCloud<PointT> keypoint_cloud;
     pcl::io::loadPCDFile (models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + keypoint_basename, keypoint_cloud);
 
     std::string pose_basename (view_id);
-    boost::replace_last(pose_basename, "cloud_", "pose_");
+    boost::replace_last(pose_basename, source_->getViewPrefix(), "/pose_");
     boost::replace_last(pose_basename, ".pcd", ".txt");
     Eigen::Matrix4f pose_matrix = io::readMatrixFromFile( models_dir_ + "/" + model.class_ + "/" + model.id_ + "/" + pose_basename);
 

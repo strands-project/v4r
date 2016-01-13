@@ -59,7 +59,7 @@ init(v4r::GlobalNNClassifier<flann::L1, PointT> &esf_classifier) {
     cast_estimator = boost::dynamic_pointer_cast<v4r::ESFEstimation<PointT> > (estimator);
 
     esf_classifier.setDataSource(source);
-//    esf_classifier.setTrainingDir(TRAINING_DIR_);
+    esf_classifier.setTrainingDir(MODELS_DIR_);
     esf_classifier.setDescriptorName("esf");
     esf_classifier.setFeatureEstimator (cast_estimator);
     esf_classifier.setNN(KNN_);
