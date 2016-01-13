@@ -41,7 +41,7 @@ GlobalNNClassifier<Distance, PointInT>::loadFeaturesAndCreateFLANN ()
 
         std::vector<std::string> descriptor_files = io::getFilesInDirectory(path, ".*descriptor.*.txt", false);
 
-        for(std::string d:descriptor_files)
+        for(const std::string &d:descriptor_files)
         {
             const std::string fn = path + "/" + d;
             std::ifstream ifs( fn );
@@ -187,8 +187,7 @@ GlobalNNClassifier<Distance, PointInT>::initialize (bool force_retrain)
         bool view_is_already_trained = false;
         if ( v4r::io::existsFolder(out_dir) )   // check if training directory exists and the number of descriptors is equal to the number of views
         {
-            std::vector<std::string> descriptor_files;
-            v4r::io::getFilesInDirectory(out_dir, descriptor_files, "", ".*descriptor.*.txt", false);
+            std::vector<std::string> descriptor_files = v4r::io::getFilesInDirectory(out_dir, ".*descriptor.*.txt", false);
             if(descriptor_files.size()== m->views_.size())
                 view_is_already_trained = true;
         }
