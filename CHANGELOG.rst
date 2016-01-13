@@ -2,6 +2,38 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#43 <https://github.com/strands-project/v4r/issues/43>`_ from strands-project/fix_classifier
+  Fix classifier
+* fix global classifier error when reading from new model database file structure
+* build utility tools by default
+* Merge remote-tracking branch 'simon/master'
+* Merge pull request `#42 <https://github.com/strands-project/v4r/issues/42>`_ from strands-project/remove_glfw3_dependency
+  Remove glfw3 dependency
+* remove some output messages
+* remove glfw3 dependency and use X* libraries only
+  fixed some deprecated interfaces warnings
+  added some build /run dependency for openni
+* Added code for a proper destructor
+* cleaned up some code
+* Merge remote-tracking branch 'simon/master'
+* Merge remote-tracking branch 'simon/change_glfw_to_old'
+* removed the need for glfw and changed everything to work with only x11 dependencies
+* Merge remote-tracking branch 'origin/master'
+* Merge remote-tracking branch 'v4r_root/master'
+* Merge remote-tracking branch 'strands/master'
+* merged
+* use openni instead of openni2
+* Merge remote-tracking branch 'v4r_root/recognition_dev'
+* Merge branch 'recognition_update' into 'master'
+  Recognition update
+  See merge request !2
+* Merge branch 'recognition_update' into 'master'
+  Recognition update
+  See merge request !45
+* Contributors: Simon Schreiberhuber, Thomas Fäulhammer
+
 1.3.0 (2016-01-08)
 ------------------
 
