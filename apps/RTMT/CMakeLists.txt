@@ -55,21 +55,6 @@ if(HAVE_OPENNI2)
   list(APPEND DEP_LIBS ${OPENNI2_LIBRARIES})
 endif()
 
-if(HAVE_QT4)
-  v4r_include_directories(${QT4_INCLUDE_DIRS})
-  list(APPEND DEP_LIBS ${QT4_LIBRARIES})
-add_definitions(${QT_DEFINITIONS})
-endif()
-
-
-find_package(PkgConfig REQUIRED)
-pkg_search_module(GL REQUIRED gl)
-
-#add_definitions(-std=c++0x)
-add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
-add_definitions(-Dlinux -D__x86_64__)
-
-
 set(SOURCES
         BundleAdjustment.cpp
         Camera.cpp
@@ -101,16 +86,36 @@ set(FORMS
         params.ui
 )
 
-QT4_WRAP_CPP(HEADERS_MOC ${HEADERS})
-QT4_WRAP_UI(FORMS_MOC ${FORMS})
+if(HAVE_QT4)
+  v4r_include_directories(${QT4_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${QT4_LIBRARIES})
+  add_definitions(${QT_DEFINITIONS})
+  QT4_WRAP_CPP(HEADERS_MOC ${HEADERS})
+  QT4_WRAP_UI(FORMS_MOC ${FORMS})
+  set(QT_USE_QTOPENGL TRUE)
+  include(${QT_USE_FILE})
+  
+  message(STATUS "QT_INCLUDE_DIR: ${QT_INCLUDE_DIR}")
+  message(STATUS "QT_USE_FILE: ${QT_USE_FILE}")
+  message(STATUS "QT_DEFINITIONS: ${QT_DEFINITIONS}")
+  message(STATUS "QT_LIBRARIES: ${QT_LIBRARIES}")
+elseif(HAVE_QT5)
+  v4r_include_directories(${Qt5Widgets_INCLUDE_DIRS})
+  v4r_include_directories(${Qt5OpenGL_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${Qt5Widgets_LIBRARIES})
+  list(APPEND DEP_LIBS ${Qt5OpenGL_LIBRARIES})
+  set(CMAKE_AUTOMOC ON)
+  set(CMAKE_AUTOUIC ON)
+endif()
 
-set(QT_USE_QTOPENGL TRUE)
-include(${QT_USE_FILE})
 
-message(STATUS "QT_INCLUDE_DIR: ${QT_INCLUDE_DIR}")
-message(STATUS "QT_USE_FILE: ${QT_USE_FILE}")
-message(STATUS "QT_DEFINITIONS: ${QT_DEFINITIONS}")
-message(STATUS "QT_LIBRARIES: ${QT_LIBRARIES}")
+find_package(PkgConfig REQUIRED)
+pkg_search_module(GL REQUIRED gl)
+
+#add_definitions(-std=c++0x)
+add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
+add_definitions(-Dlinux -D__x86_64__)
+
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${OPENNI2_INCLUDE_DIR})
 add_executable(RTMT ${SOURCES} ${HEADERS_MOC} ${FORMS_MOC})
