@@ -621,7 +621,7 @@ else()
   status("    OpenCV:"  "NO")
 endif()
 if(WITH_OPENNI2 AND HAVE_OPENNI2)
-  status("    OpenNI2:"  "YES (ver ${OpenNI2_VERSION})")
+    status("    OpenNI2:"  "YES (ver ${OPENNI2_VERSION})")
 else()
   status("    OpenNI2:"  "NO")
 endif()
@@ -659,25 +659,31 @@ endif()
 status("")
 status("  Video I/O:")
 
-if(DEFINED WITH_OPENNI)
+if(WITH_OPENNI)
   status("    OpenNI:"         HAVE_OPENNI         THEN "YES (ver ${OPENNI_VERSION_STRING}, build ${OPENNI_VERSION_BUILD})"
                                                                                                    ELSE NO)
   status("    OpenNI PrimeSensor Modules:" HAVE_OPENNI_PRIME_SENSOR_MODULE
                                                    THEN "YES (${OPENNI_PRIME_SENSOR_MODULE})"      ELSE NO)
-endif(DEFINED WITH_OPENNI)
+else()
+  status("    OpenNI:"  "NO")
+endif()
 
-if(DEFINED WITH_OPENNI2)
-  status("    OpenNI2:"		   HAVE_OPENNI2	   THEN "YES (ver ${OPENNI2_VERSION_STRING}, build ${OPENNI2_VERSION_BUILD})"
+if(WITH_OPENNI2)
+  status("    OpenNI2:"		   HAVE_OPENNI2	   THEN "YES (ver ${OPENNI2_VERSION})"
                                                                                                    ELSE NO)
-endif(DEFINED WITH_OPENNI2)
+endif()
 
-if(DEFINED WITH_PVAPI)
+if(WITH_PVAPI)
   status("    PvAPI:"          HAVE_PVAPI          THEN YES                                        ELSE NO)
-endif(DEFINED WITH_PVAPI)
+else()
+  status("    PvAPI:"  "NO")
+endif()
 
-if(DEFINED WITH_GIGEAPI)
+if(WITH_GIGEAPI)
   status("    GigEVisionSDK:"  HAVE_GIGE_API       THEN YES                                        ELSE NO)
-endif(DEFINED WITH_GIGEAPI)
+else()
+  status("    GigEVisionSDK:"  "NO")
+endif()
 
 # Order is similar to CV_PARALLEL_FRAMEWORK in core/src/parallel.cpp
 v4r_clear_vars(CV_PARALLEL_FRAMEWORK)
