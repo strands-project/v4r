@@ -632,7 +632,7 @@ else()
 endif()
 
 if(WITH_OPENGL AND HAVE_OPENGL)
-  status("    OPENGL:"  "YES (ver ${OPENGL_VERSION})")
+  status("    OPENGL:"  "YES")
 else()
   status("    OPENGL:"  "NO")
 endif()
