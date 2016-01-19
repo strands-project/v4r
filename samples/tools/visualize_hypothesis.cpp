@@ -41,9 +41,7 @@ int main (int argc, char ** argv)
     pcl::visualization::PCLVisualizer vis;
     // Loading file and corresponding indices file (if it exists)
     pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
-    pcl::PointCloud<PointT>::Ptr obj_cloud (new pcl::PointCloud<PointT>);
     pcl::io::loadPCDFile (path_s, *cloud);
-
 
     Eigen::Matrix4f transform = v4r::io::readMatrixFromFile(path_p);
 

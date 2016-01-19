@@ -14,6 +14,9 @@ typedef Bool (*glXMakeContextCurrentARBProc)(Display*, GLXDrawable, GLXDrawable,
 static glXCreateContextAttribsARBProc glXCreateContextAttribsARB = 0;
 static glXMakeContextCurrentARBProc glXMakeContextCurrentARB = 0;
 
+int counter=0;
+Display* dpy;
+GLXContext ctx;
 
 namespace v4r
 {
@@ -114,76 +117,79 @@ DepthmapRenderer::DepthmapRenderer(int resx, int resy)
     //res=glm::ivec2(resx,resy);
     res=Eigen::Vector2i(resx,resy);
 
+    if(counter==0){
+        //BEGIN OF COPYCAT CODE
+        static int visual_attribs[] = {
+                None
+        };
+        int context_attribs[] = {
+                GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+                GLX_CONTEXT_MINOR_VERSION_ARB, 0,
+                None
+        };
 
-    //BEGIN OF COPYCAT CODE
-    static int visual_attribs[] = {
-            None
-    };
-    int context_attribs[] = {
-            GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-            GLX_CONTEXT_MINOR_VERSION_ARB, 0,
-            None
-    };
+        dpy = XOpenDisplay(0);
+        int fbcount = 0;
+        GLXFBConfig* fbc = NULL;
 
-    Display* dpy = XOpenDisplay(0);
-    int fbcount = 0;
-    GLXFBConfig* fbc = NULL;
-    GLXContext ctx;
-    GLXPbuffer pbuf;
+        GLXPbuffer pbuf;
 
-    /* open display */
-    if ( ! (dpy = XOpenDisplay(0)) ){
-            fprintf(stderr, "Failed to open display\n");
-            exit(1);
-    }
-
-    /* get framebuffer configs, any is usable (might want to add proper attribs) */
-    if ( !(fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), visual_attribs, &fbcount) ) ){
-            fprintf(stderr, "Failed to get FBConfig\n");
-            exit(1);
-    }
-
-    /* get the required extensions */
-    glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB");
-    glXMakeContextCurrentARB = (glXMakeContextCurrentARBProc)glXGetProcAddressARB( (const GLubyte *) "glXMakeContextCurrent");
-    if ( !(glXCreateContextAttribsARB && glXMakeContextCurrentARB) ){
-            fprintf(stderr, "missing support for GLX_ARB_create_context\n");
-            XFree(fbc);
-            exit(1);
-    }
-
-    /* create a context using glXCreateContextAttribsARB */
-    if ( !( ctx = glXCreateContextAttribsARB(dpy, fbc[0], 0, True, context_attribs)) ){
-            fprintf(stderr, "Failed to create opengl context\n");
-            XFree(fbc);
-            exit(1);
-    }
-
-    /* create temporary pbuffer */
-    int pbuffer_attribs[] = {
-            GLX_PBUFFER_WIDTH, 800,
-            GLX_PBUFFER_HEIGHT, 600,
-            None
-    };
-    pbuf = glXCreatePbuffer(dpy, fbc[0], pbuffer_attribs);
-
-    XFree(fbc);
-    XSync(dpy, False);
-
-    /* try to make it the current context */
-    if ( !glXMakeContextCurrent(dpy, pbuf, pbuf, ctx) ){
-        /* some drivers does not support context without default framebuffer, so fallback on
-         * using the default window.
-         */
-        if ( !glXMakeContextCurrent(dpy, DefaultRootWindow(dpy), DefaultRootWindow(dpy), ctx) ){
-            fprintf(stderr, "failed to make current\n");
-            exit(1);
+        /* open display */
+        if ( ! (dpy = XOpenDisplay(0)) ){
+                fprintf(stderr, "Failed to open display\n");
+                exit(1);
         }
-    }
 
-    /* try it out */
-    // printf("vendor: %s\n", (const char*)glGetString(GL_VENDOR));
-    //END OF COPYCATCODE
+        /* get framebuffer configs, any is usable (might want to add proper attribs) */
+        if ( !(fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), visual_attribs, &fbcount) ) ){
+                fprintf(stderr, "Failed to get FBConfig\n");
+                exit(1);
+        }
+
+        /* get the required extensions */
+        glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB");
+        glXMakeContextCurrentARB = (glXMakeContextCurrentARBProc)glXGetProcAddressARB( (const GLubyte *) "glXMakeContextCurrent");
+        if ( !(glXCreateContextAttribsARB && glXMakeContextCurrentARB) ){
+                fprintf(stderr, "missing support for GLX_ARB_create_context\n");
+                XFree(fbc);
+                exit(1);
+        }
+
+        /* create a context using glXCreateContextAttribsARB */
+        if ( !( ctx = glXCreateContextAttribsARB(dpy, fbc[0], 0, True, context_attribs)) ){
+                fprintf(stderr, "Failed to create opengl context\n");
+                XFree(fbc);
+                exit(1);
+        }
+
+        /* create temporary pbuffer */
+        int pbuffer_attribs[] = {
+                GLX_PBUFFER_WIDTH, 800,
+                GLX_PBUFFER_HEIGHT, 600,
+                None
+        };
+        pbuf = glXCreatePbuffer(dpy, fbc[0], pbuffer_attribs);
+
+        XFree(fbc);
+        XSync(dpy, False);
+
+        /* try to make it the current context */
+        if ( !glXMakeContextCurrent(dpy, pbuf, pbuf, ctx) ){
+            /* some drivers does not support context without default framebuffer, so fallback on
+             * using the default window.
+             */
+            if ( !glXMakeContextCurrent(dpy, DefaultRootWindow(dpy), DefaultRootWindow(dpy), ctx) ){
+                fprintf(stderr, "failed to make current\n");
+                exit(1);
+            }
+        }
+
+
+        /* try it out */
+        // printf("vendor: %s\n", (const char*)glGetString(GL_VENDOR));
+        //END OF COPYCATCODE
+    }
+    counter++;
 
 
     GLenum err=glewInit();
@@ -422,10 +428,16 @@ DepthmapRenderer::~DepthmapRenderer()
         glDeleteBuffers(1,&IBO);
     }
 
-
     //remaining buffers
     glDeleteBuffers(1,&SSBO);
     glDeleteBuffers(1,&atomicCounterBuffer);
+
+
+    counter--;
+    //once every renderer closes destroy the context:
+    if(counter==0){
+        glXDestroyContext(dpy,ctx);
+    }
 
 }
 
@@ -477,8 +489,6 @@ std::vector<Eigen::Vector3f> DepthmapRenderer::createSphere(float r, size_t subd
 
 void DepthmapRenderer::setIntrinsics(float fx, float fy, float cx, float cy)
 {
-    //set and calculate projection matrix
-    //fxycxy=glm::vec4(fx,fy,cx,cy);
     fxycxy=Eigen::Vector4f(fx,fy,cx,cy);
 }
 

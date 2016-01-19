@@ -34,12 +34,8 @@
 
 #include <GL/glew.h>
 
-
 #include <opencv2/opencv.hpp>
 
-
-
-//except for these everything else has to go to the source file:
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <eigen3/Eigen/Eigen>

@@ -51,9 +51,9 @@ int main (int argc, char ** argv)
     size_t rows = static_cast<size_t>(i_rows);
 
     std::cout << "Visualizing all point clouds in folder " << path;
-    std::vector < std::string > files_intern;
     const std::string filepattern = cloud_prefix + ".*.pcd";
-    if (v4r::io::getFilesInDirectory (path, files_intern, "", filepattern, false) == -1)
+    std::vector < std::string > files_intern = v4r::io::getFilesInDirectory (path, filepattern, false);
+    if (files_intern.empty())
     {
         std::cerr << "Given path: " << path << " does not exist. "
                   << "Usage " << argv[0]
@@ -120,8 +120,7 @@ int main (int argc, char ** argv)
 
         if( v4r::io::existsFile( full_pose_path ) )
         {
-            Eigen::Matrix4f tf;
-            v4r::io::readMatrixFromFile(full_pose_path, tf);
+            Eigen::Matrix4f tf = v4r::io::readMatrixFromFile(full_pose_path);
             const Eigen::Matrix4f tf_inv = tf.inverse();
             pcl::transformPointCloud(*cloud, *cloud, tf_inv);
         }
@@ -141,6 +140,9 @@ int main (int argc, char ** argv)
 
         if(center)
         {
+#if PCL_VERSION < 100702
+            std::cout << "Centering is not implemented on your PCL version!" << std::endl;
+#else
             PointT centroid;
             pcl::computeCentroid(*cloud, centroid);
             for(size_t pt_id=0; pt_id<cloud->points.size(); pt_id++) {
@@ -148,6 +150,7 @@ int main (int argc, char ** argv)
                 cloud->points[pt_id].y -= centroid.y;
                 cloud->points[pt_id].z -= centroid.z;
             }
+#endif
         }
         if(multi_view) { // Setting up the visualization
             int col_id = file_id%cols;

@@ -590,12 +590,12 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (c
       views_orig.push_back (filtered2);*/
 
       std::stringstream path_view;
-      path_view << direc << "/view_" << std::setfill ('0') << std::setw (8) << cam_id << ".pcd";
+      path_view << direc << "/" << view_prefix_ << std::setfill ('0') << std::setw (8) << cam_id << ".pcd";
       std::cout << filtered2->points.size() << std::endl;
       pcl::io::savePCDFileBinary (path_view.str (), *filtered2);
 
       std::stringstream path_pose;
-      path_pose << direc << "/pose_" << std::setfill ('0') << std::setw (8) << cam_id << ".txt";
+      path_pose << direc << "/" << pose_prefix_ << std::setfill ('0') << std::setw (8) << cam_id << ".txt";
       v4r::io::writeMatrixToFile( path_pose.str (), final_mat);
 
       /*std::stringstream path_entropy;
