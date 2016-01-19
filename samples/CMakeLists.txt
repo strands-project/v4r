@@ -1,4 +1,3 @@
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # Detect if we want to build samples with library binaries or not
 if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_LIST_DIR)
 #
@@ -15,7 +14,7 @@ if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_LIST_DIR)
 add_subdirectory(examples)
 add_subdirectory(eval)
 add_subdirectory(tools)
-add_subdirectory(icra16)
+#add_subdirectory(icra16)
 #add_subdirectory(ocl)
 
 #
@@ -31,6 +30,7 @@ project(samples C CXX)
 option(BUILD_EXAMPLES "Build samples" ON)
 option(BUILD_EVALUATION_TOOLS "Build evaluation tools" ON)
 option(BUILD_UTILITY_TOOLS "Build utility tools" ON)
+#option(BUILD_ICRA16_TOOLS "Build evaluations for RA-L Paper 2016, Faeulhammer" OFF)
 
 
 find_package(V4R REQUIRED)
@@ -39,7 +39,7 @@ find_package(V4R REQUIRED)
 add_subdirectory(examples)
 add_subdirectory(eval)
 add_subdirectory(tools)
-add_subdirectory(icra16)
+#add_subdirectory(icra16)
 #add_subdirectory(ocl)
 
 endif()

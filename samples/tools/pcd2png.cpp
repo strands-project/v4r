@@ -38,44 +38,36 @@ int main(int argc, char** argv)
        return false;
    }
 
-   try
-   {
-       po::notify(vm);
-   }
+   try  { po::notify(vm); }
    catch(std::exception& e)
    {
        std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
        return false;
    }
 
-    std::vector< std::string> sub_folder_names;
-    if(!v4r::io::getFoldersInDirectory( input_dir, "", sub_folder_names) )
-    {
-        std::cerr << "No subfolders in directory " << input_dir << ". " << std::endl;
+    std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( input_dir );
+
+    if( sub_folder_names.empty() )
         sub_folder_names.push_back("");
-    }
 
     std::vector<std::pair<std::string, size_t> > file2label;
 
     size_t id = 0;
     v4r::io::createDirIfNotExist(output_dir);
-    std::sort(sub_folder_names.begin(), sub_folder_names.end());
+
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {
         const std::string sequence_path = input_dir + "/" + sub_folder_names[ sub_folder_id ];
 
-        std::vector< std::string > views;
-        v4r::io::getFilesInDirectory(sequence_path, views, "", ".*.pcd", false);
-        std::sort(views.begin(), views.end());
+        std::vector< std::string > views = v4r::io::getFilesInDirectory(sequence_path, ".*.pcd", false);
+
         for (size_t v_id=0; v_id<views.size(); v_id++)
         {
             const std::string input_fn = sequence_path + "/" + views[v_id];
 
-
             std::cout << "Converting image " << input_fn << std::endl;
             pcl::PointCloud<pcl::PointXYZRGB> cloud;
             pcl::io::loadPCDFile(input_fn, cloud);
-
 
             // Read object indices
             std::string indices_file (views[v_id]);

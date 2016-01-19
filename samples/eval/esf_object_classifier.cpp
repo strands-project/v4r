@@ -69,8 +69,7 @@ main (int argc, char ** argv)
     std::string desc = argv[3];
     const std::string error_out_dir = "/tmp/classification_failures";
 
-    std::vector<std::string> rel_files;
-    v4r::io::getFilesInDirectory(test_dir, rel_files, "", ".*.anno_test", false);
+    std::vector<std::string> rel_files = v4r::io::getFilesInDirectory(test_dir, ".*.anno_test", false);
 
     std::map<std::string, Category> classes;
 

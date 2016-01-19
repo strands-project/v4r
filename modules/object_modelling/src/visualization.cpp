@@ -21,12 +21,9 @@ void
 DOL::createBigCloud()
 {
      size_t num_frames = grph_.size();
-     std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > keyframes_used (num_frames);
+     std::vector< pcl::PointCloud<PointT>::Ptr > keyframes_used (num_frames);
      std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used (num_frames);
      std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used (num_frames);
-     std::vector<pcl::PointCloud<IndexPoint> > object_indices_clouds (num_frames);
-     std::vector<std::vector<float> > weights (num_frames);
-     std::vector<std::vector<float> > sigmas (num_frames);
      std::vector<std::vector<size_t> > indices_used (num_frames);
 
      // only used keyframes with have object points in them
@@ -43,56 +40,43 @@ DOL::createBigCloud()
          pcl::copyPointCloud(*cloud_trans, grph_[view_id].obj_mask_step_.back(), *segmented_trans);
          *big_cloud_segmented_ += *segmented_trans;
 
-
          //using noise model
          if ( grph_[view_id].obj_mask_step_.back().size() )
          {
              keyframes_used[ kept_keyframes ] = grph_[view_id].cloud_;
-             normals_used [ kept_keyframes ] = grph_[view_id].normal_;
-             cameras_used [ kept_keyframes ] = grph_[view_id].camera_pose_;
-             indices_used[ kept_keyframes ] = createIndicesFromMask<size_t>( grph_[view_id].obj_mask_step_.back() );
-
-             object_indices_clouds[ kept_keyframes ].points.resize( indices_used[ kept_keyframes ].size());
-
-             for(size_t k=0; k < indices_used[ kept_keyframes ].size(); k++)
-             {
-                 object_indices_clouds[ kept_keyframes ].points[k].idx = (int)indices_used[ kept_keyframes ][k];
-             }
+             normals_used  [ kept_keyframes ] = grph_[view_id].normal_;
+             cameras_used  [ kept_keyframes ] = grph_[view_id].camera_pose_;
+             indices_used  [ kept_keyframes ] = createIndicesFromMask<size_t>( grph_[view_id].obj_mask_step_.back() );
              kept_keyframes++;
          }
      }
-     weights.resize(kept_keyframes);
-     sigmas.resize(kept_keyframes);
      indices_used.resize(kept_keyframes);
-     object_indices_clouds.resize(kept_keyframes);
      keyframes_used.resize(kept_keyframes);
      normals_used.resize(kept_keyframes);
      cameras_used.resize(kept_keyframes);
+     std::vector<std::vector<std::vector<float> > > pt_properties (kept_keyframes);
 
      if ( kept_keyframes > 0)
      {
          //compute noise weights
          for(size_t i=0; i < kept_keyframes; i++)
          {
-             v4r::noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+             NguyenNoiseModel<PointT>::Parameter nm_param;
+             nm_param.use_depth_edges_ = true;
+             NguyenNoiseModel<PointT> nm (nm_param);
              nm.setInputCloud(keyframes_used[i]);
              nm.setInputNormals(normals_used[i]);
-             nm.setLateralSigma(0.001);
-             nm.setMaxAngle(60.f);
-             nm.setUseDepthEdges(true);
              nm.compute();
-             nm.getWeights(weights[i]);
-             sigmas[i] = nm.getSigmas();
+             pt_properties[i] = nm.getPointProperties();
          }
 
-         pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-         v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nm_int_param_);
+         pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
+         NMBasedCloudIntegration<PointT> nmIntegration (nm_int_param_);
          nmIntegration.setInputClouds(keyframes_used);
-         nmIntegration.setWeights(weights);
-         nmIntegration.setSigmas(sigmas);
          nmIntegration.setTransformations(cameras_used);
          nmIntegration.setInputNormals(normals_used);
          nmIntegration.setIndices( indices_used );
+         nmIntegration.setPointProperties( pt_properties );
          nmIntegration.compute(octree_cloud);
          pcl::PointCloud<pcl::Normal>::Ptr octree_normals;
          nmIntegration.getOutputNormals(octree_normals);
@@ -113,18 +97,6 @@ DOL::visualize_clusters()
     srand (time(NULL));
     if (!vis_seg_)
         vis_seg_.reset(new pcl::visualization::PCLVisualizer("smooth clusters"));
-//        size_t total_sub_windows = view.planes_.size();
-//        size_t cols = static_cast<size_t>(total_sub_windows * 16.f / (16.f*9.f) + 0.5f); // optimized for 16:9
-//        size_t rows = std::ceil(total_sub_windows/float(cols));
-//        std::vector<int> viewports = v4r::common::pcl_visualizer::visualization_framework (*vis_seg_, cols, rows);
-
-//    size_t max_clusters=0;
-//    for (size_t view_id = 0; view_id < grph_.size(); view_id++)
-//    {
-//      if( grph_[view_id].planes_.size() > max_clusters )
-//         max_clusters = grph_[view_id].planes_.size();
-//    }
-    //    std::vector<int> viewports = v4r::common::pcl_visualizer::visualization_framework (*vis_seg_, grph_.size(), max_clusters+1);
 
     std::vector<std::string> subwindow_title;
     subwindow_title.push_back("original");
@@ -166,13 +138,13 @@ DOL::visualize_clusters()
 
             if(grph_[view_id].planes_[cluster_id].is_filtered)
             {
-                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> colored_src (segmented, r, g, b);
+                pcl::visualization::PointCloudColorHandlerCustom<PointT> colored_src (segmented, r, g, b);
                 vis_seg_->addPointCloud(segmented, colored_src, name.str(), viewports[view_id*3 + 1]);
                 vis_seg_->addText(text.str(),40, 10*cluster_id,10, r/255, g/255, b/255, name.str(), viewports[view_id*3 + 1]);
             }
             else
             {
-                pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> colored_src (segmented, r, g, b);
+                pcl::visualization::PointCloudColorHandlerCustom<PointT> colored_src (segmented, r, g, b);
                 vis_seg_->addPointCloud(segmented, colored_src, name.str(), viewports[view_id*3 + 2]);
                 vis_seg_->addText(text.str(), 40, 10*cluster_id,10,r,g,b,name.str(), viewports[view_id*3 + 2]);
             }

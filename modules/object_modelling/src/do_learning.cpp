@@ -36,7 +36,7 @@
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/registration/fast_icp_with_gc.h>
 #include <v4r/common/binary_algorithms.h>
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/normals.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/io/filesystem.h>
@@ -82,7 +82,7 @@ DOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_s
     float w_after_icp_ = std::numeric_limits<float>::max ();
     const float best_overlap_ = 0.75f;
 
-    FastIterativeClosestPointWithGC<pcl::PointXYZRGB> icp;
+    FastIterativeClosestPointWithGC<PointT> icp;
     icp.setMaxCorrespondenceDistance ( 0.02f );
     icp.setInputSource ( cloud_src_wo_nan );
     icp.setInputTarget ( cloud_dst_wo_nan );
@@ -192,7 +192,7 @@ DOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
     else
     {
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms;
-        pcl::GeometricConsistencyGrouping<pcl::PointXYZRGB, pcl::PointXYZRGB> gcg_alg;
+        pcl::GeometricConsistencyGrouping<PointT, PointT> gcg_alg;
 
         gcg_alg.setGCThreshold (15);
         gcg_alg.setGCSize (0.01);
@@ -369,9 +369,7 @@ DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreeP
         if ( octree.radiusSearch (object_points.points[i], param_.radius_, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
         {
             for( size_t nn_id = 0; nn_id < pointIdxRadiusSearch.size(); nn_id++)
-            {
                 obj_mask[ pointIdxRadiusSearch[ nn_id ] ] = true;
-            }
         }
     }
 }
@@ -424,58 +422,52 @@ DOL::erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<Poi
 }
 
 bool
-DOL::write_model_to_disk (const std::string &models_dir, const std::string &recognition_structure_dir, const std::string &model_name)
+DOL::write_model_to_disk (const std::string &models_dir, const std::string &model_name, bool save_views)
 {
-    std::stringstream export_to_rs;
-    export_to_rs << recognition_structure_dir << "/" << model_name << "/";
-    std::string export_to = export_to_rs.str();
-
-    io::createDirIfNotExist(recognition_structure_dir);
-    io::createDirIfNotExist(models_dir);
+    const std::string export_to = models_dir + "/" + model_name;
     io::createDirIfNotExist(export_to);
+    pcl::io::savePCDFileBinary(export_to + "/3D_model.pcd", *cloud_normals_oriented_);
 
-    //save recognition data with new poses
-    for(size_t i=0; i < keyframes_used_.size(); i++)
+    if (save_views) //save recognition data with new poses
     {
-        std::stringstream view_file;
-        view_file << export_to << "/cloud_" << setfill('0') << setw(8) << i << ".pcd";
-        pcl::io::savePCDFileBinary (view_file.str (), *(keyframes_used_[i]));
-        std::cout << view_file.str() << std::endl;
+        io::createDirIfNotExist(export_to + "/views");
 
-        std::string path_pose (view_file.str());
-        boost::replace_last (path_pose, "cloud", "pose");
-        boost::replace_last (path_pose, ".pcd", ".txt");
-        io::writeMatrixToFile(path_pose, cameras_used_[i]);
-        std::cout << path_pose << std::endl;
+        for(size_t i=0; i < keyframes_used_.size(); i++)
+        {
+            std::stringstream view_file;
+            view_file << export_to << "/views/cloud_" << setfill('0') << setw(8) << i << ".pcd";
+            pcl::io::savePCDFileBinary (view_file.str (), *keyframes_used_[i]);
+            std::cout << view_file.str() << std::endl;
 
-        std::string path_obj_indices (view_file.str());
-        boost::replace_last (path_obj_indices, "cloud", "object_indices");
-        pcl::io::savePCDFileBinary (path_obj_indices, object_indices_clouds_[i]);
-        std::cout << path_obj_indices << std::endl;
+            std::string path_pose (view_file.str());
+            boost::replace_last (path_pose, "cloud_", "pose_");
+            boost::replace_last (path_pose, ".pcd", ".txt");
+            io::writeMatrixToFile(path_pose, cameras_used_[i]);
+            std::cout << path_pose << std::endl;
+
+            std::string path_obj_indices (view_file.str());
+            boost::replace_last (path_obj_indices, "cloud_", "object_indices_");
+            boost::replace_last (path_obj_indices, ".pcd", ".txt");
+
+            std::ofstream mask_f (path_obj_indices);
+            for(const auto &idx : object_indices_clouds_used_[i])
+                mask_f << idx << std::endl;
+            mask_f.close();
+        }
     }
-
-    std::stringstream path_model;
-    path_model << models_dir << "/" << model_name;
-    pcl::io::savePCDFileBinary(path_model.str(), *cloud_normals_oriented_);
-
     return true;
 }
 
 
 bool
-DOL::save_model (const std::string &models_dir, const std::string &recognition_structure_dir, const std::string &model_name)
+DOL::save_model (const std::string &models_dir, const std::string &model_name, bool save_individual_views)
 {
     size_t num_frames = grph_.size();
 
     std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used (num_frames);
-    std::vector<std::vector<float> > weights (num_frames);
-    std::vector<std::vector<float> > sigmas (num_frames);
-    std::vector<std::vector<size_t> > indices_used (num_frames);
-
-    object_indices_clouds_.resize(num_frames);
     keyframes_used_.resize(num_frames);
     cameras_used_.resize(num_frames);
-
+    object_indices_clouds_used_.resize(num_frames);
 
     // only used keyframes with have object points in them
     size_t kept_keyframes=0;
@@ -486,53 +478,42 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
             keyframes_used_[ kept_keyframes ] = grph_[view_id].cloud_;
             normals_used [ kept_keyframes ] = grph_[view_id].normal_;
             cameras_used_ [ kept_keyframes ] = grph_[view_id].camera_pose_;
-            indices_used[ kept_keyframes ] = createIndicesFromMask<size_t>( grph_[view_id].obj_mask_step_.back() );
-
-            object_indices_clouds_[ kept_keyframes ].points.resize( indices_used[ kept_keyframes ].size());
-
-            for(size_t k=0; k < indices_used[ kept_keyframes ].size(); k++)
-            {
-                object_indices_clouds_[ kept_keyframes ].points[k].idx = (int)indices_used[ kept_keyframes ][k];
-            }
+            object_indices_clouds_used_[ kept_keyframes ] = createIndicesFromMask<size_t>( grph_[view_id].obj_mask_step_.back() );
             kept_keyframes++;
         }
     }
-    weights.resize(kept_keyframes);
-    indices_used.resize(kept_keyframes);
-    object_indices_clouds_.resize(kept_keyframes);
+
     keyframes_used_.resize(kept_keyframes);
     normals_used.resize(kept_keyframes);
     cameras_used_.resize(kept_keyframes);
+    object_indices_clouds_used_.resize(kept_keyframes);
+    std::vector<std::vector<std::vector<float> > > pt_properties (kept_keyframes);
 
     if ( kept_keyframes > 0)
     {
         //compute noise weights
         for(size_t i=0; i < kept_keyframes; i++)
         {
-            noise_models::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+            NguyenNoiseModel<PointT>::Parameter nm_param;
+            nm_param.use_depth_edges_ = true;
+            NguyenNoiseModel<PointT> nm (nm_param);
             nm.setInputCloud(keyframes_used_[i]);
             nm.setInputNormals(normals_used[i]);
-            nm.setLateralSigma(0.001);
-            nm.setMaxAngle(60.f);
-            nm.setUseDepthEdges(true);
             nm.compute();
-            nm.getWeights(weights[i]);
-            sigmas[i] = nm.getSigmas();
+            pt_properties[i] = nm.getPointProperties();
         }
 
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-        NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nm_int_param_);
+        pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
+        NMBasedCloudIntegration<PointT> nmIntegration (nm_int_param_);
         nmIntegration.setInputClouds(keyframes_used_);
-        nmIntegration.setWeights(weights);
-        nmIntegration.setSigmas(sigmas);
         nmIntegration.setTransformations(cameras_used_);
         nmIntegration.setInputNormals(normals_used);
-        nmIntegration.setIndices( indices_used );
+        nmIntegration.setIndices( object_indices_clouds_used_ );
+        nmIntegration.setPointProperties( pt_properties );
         nmIntegration.compute(octree_cloud);
 
         pcl::PointCloud<pcl::Normal>::Ptr octree_normals;
         nmIntegration.getOutputNormals(octree_normals);
-
 
         pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr filtered_with_normals_oriented (new pcl::PointCloud<pcl::PointXYZRGBNormal>());
         pcl::concatenateFields(*octree_normals, *octree_cloud, *filtered_with_normals_oriented);
@@ -543,9 +524,8 @@ DOL::save_model (const std::string &models_dir, const std::string &recognition_s
         sor.setStddevMulThresh (3.0);
         sor.filter (*cloud_normals_oriented_);
 
-        std::cout << "Saving " << kept_keyframes << " keyframes from " << num_frames << "." << std::endl;
-
-        write_model_to_disk(models_dir, recognition_structure_dir, model_name);
+        std::cout << "Saving " << kept_keyframes << " keyframes from " << num_frames << " to " << models_dir << std::endl;
+        write_model_to_disk(models_dir, model_name, save_individual_views);
     }
     return true;
 }

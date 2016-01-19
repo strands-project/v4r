@@ -73,21 +73,20 @@ namespace v4r
           ext_ = "pcd";
         }
 
-        void setExtension(std::string e)
+        void setExtension(const std::string &e)
         {
             ext_ = e;
         }
 
         void
         loadOrGenerate (const std::string & model_path, ModelT & model)
+
         {
           if(ext_.compare("pcd") == 0)
           {
-              std::stringstream full_model;
-              full_model << path_ << "/" << model.class_ << "/" << model.id_;
               typename pcl::PointCloud<Full3DPointT>::Ptr modell (new pcl::PointCloud<Full3DPointT>);
               typename pcl::PointCloud<Full3DPointT>::Ptr modell_voxelized (new pcl::PointCloud<Full3DPointT>);
-              pcl::io::loadPCDFile(full_model.str(), *modell);
+              pcl::io::loadPCDFile(model_path, *modell);
 
               float voxel_grid_size = 0.001f;
               typename pcl::VoxelGrid<Full3DPointT> grid_;
@@ -134,52 +133,44 @@ namespace v4r
               }
           }
         }
+
         /**
          * \brief Creates the model representation of the training set, generating views if needed
          */
         void
         generate ()
         {
-          models_.clear();
-          std::vector < std::string > files = v4r::io::getFilesInDirectory (path_, ".3D_model.pcd", false);
-          std::cout << files.size() << std::endl;
+            models_.clear();
+            std::vector < std::string > model_files = io::getFilesInDirectory (path_, ".*3D_model.pcd",  true);
+            std::cout << "There are " << model_files.size() << " models." << std::endl;
 
-          for (size_t i = 0; i < files.size (); i++)
+          for (const std::string &model_file : model_files)
           {
             ModelTPtr m(new ModelT);
 
             std::vector < std::string > strs;
-            boost::split (strs, files[i], boost::is_any_of ("/\\"));
+            boost::split (strs, model_file, boost::is_any_of ("/\\"));
 
-            if (strs.size () == 1)
+            if (strs.size () == 2)  // class_name/id_name/3D_model.pcd
             {
-              m->id_ = strs[0];
+                m->id_ = strs[0];
+            }
+            else if (strs.size()==3)
+            {
+                m->class_ = strs[0];
+                m->id_ = strs[1];
             }
             else
             {
-              std::stringstream ss;
-              for (int j = 0; j < (static_cast<int> (strs.size ()) - 1); j++)
-              {
-                ss << strs[j];
-                if (j != (static_cast<int> (strs.size ()) - 1))
-                  ss << "/";
-              }
-
-              m->class_ = ss.str ();
-              m->id_ = strs[strs.size () - 1];
+                std::cerr << "Given path " << path_ << " does not have required file structure: (optional: object_class_name)/object_id_name/3D_model.pcd !" << std::endl;
+                m->id_ = strs[0];
             }
-
-            std::cout << m->class_ << " . " << m->id_ << std::endl;
 
             //check which of them have been trained using training_dir and the model_id_
             //load views, poses and self-occlusions for those that exist
             //generate otherwise
-            std::string path_model = path_ + "/" + files[i];
-            loadOrGenerate (path_model, *m);
-
+            loadOrGenerate (path_+"/"+model_file, *m);
             models_.push_back (m);
-
-            //std::cout << files[i] << std::endl;
           }
         }
       };
