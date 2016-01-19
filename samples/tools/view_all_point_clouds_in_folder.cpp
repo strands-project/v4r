@@ -51,9 +51,9 @@ int main (int argc, char ** argv)
     size_t rows = static_cast<size_t>(i_rows);
 
     std::cout << "Visualizing all point clouds in folder " << path;
-    std::vector < std::string > files_intern;
     const std::string filepattern = cloud_prefix + ".*.pcd";
-    if (v4r::io::getFilesInDirectory (path, files_intern, "", filepattern, false) == -1)
+    std::vector < std::string > files_intern = v4r::io::getFilesInDirectory (path, filepattern, false);
+    if (files_intern.empty())
     {
         std::cerr << "Given path: " << path << " does not exist. "
                   << "Usage " << argv[0]
@@ -120,8 +120,7 @@ int main (int argc, char ** argv)
 
         if( v4r::io::existsFile( full_pose_path ) )
         {
-            Eigen::Matrix4f tf;
-            v4r::io::readMatrixFromFile(full_pose_path, tf);
+            Eigen::Matrix4f tf = v4r::io::readMatrixFromFile(full_pose_path);
             const Eigen::Matrix4f tf_inv = tf.inverse();
             pcl::transformPointCloud(*cloud, *cloud, tf_inv);
         }

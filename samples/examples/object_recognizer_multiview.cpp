@@ -319,9 +319,8 @@ public:
                 Eigen::Matrix4f tf = RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_);
 
                 // reset view point otherwise pcl visualization is potentially messed up
-                Eigen::Vector4f zero_origin; zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
                 cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
-                cloud->sensor_origin_ = zero_origin;
+                cloud->sensor_origin_ = Eigen::Vector4f::Zero();
 
                 mv_r_->setInputCloud (cloud);
                 mv_r_->setCameraPose(tf);
