@@ -13,17 +13,6 @@
 
 //PCL_EXPORTS std::ostream& operator << (std::ostream& os, const SIFTHistogram& p);
 
-struct SIFTHistogram
-{
-    float histogram[128];
-
-    friend std::ostream& operator << (std::ostream& os, const SIFTHistogram& p);
-};
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (SIFTHistogram,
-    (float[128], histogram, histogramSIFT)
-)
-
 namespace v4r
 {
     namespace Registration
@@ -32,6 +21,7 @@ namespace v4r
         class V4R_EXPORTS FeatureBasedRegistration : public PartialModelRegistrationBase<PointT>
         {
             private:
+                typedef pcl::Histogram<128> SIFTHistogram;
 
                 using PartialModelRegistrationBase<PointT>::name_;
                 using PartialModelRegistrationBase<PointT>::partial_1;

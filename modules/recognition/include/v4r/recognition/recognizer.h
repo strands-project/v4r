@@ -160,16 +160,17 @@ namespace v4r
         }
 
         virtual
-        void
-        getKeypointCloud(PointTPtr & cloud) const
+        PointTPtr
+        getKeypointCloud() const
         {
-            (void)cloud;
             PCL_WARN("getKeypointCloud is not implemented for this class.");
+            PointTPtr foo;
+            return foo;
         }
 
         virtual
         void
-        getKeypointIndices(pcl::PointIndices & indices) const
+        getKeypointIndices(std::vector<int> & indices) const
         {
             (void)indices;
             PCL_WARN("Get keypoint indices is not implemented for this class.");
@@ -186,24 +187,6 @@ namespace v4r
             (void) force_retrain;
             PCL_WARN("initialize is not implemented for this class.");
             return true;
-        }
-
-        virtual void
-        reinitialize()
-        {
-            PCL_WARN("reinitialize is not implemented for this class.");
-        }
-
-        virtual void
-        reinitializeSourceOnly()
-        {
-            PCL_WARN("reinitializeSource is not implemented for this class.");
-        }
-
-        virtual void
-        reinitializeRecOnly()
-        {
-            PCL_WARN("reinitializeRec is not implemented for this class.");
         }
 
         void setHVAlgorithm (const typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > & alg)

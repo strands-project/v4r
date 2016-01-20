@@ -40,17 +40,13 @@ namespace v4r
 
         SHOTLocalEstimation (const Parameter &p = Parameter()) : LocalEstimator<PointInT, FeatureT>(p)
         {
+            this->descr_name_ = "shot";
             param_ = p;
         }
 
         size_t getFeatureType() const
         {
           return SHOT;
-        }
-
-        std::string getFeatureDescriptorName() const
-        {
-            return "shot";
         }
 
         bool estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)

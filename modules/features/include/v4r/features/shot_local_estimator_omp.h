@@ -19,14 +19,11 @@ namespace v4r
     template<typename PointInT, typename FeatureT>
       class V4R_EXPORTS SHOTLocalEstimationOMP : public LocalEstimator<PointInT, FeatureT>
       {
-
         typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
         typedef typename pcl::PointCloud<FeatureT>::Ptr FeatureTPtr;
         typedef pcl::PointCloud<pcl::PointXYZ> KeypointCloud;
 
         using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
-        using LocalEstimator<PointInT, FeatureT>::neighborhood_indices_;
-        using LocalEstimator<PointInT, FeatureT>::neighborhood_dist_;
         using LocalEstimator<PointInT, FeatureT>::normals_;
         using LocalEstimator<PointInT, FeatureT>::keypoint_indices_;
 
@@ -44,9 +41,9 @@ namespace v4r
             {}
         }param_;
 
-        SHOTLocalEstimationOMP (const Parameter &p = Parameter()) :
-            LocalEstimator<PointInT, FeatureT>(p)
+        SHOTLocalEstimationOMP (const Parameter &p = Parameter()) : LocalEstimator<PointInT, FeatureT>(p)
         {
+            this->descr_name_ = "shot_omp";
             param_ = p;
         }
 
@@ -59,11 +56,6 @@ namespace v4r
         size_t getFeatureType() const
         {
             return SHOT;
-        }
-
-        std::string getFeatureDescriptorName() const
-        {
-            return "shot_omp";
         }
 
         void
@@ -194,13 +186,13 @@ namespace v4r
                 signatures->points[kept].histogram[i] = shots->points[k].descriptor[i];
 
               keypoints->points[kept] = keypoints->points[k];
-              keypoint_indices_.indices[kept] = keypoint_indices_.indices[k];
+              keypoint_indices_[kept] = keypoint_indices_[k];
 
               kept++;
             }
           }
 
-          keypoint_indices_.indices.resize(kept);
+          keypoint_indices_.resize(kept);
           keypoints->points.resize(kept);
           keypoints->width = kept;
           signatures->points.resize (kept);

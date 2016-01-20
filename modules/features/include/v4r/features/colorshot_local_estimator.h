@@ -43,7 +43,7 @@ namespace v4r
           }
 
           pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-          v4r::computeNormals();normal_estimator_->estimate (in, processed, normals);
+          v4r::computeNormals();
 
           //compute keypoints
           computeKeypoints(processed, keypoints, normals);

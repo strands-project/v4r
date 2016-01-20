@@ -33,7 +33,7 @@ public:
     typename std::map<std::string, ObjectHypothesis<PointT> > hypotheses_;
     boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_;
 //    std::vector<float> sift_keypoints_scales_;
-    pcl::PointIndices sift_kp_indices_;
+    std::vector<int> sift_kp_indices_;
     Eigen::Matrix4f transform_to_world_co_system_;
     bool has_been_hopped_;
     double cumulative_weight_to_new_vrtx_;

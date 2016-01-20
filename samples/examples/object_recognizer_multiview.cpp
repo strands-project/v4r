@@ -77,7 +77,7 @@ private:
     std::string test_dir_, models_dir_;
     bool visualize_;
 
-    cv::Ptr<SiftGPU> sift_;
+    boost::shared_ptr<SiftGPU> sift_;
 
 public:
     Rec()
@@ -121,8 +121,8 @@ public:
                 ("do_shot", po::value<bool>(&do_shot)->default_value(false), "if true, generates hypotheses using SHOT (local geometrical properties)")
                 ("do_ourcvfh", po::value<bool>(&do_ourcvfh)->default_value(false), "if true, generates hypotheses using OurCVFH (global geometrical properties, requires segmentation!)")
                 ("use_go3d", po::value<bool>(&use_go3d)->default_value(false), "if true, verifies against a reconstructed scene from multiple viewpoints. Otherwise only against the current viewpoint.")
-                ("knn_sift", po::value<int>(&paramLocalRecSift.knn_)->default_value(paramLocalRecSift.knn_), "sets the number k of matches for each extracted SIFT feature to its k nearest neighbors")
-                ("knn_shot", po::value<int>(&paramLocalRecShot.knn_)->default_value(paramLocalRecShot.knn_), "sets the number k of matches for each extracted SHOT feature to its k nearest neighbors")
+                ("knn_sift", po::value<size_t>(&paramLocalRecSift.knn_)->default_value(paramLocalRecSift.knn_), "sets the number k of matches for each extracted SIFT feature to its k nearest neighbors")
+                ("knn_shot", po::value<size_t>(&paramLocalRecShot.knn_)->default_value(paramLocalRecShot.knn_), "sets the number k of matches for each extracted SHOT feature to its k nearest neighbors")
                 ("transfer_feature_matches", po::value<bool>(&paramMultiPipeRec.save_hypotheses_)->default_value(paramMultiPipeRec.save_hypotheses_), "if true, transfers feature matches between views [Faeulhammer ea., ICRA 2015]. Otherwise generated hypotheses [Faeulhammer ea., MVA 2015].")
                 ("icp_iterations", po::value<int>(&paramMultiView.icp_iterations_)->default_value(paramMultiView.icp_iterations_), "number of icp iterations. If 0, no pose refinement will be done")
                 ("icp_type", po::value<int>(&paramMultiView.icp_type_)->default_value(paramMultiView.icp_type_), "defines the icp method being used for pose refinement (0... regular ICP with CorrespondenceRejectorSampleConsensus, 1... crops point cloud of the scene to the bounding box of the model that is going to be refined)")
@@ -216,7 +216,7 @@ public:
         char * argvv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};
 
         int argcc = sizeof(argvv) / sizeof(char*);
-        sift_ = new SiftGPU ();
+        sift_.reset( new SiftGPU () );
         sift_->ParseParam (argcc, argvv);
 
         //create an OpenGL context for computation

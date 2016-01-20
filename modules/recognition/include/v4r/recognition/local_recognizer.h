@@ -70,19 +70,19 @@ namespace v4r
 
               bool use_cache_;
               int kdtree_splits_;
-              int knn_;
+              size_t knn_;  /// @brief nearest neighbors to search for when checking feature descriptions of the scene
               float distance_same_keypoint_;
               float max_descriptor_distance_;
-              float correspondence_distance_constant_weight_;
+              float correspondence_distance_weight_; /// @brief weight factor for correspondences distances. This is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
               bool save_hypotheses_;
 
               Parameter(
                       bool use_cache = false,
                       int kdtree_splits = 512,
-                      int knn = 1,
+                      size_t knn = 1,
                       float distance_same_keypoint = 0.001f * 0.001f,
                       float max_descriptor_distance = std::numeric_limits<float>::infinity(),
-                      float correspondence_distance_constant_weight = 1.f,
+                      float correspondence_distance_weight = 1.f,
                       bool save_hypotheses = false
                       )
                   : Recognizer<PointT>::Parameter(),
@@ -91,7 +91,7 @@ namespace v4r
                     knn_ ( knn ),
                     distance_same_keypoint_ ( distance_same_keypoint ),
                     max_descriptor_distance_ ( max_descriptor_distance ),
-                    correspondence_distance_constant_weight_ ( correspondence_distance_constant_weight ),
+                    correspondence_distance_weight_ ( correspondence_distance_weight ),
                     save_hypotheses_ ( save_hypotheses )
               {}
           }param_;
@@ -120,7 +120,6 @@ namespace v4r
             ModelTPtr model;
             std::string view_id;
             size_t keypoint_id;
-            std::vector<float> descr;
           };
 
           /** \brief Model data source */
@@ -135,104 +134,34 @@ namespace v4r
           /** \brief Descriptor name */
           std::string descr_name_;
 
-          /** \brief Id of the model to be used */
-          std::string search_model_;
-
           bool feat_kp_set_from_outside_;
 
-          flann::Matrix<float> flann_data_;
           boost::shared_ptr<flann::Index<DistT> > flann_index_;
-
-          std::map< std::pair< ModelTPtr, size_t >, std::vector<size_t> > model_view_id_to_flann_models_;
           std::vector<flann_model> flann_models_;
+          boost::shared_ptr<flann::Matrix<float> > flann_data_;
 
           typename pcl::PointCloud<FeatureT>::Ptr signatures_;
           typename pcl::PointCloud<PointT>::Ptr scene_keypoints_;
-          pcl::PointIndices scene_kp_indices_;
-
-          std::string flann_data_fn_;
+          std::vector<int> scene_kp_indices_;
 
           /** \brief stores keypoint correspondences */
           typename std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;
 
-          //load features from disk and create flann structure
-          bool loadFeaturesAndCreateFLANN();
-
-          template <typename Type>
-          inline void
-          convertToFLANN (const std::vector<Type> &models, flann::Matrix<float> &data)
-          {
-            data.rows = models.size ();
-            data.cols = models[0].descr.size (); // number of histogram bins
-
-            float *empty_data = new float[models.size () * models[0].descr.size ()];
-            flann::Matrix<float> flann_data (empty_data, models.size (), models[0].descr.size ());
-
-            for (size_t i = 0; i < data.rows; ++i)
-              for (size_t j = 0; j < data.cols; ++j)
-              {
-                flann_data.ptr ()[i * data.cols + j] = models[i].descr[j];
-              }
-
-            data = flann_data;
-          }
-
-          void nearestKSearch (boost::shared_ptr<flann::Index<DistT> > &index, flann::Matrix<float> & p, int k, flann::Matrix<int> &indices, flann::Matrix<float> &distances)
-          {
-              index->knnSearch (p, indices, distances, k, flann::SearchParams (param_.kdtree_splits_));
-          }
-
-          pcl::Normal getKpNormal (const ModelT &model, size_t keypoint_id, const std::string &view_id=0);
-
-          PointT getKeypoint (const ModelT & model, size_t keypoint_id, const std::string &view_id=0);
-
-          void getView (const ModelT & model, const std::string &view_id, typename pcl::PointCloud<PointT>::Ptr & view);
+          void loadFeaturesAndCreateFLANN(); /// @brief load features from disk and create flann structure
 
           void correspondenceGrouping();
-
-          virtual void specificLoadFeaturesAndCreateFLANN()
-          {
-            std::cout << "specificLoadFeaturesAndCreateFLANN => this function does nothing..." << std::endl;
-          }
 
       public:
 
         LocalRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
         {
           param_ = p;
-          search_model_ = "";
           feat_kp_set_from_outside_ = false;
         }
 
         size_t getFeatureType() const
         {
             return estimator_->getFeatureType();
-        }
-
-        void setCorrespondenceDistanceConstantWeight(float w)
-        {
-            param_.correspondence_distance_constant_weight_ = w;
-        }
-
-        void setMaxDescriptorDistance(float d)
-        {
-            param_.max_descriptor_distance_ = d;
-        }
-
-        void setDistanceSameKeypoint(float d)
-        {
-            param_.distance_same_keypoint_ = d*d;
-        }
-
-        ~LocalRecognitionPipeline ()
-        {
-
-        }
-
-        void
-        setKnn(int k)
-        {
-          param_.knn_ = k;
         }
 
         void
@@ -254,24 +183,24 @@ namespace v4r
           hypotheses = obj_hypotheses_;
         }
 
-        void
-        getKeypointCloud(PointTPtr & keypoint_cloud) const
+        PointTPtr
+        getKeypointCloud() const
         {
-          keypoint_cloud = scene_keypoints_;
+          return scene_keypoints_;
         }
 
         void
-        getKeypointIndices(pcl::PointIndices & indices) const
+        getKeypointIndices(std::vector<int> & indices) const
         {
             indices = scene_kp_indices_;
         }
 
         void
         setFeatAndKeypoints(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
-                                 const pcl::PointIndices & keypoint_indices)
+                                 const std::vector<int> & keypoint_indices)
         {  
           if(!signatures || signatures->points.size()==0 ||
-                  (signatures->points.size()!=keypoint_indices.indices.size()))
+                  (signatures->points.size()!=keypoint_indices.size()))
               throw std::runtime_error("Provided signatures and keypoints are not valid!");
 
           feat_kp_set_from_outside_ = true;
@@ -279,24 +208,6 @@ namespace v4r
           signatures_ = signatures;
         }
 
-
-        void
-        setSearchModel (const std::string & id)
-        {
-          search_model_ = id;
-        }
-
-        void
-        setKdtreeSplits (int n)
-        {
-          param_.kdtree_splits_ = n;
-        }
-
-        void
-        setUseCache (bool u)
-        {
-          param_.use_cache_ = u;
-        }
 
         /**
          * \brief Sets the model data source_
@@ -337,26 +248,6 @@ namespace v4r
          */
         bool
         initialize(bool force_retrain = false);
-
-        void
-        reinitialize()
-        {
-            reinitializeSourceOnly();
-            reinitializeRecOnly();
-        }
-
-        void
-        reinitializeSourceOnly()
-        {
-            flann_models_.clear();
-            source_->generate();
-        }
-
-        void
-        reinitializeRecOnly()
-        {
-            initialize(false);
-        }
 
         /**
          * @brief Visualizes all found correspondences between scene and model

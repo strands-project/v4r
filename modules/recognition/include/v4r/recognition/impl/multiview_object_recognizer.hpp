@@ -60,8 +60,6 @@ MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<Po
                                                pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
                                                std::vector<float> &sift_keypoint_scales)
 {
-    pcl::PointIndices sift_keypoint_pcl_indices;
-
     if(!sift_signatures)
         sift_signatures.reset(new pcl::PointCloud<FeatureT>);
 
@@ -78,8 +76,7 @@ MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<Po
     OpenCVSIFTLocalEstimation<PointT, FeatureT > estimator;
     bool ret = estimator.estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
 #endif
-    estimator.getKeypointIndices( sift_keypoint_pcl_indices );
-    sift_keypoint_indices = sift_keypoint_pcl_indices.indices;
+    estimator.getKeypointIndices( sift_keypoint_indices );
     return ret;
 }
 
@@ -327,22 +324,22 @@ MultiviewRecognizer<PointT>::recognize ()
             if(!v.sift_signatures_)
                 v.sift_signatures_.reset( new pcl::PointCloud<FeatureT>);
 
-            v.sift_kp_indices_.indices.reserve( sift_kp_indices.size() );
+            v.sift_kp_indices_.reserve( sift_kp_indices.size() );
             v.sift_signatures_->points.reserve( sift_signatures_->points.size() );
 //            v.sift_keypoints_scales_.reserve( sift_keypoints_scales.size() );
             size_t kept=0;
             for (size_t i=0; i<sift_kp_indices.size(); i++) {   // remove infinte keypoints
                 if ( pcl::isFinite( v.scene_->points[sift_kp_indices[i]] ) ) {
-                    v.sift_kp_indices_.indices.push_back( sift_kp_indices[i] );
+                    v.sift_kp_indices_.push_back( sift_kp_indices[i] );
                     v.sift_signatures_->points.push_back( sift_signatures_->points[i] );
 //                    v.sift_keypoints_scales_.push_back( sift_keypoints_scales[i] );
                     kept++;
                 }
             }
-            v.sift_kp_indices_.indices.shrink_to_fit();
+            v.sift_kp_indices_.shrink_to_fit();
             v.sift_signatures_->points.shrink_to_fit();
 //            v.sift_keypoints_scales_.shrink_to_fit();
-            std::cout << "keypoints: " << v.sift_kp_indices_.indices.size() << std::endl;
+            std::cout << "keypoints: " << v.sift_kp_indices_.size() << std::endl;
 
             // In addition to matching views, we can use the computed SIFT features for recognition
             rr_->template setFeatAndKeypoints<FeatureT>(v.sift_signatures_, v.sift_kp_indices_, SIFT);
@@ -368,7 +365,7 @@ MultiviewRecognizer<PointT>::recognize ()
                 convertToFLANN<FeatureT, DistT >( v.sift_signatures_, flann_index );
 
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
-                estimateViewTransformationBySIFT( *w.scene_, *v.scene_, w.sift_kp_indices_.indices, v.sift_kp_indices_.indices, *w.sift_signatures_, flann_index, sift_transforms, param_.use_gc_s2s_);
+                estimateViewTransformationBySIFT( *w.scene_, *v.scene_, w.sift_kp_indices_, v.sift_kp_indices_, *w.sift_signatures_, flann_index, sift_transforms, param_.use_gc_s2s_);
 
                 for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++) {
                     edge.transformation_ = sift_transforms[sift_tf_id];

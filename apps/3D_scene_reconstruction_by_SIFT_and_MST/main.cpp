@@ -251,7 +251,7 @@ public:
         estimator.reset (new v4r::SIFTLocalEstimation<PointT, FeatureT>());
 
         bool ret = estimator->estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-        estimator->getKeypointIndices( sift_keypoint_pcl_indices );
+        estimator->getKeypointIndices( sift_keypoint_pcl_indices.indices );
     #else
         (void)sift_keypoint_scales; //silences compiler warning of unused variable
         boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;

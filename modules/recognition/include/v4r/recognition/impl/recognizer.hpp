@@ -63,7 +63,7 @@ Recognizer<PointT>::hypothesisVerification ()
 
     if(models_.empty())
     {
-        std::cout << "No models to verify, returning... Cancelling service request." << std::endl;
+        std::cout << "No generated models to verify!" << std::endl;
         return;
     }
 

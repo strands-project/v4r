@@ -9,6 +9,7 @@
 #define REC_FRAMEWORK_IMAGE_LOCAL_ESTIMATOR_H_
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <pcl/search/search.h>
 
 namespace v4r
 {
@@ -63,11 +64,12 @@ namespace v4r
         boost::shared_ptr<std::vector<std::vector<float> > > neighborhood_dist_;
 
         void
-        filterPlanar (PointInTPtr & input, pcl::PointCloud<int> & keypoints_cloud)
+        filterPlanar (const PointInTPtr & input, std::vector<int> &kp_idx)
         {
           pcl::PointCloud<int> filtered_keypoints;
           //create a search object
           typename pcl::search::Search<PointInT>::Ptr tree;
+
           if (input->isOrganized ())
             tree.reset (new pcl::search::OrganizedNeighbor<PointInT> ());
           else
@@ -75,17 +77,15 @@ namespace v4r
           tree->setInputCloud (input);
 
           neighborhood_indices_.reset (new std::vector<std::vector<int> >);
-          neighborhood_indices_->resize (keypoints_cloud.points.size ());
+          neighborhood_indices_->resize (kp_idx.size ());
           neighborhood_dist_.reset (new std::vector<std::vector<float> >);
-          neighborhood_dist_->resize (keypoints_cloud.points.size ());
+          neighborhood_dist_->resize (kp_idx.size ());
+          filtered_keypoints.points.resize (kp_idx.size());
 
-          filtered_keypoints.points.resize (keypoints_cloud.points.size ());
-          int good = 0;
-
-          for (size_t i = 0; i < keypoints_cloud.points.size (); i++)
+          size_t kept = 0;
+          for (size_t i = 0; i < kp_idx.size (); i++)
           {
-
-            if (tree->radiusSearch (keypoints_cloud[i], radius_, (*neighborhood_indices_)[good], (*neighborhood_dist_)[good]))
+            if (tree->radiusSearch (kp_idx[i], radius_, (*neighborhood_indices_)[kept], (*neighborhood_dist_)[kept]))
             {
 
               EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
@@ -94,7 +94,7 @@ namespace v4r
               EIGEN_ALIGN16 Eigen::Matrix3f eigenVectors;
 
               //compute planarity of the region
-              computeMeanAndCovarianceMatrix (*input, (*neighborhood_indices_)[good], covariance_matrix, xyz_centroid);
+              computeMeanAndCovarianceMatrix (*input, (*neighborhood_indices_)[kept], covariance_matrix, xyz_centroid);
               pcl::eigen33 (covariance_matrix, eigenVectors, eigenValues);
 
               float eigsum = eigenValues.sum ();
@@ -106,15 +106,15 @@ namespace v4r
               if ((fabs (eigenValues[0] - eigenValues[1]) < 1.5e-4) || (eigsum != 0 && fabs (eigenValues[0] / eigsum) > 1.e-2))
               {
                 //region is not planar, add to filtered keypoint
-                keypoints_cloud.points[good] = keypoints_cloud.points[i];
-                good++;
+                kp_idx[kept] = kp_idx[i];
+                kept++;
               }
             }
           }
 
-          neighborhood_indices_->resize (good);
-          neighborhood_dist_->resize (good);
-          keypoints_cloud.points.resize (good);
+          neighborhood_indices_->resize (kept);
+          neighborhood_dist_->resize (kept);
+          kp_idx.resize (kept);
 
           neighborhood_indices_->clear ();
           neighborhood_dist_->clear ();

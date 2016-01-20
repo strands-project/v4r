@@ -28,6 +28,7 @@ namespace v4r
 
         using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
         using LocalEstimator<PointInT, FeatureT>::keypoint_indices_;
+
         pcl::PointIndices indices_;
         //cv::Ptr<cv::FeatureDetector> detectorPtr_;
         //cv::Ptr<cv::DescriptorExtractor> descriptorPtr_;
@@ -40,14 +41,9 @@ namespace v4r
             return SIFT;
         }
 
-
-        std::string getFeatureDescriptorName() const
-        {
-            return "sift_opencv";
-        }
-
         OpenCVSIFTLocalEstimation ()
         {
+          this->descr_name_ = "sift_opencv";
           const double threshold = 0.03;
           const double edge_threshold = 10.0;
 
@@ -60,7 +56,7 @@ namespace v4r
         estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 
-          keypoint_indices_.indices.clear();
+          keypoint_indices_.clear();
           if(indices_.indices.size() == 0)
           {
             indices_.indices.resize(in->points.size());
@@ -126,7 +122,7 @@ namespace v4r
               if(pcl_isfinite(in->at(u,v).z) && pcl_isfinite(in->at(u,v).x) && pcl_isfinite(in->at(u,v).y))
               {
                 keypoints->points[kept] = in->at(u,v);
-                keypoint_indices_.indices.push_back(v * in->width + u);
+                keypoint_indices_.push_back(v * in->width + u);
                 assert((v * in->width + u) < (in->points.size()));
                 for (int k = 0; k < 128; k++)
                   signatures->points[kept].histogram[k] = descriptors.at<float>(i,k);

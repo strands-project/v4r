@@ -110,7 +110,7 @@ protected:
 
     Eigen::Matrix4f pose_;
 
-    cv::Ptr<SiftGPU> sift_;
+    boost::shared_ptr<SiftGPU> sift_;
 
     bool computeAbsolutePose(CamConnect & e, bool is_first_edge = false);
 
@@ -213,7 +213,7 @@ public:
         return scene_name_;
     }
 
-    void setSift(cv::Ptr<SiftGPU> &sift)
+    void setSift(boost::shared_ptr<SiftGPU> &sift)
     {
         sift_ = sift;
     }
