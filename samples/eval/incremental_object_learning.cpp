@@ -1,5 +1,5 @@
 #include <v4r/common/miscellaneous.h>
-#include <v4r/object_modelling/do_learning.h>
+#include <v4r/object_modelling/incremental_object_learning.h>
 #include <v4r/io/filesystem.h>
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
@@ -36,7 +36,7 @@ main (int argc, char ** argv)
     size_t min_mask_points = 50;
     bool first_frame_only=false; // used for evaluation when only using the first view
 
-    v4r::object_modelling::DOL m;
+    v4r::object_modelling::IOL m;
 
     po::options_description desc("Evaluation Dynamic Object Learning with Ground Truth\n======================================\n **Allowed options");
     desc.add_options()

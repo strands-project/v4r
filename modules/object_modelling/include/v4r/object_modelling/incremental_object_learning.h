@@ -22,15 +22,14 @@
  ******************************************************************************/
 
 
-#ifndef DO_LEARNING_H_
-#define DO_LEARNING_H_
-
+#ifndef V4R_INCREMENTAL_OBJECT_LEARNING_H_
+#define V4R_INCREMENTAL_OBJECT_LEARNING_H_
+#include <v4r_config.h>
 #include <pcl/common/common.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/search/octree.h>
 
-#include <SiftGPU/SiftGPU.h>
 #include <v4r/core/macros.h>
 #include <v4r/keypoints/ClusterNormalsToPlanes.h>
 #include <v4r/common/PointTypes.h>
@@ -40,6 +39,10 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/graph/graph_traits.hpp>
+
+#ifdef HAVE_SIFTGPU
+    #include <SiftGPU/SiftGPU.h>
+#endif
 
 namespace v4r
 {
@@ -73,7 +76,7 @@ struct CamConnect
  * @date July 2015
  * @ref Robotics and Automation Letters 2016, Faeulhammer et al
  */
-class V4R_EXPORTS  DOL
+class V4R_EXPORTS IOL
 {
 public:
     class Parameter{
@@ -337,7 +340,7 @@ protected:
 
 public:
 
-    DOL (const Parameter &p=Parameter()) : octree_(0.005f)
+    IOL (const Parameter &p=Parameter()) : octree_(0.005f)
     {
         param_ = p;
         // Parameters for smooth clustering / plane segmentation

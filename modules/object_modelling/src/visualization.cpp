@@ -1,4 +1,4 @@
-#include <v4r/object_modelling/do_learning.h>
+#include <v4r/object_modelling/incremental_object_learning.h>
 #include <pcl/common/transforms.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/pcl_visualization_utils.h>
@@ -18,7 +18,7 @@ namespace object_modelling
 {
 
 void
-DOL::createBigCloud()
+IOL::createBigCloud()
 {
      size_t num_frames = grph_.size();
      std::vector< pcl::PointCloud<PointT>::Ptr > keyframes_used (num_frames);
@@ -92,7 +92,7 @@ DOL::createBigCloud()
 }
 
 void
-DOL::visualize_clusters()
+IOL::visualize_clusters()
 {
     srand (time(NULL));
     if (!vis_seg_)
@@ -156,7 +156,7 @@ DOL::visualize_clusters()
 
 
 void
-DOL::visualize()
+IOL::visualize()
 {
     visualize_clusters();
     createBigCloud();
@@ -264,7 +264,7 @@ DOL::visualize()
 
 
 void
-DOL::writeImagesToDisk(const std::string &path, bool crop)
+IOL::writeImagesToDisk(const std::string &path, bool crop)
 {
     v4r::io::createDirIfNotExist(path);
 
