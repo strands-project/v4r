@@ -708,7 +708,7 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         try
         {
             calcSiftFeatures( view.cloud_, sift_keypoints, view.sift_keypoint_indices_, view.sift_signatures_, sift_keypoint_scales);
-            convertToFLANN<FeatureT, DistT>(view.sift_signatures_, flann_index );
+            convertToFLANN<FeatureT, DistT>(*view.sift_signatures_, flann_index );
         }
         catch (int e)
         {

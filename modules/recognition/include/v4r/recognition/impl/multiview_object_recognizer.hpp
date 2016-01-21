@@ -83,19 +83,22 @@ MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<Po
 
 
 template<typename PointT>
-void
+std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
 MultiviewRecognizer<PointT>::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
                                                               const pcl::PointCloud<PointT> &dst_cloud,
                                                               const std::vector<int> &src_sift_keypoint_indices,
                                                               const std::vector<int> &dst_sift_keypoint_indices,
                                                               const pcl::PointCloud<FeatureT> &src_sift_signatures,
-                                                              boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
-                                                              std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
+                                                              const pcl::PointCloud<FeatureT> &dst_sift_signatures,
                                                               bool use_gc )
 {
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations;
     const int K = 1;
     flann::Matrix<int> indices = flann::Matrix<int> ( new int[K], 1, K );
     flann::Matrix<float> distances = flann::Matrix<float> ( new float[K], 1, K );
+
+    boost::shared_ptr< flann::Index<DistT> > flann_index;
+    convertToFLANN<FeatureT, DistT >( dst_sift_signatures, flann_index );
 
     boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsSrc (new pcl::PointCloud<PointT>);
     boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsDst (new pcl::PointCloud<PointT>);
@@ -109,7 +112,7 @@ MultiviewRecognizer<PointT>::estimateViewTransformationBySIFT(const pcl::PointCl
     {
         FeatureT searchFeature = src_sift_signatures[ keypointId ];
         int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-        nearestKSearch ( dst_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+        nearestKSearch ( flann_index, searchFeature.histogram, size_feat, K, indices, distances );
 
         pcl::Correspondence corr;
         corr.distance = distances[0][0];
@@ -152,6 +155,7 @@ MultiviewRecognizer<PointT>::estimateViewTransformationBySIFT(const pcl::PointCl
         gcg_alg.recognize(new_transforms, clustered_corrs);
         transformations.insert(transformations.end(), new_transforms.begin(), new_transforms.end());
     }
+    return transformations;
 }
 
 template<typename PointT>
@@ -361,11 +365,8 @@ MultiviewRecognizer<PointT>::recognize ()
             if(param_.scene_to_scene_) {
                 edge.model_name_ = "sift_background_matching";
 
-                boost::shared_ptr< flann::Index<DistT> > flann_index;
-                convertToFLANN<FeatureT, DistT >( v.sift_signatures_, flann_index );
-
-                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
-                estimateViewTransformationBySIFT( *w.scene_, *v.scene_, w.sift_kp_indices_, v.sift_kp_indices_, *w.sift_signatures_, flann_index, sift_transforms, param_.use_gc_s2s_);
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms =
+                        estimateViewTransformationBySIFT( *w.scene_, *v.scene_, w.sift_kp_indices_, v.sift_kp_indices_, *w.sift_signatures_, *v.sift_signatures_, param_.use_gc_s2s_);
 
                 for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++) {
                     edge.transformation_ = sift_transforms[sift_tf_id];

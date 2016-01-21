@@ -130,13 +130,13 @@ protected:
                            pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
                            std::vector<float> &sift_keypoint_scales);
 
-    void estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
+    estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
                                           const pcl::PointCloud<PointT> &dst_cloud,
                                           const std::vector<int> &src_sift_keypoint_indices,
                                           const std::vector<int> &dst_sift_keypoint_indices,
                                           const pcl::PointCloud<FeatureT> &src_sift_signatures,
-                                          boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
-                                          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
+                                          const pcl::PointCloud<FeatureT> &dst_sift_signatures,
                                           bool use_gc = false );
 
     typename NguyenNoiseModel<PointT>::Parameter nm_param_;

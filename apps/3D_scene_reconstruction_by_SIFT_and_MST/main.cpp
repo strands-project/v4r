@@ -347,7 +347,7 @@ public:
 
 
                 boost::shared_ptr<flann::Index<DistT> > flann_index;
-                v4r::convertToFLANN<FeatureT, DistT>(grph_[view_b].sift_signatures_, flann_index );
+                v4r::convertToFLANN<FeatureT, DistT>(*grph_[view_b].sift_signatures_, flann_index );
 
                 estimateViewTransformationBySIFT( *grph_[view_a].cloud_, *grph_[view_b].cloud_,
                                                   grph_[view_a].sift_keypoint_indices_, grph_[view_b].sift_keypoint_indices_,

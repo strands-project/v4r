@@ -5,10 +5,10 @@ namespace v4r
 
 template<typename PointType, typename DistType>
 void
-convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index)
+convertToFLANN ( const typename pcl::PointCloud<PointType> & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index)
 {
-    size_t rows = cloud->points.size ();
-    size_t cols = sizeof ( cloud->points[0].histogram ) / sizeof ( float ); // number of histogram bins
+    size_t rows = cloud.points.size ();
+    size_t cols = sizeof ( cloud.points[0].histogram ) / sizeof ( float ); // number of histogram bins
 
     flann::Matrix<float> flann_data ( new float[rows * cols], rows, cols );
 
@@ -16,7 +16,7 @@ convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, ty
     {
         for ( size_t j = 0; j < cols; ++j )
         {
-            flann_data.ptr () [i * cols + j] = cloud->points[i].histogram[j];
+            flann_data.ptr () [i * cols + j] = cloud.points[i].histogram[j];
         }
     }
     flann_index.reset (new flann::Index<DistType> ( flann_data, flann::KDTreeIndexParams ( 4 ) ) );
