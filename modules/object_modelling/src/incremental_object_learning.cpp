@@ -111,7 +111,8 @@ IOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
 {
     pcl::PointIndices sift_keypoint_pcl_indices;
 
-#ifdef USE_SIFT_GPU
+
+#ifdef HAVE_SIFTGPU
     (void) sift_keypoint_indices;
     boost::shared_ptr < SIFTLocalEstimation<PointT, FeatureT> > estimator;
     estimator.reset (new SIFTLocalEstimation<PointT, FeatureT>(sift_));
@@ -975,8 +976,7 @@ IOL::initSIFT ()
 {
     if (param_.do_sift_based_camera_pose_estimation_)
     {
-#ifdef USE_SIFT_GPU
-
+#ifdef HAVE_SIFTGPU
         //-----Init-SIFT-GPU-Context--------
         static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "1", "-pack"};
         char * argvv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};

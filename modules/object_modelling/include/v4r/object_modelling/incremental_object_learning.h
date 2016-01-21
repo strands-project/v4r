@@ -24,12 +24,12 @@
 
 #ifndef V4R_INCREMENTAL_OBJECT_LEARNING_H_
 #define V4R_INCREMENTAL_OBJECT_LEARNING_H_
+#include <v4r_config.h>
 #include <pcl/common/common.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/search/octree.h>
 
-#include <SiftGPU/SiftGPU.h>
 #include <v4r/core/macros.h>
 #include <v4r/keypoints/ClusterNormalsToPlanes.h>
 #include <v4r/common/PointTypes.h>
@@ -39,6 +39,10 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/graph/graph_traits.hpp>
+
+#ifdef HAVE_SIFTGPU
+    #include <SiftGPU/SiftGPU.h>
+#endif
 
 namespace v4r
 {
