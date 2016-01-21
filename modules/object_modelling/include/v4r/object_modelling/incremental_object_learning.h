@@ -168,7 +168,11 @@ protected:
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_, vis_seg_;
     std::vector<int> vis_reconstructed_viewpoint_;
     std::vector<int> vis_viewpoint_;
-    cv::Ptr<SiftGPU> sift_;
+
+#ifdef HAVE_SIFTGPU
+        boost::shared_ptr<SiftGPU> sift_;
+#endif
+
     std::vector<modelView> grph_;
     pcl::octree::OctreePointCloudSearch<PointT> octree_;
 
