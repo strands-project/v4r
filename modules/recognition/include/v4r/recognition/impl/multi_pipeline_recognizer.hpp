@@ -45,76 +45,96 @@ MultiRecognitionPipeline<PointT>::recognize()
     scene_keypoints_.reset(new pcl::PointCloud<PointT>);
     scene_kp_normals_.reset(new pcl::PointCloud<pcl::Normal>);
 
-    for(const auto &r : recognizers_)
+    // check if we have to compute normals due to feature estimation or correspondence grouping
+    bool need_to_compute_normals = false;
+
+    if( !scene_normals_ || scene_normals_->points.size() != scene_->points.size())
     {
-        r->setInputCloud(scene_);
+        if(cg_algorithm_ && cg_algorithm_->getRequiresNormals())
+            need_to_compute_normals = true;
 
-        if(r->requiresSegmentation()) // this might not work in the current state!!
+        for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
         {
-            if( r->acceptsNormals() )
-            {
-                if ( !scene_normals_ || scene_normals_->points.size() != scene_->points.size() )
-                    computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
+            if( recognizers_[r_id]->acceptsNormals() )
+                need_to_compute_normals = true;
+        }
+    }
+    if(need_to_compute_normals)
+        computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
-                r->setSceneNormals(scene_normals_);
-            }
+
+#pragma omp parallel for schedule(dynamic)
+    for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
+    {
+        recognizers_[r_id]->setInputCloud(scene_);
+
+
+        if(recognizers_[r_id]->requiresSegmentation()) // for global recognizers - this might not work in the current state!!
+        {
+            if( recognizers_[r_id]->acceptsNormals() )
+                recognizers_[r_id]->setSceneNormals(scene_normals_);
 
             for(size_t c=0; c < segmentation_indices_.size(); c++)
             {
-                r->recognize();
-                const std::vector<ModelTPtr> models_tmp = r->getModels ();
-                const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp = r->getTransforms ();
+                recognizers_[r_id]->recognize();
+                const std::vector<ModelTPtr> models_tmp = recognizers_[r_id]->getModels ();
+                const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp = recognizers_[r_id]->getTransforms ();
 
-                models_.insert(models_.end(), models_tmp.begin(), models_tmp.end());
-                transforms_.insert(transforms_.end(), transforms_tmp.begin(), transforms_tmp.end());
-                input_icp_indices.insert(input_icp_indices.end(), segmentation_indices_[c].indices.begin(), segmentation_indices_[c].indices.end());
+#pragma omp critical
+                {
+                    models_.insert(models_.end(), models_tmp.begin(), models_tmp.end());
+                    transforms_.insert(transforms_.end(), transforms_tmp.begin(), transforms_tmp.end());
+                    input_icp_indices.insert(input_icp_indices.end(), segmentation_indices_[c].indices.begin(), segmentation_indices_[c].indices.end());
+                }
             }
         }
-        else
+        else    // for local recognizers
         {
-            r->recognize();
+            recognizers_[r_id]->recognize();
 
-            if(!r->getSaveHypothesesParam())
+            if(!recognizers_[r_id]->getSaveHypothesesParam())
             {
-                const std::vector<ModelTPtr> models = r->getModels ();
-                const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms = r->getTransforms ();
+                const std::vector<ModelTPtr> models = recognizers_[r_id]->getModels ();
+                const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms = recognizers_[r_id]->getTransforms ();
 
-                models_.insert(models_.end(), models.begin(), models.end());
-                transforms_.insert(transforms_.end(), transforms.begin(), transforms.end());
+#pragma omp critical
+                {
+                    models_.insert(models_.end(), models.begin(), models.end());
+                    transforms_.insert(transforms_.end(), transforms.begin(), transforms.end());
+                }
             }
             else
             {
                 typename std::map<std::string, ObjectHypothesis<PointT> > oh_tmp;
-                r->getSavedHypotheses(oh_tmp);
+                recognizers_[r_id]->getSavedHypotheses(oh_tmp);
 
                 std::vector<int> kp_indices;
-                typename pcl::PointCloud<PointT>::Ptr kp_tmp = r->getKeypointCloud();
-                r->getKeypointIndices(kp_indices);
+                typename pcl::PointCloud<PointT>::Ptr kp_tmp = recognizers_[r_id]->getKeypointCloud();
+                recognizers_[r_id]->getKeypointIndices(kp_indices);
 
-                for (auto &oh : oh_tmp) {
-                    for (auto &corr : *(oh.second.model_scene_corresp_)) {  // add appropriate offset to correspondence index of the scene cloud
-                        corr.index_match += scene_keypoints_->points.size();
+#pragma omp critical
+                {
+                    for (auto &oh : oh_tmp) {
+                        for (auto &corr : *(oh.second.model_scene_corresp_)) {  // add appropriate offset to correspondence index of the scene cloud
+                            corr.index_match += scene_keypoints_->points.size();
+                        }
+
+                        auto it_mp_oh = obj_hypotheses_.find(oh.first);
+                        if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
+                            obj_hypotheses_.insert(oh);//std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
+                        else
+                            it_mp_oh->second.model_scene_corresp_->insert(  it_mp_oh->second.model_scene_corresp_->  end(),
+                                                                                   oh.second.model_scene_corresp_->begin(),
+                                                                                   oh.second.model_scene_corresp_->  end() );
                     }
-
-                    auto it_mp_oh = obj_hypotheses_.find(oh.first);
-                    if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
-                        obj_hypotheses_.insert(oh);//std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
-                    else
-                        it_mp_oh->second.model_scene_corresp_->insert(  it_mp_oh->second.model_scene_corresp_->  end(),
-                                                                               oh.second.model_scene_corresp_->begin(),
-                                                                               oh.second.model_scene_corresp_->  end() );
-                }
-
                 *scene_keypoints_ += *kp_tmp;
 
                 if(cg_algorithm_ && cg_algorithm_->getRequiresNormals()) {
-
-                    if( !scene_normals_ || scene_normals_->points.size() != scene_->points.size())
-                        computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
-
                     pcl::PointCloud<pcl::Normal> kp_normals;
                     pcl::copyPointCloud(*scene_normals_, kp_indices, kp_normals);
                     *scene_kp_normals_ += kp_normals;
+                }
+
                 }
             }
         }
@@ -143,24 +163,19 @@ MultiRecognitionPipeline<PointT>::recognize()
 template<typename PointT>
 void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
 {
+    double t_start = omp_get_wtime();
+
     std::vector<ObjectHypothesis<PointT> > ohs(obj_hypotheses_.size());
 
     size_t id=0;
     typename std::map<std::string, ObjectHypothesis<PointT> >::const_iterator it;
     for (it = obj_hypotheses_.begin (), id=0; it != obj_hypotheses_.end (); ++it)
-    {
-        ohs[id] = it->second;
-        id++;
-    }
-
-std::vector< std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > merged_transforms_per_thread (NUM_THREADS);
-std::vector< std::vector<ModelTPtr> > new_models (NUM_THREADS);
+        ohs[id++] = it->second;
 
 #pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)
     for (size_t i=0; i<ohs.size(); i++)
     {
         const ObjectHypothesis<PointT> &oh = ohs[i];
-        int thread_id = omp_get_thread_num();
 
         if(oh.model_scene_corresp_->size() < 3)
             continue;
@@ -222,9 +237,11 @@ std::vector< std::vector<ModelTPtr> > new_models (NUM_THREADS);
             }
             merged_transforms.resize(kept);
 
-
-            merged_transforms_per_thread[thread_id].insert(merged_transforms_per_thread[thread_id].end(), merged_transforms.begin(), merged_transforms.end());
-            new_models[thread_id].resize( merged_transforms_per_thread[thread_id].size(), oh.model_  );
+#pragma omp critical
+            {
+                transforms_.insert(transforms_.end(), merged_transforms.begin(), merged_transforms.end());
+                models_.resize( transforms_.size(), oh.model_ );
+            }
         }
 
         std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_->size () << " " << oh.model_->id_ << std::endl;
@@ -232,10 +249,9 @@ std::vector< std::vector<ModelTPtr> > new_models (NUM_THREADS);
         //        oh.visualize(*scene_);
     }
 
-    for(size_t thread_id=0; thread_id<merged_transforms_per_thread.size(); thread_id++) {
-        transforms_.insert(transforms_.end(), merged_transforms_per_thread[thread_id].begin(), merged_transforms_per_thread[thread_id].end());
-        models_.insert( models_.end(), new_models[thread_id].begin(), new_models[thread_id].end()  );
-    }
+    double t_stop = omp_get_wtime();
+
+    std::cout << "Correspondence Grouping took " <<  t_stop - t_start << std::endl;
 
 }
 
