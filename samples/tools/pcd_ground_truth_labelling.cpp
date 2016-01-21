@@ -92,21 +92,20 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
 {
     std::string scene_full_path = scenes_dir + "/" + scene_id;
 
-    std::vector < std::string > scene_view;
-    if (v4r::io::getFilesInDirectory( scene_full_path, scene_view, "", ".*.pcd", true) != -1)
+    std::vector < std::string > scene_view = v4r::io::getFilesInDirectory( scene_full_path, ".*.pcd", true);
+    if ( !scene_view.empty() )
     {
         std::cout << "Number of viewpoints in directory is:" << scene_view.size () << std::endl;
 
-        std::vector < std::string > gt_file;
         std::string annotations_dir = gt_dir_ + "/" + scene_id;
+        std::vector < std::string > gt_file = v4r::io::getFilesInDirectory( annotations_dir, ".*.txt", true);
 
-        if( v4r::io::getFilesInDirectory( annotations_dir, gt_file, "", ".*.txt", true) == -1)
+        if( gt_file.empty())
         {
             std::cerr << "Could not find any annotations in " << annotations_dir << ". " << std::endl;
+            return;
         }
-        std::sort(gt_file.begin(), gt_file.end());
 
-        std::sort(scene_view.begin(), scene_view.end());
         for (size_t s_id = 0; s_id < scene_view.size (); s_id++)
         {
             if (first_view_only_ && s_id > 0)
