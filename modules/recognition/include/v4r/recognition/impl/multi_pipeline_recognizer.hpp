@@ -1,7 +1,8 @@
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <v4r/common/normals.h>
-
+#include <omp.h>
+#define NUM_THREADS 4
 namespace v4r
 {
 
@@ -142,30 +143,46 @@ MultiRecognitionPipeline<PointT>::recognize()
 template<typename PointT>
 void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
 {
-    typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it;
-    for (it = obj_hypotheses_.begin (); it != obj_hypotheses_.end (); ++it)
+    std::vector<ObjectHypothesis<PointT> > ohs(obj_hypotheses_.size());
+
+    size_t id=0;
+    typename std::map<std::string, ObjectHypothesis<PointT> >::const_iterator it;
+    for (it = obj_hypotheses_.begin (), id=0; it != obj_hypotheses_.end (); ++it)
     {
-        ObjectHypothesis<PointT> &oh = it->second;
+        ohs[id] = it->second;
+        id++;
+    }
+
+std::vector< std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > merged_transforms_per_thread (NUM_THREADS);
+std::vector< std::vector<ModelTPtr> > new_models (NUM_THREADS);
+
+#pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)
+    for (size_t i=0; i<ohs.size(); i++)
+    {
+        const ObjectHypothesis<PointT> &oh = ohs[i];
+        int thread_id = omp_get_thread_num();
 
         if(oh.model_scene_corresp_->size() < 3)
             continue;
 
-        std::vector < pcl::Correspondences > corresp_clusters;
-        cg_algorithm_->setSceneCloud (scene_keypoints_);
-        cg_algorithm_->setInputCloud (oh.model_->keypoints_);
+        GraphGeometricConsistencyGrouping<PointT, PointT> cg = *cg_algorithm_;
 
-        if(cg_algorithm_->getRequiresNormals())
-            cg_algorithm_->setInputAndSceneNormals(oh.model_->kp_normals_, scene_kp_normals_);
+        std::vector < pcl::Correspondences > corresp_clusters;
+        cg.setSceneCloud (scene_keypoints_);
+        cg.setInputCloud (oh.model_->keypoints_);
+
+        if(cg.getRequiresNormals())
+            cg.setInputAndSceneNormals(oh.model_->kp_normals_, scene_kp_normals_);
 
         //we need to pass the keypoints_pointcloud and the specific object hypothesis
-        cg_algorithm_->setModelSceneCorrespondences (oh.model_scene_corresp_);
-        cg_algorithm_->cluster (corresp_clusters);
+        cg.setModelSceneCorrespondences (oh.model_scene_corresp_);
+        cg.cluster (corresp_clusters);
 
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms (corresp_clusters.size());
         typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
 
-        for (size_t i = 0; i < corresp_clusters.size(); i++)
-            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_keypoints_, corresp_clusters[i], new_transforms[i]);
+        for (size_t cluster_id = 0; cluster_id < corresp_clusters.size(); cluster_id++)
+            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_keypoints_, corresp_clusters[cluster_id], new_transforms[cluster_id]);
 
         if(param_.merge_close_hypotheses_) {
             std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > merged_transforms (corresp_clusters.size());
@@ -173,18 +190,18 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
             const double angle_thresh_rad = param_.merge_close_hypotheses_angle_ * M_PI / 180.f ;
 
             size_t kept=0;
-            for (size_t i = 0; i < new_transforms.size(); i++) {
+            for (size_t tf_id = 0; tf_id < new_transforms.size(); tf_id++) {
 
-                if (cluster_has_been_taken[i])
+                if (cluster_has_been_taken[tf_id])
                     continue;
 
-                cluster_has_been_taken[i] = true;
-                const Eigen::Vector3f centroid1 = new_transforms[i].block<3, 1> (0, 3);
-                const Eigen::Matrix3f rot1 = new_transforms[i].block<3, 3> (0, 0);
+                cluster_has_been_taken[tf_id] = true;
+                const Eigen::Vector3f centroid1 = new_transforms[tf_id].block<3, 1> (0, 3);
+                const Eigen::Matrix3f rot1 = new_transforms[tf_id].block<3, 3> (0, 0);
 
-                pcl::Correspondences merged_corrs = corresp_clusters[i];
+                pcl::Correspondences merged_corrs = corresp_clusters[tf_id];
 
-                for(size_t j=i; j < new_transforms.size(); j++) {
+                for(size_t j=tf_id; j < new_transforms.size(); j++) {
                     const Eigen::Vector3f centroid2 = new_transforms[j].block<3, 1> (0, 3);
                     const Eigen::Matrix3f rot2 = new_transforms[j].block<3, 3> (0, 0);
                     const Eigen::Matrix3f rot_diff = rot2 * rot1.transpose();
@@ -204,17 +221,22 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
                 kept++;
             }
             merged_transforms.resize(kept);
-            new_transforms = merged_transforms;
+
+
+            merged_transforms_per_thread[thread_id].insert(merged_transforms_per_thread[thread_id].end(), merged_transforms.begin(), merged_transforms.end());
+            new_models[thread_id].resize( merged_transforms_per_thread[thread_id].size(), oh.model_  );
         }
 
-        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first << std::endl;
+        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_->size () << " " << oh.model_->id_ << std::endl;
 
         //        oh.visualize(*scene_);
-
-        size_t existing_hypotheses = models_.size();
-        models_.resize( existing_hypotheses + new_transforms.size(), oh.model_  );
-        transforms_.insert(transforms_.end(), new_transforms.begin(), new_transforms.end());
     }
+
+    for(size_t thread_id=0; thread_id<merged_transforms_per_thread.size(); thread_id++) {
+        transforms_.insert(transforms_.end(), merged_transforms_per_thread[thread_id].begin(), merged_transforms_per_thread[thread_id].end());
+        models_.insert( models_.end(), new_models[thread_id].begin(), new_models[thread_id].end()  );
+    }
+
 }
 
 template<typename PointT>
