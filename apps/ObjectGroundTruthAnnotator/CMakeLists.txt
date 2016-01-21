@@ -2,7 +2,12 @@ SET(ObjectGroundTruthAnnotator_DEPS v4r_core v4r_registration v4r_io v4r_common 
 v4r_check_dependencies(${ObjectGroundTruthAnnotator_DEPS})
 
 if(NOT V4R_DEPENDENCIES_FOUND)
-  message(***ObjectGroundTruthAnnotator does not meed dependencies*****)
+  message(***ObjectGroundTruthAnnotator does not meet dependencies*****)
+  return()
+endif()
+
+if(NOT WITH_VTK)
+  message("ObjectGroundTruthAnnotator requires WITH_VTK enabled. It will not be compiled.")
   return()
 endif()
 
