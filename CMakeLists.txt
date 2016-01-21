@@ -96,7 +96,7 @@ V4R_OPTION(WITH_OPENGL         "Include OpenGL support"                      OFF
 V4R_OPTION(WITH_OPENNI         "Include OpenNI support"                      OFF  IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_OPENNI2        "Include OpenNI2 support"                     OFF  IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_PNG            "Include PNG support"                         ON)
-V4R_OPTION(WITH_QT             "Build with Qt Backend support"               OFF  IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
+V4R_OPTION(WITH_QT             "Build with Qt Backend support"               ON  IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
 V4R_OPTION(WITH_OPENMP         "Include OpenMP support"                      ON)
 V4R_OPTION(WITH_PTHREADS_PF    "Use pthreads-based parallel_for"             ON   IF (NOT WIN32) )
 V4R_OPTION(WITH_EDT            "Include EDT support"                         ON   IF (NOT IOS) )
