@@ -38,8 +38,9 @@
 #include <v4r/common/impl/Vector.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#ifdef _OPENMP
 #include <omp.h>
-
+#endif
 
 namespace v4r
 {
