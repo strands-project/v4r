@@ -22,9 +22,8 @@
  ******************************************************************************/
 
 
-#ifndef DO_LEARNING_H_
-#define DO_LEARNING_H_
-
+#ifndef V4R_INCREMENTAL_OBJECT_LEARNING_H_
+#define V4R_INCREMENTAL_OBJECT_LEARNING_H_
 #include <pcl/common/common.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/search/kdtree.h>
@@ -73,7 +72,7 @@ struct CamConnect
  * @date July 2015
  * @ref Robotics and Automation Letters 2016, Faeulhammer et al
  */
-class V4R_EXPORTS  DOL
+class V4R_EXPORTS IOL
 {
 public:
     class Parameter{
@@ -337,7 +336,7 @@ protected:
 
 public:
 
-    DOL (const Parameter &p=Parameter()) : octree_(0.005f)
+    IOL (const Parameter &p=Parameter()) : octree_(0.005f)
     {
         param_ = p;
         // Parameters for smooth clustering / plane segmentation

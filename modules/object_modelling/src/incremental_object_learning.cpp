@@ -14,7 +14,7 @@
 #define EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET
 #endif
 
-#include "v4r/object_modelling/do_learning.h"
+#include "v4r/object_modelling/incremental_object_learning.h"
 
 #include <stdlib.h>
 #include <thread>
@@ -45,10 +45,8 @@
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
-#define USE_SIFT_GPU
-
-#ifndef USE_SIFT_GPU
-#include <v4r/features/opencv_sift_local_estimator.h>
+#ifndef HAVE_SIFTGPU
+    #include <v4r/features/opencv_sift_local_estimator.h>
 #endif
 
 namespace v4r
@@ -57,7 +55,7 @@ namespace object_modelling
 {
 
 float
-DOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
+IOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
                                 const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
                                 Eigen::Matrix4f &refined_transform,
                                 const Eigen::Matrix4f &transform)
@@ -105,7 +103,7 @@ DOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_s
 }
 
 bool
-DOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
+IOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
                        pcl::PointCloud<PointT>::Ptr &sift_keypoints,
                        std::vector< size_t > &sift_keypoint_indices,
                        pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
@@ -136,7 +134,7 @@ DOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
 }
 
 void
-DOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
+IOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
                                       const pcl::PointCloud<PointT> &dst_cloud,
                                       const std::vector<size_t> &src_sift_keypoint_indices,
                                       const std::vector<size_t> &dst_sift_keypoint_indices,
@@ -208,7 +206,7 @@ DOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
 
 
 std::vector<bool>
-DOL::extractEuclideanClustersSmooth (
+IOL::extractEuclideanClustersSmooth (
         const pcl::PointCloud<PointT>::ConstPtr &cloud,
         const pcl::PointCloud<pcl::Normal> &normals,
         const std::vector<bool> &initial_mask,
@@ -266,7 +264,7 @@ DOL::extractEuclideanClustersSmooth (
 }
 
 void
-DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
+IOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
                                             pcl::PointCloud<pcl::Normal>::Ptr & normals,
                                             const std::vector<bool> &obj_mask,
                                             std::vector<bool> &obj_mask_out,
@@ -344,7 +342,7 @@ DOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
 }
 
 void
-DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointCloud<PointT>::ConstPtr &search_cloud,  std::vector<bool> &obj_mask)
+IOL::nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointCloud<PointT>::ConstPtr &search_cloud,  std::vector<bool> &obj_mask)
 {
     pcl::octree::OctreePointCloudSearch<PointT> octree(0.005f);
     octree.setInputCloud ( search_cloud );
@@ -353,7 +351,7 @@ DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointClou
 }
 
 void
-DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreePointCloudSearch<PointT> &octree,  std::vector<bool> &obj_mask)
+IOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreePointCloudSearch<PointT> &octree,  std::vector<bool> &obj_mask)
 {
     //find neighbours from transferred object points
     std::vector<int> pointIdxRadiusSearch;
@@ -375,7 +373,7 @@ DOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreeP
 }
 
 std::vector<bool>
-DOL::erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<PointT> & cloud)
+IOL::erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<PointT> & cloud)
 {
     assert (obj_mask.size() == cloud.height * cloud.width);
 
@@ -422,7 +420,7 @@ DOL::erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<Poi
 }
 
 bool
-DOL::write_model_to_disk (const std::string &models_dir, const std::string &model_name, bool save_views)
+IOL::write_model_to_disk (const std::string &models_dir, const std::string &model_name, bool save_views)
 {
     const std::string export_to = models_dir + "/" + model_name;
     io::createDirIfNotExist(export_to);
@@ -460,7 +458,7 @@ DOL::write_model_to_disk (const std::string &models_dir, const std::string &mode
 
 
 bool
-DOL::save_model (const std::string &models_dir, const std::string &model_name, bool save_individual_views)
+IOL::save_model (const std::string &models_dir, const std::string &model_name, bool save_individual_views)
 {
     size_t num_frames = grph_.size();
 
@@ -531,7 +529,7 @@ DOL::save_model (const std::string &models_dir, const std::string &model_name, b
 }
 
 void
-DOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
+IOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                              const pcl::PointCloud<pcl::Normal>::ConstPtr &normals,
                              std::vector<ClusterNormalsToPlanes::Plane::Ptr> &planes)
 {
@@ -564,7 +562,7 @@ DOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
 }
 
 bool
-DOL::merging_planes_reasonable(const modelView::SuperPlane &sp1, const modelView::SuperPlane &sp2) const
+IOL::merging_planes_reasonable(const modelView::SuperPlane &sp1, const modelView::SuperPlane &sp2) const
 {
     float dist = std::abs(PlaneEstimationRANSAC::normalPointDist(sp1.pt, sp1.normal, sp2.pt));
     float dot  = sp1.normal.dot(sp2.normal);
@@ -573,7 +571,7 @@ DOL::merging_planes_reasonable(const modelView::SuperPlane &sp1, const modelView
 }
 
 void
-DOL::computePlaneProperties(const std::vector<ClusterNormalsToPlanes::Plane::Ptr> &planes,
+IOL::computePlaneProperties(const std::vector<ClusterNormalsToPlanes::Plane::Ptr> &planes,
                                        const std::vector< bool > &object_mask,
                                        const std::vector< bool > &occlusion_mask,
                                        const pcl::PointCloud<PointT>::ConstPtr &cloud,
@@ -628,7 +626,7 @@ DOL::computePlaneProperties(const std::vector<ClusterNormalsToPlanes::Plane::Ptr
 }
 
 void
-DOL::computeAbsolutePosesRecursive (const Graph & grph,
+IOL::computeAbsolutePosesRecursive (const Graph & grph,
                               const Vertex start,
                               const Eigen::Matrix4f &accum,
                               std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses,
@@ -661,7 +659,7 @@ DOL::computeAbsolutePosesRecursive (const Graph & grph,
 }
 
 void
-DOL::computeAbsolutePoses (const Graph & grph,
+IOL::computeAbsolutePoses (const Graph & grph,
                      std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses)
 {
   size_t num_frames = boost::num_vertices(grph);
@@ -675,7 +673,7 @@ DOL::computeAbsolutePoses (const Graph & grph,
 }
 
 bool
-DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &camera_pose, const std::vector<size_t> &initial_indices)
+IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &camera_pose, const std::vector<size_t> &initial_indices)
 {
     size_t id = grph_.size();
     std::cout << "Computing indices for cloud " << id << std::endl
@@ -973,7 +971,7 @@ DOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 }
 
 void
-DOL::initSIFT ()
+IOL::initSIFT ()
 {
     if (param_.do_sift_based_camera_pose_estimation_)
     {
@@ -995,7 +993,7 @@ DOL::initSIFT ()
 }
 
 void
-DOL::printParams(std::ostream &ostr) const
+IOL::printParams(std::ostream &ostr) const
 {
     ostr << "Started dynamic object learning with parameters: " << std::endl
          << "===================================================" << std::endl

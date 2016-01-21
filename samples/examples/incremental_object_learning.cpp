@@ -1,5 +1,5 @@
 #include <v4r/common/miscellaneous.h>
-#include <v4r/object_modelling/do_learning.h>
+#include <v4r/object_modelling/incremental_object_learning.h>
 #include <v4r/io/filesystem.h>
 #include <pcl/io/io.h>
 #include <pcl/io/pcd_io.h>
@@ -23,7 +23,7 @@ main (int argc, char ** argv)
     bool save_views = false;
     size_t min_mask_points = 50;
 
-    v4r::object_modelling::DOL m;
+    v4r::object_modelling::IOL m;
 
     po::options_description desc("Dynamic Object Learning\n======================================\n**Allowed options");
     desc.add_options()
