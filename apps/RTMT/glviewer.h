@@ -47,7 +47,7 @@
 #include "sensor.h"
 #include "OctreeVoxelCentroidContainerXYZRGB.hpp"
 
-#include <QtGui/QGraphicsView>
+#include <QGraphicsView>
 
 
 class GLGraphicsView : public QGraphicsView

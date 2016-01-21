@@ -10,7 +10,9 @@
 #include <iostream>
 #include <fstream>
 #include <opencv2/imgproc/imgproc.hpp>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <v4r/segmentation/Slic.h>
 
 namespace v4r
