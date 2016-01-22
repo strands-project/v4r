@@ -6,7 +6,7 @@ namespace v4r
 {
 
 template<typename PointT>
-V4R_EXPORTS void
+void
 calcEdgeWeightAndRefineTf (const typename pcl::PointCloud<PointT>::ConstPtr &cloud_src,
                                                         const typename pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
                                                         const Eigen::Matrix4f &transform,

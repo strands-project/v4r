@@ -7,9 +7,9 @@
 namespace v4r
 {
 
-template<typename PointT, typename FeatureT>
+template<typename PointT>
 bool
-SIFTLocalEstimation<PointT, FeatureT>::estimate(const pcl::PointCloud<PointT> & in, pcl::PointCloud<FeatureT> &signatures)
+SIFTLocalEstimation<PointT>::estimate(const pcl::PointCloud<PointT> & in, std::vector<std::vector<float> > &signatures)
 {
     //fill keypoints with indices_, all points at indices_[i] should be valid
     std::vector<SiftGPU::SiftKeypoint> ks;
@@ -54,21 +54,20 @@ SIFTLocalEstimation<PointT, FeatureT>::estimate(const pcl::PointCloud<PointT> & 
             std::cout<<"No SIFT found"<< std::endl;
     }
 
-    signatures.resize (ks.size ());
-    signatures.width = static_cast<int> (ks.size ());
-    signatures.height = 1;
+    signatures.resize(ks.size (), std::vector<float> (128));
+
     for(size_t i=0; i < ks.size(); i++)
     {
         for (int k = 0; k < 128; k++)
-            signatures.points[i].histogram[k] = descriptors.at<float>(i,k);
+            signatures[i][k] = descriptors.at<float>(i,k);
     }
 
     return true;
 }
 
-template<typename PointT, typename FeatureT>
+template<typename PointT>
 bool
-SIFTLocalEstimation<PointT, FeatureT>::estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> &processed, pcl::PointCloud<PointT> &keypoints, pcl::PointCloud<FeatureT> &signatures)
+SIFTLocalEstimation<PointT>::estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> &processed, pcl::PointCloud<PointT> &keypoints, std::vector<std::vector<float> > &signatures)
 {
     processed = in;
 
@@ -76,9 +75,9 @@ SIFTLocalEstimation<PointT, FeatureT>::estimate (const pcl::PointCloud<PointT> &
     return estimate(in, keypoints, signatures, scale);
 }
 
-template<typename PointT, typename FeatureT>
+template<typename PointT>
 bool
-SIFTLocalEstimation<PointT, FeatureT>::estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> &keypoints, pcl::PointCloud<FeatureT> &signatures, std::vector<float> & scales)
+SIFTLocalEstimation<PointT>::estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> &keypoints, std::vector<std::vector<float> > &signatures, std::vector<float> & scales)
 {
     cv::Mat colorImage = ConvertPCLCloud2Image(in);
     cv::Mat grayImage;
@@ -114,9 +113,7 @@ SIFTLocalEstimation<PointT, FeatureT>::estimate (const pcl::PointCloud<PointT> &
     scales.resize(ks.size());
     keypoints.points.resize(ks.size());
     keypoint_indices_.resize(ks.size());
-    signatures.points.resize (ks.size ());
-    signatures.width = static_cast<int> (ks.size ());
-    signatures.height = 1;
+    signatures.resize (ks.size (), std::vector<float>(128));
 
     std::vector<bool> obj_mask;
     if(indices_.empty())
@@ -138,7 +135,7 @@ SIFTLocalEstimation<PointT, FeatureT>::estimate (const pcl::PointCloud<PointT> &
             scales[kept] = ks[i].s;
 
             for (size_t k = 0; k < 128; k++)
-                signatures.points[kept].histogram[k] = descriptors.at<float>(i,k);
+                signatures[kept][k] = descriptors.at<float>(i,k);
 
             kept++;
         }
@@ -147,8 +144,7 @@ SIFTLocalEstimation<PointT, FeatureT>::estimate (const pcl::PointCloud<PointT> &
     keypoints.points.resize(kept);
     scales.resize(kept);
     keypoint_indices_.resize(kept);
-    signatures.points.resize(kept);
-    signatures.width = kept;
+    signatures.resize(kept);
 
     std::cout << "Number of SIFT features:" << kept << std::endl;
     indices_.clear();
@@ -157,9 +153,9 @@ SIFTLocalEstimation<PointT, FeatureT>::estimate (const pcl::PointCloud<PointT> &
 }
 
 
-template<typename PointT, typename FeatureT>
+template<typename PointT>
 bool
-SIFTLocalEstimation<PointT, FeatureT>::estimate (const cv::Mat_ < cv::Vec3b > &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, pcl::PointCloud<FeatureT> &signatures, std::vector<float> & scales)
+SIFTLocalEstimation<PointT>::estimate (const cv::Mat_ < cv::Vec3b > &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, std::vector<std::vector<float> > &signatures, std::vector<float> & scales)
 {
     cv::Mat grayImage;
     cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
@@ -190,14 +186,12 @@ SIFTLocalEstimation<PointT, FeatureT>::estimate (const cv::Mat_ < cv::Vec3b > &c
     //save signatures
 
     scales.resize(ks.size());
-    signatures.resize (ks.size ());
-    signatures.width = static_cast<int> (ks.size ());
-    signatures.height = 1;
+    signatures.resize (ks.size (), std::vector<float>(128));
 
     for(size_t i=0; i < ks.size(); i++)
     {
         for (int k = 0; k < 128; k++)
-            signatures.points[i].histogram[k] = descriptors.at<float>(i,k);
+            signatures[i][k] = descriptors.at<float>(i,k);
 
         scales[i] = ks[i].s;
     }
@@ -209,5 +203,5 @@ SIFTLocalEstimation<PointT, FeatureT>::estimate (const cv::Mat_ < cv::Vec3b > &c
     return true;
 }
 
-template class V4R_EXPORTS SIFTLocalEstimation<pcl::PointXYZRGB, pcl::Histogram<128> >;
+template class V4R_EXPORTS SIFTLocalEstimation<pcl::PointXYZRGB>;
 }

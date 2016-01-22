@@ -32,12 +32,11 @@
 namespace v4r
 {
 
-template<typename PointT, typename FeatureT>
+template<typename PointT>
 class V4R_EXPORTS LocalEstimator
 {
 protected:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-    typedef typename pcl::PointCloud<FeatureT>::Ptr FeatureTPtr;
 
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
     std::vector<typename boost::shared_ptr<KeypointExtractor<PointT> > > keypoint_extractor_;
@@ -168,7 +167,7 @@ public:
     }
 
     virtual bool
-    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, pcl::PointCloud<FeatureT> & signatures)=0;
+    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures)=0;
 
 };
 }

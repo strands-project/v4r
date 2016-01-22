@@ -1,3 +1,3 @@
 #include <v4r/features/local_estimator.h>
 
-template class V4R_EXPORTS v4r::LocalEstimator<struct pcl::PointXYZ, struct pcl::Histogram<352> >;
+template class V4R_EXPORTS v4r::LocalEstimator<pcl::PointXYZ>;

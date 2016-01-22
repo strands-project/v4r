@@ -315,7 +315,7 @@ protected:
     bool calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
                            pcl::PointCloud<PointT> &sift_keypoints,
                            std::vector< size_t > &sift_keypoint_indices,
-                           pcl::PointCloud<FeatureT> &sift_signatures,
+                           std::vector<std::vector<float> > &sift_signatures,
                            std::vector<float> &sift_keypoint_scales);
 
     void
@@ -323,7 +323,7 @@ protected:
                                           const pcl::PointCloud<PointT> &dst_cloud,
                                           const std::vector<size_t> &src_sift_keypoint_indices,
                                           const std::vector<size_t> &dst_sift_keypoint_indices,
-                                          const pcl::PointCloud<FeatureT> &src_sift_signatures,
+                                          const std::vector<std::vector<float> > &src_sift_signatures,
                                           boost::shared_ptr< flann::Index<DistT> > &src_flann_index,
                                           std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
                                           bool use_gc = false);

@@ -53,7 +53,7 @@ namespace v4r
      * \author Aitor Aldoma, Federico Tombari
      */
 
-    template<template<class > class Distance, typename PointT, typename FeatureT>
+    template<typename PointT>
       class V4R_EXPORTS LocalRecognitionPipeline : public Recognizer<PointT>
       {
       public:
@@ -75,6 +75,7 @@ namespace v4r
               float max_descriptor_distance_;
               float correspondence_distance_weight_; /// @brief weight factor for correspondences distances. This is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
               bool save_hypotheses_;
+              int distance_metric_; /// @brief defines the norm used for feature matching (1... L1 norm, 2... L2 norm)
 
               Parameter(
                       bool use_cache = false,
@@ -83,7 +84,8 @@ namespace v4r
                       float distance_same_keypoint = 0.001f * 0.001f,
                       float max_descriptor_distance = std::numeric_limits<float>::infinity(),
                       float correspondence_distance_weight = 1.f,
-                      bool save_hypotheses = false
+                      bool save_hypotheses = false,
+                      int distance_metric = 1
                       )
                   : Recognizer<PointT>::Parameter(),
                     use_cache_(use_cache),
@@ -92,7 +94,8 @@ namespace v4r
                     distance_same_keypoint_ ( distance_same_keypoint ),
                     max_descriptor_distance_ ( max_descriptor_distance ),
                     correspondence_distance_weight_ ( correspondence_distance_weight ),
-                    save_hypotheses_ ( save_hypotheses )
+                    save_hypotheses_ ( save_hypotheses ),
+                    distance_metric_ (distance_metric)
               {}
           }param_;
 
@@ -101,7 +104,6 @@ namespace v4r
           typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
           typedef typename Recognizer<PointT>::symHyp symHyp;
 
-          typedef Distance<float> DistT;
           typedef Model<PointT> ModelT;
           typedef boost::shared_ptr<ModelT> ModelTPtr;
 
@@ -126,7 +128,7 @@ namespace v4r
           typename boost::shared_ptr<Source<PointT> > source_;
 
           /** \brief Computes a feature */
-          typename boost::shared_ptr<LocalEstimator<PointT, FeatureT> > estimator_;
+          typename boost::shared_ptr<LocalEstimator<PointT> > estimator_;
 
           /** \brief Point-to-point correspondence grouping algorithm */
           typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > cg_algorithm_;
@@ -136,11 +138,12 @@ namespace v4r
 
           bool feat_kp_set_from_outside_;
 
-          boost::shared_ptr<flann::Index<DistT> > flann_index_;
+          boost::shared_ptr<flann::Index<flann::L1<float> > > flann_index_l1_;
+          boost::shared_ptr<flann::Index<flann::L2<float> > > flann_index_l2_;
           std::vector<flann_model> flann_models_;
           boost::shared_ptr<flann::Matrix<float> > flann_data_;
 
-          typename pcl::PointCloud<FeatureT>::Ptr signatures_;
+          std::vector<std::vector<float> > signatures_;
           typename pcl::PointCloud<PointT>::Ptr scene_keypoints_;
           std::vector<int> scene_kp_indices_;
 
@@ -196,11 +199,11 @@ namespace v4r
         }
 
         void
-        setFeatAndKeypoints(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
+        setFeatAndKeypoints(const std::vector<std::vector<float> > & signatures,
                                  const std::vector<int> & keypoint_indices)
         {  
-          if(!signatures || signatures->points.size()==0 ||
-                  (signatures->points.size()!=keypoint_indices.size()))
+          if( signatures.empty() ||
+                  (signatures.size()!=keypoint_indices.size()))
               throw std::runtime_error("Provided signatures and keypoints are not valid!");
 
           feat_kp_set_from_outside_ = true;
@@ -228,7 +231,7 @@ namespace v4r
          * \brief Sets the local feature estimator
          */
         void
-        setFeatureEstimator (const typename boost::shared_ptr<LocalEstimator<PointT, FeatureT> > & feat)
+        setFeatureEstimator (const typename boost::shared_ptr<LocalEstimator<PointT> > & feat)
         {
           estimator_ = feat;
         }

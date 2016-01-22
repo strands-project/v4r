@@ -56,7 +56,7 @@ namespace v4r
         }param_;
 
       protected:
-        std::vector<typename boost::shared_ptr<v4r::Recognizer<PointT> > > recognizers_;
+        std::vector<typename boost::shared_ptr<Recognizer<PointT> > > recognizers_;
 
       private:
         using Recognizer<PointT>::scene_;
@@ -74,7 +74,7 @@ namespace v4r
         typedef boost::shared_ptr<ModelT> ModelTPtr;
         std::vector<pcl::PointIndices> segmentation_indices_;
 
-        typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;  /// @brief algorithm for correspondence grouping
+        typename boost::shared_ptr<GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;  /// @brief algorithm for correspondence grouping
         typename pcl::PointCloud<PointT>::Ptr scene_keypoints_; /// @brief keypoints of the scene
         pcl::PointCloud<pcl::Normal>::Ptr scene_kp_normals_;
         std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;   /// @brief stores feature correspondences
@@ -156,7 +156,7 @@ namespace v4r
 
         void recognize();
 
-        void addRecognizer(typename boost::shared_ptr<v4r::Recognizer<PointT> > & rec)
+        void addRecognizer(typename boost::shared_ptr<Recognizer<PointT> > & rec)
         {
           recognizers_.push_back(rec);
         }
@@ -167,9 +167,8 @@ namespace v4r
             obj_hypotheses_.clear();
         }
 
-        template <typename FeatureT>
         void
-        setFeatAndKeypoints(const typename pcl::PointCloud<FeatureT>::Ptr & signatures,
+        setFeatAndKeypoints(const std::vector<std::vector<float> > & signatures,
                             const std::vector<int> & keypoint_indices,
                             size_t feature_type)
         {
@@ -177,8 +176,8 @@ namespace v4r
           {
               if(recognizers_[i]->getFeatureType() == feature_type)
               {
-                  boost::shared_ptr<LocalRecognitionPipeline<flann::L1, PointT, FeatureT> > cast_local_recognizer
-                          = boost::static_pointer_cast<LocalRecognitionPipeline<flann::L1, PointT, FeatureT> > (recognizers_[i]);
+                  boost::shared_ptr<LocalRecognitionPipeline<PointT> > cast_local_recognizer
+                          = boost::static_pointer_cast<LocalRecognitionPipeline<PointT> > (recognizers_[i]);
                   cast_local_recognizer->setFeatAndKeypoints(signatures, keypoint_indices);
               }
           }

@@ -9,8 +9,6 @@
 #include <v4r/recognition/model.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
 
-typedef pcl::Histogram<128> FeatureT;
-
 namespace v4r
 {
 
@@ -31,7 +29,7 @@ public:
 //    typename boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
 //    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
     typename std::map<std::string, ObjectHypothesis<PointT> > hypotheses_;
-    boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_;
+    std::vector<std::vector<float> > sift_signatures_;
 //    std::vector<float> sift_keypoints_scales_;
     std::vector<int> sift_kp_indices_;
     Eigen::Matrix4f transform_to_world_co_system_;

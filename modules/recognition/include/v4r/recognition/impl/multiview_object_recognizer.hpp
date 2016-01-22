@@ -62,17 +62,17 @@ bool
 MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<PointT> &cloud_src,
                                                typename pcl::PointCloud<PointT> &sift_keypoints,
                                                std::vector< int > &sift_keypoint_indices,
-                                               pcl::PointCloud<FeatureT> &sift_signatures,
+                                               std::vector<std::vector<float> > &sift_signatures,
                                                std::vector<float> &sift_keypoint_scales)
 {
 #ifdef HAVE_SIFTGPU
-    SIFTLocalEstimation<PointT, FeatureT> estimator(sift_);
+    SIFTLocalEstimation<PointT> estimator(sift_);
     bool ret = estimator.estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
 #else
     (void)sift_keypoint_scales; //silences compiler warning of unused variable
     typename pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
 
-    OpenCVSIFTLocalEstimation<PointT, FeatureT > estimator;
+    OpenCVSIFTLocalEstimation<PointT > estimator;
     bool ret = estimator.estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
 #endif
     estimator.getKeypointIndices( sift_keypoint_indices );
@@ -192,33 +192,30 @@ MultiviewRecognizer<PointT>::recognize ()
                                         // are removed.
             typename pcl::PointCloud<PointT> sift_keypoints;
             std::vector<int> sift_kp_indices;
-            pcl::PointCloud<FeatureT > sift_signatures;
+            std::vector<std::vector<float> > sift_signatures;
             std::vector<float> sift_keypoints_scales;
 
             calcSiftFeatures( *v.scene_, sift_keypoints, sift_kp_indices, sift_signatures, sift_keypoints_scales);
 
-            if(!v.sift_signatures_)
-                v.sift_signatures_.reset( new pcl::PointCloud<FeatureT>);
-
             v.sift_kp_indices_.reserve( sift_kp_indices.size() );
-            v.sift_signatures_->points.reserve( sift_signatures.points.size() );
+            v.sift_signatures_.reserve( sift_signatures.size() );
 //            v.sift_keypoints_scales_.reserve( sift_keypoints_scales.size() );
             size_t kept=0;
             for (size_t i=0; i<sift_kp_indices.size(); i++) {   // remove infinte keypoints
                 if ( pcl::isFinite( v.scene_->points[sift_kp_indices[i]] ) ) {
                     v.sift_kp_indices_.push_back( sift_kp_indices[i] );
-                    v.sift_signatures_->points.push_back( sift_signatures.points[i] );
+                    v.sift_signatures_.push_back( sift_signatures[i] );
 //                    v.sift_keypoints_scales_.push_back( sift_keypoints_scales[i] );
                     kept++;
                 }
             }
             v.sift_kp_indices_.shrink_to_fit();
-            v.sift_signatures_->points.shrink_to_fit();
+            v.sift_signatures_.shrink_to_fit();
 //            v.sift_keypoints_scales_.shrink_to_fit();
             std::cout << "keypoints: " << v.sift_kp_indices_.size() << std::endl;
 
             // In addition to matching views, we can use the computed SIFT features for recognition
-            rr_->template setFeatAndKeypoints<FeatureT>(v.sift_signatures_, v.sift_kp_indices_, SIFT);
+            rr_->setFeatAndKeypoints(v.sift_signatures_, v.sift_kp_indices_, SIFT);
         }
 
 
@@ -239,7 +236,7 @@ MultiviewRecognizer<PointT>::recognize ()
 
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms =
                         Registration::FeatureBasedRegistration<PointT>::estimateViewTransformationBySIFT(
-                            *w.scene_, *v.scene_, w.sift_kp_indices_, v.sift_kp_indices_, *w.sift_signatures_, *v.sift_signatures_, param_.use_gc_s2s_);
+                            *w.scene_, *v.scene_, w.sift_kp_indices_, v.sift_kp_indices_, w.sift_signatures_, v.sift_signatures_, param_.use_gc_s2s_);
 
                 for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++) {
                     edge.transformation_ = sift_transforms[sift_tf_id];

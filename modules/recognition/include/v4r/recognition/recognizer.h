@@ -29,8 +29,8 @@
 *      @brief object instance recognizer
 */
 
-#ifndef RECOGNIZER_H_
-#define RECOGNIZER_H_
+#ifndef V4R_RECOGNIZER_H_
+#define V4R_RECOGNIZER_H_
 
 #include <v4r/core/macros.h>
 #include <v4r/recognition/hypotheses_verification.h>

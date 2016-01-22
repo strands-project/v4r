@@ -59,30 +59,30 @@ bool
 IOL::calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
                        pcl::PointCloud<PointT> &sift_keypoints,
                        std::vector< size_t > &sift_keypoint_indices,
-                       pcl::PointCloud<FeatureT> &sift_signatures,
+                       std::vector<std::vector<float> > &sift_signatures,
                        std::vector<float> &sift_keypoint_scales)
 {
-    pcl::PointIndices sift_keypoint_pcl_indices;
+    std::vector<int> sift_kp_indices;
 
 
 #ifdef HAVE_SIFTGPU
     (void) sift_keypoint_indices;
-    boost::shared_ptr < SIFTLocalEstimation<PointT, FeatureT> > estimator;
-    estimator.reset (new SIFTLocalEstimation<PointT, FeatureT>(sift_));
+    boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator;
+    estimator.reset (new SIFTLocalEstimation<PointT>(sift_));
 
     bool ret = estimator->estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-    estimator->getKeypointIndices( sift_keypoint_pcl_indices.indices );
+    estimator->getKeypointIndices( sift_kp_indices );
 #else
     (void)sift_keypoint_scales; //silences compiler warning of unused variable
-    boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
-    estimator.reset (new OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> >);
+    boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT> estimator;
+    estimator.reset (new OpenCVSIFTLocalEstimation<PointT>);
 
     pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
 
     bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
-    estimator->getKeypointIndices( sift_keypoint_pcl_indices );
+    estimator->getKeypointIndices( sift_kp_indices );
 
-    sift_keypoint_indices = common::convertPCLIndices2VecSizet(sift_keypoint_pcl_indices);
+    sift_keypoint_indices = common::convertIndices2VecSizet(sift_kp_indices);
 #endif
     return ret;
 }
@@ -92,7 +92,7 @@ IOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
                                       const pcl::PointCloud<PointT> &dst_cloud,
                                       const std::vector<size_t> &src_sift_keypoint_indices,
                                       const std::vector<size_t> &dst_sift_keypoint_indices,
-                                      const pcl::PointCloud<FeatureT> &src_sift_signatures,
+                                      const std::vector<std::vector<float> > &src_sift_signatures,
                                       boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
                                       std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
                                       bool use_gc )
@@ -111,9 +111,7 @@ IOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
 
     for ( size_t keypointId = 0; keypointId < pSiftKeypointsSrc->points.size (); keypointId++ )
     {
-        FeatureT searchFeature = src_sift_signatures[ keypointId ];
-        int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-        nearestKSearch ( dst_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+        nearestKSearch ( dst_flann_index, src_sift_signatures[ keypointId ], K, indices, distances );
 
         pcl::Correspondence corr;
         corr.distance = distances[0][0];
@@ -659,8 +657,8 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         std::vector<float> sift_keypoint_scales;
         try
         {
-            calcSiftFeatures( *view.cloud_, sift_keypoints, view.sift_keypoint_indices_, *view.sift_signatures_, sift_keypoint_scales);
-            convertToFLANN<FeatureT, DistT>(*view.sift_signatures_, flann_index );
+            calcSiftFeatures( *view.cloud_, sift_keypoints, view.sift_keypoint_indices_, view.sift_signatures_, sift_keypoint_scales);
+            convertToFLANN<DistT>(view.sift_signatures_, flann_index );
         }
         catch (int e)
         {
@@ -740,7 +738,7 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
                     estimateViewTransformationBySIFT( *grph_[view_id].cloud_, *view.cloud_,
                                                       grph_[view_id].sift_keypoint_indices_, view.sift_keypoint_indices_,
-                                                      *grph_[view_id].sift_signatures_, flann_index, sift_transforms);
+                                                      grph_[view_id].sift_signatures_, flann_index, sift_transforms);
                     for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++)
                     {
                         edge.transformation_ = sift_transforms[sift_tf_id];

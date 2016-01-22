@@ -1,5 +1,6 @@
 #include <v4r_config.h>
 #include <v4r/registration/FeatureBasedRegistration.h>
+#include <v4r/common/miscellaneous.h>
 #include <v4r/common/impl/geometric_consistency.hpp>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <pcl/registration/correspondence_estimation.h>
@@ -41,9 +42,9 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
 {
 
 #ifdef HAVE_SIFTGPU
-    typename v4r::SIFTLocalEstimation<PointT, SIFTHistogram > estimator;
+    typename v4r::SIFTLocalEstimation<PointT> estimator;
 #else
-    typename v4r::OpenCVSIFTLocalEstimation<PointT, SIFTHistogram > estimator;
+    typename v4r::OpenCVSIFTLocalEstimation<PointT> estimator;
 #endif
 
     //computes features and keypoints for the views of all sessions using appropiate object indices
@@ -63,11 +64,8 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
 
     for(size_t i=0; i < session_ranges.size(); i++)
     {
-        model_features_[i].reset(new pcl::PointCloud< SIFTHistogram >);
         for(int t=session_ranges[i].first; t <= session_ranges[i].second; t++)
-        {
             cloud_idx_to_session[t] = static_cast<int>(i);
-        }
 
         octree_sessions[i].reset(new pcl::octree::OctreePointCloudOccupancy<PointT>(0.003f));
     }
@@ -81,15 +79,14 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
 
         typename pcl::PointCloud<PointT>::Ptr processed(new pcl::PointCloud<PointT>);
         sift_keypoints_[i].reset(new pcl::PointCloud<PointT>);
-        sift_features_[i].reset(new pcl::PointCloud< SIFTHistogram >);
         sift_normals_[i].reset(new pcl::PointCloud< pcl::Normal >);
 
-        pcl::PointCloud< SIFTHistogram >::Ptr sift_descs(new pcl::PointCloud< SIFTHistogram >);
+        std::vector<std::vector<float> > sift_descs;
         typename pcl::PointCloud< PointT >::Ptr sift_keys(new pcl::PointCloud< PointT >);
 
         estimator.setIndices(indices);
         //estimator.estimate(cloud, processed, sift_keypoints_[i], sift_features_[i]);
-        estimator.estimate(*cloud, *processed, *sift_keys, *sift_descs);
+        estimator.estimate(*cloud, *processed, *sift_keys, sift_descs);
 
         pcl::PointIndices original_indices;
         estimator.getKeypointIndices(original_indices.indices);
@@ -114,7 +111,8 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
         std::cout << non_occupied.size() << " " << sift_keys->points.size() << std::endl;
 
         pcl::copyPointCloud(*sift_keys, non_occupied, *sift_keypoints_[i]);
-        pcl::copyPointCloud(*sift_descs, non_occupied, *sift_features_[i]);
+
+        sift_features_[i] = filterVector(sift_descs, non_occupied);
 
         pcl::copyPointCloud(*normals, original_indices_non_occupied, *sift_normals_[i]);
 
@@ -124,18 +122,18 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
         octree_sessions[cloud_idx_to_session[i]]->setInputCloud(sift_keys_trans);
         octree_sessions[cloud_idx_to_session[i]]->addPointsFromInputCloud();*/
 
-        *model_features_[cloud_idx_to_session[i]] += *sift_features_[i];
+        model_features_[cloud_idx_to_session[i]].insert(model_features_[cloud_idx_to_session[i]].end(),
+                sift_features_[i].begin(),
+                sift_features_[i].end());
     }
 
     for(size_t i=0; i < session_ranges.size(); i++)
     {
-        flann::Matrix<float> flann_data (new float[model_features_[i]->points.size () * 128], model_features_[i]->points.size (), 128);
+        flann::Matrix<float> flann_data (new float[model_features_[i].size () * 128], model_features_[i].size (), 128);
 
-        for (size_t r = 0; r < model_features_[i]->points.size (); ++r)
+        for (size_t r = 0; r < model_features_[i].size (); ++r)
             for (size_t j = 0; j < 128; ++j)
-            {
-                flann_data.ptr ()[r * 128 + j] = model_features_[i]->points[r].histogram[j];
-            }
+                flann_data.ptr ()[r * 128 + j] = model_features_[i][r][j];
 
         flann_data_[i] = flann_data;
 
@@ -155,7 +153,7 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
 
     int knn=1;
 
-    for (size_t i = 0; i < model_features_[s2]->size (); ++i)
+    for (size_t i = 0; i < model_features_[s2].size (); ++i)
     {
         int size_feat = 128;
         flann::Matrix<int> indices;
@@ -164,7 +162,7 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         indices = flann::Matrix<int> (new int[knn], 1, knn);
 
         flann::Matrix<float> p = flann::Matrix<float> (new float[size_feat], 1, size_feat);
-        memcpy (&p.ptr ()[0], &model_features_[s2]->at (i).histogram[0], size_feat * sizeof(float));
+        memcpy (&p.ptr ()[0], &model_features_[s2][i][0], size_feat * sizeof(float));
         flann_index_[s1]->knnSearch (p, indices, distances, knn, flann::SearchParams (kdtree_splits_));
 
         for(int n=0; n < knn; n++)
@@ -208,8 +206,8 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         *normals_s2 += *normals;
     }
 
-    std::cout << kps_s1->points.size() << " " << model_features_[s1]->points.size() << " " << normals_s1->points.size() << std::endl;
-    std::cout << kps_s2->points.size() << " " << model_features_[s2]->points.size() << " " << normals_s2->points.size() << std::endl;
+    std::cout << kps_s1->points.size() << " " << model_features_[s1].size() << " " << normals_s1->points.size() << std::endl;
+    std::cout << kps_s2->points.size() << " " << model_features_[s2].size() << " " << normals_s2->points.size() << std::endl;
 
     /*{
         pcl::visualization::PCLVisualizer vis("keypoints with normals");
@@ -382,8 +380,8 @@ FeatureBasedRegistration<PointT>::estimateViewTransformationBySIFT(const pcl::Po
                                                                    const pcl::PointCloud<PointT> &dst_cloud,
                                                                    const std::vector<int> &src_sift_keypoint_indices,
                                                                    const std::vector<int> &dst_sift_keypoint_indices,
-                                                                   const pcl::PointCloud<SIFTHistogram> &src_sift_signatures,
-                                                                   const pcl::PointCloud<SIFTHistogram> &dst_sift_signatures,
+                                                                   const std::vector<std::vector<float> > &src_sift_signatures,
+                                                                   const std::vector<std::vector<float> > &dst_sift_signatures,
                                                                    bool use_gc )
  {
      std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations;
@@ -392,7 +390,7 @@ FeatureBasedRegistration<PointT>::estimateViewTransformationBySIFT(const pcl::Po
      flann::Matrix<float> distances = flann::Matrix<float> ( new float[K], 1, K );
 
      boost::shared_ptr< flann::Index<DistT> > flann_index;
-     convertToFLANN<SIFTHistogram, DistT >( dst_sift_signatures, flann_index );
+     convertToFLANN( dst_sift_signatures, flann_index );
 
      boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsSrc (new pcl::PointCloud<PointT>);
      boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsDst (new pcl::PointCloud<PointT>);
@@ -402,11 +400,9 @@ FeatureBasedRegistration<PointT>::estimateViewTransformationBySIFT(const pcl::Po
      pcl::CorrespondencesPtr temp_correspondences ( new pcl::Correspondences );
      temp_correspondences->resize(pSiftKeypointsSrc->size ());
 
-     for ( size_t keypointId = 0; keypointId < pSiftKeypointsSrc->points.size (); keypointId++ )
+     for ( size_t keypointId = 0; keypointId < pSiftKeypointsSrc->points.size (); keypointId++)
      {
-         SIFTHistogram searchFeature = src_sift_signatures[ keypointId ];
-         int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-         nearestKSearch ( flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+         nearestKSearch ( flann_index, src_sift_signatures[keypointId], K, indices, distances );
 
          pcl::Correspondence corr;
          corr.distance = distances[0][0];

@@ -69,7 +69,6 @@ class Rec
 private:
     typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
-    typedef pcl::Histogram<128> FeatureT;
 
     boost::shared_ptr<MultiRecognitionPipeline<PointT> > rr_;
     boost::shared_ptr<MultiviewRecognizer<PointT> > mv_r_;
@@ -96,10 +95,10 @@ public:
         // Parameter classes
         typename GO3D<PointT, PointT>::Parameter paramGO3D;
         typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter paramGgcg;
-        typename LocalRecognitionPipeline<flann::L1, PointT, FeatureT >::Parameter paramLocalRecSift;
-        typename LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> >::Parameter paramLocalRecShot;
+        typename LocalRecognitionPipeline<PointT >::Parameter paramLocalRecSift;
+        typename LocalRecognitionPipeline<PointT >::Parameter paramLocalRecShot;
         typename MultiRecognitionPipeline<PointT>::Parameter paramMultiPipeRec;
-        typename SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >::Parameter paramLocalEstimator;
+        typename SHOTLocalEstimationOMP<PointT>::Parameter paramLocalEstimator;
         typename MultiviewRecognizer<PointT>::Parameter paramMultiView;
         typename NguyenNoiseModel<PointT>::Parameter nm_param;
         typename NMBasedCloudIntegration<PointT>::Parameter nmInt_param;
@@ -223,21 +222,21 @@ public:
         if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
           throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
 
-      boost::shared_ptr < SIFTLocalEstimation<PointT, FeatureT > > estimator (new SIFTLocalEstimation<PointT, FeatureT >(sift_));
-      boost::shared_ptr < LocalEstimator<PointT, FeatureT > > cast_estimator = boost::dynamic_pointer_cast<SIFTLocalEstimation<PointT, FeatureT > > (estimator);
+      boost::shared_ptr < SIFTLocalEstimation<PointT > > estimator (new SIFTLocalEstimation<PointT>(sift_));
+      boost::shared_ptr < LocalEstimator<PointT > > cast_estimator = boost::dynamic_pointer_cast<SIFTLocalEstimation<PointT > > (estimator);
 #else
-      boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT, FeatureT > > estimator (new OpenCVSIFTLocalEstimation<PointT, FeatureT >);
-      boost::shared_ptr < LocalEstimator<PointT, FeatureT > > cast_estimator = boost::dynamic_pointer_cast<OpenCVSIFTLocalEstimation<PointT, FeatureT > > (estimator);
+      boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT > > estimator (new OpenCVSIFTLocalEstimation<PointT >);
+      boost::shared_ptr < LocalEstimator<PointT > > cast_estimator = boost::dynamic_pointer_cast<OpenCVSIFTLocalEstimation<PointT > > (estimator);
 #endif
 
-            boost::shared_ptr<LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > sift_r;
-            sift_r.reset (new LocalRecognitionPipeline<flann::L1, PointT, FeatureT > (paramLocalRecSift));
+            boost::shared_ptr<LocalRecognitionPipeline<PointT> > sift_r;
+            sift_r.reset (new LocalRecognitionPipeline<PointT> (paramLocalRecSift));
             sift_r->setDataSource (cast_source);
             sift_r->setModelsDir (models_dir_);
             sift_r->setFeatureEstimator (cast_estimator);
 
             boost::shared_ptr < Recognizer<PointT> > cast_recog;
-            cast_recog = boost::static_pointer_cast<LocalRecognitionPipeline<flann::L1, PointT, FeatureT > > (sift_r);
+            cast_recog = boost::static_pointer_cast<LocalRecognitionPipeline<PointT > > (sift_r);
             rr_->addRecognizer (cast_recog);
         }
         if (do_shot)
@@ -249,14 +248,14 @@ public:
             uniform_kp_extractor->setMaxDistance( 1000.0 ); // for training we want to consider all points (except nan values)
 
             boost::shared_ptr<KeypointExtractor<PointT> > keypoint_extractor = boost::static_pointer_cast<KeypointExtractor<PointT> > (uniform_kp_extractor);
-            boost::shared_ptr<SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> > > estimator (new SHOTLocalEstimationOMP<PointT, pcl::Histogram<352> >(paramLocalEstimator));
+            boost::shared_ptr<SHOTLocalEstimationOMP<PointT> > estimator (new SHOTLocalEstimationOMP<PointT>(paramLocalEstimator));
             estimator->addKeypointExtractor (keypoint_extractor);
 
-            boost::shared_ptr<LocalEstimator<PointT, pcl::Histogram<352> > > cast_estimator;
-            cast_estimator = boost::dynamic_pointer_cast<LocalEstimator<PointT, pcl::Histogram<352> > > (estimator);
+            boost::shared_ptr<LocalEstimator<PointT> > cast_estimator;
+            cast_estimator = boost::dynamic_pointer_cast<LocalEstimator<PointT> > (estimator);
 
-            boost::shared_ptr<LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > shot_r;
-            shot_r.reset(new LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > (paramLocalRecShot));
+            boost::shared_ptr<LocalRecognitionPipeline<PointT> > shot_r;
+            shot_r.reset(new LocalRecognitionPipeline<PointT> (paramLocalRecShot));
             shot_r->setDataSource (cast_source);
             shot_r->setModelsDir(models_dir_);
             shot_r->setFeatureEstimator (cast_estimator);
@@ -264,7 +263,7 @@ public:
             uniform_kp_extractor->setMaxDistance( paramMultiView.chop_z_ ); // for training we do not want this restriction
 
             boost::shared_ptr<Recognizer<PointT> > cast_recog;
-            cast_recog = boost::static_pointer_cast<LocalRecognitionPipeline<flann::L1, PointT, pcl::Histogram<352> > > (shot_r);
+            cast_recog = boost::static_pointer_cast<LocalRecognitionPipeline<PointT> > (shot_r);
             rr_->addRecognizer(cast_recog);
         }
 

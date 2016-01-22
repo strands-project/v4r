@@ -97,7 +97,7 @@ MultiRecognitionPipeline<PointT>::recognize()
                 const std::vector<ModelTPtr> models = recognizers_[r_id]->getModels ();
                 const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms = recognizers_[r_id]->getTransforms ();
 
-#pragma omp critical
+//#pragma omp critical
                 {
                     models_.insert(models_.end(), models.begin(), models.end());
                     transforms_.insert(transforms_.end(), transforms.begin(), transforms.end());
@@ -112,7 +112,7 @@ MultiRecognitionPipeline<PointT>::recognize()
                 typename pcl::PointCloud<PointT>::Ptr kp_tmp = recognizers_[r_id]->getKeypointCloud();
                 recognizers_[r_id]->getKeypointIndices(kp_indices);
 
-#pragma omp critical
+//#pragma omp critical
                 {
                     for (auto &oh : oh_tmp) {
                         for (auto &corr : *(oh.second.model_scene_corresp_)) {  // add appropriate offset to correspondence index of the scene cloud

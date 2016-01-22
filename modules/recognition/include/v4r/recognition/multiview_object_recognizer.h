@@ -65,7 +65,6 @@ class V4R_EXPORTS MultiviewRecognizer : public Recognizer<PointT>
 protected:
     typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
-    typedef flann::L1<float> DistT;
 
     using Recognizer<PointT>::scene_;
     using Recognizer<PointT>::scene_normals_;
@@ -120,7 +119,7 @@ protected:
     bool calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
                            pcl::PointCloud<PointT> &sift_keypoints,
                            std::vector< int > &sift_keypoint_indices,
-                           pcl::PointCloud<FeatureT> &sift_signatures,
+                           std::vector<std::vector<float> > &sift_signatures,
                            std::vector<float> &sift_keypoint_scales);
 
     typename NguyenNoiseModel<PointT>::Parameter nm_param_;

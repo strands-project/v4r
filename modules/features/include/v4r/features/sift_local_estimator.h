@@ -27,19 +27,19 @@
 #include <v4r_config.h>
 
 #include "local_estimator.h"
+#include <v4r/features/types.h>
 #include <pcl/point_cloud.h>
 #include <SiftGPU/SiftGPU.h>
 #include <GL/glut.h>
 #include <opencv2/opencv.hpp>
-#include <v4r/common/faat_3d_rec_framework_defines.h>
 
 namespace v4r
 {
 
-template<typename PointT, typename FeatureT>
-class V4R_EXPORTS SIFTLocalEstimation : public LocalEstimator<PointT, FeatureT>
+template<typename PointT>
+class V4R_EXPORTS SIFTLocalEstimation : public LocalEstimator<PointT>
 {
-    using LocalEstimator<PointT, FeatureT>::keypoint_indices_;
+    using LocalEstimator<PointT>::keypoint_indices_;
 
     std::vector<int> indices_;
     boost::shared_ptr<SiftGPU> sift_;
@@ -68,16 +68,16 @@ public:
     }
 
     bool
-    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & keypoints, pcl::PointCloud<FeatureT> & signatures, std::vector<float> & scales);
+    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures, std::vector<float> & scales);
 
     bool
-    estimate (const cv::Mat_<cv::Vec3b> &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, pcl::PointCloud<FeatureT> &signatures, std::vector<float> & scales);
+    estimate (const cv::Mat_<cv::Vec3b> &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, std::vector<std::vector<float> > &signatures, std::vector<float> & scales);
 
     bool
-    estimate(const pcl::PointCloud<PointT> & in, pcl::PointCloud<FeatureT> & signatures);
+    estimate(const pcl::PointCloud<PointT> & in, std::vector<std::vector<float> > & signatures);
 
     bool
-    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, pcl::PointCloud<FeatureT> & signatures);
+    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures);
 
     void
     setIndices (const std::vector<int> & indices)

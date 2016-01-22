@@ -12,9 +12,9 @@
 namespace v4r
 {
 
-template<template<class > class Distance, typename PointT, typename FeatureT>
+template<typename PointT>
 void
-LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN ()
+LocalRecognitionPipeline<PointT>::loadFeaturesAndCreateFLANN ()
 {
     std::vector<ModelTPtr> models = source_->getModels();
     flann_models_.clear();
@@ -30,10 +30,20 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
         {
             std::string signature_basename (m->view_filenames_[v_id]);
             boost::replace_last(signature_basename, source_->getViewPrefix(), "/descriptors_");
+            boost::replace_last(signature_basename, ".pcd", ".desc");
 
-            typename pcl::PointCloud<FeatureT>::Ptr signature (new pcl::PointCloud<FeatureT> ());
-            pcl::io::loadPCDFile (out_train_path + signature_basename, *signature);
-            int size_feat = sizeof(signature->points[0].histogram) / sizeof(float);
+            std::ifstream f (out_train_path + signature_basename, std::ifstream::binary);
+            if(!f.is_open()) {
+                std::cerr << "Could not find signature file " << out_train_path << signature_basename << std::endl;
+                continue;
+            }
+            int nrows, ncols;
+            f.read((char*) &nrows, sizeof(nrows));
+            f.read((char*) &ncols, sizeof(ncols));
+            std::vector<std::vector<float> > signature (nrows, std::vector<float>(ncols));
+            for(size_t sig_id=0; sig_id<nrows; sig_id++)
+                f.read((char*) &signature[sig_id][0], sizeof(signature[sig_id][0])*signature[sig_id].size());
+            f.close();
 
             flann_model descr_model;
             descr_model.model = m;
@@ -85,16 +95,10 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
 //                m->kp_info_.resize(existing_kp + keypoints->points.size());
             }
 
-            for (size_t dd = 0; dd < signature->points.size (); dd++)
+            for (size_t dd = 0; dd < signature.size (); dd++)
             {
                 descr_model.keypoint_id = kp_id_offset + dd;
-//                descr_model.descr.resize (size_feat);
-//                for(size_t feat_id=0; feat_id<size_feat; feat_id++)
-//                    descr_model.descr[feat_id] = signature->points[dd].histogram[feat_id];
-                std::vector<float> desc (size_feat);
-                for(size_t feat_id=0; feat_id<size_feat; feat_id++)
-                    desc[feat_id] = signature->points[dd].histogram[feat_id];
-                descriptors.push_back(desc);
+                descriptors.push_back(signature[dd]);
                 flann_models_.push_back (descr_model);
             }
         }
@@ -108,14 +112,23 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::loadFeaturesAndCreateFLANN
       }
     }
 
-    flann_index_.reset( new flann::Index<DistT> (*flann_data_, flann::KDTreeIndexParams (4)));
-    flann_index_->buildIndex();
+    if(param_.distance_metric_==2)
+    {
+        flann_index_l2_.reset( new flann::Index<flann::L2<float> > (*flann_data_, flann::KDTreeIndexParams (4)));
+        flann_index_l2_->buildIndex();
+    }
+    else
+    {
+        flann_index_l1_.reset( new flann::Index<flann::L1<float> > (*flann_data_, flann::KDTreeIndexParams (4)));
+        flann_index_l1_->buildIndex();
+    }
+
 }
 
 
-template<template<class > class Distance, typename PointT, typename FeatureT>
+template<typename PointT>
 bool
-LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_retrain)
+LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
 {
     if(!estimator_)
         throw std::runtime_error("Keypoint extractor with feature estimator is not set!");
@@ -138,15 +151,15 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
 
         if (!io::existsFolder(dir))
         {
-            std::cout << "Model " << m->class_ << " " << m->id_ << " not trained. Training " << estimator_->getFeatureDescriptorName() << " on " << m->views_.size () << " views..." << std::endl;
+            std::cout << "Model " << m->class_ << " " << m->id_ << " not trained. Training " << estimator_->getFeatureDescriptorName() << " on " << m->view_filenames_.size () << " views..." << std::endl;
 
             if(!source_->getLoadIntoMemory())
                 source_->loadInMemorySpecificModel(*m);
 
             for (size_t v = 0; v < m->view_filenames_.size(); v++)
             {
-                typename pcl::PointCloud<FeatureT> all_signatures;
-                typename pcl::PointCloud<FeatureT> object_signatures;
+                std::vector<std::vector<float> > all_signatures;
+                std::vector<std::vector<float> > object_signatures;
                 typename pcl::PointCloud<PointT> all_keypoints;
                 typename pcl::PointCloud<PointT> object_keypoints;
                 pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
@@ -163,19 +176,19 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                 // remove signatures and keypoints which do not belong to object
                 std::vector<bool> obj_mask = createMaskFromIndices(m->indices_[v].indices, m->views_[v]->points.size());
                 obj_kp_indices.resize( all_kp_indices.size() );
-                object_signatures.points.resize( all_kp_indices.size() ) ;
+                object_signatures.resize( all_kp_indices.size() ) ;
                 size_t kept=0;
                 for (size_t kp_id = 0; kp_id < all_kp_indices.size(); kp_id++)
                 {
-                    const int idx = all_kp_indices[kp_id];
+                    int idx = all_kp_indices[kp_id];
                     if ( obj_mask[idx] )
                     {
                         obj_kp_indices[kept] = idx;
-                        object_signatures.points[kept] = all_signatures.points[kp_id];
+                        object_signatures[kept] = all_signatures[kp_id];
                         kept++;
                     }
                 }
-                object_signatures.points.resize( kept );
+                object_signatures.resize( kept );
                 obj_kp_indices.resize( kept );
 
                 pcl::copyPointCloud( *m->views_[v], obj_kp_indices, object_keypoints);
@@ -185,7 +198,15 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                     io::createDirIfNotExist(dir);
                     std::string descriptor_basename (m->view_filenames_[v]);
                     boost::replace_last(descriptor_basename, source_->getViewPrefix(), "/descriptors_");
-                    pcl::io::savePCDFileBinary (dir + descriptor_basename, object_signatures);
+                    boost::replace_last(descriptor_basename, ".pcd", ".desc");
+                    std::ofstream f(dir + descriptor_basename, std::ofstream::binary );
+                    int rows = object_signatures.size();
+                    int cols = object_signatures[0].size();
+                    f.write((const char*)(&rows), sizeof(rows));
+                    f.write((const char*)(&cols), sizeof(cols));
+                    for(size_t sig_id=0; sig_id<object_signatures.size(); sig_id++)
+                        f.write(reinterpret_cast<const char*>(&object_signatures[sig_id][0]), sizeof(object_signatures[sig_id][0]) * object_signatures[sig_id].size());
+                    f.close();
 
                     std::string keypoint_basename (m->view_filenames_[v]);
                     boost::replace_last(keypoint_basename, source_->getViewPrefix(), "/keypoints_");
@@ -217,9 +238,9 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
     return true;
 }
 
-template<template<class > class Distance, typename PointT, typename FeatureT>
+template<typename PointT>
 void
-LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
+LocalRecognitionPipeline<PointT>::recognize ()
 {
     models_.clear();
     transforms_.clear();
@@ -234,28 +255,29 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
     }
     else
     {
-        if(!signatures_)
-            signatures_.reset(new pcl::PointCloud<FeatureT>);
-
         estimator_->setNormals(scene_normals_);
         typename pcl::PointCloud<PointT> processed_foo;
-        estimator_->estimate (*scene_, processed_foo, *scene_keypoints_, *signatures_);
+        estimator_->estimate (*scene_, processed_foo, *scene_keypoints_, signatures_);
         estimator_->getKeypointIndices(scene_kp_indices_);
     }
 
-    if (scene_keypoints_->points.size() != signatures_->points.size())
+    if (scene_keypoints_->points.size() != signatures_.size())
         throw std::runtime_error("Size of keypoint cloud is not equal to number of signatures!");
 
-    int size_feat = sizeof(signatures_->points[0].histogram) / sizeof(float);
+    int size_feat = signatures_[0].size();
 
     flann::Matrix<float> distances (new float[param_.knn_], 1, param_.knn_);
     flann::Matrix<int> indices (new int[param_.knn_], 1, param_.knn_);
     flann::Matrix<float> query_desc (new float[size_feat], 1, size_feat);
 
-    for (size_t idx = 0; idx < signatures_->points.size (); idx++)
+    for (size_t idx = 0; idx < signatures_.size (); idx++)
     {
-        memcpy (&query_desc.ptr()[0], &signatures_->points[idx].histogram[0], size_feat * sizeof(float));
-        flann_index_->knnSearch (query_desc, indices, distances, param_.knn_, flann::SearchParams (param_.kdtree_splits_));
+        memcpy (&query_desc.ptr()[0], &signatures_[idx][0], size_feat * sizeof(float));
+
+        if(param_.distance_metric_==2)
+            flann_index_l2_->knnSearch (query_desc, indices, distances, param_.knn_, flann::SearchParams (param_.kdtree_splits_));
+        else
+            flann_index_l1_->knnSearch (query_desc, indices, distances, param_.knn_, flann::SearchParams (param_.kdtree_splits_));
 
         if(distances[0][0] > param_.max_descriptor_distance_)
             continue;
@@ -277,8 +299,8 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
             {
                 ObjectHypothesis<PointT> oh;
                 oh.model_ = f.model;
-                oh.model_scene_corresp_->reserve (signatures_->points.size () * param_.knn_);
-                oh.indices_to_flann_models_.reserve(signatures_->points.size () * param_.knn_);
+                oh.model_scene_corresp_->reserve (signatures_.size () * param_.knn_);
+                oh.indices_to_flann_models_.reserve(signatures_.size () * param_.knn_);
                 oh.model_scene_corresp_->push_back( pcl::Correspondence ((int)f.keypoint_id, (int)idx, m_dist) );
                 oh.indices_to_flann_models_.push_back( indices[0][i] );
                 obj_hypotheses_[oh.model_->id_] = oh;
@@ -308,16 +330,16 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
         if ( hv_algorithm_ && models_.size() )
             hypothesisVerification();
 
-        signatures_.reset();
+        signatures_.clear();
         scene_keypoints_.reset();
         scene_kp_indices_.clear();
     }
 }
 
 
-template<template<class > class Distance, typename PointT, typename FeatureT>
+template<typename PointT>
 void
-LocalRecognitionPipeline<Distance, PointT, FeatureT>::correspondenceGrouping ()
+LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
 {
     if(cg_algorithm_->getRequiresNormals() && (!scene_normals_ || scene_normals_->points.size() != scene_->points.size()))
         computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);

@@ -267,11 +267,11 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointT>::ConstPtr & full_inpu
     indices.resize(kept);
 }
 
-template<typename PointT, typename DistType>
-V4R_EXPORTS void convertToFLANN ( const typename pcl::PointCloud<PointT> & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index);
+template<typename DistType>
+V4R_EXPORTS void convertToFLANN ( const std::vector<std::vector<float> > &data, boost::shared_ptr< typename flann::Index<DistType> > &flann_index);
 
 template<typename DistType>
-V4R_EXPORTS void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+V4R_EXPORTS void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
                                                   flann::Matrix<float> &distances );
 
 /**
@@ -412,6 +412,25 @@ incrementVector(const std::vector<bool> &v, std::vector<bool> &inc_v)
         carry = v[ bit ] && carry;
     }
     return overflow;
+}
+
+/**
+  * @brief: extracts elements from a vector indicated by some indices
+  * @param[in] Input vector
+  * @param[in] indices to extract
+  * @return extracted elements
+  */
+template<typename T>
+inline V4R_EXPORTS typename std::vector<T>
+filterVector(const std::vector<T> &in, const std::vector<int> &indices)
+{
+    typename std::vector<T> out(in.size());
+    size_t kept;
+    for(const auto &idx : indices)
+        out[kept++] = in[idx];
+
+    out.resize(kept);
+    return out;
 }
 }
 

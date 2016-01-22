@@ -21,8 +21,6 @@ namespace v4r
         class V4R_EXPORTS FeatureBasedRegistration : public PartialModelRegistrationBase<PointT>
         {
             private:
-                typedef pcl::Histogram<128> SIFTHistogram;
-
                 using PartialModelRegistrationBase<PointT>::name_;
                 using PartialModelRegistrationBase<PointT>::partial_1;
                 using PartialModelRegistrationBase<PointT>::partial_2;
@@ -51,8 +49,8 @@ namespace v4r
 
                 std::vector<typename pcl::PointCloud<PointT>::Ptr > sift_keypoints_;
                 std::vector< pcl::PointCloud<pcl::Normal>::Ptr > sift_normals_;
-                std::vector<pcl::PointCloud< SIFTHistogram >::Ptr > sift_features_;
-                std::vector<pcl::PointCloud< SIFTHistogram >::Ptr > model_features_;
+                std::vector< std::vector<std::vector<float> > > sift_features_;
+                std::vector< std::vector<std::vector<float> > > model_features_;
 
                 bool do_cg_;
                 float inlier_threshold_;
@@ -84,10 +82,9 @@ namespace v4r
                                                       const pcl::PointCloud<PointT> &dst_cloud,
                                                       const std::vector<int> &src_sift_keypoint_indices,
                                                       const std::vector<int> &dst_sift_keypoint_indices,
-                                                      const pcl::PointCloud<SIFTHistogram> &src_sift_signatures,
-                                                      const pcl::PointCloud<SIFTHistogram> &dst_sift_signatures,
+                                                      const std::vector<std::vector<float> > &src_sift_signatures,
+                                                      const std::vector<std::vector<float> > &dst_sift_signatures,
                                                       bool use_gc = false );
-
         };
     }
 }
