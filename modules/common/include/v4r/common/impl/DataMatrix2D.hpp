@@ -94,7 +94,7 @@ public:
 /**
  * DataMatrix2Df
  */
-class DataMatrix2Df : public DataMatrix2D<float>
+class V4R_EXPORTS DataMatrix2Df : public DataMatrix2D<float>
 {
 public:
   DataMatrix2Df() : DataMatrix2D(FLOAT_2D){}
@@ -113,7 +113,7 @@ public:
 /**
  * DataMatrix2Db
  */
-class DataMatrix2Db : public DataMatrix2D<unsigned char>
+class V4R_EXPORTS DataMatrix2Db : public DataMatrix2D<unsigned char>
 {
 public:
   DataMatrix2Db() : DataMatrix2D(UCHAR_2D) {}
@@ -132,7 +132,7 @@ public:
 /**
  * DataMatrix2Di
  */
-class DataMatrix2Di : public DataMatrix2D<int>
+class V4R_EXPORTS DataMatrix2Di : public DataMatrix2D<int>
 {
 public:
   DataMatrix2Di() : DataMatrix2D(INT_2D) {}

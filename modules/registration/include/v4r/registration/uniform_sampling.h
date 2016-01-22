@@ -11,6 +11,8 @@
 #include <v4r/core/macros.h>
 #include <pcl/common/common.h>
 #include <pcl/keypoints/keypoint.h>
+#include <pcl/common/common.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {

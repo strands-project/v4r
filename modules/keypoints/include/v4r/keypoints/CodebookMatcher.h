@@ -53,7 +53,7 @@ namespace v4r
 class V4R_EXPORTS CodebookMatcher
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     float thr_desc_rnn;

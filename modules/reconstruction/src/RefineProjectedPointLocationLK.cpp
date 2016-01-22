@@ -76,7 +76,7 @@ void RefineProjectedPointLocationLK::getIntensityDifference(const cv::Mat_<unsig
   {
     for (int u = -hw ; u <= hw ; u++)  
     {
-      diff(v+hh,u+hw) = getInterpolated(im1, pt1.x+u, pt1.y+v) - getInterpolated(im2, pt2.x+u, pt2.y+v);
+      diff(v+hh,u+hw) = getInterpolated(im1, pt1.x+u, pt1.y+v) - im2(pt2.y+v, pt2.x+u);
     }
   }
 }
@@ -239,8 +239,14 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
     H = delta_R + 1./d*delta_t*n.transpose();
     H = src_C * H * tgt_C.inverse() * T;
 
-    warpPatchHomography( (const unsigned char*)im_src.ptr(), im_src.rows, im_src.cols,
+    bool isok = warpPatchHomography( (const unsigned char*)im_src.ptr(), im_src.rows, im_src.cols,
                          (float*)H.data(), (unsigned char*)patch.ptr(), patch.rows, patch.cols);
+
+    if (!isok)
+    {
+      converged[i] = -1;
+      continue;
+    }
 
     cv::Sobel( patch, patch_dx, CV_32F, 1, 0, 3, 1, 0, cv::BORDER_DEFAULT );
     cv::Sobel( patch, patch_dy, CV_32F, 0, 1, 3, 1, 0, cv::BORDER_DEFAULT );

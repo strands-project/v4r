@@ -1,4 +1,4 @@
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/normals.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
 #include <v4r/segmentation/pcl_segmentation_methods.h>
 

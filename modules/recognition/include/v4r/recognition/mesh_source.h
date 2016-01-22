@@ -27,13 +27,16 @@
 
 #include <pcl/io/pcd_io.h>
 #include <boost/function.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
-#include <v4r/rendering/depthmapRenderer.h>
 #include <v4r/recognition/source.h>
+#include <v4r/rendering/depthmapRenderer.h>
+
+namespace bf = boost::filesystem;
 
 namespace v4r
 {
@@ -45,6 +48,7 @@ namespace v4r
     template<typename PointT>
       class V4R_EXPORTS MeshSource : public Source<PointT>
       {
+      private:
         typedef Source<PointT> SourceT;
         typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
@@ -55,14 +59,21 @@ namespace v4r
         using SourceT::radius_normals_;
         using SourceT::compute_normals_;
         using SourceT::load_into_memory_;
+        using SourceT::view_prefix_;
+        using SourceT::indices_prefix_;
+        using SourceT::pose_prefix_;
+        using SourceT::entropy_prefix_;
 
         int tes_level_;
         int resolution_;
         float radius_sphere_;
         bool gen_organized_;
-        boost::function<bool (const Eigen::Vector3f &)> campos_constraints_func_;
 
-        pcl::PointCloud<PointT> V4R_EXPORTS renderCloud (const DepthmapRenderer &renderer, float & visible);
+        std::string mesh_dir_;
+
+        boost::shared_ptr<DepthmapRenderer> renderer_;
+
+        pcl::PointCloud<PointT> V4R_EXPORTS renderCloud (const DepthmapRenderer &renderer_, float & visible);
 
       public:
 
@@ -82,13 +93,6 @@ namespace v4r
         }
 
         void
-        setCamPosConstraints (boost::function<bool
-        (const Eigen::Vector3f &)> & bb)
-        {
-          campos_constraints_func_ = bb;
-        }
-
-        void
         setResolution (int res)
         {
           resolution_ = res;
@@ -101,40 +105,31 @@ namespace v4r
         }
 
         void
-        loadOrGenerate (const std::string & dir, const std::string & model_path, ModelT & model);
-
-        void
-        generate (const std::string & training_dir = std::string())
+        setMeshDir(const std::string &dir)
         {
-            v4r::io::createDirIfNotExist(training_dir);
-
-            //get models in directory
-            std::vector < std::string > files;
-            v4r::io::getFilesInDirectory(path_, files, "", ".*.ply", true);
-
-            models_.clear();
-
-            for (size_t i = 0; i < files.size (); i++)
-            {
-                ModelTPtr m(new ModelT);
-                this->getIdAndClassFromFilename (files[i], m->id_, m->class_);
-
-                //check which of them have been trained using training_dir and the model_id_
-                //load views, poses and self-occlusions for those that exist
-                //generate otherwise
-                std::cout << files[i] << std::endl;
-                std::stringstream model_path;
-                model_path << path_ << "/" << files[i];
-                std::string path_model = model_path.str ();
-                loadOrGenerate (training_dir, path_model, *m);
-
-                models_.push_back (m);
-            }
-            std::cout << "End of generate function" << std::endl;
+            mesh_dir_ = dir;
         }
 
         void
-        loadInMemorySpecificModel(const std::string & dir, ModelT & model);
+        loadOrGenerate (const std::string & model_path, ModelT & model);
+
+        void
+        getIdAndClassFromFilename (const std::string & filename, std::string & id, std::string & classname) const
+        {
+          std::vector < std::string > strs;
+          boost::split (strs, filename, boost::is_any_of ("/\\"));
+          std::string name = strs[strs.size () - 1];
+
+          classname = strs[0];
+          id = name.substr (0, name.length () - 4);
+        }
+
+        void
+        loadInMemorySpecificModel(ModelT & model);
+
+        void
+        generate();
+
       };
 }
 

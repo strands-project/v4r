@@ -1,7 +1,4 @@
 //
-//  viewer.cpp
-//  LyonViewer
-//
 //  Created by Simon Schreiberhuber on 01.04.15.
 //  Copyright (c) 2015 Simon Schreiberhuber. All rights reserved.
 //
@@ -33,7 +30,7 @@ namespace po = boost::program_options;
 
 int main(int argc, const char * argv[]) {
     std::string input, out_dir;
-    bool visualize;
+    bool visualize = false;
     size_t subdivisions = 0, width = 640, height = 480;
     float radius = 3.0, fx = 535.4, fy = 539.2, cx = 320.1, cy = 247.6;
 
@@ -44,7 +41,6 @@ int main(int argc, const char * argv[]) {
             ("help,h", "produce help message")
             ("input,i", po::value<std::string>(&input)->required(), "input model (.ply)")
             ("output,o", po::value<std::string>(&out_dir)->default_value("/tmp/rendered_pointclouds/"), "output directory to store the point cloud (.pcd) file")
-            ("visualize,v", po::value<bool>(&visualize)->default_value(true), "if true, visualizes the rendered depth and color map.")
             ("subdivisions,s", po::value<size_t>(&subdivisions)->default_value(subdivisions), "defines the number of subdivsions used for rendering")
             ("radius,r", po::value<float>(&radius)->default_value(radius, boost::str(boost::format("%.2e") % radius)), "defines the radius used for rendering")
             ("width", po::value<size_t>(&width)->default_value(width), "defines the image width")
@@ -53,6 +49,8 @@ int main(int argc, const char * argv[]) {
             ("fy", po::value<float>(&fy)->default_value(fy, boost::str(boost::format("%.2e") % fy)), "defines the focal length in y direction used for rendering")
             ("cx", po::value<float>(&cx)->default_value(cx, boost::str(boost::format("%.2e") % cx)), "defines the central point of projection in x direction used for rendering")
             ("cy", po::value<float>(&cy)->default_value(cy, boost::str(boost::format("%.2e") % cy)), "defines the central point of projection in y direction used for rendering")
+            ("visualize,v", po::bool_switch(&visualize), "visualize the rendered depth and color map")
+
     ;
 
     po::variables_map vm;

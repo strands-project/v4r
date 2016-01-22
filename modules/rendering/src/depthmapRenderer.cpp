@@ -4,11 +4,24 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <GL/gl.h>
 
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <GL/gl.h>
+#include <GL/glx.h>
+
+typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+typedef Bool (*glXMakeContextCurrentARBProc)(Display*, GLXDrawable, GLXDrawable, GLXContext);
+static glXCreateContextAttribsARBProc glXCreateContextAttribsARB = 0;
+static glXMakeContextCurrentARBProc glXMakeContextCurrentARB = 0;
+
+int counter=0;
+Display* dpy;
+GLXContext ctx;
+
 namespace v4r
 {
 
 bool DepthmapRenderer::glfwRunning=false;
-
 
 
 int DepthmapRenderer::search_midpoint(int &index_start, int &index_end, size_t &n_vertices, int &edge_walk,
@@ -101,26 +114,84 @@ void DepthmapRenderer::subdivide(size_t &n_vertices, size_t &n_edges, size_t &n_
 DepthmapRenderer::DepthmapRenderer(int resx, int resy)
 {
     //First of all: create opengl context:
-    res=glm::ivec2(resx,resy);
-    //init glfw if it is not running already
-    if (!DepthmapRenderer::glfwRunning) {
-        glfwInit();
+    //res=glm::ivec2(resx,resy);
+    res=Eigen::Vector2i(resx,resy);
 
-        DepthmapRenderer::glfwRunning=true;
+    if(counter==0){
+        //BEGIN OF COPYCAT CODE
+        static int visual_attribs[] = {
+                None
+        };
+        int context_attribs[] = {
+                GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+                GLX_CONTEXT_MINOR_VERSION_ARB, 0,
+                None
+        };
+
+        dpy = XOpenDisplay(0);
+        int fbcount = 0;
+        GLXFBConfig* fbc = NULL;
+
+        GLXPbuffer pbuf;
+
+        /* open display */
+        if ( ! (dpy = XOpenDisplay(0)) ){
+                fprintf(stderr, "Failed to open display\n");
+                exit(1);
+        }
+
+        /* get framebuffer configs, any is usable (might want to add proper attribs) */
+        if ( !(fbc = glXChooseFBConfig(dpy, DefaultScreen(dpy), visual_attribs, &fbcount) ) ){
+                fprintf(stderr, "Failed to get FBConfig\n");
+                exit(1);
+        }
+
+        /* get the required extensions */
+        glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB");
+        glXMakeContextCurrentARB = (glXMakeContextCurrentARBProc)glXGetProcAddressARB( (const GLubyte *) "glXMakeContextCurrent");
+        if ( !(glXCreateContextAttribsARB && glXMakeContextCurrentARB) ){
+                fprintf(stderr, "missing support for GLX_ARB_create_context\n");
+                XFree(fbc);
+                exit(1);
+        }
+
+        /* create a context using glXCreateContextAttribsARB */
+        if ( !( ctx = glXCreateContextAttribsARB(dpy, fbc[0], 0, True, context_attribs)) ){
+                fprintf(stderr, "Failed to create opengl context\n");
+                XFree(fbc);
+                exit(1);
+        }
+
+        /* create temporary pbuffer */
+        int pbuffer_attribs[] = {
+                GLX_PBUFFER_WIDTH, 800,
+                GLX_PBUFFER_HEIGHT, 600,
+                None
+        };
+        pbuf = glXCreatePbuffer(dpy, fbc[0], pbuffer_attribs);
+
+        XFree(fbc);
+        XSync(dpy, False);
+
+        /* try to make it the current context */
+        if ( !glXMakeContextCurrent(dpy, pbuf, pbuf, ctx) ){
+            /* some drivers does not support context without default framebuffer, so fallback on
+             * using the default window.
+             */
+            if ( !glXMakeContextCurrent(dpy, DefaultRootWindow(dpy), DefaultRootWindow(dpy), ctx) ){
+                fprintf(stderr, "failed to make current\n");
+                exit(1);
+            }
+        }
+
+
+        /* try it out */
+        // printf("vendor: %s\n", (const char*)glGetString(GL_VENDOR));
+        //END OF COPYCATCODE
     }
+    counter++;
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-    context = glfwCreateWindow(resx , resy, "", NULL, 0);
-
-    glfwWindowHint(GLFW_VISIBLE, GL_TRUE);
-    glfwMakeContextCurrent(context);
-
-    glewExperimental = GL_TRUE;
     GLenum err=glewInit();
 
     if(err!=GLEW_OK){
@@ -357,13 +428,17 @@ DepthmapRenderer::~DepthmapRenderer()
         glDeleteBuffers(1,&IBO);
     }
 
-
     //remaining buffers
     glDeleteBuffers(1,&SSBO);
     glDeleteBuffers(1,&atomicCounterBuffer);
 
-    //destroy the opengl context
-    glfwDestroyWindow(context);
+
+    counter--;
+    //once every renderer closes destroy the context:
+    if(counter==0){
+        glXDestroyContext(dpy,ctx);
+    }
+
 }
 
 std::vector<Eigen::Vector3f> DepthmapRenderer::createSphere(float r, size_t subdivisions)
@@ -414,8 +489,7 @@ std::vector<Eigen::Vector3f> DepthmapRenderer::createSphere(float r, size_t subd
 
 void DepthmapRenderer::setIntrinsics(float fx, float fy, float cx, float cy)
 {
-    //set and calculate projection matrix
-    fxycxy=glm::vec4(fx,fy,cx,cy);
+    fxycxy=Eigen::Vector4f(fx,fy,cx,cy);
 }
 
 void DepthmapRenderer::setModel(DepthmapRendererModel *_model)
@@ -457,13 +531,7 @@ Eigen::Matrix4f DepthmapRenderer::getPoseLookingToCenterFrom(Eigen::Vector3f pos
 
 void DepthmapRenderer::setCamPose(Eigen::Matrix4f _pose)
 {
-    glm::mat4 gPose;
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
-            gPose[i][j]=_pose(i,j);
-        }
-    }
-    this->pose=gPose;
+    this->pose=_pose;
 }
 
 
@@ -474,9 +542,16 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color) const
     glUseProgram(shaderProgram);
 
     //set the uniforms
-    glUniformMatrix4fv(poseUniform,1,GL_FALSE,(float*)&pose);
-    glUniform4f(projectionUniform,fxycxy.x/(float)res.x,fxycxy.y/(float)res.y,fxycxy.z/(float)res.x,fxycxy.w/(float)res.y);
-    glUniform2i(viewportResUniform,res.x,res.y);
+    glm::mat4 gPose; //Keep this conversion code... might be useful
+    for(int i=0;i<4;i++){
+        for(int j=0;j<4;j++){
+            gPose[i][j]=pose(i,j);
+        }
+    }
+
+    glUniformMatrix4fv(poseUniform,1,GL_FALSE,(float*)&gPose);
+    glUniform4f(projectionUniform,fxycxy[0]/(float)res[0],fxycxy[1]/(float)res[1],fxycxy[2]/(float)res[0],fxycxy[3]/(float)res[1]);
+    glUniform2i(viewportResUniform,res[0],res[1]);
 
     //use vertex array object:
     glBindVertexArray(VAO);
@@ -485,7 +560,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color) const
     glBindFramebuffer(GL_FRAMEBUFFER,FBO);
 
     //set viewport and clear buffers
-    glViewport(0,0,res.x,res.y);
+    glViewport(0,0,res[0],res[1]);
     glClearColor(0.0,0.0,0.0,1);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
@@ -528,7 +603,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color) const
     //download fbo
 
     //GET DEPTH TEXTURE
-    cv::Mat depthmap(res.y,res.x,CV_32FC1);//FC1
+    cv::Mat depthmap(res[1],res[0],CV_32FC1);//FC1
     glBindTexture(GL_TEXTURE_2D,depthTex);
     glGetTexImage(GL_TEXTURE_2D,0,GL_RED,GL_FLOAT,depthmap.data);
     //glGetTexImage(GL_TEXTURE_2D,0,GL_RED,GL_FLOAT,depthmap.data);
@@ -536,7 +611,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color) const
 
 
     //GET INDEX TEXTURE
-    cv::Mat indexMap(res.y,res.x,CV_32SC1);
+    cv::Mat indexMap(res[1],res[0],CV_32SC1);
     glBindTexture(GL_TEXTURE_2D,indexTex);
     glGetTexImage(GL_TEXTURE_2D,0,GL_RED_INTEGER,GL_UNSIGNED_INT,indexMap.data);
 
@@ -547,7 +622,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color) const
     glGetBufferSubData(GL_ARRAY_BUFFER,0,sizeof(glm::vec2)*faceCount,faceSurfaceArea);
 
     //GET COLOR TEXTURE
-    cv::Mat colorMat(res.y,res.x,CV_8UC4);
+    cv::Mat colorMat(res[1],res[0],CV_8UC4);
     glBindTexture(GL_TEXTURE_2D,colorTex);
     glGetTexImage(GL_TEXTURE_2D,0,GL_RGBA,GL_UNSIGNED_BYTE,colorMat.data);
     //imshow("colorMat",colorMat);
@@ -592,20 +667,20 @@ pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visible
 {
     const float bad_point = std::numeric_limits<float>::quiet_NaN();
     pcl::PointCloud<pcl::PointXYZ> cloud;
-    cloud.width    = res.x;
-    cloud.height   = res.y;
+    cloud.width    = res[0];
+    cloud.height   = res[1];
     cloud.is_dense = false;
     cloud.points.resize (cloud.width * cloud.height);
 
     //set pose inside pcl structure
-    Eigen::Matrix4f ePose;
+    /*Eigen::Matrix4f ePose;
     for(int i=0;i<4;i++){
         for(int j=0;j<4;j++){
             ePose(i,j)=pose[i][j];
         }
-    }
-    cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(ePose.block(0,0,3,3)));
-    Eigen::Vector3f trans = Eigen::Matrix3f(ePose.block(0,0,3,3))*Eigen::Vector3f(ePose(3,0),ePose(3,1),ePose(3,2));
+    }*/
+    cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)));
+    Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3))*Eigen::Vector3f(pose(3,0),pose(3,1),pose(3,2));
     cloud.sensor_origin_ = Eigen::Vector4f(trans(0), trans(1), trans(2), 1.0f);
 
     cv::Mat color;
@@ -618,8 +693,8 @@ pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visible
             }
             else{
                 pcl::PointXYZ p;
-                p.x=((float)j-fxycxy.z)/fxycxy.x*d;
-                p.y=((float)k-fxycxy.w)/fxycxy.y*d;
+                p.x=((float)j-fxycxy[2])/fxycxy[0]*d;
+                p.y=((float)k-fxycxy[3])/fxycxy[1]*d;
                 p.z=d;
 
                 cloud.at(j,k)=p;
@@ -635,20 +710,20 @@ pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float 
 {
     const float bad_point = std::numeric_limits<float>::quiet_NaN();
     pcl::PointCloud<pcl::PointXYZRGB> cloud;
-    cloud.width    = res.x;
-    cloud.height   = res.y;
+    cloud.width    = res[0];
+    cloud.height   = res[1];
     cloud.is_dense = false;
     cloud.points.resize (cloud.width * cloud.height);
 
     //set pose inside pcl structure
-    Eigen::Matrix4f ePose;
+    /*Eigen::Matrix4f ePose;
     for(size_t i=0; i<4; i++){
         for(size_t j=0; j<4; j++){
             ePose(i,j)=pose[i][j];
         }
-    }
-    cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(ePose.block(0,0,3,3)));
-    Eigen::Vector3f trans = Eigen::Matrix3f(ePose.block(0,0,3,3))*Eigen::Vector3f(ePose(3,0),ePose(3,1),ePose(3,2));
+    }*/
+    cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)));
+    Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3))*Eigen::Vector3f(pose(3,0),pose(3,1),pose(3,2));
     cloud.sensor_origin_ = Eigen::Vector4f(trans(0),trans(1),trans(2),1.0f);
 
     cv::Mat color;
@@ -670,8 +745,8 @@ pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float 
             }
             else{
                 pcl::PointXYZRGB p;
-                p.x=((float)j-fxycxy.z)/fxycxy.x*d;
-                p.y=((float)k-fxycxy.w)/fxycxy.y*d;
+                p.x=((float)j-fxycxy[2])/fxycxy[0]*d;
+                p.y=((float)k-fxycxy[3])/fxycxy[1]*d;
                 p.z=d;
                 p.r = r.at<unsigned char>(k,j);
                 p.g = g.at<unsigned char>(k,j);

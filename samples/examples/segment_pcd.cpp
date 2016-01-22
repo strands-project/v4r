@@ -77,8 +77,8 @@ public:
     bool eval()
     {
         v4r::PCLSegmenter<PointT> seg_(seg_param_);
-        std::vector< std::string> sub_folder_names;
-        if(!v4r::io::getFoldersInDirectory( test_dir_, "", sub_folder_names) )
+        std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir_ );
+        if(sub_folder_names.empty())
         {
             std::cerr << "No subfolders in directory " << test_dir_ << ". " << std::endl;
             sub_folder_names.push_back("");
@@ -91,9 +91,8 @@ public:
             const std::string out_path = out_dir_ + "/" + sub_folder_names[ sub_folder_id ];
             v4r::io::createDirIfNotExist(out_path);
 
-            std::vector< std::string > views;
-            v4r::io::getFilesInDirectory(sequence_path, views, "", ".*.pcd", false);
-            std::sort(views.begin(), views.end());
+            std::vector< std::string > views = v4r::io::getFilesInDirectory(sequence_path, ".*.pcd", false);
+
             for (size_t v_id=0; v_id<views.size(); v_id++)
             {
                 const std::string fn = test_dir_ + "/" + sub_folder_names[sub_folder_id] + "/" + views[ v_id ];

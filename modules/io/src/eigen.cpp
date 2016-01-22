@@ -49,8 +49,10 @@ readMatrixFromFile(const std::string &file, Eigen::Matrix4f & matrix, int paddin
 {
     // check if file exists
     boost::filesystem::path path = file;
-    if ( ! (boost::filesystem::exists ( path ) && boost::filesystem::is_regular_file(path)) )
-        throw std::runtime_error ("Given file path to read Matrix does not exist!");
+    if ( ! (boost::filesystem::exists ( path ) && boost::filesystem::is_regular_file(path)) ) {
+        const std::string error_msg = "Given file path " + file + " to read matrix does not exist!";
+        throw std::runtime_error (error_msg);
+    }
 
 
     std::ifstream in;
@@ -68,6 +70,30 @@ readMatrixFromFile(const std::string &file, Eigen::Matrix4f & matrix, int paddin
     }
 
     return true;
+}
+
+Eigen::Matrix4f
+readMatrixFromFile(const std::string &file, int padding)
+{
+
+    // check if file exists
+    boost::filesystem::path path = file;
+    if ( ! (boost::filesystem::exists ( path ) && boost::filesystem::is_regular_file(path)) )
+        throw std::runtime_error ("Given file path to read Matrix does not exist!");
+
+    std::ifstream in (file.c_str (), std::ifstream::in);
+
+    char linebuf[1024];
+    in.getline (linebuf, 1024);
+    std::string line (linebuf);
+    std::vector < std::string > strs_2;
+    boost::split (strs_2, line, boost::is_any_of (" "));
+
+    Eigen::Matrix4f matrix;
+    for (int i = 0; i < 16; i++)
+        matrix (i / 4, i % 4) = static_cast<float> (atof (strs_2[padding+i].c_str ()));
+
+    return matrix;
 }
 
 template<typename T>

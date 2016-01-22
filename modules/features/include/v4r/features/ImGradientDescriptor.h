@@ -47,7 +47,7 @@
 namespace v4r 
 {
 
-class ImGradientDescriptor
+class V4R_EXPORTS ImGradientDescriptor
 {
 public:
   class Parameter

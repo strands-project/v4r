@@ -138,10 +138,22 @@ inline float RefineProjectedPointLocationLK::getInterpolated(const cv::Mat_<unsi
   float ax = x - xt;
   float ay = y - yt;
 
+  float right, top, top_right;
+  right = top = top_right = 0.f;
+
+  if ( (xt+1) < im.cols )
+      right = im(yt, xt+1);
+
+  if ( (yt+1) < im.rows )
+      top = im(yt+1, xt);
+
+  if( ( (yt+1) < im.rows ) &&  ( (xt+1) < im.cols ) )
+      top_right = im(yt+1, xt+1);
+
   return ( (1.-ax) * (1.-ay) * im(yt,xt) + 
-            ax     * (1.-ay) * im(yt,xt+1) +
-           (1.-ax) *  ay     * im(yt+1,xt) +
-            ax     *  ay     * im(yt+1,xt+1) );
+            ax     * (1.-ay) * right +
+           (1.-ax) *  ay     * top +
+            ax     *  ay     * top_right );
 }
 
 /** 
@@ -155,10 +167,22 @@ inline float RefineProjectedPointLocationLK::getInterpolated(const cv::Mat_<floa
   float ax = x - xt;
   float ay = y - yt;
 
-  return ( (1.-ax) * (1.-ay) * im(yt,xt) + 
-            ax     * (1.-ay) * im(yt,xt+1) +
-           (1.-ax) *  ay     * im(yt+1,xt) +
-            ax     *  ay     * im(yt+1,xt+1) );
+  float right, top, top_right;
+  right = top = top_right = 0.f;
+
+  if ( (xt+1) < im.cols )
+      right = im(yt, xt+1);
+
+  if ( (yt+1) < im.rows )
+      top = im(yt+1, xt);
+
+  if( ( (yt+1) < im.rows ) &&  ( (xt+1) < im.cols ) )
+      top_right = im(yt+1, xt+1);
+
+  return ( (1.-ax) * (1.-ay) * im(yt,xt) +
+            ax     * (1.-ay) * right +
+           (1.-ax) *  ay     * top +
+            ax     *  ay     * top_right );
 }
 
 

@@ -199,14 +199,14 @@ namespace v4r
           pcl::PointCloud<pcl::VFHSignature308> cvfh_signatures;
           typename pcl::search::KdTree<PointInT>::Ptr cvfh_tree (new pcl::search::KdTree<PointInT>);
 
-          if (eps_angle_threshold_vector_.size () == 0)
-            eps_angle_threshold_vector_.push_back (eps_angle_threshold_);
+          if (eps_angle_threshold_vector_.empty() )
+              eps_angle_threshold_vector_.push_back (eps_angle_threshold_);
 
-          if (curvature_threshold_vector_.size () == 0)
-            curvature_threshold_vector_.push_back (curvature_threshold_);
+          if ( curvature_threshold_vector_.empty() )
+              curvature_threshold_vector_.push_back (curvature_threshold_);
 
-          if (cluster_tolerance_vector_.size () == 0)
-            cluster_tolerance_vector_.push_back (cluster_tolerance_factor_);
+          if (cluster_tolerance_vector_.empty() )
+              cluster_tolerance_vector_.push_back (cluster_tolerance_factor_);
 
           //std::cout << eps_angle_threshold_vector_.size() << " " << curvature_threshold_vector_.size() << std::endl;
 

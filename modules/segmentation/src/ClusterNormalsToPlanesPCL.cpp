@@ -5,7 +5,7 @@
  * @author Johann Prankl (prankl@acin.tuwien.ac.at)
  */
 
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/normals.h>
 #include <v4r/segmentation/ClusterNormalsToPlanesPCL.h>
 #include <pcl/features/normal_3d.h>
 

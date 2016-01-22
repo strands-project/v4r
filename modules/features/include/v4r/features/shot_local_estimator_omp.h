@@ -12,7 +12,7 @@
 #include <pcl/features/shot_omp.h>
 #include <pcl/io/pcd_io.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/normals.h>
 
 namespace v4r
 {
@@ -119,7 +119,7 @@ namespace v4r
           if ( !normals_ || normals_->points.size() != in->points.size() )
           {
               normals_.reset(new pcl::PointCloud<pcl::Normal>());
-              v4r::computeNormals<PointInT>(in, normals_, param_.normal_computation_method_);
+              computeNormals<PointInT>(in, normals_, param_.normal_computation_method_);
           }
 
           this->computeKeypoints(in, keypoints, normals_);

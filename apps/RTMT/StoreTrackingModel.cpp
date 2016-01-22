@@ -35,6 +35,7 @@
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/keypoints/impl/toString.hpp>
 #include <v4r/common/convertCloud.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/keypoints/CodebookMatcher.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/sample_consensus/ransac.h>
@@ -269,9 +270,14 @@ void StoreTrackingModel::saveTrackingModel()
 
   boost::filesystem::create_directories(folder);
 
-  std::string model_name = folder+"/"+objectname+".ao";
+  std::cout << "Writing model to " << folder << "/models/" << objectname << "/tracking_model.ao" << std::endl;
 
+  std::string model_name = folder + "/models/" + objectname + "/tracking_model.ao";
+
+  v4r::io::createDirForFileIfNotExist(model_name);
   v4r::io::write(model_name, model);
+
+  std::cout << "Tracking model saved!" << std::endl;
 
   model = v4r::ArticulatedObject::Ptr();
 }

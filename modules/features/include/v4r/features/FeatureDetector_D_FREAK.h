@@ -42,7 +42,7 @@
 namespace v4r 
 {
 
-class FeatureDetector_D_FREAK : public FeatureDetector
+class V4R_EXPORTS FeatureDetector_D_FREAK : public FeatureDetector
 {
 public:
   class Parameter

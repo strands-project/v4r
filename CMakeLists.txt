@@ -75,6 +75,9 @@ elseif(X86 OR CMAKE_SIZEOF_VOID_P EQUAL 4)
   endif()
 endif()
 
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 # ----------------------------------------------------------------------------
 # V4R cmake options
 # ----------------------------------------------------------------------------
@@ -110,7 +113,6 @@ V4R_OPTION(WITH_PCL            "Include PCL support"                         ON)
 V4R_OPTION(WITH_QT4            "Include QT support"                          ON)
 V4R_OPTION(WITH_BOOST          "Include Boost support"                       ON)
 V4R_OPTION(WITH_EIGEN          "Include Eigen3 support"                      ON)
-V4R_OPTION(WITH_GLFW3          "Include GLFW3 support"                       ON)
 V4R_OPTION(WITH_GLM            "Include GLM support"                         ON)
 V4R_OPTION(WITH_GLEW            "Include GLEW support"                         ON)
 V4R_OPTION(WITH_GLOG           "Include Google Logging support"              ON)
@@ -122,7 +124,8 @@ V4R_OPTION(BUILD_v4r_apps           "Build utility applications (used for exampl
 V4R_OPTION(BUILD_DOCS               "Create build rules for V4R Documentation"    ON  IF NOT WINRT)
 V4R_OPTION(BUILD_EXAMPLES           "Build all examples"                          ON )
 V4R_OPTION(BUILD_EVALUATION_TOOLS   "Build all evaluation tools"                          OFF )
-V4R_OPTION(BUILD_UTILITY_TOOLS              "Build all utility tools"                          OFF )
+V4R_OPTION(BUILD_UTILITY_TOOLS      "Build all utility tools"                          ON )
+#V4R_OPTION(BUILD_ICRA16_TOOLS       "Build evaluations for RA-L Paper 2016, Faeulhammer"    OFF )
 V4R_OPTION(BUILD_PACKAGE            "Enables 'make package_source' command"       ON  IF NOT WINRT)
 V4R_OPTION(BUILD_PERF_TESTS         "Build performance tests"                     ON  IF (NOT IOS) )
 V4R_OPTION(BUILD_TESTS              "Build accuracy & regression tests"           ON  IF (NOT IOS) )
@@ -143,13 +146,12 @@ V4R_OPTION(BUILD_TBB                "Download and build TBB from source" ANDROID
 V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
 V4R_OPTION(BUILD_METSLIB            "Download and build METSlib from source" ON)
 V4R_OPTION(BUILD_LIBSVM             "Download and build LIBSVM from source" OFF)
-V4R_OPTION(BUILD_GLFW3              "Download and build GLFW3 from source"   ON)
 
 # V4R installation options
 # ===================================================
 V4R_OPTION(INSTALL_CREATE_DISTRIB   "Change install rules to build the distribution package" OFF )
 V4R_OPTION(INSTALL_C_EXAMPLES       "Install C examples"        ON )
-V4R_OPTION(INSTALL_C_UTILITY_TOOLS        "Install C utility tools"        OFF )
+V4R_OPTION(INSTALL_C_UTILITY_TOOLS        "Install C utility tools"        ON )
 V4R_OPTION(INSTALL_C_EVALUATION_TOOLS       "Install C evaluation tools"        OFF )
 V4R_OPTION(INSTALL_TO_MANGLED_PATHS "Enables mangled install paths, that help with side by side installs." OFF IF (UNIX AND NOT ANDROID AND NOT IOS AND BUILD_SHARED_LIBS) )
 V4R_OPTION(INSTALL_TESTS            "Install accuracy and performance test binaries and test data" OFF)
@@ -325,7 +327,6 @@ include(cmake/V4RFindCeres.cmake)
 include(cmake/V4RFindLibsPerf.cmake)
 include(cmake/V4RFindEigen.cmake)
 include(cmake/V4RFindGlew.cmake)
-include(cmake/V4RFindGLFW3.cmake)
 include(cmake/V4RFindGLM.cmake)
 include(cmake/V4RFindGlog.cmake)
 include(cmake/V4RFindOpenGL.cmake)
@@ -701,7 +702,6 @@ status("    Use Eigen:"      HAVE_EIGEN       THEN "YES (ver ${EIGEN_WORLD_VERSI
 status("    Use GLM:"        HAVE_GLM         THEN "YES (ver ${GLM_VERSION})" ELSE NO)
 status("    Use Cuda:"       HAVE_CUDA        THEN "YES (ver ${CUDA_VERSION_STRING})" ELSE NO)
 status("    Use OpenCL:"     HAVE_OPENCL      THEN YES ELSE NO)
-status("    Use GLFW3:"      HAVE_GLFW3       THEN "YES (ver ${GLFW3_VERSION})" ELSE NO)
 status("    Use GLEW:"       HAVE_GLEW        THEN YES ELSE NO)
 
 if(HAVE_CUDA)

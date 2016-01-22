@@ -32,13 +32,14 @@ namespace po = boost::program_options;
 
 typedef pcl::PointXYZ PointT;
 
-std::string MODELS_DIR_, TRAINING_DIR_;
+std::string MESH_DIR_, MODELS_DIR_;
 int KNN_;
 
 void
 init(v4r::GlobalNNClassifier<flann::L1, PointT> &esf_classifier) {
 
     boost::shared_ptr<v4r::MeshSource<PointT> > mesh_source (new v4r::MeshSource<PointT>);
+    mesh_source->setMeshDir(MESH_DIR_);
     mesh_source->setPath (MODELS_DIR_);
     mesh_source->setResolution (150);
     mesh_source->setTesselationLevel (0);
@@ -46,7 +47,7 @@ init(v4r::GlobalNNClassifier<flann::L1, PointT> &esf_classifier) {
     mesh_source->setRadiusSphere (3.f);
     mesh_source->setModelScale (1.f);
     mesh_source->setTesselationLevel(1);
-    mesh_source->generate (TRAINING_DIR_);
+    mesh_source->generate ();
 
     boost::shared_ptr<v4r::Source<PointT> > source;
     source = boost::static_pointer_cast<v4r::MeshSource<PointT> > (mesh_source);
@@ -58,7 +59,7 @@ init(v4r::GlobalNNClassifier<flann::L1, PointT> &esf_classifier) {
     cast_estimator = boost::dynamic_pointer_cast<v4r::ESFEstimation<PointT> > (estimator);
 
     esf_classifier.setDataSource(source);
-    esf_classifier.setTrainingDir(TRAINING_DIR_);
+    esf_classifier.setTrainingDir(MODELS_DIR_);
     esf_classifier.setDescriptorName("esf");
     esf_classifier.setFeatureEstimator (cast_estimator);
     esf_classifier.setNN(KNN_);
@@ -84,14 +85,14 @@ int main(int argc, char** argv)
     po::options_description desc("Depth-map and point cloud Rendering from mesh file\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
-            ("models_dir,m", po::value<std::string>(&MODELS_DIR_)->required(), "model directory")
-            ("training_dir", po::value<std::string>(&TRAINING_DIR_)->required(), "directory used for training")
-            ("test_dir", po::value<std::string>(&test_dir)->required(), "directory used for testing")
-            ("out_dir", po::value<std::string>(&out_dir)->default_value(out_dir), "output directory")
+            ("mesh_dir,i", po::value<std::string>(&MESH_DIR_)->required(), "root directory containing mesh files (.ply) for each class. Each class is represented by a sub folder with the folder name indicating the class name. Inside these folders, there are .ply files with object models of this class. Each file represents an object identity.")
+            ("models_dir,m", po::value<std::string>(&MODELS_DIR_)->required(), "directory containing the object models (will be generated if not exists)")
+            ("test_dir,t", po::value<std::string>(&test_dir)->required(), "directory containing *.pcd files for testing")
+            ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "output directory")
             ("do_esf,e", po::value<bool>(&do_esf)->default_value(do_esf), "if true, includes esf classification (shape based).")
             ("eval_only_closest_cluster", po::value<bool>(&eval_only_closest_cluster)->default_value(eval_only_closest_cluster), "if true, evaluates only the closest segmented cluster with respect to the camera.")
             ("kNN,k", po::value<int>(&KNN_)->default_value(KNN_), "defines the number k of nearest neighbor for classification")
-            ("chop_z", po::value<double>(&seg_param.chop_at_z_ )->default_value(seg_param.chop_at_z_, boost::str(boost::format("%.2e") % seg_param.chop_at_z_)), "")
+            ("chop_z,z", po::value<double>(&seg_param.chop_at_z_ )->default_value(seg_param.chop_at_z_, boost::str(boost::format("%.2e") % seg_param.chop_at_z_)), "")
             ("seg_type", po::value<int>(&seg_param.seg_type_ )->default_value(seg_param.seg_type_), "")
             ("min_cluster_size", po::value<int>(&seg_param.min_cluster_size_ )->default_value(seg_param.min_cluster_size_), "")
             ("max_vertical_plane_size", po::value<int>(&seg_param.max_vertical_plane_size_ )->default_value(seg_param.max_vertical_plane_size_), "")
@@ -139,42 +140,31 @@ int main(int argc, char** argv)
         init(esf_classifier);
 
     v4r::PCLSegmenter<pcl::PointXYZRGB> seg(seg_param);
-    std::vector< std::string> sub_folder_names;
-    if(!v4r::io::getFoldersInDirectory( test_dir, "", sub_folder_names) ) {
-        std::cerr << "No subfolders in directory " << test_dir << ". " << std::endl;
-        sub_folder_names.push_back("");
-    }
+
+    std::vector< std::string> sub_folders = v4r::io::getFoldersInDirectory( test_dir );
+    if( sub_folders.empty() )
+        sub_folders.push_back("");
 
 
-    std::ofstream of;
-    std::sort(sub_folder_names.begin(), sub_folder_names.end());
-    for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++) {
-        const std::string sequence_path = test_dir + "/" + sub_folder_names[ sub_folder_id ];
-        const std::string out_dir_full = out_dir + "/" +  sub_folder_names[ sub_folder_id ];
+    for (const std::string &sub_folder : sub_folders){
+        const std::string sequence_path = test_dir + "/" + sub_folder;
+        const std::string out_dir_full = out_dir + "/" +  sub_folder;
         v4r::io::createDirIfNotExist(out_dir_full);
 
-        std::vector< std::string > views;
-        v4r::io::getFilesInDirectory(sequence_path, views, "", ".*.pcd", false);
-        std::sort(views.begin(), views.end());
-        for (size_t v_id=0; v_id<views.size(); v_id++) {
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>());
-            const std::string fn = sequence_path + "/" + views[ v_id ];
-            std::string out_fn = out_dir_full + "/" + views[ v_id ];
-            boost::replace_all(out_fn, ".pcd", ".anno_test");
-            of.open(out_fn);
+        std::vector< std::string > views = v4r::io::getFilesInDirectory(sequence_path, ".*.pcd", false);
+        for ( const std::string &view : views ) {
+            const std::string fn = sequence_path + "/" + view;
 
             std::cout << "Segmenting file " << fn << std::endl;
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>());
             pcl::io::loadPCDFile(fn, *cloud);
             seg.set_input_cloud(*cloud);
 
             std::vector<pcl::PointIndices> found_clusters;
             seg.do_segmentation(found_clusters);
 
-            std::vector< std::vector < std::string > > categories;
-            std::vector< std::vector < float > > confidences;
-
-            categories.resize(found_clusters.size());
-            confidences.resize(found_clusters.size());
+            std::vector< std::vector < std::string > > categories (found_clusters.size());
+            std::vector< std::vector < float > > confidences (found_clusters.size());
 
             if (eval_only_closest_cluster) { // only save classification result for cluster which is closest to the camera (w.r.t. to centroid)
                 int min_id=-1;
@@ -202,6 +192,9 @@ int main(int argc, char** argv)
                 }
             }
 
+            std::string out_fn = out_dir_full + "/" + view;
+            boost::replace_all(out_fn, ".pcd", ".anno_test");
+            std::ofstream of (out_fn.c_str());
             for(size_t i=0; i < found_clusters.size(); i++) {
                 typename pcl::PointCloud<PointT>::Ptr clusterXYZ (new pcl::PointCloud<PointT>());
                 pcl::copyPointCloud(*cloud, found_clusters[i], *clusterXYZ);

@@ -108,7 +108,7 @@ namespace v4r
 
         bool requires_segmentation_;
 
-        std::string training_dir_; /// \brief Directory containing views of the object
+        std::string models_dir_; /// \brief Directory containing the object models
 
         /** \brief Hypotheses verification algorithm */
         typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > hv_algorithm_;
@@ -180,10 +180,30 @@ namespace v4r
         virtual typename boost::shared_ptr<Source<PointT> >
         getDataSource () const = 0;
 
-        virtual void reinitialize(const std::vector<std::string> &load_ids = std::vector<std::string>())
+        virtual bool
+        initialize(bool force_retrain)
         {
-            (void)load_ids;
-            PCL_WARN("Reinitialize is not implemented for this class.");
+            (void) force_retrain;
+            PCL_WARN("initialize is not implemented for this class.");
+            return true;
+        }
+
+        virtual void
+        reinitialize()
+        {
+            PCL_WARN("reinitialize is not implemented for this class.");
+        }
+
+        virtual void
+        reinitializeSourceOnly()
+        {
+            PCL_WARN("reinitializeSource is not implemented for this class.");
+        }
+
+        virtual void
+        reinitializeRecOnly()
+        {
+            PCL_WARN("reinitializeRec is not implemented for this class.");
         }
 
         void setHVAlgorithm (const typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > & alg)
@@ -266,9 +286,9 @@ namespace v4r
          * @brief Filesystem dir containing training files
          */
         void
-        setTrainingDir (const std::string & dir)
+        setModelsDir (const std::string & dir)
         {
-          training_dir_ = dir;
+          models_dir_ = dir;
         }
 
 

@@ -31,20 +31,20 @@
 #ifndef __V4R_DEPTHMAP_RENDERER__
 #define __V4R_DEPTHMAP_RENDERER__
 
-#include <glm/glm.hpp>
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <GL/glew.h>
 
-#include <eigen3/Eigen/Eigen>
+#include <GL/glew.h>
 
 #include <opencv2/opencv.hpp>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
-
+#include <eigen3/Eigen/Eigen>
 #include <v4r/core/macros.h>
 #include "dmRenderObject.h"
+
+
+
+//This is for testing the offscreen rendering context:
 
 namespace v4r{
 const size_t maxMeshSize=1000000; //this will lead to a big ssbo^^ (16mb)
@@ -56,8 +56,7 @@ const size_t maxMeshSize=1000000; //this will lead to a big ssbo^^ (16mb)
  */
 class V4R_EXPORTS DepthmapRenderer{
 private:
-    //Opengl context:
-    GLFWwindow* context;
+
     static bool glfwRunning;
 
     //hide the default constructor
@@ -76,7 +75,7 @@ private:
     //Used to give each triangle its own id
     GLuint atomicCounterBuffer;
 
-    //For each triangle the ssbo stores the number of pixel it would have it it weren't occluded
+    //For each triangle the ssbo stores the number of pixel it would have if it weren't occluded
     //and also the surface area of the triangle
     GLuint SSBO;
 
@@ -96,11 +95,11 @@ private:
     GLuint IBO;
 
     //camera intrinsics:
-    glm::vec4 fxycxy;
-    glm::ivec2 res;
+    Eigen::Vector4f fxycxy;
+    Eigen::Vector2i res;
 
     //Stores the camera pose:
-    glm::mat4 pose;
+    Eigen::Matrix4f pose;
 
     //this here is to create points as part of a sphere
     //The next two i stole from thomas mörwald

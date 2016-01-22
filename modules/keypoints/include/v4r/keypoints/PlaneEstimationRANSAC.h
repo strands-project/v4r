@@ -25,7 +25,7 @@ namespace v4r
 class V4R_EXPORTS PlaneEstimationRANSAC
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     double inl_dist;
