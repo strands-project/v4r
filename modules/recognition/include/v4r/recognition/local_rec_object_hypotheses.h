@@ -71,6 +71,10 @@ class V4R_EXPORTS ObjectHypothesis
     {
         return (i.distance < j.distance);
     }
+
+
+    typedef boost::shared_ptr<ObjectHypothesis<PointT> > Ptr;
+    typedef boost::shared_ptr<const ObjectHypothesis<PointT> > ConstPtr;
 };
 
 }

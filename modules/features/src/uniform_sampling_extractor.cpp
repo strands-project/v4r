@@ -59,10 +59,17 @@ UniformSamplingExtractor<PointT>::filterPlanar (const PointInTPtr & input, std::
 
 template<typename PointT>
 void
-UniformSamplingExtractor<PointT>::compute (PointInTPtr & keypoints)
+UniformSamplingExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
 {
-    keypoints.reset (new pcl::PointCloud<PointT>);
+    compute(keypoint_indices_);
+    pcl::copyPointCloud (*input_, keypoint_indices_, keypoints);
+}
 
+
+template<typename PointT>
+void
+UniformSamplingExtractor<PointT>::compute (std::vector<int> & indices)
+{
     pcl::UniformSampling<PointT> keypoint_extractor;
     keypoint_extractor.setRadiusSearch (sampling_density_);
     keypoint_extractor.setInputCloud (input_);
@@ -92,30 +99,9 @@ UniformSamplingExtractor<PointT>::compute (PointInTPtr & keypoints)
 
     if (filter_planar_)
         filterPlanar (input_, keypoint_indices_);
-
-    pcl::copyPointCloud (*input_, keypoint_indices_, *keypoints);
+    indices = keypoint_indices_;
 }
 
-
-template<typename PointT>
-void
-UniformSamplingExtractor<PointT>::compute (std::vector<int> & indices)
-{
-    pcl::UniformSampling<PointT> keypoint_extractor;
-    keypoint_extractor.setRadiusSearch (sampling_density_);
-    keypoint_extractor.setInputCloud (input_);
-
-    pcl::PointCloud<int> keypoints_idxes;
-    keypoint_extractor.compute (keypoints_idxes);
-
-    indices.resize (keypoints_idxes.points.size ());
-    for (size_t i = 0; i < indices.size (); i++)
-        indices[i] = keypoints_idxes.points[i];
-
-    if (filter_planar_)
-        filterPlanar (input_, indices);
-}
-
-template class V4R_EXPORTS UniformSamplingExtractor<struct pcl::PointXYZ>;
-template class V4R_EXPORTS UniformSamplingExtractor<struct pcl::PointXYZRGB>;
+template class V4R_EXPORTS UniformSamplingExtractor<pcl::PointXYZ>;
+template class V4R_EXPORTS UniformSamplingExtractor<pcl::PointXYZRGB>;
 }

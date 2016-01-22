@@ -29,15 +29,15 @@
 
 namespace v4r
 {
-template<typename PointInT>
-class V4R_EXPORTS UniformSamplingExtractor : public KeypointExtractor<PointInT>
+template<typename PointT>
+class V4R_EXPORTS UniformSamplingExtractor : public KeypointExtractor<PointT>
 {
 private:
-    typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+    typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     bool filter_planar_;
-    using KeypointExtractor<PointInT>::input_;
-    using KeypointExtractor<PointInT>::radius_;
-    using KeypointExtractor<PointInT>::keypoint_indices_;
+    using KeypointExtractor<PointT>::input_;
+    using KeypointExtractor<PointT>::radius_;
+    using KeypointExtractor<PointT>::keypoint_indices_;
     float sampling_density_;
     float max_distance_;
     float threshold_planar_;
@@ -90,7 +90,7 @@ public:
     }
 
     void
-    compute (PointInTPtr & keypoints);
+    compute (pcl::PointCloud<PointT> & keypoints);
 
     void
     compute (std::vector<int> & indices);

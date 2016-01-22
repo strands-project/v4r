@@ -32,38 +32,37 @@
 namespace v4r
 {
 
-template<typename PointInT, typename FeatureT>
+template<typename PointT, typename FeatureT>
 class V4R_EXPORTS LocalEstimator
 {
 protected:
-    typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+    typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     typedef typename pcl::PointCloud<FeatureT>::Ptr FeatureTPtr;
 
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
-    std::vector<typename boost::shared_ptr<KeypointExtractor<PointInT> > > keypoint_extractor_;
+    std::vector<typename boost::shared_ptr<KeypointExtractor<PointT> > > keypoint_extractor_;
     std::vector<int> keypoint_indices_;
     std::string descr_name_;
 
     void
-    computeKeypoints (const PointInTPtr & cloud, PointInTPtr & keypoints, const pcl::PointCloud<pcl::Normal>::Ptr & normals)
+    computeKeypoints (const pcl::PointCloud<PointT> & cloud, pcl::PointCloud<PointT> & keypoints, const pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {
         keypoint_indices_.clear();
-        keypoints.reset (new pcl::PointCloud<PointInT>);
         for (size_t i = 0; i < keypoint_extractor_.size (); i++)
         {
-            keypoint_extractor_[i]->setInputCloud (cloud);
+            keypoint_extractor_[i]->setInputCloud (cloud.makeShared());
             if (keypoint_extractor_[i]->needNormals ())
                 keypoint_extractor_[i]->setNormals (normals);
 
             keypoint_extractor_[i]->setSupportRadius (param_.support_radius_);
 
-            PointInTPtr detected_keypoints;
+            pcl::PointCloud<PointT> detected_keypoints;
             keypoint_extractor_[i]->compute (detected_keypoints);
 
             std::vector<int> kp_indices;
             keypoint_extractor_[i]->getKeypointsIndices(kp_indices);
             keypoint_indices_.insert(keypoint_indices_.end(), kp_indices.begin(), kp_indices.end());
-            *keypoints += *detected_keypoints;
+            keypoints += detected_keypoints;
         }
     }
 
@@ -128,20 +127,17 @@ public:
         std::cerr << "This function is not implemented!" << std::endl;
     }
 
-    virtual bool
-    estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)=0;
-
     /**
     * \brief Right now only uniformSampling keypoint extractor is allowed
     */
     void
-    addKeypointExtractor (boost::shared_ptr<KeypointExtractor<PointInT> > & ke)
+    addKeypointExtractor (boost::shared_ptr<KeypointExtractor<PointT> > & ke)
     {
         keypoint_extractor_.push_back (ke);
     }
 
     void
-    setKeypointExtractors (std::vector<typename boost::shared_ptr<KeypointExtractor<PointInT> > > & ke)
+    setKeypointExtractors (std::vector<typename boost::shared_ptr<KeypointExtractor<PointT> > > & ke)
     {
         keypoint_extractor_ = ke;
     }
@@ -170,6 +166,10 @@ public:
     {
         return descr_name_;
     }
+
+    virtual bool
+    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, pcl::PointCloud<FeatureT> & signatures)=0;
+
 };
 }
 

@@ -52,12 +52,8 @@
 #include <v4r/recognition/multiview_representation.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 
-#include <SiftGPU/SiftGPU.h>
-
 #ifdef HAVE_SIFTGPU
-#include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
+#include <SiftGPU/SiftGPU.h>
 #endif
 
 namespace v4r
@@ -110,7 +106,9 @@ protected:
 
     Eigen::Matrix4f pose_;
 
+#ifdef HAVE_SIFTGPU
     boost::shared_ptr<SiftGPU> sift_;
+#endif
 
     bool computeAbsolutePose(CamConnect & e, bool is_first_edge = false);
 
@@ -118,26 +116,12 @@ protected:
     void pruneGraph();
 
     void correspondenceGrouping();
-
-    float calcEdgeWeightAndRefineTf (const typename pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                                    const typename pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                                    Eigen::Matrix4f &refined_transform,
-                                    const Eigen::Matrix4f &transform = Eigen::Matrix4f::Identity());
-
-    bool calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
-                           typename pcl::PointCloud<PointT>::Ptr &sift_keypoints,
+    
+    bool calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
+                           pcl::PointCloud<PointT> &sift_keypoints,
                            std::vector< int > &sift_keypoint_indices,
-                           pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
+                           pcl::PointCloud<FeatureT> &sift_signatures,
                            std::vector<float> &sift_keypoint_scales);
-
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
-    estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
-                                          const pcl::PointCloud<PointT> &dst_cloud,
-                                          const std::vector<int> &src_sift_keypoint_indices,
-                                          const std::vector<int> &dst_sift_keypoint_indices,
-                                          const pcl::PointCloud<FeatureT> &src_sift_signatures,
-                                          const pcl::PointCloud<FeatureT> &dst_sift_signatures,
-                                          bool use_gc = false );
 
     typename NguyenNoiseModel<PointT>::Parameter nm_param_;
     typename NMBasedCloudIntegration<PointT>::Parameter nmInt_param_;

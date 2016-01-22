@@ -63,7 +63,7 @@ MultiRecognitionPipeline<PointT>::recognize()
         computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
 
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
     for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
     {
         recognizers_[r_id]->setInputCloud(scene_);
@@ -80,7 +80,7 @@ MultiRecognitionPipeline<PointT>::recognize()
                 const std::vector<ModelTPtr> models_tmp = recognizers_[r_id]->getModels ();
                 const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp = recognizers_[r_id]->getTransforms ();
 
-#pragma omp critical
+//#pragma omp critical
                 {
                     models_.insert(models_.end(), models_tmp.begin(), models_tmp.end());
                     transforms_.insert(transforms_.end(), transforms_tmp.begin(), transforms_tmp.end());
@@ -172,7 +172,7 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
     for (it = obj_hypotheses_.begin (), id=0; it != obj_hypotheses_.end (); ++it)
         ohs[id++] = it->second;
 
-#pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)
+//#pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)
     for (size_t i=0; i<ohs.size(); i++)
     {
         const ObjectHypothesis<PointT> &oh = ohs[i];
@@ -237,7 +237,7 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
             }
             merged_transforms.resize(kept);
 
-#pragma omp critical
+//#pragma omp critical
             {
                 transforms_.insert(transforms_.end(), merged_transforms.begin(), merged_transforms.end());
                 models_.resize( transforms_.size(), oh.model_ );

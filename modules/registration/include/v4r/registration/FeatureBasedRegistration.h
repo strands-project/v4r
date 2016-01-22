@@ -79,6 +79,14 @@ namespace v4r
                     gc_threshold_ = t;
                 }
 
+                static std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
+                estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
+                                                      const pcl::PointCloud<PointT> &dst_cloud,
+                                                      const std::vector<int> &src_sift_keypoint_indices,
+                                                      const std::vector<int> &dst_sift_keypoint_indices,
+                                                      const pcl::PointCloud<SIFTHistogram> &src_sift_signatures,
+                                                      const pcl::PointCloud<SIFTHistogram> &dst_sift_signatures,
+                                                      bool use_gc = false );
 
         };
     }

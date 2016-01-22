@@ -4,6 +4,8 @@
 #include <v4r/common/graph_geometric_consistency.h>
 #include <pcl/registration/correspondence_estimation.h>
 #include <pcl/registration/impl/correspondence_estimation.hpp>
+#include <pcl/recognition/cg/geometric_consistency.h>
+#include <pcl/registration/correspondence_rejection_sample_consensus.h>
 #include <pcl/search/impl/kdtree.hpp>
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
 #include <pcl/registration/transformation_estimation_svd.h>
@@ -87,7 +89,7 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
 
         estimator.setIndices(indices);
         //estimator.estimate(cloud, processed, sift_keypoints_[i], sift_features_[i]);
-        estimator.estimate(cloud, processed, sift_keys, sift_descs);
+        estimator.estimate(*cloud, *processed, *sift_keys, *sift_descs);
 
         pcl::PointIndices original_indices;
         estimator.getKeypointIndices(original_indices.indices);
@@ -372,6 +374,83 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         poses_[0] = svd_pose;
     }
 }
+
+
+template<class PointT>
+std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
+FeatureBasedRegistration<PointT>::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
+                                                                   const pcl::PointCloud<PointT> &dst_cloud,
+                                                                   const std::vector<int> &src_sift_keypoint_indices,
+                                                                   const std::vector<int> &dst_sift_keypoint_indices,
+                                                                   const pcl::PointCloud<SIFTHistogram> &src_sift_signatures,
+                                                                   const pcl::PointCloud<SIFTHistogram> &dst_sift_signatures,
+                                                                   bool use_gc )
+ {
+     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations;
+     const int K = 1;
+     flann::Matrix<int> indices = flann::Matrix<int> ( new int[K], 1, K );
+     flann::Matrix<float> distances = flann::Matrix<float> ( new float[K], 1, K );
+
+     boost::shared_ptr< flann::Index<DistT> > flann_index;
+     convertToFLANN<SIFTHistogram, DistT >( dst_sift_signatures, flann_index );
+
+     boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsSrc (new pcl::PointCloud<PointT>);
+     boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsDst (new pcl::PointCloud<PointT>);
+     pcl::copyPointCloud(src_cloud, src_sift_keypoint_indices, *pSiftKeypointsSrc );
+     pcl::copyPointCloud(dst_cloud, dst_sift_keypoint_indices, *pSiftKeypointsDst);
+
+     pcl::CorrespondencesPtr temp_correspondences ( new pcl::Correspondences );
+     temp_correspondences->resize(pSiftKeypointsSrc->size ());
+
+     for ( size_t keypointId = 0; keypointId < pSiftKeypointsSrc->points.size (); keypointId++ )
+     {
+         SIFTHistogram searchFeature = src_sift_signatures[ keypointId ];
+         int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
+         nearestKSearch ( flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+
+         pcl::Correspondence corr;
+         corr.distance = distances[0][0];
+         corr.index_query = keypointId;
+         corr.index_match = indices[0][0];
+         temp_correspondences->at(keypointId) = corr;
+     }
+
+     if(!use_gc)
+     {
+         typename pcl::registration::CorrespondenceRejectorSampleConsensus<PointT>::Ptr rej;
+         rej.reset (new pcl::registration::CorrespondenceRejectorSampleConsensus<PointT> ());
+         pcl::CorrespondencesPtr after_rej_correspondences (new pcl::Correspondences ());
+
+         rej->setMaximumIterations (50000);
+         rej->setInlierThreshold (0.02);
+         rej->setInputTarget (pSiftKeypointsDst);
+         rej->setInputSource (pSiftKeypointsSrc);
+         rej->setInputCorrespondences (temp_correspondences);
+         rej->getCorrespondences (*after_rej_correspondences);
+
+         Eigen::Matrix4f refined_pose;
+         transformations.push_back( rej->getBestTransformation () );
+         pcl::registration::TransformationEstimationSVD<PointT, PointT> t_est;
+         t_est.estimateRigidTransformation (*pSiftKeypointsSrc, *pSiftKeypointsDst, *after_rej_correspondences, refined_pose);
+         transformations.back() = refined_pose;
+     }
+     else
+     {
+         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms;
+         pcl::GeometricConsistencyGrouping<PointT, PointT> gcg_alg;
+
+         gcg_alg.setGCThreshold (15);
+         gcg_alg.setGCSize (0.01);
+         gcg_alg.setInputCloud(pSiftKeypointsSrc);
+         gcg_alg.setSceneCloud(pSiftKeypointsDst);
+         gcg_alg.setModelSceneCorrespondences(temp_correspondences);
+
+         std::vector<pcl::Correspondences> clustered_corrs;
+         gcg_alg.recognize(new_transforms, clustered_corrs);
+         transformations.insert(transformations.end(), new_transforms.begin(), new_transforms.end());
+     }
+     return transformations;
+ }
 
 }
 

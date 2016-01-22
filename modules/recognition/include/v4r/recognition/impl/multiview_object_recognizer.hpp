@@ -30,22 +30,27 @@
 *                    Faeulhammer et al, MVA 2015
 */
 
+#include <v4r/recognition/multiview_object_recognizer.h>
+
 #include <math.h>       // atan2
 #include <pcl/keypoints/sift_keypoint.h>
-#include <pcl/recognition/cg/geometric_consistency.h>
-#include <pcl/registration/correspondence_rejection_sample_consensus.h>
 #include <pcl/registration/icp.h>
 #include <pcl/search/kdtree.h>
 
-#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/recognition/hv_go_3D.h>
-#include <v4r/registration/fast_icp_with_gc.h>
-#include <v4r/recognition/multiview_object_recognizer.h>
+#include <v4r/registration/FeatureBasedRegistration.h>
+#include <v4r/registration/metrics.h>
 #include <v4r/recognition/segmenter.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
 #include <v4r/segmentation/segmentation_utils.h>
+
+#ifdef HAVE_SIFTGPU
+#include <v4r/features/sift_local_estimator.h>
+#else
+#include <v4r/features/opencv_sift_local_estimator.h>
+#endif
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
@@ -54,18 +59,12 @@ namespace v4r
 
 template<typename PointT>
 bool
-MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
-                                               typename pcl::PointCloud<PointT>::Ptr &sift_keypoints,
+MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<PointT> &cloud_src,
+                                               typename pcl::PointCloud<PointT> &sift_keypoints,
                                                std::vector< int > &sift_keypoint_indices,
-                                               pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
+                                               pcl::PointCloud<FeatureT> &sift_signatures,
                                                std::vector<float> &sift_keypoint_scales)
 {
-    if(!sift_signatures)
-        sift_signatures.reset(new pcl::PointCloud<FeatureT>);
-
-    if(!sift_keypoints)
-        sift_keypoints.reset(new pcl::PointCloud<PointT>);
-
 #ifdef HAVE_SIFTGPU
     SIFTLocalEstimation<PointT, FeatureT> estimator(sift_);
     bool ret = estimator.estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
@@ -78,133 +77,6 @@ MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<Po
 #endif
     estimator.getKeypointIndices( sift_keypoint_indices );
     return ret;
-}
-
-
-
-template<typename PointT>
-std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
-MultiviewRecognizer<PointT>::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
-                                                              const pcl::PointCloud<PointT> &dst_cloud,
-                                                              const std::vector<int> &src_sift_keypoint_indices,
-                                                              const std::vector<int> &dst_sift_keypoint_indices,
-                                                              const pcl::PointCloud<FeatureT> &src_sift_signatures,
-                                                              const pcl::PointCloud<FeatureT> &dst_sift_signatures,
-                                                              bool use_gc )
-{
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations;
-    const int K = 1;
-    flann::Matrix<int> indices = flann::Matrix<int> ( new int[K], 1, K );
-    flann::Matrix<float> distances = flann::Matrix<float> ( new float[K], 1, K );
-
-    boost::shared_ptr< flann::Index<DistT> > flann_index;
-    convertToFLANN<FeatureT, DistT >( dst_sift_signatures, flann_index );
-
-    boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsSrc (new pcl::PointCloud<PointT>);
-    boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsDst (new pcl::PointCloud<PointT>);
-    pcl::copyPointCloud(src_cloud, src_sift_keypoint_indices, *pSiftKeypointsSrc );
-    pcl::copyPointCloud(dst_cloud, dst_sift_keypoint_indices, *pSiftKeypointsDst);
-
-    pcl::CorrespondencesPtr temp_correspondences ( new pcl::Correspondences );
-    temp_correspondences->resize(pSiftKeypointsSrc->size ());
-
-    for ( size_t keypointId = 0; keypointId < pSiftKeypointsSrc->points.size (); keypointId++ )
-    {
-        FeatureT searchFeature = src_sift_signatures[ keypointId ];
-        int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-        nearestKSearch ( flann_index, searchFeature.histogram, size_feat, K, indices, distances );
-
-        pcl::Correspondence corr;
-        corr.distance = distances[0][0];
-        corr.index_query = keypointId;
-        corr.index_match = indices[0][0];
-        temp_correspondences->at(keypointId) = corr;
-    }
-
-    if(!use_gc)
-    {
-        typename pcl::registration::CorrespondenceRejectorSampleConsensus<PointT>::Ptr rej;
-        rej.reset (new pcl::registration::CorrespondenceRejectorSampleConsensus<PointT> ());
-        pcl::CorrespondencesPtr after_rej_correspondences (new pcl::Correspondences ());
-
-        rej->setMaximumIterations (50000);
-        rej->setInlierThreshold (0.02);
-        rej->setInputTarget (pSiftKeypointsDst);
-        rej->setInputSource (pSiftKeypointsSrc);
-        rej->setInputCorrespondences (temp_correspondences);
-        rej->getCorrespondences (*after_rej_correspondences);
-
-        Eigen::Matrix4f refined_pose;
-        transformations.push_back( rej->getBestTransformation () );
-        pcl::registration::TransformationEstimationSVD<PointT, PointT> t_est;
-        t_est.estimateRigidTransformation (*pSiftKeypointsSrc, *pSiftKeypointsDst, *after_rej_correspondences, refined_pose);
-        transformations.back() = refined_pose;
-    }
-    else
-    {
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms;
-        pcl::GeometricConsistencyGrouping<pcl::PointXYZRGB, pcl::PointXYZRGB> gcg_alg;
-
-        gcg_alg.setGCThreshold (15);
-        gcg_alg.setGCSize (0.01);
-        gcg_alg.setInputCloud(pSiftKeypointsSrc);
-        gcg_alg.setSceneCloud(pSiftKeypointsDst);
-        gcg_alg.setModelSceneCorrespondences(temp_correspondences);
-
-        std::vector<pcl::Correspondences> clustered_corrs;
-        gcg_alg.recognize(new_transforms, clustered_corrs);
-        transformations.insert(transformations.end(), new_transforms.begin(), new_transforms.end());
-    }
-    return transformations;
-}
-
-template<typename PointT>
-float
-MultiviewRecognizer<PointT>::calcEdgeWeightAndRefineTf (const typename pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                                                        const typename pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                                                        Eigen::Matrix4f &refined_transform,
-                                                        const Eigen::Matrix4f &transform)
-{
-    typename pcl::PointCloud<PointT>::Ptr cloud_src_wo_nan ( new pcl::PointCloud<PointT>());
-    typename pcl::PointCloud<PointT>::Ptr cloud_dst_wo_nan ( new pcl::PointCloud<PointT>());
-
-    pcl::PassThrough<PointT> pass;
-    pass.setFilterLimits (0.f, 5.f);
-    pass.setFilterFieldName ("z");
-    pass.setInputCloud (cloud_src);
-    pass.setKeepOrganized (true);
-    pass.filter (*cloud_src_wo_nan);
-
-    pcl::PassThrough<PointT> pass2;
-    pass2.setFilterLimits (0.f, 5.f);
-    pass2.setFilterFieldName ("z");
-    pass2.setInputCloud (cloud_dst);
-    pass2.setKeepOrganized (true);
-    pass2.filter (*cloud_dst_wo_nan);
-
-    float w_after_icp_ = std::numeric_limits<float>::max ();
-    const float best_overlap_ = 0.75f;
-
-    FastIterativeClosestPointWithGC<pcl::PointXYZRGB> icp;
-    icp.setMaxCorrespondenceDistance ( 0.02f );
-    icp.setInputSource ( cloud_src_wo_nan );
-    icp.setInputTarget ( cloud_dst_wo_nan );
-    icp.setUseNormals (true);
-    icp.useStandardCG (true);
-    icp.setNoCG(true);
-    icp.setOverlapPercentage (best_overlap_);
-    icp.setKeepMaxHypotheses (5);
-    icp.setMaximumIterations (10);
-    icp.align (transform);
-    w_after_icp_ = icp.getFinalTransformation ( refined_transform );
-
-    if ( w_after_icp_ < 0 || !pcl_isfinite ( w_after_icp_ ) )
-        w_after_icp_ = std::numeric_limits<float>::max ();
-    else
-        w_after_icp_ = best_overlap_ - w_after_icp_;
-
-    //    transform = icp_trans; // refined transformation
-    return w_after_icp_;
 }
 
 template<typename PointT>
@@ -318,24 +190,24 @@ MultiviewRecognizer<PointT>::recognize ()
                                         // matters for their SIFT descriptors, the descriptors are computed on the
                                         // original rather than on the filtered point cloud. Keypoints at infinity
                                         // are removed.
-            typename pcl::PointCloud<PointT>::Ptr sift_keypoints (new pcl::PointCloud<PointT>());
+            typename pcl::PointCloud<PointT> sift_keypoints;
             std::vector<int> sift_kp_indices;
-            boost::shared_ptr< pcl::PointCloud<FeatureT > > sift_signatures_ (new  pcl::PointCloud<FeatureT>);
+            pcl::PointCloud<FeatureT > sift_signatures;
             std::vector<float> sift_keypoints_scales;
 
-            calcSiftFeatures( v.scene_, sift_keypoints, sift_kp_indices, sift_signatures_, sift_keypoints_scales);
+            calcSiftFeatures( *v.scene_, sift_keypoints, sift_kp_indices, sift_signatures, sift_keypoints_scales);
 
             if(!v.sift_signatures_)
                 v.sift_signatures_.reset( new pcl::PointCloud<FeatureT>);
 
             v.sift_kp_indices_.reserve( sift_kp_indices.size() );
-            v.sift_signatures_->points.reserve( sift_signatures_->points.size() );
+            v.sift_signatures_->points.reserve( sift_signatures.points.size() );
 //            v.sift_keypoints_scales_.reserve( sift_keypoints_scales.size() );
             size_t kept=0;
             for (size_t i=0; i<sift_kp_indices.size(); i++) {   // remove infinte keypoints
                 if ( pcl::isFinite( v.scene_->points[sift_kp_indices[i]] ) ) {
                     v.sift_kp_indices_.push_back( sift_kp_indices[i] );
-                    v.sift_signatures_->points.push_back( sift_signatures_->points[i] );
+                    v.sift_signatures_->points.push_back( sift_signatures.points[i] );
 //                    v.sift_keypoints_scales_.push_back( sift_keypoints_scales[i] );
                     kept++;
                 }
@@ -366,7 +238,8 @@ MultiviewRecognizer<PointT>::recognize ()
                 edge.model_name_ = "sift_background_matching";
 
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms =
-                        estimateViewTransformationBySIFT( *w.scene_, *v.scene_, w.sift_kp_indices_, v.sift_kp_indices_, *w.sift_signatures_, *v.sift_signatures_, param_.use_gc_s2s_);
+                        Registration::FeatureBasedRegistration<PointT>::estimateViewTransformationBySIFT(
+                            *w.scene_, *v.scene_, w.sift_kp_indices_, v.sift_kp_indices_, *w.sift_signatures_, *v.sift_signatures_, param_.use_gc_s2s_);
 
                 for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++) {
                     edge.transformation_ = sift_transforms[sift_tf_id];
@@ -382,7 +255,7 @@ MultiviewRecognizer<PointT>::recognize ()
                 transforms.push_back ( edge );
             }
 
-            if( transforms.size() ) {
+            if( !transforms.empty() ) {
                 size_t best_transform_id = 0;
                 float lowest_edge_weight = std::numeric_limits<float>::max();
 
@@ -391,8 +264,9 @@ MultiviewRecognizer<PointT>::recognize ()
 
                     try {
                         Eigen::Matrix4f icp_refined_trans;
-                        e_tmp.edge_weight_ = calcEdgeWeightAndRefineTf( w.scene_, v.scene_, icp_refined_trans, e_tmp.transformation_);
-                        e_tmp.transformation_ = icp_refined_trans,
+                        calcEdgeWeightAndRefineTf<PointT>( w.scene_, v.scene_, e_tmp.transformation_, e_tmp.edge_weight_, icp_refined_trans);
+
+                        e_tmp.transformation_ = icp_refined_trans;
                         std::cout << "Edge weight is " << e_tmp.edge_weight_ << " for edge connecting vertex " <<
                                      e_tmp.source_id_ << " and " << e_tmp.target_id_ << " by " <<  e_tmp.model_name_ ;
 

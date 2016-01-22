@@ -19,15 +19,15 @@
 namespace v4r
 {
 
-    template<typename PointInT, typename FeatureT>
-      class V4R_EXPORTS OpenCVSIFTLocalEstimation : public LocalEstimator<PointInT, FeatureT>
+    template<typename PointT, typename FeatureT>
+      class V4R_EXPORTS OpenCVSIFTLocalEstimation : public LocalEstimator<PointT, FeatureT>
       {
 
-        typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+        typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
         typedef typename pcl::PointCloud<FeatureT>::Ptr FeatureTPtr;
 
-        using LocalEstimator<PointInT, FeatureT>::keypoint_extractor_;
-        using LocalEstimator<PointInT, FeatureT>::keypoint_indices_;
+        using LocalEstimator<PointT, FeatureT>::keypoint_extractor_;
+        using LocalEstimator<PointT, FeatureT>::keypoint_indices_;
 
         pcl::PointIndices indices_;
         //cv::Ptr<cv::FeatureDetector> detectorPtr_;
@@ -53,33 +53,29 @@ namespace v4r
         }
 
         bool
-        estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
+        estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, pcl::PointCloud<FeatureT> & signatures)
         {
-
           keypoint_indices_.clear();
           if(indices_.indices.size() == 0)
           {
-            indices_.indices.resize(in->points.size());
+            indices_.indices.resize(in.points.size());
             for(size_t i=0; i < indices_.indices.size(); i++)
             {
               indices_.indices[i] = i;
             }
           }
 
-          processed.reset(new pcl::PointCloud<PointInT>);
-          keypoints.reset(new pcl::PointCloud<PointInT>);
-
           pcl::PointCloud<int> mask_cloud;
-          mask_cloud.width = in->width;
-          mask_cloud.height = in->height;
-          mask_cloud.points.resize(in->width * in->height);
+          mask_cloud.width = in.width;
+          mask_cloud.height = in.height;
+          mask_cloud.points.resize(in.width * in.height);
           for(size_t i=0; i < mask_cloud.points.size(); i++)
             mask_cloud.points[i] = 0;
 
           for(size_t i=0; i < indices_.indices.size(); i++)
             mask_cloud.points[indices_.indices[i]] = 1;
 
-          cv::Mat colorImage = ConvertPCLCloud2Image (*in);
+          cv::Mat colorImage = ConvertPCLCloud2Image (in);
           cv::Mat grayImage;
           cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
 
@@ -96,10 +92,10 @@ namespace v4r
           //backproject sift keypoints to 3D and save in keypoints
           //save signatures
 
-          signatures->resize (ks.size ());
-          signatures->width = static_cast<int> (ks.size ());
-          signatures->height = 1;
-          keypoints->points.resize(ks.size());
+          signatures.resize (ks.size ());
+          signatures.width = static_cast<int> (ks.size ());
+          signatures.height = 1;
+          keypoints.points.resize(ks.size());
           int kept = 0;
           for(size_t i=0; i < ks.size(); i++)
           {
@@ -119,22 +115,22 @@ namespace v4r
 
             if(u >= 0 && v >= 0 && u < mask_cloud.width && v < mask_cloud.height && mask_cloud.at(u,v))
             {
-              if(pcl_isfinite(in->at(u,v).z) && pcl_isfinite(in->at(u,v).x) && pcl_isfinite(in->at(u,v).y))
+              if(pcl_isfinite(in.at(u,v).z) && pcl_isfinite(in.at(u,v).x) && pcl_isfinite(in.at(u,v).y))
               {
-                keypoints->points[kept] = in->at(u,v);
-                keypoint_indices_.push_back(v * in->width + u);
-                assert((v * in->width + u) < (in->points.size()));
+                keypoints.points[kept] = in.at(u,v);
+                keypoint_indices_.push_back(v * in.width + u);
+                assert((v * in.width + u) < (in.points.size()));
                 for (int k = 0; k < 128; k++)
-                  signatures->points[kept].histogram[k] = descriptors.at<float>(i,k);
+                  signatures.points[kept].histogram[k] = descriptors.at<float>(i,k);
                 kept++;
               }
             }
           }
 
-          signatures->width = kept;
-          signatures->resize(kept);
-          keypoints->points.resize(kept);
-          pcl::copyPointCloud(*in, indices_, *processed);
+          signatures.width = kept;
+          signatures.resize(kept);
+          keypoints.points.resize(kept);
+          pcl::copyPointCloud(in, indices_, processed);
           std::cout << "Number of SIFT features:" << kept << std::endl;
           indices_.indices.clear();
 
@@ -157,8 +153,6 @@ namespace v4r
         {
           return true;
         }
-
-      private:
 
       };
 }

@@ -75,7 +75,7 @@ public:
 
 
     virtual void
-    compute (PointOutTPtr & keypoints) = 0;
+    compute (pcl::PointCloud<PointT> & keypoints) = 0;
 };
 }
 

@@ -145,25 +145,25 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
 
             for (size_t v = 0; v < m->view_filenames_.size(); v++)
             {
-                typename pcl::PointCloud<FeatureT>::Ptr all_signatures (new pcl::PointCloud<FeatureT> ());
-                typename pcl::PointCloud<FeatureT>::Ptr object_signatures (new pcl::PointCloud<FeatureT> ());
-                typename pcl::PointCloud<PointT>::Ptr all_keypoints;
-                typename pcl::PointCloud<PointT>::Ptr object_keypoints (new pcl::PointCloud<PointT>);
-                typename pcl::PointCloud<PointT>::Ptr foo (new pcl::PointCloud<PointT>);
+                typename pcl::PointCloud<FeatureT> all_signatures;
+                typename pcl::PointCloud<FeatureT> object_signatures;
+                typename pcl::PointCloud<PointT> all_keypoints;
+                typename pcl::PointCloud<PointT> object_keypoints;
                 pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
 
                 computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
 
                 std::vector<int> all_kp_indices, obj_kp_indices;
                 estimator_->setNormals(normals);
-                bool success = estimator_->estimate (m->views_[v], foo, all_keypoints, all_signatures);
+                typename pcl::PointCloud<PointT> foo;
+                bool success = estimator_->estimate (*m->views_[v], foo, all_keypoints, all_signatures);
                 (void) success;
                 estimator_->getKeypointIndices(all_kp_indices);
 
                 // remove signatures and keypoints which do not belong to object
                 std::vector<bool> obj_mask = createMaskFromIndices(m->indices_[v].indices, m->views_[v]->points.size());
                 obj_kp_indices.resize( all_kp_indices.size() );
-                object_signatures->points.resize( all_kp_indices.size() ) ;
+                object_signatures.points.resize( all_kp_indices.size() ) ;
                 size_t kept=0;
                 for (size_t kp_id = 0; kp_id < all_kp_indices.size(); kp_id++)
                 {
@@ -171,25 +171,25 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::initialize (bool force_ret
                     if ( obj_mask[idx] )
                     {
                         obj_kp_indices[kept] = idx;
-                        object_signatures->points[kept] = all_signatures->points[kp_id];
+                        object_signatures.points[kept] = all_signatures.points[kp_id];
                         kept++;
                     }
                 }
-                object_signatures->points.resize( kept );
+                object_signatures.points.resize( kept );
                 obj_kp_indices.resize( kept );
 
-                pcl::copyPointCloud( *m->views_[v], obj_kp_indices, *object_keypoints);
+                pcl::copyPointCloud( *m->views_[v], obj_kp_indices, object_keypoints);
 
-                if (object_keypoints->points.size()) //save descriptors and keypoints to disk
+                if (object_keypoints.points.size()) //save descriptors and keypoints to disk
                 {
                     io::createDirIfNotExist(dir);
                     std::string descriptor_basename (m->view_filenames_[v]);
                     boost::replace_last(descriptor_basename, source_->getViewPrefix(), "/descriptors_");
-                    pcl::io::savePCDFileBinary (dir + descriptor_basename, *object_signatures);
+                    pcl::io::savePCDFileBinary (dir + descriptor_basename, object_signatures);
 
                     std::string keypoint_basename (m->view_filenames_[v]);
                     boost::replace_last(keypoint_basename, source_->getViewPrefix(), "/keypoints_");
-                    pcl::io::savePCDFileBinary (dir + keypoint_basename, *object_keypoints);
+                    pcl::io::savePCDFileBinary (dir + keypoint_basename, object_keypoints);
 
                     std::string kp_normals_basename (m->view_filenames_[v]);
                     boost::replace_last(kp_normals_basename, source_->getViewPrefix(), "/keypoint_normals_");
@@ -238,8 +238,8 @@ LocalRecognitionPipeline<Distance, PointT, FeatureT>::recognize ()
             signatures_.reset(new pcl::PointCloud<FeatureT>);
 
         estimator_->setNormals(scene_normals_);
-        typename pcl::PointCloud<PointT>::Ptr processed_foo;
-        estimator_->estimate (scene_, processed_foo, scene_keypoints_, signatures_);
+        typename pcl::PointCloud<PointT> processed_foo;
+        estimator_->estimate (*scene_, processed_foo, *scene_keypoints_, *signatures_);
         estimator_->getKeypointIndices(scene_kp_indices_);
     }
 
