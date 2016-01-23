@@ -115,7 +115,7 @@ MultiRecognitionPipeline<PointT>::recognize()
 //#pragma omp critical
                 {
                     for (auto &oh : oh_tmp) {
-                        for (auto &corr : *(oh.second.model_scene_corresp_)) {  // add appropriate offset to correspondence index of the scene cloud
+                        for (auto &corr : oh.second.model_scene_corresp_) {  // add appropriate offset to correspondence index of the scene cloud
                             corr.index_match += scene_keypoints_->points.size();
                         }
 
@@ -123,13 +123,13 @@ MultiRecognitionPipeline<PointT>::recognize()
                         if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
                             obj_hypotheses_.insert(oh);//std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
                         else
-                            it_mp_oh->second.model_scene_corresp_->insert(  it_mp_oh->second.model_scene_corresp_->  end(),
-                                                                                   oh.second.model_scene_corresp_->begin(),
-                                                                                   oh.second.model_scene_corresp_->  end() );
+                            it_mp_oh->second.model_scene_corresp_.insert(  it_mp_oh->second.model_scene_corresp_.  end(),
+                                                                                   oh.second.model_scene_corresp_.begin(),
+                                                                                   oh.second.model_scene_corresp_.  end() );
                     }
                 *scene_keypoints_ += *kp_tmp;
 
-                if(cg_algorithm_ && cg_algorithm_->getRequiresNormals()) {
+                if(scene_normals_) {
                     pcl::PointCloud<pcl::Normal> kp_normals;
                     pcl::copyPointCloud(*scene_normals_, kp_indices, kp_normals);
                     *scene_kp_normals_ += kp_normals;
@@ -172,12 +172,12 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
     for (it = obj_hypotheses_.begin (), id=0; it != obj_hypotheses_.end (); ++it)
         ohs[id++] = it->second;
 
-//#pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)
+#pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)
     for (size_t i=0; i<ohs.size(); i++)
     {
         const ObjectHypothesis<PointT> &oh = ohs[i];
 
-        if(oh.model_scene_corresp_->size() < 3)
+        if(oh.model_scene_corresp_.size() < 3)
             continue;
 
         GraphGeometricConsistencyGrouping<PointT, PointT> cg = *cg_algorithm_;
@@ -237,14 +237,14 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
             }
             merged_transforms.resize(kept);
 
-//#pragma omp critical
+#pragma omp critical
             {
                 transforms_.insert(transforms_.end(), merged_transforms.begin(), merged_transforms.end());
                 models_.resize( transforms_.size(), oh.model_ );
             }
         }
 
-        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_->size () << " " << oh.model_->id_ << std::endl;
+        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_.size () << " " << oh.model_->id_ << std::endl;
 
         //        oh.visualize(*scene_);
     }
@@ -252,7 +252,6 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
     double t_stop = omp_get_wtime();
 
     std::cout << "Correspondence Grouping took " <<  t_stop - t_start << std::endl;
-
 }
 
 template<typename PointT>

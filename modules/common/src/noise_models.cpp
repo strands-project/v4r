@@ -46,6 +46,7 @@ NguyenNoiseModel<PointT>::compute ()
 //    pcl::visualization::PCLVisualizer vis;
 //    vis.addPointCloud(input_);
 
+#pragma omp parallel for schedule(dynamic)
     for(size_t i=0; i < input_->points.size(); i++)
     {
         float sigma_lateral = 0.f;
@@ -83,7 +84,9 @@ NguyenNoiseModel<PointT>::compute ()
         std::vector<float> dist_to_edge_3d(input_->points.size(), std::numeric_limits<float>::infinity());
         std::vector<float> dist_to_edge_px(input_->points.size(), std::numeric_limits<float>::infinity());
 
-        for (const auto &idx_start : discontinuity_edges_.indices) {
+#pragma omp parallel for schedule(dynamic)
+        for (size_t i=0; i <discontinuity_edges_.indices.size(); i++) {
+            const int &idx_start = discontinuity_edges_.indices[i];
             dist_to_edge_3d[idx_start] = 0.f;
             dist_to_edge_px[idx_start] = 0.f;
 

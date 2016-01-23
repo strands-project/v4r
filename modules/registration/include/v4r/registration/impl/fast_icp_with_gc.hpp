@@ -400,7 +400,7 @@ namespace v4r
                 gcg_alg.setDistForClusterFactor (1.f);
                 gcg_alg.setUseGraph (false);
                 gcg_alg.setPrune (false);
-                gcg_alg.setModelSceneCorrespondences (correspondences_alive_node);
+                gcg_alg.setModelSceneCorrespondences (*correspondences_alive_node);
                 gcg_alg.setSceneCloud (tgt_keypoints);
                 gcg_alg.setInputCloud (src_keypoints_local);
                 gcg_alg.setInputAndSceneNormals (normal_src_keypoints_local, normal_tgt_keypoints);

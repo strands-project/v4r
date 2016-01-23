@@ -154,7 +154,7 @@ public:
         (void)sift_keypoint_scales; //silences compiler warning of unused variable
         boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT> > estimator;
         estimator.reset (new v4r::OpenCVSIFTLocalEstimation<PointT>);
-        pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
+        pcl::PointCloud<PointT> processed_foo;
         bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
     #endif
         estimator->getKeypointIndices( sift_keypoint_indices );

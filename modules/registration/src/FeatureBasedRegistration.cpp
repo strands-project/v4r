@@ -238,7 +238,7 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
 
             gc_clusterer.setInputCloud (kps_s2);
             gc_clusterer.setSceneCloud (kps_s1);
-            gc_clusterer.setModelSceneCorrespondences (cor);
+            gc_clusterer.setModelSceneCorrespondences (*cor);
 
             gc_clusterer.cluster (clustered_corrs);
         }
@@ -257,7 +257,7 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
             gc_clusterer.setInputCloud (kps_s2);
             gc_clusterer.setSceneCloud (kps_s1);
             gc_clusterer.setInputAndSceneNormals(normals_s2, normals_s1);
-            gc_clusterer.setModelSceneCorrespondences (cor);
+            gc_clusterer.setModelSceneCorrespondences (*cor);
             gc_clusterer.cluster (clustered_corrs);
         }
 

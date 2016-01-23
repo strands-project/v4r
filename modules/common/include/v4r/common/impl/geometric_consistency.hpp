@@ -62,21 +62,16 @@ v4r::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
   model_instances.clear ();
   found_transformations_.clear ();
 
-  if (!model_scene_corrs_)
+  if (model_scene_corrs_.empty())
   {
     PCL_ERROR(
       "[pcl::GeometricConsistencyGrouping::clusterCorrespondences()] Error! Correspondences not set, please set them before calling again this function.\n");
     return;
   }
 
-  pcl::CorrespondencesPtr sorted_corrs (new pcl::Correspondences (*model_scene_corrs_));
-
-  std::sort (sorted_corrs->begin (), sorted_corrs->end (), v4r::gcCorrespSorter);
-
-  model_scene_corrs_ = sorted_corrs;
-
+  std::sort (model_scene_corrs_.begin (), model_scene_corrs_.end (), v4r::gcCorrespSorter);
   std::vector<int> consensus_set;
-  std::vector<bool> taken_corresps (model_scene_corrs_->size (), false);
+  std::vector<bool> taken_corresps (model_scene_corrs_.size (), false);
 
   Eigen::Vector3f dist_ref, dist_trg;
 
@@ -90,9 +85,9 @@ v4r::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
   corr_rejector.setInputSource(input_);
   corr_rejector.setInputTarget (temp_scene_cloud_ptr);
 
-  for (size_t i = 0; i < model_scene_corrs_->size (); ++i)
+  for (size_t i = 0; i < model_scene_corrs_.size (); ++i)
   {
-    std::cout << "Processing correspondence:" << i << " from " << model_scene_corrs_->size () << std::endl;
+    std::cout << "Processing correspondence:" << i << " from " << model_scene_corrs_.size () << std::endl;
 
     if (taken_corresps[i])
       continue;
@@ -100,7 +95,7 @@ v4r::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
     consensus_set.clear ();
     consensus_set.push_back (static_cast<int> (i));
     
-    for (size_t j = 0; j < model_scene_corrs_->size (); ++j)
+    for (size_t j = 0; j < model_scene_corrs_.size (); ++j)
     {
       if ( j != i &&  !taken_corresps[j])
       {
@@ -108,10 +103,10 @@ v4r::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
         bool is_a_good_candidate = true;
         for (size_t k = 0; k < consensus_set.size (); ++k)
         {
-          int scene_index_k = model_scene_corrs_->at (consensus_set[k]).index_match;
-          int model_index_k = model_scene_corrs_->at (consensus_set[k]).index_query;
-          int scene_index_j = model_scene_corrs_->at (j).index_match;
-          int model_index_j = model_scene_corrs_->at (j).index_query;
+          int scene_index_k = model_scene_corrs_[consensus_set[k]].index_match;
+          int model_index_k = model_scene_corrs_[consensus_set[k]].index_query;
+          int scene_index_j = model_scene_corrs_[j].index_match;
+          int model_index_j = model_scene_corrs_[j].index_query;
           
           const Eigen::Vector3f& scene_point_k = scene_->at (scene_index_k).getVector3fMap ();
           const Eigen::Vector3f& model_point_k = input_->at (model_index_k).getVector3fMap ();
@@ -143,7 +138,7 @@ v4r::GeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
       pcl::Correspondences temp_corrs, filtered_corrs;
       for (size_t j = 0; j < consensus_set.size (); j++)
       {
-        temp_corrs.push_back (model_scene_corrs_->at (consensus_set[j]));
+        temp_corrs.push_back(model_scene_corrs_[consensus_set[j]]);
         taken_corresps[ consensus_set[j] ] = true;
       }
       //ransac filtering

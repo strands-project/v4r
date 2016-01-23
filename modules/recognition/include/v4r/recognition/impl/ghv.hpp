@@ -182,9 +182,7 @@ countPointsOnDifferentPlaneSides (const std::vector<bool> & sol,
                 {
                     c += points_one_plane_sides_[it1->second][j];
                     if(print)
-                    {
                         std::cout << "Adding to c:" << points_one_plane_sides_[it1->second][j] << " " << recognition_models_[j]->id_s_ << " " << recognition_models_[j]->id_ << " plane_id:" << it1->second << std::endl;
-                    }
                 }
             }
         }

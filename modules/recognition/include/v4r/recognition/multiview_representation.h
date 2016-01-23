@@ -22,12 +22,12 @@ protected:
 public:
     View();
     typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_;
-    typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_f_;
+//    typename boost::shared_ptr< pcl::PointCloud<PointT> > scene_f_;
     boost::shared_ptr< pcl::PointCloud<pcl::Normal> > scene_normals_;
     std::vector<int> filtered_scene_indices_;
     Eigen::Matrix4f absolute_pose_;
-//    typename boost::shared_ptr< pcl::PointCloud<PointT> > pKeypointsMultipipe_;
-//    boost::shared_ptr< pcl::PointCloud<pcl::Normal> > kp_normals_;
+    typename pcl::PointCloud<PointT>::Ptr scene_kp_;
+    pcl::PointCloud<pcl::Normal>::Ptr scene_kp_normals_;
     typename std::map<std::string, ObjectHypothesis<PointT> > hypotheses_;
     std::vector<std::vector<float> > sift_signatures_;
 //    std::vector<float> sift_keypoints_scales_;
@@ -49,9 +49,7 @@ public:
     /** @brief vector defining from which view the object hypothesis comes from */
     std::vector<size_t> origin_view_id_;
 
-    //GO3D
     std::vector<std::vector<float> >  pt_properties_; /// @brief noise properties for each point
-//    std::vector<int> nguyens_kept_indices_;
 };
 
 struct V4R_EXPORTS CamConnect
@@ -61,44 +59,12 @@ struct V4R_EXPORTS CamConnect
     std::string model_name_;
     size_t source_id_, target_id_;
 
-    explicit CamConnect(float w) :
-        edge_weight_(w)
-    {
-
-    }
-
-    CamConnect() : edge_weight_(std::numeric_limits<float>::max ())
-    {
-
-    }
-
-    bool operator<(const CamConnect& e) const {
-        if(edge_weight_ < e.edge_weight_)
-            return true;
-
-        return false;
-    }
-
-    bool operator<=(const CamConnect& e) const {
-        if(edge_weight_ <= e.edge_weight_)
-            return true;
-
-        return false;
-    }
-
-    bool operator>(const CamConnect& e) const {
-        if(edge_weight_ > e.edge_weight_)
-            return true;
-
-        return false;
-    }
-
-    bool operator>=(const CamConnect& e) const {
-        if(edge_weight_ >= e.edge_weight_)
-            return true;
-
-        return false;
-    }
+    explicit CamConnect(float w) : edge_weight_(w) { }
+    CamConnect() : edge_weight_(std::numeric_limits<float>::max ()) { }
+    bool operator<(const CamConnect& e) const { return edge_weight_ < e.edge_weight_; }
+    bool operator<=(const CamConnect& e) const { return edge_weight_ <= e.edge_weight_; }
+    bool operator>(const CamConnect& e) const { return edge_weight_ > e.edge_weight_; }
+    bool operator>=(const CamConnect& e) const { return edge_weight_ >= e.edge_weight_; }
 };
 
 }

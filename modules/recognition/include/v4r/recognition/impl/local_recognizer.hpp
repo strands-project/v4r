@@ -292,16 +292,16 @@ LocalRecognitionPipeline<PointT>::recognize ()
             {
                 ObjectHypothesis<PointT> &oh = it_map->second;
                 pcl::Correspondence c ( (int)f.keypoint_id, (int)idx, m_dist);
-                oh.model_scene_corresp_->push_back(c);
+                oh.model_scene_corresp_.push_back(c);
                 oh.indices_to_flann_models_.push_back( indices[0][i] );
             }
             else //create object hypothesis
             {
                 ObjectHypothesis<PointT> oh;
                 oh.model_ = f.model;
-                oh.model_scene_corresp_->reserve (signatures_.size () * param_.knn_);
+                oh.model_scene_corresp_.reserve (signatures_.size () * param_.knn_);
                 oh.indices_to_flann_models_.reserve(signatures_.size () * param_.knn_);
-                oh.model_scene_corresp_->push_back( pcl::Correspondence ((int)f.keypoint_id, (int)idx, m_dist) );
+                oh.model_scene_corresp_.push_back( pcl::Correspondence ((int)f.keypoint_id, (int)idx, m_dist) );
                 oh.indices_to_flann_models_.push_back( indices[0][i] );
                 obj_hypotheses_[oh.model_->id_] = oh;
             }
@@ -314,7 +314,7 @@ LocalRecognitionPipeline<PointT>::recognize ()
 
     typename symHyp::iterator it_map;
     for (it_map = obj_hypotheses_.begin(); it_map != obj_hypotheses_.end (); it_map++)
-        it_map->second.model_scene_corresp_->shrink_to_fit();   // free memory
+        it_map->second.model_scene_corresp_.shrink_to_fit();   // free memory
 
     if(cg_algorithm_ && !param_.save_hypotheses_)    // correspondence grouping is not done outside
     {
@@ -349,7 +349,7 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
     {
         ObjectHypothesis<PointT> &oh = it->second;
 
-        if(oh.model_scene_corresp_->size() < 3)
+        if(oh.model_scene_corresp_.size() < 3)
             continue;
 
         std::vector < pcl::Correspondences > corresp_clusters;
@@ -409,7 +409,7 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
             new_transforms = merged_transforms;
         }
 
-        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_->size () << " " << it->first << std::endl;
+        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_.size () << " " << it->first << std::endl;
 
         //        oh.visualize(*scene_);
 

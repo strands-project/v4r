@@ -87,7 +87,7 @@ namespace v4r
         {
             std::vector<bool> kp_has_correspondence(scene_keypoints_->points.size(), false);
             for (const auto &oh : obj_hypotheses_) {
-                for (const auto &corr : *(oh.second.model_scene_corresp_)) {
+                for (const auto &corr : oh.second.model_scene_corresp_) {
                     kp_has_correspondence[corr.index_match] = true;
                 }
             }
@@ -109,7 +109,7 @@ namespace v4r
 
             // adapt correspondences
             for (auto &oh : obj_hypotheses_) {
-                for (auto &corr : *(oh.second.model_scene_corresp_)) {
+                for (auto &corr : oh.second.model_scene_corresp_) {
                     corr.index_match = lut[corr.index_match];
                 }
             }
@@ -142,6 +142,12 @@ namespace v4r
         getKeypointCloud(PointTPtr & keypoint_cloud) const
         {
           keypoint_cloud = scene_keypoints_;
+        }
+
+        void
+        getKeyPointNormals(pcl::PointCloud<pcl::Normal>::Ptr & kp_normals) const
+        {
+            kp_normals = scene_kp_normals_;
         }
 
         bool
@@ -184,7 +190,7 @@ namespace v4r
         }
 
         void
-        setCGAlgorithm (const typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > & alg)
+        setCGAlgorithm (const typename boost::shared_ptr<GraphGeometricConsistencyGrouping<PointT, PointT> > & alg)
         {
           cg_algorithm_ = alg;
         }

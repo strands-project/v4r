@@ -71,20 +71,20 @@ inline void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &clo
     }
     else if(method == 3)
     {
-        v4r::ZAdaptiveNormals::Parameter n_param;
+        ZAdaptiveNormals::Parameter n_param;
         n_param.adaptive = true;
-        v4r::ZAdaptiveNormals nest(n_param);
+        ZAdaptiveNormals nest(n_param);
 
-        v4r::DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new v4r::DataMatrix2D<Eigen::Vector3f>() );
-        v4r::DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals_tmp( new v4r::DataMatrix2D<Eigen::Vector3f>() );
-        v4r::convertCloud(*cloud, *kp_cloud);
+        DataMatrix2D<Eigen::Vector3f>::Ptr kp_cloud( new DataMatrix2D<Eigen::Vector3f>() );
+        DataMatrix2D<Eigen::Vector3f>::Ptr kp_normals_tmp( new DataMatrix2D<Eigen::Vector3f>() );
+        convertCloud(*cloud, *kp_cloud);
         nest.compute(*kp_cloud, *kp_normals_tmp);
-        v4r::convertNormals(*kp_normals_tmp, *normals);
+        convertNormals(*kp_normals_tmp, *normals);
     }
     else if(method==4)
     {
-        boost::shared_ptr<v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;
-        normal_estimator.reset (new v4r::PreProcessorAndNormalEstimator<PointT, pcl::Normal>);
+        boost::shared_ptr<PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;
+        normal_estimator.reset (new PreProcessorAndNormalEstimator<PointT, pcl::Normal>);
         normal_estimator->setCMR (false);
         normal_estimator->setDoVoxelGrid (false);
         normal_estimator->setRemoveOutliers (false);

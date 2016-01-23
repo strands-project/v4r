@@ -101,9 +101,12 @@ protected:
     symHyp obj_hypotheses_; /// \brief stores keypoint correspondences
 
     /** \brief Point-to-point correspondence grouping algorithm */
-    typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > cg_algorithm_;
+    typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;
 
     Eigen::Matrix4f pose_;
+
+    pcl::PointCloud<PointT> scene_keypoints_; /// @brief accumulated scene keypoints
+    pcl::PointCloud<pcl::Normal> scene_kp_normals_; /// @brief accumulated scene keypoint normals
 
 #ifdef HAVE_SIFTGPU
     boost::shared_ptr<SiftGPU> sift_;
@@ -215,7 +218,8 @@ public:
 
 
     /** \brief Sets the algorithm for Correspondence Grouping (Hypotheses generation from keypoint correspondences) */
-    void setCGAlgorithm (const typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > & alg)
+    void
+    setCGAlgorithm (const typename boost::shared_ptr<GraphGeometricConsistencyGrouping<PointT, PointT> > & alg)
     {
       cg_algorithm_ = alg;
     }
