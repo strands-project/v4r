@@ -196,10 +196,12 @@ public:
         return scene_name_;
     }
 
+#ifdef HAVE_SIFTGPU
     void setSift(boost::shared_ptr<SiftGPU> &sift)
     {
         sift_ = sift;
     }
+#endif
 
     void setNoiseModelParameters(const typename NguyenNoiseModel<PointT>::Parameter &p)
     {

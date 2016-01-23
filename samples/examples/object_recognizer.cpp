@@ -1,8 +1,9 @@
 #include <v4r_config.h>
 #include <v4r/common/miscellaneous.h>
-#include <v4r/features/sift_local_estimator.h>
 
-#ifndef HAVE_SIFTGPU
+#ifdef HAVE_SIFTGPU
+#include <v4r/features/sift_local_estimator.h>
+#else
 #include <v4r/features/opencv_sift_local_estimator.h>
 #endif
 

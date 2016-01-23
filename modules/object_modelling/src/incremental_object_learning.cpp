@@ -64,26 +64,19 @@ IOL::calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
 {
     std::vector<int> sift_kp_indices;
 
-
 #ifdef HAVE_SIFTGPU
     (void) sift_keypoint_indices;
-    boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator;
-    estimator.reset (new SIFTLocalEstimation<PointT>(sift_));
-
+    boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator (new SIFTLocalEstimation<PointT>(sift_));
     bool ret = estimator->estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
     estimator->getKeypointIndices( sift_kp_indices );
 #else
     (void)sift_keypoint_scales; //silences compiler warning of unused variable
-    boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT> estimator;
-    estimator.reset (new OpenCVSIFTLocalEstimation<PointT>);
-
-    pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
-
+    boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT> > estimator (new OpenCVSIFTLocalEstimation<PointT>);
+    pcl::PointCloud<PointT> processed_foo;
     bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
     estimator->getKeypointIndices( sift_kp_indices );
-
-    sift_keypoint_indices = common::convertIndices2VecSizet(sift_kp_indices);
 #endif
+    sift_keypoint_indices = convertVecInt2VecSizet(sift_kp_indices);
     return ret;
 }
 

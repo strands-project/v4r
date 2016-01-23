@@ -32,9 +32,10 @@
 
 #include <v4r_config.h>
 #include <v4r/common/miscellaneous.h>
-#include <v4r/features/sift_local_estimator.h>
 
-#ifndef HAVE_SIFTGPU
+#ifdef HAVE_SIFTGPU
+#include <v4r/features/sift_local_estimator.h>
+#else
 #include <v4r/features/opencv_sift_local_estimator.h>
 #endif
 
@@ -79,7 +80,10 @@ private:
     std::string test_dir_, models_dir_, out_dir_;
     bool visualize_;
 
+#ifdef HAVE_SIFTGPU
     boost::shared_ptr<SiftGPU> sift_;
+#endif
+
     std::map<std::string, size_t> rec_models_per_id_;
 
 public:
@@ -230,8 +234,8 @@ public:
       boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator (new SIFTLocalEstimation<PointT>(sift_));
       boost::shared_ptr < LocalEstimator<PointT> > cast_estimator = boost::dynamic_pointer_cast<SIFTLocalEstimation<PointT> > (estimator);
 #else
-      boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT, FeatureT > > estimator (new OpenCVSIFTLocalEstimation<PointT>);
-      boost::shared_ptr < LocalEstimator<PointT, FeatureT > > cast_estimator = boost::dynamic_pointer_cast<OpenCVSIFTLocalEstimation<PointT> > (estimator);
+      boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT> > estimator (new OpenCVSIFTLocalEstimation<PointT>);
+      boost::shared_ptr < LocalEstimator<PointT> > cast_estimator = boost::dynamic_pointer_cast<OpenCVSIFTLocalEstimation<PointT> > (estimator);
 #endif
 
             boost::shared_ptr<LocalRecognitionPipeline<PointT> > sift_r;
@@ -295,7 +299,9 @@ public:
         mv_r_->setSingleViewRecognizer(rr_);
         mv_r_->setCGAlgorithm( gcg_alg );
         mv_r_->setHVAlgorithm( cast_hv_pointer );
+#ifdef HAVE_SIFTGPU
         mv_r_->setSift(sift_);
+#endif
 
         io::createDirIfNotExist(out_dir_);
 

@@ -1,3 +1,6 @@
+#include <v4r_config.h>
+
+#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/common/pcl_opencv.h>
 #include <v4r/common/miscellaneous.h>
@@ -203,5 +206,9 @@ SIFTLocalEstimation<PointT>::estimate (const cv::Mat_ < cv::Vec3b > &colorImage,
     return true;
 }
 
+#ifdef HAVE_SIFTGPU
 template class V4R_EXPORTS SIFTLocalEstimation<pcl::PointXYZRGB>;
+#endif
 }
+
+#endif
