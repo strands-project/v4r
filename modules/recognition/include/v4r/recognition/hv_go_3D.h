@@ -33,9 +33,6 @@ namespace v4r
     class V4R_EXPORTS Parameter : public GHV<ModelT, SceneT>::Parameter
     {
     public:
-         using GHV<ModelT, SceneT>::Parameter::color_sigma_ab_;
-         using GHV<ModelT, SceneT>::Parameter::color_sigma_l_;
-         using GHV<ModelT, SceneT>::Parameter::regularizer_;
          using GHV<ModelT, SceneT>::Parameter::radius_neighborhood_clutter_;
          using GHV<ModelT, SceneT>::Parameter::radius_normals_;
          using GHV<ModelT, SceneT>::Parameter::duplicy_weight_test_;
@@ -116,6 +113,7 @@ namespace v4r
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_camera_poses_;
     std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > occ_clouds_;
+    std::vector<std::vector<bool> > model_is_present_in_view_; /// \brief for each model this variable stores information in which view it is present (used to check for visible model points - default all true = static scene)
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_;
     mutable int vp1_, vp2_;
@@ -166,10 +164,20 @@ namespace v4r
       void
       addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning = false);
 
-      std::vector<typename pcl::PointCloud<ModelT>::ConstPtr>
+      std::vector<typename pcl::PointCloud<ModelT>::Ptr>
       getVisibleModels() const
       {
         return visible_models_;
+      }
+
+      /**
+       * @brief for each model this variable stores information in which view it is present
+       * @param presence in model and view
+       */
+      void
+      setVisibleCloudsForModels(const std::vector<std::vector<bool> > &model_is_present_in_view)
+      {
+          model_is_present_in_view_ = model_is_present_in_view;
       }
 
       virtual

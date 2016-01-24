@@ -104,7 +104,7 @@ public:
         typename MultiviewRecognizer<PointT>::Parameter paramMultiView;
         typename NguyenNoiseModel<PointT>::Parameter nm_param;
         typename NMBasedCloudIntegration<PointT>::Parameter nmInt_param;
-        nmInt_param.octree_resolution_ = 0.001f;
+        nmInt_param.octree_resolution_ = 0.004f;
 
         paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;
         paramLocalRecSift.save_hypotheses_ = paramLocalRecShot.save_hypotheses_ = true;

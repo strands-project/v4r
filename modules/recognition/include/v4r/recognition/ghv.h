@@ -590,7 +590,6 @@ namespace v4r
       std::vector<std::string> ply_paths_;
       std::vector<vtkSmartPointer <vtkTransform> > poses_ply_;
 
-      float t_cues_, t_opt_;
       size_t number_of_visible_points_;
 
 
@@ -634,16 +633,6 @@ namespace v4r
       int getNumberOfVisiblePoints() const
       {
           return number_of_visible_points_;
-      }
-
-      float getCuesComputationTime() const
-      {
-          return t_cues_;
-      }
-
-      float getOptimizationTime() const
-      {
-          return t_opt_;
       }
 
       void setPlyPathsAndPoses(std::vector<std::string> & ply_paths_for_go, std::vector<vtkSmartPointer <vtkTransform> > & poses_ply)
@@ -721,12 +710,6 @@ namespace v4r
       getSmoothClustersRGBCloud () const
       {
         return clusters_cloud_rgb_;
-      }
-
-      float
-      getResolution ()
-      {
-        return param_.resolution_;
       }
 
       void
