@@ -746,16 +746,19 @@ GHV<ModelT, SceneT>::initialize()
 
                 float LRefs, aRefs, bRefs;
 
-                RGB2CIELAB (rs, gs, bs, LRefs, aRefs, bRefs);
-                LRefs /= 100.0f; aRefs /= 120.0f; bRefs /= 120.0f;    //normalized LAB components (0<L<1, -1<a<1, -1<b<1)
+                ColorTransform::RGB2CIELAB (rs, gs, bs, LRefs, aRefs, bRefs);
+//                LRefs /= 100.0f;
+                LRefs = (LRefs - 50) / 50;
+                aRefs /= 128.0f; //120.0f
+                bRefs /= 128.0f;    //normalized LAB components (-1<L<1, -1<a<1, -1<b<1)
 
-                scene_LAB_values_[i] = (Eigen::Vector3f(LRefs, aRefs, bRefs));
+                scene_LAB_values_[i] = Eigen::Vector3f(LRefs, aRefs, bRefs);
 
                 float rsf,gsf,bsf;
                 rsf = static_cast<float>(rs) / 255.f;
                 gsf = static_cast<float>(gs) / 255.f;
                 bsf = static_cast<float>(bs) / 255.f;
-                scene_RGB_values_[i] = (Eigen::Vector3f(rsf,gsf,bsf));
+                scene_RGB_values_[i] = Eigen::Vector3f(rsf,gsf,bsf);
                 scene_GS_values_[i] = (rsf + gsf + bsf) / 3.f;
             }
         }
@@ -765,14 +768,15 @@ GHV<ModelT, SceneT>::initialize()
     {
         valid_model_.resize(complete_models_.size ());
         {
-            pcl::ScopeTime tcues ("Computing cues");
-            recognition_models_.resize (complete_models_.size ());
-#pragma omp parallel for schedule(dynamic, 1) num_threads(std::min(max_threads_, omp_get_num_procs()))
-            for (size_t i = 0; i < complete_models_.size (); i++)
-            {
-                recognition_models_[i].reset (new GHVRecognitionModel<ModelT> ());
-                valid_model_[i] = addModel(i, recognition_models_[i]); // check if model is valid
-            }
+        pcl::ScopeTime ("Computing cues");
+        recognition_models_.resize (complete_models_.size ());
+
+        #pragma omp parallel for schedule(dynamic, 1) num_threads(std::min(max_threads_, omp_get_num_procs()))
+        for (size_t i = 0; i < complete_models_.size (); i++)
+        {
+            recognition_models_[i].reset (new GHVRecognitionModel<ModelT> ());
+            valid_model_[i] = addModel(i, recognition_models_[i]); // check if model is valid
+        }
         }
 
         // check if any valid model exists, otherwise there is nothing to verify
@@ -1726,8 +1730,11 @@ GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool
                         uint8_t bs = (rgb) & 0x0000ff;
 
                         float LRefs, aRefs, bRefs;
-                        RGB2CIELAB (rs, gs, bs, LRefs, aRefs, bRefs);
-                        LRefs /= 100.0f; aRefs /= 120.0f; bRefs /= 120.0f;    //normalized LAB components (0<L<1, -1<a<1, -1<b<1)
+                        ColorTransform::RGB2CIELAB (rs, gs, bs, LRefs, aRefs, bRefs);
+        //                LRefs /= 100.0f;
+                        LRefs = (LRefs - 50) / 50;
+                        aRefs /= 128.0f; //120.0f
+                        bRefs /= 128.0f;    //normalized LAB components (-1<L<1, -1<a<1, -1<b<1)
 
                         model_cloud_gs->points[k].r = LRefs * 255.f;
                         model_cloud_gs->points[k].g = (aRefs + 1.f) / 2.f * 255;
@@ -1766,9 +1773,7 @@ GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool
 
                         unsigned int c = (rs + gs + bs) / 3;
 
-                        model_cloud_gs->points[k].r =
-                                model_cloud_gs->points[k].g =
-                                model_cloud_gs->points[k].b = c;
+                        model_cloud_gs->points[k].r = model_cloud_gs->points[k].g = model_cloud_gs->points[k].b = c;
                     }
 
                     pcl::copyPointCloud(*scene_cloud_downsampled_, *scene_cloud);
@@ -1776,9 +1781,7 @@ GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool
                     for(size_t k=0; k < scene_cloud->points.size(); k++)
                     {
                         unsigned char c = scene_GS_values_[k] * 255;
-                        scene_cloud->points[k].r =
-                                scene_cloud->points[k].g =
-                                scene_cloud->points[k].b = c;
+                        scene_cloud->points[k].r = scene_cloud->points[k].g = scene_cloud->points[k].b = c;
                     }
 
                     //pcl::copyPointCloud(*scene_cloud, recognition_models_[i]->explained_, *scene_cloud);
@@ -1802,12 +1805,13 @@ GHV<ModelT, SceneT>::SAOptimize (std::vector<int> & cc_indices, std::vector<bool
                         uint8_t bs = (rgb) & 0x0000ff;
 
                         float LRefs, aRefs, bRefs;
-                        RGB2CIELAB (rs, gs, bs, LRefs, aRefs, bRefs);
-                        LRefs /= 100.0f; aRefs /= 120.0f; bRefs /= 120.0f;    //normalized LAB components (0<L<1, -1<a<1, -1<b<1)
+                        ColorTransform::RGB2CIELAB (rs, gs, bs, LRefs, aRefs, bRefs);
+        //                LRefs /= 100.0f;
+                        LRefs = (LRefs - 50) / 50;
+                        aRefs /= 128.0f; //120.0f
+                        bRefs /= 128.0f;    //normalized LAB components (-1<L<1, -1<a<1, -1<b<1)
 
-                        model_cloud_gs->points[k].r =
-                                model_cloud_gs->points[k].g =
-                                model_cloud_gs->points[k].b = LRefs * 255.f;
+                        model_cloud_gs->points[k].r = model_cloud_gs->points[k].g = model_cloud_gs->points[k].b = LRefs * 255.f;
                     }
 
                     pcl::copyPointCloud(*scene_cloud_downsampled_, *scene_cloud);
@@ -2476,8 +2480,12 @@ GHV<ModelT, SceneT>::specifyColor(size_t id, Eigen::MatrixXf & lookup, boost::sh
                     unsigned char bm = recog_model->cloud_RGB_[jj][2] * 255;
 
                     float LRefm, aRefm, bRefm;
-                    RGB2CIELAB (rm, gm, bm, LRefm, aRefm, bRefm); //this is called in parallel and initially fill values on static thing...
-                    LRefm /= 100.0f; aRefm /= 120.0f; bRefm /= 120.0f;    //normalized LAB components (0<L<1, -1<a<1, -1<b<1)
+                    ColorTransform::RGB2CIELAB (rm, gm, bm, LRefm, aRefm, bRefm);
+    //                LRefs /= 100.0f;
+                    LRefm = (LRefm - 50) / 50;
+                    aRefm /= 128.0f; //120.0f
+                    bRefm /= 128.0f;    //normalized LAB components (-1<L<1, -1<a<1, -1<b<1)
+
                     recog_model->cloud_LAB_[jj] = Eigen::Vector3f(LRefm, aRefm, bRefm);
                 }
             }
@@ -2672,8 +2680,11 @@ GHV<ModelT, SceneT>::addModel (size_t model_id, boost::shared_ptr<GHVRecognition
             unsigned char bm = (rgb) & 0x0000ff;
 
             float LRefm, aRefm, bRefm;
-            RGB2CIELAB (rm, gm, bm, LRefm, aRefm, bRefm); //this is called in parallel and initially fill values on static thing...
-            LRefm /= 100.0f; aRefm /= 120.0f; bRefm /= 120.0f;    //normalized LAB components (0<L<1, -1<a<1, -1<b<1);
+            ColorTransform::RGB2CIELAB (rm, gm, bm, LRefm, aRefm, bRefm);
+//                LRefs /= 100.0f;
+            LRefm = (LRefm - 50) / 50;
+            aRefm /= 128.0f; //120.0f
+            bRefm /= 128.0f;    //normalized LAB components (-1<L<1, -1<a<1, -1<b<1)
 
             float rmf,gmf,bmf;
             rmf = static_cast<float>(rm) / 255.f;
