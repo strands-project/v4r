@@ -34,6 +34,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <v4r/common/color_transforms.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/recognition/ghv.h>
 #include <functional>
@@ -1867,11 +1868,9 @@ template<typename ModelT, typename SceneT>
 void GHV<ModelT, SceneT>::verify()
 {
     {
-        pcl::StopWatch t;
-        t.reset();
+        pcl::ScopeTime t("Computing cues");
         if (!initialize ())
             return;
-        t_cues_ = static_cast<float>(t.getTimeSeconds());
     }
 
     if(param_.visualize_go_cues_)
@@ -1888,14 +1887,11 @@ void GHV<ModelT, SceneT>::verify()
     //compute number of visible points
     number_of_visible_points_ = 0;
     for(size_t i=0; i < recognition_models_.size(); i++)
-    {
         number_of_visible_points_ += recognition_models_[i]->visible_cloud_->points.size();
-    }
 
     //for each connected component, find the optimal solution
     {
-        pcl::StopWatch t;
-        t.reset();
+        pcl::ScopeTime t("Optimizing object hypotheses verification cost function");
 
         for (int c = 0; c < n_cc_; c++)
         {
@@ -1964,8 +1960,6 @@ void GHV<ModelT, SceneT>::verify()
                 mask_[cc_[c][i]] = subsolution[i];
             }
         }
-
-        t_opt_ = static_cast<float>(t.getTimeSeconds());
     }
 }
 
@@ -2331,7 +2325,7 @@ GHV<ModelT, SceneT>::specifyColor(size_t id, Eigen::MatrixXf & lookup, boost::sh
             std::vector<int> & nn_indices = recog_model->inlier_indices_[label_indices[0][i]];
             std::vector<float> & nn_distances = recog_model->inlier_distances_[label_indices[0][i]];
 
-            if(nn_indices.size() > 0)
+            if( !nn_indices.empty() )
             {
                 for (size_t k = 0; k < nn_distances.size (); k++)
                 {
@@ -3241,11 +3235,7 @@ GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::PointCloud<p
         if(mask_[i])
         {
             pcl::PointCloud<pcl::PointXYZ>::Ptr outlier_points(new pcl::PointCloud<pcl::PointXYZ>);
-            std::vector<int> outlier_indices;
-            outlier_indices.resize(recognition_models_[i]->outlier_indices_.size());
-            for(size_t o_idx=0; o_idx < outlier_indices.size(); o_idx++)
-                outlier_indices[o_idx] = static_cast<int>( recognition_models_[i]->outlier_indices_[o_idx]);
-            pcl::copyPointCloud(*(recognition_models_[i]->visible_cloud_), outlier_indices, *outlier_points);
+            pcl::copyPointCloud(*(recognition_models_[i]->visible_cloud_), recognition_models_[i]->outlier_indices_, *outlier_points);
             outliers_cloud.push_back(outlier_points);
         }
     }
@@ -3260,24 +3250,11 @@ GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::PointCloud<p
     {
         if(mask_[i])
         {
-            std::vector<int> outlier_indices;
-            pcl::PointCloud<pcl::PointXYZ>::Ptr outlier_points;
-            outlier_points.reset(new pcl::PointCloud<pcl::PointXYZ>);
-            {
-                outlier_indices.resize(recognition_models_[i]->color_outliers_indices_.size());
-                for(size_t o_idx=0; o_idx < outlier_indices.size(); o_idx++)
-                    outlier_indices[o_idx] = recognition_models_[i]->color_outliers_indices_[o_idx];
-                pcl::copyPointCloud(*(recognition_models_[i]->visible_cloud_), outlier_indices, *outlier_points);
-                outliers_cloud_color.push_back(outlier_points);
-            }
-
-            {
-                outlier_indices.resize(recognition_models_[i]->outliers_3d_indices_.size());
-                for(size_t o_idx=0; o_idx < outlier_indices.size(); o_idx++)
-                    outlier_indices[o_idx] = recognition_models_[i]->outliers_3d_indices_[o_idx];
-                pcl::copyPointCloud(*(recognition_models_[i]->visible_cloud_), outlier_indices, *outlier_points);
-                outliers_cloud_3d.push_back(outlier_points);
-            }
+            pcl::PointCloud<pcl::PointXYZ>::Ptr outlier_points (new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::copyPointCloud(*(recognition_models_[i]->visible_cloud_), recognition_models_[i]->color_outliers_indices_, *outlier_points);
+            outliers_cloud_color.push_back(outlier_points);
+            pcl::copyPointCloud(*(recognition_models_[i]->visible_cloud_), recognition_models_[i]->outliers_3d_indices_, *outlier_points);
+            outliers_cloud_3d.push_back(outlier_points);
         }
     }
 }

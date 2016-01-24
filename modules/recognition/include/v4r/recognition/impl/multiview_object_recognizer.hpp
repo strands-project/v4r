@@ -480,7 +480,6 @@ MultiviewRecognizer<PointT>::recognize ()
        hv_algorithm_3d = boost::dynamic_pointer_cast<GO3D<PointT, PointT>> (hv_algorithm_);
 
     if ( hv_algorithm_3d ) {
-
         NguyenNoiseModel<PointT> nm (nm_param_);
         nm.setInputCloud(v.scene_);
         nm.setInputNormals( v.scene_normals_);
