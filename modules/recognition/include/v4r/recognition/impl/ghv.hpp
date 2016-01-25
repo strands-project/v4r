@@ -737,7 +737,6 @@ GHV<ModelT, SceneT>::initialize()
             pcl::for_each_type<FieldListS> (
                         pcl::CopyIfFieldExists<typename CloudS::PointType, float> (scene_cloud_downsampled_->points[i],
                                                                                    "rgb", exists_s, rgb_s));
-
             if (exists_s)
             {
                 uint32_t rgb = *reinterpret_cast<int*> (&rgb_s);
@@ -769,10 +768,10 @@ GHV<ModelT, SceneT>::initialize()
     {
         valid_model_.resize(complete_models_.size ());
         {
-        pcl::ScopeTime ("Computing cues");
+        pcl::ScopeTime t("Computing cues");
         recognition_models_.resize (complete_models_.size ());
 
-        #pragma omp parallel for schedule(dynamic, 1) num_threads(std::min(max_threads_, omp_get_num_procs()))
+        #pragma omp parallel for schedule(dynamic)
         for (size_t i = 0; i < complete_models_.size (); i++)
         {
             recognition_models_[i].reset (new GHVRecognitionModel<ModelT> ());
@@ -797,7 +796,7 @@ GHV<ModelT, SceneT>::initialize()
 
         //compute the bounding boxes for the models to create an occupancy grid
         {
-            pcl::ScopeTime tcues ("complete_cloud_occupancy_by_RM_");
+            pcl::ScopeTime t_cloud_occupancy ("complete_cloud_occupancy_by_RM_");
             ModelT min_pt_all, max_pt_all;
             min_pt_all.x = min_pt_all.y = min_pt_all.z = std::numeric_limits<float>::max ();
             max_pt_all.x = max_pt_all.y = max_pt_all.z = std::numeric_limits<float>::min ();
@@ -869,7 +868,7 @@ GHV<ModelT, SceneT>::initialize()
     }
 
     {
-        pcl::ScopeTime tcues("Compute clutter cue at once");
+        pcl::ScopeTime t_clutter("Compute clutter cue at once");
         computeClutterCueAtOnce();
     }
 
@@ -1868,7 +1867,7 @@ template<typename ModelT, typename SceneT>
 void GHV<ModelT, SceneT>::verify()
 {
     {
-        pcl::ScopeTime t("Computing cues");
+        pcl::ScopeTime t_init("initialization");
         if (!initialize ())
             return;
     }
@@ -2626,9 +2625,8 @@ GHV<ModelT, SceneT>::addModel (size_t model_id, boost::shared_ptr<GHVRecognition
     if( extra_weights_.size() != 0 && (extra_weights_.size() == object_models_size) )
         extra_weight = extra_weights_[model_id];
 
-    if( object_ids_.size() == complete_models_.size() ) {
+    if( object_ids_.size() == complete_models_.size() )
         recog_model->id_s_ = object_ids_[model_id];
-    }
 
     if( ! handlingNormals(recog_model, model_id, complete_models_.size() ) )
     {
@@ -3108,7 +3106,7 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
     std::vector<std::vector<int> > nn_indices_all_points(explained_points_vec.size());
     std::vector<std::vector<float> > nn_distances_all_points(explained_points_vec.size());
 
-#pragma omp parallel for schedule(dynamic, 1) num_threads(std::min(max_threads_, omp_get_num_procs()))
+    #pragma omp parallel for schedule(dynamic)
     for(size_t k=0; k < explained_points_vec.size(); k++)
     {
         octree_scene_downsampled_->radiusSearch (scene_cloud_downsampled_->points[explained_points_vec[k]],
@@ -3118,7 +3116,7 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
 
 //    const float min_clutter_dist = std::pow(param_.inliers_threshold_ * 0.f, 2.f); // ??? why *0.0f? --> always 0 then
 
-#pragma omp parallel for schedule(dynamic, 1) num_threads(std::min(max_threads_, omp_get_num_procs()))
+    #pragma omp parallel for schedule(dynamic)
     for (size_t j = 0; j < recognition_models_.size (); j++)
     {
         std::vector< std::pair<int, float> > unexplained_points_per_model;

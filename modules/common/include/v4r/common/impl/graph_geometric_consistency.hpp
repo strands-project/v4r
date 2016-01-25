@@ -604,7 +604,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                 tom.find_cliques (connected_graph, model_scene_corrs_.size ());
                 if(tom.getMaxTimeReached())
                 {
-                    PCL_WARN("Max time reached during clique computation %f!!\n", param_.max_time_allowed_cliques_comptutation_);
+                    std::cout << "Max time ( " << std::setprecision(2) << param_.max_time_allowed_cliques_comptutation_ << " ms) reached during clique computation" << std::endl;
                     cliques_computation_possible_[c] = false;
                     c--;
                     analyzed_ccs--;
@@ -827,8 +827,8 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
         else
         {
             //use iterative gc for simple cases with lots of correspondences...
-            PCL_WARN("Problem is too hard to solve it using cliques...\n");
-            std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
+            std::cout << "Correspondence grouping is too hard to solve it using cliques..." << std::endl;
+//            std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
 
             std::vector<size_t> consensus_set;
             consensus_set.resize(model_scene_corrs_.size ());
@@ -1101,8 +1101,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
     transformations.clear ();
     if (!this->initCompute ())
     {
-        PCL_ERROR(
-                    "[v4r::GraphGeometricConsistencyGrouping::recognize()] Error! Model cloud or Scene cloud not set, please set them before calling again this function.\n");
+        PCL_ERROR("[v4r::GraphGeometricConsistencyGrouping::recognize()] Error! Model cloud or Scene cloud not set, please set them before calling again this function.\n");
         return (false);
     }
 

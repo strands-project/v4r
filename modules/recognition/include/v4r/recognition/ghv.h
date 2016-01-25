@@ -585,8 +585,6 @@ namespace v4r
 
       double getCurvWeight(double p_curvature) const;
 
-      int max_threads_;
-
       std::vector<std::string> ply_paths_;
       std::vector<vtkSmartPointer <vtkTransform> > poses_ply_;
 
@@ -602,17 +600,13 @@ namespace v4r
 
     public:
 
-      GHV (const Parameter &p=Parameter()) : HypothesisVerification<ModelT, SceneT> (p)
+      GHV (const Parameter &p=Parameter()) : HypothesisVerification<ModelT, SceneT> (p) , param_(p)
       {
-        param_ = p;
         initial_temp_ = 1000;
         requires_normals_ = false;
-
         min_contribution_ = 0;
         LS_short_circuit_ = false;
         visualize_accepted_ = false;
-
-        max_threads_ = 1;
         scene_and_normals_set_from_outside_ = false;
       }
 
@@ -639,11 +633,6 @@ namespace v4r
       {
           ply_paths_ = ply_paths_for_go;
           poses_ply_ = poses_ply;
-      }
-
-      void setMaxThreads(int t)
-      {
-          max_threads_ = t;
       }
 
       void setVisualizeAccepted(bool b)
