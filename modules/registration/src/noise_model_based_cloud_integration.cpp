@@ -39,72 +39,76 @@ template<typename PointT>
 void
 NMBasedCloudIntegration<PointT>::collectInfo ()
 {
-    for(size_t i=0; i < input_clouds_.size(); i++)
+  size_t total_point_count = 0;
+  for(size_t i = 0; i < input_clouds_.size(); i++)
+    total_point_count += indices_.empty() ? input_clouds_[i]->size() : indices_[i].size();
+  big_cloud_info_.resize(total_point_count);
+
+  size_t point_count = 0;
+  for(size_t i=0; i < input_clouds_.size(); i++)
+  {
+    pcl::PointCloud<PointT> cloud_aligned;
+    pcl::transformPointCloud(*input_clouds_[i], cloud_aligned, transformations_to_global_[i]);
+    pcl::PointCloud<pcl::Normal> normals_aligned;
+    transformNormals(*input_normals_[i], normals_aligned, transformations_to_global_[i]);
+
+    size_t kept_new_pts = 0;
+
+    if (indices_.empty())
     {
-        pcl::PointCloud<PointT> cloud_aligned;
-        pcl::transformPointCloud(*input_clouds_[i], cloud_aligned, transformations_to_global_[i]);
-        pcl::PointCloud<pcl::Normal> normals_aligned;
-        transformNormals(*input_normals_[i], normals_aligned, transformations_to_global_[i]);
+      for(size_t jj=0; jj<cloud_aligned.points.size(); jj++)
+      {
+        if ( !pcl::isFinite(cloud_aligned.points[jj]))
+          continue;
 
-        size_t existing_pts = big_cloud_info_.size();
-        size_t kept_new_pts = 0;
-
-        if (indices_.empty())
-        {
-            big_cloud_info_.resize( existing_pts + cloud_aligned.points.size());
-
-            for(size_t jj=0; jj<cloud_aligned.points.size(); jj++)
-            {
-                if ( !pcl::isFinite(cloud_aligned.points[jj]))
-                    continue;
-
-                PointInfo &pt = big_cloud_info_ [ existing_pts + kept_new_pts ];
-                pt.pt = cloud_aligned.points[jj];
-                pt.normal = normals_aligned.points[jj];
-                pt.sigma_lateral = pt_properties_[i][jj][0];
-                pt.sigma_axial = pt_properties_[i][jj][1];
-                pt.distance_to_depth_discontinuity = pt_properties_[i][jj][2];
-                kept_new_pts++;
-            }
-        }
-        else
-        {
-            big_cloud_info_.resize( existing_pts + indices_[i].size());
-
-            for(const auto idx : indices_[i])
-            {
-                if(!pcl::isFinite(cloud_aligned.points[idx]))
-                    continue;
-
-                PointInfo &pt = big_cloud_info_ [ existing_pts + kept_new_pts ];
-                pt.pt = cloud_aligned.points[idx];
-                pt.normal = normals_aligned.points[ idx ];
-                pt.sigma_lateral = pt_properties_[i][idx][0];
-                pt.sigma_axial = pt_properties_[i][idx][1];
-                pt.distance_to_depth_discontinuity = pt_properties_[i][idx][2];
-                kept_new_pts++;
-            }
-        }
-        big_cloud_info_.resize( existing_pts + kept_new_pts);
-
-        // compute and store remaining information
-        for(size_t jj=0; jj<kept_new_pts; jj++)
-        {
-            PointInfo &pt = big_cloud_info_ [ existing_pts + jj ];
-            pt.origin = i;
-
-            Eigen::Matrix3f sigma = Eigen::Matrix3f::Zero(), sigma_aligned = Eigen::Matrix3f::Zero();
-            sigma(0,0) = pt.sigma_lateral;
-            sigma(1,1) = pt.sigma_lateral;
-            sigma(2,2) = pt.sigma_axial;
-
-            const Eigen::Matrix4f &tf = transformations_to_global_[ i ];
-            Eigen::Matrix3f rotation = tf.block<3,3>(0,0); // or inverse?
-            sigma_aligned = rotation * sigma * rotation.transpose();
-
-            pt.probability = 1/ sqrt(2 * M_PI * sigma_aligned.determinant());
-        }
+        PointInfo &pt = big_cloud_info_[point_count + kept_new_pts];
+        pt.pt = cloud_aligned.points[jj];
+        pt.normal = normals_aligned.points[jj];
+        pt.sigma_lateral = pt_properties_[i][jj][0];
+        pt.sigma_axial = pt_properties_[i][jj][1];
+        pt.distance_to_depth_discontinuity = pt_properties_[i][jj][2];
+        kept_new_pts++;
+      }
     }
+    else
+    {
+      for(const auto idx : indices_[i])
+      {
+        if(!pcl::isFinite(cloud_aligned.points[idx]))
+          continue;
+
+        PointInfo &pt = big_cloud_info_[point_count + kept_new_pts];
+        pt.pt = cloud_aligned.points[idx];
+        pt.normal = normals_aligned.points[ idx ];
+        pt.sigma_lateral = pt_properties_[i][idx][0];
+        pt.sigma_axial = pt_properties_[i][idx][1];
+        pt.distance_to_depth_discontinuity = pt_properties_[i][idx][2];
+        kept_new_pts++;
+      }
+    }
+
+    // compute and store remaining information
+    for(size_t jj=0; jj<kept_new_pts; jj++)
+    {
+      PointInfo &pt = big_cloud_info_ [point_count + jj];
+      pt.origin = i;
+
+      Eigen::Matrix3f sigma = Eigen::Matrix3f::Zero(), sigma_aligned = Eigen::Matrix3f::Zero();
+      sigma(0,0) = pt.sigma_lateral;
+      sigma(1,1) = pt.sigma_lateral;
+      sigma(2,2) = pt.sigma_axial;
+
+      const Eigen::Matrix4f &tf = transformations_to_global_[ i ];
+      Eigen::Matrix3f rotation = tf.block<3,3>(0,0); // or inverse?
+      sigma_aligned = rotation * sigma * rotation.transpose();
+
+      pt.probability = 1/ sqrt(2 * M_PI * sigma_aligned.determinant());
+    }
+
+    point_count += kept_new_pts;
+  }
+
+  big_cloud_info_.resize(point_count);
 }
 
 template<typename PointT>
