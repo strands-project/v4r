@@ -210,18 +210,20 @@ public:
         if (do_sift)
         {
 #ifdef HAVE_SIFTGPU
-        static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "1", "-pack"};
-        char * argvv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};
+//        static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "1", "-pack"};
+//        char * argvv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};
 
-        int argcc = sizeof(argvv) / sizeof(char*);
-        sift_.reset( new SiftGPU () );
-        sift_->ParseParam (argcc, argvv);
+//        int argcc = sizeof(argvv) / sizeof(char*);
+//        sift_.reset( new SiftGPU () );
+//        sift_->ParseParam (argcc, argvv);
 
-        //create an OpenGL context for computation
-        if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
-          throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
+//        //create an OpenGL context for computation
+//        if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
+//          throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
 
-      boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator (new SIFTLocalEstimation<PointT>(sift_));
+//        std::cout << "SIFT-GPU initialized on thread " << omp_get_thread_num() << std::endl;
+//        boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator (new SIFTLocalEstimation<PointT>(sift_));
+        boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator (new SIFTLocalEstimation<PointT>());
       boost::shared_ptr < LocalEstimator<PointT> > cast_estimator = boost::dynamic_pointer_cast<SIFTLocalEstimation<PointT > > (estimator);
 #else
       boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT> > estimator (new OpenCVSIFTLocalEstimation<PointT >);
@@ -334,7 +336,7 @@ public:
                     mv_r_->visualize();
 
                 for(size_t m_id=0; m_id<verified_models.size(); m_id++)
-                    LOG(INFO) << "******" << verified_models[m_id]->id_ << std::endl <<  transforms_verified[m_id] << std::endl;
+                    std::cout << "******" << verified_models[m_id]->id_ << std::endl <<  transforms_verified[m_id] << std::endl;
             }
             mv_r_->cleanUp(); // delete all stored information from last sequences
         }
