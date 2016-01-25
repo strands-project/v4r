@@ -70,7 +70,7 @@ namespace v4r
 
         size_t getFeatureType() const
         {
-            return SIFT;
+            return SIFT_OPENCV;
         }
 
       };

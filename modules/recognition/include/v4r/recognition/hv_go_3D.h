@@ -34,7 +34,6 @@ namespace v4r
     {
     public:
          using GHV<ModelT, SceneT>::Parameter::radius_neighborhood_clutter_;
-         using GHV<ModelT, SceneT>::Parameter::radius_normals_;
          using GHV<ModelT, SceneT>::Parameter::duplicy_weight_test_;
          using GHV<ModelT, SceneT>::Parameter::duplicity_curvature_max_;
          using GHV<ModelT, SceneT>::Parameter::ignore_color_even_if_exists_;

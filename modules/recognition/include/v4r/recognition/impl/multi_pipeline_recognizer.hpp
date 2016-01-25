@@ -1,6 +1,7 @@
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <v4r/common/normals.h>
+#include <v4r/features/types.h>
 #include <omp.h>
 #define NUM_THREADS 4
 namespace v4r
@@ -18,7 +19,6 @@ MultiRecognitionPipeline<PointT>::initialize(bool force_retrain)
         for(size_t i=0; i < recognizers_.size(); i++)
             recognizers_[i]->getDataSource()->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
     }
-
     return true;
 }
 
@@ -32,6 +32,93 @@ MultiRecognitionPipeline<PointT>::getPoseRefinement(
     transforms_ = transforms;
     poseRefinement();
     transforms = transforms_; //is this neccessary?
+}
+
+template<typename PointT>
+void
+MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(Recognizer<PointT> &rec)
+{
+
+    std::map<std::string, ObjectHypothesis<PointT> > oh_m;
+    std::vector<ModelTPtr> models;
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms;
+    pcl::PointCloud<PointT> scene_kps;
+    pcl::PointCloud<pcl::Normal> scene_kp_normals;
+
+    rec.setInputCloud(scene_);
+    if(rec.requiresSegmentation()) // for global recognizers - this might not work in the current state!!
+    {
+        if( rec.acceptsNormals() )
+            rec.setSceneNormals(scene_normals_);
+
+        for(size_t c=0; c < segmentation_indices_.size(); c++)
+        {
+            rec.recognize();
+            models = rec.getModels ();
+            transforms = rec.getTransforms ();
+        }
+    }
+    else    // for local recognizers
+    {
+        rec.recognize();
+
+        if(!rec.getSaveHypothesesParam())
+        {
+            models = rec.getModels ();
+            transforms = rec.getTransforms ();
+        }
+        else
+        {
+            rec.getSavedHypotheses(oh_m);
+
+            typename pcl::PointCloud<PointT>::Ptr kp_tmp = rec.getKeypointCloud();
+            scene_kps = *kp_tmp;
+
+            if(scene_normals_) {
+                std::vector<int> kp_indices;
+                rec.getKeypointIndices(kp_indices);
+                pcl::copyPointCloud(*scene_normals_, kp_indices, scene_kp_normals);
+            }
+        }
+    }
+
+    mergeStuff(oh_m, models, transforms, scene_kps, scene_kp_normals);
+}
+
+template<typename PointT>
+void
+MultiRecognitionPipeline<PointT>::mergeStuff( std::map<std::string, ObjectHypothesis<PointT> > &oh_m,
+                                              const std::vector<ModelTPtr> &models,
+                                              const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms,
+                                              const pcl::PointCloud<PointT> &scene_kps,
+                                              const pcl::PointCloud<pcl::Normal> &scene_kp_normals)
+{
+    omp_set_lock(&rec_lock_);
+    models_.insert(models_.end(), models.begin(), models.end());
+    transforms_.insert(transforms_.end(), transforms.begin(), transforms.end());
+//            input_icp_indices.insert(input_icp_indices.end(), segmentation_indices_[c].indices.begin(), segmentation_indices_[c].indices.end());
+
+    for (auto &oh : oh_m) {
+        for (auto &corr : oh.second.model_scene_corresp_) {  // add appropriate offset to correspondence index of the scene cloud
+            corr.index_match += scene_keypoints_->points.size();
+        }
+
+        auto it_mp_oh = obj_hypotheses_.find(oh.first);
+        if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
+            obj_hypotheses_.insert(oh);//std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
+        else
+            it_mp_oh->second.model_scene_corresp_.insert(  it_mp_oh->second.model_scene_corresp_.  end(),
+                                                                   oh.second.model_scene_corresp_.begin(),
+                                                                   oh.second.model_scene_corresp_.  end() );
+    }
+
+    *scene_keypoints_ += scene_kps;
+
+    if(scene_normals_)
+        *scene_kp_normals_ += scene_kp_normals;
+
+
+    omp_unset_lock(&rec_lock_);
 }
 
 template<typename PointT>
@@ -63,82 +150,28 @@ MultiRecognitionPipeline<PointT>::recognize()
         computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
 
-//#pragma omp parallel for schedule(dynamic)
+    std::vector<typename boost::shared_ptr<Recognizer<PointT> > > recognizer_without_siftgpu;
+    typename boost::shared_ptr<Recognizer<PointT> > rec_siftgpu;
     for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
     {
-        recognizers_[r_id]->setInputCloud(scene_);
-
-
-        if(recognizers_[r_id]->requiresSegmentation()) // for global recognizers - this might not work in the current state!!
-        {
-            if( recognizers_[r_id]->acceptsNormals() )
-                recognizers_[r_id]->setSceneNormals(scene_normals_);
-
-            for(size_t c=0; c < segmentation_indices_.size(); c++)
-            {
-                recognizers_[r_id]->recognize();
-                const std::vector<ModelTPtr> models_tmp = recognizers_[r_id]->getModels ();
-                const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp = recognizers_[r_id]->getTransforms ();
-
-//#pragma omp critical
-                {
-                    models_.insert(models_.end(), models_tmp.begin(), models_tmp.end());
-                    transforms_.insert(transforms_.end(), transforms_tmp.begin(), transforms_tmp.end());
-                    input_icp_indices.insert(input_icp_indices.end(), segmentation_indices_[c].indices.begin(), segmentation_indices_[c].indices.end());
-                }
-            }
-        }
-        else    // for local recognizers
-        {
-            recognizers_[r_id]->recognize();
-
-            if(!recognizers_[r_id]->getSaveHypothesesParam())
-            {
-                const std::vector<ModelTPtr> models = recognizers_[r_id]->getModels ();
-                const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms = recognizers_[r_id]->getTransforms ();
-
-//#pragma omp critical
-                {
-                    models_.insert(models_.end(), models.begin(), models.end());
-                    transforms_.insert(transforms_.end(), transforms.begin(), transforms.end());
-                }
-            }
-            else
-            {
-                typename std::map<std::string, ObjectHypothesis<PointT> > oh_tmp;
-                recognizers_[r_id]->getSavedHypotheses(oh_tmp);
-
-                std::vector<int> kp_indices;
-                typename pcl::PointCloud<PointT>::Ptr kp_tmp = recognizers_[r_id]->getKeypointCloud();
-                recognizers_[r_id]->getKeypointIndices(kp_indices);
-
-//#pragma omp critical
-                {
-                    for (auto &oh : oh_tmp) {
-                        for (auto &corr : oh.second.model_scene_corresp_) {  // add appropriate offset to correspondence index of the scene cloud
-                            corr.index_match += scene_keypoints_->points.size();
-                        }
-
-                        auto it_mp_oh = obj_hypotheses_.find(oh.first);
-                        if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
-                            obj_hypotheses_.insert(oh);//std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
-                        else
-                            it_mp_oh->second.model_scene_corresp_.insert(  it_mp_oh->second.model_scene_corresp_.  end(),
-                                                                                   oh.second.model_scene_corresp_.begin(),
-                                                                                   oh.second.model_scene_corresp_.  end() );
-                    }
-                *scene_keypoints_ += *kp_tmp;
-
-                if(scene_normals_) {
-                    pcl::PointCloud<pcl::Normal> kp_normals;
-                    pcl::copyPointCloud(*scene_normals_, kp_indices, kp_normals);
-                    *scene_kp_normals_ += kp_normals;
-                }
-
-                }
-            }
-        }
+        if(recognizers_[r_id]->getFeatureType() != SIFT_GPU)
+            recognizer_without_siftgpu.push_back( recognizers_[r_id]);
+        else
+            rec_siftgpu = recognizers_[r_id];
     }
+
+    omp_init_lock(&rec_lock_);
+#pragma omp parallel
+    {
+#pragma omp master  // SIFT-GPU needs to be exexuted in master thread as SIFT-GPU creates an OpenGL context which never gets destroyed really and crashed if used from another thread
+        callIndiviualRecognizer(*rec_siftgpu);
+
+#pragma omp for schedule(dynamic)
+    for(size_t r_id=0; r_id < recognizer_without_siftgpu.size(); r_id++)
+        callIndiviualRecognizer(*recognizer_without_siftgpu[r_id]);
+
+    }
+    omp_destroy_lock(&rec_lock_);
 
     compress();
 

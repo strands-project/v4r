@@ -184,6 +184,8 @@ public:
         pose_ = Eigen::Matrix4f::Identity();
     }
 
+    MultiviewRecognizer(int argc, char ** argv);
+
     /**
      * @brief sets the underlying single-view recognition
      * @param single-view recognizer
@@ -193,10 +195,14 @@ public:
         rr_ = rec;
     }
 
-
     std::string get_scene_name() const
     {
         return scene_name_;
+    }
+
+    void set_scene_name(const std::string &name)
+    {
+        scene_name_ = name;
     }
 
 #ifdef HAVE_SIFTGPU
@@ -246,6 +252,7 @@ public:
         transforms_.clear();
         planes_.clear();
         views_.clear();
+        id_ = 0;
     }
 
     void recognize();

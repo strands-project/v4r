@@ -27,6 +27,7 @@
 #include "recognizer.h"
 #include "local_recognizer.h"
 #include <v4r/common/graph_geometric_consistency.h>
+#include <omp.h>
 
 namespace v4r
 {
@@ -73,6 +74,7 @@ namespace v4r
         typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
         std::vector<pcl::PointIndices> segmentation_indices_;
+        omp_lock_t rec_lock_;
 
         typename boost::shared_ptr<GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;  /// @brief algorithm for correspondence grouping
         typename pcl::PointCloud<PointT>::Ptr scene_keypoints_; /// @brief keypoints of the scene
@@ -115,11 +117,21 @@ namespace v4r
             }
         }
 
+        void
+        callIndiviualRecognizer(Recognizer<PointT> &rec);
+
+        void mergeStuff(std::map<std::string, ObjectHypothesis<PointT> > &oh_m,
+                         const std::vector<ModelTPtr> &models,
+                         const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms,
+                         const pcl::PointCloud<PointT> &scene_kps,
+                         const pcl::PointCloud<pcl::Normal> &scene_kp_normals);
       public:
         MultiRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
         {
             param_ = p;
         }
+
+        MultiRecognitionPipeline(int argc, char **argv);
 
         void setSaveHypotheses(bool set_save_hypotheses)
         {

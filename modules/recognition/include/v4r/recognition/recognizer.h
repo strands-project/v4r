@@ -32,6 +32,7 @@
 #ifndef V4R_RECOGNIZER_H_
 #define V4R_RECOGNIZER_H_
 
+#include <v4r_config.h>
 #include <v4r/core/macros.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
@@ -272,6 +273,12 @@ namespace v4r
         setModelsDir (const std::string & dir)
         {
           models_dir_ = dir;
+        }
+
+        std::string
+        getModelsDir() const
+        {
+            return models_dir_;
         }
 
 

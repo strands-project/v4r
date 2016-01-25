@@ -26,6 +26,8 @@
 #include <v4r/core/macros.h>
 #include <vector>
 
+#include <omp.h>
+
 namespace v4r
 {
 
@@ -36,8 +38,77 @@ private:
     static std::vector<float> sXYZ_LUT;
 
 public:
+    /**
+     * @brief Converts RGB color in LAB color space defined by CIE
+     * @param R (0...255)
+     * @param G (0...255)
+     * @param B (0...255)
+     * @param L (-50...50)
+     * @param A (0...128)
+     * @param B2 (0...128)
+     */
     static void
     RGB2CIELAB (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2);
+
+    /**
+     * @brief Converts RGB color into normalized LAB color space
+     * @param R (0...255)
+     * @param G (0...255)
+     * @param B (0...255)
+     * @param L (-1...1)
+     * @param A (-1...1)
+     * @param B2 (-1...1)
+     */
+    static void
+    RGB2CIELAB_normalized (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2);
+};
+
+/**
+ * @brief The ColorTransformOMP class
+ * transforms from one color space to another
+ * it can be called from multiple threads (because it has an initialization lock for creating the Look-Up table)
+ */
+class V4R_EXPORTS ColorTransformOMP
+{
+private:
+    std::vector<float> sRGB_LUT;
+    std::vector<float> sXYZ_LUT;
+    omp_lock_t initialization_lock_;
+
+    void initializeLUT();
+
+public:
+    ColorTransformOMP() {
+        omp_init_lock(&initialization_lock_);
+    }
+
+    ~ColorTransformOMP() {
+        omp_destroy_lock(&initialization_lock_);
+    }
+
+    /**
+     * @brief Converts RGB color in LAB color space defined by CIE
+     * @param R (0...255)
+     * @param G (0...255)
+     * @param B (0...255)
+     * @param L (-50...50)
+     * @param A (0...128)
+     * @param B2 (0...128)
+     */
+    void
+    RGB2CIELAB (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2);
+
+    /**
+     * @brief Converts RGB color into normalized LAB color space
+     * @param R (0...255)
+     * @param G (0...255)
+     * @param B (0...255)
+     * @param L (-1...1)
+     * @param A (-1...1)
+     * @param B2 (-1...1)
+     */
+    void
+    RGB2CIELAB_normalized (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2);
 };
 }
 #endif

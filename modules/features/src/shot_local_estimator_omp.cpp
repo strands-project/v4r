@@ -87,7 +87,7 @@ SHOTLocalEstimationOMP<PointT>::estimate (const pcl::PointCloud<PointT> & in, pc
 
   pcl::PointCloud<pcl::SHOT352>::Ptr shots (new pcl::PointCloud<pcl::SHOT352>);
   SHOTEstimator shot_estimate;
-  shot_estimate.setNumberOfThreads (8);
+  shot_estimate.setNumberOfThreads (0);
   shot_estimate.setSearchMethod (tree);
   shot_estimate.setInputCloud (keypoints.makeShared());
   shot_estimate.setSearchSurface(cloud_filtered);

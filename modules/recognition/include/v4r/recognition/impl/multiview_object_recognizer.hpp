@@ -36,6 +36,8 @@
 #include <pcl/keypoints/sift_keypoint.h>
 #include <pcl/registration/icp.h>
 #include <pcl/search/kdtree.h>
+#include <omp.h>
+#include <boost/graph/kruskal_min_spanning_tree.hpp>
 
 #include <v4r/common/normals.h>
 #include <v4r/common/pcl_visualization_utils.h>
@@ -51,9 +53,6 @@
 #else
 #include <v4r/features/opencv_sift_local_estimator.h>
 #endif
-
-#include <omp.h>
-#include <boost/graph/kruskal_min_spanning_tree.hpp>
 
 namespace v4r
 {
@@ -215,7 +214,8 @@ MultiviewRecognizer<PointT>::recognize ()
             std::cout << "keypoints: " << v.sift_kp_indices_.size() << std::endl;
 
             // In addition to matching views, we can use the computed SIFT features for recognition
-            rr_->setFeatAndKeypoints(v.sift_signatures_, v.sift_kp_indices_, SIFT);
+            rr_->setFeatAndKeypoints(v.sift_signatures_, v.sift_kp_indices_, SIFT_GPU);
+            rr_->setFeatAndKeypoints(v.sift_signatures_, v.sift_kp_indices_, SIFT_OPENCV);
         }
 
 

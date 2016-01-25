@@ -24,6 +24,7 @@
 #ifndef V4R_GHV_H_
 #define V4R_GHV_H_
 
+#include <v4r/common/color_transforms.h>
 #include <pcl/common/common.h>
 #include <pcl/pcl_macros.h>
 #include "hypotheses_verification.h"
@@ -72,7 +73,7 @@ namespace v4r
           double color_sigma_ab_; /// @brief allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
           double regularizer_; /// @brief represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.
           double radius_neighborhood_clutter_; /// @brief defines the maximum distance between an <i>explained</i> scene point <b>p</b> and other unexplained scene points such that they influence the clutter term associated with <b>p</b>
-          double radius_normals_;
+          int normal_method_; /// @brief method used for computing the normals of the downsampled scene point cloud (defined by the V4R Library)
           double duplicy_weight_test_;
           double duplicity_curvature_max_;
           bool ignore_color_even_if_exists_;
@@ -116,7 +117,7 @@ namespace v4r
                   double color_sigma_ab = 0.6f,
                   double regularizer = 1.f, // 3
                   double radius_neighborhood_clutter = 0.03f,
-                  double radius_normals = 0.02f, // 0.01f
+                  int normal_method = 2,
                   double duplicy_weight_test = 1.f,
                   double duplicity_curvature_max = 0.03f,
                   bool ignore_color_even_if_exists = false,
@@ -157,7 +158,7 @@ namespace v4r
                 color_sigma_ab_ (color_sigma_ab),
                 regularizer_ (regularizer),
                 radius_neighborhood_clutter_ (radius_neighborhood_clutter),
-                radius_normals_ (radius_normals),
+                normal_method_ (normal_method),
                 duplicy_weight_test_ (duplicy_weight_test),
                 duplicity_curvature_max_ (duplicity_curvature_max),
                 ignore_color_even_if_exists_ (ignore_color_even_if_exists),
@@ -310,14 +311,14 @@ namespace v4r
 
       void computeClutterCueAtOnce ();
 
-      virtual bool
-      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, size_t i, size_t object_models_size);
+      bool
+      handlingNormals (GHVRecognitionModel<ModelT> & recog_model, size_t i, size_t object_models_size);
 
-      virtual bool
-      addModel (size_t i, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
+      bool
+      addModel (size_t i, GHVRecognitionModel<ModelT> &recog_model);
 
       //Performs smooth segmentation of the scene cloud and compute the model cues
-      virtual bool
+      bool
       initialize ();
 
       pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
@@ -363,6 +364,8 @@ namespace v4r
       //mahalanobis stuff
       Eigen::MatrixXf inv_covariance_;
       Eigen::VectorXf mean_;
+
+      ColorTransformOMP color_transf_omp_;
 
       void
       setPreviousBadInfo (double f)
@@ -571,7 +574,8 @@ namespace v4r
 
       std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> models_smooth_faces_;
 
-      void specifyColor(size_t i, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
+      void
+      specifyColor(size_t i, Eigen::MatrixXf &lookup, GHVRecognitionModel<ModelT> &recog_model);
 
       std::vector<float> scene_curvature_;
       std::vector<Eigen::Vector3f> scene_LAB_values_;
@@ -597,6 +601,9 @@ namespace v4r
           float product = (x - mu).transpose() * inv_cov * (x - mu);
           return sqrt(product);
       }
+
+      void segmentScene();
+      void convertColor();
 
     public:
 

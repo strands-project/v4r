@@ -21,6 +21,9 @@
  *
  ******************************************************************************/
 
+#ifndef V4R_COMPUTE_NORMALS__
+#define V4R_COMPUTE_NORMALS__
+
 #include <v4r/common/ZAdaptiveNormals.h>
 #include <v4r/common/normal_estimator.h>
 #include <v4r/common/convertCloud.h>
@@ -110,3 +113,4 @@ inline void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &clo
     }
 }
 }
+#endif
