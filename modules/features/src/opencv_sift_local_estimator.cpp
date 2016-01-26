@@ -1,3 +1,5 @@
+#include <v4r_config.h>
+#ifndef HAVE_SIFTGPU
 #include <v4r/features/opencv_sift_local_estimator.h>
 
 namespace v4r
@@ -65,6 +67,7 @@ OpenCVSIFTLocalEstimation<PointT>::estimate (const pcl::PointCloud<PointT> & in,
   return true;
 }
 
-
 template class V4R_EXPORTS OpenCVSIFTLocalEstimation<pcl::PointXYZRGB>;
 }
+
+#endif
