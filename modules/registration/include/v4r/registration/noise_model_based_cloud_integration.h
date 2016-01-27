@@ -59,13 +59,13 @@ public:
         bool reason_about_points_; /// @brief if true, projects each point into each viewpoint and checks for occlusion or if it can be explained by the points in the other viewpoints (this should filter lonely points but is computational expensive) --> FILTER NOT IMPLEMENTED SO FAR!!
         float edge_radius_px_; /// @brief points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed
         Parameter(
-                int min_points_per_voxel = 0,
-                float octree_resolution =  0.005f,
+                int min_points_per_voxel = 1,
+                float octree_resolution =  0.003f,
                 float focal_length = 525.f,
                 bool average = false,
                 float threshold_explained = 0.02f,
                 bool reason_about_points = false,
-                float edge_radius_px = 2.f) :
+                float edge_radius_px = 3.f) :
             min_points_per_voxel_(min_points_per_voxel),
             octree_resolution_(octree_resolution),
             focal_length_ (focal_length),
