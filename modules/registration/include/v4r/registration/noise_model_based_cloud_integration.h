@@ -59,13 +59,13 @@ public:
         bool reason_about_points_; /// @brief if true, projects each point into each viewpoint and checks for occlusion or if it can be explained by the points in the other viewpoints (this should filter lonely points but is computational expensive) --> FILTER NOT IMPLEMENTED SO FAR!!
         float edge_radius_px_; /// @brief points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed
         Parameter(
-                int min_points_per_voxel = 0,
-                float octree_resolution =  0.005f,
+                int min_points_per_voxel = 1,
+                float octree_resolution =  0.003f,
                 float focal_length = 525.f,
                 bool average = false,
                 float threshold_explained = 0.02f,
                 bool reason_about_points = false,
-                float edge_radius_px = 2.f) :
+                float edge_radius_px = 3.f) :
             min_points_per_voxel_(min_points_per_voxel),
             octree_resolution_(octree_resolution),
             focal_length_ (focal_length),
@@ -81,7 +81,11 @@ private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
     typedef typename pcl::PointCloud<pcl::Normal>::Ptr PointNormalTPtr;
 
-    struct PointInfo{
+    class PointInfo{
+    private:
+        size_t num_pts_for_average_; /// @brief number of points used for building average
+
+    public:
         PointT pt;
         pcl::Normal normal;
 
@@ -90,28 +94,54 @@ private:
             //  [1] can be explained by a nearby point;
             //  [2] could be seen but does not make sense (i.e. the view-ray is not blocked, but there is no sensed point)
         size_t occluded_, explained_, violated_;
-        int origin;
+        int origin; /// @brief cloud index where the point comes from
+        int pt_idx; /// @brief pt index in the original cloud
         float distance_to_depth_discontinuity;
         float sigma_lateral;
         float sigma_axial;
-        float probability;
+        float weight;
 
-        bool operator<(const PointInfo other) const
-        {
-            return probability > other.probability;
-        }
+        bool operator<(const PointInfo other) const { return weight > other.weight; }
 
         PointInfo()
         {
             occluded_  = violated_ = 0;
             explained_ = 1; // the point is explained at least by the original viewpoint
+            origin = -1;
+            num_pts_for_average_ = 1;
+            weight = std::numeric_limits<float>::max();
+
+            pt.getVector3fMap() = Eigen::Vector3f::Zero();
+            pt.r = pt.g = pt.b = 0.f;
+            normal.getNormalVector3fMap() = Eigen::Vector3f::Zero();
+            normal.curvature = 0.f;
+        }
+
+        void
+        moving_average (const PointInfo &new_pt )
+        {
+            num_pts_for_average_++;
+
+            double w_old = static_cast<double>(num_pts_for_average_) / (num_pts_for_average_ + 1.f);
+            double w_new = 1.f / ( static_cast<double>(num_pts_for_average_) + 1.f );
+
+            pt.getVector3fMap() = w_old * pt.getVector3fMap() +  w_new * new_pt.pt.getVector3fMap();
+            pt.r = w_old * pt.r + w_new * new_pt.pt.r;
+            pt.g = w_old * pt.g + w_new * new_pt.pt.g;
+            pt.b = w_old * pt.b + w_new * new_pt.pt.b;
+
+            Eigen::Vector3f new_normal = new_pt.normal.getNormalVector3fMap();
+            new_normal.normalize();
+            normal.getNormalVector3fMap() = w_old * normal.getNormalVector3fMap() + w_new * new_normal;
+            normal.curvature = w_old * normal.curvature + w_new * new_pt.normal.curvature;
         }
     };
 
     std::vector<PointInfo> big_cloud_info_;
     std::vector<PointTPtr> input_clouds_;
+    std::vector<PointTPtr> input_clouds_used_;
     std::vector<PointNormalTPtr> input_normals_;
-    std::vector<std::vector<size_t> > indices_; /// @brief Indices of the object in each cloud (remaining points will be ignored)
+    std::vector<std::vector<int> > indices_; /// @brief Indices of the object in each cloud (remaining points will be ignored)
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations_to_global_; /// @brief transform aligning the input point clouds when multiplied
     std::vector<std::vector<std::vector<float> > > pt_properties_; /// @brief for each cloud, for each pixel represent lateral [idx=0] and axial [idx=1] as well as distance to closest depth discontinuity [idx=2]
     PointNormalTPtr output_normals_;
@@ -173,16 +203,16 @@ public:
     void
     setIndices(const std::vector<std::vector<size_t> > & indices)
     {
-        indices_ = indices;
+        indices_.resize(indices.size());
+        for(size_t i=0; i<indices.size(); i++)
+            indices_[i] = convertVecSizet2VecInt(indices[i]);
     }
 
 
     void
     setIndices(const std::vector<std::vector<int> > & indices)
     {
-        indices_.resize(indices.size());
-        for(size_t i=0; i<indices.size(); i++)
-            indices_[i] = convertVecInt2VecSizet(indices[i]);
+        indices_ = indices;
     }
 
     /**
@@ -206,9 +236,21 @@ public:
      * @brief setTransformations
      * @param transforms aligning each point cloud to a global coordinate system
      */
-    void setTransformations(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & transforms)
+    void
+    setTransformations(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & transforms)
     {
         transformations_to_global_ = transforms;
+    }
+
+
+    /**
+     * @brief returns the points used in each view in the final filtered cloud
+     * @param filtered clouds
+     */
+    void
+    getInputCloudsUsed(std::vector<PointTPtr> &clouds) const
+    {
+        clouds = input_clouds_used_;
     }
 };
 }

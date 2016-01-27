@@ -52,12 +52,8 @@
 #include <v4r/recognition/multiview_representation.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 
-#include <SiftGPU/SiftGPU.h>
-
 #ifdef HAVE_SIFTGPU
-#include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
+#include <SiftGPU/SiftGPU.h>
 #endif
 
 namespace v4r
@@ -69,7 +65,6 @@ class V4R_EXPORTS MultiviewRecognizer : public Recognizer<PointT>
 protected:
     typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
-    typedef flann::L1<float> DistT;
 
     using Recognizer<PointT>::scene_;
     using Recognizer<PointT>::scene_normals_;
@@ -106,11 +101,16 @@ protected:
     symHyp obj_hypotheses_; /// \brief stores keypoint correspondences
 
     /** \brief Point-to-point correspondence grouping algorithm */
-    typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > cg_algorithm_;
+    typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;
 
     Eigen::Matrix4f pose_;
 
-    cv::Ptr<SiftGPU> sift_;
+    pcl::PointCloud<PointT> scene_keypoints_; /// @brief accumulated scene keypoints
+    pcl::PointCloud<pcl::Normal> scene_kp_normals_; /// @brief accumulated scene keypoint normals
+
+#ifdef HAVE_SIFTGPU
+    boost::shared_ptr<SiftGPU> sift_;
+#endif
 
     bool computeAbsolutePose(CamConnect & e, bool is_first_edge = false);
 
@@ -118,26 +118,12 @@ protected:
     void pruneGraph();
 
     void correspondenceGrouping();
-
-    float calcEdgeWeightAndRefineTf (const typename pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                                    const typename pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                                    Eigen::Matrix4f &refined_transform,
-                                    const Eigen::Matrix4f &transform = Eigen::Matrix4f::Identity());
-
-    bool calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
-                           typename pcl::PointCloud<PointT>::Ptr &sift_keypoints,
+    
+    bool calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
+                           pcl::PointCloud<PointT> &sift_keypoints,
                            std::vector< int > &sift_keypoint_indices,
-                           pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
+                           std::vector<std::vector<float> > &sift_signatures,
                            std::vector<float> &sift_keypoint_scales);
-
-    void estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
-                                          const pcl::PointCloud<PointT> &dst_cloud,
-                                          const std::vector<int> &src_sift_keypoint_indices,
-                                          const std::vector<int> &dst_sift_keypoint_indices,
-                                          const pcl::PointCloud<FeatureT> &src_sift_signatures,
-                                          boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
-                                          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
-                                          bool use_gc = false );
 
     typename NguyenNoiseModel<PointT>::Parameter nm_param_;
     typename NMBasedCloudIntegration<PointT>::Parameter nmInt_param_;
@@ -198,6 +184,8 @@ public:
         pose_ = Eigen::Matrix4f::Identity();
     }
 
+    MultiviewRecognizer(int argc, char ** argv);
+
     /**
      * @brief sets the underlying single-view recognition
      * @param single-view recognizer
@@ -207,16 +195,22 @@ public:
         rr_ = rec;
     }
 
-
     std::string get_scene_name() const
     {
         return scene_name_;
     }
 
-    void setSift(cv::Ptr<SiftGPU> &sift)
+    void set_scene_name(const std::string &name)
+    {
+        scene_name_ = name;
+    }
+
+#ifdef HAVE_SIFTGPU
+    void setSift(boost::shared_ptr<SiftGPU> &sift)
     {
         sift_ = sift;
     }
+#endif
 
     void setNoiseModelParameters(const typename NguyenNoiseModel<PointT>::Parameter &p)
     {
@@ -230,7 +224,8 @@ public:
 
 
     /** \brief Sets the algorithm for Correspondence Grouping (Hypotheses generation from keypoint correspondences) */
-    void setCGAlgorithm (const typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > & alg)
+    void
+    setCGAlgorithm (const typename boost::shared_ptr<GraphGeometricConsistencyGrouping<PointT, PointT> > & alg)
     {
       cg_algorithm_ = alg;
     }
@@ -257,6 +252,7 @@ public:
         transforms_.clear();
         planes_.clear();
         views_.clear();
+        id_ = 0;
     }
 
     void recognize();

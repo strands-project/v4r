@@ -8,17 +8,19 @@
 #ifndef REC_FRAMEWORK_IMAGE_LOCAL_ESTIMATOR_H_
 #define REC_FRAMEWORK_IMAGE_LOCAL_ESTIMATOR_H_
 
+#include <v4r/core/macros.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <pcl/search/search.h>
 
 namespace v4r
 {
-    template<typename PointInT>
+    template<typename PointT>
       class V4R_EXPORTS ImageKeypointExtractor
       {
       protected:
-        typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
-        typedef typename pcl::PointCloud<PointInT>::Ptr PointOutTPtr;
-        typename pcl::PointCloud<PointInT>::Ptr input_;
+        typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
+        typedef typename pcl::PointCloud<PointT>::Ptr PointOutTPtr;
+        typename pcl::PointCloud<PointT>::Ptr input_;
         float radius_;
 
       public:
@@ -50,42 +52,41 @@ namespace v4r
         }
       };
 
-    template<typename PointInT>
-      class V4R_EXPORTS UniformSamplingExtractor : public KeypointExtractor<PointInT>
+    template<typename PointT>
+      class V4R_EXPORTS UniformSamplingExtractor : public KeypointExtractor<PointT>
       {
       private:
-        typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+        typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
         bool filter_planar_;
-        using KeypointExtractor<PointInT>::input_;
-        using KeypointExtractor<PointInT>::radius_;
+        using KeypointExtractor<PointT>::input_;
+        using KeypointExtractor<PointT>::radius_;
         float sampling_density_;
         boost::shared_ptr<std::vector<std::vector<int> > > neighborhood_indices_;
         boost::shared_ptr<std::vector<std::vector<float> > > neighborhood_dist_;
 
         void
-        filterPlanar (PointInTPtr & input, pcl::PointCloud<int> & keypoints_cloud)
+        filterPlanar (const PointInTPtr & input, std::vector<int> &kp_idx)
         {
           pcl::PointCloud<int> filtered_keypoints;
           //create a search object
-          typename pcl::search::Search<PointInT>::Ptr tree;
+          typename pcl::search::Search<PointT>::Ptr tree;
+
           if (input->isOrganized ())
-            tree.reset (new pcl::search::OrganizedNeighbor<PointInT> ());
+            tree.reset (new pcl::search::OrganizedNeighbor<PointT> ());
           else
-            tree.reset (new pcl::search::KdTree<PointInT> (false));
+            tree.reset (new pcl::search::KdTree<PointT> (false));
           tree->setInputCloud (input);
 
           neighborhood_indices_.reset (new std::vector<std::vector<int> >);
-          neighborhood_indices_->resize (keypoints_cloud.points.size ());
+          neighborhood_indices_->resize (kp_idx.size ());
           neighborhood_dist_.reset (new std::vector<std::vector<float> >);
-          neighborhood_dist_->resize (keypoints_cloud.points.size ());
+          neighborhood_dist_->resize (kp_idx.size ());
+          filtered_keypoints.points.resize (kp_idx.size());
 
-          filtered_keypoints.points.resize (keypoints_cloud.points.size ());
-          int good = 0;
-
-          for (size_t i = 0; i < keypoints_cloud.points.size (); i++)
+          size_t kept = 0;
+          for (size_t i = 0; i < kp_idx.size (); i++)
           {
-
-            if (tree->radiusSearch (keypoints_cloud[i], radius_, (*neighborhood_indices_)[good], (*neighborhood_dist_)[good]))
+            if (tree->radiusSearch (kp_idx[i], radius_, (*neighborhood_indices_)[kept], (*neighborhood_dist_)[kept]))
             {
 
               EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
@@ -94,7 +95,7 @@ namespace v4r
               EIGEN_ALIGN16 Eigen::Matrix3f eigenVectors;
 
               //compute planarity of the region
-              computeMeanAndCovarianceMatrix (*input, (*neighborhood_indices_)[good], covariance_matrix, xyz_centroid);
+              computeMeanAndCovarianceMatrix (*input, (*neighborhood_indices_)[kept], covariance_matrix, xyz_centroid);
               pcl::eigen33 (covariance_matrix, eigenVectors, eigenValues);
 
               float eigsum = eigenValues.sum ();
@@ -106,15 +107,15 @@ namespace v4r
               if ((fabs (eigenValues[0] - eigenValues[1]) < 1.5e-4) || (eigsum != 0 && fabs (eigenValues[0] / eigsum) > 1.e-2))
               {
                 //region is not planar, add to filtered keypoint
-                keypoints_cloud.points[good] = keypoints_cloud.points[i];
-                good++;
+                kp_idx[kept] = kp_idx[i];
+                kept++;
               }
             }
           }
 
-          neighborhood_indices_->resize (good);
-          neighborhood_dist_->resize (good);
-          keypoints_cloud.points.resize (good);
+          neighborhood_indices_->resize (kept);
+          neighborhood_dist_->resize (kept);
+          kp_idx.resize (kept);
 
           neighborhood_indices_->clear ();
           neighborhood_dist_->clear ();
@@ -136,11 +137,9 @@ namespace v4r
         }
 
         void
-        compute (PointInTPtr & keypoints)
+        compute (pcl::PointCloud<PointT> & keypoints)
         {
-          keypoints.reset (new pcl::PointCloud<PointInT>);
-
-          pcl::UniformSampling<PointInT> keypoint_extractor;
+          pcl::UniformSampling<PointT> keypoint_extractor;
           keypoint_extractor.setRadiusSearch (sampling_density_);
           keypoint_extractor.setInputCloud (input_);
 
@@ -155,7 +154,7 @@ namespace v4r
           for (size_t i = 0; i < indices.size (); i++)
             indices[i] = keypoints_idxes.points[i];
 
-          pcl::copyPointCloud (*input_, indices, *keypoints);
+          pcl::copyPointCloud (*input_, indices, keypoints);
         }
       };
 
@@ -168,18 +167,16 @@ namespace v4r
 
       public:
         void
-        compute (PointInTPtr & keypoints)
+        compute (typename pcl::PointCloud<PointT> & keypoints)
         {
-          keypoints.reset (new pcl::PointCloud<PointInT>);
-
-          typename pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_keypoints (new pcl::PointCloud<pcl::PointXYZI>);
+          pcl::PointCloud<pcl::PointXYZI> intensity_keypoints;
           pcl::SIFTKeypoint<PointInT, pcl::PointXYZI> sift3D;
           sift3D.setScales (0.003f, 3, 2);
           sift3D.setMinimumContrast (0.1f);
           sift3D.setInputCloud (input_);
           sift3D.setSearchSurface (input_);
-          sift3D.compute (*intensity_keypoints);
-          pcl::copyPointCloud (*intensity_keypoints, *keypoints);
+          sift3D.compute (intensity_keypoints);
+          pcl::copyPointCloud (intensity_keypoints, keypoints);
         }
       };
 
@@ -205,12 +202,10 @@ namespace v4r
 
       public:
         void
-        compute (PointInTPtr & keypoints)
+        compute (pcl::PointCloud<PointT> & keypoints)
         {
-          if (normals_ == 0 || (normals_->points.size () != input_->points.size ()))
+          if (!normals_ || (normals_->points.size () != input_->points.size ()))
             PCL_WARN("SIFTSurfaceKeypointExtractor -- Normals are not valid\n");
-
-          keypoints.reset (new pcl::PointCloud<PointInT>);
 
           typename pcl::PointCloud<pcl::PointNormal>::Ptr input_cloud (new pcl::PointCloud<pcl::PointNormal>);
           input_cloud->width = input_->width;
@@ -229,7 +224,7 @@ namespace v4r
           sift3D.setInputCloud (input_cloud);
           sift3D.setSearchSurface (input_cloud);
           sift3D.compute (*intensity_keypoints);
-          pcl::copyPointCloud (*intensity_keypoints, *keypoints);
+          pcl::copyPointCloud (*intensity_keypoints, keypoints);
         }
       };
 
@@ -283,11 +278,9 @@ namespace v4r
         }
 
         void
-        compute (PointInTPtr & keypoints)
+        compute (pcl::PointCloud<PointInT> & keypoints)
         {
-          keypoints.reset (new pcl::PointCloud<PointInT>);
-
-          if (normals_ == 0 || (normals_->points.size () != input_->points.size ()))
+          if (!normals_ || (normals_->points.size () != input_->points.size ()))
             PCL_WARN("HarrisKeypointExtractor -- Normals are not valid\n");
 
           typename pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_keypoints (new pcl::PointCloud<pcl::PointXYZI>);
@@ -303,7 +296,7 @@ namespace v4r
           harris.setMethod (m_);
           harris.compute (*intensity_keypoints);
 
-          pcl::copyPointCloud (*intensity_keypoints, *keypoints);
+          pcl::copyPointCloud (*intensity_keypoints, keypoints);
         }
       };
 
@@ -336,11 +329,9 @@ namespace v4r
         }
 
         void
-        compute (PointInTPtr & keypoints)
+        compute (pcl::PointCloud<PointInT> & keypoints)
         {
-          keypoints.reset (new pcl::PointCloud<PointInT>);
-
-          if (normals_ == 0 || (normals_->points.size () != input_->points.size ()))
+          if (!normals_ || (normals_->points.size () != input_->points.size ()))
             PCL_WARN("SUSANKeypointExtractor -- Normals are not valid\n");
 
           typename pcl::PointCloud<pcl::PointXYZI>::Ptr intensity_keypoints (new pcl::PointCloud<pcl::PointXYZI>);
@@ -353,7 +344,7 @@ namespace v4r
           susan.setRadiusSearch (0.01f);
           susan.compute (*intensity_keypoints);
 
-          pcl::copyPointCloud (*intensity_keypoints, *keypoints);
+          pcl::copyPointCloud (*intensity_keypoints, keypoints);
         }
       };
 
@@ -378,9 +369,8 @@ namespace v4r
         //std::vector< std::vector<float> > neighborhood_dist_;
 
         void
-        computeKeypoints (PointInTPtr & cloud, PointInTPtr & keypoints, pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        computeKeypoints (PointInTPtr & cloud, pcl::PointCloud<PointInT> & keypoints, pcl::PointCloud<pcl::Normal>::Ptr & normals)
         {
-          keypoints.reset (new pcl::PointCloud<PointInT>);
           for (size_t i = 0; i < keypoint_extractor_.size (); i++)
           {
             keypoint_extractor_[i]->setInputCloud (cloud);

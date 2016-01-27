@@ -114,7 +114,7 @@ namespace v4r
                 min_v = v;
         }
 
-        if ( out_width > (max_u-min_u) ) {
+        if ( (int)out_width > (max_u-min_u) ) {
             int margin_x = out_width - (max_u - min_u);
 
             volatile int margin_x_left = margin_x / 2.f;
@@ -125,7 +125,7 @@ namespace v4r
             min_u = std::max (0, min_u - margin_x_left);
         }
 
-        if ( out_height > (max_v - min_v) ) {
+        if ( (int)out_height > (max_v - min_v) ) {
             int margin_y = out_height - (max_v - min_v);
             volatile int margin_y_left = margin_y / 2.f;
             min_v = std::max (0, min_v - margin_y_left);

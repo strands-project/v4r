@@ -129,9 +129,9 @@ namespace v4r
       recognize (std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations, std::vector<pcl::Correspondences> &clustered_corrs);
 
     protected:
-      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
-      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
-      using v4r::CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
+      using CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
+      using CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
+      using CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
 
       /** \brief Minimum cluster size. It shouldn't be less than 3, since at least 3 correspondences are needed to compute the 6DOF pose */
       int gc_threshold_;

@@ -24,6 +24,7 @@
 #ifndef V4R_GHV_H_
 #define V4R_GHV_H_
 
+#include <v4r/common/color_transforms.h>
 #include <pcl/common/common.h>
 #include <pcl/pcl_macros.h>
 #include "hypotheses_verification.h"
@@ -55,67 +56,7 @@ namespace v4r
       friend class GHVmove_manager<ModelT, SceneT>;
       friend class GHVSAModel<ModelT, SceneT>;
 
-      static float sRGB_LUT[256];
-      static float sXYZ_LUT[4000];
-
       //////////////////////////////////////////////////////////////////////////////////////////////
-      void
-      RGB2CIELAB (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2)
-      {
-        if (sRGB_LUT[0] < 0)
-        {
-          for (int i = 0; i < 256; i++)
-          {
-            float f = static_cast<float> (i) / 255.0f;
-            if (f > 0.04045)
-              sRGB_LUT[i] = powf ((f + 0.055f) / 1.055f, 2.4f);
-            else
-              sRGB_LUT[i] = f / 12.92f;
-          }
-
-          for (int i = 0; i < 4000; i++)
-          {
-            float f = static_cast<float> (i) / 4000.0f;
-            if (f > 0.008856)
-              sXYZ_LUT[i] = static_cast<float> (powf (f, 0.3333f));
-            else
-              sXYZ_LUT[i] = static_cast<float>((7.787 * f) + (16.0 / 116.0));
-          }
-        }
-
-        float fr = sRGB_LUT[R];
-        float fg = sRGB_LUT[G];
-        float fb = sRGB_LUT[B];
-
-        // Use white = D65
-        const float x = fr * 0.412453f + fg * 0.357580f + fb * 0.180423f;
-        const float y = fr * 0.212671f + fg * 0.715160f + fb * 0.072169f;
-        const float z = fr * 0.019334f + fg * 0.119193f + fb * 0.950227f;
-
-        float vx = x / 0.95047f;
-        float vy = y;
-        float vz = z / 1.08883f;
-
-        vx = sXYZ_LUT[ std::min(int(vx*4000), 4000-1) ];
-        vy = sXYZ_LUT[ std::min(int(vy*4000), 4000-1) ];
-        vz = sXYZ_LUT[ std::min(int(vz*4000), 4000-1) ];
-
-        L = 116.0f * vy - 16.0f;
-        if (L > 100)
-          L = 100.0f;
-
-        A = 500.0f * (vx - vy);
-        if (A > 120)
-          A = 120.0f;
-        else if (A <- 120)
-          A = -120.0f;
-
-        B2 = 200.0f * (vy - vz);
-        if (B2 > 120)
-          B2 = 120.0f;
-        else if (B2<- 120)
-          B2 = -120.0f;
-      }
     public:
       class V4R_EXPORTS Parameter : public HypothesisVerification<ModelT, SceneT>::Parameter
       {
@@ -132,7 +73,7 @@ namespace v4r
           double color_sigma_ab_; /// @brief allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
           double regularizer_; /// @brief represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.
           double radius_neighborhood_clutter_; /// @brief defines the maximum distance between an <i>explained</i> scene point <b>p</b> and other unexplained scene points such that they influence the clutter term associated with <b>p</b>
-          double radius_normals_;
+          int normal_method_; /// @brief method used for computing the normals of the downsampled scene point cloud (defined by the V4R Library)
           double duplicy_weight_test_;
           double duplicity_curvature_max_;
           bool ignore_color_even_if_exists_;
@@ -176,7 +117,7 @@ namespace v4r
                   double color_sigma_ab = 0.6f,
                   double regularizer = 1.f, // 3
                   double radius_neighborhood_clutter = 0.03f,
-                  double radius_normals = 0.02f, // 0.01f
+                  int normal_method = 2,
                   double duplicy_weight_test = 1.f,
                   double duplicity_curvature_max = 0.03f,
                   bool ignore_color_even_if_exists = false,
@@ -217,7 +158,7 @@ namespace v4r
                 color_sigma_ab_ (color_sigma_ab),
                 regularizer_ (regularizer),
                 radius_neighborhood_clutter_ (radius_neighborhood_clutter),
-                radius_normals_ (radius_normals),
+                normal_method_ (normal_method),
                 duplicy_weight_test_ (duplicy_weight_test),
                 duplicity_curvature_max_ (duplicity_curvature_max),
                 ignore_color_even_if_exists_ (ignore_color_even_if_exists),
@@ -370,14 +311,14 @@ namespace v4r
 
       void computeClutterCueAtOnce ();
 
-      virtual bool
-      handlingNormals (boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model, size_t i, size_t object_models_size);
+      bool
+      handlingNormals (GHVRecognitionModel<ModelT> & recog_model, size_t i, size_t object_models_size);
 
-      virtual bool
-      addModel (size_t i, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
+      bool
+      addModel (size_t i, GHVRecognitionModel<ModelT> &recog_model);
 
       //Performs smooth segmentation of the scene cloud and compute the model cues
-      virtual bool
+      bool
       initialize ();
 
       pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
@@ -423,6 +364,8 @@ namespace v4r
       //mahalanobis stuff
       Eigen::MatrixXf inv_covariance_;
       Eigen::VectorXf mean_;
+
+      ColorTransformOMP color_transf_omp_;
 
       void
       setPreviousBadInfo (double f)
@@ -631,7 +574,8 @@ namespace v4r
 
       std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> models_smooth_faces_;
 
-      void specifyColor(size_t i, Eigen::MatrixXf & lookup, boost::shared_ptr<GHVRecognitionModel<ModelT> > & recog_model);
+      void
+      specifyColor(size_t i, Eigen::MatrixXf &lookup, GHVRecognitionModel<ModelT> &recog_model);
 
       std::vector<float> scene_curvature_;
       std::vector<Eigen::Vector3f> scene_LAB_values_;
@@ -645,12 +589,9 @@ namespace v4r
 
       double getCurvWeight(double p_curvature) const;
 
-      int max_threads_;
-
       std::vector<std::string> ply_paths_;
       std::vector<vtkSmartPointer <vtkTransform> > poses_ply_;
 
-      float t_cues_, t_opt_;
       size_t number_of_visible_points_;
 
 
@@ -661,19 +602,18 @@ namespace v4r
           return sqrt(product);
       }
 
+      void segmentScene();
+      void convertColor();
+
     public:
 
-      GHV (const Parameter &p=Parameter()) : HypothesisVerification<ModelT, SceneT> (p)
+      GHV (const Parameter &p=Parameter()) : HypothesisVerification<ModelT, SceneT> (p) , param_(p)
       {
-        param_ = p;
         initial_temp_ = 1000;
         requires_normals_ = false;
-
         min_contribution_ = 0;
         LS_short_circuit_ = false;
         visualize_accepted_ = false;
-
-        max_threads_ = 1;
         scene_and_normals_set_from_outside_ = false;
       }
 
@@ -696,25 +636,10 @@ namespace v4r
           return number_of_visible_points_;
       }
 
-      float getCuesComputationTime() const
-      {
-          return t_cues_;
-      }
-
-      float getOptimizationTime() const
-      {
-          return t_opt_;
-      }
-
       void setPlyPathsAndPoses(std::vector<std::string> & ply_paths_for_go, std::vector<vtkSmartPointer <vtkTransform> > & poses_ply)
       {
           ply_paths_ = ply_paths_for_go;
           poses_ply_ = poses_ply;
-      }
-
-      void setMaxThreads(int t)
-      {
-          max_threads_ = t;
       }
 
       void setVisualizeAccepted(bool b)
@@ -781,12 +706,6 @@ namespace v4r
       getSmoothClustersRGBCloud () const
       {
         return clusters_cloud_rgb_;
-      }
-
-      float
-      getResolution ()
-      {
-        return param_.resolution_;
       }
 
       void

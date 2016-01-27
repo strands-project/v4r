@@ -85,28 +85,41 @@ void
 GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning)
 {
     mask_.clear();
+    complete_models_ = models;
 
-    if (!occlusion_reasoning)
-        visible_models_ = models;
+    if (!occlusion_reasoning) {   // just copy complete models
+        visible_models_.resize(models.size());
+        for(size_t i=0; i<models.size(); i++) {
+            if(!visible_models_[i])
+                visible_models_[i].reset(new pcl::PointCloud<ModelT>);
+            pcl::copyPointCloud(*models[i], *visible_models_[i]);
+        }
+    }
     else
     {
         visible_indices_.clear();
-        visible_indices_.resize(models.size());
-        model_point_is_visible_.clear();
         model_point_is_visible_.resize(models.size());
+        visible_indices_.resize(models.size());
+        visible_models_.resize(models.size());
 
-        for (size_t i = 0; i < models.size (); i++)
-            model_point_is_visible_[i].resize(models[i]->points.size(), false);
+        if(normals_set_ && requires_normals_)
+            visible_normal_models_.resize(models.size());
 
-        //a point is occluded if it is occluded in all views
-
-        //scene-occlusions
-        for(size_t k=0; k < occ_clouds_.size(); k++)
+        //compute visible model points based on scene - a point is occluded if it is occluded in all views
+        #pragma omp parallel for schedule(dynamic)
+        for(size_t m=0; m<models.size(); m++)
         {
-            const Eigen::Matrix4f trans =  absolute_camera_poses_[k].inverse();
-
-            for(size_t m=0; m<models.size(); m++)
+            model_point_is_visible_[m].clear(); // DO NOT DELETE THIS! Only doing resize will only re-initialize indices greater than the previous size of this vector!!
+            model_point_is_visible_[m].resize(models[m]->points.size(), false);
+            for(size_t k=0; k < occ_clouds_.size(); k++)
             {
+                const Eigen::Matrix4f &trans = absolute_camera_poses_[k].inverse();
+
+                if (model_is_present_in_view_.size() == models.size() &&
+                        model_is_present_in_view_[m].size() == occ_clouds_.size() &&
+                        !model_is_present_in_view_[m][k])   // if model is not present in view k (scene not static), it does not make sense to check for occlusion
+                    continue;
+
                 //transform model to camera coordinate
                 typename pcl::PointCloud<ModelT> model_in_view_coordinates;
                 pcl::transformPointCloud(*models[m], model_in_view_coordinates, trans);
@@ -121,29 +134,27 @@ GO3D<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::C
                     }
                 }
             }
-        }
 
-        for (size_t i = 0; i < models.size (); i++) {
+            visible_indices_[m] = createIndicesFromMask<int>( model_point_is_visible_[m] );
 
-            visible_indices_[i] = createIndicesFromMask<int>( model_point_is_visible_[i] );
-
-            typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ());
-            pcl::copyPointCloud(*models[i], model_point_is_visible_[i], *filtered);
+            if(!visible_models_[m])
+                visible_models_[m].reset(new pcl::PointCloud<ModelT> ());
+            pcl::copyPointCloud(*models[m], visible_indices_[m], *visible_models_[m]);
 
             if(normals_set_ && requires_normals_) {
-                pcl::PointCloud<pcl::Normal>::Ptr filtered_normals (new pcl::PointCloud<pcl::Normal> ());
-                pcl::copyPointCloud(*complete_normal_models_[i], model_point_is_visible_[i], *filtered_normals);
-                visible_normal_models_.push_back(filtered_normals);
+                if(!visible_normal_models_[m])
+                    visible_normal_models_[m].reset(new pcl::PointCloud<pcl::Normal> ());
+                pcl::copyPointCloud(*complete_normal_models_[m], visible_indices_[m], *visible_normal_models_[m]);
             }
-
-            //      pcl::visualization::PointCloudColorHandlerRGBField<ModelT> handler (filtered);
-            //      vis.addPointCloud(filtered, handler, "model");
-            //      vis.removeAllPointClouds();
-
-            visible_models_.push_back (filtered);
         }
 
-        complete_models_ = models;
+//        pcl::visualization::PCLVisualizer vis ("all visible model points");
+//        for(size_t m=0; m<models.size(); m++)
+//        {
+//            std::stringstream cloud_id; cloud_id << "cloud_" << m;
+//            vis.addPointCloud(visible_models_[m], cloud_id.str());
+//        }
+//        vis.spin();
     }
 
     normals_set_ = false;

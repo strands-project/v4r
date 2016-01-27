@@ -6,7 +6,7 @@ namespace v4r
 template<typename PointT>
 View<PointT>::View ()
 {
-    scene_f_.reset ( new pcl::PointCloud<PointT> );
+//    scene_f_.reset ( new pcl::PointCloud<PointT> );
     scene_normals_.reset ( new pcl::PointCloud<pcl::Normal> );
 //    kp_normals_.reset ( new pcl::PointCloud<pcl::Normal> );
     absolute_pose_ = Eigen::Matrix4f::Identity();

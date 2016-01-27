@@ -41,7 +41,7 @@
 namespace v4r
 {
 
-inline void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
+V4R_EXPORTS inline void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
                              pcl::PointCloud<pcl::Normal> & normals_aligned,
                              const Eigen::Matrix4f & transform)
 {
@@ -63,7 +63,7 @@ inline void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
     }
 }
 
-inline void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
+V4R_EXPORTS inline void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
                              pcl::PointCloud<pcl::Normal> & normals_aligned,
                              const std::vector<int> & indices,
                              const Eigen::Matrix4f & transform)
@@ -89,7 +89,7 @@ inline void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
     }
 }
 
-inline void transformNormal(const Eigen::Vector3f & nt,
+V4R_EXPORTS inline void transformNormal(const Eigen::Vector3f & nt,
                             Eigen::Vector3f & normal_out,
                             const Eigen::Matrix4f & transform)
 {
@@ -105,7 +105,7 @@ inline void transformNormal(const Eigen::Vector3f & nt,
  * @return tf 4x4 homogeneous transformation matrix
  *
  */
-inline Eigen::Matrix4f
+V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();;
@@ -123,7 +123,7 @@ RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
  * @return tf 4x4 homogeneous transformation matrix
  *
  */
-inline Eigen::Matrix4f
+V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
@@ -139,14 +139,14 @@ RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans)
  * @param trans homogenous translation
  */
 inline void
-Mat4f2RotTrans(const Eigen::Matrix4f &tf, Eigen::Quaternionf &q, Eigen::Vector4f &trans)
+V4R_EXPORTS Mat4f2RotTrans(const Eigen::Matrix4f &tf, Eigen::Quaternionf &q, Eigen::Vector4f &trans)
 {
     Eigen::Matrix3f rotation = tf.block<3,3>(0,0);
     q = rotation;
     trans = tf.block<4,1>(0,3);
 }
 
-inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
+V4R_EXPORTS inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
                                 pcl::PointCloud<pcl::PointXYZRGB> & voxel_grided,
                                 float resolution)
 {
@@ -205,7 +205,7 @@ inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
  * @param resolution (optional)
  */
 template<typename PointInT>
-inline void
+V4R_EXPORTS inline void
 getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_input_cloud,
                     const typename pcl::PointCloud<PointInT>::ConstPtr & search_points,
                     std::vector<int> & indices,
@@ -240,7 +240,7 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_in
  * @param resolution (optional)
  */
 template<typename PointT, typename Type>
-inline void
+V4R_EXPORTS inline void
 getIndicesFromCloud(const typename pcl::PointCloud<PointT>::ConstPtr & full_input_cloud,
                     const typename pcl::PointCloud<PointT> & search_pts,
                     typename std::vector<Type> & indices,
@@ -267,9 +267,11 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointT>::ConstPtr & full_inpu
     indices.resize(kept);
 }
 
-template<typename PointType, typename DistType> V4R_EXPORTS void convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index);
+template<typename DistType>
+V4R_EXPORTS void convertToFLANN ( const std::vector<std::vector<float> > &data, boost::shared_ptr< typename flann::Index<DistType> > &flann_index);
 
-template<typename DistType> V4R_EXPORTS void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+template<typename DistType>
+V4R_EXPORTS void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
                                                   flann::Matrix<float> &distances );
 
 /**
@@ -277,7 +279,7 @@ template<typename DistType> V4R_EXPORTS void nearestKSearch ( typename boost::sh
  */
 template<typename PointType> V4R_EXPORTS void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud);
 
-inline std::vector<size_t>
+V4R_EXPORTS inline std::vector<size_t>
 convertVecInt2VecSizet(const std::vector<int> &input)
 {
     std::vector<size_t> v_size_t;
@@ -292,7 +294,7 @@ convertVecInt2VecSizet(const std::vector<int> &input)
     return v_size_t;
 }
 
-inline std::vector<int>
+V4R_EXPORTS inline std::vector<int>
 convertVecSizet2VecInt(const std::vector<size_t> &input)
 {
     std::vector<int> v_int;
@@ -307,7 +309,7 @@ convertVecSizet2VecInt(const std::vector<size_t> &input)
     return v_int;
 }
 
-inline pcl::PointIndices
+V4R_EXPORTS inline pcl::PointIndices
 convertVecSizet2PCLIndices(const std::vector<size_t> &input)
 {
     pcl::PointIndices pind;
@@ -322,7 +324,7 @@ convertVecSizet2PCLIndices(const std::vector<size_t> &input)
     return pind;
 }
 
-inline std::vector<size_t>
+V4R_EXPORTS inline std::vector<size_t>
 convertPCLIndices2VecSizet(const pcl::PointIndices &input)
 {
     std::vector<size_t> v_size_t;
@@ -337,7 +339,7 @@ convertPCLIndices2VecSizet(const pcl::PointIndices &input)
     return v_size_t;
 }
 
-inline std::vector<bool>
+V4R_EXPORTS inline std::vector<bool>
 createMaskFromIndices(const std::vector<size_t> &indices,size_t image_size)
 {
     std::vector<bool> mask (image_size, false);
@@ -349,7 +351,7 @@ createMaskFromIndices(const std::vector<size_t> &indices,size_t image_size)
 }
 
 
-inline std::vector<bool>
+V4R_EXPORTS inline std::vector<bool>
 createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 {
     std::vector<bool> mask (image_size, false);
@@ -362,7 +364,7 @@ createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 
 
 template<typename T>
-std::vector<T>
+V4R_EXPORTS std::vector<T>
 createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
 {
     std::vector<T> out;
@@ -410,6 +412,25 @@ incrementVector(const std::vector<bool> &v, std::vector<bool> &inc_v)
         carry = v[ bit ] && carry;
     }
     return overflow;
+}
+
+/**
+  * @brief: extracts elements from a vector indicated by some indices
+  * @param[in] Input vector
+  * @param[in] indices to extract
+  * @return extracted elements
+  */
+template<typename T>
+inline V4R_EXPORTS typename std::vector<T>
+filterVector(const std::vector<T> &in, const std::vector<int> &indices)
+{
+    typename std::vector<T> out(in.size());
+    size_t kept;
+    for(const auto &idx : indices)
+        out[kept++] = in[idx];
+
+    out.resize(kept);
+    return out;
 }
 }
 

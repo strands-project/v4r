@@ -29,9 +29,10 @@
 *      @brief object instance recognizer
 */
 
-#ifndef RECOGNIZER_H_
-#define RECOGNIZER_H_
+#ifndef V4R_RECOGNIZER_H_
+#define V4R_RECOGNIZER_H_
 
+#include <v4r_config.h>
 #include <v4r/core/macros.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
@@ -160,16 +161,17 @@ namespace v4r
         }
 
         virtual
-        void
-        getKeypointCloud(PointTPtr & cloud) const
+        PointTPtr
+        getKeypointCloud() const
         {
-            (void)cloud;
             PCL_WARN("getKeypointCloud is not implemented for this class.");
+            PointTPtr foo;
+            return foo;
         }
 
         virtual
         void
-        getKeypointIndices(pcl::PointIndices & indices) const
+        getKeypointIndices(std::vector<int> & indices) const
         {
             (void)indices;
             PCL_WARN("Get keypoint indices is not implemented for this class.");
@@ -186,24 +188,6 @@ namespace v4r
             (void) force_retrain;
             PCL_WARN("initialize is not implemented for this class.");
             return true;
-        }
-
-        virtual void
-        reinitialize()
-        {
-            PCL_WARN("reinitialize is not implemented for this class.");
-        }
-
-        virtual void
-        reinitializeSourceOnly()
-        {
-            PCL_WARN("reinitializeSource is not implemented for this class.");
-        }
-
-        virtual void
-        reinitializeRecOnly()
-        {
-            PCL_WARN("reinitializeRec is not implemented for this class.");
         }
 
         void setHVAlgorithm (const typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > & alg)
@@ -289,6 +273,12 @@ namespace v4r
         setModelsDir (const std::string & dir)
         {
           models_dir_ = dir;
+        }
+
+        std::string
+        getModelsDir() const
+        {
+            return models_dir_;
         }
 
 
