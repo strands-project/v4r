@@ -21,7 +21,6 @@
 #include <iostream>
 
 #include <pcl/common/transforms.h>
-#include <pcl/filters/passthrough.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/io/pcd_io.h>
@@ -34,8 +33,7 @@
 #include <v4r/common/convertCloud.h>
 #include <v4r/common/convertNormals.h>
 #include <v4r/common/impl/DataMatrix2D.hpp>
-#include <v4r/features/sift_local_estimator.h>
-#include <v4r/registration/fast_icp_with_gc.h>
+#include <v4r/registration/metrics.h>
 #include <v4r/common/binary_algorithms.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/noise_models.h>
@@ -46,7 +44,9 @@
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
-#ifndef HAVE_SIFTGPU
+#ifdef HAVE_SIFTGPU
+    #include <v4r/features/sift_local_estimator.h>
+#else
     #include <v4r/features/opencv_sift_local_estimator.h>
 #endif
 
@@ -55,83 +55,28 @@ namespace v4r
 namespace object_modelling
 {
 
-float
-IOL::calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                                const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                                Eigen::Matrix4f &refined_transform,
-                                const Eigen::Matrix4f &transform)
-{
-    pcl::PointCloud<PointT>::Ptr cloud_src_wo_nan ( new pcl::PointCloud<PointT>());
-    pcl::PointCloud<PointT>::Ptr cloud_dst_wo_nan ( new pcl::PointCloud<PointT>());
-
-    pcl::PassThrough<PointT> pass;
-    pass.setFilterLimits (0.f, 5.f);
-    pass.setFilterFieldName ("z");
-    pass.setInputCloud (cloud_src);
-    pass.setKeepOrganized (true);
-    pass.filter (*cloud_src_wo_nan);
-
-    pcl::PassThrough<PointT> pass2;
-    pass2.setFilterLimits (0.f, 5.f);
-    pass2.setFilterFieldName ("z");
-    pass2.setInputCloud (cloud_dst);
-    pass2.setKeepOrganized (true);
-    pass2.filter (*cloud_dst_wo_nan);
-
-    float w_after_icp_ = std::numeric_limits<float>::max ();
-    const float best_overlap_ = 0.75f;
-
-    FastIterativeClosestPointWithGC<PointT> icp;
-    icp.setMaxCorrespondenceDistance ( 0.02f );
-    icp.setInputSource ( cloud_src_wo_nan );
-    icp.setInputTarget ( cloud_dst_wo_nan );
-    icp.setUseNormals (true);
-    icp.useStandardCG (true);
-    icp.setNoCG(true);
-    icp.setOverlapPercentage (best_overlap_);
-    icp.setKeepMaxHypotheses (5);
-    icp.setMaximumIterations (10);
-    icp.align (transform);
-    w_after_icp_ = icp.getFinalTransformation ( refined_transform );
-
-    if ( w_after_icp_ < 0 || !pcl_isfinite ( w_after_icp_ ) )
-        w_after_icp_ = std::numeric_limits<float>::max ();
-    else
-        w_after_icp_ = best_overlap_ - w_after_icp_;
-
-    //    transform = icp_trans; // refined transformation
-    return w_after_icp_;
-}
-
 bool
-IOL::calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
-                       pcl::PointCloud<PointT>::Ptr &sift_keypoints,
+IOL::calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
+                       pcl::PointCloud<PointT> &sift_keypoints,
                        std::vector< size_t > &sift_keypoint_indices,
-                       pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
+                       std::vector<std::vector<float> > &sift_signatures,
                        std::vector<float> &sift_keypoint_scales)
 {
-    pcl::PointIndices sift_keypoint_pcl_indices;
-
+    std::vector<int> sift_kp_indices;
 
 #ifdef HAVE_SIFTGPU
     (void) sift_keypoint_indices;
-    boost::shared_ptr < SIFTLocalEstimation<PointT, FeatureT> > estimator;
-    estimator.reset (new SIFTLocalEstimation<PointT, FeatureT>(sift_));
-
+    boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator (new SIFTLocalEstimation<PointT>(sift_));
     bool ret = estimator->estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-    estimator->getKeypointIndices( sift_keypoint_pcl_indices.indices );
+    estimator->getKeypointIndices( sift_kp_indices );
 #else
     (void)sift_keypoint_scales; //silences compiler warning of unused variable
-    boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
-    estimator.reset (new OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> >);
-
-    pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
-
+    boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT> > estimator (new OpenCVSIFTLocalEstimation<PointT>);
+    pcl::PointCloud<PointT> processed_foo;
     bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
-    estimator->getKeypointIndices( sift_keypoint_pcl_indices );
-
-    sift_keypoint_indices = common::convertPCLIndices2VecSizet(sift_keypoint_pcl_indices);
+    estimator->getKeypointIndices( sift_kp_indices );
 #endif
+    sift_keypoint_indices = convertVecInt2VecSizet(sift_kp_indices);
     return ret;
 }
 
@@ -140,7 +85,7 @@ IOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
                                       const pcl::PointCloud<PointT> &dst_cloud,
                                       const std::vector<size_t> &src_sift_keypoint_indices,
                                       const std::vector<size_t> &dst_sift_keypoint_indices,
-                                      const pcl::PointCloud<FeatureT> &src_sift_signatures,
+                                      const std::vector<std::vector<float> > &src_sift_signatures,
                                       boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
                                       std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
                                       bool use_gc )
@@ -159,9 +104,7 @@ IOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
 
     for ( size_t keypointId = 0; keypointId < pSiftKeypointsSrc->points.size (); keypointId++ )
     {
-        FeatureT searchFeature = src_sift_signatures[ keypointId ];
-        int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-        nearestKSearch ( dst_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
+        nearestKSearch ( dst_flann_index, src_sift_signatures[ keypointId ], K, indices, distances );
 
         pcl::Correspondence corr;
         corr.distance = distances[0][0];
@@ -703,12 +646,12 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     if ( param_.do_sift_based_camera_pose_estimation_ )
     {
-        pcl::PointCloud<PointT>::Ptr sift_keypoints (new pcl::PointCloud<PointT>());
+        pcl::PointCloud<PointT> sift_keypoints;
         std::vector<float> sift_keypoint_scales;
         try
         {
-            calcSiftFeatures( view.cloud_, sift_keypoints, view.sift_keypoint_indices_, view.sift_signatures_, sift_keypoint_scales);
-            convertToFLANN<FeatureT, DistT>(view.sift_signatures_, flann_index );
+            calcSiftFeatures( *view.cloud_, sift_keypoints, view.sift_keypoint_indices_, view.sift_signatures_, sift_keypoint_scales);
+            convertToFLANN<DistT>(view.sift_signatures_, flann_index );
         }
         catch (int e)
         {
@@ -788,7 +731,7 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
                     estimateViewTransformationBySIFT( *grph_[view_id].cloud_, *view.cloud_,
                                                       grph_[view_id].sift_keypoint_indices_, view.sift_keypoint_indices_,
-                                                      *grph_[view_id].sift_signatures_, flann_index, sift_transforms);
+                                                      grph_[view_id].sift_signatures_, flann_index, sift_transforms);
                     for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++)
                     {
                         edge.transformation_ = sift_transforms[sift_tf_id];
@@ -808,7 +751,7 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                     try
                     {
                         Eigen::Matrix4f icp_refined_trans;
-                        transforms[ trans_id ].edge_weight = calcEdgeWeightAndRefineTf( grph_[view_id].cloud_, view.cloud_, icp_refined_trans, transforms[ trans_id ].transformation_);
+                        v4r::calcEdgeWeightAndRefineTf<PointT>( grph_[view_id].cloud_, view.cloud_, transforms[ trans_id ].transformation_, transforms[ trans_id ].edge_weight, icp_refined_trans);
                         transforms[ trans_id ].transformation_ = icp_refined_trans,
                         std::cout << "Edge weight is " << transforms[ trans_id ].edge_weight << " for edge connecting vertex " <<
                                      transforms[ trans_id ].source_id_ << " and " << transforms[ trans_id ].target_id_ << " by " <<

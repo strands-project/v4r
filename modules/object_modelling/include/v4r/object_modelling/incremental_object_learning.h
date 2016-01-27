@@ -245,20 +245,6 @@ protected:
     }
 
     /**
-     * @brief This method computes a cost function for the pairwise alignment of two point clouds.
-     * It is computed using fast ICP
-     * @param[in] cloud_src source cloud
-     * @param[in] cloud_dst target cloud
-     * @param[out] refined_transform refined homogenous transformation matrix aligning the two point clouds based on ICP
-     * @param[in] transform homogenous transformation matrix aligning the two point clouds
-     * @return registration cost ( the lower the better the alignment - weight range [0, 0.75] )
-     */
-    float calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                                     const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                                     Eigen::Matrix4f &refined_transform,
-                                     const Eigen::Matrix4f &transform = Eigen::Matrix4f::Identity());
-
-    /**
      * @brief given a point cloud and a normal cloud, this function computes points belonging to a table
      *  (optional: computes smooth clusters for points not belonging to table)
      * @param[in] cloud The input cloud from which smooth clusters / planes are being calculated
@@ -326,10 +312,10 @@ protected:
     std::vector<bool>
     erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<PointT> & cloud);
 
-    bool calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
-                           pcl::PointCloud<PointT>::Ptr &sift_keypoints,
+    bool calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
+                           pcl::PointCloud<PointT> &sift_keypoints,
                            std::vector< size_t > &sift_keypoint_indices,
-                           pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
+                           std::vector<std::vector<float> > &sift_signatures,
                            std::vector<float> &sift_keypoint_scales);
 
     void
@@ -337,7 +323,7 @@ protected:
                                           const pcl::PointCloud<PointT> &dst_cloud,
                                           const std::vector<size_t> &src_sift_keypoint_indices,
                                           const std::vector<size_t> &dst_sift_keypoint_indices,
-                                          const pcl::PointCloud<FeatureT> &src_sift_signatures,
+                                          const std::vector<std::vector<float> > &src_sift_signatures,
                                           boost::shared_ptr< flann::Index<DistT> > &src_flann_index,
                                           std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
                                           bool use_gc = false);

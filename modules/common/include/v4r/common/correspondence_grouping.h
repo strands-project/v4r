@@ -61,13 +61,13 @@ namespace v4r
       typedef typename SceneCloud::ConstPtr SceneCloudConstPtr;
 
       /** \brief Empty constructor. */
-      CorrespondenceGrouping () : scene_ (), model_scene_corrs_ (), require_normals_(false) {}
+      CorrespondenceGrouping () : scene_(), require_normals_(false) {}
 
       /** \brief destructor. */
       virtual ~CorrespondenceGrouping() 
       {
         scene_.reset ();
-        model_scene_corrs_.reset ();
+        model_scene_corrs_.clear();
       }
 
       /** \brief Provide a pointer to the scene dataset.
@@ -97,7 +97,7 @@ namespace v4r
         * \param[in] corrs the correspondences between the model and the scene.
         */
       virtual inline void
-      setModelSceneCorrespondences (const pcl::CorrespondencesConstPtr &corrs)
+      setModelSceneCorrespondences (const pcl::Correspondences &corrs)
       {
         model_scene_corrs_ = corrs;
       }
@@ -107,10 +107,10 @@ namespace v4r
         * 
         * \return the correspondences between the model and the scene.
         */
-      inline pcl::CorrespondencesConstPtr
+      inline pcl::Correspondences
       getModelSceneCorrespondences () const
       {
-        return (model_scene_corrs_);
+        return model_scene_corrs_;
       }
 
        /** \brief Getter for the vector of characteristic scales associated to each cluster
@@ -154,7 +154,7 @@ namespace v4r
       using pcl::PCLBase<PointModelT>::input_;
 
       /** \brief The correspondences between points in the input and the scene datasets. */
-      pcl::CorrespondencesConstPtr model_scene_corrs_;
+      pcl::Correspondences model_scene_corrs_;
 
       /** \brief characteristic scale associated to each correspondence subset;
         * if the cg algorithm can not handle scale invariance, the size of the vector will be 0. */
@@ -197,7 +197,7 @@ namespace v4r
           return (false);
         }
 
-        if (!model_scene_corrs_)
+        if (model_scene_corrs_.empty())
         {
           PCL_ERROR ("[initCompute] Model-Scene Correspondences not set.\n");
           return (false);

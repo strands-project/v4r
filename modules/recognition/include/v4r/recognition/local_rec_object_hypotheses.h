@@ -50,17 +50,16 @@ class V4R_EXPORTS ObjectHypothesis
 
     ObjectHypothesis()
     {
-        model_scene_corresp_.reset(new pcl::Correspondences);
     }
 
-    pcl::CorrespondencesPtr model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
+    pcl::Correspondences model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
     std::vector<int> indices_to_flann_models_;
 
-    void visualize(const typename pcl::PointCloud<PointT> & scene) const;
+    void visualize(const typename pcl::PointCloud<PointT> & scene_kp) const;
 
     ObjectHypothesis & operator=(const ObjectHypothesis &rhs)
     {
-        *(this->model_scene_corresp_) = *rhs.model_scene_corresp_;
+        this->model_scene_corresp_ = rhs.model_scene_corresp_;
         this->indices_to_flann_models_ = rhs.indices_to_flann_models_;
         this->model_ = rhs.model_;
         return *this;
@@ -71,6 +70,10 @@ class V4R_EXPORTS ObjectHypothesis
     {
         return (i.distance < j.distance);
     }
+
+
+    typedef boost::shared_ptr<ObjectHypothesis<PointT> > Ptr;
+    typedef boost::shared_ptr<const ObjectHypothesis<PointT> > ConstPtr;
 };
 
 }

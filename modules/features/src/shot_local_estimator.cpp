@@ -1,3 +1,3 @@
-#include <v4r/features/shot_local_estimator_omp.h>
+#include <v4r/features/shot_local_estimator.h>
 
-template class V4R_EXPORTS v4r::SHOTLocalEstimationOMP<struct pcl::PointXYZ, struct pcl::Histogram<352> >;
+template class V4R_EXPORTS v4r::SHOTLocalEstimation<pcl::PointXYZ>;

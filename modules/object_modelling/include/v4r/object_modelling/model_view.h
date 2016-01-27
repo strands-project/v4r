@@ -62,7 +62,7 @@ namespace v4r
             pcl::PointCloud<pcl::Normal>::Ptr  normal_;
             pcl::PointCloud<PointT>::Ptr  transferred_cluster_;
 
-            pcl::PointCloud<FeatureT>::Ptr  sift_signatures_;
+            std::vector<std::vector<float> >  sift_signatures_;
             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr  supervoxel_cloud_;
             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr  supervoxel_cloud_organized_;
 
@@ -88,7 +88,6 @@ namespace v4r
                 transferred_cluster_.reset(new pcl::PointCloud<PointT>());
                 supervoxel_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>());
                 supervoxel_cloud_organized_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>());
-                sift_signatures_.reset (new pcl::PointCloud<FeatureT>());
                 is_pre_labelled_ = false;
             }
         };
