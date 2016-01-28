@@ -18,6 +18,11 @@ if(HAVE_PCL)
   list(APPEND DEP_LIBS ${PCL_LIBRARIES})
 endif()
 
+if(HAVE_SIFTGPU)
+  v4r_include_directories(${SIFTGPU_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
+endif()
+
 if(HAVE_OPENCV)
   v4r_include_directories(${OPENCV_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${OPENCV_LIBRARIES})
