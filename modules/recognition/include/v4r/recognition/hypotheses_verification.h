@@ -43,7 +43,6 @@
 #include <v4r/common/zbuffering.h>
 #include <pcl/common/common.h>
 #include <pcl/search/kdtree.h>
-#include <pcl/keypoints/uniform_sampling.h>
 
 namespace v4r
 {

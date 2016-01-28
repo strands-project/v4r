@@ -6,7 +6,6 @@
  */
 
 #include <v4r/registration/fast_icp_with_gc.h>
-#include <pcl/keypoints/uniform_sampling.h>
 #include <pcl/common/angles.h>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <pcl/recognition/cg/geometric_consistency.h>
@@ -14,6 +13,7 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/features/integral_image_normal.h>
 #include <v4r/common/visibility_reasoning.h>
+#include <v4r/features/uniform_sampling.h>
 
 //#define FAAT_PCL_FAST_ICP_VIS_FINAL
 
