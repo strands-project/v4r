@@ -939,7 +939,7 @@ IOL::initSIFT ()
 void
 IOL::printParams(std::ostream &ostr) const
 {
-    ostr << "Started dynamic object learning with parameters: " << std::endl
+    ostr << "Started incremental object learning with parameters: " << std::endl
          << "===================================================" << std::endl
          << "radius: " << param_.radius_ << std::endl
          << "eps_angle: " << param_.eps_angle_ << std::endl
