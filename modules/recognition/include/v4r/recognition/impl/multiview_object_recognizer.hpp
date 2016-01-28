@@ -511,6 +511,8 @@ MultiviewRecognizer<PointT>::recognize ()
        hv_algorithm_3d = boost::dynamic_pointer_cast<GO3D<PointT, PointT>> (hv_algorithm_);
 
     if ( hv_algorithm_3d ) {
+        initHVFilters();
+
         NguyenNoiseModel<PointT> nm (nm_param_);
         nm.setInputCloud(v.scene_);
         nm.setInputNormals( v.scene_normals_);
@@ -530,6 +532,16 @@ MultiviewRecognizer<PointT>::recognize ()
             transforms_to_global [view_id] = v.absolute_pose_.inverse() * w.absolute_pose_;
             pt_properties [view_id ] = w.pt_properties_;
             view_id++;
+
+            if (param_.run_reconstruction_filter_) {
+                reconstructionFiltering(original_clouds [view_id ], normal_clouds [view_id],
+                        w.absolute_pose_, w_m.first);
+                NguyenNoiseModel<PointT> nm_again(nm_param_);
+                nm_again.setInputCloud(original_clouds [view_id ]);
+                nm_again.setInputNormals(normal_clouds [view_id]);
+                nm_again.compute();
+                pt_properties [view_id ] = nm_again.getPointProperties();
+            }
         }
 
 
@@ -567,6 +579,15 @@ MultiviewRecognizer<PointT>::recognize ()
             scene_normals_ = v.scene_normals_;
         }
 
+        if(param_.run_hypotheses_filter_) {
+            std::vector< std::vector<bool> > hypotheses_in_views(models_.size());
+            for(int mi = 0; mi < models_.size(); mi++) {
+                    Eigen::Matrix4f h_pose = v.absolute_pose_ * v.transforms_[mi];
+                    hypotheses_in_views[mi] = getHypothesisInViewsMask(models_[mi], h_pose, v.origin_view_id_[mi]);
+            }
+            hv_algorithm_3d->setVisibleCloudsForModels(hypotheses_in_views);
+        }
+
         hypothesisVerification();
         v.model_or_plane_is_verified_ = model_or_plane_is_verified_;
         v.transforms_ = transforms_; // save refined pose
@@ -578,6 +599,9 @@ MultiviewRecognizer<PointT>::recognize ()
     scene_normals_.reset();
 
     pruneGraph();
+    if ( hv_algorithm_3d ) {
+        cleanupHVFilters();
+    }
     id_++;
 }
 

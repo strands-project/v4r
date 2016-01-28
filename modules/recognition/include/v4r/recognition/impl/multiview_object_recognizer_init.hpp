@@ -105,6 +105,8 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
             ("normal_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "chosen normal computation method of the V4R library")
             ("octree_radius", po::value<float>(&nmInt_param_.octree_resolution_)->default_value(nmInt_param_.octree_resolution_, boost::str(boost::format("%.2e") % nmInt_param_.octree_resolution_)), "resolution of the octree in the noise model based cloud registration used for hypothesis verification")
             ("edge_radius_px", po::value<float>(&nmInt_param_.edge_radius_px_)->default_value(nmInt_param_.edge_radius_px_, boost::str(boost::format("%.2e") % nmInt_param_.edge_radius_px_)), "points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed in the noise model based cloud registration used for hypothesis verification")
+            ("run_hypotheses_filter", po::value<bool>(&param_.run_hypotheses_filter_)->default_value(param_.run_hypotheses_filter_), "run hypotheses pre-filtering before verification")
+            ("run_reconstruction_filter", po::value<bool>(&param_.run_reconstruction_filter_)->default_value(param_.run_reconstruction_filter_), "run extra filtering before reconstruction")
    ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();

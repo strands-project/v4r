@@ -146,6 +146,8 @@ public:
         int max_vertices_in_graph_; /// @brief maximum number of views taken into account (views selected in order of latest recognition calls)
         double chop_z_;  /// @brief points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
         bool compute_mst_; /// @brief if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud
+        bool run_reconstruction_filter_; /// @brief run special filtering before reconstruction. This filtering must be implemented by derived class.
+        bool run_hypotheses_filter_; /// @brief run hypotheses pre-filtering before verification. This filtering must be implemented by derived class.
 
         Parameter (
                 bool scene_to_scene = true,
@@ -157,7 +159,9 @@ public:
                 int extension_mode = 0,
                 int max_vertices_in_graph = 3,
                 double chop_z = std::numeric_limits<double>::max(),
-                bool compute_mst = true
+                bool compute_mst = true,
+                bool run_reconstruction_filter = false,
+                bool run_hypotheses_filter = false
                 ) :
 
             Recognizer<PointT>::Parameter(),
@@ -170,7 +174,9 @@ public:
             extension_mode_ (extension_mode),
             max_vertices_in_graph_ (max_vertices_in_graph),
             chop_z_ (chop_z),
-            compute_mst_ (compute_mst)
+            compute_mst_ (compute_mst),
+            run_reconstruction_filter_(run_reconstruction_filter),
+            run_hypotheses_filter_(run_hypotheses_filter)
         {}
     }param_;
 
@@ -250,6 +256,24 @@ public:
     }
 
     void recognize();
+
+    virtual void initHVFilters() {
+        // nothing by default - implementation expected in derived class
+    }
+
+    virtual void cleanupHVFilters() {
+        // nothing by default - implementation expected in derived class
+    }
+
+    virtual void reconstructionFiltering(typename pcl::PointCloud<PointT>::Ptr observation,
+            pcl::PointCloud<pcl::Normal>::Ptr observation_normals, const Eigen::Matrix4f &absolute_pose, size_t view_id) {
+        // nothing by default - implementation expected in derived class
+    }
+
+    virtual std::vector<bool> getHypothesisInViewsMask(ModelTPtr model, const Eigen::Matrix4f &pose, size_t origin_id) {
+        // nothing by default - implementation expected in derived class
+        return std::vector<bool>(views_.size(), true);
+    }
 };
 }
 
