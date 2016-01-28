@@ -23,7 +23,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>3</number>
+    <number>2</number>
    </property>
    <widget class="QWidget" name="sensorTab">
     <attribute name="title">
@@ -464,10 +464,10 @@
       </rect>
      </property>
      <property name="text">
-      <string>Minimal weight for noise model integration</string>
+      <string>Radius for point removal at discontinuity edges  [px]</string>
      </property>
     </widget>
-    <widget class="QLineEdit" name="nmMinWeight">
+    <widget class="QLineEdit" name="edge_radius_px">
      <property name="geometry">
       <rect>
        <x>32</x>
@@ -477,7 +477,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>0.8</string>
+      <string>3</string>
      </property>
     </widget>
    </widget>

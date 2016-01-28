@@ -1,6 +1,6 @@
 #include <v4r/features/uniform_sampling_extractor.h>
+#include <v4r/features/uniform_sampling.h>
 #include <pcl/common/centroid.h>
-#include <pcl/keypoints/uniform_sampling.h>
 
 namespace v4r
 {

@@ -127,7 +127,7 @@ MultiRecognitionPipeline<PointT>::recognize()
 {
     models_.clear();
     transforms_.clear();
-    std::vector<int> input_icp_indices;
+//    std::vector<int> input_icp_indices;
     obj_hypotheses_.clear();
     scene_keypoints_.reset(new pcl::PointCloud<PointT>);
     scene_kp_normals_.reset(new pcl::PointCloud<pcl::Normal>);

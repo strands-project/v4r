@@ -7,6 +7,8 @@
 #include <opencv2/opencv.hpp>
 #include <v4r/common/pcl_opencv.h>
 
+#include <omp.h>
+
 namespace v4r {
 
 template<typename PointT>

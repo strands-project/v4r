@@ -77,7 +77,7 @@ void Params::apply_params()
   emit segmentation_parameter_changed(seg_params);
   emit object_modelling_parameter_changed(om_params);
   emit set_roi_params(ui->roi_scale_xy->text().toFloat(), ui->roi_scale_height->text().toFloat(), ui->roi_offs->text().toFloat());
-  emit set_segmentation_params(ui->use_roi_segm->isChecked(), ui->roi_offs->text().toFloat(), ui->use_dense_mv->isChecked(),ui->nmMinWeight->text().toFloat());
+  emit set_segmentation_params(ui->use_roi_segm->isChecked(), ui->roi_offs->text().toFloat(), ui->use_dense_mv->isChecked(),ui->edge_radius_px->text().toFloat());
   emit set_cb_param(ui->model_create_cb->isChecked(), ui->model_rnn_thr->text().toFloat());
 }
 

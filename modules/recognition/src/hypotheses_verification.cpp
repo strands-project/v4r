@@ -1,4 +1,5 @@
 #include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/features/uniform_sampling.h>
 
 namespace v4r
 {

@@ -12,14 +12,13 @@
 
 #include <v4r/common/organized_edge_detection.h>
 #include <v4r/core/macros.h>
-#include <v4r/registration/uniform_sampling.h>
 
 #include <pcl/common/angles.h>
 #include <pcl/common/common.h>
 #include <pcl/common/time.h>
-#include <pcl/keypoints/uniform_sampling.h>
 #include <pcl/registration/correspondence_estimation.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <v4r/registration/uniform_sampling.h>
 
 namespace v4r
 {
