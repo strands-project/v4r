@@ -426,8 +426,8 @@ filterVector(const std::vector<T> &in, const std::vector<int> &indices)
 {
     typename std::vector<T> out(in.size());
     size_t kept;
-    for(const auto &idx : indices)
-        out[kept++] = in[idx];
+    for(size_t i = 0; i < indices.size(); i++)
+        out[kept++] = in[ indices[i] ];
 
     out.resize(kept);
     return out;
