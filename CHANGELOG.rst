@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.1 (2016-02-01)
+------------------
 * Merge pull request `#58 <https://github.com/strands-project/v4r/issues/58>`_ from strands-project/fix1
   initialize counter variable
 * initialize counter variable
