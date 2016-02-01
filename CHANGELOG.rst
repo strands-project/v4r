@@ -2,6 +2,28 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#58 <https://github.com/strands-project/v4r/issues/58>`_ from strands-project/fix1
+  initialize counter variable
+* initialize counter variable
+* Merge pull request `#57 <https://github.com/strands-project/v4r/issues/57>`_ from strands-project/remove_c+11_from_header
+  remove c++11 construct in header file
+* remove c++11 construct in header file
+* Merge pull request `#56 <https://github.com/strands-project/v4r/issues/56>`_ from strands-project/fix1
+  Fix1
+* add siftgpu as optional dependency in RTMT
+* copy uniform_sampling files from PCL 1.7.2 to make V4R also compile on PCL 1.8
+* updated RTMT noise model parameters
+* Merge remote-tracking branch 'v4r_root/master'
+* Merge branch 'dynamic_object_learning' into 'master'
+  Dynamic object learning
+  See merge request !50
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !49
+* Contributors: Thomas Fäulhammer
+
 1.4.0 (2016-01-27)
 ------------------
 * Merge pull request `#55 <https://github.com/strands-project/v4r/issues/55>`_ from strands-project/new_recognition_resolved_merge_conflict
