@@ -302,7 +302,7 @@ protected:
     computeClutterCueAtOnce ();
 
     bool
-    handlingNormals (HVRecognitionModel<ModelT> & recog_model);
+    removeNanNormals (HVRecognitionModel<ModelT> & recog_model);
 
     bool
     addModel (HVRecognitionModel<ModelT> &rm);
@@ -318,7 +318,6 @@ protected:
     bool scene_and_normals_set_from_outside_;
 
     //class attributes
-    typedef typename pcl::NormalEstimation<SceneT, pcl::Normal> NormalEstimator_;
     pcl::PointCloud<pcl::PointXYZL>::Ptr clusters_cloud_;
     int max_label_clusters_cloud_;
     pcl::PointCloud<pcl::PointXYZRGBA>::Ptr clusters_cloud_rgb_;
@@ -327,15 +326,15 @@ protected:
     std::vector<int> complete_cloud_occupancy_by_RM_;
 
     std::vector<double> duplicates_by_RM_weighted_;
-    std::vector<double> duplicates_by_RM_weighted_not_capped;
+    std::vector<double> duplicates_by_RM_weighted_not_capped_;
     std::vector<int> explained_by_RM_; //represents the points of scene_cloud_ that are explained by the recognition models
-    std::vector<double> explained_by_RM_distance_weighted; //represents the points of scene_cloud_ that are explained by the recognition models
-    std::vector<int> explained_by_RM_model; //id of the model explaining the point
-    std::vector< std::stack<std::pair<int, float>, std::vector<std::pair<int, float> > > > previous_explained_by_RM_distance_weighted; //represents the points of scene_cloud_ that are explained by the recognition models
-    std::vector<double> unexplained_by_RM_neighboorhods; //represents the points of scene_cloud_ that are not explained by the active hypotheses in the neighboorhod of the recognition models
+    std::vector<double> explained_by_RM_distance_weighted_; //represents the points of scene_cloud_ that are explained by the recognition models
+    std::vector<int> explained_by_RM_model_; //id of the model explaining the point
+    std::vector< std::stack<std::pair<int, float>, std::vector<std::pair<int, float> > > > previous_explained_by_RM_distance_weighted_; //represents the points of scene_cloud_ that are explained by the recognition models
+    std::vector<double> unexplained_by_RM_neighboorhods_; //represents the points of scene_cloud_ that are not explained by the active hypotheses in the neighboorhod of the recognition models
     //std::vector<size_t> indices_;
 
-    double previous_explained_value;
+    double previous_explained_value_;
     double previous_duplicity_;
     int previous_duplicity_complete_models_;
     double previous_bad_info_;
@@ -348,7 +347,9 @@ protected:
     size_t n_cc_;
     std::vector<std::vector<int> > cc_;
 
-    std::vector<std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > > points_explained_by_rm_; //if inner size > 1, conflict
+    int min_contribution_;
+
+    std::vector<std::vector<size_t> > rm_ids_explaining_scene_pt_; //if inner size > 1, conflict
 
     //mahalanobis stuff
     Eigen::MatrixXf inv_covariance_;
@@ -371,7 +372,7 @@ protected:
     void
     setPreviousExplainedValue (double v)
     {
-        previous_explained_value = v;
+        previous_explained_value_ = v;
     }
 
     void
@@ -401,7 +402,7 @@ protected:
     double
     getExplainedValue () const
     {
-        return previous_explained_value;
+        return previous_explained_value_;
     }
 
     double
@@ -420,18 +421,18 @@ protected:
     getExplainedByIndices (const std::vector<int> & indices,
                            const std::vector<float> & explained_values,
                            const std::vector<double> & explained_by_RM,
-                           std::vector<int> & indices_to_update_in_RM_local);
+                           std::vector<int> & indices_to_update_in_RM_local) const;
 
     void
-    getExplainedByRM (std::vector<double> & explained_by_rm)
+    getExplainedByRM (std::vector<double> & explained_by_rm) const
     {
-        explained_by_rm = explained_by_RM_distance_weighted;
+        explained_by_rm = explained_by_RM_distance_weighted_;
     }
 
     void
-    getUnexplainedByRM (std::vector<double> & explained_by_rm)
+    getUnexplainedByRM (std::vector<double> & explained_by_rm) const
     {
-        explained_by_rm = unexplained_by_RM_neighboorhods;
+        explained_by_rm = unexplained_by_RM_neighboorhods_;
     }
 
     void
@@ -484,21 +485,20 @@ protected:
     }
 
     void
-    updateExplainedVector (const std::vector<int> & vec, const std::vector<float> & vec_float, std::vector<int> & explained_,
-                           std::vector<double> & explained_by_RM_distance_weighted__not_used, float sign, int model_id);
+    updateExplainedVector (const std::vector<int> & vec, const std::vector<float> & vec_float, std::vector<int> & explained_, float sign, int model_id);
 
     void
     updateCMDuplicity (const std::vector<int> & vec, std::vector<int> & occupancy_vec, float sign);
 
     double
-    getTotalExplainedInformation (const std::vector<int> & explained_, const std::vector<double> & explained_by_RM_distance_weighted, double &duplicity_);
+    getTotalExplainedInformation (const std::vector<int> & explained_, const std::vector<double> & explained_by_RM_distance_weighted_, double &duplicity_);
 
     double
-    getTotalBadInformation (std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > & recog_models)
+    getTotalBadInformation (const std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > & recog_models)
     {
         double bad_info = 0;
-        for (size_t i = 0; i < recog_models.size (); i++)
-            bad_info += recog_models[i]->outliers_weight_ * static_cast<double> (recog_models[i]->bad_information_);
+        for (size_t i = 0; i < recog_models.size(); i++)
+            bad_info += recog_models[i]->getOutliersWeight() * static_cast<double> (recog_models[i]->bad_information_);
 
         return bad_info;
     }
@@ -523,7 +523,7 @@ protected:
     SAOptimize (std::vector<int> & cc_indices, std::vector<bool> & sub_solution);
 
     void
-    fill_structures (std::vector<int> & cc_indices, const std::vector<bool> &sub_solution, GHVSAModel<ModelT, SceneT> & model);
+    fill_structures (const std::vector<bool> &sub_solution, GHVSAModel<ModelT, SceneT> & model);
 
     void
     clear_structures ();
@@ -541,13 +541,13 @@ protected:
 
     typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
 
-    int min_contribution_;
-    bool LS_short_circuit_;
-    std::vector<std::vector<float> > points_one_plane_sides_;
+    Eigen::MatrixXf points_on_plane_sides_;
 
     boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
 
-    void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval) const;
+    void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval);
+
+    void visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm) const;
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
 
@@ -567,7 +567,6 @@ protected:
 
     std::vector<std::string> ply_paths_;
     std::vector<vtkSmartPointer <vtkTransform> > poses_ply_;
-
     size_t number_of_visible_points_;
 
 
@@ -588,11 +587,23 @@ public:
     {
         initial_temp_ = 1000;
         requires_normals_ = false;
-        min_contribution_ = 0;
-        LS_short_circuit_ = false;
         visualize_accepted_ = false;
         scene_and_normals_set_from_outside_ = false;
+        min_contribution_ = 0;
     }
+
+    enum ColorSpace
+    {
+       LAB,
+       RGB,
+       GRAYSCALE
+    };
+
+    enum OutlierType
+    {
+       DIST,
+       COLOR
+    };
 
     void setMeanAndCovariance(const Eigen::VectorXf & mean, const Eigen::MatrixXf & cov)
     {
@@ -624,26 +635,13 @@ public:
         models_smooth_faces_ = aligned_smooth_faces;
     }
 
-    void setLSShortCircuit(bool b)
-    {
-        LS_short_circuit_ = b;
-    }
-
     void setNormalsForClutterTerm(pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {
         scene_normals_for_clutter_term_ = normals;
     }
 
-    void addPlanarModels(const std::vector<PlaneModel<ModelT> > &planar_models);
-
     void
-    setSmoothSegParameters (float t_eps, float curv_t, float dist_t, int min_points = 20)
-    {
-        param_.eps_angle_threshold_ = t_eps;
-        param_.min_points_ = min_points;
-        param_.curvature_threshold_ = curv_t;
-        param_.cluster_tolerance_ = dist_t;
-    }
+    addPlanarModels(std::vector<PlaneModel<ModelT> > &planar_models);
 
     void
     writeToLog (std::ofstream & of, bool all_costs_ = false)
@@ -651,11 +649,6 @@ public:
         cost_logger_->writeToLog (of);
         if (all_costs_)
             cost_logger_->writeEachCostToLog (of);
-    }
-
-    void setMinContribution(int min)
-    {
-        min_contribution_ = min;
     }
 
     /*void logCosts() {
@@ -681,7 +674,8 @@ public:
     }
 
 
-    void verify();
+    void
+    verify();
 
     void
     setInitialTemp (float t)
@@ -701,11 +695,11 @@ public:
     }
 
     void
-    getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud);
+    getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud) const;
 
     void
     getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_color,
-                                 std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_3d);
+                                 std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_3d) const;
 
 };
 }

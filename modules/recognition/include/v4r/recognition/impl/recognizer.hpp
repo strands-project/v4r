@@ -397,6 +397,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
     }
 
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
+    vis_->resetCamera();
     vis_->spin();
 }
 

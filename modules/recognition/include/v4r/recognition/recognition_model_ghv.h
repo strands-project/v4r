@@ -16,10 +16,10 @@ namespace v4r
       using HVRecognitionModel<ModelT>::unexplained_in_neighborhood;
       using HVRecognitionModel<ModelT>::unexplained_in_neighborhood_weights;
       using HVRecognitionModel<ModelT>::outlier_indices_;
-      using HVRecognitionModel<ModelT>::color_outliers_indices_;
-      using HVRecognitionModel<ModelT>::outliers_3d_indices_;
+      using HVRecognitionModel<ModelT>::outlier_indices_color_;
+      using HVRecognitionModel<ModelT>::outlier_indices_3d_;
       using HVRecognitionModel<ModelT>::complete_cloud_occupancy_indices_;
-      using HVRecognitionModel<ModelT>::scene_point_explained_by_hypothesis_;
+      using HVRecognitionModel<ModelT>::scene_pt_is_explained_;
       using HVRecognitionModel<ModelT>::visible_cloud_;
       using HVRecognitionModel<ModelT>::complete_cloud_;
       using HVRecognitionModel<ModelT>::visible_cloud_normals_;
@@ -30,12 +30,12 @@ namespace v4r
       using HVRecognitionModel<ModelT>::id_;
       using HVRecognitionModel<ModelT>::extra_weight_;
       using HVRecognitionModel<ModelT>::color_similarity_;
-      using HVRecognitionModel<ModelT>::median_;
-      using HVRecognitionModel<ModelT>::mean_;
+//      using HVRecognitionModel<ModelT>::median_;
+//      using HVRecognitionModel<ModelT>::mean_;
       using HVRecognitionModel<ModelT>::color_mapping_;
       using HVRecognitionModel<ModelT>::hyp_penalty_;
       using HVRecognitionModel<ModelT>::id_s_;
-      using HVRecognitionModel<ModelT>::cloud_color_channels_;
+      using HVRecognitionModel<ModelT>::pt_color_;
       using HVRecognitionModel<ModelT>::cloud_GS_;
       using HVRecognitionModel<ModelT>::min_contribution_;
       using HVRecognitionModel<ModelT>::normal_angle_histogram_;
@@ -46,8 +46,8 @@ namespace v4r
       using HVRecognitionModel<ModelT>::color_diff_trhough_specification_;
       using HVRecognitionModel<ModelT>::visible_labels_;
       using HVRecognitionModel<ModelT>::is_planar_;
-      using HVRecognitionModel<ModelT>::inlier_indices_;
-      using HVRecognitionModel<ModelT>::inlier_distances_;
+      using HVRecognitionModel<ModelT>::scene_inlier_indices_for_visible_pt_;
+      using HVRecognitionModel<ModelT>::scene_inlier_distances_for_visible_pt_;
       using HVRecognitionModel<ModelT>::plane_model_;
       using HVRecognitionModel<ModelT>::smooth_faces_;
 

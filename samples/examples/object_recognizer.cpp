@@ -84,7 +84,7 @@ main (int argc, char ** argv)
                 r.visualize();
 
             for(size_t m_id=0; m_id<verified_models.size(); m_id++)
-                LOG(INFO) << "********************" << verified_models[m_id]->id_ << std::endl;
+                std::cout << "********************" << verified_models[m_id]->id_ << std::endl;
         }
     }
 }

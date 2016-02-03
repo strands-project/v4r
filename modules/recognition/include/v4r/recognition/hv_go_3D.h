@@ -83,8 +83,8 @@ namespace v4r
     using GHV<ModelT, SceneT>::requires_normals_;
     using GHV<ModelT, SceneT>::scene_normals_;
     using GHV<ModelT, SceneT>::recognition_models_;
-    using GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods;
-    using GHV<ModelT, SceneT>::explained_by_RM_distance_weighted;
+    using GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods_;
+    using GHV<ModelT, SceneT>::explained_by_RM_distance_weighted_;
     using GHV<ModelT, SceneT>::explained_by_RM_;
     using GHV<ModelT, SceneT>::complete_cloud_occupancy_by_RM_;
     using GHV<ModelT, SceneT>::octree_scene_downsampled_;
@@ -92,7 +92,7 @@ namespace v4r
     using GHV<ModelT, SceneT>::n_cc_;
     using GHV<ModelT, SceneT>::clusters_cloud_rgb_;
     using GHV<ModelT, SceneT>::clusters_cloud_;
-    using GHV<ModelT, SceneT>::points_explained_by_rm_;
+    using GHV<ModelT, SceneT>::rm_ids_explaining_scene_pt_;
 
     //typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
@@ -102,12 +102,6 @@ namespace v4r
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_;
     mutable int vp1_, vp2_;
-
-    typedef pcl::PointCloud<ModelT> CloudM;
-    typedef pcl::PointCloud<SceneT> CloudS;
-    typedef typename pcl::traits::fieldList<typename CloudS::PointType>::type FieldListS;
-    typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
-    typedef typename pcl::NormalEstimation<SceneT, pcl::Normal> NormalEstimator_;
 
     public:
 
