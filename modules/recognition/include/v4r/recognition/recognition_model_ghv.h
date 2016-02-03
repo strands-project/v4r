@@ -11,8 +11,8 @@ namespace v4r
   class V4R_EXPORTS GHVRecognitionModel : public HVRecognitionModel<ModelT>
   {
     public:
-      using HVRecognitionModel<ModelT>::explained_;
-      using HVRecognitionModel<ModelT>::explained_distances_;
+      using HVRecognitionModel<ModelT>::explained_scene_indices_;
+      using HVRecognitionModel<ModelT>::distances_to_explained_scene_indices_;
       using HVRecognitionModel<ModelT>::unexplained_in_neighborhood;
       using HVRecognitionModel<ModelT>::unexplained_in_neighborhood_weights;
       using HVRecognitionModel<ModelT>::outlier_indices_;
@@ -27,14 +27,14 @@ namespace v4r
       using HVRecognitionModel<ModelT>::visible_indices_;
       using HVRecognitionModel<ModelT>::bad_information_;
       using HVRecognitionModel<ModelT>::outliers_weight_;
-      using HVRecognitionModel<ModelT>::id_;
+//      using HVRecognitionModel<ModelT>::id_;
       using HVRecognitionModel<ModelT>::extra_weight_;
       using HVRecognitionModel<ModelT>::color_similarity_;
 //      using HVRecognitionModel<ModelT>::median_;
 //      using HVRecognitionModel<ModelT>::mean_;
       using HVRecognitionModel<ModelT>::color_mapping_;
       using HVRecognitionModel<ModelT>::hyp_penalty_;
-      using HVRecognitionModel<ModelT>::id_s_;
+//      using HVRecognitionModel<ModelT>::id_s_;
       using HVRecognitionModel<ModelT>::pt_color_;
       using HVRecognitionModel<ModelT>::cloud_GS_;
       using HVRecognitionModel<ModelT>::min_contribution_;

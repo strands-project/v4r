@@ -22,8 +22,8 @@ namespace v4r
           {}
       }param_;
 
-      std::vector<int> explained_; /// @brief explained scene points by_RM_
-      std::vector<float> explained_distances_; /// @brief closest distances to the scene for point i
+      std::vector<int> explained_scene_indices_; /// @brief explained scene points by_RM_
+      std::vector<float> distances_to_explained_scene_indices_; /// @brief closest distances to the scene for point i
       std::vector<int> unexplained_in_neighborhood; /// @brief indices vector referencing unexplained_by_RM_neighboorhods
       std::vector<float> unexplained_in_neighborhood_weights; /// @brief weights for the points not being explained in the neighborhood of a hypothesis
       std::vector<int> outlier_indices_; /// @brief outlier indices of this model (coming from all types)
@@ -41,14 +41,14 @@ namespace v4r
 
       float bad_information_;
 //      float outliers_weight_;
-      size_t id_;
+//      size_t id_;
       float extra_weight_; /// @brief descriptor distance weight for instance
       float color_similarity_;
       float median_;
 //      float mean_;
       Eigen::MatrixXf color_mapping_;
       float hyp_penalty_;
-      std::string id_s_;
+//      std::string id_s_;
       Eigen::MatrixXf pt_color_;  /// @brief color values for each point in the scene (row_id). Width is equal to the number of color channels
       std::vector<float> cloud_GS_; /// @brief Grayscale cloud
       float min_contribution_; /// @brief based on the amount of explained points and the amount of information in the hypotheses
@@ -77,8 +77,8 @@ namespace v4r
           MEDIAN
       };
 
-      float
-      getOutliersWeight()
+      double
+      getOutliersWeight() const
       {
           if( outlier_indices_.empty() )
               return 1.f;
@@ -87,8 +87,9 @@ namespace v4r
               if (param_.outliers_weight_computation_method_ == OutliersWeightType::MEAN)
                   return std::accumulate (outliers_weight_.begin (), outliers_weight_.end (), 0.f) / static_cast<float> (outliers_weight_.size ());
               else { // use median
-                  std::sort(outliers_weight_.begin(), outliers_weight_.end());
-                  return outliers_weight_ [ outliers_weight_.size() / 2.f ];
+                  std::vector<float> outliers_weight = outliers_weight_;    // to keep the member function const
+                  std::sort(outliers_weight.begin(), outliers_weight.end());
+                  return outliers_weight [ outliers_weight.size() / 2.f ];
               }
           }
       }

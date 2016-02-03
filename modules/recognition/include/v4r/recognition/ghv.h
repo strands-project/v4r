@@ -357,65 +357,6 @@ protected:
 
     ColorTransformOMP color_transf_omp_;
 
-    void
-    setPreviousBadInfo (double f)
-    {
-        previous_bad_info_ = f;
-    }
-
-    double
-    getPreviousBadInfo () const
-    {
-        return previous_bad_info_;
-    }
-
-    void
-    setPreviousExplainedValue (double v)
-    {
-        previous_explained_value_ = v;
-    }
-
-    void
-    setPreviousDuplicity (double v)
-    {
-        previous_duplicity_ = v;
-    }
-
-    void
-    setPreviousDuplicityCM (int v)
-    {
-        previous_duplicity_complete_models_ = v;
-    }
-
-    void
-    setPreviousUnexplainedValue (double v)
-    {
-        previous_unexplained_ = v;
-    }
-
-    double
-    getPreviousUnexplainedValue () const
-    {
-        return previous_unexplained_;
-    }
-
-    double
-    getExplainedValue () const
-    {
-        return previous_explained_value_;
-    }
-
-    double
-    getDuplicity () const
-    {
-        return previous_duplicity_;
-    }
-
-    int
-    getDuplicityCM () const
-    {
-        return previous_duplicity_complete_models_;
-    }
 
     double
     getExplainedByIndices (const std::vector<int> & indices,
@@ -423,31 +364,19 @@ protected:
                            const std::vector<double> & explained_by_RM,
                            std::vector<int> & indices_to_update_in_RM_local) const;
 
-    void
-    getExplainedByRM (std::vector<double> & explained_by_rm) const
-    {
-        explained_by_rm = explained_by_RM_distance_weighted_;
-    }
 
     void
-    getUnexplainedByRM (std::vector<double> & explained_by_rm) const
+    updateUnexplainedVector (const std::vector<int> & unexplained, const std::vector<float> & unexplained_distances,
+                             const std::vector<int> & explained, int sign)
     {
-        explained_by_rm = unexplained_by_RM_neighboorhods_;
-    }
-
-    void
-    updateUnexplainedVector (const std::vector<int> & unexplained, const std::vector<float> & unexplained_distances, std::vector<double> & unexplained_by_RM,
-                             std::vector<int> & explained, std::vector<int> & explained_by_RM, float val)
-    {
-        double add_to_unexplained = 0.0;
+        double add_to_unexplained = 0.f;
 
         for (size_t i = 0; i < unexplained.size (); i++)
         {
+            bool prev_unexplained = (unexplained_by_RM_neighboorhods_[unexplained[i]] > 0) && (explained_by_RM_[unexplained[i]] == 0);
+            unexplained_by_RM_neighboorhods_[unexplained[i]] += (double) (sign * unexplained_distances[i]);
 
-            bool prev_unexplained = (unexplained_by_RM[unexplained[i]] > 0) && (explained_by_RM[unexplained[i]] == 0);
-            unexplained_by_RM[unexplained[i]] += val * unexplained_distances[i];
-
-            if (val < 0) //the hypothesis is being removed
+            if (sign < 0) //the hypothesis is being removed
             {
                 if (prev_unexplained)
                 {
@@ -457,38 +386,34 @@ protected:
             }
             else //the hypothesis is being added and unexplains unexplained_[i], so increase by 1 unless its explained by another hypothesis
             {
-                if (explained_by_RM[unexplained[i]] == 0)
+                if (explained_by_RM_[unexplained[i]] == 0)
                     add_to_unexplained += unexplained_distances[i];
             }
         }
 
         for (size_t i = 0; i < explained.size (); i++)
         {
-            if (val < 0)
+            if (sign < 0) //the hypothesis is being removed, check that there are no points that become unexplained and have clutter unexplained hypotheses
             {
-                //the hypothesis is being removed, check that there are no points that become unexplained and have clutter unexplained hypotheses
-                if ((explained_by_RM[explained[i]] == 0) && (unexplained_by_RM[explained[i]] > 0))
-                    add_to_unexplained += unexplained_by_RM[explained[i]]; //the points become unexplained
+                if ((explained_by_RM_[explained[i]] == 0) && (unexplained_by_RM_neighboorhods_[explained[i]] > 0))
+                    add_to_unexplained += unexplained_by_RM_neighboorhods_[explained[i]]; //the points become unexplained
             }
             else
             {
-                //std::cout << "being added..." << add_to_unexplained << " " << unexplained_by_RM[explained[i]] << std::endl;
-                if ((explained_by_RM[explained[i]] == 1) && (unexplained_by_RM[explained[i]] > 0))
+                if ((explained_by_RM_[explained[i]] == 1) && (unexplained_by_RM_neighboorhods_[explained[i]] > 0))
                 { //the only hypothesis explaining that point
-                    add_to_unexplained -= unexplained_by_RM[explained[i]]; //the points are not unexplained any longer because this hypothesis explains them
+                    add_to_unexplained -= unexplained_by_RM_neighboorhods_[explained[i]]; //the points are not unexplained any longer because this hypothesis explains them
                 }
             }
         }
-
-        //std::cout << add_to_unexplained << std::endl;
         previous_unexplained_ += add_to_unexplained;
     }
 
     void
-    updateExplainedVector (const std::vector<int> & vec, const std::vector<float> & vec_float, std::vector<int> & explained_, float sign, int model_id);
+    updateExplainedVector (const std::vector<int> & vec, const std::vector<float> & vec_float, int sign, int model_id);
 
     void
-    updateCMDuplicity (const std::vector<int> & vec, std::vector<int> & occupancy_vec, float sign);
+    updateCMDuplicity (const std::vector<int> & vec, int sign);
 
     double
     getTotalExplainedInformation (const std::vector<int> & explained_, const std::vector<double> & explained_by_RM_distance_weighted_, double &duplicity_);
@@ -550,6 +475,9 @@ protected:
     void visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm) const;
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
+
+    mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> rm_vis_;
+    mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6;
 
     std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> models_smooth_faces_;
 
@@ -655,17 +583,6 @@ public:
        cost_logger_.reset(new CostFunctionLogger());
        }*/
 
-    pcl::PointCloud<pcl::PointXYZL>::Ptr
-    getSmoothClusters () const
-    {
-        return clusters_cloud_;
-    }
-
-    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr
-    getSmoothClustersRGBCloud () const
-    {
-        return clusters_cloud_rgb_;
-    }
 
     void
     setRequiresNormals (bool b)

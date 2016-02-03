@@ -196,7 +196,7 @@ MultiRecognitionPipeline<PointT>::recognize()
 template<typename PointT>
 void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
 {
-    double t_start = omp_get_wtime();
+    pcl::ScopeTime t("Correspondence Grouping");
 
     std::vector<ObjectHypothesis<PointT> > ohs(obj_hypotheses_.size());
 
@@ -281,10 +281,6 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
 
         //        oh.visualize(*scene_);
     }
-
-    double t_stop = omp_get_wtime();
-
-    std::cout << "Correspondence Grouping took " <<  t_stop - t_start << std::endl;
 }
 
 template<typename PointT>

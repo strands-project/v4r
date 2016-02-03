@@ -47,6 +47,7 @@
 
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
+#include <sstream>
 
 namespace v4r
 {
@@ -78,6 +79,12 @@ Recognizer<PointT>::hypothesisVerification ()
         pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models_[i]->getNormalsAssembled (hv_algorithm_->getResolution());
         transformNormals(*normal_cloud_const, *aligned_normal_tmp, transforms_[i]);
         aligned_model_normals[i] = aligned_normal_tmp;
+
+        std::stringstream normal_fn; normal_fn << "/tmp/hv_input/normal_" << std::setfill('0') << std::setw(5) << i << ".pcd";
+        v4r::io::createDirForFileIfNotExist(normal_fn.str());
+        pcl::io::savePCDFileBinary(normal_fn.str(), *aligned_normal_tmp);
+        std::stringstream cloud_fn; cloud_fn << "/tmp/hv_input/cloud_" << std::setfill('0') << std::setw(5) << i << ".pcd";
+        pcl::io::savePCDFileBinary(cloud_fn.str(), *aligned_model_tmp);
     }
 
 
