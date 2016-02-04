@@ -14,24 +14,7 @@ MultiRecognitionPipeline<PointT>::initialize(bool force_retrain)
     for(auto &r:recognizers_)
         r->initialize(force_retrain);
 
-    if(param_.icp_iterations_ > 0 && param_.icp_type_ == 1)
-    {
-        for(size_t i=0; i < recognizers_.size(); i++)
-            recognizers_[i]->getDataSource()->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
-    }
     return true;
-}
-
-template<typename PointT>
-void
-MultiRecognitionPipeline<PointT>::getPoseRefinement(
-        const std::vector<ModelTPtr> &models,
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms)
-{
-    models_ = models;
-    transforms_ = transforms;
-    poseRefinement();
-    transforms = transforms_; //is this neccessary?
 }
 
 template<typename PointT>
@@ -179,11 +162,8 @@ MultiRecognitionPipeline<PointT>::recognize()
     {
         correspondenceGrouping();
 
-        if (param_.icp_iterations_ > 0 || hv_algorithm_) //Prepare scene and model clouds for the pose refinement step
+        if (hv_algorithm_) //Prepare scene and model clouds for the pose refinement step
             getDataSource()->voxelizeAllModels (param_.voxel_size_icp_);
-
-        if ( param_.icp_iterations_ > 0 )
-            poseRefinement();
 
         if ( hv_algorithm_ && models_.size() )
             hypothesisVerification();

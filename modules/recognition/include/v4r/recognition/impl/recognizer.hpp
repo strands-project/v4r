@@ -79,12 +79,11 @@ Recognizer<PointT>::hypothesisVerification ()
         pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models_[i]->getNormalsAssembled (hv_algorithm_->getResolution());
         transformNormals(*normal_cloud_const, *aligned_normal_tmp, transforms_[i]);
         aligned_model_normals[i] = aligned_normal_tmp;
-
-        std::stringstream normal_fn; normal_fn << "/tmp/hv_input/normal_" << std::setfill('0') << std::setw(5) << i << ".pcd";
-        v4r::io::createDirForFileIfNotExist(normal_fn.str());
-        pcl::io::savePCDFileBinary(normal_fn.str(), *aligned_normal_tmp);
-        std::stringstream cloud_fn; cloud_fn << "/tmp/hv_input/cloud_" << std::setfill('0') << std::setw(5) << i << ".pcd";
-        pcl::io::savePCDFileBinary(cloud_fn.str(), *aligned_model_tmp);
+//        std::stringstream normal_fn; normal_fn << "/tmp/hv_input/normal_" << std::setfill('0') << std::setw(5) << i << ".pcd";
+//        v4r::io::createDirForFileIfNotExist(normal_fn.str());
+//        pcl::io::savePCDFileBinary(normal_fn.str(), *aligned_normal_tmp);
+//        std::stringstream cloud_fn; cloud_fn << "/tmp/hv_input/cloud_" << std::setfill('0') << std::setw(5) << i << ".pcd";
+//        pcl::io::savePCDFileBinary(cloud_fn.str(), *aligned_model_tmp);
     }
 
 
@@ -101,6 +100,7 @@ Recognizer<PointT>::hypothesisVerification ()
         hv_algorithm_ghv->setNormalsForClutterTerm(scene_normals_);
 
         if( hv_algorithm_ghv->param_.add_planes_ ) {
+            planes_.clear();
             if( hv_algorithm_ghv->param_.plane_method_ == 0 ) {
                 MultiPlaneSegmentation<PointT> mps;
                 mps.setInputCloud( scene_ );
@@ -122,139 +122,19 @@ Recognizer<PointT>::hypothesisVerification ()
                 ClusterNormalsToPlanesPCL<PointT> pest(p_param);
                 pest.compute(scene_, *scene_normals_, planes_);
             }
-
             hv_algorithm_ghv->addPlanarModels(planes_);
         }
-
     }
 
     hv_algorithm_->verify ();
     hv_algorithm_->getMask (model_or_plane_is_verified_);
-}
 
+    std::vector<boost::shared_ptr<Eigen::Matrix4f> > refined_transforms = hv_algorithm_->getRefinedTransforms();
 
-template<typename PointT>
-void
-Recognizer<PointT>::poseRefinement()
-{
-    PointTPtr scene_voxelized (new pcl::PointCloud<PointT> ());
-    pcl::VoxelGrid<PointT> voxel_grid_icp;
-    voxel_grid_icp.setInputCloud (scene_);
-    voxel_grid_icp.setLeafSize (param_.voxel_size_icp_, param_.voxel_size_icp_, param_.voxel_size_icp_);
-    voxel_grid_icp.filter (*scene_voxelized);
-
-    switch (param_.icp_type_)
+    for(size_t i=0; i<refined_transforms.size(); i++)
     {
-    case 0:
-    {
-#pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
-        for (size_t i = 0; i < models_.size (); i++)
-        {
-//            std::cout << "Doing ICP (type 0) for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
-            ConstPointTPtr model_cloud = models_[i]->getAssembled ( param_.resolution_mm_model_assembly_ );
-            PointTPtr model_aligned (new pcl::PointCloud<PointT>);
-            pcl::transformPointCloud (*model_cloud, *model_aligned, transforms_[i]);
-
-            typename pcl::registration::CorrespondenceRejectorSampleConsensus<PointT>::Ptr
-                    rej (new pcl::registration::CorrespondenceRejectorSampleConsensus<PointT> ());
-
-            rej->setInputTarget (scene_voxelized);
-            rej->setMaximumIterations (1000);
-            rej->setInlierThreshold (0.005f);
-            rej->setInputSource (model_aligned);
-
-            pcl::IterativeClosestPoint<PointT, PointT> reg;
-            reg.addCorrespondenceRejector (rej);
-            reg.setInputTarget (scene_voxelized);
-            reg.setInputSource (model_aligned);
-            reg.setMaximumIterations (param_.icp_iterations_);
-            reg.setMaxCorrespondenceDistance (param_.max_corr_distance_);
-
-            typename pcl::PointCloud<PointT>::Ptr output_ (new pcl::PointCloud<PointT> ());
-            reg.align (*output_);
-
-            Eigen::Matrix4f icp_trans = reg.getFinalTransformation ();
-            transforms_[i] = icp_trans * transforms_[i];
-        }
-    }
-        break;
-    default:
-    {
-#pragma omp parallel for schedule(dynamic,1) num_threads(omp_get_num_procs())
-        for (size_t i = 0; i < models_.size(); i++)
-        {
-//            std::cout << "Doing ICP for model " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
-            typename VoxelBasedCorrespondenceEstimation<PointT, PointT>::Ptr
-                    est (new VoxelBasedCorrespondenceEstimation<PointT, PointT> ());
-
-            typename pcl::registration::CorrespondenceRejectorSampleConsensus<PointT>::Ptr
-                    rej (new pcl::registration::CorrespondenceRejectorSampleConsensus<PointT> ());
-
-            Eigen::Matrix4f scene_to_model_trans = transforms_[i].inverse ();
-            boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > dt;
-            models_[i]->getVGDT (dt);
-
-            PointTPtr model_aligned (new pcl::PointCloud<PointT>);
-            PointTPtr scene_voxelized_icp_cropped (new pcl::PointCloud<PointT>);
-            typename pcl::PointCloud<PointT>::ConstPtr cloud;
-            dt->getInputCloud(cloud);
-            model_aligned.reset(new pcl::PointCloud<PointT>(*cloud));
-
-            pcl::transformPointCloud (*scene_voxelized, *scene_voxelized_icp_cropped, scene_to_model_trans);
-
-            PointT minPoint, maxPoint;
-            pcl::getMinMax3D(*cloud, minPoint, maxPoint);
-            minPoint.x -= param_.max_corr_distance_;
-            minPoint.y -= param_.max_corr_distance_;
-            minPoint.z -= param_.max_corr_distance_;
-
-            maxPoint.x += param_.max_corr_distance_;
-            maxPoint.y += param_.max_corr_distance_;
-            maxPoint.z += param_.max_corr_distance_;
-
-            pcl::CropBox<PointT> cropFilter;
-            cropFilter.setInputCloud (scene_voxelized_icp_cropped);
-            cropFilter.setMin(minPoint.getVector4fMap());
-            cropFilter.setMax(maxPoint.getVector4fMap());
-            cropFilter.filter (*scene_voxelized_icp_cropped);
-
-            est->setVoxelRepresentationTarget (dt);
-            est->setInputSource (scene_voxelized_icp_cropped);
-            est->setInputTarget (model_aligned);
-            est->setMaxCorrespondenceDistance (param_.max_corr_distance_);
-
-            rej->setInputSource (scene_voxelized_icp_cropped);
-            rej->setInputTarget (model_aligned);
-            rej->setMaximumIterations (1000);
-            rej->setInlierThreshold (0.005f);
-
-            pcl::IterativeClosestPoint<PointT, PointT, float> reg;
-            reg.setCorrespondenceEstimation (est);
-            reg.addCorrespondenceRejector (rej);
-            reg.setInputTarget (model_aligned);
-            reg.setInputSource (scene_voxelized_icp_cropped);
-            reg.setMaximumIterations (param_.icp_iterations_);
-            reg.setEuclideanFitnessEpsilon(1e-5);
-            reg.setTransformationEpsilon(0.001f * 0.001f);
-
-            pcl::registration::DefaultConvergenceCriteria<float>::Ptr convergence_criteria;
-            convergence_criteria = reg.getConvergeCriteria();
-            convergence_criteria->setAbsoluteMSE(1e-12);
-            convergence_criteria->setMaximumIterationsSimilarTransforms(15);
-            convergence_criteria->setFailureAfterMaximumIterations(false);
-
-            typename pcl::PointCloud<PointT>::Ptr output_ (new pcl::PointCloud<PointT> ());
-            reg.align (*output_);
-
-            std::cout << "ICP: iterations: " << param_.icp_iterations_ << ", fitness_score: " << reg.getFitnessScore() << std::endl;
-
-            Eigen::Matrix4f icp_trans;
-            icp_trans = reg.getFinalTransformation () * scene_to_model_trans;
-            transforms_[i] = icp_trans.inverse ();
-            //        std::cout << "Done ICP for model  " << models_[i]->id_ << " (" << i << " / " << models_.size() << ")" << std::endl;
-
-        }
-    }
+        if ( i < refined_transforms.size() && refined_transforms[i])
+            transforms_[i] = *refined_transforms[i] * transforms_[i];
     }
 }
 

@@ -36,11 +36,10 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
     float resolution = 0.005f;
     std::string models_dir;
 
-    typename GHV<pcl::PointXYZRGB, pcl::PointXYZRGB>::Parameter paramGHV;
-    typename GraphGeometricConsistencyGrouping<pcl::PointXYZRGB, pcl::PointXYZRGB>::Parameter paramGgcg;
-    typename LocalRecognitionPipeline<pcl::PointXYZRGB>::Parameter paramLocalRecSift;
-    typename LocalRecognitionPipeline<pcl::PointXYZRGB>::Parameter paramLocalRecShot;
-    typename SHOTLocalEstimationOMP<pcl::PointXYZRGB>::Parameter paramLocalEstimator;
+    typename GHV<PointT, PointT>::Parameter paramGHV;
+    typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter paramGgcg;
+    typename LocalRecognitionPipeline<PointT>::Parameter paramLocalRecSift, paramLocalRecShot;
+    typename SHOTLocalEstimationOMP<PointT>::Parameter paramLocalEstimator;
 
     paramGgcg.max_time_allowed_cliques_comptutation_ = 100;
     paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;
@@ -58,8 +57,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
     //                ("do_ourcvfh", po::value<bool>(&do_ourcvfh)->default_value(false), "if true, generates hypotheses using OurCVFH (global geometrical properties, requires segmentation!)")
             ("knn_sift", po::value<size_t>(&paramLocalRecSift.knn_)->default_value(paramLocalRecSift.knn_), "sets the number k of matches for each extracted SIFT feature to its k nearest neighbors")
             ("knn_shot", po::value<size_t>(&paramLocalRecShot.knn_)->default_value(paramLocalRecShot.knn_), "sets the number k of matches for each extracted SHOT feature to its k nearest neighbors")
-            ("icp_iterations", po::value<int>(&param_.icp_iterations_)->default_value(param_.icp_iterations_), "number of icp iterations. If 0, no pose refinement will be done")
-            ("icp_type", po::value<int>(&param_.icp_type_)->default_value(param_.icp_type_), "defines the icp method being used for pose refinement (0... regular ICP with CorrespondenceRejectorSampleConsensus, 1... crops point cloud of the scene to the bounding box of the model that is going to be refined)")
+            ("icp_iterations", po::value<int>(&paramGHV.icp_iterations_)->default_value(paramGHV.icp_iterations_), "number of icp iterations. If 0, no pose refinement will be done")
             ("max_corr_distance", po::value<double>(&param_.max_corr_distance_)->default_value(param_.max_corr_distance_,  boost::str(boost::format("%.2e") % param_.max_corr_distance_)), "defines the margin for the bounding box used when doing pose refinement with ICP of the cropped scene to the model")
             ("merge_close_hypotheses", po::value<bool>(&param_.merge_close_hypotheses_)->default_value(param_.merge_close_hypotheses_), "if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined")
             ("merge_close_hypotheses_dist", po::value<double>(&param_.merge_close_hypotheses_dist_)->default_value(param_.merge_close_hypotheses_dist_, boost::str(boost::format("%.2e") % param_.merge_close_hypotheses_dist_)), "defines the maximum distance of the centroids in meter for clusters to be merged together")

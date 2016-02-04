@@ -50,8 +50,6 @@ namespace v4r
         class V4R_EXPORTS Parameter
         {
         public:
-            int icp_iterations_;    /// @brief number of icp iterations. If 0, no pose refinement will be done.
-            int icp_type_; /// @brief defines the icp method being used for pose refinement (0... regular ICP with CorrespondenceRejectorSampleConsensus, 1... crops point cloud of the scene to the bounding box of the model that is going to be refined)
             double voxel_size_icp_;
             double max_corr_distance_; /// @brief defines the margin for the bounding box used when doing pose refinement with ICP of the cropped scene to the model
             int normal_computation_method_; /// @brief chosen normal computation method of the V4R library
@@ -61,8 +59,6 @@ namespace v4r
             int resolution_mm_model_assembly_; /// @brief the resolution in millimeters of the model when it gets assembled into a point cloud
 
             Parameter(
-                    int icp_iterations = 0,
-                    int icp_type = 0,
                     double voxel_size_icp = 0.0025f,
                     double max_corr_distance = 0.03f,
                     int normal_computation_method = 2,
@@ -70,9 +66,7 @@ namespace v4r
                     double merge_close_hypotheses_dist = 0.02f,
                     double merge_close_hypotheses_angle = 10.f,
                     int resolution_mm_model_assembly = 3)
-                : icp_iterations_ (icp_iterations),
-                  icp_type_ (icp_type),
-                  voxel_size_icp_ (voxel_size_icp),
+                : voxel_size_icp_ (voxel_size_icp),
                   max_corr_distance_ (max_corr_distance),
                   normal_computation_method_ (normal_computation_method),
                   merge_close_hypotheses_ (merge_close_hypotheses),
@@ -114,7 +108,6 @@ namespace v4r
         /** \brief Hypotheses verification algorithm */
         typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > hv_algorithm_;
 
-        void poseRefinement();
         void hypothesisVerification ();
 
 

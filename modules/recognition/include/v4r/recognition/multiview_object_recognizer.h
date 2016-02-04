@@ -73,8 +73,6 @@ protected:
     using Recognizer<PointT>::transforms_;
     using Recognizer<PointT>::planes_;
     using Recognizer<PointT>::hv_algorithm_;
-
-    using Recognizer<PointT>::poseRefinement;
     using Recognizer<PointT>::hypothesisVerification;
 
     boost::shared_ptr<MultiRecognitionPipeline<PointT> > rr_;
@@ -132,8 +130,6 @@ public:
     class Parameter : public Recognizer<PointT>::Parameter
     {
     public:
-        using Recognizer<PointT>::Parameter::icp_iterations_;
-        using Recognizer<PointT>::Parameter::icp_type_;
         using Recognizer<PointT>::Parameter::normal_computation_method_;
         using Recognizer<PointT>::Parameter::voxel_size_icp_;
         using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
@@ -178,10 +174,8 @@ public:
         {}
     }param_;
 
-    MultiviewRecognizer(const Parameter &p = Parameter()) : Recognizer<PointT>(p){
+    MultiviewRecognizer(const Parameter &p = Parameter()) : Recognizer<PointT>(p), id_(0), pose_(Eigen::Matrix4f::Identity()){
         param_ = p;
-        id_ = 0;
-        pose_ = Eigen::Matrix4f::Identity();
     }
 
     MultiviewRecognizer(int argc, char ** argv);

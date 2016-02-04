@@ -501,17 +501,7 @@ MultiviewRecognizer<PointT>::recognize ()
             view_id++;
         }
 
-        //obtain big cloud and occlusion clouds based on noise model integration
 
-        typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
-        NMBasedCloudIntegration<PointT> nmIntegration (nmInt_param_);
-        nmIntegration.setInputClouds(original_clouds);
-        nmIntegration.setTransformations(transforms_to_global);
-        nmIntegration.setInputNormals(normal_clouds);
-        nmIntegration.setPointProperties(pt_properties);
-        nmIntegration.compute(octree_cloud);
-        pcl::PointCloud<pcl::Normal>::Ptr big_normals(new pcl::PointCloud<pcl::Normal>);
-        nmIntegration.getOutputNormals(big_normals);
 
         std::vector<typename pcl::PointCloud<PointT>::ConstPtr> occlusion_clouds (original_clouds.size());
         for(size_t i=0; i < original_clouds.size(); i++)
@@ -520,12 +510,17 @@ MultiviewRecognizer<PointT>::recognize ()
         hv_algorithm_3d->setOcclusionClouds( occlusion_clouds );
         hv_algorithm_3d->setAbsolutePoses( transforms_to_global );
 
-        //Instantiate HV go 3D, reimplement addModels that will reason about occlusions
-        //Set occlusion cloudS!!
-        //Set the absolute poses so we can go from the global coordinate system to the occlusion clouds
-        //TODO: Normals might be a problem!! We need normals from the models and normals from the scene, correctly oriented!
-        //right now, all normals from the scene will be oriented towards some weird 0, same for models actually
    if (views_.size() > 1 ) { // don't do this if there is only one view otherwise point cloud is not kept organized and multi-plane segmentation takes longer
+            //obtain big cloud and occlusion clouds based on noise model integration
+            typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
+            NMBasedCloudIntegration<PointT> nmIntegration (nmInt_param_);
+            nmIntegration.setInputClouds(original_clouds);
+            nmIntegration.setTransformations(transforms_to_global);
+            nmIntegration.setInputNormals(normal_clouds);
+            nmIntegration.setPointProperties(pt_properties);
+            nmIntegration.compute(octree_cloud);
+            pcl::PointCloud<pcl::Normal>::Ptr big_normals(new pcl::PointCloud<pcl::Normal>);
+            nmIntegration.getOutputNormals(big_normals);
             scene_ = octree_cloud;
             scene_normals_ = big_normals;
         }
@@ -535,9 +530,6 @@ MultiviewRecognizer<PointT>::recognize ()
         }
     }
 
-    if ( param_.icp_iterations_ > 0 )
-        poseRefinement();
-
     if ( hv_algorithm_ && !models_.empty() ) {
         if( !hv_algorithm_3d ) {
             scene_ = v.scene_;
@@ -546,6 +538,7 @@ MultiviewRecognizer<PointT>::recognize ()
 
         hypothesisVerification();
         v.model_or_plane_is_verified_ = model_or_plane_is_verified_;
+        v.transforms_ = transforms_; // save refined pose
 
         if( hv_algorithm_3d && hv_algorithm_3d->param_.visualize_cues_)
             hv_algorithm_3d->visualize();

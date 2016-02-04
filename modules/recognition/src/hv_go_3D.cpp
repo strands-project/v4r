@@ -88,6 +88,11 @@ GO3D<ModelT, SceneT>::addModels  (std::vector<typename pcl::PointCloud<ModelT>::
     size_t existing_models = recognition_models_.size();
     recognition_models_.resize( existing_models + models.size() );
 
+    if(param_.icp_iterations_) {
+        refined_model_transforms_.clear();
+        refined_model_transforms_.resize( models.size() );
+    }
+
     //pcl::visualization::PCLVisualizer vis ("all visible model points");
 
     #pragma omp parallel for schedule (dynamic)
@@ -95,52 +100,71 @@ GO3D<ModelT, SceneT>::addModels  (std::vector<typename pcl::PointCloud<ModelT>::
     {
         recognition_models_[existing_models + i].reset(new GHVRecognitionModel<ModelT>);
         HVRecognitionModel<ModelT> &rm = *recognition_models_[existing_models + i];
+
         rm.is_planar_ = false;
         rm.complete_cloud_.reset(new pcl::PointCloud<ModelT>(*models[i]));
         rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
+        bool redo;
 
-        if (!param_.do_occlusion_reasoning_)   // just copy complete models
-            *rm.visible_cloud_ = *models[i];
-        else
+        do
         {
-            rm.visible_indices_.clear();
-            std::vector<bool> model_point_is_visible (models[i]->points.size(), false);
-
-            for(size_t k=0; k < occ_clouds_.size(); k++)
+            redo = false;
+            if (!param_.do_occlusion_reasoning_)   // just copy complete models
+                *rm.visible_cloud_ = *models[i];
+            else
             {
-                if (model_is_present_in_view_.size() == models.size() &&
-                        model_is_present_in_view_[i].size() == occ_clouds_.size() &&
-                        !model_is_present_in_view_[i][k])   // if model is not present in view k (scene not static), it does not make sense to check for occlusion
-                    continue;
+                rm.visible_indices_.clear();
+                std::vector<bool> model_point_is_visible (models[i]->points.size(), false);
 
-                //transform model to camera coordinate
-                const Eigen::Matrix4f &trans = absolute_camera_poses_[k].inverse();
-                typename pcl::PointCloud<ModelT> model_in_view_coordinates;
-                pcl::transformPointCloud(*models[i], model_in_view_coordinates, trans);
+                for(size_t k=0; k < occ_clouds_.size(); k++)
+                {
+                    if (model_is_present_in_view_.size() == models.size() &&
+                            model_is_present_in_view_[i].size() == occ_clouds_.size() &&
+                            !model_is_present_in_view_[i][k])   // if model is not present in view k (scene not static), it does not make sense to check for occlusion
+                        continue;
 
-                std::vector<bool> pt_is_occluded = computeOccludedPoints(*occ_clouds_[k], model_in_view_coordinates, param_.focal_length_, param_.occlusion_thres_, true);
-                std::vector<bool> model_point_is_visible_in_occ_k(models[i]->points.size(), false);
+                    //transform model to camera coordinate
+                    const Eigen::Matrix4f &trans = absolute_camera_poses_[k].inverse();
+                    typename pcl::PointCloud<ModelT> model_in_view_coordinates;
+                    pcl::transformPointCloud(*models[i], model_in_view_coordinates, trans);
 
-                for(size_t idx=0; idx<model_point_is_visible.size(); idx++) {
-                    if ( !pt_is_occluded[idx] ) {
-                        model_point_is_visible[idx] = true;
-                        model_point_is_visible_in_occ_k[idx] = true;
+                    std::vector<bool> pt_is_occluded = computeOccludedPoints(*occ_clouds_[k], model_in_view_coordinates, param_.focal_length_, param_.occlusion_thres_, true);
+                    std::vector<bool> model_point_is_visible_in_occ_k(models[i]->points.size(), false);
+
+                    for(size_t idx=0; idx<model_point_is_visible.size(); idx++) {
+                        if ( !pt_is_occluded[idx] ) {
+                            model_point_is_visible[idx] = true;
+                            model_point_is_visible_in_occ_k[idx] = true;
+                        }
                     }
                 }
+                rm.visible_indices_ = createIndicesFromMask<int>( model_point_is_visible );
+                pcl::copyPointCloud(*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
             }
-            rm.visible_indices_ = createIndicesFromMask<int>( model_point_is_visible );
-            pcl::copyPointCloud(*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
 
-            if(normals_set_ && requires_normals_) {
-                rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> ());
-                pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
+            if(param_.icp_iterations_ && !refined_model_transforms_[i])
+            {
+                refined_model_transforms_[i].reset(new Eigen::Matrix4f (poseRefinement(rm)));
+
+                pcl::PointCloud<ModelT> aligned_cloud;
+                pcl::transformPointCloud(*rm.visible_cloud_, aligned_cloud, *refined_model_transforms_[i]);
+                *rm.visible_cloud_  = aligned_cloud;
+                pcl::transformPointCloud(*rm.complete_cloud_, aligned_cloud, *refined_model_transforms_[i]);
+                *rm.complete_cloud_ = aligned_cloud;
+                redo = true;
             }
         }
+        while(redo);
 
         // copy normals if provided
         if ( i<model_normals.size() )
         {
             rm.complete_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> (*model_normals[i]) );
+            rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> ());
+            pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
+
+            if (refined_model_transforms_[i])
+                v4r::transformNormals(*model_normals[i], *rm.complete_cloud_normals_, *refined_model_transforms_[i]);
 
             if (!param_.do_occlusion_reasoning_)   // just copy complete models
                 rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> (*rm.complete_cloud_normals_) );

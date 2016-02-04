@@ -134,7 +134,7 @@ public:
                 int multiple_assignment_penalize_by_one = 2,
                 double d_weight_for_bad_normals = 0.1f,
                 bool use_clutter_exp = false,
-                bool use_histogram_specification = true, // false
+                bool use_histogram_specification = false, // false
                 bool use_points_on_plane_side = true,
                 double best_color_weight = 0.8f,
                 bool initial_status = false,
@@ -342,10 +342,6 @@ protected:
 
     GHVSAModel<ModelT, SceneT> best_seen_;
     float initial_temp_;
-
-    //conflict graph stuff
-    size_t n_cc_;
-    std::vector<std::vector<int> > cc_;
 
     int min_contribution_;
 

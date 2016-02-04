@@ -67,6 +67,7 @@ namespace v4r
           bool self_occlusions_reasoning_;
           double focal_length_; /// @brief defines the focal length used for back-projecting points to the image plane (used for occlusion / visibility reasoning)
           bool do_occlusion_reasoning_;
+          int icp_iterations_;
 
           Parameter (
                   double resolution = 0.005f,
@@ -76,7 +77,8 @@ namespace v4r
                   int zbuffer_self_occlusion_resolution = 250,
                   bool self_occlusions_reasoning = true,
                   double focal_length = 525.f,
-                  bool do_occlusion_reasoning = true)
+                  bool do_occlusion_reasoning = true,
+                  int icp_iterations = 10)
               : resolution_ (resolution),
                 inliers_threshold_(inliers_threshold),
                 occlusion_thres_ (occlusion_thres),
@@ -84,7 +86,8 @@ namespace v4r
                 zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
                 self_occlusions_reasoning_(self_occlusions_reasoning),
                 focal_length_ (focal_length),
-                do_occlusion_reasoning_ (do_occlusion_reasoning)
+                do_occlusion_reasoning_ (do_occlusion_reasoning),
+                icp_iterations_ (icp_iterations)
           {}
       }param_;
 
@@ -124,11 +127,16 @@ namespace v4r
     std::vector< std::vector<bool> > model_point_is_visible_;
 
     std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > recognition_models_; /// @brief all models to be verified (including planar models if included)
+    std::vector<boost::shared_ptr<Eigen::Matrix4f> > refined_model_transforms_; /// @brief fine registration of model clouds to scene clouds after ICP (this applies to object model only - not to planes)
 
     bool requires_normals_; /// \brief Whether the HV method requires normals or not, by default = false
     bool normals_set_; /// \brief Whether the normals have been set
 
     std::vector<int> scene_sampled_indices_;
+
+    Eigen::Matrix4f
+    poseRefinement(const HVRecognitionModel<ModelT> &rm) const;
+
 
   public:
     HypothesisVerification (const Parameter &p = Parameter()) : param_(p)
@@ -189,10 +197,21 @@ namespace v4r
     void
     setSceneCloud (const typename pcl::PointCloud<SceneT>::Ptr & scene_cloud);
 
-    void setOcclusionCloud (const typename pcl::PointCloud<SceneT>::Ptr & occ_cloud)
+    void
+    setOcclusionCloud (const typename pcl::PointCloud<SceneT>::Ptr & occ_cloud)
     {
       occlusion_cloud_ = occ_cloud;
       occlusion_cloud_set_ = true;
+    }
+
+    /**
+     * @brief returns the refined transformation matrix aligning model with scene cloud (applies to object models only - not plane clouds) and is in order of the input of addmodels
+     * @return
+     */
+    std::vector<boost::shared_ptr<Eigen::Matrix4f> >
+    getRefinedTransforms() const
+    {
+        return refined_model_transforms_;
     }
 
     /**

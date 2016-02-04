@@ -63,6 +63,7 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::visualize_go_cues_;
          using GHV<ModelT, SceneT>::Parameter::color_space_;
          using GHV<ModelT, SceneT>::Parameter::do_occlusion_reasoning_;
+         using GHV<ModelT, SceneT>::Parameter::icp_iterations_;
 
          bool visualize_cues_;
 
@@ -88,11 +89,11 @@ namespace v4r
     using GHV<ModelT, SceneT>::explained_by_RM_;
     using GHV<ModelT, SceneT>::complete_cloud_occupancy_by_RM_;
     using GHV<ModelT, SceneT>::octree_scene_downsampled_;
-    using GHV<ModelT, SceneT>::cc_;
-    using GHV<ModelT, SceneT>::n_cc_;
     using GHV<ModelT, SceneT>::clusters_cloud_rgb_;
     using GHV<ModelT, SceneT>::clusters_cloud_;
     using GHV<ModelT, SceneT>::rm_ids_explaining_scene_pt_;
+    using GHV<ModelT, SceneT>::refined_model_transforms_;
+    using GHV<ModelT, SceneT>::poseRefinement;
 
     //typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;

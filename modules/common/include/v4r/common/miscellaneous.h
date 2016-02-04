@@ -37,6 +37,7 @@
 #include <pcl/octree/octree_pointcloud_pointvector.h>
 #include <pcl/octree/impl/octree_iterator.hpp>
 #include <v4r/core/macros.h>
+#include <omp.h>
 
 namespace v4r
 {
@@ -48,6 +49,8 @@ V4R_EXPORTS inline void transformNormals(const pcl::PointCloud<pcl::Normal> & no
     normals_aligned.points.resize (normals_cloud.points.size ());
     normals_aligned.width = normals_cloud.width;
     normals_aligned.height = normals_cloud.height;
+
+    #pragma omp parallel for schedule(dynamic)
     for (size_t k = 0; k < normals_cloud.points.size (); k++)
     {
         Eigen::Vector3f nt (normals_cloud.points[k].normal_x, normals_cloud.points[k].normal_y, normals_cloud.points[k].normal_z);
@@ -59,7 +62,6 @@ V4R_EXPORTS inline void transformNormals(const pcl::PointCloud<pcl::Normal> & no
                 + transform (2, 2) * nt[2]);
 
         normals_aligned.points[k].curvature = normals_cloud.points[k].curvature;
-
     }
 }
 

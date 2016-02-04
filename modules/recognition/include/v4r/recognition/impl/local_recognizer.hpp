@@ -232,9 +232,6 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
 
     loadFeaturesAndCreateFLANN ();
 
-    if(param_.icp_iterations_ > 0 && param_.icp_type_ == 1)
-        source_->createVoxelGridAndDistanceTransform(param_.voxel_size_icp_);
-
     return true;
 }
 
@@ -321,11 +318,8 @@ LocalRecognitionPipeline<PointT>::recognize ()
         correspondenceGrouping();
 
         //Prepare scene and model clouds for the pose refinement step
-        if ( param_.icp_iterations_ > 0 || hv_algorithm_ )
+        if ( hv_algorithm_ )
             source_->voxelizeAllModels (param_.voxel_size_icp_);
-
-        if ( param_.icp_iterations_ > 0)
-            poseRefinement();
 
         if ( hv_algorithm_ && models_.size() )
             hypothesisVerification();

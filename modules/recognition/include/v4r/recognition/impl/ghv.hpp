@@ -85,10 +85,10 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
 
     double cost = -(good_info - bad_info - duplicity - unexplained_info - duplicity_cm - countActiveHypotheses(active) - countPointsOnDifferentPlaneSides(active));
 
-    std::cout << "COST: " << std::fixed << cost << " (good: " << good_info << ", bad: " << bad_info << ", duplicity:" << duplicity <<
-                 ", unexplained: " << unexplained_info << ", duplicity_cm: " << duplicity_cm <<
-                 ", ActiveHypotheses: " << countActiveHypotheses (active) <<
-                 ", PointsOnDifferentPlaneSides: " <<  countPointsOnDifferentPlaneSides(active) << ")" << std::endl;
+//    std::cout << "COST: " << std::fixed << cost << " (good: " << good_info << ", bad: " << bad_info << ", duplicity:" << duplicity <<
+//                 ", unexplained: " << unexplained_info << ", duplicity_cm: " << duplicity_cm <<
+//                 ", ActiveHypotheses: " << countActiveHypotheses (active) <<
+//                 ", PointsOnDifferentPlaneSides: " <<  countPointsOnDifferentPlaneSides(active) << ")" << std::endl;
 
     if(cost_logger_) {
         cost_logger_->increaseEvaluated();
@@ -147,7 +147,7 @@ GHV<ModelT, SceneT>::addPlanarModels(const std::vector<PlaneModel<ModelT> > & pl
     size_t existing_models = recognition_models_.size();
     recognition_models_.resize( existing_models + planar_models.size() );
 
-#pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic)
     for(size_t i=0; i < planar_models.size(); i++)
     {
         recognition_models_[existing_models + i].reset(new HVRecognitionModel<ModelT>);
@@ -749,8 +749,8 @@ GHV<ModelT, SceneT>::initialize()
     }
 
     // visualize cues
-//    for (const auto & rm:recognition_models_)
-//        visualizeGOCuesForModel(*rm);
+    for (const auto & rm:recognition_models_)
+        visualizeGOCuesForModel(*rm);
 
     rm_ids_explaining_scene_pt_.clear ();
     rm_ids_explaining_scene_pt_.resize (scene_cloud_downsampled_->points.size ());
@@ -1495,11 +1495,11 @@ GHV<ModelT, SceneT>::specifyHistograms (const std::vector<size_t> &src_hist, con
 
     // normalize histograms
     size_t sum_src = 0, sum_dst = 0;
-#pragma omp parallel for reduction(+:sum_src)
+    #pragma omp parallel for reduction(+:sum_src)
     for(size_t i=0; i<src_hist.size(); i++)
         sum_src += src_hist[i];
 
-#pragma omp parallel for reduction(+:sum_dst)
+    #pragma omp parallel for reduction(+:sum_dst)
     for(size_t i=0; i<src_hist.size(); i++)
         sum_dst += dst_hist[i];
 
@@ -1507,7 +1507,7 @@ GHV<ModelT, SceneT>::specifyHistograms (const std::vector<size_t> &src_hist, con
     std::vector<float> src_hist_normalized (src_hist.size());
     std::vector<float> dst_hist_normalized (dst_hist.size());
 
-#pragma omp parallel for
+    #pragma omp parallel for
     for(size_t i=0; i<src_hist.size(); i++) {
         src_hist_normalized[i] = static_cast<float>(src_hist[i]) / sum_src;
         dst_hist_normalized[i] = static_cast<float>(dst_hist[i]) / sum_dst;

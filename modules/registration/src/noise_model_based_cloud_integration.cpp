@@ -42,7 +42,7 @@ NMBasedCloudIntegration<PointT>::collectInfo ()
 {
   size_t total_point_count = 0;
   for(size_t i = 0; i < input_clouds_.size(); i++)
-    total_point_count += indices_[i].empty() ? input_clouds_[i]->size() : indices_[i].size();
+    total_point_count += (indices_.empty() || indices_[i].empty()) ? input_clouds_[i]->size() : indices_[i].size();
   big_cloud_info_.resize(total_point_count);
 
   std::vector<pcl::PointCloud<PointT> > input_clouds_aligned (input_clouds_.size());
@@ -62,7 +62,7 @@ NMBasedCloudIntegration<PointT>::collectInfo ()
     const pcl::PointCloud<pcl::Normal> &normals_aligned = input_normals_aligned[i];
 
     size_t kept_new_pts = 0;
-    if (indices_[i].empty())
+    if (indices_.empty() || indices_[i].empty())
     {
       for(size_t jj=0; jj<cloud_aligned.points.size(); jj++)
       {

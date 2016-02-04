@@ -24,6 +24,9 @@ namespace v4r
 template<typename PointT>
 MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
 {
+    id_ = 0;
+    pose_ = Eigen::Matrix4f::Identity();
+
     bool do_sift;
     bool do_shot;
     bool do_ourcvfh;
@@ -58,8 +61,7 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
             ("knn_sift", po::value<size_t>(&paramLocalRecSift.knn_)->default_value(paramLocalRecSift.knn_), "sets the number k of matches for each extracted SIFT feature to its k nearest neighbors")
             ("knn_shot", po::value<size_t>(&paramLocalRecShot.knn_)->default_value(paramLocalRecShot.knn_), "sets the number k of matches for each extracted SHOT feature to its k nearest neighbors")
             ("transfer_feature_matches", po::value<bool>(&paramMultiPipeRec.save_hypotheses_)->default_value(paramMultiPipeRec.save_hypotheses_), "if true, transfers feature matches between views [Faeulhammer ea., ICRA 2015]. Otherwise generated hypotheses [Faeulhammer ea., MVA 2015].")
-            ("icp_iterations", po::value<int>(&param_.icp_iterations_)->default_value(param_.icp_iterations_), "number of icp iterations. If 0, no pose refinement will be done")
-            ("icp_type", po::value<int>(&param_.icp_type_)->default_value(param_.icp_type_), "defines the icp method being used for pose refinement (0... regular ICP with CorrespondenceRejectorSampleConsensus, 1... crops point cloud of the scene to the bounding box of the model that is going to be refined)")
+            ("icp_iterations", po::value<int>(&paramGO3D.icp_iterations_)->default_value(paramGO3D.icp_iterations_), "number of icp iterations. If 0, no pose refinement will be done")
             ("max_corr_distance", po::value<double>(&param_.max_corr_distance_)->default_value(param_.max_corr_distance_,  boost::str(boost::format("%.2e") % param_.max_corr_distance_)), "defines the margin for the bounding box used when doing pose refinement with ICP of the cropped scene to the model")
             ("merge_close_hypotheses", po::value<bool>(&param_.merge_close_hypotheses_)->default_value(param_.merge_close_hypotheses_), "if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined")
             ("merge_close_hypotheses_dist", po::value<double>(&param_.merge_close_hypotheses_dist_)->default_value(param_.merge_close_hypotheses_dist_, boost::str(boost::format("%.2e") % param_.merge_close_hypotheses_dist_)), "defines the maximum distance of the centroids in meter for clusters to be merged together")
