@@ -15,9 +15,7 @@ namespace v4r
       {
       public:
           int outliers_weight_computation_method_;
-          Parameter(
-                  int outliers_weight_computation_method = OutliersWeightType::MEAN
-                  ) :
+          Parameter( int outliers_weight_computation_method = OutliersWeightType::MEAN ) :
               outliers_weight_computation_method_ (outliers_weight_computation_method)
           {}
       }param_;
@@ -26,6 +24,8 @@ namespace v4r
       std::vector<float> distances_to_explained_scene_indices_; /// @brief closest distances to the scene for point i
       std::vector<int> unexplained_in_neighborhood; /// @brief indices vector referencing unexplained_by_RM_neighboorhods
       std::vector<float> unexplained_in_neighborhood_weights; /// @brief weights for the points not being explained in the neighborhood of a hypothesis
+
+      double outliers_total_weight_;
       std::vector<int> outlier_indices_; /// @brief outlier indices of this model (coming from all types)
       std::vector<float> outliers_weight_;
       std::vector<int> outlier_indices_color_; /// @brief all model points that have a scene point nearby but whose color does not match
@@ -40,7 +40,6 @@ namespace v4r
       std::vector<int> visible_indices_;
 
       float bad_information_;
-//      float outliers_weight_;
 //      size_t id_;
       float extra_weight_; /// @brief descriptor distance weight for instance
       float color_similarity_;
@@ -60,7 +59,7 @@ namespace v4r
       float color_diff_trhough_specification_;
       pcl::PointCloud<pcl::PointXYZL>::Ptr visible_labels_;
       bool is_planar_; /// @brief if true, this model is a planar model
-      PlaneModel<ModelT> plane_model_;
+      typename PlaneModel<ModelT>::Ptr plane_model_;
 
       pcl::PointCloud<pcl::PointXYZL>::Ptr smooth_faces_;
 
@@ -69,30 +68,12 @@ namespace v4r
       std::vector<std::vector<float> > scene_inlier_distances_for_visible_pt_;
 
       HVRecognitionModel() : extra_weight_(1.f)
-      {
-      }
+      { }
 
       enum OutliersWeightType{
           MEAN,
           MEDIAN
       };
-
-      double
-      getOutliersWeight() const
-      {
-          if( outlier_indices_.empty() )
-              return 1.f;
-          else
-          {
-              if (param_.outliers_weight_computation_method_ == OutliersWeightType::MEAN)
-                  return std::accumulate (outliers_weight_.begin (), outliers_weight_.end (), 0.f) / static_cast<float> (outliers_weight_.size ());
-              else { // use median
-                  std::vector<float> outliers_weight = outliers_weight_;    // to keep the member function const
-                  std::sort(outliers_weight.begin(), outliers_weight.end());
-                  return outliers_weight [ outliers_weight.size() / 2.f ];
-              }
-          }
-      }
 
       typedef boost::shared_ptr< HVRecognitionModel> Ptr;
       typedef boost::shared_ptr< HVRecognitionModel const> ConstPtr;

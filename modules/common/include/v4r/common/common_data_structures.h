@@ -8,11 +8,12 @@
 #include <pcl/ModelCoefficients.h>
 #include <pcl/sample_consensus/sac_model_plane.h>
 #include <pcl/filters/voxel_grid.h>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
   template<typename PointT>
-  struct PlaneModel
+  struct V4R_EXPORTS PlaneModel
   {
     pcl::ModelCoefficients coefficients_;
 //    typename pcl::PointCloud<PointT>::Ptr plane_cloud_;
@@ -70,6 +71,10 @@ namespace v4r
     {
         return (inliers_.indices.size() > pm2.inliers_.indices.size());
     }
+
+
+    typedef boost::shared_ptr< PlaneModel> Ptr;
+    typedef boost::shared_ptr< PlaneModel const> ConstPtr;
 
   };
 }

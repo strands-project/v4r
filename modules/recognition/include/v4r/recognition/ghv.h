@@ -85,7 +85,7 @@ public:
         double w_occupied_multiple_cm_;
         bool use_super_voxels_;
         bool use_replace_moves_;
-        int opt_type_; /// @brief defines the optimization methdod<BR><BR> 0: Local search (converges quickly, but can easily get trapped in local minima),<BR> 1: Tabu Search,<BR> 4; Tabu Search + Local Search (Replace active hypotheses moves),<BR> else: Simulated Annealing
+        int opt_type_; /// @brief defines the optimization methdod<BR><BR> 0: Local search (converges quickly, but can easily get trapped in local minima),<BR> 1: Tabu Search,<BR> 2; Tabu Search + Local Search (Replace active hypotheses moves),<BR> 3: Simulated Annealing
         double active_hyp_penalty_;
         int multiple_assignment_penalize_by_one_;
         double d_weight_for_bad_normals_; /// @brief specifies the weight an outlier is multiplied with in case the corresponding scene point's orientation is facing away from the camera more than a certain threshold and potentially has inherent noise
@@ -129,7 +129,7 @@ public:
                 double w_occupied_multiple_cm = 2.f, //0.f
                 bool use_super_voxels = false,
                 bool use_replace_moves = true,
-                int opt_type = 0,
+                int opt_type = OptimizationType::LocalSearch,
                 double active_hyp_penalty = 0.f, // 0.05f
                 int multiple_assignment_penalize_by_one = 2,
                 double d_weight_for_bad_normals = 0.1f,
@@ -423,7 +423,7 @@ protected:
     {
         double bad_info = 0;
         for (size_t i = 0; i < recog_models.size(); i++)
-            bad_info += recog_models[i]->getOutliersWeight() * static_cast<double> (recog_models[i]->bad_information_);
+            bad_info += recog_models[i]->outliers_total_weight_ * static_cast<double> (recog_models[i]->bad_information_);
 
         return bad_info;
     }
@@ -444,8 +444,7 @@ protected:
     mets::gol_type
     evaluateSolution (const std::vector<bool> & active, int changed);
 
-    void
-    SAOptimize (std::vector<int> & cc_indices, std::vector<bool> & sub_solution);
+    std::vector<bool> optimize();
 
     void
     fill_structures (const std::vector<bool> &sub_solution, GHVSAModel<ModelT, SceneT> & model);
@@ -533,6 +532,14 @@ public:
        COLOR
     };
 
+    enum OptimizationType
+    {
+        LocalSearch,
+        TabuSearch,
+        TabuSearchWithLSRM,
+        SimulatedAnnealing
+    };
+
     void setMeanAndCovariance(const Eigen::VectorXf & mean, const Eigen::MatrixXf & cov)
     {
         mean_ = mean;
@@ -569,7 +576,7 @@ public:
     }
 
     void
-    addPlanarModels(std::vector<PlaneModel<ModelT> > &planar_models);
+    addPlanarModels(const std::vector<PlaneModel<ModelT> > &planar_models);
 
     void
     writeToLog (std::ofstream & of, bool all_costs_ = false)
