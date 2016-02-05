@@ -156,22 +156,30 @@ GHV<ModelT, SceneT>::addPlanarModels(const std::vector<PlaneModel<ModelT> > & pl
         rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
         rm.complete_cloud_ = planar_models[i].projectPlaneCloud();
 
-        ZBuffering<ModelT, SceneT> zbuffer_scene (param_.zbuffer_scene_resolution_, param_.zbuffer_scene_resolution_, 1.f);
-        if (!occlusion_cloud_->isOrganized ())
-            zbuffer_scene.computeDepthMap (*occlusion_cloud_, true);
+        typename ZBuffering<SceneT>::Parameter zbuffParam;
+        zbuffParam.inlier_threshold_ = param_.zbuffer_scene_resolution_;
+        zbuffParam.f_ = param_.focal_length_;
+        zbuffParam.width_ = 640;
+        zbuffParam.height_ = 480;
+        zbuffParam.u_margin_ = 5;
+        zbuffParam.v_margin_ = 5;
+        zbuffParam.compute_focal_length_ = true;
+        ZBuffering<SceneT> zbuffer_scene (zbuffParam);
+
 
         //self-occlusions
         typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ( *rm.complete_cloud_ ));
         typename pcl::PointCloud<ModelT>::ConstPtr const_filtered(new pcl::PointCloud<ModelT> (*filtered));
 
         std::vector<int> indices_cloud_occlusion;
-
-        if (occlusion_cloud_->isOrganized ())
-            filtered = filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, param_.focal_length_, param_.occlusion_thres_, indices_cloud_occlusion);
+        if (!occlusion_cloud_->isOrganized ()) {
+            zbuffer_scene.computeDepthMap (*occlusion_cloud_);
+            std::vector<int> visible_indices;
+            zbuffer_scene.filter(*rm.complete_cloud_, visible_indices);
+            pcl::copyPointCloud(*rm.complete_cloud_, visible_indices, *rm.visible_cloud_);
+        }
         else
-            zbuffer_scene.filter (*const_filtered, *filtered, param_.occlusion_thres_);
-
-        rm.visible_cloud_ = filtered;
+            rm.visible_cloud_ = filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, param_.focal_length_, param_.occlusion_thres_, indices_cloud_occlusion);
 
         rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> ());
         rm.visible_cloud_normals_->points.resize(filtered->points.size());
@@ -702,6 +710,23 @@ GHV<ModelT, SceneT>::initialize()
     octree_scene_downsampled_->setInputCloud(scene_cloud_downsampled_);
     octree_scene_downsampled_->addPointsFromInputCloud();
 
+    recognition_models_map_.clear();
+    recognition_models_map_.resize(recognition_models_.size());
+
+    // remove recognition models where there are not enough visible points (>95% occluded)
+    size_t kept=0;
+    for(size_t i=0; i<recognition_models_.size(); i++)
+    {
+        const typename HVRecognitionModel<ModelT>::Ptr &rm = recognition_models_[i];
+        if( !rm->is_planar_ && (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < 0.05f)
+            continue;
+
+        recognition_models_[kept] = rm;
+        recognition_models_map_[kept] = i;
+        kept++;
+    }
+    recognition_models_.resize(kept);
+
     #pragma omp parallel sections
     {
         #pragma omp section
@@ -749,8 +774,8 @@ GHV<ModelT, SceneT>::initialize()
     }
 
     // visualize cues
-    for (const auto & rm:recognition_models_)
-        visualizeGOCuesForModel(*rm);
+//    for (const auto & rm:recognition_models_)
+//        visualizeGOCuesForModel(*rm);
 
     rm_ids_explaining_scene_pt_.clear ();
     rm_ids_explaining_scene_pt_.resize (scene_cloud_downsampled_->points.size ());
@@ -1454,7 +1479,15 @@ GHV<ModelT, SceneT>::verify()
 
     {
     pcl::ScopeTime t("Optimizing object hypotheses verification cost function");
-    mask_ = optimize ();
+    std::vector<bool> solution = optimize ();
+
+
+    // since we remove hypothese containing too few visible points - mask size does not correspond to recognition_models size anymore --> therefore this map stuff
+    for(size_t i=0; i<mask_.size(); i++)
+        mask_[ i ] = false;
+
+    for(size_t i=0; i<solution.size(); i++)
+        mask_[ recognition_models_map_[i] ] = solution[i];
     }
 
     recognition_models_.clear();
@@ -2394,7 +2427,7 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
         for(size_t i=0; i < unexplained_points_per_model.size(); i++)
         {
             int sidx = unexplained_points_per_model[i].first;
-            if(sidx < 0)
+            if(sidx < 0 || clusters_cloud_->points[sidx].label == 0)
                 continue;
 
             //sidx is the closest explained point to the unexplained point

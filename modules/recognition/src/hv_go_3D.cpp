@@ -128,15 +128,47 @@ GO3D<ModelT, SceneT>::addModels  (std::vector<typename pcl::PointCloud<ModelT>::
                     typename pcl::PointCloud<ModelT> model_in_view_coordinates;
                     pcl::transformPointCloud(*models[i], model_in_view_coordinates, trans);
 
+                    std::vector<int> self_occlusion_indices;
+                    typename ZBuffering<ModelT>::Parameter zbuffParam;
+                    zbuffParam.inlier_threshold_ = param_.zbuffer_self_occlusion_resolution_;
+                    zbuffParam.f_ = param_.focal_length_;
+                    zbuffParam.width_ = 640;
+                    zbuffParam.height_ = 480;
+                    zbuffParam.u_margin_ = 5;
+                    zbuffParam.v_margin_ = 5;
+                    zbuffParam.compute_focal_length_ = false;
+                    zbuffParam.do_smoothing_ = true;
+                    zbuffParam.smoothing_radius_ = 2;
+                    ZBuffering<ModelT> zbuffer_self_occlusion (zbuffParam);
+                    zbuffer_self_occlusion.computeDepthMap (model_in_view_coordinates);
+                    zbuffer_self_occlusion.getKeptIndices(self_occlusion_indices);
+
                     std::vector<bool> pt_is_occluded = computeOccludedPoints(*occ_clouds_[k], model_in_view_coordinates, param_.focal_length_, param_.occlusion_thres_, true);
                     std::vector<bool> model_point_is_visible_in_occ_k(models[i]->points.size(), false);
 
-                    for(size_t idx=0; idx<model_point_is_visible.size(); idx++) {
-                        if ( !pt_is_occluded[idx] ) {
-                            model_point_is_visible[idx] = true;
-                            model_point_is_visible_in_occ_k[idx] = true;
+
+                    for(size_t idx=0; idx<self_occlusion_indices.size(); idx++) {
+                        size_t midx = self_occlusion_indices[idx];
+                        if ( !pt_is_occluded[midx]) {
+                            model_point_is_visible[midx] = true;
+                            model_point_is_visible_in_occ_k[midx] = true;
                         }
                     }
+
+
+//                    pcl::visualization::PCLVisualizer vis;
+//                    int v1, v2, v3;
+//                    vis.createViewPort(0,0,0.5,0.5,v1);
+//                    vis.createViewPort(0.5,0,1,0.5,v2);
+//                    vis.createViewPort(0.5,0.5,1,1,v3);
+//                    vis.addPointCloud(occ_clouds_[k],"occ_cloud",v1);
+//                    vis.addPointCloud(model_in_view_coordinates.makeShared(),"model",v1);
+//                    pcl::PointCloud<ModelT> visible_cloud, visible_cloud_so;
+//                    pcl::copyPointCloud(model_in_view_coordinates, self_occlusion_indices, visible_cloud_so);
+//                    vis.addPointCloud(visible_cloud_so.makeShared(),"visible_model",v2);
+//                    pcl::copyPointCloud(model_in_view_coordinates, model_point_is_visible_in_occ_k, visible_cloud);
+//                    vis.addPointCloud(visible_cloud.makeShared(),"visible_model_occ",v3);
+//                    vis.spin();
                 }
                 rm.visible_indices_ = createIndicesFromMask<int>( model_point_is_visible );
                 pcl::copyPointCloud(*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
@@ -174,11 +206,7 @@ GO3D<ModelT, SceneT>::addModels  (std::vector<typename pcl::PointCloud<ModelT>::
                 pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
             }
         }
-
-        //std::stringstream cloud_id; cloud_id << "cloud_" << i;
-        //vis.addPointCloud(rm.visible_cloud_, cloud_id.str());
     }
-    //vis.spin();
 }
 
 

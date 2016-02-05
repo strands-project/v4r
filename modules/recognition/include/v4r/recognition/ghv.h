@@ -117,7 +117,7 @@ public:
                 double color_sigma_l = 0.6f,
                 double color_sigma_ab = 0.6f,
                 double regularizer = 1.f, // 3
-                double radius_neighborhood_clutter = 0.03f,
+                double radius_neighborhood_clutter = 0.02f,
                 int normal_method = 2,
                 double duplicy_weight_test = 1.f,
                 double duplicity_curvature_max = 0.03f,
@@ -138,7 +138,7 @@ public:
                 bool use_points_on_plane_side = true,
                 double best_color_weight = 0.8f,
                 bool initial_status = false,
-                int color_space = 0,
+                int color_space = ColorSpace::LAB,
                 int outliers_weight_computation_method = 0,
                 double eps_angle_threshold = 0.25, //0.1f
                 int min_points = 100, // 20
@@ -211,6 +211,7 @@ protected:
     using HypothesisVerification<ModelT, SceneT>::occlusion_cloud_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_;
     using HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
+    using HypothesisVerification<ModelT, SceneT>::recognition_models_map_;
 
     template<typename PointT, typename NormalT>
     inline void

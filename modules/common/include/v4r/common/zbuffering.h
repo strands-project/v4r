@@ -50,25 +50,54 @@ namespace v4r
      * \brief Class to reason about occlusions
      * \author Aitor Aldoma
      */
-    template<typename ModelT, typename SceneT>
+    template<typename PointT>
       class V4R_EXPORTS ZBuffering
       {
+      public:
+          class Parameter
+          {
+          public:
+              float f_;
+              int width_, height_;
+              int u_margin_, v_margin_;
+              bool compute_focal_length_;
+              bool do_smoothing_;
+              float inlier_threshold_;
+              int smoothing_radius_;
+              Parameter(
+                      float f=525.f,
+                      int width = 640,
+                      int height = 480,
+                      int u_margin = 0,
+                      int v_margin = 0,
+                      bool compute_focal_length = false,
+                      bool do_smoothing = true,
+                      float inlier_threshold = 0.01f,
+                      int smoothing_radius = 1) :
+                  f_(f), width_ (width), height_(height), u_margin_(u_margin), v_margin_(v_margin),
+                  compute_focal_length_(compute_focal_length), do_smoothing_(do_smoothing), inlier_threshold_(inlier_threshold),
+                  smoothing_radius_(smoothing_radius)
+              {}
+          }param_;
+
       private:
-        float f_;
-        int width_, height_;
-        float * depth_;
+        std::vector<float> depth_;
+        std::vector<int> kept_indices_;
 
       public:
 
-        ZBuffering ();
-        ZBuffering (int resx, int resy, float f);
-        ~ZBuffering ();
+        ZBuffering (const Parameter &p=Parameter()) : param_(p) { }
 
-        void computeDepthMap (const typename pcl::PointCloud<SceneT> & scene, bool compute_focal = false, bool smooth = false, int wsize = 3);
+        void computeDepthMap (const pcl::PointCloud<PointT> &scene);
 
-        void filter (const typename pcl::PointCloud<ModelT> & model, typename pcl::PointCloud<ModelT> & filtered, float thres = 0.01);
+        void filter (const typename pcl::PointCloud<PointT> & model, typename pcl::PointCloud<PointT> & filtered);
 
-        void filter (const typename pcl::PointCloud<ModelT> & model, std::vector<int> & indices, float thres = 0.01);
+        void filter (const typename pcl::PointCloud<PointT> & model, std::vector<int> & indices);
+
+        void getKeptIndices(std::vector<int> &indices) const
+        {
+            indices = kept_indices_;
+        }
       };
 
       template<typename SceneT, typename ModelT>
