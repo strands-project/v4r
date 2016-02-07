@@ -462,10 +462,41 @@ MultiviewRecognizer<PointT>::recognize ()
 
             for(size_t i=0; i<w.models_.size(); i++) {
                 if(w.model_or_plane_is_verified_[i]) {
-                    v.models_.push_back( w.models_[i] );
-                    v.transforms_.push_back( v.absolute_pose_.inverse() * w.absolute_pose_ * w.transforms_[i] );
-                    v.origin_view_id_.push_back( w.origin_view_id_[i] );
-                    v.model_or_plane_is_verified_.push_back( false );
+
+                    bool add_hypothesis = true;
+
+                    if(param_.merge_close_hypotheses_) {  // check if similar object hypotheses exist
+                        Eigen::Matrix4f object_pose_in_v_co_system = v.absolute_pose_.inverse() * w.absolute_pose_ * w.transforms_[i];
+                        Eigen::Vector3f centroid_w = object_pose_in_v_co_system.block<3, 1> (0, 3);
+                        Eigen::Matrix3f rot_w = object_pose_in_v_co_system.block<3, 3> (0, 0);
+                        const double angle_thresh_rad = param_.merge_close_hypotheses_angle_ * M_PI / 180.f ;
+
+                        for(size_t j=0; j<v.models_.size(); j++) {
+                            if(w.models_[i]->id_ != v.models_[j]->id_)
+                                continue;
+
+                            const Eigen::Matrix4f tf_v = v.transforms_[j];
+                            Eigen::Vector3f centroid_v = tf_v.block<3, 1> (0, 3);
+                            Eigen::Matrix3f rot_v = tf_v.block<3, 3> (0, 0);
+                            Eigen::Matrix3f rot_diff = rot_v * rot_w.transpose();
+
+                            double rotx = atan2(rot_diff(2,1), rot_diff(2,2));
+                            double roty = atan2(-rot_diff(2,0), sqrt(rot_diff(2,1) * rot_diff(2,1) + rot_diff(2,2) * rot_diff(2,2)));
+                            double rotz = atan2(rot_diff(1,0), rot_diff(0,0));
+                            double dist = (centroid_v - centroid_w).norm();
+
+                            if ( (dist < param_.merge_close_hypotheses_dist_) && (rotx < angle_thresh_rad) && (roty < angle_thresh_rad) && (rotz < angle_thresh_rad) ) {
+                                add_hypothesis = false;
+                                break;
+                            }
+                        }
+                    }
+                    if(add_hypothesis) {
+                        v.models_.push_back( w.models_[i] );
+                        v.transforms_.push_back( v.absolute_pose_.inverse() * w.absolute_pose_ * w.transforms_[i] );
+                        v.origin_view_id_.push_back( w.origin_view_id_[i] );
+                        v.model_or_plane_is_verified_.push_back( false );
+                    }
                 }
             }
         }
