@@ -116,6 +116,7 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
             paramMultiPipeRec.normal_computation_method_ = paramLocalEstimator.normal_computation_method_ =
             param_.normal_computation_method_ = normal_computation_method;
 
+    paramMultiPipeRec.merge_close_hypotheses_ = param_.merge_close_hypotheses_;
     rr_.reset(new MultiRecognitionPipeline<PointT>(paramMultiPipeRec));
 
     boost::shared_ptr < GraphGeometricConsistencyGrouping<PointT, PointT> > gcg_alg (

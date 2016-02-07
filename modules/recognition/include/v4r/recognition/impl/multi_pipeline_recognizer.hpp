@@ -229,14 +229,14 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
 
                 pcl::Correspondences merged_corrs = corresp_clusters[tf_id];
 
-                for(size_t j=tf_id; j < new_transforms.size(); j++) {
+                for(size_t j=tf_id+1; j < new_transforms.size(); j++) {
                     const Eigen::Vector3f centroid2 = new_transforms[j].block<3, 1> (0, 3);
                     const Eigen::Matrix3f rot2 = new_transforms[j].block<3, 3> (0, 0);
                     const Eigen::Matrix3f rot_diff = rot2 * rot1.transpose();
 
-                    double rotx = atan2(rot_diff(2,1), rot_diff(2,2));
-                    double roty = atan2(-rot_diff(2,0), sqrt(rot_diff(2,1) * rot_diff(2,1) + rot_diff(2,2) * rot_diff(2,2)));
-                    double rotz = atan2(rot_diff(1,0), rot_diff(0,0));
+                    double rotx = std::abs( atan2(rot_diff(2,1), rot_diff(2,2)));
+                    double roty = std::abs( atan2(-rot_diff(2,0), sqrt(rot_diff(2,1) * rot_diff(2,1) + rot_diff(2,2) * rot_diff(2,2))) );
+                    double rotz = std::abs( atan2(rot_diff(1,0), rot_diff(0,0)) );
                     double dist = (centroid1 - centroid2).norm();
 
                     if ( (dist < param_.merge_close_hypotheses_dist_) && (rotx < angle_thresh_rad) && (roty < angle_thresh_rad) && (rotz < angle_thresh_rad) ) {
@@ -250,9 +250,18 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
             }
             merged_transforms.resize(kept);
 
+            #pragma omp critical
 #pragma omp critical
             {
                 transforms_.insert(transforms_.end(), merged_transforms.begin(), merged_transforms.end());
+                models_.resize( transforms_.size(), oh.model_ );
+                std::cout << "Merged " << corresp_clusters.size() << " clusters into " << kept << " clusters. Total correspondences: " << oh.model_scene_corresp_.size () << " " << oh.model_->id_ << std::endl;
+            }
+        }
+        else {
+            #pragma omp critical
+            {
+                transforms_.insert(transforms_.end(), new_transforms.begin(), new_transforms.end());
                 models_.resize( transforms_.size(), oh.model_ );
             }
         }
