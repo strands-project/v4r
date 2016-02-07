@@ -64,6 +64,7 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::color_space_;
          using GHV<ModelT, SceneT>::Parameter::do_occlusion_reasoning_;
          using GHV<ModelT, SceneT>::Parameter::icp_iterations_;
+         using GHV<ModelT, SceneT>::Parameter::min_visible_ratio_;
 
          bool visualize_cues_;
 

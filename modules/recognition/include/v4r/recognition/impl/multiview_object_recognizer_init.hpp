@@ -99,8 +99,9 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
             ("hv_use_supervoxels", po::value<bool>(&paramGO3D.use_super_voxels_)->default_value(paramGO3D.use_super_voxels_), "If true, uses supervoxel clustering to detect smoothness violations")
             ("knn_plane_clustering_search", po::value<int>(&paramGO3D.knn_plane_clustering_search_)->default_value(paramGO3D.knn_plane_clustering_search_), "sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)")
             ("hv_min_plane_inliers", po::value<size_t>(&paramGO3D.min_plane_inliers_)->default_value(paramGO3D.min_plane_inliers_), "a planar cluster is only added as plane if it has at least min_plane_inliers_ points")
+            ("hv_min_visible_ratio", po::value<double>(&paramGO3D.min_visible_ratio_)->default_value(paramGO3D.min_visible_ratio_, boost::str(boost::format("%.2e") % paramGO3D.min_visible_ratio_) ), "defines how much of the object has to be visible in order to be included in the verification stage")
             ("visualize_go3d_cues", po::value<bool>(&paramGO3D.visualize_cues_)->default_value(paramGO3D.visualize_cues_), "If true, visualizes cues computated at the go3d verification stage such as inlier, outlier points. Mainly used for debugging.")
-            ("visualize_go_cues_", po::value<bool>(&paramGO3D.visualize_go_cues_)->default_value(paramGO3D.visualize_go_cues_), "If true, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
+            ("visualize_go_cues", po::value<bool>(&paramGO3D.visualize_go_cues_)->default_value(paramGO3D.visualize_go_cues_), "If true, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
             ("normal_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "chosen normal computation method of the V4R library")
             ("octree_radius", po::value<float>(&nmInt_param_.octree_resolution_)->default_value(nmInt_param_.octree_resolution_, boost::str(boost::format("%.2e") % nmInt_param_.octree_resolution_)), "resolution of the octree in the noise model based cloud registration used for hypothesis verification")
             ("edge_radius_px", po::value<float>(&nmInt_param_.edge_radius_px_)->default_value(nmInt_param_.edge_radius_px_, boost::str(boost::format("%.2e") % nmInt_param_.edge_radius_px_)), "points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed in the noise model based cloud registration used for hypothesis verification")
@@ -117,6 +118,7 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
             param_.normal_computation_method_ = normal_computation_method;
 
     paramMultiPipeRec.merge_close_hypotheses_ = param_.merge_close_hypotheses_;
+
     rr_.reset(new MultiRecognitionPipeline<PointT>(paramMultiPipeRec));
 
     boost::shared_ptr < GraphGeometricConsistencyGrouping<PointT, PointT> > gcg_alg (

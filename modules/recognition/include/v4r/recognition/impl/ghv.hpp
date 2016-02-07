@@ -74,10 +74,20 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
 
     updateCMDuplicity (rm.complete_cloud_occupancy_indices_, sign);
 
+    size_t num_active_hypotheses = 0;
+    for(const auto &h:active) {
+        if(h)
+            num_active_hypotheses++;
+    }
+
     double duplicity = previous_duplicity_;
+
+    if(num_active_hypotheses)
+        duplicity /= num_active_hypotheses;
+
     double good_info = previous_explained_value_;
     double unexplained_info = previous_unexplained_;
-    double bad_info = previous_bad_info_ + sign * rm.outliers_total_weight_ * rm.outlier_indices_.size();
+    double bad_info = previous_bad_info_ + sign * rm.outliers_total_weight_ * rm.outlier_indices_.size() / (double)scene_cloud_downsampled_->points.size();
     double duplicity_cm = (double)previous_duplicity_complete_models_ * param_.w_occupied_multiple_cm_;
 
     if(!param_.detect_clutter_)
@@ -718,7 +728,7 @@ GHV<ModelT, SceneT>::initialize()
     for(size_t i=0; i<recognition_models_.size(); i++)
     {
         const typename HVRecognitionModel<ModelT>::Ptr &rm = recognition_models_[i];
-        if( !rm->is_planar_ && (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < 0.05f)
+        if( !rm->is_planar_ && (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
             continue;
 
         recognition_models_[kept] = rm;
@@ -726,6 +736,7 @@ GHV<ModelT, SceneT>::initialize()
         kept++;
     }
     recognition_models_.resize(kept);
+    recognition_models_map_.resize(kept);
 
     #pragma omp parallel sections
     {
@@ -774,8 +785,10 @@ GHV<ModelT, SceneT>::initialize()
     }
 
     // visualize cues
-//    for (const auto & rm:recognition_models_)
-//        visualizeGOCuesForModel(*rm);
+    if(param_.visualize_go_cues_) {
+        for (const auto & rm:recognition_models_)
+            visualizeGOCuesForModel(*rm);
+    }
 
     rm_ids_explaining_scene_pt_.clear ();
     rm_ids_explaining_scene_pt_.resize (scene_cloud_downsampled_->points.size ());
@@ -979,8 +992,8 @@ GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const 
     }
 
     //update explained and duplicity values...
-    previous_explained_value_ += add_to_explained;
-    previous_duplicity_ += add_to_duplicity_;
+    previous_explained_value_ += (add_to_explained / (double)scene_cloud_downsampled_->points.size());
+    previous_duplicity_ += (add_to_duplicity_ / (double)scene_cloud_downsampled_->points.size());;
 }
 
 template<typename ModelT, typename SceneT>
@@ -1012,7 +1025,7 @@ GHV<ModelT, SceneT>::updateCMDuplicity (const std::vector<int> & vec, int sign)
         }
     }
 
-    previous_duplicity_complete_models_ += add_to_duplicity_;
+    previous_duplicity_complete_models_ += add_to_duplicity_ / (double)complete_cloud_occupancy_by_RM_.size();
 }
 
 template<typename ModelT, typename SceneT>
@@ -1146,19 +1159,23 @@ GHV<ModelT, SceneT>::fill_structures(const std::vector<bool> & initial_solution,
 
     double duplicity;
     double good_information = getTotalExplainedInformation (explained_by_RM_, explained_by_RM_distance_weighted_, duplicity);
+    good_information /= (double)scene_cloud_downsampled_->points.size();
     double bad_information = 0;
     double unexplained_in_neighboorhod = 0;
 
-    if(param_.detect_clutter_)
+    if(param_.detect_clutter_) {
         unexplained_in_neighboorhod = getUnexplainedInformationInNeighborhood (unexplained_by_RM_neighboorhods_, explained_by_RM_);
+        unexplained_in_neighboorhod /= (double)scene_cloud_downsampled_->points.size();
+    }
 
     for (size_t i = 0; i < initial_solution.size (); i++)
     {
         const HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
         if (initial_solution[i])
-            bad_information += rm.outliers_total_weight_ * rm.outlier_indices_.size();
+            bad_information += rm.outliers_total_weight_ * rm.outlier_indices_.size() / (double)rm.visible_cloud_->points.size();
     }
 
+    occupied_multiple /= (double)complete_cloud_occupancy_by_RM_.size();
     previous_duplicity_complete_models_ = occupied_multiple;
     previous_explained_value_ = good_information;
     previous_duplicity_ = duplicity;
@@ -1349,7 +1366,7 @@ GHV<ModelT, SceneT>::optimize ()
 //                        std::cout << "min side: " << min_side << "; max_side: " << max_side << std::endl;
                         //float ratio = static_cast<float>(min_side) / static_cast<float>(max_side); //between 0 and 1
                         if(max_side != 0)
-                            points_on_plane_sides_(i, j) = static_cast<float>(min_side);
+                            points_on_plane_sides_(i, j) = static_cast<float>(min_side) / rm_j.complete_cloud_->points.size();
                     }
                 }
             }
@@ -2035,8 +2052,8 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
     rm.outlier_indices_.resize (rm.visible_cloud_->points.size ());
     rm.outlier_indices_3d_.resize (rm.visible_cloud_->points.size ());
     rm.outlier_indices_color_.resize (rm.visible_cloud_->points.size ());
-    rm.scene_inlier_indices_for_visible_pt_.resize(rm.visible_cloud_->points.size ());
-    rm.scene_inlier_distances_for_visible_pt_.resize(rm.visible_cloud_->points.size ());
+    rm.scene_inlier_indices_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
+    rm.scene_inlier_distances_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
 
     if(!rm.is_planar_ && !param_.ignore_color_even_if_exists_)
     {
@@ -2254,7 +2271,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
         if (rm.param_.outliers_weight_computation_method_ == HVRecognitionModel<ModelT>::OutliersWeightType::MEAN)
             rm.outliers_total_weight_ = std::accumulate (rm.outliers_weight_.begin (), rm.outliers_weight_.end (), 0.f) / static_cast<float> (rm.outliers_weight_.size ());
         else { // use median
-            std::vector<float> outliers_weight = rm.outliers_weight_;    // to keep the member function const
+            std::vector<float> outliers_weight = rm.outliers_weight_;
             std::sort(outliers_weight.begin(), outliers_weight.end());
             rm.outliers_total_weight_ = outliers_weight [ outliers_weight.size() / 2.f ];
         }
@@ -2265,6 +2282,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
 
     rm.scene_pt_is_explained_.clear();
     rm.scene_pt_is_explained_.resize(scene_cloud_downsampled_->points.size(), false);
+
     size_t kept=0;
     for(size_t s_pt_id=0; s_pt_id<scene_cloud_downsampled_->points.size(); s_pt_id++)
     {
@@ -2317,7 +2335,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
 
         rm.scene_pt_is_explained_[ s_pt_id ] = true; //this scene point is explained by this hypothesis
 
-//        #pragma omp critical
+        #pragma omp critical
         {
         explained_indices[kept] = s_pt_id;
         explained_indices_distances [kept] = d_weight * dotp * rm.extra_weight_;
@@ -2389,7 +2407,7 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
 
     //    const float min_clutter_dist = std::pow(param_.inliers_threshold_ * 0.f, 2.f); // ??? why *0.0f? --> always 0 then
 
-//    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(dynamic)
     for (size_t rm_id = 0; rm_id < recognition_models_.size (); rm_id++)
     {
         HVRecognitionModel<ModelT> &rm = *recognition_models_[rm_id];
@@ -2525,10 +2543,17 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
         rm_vis_->createViewPort(0   , 0.5 , 0.33,1   , rm_v4);
         rm_vis_->createViewPort(0.33, 0.5 , 0.66,1   , rm_v5);
         rm_vis_->createViewPort(0.66, 0.5 , 1   ,1   , rm_v6);
+
+        rm_vis_->addText("scene",10,10,10,0.5,0.5,0.5,"scene",rm_v1);
+        rm_vis_->addText("",10,10,10,0.5,0.5,0.5,"model outliers",rm_v2);
+        rm_vis_->addText("scene pts explained (blue)",10,10,10,0.5,0.5,0.5,"scene pt explained",rm_v3);
+        rm_vis_->addText("unexplained in neighborhood",10,10,10,0.5,0.5,0.5,"unexplained in neighborhood",rm_v4);
+        rm_vis_->addText("smooth segmentation",10,10,10,0.5,0.5,0.5,"smooth segmentation",rm_v5);
+        rm_vis_->addText("segments for label=0",10,10,10,0.5,0.5,0.5,"label 0",rm_v6);
     }
 
     rm_vis_->removeAllPointClouds();
-    rm_vis_->removeAllShapes();
+//    rm_vis_->removeAllShapes();
 
     float max_weight=std::numeric_limits<float>::min();
     float min_weight=std::numeric_limits<float>::max();
@@ -2540,14 +2565,11 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
         if(rm.unexplained_in_neighborhood_weights[i] > max_weight)
             max_weight = rm.unexplained_in_neighborhood_weights[i];
     }
-
-    rm_vis_->addText("scene",10,10,10,0.5,0.5,0.5,"scene",rm_v1);
-    std::stringstream text_outliers; text_outliers << "model outliers 3d (blue) and color (green). Weight: " << rm.outliers_total_weight_ << std::endl;
-    rm_vis_->addText(text_outliers.str(),10,10,10,0.5,0.5,0.5,"model outliers",rm_v2);
-    rm_vis_->addText("scene pts explained (blue)",10,10,10,0.5,0.5,0.5,"scene pt explained",rm_v3);
-    rm_vis_->addText("unexplained in neighborhood",10,10,10,0.5,0.5,0.5,"unexplained in neighborhood",rm_v4);
-    rm_vis_->addText("smooth segmentation",10,10,10,0.5,0.5,0.5,"smooth segmentation",rm_v5);
-    rm_vis_->addText("segments for label=0",10,10,10,0.5,0.5,0.5,"label 0",rm_v6);
+    //update text
+    std::stringstream text_outliers;
+    text_outliers << "model outliers 3d (blue) and color (green). Weight: " << rm.outliers_total_weight_
+                  << ", visible ratio: " << (float)rm.visible_cloud_->points.size() / rm.complete_cloud_->points.size() << std::endl;
+    rm_vis_->updateText(text_outliers.str(),10,10,10,0.5,0.5,0.5,"model outliers");
 
     // scene and model
     rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene1",rm_v1);

@@ -113,9 +113,11 @@ public:
         int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
         bool visualize_go_cues_; /// @brief visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
 
+        double min_visible_ratio_; /// @brief defines how much of the object has to be visible in order to be included in the verification stage
+
         Parameter (
                 double color_sigma_l = 0.6f,
-                double color_sigma_ab = 0.6f,
+                double color_sigma_ab = 0.1f,
                 double regularizer = 1.f, // 3
                 double radius_neighborhood_clutter = 0.02f,
                 int normal_method = 2,
@@ -151,7 +153,8 @@ public:
                 double plane_inlier_distance = 0.02f,
                 double plane_thrAngle = 30,
                 int knn_plane_clustering_search = 10,
-                bool visualize_go_cues = false
+                bool visualize_go_cues = false,
+                double min_visible_ratio = 0.10f
                 )
             :
               HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -192,7 +195,8 @@ public:
               plane_inlier_distance_ ( plane_inlier_distance ),
               plane_thrAngle_ ( plane_thrAngle ),
               knn_plane_clustering_search_ ( knn_plane_clustering_search ),
-              visualize_go_cues_ ( visualize_go_cues )
+              visualize_go_cues_ ( visualize_go_cues ),
+              min_visible_ratio_ (min_visible_ratio)
         {}
     }param_;
 
@@ -403,7 +407,7 @@ protected:
                 }
             }
         }
-        previous_unexplained_ += add_to_unexplained;
+        previous_unexplained_ += add_to_unexplained / (double)scene_cloud_downsampled_->points.size();
     }
 
     void
