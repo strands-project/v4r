@@ -250,7 +250,6 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
             }
             merged_transforms.resize(kept);
 
-            #pragma omp critical
 #pragma omp critical
             {
                 transforms_.insert(transforms_.end(), merged_transforms.begin(), merged_transforms.end());
