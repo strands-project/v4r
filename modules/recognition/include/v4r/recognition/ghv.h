@@ -133,7 +133,7 @@ namespace v4r
                   int multiple_assignment_penalize_by_one = 2,
                   double d_weight_for_bad_normals = 0.1f,
                   bool use_clutter_exp = false,
-                  bool use_histogram_specification = true, // false
+                  bool use_histogram_specification = false, // true
                   bool use_points_on_plane_side = true,
                   double best_color_weight = 0.8f,
                   bool initial_status = false,
