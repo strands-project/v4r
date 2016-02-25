@@ -453,6 +453,8 @@ template<typename PointModelT, typename PointSceneT>
 void
 v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
 {
+  try
+  {
     model_instances.clear ();
     found_transformations_.clear ();
 
@@ -1077,6 +1079,15 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
 
     //visualizeCorrespondences(*model_scene_corrs_);
 
+  }
+  // HACK: Michael Zillich: added this try/catch, as somewhere above somtimes a range
+  // check exception is thrown. This will have to be handled properly eventually
+  catch(std::exception e)
+  {
+      std::cerr << "v4r::GraphGeometricConsistencyGroupingi: caught exception: "
+        << e.what() << "\n";
+  }
+  // HACK END
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
