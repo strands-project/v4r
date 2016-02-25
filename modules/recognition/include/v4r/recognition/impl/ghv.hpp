@@ -2399,6 +2399,11 @@ GHV<ModelT, SceneT>::specifyColor(size_t id, Eigen::MatrixXf & lookup, GHVRecogn
             for (size_t i = 0; i < label_indices[j].size (); i++)
             {
                 float LRefm = recog_model.cloud_LAB_[label_indices[j][i]][0] * 255.f;
+                // HACK: Michael Zillich: quick fix! LRefM can apparently be
+                // negative, which should not happen
+                if (LRefm < 0.)
+                  LRefm = 0.;
+                // HACK END
                 int pos = std::floor (static_cast<float> (LRefm) / 255.f * hist_size);
                 assert(pos < lookup.rows());
                 float gs_specified = lookup(pos, 0);
