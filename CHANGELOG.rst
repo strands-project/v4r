@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.2 (2016-02-26)
+------------------
 * Merge pull request `#60 <https://github.com/strands-project/v4r/issues/60>`_ from strands-project/strands
   some quick fixes regarding range check exceptions, need proper fix eventually
 * Merge branch 'master' of github.com:strands-project/v4r into strands
