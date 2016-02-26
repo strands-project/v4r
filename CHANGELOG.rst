@@ -2,6 +2,18 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#60 <https://github.com/strands-project/v4r/issues/60>`_ from strands-project/strands
+  some quick fixes regarding range check exceptions, need proper fix eventually
+* Merge branch 'master' of github.com:strands-project/v4r into strands
+* added quick fixed to handle some range check exceptions
+  needs proper handling soon
+* Merge pull request `#59 <https://github.com/strands-project/v4r/issues/59>`_ from strands-project/fix_range_error_when_using_hv_use_histogram_specification
+  Update ghv.h
+* Update ghv.h
+* Contributors: Michael Zillich, Thomas Fäulhammer, mzillich
+
 1.4.1 (2016-02-01)
 ------------------
 * Merge pull request `#58 <https://github.com/strands-project/v4r/issues/58>`_ from strands-project/fix1
