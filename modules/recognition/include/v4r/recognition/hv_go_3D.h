@@ -88,8 +88,7 @@ namespace v4r
     using GHV<ModelT, SceneT>::extra_weights_;
     using GHV<ModelT, SceneT>::scene_normals_;
     using GHV<ModelT, SceneT>::recognition_models_;
-    using GHV<ModelT, SceneT>::computeRGBHistograms;
-    using GHV<ModelT, SceneT>::specifyRGBHistograms;
+    using GHV<ModelT, SceneT>::specifyHistograms;
     using GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods;
     using GHV<ModelT, SceneT>::explained_by_RM_distance_weighted;
     using GHV<ModelT, SceneT>::explained_by_RM_;

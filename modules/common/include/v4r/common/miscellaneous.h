@@ -432,6 +432,10 @@ filterVector(const std::vector<T> &in, const std::vector<int> &indices)
     out.resize(kept);
     return out;
 }
+
+void
+V4R_EXPORTS computeHistogram (const std::vector<float> & values, std::vector<size_t> &histogram, size_t hist_size = 100, float min=0.f, float max=255.f);
+
 }
 
 

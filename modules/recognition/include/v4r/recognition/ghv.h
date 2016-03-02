@@ -552,10 +552,7 @@ namespace v4r
                                int dim = 3, float min = 0.f, float max = 255.f);
 
       void
-      specifyRGBHistograms (Eigen::MatrixXf & src, Eigen::MatrixXf & dst, Eigen::MatrixXf & lookup, int dim = 3);
-
-      void
-      computeGSHistogram (const std::vector<float> & hsv_values, Eigen::MatrixXf & histogram, int hist_size = 255);
+      specifyHistograms(const std::vector<size_t> &src_hist, const std::vector<size_t> &dst_hist, std::vector<float> & lut);
 
       std::vector<PlaneModel<ModelT> > planar_models_;
       std::map<size_t, size_t> model_to_planar_model_;
@@ -575,7 +572,7 @@ namespace v4r
       std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> models_smooth_faces_;
 
       void
-      specifyColor(size_t i, Eigen::MatrixXf &lookup, GHVRecognitionModel<ModelT> &recog_model);
+      specifyColor(size_t id, std::vector<float> & lookup, GHVRecognitionModel<ModelT> & recog_model);
 
       std::vector<float> scene_curvature_;
       std::vector<Eigen::Vector3f> scene_LAB_values_;

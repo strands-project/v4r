@@ -52,6 +52,7 @@
 #include <boost/random/uniform_01.hpp>
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/adjacency_matrix.hpp>
+#include <omp.h>
 
 namespace v4r {
 
@@ -1983,29 +1984,6 @@ inline void softBining(float val, int pos1, float bin_size, int max_pos, int & p
     w2 = (c2 - val) / (c2 - c1);
 }
 
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::computeGSHistogram
-(const std::vector<float> & gs_values, Eigen::MatrixXf & histogram, int hist_size)
-{
-    float max = 255.f;
-    float min = 0.f;
-    int dim = 1;
-
-    histogram = Eigen::MatrixXf (hist_size, dim);
-    histogram.setZero ();
-    for (size_t j = 0; j < gs_values.size (); j++)
-    {
-        int pos = std::floor (static_cast<float> (gs_values[j] - min) / (max - min) * hist_size);
-        if(pos < 0)
-            pos = 0;
-
-        if(pos > hist_size)
-            pos = hist_size - 1;
-
-        histogram (pos, 0)++;
-    }
-}
 
 template<typename ModelT, typename SceneT>
 void
@@ -2032,85 +2010,102 @@ GHV<ModelT, SceneT>::computeRGBHistograms (const std::vector<Eigen::Vector3f> & 
 
 template<typename ModelT, typename SceneT>
 void
-GHV<ModelT, SceneT>::specifyRGBHistograms (Eigen::MatrixXf & src, Eigen::MatrixXf & dst, Eigen::MatrixXf & lookup, int dim)
+GHV<ModelT, SceneT>::specifyHistograms (const std::vector<size_t> &src_hist, const std::vector<size_t> &dst_hist, std::vector<float> & lut)
 {
-    //normalize histograms
-    for(size_t i=0; i < dim; i++) {
-        src.col(i) /= src.col(i).sum();
-        dst.col(i) /= dst.col(i).sum();
+    if(src_hist.size() != dst_hist.size())
+        throw std::runtime_error ("Histograms do not have the same size!");
+
+    // normalize histograms
+    size_t sum_src = 0, sum_dst = 0;
+    #pragma omp parallel for reduction(+:sum_src)
+    for(size_t i=0; i<src_hist.size(); i++)
+        sum_src += src_hist[i];
+
+    #pragma omp parallel for reduction(+:sum_dst)
+    for(size_t i=0; i<src_hist.size(); i++)
+        sum_dst += src_hist[i];
+
+
+    std::vector<float> src_hist_normalized (src_hist.size());
+    std::vector<float> dst_hist_normalized (dst_hist.size());
+
+    #pragma omp parallel for
+    for(size_t i=0; i<src_hist.size(); i++) {
+        src_hist_normalized[i] = static_cast<float>(src_hist[i]) / sum_src;
+        dst_hist_normalized[i] = static_cast<float>(dst_hist[i]) / sum_dst;
     }
 
-    Eigen::MatrixXf src_cumulative(src.rows(), dim);
-    Eigen::MatrixXf dst_cumulative(dst.rows(), dim);
-    lookup = Eigen::MatrixXf(src.rows(), dim);
-    lookup.setZero();
 
-    src_cumulative.setZero();
-    dst_cumulative.setZero();
+    // compute cumulative histogram
+    std::vector<float> src_hist_cumulative (src_hist.size(), 0.f);
+    std::vector<float> dst_hist_cumulative (dst_hist.size(), 0.f);
 
-    for (size_t i = 0; i < dim; i++)
+    if ( !src_hist.empty() ) {
+        src_hist_cumulative[0] = src_hist_normalized[0];
+        dst_hist_cumulative[0] = dst_hist_normalized[0];
+    }
+
+    for(size_t i=1; i<src_hist.size(); i++) {
+        src_hist_cumulative[i] = src_hist_cumulative[i-1] + src_hist_normalized[i];
+        dst_hist_cumulative[i] = dst_hist_cumulative[i-1] + dst_hist_normalized[i];
+    }
+
+
+    lut.clear();
+    lut.resize(src_hist.size(), 0);
+
+    int last = 0;
+    for (size_t k = 0; k < src_hist_cumulative.size(); k++)
     {
-        src_cumulative (0, i) = src (0, i);
-        dst_cumulative (0, i) = dst (0, i);
-        for (size_t j = 1; j < src_cumulative.rows (); j++)
+        for (int z = last; z < src_hist_cumulative.size(); z++)
         {
-            src_cumulative (j, i) = src_cumulative (j - 1, i) + src (j, i);
-            dst_cumulative (j, i) = dst_cumulative (j - 1, i) + dst (j, i);
-        }
-
-        int last = 0;
-        for (int k = 0; k < src_cumulative.rows (); k++)
-        {
-            for (int z = last; z < src_cumulative.rows (); z++)
+            if (src_hist_cumulative[z] - dst_hist_cumulative[k] >= 0)
             {
-                if (src_cumulative (z, i) - dst_cumulative (k, i) >= 0)
-                {
-                    if (z > 0 && (dst_cumulative (k, i) - src_cumulative (z - 1, i)) < (src_cumulative (z, i) - dst_cumulative (k, i)))
-                        z--;
+                if (z > 0 && (dst_hist_cumulative[k] - src_hist_cumulative[z-1]) < (src_hist_cumulative[z] - dst_hist_cumulative[k]))
+                    z--;
 
-                    lookup (k, i) = z;
-                    last = z;
-                    break;
-                }
-            }
-        }
-
-        int min = 0;
-        for (int k = 0; k < src_cumulative.rows (); k++)
-        {
-            if (lookup (k, i) != 0)
-            {
-                min = lookup (k, i);
+                lut[k] = z;
+                last = z;
                 break;
             }
         }
+    }
 
-        for (int k = 0; k < src_cumulative.rows (); k++)
+    int min = 0;
+    for (size_t k = 0; k < src_hist_cumulative.size(); k++)
+    {
+        if (lut[k] != 0)
         {
-            if (lookup (k, i) == 0)
-                lookup (k, i) = min;
-            else
-                break;
+            min = lut[k];
+            break;
         }
+    }
 
-        //max mapping extension
-        int max = 0;
-        for (int k = (src_cumulative.rows () - 1); k >= 0; k--)
-        {
-            if (lookup (k, i) != 0)
-            {
-                max = lookup (k, i);
-                break;
-            }
-        }
+    for (size_t k = 0; k < src_hist_cumulative.size(); k++)
+    {
+        if ( lut[k] == 0)
+             lut[k] = min;
+        else
+            break;
+    }
 
-        for (int k = (src_cumulative.rows () - 1); k >= 0; k--)
+    //max mapping extension
+    int max = 0;
+    for (int k = src_hist_cumulative.size() - 1; k >= 0; k--)
+    {
+        if (lut[k] != 0)
         {
-            if (lookup (k, i) == 0)
-                lookup (k, i) = max;
-            else
-                break;
+            max = lut[k];
+            break;
         }
+    }
+
+    for (int k = src_hist_cumulative.size() - 1; k >= 0; k--)
+    {
+        if ( lut[k] == 0)
+             lut[k] = max;
+        else
+            break;
     }
 }
 
@@ -2198,128 +2193,50 @@ GHV<ModelT, SceneT>::handlingNormals (GHVRecognitionModel<ModelT> &recog_model, 
 
 template<typename ModelT, typename SceneT>
 void
-GHV<ModelT, SceneT>::specifyColor(size_t id, Eigen::MatrixXf & lookup, GHVRecognitionModel<ModelT> & recog_model)
+GHV<ModelT, SceneT>::specifyColor(size_t id, std::vector<float> & lookup, GHVRecognitionModel<ModelT> & recog_model)
 {
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_cloud_specified(new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl::copyPointCloud(*recog_model.visible_cloud_, *model_cloud_specified);
-
-    bool smooth_faces_exist = false;
-    if(models_smooth_faces_.size() > id)
-        smooth_faces_exist = true;
-
     std::vector< std::vector<int> > label_indices;
-    std::vector< std::set<int> > label_explained_indices_points;
+    std::vector< std::vector<int> > explained_scene_pts_per_label;
 
-    pcl::PointCloud<pcl::PointXYZL>::Ptr visible_labels(new pcl::PointCloud<pcl::PointXYZL>);
-
-    if(smooth_faces_exist)
+    if(models_smooth_faces_.size() > id)
     {
         //use visible indices to check which points are visible
-        pcl::copyPointCloud(*models_smooth_faces_[id], visible_indices_[id], *visible_labels);
-        recog_model.visible_labels_ = visible_labels;
+        recog_model.visible_labels_.reset(new pcl::PointCloud<pcl::PointXYZL>);
+        pcl::copyPointCloud(*models_smooth_faces_[id], visible_indices_[id], *recog_model.visible_labels_);
 
         //specify using the smooth faces
-
         int max_label = 0;
-        for(size_t k=0; k < visible_labels->points.size(); k++)
+        for(size_t k=0; k < recog_model.visible_labels_->points.size(); k++)
         {
-            if(visible_labels->points[k].label > max_label)
-                max_label = visible_labels->points[k].label;
+            if( recog_model.visible_labels_->points[k].label > max_label)
+                max_label = recog_model.visible_labels_->points[k].label;
         }
-
-        //std::cout << "max label:" << max_label << std::endl;
 
         //1) group points based on label
         label_indices.resize(max_label + 1);
-        for(size_t k=0; k < visible_labels->points.size(); k++)
-            label_indices[visible_labels->points[k].label].push_back(k);
+        for(size_t k=0; k < recog_model.visible_labels_->points.size(); k++)
+            label_indices[ recog_model.visible_labels_->points[k].label ].push_back(k);
 
 
         //2) for each group, find corresponding scene points and push them into label_explained_indices_points
         std::vector<std::pair<int, float> > label_index_distances;
         label_index_distances.resize(scene_cloud_downsampled_->points.size(), std::make_pair(-1, std::numeric_limits<float>::infinity()));
 
-        //std::vector<int> nn_indices;
-        //std::vector<float> nn_distances;
-
         for(size_t j=0; j < label_indices.size(); j++)
         {
             for (size_t i = 0; i < label_indices[j].size (); i++)
             {
-                /*if (octree_scene_downsampled_->radiusSearch (recog_model.visible_cloud_->points[label_indices[j][i]], inliers_threshold_,
-                                                             nn_indices, nn_distances, std::numeric_limits<int>::max ()) > 0)*/
-
                 std::vector<int> & nn_indices = recog_model.inlier_indices_[label_indices[j][i]];
                 std::vector<float> & nn_distances = recog_model.inlier_distances_[label_indices[j][i]];
 
-                if(nn_indices.size() > 0)
+                for (size_t k = 0; k < nn_indices.size (); k++)
                 {
-                    for (size_t k = 0; k < nn_distances.size (); k++)
-                    {
-                        if(label_index_distances[nn_indices[k]].first == static_cast<int>(j))
-                        {
-                            //already explained by the same label
-                        }
-                        else
-                        {
-                            //if different labels, then take the new label if distances is smaller
-                            if(nn_distances[k] < label_index_distances[nn_indices[k]].second)
-                            {
-                                label_index_distances[nn_indices[k]].first = static_cast<int>(j);
-                                label_index_distances[nn_indices[k]].second = nn_distances[k];
-                            } //otherwise, ignore new label since the older one is closer
-                        }
-                    }
-                }
-            }
-        }
-
-        //3) set label_explained_indices_points
-        label_explained_indices_points.resize(max_label + 1);
-        for (size_t i = 0; i < scene_cloud_downsampled_->points.size (); i++)
-        {
-            if(label_index_distances[i].first < 0)
-                continue;
-
-            label_explained_indices_points[label_index_distances[i].first].insert(i);
-        }
-    }
-    else
-    {
-        //specify for the whole model
-        label_indices.resize(1);
-        label_explained_indices_points.resize(1);
-        for(size_t k=0; k < recog_model.visible_cloud_->points.size(); k++)
-            label_indices[0].push_back(k);
-
-        std::vector<std::pair<int, float> > label_index_distances;
-        label_index_distances.resize(scene_cloud_downsampled_->points.size(), std::make_pair(-1, std::numeric_limits<float>::infinity()));
-
-        //std::vector<int> nn_indices;
-        //std::vector<float> nn_distances;
-
-        for (size_t i = 0; i < label_indices[0].size (); i++)
-        {
-            /*if (octree_scene_downsampled_->radiusSearch (recog_model.visible_cloud_->points[label_indices[0][i]], inliers_threshold_,
-                                                         nn_indices, nn_distances, std::numeric_limits<int>::max ()) > 0)*/
-
-            std::vector<int> & nn_indices = recog_model.inlier_indices_[label_indices[0][i]];
-            std::vector<float> & nn_distances = recog_model.inlier_distances_[label_indices[0][i]];
-
-            if( !nn_indices.empty() )
-            {
-                for (size_t k = 0; k < nn_distances.size (); k++)
-                {
-                    if(label_index_distances[nn_indices[k]].first == static_cast<int>(0))
-                    {
-                        //already explained by the same label
-                    }
-                    else
+                    if(label_index_distances[nn_indices[k]].first != static_cast<int>(j)) // notalready explained by the same label
                     {
                         //if different labels, then take the new label if distances is smaller
                         if(nn_distances[k] < label_index_distances[nn_indices[k]].second)
                         {
-                            label_index_distances[nn_indices[k]].first = static_cast<int>(0);
+                            label_index_distances[nn_indices[k]].first = static_cast<int>(j);
                             label_index_distances[nn_indices[k]].second = nn_distances[k];
                         } //otherwise, ignore new label since the older one is closer
                     }
@@ -2327,263 +2244,245 @@ GHV<ModelT, SceneT>::specifyColor(size_t id, Eigen::MatrixXf & lookup, GHVRecogn
             }
         }
 
-        //scene indices are the explained_points of the model
-        /*for(size_t k=0; k < recog_model.explained_.size(); k++)
-        {
-            label_explained_indices_points[0].insert(recog_model.explained_[k]);
-        }*/
-
+        //3) set label_explained_indices_points
+        explained_scene_pts_per_label.resize(max_label + 1);
         for (size_t i = 0; i < scene_cloud_downsampled_->points.size (); i++)
         {
             if(label_index_distances[i].first < 0)
                 continue;
 
-            label_explained_indices_points[label_index_distances[i].first].insert(i);
+            explained_scene_pts_per_label[label_index_distances[i].first].push_back(i);
+        }
+    }
+    else
+    {
+        label_indices.resize(1);
+        label_indices[0].resize(recog_model.visible_cloud_->points.size());
+        for(size_t k=0; k < recog_model.visible_cloud_->points.size(); k++)
+            label_indices[0][k] = k;
+
+        std::vector<bool> scene_pt_is_explained ( scene_cloud_downsampled_->points.size(), false );
+        for (size_t i = 0; i < label_indices[0].size (); i++)
+        {
+            std::vector<int> & nn_indices = recog_model.inlier_indices_[ label_indices[0][i] ];
+//            std::vector<float> & nn_distances = recog_model.inlier_distances_[ label_indices[0][i] ];
+
+            for (size_t k = 0; k < nn_indices.size (); k++)
+                scene_pt_is_explained[ nn_indices[k] ] = true;
         }
 
-        /*std::cout << label_indices.size() << " " << label_explained_indices_points.size() << std::endl;
-        std::cout << label_indices[0].size() << " " << label_explained_indices_points[0].size() << std::endl;*/
+        std::vector<int> explained_scene_pts = createIndicesFromMask<int>(scene_pt_is_explained);
+
+        explained_scene_pts_per_label.resize(1, std::vector<int>( explained_scene_pts.size() ) );
+        for (size_t i = 0; i < explained_scene_pts.size (); i++)
+            explained_scene_pts_per_label[0][i] = explained_scene_pts[i];
     }
 
     recog_model.cloud_LAB_original_ = recog_model.cloud_LAB_;
 
-    //specify each label
     for(size_t j=0; j < label_indices.size(); j++)
     {
-        std::set<int> explained_indices_points = label_explained_indices_points[j];
+        std::vector<int> explained_scene_pts = explained_scene_pts_per_label[j];
 
         if(param_.color_space_ == 0 || param_.color_space_ == 3)
         {
-            std::vector<float> model_gs_values, scene_gs_values;
-
-            //compute RGB histogram for the model points
-            for (size_t i = 0; i < label_indices[j].size (); i++)
-            {
-                model_gs_values.push_back(recog_model.cloud_LAB_[label_indices[j][i]][0] * 255.f);
-            }
-
-            //compute RGB histogram for the explained points
-            std::set<int>::iterator it;
-            for(it=explained_indices_points.begin(); it != explained_indices_points.end(); it++)
-            {
-                scene_gs_values.push_back(scene_LAB_values_[*it][0] * 255.f);
-            }
-
-            Eigen::MatrixXf gs_model, gs_scene;
-            computeGSHistogram(model_gs_values, gs_model, 100);
-            computeGSHistogram(scene_gs_values, gs_scene, 100);
-            int hist_size = gs_model.rows();
-
-            /*int removed_model = 0;
-            int removed_scene = 0;
-            for(int i=0; i < hist_size; i++)
-            {
-                if(gs_model(i,0) < (0.1f * static_cast<float>(model_gs_values.size ())))
-                {
-                    gs_model(i,0) = 0;
-                    removed_model++;
-                }
-
-                if(gs_scene(i,0) < (0.1f * static_cast<float>(scene_gs_values.size ())))
-                {
-                    gs_scene(i,0) = 0;
-                    removed_scene++;
-                }
-            }
-
-            std::cout << "removed bins:" << removed_scene << "," << removed_model << std::endl;*/
-
-            //histogram specification, adapt model values to scene values
-            specifyRGBHistograms(gs_scene, gs_model, lookup, 1);
+            std::vector<float> model_L_values ( label_indices[j].size () );
+            std::vector<float> scene_L_values ( explained_scene_pts.size() );
 
             for (size_t i = 0; i < label_indices[j].size (); i++)
+                model_L_values[i] = recog_model.cloud_LAB_[ label_indices[j][i] ][0];
+
+            for(size_t i=0; i<explained_scene_pts.size(); i++)
+                scene_L_values[i] = scene_LAB_values_[ explained_scene_pts[i] ][0];
+
+            size_t hist_size = 100;
+            std::vector<size_t> model_L_hist, scene_L_hist;
+            computeHistogram(model_L_values, model_L_hist, hist_size, -1.f, 1.f);
+            computeHistogram(scene_L_values, scene_L_hist, hist_size, -1.f, 1.f);
+            specifyHistograms(scene_L_hist, model_L_hist, lookup);
+
+            for (size_t i = 0; i < label_indices[j].size(); i++)
             {
-                float LRefm = recog_model.cloud_LAB_[label_indices[j][i]][0] * 255.f;
-                // HACK: Michael Zillich: quick fix! LRefM can apparently be
-                // negative, which should not happen
-                if (LRefm < 0.)
-                  LRefm = 0.;
-                // HACK END
-                int pos = std::floor (static_cast<float> (LRefm) / 255.f * hist_size);
-                assert(pos < lookup.rows());
-                float gs_specified = lookup(pos, 0);
-                //std::cout << "gs specified:" << gs_specified << " size:" << hist_size << std::endl;
-                LRefm = gs_specified * (255.f / static_cast<float>(hist_size)) / 255.f;
-                recog_model.cloud_LAB_[label_indices[j][i]][0] = LRefm;
+                float LRefm = recog_model.cloud_LAB_[ label_indices[j][i] ][0];
+                int pos = std::floor (hist_size * static_cast<float> (LRefm + 1.f) / (1.f - -1.f));
+
+                if(pos < lookup.size())
+                    throw std::runtime_error("Color not specified");
+
+                LRefm = lookup[pos] * (1.f - -1.f)/hist_size - 1.f;
+                recog_model.cloud_LAB_[ label_indices[j][i] ][0] = LRefm;
                 recog_model.cloud_indices_specified_.push_back(label_indices[j][i]);
             }
         }
-        else if(param_.color_space_ == 1 || param_.color_space_ == 5)
-        {
+//        else if(param_.color_space_ == 1 || param_.color_space_ == 5)
+//        {
 
-            std::vector<Eigen::Vector3f> model_gs_values, scene_gs_values;
+//            std::vector<Eigen::Vector3f> model_gs_values, scene_gs_values;
 
-            //compute RGB histogram for the model points
-            for (size_t i = 0; i < label_indices[j].size (); i++)
-            {
-                model_gs_values.push_back(recog_model.cloud_RGB_[label_indices[j][i]] * 255.f);
-            }
+//            //compute RGB histogram for the model points
+//            for (size_t i = 0; i < label_indices[j].size (); i++)
+//            {
+//                model_gs_values.push_back(recog_model.cloud_RGB_[label_indices[j][i]] * 255.f);
+//            }
 
-            //compute RGB histogram for the explained points
-            std::set<int>::iterator it;
-            for(it=explained_indices_points.begin(); it != explained_indices_points.end(); it++)
-            {
-                scene_gs_values.push_back(scene_RGB_values_[*it] * 255.f);
-            }
+//            //compute RGB histogram for the explained points
+//            std::set<int>::iterator it;
+//            for(it=explained_scene_pts.begin(); it != explained_scene_pts.end(); it++)
+//            {
+//                scene_gs_values.push_back(scene_RGB_values_[*it] * 255.f);
+//            }
 
-            int dim = 3;
-            Eigen::MatrixXf gs_model, gs_scene;
-            computeRGBHistograms(model_gs_values, gs_model, dim);
-            computeRGBHistograms(scene_gs_values, gs_scene, dim);
+//            int dim = 3;
+//            Eigen::MatrixXf gs_model, gs_scene;
+//            computeRGBHistograms(model_gs_values, gs_model, dim);
+//            computeRGBHistograms(scene_gs_values, gs_scene, dim);
 
-            //histogram specification, adapt model values to scene values
-            specifyRGBHistograms(gs_scene, gs_model, lookup, dim);
+//            //histogram specification, adapt model values to scene values
+//            specifyRGBHistograms(gs_scene, gs_model, lookup, dim);
 
-            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-            {
-                for(int k=0; k < dim; k++)
-                {
-                    float color = recog_model.cloud_RGB_[label_indices[j][ii]][k] * 255.f;
-                    int pos = std::floor (static_cast<float> (color) / 255.f * 256);
-                    float specified = lookup(pos, k);
-                    recog_model.cloud_RGB_[label_indices[j][ii]][k] = specified / 255.f;
-                }
-            }
+//            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
+//            {
+//                for(int k=0; k < dim; k++)
+//                {
+//                    float color = recog_model.cloud_RGB_[label_indices[j][ii]][k] * 255.f;
+//                    int pos = std::floor (static_cast<float> (color) / 255.f * 256);
+//                    float specified = lookup(pos, k);
+//                    recog_model.cloud_RGB_[label_indices[j][ii]][k] = specified / 255.f;
+//                }
+//            }
 
-            if(param_.color_space_ == 5)
-            {
-                //transform specified RGB to lab
-                for(size_t jj=0; jj < recog_model.cloud_LAB_.size(); jj++)
-                {
-                    unsigned char rm = recog_model.cloud_RGB_[jj][0] * 255;
-                    unsigned char gm = recog_model.cloud_RGB_[jj][1] * 255;
-                    unsigned char bm = recog_model.cloud_RGB_[jj][2] * 255;
+//            if(param_.color_space_ == 5)
+//            {
+//                //transform specified RGB to lab
+//                for(size_t jj=0; jj < recog_model.cloud_LAB_.size(); jj++)
+//                {
+//                    unsigned char rm = recog_model.cloud_RGB_[jj][0] * 255;
+//                    unsigned char gm = recog_model.cloud_RGB_[jj][1] * 255;
+//                    unsigned char bm = recog_model.cloud_RGB_[jj][2] * 255;
 
-                    float LRefm, aRefm, bRefm;
-                    color_transf_omp_.RGB2CIELAB_normalized (rm, gm, bm, LRefm, aRefm, bRefm);
-                    recog_model.cloud_LAB_[jj] = Eigen::Vector3f(LRefm, aRefm, bRefm);
-                }
-            }
-        }
-        else if(param_.color_space_ == 2) //gray scale
-        {
-            std::vector<float> model_gs_values, scene_gs_values;
+//                    float LRefm, aRefm, bRefm;
+//                    color_transf_omp_.RGB2CIELAB_normalized (rm, gm, bm, LRefm, aRefm, bRefm);
+//                    recog_model.cloud_LAB_[jj] = Eigen::Vector3f(LRefm, aRefm, bRefm);
+//                }
+//            }
+//        }
+//        else if(param_.color_space_ == 2) //gray scale
+//        {
+//            std::vector<float> model_gs_values, scene_gs_values;
 
-            //compute RGB histogram for the model points
-            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-            {
-                model_gs_values.push_back(recog_model.cloud_GS_[label_indices[j][ii]] * 255.f);
-            }
+//            //compute RGB histogram for the model points
+//            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
+//            {
+//                model_gs_values.push_back(recog_model.cloud_GS_[label_indices[j][ii]] * 255.f);
+//            }
 
-            //compute RGB histogram for the explained points
-            std::set<int>::iterator it;
-            for(it=explained_indices_points.begin(); it != explained_indices_points.end(); it++)
-            {
-                scene_gs_values.push_back(scene_GS_values_[*it] * 255.f);
-            }
+//            //compute RGB histogram for the explained points
+//            std::set<int>::iterator it;
+//            for(it=explained_scene_pts.begin(); it != explained_scene_pts.end(); it++)
+//                scene_gs_values.push_back(scene_GS_values_[*it] * 255.f);
 
-            Eigen::MatrixXf gs_model, gs_scene;
-            computeGSHistogram(model_gs_values, gs_model);
-            computeGSHistogram(scene_gs_values, gs_scene);
+//            Eigen::MatrixXf gs_model, gs_scene;
+//            computeHistogram(model_gs_values, gs_model);
+//            computeHistogram(scene_gs_values, gs_scene);
 
-            //histogram specification, adapt model values to scene values
-            specifyRGBHistograms(gs_scene, gs_model, lookup, 1);
+//            //histogram specification, adapt model values to scene values
+//            specifyRGBHistograms(gs_scene, gs_model, lookup, 1);
 
-            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-            {
-                float LRefm = recog_model.cloud_GS_[label_indices[j][ii]] * 255.f;
-                int pos = std::floor (static_cast<float> (LRefm) / 255.f * 256);
-                float gs_specified = lookup(pos, 0);
-                LRefm = gs_specified / 255.f;
-                recog_model.cloud_GS_[label_indices[j][ii]] = LRefm;
-            }
-        }
-        else if(param_.color_space_ == 6)
-        {
-            std::vector<Eigen::Vector3f> model_gs_values, scene_gs_values;
-            int dim = 3;
+//            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
+//            {
+//                float LRefm = recog_model.cloud_GS_[label_indices[j][ii]] * 255.f;
+//                int pos = std::floor (static_cast<float> (LRefm) / 255.f * 256);
+//                float gs_specified = lookup(pos, 0);
+//                LRefm = gs_specified / 255.f;
+//                recog_model.cloud_GS_[label_indices[j][ii]] = LRefm;
+//            }
+//        }
+//        else if(param_.color_space_ == 6)
+//        {
+//            std::vector<Eigen::Vector3f> model_gs_values, scene_gs_values;
+//            int dim = 3;
 
-            //compute LAB histogram for the model points
-            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-            {
-                Eigen::Vector3f lab = recog_model.cloud_LAB_[label_indices[j][ii]] * 255.f;
-                lab[1] = (lab[1] + 255.f) / 2.f;
-                lab[2] = (lab[2] + 255.f) / 2.f;
+//            //compute LAB histogram for the model points
+//            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
+//            {
+//                Eigen::Vector3f lab = recog_model.cloud_LAB_[label_indices[j][ii]] * 255.f;
+//                lab[1] = (lab[1] + 255.f) / 2.f;
+//                lab[2] = (lab[2] + 255.f) / 2.f;
 
-                for(int k=0; k < dim; k++)
-                {
-                    if(!(lab[k] >= 0 && lab[k] <= 255.f))
-                    {
-                        std::cout << lab[k] << " dim:" << dim << std::endl;
-                        assert(lab[k] >= 0 && lab[k] <= 255.f);
-                    }
-                }
-                model_gs_values.push_back(lab);
-            }
+//                for(int k=0; k < dim; k++)
+//                {
+//                    if(!(lab[k] >= 0 && lab[k] <= 255.f))
+//                    {
+//                        std::cout << lab[k] << " dim:" << dim << std::endl;
+//                        assert(lab[k] >= 0 && lab[k] <= 255.f);
+//                    }
+//                }
+//                model_gs_values.push_back(lab);
+//            }
 
-            //compute LAB histogram for the explained points
-            std::set<int>::iterator it;
-            for(it=explained_indices_points.begin(); it != explained_indices_points.end(); it++)
-            {
-                Eigen::Vector3f lab = scene_LAB_values_[*it] * 255.f;
-                lab[1] = (lab[1] + 255.f) / 2.f;
-                lab[2] = (lab[2] + 255.f) / 2.f;
-                for(int k=0; k < dim; k++)
-                {
-                    assert(lab[k] >= 0 && lab[k] <= 255.f);
-                }
-                scene_gs_values.push_back(lab);
-            }
+//            //compute LAB histogram for the explained points
+//            for(size_t p_id=0; p_id < explained_scene_pts.size(); p_id++)
+//            {
+//                Eigen::Vector3f lab = scene_LAB_values_[ explained_scene_pts[p_id] ] * 255.f;
+//                lab[1] = (lab[1] + 255.f) / 2.f;
+//                lab[2] = (lab[2] + 255.f) / 2.f;
 
-            Eigen::MatrixXf gs_model, gs_scene;
-            computeRGBHistograms(model_gs_values, gs_model, dim);
-            computeRGBHistograms(scene_gs_values, gs_scene, dim);
+//                for(size_t k=0; k < dim; k++)
+//                {
+//                    assert(lab[k] >= 0 && lab[k] <= 255.f);
+//                }
+//                scene_gs_values.push_back(lab);
+//            }
 
-            //histogram specification, adapt model values to scene values
-            specifyRGBHistograms(gs_scene, gs_model, lookup, dim);
+//            Eigen::MatrixXf gs_model, gs_scene;
+//            computeRGBHistograms(model_gs_values, gs_model, dim);
+//            computeRGBHistograms(scene_gs_values, gs_scene, dim);
 
-            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-            {
-                recog_model.cloud_indices_specified_.push_back(label_indices[j][ii]);
+//            //histogram specification, adapt model values to scene values
+//            specifyRGBHistograms(gs_scene, gs_model, lookup, dim);
 
-                for(int k=0; k < dim; k++)
-                {
-                    float LRefm = recog_model.cloud_LAB_[label_indices[j][ii]][k] * 255.f;
-                    if(k > 0)
-                        LRefm = (LRefm + 255.f) / 2.f;
+//            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
+//            {
+//                recog_model.cloud_indices_specified_.push_back(label_indices[j][ii]);
 
-                    int pos = std::floor (static_cast<float> (LRefm) / 255.f * 256);
-                    assert(pos < lookup.rows());
-                    float gs_specified = lookup(pos, k);
+//                for(int k=0; k < dim; k++)
+//                {
+//                    float LRefm = recog_model.cloud_LAB_[label_indices[j][ii]][k] * 255.f;
+//                    if(k > 0)
+//                        LRefm = (LRefm + 255.f) / 2.f;
 
-                    float diff = std::abs(LRefm - gs_specified);
-                    assert(gs_specified >= 0 && gs_specified <= 255.f);
-                    LRefm = gs_specified / 255.f;
-                    assert(LRefm >= 0 && LRefm <= 1.f);
-                    if(k > 0)
-                    {
-                        LRefm *= 2.f;
-                        LRefm -= 1.f;
+//                    int pos = std::floor (static_cast<float> (LRefm) / 255.f * 256);
+//                    assert(pos < lookup.rows());
+//                    float gs_specified = lookup(pos, k);
 
-                        if(!(LRefm >= -1.f && LRefm <= 1.f))
-                        {
-                            std::cout << LRefm << " dim:" << k << " diff:" << diff << std::endl;
-                            assert(LRefm >= -1.f && LRefm <= 1.f);
-                        }
-                    }
-                    else
-                    {
-                        if(!(LRefm >= 0.f && LRefm <= 1.f))
-                        {
-                            std::cout << LRefm << " dim:" << k << std::endl;
-                            assert(LRefm >= 0.f && LRefm <= 1.f);
-                        }
-                    }
+//                    float diff = std::abs(LRefm - gs_specified);
+//                    assert(gs_specified >= 0 && gs_specified <= 255.f);
+//                    LRefm = gs_specified / 255.f;
+//                    assert(LRefm >= 0 && LRefm <= 1.f);
+//                    if(k > 0)
+//                    {
+//                        LRefm *= 2.f;
+//                        LRefm -= 1.f;
 
-                    recog_model.cloud_LAB_[label_indices[j][ii]][k] = LRefm;
-                }
-            }
-        }
+//                        if(!(LRefm >= -1.f && LRefm <= 1.f))
+//                        {
+//                            std::cout << LRefm << " dim:" << k << " diff:" << diff << std::endl;
+//                            assert(LRefm >= -1.f && LRefm <= 1.f);
+//                        }
+//                    }
+//                    else
+//                    {
+//                        if(!(LRefm >= 0.f && LRefm <= 1.f))
+//                        {
+//                            std::cout << LRefm << " dim:" << k << std::endl;
+//                            assert(LRefm >= 0.f && LRefm <= 1.f);
+//                        }
+//                    }
+
+//                    recog_model.cloud_LAB_[label_indices[j][ii]][k] = LRefm;
+//                }
+//            }
+//        }
     }
 }
 
@@ -2678,7 +2577,7 @@ GHV<ModelT, SceneT>::addModel (size_t model_id, GHVRecognitionModel<ModelT> &rec
                                                  recog_model.inlier_indices_[pt], recog_model.inlier_distances_[pt],
                                                  std::numeric_limits<int>::max ());
 
-    Eigen::MatrixXf lookup;
+    std::vector<float> lookup;
     if(!is_planar_model && !param_.ignore_color_even_if_exists_ && param_.use_histogram_specification_)
         specifyColor(model_id, lookup, recog_model);
 

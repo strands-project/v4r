@@ -1,4 +1,5 @@
 #include <v4r/common/miscellaneous.h>
+#include <omp.h>
 
 namespace v4r
 {
@@ -47,6 +48,38 @@ void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointTy
     Eigen::Quaternionf q(rotation);
     cloud.sensor_orientation_ = q;
 }
+
+
+
+void
+computeHistogram (const std::vector<float> & values, std::vector<size_t> &histogram, size_t hist_size, float min, float max)
+{
+    histogram.resize(hist_size, 0);
+
+    omp_lock_t bin_lock[hist_size];
+    for(size_t i=0; i<hist_size; i++)
+        omp_init_lock(&bin_lock[i]);
+
+#pragma omp parallel for firstprivate(min, max, hist_size) schedule(dynamic)
+    for (size_t j = 0; j<values.size(); j++)
+    {
+        int pos = std::floor (static_cast<float>(hist_size) * (values[j] - min) / (max - min));
+
+        if(pos < 0)
+            pos = 0;
+
+        if(pos > (int)hist_size)
+            pos = hist_size - 1;
+
+        omp_set_lock(&bin_lock[pos]);
+        histogram[pos]++;
+        omp_unset_lock(&bin_lock[pos]);
+    }
+
+    for(size_t i=0; i<hist_size; i++)
+        omp_destroy_lock(&bin_lock[i]);
+}
+
 
 }
 
