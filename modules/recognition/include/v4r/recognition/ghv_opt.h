@@ -22,63 +22,15 @@
 #include <iostream>
 #include <fstream>
 #include <v4r/core/macros.h>
+#include <v4r/recognition/recognition_model_ghv.h>
 
 namespace v4r
 {
-
-  //Helper classes
-  template<typename ModelT>
-  struct V4R_EXPORTS GHVRecognitionModel
-  {
-    public:
-      std::vector<int> explained_; /// @brief explained scene points by_RM_
-      std::vector<float> explained_distances_; /// @brief closest distances to the scene for point i
-      std::vector<int> unexplained_in_neighborhood; /// @brief indices vector referencing unexplained_by_RM_neighboorhods
-      std::vector<float> unexplained_in_neighborhood_weights; /// @brief weights for the points not being explained in the neighborhood of a hypothesis
-      std::vector<int> outlier_indices_; /// @brief outlier indices of this model (coming from all types)
-      std::vector<int> color_outliers_indices_; /// @brief all model points that have a scene point nearby but whose color does not match
-      std::vector<int> outliers_3d_indices_;    /// @brief all model points that do not have a scene point nearby
-      std::vector<int> complete_cloud_occupancy_indices_;
-      std::vector<bool> scene_point_explained_by_hypothesis_; /// @brief boolean vector indicating if a scene point is explained by this model or not
-      typename pcl::PointCloud<ModelT>::Ptr visible_cloud_;
-      typename pcl::PointCloud<ModelT>::Ptr complete_cloud_;
-      typename pcl::PointCloud<pcl::Normal>::Ptr complete_cloud_normals_;
-      float bad_information_;
-      float outliers_weight_;
-      pcl::PointCloud<pcl::Normal>::Ptr normals_;
-      pcl::PointCloud<pcl::Normal>::Ptr normals_from_visible_;
-      size_t id_;
-      float extra_weight_; /// @brief descriptor distance weight for instance
-      float color_similarity_;
-      float median_;
-      float mean_;
-      Eigen::MatrixXf color_mapping_;
-      float hyp_penalty_;
-      std::string id_s_;
-      std::vector<Eigen::Vector3f> cloud_LAB_;
-      std::vector<Eigen::Vector3f> cloud_LAB_original_;
-      std::vector<Eigen::Vector3f> cloud_RGB_;
-      std::vector<float> cloud_GS_; /// @brief Grayscale cloud
-      float min_contribution_; /// @brief based on the amount of explained points and the amount of information in the hypotheses
-      std::vector<float> normal_angle_histogram_;
-      std::vector<float> color_diff_histogram_;
-      float normal_entropy_;
-      float color_entropy_;
-      std::vector<int> cloud_indices_specified_;
-      float color_diff_trhough_specification_;
-      pcl::PointCloud<pcl::PointXYZL>::Ptr visible_labels_;
-
-      //inlier indices and distances for cloud_ (this avoids recomputing radius searches twice (one for specification and one for inlier/outlier detection)
-      std::vector<std::vector<int> > inlier_indices_;
-      std::vector<std::vector<float> > inlier_distances_;
-  };
-
   template<typename ModelT, typename SceneT> class V4R_EXPORTS GHV;
 
   template<typename ModelT, typename SceneT>
   class V4R_EXPORTS GHVSAModel : public mets::evaluable_solution
   {
-
     typedef GHV<ModelT, SceneT> SAOptimizerT;
 
   public:

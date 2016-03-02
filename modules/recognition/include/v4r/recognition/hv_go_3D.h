@@ -62,6 +62,7 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::focal_length_;
          using GHV<ModelT, SceneT>::Parameter::visualize_go_cues_;
          using GHV<ModelT, SceneT>::Parameter::color_space_;
+         using GHV<ModelT, SceneT>::Parameter::do_occlusion_reasoning_;
 
          bool visualize_cues_;
 
@@ -77,18 +78,11 @@ namespace v4r
     using GHV<ModelT, SceneT>::scene_cloud_;
     using GHV<ModelT, SceneT>::scene_cloud_downsampled_;
     using GHV<ModelT, SceneT>::scene_downsampled_tree_;
-    using GHV<ModelT, SceneT>::visible_models_;
-    using GHV<ModelT, SceneT>::visible_normal_models_;
-    using GHV<ModelT, SceneT>::visible_indices_;
     using GHV<ModelT, SceneT>::model_point_is_visible_;
-    using GHV<ModelT, SceneT>::complete_models_;
     using GHV<ModelT, SceneT>::normals_set_;
     using GHV<ModelT, SceneT>::requires_normals_;
-    using GHV<ModelT, SceneT>::object_ids_;
-    using GHV<ModelT, SceneT>::extra_weights_;
     using GHV<ModelT, SceneT>::scene_normals_;
     using GHV<ModelT, SceneT>::recognition_models_;
-    using GHV<ModelT, SceneT>::specifyHistograms;
     using GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods;
     using GHV<ModelT, SceneT>::explained_by_RM_distance_weighted;
     using GHV<ModelT, SceneT>::explained_by_RM_;
@@ -96,16 +90,9 @@ namespace v4r
     using GHV<ModelT, SceneT>::octree_scene_downsampled_;
     using GHV<ModelT, SceneT>::cc_;
     using GHV<ModelT, SceneT>::n_cc_;
-    using GHV<ModelT, SceneT>::valid_model_;
     using GHV<ModelT, SceneT>::clusters_cloud_rgb_;
     using GHV<ModelT, SceneT>::clusters_cloud_;
     using GHV<ModelT, SceneT>::points_explained_by_rm_;
-    using GHV<ModelT, SceneT>::extractEuclideanClustersSmooth;
-    using GHV<ModelT, SceneT>::complete_normal_models_;
-    using GHV<ModelT, SceneT>::scene_LAB_values_;
-    using GHV<ModelT, SceneT>::scene_RGB_values_;
-    using GHV<ModelT, SceneT>::scene_GS_values_;
-    using GHV<ModelT, SceneT>::computeClutterCueAtOnce;
 
     //typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
@@ -157,17 +144,11 @@ namespace v4r
       /**
        * @brief addModels Adds object hypotheses
        * @param models set of object hypotheses (setAbsolutePoses must be called in advances!)
-       * @param occlusion_reasoning: if true, filters points which are not visible in any of the occlusion clouds (setOcclusionClouds must be called in advance!!)
+       * @param normals of the models [optional]
        */
       void
-      addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning = false);
-
-      std::vector<typename pcl::PointCloud<ModelT>::Ptr>
-      getVisibleModels() const
-      {
-        return visible_models_;
-      }
-
+      addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
+                 std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr > &model_normals = std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr >());
       /**
        * @brief for each model this variable stores information in which view it is present
        * @param presence in model and view

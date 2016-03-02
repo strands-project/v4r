@@ -87,10 +87,7 @@ Recognizer<PointT>::hypothesisVerification ()
 
     hv_algorithm_->setOcclusionCloud (scene_);
     hv_algorithm_->setSceneCloud (scene_);
-    hv_algorithm_->addModels (aligned_models, true);
-
-    if (hv_algorithm_->getRequiresNormals ())
-        hv_algorithm_->addNormalsClouds (aligned_model_normals);
+    hv_algorithm_->addModels (aligned_models, aligned_model_normals);
 
     if( hv_algorithm_ghv ) {
         hv_algorithm_ghv->setRequiresNormals(false);

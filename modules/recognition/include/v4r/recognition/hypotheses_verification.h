@@ -41,6 +41,7 @@
 #include <v4r/core/macros.h>
 #include <v4r/common/common_data_structures.h>
 #include <v4r/common/zbuffering.h>
+#include <v4r/recognition/recognition_model_hv.h>
 #include <pcl/common/common.h>
 #include <pcl/search/kdtree.h>
 
@@ -65,6 +66,7 @@ namespace v4r
           int zbuffer_self_occlusion_resolution_;
           bool self_occlusions_reasoning_;
           double focal_length_; /// @brief defines the focal length used for back-projecting points to the image plane (used for occlusion / visibility reasoning)
+          bool do_occlusion_reasoning_;
 
           Parameter (
                   double resolution = 0.005f,
@@ -73,14 +75,16 @@ namespace v4r
                   int zbuffer_scene_resolution = 100,
                   int zbuffer_self_occlusion_resolution = 250,
                   bool self_occlusions_reasoning = true,
-                  double focal_length = 525.f)
+                  double focal_length = 525.f,
+                  bool do_occlusion_reasoning = true)
               : resolution_ (resolution),
                 inliers_threshold_(inliers_threshold),
                 occlusion_thres_ (occlusion_thres),
                 zbuffer_scene_resolution_(zbuffer_scene_resolution),
                 zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
                 self_occlusions_reasoning_(self_occlusions_reasoning),
-                focal_length_ (focal_length)
+                focal_length_ (focal_length),
+                do_occlusion_reasoning_ (do_occlusion_reasoning)
           {}
       }param_;
 
@@ -117,17 +121,9 @@ namespace v4r
 	 * the 3D models are pruned of occluded points, and only visible points are left. 
 	 * the coordinate system is that of the scene cloud
      */
-    typename std::vector<typename pcl::PointCloud<ModelT>::Ptr> visible_models_;
-    std::vector<typename pcl::PointCloud<pcl::Normal>::Ptr> visible_normal_models_;
-    std::vector< std::vector<int> > visible_indices_;
     std::vector< std::vector<bool> > model_point_is_visible_;
 
-    /**
-     * \brief Vector of point clouds representing the complete 3D model (in same coordinates as the scene cloud)
-     */
-    typename std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> complete_models_;
-
-    std::vector<typename pcl::PointCloud<pcl::Normal>::ConstPtr> complete_normal_models_;
+    std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > recognition_models_; /// @brief all models to be verified (including planar models if included)
 
     bool requires_normals_; /// \brief Whether the HV method requires normals or not, by default = false
     bool normals_set_; /// \brief Whether the normals have been set
@@ -170,7 +166,9 @@ namespace v4r
     void
     addNormalsClouds (std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> & complete_models)
     {
-      complete_normal_models_ = complete_models;
+//      complete_normal_models_ = complete_models;
+        (void)complete_models;
+        throw std::runtime_error("This function is not properly implemented right now!");
       normals_set_ = true;
     }
 
@@ -180,7 +178,8 @@ namespace v4r
      */
     virtual
     void
-    addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, bool occlusion_reasoning = false);
+    addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
+               std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr > &model_normals = std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr >());
 
 
     /**
