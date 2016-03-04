@@ -94,6 +94,7 @@ namespace v4r
     using GHV<ModelT, SceneT>::rm_ids_explaining_scene_pt_;
     using GHV<ModelT, SceneT>::refined_model_transforms_;
     using GHV<ModelT, SceneT>::poseRefinement;
+    using GHV<ModelT, SceneT>::scene_cloud_is_recorded_from_single_view_;
 
     //typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_GO3D_;
     //typename pcl::PointCloud<pcl::Normal>::Ptr scene_normals_go3D_;
@@ -109,6 +110,7 @@ namespace v4r
       GO3D(const Parameter &p=Parameter()) : GHV<ModelT, SceneT>(p)
       {
          param_ = p;
+         scene_cloud_is_recorded_from_single_view_ = false;
       }
 
       /**

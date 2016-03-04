@@ -109,6 +109,8 @@ namespace v4r
 
     bool occlusion_cloud_set_;
 
+    bool scene_cloud_is_recorded_from_single_view_;
+
     std::vector<int> recognition_models_map_;
 
     typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_; /// \brief Downsampled scene point cloud
@@ -138,6 +140,7 @@ namespace v4r
       occlusion_cloud_set_ = false;
       normals_set_ = false;
       requires_normals_ = false;
+      scene_cloud_is_recorded_from_single_view_ = true;
     }
 
     bool getRequiresNormals()

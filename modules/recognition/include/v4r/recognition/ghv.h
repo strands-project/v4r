@@ -97,10 +97,10 @@ public:
         int color_space_; /// @brief specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
         int outliers_weight_computation_method_; /// @brief defines the method used for computing the overall outlier weight. 0... mean, 1... median
 
-        //smooth segmentation parameters
-        double eps_angle_threshold_;
-        size_t min_points_per_cluster_;    // defines the minimum amount of points for a cluster
-        size_t max_points_per_cluster_;    // defines the maximum amount of points for a cluster
+        //smooth segmentation parameters for clutter detection
+        double eps_angle_threshold_;    // defines the threshold for two points to be clustered together in terms of their surface normal relationship (in degree)
+        size_t min_points_per_cluster_;    // defines the minimum amount of points for a cluster for clutter detection
+        size_t max_points_per_cluster_;    // defines the maximum amount of points for a cluster for clutter detection
         double curvature_threshold_;
         double cluster_tolerance_;
 
@@ -143,7 +143,7 @@ public:
                 bool initial_status = false,
                 int color_space = ColorSpace::LAB,
                 int outliers_weight_computation_method = 0,
-                double eps_angle_threshold = 0.25, //0.1f
+                double eps_angle_threshold = 10.f, //0.1f
                 size_t min_points_per_cluster = 100, // 20
                 size_t max_points_per_cluster = std::numeric_limits<size_t>::max(),
                 double curvature_threshold = 0.04f,
@@ -218,6 +218,7 @@ protected:
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_;
     using HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
     using HypothesisVerification<ModelT, SceneT>::recognition_models_map_;
+    using HypothesisVerification<ModelT, SceneT>::scene_cloud_is_recorded_from_single_view_;
 
     void
     extractEuclideanClustersSmooth (const typename pcl::PointCloud<pcl::Normal> &normals, std::vector<std::vector<int> > &clusters);

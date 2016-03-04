@@ -36,6 +36,7 @@
 
 #include <v4r/common/color_transforms.h>
 #include <v4r/common/normals.h>
+#include <v4r/common/noise_models.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/recognition/ghv.h>
 #include <functional>
@@ -179,6 +180,16 @@ GHV<ModelT, SceneT>::extractEuclideanClustersSmooth (const typename pcl::PointCl
 
         processed[i] = true;
 
+
+        float cluster_tolerance = param_.cluster_tolerance_;
+        if(scene_cloud_is_recorded_from_single_view_) {
+            float sigma_lateral, sigma_axial;
+            NguyenNoiseModel<SceneT>::computeNoiseLevel( tree->getInputCloud()->at(seed_queue[sq_idx]),
+                                                         normals.points[seed_queue[sq_idx]], sigma_lateral, sigma_axial, param_.focal_length_);
+            cluster_tolerance = 3*std::max(sigma_axial, sigma_lateral);
+        }
+
+
         while (sq_idx < seed_queue.size())
         {
             if (normals.points[seed_queue[sq_idx]].curvature > param_.curvature_threshold_)
@@ -188,7 +199,7 @@ GHV<ModelT, SceneT>::extractEuclideanClustersSmooth (const typename pcl::PointCl
             }
 
             // Search for sq_idx
-            if (!tree->radiusSearch (seed_queue[sq_idx], param_.cluster_tolerance_, nn_indices, nn_distances))
+            if (!tree->radiusSearch (seed_queue[sq_idx], cluster_tolerance, nn_indices, nn_distances))
             {
                 sq_idx++;
                 continue;
@@ -201,10 +212,10 @@ GHV<ModelT, SceneT>::extractEuclideanClustersSmooth (const typename pcl::PointCl
 
 
                 double dot_p = normals.points[seed_queue[sq_idx]].normal[0] * normals.points[nn_indices[j]].normal[0]
-                        + normals.points[seed_queue[sq_idx]].normal[1] * normals.points[nn_indices[j]].normal[1] + normals.points[seed_queue[sq_idx]].normal[2]
-                        * normals.points[nn_indices[j]].normal[2];
+                        + normals.points[seed_queue[sq_idx]].normal[1] * normals.points[nn_indices[j]].normal[1] +
+                        normals.points[seed_queue[sq_idx]].normal[2] * normals.points[nn_indices[j]].normal[2];
 
-                if (fabs (acos (dot_p)) < param_.eps_angle_threshold_)
+                if (fabs (acos (dot_p)) < pcl::deg2rad(param_.eps_angle_threshold_))
                 {
                     processed[nn_indices[j]] = true;
                     seed_queue.push_back ( static_cast<size_t>(nn_indices[j]) );
@@ -218,7 +229,7 @@ GHV<ModelT, SceneT>::extractEuclideanClustersSmooth (const typename pcl::PointCl
         if (seed_queue.size () >= param_.min_points_per_cluster_ && seed_queue.size () <= param_.max_points_per_cluster_)
         {
             std::vector<int> r (seed_queue.size ());
-            for (size_t j = 0; j < seed_queue.size (); ++j)
+            for (size_t j = 0; j < seed_queue.size (); j++)
                 r[j] = seed_queue[j];
 
             std::sort (r.begin (), r.end ());
@@ -490,7 +501,7 @@ GHV<ModelT, SceneT>::segmentScene()
         if(!clusters_cloud_)
             clusters_cloud_.reset(new pcl::PointCloud<pcl::PointXYZL>);
 
-        if(scene_cloud_->isOrganized() && scene_normals_for_clutter_term_ && (scene_normals_for_clutter_term_->points.size() == scene_cloud_->points.size()))
+        if(0)//scene_cloud_->isOrganized() && scene_normals_for_clutter_term_ && (scene_normals_for_clutter_term_->points.size() == scene_cloud_->points.size()))
         {
             // scene cloud is organized, filter points with high curvature and cluster the rest in smooth patches
 
@@ -2188,8 +2199,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
     #pragma omp parallel for schedule(dynamic)
     for (size_t pt = 0; pt < rm.visible_cloud_->points.size (); pt++)
         octree_scene_downsampled_->radiusSearch (rm.visible_cloud_->points[pt], param_.inliers_threshold_,
-                                                 rm.scene_inlier_indices_for_visible_pt_[pt], rm.scene_inlier_distances_for_visible_pt_[pt],
-                                                 std::numeric_limits<int>::max ());
+                                                 rm.scene_inlier_indices_for_visible_pt_[pt], rm.scene_inlier_distances_for_visible_pt_[pt]);
 
     float inliers_gaussian = 2 * param_.inliers_threshold_ * param_.inliers_threshold_;
     float inliers_gaussian_soft = 2 * (param_.inliers_threshold_ + param_.resolution_) * (param_.inliers_threshold_ + param_.resolution_);
