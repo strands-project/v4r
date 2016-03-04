@@ -150,6 +150,84 @@ countPointsOnDifferentPlaneSides (const std::vector<bool> & sol)
     return c;
 }
 
+
+template<typename ModelT, typename SceneT>
+void
+GHV<ModelT, SceneT>::extractEuclideanClustersSmooth (const typename pcl::PointCloud<pcl::Normal> &normals, std::vector<std::vector<int> > &clusters)
+{
+    if (scene_cloud_downsampled_->points.size () != normals.points.size ())
+    {
+        PCL_ERROR("[pcl::extractEuclideanClusters] Number of points in the input point cloud different than normals!\n");
+        return;
+    }
+
+    typename pcl::search::KdTree<SceneT>::Ptr tree (new pcl::search::KdTree<SceneT>);
+    tree->setInputCloud(scene_cloud_downsampled_);
+
+    std::vector<bool> processed (scene_cloud_downsampled_->points.size (), false); // Create a boolean vector of processed point indices, and initialize it to false
+    std::vector<int> nn_indices;
+    std::vector<float> nn_distances;
+
+    for (size_t i = 0; i < scene_cloud_downsampled_->points.size(); i++) // Process all points in the indices vector
+    {
+        if (processed[i])
+            continue;
+
+        std::vector<size_t> seed_queue;
+        seed_queue.push_back (i);
+        size_t sq_idx = 0;
+
+        processed[i] = true;
+
+        while (sq_idx < seed_queue.size())
+        {
+            if (normals.points[seed_queue[sq_idx]].curvature > param_.curvature_threshold_)
+            {
+                sq_idx++;
+                continue;
+            }
+
+            // Search for sq_idx
+            if (!tree->radiusSearch (seed_queue[sq_idx], param_.cluster_tolerance_, nn_indices, nn_distances))
+            {
+                sq_idx++;
+                continue;
+            }
+
+            for (size_t j=1; j<nn_indices.size (); j++) // nn_indices[0] should be sq_idx
+            {
+                if ( processed[nn_indices[j]] || normals.points[nn_indices[j]].curvature > param_.curvature_threshold_) // Has this point been processed before?
+                    continue;
+
+
+                double dot_p = normals.points[seed_queue[sq_idx]].normal[0] * normals.points[nn_indices[j]].normal[0]
+                        + normals.points[seed_queue[sq_idx]].normal[1] * normals.points[nn_indices[j]].normal[1] + normals.points[seed_queue[sq_idx]].normal[2]
+                        * normals.points[nn_indices[j]].normal[2];
+
+                if (fabs (acos (dot_p)) < param_.eps_angle_threshold_)
+                {
+                    processed[nn_indices[j]] = true;
+                    seed_queue.push_back ( static_cast<size_t>(nn_indices[j]) );
+                }
+            }
+
+            sq_idx++;
+        }
+
+        // If this queue is satisfactory, add to the clusters
+        if (seed_queue.size () >= param_.min_points_per_cluster_ && seed_queue.size () <= param_.max_points_per_cluster_)
+        {
+            std::vector<int> r (seed_queue.size ());
+            for (size_t j = 0; j < seed_queue.size (); ++j)
+                r[j] = seed_queue[j];
+
+            std::sort (r.begin (), r.end ());
+            r.erase (std::unique (r.begin (), r.end ()), r.end ());
+            clusters.push_back (r); // We could avoid a copy by working directly in the vector
+        }
+    }
+}
+
 template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::addPlanarModels(const std::vector<PlaneModel<ModelT> > & planar_models)
@@ -408,6 +486,7 @@ GHV<ModelT, SceneT>::segmentScene()
     {
         if(!clusters_cloud_rgb_)
             clusters_cloud_rgb_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>);
+
         if(!clusters_cloud_)
             clusters_cloud_.reset(new pcl::PointCloud<pcl::PointXYZL>);
 
@@ -430,7 +509,7 @@ GHV<ModelT, SceneT>::segmentScene()
                 float curvature = scene_normals_for_clutter_term_->points[j].curvature;
                 if ( pcl::isFinite( scene_cloud_->points[j] )
                      && pcl::isFinite ( scene_normals_for_clutter_term_->points[j] )
-                     && curvature <= (param_.curvature_threshold_ * (std::min(1.f,scene_cloud_->points[j].z))))
+                     && curvature <= (param_.curvature_threshold_ * std::min(1.f,scene_cloud_->points[j].z)))
                 {
                     //label_indices[1].indices[label_count[1]++] = static_cast<int>(j);
                     labels->points[j].label = 1;
@@ -458,7 +537,6 @@ GHV<ModelT, SceneT>::segmentScene()
             euclidean_segmentation.setInputCloud (scene_cloud_);
             euclidean_segmentation.segment (euclidean_labels, clusters);
 
-            //                std::cout << "Number of clusters:" << clusters.size() << std::endl;
             std::vector<bool> good_cluster(clusters.size(), false);
             for (size_t i = 0; i < clusters.size (); i++)
             {
@@ -467,12 +545,9 @@ GHV<ModelT, SceneT>::segmentScene()
             }
 
             clusters_cloud_->points.resize (scene_sampled_indices_.size ());
-            clusters_cloud_->width = scene_sampled_indices_.size();
-            clusters_cloud_->height = 1;
-
             clusters_cloud_rgb_->points.resize (scene_sampled_indices_.size ());
-            clusters_cloud_rgb_->width = scene_sampled_indices_.size();
-            clusters_cloud_rgb_->height = 1;
+            clusters_cloud_->width = clusters_cloud_rgb_->width = scene_sampled_indices_.size();
+            clusters_cloud_->height = clusters_cloud_rgb_->height = 1;
 
             pcl::PointCloud<pcl::PointXYZL>::Ptr clusters_cloud (new pcl::PointCloud<pcl::PointXYZL>);
             clusters_cloud->points.resize (scene_cloud_->points.size ());
@@ -516,7 +591,8 @@ GHV<ModelT, SceneT>::segmentScene()
             if(scene_cloud_downsampled_->points.size() != scene_sampled_indices_.size())
             {
                 std::cout << scene_cloud_downsampled_->points.size() << " " << scene_sampled_indices_.size() << std::endl;
-                assert(scene_cloud_downsampled_->points.size() == scene_sampled_indices_.size());
+                if(scene_cloud_downsampled_->points.size() != scene_sampled_indices_.size())
+                    throw std::runtime_error( "Downsampled point cloud is not the same size as sampled indices!");
             }
 
 
@@ -533,10 +609,8 @@ GHV<ModelT, SceneT>::segmentScene()
         }
         else
         {
-            std::vector<pcl::PointIndices> clusters;
-            extractEuclideanClustersSmooth<SceneT, pcl::Normal> (*scene_cloud_downsampled_, *scene_normals_, param_.cluster_tolerance_,
-                                                                 scene_downsampled_tree_, clusters, param_.eps_angle_threshold_,
-                                                                 param_.curvature_threshold_, param_.min_points_);
+            std::vector<std::vector<int> > clusters;
+            extractEuclideanClustersSmooth(*scene_normals_, clusters);
 
             clusters_cloud_->points.resize (scene_cloud_downsampled_->points.size ());
             clusters_cloud_->width = scene_cloud_downsampled_->width;
@@ -559,8 +633,8 @@ GHV<ModelT, SceneT>::segmentScene()
             uint32_t label = 1;
             for (size_t i = 0; i < clusters.size (); i++)
             {
-                for (size_t j = 0; j < clusters[i].indices.size (); j++)
-                    clusters_cloud_->points[clusters[i].indices[j]].label = label;
+                for (size_t j = 0; j < clusters[i].size (); j++)
+                    clusters_cloud_->points[clusters[i][j]].label = label;
 
                 label++;
             }
@@ -598,8 +672,6 @@ template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::convertColor()
 {
-
-    //compute cloud LAB values for model visible points
     size_t num_color_channels = 0;
     switch (param_.color_space_)
     {
@@ -661,7 +733,7 @@ GHV<ModelT, SceneT>::initialize()
     explained_by_RM_distance_weighted_.clear ();
     previous_explained_by_RM_distance_weighted_.clear ();
     explained_by_RM_.clear ();
-    explained_by_RM_model_.clear();
+//    explained_by_RM_model_.clear();
     complete_cloud_occupancy_by_RM_.clear ();
     mask_.clear ();
     mask_.resize (recognition_models_.size (), false);
@@ -669,11 +741,15 @@ GHV<ModelT, SceneT>::initialize()
     if(!scene_and_normals_set_from_outside_ || scene_cloud_downsampled_->points.size() != scene_normals_->points.size())
     {
         size_t kept = 0;
-        for (size_t i = 0; i < scene_cloud_downsampled_->points.size (); ++i) {
-            if ( pcl::isFinite( scene_cloud_downsampled_->points[i]) )
-                scene_cloud_downsampled_->points[kept++] = scene_cloud_downsampled_->points[i];
+        for (size_t i = 0; i < scene_cloud_downsampled_->points.size (); i++) {
+            if ( pcl::isFinite( scene_cloud_downsampled_->points[i]) ) {
+                scene_cloud_downsampled_->points[kept] = scene_cloud_downsampled_->points[i];
+                scene_sampled_indices_[kept] = scene_sampled_indices_[i];
+                kept++;
+            }
         }
 
+        scene_sampled_indices_.resize(kept);
         scene_cloud_downsampled_->points.resize(kept);
         scene_cloud_downsampled_->width = kept;
         scene_cloud_downsampled_->height = 1;
@@ -711,7 +787,7 @@ GHV<ModelT, SceneT>::initialize()
 
     explained_by_RM_.resize (scene_cloud_downsampled_->points.size (), 0);
     duplicates_by_RM_weighted_.resize (scene_cloud_downsampled_->points.size (), 0);
-    explained_by_RM_model_.resize (scene_cloud_downsampled_->points.size (), -1);
+//    explained_by_RM_model_.resize (scene_cloud_downsampled_->points.size (), -1);
     explained_by_RM_distance_weighted_.resize (scene_cloud_downsampled_->points.size (), 0);
     previous_explained_by_RM_distance_weighted_.resize (scene_cloud_downsampled_->points.size ());
     unexplained_by_RM_neighboorhods_.resize (scene_cloud_downsampled_->points.size (), 0.f);
@@ -745,10 +821,6 @@ GHV<ModelT, SceneT>::initialize()
             if (param_.detect_clutter_)
             {
                 pcl::ScopeTime t("Smooth segmentation of the scene");
-                //initialize kdtree for search
-                scene_downsampled_tree_.reset (new pcl::search::KdTree<SceneT>);
-                scene_downsampled_tree_->setInputCloud (scene_cloud_downsampled_);
-
                 segmentScene();
             }
         }
@@ -826,7 +898,7 @@ void
 GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const std::vector<float> & vec_float, int sign, int model_id)
 {
     double add_to_explained = 0.f;
-    double add_to_duplicity_ = 0.f;
+    double add_to_duplicity = 0.f;
 
     for (size_t i = 0; i < vec.size (); i++)
     {
@@ -915,11 +987,8 @@ GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const 
                 kept.pop();
             }
 
-            if(prev_explained == 1)
-            {
-                //was only explained by this hypothesis
+            if(prev_explained == 1) //was only explained by this hypothesis
                 explained_by_RM_distance_weighted_[vec[i]] = 0;
-            }
             else
             {
                 //there is at least another hypothesis explaining this point
@@ -941,28 +1010,28 @@ GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const 
             }
             else if ((explained_by_RM_[vec[i]] == 1) && prev_dup)
             { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
-                add_to_duplicity_ -= curv_weight;
+                add_to_duplicity -= curv_weight;
             }
             else if ((explained_by_RM_[vec[i]] > 1) && !prev_dup)
             { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
-                add_to_duplicity_ += curv_weight;
+                add_to_duplicity += curv_weight;
             }
         }
         else if( param_.multiple_assignment_penalize_by_one_ == 2)
         {
             if ((explained_by_RM_[vec[i]] > 1) && prev_dup)
             { //its still a duplicate, add or remove current explained value
-                add_to_duplicity_ += curv_weight * vec_float[i] * sign;
+                add_to_duplicity += curv_weight * vec_float[i] * sign;
                 duplicates_by_RM_weighted_[vec[i]] += curv_weight * vec_float[i] * sign;
             }
             else if ((explained_by_RM_[vec[i]] == 1) && prev_dup)
             { //if was duplicate before, now its not, remove current explained weight and old one
-                add_to_duplicity_ -= duplicates_by_RM_weighted_[vec[i]];
+                add_to_duplicity -= duplicates_by_RM_weighted_[vec[i]];
                 duplicates_by_RM_weighted_[vec[i]] = 0;
             }
             else if ((explained_by_RM_[vec[i]] > 1) && !prev_dup)
             { //it was not a duplicate but it is now, add prev explained value + current explained weight
-                add_to_duplicity_ += curv_weight * (prev_explained_value + vec_float[i]);
+                add_to_duplicity += curv_weight * (prev_explained_value + vec_float[i]);
                 duplicates_by_RM_weighted_[vec[i]] = curv_weight * (prev_explained_value + vec_float[i]);
             }
         }
@@ -972,19 +1041,19 @@ GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const 
             { //its still a duplicate
                 //add_to_duplicity_ += vec_float[i] * static_cast<int> (sign); //so, just add or remove one
                 //add_to_duplicity_ += vec_float[i] * static_cast<int> (sign) * duplicy_weight_test_ * curv_weight; //so, just add or remove one
-                add_to_duplicity_ += static_cast<int> (sign) * param_.duplicy_weight_test_ * curv_weight; //so, just add or remove one
+                add_to_duplicity += static_cast<int> (sign) * param_.duplicy_weight_test_ * curv_weight; //so, just add or remove one
             }
             else if ((explained_by_RM_[vec[i]] == 1) && prev_dup)
             { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
                 //add_to_duplicity_ -= prev_explained_value; // / 2.f; //explained_by_RM_distance_weighted[vec[i]];
                 //add_to_duplicity_ -= prev_explained_value * duplicy_weight_test_ * curv_weight;
-                add_to_duplicity_ -= param_.duplicy_weight_test_ * curv_weight * 2;
+                add_to_duplicity -= param_.duplicy_weight_test_ * curv_weight * 2;
             }
             else if ((explained_by_RM_[vec[i]] > 1) && !prev_dup)
             { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
                 //add_to_duplicity_ += explained_by_RM_distance_weighted[vec[i]];
                 //add_to_duplicity_ += explained_by_RM_distance_weighted[vec[i]] * duplicy_weight_test_ * curv_weight;
-                add_to_duplicity_ += param_.duplicy_weight_test_ * curv_weight  * 2;
+                add_to_duplicity += param_.duplicy_weight_test_ * curv_weight  * 2;
             }
         }
 
@@ -993,7 +1062,7 @@ GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const 
 
     //update explained and duplicity values...
     previous_explained_value_ += (add_to_explained / (double)scene_cloud_downsampled_->points.size());
-    previous_duplicity_ += (add_to_duplicity_ / (double)scene_cloud_downsampled_->points.size());;
+    previous_duplicity_ += (add_to_duplicity / (double)scene_cloud_downsampled_->points.size());;
 }
 
 template<typename ModelT, typename SceneT>
@@ -1117,11 +1186,11 @@ GHV<ModelT, SceneT>::fill_structures(const std::vector<bool> & initial_solution,
 
         if (param_.detect_clutter_)
         {
-            for (size_t i = 0; i < rm.unexplained_in_neighborhood.size (); i++)
+            for (size_t i = 0; i < rm.unexplained_in_neighborhood.size(); i++)
                 unexplained_by_RM_neighboorhods_[rm.unexplained_in_neighborhood[i]] += rm.unexplained_in_neighborhood_weights[i];
         }
 
-        for (size_t i = 0; i < rm.complete_cloud_occupancy_indices_.size (); i++)
+        for (size_t i = 0; i < rm.complete_cloud_occupancy_indices_.size(); i++)
         {
             int idx = rm.complete_cloud_occupancy_indices_[i];
             complete_cloud_occupancy_by_RM_[idx]++;
@@ -1168,7 +1237,7 @@ GHV<ModelT, SceneT>::fill_structures(const std::vector<bool> & initial_solution,
         unexplained_in_neighboorhod /= (double)scene_cloud_downsampled_->points.size();
     }
 
-    for (size_t i = 0; i < initial_solution.size (); i++)
+    for (size_t i=0; i<initial_solution.size(); i++)
     {
         const HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
         if (initial_solution[i])
@@ -1200,7 +1269,7 @@ GHV<ModelT, SceneT>::clear_structures()
     previous_explained_by_RM_distance_weighted_.clear();
     unexplained_by_RM_neighboorhods_.clear();
     complete_cloud_occupancy_by_RM_.clear();
-    explained_by_RM_model_.clear();
+//    explained_by_RM_model_.clear();
     duplicates_by_RM_weighted_.clear();
 
     explained_by_RM_.resize (scene_cloud_downsampled_->points.size (), 0);
@@ -1209,7 +1278,7 @@ GHV<ModelT, SceneT>::clear_structures()
     previous_explained_by_RM_distance_weighted_.resize (scene_cloud_downsampled_->points.size ());
     unexplained_by_RM_neighboorhods_.resize (scene_cloud_downsampled_->points.size (), 0.f);
     complete_cloud_occupancy_by_RM_.resize(kk, 0);
-    explained_by_RM_model_.resize (scene_cloud_downsampled_->points.size (), -1);
+//    explained_by_RM_model_.resize (scene_cloud_downsampled_->points.size (), -1);
 }
 
 template<typename ModelT, typename SceneT>

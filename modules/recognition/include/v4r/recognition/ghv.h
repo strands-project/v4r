@@ -99,7 +99,8 @@ public:
 
         //smooth segmentation parameters
         double eps_angle_threshold_;
-        int min_points_;
+        size_t min_points_per_cluster_;    // defines the minimum amount of points for a cluster
+        size_t max_points_per_cluster_;    // defines the maximum amount of points for a cluster
         double curvature_threshold_;
         double cluster_tolerance_;
 
@@ -143,7 +144,8 @@ public:
                 int color_space = ColorSpace::LAB,
                 int outliers_weight_computation_method = 0,
                 double eps_angle_threshold = 0.25, //0.1f
-                int min_points = 100, // 20
+                size_t min_points_per_cluster = 100, // 20
+                size_t max_points_per_cluster = std::numeric_limits<size_t>::max(),
                 double curvature_threshold = 0.04f,
                 double cluster_tolerance = 0.01f, //0.015f;
                 bool use_normals_from_visible = false,
@@ -185,7 +187,8 @@ public:
               color_space_ (color_space),
               outliers_weight_computation_method_ (outliers_weight_computation_method),
               eps_angle_threshold_ (eps_angle_threshold),
-              min_points_ (min_points),
+              min_points_per_cluster_ (min_points_per_cluster),
+              max_points_per_cluster_ (max_points_per_cluster),
               curvature_threshold_ (curvature_threshold),
               cluster_tolerance_ (cluster_tolerance),
               use_normals_from_visible_ (use_normals_from_visible),
@@ -208,7 +211,6 @@ protected:
     using HypothesisVerification<ModelT, SceneT>::mask_;
     using HypothesisVerification<ModelT, SceneT>::recognition_models_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
-    using HypothesisVerification<ModelT, SceneT>::scene_downsampled_tree_;
     using HypothesisVerification<ModelT, SceneT>::model_point_is_visible_;
     using HypothesisVerification<ModelT, SceneT>::normals_set_;
     using HypothesisVerification<ModelT, SceneT>::requires_normals_;
@@ -217,91 +219,8 @@ protected:
     using HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
     using HypothesisVerification<ModelT, SceneT>::recognition_models_map_;
 
-    template<typename PointT, typename NormalT>
-    inline void
-    extractEuclideanClustersSmooth (const typename pcl::PointCloud<PointT> &cloud, const typename pcl::PointCloud<NormalT> &normals, float tolerance,
-                                    const typename pcl::search::Search<PointT>::Ptr &tree, std::vector<pcl::PointIndices> &clusters, double eps_angle,
-                                    float curvature_threshold, size_t min_pts_per_cluster,
-                                    unsigned int max_pts_per_cluster = (std::numeric_limits<int>::max) ())
-    {
-
-        if (tree->getInputCloud ()->points.size () != cloud.points.size ())
-        {
-            PCL_ERROR("[pcl::extractEuclideanClusters] Tree built for a different point cloud dataset\n");
-            return;
-        }
-        if (cloud.points.size () != normals.points.size ())
-        {
-            PCL_ERROR("[pcl::extractEuclideanClusters] Number of points in the input point cloud different than normals!\n");
-            return;
-        }
-
-
-        std::vector<bool> processed (cloud.points.size (), false); // Create a boolean vector of processed point indices, and initialize it to false
-        std::vector<int> nn_indices;
-        std::vector<float> nn_distances;
-
-        for (size_t i = 0; i < cloud.points.size(); i++) // Process all points in the indices vector
-        {
-            if (processed[i])
-                continue;
-
-            std::vector<size_t> seed_queue;
-            size_t sq_idx = 0;
-            seed_queue.push_back (i);
-
-            processed[i] = true;
-
-            while (sq_idx < seed_queue.size ())
-            {
-
-                if (normals.points[seed_queue[sq_idx]].curvature > curvature_threshold)
-                {
-                    sq_idx++;
-                    continue;
-                }
-
-                // Search for sq_idx
-                if (!tree->radiusSearch (seed_queue[sq_idx], tolerance, nn_indices, nn_distances))
-                {
-                    sq_idx++;
-                    continue;
-                }
-
-                for (size_t j = 1; j < nn_indices.size (); ++j) // nn_indices[0] should be sq_idx
-                {
-                    if ( processed[nn_indices[j]] || normals.points[nn_indices[j]].curvature > curvature_threshold) // Has this point been processed before?
-                        continue;
-
-
-                    double dot_p = normals.points[seed_queue[sq_idx]].normal[0] * normals.points[nn_indices[j]].normal[0]
-                            + normals.points[seed_queue[sq_idx]].normal[1] * normals.points[nn_indices[j]].normal[1] + normals.points[seed_queue[sq_idx]].normal[2]
-                            * normals.points[nn_indices[j]].normal[2];
-
-                    if (fabs (acos (dot_p)) < eps_angle)
-                    {
-                        processed[nn_indices[j]] = true;
-                        seed_queue.push_back ( static_cast<size_t>(nn_indices[j]) );
-                    }
-                }
-
-                sq_idx++;
-            }
-
-            // If this queue is satisfactory, add to the clusters
-            if (seed_queue.size () >= min_pts_per_cluster && seed_queue.size () <= max_pts_per_cluster)
-            {
-                pcl::PointIndices r;
-                r.indices.resize (seed_queue.size ());
-                for (size_t j = 0; j < seed_queue.size (); ++j)
-                    r.indices[j] = seed_queue[j];
-
-                std::sort (r.indices.begin (), r.indices.end ());
-                r.indices.erase (std::unique (r.indices.begin (), r.indices.end ()), r.indices.end ());
-                clusters.push_back (r); // We could avoid a copy by working directly in the vector
-            }
-        }
-    }
+    void
+    extractEuclideanClustersSmooth (const typename pcl::PointCloud<pcl::Normal> &normals, std::vector<std::vector<int> > &clusters);
 
     void
     computeClutterCueAtOnce ();
@@ -322,7 +241,6 @@ protected:
     pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
     bool scene_and_normals_set_from_outside_;
 
-    //class attributes
     pcl::PointCloud<pcl::PointXYZL>::Ptr clusters_cloud_;
     int max_label_clusters_cloud_;
     pcl::PointCloud<pcl::PointXYZRGBA>::Ptr clusters_cloud_rgb_;
@@ -332,9 +250,9 @@ protected:
 
     std::vector<double> duplicates_by_RM_weighted_;
     std::vector<double> duplicates_by_RM_weighted_not_capped_;
-    std::vector<int> explained_by_RM_; //represents the points of scene_cloud_ that are explained by the recognition models
-    std::vector<double> explained_by_RM_distance_weighted_; //represents the points of scene_cloud_ that are explained by the recognition models
-    std::vector<int> explained_by_RM_model_; //id of the model explaining the point
+    std::vector<int> explained_by_RM_; // stores for each point in scene_cloud_downsampled by how many recognition models it is explained
+    std::vector<double> explained_by_RM_distance_weighted_; // the associated weights to explained_by_RM_
+//    std::vector<int> explained_by_RM_model_; //id of the model explaining the point
     std::vector< std::stack<std::pair<int, float>, std::vector<std::pair<int, float> > > > previous_explained_by_RM_distance_weighted_; //represents the points of scene_cloud_ that are explained by the recognition models
     std::vector<double> unexplained_by_RM_neighboorhods_; //represents the points of scene_cloud_ that are not explained by the active hypotheses in the neighboorhod of the recognition models
     //std::vector<size_t> indices_;
@@ -347,7 +265,6 @@ protected:
 
     GHVSAModel<ModelT, SceneT> best_seen_;
     float initial_temp_;
-
     int min_contribution_;
 
     std::vector<std::vector<size_t> > rm_ids_explaining_scene_pt_; //if inner size > 1, conflict
@@ -357,7 +274,6 @@ protected:
     Eigen::VectorXf mean_;
 
     ColorTransformOMP color_transf_omp_;
-
 
     double
     getExplainedByIndices (const std::vector<int> & indices,

@@ -111,15 +111,7 @@ namespace v4r
 
     std::vector<int> recognition_models_map_;
 
-    /**
-     * \brief Downsampled scene point cloud
-     */
-     typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_;
-
-    /**
-     * \brief Scene tree of the downsampled cloud
-     */
-    typename pcl::search::KdTree<SceneT>::Ptr scene_downsampled_tree_;
+    typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_; /// \brief Downsampled scene point cloud
 
     /**
      * \brief Vector of point clouds representing the 3D models after occlusion reasoning

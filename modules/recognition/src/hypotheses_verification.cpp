@@ -190,10 +190,6 @@ HypothesisVerification<ModelT, SceneT>::setSceneCloud (const typename pcl::Point
 
         pcl::copyPointCloud(*scene_cloud_, scene_sampled_indices_, *scene_cloud_downsampled_);
     }
-
-    //initialize kdtree for search
-    scene_downsampled_tree_.reset (new pcl::search::KdTree<SceneT>);
-    scene_downsampled_tree_->setInputCloud(scene_cloud_downsampled_);
 }
 
 template class V4R_EXPORTS HypothesisVerification<pcl::PointXYZ,pcl::PointXYZ>;

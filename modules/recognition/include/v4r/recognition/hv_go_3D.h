@@ -53,7 +53,7 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::use_points_on_plane_side_;
          using GHV<ModelT, SceneT>::Parameter::best_color_weight_;
          using GHV<ModelT, SceneT>::Parameter::eps_angle_threshold_;
-         using GHV<ModelT, SceneT>::Parameter::min_points_;
+         using GHV<ModelT, SceneT>::Parameter::min_points_per_cluster_;
          using GHV<ModelT, SceneT>::Parameter::curvature_threshold_;
          using GHV<ModelT, SceneT>::Parameter::cluster_tolerance_;
          using GHV<ModelT, SceneT>::Parameter::use_normals_from_visible_;
@@ -79,7 +79,6 @@ namespace v4r
     using GHV<ModelT, SceneT>::mask_;
     using GHV<ModelT, SceneT>::scene_cloud_;
     using GHV<ModelT, SceneT>::scene_cloud_downsampled_;
-    using GHV<ModelT, SceneT>::scene_downsampled_tree_;
     using GHV<ModelT, SceneT>::model_point_is_visible_;
     using GHV<ModelT, SceneT>::normals_set_;
     using GHV<ModelT, SceneT>::requires_normals_;
