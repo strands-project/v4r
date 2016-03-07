@@ -2226,7 +2226,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
         {
             bool is_color_outlier = true;
             std::vector<float> weights;
-            if (!rm.is_planar_)
+            if (!rm.is_planar_ && !param_.ignore_color_even_if_exists_ )
             {
                 weights.resize( nn_distances.size () );
                 float color_weight = 1.f;
