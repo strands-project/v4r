@@ -73,8 +73,8 @@ ZBuffering<PointT>::filter (const typename pcl::PointCloud<PointT> & model, std:
         if (u >= (param_.width_ - param_.u_margin_) || v >= (param_.height_ - param_.v_margin_) || u < param_.u_margin_ || v < param_.v_margin_)
             continue;
 
-        //Check if point depth (distance to camera) is greater than the (u,v) meaning that the point is not visible
-        if ((z - param_.inlier_threshold_) > depth_[u * param_.width_ + v] || !pcl_isfinite(depth_[u * param_.height_ + v]))
+        //Check if poeint depth (distance to camera) is greater than the (u,v) meaning that the point is not visible
+        if ( pcl_isfinite( depth_[v * param_.width_ + u] ) && (z - param_.inlier_threshold_) > depth_[v * param_.width_ + u])
             continue;
 
         indices_to_keep[kept] = static_cast<int> (i);

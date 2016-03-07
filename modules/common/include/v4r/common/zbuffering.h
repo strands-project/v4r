@@ -90,6 +90,11 @@ namespace v4r
 
         void computeDepthMap (const pcl::PointCloud<PointT> &scene);
 
+        std::vector<float> getDepthMap()
+        {
+            return depth_;
+        }
+
         void filter (const typename pcl::PointCloud<PointT> & model, typename pcl::PointCloud<PointT> & filtered);
 
         void filter (const typename pcl::PointCloud<PointT> & model, std::vector<int> & indices);
