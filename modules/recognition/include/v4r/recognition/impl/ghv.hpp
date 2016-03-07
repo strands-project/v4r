@@ -2125,6 +2125,18 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
     if( requires_normals_ )
         removeNanNormals(rm);
 
+    if ( param_.use_noise_model_ ) {
+        rm.noise_term_visible_pt_.resize( rm.visible_cloud_->points.size(), std::vector<float>(2));
+#pragma omp parallel for schedule (dynamic)
+        for ( size_t i=0; i<rm.visible_cloud_->points.size(); i++ ) {
+            NguyenNoiseModel<ModelT>::computeNoiseLevel( rm.visible_cloud_->points[i],
+                                                         rm.visible_cloud_normals_->points[i],
+                                                         rm.noise_term_visible_pt_[i][0],
+                                                         rm.noise_term_visible_pt_[i][1],
+                                                         param_.focal_length_);
+        }
+    }
+
     std::vector<std::vector<std::pair<size_t, float> > > scene_pt_is_explained_by_model_pt (scene_cloud_downsampled_->points.size()); // stores information about which scene point (outer loop) is explained by which model pt (inner loop)
     std::vector<std::vector<std::pair<size_t, float> > > scene_pt_is_explained_by_model_pt_with_color (scene_cloud_downsampled_->points.size());
 
@@ -2197,9 +2209,16 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
     //If there are scene points, the model point is associated with the scene point, together with its distance
     //A scene point might end up being explained by multiple model points
     #pragma omp parallel for schedule(dynamic)
-    for (size_t pt = 0; pt < rm.visible_cloud_->points.size (); pt++)
-        octree_scene_downsampled_->radiusSearch (rm.visible_cloud_->points[pt], param_.inliers_threshold_,
+    for (size_t pt = 0; pt < rm.visible_cloud_->points.size (); pt++) {
+        float radius = param_.inliers_threshold_;
+
+        if ( param_.use_noise_model_ ) {
+            radius = 3*std::max(rm.noise_term_visible_pt_[pt][0], rm.noise_term_visible_pt_[pt][1]);
+        }
+        octree_scene_downsampled_->radiusSearch (rm.visible_cloud_->points[pt], radius,
                                                  rm.scene_inlier_indices_for_visible_pt_[pt], rm.scene_inlier_distances_for_visible_pt_[pt]);
+
+    }
 
     float inliers_gaussian = 2 * param_.inliers_threshold_ * param_.inliers_threshold_;
     float inliers_gaussian_soft = 2 * (param_.inliers_threshold_ + param_.resolution_) * (param_.inliers_threshold_ + param_.resolution_);

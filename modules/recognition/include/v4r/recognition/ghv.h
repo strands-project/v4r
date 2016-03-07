@@ -98,13 +98,15 @@ public:
         int outliers_weight_computation_method_; /// @brief defines the method used for computing the overall outlier weight. 0... mean, 1... median
 
         //smooth segmentation parameters for clutter detection
-        double eps_angle_threshold_;    // defines the threshold for two points to be clustered together in terms of their surface normal relationship (in degree)
-        size_t min_points_per_cluster_;    // defines the minimum amount of points for a cluster for clutter detection
-        size_t max_points_per_cluster_;    // defines the maximum amount of points for a cluster for clutter detection
+        double eps_angle_threshold_;    /// @brief defines the threshold for two points to be clustered together in terms of their surface normal relationship (in degree)
+        size_t min_points_per_cluster_;    /// @brief defines the minimum amount of points for a cluster for clutter detection
+        size_t max_points_per_cluster_;    /// @brief defines the maximum amount of points for a cluster for clutter detection
         double curvature_threshold_;
         double cluster_tolerance_;
 
         bool use_normals_from_visible_;
+
+        bool use_noise_model_;  /// @brief if set, uses Nguyens noise model for setting threshold parameters
 
         bool add_planes_;  /// @brief if true, adds planes as possible hypotheses (slower but decreases false positives especially for planes detected as flat objects like books)
         int plane_method_; /// @brief defines which method to use for plane extraction (if add_planes_ is true). 0... Multiplane Segmentation, 1... ClusterNormalsForPlane segmentation
@@ -156,7 +158,8 @@ public:
                 double plane_thrAngle = 30,
                 int knn_plane_clustering_search = 10,
                 bool visualize_go_cues = false,
-                double min_visible_ratio = 0.10f
+                double min_visible_ratio = 0.10f,
+                bool use_noise_model = true
                 )
             :
               HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -199,7 +202,8 @@ public:
               plane_thrAngle_ ( plane_thrAngle ),
               knn_plane_clustering_search_ ( knn_plane_clustering_search ),
               visualize_go_cues_ ( visualize_go_cues ),
-              min_visible_ratio_ (min_visible_ratio)
+              min_visible_ratio_ (min_visible_ratio),
+              use_noise_model_ (use_noise_model)
         {}
     }param_;
 

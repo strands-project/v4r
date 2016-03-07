@@ -38,6 +38,7 @@ namespace v4r
       pcl::PointCloud<pcl::Normal>::Ptr visible_cloud_normals_;
       pcl::PointCloud<pcl::Normal>::Ptr complete_cloud_normals_;
       std::vector<int> visible_indices_;
+      std::vector< std::vector<float> > noise_term_visible_pt_; /// @brief expected (axial and lateral) noise level at visible point
 
       float bad_information_;
 //      size_t id_;
