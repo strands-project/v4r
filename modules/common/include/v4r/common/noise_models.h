@@ -144,8 +144,8 @@ public:
          o2p.normalize();
          float angle = pcl::rad2deg(acos(o2p.dot(np)));
 
-         if (angle > 85.f)
-             angle = 85.f;
+         if (angle > 80.f)
+             angle = 80.f;
 
          float sigma_lateral_px = (0.8 + 0.034 * angle / (90.f - angle)) * pt.z / focal_length; // in pixel
          sigma_lateral = sigma_lateral_px * pt.z * 1; // in metres
