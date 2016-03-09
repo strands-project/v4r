@@ -110,7 +110,7 @@ HypothesisVerification<ModelT, SceneT>::addModels (std::vector<typename pcl::Poi
         {
             rm.complete_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> (*model_normals[i]) );
 
-            if (refined_model_transforms_[i])
+            if (param_.icp_iterations_ && refined_model_transforms_[i])
                 v4r::transformNormals(*model_normals[i], *rm.complete_cloud_normals_, *refined_model_transforms_[i]);
 
             if (!param_.do_occlusion_reasoning_)   // just copy complete models
