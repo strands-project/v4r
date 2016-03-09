@@ -2486,7 +2486,7 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
 
     std::vector<int> explained_points_vec = createIndicesFromMask<int>(scene_pt_is_explained);
 
-    std::vector<int> scene_to_unique( scene_cloud_downsampled_->size(), -1 );
+    std::vector<int> scene_to_unique( scene_cloud_downsampled_->points.size(), -1 );
     for(size_t i=0; i < explained_points_vec.size(); i++)
         scene_to_unique[ explained_points_vec[i] ] = i;
 
@@ -2498,9 +2498,25 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
     #pragma omp parallel for schedule(dynamic)
     for(size_t k=0; k < explained_points_vec.size(); k++)
     {
-        octree_scene_downsampled_->radiusSearch (scene_cloud_downsampled_->points[explained_points_vec[k]],
-                param_.radius_neighborhood_clutter_, nn_indices_all_points[k],
-                nn_distances_all_points[k], std::numeric_limits<int>::max ());
+        int sidx = explained_points_vec[k];
+
+        if( clusters_cloud_->points[sidx].label == 0 )  // if there is no label for this scene point, we do not reason about it being cluttered
+            continue;
+
+        octree_scene_downsampled_->radiusSearch (scene_cloud_downsampled_->points[sidx],
+                param_.radius_neighborhood_clutter_, nn_indices_all_points[k], nn_distances_all_points[k]);
+
+        size_t kept=0;
+        for(size_t knn=0; knn<nn_indices_all_points[k].size(); knn++) {   //only check nearest neighbors which are in the same segment
+            int sidx_nn = nn_indices_all_points[k][knn];
+            if( clusters_cloud_->points[sidx].label == clusters_cloud_->points[sidx_nn].label) {
+                nn_indices_all_points[k][kept] = nn_indices_all_points[k][knn];
+                nn_distances_all_points[k][kept] = nn_distances_all_points[k][knn];
+                kept++;
+            }
+        }
+        nn_indices_all_points[k].resize(kept);
+        nn_distances_all_points[k].resize(kept);
     }
 
     //    const float min_clutter_dist = std::pow(param_.inliers_threshold_ * 0.f, 2.f); // ??? why *0.0f? --> always 0 then
@@ -2510,8 +2526,8 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
     {
         HVRecognitionModel<ModelT> &rm = *recognition_models_[rm_id];
 
-        std::pair<int, float> def_value = std::make_pair(-1, std::numeric_limits<float>::max());
-        std::vector< std::pair<int, float> > unexplained_points_per_model (scene_cloud_downsampled_->points.size(), def_value);
+        std::pair<int, float> init_value = std::make_pair(-1, std::numeric_limits<float>::max());
+        std::vector< std::pair<int, float> > unexplained_points (scene_cloud_downsampled_->points.size(), init_value);
 
         for (size_t i = 0; i < rm.explained_scene_indices_.size (); i++)
         {
@@ -2521,16 +2537,16 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
             for (size_t k = 0; k < nn_indices_all_points[idx_to_unique].size (); k++)
             {
                 int sidx_nn = nn_indices_all_points[idx_to_unique][k]; //in the neighborhood of an explained point (idx_to_ep)
-                if(rm.scene_pt_is_explained_[sidx_nn])
+                if(rm.scene_pt_is_explained_[sidx_nn])  // if nearest neighbor point is explained by same model, no problem
                     continue;
 
                 float d = ( scene_cloud_downsampled_->points[sidx].getVector3fMap()
                             - scene_cloud_downsampled_->points[sidx_nn].getVector3fMap() ).squaredNorm ();
 
-                if( d < unexplained_points_per_model[sidx_nn].second ) //there is an explained point which is closer to this unexplained point
+                if( d < unexplained_points[sidx_nn].second ) //there is an explained point which is closer to this unexplained point
                 {
-                    unexplained_points_per_model[sidx_nn].first = sidx;
-                    unexplained_points_per_model[sidx_nn].second = d;
+                    unexplained_points[sidx_nn].first = sidx;
+                    unexplained_points[sidx_nn].second = d;
                 }
             }
         }
@@ -2540,10 +2556,10 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
 
         float sigma_clutter = 2 * param_.radius_neighborhood_clutter_ * param_.radius_neighborhood_clutter_;
         size_t kept=0;
-        for(size_t i=0; i < unexplained_points_per_model.size(); i++)
+        for(size_t i=0; i < unexplained_points.size(); i++)
         {
-            int sidx = unexplained_points_per_model[i].first;
-            if(sidx < 0 || clusters_cloud_->points[sidx].label == 0)
+            int sidx = unexplained_points[i].first;
+            if(sidx < 0)
                 continue;
 
             //sidx is the closest explained point to the unexplained point
@@ -2554,7 +2570,7 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
             //point i is unexplained and in the neighborhood of sidx (explained point)
             rm.unexplained_in_neighborhood[kept] = i;
 
-            float d = unexplained_points_per_model[i].second;
+            float d = unexplained_points[i].second;
             float d_weight;
             if( param_.use_clutter_exp_ )
                 d_weight = std::exp( -(d / sigma_clutter));
@@ -2573,8 +2589,7 @@ GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
 
             float curvature = scene_normals_->points[ sidx ].curvature;
 
-            if ( (clusters_cloud_->points[i].label != 0 || param_.use_super_voxels_) &&
-                 (clusters_cloud_->points[i].label == clusters_cloud_->points[sidx].label) && !rm.is_planar_ && curvature < 0.015)
+            if ( param_.use_super_voxels_ && !rm.is_planar_ && curvature < 0.015)
             {
                 w = 1.f; //ATTENTION!
                 rm.unexplained_in_neighborhood_weights[kept] = param_.clutter_regularizer_ * w;
