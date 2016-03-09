@@ -2213,7 +2213,9 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
         float radius = param_.inliers_threshold_;
 
         if ( param_.use_noise_model_ ) {
-            radius = 3*std::max(rm.noise_term_visible_pt_[pt][0], rm.noise_term_visible_pt_[pt][1]);
+            float min_radius = 0.01f, max_radius = 0.03f;
+            radius = 2*std::max(rm.noise_term_visible_pt_[pt][0], rm.noise_term_visible_pt_[pt][1]);
+            radius = std::max( std::min(radius, min_radius), max_radius);   // clip threshold to account for pose error etc.
         }
         octree_scene_downsampled_->radiusSearch (rm.visible_cloud_->points[pt], radius,
                                                  rm.scene_inlier_indices_for_visible_pt_[pt], rm.scene_inlier_distances_for_visible_pt_[pt]);
