@@ -815,6 +815,7 @@ GHV<ModelT, SceneT>::initialize()
     for(size_t i=0; i<recognition_models_.size(); i++)
     {
         const typename HVRecognitionModel<ModelT>::Ptr &rm = recognition_models_[i];
+
         if( !rm->is_planar_ && (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
             continue;
 
@@ -2320,40 +2321,41 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
 
         if(outlier)
         {
-            //weight outliers based on noise model
-            //model points close to occlusion edges or with perpendicular normals
-            float d_weight = 1.f;
-            //std::cout << "is an outlier" << is_planar_model << " " << occ_edges_available_ << std::endl;
+//            //weight outliers based on noise model
+//            //model points close to occlusion edges or with perpendicular normals
+//            float d_weight = 1.f;
+//            //std::cout << "is an outlier" << is_planar_model << " " << occ_edges_available_ << std::endl;
 
-            if(!rm.is_planar_ && requires_normals_ && false)
-            {
-                //std::cout << "going to weight based on normals..." << std::endl;
-                Eigen::Vector3f normal_p = rm.visible_cloud_normals_->points[m_pt_id].getNormalVector3fMap();
-                Eigen::Vector3f normal_vp = Eigen::Vector3f::UnitZ() * -1.f;
-                normal_p.normalize ();
-                normal_vp.normalize ();
+//            if(!rm.is_planar_ && requires_normals_ && false)
+//            {
+//                //std::cout << "going to weight based on normals..." << std::endl;
+//                Eigen::Vector3f normal_p = rm.visible_cloud_normals_->points[m_pt_id].getNormalVector3fMap();
+//                Eigen::Vector3f normal_vp = Eigen::Vector3f::UnitZ() * -1.f;
+//                normal_p.normalize ();
+//                normal_vp.normalize ();
 
-                float dot = normal_vp.dot(normal_p);
-                float angle = pcl::rad2deg(acos(dot));
-                if (angle > 60.f)
-                {
-                    if(outlier_type == OutlierType::COLOR)
-                        outliers_color--;
-                    else
-                        outliers_3d--;
+//                float dot = normal_vp.dot(normal_p);
+//                float angle = pcl::rad2deg(acos(dot));
+//                if (angle > 60.f)
+//                {
+//                    if(outlier_type == OutlierType::COLOR)
+//                        outliers_color--;
+//                    else
+//                        outliers_3d--;
 
-                    // [60,75) => 0.5
-                    // [75,90) => 0.25
-                    // >90 => 0
+//                    // [60,75) => 0.5
+//                    // [75,90) => 0.25
+//                    // >90 => 0
 
-                    /*if(angle >= 90.f)
-                        d_weight = 0.25f;
-                    else*/
-                    d_weight = param_.d_weight_for_bad_normals_;
-                }
-            }
+//                    /*if(angle >= 90.f)
+//                        d_weight = 0.25f;
+//                    else*/
+//                    d_weight = param_.d_weight_for_bad_normals_;
+//                }
+//            }
 
-            rm.outliers_weight_[outliers] = param_.regularizer_ * d_weight;
+//            rm.outliers_weight_[outliers] = param_.regularizer_ * d_weight;
+            rm.outliers_weight_[outliers] = param_.regularizer_;
             rm.outlier_indices_[outliers] = m_pt_id;
             outliers++;
         }
@@ -2364,18 +2366,20 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
     rm.outlier_indices_3d_.resize (outliers_3d);
     rm.outlier_indices_color_.resize (outliers_color);
 
-    if( rm.outlier_indices_.empty() )
-        rm.outliers_total_weight_ = 1.f;
-    else
-    {
-        if (rm.param_.outliers_weight_computation_method_ == HVRecognitionModel<ModelT>::OutliersWeightType::MEAN)
-            rm.outliers_total_weight_ = std::accumulate (rm.outliers_weight_.begin (), rm.outliers_weight_.end (), 0.f) / static_cast<float> (rm.outliers_weight_.size ());
-        else { // use median
-            std::vector<float> outliers_weight = rm.outliers_weight_;
-            std::sort(outliers_weight.begin(), outliers_weight.end());
-            rm.outliers_total_weight_ = outliers_weight [ outliers_weight.size() / 2.f ];
-        }
-    }
+    rm.outliers_total_weight_ = param_.regularizer_ * static_cast<float>(outliers) / rm.visible_cloud_->points.size();
+
+//    if( rm.outlier_indices_.empty() )
+//        rm.outliers_total_weight_ = 1.f;
+//    else
+//    {
+//        if (rm.param_.outliers_weight_computation_method_ == HVRecognitionModel<ModelT>::OutliersWeightType::MEAN)
+//            rm.outliers_total_weight_ = std::accumulate (rm.outliers_weight_.begin (), rm.outliers_weight_.end (), 0.f) / static_cast<float> (rm.outliers_weight_.size ());
+//        else { // use median
+//            std::vector<float> outliers_weight = rm.outliers_weight_;
+//            std::sort(outliers_weight.begin(), outliers_weight.end());
+//            rm.outliers_total_weight_ = outliers_weight [ outliers_weight.size() / 2.f ];
+//        }
+//    }
 
     std::vector<int> explained_indices ( scene_cloud_downsampled_->points.size() );
     std::vector<float> explained_indices_distances ( scene_cloud_downsampled_->points.size() );
