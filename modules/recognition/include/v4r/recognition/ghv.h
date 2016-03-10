@@ -83,6 +83,7 @@ public:
         bool detect_clutter_;
         double res_occupancy_grid_;
         double w_occupied_multiple_cm_;
+        double w_occupied_multiple_;    /// @brief multiplication factor in cost term for points explained multiple times
         bool use_super_voxels_;
         bool use_replace_moves_;
         int opt_type_; /// @brief defines the optimization methdod<BR><BR> 0: Local search (converges quickly, but can easily get trapped in local minima),<BR> 1: Tabu Search,<BR> 2; Tabu Search + Local Search (Replace active hypotheses moves),<BR> 3: Simulated Annealing
@@ -91,8 +92,9 @@ public:
         double d_weight_for_bad_normals_; /// @brief specifies the weight an outlier is multiplied with in case the corresponding scene point's orientation is facing away from the camera more than a certain threshold and potentially has inherent noise
         bool use_clutter_exp_;
         bool use_histogram_specification_;
-        bool use_points_on_plane_side_;  /// @brief //compute for each planar model how many points for the other hypotheses (if in conflict) are on each side of the plane
+        bool use_points_on_plane_side_;  /// @brief compute for each planar model how many points for the other hypotheses (if in conflict) are on each side of the plane
         double best_color_weight_;
+        double weight_factor_for_planes_; /// @brief defines the weight factor for which points explained by planes will be multiplied to decrease (<1) or increase (>1) the number of accepted planes
         bool initial_status_; /// @brief sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.
         int color_space_; /// @brief specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
         int outliers_weight_computation_method_; /// @brief defines the method used for computing the overall outlier weight. 0... mean, 1... median
@@ -132,6 +134,7 @@ public:
                 bool detect_clutter = true,
                 double res_occupancy_grid = 0.005f,
                 double w_occupied_multiple_cm = 2.f, //0.f
+                double w_occupied_multiple_ = 10.f, //0.f
                 bool use_super_voxels = false,
                 bool use_replace_moves = true,
                 int opt_type = OptimizationType::LocalSearch,
@@ -156,10 +159,11 @@ public:
                 size_t min_plane_inliers = 5000,
                 double plane_inlier_distance = 0.02f,
                 double plane_thrAngle = 30,
+                bool use_noise_model = true,
+                double weight_factor_for_planes = 0.5f,
                 int knn_plane_clustering_search = 10,
                 bool visualize_go_cues = false,
-                double min_visible_ratio = 0.10f,
-                bool use_noise_model = true
+                double min_visible_ratio = 0.10f
                 )
             :
               HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -176,6 +180,7 @@ public:
               detect_clutter_ (detect_clutter),
               res_occupancy_grid_ (res_occupancy_grid),
               w_occupied_multiple_cm_ (w_occupied_multiple_cm),
+              w_occupied_multiple_ (w_occupied_multiple_),
               use_super_voxels_ (use_super_voxels),
               use_replace_moves_ (use_replace_moves),
               opt_type_ (opt_type),
@@ -195,6 +200,7 @@ public:
               curvature_threshold_ (curvature_threshold),
               cluster_tolerance_ (cluster_tolerance),
               use_normals_from_visible_ (use_normals_from_visible),
+              use_noise_model_ (use_noise_model),
               add_planes_ (add_planes),
               plane_method_ (plane_method),
               min_plane_inliers_ ( min_plane_inliers ),
@@ -202,8 +208,8 @@ public:
               plane_thrAngle_ ( plane_thrAngle ),
               knn_plane_clustering_search_ ( knn_plane_clustering_search ),
               visualize_go_cues_ ( visualize_go_cues ),
-              min_visible_ratio_ (min_visible_ratio),
-              use_noise_model_ (use_noise_model)
+              weight_factor_for_planes_ (weight_factor_for_planes),
+              min_visible_ratio_ (min_visible_ratio)
         {}
     }param_;
 

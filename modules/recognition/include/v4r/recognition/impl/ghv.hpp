@@ -81,7 +81,7 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
             num_active_hypotheses++;
     }
 
-    double duplicity = previous_duplicity_;
+    double duplicity = param_.w_occupied_multiple_ * previous_duplicity_;
 
     if(num_active_hypotheses)
         duplicity /= num_active_hypotheses;
@@ -2105,7 +2105,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
     if( requires_normals_ )
         removeNanNormals(rm);
 
-    if ( param_.use_noise_model_ ) {
+    if ( param_.use_noise_model_ ) {    // fore each point we compute its associated noise level. This noise level is used as an adaptive threshold for radius search
         rm.noise_term_visible_pt_.resize( rm.visible_cloud_->points.size(), std::vector<float>(2));
 #pragma omp parallel for schedule (dynamic)
         for ( size_t i=0; i<rm.visible_cloud_->points.size(); i++ ) {
@@ -2118,7 +2118,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
     }
 
     std::vector<std::vector<std::pair<size_t, float> > > scene_pt_is_explained_by_model_pt (scene_cloud_downsampled_->points.size()); // stores information about which scene point (outer loop) is explained by which model pt (inner loop)
-    std::vector<std::vector<std::pair<size_t, float> > > scene_pt_is_explained_by_model_pt_with_color (scene_cloud_downsampled_->points.size());
+//    std::vector<std::vector<std::pair<size_t, float> > > scene_pt_is_explained_by_model_pt_with_color (scene_cloud_downsampled_->points.size());
 
     rm.outliers_weight_.resize (rm.visible_cloud_->points.size ());
     rm.outlier_indices_.resize (rm.visible_cloud_->points.size ());
@@ -2273,7 +2273,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
 
                     if (weights[k] > param_.best_color_weight_)
                     {
-                        scene_pt_is_explained_by_model_pt_with_color[ nn_indices[k] ].push_back( std::pair<size_t, float>( m_pt_id, weights[k] ));
+//                        scene_pt_is_explained_by_model_pt_with_color[ nn_indices[k] ].push_back( std::pair<size_t, float>( m_pt_id, weights[k] ));
                         is_color_outlier = false;
                     }
                 }
@@ -2360,20 +2360,19 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
 //        }
 //    }
 
-    std::vector<int> explained_indices ( scene_cloud_downsampled_->points.size() );
-    std::vector<float> explained_indices_distances ( scene_cloud_downsampled_->points.size() );
+
+    // ---------- compute which of the scene points are explained by this model-------
 
     rm.scene_pt_is_explained_.clear();
     rm.scene_pt_is_explained_.resize(scene_cloud_downsampled_->points.size(), false);
+    rm.explained_scene_indices_.resize ( scene_cloud_downsampled_->points.size() );
+    rm.distances_to_explained_scene_indices_.resize ( scene_cloud_downsampled_->points.size() );
 
     size_t kept=0;
     for(size_t s_pt_id=0; s_pt_id<scene_cloud_downsampled_->points.size(); s_pt_id++)
     {
         if ( scene_pt_is_explained_by_model_pt[s_pt_id].empty() )
             continue;
-
-        Eigen::Vector3f scene_p_normal = scene_normals_->points[s_pt_id].getNormalVector3fMap ();
-        scene_p_normal.normalize();
 
         size_t closest = 0;
         float min_d = std::numeric_limits<float>::max();
@@ -2390,43 +2389,46 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
         float d_weight = std::exp( -( scene_pt_is_explained_by_model_pt[ s_pt_id ][closest].second / inliers_gaussian));
 
         //using normals to weight inliers
-        size_t m_pt = scene_pt_is_explained_by_model_pt[ s_pt_id ][closest].first;
-        Eigen::Vector3f model_p_normal = rm.visible_cloud_normals_->points[ m_pt ].getNormalVector3fMap ();
-        model_p_normal.normalize();
+//        Eigen::Vector3f scene_p_normal = scene_normals_->points[s_pt_id].getNormalVector3fMap ();
+//        scene_p_normal.normalize();
+//        size_t m_pt = scene_pt_is_explained_by_model_pt[ s_pt_id ][closest].first;
+//        Eigen::Vector3f model_p_normal = rm.visible_cloud_normals_->points[ m_pt ].getNormalVector3fMap ();
+//        model_p_normal.normalize();
 
-        bool use_dot = false;
-        float dotp = scene_p_normal.dot (model_p_normal); //[-1,1] from antiparallel trough perpendicular to parallel
+//        bool use_dot = false;
+//        float dotp = scene_p_normal.dot (model_p_normal); //[-1,1] from antiparallel trough perpendicular to parallel
 
-        if(use_dot)
-        {
-            if (dotp < 0.f)
-                dotp = 0.f;
-        }
-        else
-        {
-            if(dotp < -1.f) dotp = -1.f;
-            if(dotp > 1.f) dotp = 1.f;
+//        if(use_dot)
+//        {
+//            if (dotp < 0.f)
+//                dotp = 0.f;
+//        }
+//        else
+//        {
+//            if(dotp < -1.f) dotp = -1.f;
+//            if(dotp > 1.f) dotp = 1.f;
 
-            float angle = pcl::rad2deg(acos(dotp));
+//            float angle = pcl::rad2deg(acos(dotp));
 
-            if(angle > 90.f) //ATTENTION!
-                dotp = 0;
-            else
-                dotp = (1.f - angle / 90.f);
-        }
+//            if(angle > 90.f) //ATTENTION!
+//                dotp = 0;
+//            else
+//                dotp = (1.f - angle / 90.f);
+//        }
 
 
         rm.scene_pt_is_explained_[ s_pt_id ] = true; //this scene point is explained by this hypothesis
 
         #pragma omp critical
         {
-        explained_indices[kept] = s_pt_id;
-        explained_indices_distances [kept] = d_weight * dotp * rm.extra_weight_;
+        rm.explained_scene_indices_[kept] = s_pt_id;
+//        explained_indices_distances [kept] = d_weight * dotp * rm.extra_weight_;
+        rm.distances_to_explained_scene_indices_ [kept] = d_weight;
         kept++;
         }
     }
-    explained_indices.resize(kept);
-    explained_indices_distances.resize(kept);
+    rm.explained_scene_indices_.resize(kept);
+    rm.distances_to_explained_scene_indices_.resize(kept);
 
     //compute the amount of information for explained scene points (color)
 //    float mean_distance = 0.f;
@@ -2438,18 +2440,14 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
     //modify the explained weights for planar models if color is being used
     if(rm.is_planar_)
     {
-        for(size_t k=0; k < explained_indices_distances.size(); k++)
+        for(size_t k=0; k < rm.distances_to_explained_scene_indices_.size(); k++)
         {
-            explained_indices_distances[k] *= param_.best_color_weight_;
+            rm.distances_to_explained_scene_indices_[k] *= param_.weight_factor_for_planes_;
 
-            if (!param_.ignore_color_even_if_exists_)
-                explained_indices_distances[k] /= 2;
+//            if (!param_.ignore_color_even_if_exists_)
+//                explained_indices_distances[k] /= 2;
         }
     }
-
-    rm.hyp_penalty_ = 0; //ATTENTION!
-    rm.explained_scene_indices_ = explained_indices;
-    rm.distances_to_explained_scene_indices_ = explained_indices_distances;
 
     return true;
 }

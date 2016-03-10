@@ -42,6 +42,7 @@ namespace v4r
          using GHV<ModelT, SceneT>::Parameter::detect_clutter_;
          using GHV<ModelT, SceneT>::Parameter::res_occupancy_grid_;
          using GHV<ModelT, SceneT>::Parameter::w_occupied_multiple_cm_;
+         using GHV<ModelT, SceneT>::Parameter::w_occupied_multiple_;
          using GHV<ModelT, SceneT>::Parameter::use_super_voxels_;
          using GHV<ModelT, SceneT>::Parameter::use_replace_moves_;
          using GHV<ModelT, SceneT>::Parameter::opt_type_;

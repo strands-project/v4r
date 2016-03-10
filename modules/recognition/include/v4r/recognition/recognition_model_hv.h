@@ -40,24 +40,9 @@ namespace v4r
       std::vector<int> visible_indices_;
       std::vector< std::vector<float> > noise_term_visible_pt_; /// @brief expected (axial and lateral) noise level at visible point
 
-      float bad_information_;
-//      size_t id_;
       float extra_weight_; /// @brief descriptor distance weight for instance
-      float color_similarity_;
-      float median_;
-//      float mean_;
-      Eigen::MatrixXf color_mapping_;
-      float hyp_penalty_;
-//      std::string id_s_;
-      Eigen::MatrixXf pt_color_;  /// @brief color values for each point in the scene (row_id). Width is equal to the number of color channels
-      std::vector<float> cloud_GS_; /// @brief Grayscale cloud
-      float min_contribution_; /// @brief based on the amount of explained points and the amount of information in the hypotheses
-      std::vector<float> normal_angle_histogram_;
-      std::vector<float> color_diff_histogram_;
-      float normal_entropy_;
-      float color_entropy_;
+      Eigen::MatrixXf pt_color_;  /// @brief color values for each visible point of the model (row_id). Width is equal to the number of color channels
       std::vector<int> cloud_indices_specified_;
-      float color_diff_trhough_specification_;
       pcl::PointCloud<pcl::PointXYZL>::Ptr visible_labels_;
       bool is_planar_; /// @brief if true, this model is a planar model
       typename PlaneModel<ModelT>::Ptr plane_model_;
