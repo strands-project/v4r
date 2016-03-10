@@ -94,12 +94,11 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
     if(!param_.detect_clutter_)
         unexplained_info = 0.f;
 
-    double cost = -(good_info - bad_info - duplicity - unexplained_info - duplicity_cm - countActiveHypotheses(active) - countPointsOnDifferentPlaneSides(active));
+    double cost = -(good_info - bad_info - duplicity - unexplained_info - duplicity_cm - countPointsOnDifferentPlaneSides(active));
 
-//    std::cout << "COST: " << std::fixed << cost << " (good: " << good_info << ", bad: " << bad_info << ", duplicity:" << duplicity <<
-//                 ", unexplained: " << unexplained_info << ", duplicity_cm: " << duplicity_cm <<
-//                 ", ActiveHypotheses: " << countActiveHypotheses (active) <<
-//                 ", PointsOnDifferentPlaneSides: " <<  countPointsOnDifferentPlaneSides(active) << ")" << std::endl;
+    std::cout << "COST: " << std::fixed << cost << " (good: " << good_info << ", bad: " << bad_info << ", duplicity:" << duplicity <<
+                 ", unexplained: " << unexplained_info << ", duplicity_cm: " << duplicity_cm <<
+                 ", PointsOnDifferentPlaneSides: " <<  countPointsOnDifferentPlaneSides(active) << ")" << std::endl;
 
     if(cost_logger_) {
         cost_logger_->increaseEvaluated();
@@ -109,21 +108,6 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
     previous_bad_info_ = bad_info;
 
     return static_cast<mets::gol_type> (cost); //return the dual to our max problem
-}
-
-
-template<typename ModelT, typename SceneT>
-double
-GHV<ModelT, SceneT>::countActiveHypotheses (const std::vector<bool> & sol)
-{
-    double c = 0;
-    for (size_t i = 0; i < sol.size (); i++)
-    {
-        const HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-        if (sol[i])
-            c += static_cast<double>(rm.explained_scene_indices_.size()) / 2.f * rm.hyp_penalty_ + min_contribution_;
-    }
-    return c;
 }
 
 template<typename ModelT, typename SceneT>
@@ -1260,7 +1244,7 @@ GHV<ModelT, SceneT>::fill_structures(const std::vector<bool> & initial_solution,
 
     model.cost_ = static_cast<mets::gol_type> (
                 -(good_information - bad_information - duplicity - (double)occupied_multiple * param_.w_occupied_multiple_cm_ -
-                 - unexplained_in_neighboorhod - countActiveHypotheses (initial_solution) - countPointsOnDifferentPlaneSides(initial_solution)));
+                 - unexplained_in_neighboorhod - countPointsOnDifferentPlaneSides(initial_solution)));
 
     model.setSolution (initial_solution);
     model.setOptimizer (this);
