@@ -84,8 +84,53 @@ ZBuffering<PointT>::filter (const typename pcl::PointCloud<PointT> & model, std:
     indices_to_keep.resize (kept);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-template<typename PointT> void
+template<typename PointT>
+void
+ZBuffering<PointT>::renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view)
+{
+    float cx = static_cast<float> (param_.width_) / 2.f - 0.5f;
+    float cy = static_cast<float> (param_.height_) / 2.f - 0.5f;
+
+    rendered_view.points.resize( param_.width_ * param_.height_ );
+    rendered_view.width = param_.width_;
+    rendered_view.height = param_.height_;
+    rendered_view.is_dense = false;
+
+    #pragma omp parallel for
+    for (size_t i=0; i<cloud.points.size(); i++)    // initialize points to infinity
+        rendered_view.points[i].x = rendered_view.points[i].y = rendered_view.points[i].z = std::numeric_limits<float>::quiet_NaN();
+
+    std::vector<omp_lock_t> pt_locks (param_.width_ * param_.height_);
+    for(size_t i=0; i<pt_locks.size(); i++)
+        omp_init_lock(&pt_locks[i]);
+
+    #pragma omp parallel for schedule (dynamic)
+    for (size_t i=0; i<cloud.points.size(); i++)
+    {
+        const PointT &pt = cloud.points[i];
+        int u = static_cast<int> (param_.f_ * pt.x / pt.z + cx);
+        int v = static_cast<int> (param_.f_ * pt.y / pt.z + cy);
+
+        if (u >= param_.width_ || v >= param_.height_  || u < 0 || v < 0)
+            continue;
+
+        int idx = v * param_.width_ + u;
+
+        omp_set_lock(&pt_locks[idx]);
+        PointT &r_pt = rendered_view.points[idx];
+
+        if ( !pcl::isFinite( r_pt ) || (pt.z < r_pt.z) )
+            r_pt = pt;
+
+        omp_unset_lock(&pt_locks[idx]);
+    }
+
+    for(size_t i=0; i<pt_locks.size(); i++)
+        omp_destroy_lock(&pt_locks[i]);
+}
+
+template<typename PointT>
+void
 ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & scene)
 {
     float cx = static_cast<float> (param_.width_) / 2.f - 0.5f;
@@ -196,5 +241,4 @@ ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & sc
     }
     kept_indices_ = createIndicesFromMask<int>(pt_is_visible);
 }
-
 }
