@@ -42,6 +42,7 @@ namespace v4r
 
       float extra_weight_; /// @brief descriptor distance weight for instance
       Eigen::MatrixXf pt_color_;  /// @brief color values for each visible point of the model (row_id). Width is equal to the number of color channels
+      Eigen::MatrixXf local_pt_color_;  /// @brief color description for each visible point of the model (row_id) as a function of its neighboring pixels. The columns represent average and standard deviation of each color channel (column[0-1]: avg+std color channel[0], column[2-3]: avg+std color channel[1], ...)
       std::vector<int> cloud_indices_specified_;
       pcl::PointCloud<pcl::PointXYZL>::Ptr visible_labels_;
       bool is_planar_; /// @brief if true, this model is a planar model

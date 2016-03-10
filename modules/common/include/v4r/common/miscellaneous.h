@@ -435,6 +435,19 @@ filterVector(const std::vector<T> &in, const std::vector<int> &indices)
     return out;
 }
 
+/**
+ * @brief checks if value is in the range between min and max
+ * @param[in] value to check
+ * @param[in] min range
+ * @param[in] max range
+ * @return true if within range
+ */
+template<class T>
+bool is_in_range(T value, T min, T max)
+{
+    return (value >= min) && (value <= max);
+}
+
 void
 V4R_EXPORTS computeHistogram (const std::vector<float> & values, std::vector<size_t> &histogram, size_t hist_size = 100, float min=0.f, float max=255.f);
 

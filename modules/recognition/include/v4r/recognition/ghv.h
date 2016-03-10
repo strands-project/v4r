@@ -119,6 +119,8 @@ public:
         bool visualize_go_cues_; /// @brief visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
 
         double min_visible_ratio_; /// @brief defines how much of the object has to be visible in order to be included in the verification stage
+        int knn_color_neighborhood_; /// @brief number of nearest neighbors used for describing the color around a point
+        float color_std_dev_multiplier_threshold_; /// @brief standard deviation multiplier threshold for the local color description for each color channel
 
         Parameter (
                 double color_sigma_l = 0.6f,
@@ -163,7 +165,9 @@ public:
                 double weight_factor_for_planes = 0.5f,
                 int knn_plane_clustering_search = 10,
                 bool visualize_go_cues = false,
-                double min_visible_ratio = 0.10f
+                double min_visible_ratio = 0.10f,
+                int knn_color_neighborhood = 10,
+                float color_std_dev_multiplier_threshold = 1.f
                 )
             :
               HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -207,9 +211,11 @@ public:
               plane_inlier_distance_ ( plane_inlier_distance ),
               plane_thrAngle_ ( plane_thrAngle ),
               knn_plane_clustering_search_ ( knn_plane_clustering_search ),
-              visualize_go_cues_ ( visualize_go_cues ),
               weight_factor_for_planes_ (weight_factor_for_planes),
-              min_visible_ratio_ (min_visible_ratio)
+              visualize_go_cues_ ( visualize_go_cues ),
+              min_visible_ratio_ (min_visible_ratio),
+              knn_color_neighborhood_ (knn_color_neighborhood),
+              color_std_dev_multiplier_threshold_ (color_std_dev_multiplier_threshold)
         {}
     }param_;
 

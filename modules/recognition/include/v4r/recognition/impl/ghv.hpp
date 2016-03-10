@@ -701,7 +701,7 @@ GHV<ModelT, SceneT>::convertColor()
             {
             case ColorSpace::LAB:
                 float LRefs, aRefs, bRefs;
-                color_transf_omp_.RGB2CIELAB_normalized(rs, gs, bs, LRefs, aRefs, bRefs);
+                color_transf_omp_.RGB2CIELAB(rs, gs, bs, LRefs, aRefs, bRefs);
 
                 scene_color_channels_(i, 0) = LRefs;
                 scene_color_channels_(i, 1) = aRefs;
@@ -2127,6 +2127,8 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
     rm.scene_inlier_indices_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
     rm.scene_inlier_distances_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
 
+    pcl::octree::OctreePointCloudSearch<ModelT> octree_model (0.01f);
+
     if(!rm.is_planar_ && !param_.ignore_color_even_if_exists_)
     {
         //compute cloud LAB values for model visible points
@@ -2163,7 +2165,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
             {
             case ColorSpace::LAB:
                 float LRefm, aRefm, bRefm;
-                color_transf_omp_.RGB2CIELAB_normalized (rmc, gmc, bmc, LRefm, aRefm, bRefm);
+                color_transf_omp_.RGB2CIELAB(rmc, gmc, bmc, LRefm, aRefm, bRefm);
                 rm.pt_color_(j, 0) = LRefm;
                 rm.pt_color_(j, 1) = aRefm;
                 rm.pt_color_(j, 2) = bRefm;
@@ -2180,6 +2182,38 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
         if(param_.use_histogram_specification_) {
             std::vector<size_t> lookup;
             registerModelAndSceneColor(lookup, rm);
+        }
+
+
+        // now compute color description around a point taking into its neighboring pixels
+        rm.local_pt_color_ = Eigen::MatrixXf::Zero ( rm.visible_cloud_->points.size(), 2*num_color_channels);
+        octree_model.setInputCloud(rm.visible_cloud_);
+        octree_model.addPointsFromInputCloud();
+
+        for(size_t pt_id=0; pt_id<rm.visible_cloud_->points.size(); pt_id++) {
+            std::vector<int> indices;
+            std::vector<float> distances;
+            const ModelT &searchPt = rm.visible_cloud_->points[pt_id];
+            octree_model.nearestKSearch(searchPt, param_.knn_color_neighborhood_, indices, distances);
+
+            std::vector<std::vector<double> > color_values(rm.pt_color_.cols(), std::vector<double>(indices.size()));
+            for(size_t k=0; k<indices.size(); k++) {
+                for(size_t c=0; c<rm.pt_color_.cols(); c++) {
+                    color_values[c][k] = rm.pt_color_(k,c);
+                }
+            }
+
+
+            // compute mean and standard deviation
+            for(size_t c=0; c<rm.pt_color_.cols(); c++) {
+                double mean = std::accumulate( color_values[c].begin(), color_values[c].end(), 0.0) / color_values[c].size();
+                std::vector<double> diff( color_values[c].size() );
+                std::transform( color_values[c].begin(), color_values[c].end(), diff.begin(), [mean](double x) { return x - mean; });
+                double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+                double stdev = std::sqrt(sq_sum / color_values[c].size());
+                rm.local_pt_color_(pt_id, 2*c) = static_cast<float>(mean);
+                rm.local_pt_color_(pt_id, 2*c+1) = static_cast<float>(stdev);
+            }
         }
     }
 
@@ -2229,53 +2263,93 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
             std::vector<float> weights;
             if (!rm.is_planar_ && !param_.ignore_color_even_if_exists_ )
             {
-                weights.resize( nn_distances.size () );
-                float color_weight = 1.f;
+//                weights.resize( nn_indices.size () );
+//                float color_weight = 1.f;
 
-                for (size_t k = 0; k < nn_distances.size(); k++)
+                for (size_t k = 0; k < nn_indices.size(); k++)
                 {
-                    if (!param_.ignore_color_even_if_exists_ )
-                    {
-                        if(param_.color_space_ == ColorSpace::LAB || param_.color_space_ == 5 || param_.color_space_ == 6)
-                        {
-                            const Eigen::Vector3f &color_m = rm.pt_color_.row(m_pt_id);
-                            const Eigen::Vector3f &color_s = scene_color_channels_.row( nn_indices[k] );
+                      const Eigen::VectorXf &color_m = rm.pt_color_.row(m_pt_id);
+                      const Eigen::VectorXf &color_s = scene_color_channels_.row( nn_indices[k] );
+                      const Eigen::VectorXf &local_color_m = rm.local_pt_color_.row(m_pt_id);
 
-                            color_weight = std::exp ( -0.5f * ( (color_m[0] - color_s[0]) * (color_m[0] - color_s[0]) / sigma_y
-                                    +( (color_m[1] - color_s[1]) * (color_m[1] - color_s[1]) + (color_m[2] - color_s[2]) * (color_m[2] - color_s[2]) ) / sigma ) );
-                        }
-                        else if(param_.color_space_ == ColorSpace::RGB)
-                        {
-                            const Eigen::Vector3f &color_m = rm.pt_color_.row(m_pt_id);
-                            const Eigen::Vector3f &color_s = scene_color_channels_.row( nn_indices[k] );
+                      if(param_.color_space_ == ColorSpace::LAB)
+                      {
+                          float As = color_s(1);
+                          float Bs = color_s(2);
+                          float Am_avg = local_color_m(2);
+                          float Am_std = local_color_m(3);
+                          float Bm_avg = local_color_m(4);
+                          float Bm_std = local_color_m(5);
 
-                            color_weight = std::exp (-0.5f * (   (color_m[0] - color_s[0]) * (color_m[0] - color_s[0])
-                                    + (color_m[1] - color_s[1]) * (color_m[1] - color_s[1]) + (color_m[2] - color_s[2]) * (color_m[2] - color_s[2])) / sigma);
-                        }
-                        else if(param_.color_space_ == ColorSpace::GRAYSCALE)
-                        {
-                            float yuvm = rm.pt_color_( m_pt_id, 0 );
-                            float yuvs = scene_color_channels_( nn_indices[k], 0 );
+                          std::vector<int> indices;
+                          std::vector<float> distances;
+                          const ModelT &searchPt = rm.visible_cloud_->points[m_pt_id];
+                          octree_model.nearestKSearch(searchPt, param_.knn_color_neighborhood_, indices, distances);
 
-                            color_weight = std::exp (-0.5f * (yuvm - yuvs) * (yuvm - yuvs) / sigma_y);
-                        }
-                        else if(param_.color_space_ == 3)
-                        {
-                            float yuvm = rm.pt_color_(m_pt_id,0);
-                            float yuvs = scene_color_channels_( nn_indices[k], 0 );
+                          for(size_t k=0; k<indices.size(); k++) {
+                              for(size_t c=0; c<rm.pt_color_.cols(); c++) {
+                                  std::cout << rm.pt_color_.(k,c) << " ";
+                              }
+                              std::cout << std::endl;
+                          }
 
-                            color_weight = std::exp (-0.5f * (yuvm - yuvs) * (yuvm - yuvs) / sigma_y);
-                        }
-                    }
+                          std::cout << "average Am: " << Am_avg << std::endl
+                                    << "average Bm: " << Bm_avg << std::endl
+                                    << "std Am: " << Am_std << std::endl
+                                    << "std Bm: " << Bm_std << std::endl
+                                    << "As: " << As << std::endl
+                                    << "Bs: " << Bs << std::endl << std::endl << std::endl;
 
-                    const float dist_weight = std::exp( -nn_distances[k] / inliers_gaussian_soft );
-                    weights[k] = color_weight * dist_weight;
 
-                    if (weights[k] > param_.best_color_weight_)
-                    {
-//                        scene_pt_is_explained_by_model_pt_with_color[ nn_indices[k] ].push_back( std::pair<size_t, float>( m_pt_id, weights[k] ));
-                        is_color_outlier = false;
-                    }
+                          if(    is_in_range(As, Am_avg - param_.color_std_dev_multiplier_threshold_ * Am_std, Am_avg + param_.color_std_dev_multiplier_threshold_ * Am_std)
+                              && is_in_range(Bs, Bm_avg - param_.color_std_dev_multiplier_threshold_ * Bm_std, Bm_avg + param_.color_std_dev_multiplier_threshold_ * Bm_std)) {
+                              is_color_outlier = false;
+                              break;
+                          }
+                      }
+
+//                    if (!param_.ignore_color_even_if_exists_ )
+//                    {
+//                        if(param_.color_space_ == ColorSpace::LAB || param_.color_space_ == 5 || param_.color_space_ == 6)
+//                        {
+//                            const Eigen::Vector3f &color_m = rm.pt_color_.row(m_pt_id);
+//                            const Eigen::Vector3f &color_s = scene_color_channels_.row( nn_indices[k] );
+
+//                            color_weight = std::exp ( -0.5f * ( (color_m[0] - color_s[0]) * (color_m[0] - color_s[0]) / sigma_y
+//                                    +( (color_m[1] - color_s[1]) * (color_m[1] - color_s[1]) + (color_m[2] - color_s[2]) * (color_m[2] - color_s[2]) ) / sigma ) );
+//                        }
+//                        else if(param_.color_space_ == ColorSpace::RGB)
+//                        {
+//                            const Eigen::Vector3f &color_m = rm.pt_color_.row(m_pt_id);
+//                            const Eigen::Vector3f &color_s = scene_color_channels_.row( nn_indices[k] );
+
+//                            color_weight = std::exp (-0.5f * (   (color_m[0] - color_s[0]) * (color_m[0] - color_s[0])
+//                                    + (color_m[1] - color_s[1]) * (color_m[1] - color_s[1]) + (color_m[2] - color_s[2]) * (color_m[2] - color_s[2])) / sigma);
+//                        }
+//                        else if(param_.color_space_ == ColorSpace::GRAYSCALE)
+//                        {
+//                            float yuvm = rm.pt_color_( m_pt_id, 0 );
+//                            float yuvs = scene_color_channels_( nn_indices[k], 0 );
+
+//                            color_weight = std::exp (-0.5f * (yuvm - yuvs) * (yuvm - yuvs) / sigma_y);
+//                        }
+//                        else if(param_.color_space_ == 3)
+//                        {
+//                            float yuvm = rm.pt_color_(m_pt_id,0);
+//                            float yuvs = scene_color_channels_( nn_indices[k], 0 );
+
+//                            color_weight = std::exp (-0.5f * (yuvm - yuvs) * (yuvm - yuvs) / sigma_y);
+//                        }
+//                    }
+
+//                    const float dist_weight = std::exp( -nn_distances[k] / inliers_gaussian_soft );
+//                    weights[k] = color_weight * dist_weight;
+
+//                    if (weights[k] > param_.best_color_weight_)
+//                    {
+////                        scene_pt_is_explained_by_model_pt_with_color[ nn_indices[k] ].push_back( std::pair<size_t, float>( m_pt_id, weights[k] ));
+//                        is_color_outlier = false;
+//                    }
                 }
 
                 if(is_color_outlier)
