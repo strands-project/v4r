@@ -68,12 +68,12 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
     if ( !active[changed]) //it has been deactivated
         sign = -1;
 
-    updateExplainedVector (rm.explained_scene_indices_, rm.distances_to_explained_scene_indices_, sign, changed);
+    updateExplainedVector (rm, sign, changed);
 
     if(param_.detect_clutter_)
-        updateUnexplainedVector (rm.unexplained_in_neighborhood, rm.unexplained_in_neighborhood_weights, rm.explained_scene_indices_, sign);
+        updateUnexplainedVector (rm, sign);
 
-    updateCMDuplicity (rm.complete_cloud_occupancy_indices_, sign);
+    updateCMDuplicity (rm, sign);
 
     size_t num_active_hypotheses = 0;
     for(const auto &h:active) {
@@ -907,72 +907,60 @@ GHV<ModelT, SceneT>::getCurvWeight(double p_curvature) const
 
 template<typename ModelT, typename SceneT>
 void
-GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const std::vector<float> & vec_float, int sign, int model_id)
+GHV<ModelT, SceneT>::updateExplainedVector (const HVRecognitionModel<ModelT> &rm, int sign, int model_id)
 {
     double add_to_explained = 0.f;
     double add_to_duplicity = 0.f;
 
-    for (size_t i = 0; i < vec.size (); i++)
+    for (size_t i = 0; i < rm.explained_scene_indices_.size (); i++)
     {
-        bool prev_dup = explained_by_RM_[vec[i]] > 1;
+        int sidx = rm.explained_scene_indices_[i];
+        float dist = rm.distances_to_explained_scene_indices_[i];
+        bool prev_dup = explained_by_RM_[sidx] > 1;
         //bool prev_explained = explained_[vec[i]] == 1;
-        int prev_explained = explained_by_RM_[vec[i]];
-        double prev_explained_value = explained_by_RM_distance_weighted_[vec[i]];
+        int prev_explained = explained_by_RM_[sidx];
+        double prev_explained_value = explained_by_RM_distance_weighted_[sidx];
 
-        explained_by_RM_[vec[i]] += sign;
+        explained_by_RM_[sidx] += sign;
         //explained_by_RM_distance_weighted[vec[i]] += vec_float[i] * sign;
 
         if(sign > 0)
         {
-            //adding, check that after adding the hypothesis, explained_by_RM_distance_weighted[vec[i]] is not higher than 1
-            /*if(prev_explained_value + vec_float[i] > 1.f)
-            {
-                add_to_explained += std::max(0.0, 1 - prev_explained_value);
+            if(prev_explained == 0) { //point was unexplained
+                explained_by_RM_distance_weighted_[sidx] = dist;
+                previous_explained_by_RM_distance_weighted_[sidx].push(std::make_pair(model_id, dist));
             }
             else
             {
-                add_to_explained += vec_float[i];
-            }*/
-
-            if(prev_explained == 0)
-            {
-                //point was unexplained
-                explained_by_RM_distance_weighted_[vec[i]] = vec_float[i];
-                previous_explained_by_RM_distance_weighted_[vec[i]].push(std::make_pair(model_id, vec_float[i]));
-            }
-            else
-            {
-                //point was already explained
-                if(vec_float[i] > prev_explained_value)
-                {
-                    previous_explained_by_RM_distance_weighted_[vec[i]].push(std::make_pair(model_id, vec_float[i]));
-                    explained_by_RM_distance_weighted_[vec[i]] = (double)vec_float[i];
+                if(dist > prev_explained_value) { //point was already explained
+                    previous_explained_by_RM_distance_weighted_[sidx].push(std::make_pair(model_id, dist));
+                    explained_by_RM_distance_weighted_[sidx] = (double)dist;
                 }
                 else
                 {
                     //if it is smaller, we should keep the value in case the greater value gets removed
                     //need to sort the stack
-                    if(previous_explained_by_RM_distance_weighted_[vec[i]].empty())
-                        previous_explained_by_RM_distance_weighted_[vec[i]].push(std::make_pair(model_id, vec_float[i]));
+                    if(previous_explained_by_RM_distance_weighted_[sidx].empty())
+                        previous_explained_by_RM_distance_weighted_[sidx].push(std::make_pair(model_id, dist));
                     else
                     {
                         //sort and find the appropiate position
                         std::stack<std::pair<int, float>, std::vector<std::pair<int, float> > > kept;
-                        while(previous_explained_by_RM_distance_weighted_[vec[i]].size() > 0)
+                        while(!previous_explained_by_RM_distance_weighted_[sidx].empty())
                         {
-                            std::pair<int, double> p = previous_explained_by_RM_distance_weighted_[vec[i]].top();
-                            if(p.second < vec_float[i])
+                            std::pair<int, double> p = previous_explained_by_RM_distance_weighted_[sidx].top();
+                            if(p.second < dist)
                                 break;
 
                             kept.push(p);
-                            previous_explained_by_RM_distance_weighted_[vec[i]].pop();
+                            previous_explained_by_RM_distance_weighted_[sidx].pop();
                         }
 
-                        previous_explained_by_RM_distance_weighted_[vec[i]].push(std::make_pair(model_id, vec_float[i]));
+                        previous_explained_by_RM_distance_weighted_[sidx].push(std::make_pair(model_id, dist));
 
                         while(!kept.empty())
                         {
-                            previous_explained_by_RM_distance_weighted_[vec[i]].push(kept.top());
+                            previous_explained_by_RM_distance_weighted_[sidx].push(kept.top());
                             kept.pop();
                         }
                     }
@@ -983,85 +971,85 @@ GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const 
         {
             std::stack<std::pair<int, float>, std::vector<std::pair<int, float> > > kept;
 
-            while(previous_explained_by_RM_distance_weighted_[vec[i]].size() > 0)
+            while(previous_explained_by_RM_distance_weighted_[sidx].size() > 0)
             {
-                std::pair<int, double> p = previous_explained_by_RM_distance_weighted_[vec[i]].top();
+                std::pair<int, double> p = previous_explained_by_RM_distance_weighted_[sidx].top();
 
                 if(p.first != model_id) // if not found
                     kept.push(p);
 
-                previous_explained_by_RM_distance_weighted_[vec[i]].pop();
+                previous_explained_by_RM_distance_weighted_[sidx].pop();
             }
 
             while(!kept.empty())
             {
-                previous_explained_by_RM_distance_weighted_[vec[i]].push(kept.top());
+                previous_explained_by_RM_distance_weighted_[sidx].push(kept.top());
                 kept.pop();
             }
 
             if(prev_explained == 1) //was only explained by this hypothesis
-                explained_by_RM_distance_weighted_[vec[i]] = 0;
+                explained_by_RM_distance_weighted_[sidx] = 0;
             else
             {
                 //there is at least another hypothesis explaining this point
                 //assert(previous_explained_by_RM_distance_weighted[vec[i]].size() > 0);
-                std::pair<int, double> p = previous_explained_by_RM_distance_weighted_[vec[i]].top();
+                std::pair<int, double> p = previous_explained_by_RM_distance_weighted_[sidx].top();
 
                 double previous = p.second;
-                explained_by_RM_distance_weighted_[vec[i]] = previous;
+                explained_by_RM_distance_weighted_[sidx] = previous;
             }
         }
 
-        float curv_weight = getCurvWeight( scene_normals_->points[ vec[i] ].curvature);
+        float curv_weight = getCurvWeight( scene_normals_->points[ sidx ].curvature);
 
         if(param_.multiple_assignment_penalize_by_one_ == 1)
         {
-            if ((explained_by_RM_[vec[i]] > 1) && prev_dup)
+            if ((explained_by_RM_[sidx] > 1) && prev_dup)
             { //its still a duplicate, do nothing
 
             }
-            else if ((explained_by_RM_[vec[i]] == 1) && prev_dup)
+            else if ((explained_by_RM_[sidx] == 1) && prev_dup)
             { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
                 add_to_duplicity -= curv_weight;
             }
-            else if ((explained_by_RM_[vec[i]] > 1) && !prev_dup)
+            else if ((explained_by_RM_[sidx] > 1) && !prev_dup)
             { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
                 add_to_duplicity += curv_weight;
             }
         }
         else if( param_.multiple_assignment_penalize_by_one_ == 2)
         {
-            if ((explained_by_RM_[vec[i]] > 1) && prev_dup)
+            if ((explained_by_RM_[sidx] > 1) && prev_dup)
             { //its still a duplicate, add or remove current explained value
-                add_to_duplicity += curv_weight * vec_float[i] * sign;
-                duplicates_by_RM_weighted_[vec[i]] += curv_weight * vec_float[i] * sign;
+                add_to_duplicity += curv_weight * dist * sign;
+                duplicates_by_RM_weighted_[sidx] += curv_weight * dist * sign;
             }
-            else if ((explained_by_RM_[vec[i]] == 1) && prev_dup)
+            else if ((explained_by_RM_[sidx] == 1) && prev_dup)
             { //if was duplicate before, now its not, remove current explained weight and old one
-                add_to_duplicity -= duplicates_by_RM_weighted_[vec[i]];
-                duplicates_by_RM_weighted_[vec[i]] = 0;
+                add_to_duplicity -= duplicates_by_RM_weighted_[sidx];
+                duplicates_by_RM_weighted_[sidx] = 0;
             }
-            else if ((explained_by_RM_[vec[i]] > 1) && !prev_dup)
+            else if ((explained_by_RM_[sidx] > 1) && !prev_dup)
             { //it was not a duplicate but it is now, add prev explained value + current explained weight
-                add_to_duplicity += curv_weight * (prev_explained_value + vec_float[i]);
-                duplicates_by_RM_weighted_[vec[i]] = curv_weight * (prev_explained_value + vec_float[i]);
+                add_to_duplicity += curv_weight * (prev_explained_value + dist);
+                duplicates_by_RM_weighted_[sidx] = curv_weight * (prev_explained_value + dist);
             }
         }
         else
         {
-            if ((explained_by_RM_[vec[i]] > 1) && prev_dup)
+            if ((explained_by_RM_[sidx] > 1) && prev_dup)
             { //its still a duplicate
                 //add_to_duplicity_ += vec_float[i] * static_cast<int> (sign); //so, just add or remove one
                 //add_to_duplicity_ += vec_float[i] * static_cast<int> (sign) * duplicy_weight_test_ * curv_weight; //so, just add or remove one
                 add_to_duplicity += static_cast<int> (sign) * param_.duplicy_weight_test_ * curv_weight; //so, just add or remove one
             }
-            else if ((explained_by_RM_[vec[i]] == 1) && prev_dup)
+            else if ((explained_by_RM_[sidx] == 1) && prev_dup)
             { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
                 //add_to_duplicity_ -= prev_explained_value; // / 2.f; //explained_by_RM_distance_weighted[vec[i]];
                 //add_to_duplicity_ -= prev_explained_value * duplicy_weight_test_ * curv_weight;
                 add_to_duplicity -= param_.duplicy_weight_test_ * curv_weight * 2;
             }
-            else if ((explained_by_RM_[vec[i]] > 1) && !prev_dup)
+            else if ((explained_by_RM_[sidx] > 1) && !prev_dup)
             { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
                 //add_to_duplicity_ += explained_by_RM_distance_weighted[vec[i]];
                 //add_to_duplicity_ += explained_by_RM_distance_weighted[vec[i]] * duplicy_weight_test_ * curv_weight;
@@ -1069,7 +1057,7 @@ GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const 
             }
         }
 
-        add_to_explained += explained_by_RM_distance_weighted_[vec[i]] - prev_explained_value;
+        add_to_explained += explained_by_RM_distance_weighted_[sidx] - prev_explained_value;
     }
 
     //update explained and duplicity values...
@@ -1077,30 +1065,77 @@ GHV<ModelT, SceneT>::updateExplainedVector (const std::vector<int> & vec, const 
     previous_duplicity_ += (add_to_duplicity / (double)scene_cloud_downsampled_->points.size());;
 }
 
+
 template<typename ModelT, typename SceneT>
 void
-GHV<ModelT, SceneT>::updateCMDuplicity (const std::vector<int> & vec, int sign)
+GHV<ModelT, SceneT>::updateUnexplainedVector (const HVRecognitionModel<ModelT> &rm, int sign)
+{
+    double add_to_unexplained = 0.f;
+
+    for (size_t i = 0; i < rm.unexplained_in_neighborhood.size (); i++)
+    {
+        int sidx = rm.unexplained_in_neighborhood[i];
+        float weight = rm.unexplained_in_neighborhood_weights[i];
+        bool prev_unexplained = (unexplained_by_RM_neighboorhods_[sidx] > 0) && (explained_by_RM_[sidx] == 0);
+        unexplained_by_RM_neighboorhods_[sidx] += (double) (sign * weight);
+
+        if (sign < 0) //the hypothesis is being removed
+        {
+            if (prev_unexplained) //decrease by 1
+                add_to_unexplained -= weight;
+        }
+        else //the hypothesis is being added and unexplains unexplained_[i], so increase by 1 unless its explained by another hypothesis
+        {
+            if (explained_by_RM_[sidx] == 0)
+                add_to_unexplained += weight;
+        }
+    }
+
+    for (size_t i = 0; i < rm.explained_scene_indices_.size (); i++)
+    {
+        int sidx = rm.explained_scene_indices_[i];
+
+        if (sign < 0) //the hypothesis is being removed, check that there are no points that become unexplained and have clutter unexplained hypotheses
+        {
+            if ((explained_by_RM_[sidx] == 0) && (unexplained_by_RM_neighboorhods_[sidx] > 0))
+                add_to_unexplained += unexplained_by_RM_neighboorhods_[sidx]; //the points become unexplained
+        }
+        else
+        {
+            if ((explained_by_RM_[sidx] == 1) && (unexplained_by_RM_neighboorhods_[sidx] > 0))
+            { //the only hypothesis explaining that point
+                add_to_unexplained -= unexplained_by_RM_neighboorhods_[sidx]; //the points are not unexplained any longer because this hypothesis explains them
+            }
+        }
+    }
+    previous_unexplained_ += add_to_unexplained / (double)scene_cloud_downsampled_->points.size();
+}
+
+
+template<typename ModelT, typename SceneT>
+void
+GHV<ModelT, SceneT>::updateCMDuplicity (const HVRecognitionModel<ModelT> &rm, int sign)
 {
     int add_to_duplicity_ = 0;
-    for (size_t i = 0; i < vec.size (); i++)
+    for (size_t i = 0; i < rm.complete_cloud_occupancy_indices_.size (); i++)
     {
-        if( (vec[i] > complete_cloud_occupancy_by_RM_.size() ) || ( i > vec.size()))
+        if( (rm.complete_cloud_occupancy_indices_[i] > complete_cloud_occupancy_by_RM_.size() ) || ( i > rm.complete_cloud_occupancy_indices_.size()))
         {
-            std::cout << complete_cloud_occupancy_by_RM_.size() << " " << vec[i] << " " << vec.size() << " " << i << std::endl;
+            std::cout << complete_cloud_occupancy_by_RM_.size() << " " << rm.complete_cloud_occupancy_indices_[i] << " " << rm.complete_cloud_occupancy_indices_.size() << " " << i << std::endl;
             throw std::runtime_error("something is wrong with the occupancy grid.");
         }
 
-        bool prev_dup = complete_cloud_occupancy_by_RM_[vec[i]] > 1;
-        complete_cloud_occupancy_by_RM_[vec[i]] += static_cast<int> (sign);
-        if ((complete_cloud_occupancy_by_RM_[vec[i]] > 1) && prev_dup)
+        bool prev_dup = complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] > 1;
+        complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] += static_cast<int> (sign);
+        if ((complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] > 1) && prev_dup)
         { //its still a duplicate, we are adding
             add_to_duplicity_ += static_cast<int> (sign); //so, just add or remove one
         }
-        else if ((complete_cloud_occupancy_by_RM_[vec[i]] == 1) && prev_dup)
+        else if ((complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] == 1) && prev_dup)
         { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
             add_to_duplicity_ -= 2;
         }
-        else if ((complete_cloud_occupancy_by_RM_[vec[i]] > 1) && !prev_dup)
+        else if ((complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] > 1) && !prev_dup)
         { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
             add_to_duplicity_ += 2;
         }
@@ -1111,17 +1146,17 @@ GHV<ModelT, SceneT>::updateCMDuplicity (const std::vector<int> & vec, int sign)
 
 template<typename ModelT, typename SceneT>
 double
-GHV<ModelT, SceneT>::getTotalExplainedInformation (const std::vector<int> & explained, const std::vector<double> & explained_by_RM_distance_weighted, double &duplicity)
+GHV<ModelT, SceneT>::getTotalExplainedInformation (double &duplicity)
 {
     double explained_info = 0;
     duplicity = 0;
 
-    for (size_t i = 0; i < explained.size (); i++)
+    for (size_t i = 0; i < explained_by_RM_.size (); i++)
     {
-        if (explained[i] > 0)
-            explained_info += explained_by_RM_distance_weighted[i];
+        if (explained_by_RM_[i] > 0)
+            explained_info += explained_by_RM_distance_weighted_[i];
 
-        if (explained[i] > 1)
+        if (explained_by_RM_[i] > 1)
         {
             float curv_weight = getCurvWeight( scene_normals_->points[i].curvature );
 
@@ -1130,51 +1165,11 @@ GHV<ModelT, SceneT>::getTotalExplainedInformation (const std::vector<int> & expl
             else if(param_.multiple_assignment_penalize_by_one_ == 2)
                 duplicity += duplicates_by_RM_weighted_[i];
             else
-                duplicity += param_.duplicy_weight_test_ * curv_weight * explained[i];
+                duplicity += param_.duplicy_weight_test_ * curv_weight * explained_by_RM_[i];
         }
     }
 
     return explained_info;
-}
-
-template<typename ModelT, typename SceneT>
-double
-GHV<ModelT, SceneT>::getExplainedByIndices(const std::vector<int> & indices, const std::vector<float> & explained_values,
-                                           const std::vector<double> & explained_by_RM, std::vector<int> & indices_to_update_in_RM_local) const
-{
-    float v=0;
-    int indices_to_update_count = 0;
-    for(size_t k=0; k < indices.size(); k++)
-    {
-        if(explained_by_RM_[indices[k]] == 0)
-        { //in X1, the point is not explained
-            if(explained_by_RM[indices[k]] == 0)
-            { //in X2, this is the single hypothesis explaining the point so far
-                v += explained_values[k];
-                indices_to_update_in_RM_local[indices_to_update_count] = k;
-                indices_to_update_count++;
-            }
-            else
-            {
-                //in X2, there was a previous hypotheses explaining the point
-                //if the previous hypothesis was better, then reject this hypothesis for this point
-                if(explained_by_RM[indices[k]] >= explained_values[k])
-                {
-
-                }
-                else
-                {
-                    //add the difference
-                    v += explained_values[k] - explained_by_RM[indices[k]];
-                    indices_to_update_in_RM_local[indices_to_update_count] = k;
-                    indices_to_update_count++;
-                }
-            }
-        }
-    }
-
-    indices_to_update_in_RM_local.resize(indices_to_update_count);
-    return v;
 }
 
 template<typename ModelT, typename SceneT>
@@ -1239,13 +1234,13 @@ GHV<ModelT, SceneT>::fill_structures(const std::vector<bool> & initial_solution,
     //Define model SAModel, initial solution is all models activated
 
     double duplicity;
-    double good_information = getTotalExplainedInformation (explained_by_RM_, explained_by_RM_distance_weighted_, duplicity);
+    double good_information = getTotalExplainedInformation (duplicity);
     good_information /= (double)scene_cloud_downsampled_->points.size();
     double bad_information = 0;
     double unexplained_in_neighboorhod = 0;
 
     if(param_.detect_clutter_) {
-        unexplained_in_neighboorhod = getUnexplainedInformationInNeighborhood (unexplained_by_RM_neighboorhods_, explained_by_RM_);
+        unexplained_in_neighboorhod = getUnexplainedInformationInNeighborhood ();
         unexplained_in_neighboorhod /= (double)scene_cloud_downsampled_->points.size();
     }
 

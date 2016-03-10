@@ -280,84 +280,36 @@ protected:
 
     ColorTransformOMP color_transf_omp_;
 
-    double
-    getExplainedByIndices (const std::vector<int> & indices,
-                           const std::vector<float> & explained_values,
-                           const std::vector<double> & explained_by_RM,
-                           std::vector<int> & indices_to_update_in_RM_local) const;
-
+    void
+    updateUnexplainedVector (const HVRecognitionModel<ModelT> &rm, int sign);
 
     void
-    updateUnexplainedVector (const std::vector<int> & unexplained, const std::vector<float> & unexplained_distances,
-                             const std::vector<int> & explained, int sign)
-    {
-        double add_to_unexplained = 0.f;
-
-        for (size_t i = 0; i < unexplained.size (); i++)
-        {
-            bool prev_unexplained = (unexplained_by_RM_neighboorhods_[unexplained[i]] > 0) && (explained_by_RM_[unexplained[i]] == 0);
-            unexplained_by_RM_neighboorhods_[unexplained[i]] += (double) (sign * unexplained_distances[i]);
-
-            if (sign < 0) //the hypothesis is being removed
-            {
-                if (prev_unexplained)
-                {
-                    //decrease by 1
-                    add_to_unexplained -= unexplained_distances[i];
-                }
-            }
-            else //the hypothesis is being added and unexplains unexplained_[i], so increase by 1 unless its explained by another hypothesis
-            {
-                if (explained_by_RM_[unexplained[i]] == 0)
-                    add_to_unexplained += unexplained_distances[i];
-            }
-        }
-
-        for (size_t i = 0; i < explained.size (); i++)
-        {
-            if (sign < 0) //the hypothesis is being removed, check that there are no points that become unexplained and have clutter unexplained hypotheses
-            {
-                if ((explained_by_RM_[explained[i]] == 0) && (unexplained_by_RM_neighboorhods_[explained[i]] > 0))
-                    add_to_unexplained += unexplained_by_RM_neighboorhods_[explained[i]]; //the points become unexplained
-            }
-            else
-            {
-                if ((explained_by_RM_[explained[i]] == 1) && (unexplained_by_RM_neighboorhods_[explained[i]] > 0))
-                { //the only hypothesis explaining that point
-                    add_to_unexplained -= unexplained_by_RM_neighboorhods_[explained[i]]; //the points are not unexplained any longer because this hypothesis explains them
-                }
-            }
-        }
-        previous_unexplained_ += add_to_unexplained / (double)scene_cloud_downsampled_->points.size();
-    }
+    updateExplainedVector (const HVRecognitionModel<ModelT> &rm, int sign, int model_id);
 
     void
-    updateExplainedVector (const std::vector<int> & vec, const std::vector<float> & vec_float, int sign, int model_id);
-
-    void
-    updateCMDuplicity (const std::vector<int> & vec, int sign);
+    updateCMDuplicity (const HVRecognitionModel<ModelT> &rm, int sign);
 
     double
-    getTotalExplainedInformation (const std::vector<int> & explained_, const std::vector<double> & explained_by_RM_distance_weighted_, double &duplicity_);
+    getTotalExplainedInformation (double &duplicity);
 
     double
     getTotalBadInformation (const std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > & recog_models)
     {
         double bad_info = 0;
         for (size_t i = 0; i < recog_models.size(); i++)
-            bad_info += recog_models[i]->outliers_total_weight_ * static_cast<double> (recog_models[i]->bad_information_);
+            bad_info += recog_models[i]->outliers_total_weight_;
 
         return bad_info;
     }
 
     double
-    getUnexplainedInformationInNeighborhood (std::vector<double> & unexplained, std::vector<int> & explained)
+    getUnexplainedInformationInNeighborhood()
     {
         double unexplained_sum = 0.f;
-        for (size_t i = 0; i < unexplained.size (); i++)
+        for (size_t i = 0; i < unexplained_by_RM_neighboorhods_.size (); i++)
         {
-            if (unexplained[i] > 0 && explained[i] == 0)
-                unexplained_sum += unexplained[i];
+            if (unexplained_by_RM_neighboorhods_[i] > 0 && explained_by_RM_[i] == 0)
+                unexplained_sum += unexplained_by_RM_neighboorhods_[i];
         }
 
         return unexplained_sum;
