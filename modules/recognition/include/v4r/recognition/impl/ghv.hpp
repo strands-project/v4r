@@ -718,6 +718,54 @@ GHV<ModelT, SceneT>::convertColor()
     }
 }
 
+template<typename ModelT, typename SceneT>
+void
+GHV<ModelT, SceneT>::computePairwiseIntersection()
+{
+    pcl::visualization::PCLVisualizer vis("intersection");
+    Eigen::MatrixXi n_conflicts = Eigen::MatrixXi::Zero(recognition_models_.size(), recognition_models_.size());
+    for(size_t i=1; i<recognition_models_.size(); i++)
+    {
+        for(size_t j=0; j<(i-1); j++)
+        {
+            const HVRecognitionModel<ModelT> &rm_a = *recognition_models_[i];
+            const HVRecognitionModel<ModelT> &rm_b = *recognition_models_[j];
+
+            typename ZBuffering<ModelT>::Parameter zbufParam;
+            zbufParam.f_ = param_.focal_length_;
+            zbufParam.width_ = 640;
+            zbufParam.height_ = 480;
+            ZBuffering<ModelT> zbuf (zbufParam);
+
+            typename pcl::PointCloud<ModelT> rendered_vis_m_a, rendered_vis_m_b, cloud_overlap;
+            zbuf.renderPointCloud(*rm_a.visible_cloud_, rendered_vis_m_a);
+            zbuf.renderPointCloud(*rm_b.visible_cloud_, rendered_vis_m_b);
+
+            size_t num_intersections = 0, total_rendered_points = 0;
+            for(size_t v=0; v<zbufParam.height_; v++)
+            {
+                for (size_t u=0; u<zbufParam.width_; u++)
+                {
+                    if( pcl::isFinite(rendered_vis_m_a.at(u,v)) && pcl::isFinite(rendered_vis_m_b.at(u,v)))
+                        num_intersections++;
+
+                    if ( pcl::isFinite(rendered_vis_m_a.at(u,v)) || pcl::isFinite(rendered_vis_m_b.at(u,v)))
+                        total_rendered_points++;
+                }
+            }
+
+            float conflict_cost = static_cast<float> (num_intersections) / total_rendered_points;
+            std::cout << "num intersections: " << num_intersections << ", total rendered points: "
+                      << total_rendered_points << "; conflict cost: " << conflict_cost << std::endl;
+
+            vis.removeAllPointClouds();
+            vis.addPointCloud(rm_a.visible_cloud_, "cloud_a");
+            vis.addPointCloud(rm_b.visible_cloud_, "cloud_b");
+            vis.spin();
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename ModelT, typename SceneT>
 bool
@@ -809,6 +857,8 @@ GHV<ModelT, SceneT>::initialize()
     }
     recognition_models_.resize(kept);
     recognition_models_map_.resize(kept);
+
+    computePairwiseIntersection();
 
     #pragma omp parallel sections
     {
@@ -2288,7 +2338,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
 
                           for(size_t k=0; k<indices.size(); k++) {
                               for(size_t c=0; c<rm.pt_color_.cols(); c++) {
-                                  std::cout << rm.pt_color_.(k,c) << " ";
+                                  std::cout << rm.pt_color_(k,c) << " ";
                               }
                               std::cout << std::endl;
                           }

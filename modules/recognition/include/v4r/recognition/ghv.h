@@ -344,6 +344,9 @@ protected:
     double
     countPointsOnDifferentPlaneSides (const std::vector<bool> & sol);
 
+    void
+    computePairwiseIntersection();
+
     boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
 
     void
