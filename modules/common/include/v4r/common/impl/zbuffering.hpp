@@ -97,7 +97,7 @@ ZBuffering<PointT>::renderPointCloud(const typename pcl::PointCloud<PointT> &clo
     rendered_view.is_dense = false;
 
     #pragma omp parallel for
-    for (size_t i=0; i<cloud.points.size(); i++)    // initialize points to infinity
+    for (size_t i=0; i< param_.width_ * param_.height_ ; i++)    // initialize points to infinity
         rendered_view.points[i].x = rendered_view.points[i].y = rendered_view.points[i].z = std::numeric_limits<float>::quiet_NaN();
 
     std::vector<omp_lock_t> pt_locks (param_.width_ * param_.height_);
@@ -127,6 +127,38 @@ ZBuffering<PointT>::renderPointCloud(const typename pcl::PointCloud<PointT> &clo
 
     for(size_t i=0; i<pt_locks.size(); i++)
         omp_destroy_lock(&pt_locks[i]);
+
+
+    if (param_.do_smoothing_)
+    {
+        pcl::PointCloud<PointT> rendered_view_unsmooth = rendered_view;
+
+        for (int u = param_.smoothing_radius_; u < (param_.width_ - param_.smoothing_radius_); u++)
+        {
+            for (int v = param_.smoothing_radius_; v < (param_.height_ - param_.smoothing_radius_); v++)
+            {
+                float min = std::numeric_limits<float>::max();
+                int min_uu = u, min_vv = v;
+                for (int uu = (u - param_.smoothing_radius_); uu <= (u + param_.smoothing_radius_); uu++)
+                {
+                    for (int vv = (v - param_.smoothing_radius_); vv <= (v + param_.smoothing_radius_); vv++)
+                    {
+                        if( uu<0 || vv<0 || uu>=param_.width_ || vv>=param_.height_)    // this shouldn't happen anyway
+                            continue;
+
+                        PointT &p = rendered_view_unsmooth.at(uu,vv);
+                        if ( !pcl_isfinite(min) || (pcl::isFinite(p) && ( p.z < min)) ) {
+                            min = p.z;
+                            min_uu = uu;
+                            min_vv = vv;
+                        }
+                    }
+                }
+
+                rendered_view.at(u,v) = rendered_view_unsmooth.at(min_uu, min_vv);
+            }
+        }
+    }
 }
 
 template<typename PointT>
