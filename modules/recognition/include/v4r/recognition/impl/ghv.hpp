@@ -41,6 +41,7 @@
 #include <v4r/recognition/ghv.h>
 #include <functional>
 #include <numeric>
+#include <opencv2/opencv.hpp>
 #include <pcl/common/angles.h>
 #include <pcl/common/time.h>
 #include <pcl/point_types.h>
@@ -56,6 +57,9 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
     int sign = 1;
     if ( !active[changed]) //it has been deactivated
         sign = -1;
+
+//    double previous_model_fitness = model_fitness_;
+//    double previous_pairwise_cost = pairwise_cost_;
 
     model_fitness_ = 0.f;
     pairwise_cost_ = 0.f;
@@ -75,19 +79,28 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
         model_fitness_ = 0.f;
 
     // scene uni term
-    Eigen::MatrixXf scene_explained_weight_for_active_hypotheses = scene_explained_weight_;
-    for(size_t i=0; i<active.size(); i++)
+//    Eigen::MatrixXf scene_explained_weight_for_active_hypotheses = scene_explained_weight_;
+
+    #pragma omp parallel for schedule(dynamic)
+    for(size_t row_id=0; row_id < scene_explained_weight_.rows(); row_id++)
     {
-        if(!active[i]) {
-            scene_explained_weight_for_active_hypotheses.col(i) = Eigen::VectorXf::Zero(
-                        scene_explained_weight_for_active_hypotheses.rows());
+        double max = std::numeric_limits<double>::min();
+        for(size_t col_id=0; col_id<active.size(); col_id++)
+        {
+            if ( active[col_id] && scene_explained_weight_(row_id,col_id)>max)
+                max = scene_explained_weight_(row_id,col_id);
+//            if(!active[i]) {
+//                scene_explained_weight_for_active_hypotheses.col(i) = Eigen::VectorXf::Zero(
+//                            scene_explained_weight_for_active_hypotheses.rows());
+//            }
         }
+        max_scene_explained_weight_(row_id)=max;
     }
 
     scene_fitness_ = 0.f;
-    if ( scene_explained_weight_for_active_hypotheses.cols() ) {
-        Eigen::VectorXf max = scene_explained_weight_for_active_hypotheses.rowwise().maxCoeff();
-        scene_fitness_ = max.sum() / scene_cloud_downsampled_->points.size();
+    if ( num_active_hypotheses ) {
+//        Eigen::VectorXf max = scene_explained_weight_for_active_hypotheses.rowwise().maxCoeff();
+        scene_fitness_ = max_scene_explained_weight_.sum() / scene_cloud_downsampled_->points.size();
     }
 
 
@@ -195,32 +208,19 @@ GHV<ModelT, SceneT>::computePairwiseIntersection()
             const HVRecognitionModel<ModelT> &rm_a = *recognition_models_[i];
             const HVRecognitionModel<ModelT> &rm_b = *recognition_models_[j];
 
-            typename ZBuffering<ModelT>::Parameter zbufParam;
-            zbufParam.f_ = param_.focal_length_;
-            zbufParam.width_ = 640;
-            zbufParam.height_ = 480;
-            zbufParam.do_smoothing_ = false;
-            ZBuffering<ModelT> zbuf (zbufParam);
-
-            typename pcl::PointCloud<ModelT> rendered_vis_m_a, rendered_vis_m_b, cloud_overlap;
-            zbuf.renderPointCloud(*rm_a.visible_cloud_, rendered_vis_m_a);
-            zbuf.renderPointCloud(*rm_b.visible_cloud_, rendered_vis_m_b);
-
             size_t num_intersections = 0, total_rendered_points = 0;
-            for(size_t v=0; v<zbufParam.height_; v++)
+            for(int px=0; px<rm_a.image_mask_.size(); px++)
             {
-                for (size_t u=0; u<zbufParam.width_; u++)
-                {
-                    if( pcl::isFinite(rendered_vis_m_a.at(u,v)) && pcl::isFinite(rendered_vis_m_b.at(u,v)))
-                        num_intersections++;
+                if( rm_a.image_mask_[px] && rm_b.image_mask_[px])
+                    num_intersections++;
 
-                    if ( pcl::isFinite(rendered_vis_m_a.at(u,v)) || pcl::isFinite(rendered_vis_m_b.at(u,v)))
-                        total_rendered_points++;
-                }
+                if ( rm_a.image_mask_[px] || rm_b.image_mask_[px] )
+                    total_rendered_points++;
             }
 
             float conflict_cost = static_cast<float> (num_intersections) / total_rendered_points;
             intersection_cost_(i,j) = intersection_cost_(j,i) = conflict_cost;
+
 //            std::cout << "num intersections between " << i << " and " << j << ": "
 //                      << num_intersections << ", total rendered points: "
 //                      << total_rendered_points << "; conflict cost: " << conflict_cost << std::endl;
@@ -296,28 +296,31 @@ GHV<ModelT, SceneT>::initialize()
     octree_scene_downsampled_->setInputCloud(scene_cloud_downsampled_);
     octree_scene_downsampled_->addPointsFromInputCloud();
 
-//    recognition_models_map_.clear();
-//    recognition_models_map_.resize(recognition_models_.size());
+    recognition_models_map_.clear();
+    recognition_models_map_.resize(recognition_models_.size());
 
     // remove recognition models where there are not enough visible points (>95% occluded)
-//    size_t kept=0;
-//    for(size_t i=0; i<recognition_models_.size(); i++)
-//    {
-//        const typename HVRecognitionModel<ModelT>::Ptr &rm = recognition_models_[i];
+    size_t kept=0;
+    for(size_t i=0; i<recognition_models_.size(); i++)
+    {
+        const typename HVRecognitionModel<ModelT>::Ptr &rm = recognition_models_[i];
 
-//        if( (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
-//            continue;
+        if( (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
+            continue;
 
-//        recognition_models_[kept] = rm;
-//        recognition_models_map_[kept] = i;
-//        kept++;
-//    }
-//    recognition_models_.resize(kept);
-//    recognition_models_map_.resize(kept);
+        recognition_models_[kept] = rm;
+        recognition_models_map_[kept] = i;
+        kept++;
+    }
+    recognition_models_.resize(kept);
+    recognition_models_map_.resize(kept);
 
     scene_explained_weight_ = Eigen::MatrixXf::Zero(scene_cloud_downsampled_->points.size(), recognition_models_.size());
-    computePairwiseIntersection();
 
+    {
+        pcl::ScopeTime t("Computing pairwise intersection");
+        computePairwiseIntersection();
+    }
     if(!param_.ignore_color_even_if_exists_) {
         pcl::ScopeTime t("Converting scene color values");
         convertColor();
@@ -347,6 +350,7 @@ GHV<ModelT, SceneT>::optimize ()
     GHVSAModel<ModelT, SceneT> model;
 
     double initial_cost  = 0.f;
+    max_scene_explained_weight_ = Eigen::VectorXf::Zero(scene_cloud_downsampled_->points.size());
     model.cost_ = static_cast<mets::gol_type> ( initial_cost );
     model.setSolution (temp_solution);
     model.setOptimizer (this);
@@ -475,16 +479,14 @@ GHV<ModelT, SceneT>::verify()
 
     {
     pcl::ScopeTime t("Optimizing object hypotheses verification cost function");
-//    std::vector<bool> solution = optimize ();
-    mask_ = optimize();
-
+    std::vector<bool> solution = optimize ();
 
     // since we remove hypothese containing too few visible points - mask size does not correspond to recognition_models size anymore --> therefore this map stuff
-//    for(size_t i=0; i<mask_.size(); i++)
-//        mask_[ i ] = false;
+    for(size_t i=0; i<mask_.size(); i++)
+        mask_[ i ] = false;
 
-//    for(size_t i=0; i<solution.size(); i++)
-//        mask_[ recognition_models_map_[i] ] = solution[i];
+    for(size_t i=0; i<solution.size(); i++)
+        mask_[ recognition_models_map_[i] ] = solution[i];
     }
 
     recognition_models_.clear();
@@ -595,18 +597,18 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
     if( requires_normals_ )
         removeNanNormals(rm);
 
-    std::vector< std::vector<float> > noise_term_visible_pt; // expected (axial and lateral) noise level at visible point
-    if ( param_.use_noise_model_ ) {    // fore each point we compute its associated noise level. This noise level is used as an adaptive threshold for radius search
-        noise_term_visible_pt.resize( rm.visible_cloud_->points.size(), std::vector<float>(2));
-#pragma omp parallel for schedule (dynamic)
-        for ( size_t i=0; i<rm.visible_cloud_->points.size(); i++ ) {
-            NguyenNoiseModel<ModelT>::computeNoiseLevel( rm.visible_cloud_->points[i],
-                                                         rm.visible_cloud_normals_->points[i],
-                                                         noise_term_visible_pt[i][0],
-                                                         noise_term_visible_pt[i][1],
-                                                         param_.focal_length_);
-        }
-    }
+//    std::vector< std::vector<float> > noise_term_visible_pt; // expected (axial and lateral) noise level at visible point
+//    if ( param_.use_noise_model_ ) {    // fore each point we compute its associated noise level. This noise level is used as an adaptive threshold for radius search
+//        noise_term_visible_pt.resize( rm.visible_cloud_->points.size(), std::vector<float>(2));
+//#pragma omp parallel for schedule (dynamic)
+//        for ( size_t i=0; i<rm.visible_cloud_->points.size(); i++ ) {
+//            NguyenNoiseModel<ModelT>::computeNoiseLevel( rm.visible_cloud_->points[i],
+//                                                         rm.visible_cloud_normals_->points[i],
+//                                                         noise_term_visible_pt[i][0],
+//                                                         noise_term_visible_pt[i][1],
+//                                                         param_.focal_length_);
+//        }
+//    }
 
     if(!param_.ignore_color_even_if_exists_)
     {
@@ -664,37 +666,37 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
 //        }
     }
 
-    std::vector<std::vector<int> > scene_inlier_indices_for_visible_pt (rm.visible_cloud_->points.size ());
-    std::vector<std::vector<float> > scene_inlier_distances_for_visible_pt (rm.visible_cloud_->points.size ());
+    Eigen::VectorXf scene_pt_explained_weight = Eigen::VectorXf::Zero ( scene_cloud_downsampled_->points.size() );
+
+    rm.model_fit_ = 0.;
+    rm.model_scene_c_.resize( rm.visible_cloud_->points.size() );
 
     //Goes through the visible model points and finds scene points within a radius neighborhood
     //If in this neighborhood, there are no scene points, model point is considered outlier
     //If there are scene points, the model point is associated with the scene point, together with its distance
     //A scene point might end up being explained by multiple model points
 
+
+    omp_lock_t scene_pt_lock[ scene_cloud_downsampled_->points.size() ];
+    for(size_t i=0; i < scene_cloud_downsampled_->points.size(); i++)
+        omp_init_lock( &scene_pt_lock[i] );
+
     #pragma omp parallel for schedule(dynamic)
-    for (size_t pt = 0; pt < rm.visible_cloud_->points.size (); pt++) {
-        float radius = param_.inliers_threshold_;
+    for (size_t m_pt_id = 0; m_pt_id < rm.visible_cloud_->points.size (); m_pt_id++) {
+//        float radius = param_.inliers_threshold_;
 
-        if ( param_.use_noise_model_ ) {
-            float min_radius = 0.01f, max_radius = 0.03f;
-            radius = 2*std::max(noise_term_visible_pt[pt][0], noise_term_visible_pt[pt][1]);
-            radius = std::max( std::min(radius, min_radius), max_radius);   // clip threshold to account for pose error etc.
-        }
-        octree_scene_downsampled_->radiusSearch (rm.visible_cloud_->points[pt], radius,
-                                                 scene_inlier_indices_for_visible_pt[pt],
-                                                 scene_inlier_distances_for_visible_pt[pt]);
+//        if ( param_.use_noise_model_ ) {
+//            float min_radius = 0.01f, max_radius = 0.03f;
+//            radius = 2*std::max(noise_term_visible_pt[pt][0], noise_term_visible_pt[pt][1]);
+//            radius = std::max( std::min(radius, min_radius), max_radius);   // clip threshold to account for pose error etc.
+//        }
 
-    }
-    Eigen::VectorXf scene_pt_explained_weight = Eigen::VectorXf::Zero ( scene_cloud_downsampled_->points.size() );
 
-    rm.model_fit_ = 0.;
-    rm.model_scene_c_.resize( rm.visible_cloud_->points.size() );
+        std::vector<int> nn_indices;
+        std::vector<float> nn_distances;
 
-    for (size_t m_pt_id = 0; m_pt_id < rm.visible_cloud_->points.size(); m_pt_id++)
-    {
-        const std::vector<int> & nn_indices = scene_inlier_indices_for_visible_pt[m_pt_id];
-        const std::vector<float> & nn_distances = scene_inlier_distances_for_visible_pt[m_pt_id];
+        octree_scene_downsampled_->nearestKSearch(rm.visible_cloud_->points[m_pt_id], param_.knn_inliers_,
+                                                 nn_indices, nn_distances);
 
         if ( !nn_indices.empty() && !param_.ignore_color_even_if_exists_ )
         {
@@ -706,7 +708,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
                   const Eigen::VectorXf &color_m = rm.pt_color_.row(m_pt_id);
                   const Eigen::VectorXf &color_s = scene_color_channels_.row( nn_indices[k] );
                   double sqr_3D_dist = nn_distances[k];
-                  double dist;
+                  double dist = sqr_3D_dist / param_.inliers_threshold_;
 
                   if(param_.color_space_ == ColorSpace::LAB)
                   {
@@ -717,7 +719,7 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
 
                       double sqr_color_dist = ( (As-Am)*(As-Am)+(Bs-Bm)*(Bs-Bm) );
 
-                      dist = sqr_3D_dist / param_.inliers_threshold_ + sqr_color_dist / param_.color_sigma_ab_;
+                      dist += sqr_color_dist / param_.color_sigma_ab_;
                   }
 
                   if(dist < min_dist) {
@@ -726,18 +728,26 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
                   }
             }
 
+            int sidx = nn_indices[ min_idx ];
             pcl::Correspondence c;
             double weight = exp( -min_dist );
             c.index_query = m_pt_id;
-            c.index_match = nn_indices[ min_idx ];
+            c.index_match = sidx;
             c.distance = weight;
             rm.model_scene_c_[ m_pt_id] = c;
             rm.model_fit_ += weight;
 
-            if ( weight > scene_pt_explained_weight( nn_indices[ min_idx ] ))
-                scene_pt_explained_weight( nn_indices[ min_idx ] ) = weight;
+            omp_set_lock(&scene_pt_lock[sidx]);
+            if ( weight > scene_pt_explained_weight( sidx ))
+                scene_pt_explained_weight( sidx ) = weight;
+
+            omp_unset_lock(&scene_pt_lock[sidx]);
         }
     }
+
+
+    for(size_t i=0; i < scene_cloud_downsampled_->points.size(); i++)
+        omp_destroy_lock( &scene_pt_lock[i] );
 
     rm.model_fit_ /= rm.visible_cloud_->points.size();
     scene_explained_weight_.col(model_idx) = scene_pt_explained_weight;

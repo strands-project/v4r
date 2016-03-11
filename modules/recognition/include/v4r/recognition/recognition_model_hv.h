@@ -2,6 +2,7 @@
 #define V4R_RECOGNITION_MODEL_HV_H__
 
 #include <v4r/core/macros.h>
+#include <opencv2/opencv.hpp>
 #include <pcl/common/common.h>
 #include <pcl/correspondence.h>
 
@@ -11,8 +12,9 @@ namespace v4r
   class V4R_EXPORTS HVRecognitionModel
   {
     public:
-      typename pcl::PointCloud<ModelT>::Ptr visible_cloud_;
       typename pcl::PointCloud<ModelT>::Ptr complete_cloud_;
+      typename pcl::PointCloud<ModelT>::Ptr visible_cloud_;
+      std::vector<bool> image_mask_;
       pcl::PointCloud<pcl::Normal>::Ptr visible_cloud_normals_;
       pcl::PointCloud<pcl::Normal>::Ptr complete_cloud_normals_;
       std::vector<int> visible_indices_;

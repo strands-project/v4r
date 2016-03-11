@@ -1,10 +1,13 @@
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/zbuffering.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/features/uniform_sampling.h>
 #include <pcl/common/time.h>
 #include <pcl/common/common.h>
+#include <v4r/common/pcl_opencv.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/registration/icp.h>
+#include <fstream>
 #include <omp.h>
 
 namespace v4r
@@ -120,6 +123,85 @@ HypothesisVerification<ModelT, SceneT>::addModels (std::vector<typename pcl::Poi
                 pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
             }
         }
+
+        rm.image_mask_ = ConvertPCLCloud2OccupancyImage(*rm.visible_cloud_, param_.img_width_, param_.img_height_, param_.focal_length_, 319.5f, 239.5f);
+
+//        std::stringstream fn; fn << "/tmp/rendered_image_" << i << ".txt";
+//        std::ofstream f(fn.str().c_str());
+//        for(size_t px=0; px<rm.image_mask_.size(); px++)
+//            f<< rm.image_mask_[px] << " ";
+//        f.close();
+
+        if(param_.do_smoothing_)
+        {
+            std::vector<bool> img_mask_smooth = rm.image_mask_;
+            for(int u=0; u<param_.img_width_; u++)
+            {
+                for(int v=0; v <param_.img_height_; v++)
+                {
+                    bool found = false;
+
+                    for(int uu = u-param_.smoothing_radius_; uu < u+param_.smoothing_radius_ && !found; uu++)
+                    {
+                        for(int vv = v-param_.smoothing_radius_; vv < v+param_.smoothing_radius_; vv++)
+                        {
+                            if( uu<0 || vv <0 || uu>(param_.img_width_-1) || vv>(param_.img_height_-1) )
+                                continue;
+
+                            if( rm.image_mask_[vv*param_.img_width_+uu] )
+                            {
+                                img_mask_smooth[v*param_.img_width_+u] = true;
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            rm.image_mask_ = img_mask_smooth;
+
+//            fn.str(""); fn << "/tmp/rendered_image_smooth_" << i << ".txt";
+//            f.open(fn.str().c_str());
+//            for(size_t px=0; px<rm.image_mask_.size(); px++)
+//                f<< rm.image_mask_[px] << " ";
+//            f.close();
+        }
+
+        if(param_.do_erosion_)
+        {
+            std::vector<bool> img_mask_eroded = rm.image_mask_;
+            for(int u=0; u<param_.img_width_; u++)
+            {
+                for(int v=0; v <param_.img_height_; v++)
+                {
+                    bool found = false;
+
+                    for(int uu = u-param_.erosion_radius_; uu < u+param_.erosion_radius_ && !found; uu++)
+                    {
+                        for(int vv = v-param_.erosion_radius_; vv < v+param_.erosion_radius_; vv++)
+                        {
+                            if( uu<0 || vv <0 || uu>(param_.img_width_-1) || vv>(param_.img_height_-1) )
+                                continue;
+
+                            if( !rm.image_mask_[vv*param_.img_width_+uu] )
+                            {
+                                img_mask_eroded[v*param_.img_width_+u] = false;
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            rm.image_mask_ = img_mask_eroded;
+
+//            fn.str(""); fn << "/tmp/rendered_image_eroded_" << i << ".txt";
+//            f.open(fn.str().c_str());
+//            for(size_t px=0; px<rm.image_mask_.size(); px++)
+//                f<< rm.image_mask_[px] << " ";
+//            f.close();
+        }
+
     }
 }
 

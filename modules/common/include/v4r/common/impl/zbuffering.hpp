@@ -119,7 +119,7 @@ ZBuffering<PointT>::renderPointCloud(const typename pcl::PointCloud<PointT> &clo
         omp_set_lock(&pt_locks[idx]);
         PointT &r_pt = rendered_view.points[idx];
 
-        if ( !pcl::isFinite( r_pt ) || (pt.z < r_pt.z) )
+        if ( !pcl_isfinite( r_pt.z ) || (pt.z < r_pt.z) )
             r_pt = pt;
 
         omp_unset_lock(&pt_locks[idx]);

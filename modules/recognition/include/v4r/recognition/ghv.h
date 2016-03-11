@@ -73,6 +73,7 @@ public:
         int color_space_; /// @brief specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
         bool use_noise_model_;  /// @brief if set, uses Nguyens noise model for setting threshold parameters
         bool visualize_go_cues_; /// @brief visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
+        int knn_inliers_; /// @brief number of nearby scene points to check for a query model point
 
         double min_visible_ratio_; /// @brief defines how much of the object has to be visible in order to be included in the verification stage
         int knn_color_neighborhood_; /// @brief number of nearest neighbors used for describing the color around a point
@@ -94,6 +95,7 @@ public:
                 int color_space = ColorSpace::LAB,
                 bool use_noise_model = true,
                 bool visualize_go_cues = false,
+                int knn_inliers = 3,
                 double min_visible_ratio = 0.10f,
                 int knn_color_neighborhood = 10,
                 float color_std_dev_multiplier_threshold = 1.f
@@ -115,6 +117,7 @@ public:
               color_space_ (color_space),
               use_noise_model_ (use_noise_model),
               visualize_go_cues_ ( visualize_go_cues ),
+              knn_inliers_ (knn_inliers),
               min_visible_ratio_ (min_visible_ratio),
               knn_color_neighborhood_ (knn_color_neighborhood),
               color_std_dev_multiplier_threshold_ (color_std_dev_multiplier_threshold)
@@ -134,6 +137,7 @@ private:
 protected:
     using HypothesisVerification<ModelT, SceneT>::mask_;
     using HypothesisVerification<ModelT, SceneT>::recognition_models_;
+    using HypothesisVerification<ModelT, SceneT>::recognition_models_map_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
     using HypothesisVerification<ModelT, SceneT>::model_point_is_visible_;
     using HypothesisVerification<ModelT, SceneT>::normals_set_;
@@ -148,6 +152,8 @@ protected:
     bool scene_and_normals_set_from_outside_;
     Eigen::MatrixXf intersection_cost_; // represents the pairwise intersection cost
     Eigen::MatrixXf scene_explained_weight_; // for each point in the scene (row) store how good it is presented from each model (column)
+    Eigen::VectorXf max_scene_explained_weight_; // for each point in the scene (row) store how good it is presented from each model (column)
+
     GHVSAModel<ModelT, SceneT> best_seen_;
     float initial_temp_;
     ColorTransformOMP color_transf_omp_;

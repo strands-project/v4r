@@ -80,6 +80,7 @@ main (int argc, char ** argv)
             r.setInputCloud (cloud);
             r.recognize();
 
+
             std::vector<ModelTPtr> verified_models = r.getVerifiedModels();
             std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
             transforms_verified = r.getVerifiedTransforms();

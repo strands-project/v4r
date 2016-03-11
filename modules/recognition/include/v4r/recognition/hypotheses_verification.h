@@ -38,7 +38,6 @@
 #define V4R_HYPOTHESIS_VERIFICATION_H__
 
 #include <v4r/core/macros.h>
-#include <v4r/common/zbuffering.h>
 #include <v4r/recognition/recognition_model_hv.h>
 #include <pcl/common/common.h>
 #include <pcl/search/kdtree.h>
@@ -63,6 +62,12 @@ namespace v4r
           int zbuffer_self_occlusion_resolution_;
           bool self_occlusions_reasoning_;
           double focal_length_; /// @brief defines the focal length used for back-projecting points to the image plane (used for occlusion / visibility reasoning)
+          int img_width_; /// @brief image width of the camera in pixel (used for computing pairwise intersection)
+          int img_height_;  /// @brief image height of the camera in pixel (used for computing pairwise intersection)
+          int smoothing_radius_; /// @brief radius in pixel used for smoothing the visible image mask of an object hypotheses (used for computing pairwise intersection)
+          bool do_smoothing_;   /// @brief if true, smoothes the silhouette of the reproject object hypotheses (used for computing pairwise intersection)
+          bool do_erosion_; /// @brief if true, performs erosion on the silhouette of the reproject object hypotheses. This should avoid a pairwise cost for touching objects (used for computing pairwise intersection)
+          int erosion_radius_;  /// @brief erosion radius in px (used for computing pairwise intersection)
           bool do_occlusion_reasoning_;
           int icp_iterations_;
 
@@ -73,6 +78,12 @@ namespace v4r
                   int zbuffer_self_occlusion_resolution = 250,
                   bool self_occlusions_reasoning = true,
                   double focal_length = 525.f,
+                  int img_width = 640,
+                  int img_height = 480,
+                  int smoothing_radius = 2,
+                  bool do_smoothing = true,
+                  bool do_erosion = true,
+                  int erosion_radius = 4,
                   bool do_occlusion_reasoning = true,
                   int icp_iterations = 10)
               : resolution_ (resolution),
@@ -81,30 +92,27 @@ namespace v4r
                 zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
                 self_occlusions_reasoning_(self_occlusions_reasoning),
                 focal_length_ (focal_length),
+                img_width_ (img_width),
+                img_height_ (img_height),
+                smoothing_radius_ (smoothing_radius),
+                do_smoothing_ (do_smoothing),
+                do_erosion_ (do_erosion),
+                erosion_radius_ (erosion_radius),
                 do_occlusion_reasoning_ (do_occlusion_reasoning),
                 icp_iterations_ (icp_iterations)
           {}
       }param_;
 
   protected:
-    /**
-     * @brief Boolean vector indicating if a hypothesis is accepted/rejected (output of HV stage)
-     */
-    std::vector<bool> mask_;
+    std::vector<bool> mask_; /// @brief Boolean vector indicating if a hypothesis is accepted/rejected (output of HV stage)
 
-    /**
-     * @brief Scene point cloud
-     */
-    typename pcl::PointCloud<SceneT>::ConstPtr scene_cloud_;
+    typename pcl::PointCloud<SceneT>::ConstPtr scene_cloud_; /// @brief scene point cloud
 
-    /**
-     * \brief Scene point cloud
-     */
     typename pcl::PointCloud<SceneT>::ConstPtr occlusion_cloud_;
 
     bool scene_cloud_is_recorded_from_single_view_;
 
-//    std::vector<int> recognition_models_map_;
+    std::vector<int> recognition_models_map_;
 
     typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_; /// \brief Downsampled scene point cloud
 

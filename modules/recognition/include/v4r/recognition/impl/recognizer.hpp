@@ -123,7 +123,6 @@ Recognizer<PointT>::visualize() const
     vis_->removeAllPointClouds(vp2_);
     vis_->removeAllPointClouds(vp3_);
 
-
     typename pcl::PointCloud<PointT>::Ptr vis_cloud (new pcl::PointCloud<PointT>);
     pcl::copyPointCloud(*scene_, *vis_cloud);
     vis_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
@@ -147,7 +146,6 @@ Recognizer<PointT>::visualize() const
 
     for(size_t i=0; i<models_.size(); i++)
     {
-
         if(!hypothesis_is_verified_[i])
             continue;
 
@@ -162,7 +160,6 @@ Recognizer<PointT>::visualize() const
     }
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
     vis_->spin();
-
 }
 
 

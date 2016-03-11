@@ -25,6 +25,7 @@
 #include <pcl/common/common.h>
 #include <opencv2/opencv.hpp>
 #include <v4r/core/macros.h>
+#include <omp.h>
 
 #ifndef V4R_PCL_OPENCV_H_
 #define V4R_PCL_OPENCV_H_
@@ -154,6 +155,39 @@ namespace v4r
 
         return dst;
     }
+
+
+
+
+  /**
+   * @brief computes a binary image from a point cloud which pixels are true for pixel occupied when raytracing the point cloud
+   *
+   */
+  template<class PointT>
+  V4R_EXPORTS
+  inline std::vector<bool>
+  ConvertPCLCloud2OccupancyImage (const typename pcl::PointCloud<PointT> &cloud,
+                                  int width = 640,
+                                  int height = 480,
+                                  float f = 525.5f,
+                                  float cx = 319.5f,
+                                  float cy = 239.5f)
+  {
+
+    std::vector<bool> mask(height*width, false);
+
+    #pragma omp parallel for schedule (dynamic)
+    for (size_t i=0; i<cloud.points.size(); i++)
+    {
+        const PointT &pt = cloud.points[i];
+        int u = static_cast<int> (f * pt.x / pt.z + cx);
+        int v = static_cast<int> (f * pt.y / pt.z + cy);
+
+        int idx = v*width + u;
+        mask[idx] = true;
+    }
+    return mask;
+  }
 
 
   template<class PointT>
