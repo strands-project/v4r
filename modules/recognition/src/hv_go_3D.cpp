@@ -49,39 +49,6 @@
 namespace v4r {
 
 template<typename ModelT, typename SceneT>
-pcl::PointCloud<pcl::PointXYZRGB>
-GO3D<ModelT, SceneT>::getInlierOutliersCloud(int hyp_idx) const
-{
-    CHECK(hyp_idx >= 0 && hyp_idx < recognition_models_.size() ) << "Hypothesis ID " << hyp_idx << " does not exist. Please choose a value between 0 and " << recognition_models_.size() - 1 << ".";
-
-    const HVRecognitionModel<ModelT> &rm = *recognition_models_[hyp_idx];
-
-    pcl::PointCloud<pcl::PointXYZRGB> cloud;
-    cloud.points.resize( rm.visible_cloud_->points.size() );
-
-    for(size_t i=0; i < cloud.points.size(); i++)
-    {
-        pcl::PointXYZRGB &pt = cloud.points[i];
-        pt.g = 255;
-        pt.r = pt.b = 0;
-
-        const ModelT &m_pt = rm.visible_cloud_->points[i];
-        pt.x = m_pt.x;
-        pt.y = m_pt.y;
-        pt.z = m_pt.z;
-    }
-
-    for(size_t i=0; i < rm.outlier_indices_.size(); i++)
-    {
-        pcl::PointXYZRGB &pt = cloud.points[ rm.outlier_indices_[i] ];
-        pt.r = 255;
-        pt.g = pt.b = 0;
-    }
-
-    return cloud;
-}
-
-template<typename ModelT, typename SceneT>
 void
 GO3D<ModelT, SceneT>::addModels  (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> &model_normals)
 {
@@ -101,7 +68,6 @@ GO3D<ModelT, SceneT>::addModels  (std::vector<typename pcl::PointCloud<ModelT>::
         recognition_models_[existing_models + i].reset(new GHVRecognitionModel<ModelT>);
         HVRecognitionModel<ModelT> &rm = *recognition_models_[existing_models + i];
 
-        rm.is_planar_ = false;
         rm.complete_cloud_.reset(new pcl::PointCloud<ModelT>(*models[i]));
         rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
         bool redo;
@@ -222,15 +188,6 @@ GO3D<ModelT, SceneT>::visualize () const
 
     vis_->removeAllPointClouds(vp1_);
     vis_->addPointCloud(scene_cloud_, "scene", vp1_);
-
-    for(size_t i=0; i<recognition_models_.size(); i++) {
-        pcl::PointCloud<pcl::PointXYZRGB> inl_outl_cloud = getInlierOutliersCloud(i);
-        vis_->removeAllPointClouds(vp2_);
-        vis_->removePointCloud("inl_outl_cloud_vp1", vp1_);
-        vis_->addPointCloud(inl_outl_cloud.makeShared(), "inl_outl_cloud_vp1", vp1_);
-        vis_->addPointCloud(inl_outl_cloud.makeShared(), "inl_outl_cloud_vp2", vp2_);
-        vis_->spin();
-    }
 }
 
 

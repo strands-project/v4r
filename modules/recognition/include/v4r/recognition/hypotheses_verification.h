@@ -184,7 +184,7 @@ namespace v4r
     virtual
     void
     addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
-               std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr > &model_normals = std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr >());
+               std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr > &model_normals);
 
 
     /**

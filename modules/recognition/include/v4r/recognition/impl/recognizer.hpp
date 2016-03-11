@@ -97,7 +97,7 @@ Recognizer<PointT>::hypothesisVerification ()
 
     if( hv_algorithm_ghv ) {
         hv_algorithm_ghv->setRequiresNormals(false);
-        hv_algorithm_ghv->setNormalsForClutterTerm(scene_normals_);
+//        hv_algorithm_ghv->setNormalsForClutterTerm(scene_normals_);
 
         if( hv_algorithm_ghv->param_.add_planes_ ) {
             planes_.clear();
@@ -122,7 +122,7 @@ Recognizer<PointT>::hypothesisVerification ()
                 ClusterNormalsToPlanesPCL<PointT> pest(p_param);
                 pest.compute(scene_, *scene_normals_, planes_);
             }
-            hv_algorithm_ghv->addPlanarModels(planes_);
+//            hv_algorithm_ghv->addPlanarModels(planes_);
         }
     }
 

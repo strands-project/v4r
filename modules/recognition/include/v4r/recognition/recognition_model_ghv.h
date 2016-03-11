@@ -11,30 +11,19 @@ namespace v4r
   class V4R_EXPORTS GHVRecognitionModel : public HVRecognitionModel<ModelT>
   {
     public:
-      using HVRecognitionModel<ModelT>::explained_scene_indices_;
-      using HVRecognitionModel<ModelT>::distances_to_explained_scene_indices_;
-      using HVRecognitionModel<ModelT>::unexplained_in_neighborhood;
-      using HVRecognitionModel<ModelT>::unexplained_in_neighborhood_weights;
       using HVRecognitionModel<ModelT>::outlier_indices_;
-      using HVRecognitionModel<ModelT>::outlier_indices_color_;
-      using HVRecognitionModel<ModelT>::outlier_indices_3d_;
-      using HVRecognitionModel<ModelT>::complete_cloud_occupancy_indices_;
       using HVRecognitionModel<ModelT>::scene_pt_is_explained_;
       using HVRecognitionModel<ModelT>::visible_cloud_;
       using HVRecognitionModel<ModelT>::complete_cloud_;
       using HVRecognitionModel<ModelT>::visible_cloud_normals_;
       using HVRecognitionModel<ModelT>::complete_cloud_normals_;
       using HVRecognitionModel<ModelT>::visible_indices_;
-      using HVRecognitionModel<ModelT>::outliers_weight_;
       using HVRecognitionModel<ModelT>::extra_weight_;
       using HVRecognitionModel<ModelT>::pt_color_;
       using HVRecognitionModel<ModelT>::cloud_indices_specified_;
-      using HVRecognitionModel<ModelT>::visible_labels_;
-      using HVRecognitionModel<ModelT>::is_planar_;
       using HVRecognitionModel<ModelT>::scene_inlier_indices_for_visible_pt_;
       using HVRecognitionModel<ModelT>::scene_inlier_distances_for_visible_pt_;
       using HVRecognitionModel<ModelT>::plane_model_;
-      using HVRecognitionModel<ModelT>::smooth_faces_;
 
 
       typedef boost::shared_ptr< GHVRecognitionModel> Ptr;

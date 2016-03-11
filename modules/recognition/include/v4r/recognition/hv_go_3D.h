@@ -85,13 +85,7 @@ namespace v4r
     using GHV<ModelT, SceneT>::requires_normals_;
     using GHV<ModelT, SceneT>::scene_normals_;
     using GHV<ModelT, SceneT>::recognition_models_;
-    using GHV<ModelT, SceneT>::unexplained_by_RM_neighboorhods_;
-    using GHV<ModelT, SceneT>::explained_by_RM_distance_weighted_;
-    using GHV<ModelT, SceneT>::explained_by_RM_;
-    using GHV<ModelT, SceneT>::complete_cloud_occupancy_by_RM_;
     using GHV<ModelT, SceneT>::octree_scene_downsampled_;
-    using GHV<ModelT, SceneT>::clusters_cloud_rgb_;
-    using GHV<ModelT, SceneT>::clusters_cloud_;
     using GHV<ModelT, SceneT>::rm_ids_explaining_scene_pt_;
     using GHV<ModelT, SceneT>::refined_model_transforms_;
     using GHV<ModelT, SceneT>::poseRefinement;
@@ -115,14 +109,6 @@ namespace v4r
       }
 
       /**
-       * @brief getInlierOutliersCloud
-       * @param hyp_idx
-       * @return colored point cloud with green points representing inliers and red points outliers
-       */
-      pcl::PointCloud<pcl::PointXYZRGB> getInlierOutliersCloud(int hyp_idx) const;
-
-
-      /**
        * @brief for each cloud, we will need a pose. Then the models will be checked against all of them
        */
       void
@@ -130,7 +116,6 @@ namespace v4r
       {
         absolute_camera_poses_ = absolute_camera_poses;
       }
-
 
       void
       setOcclusionClouds(const std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > & occ_clouds)
@@ -146,7 +131,7 @@ namespace v4r
        */
       void
       addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
-                 std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr > &model_normals = std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr >());
+                 std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr > &model_normals);
       /**
        * @brief for each model this variable stores information in which view it is present
        * @param presence in model and view

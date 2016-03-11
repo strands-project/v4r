@@ -62,606 +62,108 @@ template<typename ModelT, typename SceneT>
 mets::gol_type
 GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int changed)
 {
-    const HVRecognitionModel<ModelT> &rm = *recognition_models_[changed];
-
     int sign = 1;
     if ( !active[changed]) //it has been deactivated
         sign = -1;
 
-    updateExplainedVector (rm, sign, changed);
+//    updateExplainedVector (rm, sign, changed);
 
-    if(param_.detect_clutter_)
-        updateUnexplainedVector (rm, sign);
+//    if(param_.detect_clutter_)
+//        updateUnexplainedVector (rm, sign);
 
-    updateCMDuplicity (rm, sign);
+//    updateCMDuplicity (rm, sign);
 
+//    size_t num_active_hypotheses = 0;
+//    for(const auto &h:active) {
+//        if(h)
+//            num_active_hypotheses++;
+//    }
+
+//    double duplicity = param_.w_occupied_multiple_ * previous_duplicity_;
+
+//    if(num_active_hypotheses)
+//        duplicity /= num_active_hypotheses;
+
+//    double good_info = previous_explained_value_;
+//    double unexplained_info = previous_unexplained_;
+//    double bad_info = previous_bad_info_ + sign * rm.outliers_total_weight_ * rm.outlier_indices_.size() / (double)scene_cloud_downsampled_->points.size();
+//    double duplicity_cm = (double)previous_duplicity_complete_models_ * param_.w_occupied_multiple_cm_;
+
+//    if(!param_.detect_clutter_)
+//        unexplained_info = 0.f;
+
+//    double cost = -(good_info - bad_info - duplicity - unexplained_info - duplicity_cm - countPointsOnDifferentPlaneSides(active));
+
+//    std::cout << "COST: " << std::fixed << cost << " (good: " << good_info << ", bad: " << bad_info << ", duplicity:" << duplicity <<
+//                 ", unexplained: " << unexplained_info << ", duplicity_cm: " << duplicity_cm <<
+//                 ", PointsOnDifferentPlaneSides: " <<  countPointsOnDifferentPlaneSides(active) << ")" << std::endl;
+
+
+    double model_cost = 0.f;
+    double pairwise_cost = 0.f;
+
+    // model uni term
     size_t num_active_hypotheses = 0;
-    for(const auto &h:active) {
-        if(h)
+    for(size_t i=0; i<active.size(); i++)
+    {
+        if(active[i]) {
+            model_cost += recognition_models_[i]->model_fit_;
             num_active_hypotheses++;
+        }
+    }
+    if(num_active_hypotheses)
+        model_cost /= num_active_hypotheses;
+    else
+        model_cost = 0.f;
+
+    // scene uni term
+    Eigen::MatrixXf scene_explained_weight_for_active_hypotheses = scene_explained_weight_;
+    for(size_t i=0; i<active.size(); i++)
+    {
+        if(!active[i]) {
+//            removeColumn( scene_explained_weight_for_active_hypotheses, i);
+            scene_explained_weight_for_active_hypotheses.col(i) = Eigen::VectorXf::Zero(
+                        scene_explained_weight_for_active_hypotheses.rows());
+        }
     }
 
-    double duplicity = param_.w_occupied_multiple_ * previous_duplicity_;
+    double scene_cost = 0.f;
+    if ( scene_explained_weight_for_active_hypotheses.cols() ) {
+        Eigen::VectorXf max = scene_explained_weight_for_active_hypotheses.rowwise().maxCoeff();
+        scene_cost = max.sum() / scene_cloud_downsampled_->points.size();
+    }
 
-    if(num_active_hypotheses)
-        duplicity /= num_active_hypotheses;
 
-    double good_info = previous_explained_value_;
-    double unexplained_info = previous_unexplained_;
-    double bad_info = previous_bad_info_ + sign * rm.outliers_total_weight_ * rm.outlier_indices_.size() / (double)scene_cloud_downsampled_->points.size();
-    double duplicity_cm = (double)previous_duplicity_complete_models_ * param_.w_occupied_multiple_cm_;
+    // pairwise_term
+    for(size_t i=0; i<active.size(); i++)
+    {
+        for(size_t j=0; j<i; j++)
+        {
+            if(active[i] && active[j])
+                pairwise_cost += intersection_cost_(i,j);
+        }
+    }
 
-    if(!param_.detect_clutter_)
-        unexplained_info = 0.f;
+    double cost = -( model_cost + param_.regularizer_ * scene_cost - param_.clutter_regularizer_ * pairwise_cost );
 
-    double cost = -(good_info - bad_info - duplicity - unexplained_info - duplicity_cm - countPointsOnDifferentPlaneSides(active));
+    std::cout << "active hypotheses: ";
 
-    std::cout << "COST: " << std::fixed << cost << " (good: " << good_info << ", bad: " << bad_info << ", duplicity:" << duplicity <<
-                 ", unexplained: " << unexplained_info << ", duplicity_cm: " << duplicity_cm <<
-                 ", PointsOnDifferentPlaneSides: " <<  countPointsOnDifferentPlaneSides(active) << ")" << std::endl;
+    for(size_t i=0; i<active.size(); i++)
+        std::cout << active[i] << " ";
+
+
+    std::cout << std::endl << "model cost: " << model_cost << "; pairwise cost: " << pairwise_cost <<
+                 "; scene cost: " << scene_cost << "; total cost: " << cost << std::endl;
 
     if(cost_logger_) {
         cost_logger_->increaseEvaluated();
         cost_logger_->addCostEachTimeEvaluated(cost);
     }
 
-    previous_bad_info_ = bad_info;
+//    previous_bad_info_ = bad_info;
 
     return static_cast<mets::gol_type> (cost); //return the dual to our max problem
 }
-
-template<typename ModelT, typename SceneT>
-double
-GHV<ModelT, SceneT>::
-countPointsOnDifferentPlaneSides (const std::vector<bool> & sol)
-{
-    if(!param_.use_points_on_plane_side_)
-        return 0;
-
-    double c=0;
-    for(size_t i=0; i < recognition_models_.size(); i++)
-    {
-        const HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-
-        if(sol[i] && rm.is_planar_)
-        {
-            for(size_t j=0; j<recognition_models_.size(); j++)
-            {
-                if(sol[j]) // do we have to check again if j is a plane?
-                    c += points_on_plane_sides_(i,j);
-            }
-        }
-    }
-    return c;
-}
-
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::extractEuclideanClustersSmooth (const typename pcl::PointCloud<pcl::Normal> &normals, std::vector<std::vector<int> > &clusters)
-{
-    if (scene_cloud_downsampled_->points.size () != normals.points.size ())
-    {
-        PCL_ERROR("[pcl::extractEuclideanClusters] Number of points in the input point cloud different than normals!\n");
-        return;
-    }
-
-    typename pcl::search::KdTree<SceneT>::Ptr tree (new pcl::search::KdTree<SceneT>);
-    tree->setInputCloud(scene_cloud_downsampled_);
-
-    std::vector<bool> processed (scene_cloud_downsampled_->points.size (), false); // Create a boolean vector of processed point indices, and initialize it to false
-    std::vector<int> nn_indices;
-    std::vector<float> nn_distances;
-
-    for (size_t i = 0; i < scene_cloud_downsampled_->points.size(); i++) // Process all points in the indices vector
-    {
-        if (processed[i])
-            continue;
-
-        std::vector<size_t> seed_queue;
-        seed_queue.push_back (i);
-        size_t sq_idx = 0;
-
-        processed[i] = true;
-
-
-        float cluster_tolerance = param_.cluster_tolerance_;
-        if(scene_cloud_is_recorded_from_single_view_) {
-            float sigma_lateral, sigma_axial;
-            NguyenNoiseModel<SceneT>::computeNoiseLevel( tree->getInputCloud()->at(seed_queue[sq_idx]),
-                                                         normals.points[seed_queue[sq_idx]], sigma_lateral, sigma_axial, param_.focal_length_);
-            cluster_tolerance = 3*std::max(sigma_axial, sigma_lateral);
-        }
-
-
-        while (sq_idx < seed_queue.size())
-        {
-            if (normals.points[seed_queue[sq_idx]].curvature > param_.curvature_threshold_)
-            {
-                sq_idx++;
-                continue;
-            }
-
-            // Search for sq_idx
-            if (!tree->radiusSearch (seed_queue[sq_idx], cluster_tolerance, nn_indices, nn_distances))
-            {
-                sq_idx++;
-                continue;
-            }
-
-            for (size_t j=1; j<nn_indices.size (); j++) // nn_indices[0] should be sq_idx
-            {
-                if ( processed[nn_indices[j]] || normals.points[nn_indices[j]].curvature > param_.curvature_threshold_) // Has this point been processed before?
-                    continue;
-
-
-                double dot_p = normals.points[seed_queue[sq_idx]].normal[0] * normals.points[nn_indices[j]].normal[0]
-                        + normals.points[seed_queue[sq_idx]].normal[1] * normals.points[nn_indices[j]].normal[1] +
-                        normals.points[seed_queue[sq_idx]].normal[2] * normals.points[nn_indices[j]].normal[2];
-
-                if (fabs (acos (dot_p)) < pcl::deg2rad(param_.eps_angle_threshold_))
-                {
-                    processed[nn_indices[j]] = true;
-                    seed_queue.push_back ( static_cast<size_t>(nn_indices[j]) );
-                }
-            }
-
-            sq_idx++;
-        }
-
-        // If this queue is satisfactory, add to the clusters
-        if (seed_queue.size () >= param_.min_points_per_cluster_ && seed_queue.size () <= param_.max_points_per_cluster_)
-        {
-            std::vector<int> r (seed_queue.size ());
-            for (size_t j = 0; j < seed_queue.size (); j++)
-                r[j] = seed_queue[j];
-
-            std::sort (r.begin (), r.end ());
-            r.erase (std::unique (r.begin (), r.end ()), r.end ());
-            clusters.push_back (r); // We could avoid a copy by working directly in the vector
-        }
-    }
-}
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::addPlanarModels(const std::vector<PlaneModel<ModelT> > & planar_models)
-{
-    size_t existing_models = recognition_models_.size();
-    recognition_models_.resize( existing_models + planar_models.size() );
-
-    #pragma omp parallel for schedule(dynamic)
-    for(size_t i=0; i < planar_models.size(); i++)
-    {
-        recognition_models_[existing_models + i].reset(new HVRecognitionModel<ModelT>);
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[existing_models + i];
-        rm.is_planar_ = true;
-        rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
-        rm.complete_cloud_ = planar_models[i].projectPlaneCloud();
-
-        typename ZBuffering<SceneT>::Parameter zbuffParam;
-        zbuffParam.inlier_threshold_ = param_.zbuffer_scene_resolution_;
-        zbuffParam.f_ = param_.focal_length_;
-        zbuffParam.width_ = 640;
-        zbuffParam.height_ = 480;
-        zbuffParam.u_margin_ = 5;
-        zbuffParam.v_margin_ = 5;
-        zbuffParam.compute_focal_length_ = true;
-        ZBuffering<SceneT> zbuffer_scene (zbuffParam);
-
-
-        //self-occlusions
-        typename pcl::PointCloud<ModelT>::Ptr filtered (new pcl::PointCloud<ModelT> ( *rm.complete_cloud_ ));
-        typename pcl::PointCloud<ModelT>::ConstPtr const_filtered(new pcl::PointCloud<ModelT> (*filtered));
-
-        std::vector<int> indices_cloud_occlusion;
-        if (!occlusion_cloud_->isOrganized ()) {
-            zbuffer_scene.computeDepthMap (*occlusion_cloud_);
-            std::vector<int> visible_indices;
-            zbuffer_scene.filter(*rm.complete_cloud_, visible_indices);
-            pcl::copyPointCloud(*rm.complete_cloud_, visible_indices, *rm.visible_cloud_);
-        }
-        else
-            rm.visible_cloud_ = filter<ModelT,SceneT> (*occlusion_cloud_, *const_filtered, param_.focal_length_, param_.occlusion_thres_, indices_cloud_occlusion);
-
-        rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> ());
-        rm.visible_cloud_normals_->points.resize(filtered->points.size());
-        rm.plane_model_.reset(new PlaneModel<ModelT> );
-        *rm.plane_model_ = planar_models[i];
-        Eigen::Vector3f plane_normal;
-        plane_normal[0] = rm.plane_model_->coefficients_.values[0];
-        plane_normal[1] = rm.plane_model_->coefficients_.values[1];
-        plane_normal[2] = rm.plane_model_->coefficients_.values[2];
-
-        for(size_t k=0; k < rm.visible_cloud_normals_->points.size(); k++)
-            rm.visible_cloud_normals_->points[k].getNormalVector3fMap() = plane_normal;
-
-        rm.complete_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>());
-        rm.complete_cloud_normals_->points.resize( rm.complete_cloud_->points.size() );
-        for(size_t k=0; k<rm.complete_cloud_->points.size(); k++)
-            rm.complete_cloud_normals_->points[k].getNormalVector3fMap() = plane_normal;
-    }
-}
-
-//clutter segmentation performed by supervoxels is only allowed with pcl::PointXYZRGB types
-//this happens only for PCL versions below 1.7.2, since pcl::SuperVoxelClustering cannot be instantiated
-//thats the reason for this hacks...
-
-template<typename SceneT>
-bool
-isSuperVoxelClutterSegmentationPossible()
-{
-    return true;
-}
-
-template<>
-bool
-isSuperVoxelClutterSegmentationPossible<pcl::PointXYZ>()
-{
-    return false;
-}
-
-template<typename SceneT>
-void
-superVoxelClutterSegmentation(const typename pcl::PointCloud<SceneT>::Ptr & scene_cloud_downsampled,
-                              pcl::PointCloud<pcl::PointXYZRGBA> & clusters_cloud_rgb,
-                              pcl::PointCloud<pcl::PointXYZL> & clusters_cloud,
-                              float radius_neighborhood_GO)
-{
-    float voxel_resolution = 0.005f;
-    float seed_resolution = radius_neighborhood_GO;
-    typename pcl::SupervoxelClustering<SceneT> super (voxel_resolution, seed_resolution, false);
-    super.setInputCloud (scene_cloud_downsampled);
-    super.setColorImportance (0.f);
-    super.setSpatialImportance (1.f);
-    super.setNormalImportance (1.f);
-    std::map <uint32_t, typename pcl::Supervoxel<SceneT>::Ptr > supervoxel_clusters;
-    pcl::console::print_highlight ("Extracting supervoxels!\n");
-    super.extract (supervoxel_clusters);
-    pcl::console::print_info ("Found %d supervoxels\n", supervoxel_clusters.size ());
-    pcl::PointCloud<pcl::PointXYZL>::Ptr supervoxels_labels_cloud = super.getLabeledCloud();
-
-    //merge faces...
-    uint32_t max_label = super.getMaxLabel();
-
-    pcl::PointCloud<pcl::PointNormal>::Ptr sv_normal_cloud = super.makeSupervoxelNormalCloud (supervoxel_clusters);
-
-    std::vector<int> label_to_idx;
-    label_to_idx.resize(max_label + 1, -1);
-    typename std::map <uint32_t, typename pcl::Supervoxel<SceneT>::Ptr>::iterator sv_itr,sv_itr_end;
-    sv_itr = supervoxel_clusters.begin ();
-    sv_itr_end = supervoxel_clusters.end ();
-    int idx=0;
-    for ( ; sv_itr != sv_itr_end; ++sv_itr, idx++)
-    {
-        label_to_idx[sv_itr->first] = idx;
-    }
-
-    std::vector< std::vector<bool> > adjacent;
-    adjacent.resize(supervoxel_clusters.size());
-    for(size_t sv_id=0; sv_id < supervoxel_clusters.size(); sv_id++)
-        adjacent[sv_id].resize(supervoxel_clusters.size(), false);
-
-    std::multimap<uint32_t, uint32_t> supervoxel_adjacency;
-    super.getSupervoxelAdjacency (supervoxel_adjacency);
-    //To make a graph of the supervoxel adjacency, we need to iterate through the supervoxel adjacency multimap
-    std::multimap<uint32_t,uint32_t>::iterator label_itr = supervoxel_adjacency.begin ();
-    std::cout << "super voxel adjacency size:" << supervoxel_adjacency.size() << std::endl;
-    for ( ; label_itr != supervoxel_adjacency.end (); )
-    {
-        //First get the label
-        uint32_t supervoxel_label = label_itr->first;
-        Eigen::Vector3f normal_super_voxel = sv_normal_cloud->points[label_to_idx[supervoxel_label]].getNormalVector3fMap();
-        normal_super_voxel.normalize();
-        //Now we need to iterate through the adjacent supervoxels and make a point cloud of them
-        std::multimap<uint32_t,uint32_t>::iterator adjacent_itr = supervoxel_adjacency.equal_range (supervoxel_label).first;
-        for ( ; adjacent_itr!=supervoxel_adjacency.equal_range (supervoxel_label).second; ++adjacent_itr)
-        {
-            Eigen::Vector3f normal_neighbor_supervoxel = sv_normal_cloud->points[label_to_idx[adjacent_itr->second]].getNormalVector3fMap();
-            normal_neighbor_supervoxel.normalize();
-
-            if(normal_super_voxel.dot(normal_neighbor_supervoxel) > 0.95f)
-            {
-                adjacent[label_to_idx[supervoxel_label]][label_to_idx[adjacent_itr->second]] = true;
-            }
-        }
-
-        //Move iterator forward to next label
-        label_itr = supervoxel_adjacency.upper_bound (supervoxel_label);
-    }
-
-    typedef boost::adjacency_matrix<boost::undirectedS, int> Graph;
-    Graph G(supervoxel_clusters.size());
-    for(size_t i=0; i < supervoxel_clusters.size(); i++)
-    {
-        for(size_t j=(i+1); j < supervoxel_clusters.size(); j++)
-        {
-            if(adjacent[i][j])
-                boost::add_edge(i, j, G);
-        }
-    }
-
-    std::vector<int> components (boost::num_vertices (G));
-    int n_cc = static_cast<int> (boost::connected_components (G, &components[0]));
-    std::cout << "Number of connected components..." << n_cc << std::endl;
-
-    std::vector<int> cc_sizes;
-    std::vector<std::vector<int> > ccs;
-    std::vector<uint32_t> original_labels_to_merged;
-    original_labels_to_merged.resize(supervoxel_clusters.size());
-
-    ccs.resize(n_cc);
-    cc_sizes.resize (n_cc, 0);
-    typename boost::graph_traits<Graph>::vertex_iterator vertexIt, vertexEnd;
-    boost::tie (vertexIt, vertexEnd) = vertices (G);
-    for (; vertexIt != vertexEnd; ++vertexIt)
-    {
-        int c = components[*vertexIt];
-        cc_sizes[c]++;
-        ccs[c].push_back(*vertexIt);
-        original_labels_to_merged[*vertexIt] = c;
-    }
-
-    for(size_t i=0; i < supervoxels_labels_cloud->points.size(); i++)
-    {
-        //std::cout << supervoxels_labels_cloud->points[i].label << " " << label_to_idx.size() << " " << original_labels_to_merged.size() << " " << label_to_idx[supervoxels_labels_cloud->points[i].label] << std::endl;
-        if(label_to_idx[supervoxels_labels_cloud->points[i].label] < 0)
-            continue;
-
-        supervoxels_labels_cloud->points[i].label = original_labels_to_merged[label_to_idx[supervoxels_labels_cloud->points[i].label]];
-    }
-
-    std::cout << scene_cloud_downsampled->points.size () << " " << supervoxels_labels_cloud->points.size () << std::endl;
-
-    //clusters_cloud_rgb_= super.getColoredCloud();
-
-    clusters_cloud = *supervoxels_labels_cloud;
-
-    std::vector<uint32_t> label_colors_;
-    //int max_label = label;
-    label_colors_.reserve (max_label + 1);
-    srand (static_cast<unsigned int> (time (0)));
-    while (label_colors_.size () <= max_label )
-    {
-        uint8_t r = static_cast<uint8_t>( (rand () % 256));
-        uint8_t g = static_cast<uint8_t>( (rand () % 256));
-        uint8_t b = static_cast<uint8_t>( (rand () % 256));
-        label_colors_.push_back (static_cast<uint32_t>(r) << 16 | static_cast<uint32_t>(g) << 8 | static_cast<uint32_t>(b));
-    }
-
-    clusters_cloud_rgb.points.resize (scene_cloud_downsampled->points.size ());
-    clusters_cloud_rgb.width = scene_cloud_downsampled->points.size();
-    clusters_cloud_rgb.height = 1;
-
-    {
-        for(size_t i=0; i < clusters_cloud.points.size(); i++)
-        {
-            //if (clusters_cloud_->points[i].label != 0)
-            //{
-            clusters_cloud_rgb.points[i].getVector3fMap() = clusters_cloud.points[i].getVector3fMap();
-            clusters_cloud_rgb.points[i].rgb = label_colors_[clusters_cloud.points[i].label];
-
-            //}
-        }
-    }
-}
-
-template<>
-void
-superVoxelClutterSegmentation<pcl::PointXYZ>
-(const pcl::PointCloud<pcl::PointXYZ>::Ptr & /*scene_cloud_downsampled_*/,
- pcl::PointCloud<pcl::PointXYZRGBA> & /*clusters_cloud_rgb_*/,
- pcl::PointCloud<pcl::PointXYZL> & /*clusters_cloud_*/,
- float /*radius_neighborhood_GO_*/)
-{
-    PCL_WARN("Super voxel clutter segmentation not allowed for pcl::PointXYZ scene types\n");
-}
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::segmentScene()
-{
-    if(param_.use_super_voxels_)
-    {
-        if( isSuperVoxelClutterSegmentationPossible<SceneT>() ) { //check if its possible at all
-            if(!clusters_cloud_rgb_)
-                clusters_cloud_rgb_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>);
-            if(!clusters_cloud_)
-                clusters_cloud_.reset(new pcl::PointCloud<pcl::PointXYZL>);
-            superVoxelClutterSegmentation<SceneT>(scene_cloud_downsampled_, *clusters_cloud_rgb_, *clusters_cloud_, param_.radius_neighborhood_clutter_);
-        }
-        else
-        {
-            PCL_WARN("Not possible to use superVoxelClutter segmentation for pcl::PointXYZ types with pcl version < 1.7.2\n");
-            PCL_WARN("See comments in code (ghv.hpp)\n");
-            param_.use_super_voxels_ = false;
-        }
-    }
-    else
-    {
-        if(!clusters_cloud_rgb_)
-            clusters_cloud_rgb_.reset(new pcl::PointCloud<pcl::PointXYZRGBA>);
-
-        if(!clusters_cloud_)
-            clusters_cloud_.reset(new pcl::PointCloud<pcl::PointXYZL>);
-
-        if(0)//scene_cloud_->isOrganized() && scene_normals_for_clutter_term_ && (scene_normals_for_clutter_term_->points.size() == scene_cloud_->points.size()))
-        {
-            // scene cloud is organized, filter points with high curvature and cluster the rest in smooth patches
-
-            typename pcl::EuclideanClusterComparator<SceneT, pcl::Normal, pcl::Label>::Ptr
-                    euclidean_cluster_comparator (new pcl::EuclideanClusterComparator<SceneT, pcl::Normal, pcl::Label> ());
-
-            pcl::PointCloud<pcl::Label>::Ptr labels (new pcl::PointCloud<pcl::Label>);
-            labels->points.resize(scene_cloud_->points.size());
-            labels->width = scene_cloud_->width;
-            labels->height = scene_cloud_->height;
-            labels->is_dense = scene_cloud_->is_dense;
-
-            for (size_t j = 0; j < scene_cloud_->points.size (); j++)
-            {
-                // check XYZ, normal and curvature
-                float curvature = scene_normals_for_clutter_term_->points[j].curvature;
-                if ( pcl::isFinite( scene_cloud_->points[j] )
-                     && pcl::isFinite ( scene_normals_for_clutter_term_->points[j] )
-                     && curvature <= (param_.curvature_threshold_ * std::min(1.f,scene_cloud_->points[j].z)))
-                {
-                    //label_indices[1].indices[label_count[1]++] = static_cast<int>(j);
-                    labels->points[j].label = 1;
-                }
-                else
-                {
-                    //label_indices[0].indices[label_count[0]++] = static_cast<int>(j);
-                    labels->points[j].label = 0;
-                }
-            }
-
-            std::vector<bool> excluded_labels;
-            excluded_labels.resize (2, false);
-            excluded_labels[0] = true;
-
-            euclidean_cluster_comparator->setInputCloud (scene_cloud_);
-            euclidean_cluster_comparator->setLabels (labels);
-            euclidean_cluster_comparator->setExcludeLabels (excluded_labels);
-            euclidean_cluster_comparator->setDistanceThreshold (param_.cluster_tolerance_, true);
-            euclidean_cluster_comparator->setAngularThreshold(0.017453 * 5.f); //5 degrees
-
-            pcl::PointCloud<pcl::Label> euclidean_labels;
-            std::vector<pcl::PointIndices> clusters;
-            pcl::OrganizedConnectedComponentSegmentation<SceneT, pcl::Label> euclidean_segmentation (euclidean_cluster_comparator);
-            euclidean_segmentation.setInputCloud (scene_cloud_);
-            euclidean_segmentation.segment (euclidean_labels, clusters);
-
-            std::vector<bool> good_cluster(clusters.size(), false);
-            for (size_t i = 0; i < clusters.size (); i++)
-            {
-                if (clusters[i].indices.size () >= 100)
-                    good_cluster[i] = true;
-            }
-
-            clusters_cloud_->points.resize (scene_sampled_indices_.size ());
-            clusters_cloud_rgb_->points.resize (scene_sampled_indices_.size ());
-            clusters_cloud_->width = clusters_cloud_rgb_->width = scene_sampled_indices_.size();
-            clusters_cloud_->height = clusters_cloud_rgb_->height = 1;
-
-            pcl::PointCloud<pcl::PointXYZL>::Ptr clusters_cloud (new pcl::PointCloud<pcl::PointXYZL>);
-            clusters_cloud->points.resize (scene_cloud_->points.size ());
-            clusters_cloud->width = scene_cloud_->points.size();
-            clusters_cloud->height = 1;
-
-            for (size_t i = 0; i < scene_cloud_->points.size (); i++)
-            {
-                pcl::PointXYZL p;
-                p.getVector3fMap () = scene_cloud_->points[i].getVector3fMap ();
-                p.label = 0;
-                clusters_cloud->points[i] = p;
-                //clusters_cloud_rgb_->points[i].getVector3fMap() = p.getVector3fMap();
-                //clusters_cloud_rgb_->points[i].r = clusters_cloud_rgb_->points[i].g = clusters_cloud_rgb_->points[i].b = 100;
-            }
-
-            uint32_t label = 1;
-            for (size_t i = 0; i < clusters.size (); i++)
-            {
-                if(!good_cluster[i])
-                    continue;
-
-                for (size_t j = 0; j < clusters[i].indices.size (); j++)
-                    clusters_cloud->points[clusters[i].indices[j]].label = label;
-
-                label++;
-            }
-
-            std::vector<uint32_t> label_colors_;
-            int max_label = label;
-            label_colors_.reserve (max_label + 1);
-            srand (static_cast<unsigned int> (time (0)));
-            while (label_colors_.size () <= max_label )
-            {
-                uint8_t r = static_cast<uint8_t>( (rand () % 256));
-                uint8_t g = static_cast<uint8_t>( (rand () % 256));
-                uint8_t b = static_cast<uint8_t>( (rand () % 256));
-                label_colors_.push_back (static_cast<uint32_t>(r) << 16 | static_cast<uint32_t>(g) << 8 | static_cast<uint32_t>(b));
-            }
-
-            if(scene_cloud_downsampled_->points.size() != scene_sampled_indices_.size())
-            {
-                std::cout << scene_cloud_downsampled_->points.size() << " " << scene_sampled_indices_.size() << std::endl;
-                if(scene_cloud_downsampled_->points.size() != scene_sampled_indices_.size())
-                    throw std::runtime_error( "Downsampled point cloud is not the same size as sampled indices!");
-            }
-
-
-            for(size_t i=0; i < scene_sampled_indices_.size(); i++)
-            {
-                clusters_cloud_->points[i] = clusters_cloud->points[scene_sampled_indices_[i]];
-                clusters_cloud_rgb_->points[i].getVector3fMap() = clusters_cloud->points[scene_sampled_indices_[i]].getVector3fMap();
-
-                if(clusters_cloud->points[scene_sampled_indices_[i]].label == 0)
-                    clusters_cloud_rgb_->points[i].r = clusters_cloud_rgb_->points[i].g = clusters_cloud_rgb_->points[i].b = 100;
-                else
-                    clusters_cloud_rgb_->points[i].rgb = label_colors_[clusters_cloud->points[scene_sampled_indices_[i]].label];
-            }
-        }
-        else
-        {
-            std::vector<std::vector<int> > clusters;
-            extractEuclideanClustersSmooth(*scene_normals_, clusters);
-
-            clusters_cloud_->points.resize (scene_cloud_downsampled_->points.size ());
-            clusters_cloud_->width = scene_cloud_downsampled_->width;
-            clusters_cloud_->height = 1;
-
-            clusters_cloud_rgb_->points.resize (scene_cloud_downsampled_->points.size ());
-            clusters_cloud_rgb_->width = scene_cloud_downsampled_->width;
-            clusters_cloud_rgb_->height = 1;
-
-            for (size_t i = 0; i < scene_cloud_downsampled_->points.size (); i++)
-            {
-                pcl::PointXYZL p;
-                p.getVector3fMap () = scene_cloud_downsampled_->points[i].getVector3fMap ();
-                p.label = 0;
-                clusters_cloud_->points[i] = p;
-                clusters_cloud_rgb_->points[i].getVector3fMap() = p.getVector3fMap();
-                clusters_cloud_rgb_->points[i].r = clusters_cloud_rgb_->points[i].g = clusters_cloud_rgb_->points[i].b = 100;
-            }
-
-            uint32_t label = 1;
-            for (size_t i = 0; i < clusters.size (); i++)
-            {
-                for (size_t j = 0; j < clusters[i].size (); j++)
-                    clusters_cloud_->points[clusters[i][j]].label = label;
-
-                label++;
-            }
-
-            std::vector<uint32_t> label_colors_;
-            int max_label = label;
-            label_colors_.reserve (max_label + 1);
-            srand (static_cast<unsigned int> (time (0)));
-            while (label_colors_.size () <= max_label )
-            {
-                uint8_t r = static_cast<uint8_t>( (rand () % 256));
-                uint8_t g = static_cast<uint8_t>( (rand () % 256));
-                uint8_t b = static_cast<uint8_t>( (rand () % 256));
-                label_colors_.push_back (static_cast<uint32_t>(r) << 16 | static_cast<uint32_t>(g) << 8 | static_cast<uint32_t>(b));
-            }
-
-            for(size_t i=0; i < clusters_cloud_->points.size(); i++)
-            {
-                if (clusters_cloud_->points[i].label != 0)
-                    clusters_cloud_rgb_->points[i].rgb = label_colors_[clusters_cloud_->points[i].label];
-            }
-        }
-    }
-
-    max_label_clusters_cloud_ = 0;
-    for(size_t i=0; i < clusters_cloud_->points.size(); i++)
-    {
-        if (clusters_cloud_->points[i].label > max_label_clusters_cloud_)
-            max_label_clusters_cloud_ = clusters_cloud_->points[i].label;
-    }
-}
-
 
 template<typename ModelT, typename SceneT>
 void
@@ -722,8 +224,12 @@ template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::computePairwiseIntersection()
 {
-    pcl::visualization::PCLVisualizer vis("intersection");
-    Eigen::MatrixXi n_conflicts = Eigen::MatrixXi::Zero(recognition_models_.size(), recognition_models_.size());
+//    pcl::visualization::PCLVisualizer vis("intersection");
+//    int v1,v2;
+//    vis.createViewPort(0,0,0.5,1,v1);
+//    vis.createViewPort(0.5,0,1,1,v2);
+    intersection_cost_ = Eigen::MatrixXf::Zero(recognition_models_.size(), recognition_models_.size());
+
     for(size_t i=1; i<recognition_models_.size(); i++)
     {
         for(size_t j=0; j<(i-1); j++)
@@ -735,6 +241,7 @@ GHV<ModelT, SceneT>::computePairwiseIntersection()
             zbufParam.f_ = param_.focal_length_;
             zbufParam.width_ = 640;
             zbufParam.height_ = 480;
+            zbufParam.do_smoothing_ = false;
             ZBuffering<ModelT> zbuf (zbufParam);
 
             typename pcl::PointCloud<ModelT> rendered_vis_m_a, rendered_vis_m_b, cloud_overlap;
@@ -755,13 +262,16 @@ GHV<ModelT, SceneT>::computePairwiseIntersection()
             }
 
             float conflict_cost = static_cast<float> (num_intersections) / total_rendered_points;
-            std::cout << "num intersections: " << num_intersections << ", total rendered points: "
-                      << total_rendered_points << "; conflict cost: " << conflict_cost << std::endl;
+            intersection_cost_(i,j) = intersection_cost_(j,i) = conflict_cost;
+//            std::cout << "num intersections: " << num_intersections << ", total rendered points: "
+//                      << total_rendered_points << "; conflict cost: " << conflict_cost << std::endl;
 
-            vis.removeAllPointClouds();
-            vis.addPointCloud(rm_a.visible_cloud_, "cloud_a");
-            vis.addPointCloud(rm_b.visible_cloud_, "cloud_b");
-            vis.spin();
+//            vis.removeAllPointClouds();
+//            vis.addPointCloud(rm_a.visible_cloud_, "cloud_a",v1);
+//            vis.addPointCloud(rm_b.visible_cloud_, "cloud_b",v1);
+//            vis.addPointCloud(rendered_vis_m_a.makeShared(), "cloud_ar",v2);
+//            vis.addPointCloud(rendered_vis_m_b.makeShared(), "cloud_br",v2);
+//            vis.spin();
         }
     }
 }
@@ -771,13 +281,7 @@ template<typename ModelT, typename SceneT>
 bool
 GHV<ModelT, SceneT>::initialize()
 {
-    //clear stuff
-    unexplained_by_RM_neighboorhods_.clear ();
-    explained_by_RM_distance_weighted_.clear ();
-    previous_explained_by_RM_distance_weighted_.clear ();
-    explained_by_RM_.clear ();
 //    explained_by_RM_model_.clear();
-    complete_cloud_occupancy_by_RM_.clear ();
     mask_.clear ();
     mask_.resize (recognition_models_.size (), false);
 
@@ -796,7 +300,6 @@ GHV<ModelT, SceneT>::initialize()
         scene_cloud_downsampled_->points.resize(kept);
         scene_cloud_downsampled_->width = kept;
         scene_cloud_downsampled_->height = 1;
-
 
         if(!scene_normals_)
             scene_normals_.reset (new pcl::PointCloud<pcl::Normal> ());
@@ -828,12 +331,7 @@ GHV<ModelT, SceneT>::initialize()
             scene_sampled_indices_[k] = k;
     }
 
-    explained_by_RM_.resize (scene_cloud_downsampled_->points.size (), 0);
-    duplicates_by_RM_weighted_.resize (scene_cloud_downsampled_->points.size (), 0);
-//    explained_by_RM_model_.resize (scene_cloud_downsampled_->points.size (), -1);
-    explained_by_RM_distance_weighted_.resize (scene_cloud_downsampled_->points.size (), 0);
-    previous_explained_by_RM_distance_weighted_.resize (scene_cloud_downsampled_->points.size ());
-    unexplained_by_RM_neighboorhods_.resize (scene_cloud_downsampled_->points.size (), 0.f);
+    scene_explained_weight_ = Eigen::MatrixXf::Zero(scene_cloud_downsampled_->points.size(), recognition_models_.size());
 
     octree_scene_downsampled_.reset(new pcl::octree::OctreePointCloudSearch<SceneT>(0.01f));
     octree_scene_downsampled_->setInputCloud(scene_cloud_downsampled_);
@@ -848,7 +346,7 @@ GHV<ModelT, SceneT>::initialize()
     {
         const typename HVRecognitionModel<ModelT>::Ptr &rm = recognition_models_[i];
 
-        if( !rm->is_planar_ && (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
+        if( (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
             continue;
 
         recognition_models_[kept] = rm;
@@ -867,7 +365,7 @@ GHV<ModelT, SceneT>::initialize()
             if (param_.detect_clutter_)
             {
                 pcl::ScopeTime t("Smooth segmentation of the scene");
-                segmentScene();
+//                segmentScene();
             }
         }
 
@@ -887,439 +385,28 @@ GHV<ModelT, SceneT>::initialize()
             pcl::ScopeTime t("Computing cues for recognition models");
             #pragma omp parallel for schedule(dynamic)
             for (size_t i = 0; i < recognition_models_.size (); i++)
-                addModel(*recognition_models_[i]);
+                addModel(*recognition_models_[i], i);
         }
 
         #pragma omp section
         {
             pcl::ScopeTime t("compute cloud occupancy by recognition models");
-            computeSceneOccupancyGridByRM();
+//            computeSceneOccupancyGridByRM();
         }
     }
 
     {
         pcl::ScopeTime t("Compute clutter cue at once");
-        computeClutterCueAtOnce();
+//        computeClutterCueAtOnce();
     }
 
     // visualize cues
     if(param_.visualize_go_cues_) {
-        for (const auto & rm:recognition_models_)
-            visualizeGOCuesForModel(*rm);
-    }
-
-    rm_ids_explaining_scene_pt_.clear ();
-    rm_ids_explaining_scene_pt_.resize (scene_cloud_downsampled_->points.size ());
-    for (size_t j = 0; j < recognition_models_.size (); j++)
-    {
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[j];
-        for (const auto &scene_pt_id : rm.explained_scene_indices_)
-            rm_ids_explaining_scene_pt_[ scene_pt_id ].push_back (j);
+//        for (const auto & rm:recognition_models_)
+//            visualizeGOCuesForModel(*rm);
     }
 
     return true;
-}
-
-template<typename ModelT, typename SceneT>
-double
-GHV<ModelT, SceneT>::getCurvWeight(double p_curvature) const
-{
-
-    if( param_.multiple_assignment_penalize_by_one_ == 2 )
-        return 1.f;
-
-    //return 1.f;
-
-    /*if(p_curvature > duplicity_curvature_max)
-        return 0.f;*/
-
-    /*if(p_curvature < duplicity_curvature_max)
-        return 1.f;*/
-
-    return 1.f - std::min(1., p_curvature / param_.duplicity_curvature_max_);
-}
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::updateExplainedVector (const HVRecognitionModel<ModelT> &rm, int sign, int model_id)
-{
-    double add_to_explained = 0.f;
-    double add_to_duplicity = 0.f;
-
-    for (size_t i = 0; i < rm.explained_scene_indices_.size (); i++)
-    {
-        int sidx = rm.explained_scene_indices_[i];
-        float dist = rm.distances_to_explained_scene_indices_[i];
-        bool prev_dup = explained_by_RM_[sidx] > 1;
-        //bool prev_explained = explained_[vec[i]] == 1;
-        int prev_explained = explained_by_RM_[sidx];
-        double prev_explained_value = explained_by_RM_distance_weighted_[sidx];
-
-        explained_by_RM_[sidx] += sign;
-        //explained_by_RM_distance_weighted[vec[i]] += vec_float[i] * sign;
-
-        if(sign > 0)
-        {
-            if(prev_explained == 0) { //point was unexplained
-                explained_by_RM_distance_weighted_[sidx] = dist;
-                previous_explained_by_RM_distance_weighted_[sidx].push(std::make_pair(model_id, dist));
-            }
-            else
-            {
-                if(dist > prev_explained_value) { //point was already explained
-                    previous_explained_by_RM_distance_weighted_[sidx].push(std::make_pair(model_id, dist));
-                    explained_by_RM_distance_weighted_[sidx] = (double)dist;
-                }
-                else
-                {
-                    //if it is smaller, we should keep the value in case the greater value gets removed
-                    //need to sort the stack
-                    if(previous_explained_by_RM_distance_weighted_[sidx].empty())
-                        previous_explained_by_RM_distance_weighted_[sidx].push(std::make_pair(model_id, dist));
-                    else
-                    {
-                        //sort and find the appropiate position
-                        std::stack<std::pair<int, float>, std::vector<std::pair<int, float> > > kept;
-                        while(!previous_explained_by_RM_distance_weighted_[sidx].empty())
-                        {
-                            std::pair<int, double> p = previous_explained_by_RM_distance_weighted_[sidx].top();
-                            if(p.second < dist)
-                                break;
-
-                            kept.push(p);
-                            previous_explained_by_RM_distance_weighted_[sidx].pop();
-                        }
-
-                        previous_explained_by_RM_distance_weighted_[sidx].push(std::make_pair(model_id, dist));
-
-                        while(!kept.empty())
-                        {
-                            previous_explained_by_RM_distance_weighted_[sidx].push(kept.top());
-                            kept.pop();
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            std::stack<std::pair<int, float>, std::vector<std::pair<int, float> > > kept;
-
-            while(previous_explained_by_RM_distance_weighted_[sidx].size() > 0)
-            {
-                std::pair<int, double> p = previous_explained_by_RM_distance_weighted_[sidx].top();
-
-                if(p.first != model_id) // if not found
-                    kept.push(p);
-
-                previous_explained_by_RM_distance_weighted_[sidx].pop();
-            }
-
-            while(!kept.empty())
-            {
-                previous_explained_by_RM_distance_weighted_[sidx].push(kept.top());
-                kept.pop();
-            }
-
-            if(prev_explained == 1) //was only explained by this hypothesis
-                explained_by_RM_distance_weighted_[sidx] = 0;
-            else
-            {
-                //there is at least another hypothesis explaining this point
-                //assert(previous_explained_by_RM_distance_weighted[vec[i]].size() > 0);
-                std::pair<int, double> p = previous_explained_by_RM_distance_weighted_[sidx].top();
-
-                double previous = p.second;
-                explained_by_RM_distance_weighted_[sidx] = previous;
-            }
-        }
-
-        float curv_weight = getCurvWeight( scene_normals_->points[ sidx ].curvature);
-
-        if(param_.multiple_assignment_penalize_by_one_ == 1)
-        {
-            if ((explained_by_RM_[sidx] > 1) && prev_dup)
-            { //its still a duplicate, do nothing
-
-            }
-            else if ((explained_by_RM_[sidx] == 1) && prev_dup)
-            { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
-                add_to_duplicity -= curv_weight;
-            }
-            else if ((explained_by_RM_[sidx] > 1) && !prev_dup)
-            { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
-                add_to_duplicity += curv_weight;
-            }
-        }
-        else if( param_.multiple_assignment_penalize_by_one_ == 2)
-        {
-            if ((explained_by_RM_[sidx] > 1) && prev_dup)
-            { //its still a duplicate, add or remove current explained value
-                add_to_duplicity += curv_weight * dist * sign;
-                duplicates_by_RM_weighted_[sidx] += curv_weight * dist * sign;
-            }
-            else if ((explained_by_RM_[sidx] == 1) && prev_dup)
-            { //if was duplicate before, now its not, remove current explained weight and old one
-                add_to_duplicity -= duplicates_by_RM_weighted_[sidx];
-                duplicates_by_RM_weighted_[sidx] = 0;
-            }
-            else if ((explained_by_RM_[sidx] > 1) && !prev_dup)
-            { //it was not a duplicate but it is now, add prev explained value + current explained weight
-                add_to_duplicity += curv_weight * (prev_explained_value + dist);
-                duplicates_by_RM_weighted_[sidx] = curv_weight * (prev_explained_value + dist);
-            }
-        }
-        else
-        {
-            if ((explained_by_RM_[sidx] > 1) && prev_dup)
-            { //its still a duplicate
-                //add_to_duplicity_ += vec_float[i] * static_cast<int> (sign); //so, just add or remove one
-                //add_to_duplicity_ += vec_float[i] * static_cast<int> (sign) * duplicy_weight_test_ * curv_weight; //so, just add or remove one
-                add_to_duplicity += static_cast<int> (sign) * param_.duplicy_weight_test_ * curv_weight; //so, just add or remove one
-            }
-            else if ((explained_by_RM_[sidx] == 1) && prev_dup)
-            { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
-                //add_to_duplicity_ -= prev_explained_value; // / 2.f; //explained_by_RM_distance_weighted[vec[i]];
-                //add_to_duplicity_ -= prev_explained_value * duplicy_weight_test_ * curv_weight;
-                add_to_duplicity -= param_.duplicy_weight_test_ * curv_weight * 2;
-            }
-            else if ((explained_by_RM_[sidx] > 1) && !prev_dup)
-            { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
-                //add_to_duplicity_ += explained_by_RM_distance_weighted[vec[i]];
-                //add_to_duplicity_ += explained_by_RM_distance_weighted[vec[i]] * duplicy_weight_test_ * curv_weight;
-                add_to_duplicity += param_.duplicy_weight_test_ * curv_weight  * 2;
-            }
-        }
-
-        add_to_explained += explained_by_RM_distance_weighted_[sidx] - prev_explained_value;
-    }
-
-    //update explained and duplicity values...
-    previous_explained_value_ += (add_to_explained / (double)scene_cloud_downsampled_->points.size());
-    previous_duplicity_ += (add_to_duplicity / (double)scene_cloud_downsampled_->points.size());;
-}
-
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::updateUnexplainedVector (const HVRecognitionModel<ModelT> &rm, int sign)
-{
-    double add_to_unexplained = 0.f;
-
-    for (size_t i = 0; i < rm.unexplained_in_neighborhood.size (); i++)
-    {
-        int sidx = rm.unexplained_in_neighborhood[i];
-        float weight = rm.unexplained_in_neighborhood_weights[i];
-        bool prev_unexplained = (unexplained_by_RM_neighboorhods_[sidx] > 0) && (explained_by_RM_[sidx] == 0);
-        unexplained_by_RM_neighboorhods_[sidx] += (double) (sign * weight);
-
-        if (sign < 0) //the hypothesis is being removed
-        {
-            if (prev_unexplained) //decrease by 1
-                add_to_unexplained -= weight;
-        }
-        else //the hypothesis is being added and unexplains unexplained_[i], so increase by 1 unless its explained by another hypothesis
-        {
-            if (explained_by_RM_[sidx] == 0)
-                add_to_unexplained += weight;
-        }
-    }
-
-    for (size_t i = 0; i < rm.explained_scene_indices_.size (); i++)
-    {
-        int sidx = rm.explained_scene_indices_[i];
-
-        if (sign < 0) //the hypothesis is being removed, check that there are no points that become unexplained and have clutter unexplained hypotheses
-        {
-            if ((explained_by_RM_[sidx] == 0) && (unexplained_by_RM_neighboorhods_[sidx] > 0))
-                add_to_unexplained += unexplained_by_RM_neighboorhods_[sidx]; //the points become unexplained
-        }
-        else
-        {
-            if ((explained_by_RM_[sidx] == 1) && (unexplained_by_RM_neighboorhods_[sidx] > 0))
-            { //the only hypothesis explaining that point
-                add_to_unexplained -= unexplained_by_RM_neighboorhods_[sidx]; //the points are not unexplained any longer because this hypothesis explains them
-            }
-        }
-    }
-    previous_unexplained_ += add_to_unexplained / (double)scene_cloud_downsampled_->points.size();
-}
-
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::updateCMDuplicity (const HVRecognitionModel<ModelT> &rm, int sign)
-{
-    int add_to_duplicity_ = 0;
-    for (size_t i = 0; i < rm.complete_cloud_occupancy_indices_.size (); i++)
-    {
-        if( (rm.complete_cloud_occupancy_indices_[i] > complete_cloud_occupancy_by_RM_.size() ) || ( i > rm.complete_cloud_occupancy_indices_.size()))
-        {
-            std::cout << complete_cloud_occupancy_by_RM_.size() << " " << rm.complete_cloud_occupancy_indices_[i] << " " << rm.complete_cloud_occupancy_indices_.size() << " " << i << std::endl;
-            throw std::runtime_error("something is wrong with the occupancy grid.");
-        }
-
-        bool prev_dup = complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] > 1;
-        complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] += static_cast<int> (sign);
-        if ((complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] > 1) && prev_dup)
-        { //its still a duplicate, we are adding
-            add_to_duplicity_ += static_cast<int> (sign); //so, just add or remove one
-        }
-        else if ((complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] == 1) && prev_dup)
-        { //if was duplicate before, now its not, remove 2, we are removing the hypothesis
-            add_to_duplicity_ -= 2;
-        }
-        else if ((complete_cloud_occupancy_by_RM_[rm.complete_cloud_occupancy_indices_[i]] > 1) && !prev_dup)
-        { //it was not a duplicate but it is now, add 2, we are adding a conflicting hypothesis for the point
-            add_to_duplicity_ += 2;
-        }
-    }
-
-    previous_duplicity_complete_models_ += add_to_duplicity_ / (double)complete_cloud_occupancy_by_RM_.size();
-}
-
-template<typename ModelT, typename SceneT>
-double
-GHV<ModelT, SceneT>::getTotalExplainedInformation (double &duplicity)
-{
-    double explained_info = 0;
-    duplicity = 0;
-
-    for (size_t i = 0; i < explained_by_RM_.size (); i++)
-    {
-        if (explained_by_RM_[i] > 0)
-            explained_info += explained_by_RM_distance_weighted_[i];
-
-        if (explained_by_RM_[i] > 1)
-        {
-            float curv_weight = getCurvWeight( scene_normals_->points[i].curvature );
-
-            if(param_.multiple_assignment_penalize_by_one_ == 1)
-                duplicity += curv_weight;
-            else if(param_.multiple_assignment_penalize_by_one_ == 2)
-                duplicity += duplicates_by_RM_weighted_[i];
-            else
-                duplicity += param_.duplicy_weight_test_ * curv_weight * explained_by_RM_[i];
-        }
-    }
-
-    return explained_info;
-}
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::fill_structures(const std::vector<bool> & initial_solution, GHVSAModel<ModelT, SceneT> & model)
-{
-    for (size_t j = 0; j < recognition_models_.size (); j++)
-    {
-        if(!initial_solution[j])
-            continue;
-
-        const HVRecognitionModel<ModelT> &rm = *recognition_models_[j];
-        for (size_t i = 0; i < rm.explained_scene_indices_.size (); i++)
-        {
-            int sidx = rm.explained_scene_indices_[i];
-
-            explained_by_RM_[sidx]++;
-            //explained_by_RM_distance_weighted[recog_model->explained_[i]] += recog_model->explained_distances_[i];
-            explained_by_RM_distance_weighted_[sidx] = std::max(explained_by_RM_distance_weighted_[sidx], (double)rm.distances_to_explained_scene_indices_[i]);
-        }
-
-        if (param_.detect_clutter_)
-        {
-            for (size_t i = 0; i < rm.unexplained_in_neighborhood.size(); i++)
-                unexplained_by_RM_neighboorhods_[rm.unexplained_in_neighborhood[i]] += rm.unexplained_in_neighborhood_weights[i];
-        }
-
-        for (size_t i = 0; i < rm.complete_cloud_occupancy_indices_.size(); i++)
-        {
-            int idx = rm.complete_cloud_occupancy_indices_[i];
-            complete_cloud_occupancy_by_RM_[idx]++;
-        }
-    }
-
-    //another pass to update duplicates_by_RM_weighted_ (only if multiple_assignment_penalize_by_one_ == 2)
-    for (size_t j = 0; j < recognition_models_.size (); j++)
-    {
-        if(!initial_solution[j])
-            continue;
-
-        const HVRecognitionModel<ModelT> &rm = *recognition_models_[j];
-        for (size_t i = 0; i < rm.explained_scene_indices_.size (); i++)
-        {            
-            int sidx = rm.explained_scene_indices_[i];
-
-            if(explained_by_RM_[rm.explained_scene_indices_[i]] > 1)
-            {
-                double curv_weight = getCurvWeight( scene_normals_->points[ sidx ].curvature );
-                duplicates_by_RM_weighted_[sidx] += curv_weight * rm.distances_to_explained_scene_indices_[i];
-            }
-        }
-    }
-
-    int occupied_multiple = 0;
-    for (size_t i = 0; i < complete_cloud_occupancy_by_RM_.size (); i++)
-    {
-        if (complete_cloud_occupancy_by_RM_[i] > 1)
-            occupied_multiple += complete_cloud_occupancy_by_RM_[i];
-    }
-
-    //do optimization
-    //Define model SAModel, initial solution is all models activated
-
-    double duplicity;
-    double good_information = getTotalExplainedInformation (duplicity);
-    good_information /= (double)scene_cloud_downsampled_->points.size();
-    double bad_information = 0;
-    double unexplained_in_neighboorhod = 0;
-
-    if(param_.detect_clutter_) {
-        unexplained_in_neighboorhod = getUnexplainedInformationInNeighborhood ();
-        unexplained_in_neighboorhod /= (double)scene_cloud_downsampled_->points.size();
-    }
-
-    for (size_t i=0; i<initial_solution.size(); i++)
-    {
-        const HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-        if (initial_solution[i])
-            bad_information += rm.outliers_total_weight_ * rm.outlier_indices_.size() / (double)rm.visible_cloud_->points.size();
-    }
-
-    occupied_multiple /= (double)complete_cloud_occupancy_by_RM_.size();
-    previous_duplicity_complete_models_ = occupied_multiple;
-    previous_explained_value_ = good_information;
-    previous_duplicity_ = duplicity;
-    previous_bad_info_ = bad_information;
-    previous_unexplained_ = unexplained_in_neighboorhod;
-
-    model.cost_ = static_cast<mets::gol_type> (
-                -(good_information - bad_information - duplicity - (double)occupied_multiple * param_.w_occupied_multiple_cm_ -
-                 - unexplained_in_neighboorhod - countPointsOnDifferentPlaneSides(initial_solution)));
-
-    model.setSolution (initial_solution);
-    model.setOptimizer (this);
-}
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::clear_structures()
-{
-    size_t kk = complete_cloud_occupancy_by_RM_.size();
-    explained_by_RM_.clear();
-    explained_by_RM_distance_weighted_.clear();
-    previous_explained_by_RM_distance_weighted_.clear();
-    unexplained_by_RM_neighboorhods_.clear();
-    complete_cloud_occupancy_by_RM_.clear();
-//    explained_by_RM_model_.clear();
-    duplicates_by_RM_weighted_.clear();
-
-    explained_by_RM_.resize (scene_cloud_downsampled_->points.size (), 0);
-    duplicates_by_RM_weighted_.resize (scene_cloud_downsampled_->points.size (), 0);
-    explained_by_RM_distance_weighted_.resize (scene_cloud_downsampled_->points.size (), 0);
-    previous_explained_by_RM_distance_weighted_.resize (scene_cloud_downsampled_->points.size ());
-    unexplained_by_RM_neighboorhods_.resize (scene_cloud_downsampled_->points.size (), 0.f);
-    complete_cloud_occupancy_by_RM_.resize(kk, 0);
-//    explained_by_RM_model_.resize (scene_cloud_downsampled_->points.size (), -1);
 }
 
 template<typename ModelT, typename SceneT>
@@ -1327,161 +414,16 @@ std::vector<bool>
 GHV<ModelT, SceneT>::optimize ()
 {
     std::vector<bool> temp_solution ( recognition_models_.size(), param_.initial_status_);
-    clear_structures();
-
     GHVSAModel<ModelT, SceneT> model;
-    fill_structures(temp_solution, model);
+
+    double initial_cost  = 0.f;
+    model.cost_ = static_cast<mets::gol_type> ( initial_cost );
+    model.setSolution (temp_solution);
+    model.setOptimizer (this);
 
     GHVSAModel<ModelT, SceneT> *best = new GHVSAModel<ModelT, SceneT> (model);
     GHVmove_manager<ModelT, SceneT> neigh (static_cast<int> (recognition_models_.size ()), param_.use_replace_moves_);
     boost::shared_ptr<std::map< std::pair<int, int>, bool > > intersect_map (new std::map< std::pair<int, int>, bool >);
-
-    if(param_.use_replace_moves_)
-    {
-        pcl::ScopeTime t("compute intersection map...");
-
-        Eigen::MatrixXi n_conflicts = Eigen::MatrixXi::Zero(recognition_models_.size(), recognition_models_.size());
-        for (size_t k = 0; k < rm_ids_explaining_scene_pt_.size(); k++)
-        {
-            if (rm_ids_explaining_scene_pt_[k].size() > 1)
-            {
-                // this point could be a conflict
-                for (size_t kk = 0; kk < rm_ids_explaining_scene_pt_[k].size (); kk++)
-                {
-                    for (size_t jj = kk+1; jj < rm_ids_explaining_scene_pt_[k].size (); jj++)
-                    {
-                        n_conflicts( rm_ids_explaining_scene_pt_[k][kk], rm_ids_explaining_scene_pt_[k][jj] ) ++;
-                        n_conflicts( rm_ids_explaining_scene_pt_[k][jj], rm_ids_explaining_scene_pt_[k][kk] ) ++;
-                    }
-                }
-            }
-        }
-
-        for (size_t i = 0; i < recognition_models_.size(); i++)
-        {
-            for (size_t j = (i+1); j < recognition_models_.size(); j++)
-            {
-                bool conflict = (n_conflicts(i,j) > 10);
-                std::pair<int, int> p = std::make_pair<int, int> (static_cast<int> (i), static_cast<int> (j));
-                (*intersect_map)[p] = conflict;
-            }
-        }
-
-        if(param_.use_points_on_plane_side_)  // checks for each plane how many points it would block of the recognition model
-        {
-            points_on_plane_sides_ = Eigen::MatrixXf::Zero(recognition_models_.size(), recognition_models_.size());
-
-            for(size_t i=0; i < recognition_models_.size(); i++)
-            {
-                const HVRecognitionModel<ModelT> &rm_i = *recognition_models_[i];
-                if( rm_i.is_planar_ )
-                {
-                    //is a plane, check how many points from other hypotheses are at each side of the plane (within its convex hull)
-                    for(size_t j=0; j < recognition_models_.size(); j++)
-                    {
-                        const HVRecognitionModel<ModelT> &rm_j =  *recognition_models_[j];
-
-                        if( rm_j.is_planar_ ) //both are planes, ignore
-                            continue;
-
-                        bool conflict = (n_conflicts(i,j) > 0);
-
-                        if(!conflict)
-                            continue;
-
-                        pcl::KdTreeFLANN<ModelT> model_tree, plane_tree;
-                        model_tree.setInputCloud (rm_j.complete_cloud_);
-                        plane_tree.setInputCloud(rm_i.visible_cloud_);
-
-//                        pcl::visualization::PCLVisualizer pl_vis;
-//                        pl_vis.addPointCloud(rm_i.visible_cloud_, "plane");
-//                        pl_vis.addPointCloud(rm_j.complete_cloud_, "hypothesis");
-//                        pl_vis.addPointCloudNormals<ModelT,pcl::Normal>(rm_j.complete_cloud_, rm_j.complete_cloud_normals_, 100, 0.02, "cloud_normals");
-//                        pl_vis.spin();
-
-                        //is not a plane and is in conflict, compute points on both sides
-                        size_t side_count[2];
-                        side_count[0] = side_count[1] = 0;
-
-                        #pragma omp parallel for schedule(dynamic)
-                        for(size_t k=0; k < rm_j.complete_cloud_->points.size(); k++)
-                        {
-                            const std::vector<float> &p = rm_i.plane_model_->coefficients_.values;
-                            const ModelT &m_pt = rm_j.complete_cloud_->points[k];
-                            float val = m_pt.x * p[0] + m_pt.y * p[1] + m_pt.z * p[2] + p[3];
-
-                            if(std::abs(val) <= param_.inliers_threshold_ )
-                                continue;
-
-                            // Project model point onto plane
-                            SceneT m_pt_proj;
-                            m_pt_proj.x = m_pt.x - val*p[0];
-                            m_pt_proj.y = m_pt.y - val*p[1];
-                            m_pt_proj.z = m_pt.z - val*p[2];
-
-                            // Check if projected point is on *visible* plane, otherwise ignore
-                            std::vector<int> nn_plane_indices;
-                            std::vector<float> nn_plane_dist;
-                            plane_tree.radiusSearch(m_pt_proj, 2*param_.inliers_threshold_, nn_plane_indices, nn_plane_dist, 1);
-                            if(nn_plane_indices.empty())
-                                continue;
-
-                            m_pt_proj = rm_i.visible_cloud_->points[ nn_plane_indices[0] ];
-
-                            // if model point is on visible plane, then check if it relevant
-                            int K=1;
-                            std::vector<int> nn_indices(K);
-                            std::vector<float> nn_sqr_dist(K);
-                            model_tree.nearestKSearch (m_pt_proj, K, nn_indices, nn_sqr_dist);
-
-                            // ignore if model point projected to plane is too close at the models boundary
-                            if(nn_sqr_dist[0] < param_.inliers_threshold_ * param_.inliers_threshold_)
-                                continue;
-
-                            // otherwise check projected point is inside or outside the model by checking the normals orientation (which points always outside the model)
-                            const ModelT &m_nn_pt = rm_j.complete_cloud_->points[ nn_indices[0] ];
-                            const pcl::Normal &m_nn_pt_normal = rm_j.complete_cloud_normals_->points[ nn_indices[0] ];
-
-                            // assuming model normals are consistent and point outside the object
-                            Eigen::Vector3f dist_v = m_nn_pt.getVector3fMap() - m_pt_proj.getVector3fMap();
-                            Eigen::Vector3f m_nn_pt_normal_v = m_nn_pt_normal.getNormalVector3fMap();
-                            dist_v.normalize();
-                            m_nn_pt_normal_v.normalize();
-                            float dotp = dist_v.dot(m_nn_pt_normal_v);
-
-//                            if(k%10==0 && k<100)
-//                            {
-//                                std::cout << "Dot: " << dotp << std::endl;
-//                                pl_vis.removeAllShapes();
-//                                pl_vis.addSphere(m_pt, 0.005, 255, 0, 0, "point");
-//                                pl_vis.addSphere(m_pt_proj, 0.005, 0, 255, 0, "point_projected");
-//                                pl_vis.addSphere(m_nn_pt, 0.005, 0, 0, 255, "point_projected_nn");
-//                                pl_vis.spin();
-//                            }
-
-                            if(dotp<0 )
-                                continue;
-
-                            #pragma omp critical
-                            {
-                            if(val < 0)
-                                side_count[0]++;
-                            else
-                                side_count[1]++;
-                            }
-                        }
-
-                        size_t min_side = std::min(side_count[0],side_count[1]);
-                        size_t max_side = std::max(side_count[0],side_count[1]);
-//                        std::cout << "min side: " << min_side << "; max_side: " << max_side << std::endl;
-                        //float ratio = static_cast<float>(min_side) / static_cast<float>(max_side); //between 0 and 1
-                        if(max_side != 0)
-                            points_on_plane_sides_(i, j) = static_cast<float>(min_side) / rm_j.complete_cloud_->points.size();
-                    }
-                }
-            }
-        }
-    }
 
     neigh.setExplainedPointIntersections(intersect_map);
 
@@ -1584,9 +526,8 @@ GHV<ModelT, SceneT>::optimize ()
 
     delete best;
 
-    GHVSAModel<ModelT, SceneT> _model;
-    clear_structures();
-    fill_structures(best_seen_.solution_, _model);
+//    GHVSAModel<ModelT, SceneT> _model;
+//    fill_structures(best_seen_.solution_, _model);
     return best_seen_.solution_;
 }
 
@@ -1618,133 +559,6 @@ GHV<ModelT, SceneT>::verify()
     }
 
     recognition_models_.clear();
-}
-
-inline void softBining(float val, int pos1, float bin_size, int max_pos, int & pos2, float & w1, float & w2) {
-    float c1 = pos1 * bin_size + bin_size / 2;
-    pos2 = 0;
-    float c2 = 0;
-    if(pos1 == 0)
-    {
-        pos2 = 1;
-        c2 = pos2 * bin_size + bin_size / 2;
-    }
-    else if(pos1 == (max_pos-1)) {
-        pos2 = max_pos-2;
-        c2 = pos2 * bin_size + bin_size / 2;
-    } else
-    {
-        if(val > c1)
-            pos2 = pos1 + 1;
-        else
-            pos2 = pos1 - 1;
-
-        c2 = pos2 * bin_size + bin_size / 2;
-    }
-
-    w1 = (val - c1) / (c2 - c1);
-    w2 = (c2 - val) / (c2 - c1);
-}
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::specifyHistograms (const std::vector<size_t> &src_hist, const std::vector<size_t> &dst_hist, std::vector<size_t> & lut)
-{
-    if(src_hist.size() != dst_hist.size())
-        throw std::runtime_error ("Histograms do not have the same size!");
-
-    // normalize histograms
-    size_t sum_src = 0, sum_dst = 0;
-    #pragma omp parallel for reduction(+:sum_src)
-    for(size_t i=0; i<src_hist.size(); i++)
-        sum_src += src_hist[i];
-
-    #pragma omp parallel for reduction(+:sum_dst)
-    for(size_t i=0; i<src_hist.size(); i++)
-        sum_dst += dst_hist[i];
-
-
-    std::vector<float> src_hist_normalized (src_hist.size());
-    std::vector<float> dst_hist_normalized (dst_hist.size());
-
-    #pragma omp parallel for
-    for(size_t i=0; i<src_hist.size(); i++) {
-        src_hist_normalized[i] = static_cast<float>(src_hist[i]) / sum_src;
-        dst_hist_normalized[i] = static_cast<float>(dst_hist[i]) / sum_dst;
-    }
-
-
-    // compute cumulative histogram
-    std::vector<float> src_hist_cumulative (src_hist.size(), 0.f);
-    std::vector<float> dst_hist_cumulative (dst_hist.size(), 0.f);
-
-    if ( !src_hist.empty() ) {
-        src_hist_cumulative[0] = src_hist_normalized[0];
-        dst_hist_cumulative[0] = dst_hist_normalized[0];
-    }
-
-    for(size_t i=1; i<src_hist.size(); i++) {
-        src_hist_cumulative[i] = src_hist_cumulative[i-1] + src_hist_normalized[i];
-        dst_hist_cumulative[i] = dst_hist_cumulative[i-1] + dst_hist_normalized[i];
-    }
-
-
-    lut.clear();
-    lut.resize(src_hist.size(), 0);
-
-    int last = 0;
-    for (size_t k = 0; k < dst_hist_cumulative.size(); k++)
-    {
-        for (size_t z = last; z < src_hist_cumulative.size(); z++)
-        {
-            if ( (src_hist_cumulative[z] - dst_hist_cumulative[k]) >= 0)
-            {
-                if (z > 0 && (dst_hist_cumulative[k] - src_hist_cumulative[z-1]) < (src_hist_cumulative[z] - dst_hist_cumulative[k]))
-                    z--;
-
-                lut[k] = z;
-                last = z;
-                break;
-            }
-        }
-    }
-
-    int min = 0;
-    for (size_t k = 0; k < src_hist_cumulative.size(); k++)
-    {
-        if (lut[k] != 0)
-        {
-            min = lut[k];
-            break;
-        }
-    }
-
-    for (size_t k = 0; k < src_hist_cumulative.size(); k++)
-    {
-        if ( lut[k] == 0)
-            lut[k] = min;
-        else
-            break;
-    }
-
-    //max mapping extension
-    int max = 0;
-    for (int k = src_hist_cumulative.size() - 1; k >= 0; k--)
-    {
-        if (lut[k] != 0)
-        {
-            max = lut[k];
-            break;
-        }
-    }
-
-    for (int k = src_hist_cumulative.size() - 1; k >= 0; k--)
-    {
-        if ( lut[k] == 0)
-            lut[k] = max;
-        else
-            break;
-    }
 }
 
 template<typename ModelT, typename SceneT>
@@ -1783,85 +597,26 @@ GHV<ModelT, SceneT>::registerModelAndSceneColor(std::vector<size_t> & lookup, HV
     std::vector< std::vector<int> > label_indices;
     std::vector< std::vector<int> > explained_scene_pts_per_label;
 
-    if(rm.smooth_faces_)
+    label_indices.resize(1);
+    label_indices[0].resize(rm.visible_cloud_->points.size());
+    for(size_t k=0; k < rm.visible_cloud_->points.size(); k++)
+        label_indices[0][k] = k;
+
+    std::vector<bool> scene_pt_is_explained ( scene_cloud_downsampled_->points.size(), false );
+    for (size_t i = 0; i < label_indices[0].size (); i++)
     {
-        //use visible indices to check which points are visible
-        rm.visible_labels_.reset(new pcl::PointCloud<pcl::PointXYZL>);
-        pcl::copyPointCloud(*rm.smooth_faces_, rm.visible_indices_, *rm.visible_labels_);
+        std::vector<int> & nn_indices = rm.scene_inlier_indices_for_visible_pt_[ label_indices[0][i] ];
+        //            std::vector<float> & nn_distances = recog_model.inlier_distances_[ label_indices[0][i] ];
 
-        //specify using the smooth faces
-        int max_label = 0;
-        for(size_t k=0; k < rm.visible_labels_->points.size(); k++)
-        {
-            if( rm.visible_labels_->points[k].label > max_label)
-                max_label = rm.visible_labels_->points[k].label;
-        }
-
-        //1) group points based on label
-        label_indices.resize(max_label + 1);
-        for(size_t k=0; k < rm.visible_labels_->points.size(); k++)
-            label_indices[ rm.visible_labels_->points[k].label ].push_back(k);
-
-
-        //2) for each group, find corresponding scene points and push them into label_explained_indices_points
-        std::vector<std::pair<int, float> > label_index_distances;
-        label_index_distances.resize(scene_cloud_downsampled_->points.size(), std::make_pair(-1, std::numeric_limits<float>::infinity()));
-
-        for(size_t j=0; j < label_indices.size(); j++)
-        {
-            for (size_t i = 0; i < label_indices[j].size (); i++)
-            {
-                std::vector<int> & nn_indices = rm.scene_inlier_indices_for_visible_pt_[label_indices[j][i]];
-                std::vector<float> & nn_distances = rm.scene_inlier_distances_for_visible_pt_[label_indices[j][i]];
-
-                for (size_t k = 0; k < nn_indices.size (); k++)
-                {
-                    if(label_index_distances[nn_indices[k]].first != static_cast<int>(j)) // notalready explained by the same label
-                    {
-                        //if different labels, then take the new label if distances is smaller
-                        if(nn_distances[k] < label_index_distances[nn_indices[k]].second)
-                        {
-                            label_index_distances[nn_indices[k]].first = static_cast<int>(j);
-                            label_index_distances[nn_indices[k]].second = nn_distances[k];
-                        } //otherwise, ignore new label since the older one is closer
-                    }
-                }
-            }
-        }
-
-        //3) set label_explained_indices_points
-        explained_scene_pts_per_label.resize(max_label + 1);
-        for (size_t i = 0; i < scene_cloud_downsampled_->points.size (); i++)
-        {
-            if(label_index_distances[i].first < 0)
-                continue;
-
-            explained_scene_pts_per_label[label_index_distances[i].first].push_back(i);
-        }
+        for (size_t k = 0; k < nn_indices.size (); k++)
+            scene_pt_is_explained[ nn_indices[k] ] = true;
     }
-    else
-    {
-        label_indices.resize(1);
-        label_indices[0].resize(rm.visible_cloud_->points.size());
-        for(size_t k=0; k < rm.visible_cloud_->points.size(); k++)
-            label_indices[0][k] = k;
 
-        std::vector<bool> scene_pt_is_explained ( scene_cloud_downsampled_->points.size(), false );
-        for (size_t i = 0; i < label_indices[0].size (); i++)
-        {
-            std::vector<int> & nn_indices = rm.scene_inlier_indices_for_visible_pt_[ label_indices[0][i] ];
-            //            std::vector<float> & nn_distances = recog_model.inlier_distances_[ label_indices[0][i] ];
+    std::vector<int> explained_scene_pts = createIndicesFromMask<int>(scene_pt_is_explained);
 
-            for (size_t k = 0; k < nn_indices.size (); k++)
-                scene_pt_is_explained[ nn_indices[k] ] = true;
-        }
-
-        std::vector<int> explained_scene_pts = createIndicesFromMask<int>(scene_pt_is_explained);
-
-        explained_scene_pts_per_label.resize(1, std::vector<int>( explained_scene_pts.size() ) );
-        for (size_t i = 0; i < explained_scene_pts.size (); i++)
-            explained_scene_pts_per_label[0][i] = explained_scene_pts[i];
-    }
+    explained_scene_pts_per_label.resize(1, std::vector<int>( explained_scene_pts.size() ) );
+    for (size_t i = 0; i < explained_scene_pts.size (); i++)
+        explained_scene_pts_per_label[0][i] = explained_scene_pts[i];
 
     for(size_t j=0; j < label_indices.size(); j++)
     {
@@ -1884,7 +639,7 @@ GHV<ModelT, SceneT>::registerModelAndSceneColor(std::vector<size_t> & lookup, HV
             std::vector<size_t> model_L_hist, scene_L_hist;
             computeHistogram(model_L_values, model_L_hist, hist_size, range_min, range_max);
             computeHistogram(scene_L_values, scene_L_hist, hist_size, range_min, range_max);
-            specifyHistograms(scene_L_hist, model_L_hist, lookup);
+//            specifyHistograms(scene_L_hist, model_L_hist, lookup);
 
             for (size_t i = 0; i < label_indices[j].size(); i++)
             {
@@ -2074,83 +829,8 @@ GHV<ModelT, SceneT>::registerModelAndSceneColor(std::vector<size_t> & lookup, HV
 }
 
 template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::computeSceneOccupancyGridByRM()
-{
-    ModelT min_pt_all, max_pt_all;
-    min_pt_all.x = min_pt_all.y = min_pt_all.z = std::numeric_limits<float>::max ();
-    max_pt_all.x = max_pt_all.y = max_pt_all.z = std::numeric_limits<float>::min ();
-
-    for (size_t i = 0; i < recognition_models_.size (); i++)
-    {
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-
-        if(rm.is_planar_)
-            continue;
-
-        ModelT min_pt, max_pt;
-        pcl::getMinMax3D (*rm.complete_cloud_, min_pt, max_pt);
-
-        if (min_pt.x < min_pt_all.x)
-            min_pt_all.x = min_pt.x;
-
-        if (min_pt.y < min_pt_all.y)
-            min_pt_all.y = min_pt.y;
-
-        if (min_pt.z < min_pt_all.z)
-            min_pt_all.z = min_pt.z;
-
-        if (max_pt.x > max_pt_all.x)
-            max_pt_all.x = max_pt.x;
-
-        if (max_pt.y > max_pt_all.y)
-            max_pt_all.y = max_pt.y;
-
-        if (max_pt.z > max_pt_all.z)
-            max_pt_all.z = max_pt.z;
-    }
-
-    size_t size_x = static_cast<size_t> ( (max_pt_all.x - min_pt_all.x) / param_.res_occupancy_grid_ + 1.5f);  // rounding up and add 1
-    size_t size_y = static_cast<size_t> ( (max_pt_all.y - min_pt_all.y) / param_.res_occupancy_grid_ + 1.5f);
-    size_t size_z = static_cast<size_t> ( (max_pt_all.z - min_pt_all.z) / param_.res_occupancy_grid_ + 1.5f);
-    complete_cloud_occupancy_by_RM_.resize (size_x * size_y * size_z, 0);
-
-#pragma omp parallel for schedule(dynamic)
-    for (size_t i = 0; i < recognition_models_.size (); i++)
-    {
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-
-        if(rm.is_planar_)
-            continue;
-
-        std::vector<bool> voxel_is_occupied(size_x * size_y * size_z, false);
-
-        rm.complete_cloud_occupancy_indices_.resize( rm.complete_cloud_->points.size ());
-
-        size_t kept = 0;
-        for (size_t j = 0; j < rm.complete_cloud_->points.size (); j++)
-        {
-            size_t pos_x, pos_y, pos_z;
-            pos_x = static_cast<size_t>( (rm.complete_cloud_->points[j].x - min_pt_all.x) / param_.res_occupancy_grid_);
-            pos_y = static_cast<size_t>( (rm.complete_cloud_->points[j].y - min_pt_all.y) / param_.res_occupancy_grid_);
-            pos_z = static_cast<size_t>( (rm.complete_cloud_->points[j].z - min_pt_all.z) / param_.res_occupancy_grid_);
-
-            size_t idx = pos_z * size_x * size_y + pos_y * size_x + pos_x;
-
-            if ( !voxel_is_occupied[idx] )
-            {
-                rm.complete_cloud_occupancy_indices_[kept] = idx;
-                voxel_is_occupied[idx] = true;
-                kept++;
-            }
-        }
-        rm.complete_cloud_occupancy_indices_.resize(kept);
-    }
-}
-
-template<typename ModelT, typename SceneT>
 bool
-GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
+GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
 {
     if( requires_normals_ )
         removeNanNormals(rm);
@@ -2166,20 +846,9 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
                                                          param_.focal_length_);
         }
     }
-
-    std::vector<std::vector<std::pair<size_t, float> > > scene_pt_is_explained_by_model_pt (scene_cloud_downsampled_->points.size()); // stores information about which scene point (outer loop) is explained by which model pt (inner loop)
-//    std::vector<std::vector<std::pair<size_t, float> > > scene_pt_is_explained_by_model_pt_with_color (scene_cloud_downsampled_->points.size());
-
-    rm.outliers_weight_.resize (rm.visible_cloud_->points.size ());
-    rm.outlier_indices_.resize (rm.visible_cloud_->points.size ());
-    rm.outlier_indices_3d_.resize (rm.visible_cloud_->points.size ());
-    rm.outlier_indices_color_.resize (rm.visible_cloud_->points.size ());
-    rm.scene_inlier_indices_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
-    rm.scene_inlier_distances_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
-
     pcl::octree::OctreePointCloudSearch<ModelT> octree_model (0.01f);
 
-    if(!rm.is_planar_ && !param_.ignore_color_even_if_exists_)
+    if(!param_.ignore_color_even_if_exists_)
     {
         //compute cloud LAB values for model visible points
         size_t num_color_channels = 0;
@@ -2235,43 +904,46 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
         }
 
 
-        // now compute color description around a point taking into its neighboring pixels
-        rm.local_pt_color_ = Eigen::MatrixXf::Zero ( rm.visible_cloud_->points.size(), 2*num_color_channels);
-        octree_model.setInputCloud(rm.visible_cloud_);
-        octree_model.addPointsFromInputCloud();
+//        // now compute color description around a point taking into its neighboring pixels
+//        rm.local_pt_color_ = Eigen::MatrixXf::Zero ( rm.visible_cloud_->points.size(), 2*num_color_channels);
+//        octree_model.setInputCloud(rm.visible_cloud_);
+//        octree_model.addPointsFromInputCloud();
 
-        for(size_t pt_id=0; pt_id<rm.visible_cloud_->points.size(); pt_id++) {
-            std::vector<int> indices;
-            std::vector<float> distances;
-            const ModelT &searchPt = rm.visible_cloud_->points[pt_id];
-            octree_model.nearestKSearch(searchPt, param_.knn_color_neighborhood_, indices, distances);
+//        for(size_t pt_id=0; pt_id<rm.visible_cloud_->points.size(); pt_id++) {
+//            std::vector<int> indices;
+//            std::vector<float> distances;
+//            const ModelT &searchPt = rm.visible_cloud_->points[pt_id];
+//            octree_model.nearestKSearch(searchPt, param_.knn_color_neighborhood_, indices, distances);
 
-            std::vector<std::vector<double> > color_values(rm.pt_color_.cols(), std::vector<double>(indices.size()));
-            for(size_t k=0; k<indices.size(); k++) {
-                for(size_t c=0; c<rm.pt_color_.cols(); c++) {
-                    color_values[c][k] = rm.pt_color_(k,c);
-                }
-            }
+//            std::vector<std::vector<double> > color_values(rm.pt_color_.cols(), std::vector<double>(indices.size()));
+//            for(size_t k=0; k<indices.size(); k++) {
+//                for(size_t c=0; c<rm.pt_color_.cols(); c++) {
+//                    color_values[c][k] = rm.pt_color_(k,c);
+//                }
+//            }
 
 
-            // compute mean and standard deviation
-            for(size_t c=0; c<rm.pt_color_.cols(); c++) {
-                double mean = std::accumulate( color_values[c].begin(), color_values[c].end(), 0.0) / color_values[c].size();
-                std::vector<double> diff( color_values[c].size() );
-                std::transform( color_values[c].begin(), color_values[c].end(), diff.begin(), [mean](double x) { return x - mean; });
-                double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-                double stdev = std::sqrt(sq_sum / color_values[c].size());
-                rm.local_pt_color_(pt_id, 2*c) = static_cast<float>(mean);
-                rm.local_pt_color_(pt_id, 2*c+1) = static_cast<float>(stdev);
-            }
-        }
+//            // compute mean and standard deviation
+//            for(size_t c=0; c<rm.pt_color_.cols(); c++) {
+//                double mean = std::accumulate( color_values[c].begin(), color_values[c].end(), 0.0) / color_values[c].size();
+//                std::vector<double> diff( color_values[c].size() );
+//                std::transform( color_values[c].begin(), color_values[c].end(), diff.begin(), [mean](double x) { return x - mean; });
+//                double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+//                double stdev = std::sqrt(sq_sum / color_values[c].size());
+//                rm.local_pt_color_(pt_id, 2*c) = static_cast<float>(mean);
+//                rm.local_pt_color_(pt_id, 2*c+1) = static_cast<float>(stdev);
+//            }
+//        }
     }
 
+    rm.scene_inlier_indices_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
+    rm.scene_inlier_distances_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
 
     //Goes through the visible model points and finds scene points within a radius neighborhood
     //If in this neighborhood, there are no scene points, model point is considered outlier
     //If there are scene points, the model point is associated with the scene point, together with its distance
     //A scene point might end up being explained by multiple model points
+
     #pragma omp parallel for schedule(dynamic)
     for (size_t pt = 0; pt < rm.visible_cloud_->points.size (); pt++) {
         float radius = param_.inliers_threshold_;
@@ -2286,78 +958,92 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
 
     }
 
-    float inliers_gaussian = 2 * param_.inliers_threshold_ * param_.inliers_threshold_;
-    float inliers_gaussian_soft = 2 * (param_.inliers_threshold_ + param_.resolution_) * (param_.inliers_threshold_ + param_.resolution_);
-    size_t outliers = 0, outliers_3d = 0, outliers_color = 0;
-    float sigma = 2.f * param_.color_sigma_ab_ * param_.color_sigma_ab_;
-    float sigma_y = 2.f * param_.color_sigma_l_ * param_.color_sigma_l_;
+//    size_t outliers = 0, outliers_3d = 0, outliers_color = 0;
 
-    for (size_t m_pt_id = 0; m_pt_id < rm.visible_cloud_->points.size (); m_pt_id++)
+    Eigen::VectorXf scene_pt_explained_weight = Eigen::VectorXf::Zero ( scene_cloud_downsampled_->points.size() );
+
+    rm.model_fit_ = 0.;
+    rm.model_scene_c_.resize( rm.visible_cloud_->points.size() );
+
+    for (size_t m_pt_id = 0; m_pt_id < rm.visible_cloud_->points.size(); m_pt_id++)
     {
         bool outlier = false;
-        int outlier_type = OutlierType::DIST;
+//        int outlier_type = OutlierType::DIST;
 
         const std::vector<int> & nn_indices = rm.scene_inlier_indices_for_visible_pt_[m_pt_id];
         const std::vector<float> & nn_distances = rm.scene_inlier_distances_for_visible_pt_[m_pt_id];
 
         if( nn_indices.empty() ) // if there is no scene point nearby, count it as an outlier
         {
-            rm.outlier_indices_3d_[outliers_3d] = m_pt_id;
-            outlier = true;
-            outlier_type = OutlierType::DIST;
-            outliers_3d++;
+//            rm.outlier_indices_3d_[outliers_3d] = m_pt_id;
+//            outlier = true;
+//            outlier_type = OutlierType::DIST;
+//            outliers_3d++;
         }
         else    // check if it is an outlier due to color mismatch
         {
-            bool is_color_outlier = true;
-            std::vector<float> weights;
-            if (!rm.is_planar_ && !param_.ignore_color_even_if_exists_ )
+            if (!param_.ignore_color_even_if_exists_ )
             {
 //                weights.resize( nn_indices.size () );
 //                float color_weight = 1.f;
+                int min_idx = 0;
+                double min_dist = std::numeric_limits<double>::max();
 
                 for (size_t k = 0; k < nn_indices.size(); k++)
                 {
                       const Eigen::VectorXf &color_m = rm.pt_color_.row(m_pt_id);
                       const Eigen::VectorXf &color_s = scene_color_channels_.row( nn_indices[k] );
-                      const Eigen::VectorXf &local_color_m = rm.local_pt_color_.row(m_pt_id);
+//                      const Eigen::VectorXf &local_color_m = rm.local_pt_color_.row(m_pt_id);
+                      double sqr_3D_dist = nn_distances[k];
+                      double dist;
 
                       if(param_.color_space_ == ColorSpace::LAB)
                       {
                           float As = color_s(1);
                           float Bs = color_s(2);
-                          float Am_avg = local_color_m(2);
-                          float Am_std = local_color_m(3);
-                          float Bm_avg = local_color_m(4);
-                          float Bm_std = local_color_m(5);
+                          float Am = color_m(1);
+                          float Bm = color_m(2);
 
-                          std::vector<int> indices;
-                          std::vector<float> distances;
-                          const ModelT &searchPt = rm.visible_cloud_->points[m_pt_id];
-                          octree_model.nearestKSearch(searchPt, param_.knn_color_neighborhood_, indices, distances);
+                          double sqr_color_dist = ( (As-Am)*(As-Am)+(Bs-Bm)*(Bs-Bm) );
 
-                          for(size_t k=0; k<indices.size(); k++) {
-                              for(size_t c=0; c<rm.pt_color_.cols(); c++) {
-                                  std::cout << rm.pt_color_(k,c) << " ";
-                              }
-                              std::cout << std::endl;
-                          }
+                          dist = sqr_3D_dist / param_.inliers_threshold_ + sqr_color_dist / param_.color_sigma_ab_;
 
-                          std::cout << "average Am: " << Am_avg << std::endl
-                                    << "average Bm: " << Bm_avg << std::endl
-                                    << "std Am: " << Am_std << std::endl
-                                    << "std Bm: " << Bm_std << std::endl
-                                    << "As: " << As << std::endl
-                                    << "Bs: " << Bs << std::endl << std::endl << std::endl;
+//                          float Am_avg = local_color_m(2);
+//                          float Am_std = local_color_m(3);
+//                          float Bm_avg = local_color_m(4);
+//                          float Bm_std = local_color_m(5);
+
+//                          std::vector<int> indices;
+//                          std::vector<float> distances;
+//                          const ModelT &searchPt = rm.visible_cloud_->points[m_pt_id];
+//                          octree_model.nearestKSearch(searchPt, param_.knn_color_neighborhood_, indices, distances);
+
+//                          for(size_t k=0; k<indices.size(); k++) {
+//                              for(size_t c=0; c<rm.pt_color_.cols(); c++) {
+//                                  std::cout << rm.pt_color_(k,c) << " ";
+//                              }
+//                              std::cout << std::endl;
+//                          }
+
+//                          std::cout << "average Am: " << Am_avg << std::endl
+//                                    << "average Bm: " << Bm_avg << std::endl
+//                                    << "std Am: " << Am_std << std::endl
+//                                    << "std Bm: " << Bm_std << std::endl
+//                                    << "As: " << As << std::endl
+//                                    << "Bs: " << Bs << std::endl << std::endl << std::endl;
 
 
-                          if(    is_in_range(As, Am_avg - param_.color_std_dev_multiplier_threshold_ * Am_std, Am_avg + param_.color_std_dev_multiplier_threshold_ * Am_std)
-                              && is_in_range(Bs, Bm_avg - param_.color_std_dev_multiplier_threshold_ * Bm_std, Bm_avg + param_.color_std_dev_multiplier_threshold_ * Bm_std)) {
-                              is_color_outlier = false;
-                              break;
-                          }
+//                          if(    is_in_range(As, Am_avg - param_.color_std_dev_multiplier_threshold_ * Am_std, Am_avg + param_.color_std_dev_multiplier_threshold_ * Am_std)
+//                              && is_in_range(Bs, Bm_avg - param_.color_std_dev_multiplier_threshold_ * Bm_std, Bm_avg + param_.color_std_dev_multiplier_threshold_ * Bm_std)) {
+//                              is_color_outlier = false;
+//                              break;
+//                          }
                       }
 
+                      if(dist < min_dist) {
+                          min_dist = dist;
+                          min_idx = k;
+                      }
 //                    if (!param_.ignore_color_even_if_exists_ )
 //                    {
 //                        if(param_.color_space_ == ColorSpace::LAB || param_.color_space_ == 5 || param_.color_space_ == 6)
@@ -2402,24 +1088,35 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
 //                    }
                 }
 
-                if(is_color_outlier)
-                {
-                    rm.outlier_indices_color_[outliers_color] = m_pt_id;
-                    outlier = true;
-                    outliers_color++;
-                    outlier_type = OutlierType::COLOR;
-                }
+                pcl::Correspondence c;
+                double weight = exp( -min_dist );
+                c.index_query = m_pt_id;
+                c.index_match = nn_indices[ min_idx ];
+                c.distance = weight;
+                rm.model_fit_ += weight;
+
+                if ( weight > scene_pt_explained_weight(nn_indices[ min_idx ]))
+                    scene_pt_explained_weight(nn_indices[ min_idx ]) = weight;
+
+
+//                if(is_color_outlier)
+//                {
+//                    rm.outlier_indices_color_[outliers_color] = m_pt_id;
+//                    outlier = true;
+//                    outliers_color++;
+//                    outlier_type = OutlierType::COLOR;
+//                }
             }
 
             // if it is not an outlier, then mark corresponding scene point(s) as explained
-            for (size_t k = 0; k < nn_distances.size (); k++)
-            {
-                int scene_pt_id = nn_indices[k];
-                float weight = nn_distances[k];
+//            for (size_t k = 0; k < nn_distances.size (); k++)
+//            {
+//                int scene_pt_id = nn_indices[k];
+//                float weight = nn_distances[k];
 
-                if ( k >= weights.size() || weights[k] > param_.best_color_weight_ ) // if color check is enabled, only include if it passes the check
-                    scene_pt_is_explained_by_model_pt[ scene_pt_id ].push_back( std::pair<size_t, float>( m_pt_id, weight) );
-            }
+//                if ( k >= weights.size() || weights[k] > param_.best_color_weight_ ) // if color check is enabled, only include if it passes the check
+//                    scene_pt_is_explained_by_model_pt[ scene_pt_id ].push_back( std::pair<size_t, float>( m_pt_id, weight) );
+//            }
         }
 
         if(outlier)
@@ -2458,298 +1155,129 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm)
 //            }
 
 //            rm.outliers_weight_[outliers] = param_.regularizer_ * d_weight;
-            rm.outliers_weight_[outliers] = param_.regularizer_;
-            rm.outlier_indices_[outliers] = m_pt_id;
-            outliers++;
+//            rm.outliers_weight_[outliers] = param_.regularizer_;
+//            rm.outlier_indices_[outliers] = m_pt_id;
+//            outliers++;
         }
     }
 
-    rm.outliers_weight_.resize (outliers);
-    rm.outlier_indices_.resize (outliers);
-    rm.outlier_indices_3d_.resize (outliers_3d);
-    rm.outlier_indices_color_.resize (outliers_color);
+    rm.model_fit_ /= rm.visible_cloud_->points.size();
+    scene_explained_weight_.col(model_idx) = scene_pt_explained_weight;
 
-    rm.outliers_total_weight_ = param_.regularizer_ * static_cast<float>(outliers) / rm.visible_cloud_->points.size();
+//    rm.outliers_weight_.resize (outliers);
+//    rm.outlier_indices_.resize (outliers);
+//    rm.outlier_indices_3d_.resize (outliers_3d);
+//    rm.outlier_indices_color_.resize (outliers_color);
 
-//    if( rm.outlier_indices_.empty() )
-//        rm.outliers_total_weight_ = 1.f;
-//    else
+//    rm.outliers_total_weight_ = param_.regularizer_ * static_cast<float>(outliers) / rm.visible_cloud_->points.size();
+
+////    if( rm.outlier_indices_.empty() )
+////        rm.outliers_total_weight_ = 1.f;
+////    else
+////    {
+////        if (rm.param_.outliers_weight_computation_method_ == HVRecognitionModel<ModelT>::OutliersWeightType::MEAN)
+////            rm.outliers_total_weight_ = std::accumulate (rm.outliers_weight_.begin (), rm.outliers_weight_.end (), 0.f) / static_cast<float> (rm.outliers_weight_.size ());
+////        else { // use median
+////            std::vector<float> outliers_weight = rm.outliers_weight_;
+////            std::sort(outliers_weight.begin(), outliers_weight.end());
+////            rm.outliers_total_weight_ = outliers_weight [ outliers_weight.size() / 2.f ];
+////        }
+////    }
+
+
+//    // ---------- compute which of the scene points are explained by this model-------
+
+//    rm.scene_pt_is_explained_.clear();
+//    rm.scene_pt_is_explained_.resize(scene_cloud_downsampled_->points.size(), false);
+//    rm.explained_scene_indices_.resize ( scene_cloud_downsampled_->points.size() );
+//    rm.distances_to_explained_scene_indices_.resize ( scene_cloud_downsampled_->points.size() );
+
+//    size_t kept=0;
+//    for(size_t s_pt_id=0; s_pt_id<scene_cloud_downsampled_->points.size(); s_pt_id++)
 //    {
-//        if (rm.param_.outliers_weight_computation_method_ == HVRecognitionModel<ModelT>::OutliersWeightType::MEAN)
-//            rm.outliers_total_weight_ = std::accumulate (rm.outliers_weight_.begin (), rm.outliers_weight_.end (), 0.f) / static_cast<float> (rm.outliers_weight_.size ());
-//        else { // use median
-//            std::vector<float> outliers_weight = rm.outliers_weight_;
-//            std::sort(outliers_weight.begin(), outliers_weight.end());
-//            rm.outliers_total_weight_ = outliers_weight [ outliers_weight.size() / 2.f ];
+//        if ( scene_pt_is_explained_by_model_pt[s_pt_id].empty() )
+//            continue;
+
+//        size_t closest = 0;
+//        float min_d = std::numeric_limits<float>::max();
+//        for (size_t i = 0; i < scene_pt_is_explained_by_model_pt[ s_pt_id ].size(); i++)
+//        {
+//            std::pair<size_t, float> m_pt_and_weight_p = scene_pt_is_explained_by_model_pt[ s_pt_id ][i];
+//            if ( m_pt_and_weight_p.second < min_d )
+//            {
+//                min_d = m_pt_and_weight_p.second;
+//                closest = i;
+//            }
+//        }
+
+//        float inliers_gaussian = 2 * param_.inliers_threshold_ * param_.inliers_threshold_;
+//        float d_weight = std::exp( -( scene_pt_is_explained_by_model_pt[ s_pt_id ][closest].second / inliers_gaussian));
+
+//        //using normals to weight inliers
+////        Eigen::Vector3f scene_p_normal = scene_normals_->points[s_pt_id].getNormalVector3fMap ();
+////        scene_p_normal.normalize();
+////        size_t m_pt = scene_pt_is_explained_by_model_pt[ s_pt_id ][closest].first;
+////        Eigen::Vector3f model_p_normal = rm.visible_cloud_normals_->points[ m_pt ].getNormalVector3fMap ();
+////        model_p_normal.normalize();
+
+////        bool use_dot = false;
+////        float dotp = scene_p_normal.dot (model_p_normal); //[-1,1] from antiparallel trough perpendicular to parallel
+
+////        if(use_dot)
+////        {
+////            if (dotp < 0.f)
+////                dotp = 0.f;
+////        }
+////        else
+////        {
+////            if(dotp < -1.f) dotp = -1.f;
+////            if(dotp > 1.f) dotp = 1.f;
+
+////            float angle = pcl::rad2deg(acos(dotp));
+
+////            if(angle > 90.f) //ATTENTION!
+////                dotp = 0;
+////            else
+////                dotp = (1.f - angle / 90.f);
+////        }
+
+
+//        rm.scene_pt_is_explained_[ s_pt_id ] = true; //this scene point is explained by this hypothesis
+
+//        #pragma omp critical
+//        {
+//        rm.explained_scene_indices_[kept] = s_pt_id;
+////        explained_indices_distances [kept] = d_weight * dotp * rm.extra_weight_;
+//        rm.distances_to_explained_scene_indices_ [kept] = d_weight;
+//        kept++;
 //        }
 //    }
+//    rm.explained_scene_indices_.resize(kept);
+//    rm.distances_to_explained_scene_indices_.resize(kept);
 
+//    //compute the amount of information for explained scene points (color)
+////    float mean_distance = 0.f;
+////    if( !explained_indices.empty())
+////        mean_distance = std::accumulate(explained_indices_distances.begin(), explained_indices_distances.end(), 0.f) / static_cast<float>(explained_indices_distances.size());
 
-    // ---------- compute which of the scene points are explained by this model-------
+////    rm.mean_ = mean_distance;
 
-    rm.scene_pt_is_explained_.clear();
-    rm.scene_pt_is_explained_.resize(scene_cloud_downsampled_->points.size(), false);
-    rm.explained_scene_indices_.resize ( scene_cloud_downsampled_->points.size() );
-    rm.distances_to_explained_scene_indices_.resize ( scene_cloud_downsampled_->points.size() );
-
-    size_t kept=0;
-    for(size_t s_pt_id=0; s_pt_id<scene_cloud_downsampled_->points.size(); s_pt_id++)
-    {
-        if ( scene_pt_is_explained_by_model_pt[s_pt_id].empty() )
-            continue;
-
-        size_t closest = 0;
-        float min_d = std::numeric_limits<float>::max();
-        for (size_t i = 0; i < scene_pt_is_explained_by_model_pt[ s_pt_id ].size(); i++)
-        {
-            std::pair<size_t, float> m_pt_and_weight_p = scene_pt_is_explained_by_model_pt[ s_pt_id ][i];
-            if ( m_pt_and_weight_p.second < min_d )
-            {
-                min_d = m_pt_and_weight_p.second;
-                closest = i;
-            }
-        }
-
-        float d_weight = std::exp( -( scene_pt_is_explained_by_model_pt[ s_pt_id ][closest].second / inliers_gaussian));
-
-        //using normals to weight inliers
-//        Eigen::Vector3f scene_p_normal = scene_normals_->points[s_pt_id].getNormalVector3fMap ();
-//        scene_p_normal.normalize();
-//        size_t m_pt = scene_pt_is_explained_by_model_pt[ s_pt_id ][closest].first;
-//        Eigen::Vector3f model_p_normal = rm.visible_cloud_normals_->points[ m_pt ].getNormalVector3fMap ();
-//        model_p_normal.normalize();
-
-//        bool use_dot = false;
-//        float dotp = scene_p_normal.dot (model_p_normal); //[-1,1] from antiparallel trough perpendicular to parallel
-
-//        if(use_dot)
+//    //modify the explained weights for planar models if color is being used
+//    if(rm.is_planar_)
+//    {
+//        for(size_t k=0; k < rm.distances_to_explained_scene_indices_.size(); k++)
 //        {
-//            if (dotp < 0.f)
-//                dotp = 0.f;
+//            rm.distances_to_explained_scene_indices_[k] *= param_.weight_factor_for_planes_;
+
+////            if (!param_.ignore_color_even_if_exists_)
+////                explained_indices_distances[k] /= 2;
 //        }
-//        else
-//        {
-//            if(dotp < -1.f) dotp = -1.f;
-//            if(dotp > 1.f) dotp = 1.f;
-
-//            float angle = pcl::rad2deg(acos(dotp));
-
-//            if(angle > 90.f) //ATTENTION!
-//                dotp = 0;
-//            else
-//                dotp = (1.f - angle / 90.f);
-//        }
-
-
-        rm.scene_pt_is_explained_[ s_pt_id ] = true; //this scene point is explained by this hypothesis
-
-        #pragma omp critical
-        {
-        rm.explained_scene_indices_[kept] = s_pt_id;
-//        explained_indices_distances [kept] = d_weight * dotp * rm.extra_weight_;
-        rm.distances_to_explained_scene_indices_ [kept] = d_weight;
-        kept++;
-        }
-    }
-    rm.explained_scene_indices_.resize(kept);
-    rm.distances_to_explained_scene_indices_.resize(kept);
-
-    //compute the amount of information for explained scene points (color)
-//    float mean_distance = 0.f;
-//    if( !explained_indices.empty())
-//        mean_distance = std::accumulate(explained_indices_distances.begin(), explained_indices_distances.end(), 0.f) / static_cast<float>(explained_indices_distances.size());
-
-//    rm.mean_ = mean_distance;
-
-    //modify the explained weights for planar models if color is being used
-    if(rm.is_planar_)
-    {
-        for(size_t k=0; k < rm.distances_to_explained_scene_indices_.size(); k++)
-        {
-            rm.distances_to_explained_scene_indices_[k] *= param_.weight_factor_for_planes_;
-
-//            if (!param_.ignore_color_even_if_exists_)
-//                explained_indices_distances[k] /= 2;
-        }
-    }
+//    }
 
     return true;
 }
 
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::computeClutterCueAtOnce ()
-{
-    //create mask which says which scene points are explained by any of the recognition models
-    std::vector<bool> scene_pt_is_explained (scene_cloud_downsampled_->size(), false);
-
-    for (size_t i = 0; i < recognition_models_.size (); i++)
-    {
-        const HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-
-        for (size_t jj = 0; jj < rm.explained_scene_indices_.size (); jj++)
-            scene_pt_is_explained [ rm.explained_scene_indices_[jj] ] = true;
-    }
-
-    std::vector<int> explained_points_vec = createIndicesFromMask<int>(scene_pt_is_explained);
-
-    std::vector<int> scene_to_unique( scene_cloud_downsampled_->points.size(), -1 );
-    for(size_t i=0; i < explained_points_vec.size(); i++)
-        scene_to_unique[ explained_points_vec[i] ] = i;
-
-
-    //find neighbours within clutter radius for all explained points
-    std::vector<std::vector<int> > nn_indices_all_points(explained_points_vec.size());
-    std::vector<std::vector<float> > nn_distances_all_points(explained_points_vec.size());
-
-    #pragma omp parallel for schedule(dynamic)
-    for(size_t k=0; k < explained_points_vec.size(); k++)
-    {
-        int sidx = explained_points_vec[k];
-
-        if( clusters_cloud_->points[sidx].label == 0 )  // if there is no label for this scene point, we do not reason about it being cluttered
-            continue;
-
-        octree_scene_downsampled_->radiusSearch (scene_cloud_downsampled_->points[sidx],
-                param_.radius_neighborhood_clutter_, nn_indices_all_points[k], nn_distances_all_points[k]);
-
-        size_t kept=0;
-        for(size_t knn=0; knn<nn_indices_all_points[k].size(); knn++) {   //only check nearest neighbors which are in the same segment
-            int sidx_nn = nn_indices_all_points[k][knn];
-            if( clusters_cloud_->points[sidx].label == clusters_cloud_->points[sidx_nn].label) {
-                nn_indices_all_points[k][kept] = nn_indices_all_points[k][knn];
-                nn_distances_all_points[k][kept] = nn_distances_all_points[k][knn];
-                kept++;
-            }
-        }
-        nn_indices_all_points[k].resize(kept);
-        nn_distances_all_points[k].resize(kept);
-    }
-
-    //    const float min_clutter_dist = std::pow(param_.inliers_threshold_ * 0.f, 2.f); // ??? why *0.0f? --> always 0 then
-
-    #pragma omp parallel for schedule(dynamic)
-    for (size_t rm_id = 0; rm_id < recognition_models_.size (); rm_id++)
-    {
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[rm_id];
-
-        std::pair<int, float> init_value = std::make_pair(-1, std::numeric_limits<float>::max());
-        std::vector< std::pair<int, float> > unexplained_points (scene_cloud_downsampled_->points.size(), init_value);
-
-        for (size_t i = 0; i < rm.explained_scene_indices_.size (); i++)
-        {
-            int sidx = rm.explained_scene_indices_[i];
-            int idx_to_unique = scene_to_unique[sidx];
-
-            for (size_t k = 0; k < nn_indices_all_points[idx_to_unique].size (); k++)
-            {
-                int sidx_nn = nn_indices_all_points[idx_to_unique][k]; //in the neighborhood of an explained point (idx_to_ep)
-                if(rm.scene_pt_is_explained_[sidx_nn])  // if nearest neighbor point is explained by same model, no problem
-                    continue;
-
-                float d = ( scene_cloud_downsampled_->points[sidx].getVector3fMap()
-                            - scene_cloud_downsampled_->points[sidx_nn].getVector3fMap() ).squaredNorm ();
-
-                if( d < unexplained_points[sidx_nn].second ) //there is an explained point which is closer to this unexplained point
-                {
-                    unexplained_points[sidx_nn].first = sidx;
-                    unexplained_points[sidx_nn].second = d;
-                }
-            }
-        }
-
-        rm.unexplained_in_neighborhood.resize (scene_cloud_downsampled_->points.size ());
-        rm.unexplained_in_neighborhood_weights.resize (scene_cloud_downsampled_->points.size ());
-
-        float sigma_clutter = 2 * param_.radius_neighborhood_clutter_ * param_.radius_neighborhood_clutter_;
-        size_t kept=0;
-        for(size_t i=0; i < unexplained_points.size(); i++)
-        {
-            int sidx = unexplained_points[i].first;
-            if(sidx < 0)
-                continue;
-
-            //sidx is the closest explained point to the unexplained point
-
-            if (!rm.scene_pt_is_explained_[sidx] || rm.scene_pt_is_explained_[i])
-                throw std::runtime_error ("Something is wrong!");
-
-            //point i is unexplained and in the neighborhood of sidx (explained point)
-            rm.unexplained_in_neighborhood[kept] = i;
-
-            float d = unexplained_points[i].second;
-            float d_weight;
-            if( param_.use_clutter_exp_ )
-                d_weight = std::exp( -(d / sigma_clutter));
-            else
-                d_weight = 1 - d / (param_.radius_neighborhood_clutter_ * param_.radius_neighborhood_clutter_); //points that are close have a strong weight
-
-            //using normals to weight clutter points
-            const Eigen::Vector3f & scene_p_normal = scene_normals_->points[sidx].getNormalVector3fMap ();
-            const Eigen::Vector3f & model_p_normal = scene_normals_->points[i].getNormalVector3fMap ();
-            float dotp = scene_p_normal.dot (model_p_normal); //[-1,1] from antiparallel trough perpendicular to parallel
-
-            if (dotp < 0)
-                dotp = 0.f;
-
-            float w = d_weight * dotp;
-
-            float curvature = scene_normals_->points[ sidx ].curvature;
-
-            if ( param_.use_super_voxels_ && !rm.is_planar_ && curvature < 0.015)
-            {
-                w = 1.f; //ATTENTION!
-                rm.unexplained_in_neighborhood_weights[kept] = param_.clutter_regularizer_ * w;
-            }
-            else
-                rm.unexplained_in_neighborhood_weights[kept] = w;
-
-            kept++;
-        }
-
-        rm.unexplained_in_neighborhood_weights.resize (kept);
-        rm.unexplained_in_neighborhood.resize (kept);
-    }
-}
-
-
-
 //######### VISUALIZATION FUNCTIONS #####################
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud) const
-{
-    for(size_t i=0; i < recognition_models_.size(); i++)
-    {
-        if(mask_[i])
-        {
-            pcl::PointCloud<pcl::PointXYZ>::Ptr outlier_points(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::copyPointCloud(*(recognition_models_[i]->visible_cloud_), recognition_models_[i]->outlier_indices_, *outlier_points);
-            outliers_cloud.push_back(outlier_points);
-        }
-    }
-}
-
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_color,
-                                                  std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_3d) const
-{
-    for(size_t i=0; i < recognition_models_.size(); i++)
-    {
-        const HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-        if(mask_[i])
-        {
-            pcl::PointCloud<pcl::PointXYZ>::Ptr outlier_points (new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::copyPointCloud(*(rm.visible_cloud_), rm.outlier_indices_color_, *outlier_points);
-            outliers_cloud_color.push_back(outlier_points);
-            pcl::copyPointCloud(*rm.visible_cloud_, rm.outlier_indices_3d_, *outlier_points);
-            outliers_cloud_3d.push_back(outlier_points);
-        }
-    }
-}
-
 template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm) const
@@ -2775,16 +1303,7 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     rm_vis_->removeAllPointClouds();
 //    rm_vis_->removeAllShapes();
 
-    float max_weight=std::numeric_limits<float>::min();
-    float min_weight=std::numeric_limits<float>::max();
 
-    for(size_t i=0; i<rm.unexplained_in_neighborhood_weights.size(); i++) {
-        if(rm.unexplained_in_neighborhood_weights[i] < min_weight)
-            min_weight = rm.unexplained_in_neighborhood_weights[i];
-
-        if(rm.unexplained_in_neighborhood_weights[i] > max_weight)
-            max_weight = rm.unexplained_in_neighborhood_weights[i];
-    }
     //update text
     std::stringstream text_outliers;
     text_outliers << "model outliers 3d (blue) and color (green). Weight: " << rm.outliers_total_weight_
@@ -2794,52 +1313,6 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     // scene and model
     rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene1",rm_v1);
     rm_vis_->addPointCloud(rm.visible_cloud_, "model",rm_v1);
-
-    // model outliers
-    rm_vis_->addPointCloud(rm.visible_cloud_, "model2",rm_v2);
-    pcl::PointCloud<pcl::PointXYZRGB> o_3d_p, o_color_p, scene_pts_explained;
-    pcl::copyPointCloud(*rm.visible_cloud_, rm.outlier_indices_3d_, o_3d_p);
-    pcl::copyPointCloud(*rm.visible_cloud_, rm.outlier_indices_color_, o_color_p);
-    for(pcl::PointXYZRGB &p:o_3d_p.points)   { p.r = p.g = 0; p.b = 255.f;  }
-    for(pcl::PointXYZRGB &p:o_color_p.points)   { p.r = p.g = 255.f; p.b = 0.f;  }
-    rm_vis_->addPointCloud(o_3d_p.makeShared(), "outliers_3d", rm_v2);
-    rm_vis_->addPointCloud(o_color_p.makeShared(), "outliers_color", rm_v2);
-
-    // explained points
-    rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene4", rm_v3);
-    pcl::copyPointCloud(*scene_cloud_downsampled_, rm.explained_scene_indices_, scene_pts_explained);
-    for(pcl::PointXYZRGB &p:scene_pts_explained.points)   { p.r = p.g = 0; p.b = 255.f;  }
-    rm_vis_->addPointCloud(scene_pts_explained.makeShared(), "scene_pts_explained", rm_v3);
-
-    // unexplained points
-    rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene2",rm_v4);
-    pcl::PointCloud<pcl::PointXYZRGB> scene_pts_unexplained;
-    scene_pts_unexplained.points.resize(rm.unexplained_in_neighborhood.size());
-    pcl::copyPointCloud(*scene_cloud_downsampled_, rm.unexplained_in_neighborhood, scene_pts_unexplained);
-
-    for(size_t i=0; i < rm.unexplained_in_neighborhood.size(); i++) {
-        int sidx = rm.unexplained_in_neighborhood[i];
-        const SceneT &spt = scene_cloud_downsampled_->points[sidx];
-        pcl::PointXYZRGB &pt = scene_pts_unexplained.points[i];
-        pt.x = spt.x; pt.y = spt.y; pt.z = spt.z;
-        pt.r = pt.g = 0;
-        pt.b = 128 + (rm.unexplained_in_neighborhood_weights[i] + min_weight) / (max_weight - min_weight);
-    }
-    rm_vis_->addPointCloud(scene_pts_unexplained.makeShared(), "scene_pt_unexplained", rm_v4);
-
-    // smooth segmentation
-    rm_vis_->addPointCloud (clusters_cloud_rgb_, "smooth_segments" , rm_v5);
-
-    // label 0
-    pcl::PointCloud<pcl::PointXYZRGB> cloud_for_label_zero;
-    pcl::copyPointCloud(*scene_cloud_downsampled_, cloud_for_label_zero);
-    size_t kept=0;
-    for(size_t i=0; i< scene_cloud_downsampled_->points.size(); i++) {
-        if(clusters_cloud_->points[i].label == 0)
-            cloud_for_label_zero.points[kept++] = cloud_for_label_zero.points[i];
-    }
-    cloud_for_label_zero.points.resize(kept);
-    rm_vis_->addPointCloud (cloud_for_label_zero.makeShared(), "label_0" , rm_v6);
 
     rm_vis_->resetCamera();
     rm_vis_->spin();
@@ -2851,10 +1324,8 @@ GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
 {
     if(!vis_go_cues_) {
         vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
-        vis_go_cues_->createViewPort(0, 0, 0.5, 0.5, viewport_scene_cues_);
-        vis_go_cues_->createViewPort(0.5, 0, 1, 0.5, viewport_model_cues_);
-        vis_go_cues_->createViewPort(0.5, 0.5, 1, 1, viewport_smooth_seg_);
-        vis_go_cues_->createViewPort(0, 0.5, 0.5, 1, viewport_scene_and_hypotheses_);
+        vis_go_cues_->createViewPort(0, 0, 0.5, 1, viewport_scene_cues_);
+        vis_go_cues_->createViewPort(0.5, 0, 1, 1, viewport_model_cues_);
     }
 
     vis_go_cues_->removeAllPointClouds();
@@ -2863,195 +1334,22 @@ GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
     std::ostringstream out;
     out << "Cost: " << std::setprecision(2) << cost << " , #Evaluations: " << times_evaluated;
 
-    bool for_paper_ = false;
-    bool show_weights_with_color_fading_ = true;
+    vis_go_cues_->addText ("Model inliers & outliers", 1, 30, 16, 1, 1, 1, "inliers_outliers", viewport_model_cues_);
+    vis_go_cues_->addText ("Explained, multiple assignment & clutter", 1, 30, 16, 1, 1, 1, "scene_cues", viewport_scene_cues_);
 
-    if(for_paper_)
-    {
-        vis_go_cues_->setBackgroundColor (1, 1, 1);
-    }
-    else
-    {
-        vis_go_cues_->setBackgroundColor (0, 0, 0);
-        vis_go_cues_->addText (out.str(), 1, 30, 16, 1, 1, 1, "cost_text", viewport_scene_and_hypotheses_);
-        vis_go_cues_->addText ("Model inliers & outliers", 1, 30, 16, 1, 1, 1, "inliers_outliers", viewport_model_cues_);
-        vis_go_cues_->addText ("Smooth segmentation", 1, 30, 16, 1, 1, 1, "smooth", viewport_smooth_seg_);
-        vis_go_cues_->addText ("Explained, multiple assignment & clutter", 1, 30, 16, 1, 1, 1, "scene_cues", viewport_scene_cues_);
-    }
-
-    //scene
-    pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_scene (scene_cloud_downsampled_, 200, 0, 0);
-    vis_go_cues_->addPointCloud<SceneT> (scene_cloud_downsampled_, random_handler_scene, "scene_cloud", viewport_scene_and_hypotheses_);
-
-    //smooth segmentation
-    if(clusters_cloud_rgb_)
-    {
-        pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGBA> random_handler (clusters_cloud_rgb_);
-        vis_go_cues_->addPointCloud<pcl::PointXYZRGBA> (clusters_cloud_rgb_, random_handler, "smooth_cloud", viewport_smooth_seg_);
-    }
+    vis_go_cues_->addPointCloud (scene_cloud_downsampled_, "scene_cloud", viewport_scene_cues_);
 
     //display active hypotheses
     for(size_t i=0; i < active_solution.size(); i++)
     {
         if(active_solution[i])
         {
-            //complete models
-
             HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-
-            std::stringstream m;
-            m << "model_" << i;
-
-            if(poses_ply_.size() == 0)
-            {
-                pcl::visualization::PointCloudColorHandlerCustom<ModelT> handler_model (rm.complete_cloud_, 0, 255, 0);
-                vis_go_cues_->addPointCloud<ModelT> (rm.complete_cloud_, handler_model, m.str(), viewport_scene_and_hypotheses_);
-            }
-            else
-            {
-                if(!rm.is_planar_)
-                    vis_go_cues_->addModelFromPLYFile (ply_paths_[i], poses_ply_[i], m.str (), viewport_scene_and_hypotheses_);
-                else
-                    vis_go_cues_->addPolygonMesh (*(rm.plane_model_->convex_hull_), m.str(), viewport_scene_and_hypotheses_);
-            }
-
-            //model inliers and outliers
-            std::stringstream cluster_name;
-            cluster_name << "visible" << i;
-
-            typename pcl::PointCloud<ModelT>::Ptr outlier_points (new pcl::PointCloud<ModelT> ());
-            for (size_t j = 0; j < rm.outlier_indices_.size (); j++)
-            {
-                ModelT c_point;
-                c_point.getVector3fMap () = rm.visible_cloud_->points[ rm.outlier_indices_[j] ].getVector3fMap ();
-                outlier_points->push_back (c_point);
-            }
-
-            pcl::visualization::PointCloudColorHandlerCustom<ModelT> random_handler (rm.visible_cloud_, 255, 90, 0);
-            vis_go_cues_->addPointCloud<ModelT> ( rm.visible_cloud_, random_handler, cluster_name.str (), viewport_model_cues_);
-
-            cluster_name << "_outliers";
-
-            pcl::visualization::PointCloudColorHandlerCustom<ModelT> random_handler_out (outlier_points, 0, 94, 22);
-            vis_go_cues_->addPointCloud<ModelT> (outlier_points, random_handler_out, cluster_name.str (), viewport_model_cues_);
+            std::stringstream model_name; model_name << "model_" << i;
+            vis_go_cues_->addPointCloud(rm.visible_cloud_, model_name.str(), viewport_model_cues_);
         }
     }
 
-    vis_go_cues_->setRepresentationToSurfaceForAllActors();
-
-    //display scene cues (explained points, multiply explained, clutter (smooth and normal)
-    vis_go_cues_->addPointCloud<SceneT> (scene_cloud_downsampled_, random_handler_scene, "scene_cloud_viewport", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "scene_cloud_viewport");
-
-    //clutter...
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr clutter (new pcl::PointCloud<pcl::PointXYZRGB> ());
-    typename pcl::PointCloud<SceneT>::Ptr clutter_smooth (new pcl::PointCloud<SceneT> ());
-    for (size_t j = 0; j < unexplained_by_RM_neighboorhods_.size (); j++)
-    {
-        if(unexplained_by_RM_neighboorhods_[j] >= (param_.clutter_regularizer_ - 0.01f) && explained_by_RM_[j] == 0 && (clusters_cloud_->points[j].label != 0 || param_.use_super_voxels_))
-        {
-            SceneT c_point;
-            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
-            clutter_smooth->push_back (c_point);
-        }
-        else if (unexplained_by_RM_neighboorhods_[j] > 0 && explained_by_RM_[j] == 0)
-        {
-            pcl::PointXYZRGB c_point;
-            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
-
-            if(show_weights_with_color_fading_)
-            {
-                c_point.r = round(255.0 * unexplained_by_RM_neighboorhods_[j]);
-                c_point.g = 40;
-                c_point.b = round(255.0 * unexplained_by_RM_neighboorhods_[j]);
-            }
-            else
-            {
-                c_point.r = 255.0;
-                c_point.g = 40;
-                c_point.b = 255.0;
-            }
-            clutter->push_back (c_point);
-        }
-    }
-
-    //explained
-    typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr explained_points (new pcl::PointCloud<pcl::PointXYZRGB> ());
-    //typename pcl::PointCloud<SceneT>::Ptr explained_points (new pcl::PointCloud<SceneT> ());
-    for (size_t j = 0; j < explained_by_RM_.size (); j++)
-    {
-        if (explained_by_RM_[j] == 1)
-        {
-            pcl::PointXYZRGB c_point;
-
-            //if(show_weights_with_color_fading_)
-            //{
-            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
-            c_point.b = 100 + explained_by_RM_distance_weighted_[j] * 155;
-            c_point.r = c_point.g = 0;
-            //}
-            //else
-            //{
-            //    c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
-            //    c_point.b = 255;
-            //    c_point.r = c_point.g = 0;
-            //}
-            explained_points->push_back (c_point);
-        }
-    }
-
-    //duplicity
-    typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr duplicity_points (new pcl::PointCloud<pcl::PointXYZRGB> ());
-    for (size_t j = 0; j < explained_by_RM_.size (); j++)
-    {
-        if (explained_by_RM_[j] > 1)
-        {
-            pcl::PointXYZRGB c_point;
-            c_point.getVector3fMap () = scene_cloud_downsampled_->points[j].getVector3fMap ();
-            float curv_weight = getCurvWeight( scene_normals_->points[j].curvature );
-
-            if( param_.multiple_assignment_penalize_by_one_ == 1)
-            {
-                c_point.r = c_point.g = c_point.b = 0;
-                c_point.g = curv_weight * param_.duplicy_weight_test_ * 255;
-            }
-            else if( param_.multiple_assignment_penalize_by_one_ == 2)
-            {
-                if(show_weights_with_color_fading_)
-                {
-                    c_point.r = c_point.g = c_point.b = 0;
-                    c_point.g = std::min(duplicates_by_RM_weighted_[j],1.0) * 255;
-                }
-                else
-                    c_point.r = c_point.g = c_point.b = 0;
-            }
-            else
-            {
-                c_point.r = c_point.g = c_point.b = 0;
-                c_point.g = 255;
-            }
-
-            duplicity_points->push_back (c_point);
-        }
-    }
-
-    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> random_handler_clutter (clutter);
-    vis_go_cues_->addPointCloud<pcl::PointXYZRGB> (clutter, random_handler_clutter, "clutter", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "clutter");
-
-    pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_clutter_smooth (clutter_smooth, 255, 255, 0);
-    vis_go_cues_->addPointCloud<SceneT> (clutter_smooth, random_handler_clutter_smooth, "clutter_smooth", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "clutter_smooth");
-
-    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> random_handler_explained (explained_points);
-    vis_go_cues_->addPointCloud<pcl::PointXYZRGB> (explained_points, random_handler_explained, "explained", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "explained");
-
-    //pcl::visualization::PointCloudColorHandlerCustom<SceneT> random_handler_dup (duplicity_points, 200, 200, 200);
-    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> random_handler_dup (duplicity_points);
-
-    vis_go_cues_->addPointCloud<pcl::PointXYZRGB> (duplicity_points, random_handler_dup, "dup", viewport_scene_cues_);
-    vis_go_cues_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "dup");
     vis_go_cues_->spin();
 }
 

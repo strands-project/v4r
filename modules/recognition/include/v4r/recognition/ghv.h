@@ -138,14 +138,14 @@ public:
                 double w_occupied_multiple_cm = 2.f, //0.f
                 double w_occupied_multiple_ = 10.f, //0.f
                 bool use_super_voxels = false,
-                bool use_replace_moves = true,
+                bool use_replace_moves = false, // true!!!,
                 int opt_type = OptimizationType::LocalSearch,
                 double active_hyp_penalty = 0.f, // 0.05f
                 int multiple_assignment_penalize_by_one = 2,
                 double d_weight_for_bad_normals = 0.1f,
                 bool use_clutter_exp = false,
                 bool use_histogram_specification = false, // false
-                bool use_points_on_plane_side = true,
+                bool use_points_on_plane_side = false, // true!!!,
                 double best_color_weight = 0.8f,
                 bool initial_status = false,
                 int color_space = ColorSpace::LAB,
@@ -156,7 +156,7 @@ public:
                 double curvature_threshold = 0.04f,
                 double cluster_tolerance = 0.01f, //0.015f;
                 bool use_normals_from_visible = false,
-                bool add_planes = true,
+                bool add_planes = false,
                 int plane_method = 1,
                 size_t min_plane_inliers = 5000,
                 double plane_inlier_distance = 0.02f,
@@ -236,20 +236,11 @@ protected:
     using HypothesisVerification<ModelT, SceneT>::recognition_models_map_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_is_recorded_from_single_view_;
 
-    void
-    extractEuclideanClustersSmooth (const typename pcl::PointCloud<pcl::Normal> &normals, std::vector<std::vector<int> > &clusters);
-
-    void
-    computeClutterCueAtOnce ();
-
     bool
     removeNanNormals (HVRecognitionModel<ModelT> & recog_model);
 
     bool
-    addModel (HVRecognitionModel<ModelT> &rm);
-
-    void
-    computeSceneOccupancyGridByRM();
+    addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx);
 
     //Performs smooth segmentation of the scene cloud and compute the model cues
     bool
@@ -258,74 +249,15 @@ protected:
     pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
     bool scene_and_normals_set_from_outside_;
 
-    pcl::PointCloud<pcl::PointXYZL>::Ptr clusters_cloud_;
-    int max_label_clusters_cloud_;
-    pcl::PointCloud<pcl::PointXYZRGBA>::Ptr clusters_cloud_rgb_;
-    pcl::PointCloud<pcl::Normal>::Ptr scene_normals_for_clutter_term_;
-
-    std::vector<int> complete_cloud_occupancy_by_RM_;
-
-    std::vector<double> duplicates_by_RM_weighted_;
-    std::vector<double> duplicates_by_RM_weighted_not_capped_;
-    std::vector<int> explained_by_RM_; // stores for each point in scene_cloud_downsampled by how many recognition models it is explained
-    std::vector<double> explained_by_RM_distance_weighted_; // the associated weights to explained_by_RM_
-//    std::vector<int> explained_by_RM_model_; //id of the model explaining the point
-    std::vector< std::stack<std::pair<int, float>, std::vector<std::pair<int, float> > > > previous_explained_by_RM_distance_weighted_; //represents the points of scene_cloud_ that are explained by the recognition models
-    std::vector<double> unexplained_by_RM_neighboorhods_; //represents the points of scene_cloud_ that are not explained by the active hypotheses in the neighboorhod of the recognition models
-    //std::vector<size_t> indices_;
-
-    double previous_explained_value_;
-    double previous_duplicity_;
-    int previous_duplicity_complete_models_;
-    double previous_bad_info_;
-    double previous_unexplained_;
+    Eigen::MatrixXf intersection_cost_; // represents the pairwise intersection cost
+    Eigen::MatrixXf scene_explained_weight_; // for each point in the scene (row) store how good it is presented from each model (column)
 
     GHVSAModel<ModelT, SceneT> best_seen_;
     float initial_temp_;
-    int min_contribution_;
 
     std::vector<std::vector<size_t> > rm_ids_explaining_scene_pt_; //if inner size > 1, conflict
 
-    //mahalanobis stuff
-    Eigen::MatrixXf inv_covariance_;
-    Eigen::VectorXf mean_;
-
     ColorTransformOMP color_transf_omp_;
-
-    void
-    updateUnexplainedVector (const HVRecognitionModel<ModelT> &rm, int sign);
-
-    void
-    updateExplainedVector (const HVRecognitionModel<ModelT> &rm, int sign, int model_id);
-
-    void
-    updateCMDuplicity (const HVRecognitionModel<ModelT> &rm, int sign);
-
-    double
-    getTotalExplainedInformation (double &duplicity);
-
-    double
-    getTotalBadInformation (const std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > & recog_models)
-    {
-        double bad_info = 0;
-        for (size_t i = 0; i < recog_models.size(); i++)
-            bad_info += recog_models[i]->outliers_total_weight_;
-
-        return bad_info;
-    }
-
-    double
-    getUnexplainedInformationInNeighborhood()
-    {
-        double unexplained_sum = 0.f;
-        for (size_t i = 0; i < unexplained_by_RM_neighboorhods_.size (); i++)
-        {
-            if (unexplained_by_RM_neighboorhods_[i] > 0 && explained_by_RM_[i] == 0)
-                unexplained_sum += unexplained_by_RM_neighboorhods_[i];
-        }
-
-        return unexplained_sum;
-    }
 
     mets::gol_type
     evaluateSolution (const std::vector<bool> & active, int changed);
@@ -333,24 +265,9 @@ protected:
     std::vector<bool> optimize();
 
     void
-    fill_structures (const std::vector<bool> &sub_solution, GHVSAModel<ModelT, SceneT> & model);
-
-    void
-    clear_structures ();
-
-    double
-    countActiveHypotheses (const std::vector<bool> & sol);
-
-    double
-    countPointsOnDifferentPlaneSides (const std::vector<bool> & sol);
-
-    void
     computePairwiseIntersection();
 
     boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
-
-    void
-    specifyHistograms(const std::vector<size_t> &src_hist, const std::vector<size_t> &dst_hist, std::vector<size_t> &lut);
 
     typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
 
@@ -379,12 +296,9 @@ protected:
     typedef typename pcl::traits::fieldList<typename CloudS::PointType>::type FieldListS;
     typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
 
-    double getCurvWeight(double p_curvature) const;
-
     std::vector<std::string> ply_paths_;
     std::vector<vtkSmartPointer <vtkTransform> > poses_ply_;
     size_t number_of_visible_points_;
-
 
     //compute mahalanobis distance
     static float
@@ -394,7 +308,6 @@ protected:
         return sqrt(product);
     }
 
-    void segmentScene();
     void convertColor();
 
 public:
@@ -405,7 +318,6 @@ public:
         requires_normals_ = false;
         visualize_accepted_ = false;
         scene_and_normals_set_from_outside_ = false;
-        min_contribution_ = 0;
     }
 
     enum ColorSpace
@@ -429,12 +341,6 @@ public:
         SimulatedAnnealing
     };
 
-    void setMeanAndCovariance(const Eigen::VectorXf & mean, const Eigen::MatrixXf & cov)
-    {
-        mean_ = mean;
-        inv_covariance_ = cov;
-    }
-
     void setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene,
                             typename pcl::PointCloud<pcl::Normal>::Ptr & scene_normals)
     {
@@ -442,30 +348,6 @@ public:
         scene_normals_ = scene_normals;
         scene_and_normals_set_from_outside_ = true;
     }
-
-    void setPlyPathsAndPoses(std::vector<std::string> & ply_paths_for_go, std::vector<vtkSmartPointer <vtkTransform> > & poses_ply)
-    {
-        ply_paths_ = ply_paths_for_go;
-        poses_ply_ = poses_ply;
-    }
-
-    void setVisualizeAccepted(bool b)
-    {
-        visualize_accepted_ = b;
-    }
-
-    void setSmoothFaces(std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> & aligned_smooth_faces)
-    {
-        models_smooth_faces_ = aligned_smooth_faces;
-    }
-
-    void setNormalsForClutterTerm(pcl::PointCloud<pcl::Normal>::Ptr & normals)
-    {
-        scene_normals_for_clutter_term_ = normals;
-    }
-
-    void
-    addPlanarModels(const std::vector<PlaneModel<ModelT> > &planar_models);
 
     void
     writeToLog (std::ofstream & of, bool all_costs_ = false)
@@ -486,7 +368,6 @@ public:
         requires_normals_ = b;
     }
 
-
     void
     verify();
 
@@ -495,24 +376,6 @@ public:
     {
         initial_temp_ = t;
     }
-
-    //Same length as the recognition models
-    void
-    setExtraWeightVectorForInliers (std::vector<float> & weights)
-    {
-        if(recognition_models_.size() != weights.size())
-            throw std::runtime_error ("Size of extra weights is not equal the number of recognition models!");
-
-        for (size_t i=0; i<weights.size(); i++)
-            recognition_models_[i]->extra_weight_ = weights[i];
-    }
-
-    void
-    getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud) const;
-
-    void
-    getOutliersForAcceptedModels(std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_color,
-                                 std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > & outliers_cloud_3d) const;
 
 };
 }

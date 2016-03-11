@@ -30,7 +30,6 @@ HypothesisVerification<ModelT, SceneT>::addModels (std::vector<typename pcl::Poi
         recognition_models_[existing_models + i].reset(new HVRecognitionModel<ModelT>);
         HVRecognitionModel<ModelT> &rm = *recognition_models_[existing_models + i];
 
-        rm.is_planar_ = false;
         rm.complete_cloud_.reset(new pcl::PointCloud<ModelT>(*models[i]));
         rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
 
