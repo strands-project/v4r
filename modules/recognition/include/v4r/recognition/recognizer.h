@@ -96,10 +96,9 @@ namespace v4r
         /** @brief: generated object hypotheses from correspondence grouping (before verification) */
         std::vector<ModelTPtr> models_;
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
-        std::vector<PlaneModel<PointT> > planes_;
 
         /** @brief boolean vector defining if model or plane is verified (models are first in the vector and its size is equal to models_) */
-        std::vector<bool> model_or_plane_is_verified_;
+        std::vector<bool> hypothesis_is_verified_;
 
         bool requires_segmentation_;
 
@@ -213,13 +212,13 @@ namespace v4r
         {
             std::vector<ModelTPtr> models_verified;
 
-            if(model_or_plane_is_verified_.size() < models_.size()) {
+            if(hypothesis_is_verified_.size() < models_.size()) {
                 std::cout << "Verification vector is not valid. Did you run hyphotheses verification?" << std::endl;
                 return models_verified;
             }
 
             for(size_t i=0; i<models_.size(); i++) {
-                if (model_or_plane_is_verified_[i])
+                if (hypothesis_is_verified_[i])
                     models_verified.push_back(models_[i]);
             }
             return models_verified;
@@ -246,13 +245,13 @@ namespace v4r
         {
           std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
 
-          if(model_or_plane_is_verified_.size() < transforms_.size()) {
+          if(hypothesis_is_verified_.size() < transforms_.size()) {
               std::cout << "Verification vector is not valid. Did you run hyphotheses verification?" << std::endl;
               return transforms_verified;
           }
 
           for(size_t i=0; i<transforms_.size(); i++) {
-              if (model_or_plane_is_verified_[i])
+              if (hypothesis_is_verified_[i])
                   transforms_verified.push_back(transforms_[i]);
           }
           return transforms_verified;

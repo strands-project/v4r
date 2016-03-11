@@ -34,33 +34,12 @@ namespace v4r
     {
     public:
          using GHV<ModelT, SceneT>::Parameter::radius_neighborhood_clutter_;
-         using GHV<ModelT, SceneT>::Parameter::duplicy_weight_test_;
-         using GHV<ModelT, SceneT>::Parameter::duplicity_curvature_max_;
          using GHV<ModelT, SceneT>::Parameter::ignore_color_even_if_exists_;
          using GHV<ModelT, SceneT>::Parameter::max_iterations_;
          using GHV<ModelT, SceneT>::Parameter::clutter_regularizer_;
-         using GHV<ModelT, SceneT>::Parameter::detect_clutter_;
-         using GHV<ModelT, SceneT>::Parameter::res_occupancy_grid_;
-         using GHV<ModelT, SceneT>::Parameter::w_occupied_multiple_cm_;
-         using GHV<ModelT, SceneT>::Parameter::w_occupied_multiple_;
-         using GHV<ModelT, SceneT>::Parameter::use_super_voxels_;
          using GHV<ModelT, SceneT>::Parameter::use_replace_moves_;
          using GHV<ModelT, SceneT>::Parameter::opt_type_;
-         using GHV<ModelT, SceneT>::Parameter::active_hyp_penalty_;
-         using GHV<ModelT, SceneT>::Parameter::multiple_assignment_penalize_by_one_;
-         using GHV<ModelT, SceneT>::Parameter::d_weight_for_bad_normals_;
-         using GHV<ModelT, SceneT>::Parameter::use_clutter_exp_;
          using GHV<ModelT, SceneT>::Parameter::use_histogram_specification_;
-         using GHV<ModelT, SceneT>::Parameter::use_points_on_plane_side_;
-         using GHV<ModelT, SceneT>::Parameter::best_color_weight_;
-         using GHV<ModelT, SceneT>::Parameter::eps_angle_threshold_;
-         using GHV<ModelT, SceneT>::Parameter::min_points_per_cluster_;
-         using GHV<ModelT, SceneT>::Parameter::curvature_threshold_;
-         using GHV<ModelT, SceneT>::Parameter::cluster_tolerance_;
-         using GHV<ModelT, SceneT>::Parameter::use_normals_from_visible_;
-         using GHV<ModelT, SceneT>::Parameter::add_planes_;
-         using GHV<ModelT, SceneT>::Parameter::plane_method_;
-         using GHV<ModelT, SceneT>::Parameter::focal_length_;
          using GHV<ModelT, SceneT>::Parameter::visualize_go_cues_;
          using GHV<ModelT, SceneT>::Parameter::color_space_;
          using GHV<ModelT, SceneT>::Parameter::do_occlusion_reasoning_;
@@ -86,7 +65,6 @@ namespace v4r
     using GHV<ModelT, SceneT>::scene_normals_;
     using GHV<ModelT, SceneT>::recognition_models_;
     using GHV<ModelT, SceneT>::octree_scene_downsampled_;
-    using GHV<ModelT, SceneT>::rm_ids_explaining_scene_pt_;
     using GHV<ModelT, SceneT>::refined_model_transforms_;
     using GHV<ModelT, SceneT>::poseRefinement;
     using GHV<ModelT, SceneT>::scene_cloud_is_recorded_from_single_view_;

@@ -589,7 +589,7 @@ MultiviewRecognizer<PointT>::recognize ()
         }
 
         hypothesisVerification();
-        v.model_or_plane_is_verified_ = model_or_plane_is_verified_;
+        v.model_or_plane_is_verified_ = hypothesis_is_verified_;
         v.transforms_ = transforms_; // save refined pose
 
         if( hv_algorithm_3d && hv_algorithm_3d->param_.visualize_cues_)

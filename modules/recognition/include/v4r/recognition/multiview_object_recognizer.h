@@ -69,9 +69,8 @@ protected:
     using Recognizer<PointT>::scene_;
     using Recognizer<PointT>::scene_normals_;
     using Recognizer<PointT>::models_;
-    using Recognizer<PointT>::model_or_plane_is_verified_;
+    using Recognizer<PointT>::hypothesis_is_verified_;
     using Recognizer<PointT>::transforms_;
-    using Recognizer<PointT>::planes_;
     using Recognizer<PointT>::hv_algorithm_;
     using Recognizer<PointT>::hypothesisVerification;
 
@@ -248,9 +247,8 @@ public:
     void cleanUp()
     {
         models_.clear();
-        model_or_plane_is_verified_.clear();
+        hypothesis_is_verified_.clear();
         transforms_.clear();
-        planes_.clear();
         views_.clear();
         id_ = 0;
     }

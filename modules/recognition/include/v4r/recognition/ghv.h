@@ -1,5 +1,5 @@
 ﻿/******************************************************************************
- * Copyright (c) 2013 Aitor Aldoma
+ * Copyright (c) 2016 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -25,30 +25,19 @@
 #define V4R_GHV_H_
 
 #include <v4r/common/color_transforms.h>
+#include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/recognition/ghv_opt.h>
 #include <pcl/common/common.h>
-#include <pcl/pcl_macros.h>
-#include "hypotheses_verification.h"
-//#include <pcl/recognition/3rdparty/metslib/mets.hh>
+#include <pcl/octree/octree.h>
 #include <metslib/mets.hh>
-#include <pcl/features/normal_3d.h>
 #include <pcl/visualization/cloud_viewer.h>
-#include <boost/graph/graph_traits.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <map>
-#include <stack>
-#include <iostream>
-#include <fstream>
-#include "ghv_opt.h"
-#include <v4r/common/common_data_structures.h>
 
 namespace v4r
 {
 
-/** \brief A hypothesis verification method proposed in
-   * "A Global Hypotheses Verification Method for 3D Object Recognition", A. Aldoma and F. Tombari and L. Di Stefano and Markus Vincze, ECCV 2012,
-   * Extended with physical constraints and color information (see ICRA paper)
-   * \author Aitor Aldoma
-   * \date Feb, 2013
+/** \brief A hypothesis verification method for 3D Object Instance Recognition
+   * \author Thomas Faeulhammer
+   * \date April, 2016
    */
 template<typename ModelT, typename SceneT>
 class V4R_EXPORTS GHV : public HypothesisVerification<ModelT, SceneT>
@@ -64,7 +53,6 @@ public:
         using HypothesisVerification<ModelT, SceneT>::Parameter::inliers_threshold_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::resolution_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::occlusion_thres_;
-        using HypothesisVerification<ModelT, SceneT>::Parameter::zbuffer_scene_resolution_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::zbuffer_self_occlusion_resolution_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::self_occlusions_reasoning_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::focal_length_;
@@ -75,47 +63,15 @@ public:
         double regularizer_; /// @brief represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.
         double radius_neighborhood_clutter_; /// @brief defines the maximum distance between an <i>explained</i> scene point <b>p</b> and other unexplained scene points such that they influence the clutter term associated with <b>p</b>
         int normal_method_; /// @brief method used for computing the normals of the downsampled scene point cloud (defined by the V4R Library)
-        double duplicy_weight_test_;
-        double duplicity_curvature_max_;
         bool ignore_color_even_if_exists_;
         int max_iterations_; /// @brief max iterations without improvement
         double clutter_regularizer_; /// @brief The penalty multiplier used to penalize unexplained scene points within the clutter influence radius <i>radius_neighborhood_clutter_</i> of an explained scene point when they belong to the same smooth segment.
-        bool detect_clutter_;
-        double res_occupancy_grid_;
-        double w_occupied_multiple_cm_;
-        double w_occupied_multiple_;    /// @brief multiplication factor in cost term for points explained multiple times
-        bool use_super_voxels_;
         bool use_replace_moves_;
         int opt_type_; /// @brief defines the optimization methdod<BR><BR> 0: Local search (converges quickly, but can easily get trapped in local minima),<BR> 1: Tabu Search,<BR> 2; Tabu Search + Local Search (Replace active hypotheses moves),<BR> 3: Simulated Annealing
-        double active_hyp_penalty_;
-        int multiple_assignment_penalize_by_one_;
-        double d_weight_for_bad_normals_; /// @brief specifies the weight an outlier is multiplied with in case the corresponding scene point's orientation is facing away from the camera more than a certain threshold and potentially has inherent noise
-        bool use_clutter_exp_;
         bool use_histogram_specification_;
-        bool use_points_on_plane_side_;  /// @brief compute for each planar model how many points for the other hypotheses (if in conflict) are on each side of the plane
-        double best_color_weight_;
-        double weight_factor_for_planes_; /// @brief defines the weight factor for which points explained by planes will be multiplied to decrease (<1) or increase (>1) the number of accepted planes
         bool initial_status_; /// @brief sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.
         int color_space_; /// @brief specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
-        int outliers_weight_computation_method_; /// @brief defines the method used for computing the overall outlier weight. 0... mean, 1... median
-
-        //smooth segmentation parameters for clutter detection
-        double eps_angle_threshold_;    /// @brief defines the threshold for two points to be clustered together in terms of their surface normal relationship (in degree)
-        size_t min_points_per_cluster_;    /// @brief defines the minimum amount of points for a cluster for clutter detection
-        size_t max_points_per_cluster_;    /// @brief defines the maximum amount of points for a cluster for clutter detection
-        double curvature_threshold_;
-        double cluster_tolerance_;
-
-        bool use_normals_from_visible_;
-
         bool use_noise_model_;  /// @brief if set, uses Nguyens noise model for setting threshold parameters
-
-        bool add_planes_;  /// @brief if true, adds planes as possible hypotheses (slower but decreases false positives especially for planes detected as flat objects like books)
-        int plane_method_; /// @brief defines which method to use for plane extraction (if add_planes_ is true). 0... Multiplane Segmentation, 1... ClusterNormalsForPlane segmentation
-        size_t min_plane_inliers_; /// @brief a planar cluster is only added as plane if it has at least min_plane_inliers_ points
-        double plane_inlier_distance_; /// @brief Maximum inlier distance for plane clustering
-        double plane_thrAngle_;  /// @brief Threshold of normal angle in degree for plane clustering
-        int knn_plane_clustering_search_;  /// @brief sets the number of points used for searching nearest neighbors in unorganized point clouds (used in plane segmentation)
         bool visualize_go_cues_; /// @brief visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
 
         double min_visible_ratio_; /// @brief defines how much of the object has to be visible in order to be included in the verification stage
@@ -128,42 +84,15 @@ public:
                 double regularizer = 1.f, // 3
                 double radius_neighborhood_clutter = 0.02f,
                 int normal_method = 2,
-                double duplicy_weight_test = 1.f,
-                double duplicity_curvature_max = 0.03f,
                 bool ignore_color_even_if_exists = false,
                 int max_iterations = 5000,
                 double clutter_regularizer =  1.f, //3.f,
-                bool detect_clutter = true,
-                double res_occupancy_grid = 0.005f,
-                double w_occupied_multiple_cm = 2.f, //0.f
-                double w_occupied_multiple_ = 10.f, //0.f
-                bool use_super_voxels = false,
                 bool use_replace_moves = false, // true!!!,
                 int opt_type = OptimizationType::LocalSearch,
-                double active_hyp_penalty = 0.f, // 0.05f
-                int multiple_assignment_penalize_by_one = 2,
-                double d_weight_for_bad_normals = 0.1f,
-                bool use_clutter_exp = false,
                 bool use_histogram_specification = false, // false
-                bool use_points_on_plane_side = false, // true!!!,
-                double best_color_weight = 0.8f,
                 bool initial_status = false,
                 int color_space = ColorSpace::LAB,
-                int outliers_weight_computation_method = 0,
-                double eps_angle_threshold = 10.f, //0.1f
-                size_t min_points_per_cluster = 100, // 20
-                size_t max_points_per_cluster = std::numeric_limits<size_t>::max(),
-                double curvature_threshold = 0.04f,
-                double cluster_tolerance = 0.01f, //0.015f;
-                bool use_normals_from_visible = false,
-                bool add_planes = false,
-                int plane_method = 1,
-                size_t min_plane_inliers = 5000,
-                double plane_inlier_distance = 0.02f,
-                double plane_thrAngle = 30,
                 bool use_noise_model = true,
-                double weight_factor_for_planes = 0.5f,
-                int knn_plane_clustering_search = 10,
                 bool visualize_go_cues = false,
                 double min_visible_ratio = 0.10f,
                 int knn_color_neighborhood = 10,
@@ -176,42 +105,15 @@ public:
               regularizer_ (regularizer),
               radius_neighborhood_clutter_ (radius_neighborhood_clutter),
               normal_method_ (normal_method),
-              duplicy_weight_test_ (duplicy_weight_test),
-              duplicity_curvature_max_ (duplicity_curvature_max),
               ignore_color_even_if_exists_ (ignore_color_even_if_exists),
               max_iterations_ (max_iterations),
               clutter_regularizer_ (clutter_regularizer),
-              detect_clutter_ (detect_clutter),
-              res_occupancy_grid_ (res_occupancy_grid),
-              w_occupied_multiple_cm_ (w_occupied_multiple_cm),
-              w_occupied_multiple_ (w_occupied_multiple_),
-              use_super_voxels_ (use_super_voxels),
               use_replace_moves_ (use_replace_moves),
               opt_type_ (opt_type),
-              active_hyp_penalty_ (active_hyp_penalty),
-              multiple_assignment_penalize_by_one_ (multiple_assignment_penalize_by_one),
-              d_weight_for_bad_normals_ (d_weight_for_bad_normals),
-              use_clutter_exp_ (use_clutter_exp),
               use_histogram_specification_ (use_histogram_specification),
-              use_points_on_plane_side_ (use_points_on_plane_side),
-              best_color_weight_ (best_color_weight),
               initial_status_ (initial_status),
               color_space_ (color_space),
-              outliers_weight_computation_method_ (outliers_weight_computation_method),
-              eps_angle_threshold_ (eps_angle_threshold),
-              min_points_per_cluster_ (min_points_per_cluster),
-              max_points_per_cluster_ (max_points_per_cluster),
-              curvature_threshold_ (curvature_threshold),
-              cluster_tolerance_ (cluster_tolerance),
-              use_normals_from_visible_ (use_normals_from_visible),
               use_noise_model_ (use_noise_model),
-              add_planes_ (add_planes),
-              plane_method_ (plane_method),
-              min_plane_inliers_ ( min_plane_inliers ),
-              plane_inlier_distance_ ( plane_inlier_distance ),
-              plane_thrAngle_ ( plane_thrAngle ),
-              knn_plane_clustering_search_ ( knn_plane_clustering_search ),
-              weight_factor_for_planes_ (weight_factor_for_planes),
               visualize_go_cues_ ( visualize_go_cues ),
               min_visible_ratio_ (min_visible_ratio),
               knn_color_neighborhood_ (knn_color_neighborhood),
@@ -220,7 +122,13 @@ public:
     }param_;
 
 private:
-    mutable int viewport_scene_and_hypotheses_, viewport_model_cues_, viewport_smooth_seg_, viewport_scene_cues_;
+    mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
+    mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> rm_vis_;
+    mutable int vp_active_hypotheses_, vp_scene_, vp_model_fitness_, vp_scene_fitness_;
+    mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6;
+
+
+    double model_fitness_, pairwise_cost_, scene_fitness_, cost_;
 
 
 protected:
@@ -233,82 +141,47 @@ protected:
     using HypothesisVerification<ModelT, SceneT>::occlusion_cloud_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_;
     using HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
-    using HypothesisVerification<ModelT, SceneT>::recognition_models_map_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_is_recorded_from_single_view_;
 
-    bool
-    removeNanNormals (HVRecognitionModel<ModelT> & recog_model);
-
-    bool
-    addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx);
-
-    //Performs smooth segmentation of the scene cloud and compute the model cues
-    bool
-    initialize ();
 
     pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
     bool scene_and_normals_set_from_outside_;
-
     Eigen::MatrixXf intersection_cost_; // represents the pairwise intersection cost
     Eigen::MatrixXf scene_explained_weight_; // for each point in the scene (row) store how good it is presented from each model (column)
-
     GHVSAModel<ModelT, SceneT> best_seen_;
     float initial_temp_;
-
-    std::vector<std::vector<size_t> > rm_ids_explaining_scene_pt_; //if inner size > 1, conflict
-
     ColorTransformOMP color_transf_omp_;
+    boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
+    Eigen::MatrixXf scene_color_channels_;
+    typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
+    boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
 
-    mets::gol_type
-    evaluateSolution (const std::vector<bool> & active, int changed);
+
+    bool removeNanNormals (HVRecognitionModel<ModelT> & recog_model);
+
+    bool addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx);
+
+    bool initialize ();
+
+    mets::gol_type evaluateSolution (const std::vector<bool> & active, int changed);
 
     std::vector<bool> optimize();
 
-    void
-    computePairwiseIntersection();
+    void computePairwiseIntersection();
 
-    boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
-
-    typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
-
-    Eigen::MatrixXf points_on_plane_sides_;
-
-    boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
-
-    void visualizeGOCues(const std::vector<bool> & active_solution, float cost, int times_eval);
+    void visualizeGOCues(const std::vector<bool> & active_solution, float cost_, int times_eval);
 
     void visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm) const;
 
-    mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
+    void registerModelAndSceneColor(std::vector<size_t> &lookup, HVRecognitionModel<ModelT> & recog_model);
 
-    mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> rm_vis_;
-    mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6;
+    void convertColor();
 
-    std::vector<pcl::PointCloud<pcl::PointXYZL>::Ptr> models_smooth_faces_;
-
-    void
-    registerModelAndSceneColor(std::vector<size_t> &lookup, HVRecognitionModel<ModelT> & recog_model);
-
-    Eigen::MatrixXf scene_color_channels_;
-    bool visualize_accepted_;
     typedef pcl::PointCloud<ModelT> CloudM;
     typedef pcl::PointCloud<SceneT> CloudS;
     typedef typename pcl::traits::fieldList<typename CloudS::PointType>::type FieldListS;
     typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
 
-    std::vector<std::string> ply_paths_;
-    std::vector<vtkSmartPointer <vtkTransform> > poses_ply_;
-    size_t number_of_visible_points_;
-
-    //compute mahalanobis distance
-    static float
-    mahalanobis(const Eigen::VectorXf & mu, const Eigen::VectorXf & x, const Eigen::MatrixXf & inv_cov)
-    {
-        float product = (x - mu).transpose() * inv_cov * (x - mu);
-        return sqrt(product);
-    }
-
-    void convertColor();
 
 public:
 
@@ -316,7 +189,6 @@ public:
     {
         initial_temp_ = 1000;
         requires_normals_ = false;
-        visualize_accepted_ = false;
         scene_and_normals_set_from_outside_ = false;
     }
 
@@ -327,12 +199,6 @@ public:
        GRAYSCALE
     };
 
-    enum OutlierType
-    {
-       DIST,
-       COLOR
-    };
-
     enum OptimizationType
     {
         LocalSearch,
@@ -341,7 +207,8 @@ public:
         SimulatedAnnealing
     };
 
-    void setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene,
+    void
+    setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene,
                             typename pcl::PointCloud<pcl::Normal>::Ptr & scene_normals)
     {
         scene_cloud_downsampled_ = scene;
@@ -357,11 +224,6 @@ public:
             cost_logger_->writeEachCostToLog (of);
     }
 
-    /*void logCosts() {
-       cost_logger_.reset(new CostFunctionLogger());
-       }*/
-
-
     void
     setRequiresNormals (bool b)
     {
@@ -370,13 +232,6 @@ public:
 
     void
     verify();
-
-    void
-    setInitialTemp (float t)
-    {
-        initial_temp_ = t;
-    }
-
 };
 }
 

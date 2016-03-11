@@ -43,17 +43,8 @@
 #include <numeric>
 #include <pcl/common/angles.h>
 #include <pcl/common/time.h>
-#include <pcl/features/normal_3d_omp.h>
 #include <pcl/point_types.h>
-#include <pcl/segmentation/supervoxel_clustering.h>
-#include <pcl/segmentation/euclidean_cluster_comparator.h>
-#include <pcl/segmentation/organized_connected_component_segmentation.h>
-#include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <boost/random/linear_congruential.hpp>
-#include <boost/random/uniform_01.hpp>
-#include <boost/graph/connected_components.hpp>
-#include <boost/graph/adjacency_matrix.hpp>
 #include <omp.h>
 
 namespace v4r {
@@ -66,71 +57,37 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
     if ( !active[changed]) //it has been deactivated
         sign = -1;
 
-//    updateExplainedVector (rm, sign, changed);
-
-//    if(param_.detect_clutter_)
-//        updateUnexplainedVector (rm, sign);
-
-//    updateCMDuplicity (rm, sign);
-
-//    size_t num_active_hypotheses = 0;
-//    for(const auto &h:active) {
-//        if(h)
-//            num_active_hypotheses++;
-//    }
-
-//    double duplicity = param_.w_occupied_multiple_ * previous_duplicity_;
-
-//    if(num_active_hypotheses)
-//        duplicity /= num_active_hypotheses;
-
-//    double good_info = previous_explained_value_;
-//    double unexplained_info = previous_unexplained_;
-//    double bad_info = previous_bad_info_ + sign * rm.outliers_total_weight_ * rm.outlier_indices_.size() / (double)scene_cloud_downsampled_->points.size();
-//    double duplicity_cm = (double)previous_duplicity_complete_models_ * param_.w_occupied_multiple_cm_;
-
-//    if(!param_.detect_clutter_)
-//        unexplained_info = 0.f;
-
-//    double cost = -(good_info - bad_info - duplicity - unexplained_info - duplicity_cm - countPointsOnDifferentPlaneSides(active));
-
-//    std::cout << "COST: " << std::fixed << cost << " (good: " << good_info << ", bad: " << bad_info << ", duplicity:" << duplicity <<
-//                 ", unexplained: " << unexplained_info << ", duplicity_cm: " << duplicity_cm <<
-//                 ", PointsOnDifferentPlaneSides: " <<  countPointsOnDifferentPlaneSides(active) << ")" << std::endl;
-
-
-    double model_cost = 0.f;
-    double pairwise_cost = 0.f;
+    model_fitness_ = 0.f;
+    pairwise_cost_ = 0.f;
 
     // model uni term
     size_t num_active_hypotheses = 0;
     for(size_t i=0; i<active.size(); i++)
     {
         if(active[i]) {
-            model_cost += recognition_models_[i]->model_fit_;
+            model_fitness_ += recognition_models_[i]->model_fit_;
             num_active_hypotheses++;
         }
     }
     if(num_active_hypotheses)
-        model_cost /= num_active_hypotheses;
+        model_fitness_ /= num_active_hypotheses;
     else
-        model_cost = 0.f;
+        model_fitness_ = 0.f;
 
     // scene uni term
     Eigen::MatrixXf scene_explained_weight_for_active_hypotheses = scene_explained_weight_;
     for(size_t i=0; i<active.size(); i++)
     {
         if(!active[i]) {
-//            removeColumn( scene_explained_weight_for_active_hypotheses, i);
             scene_explained_weight_for_active_hypotheses.col(i) = Eigen::VectorXf::Zero(
                         scene_explained_weight_for_active_hypotheses.rows());
         }
     }
 
-    double scene_cost = 0.f;
+    scene_fitness_ = 0.f;
     if ( scene_explained_weight_for_active_hypotheses.cols() ) {
         Eigen::VectorXf max = scene_explained_weight_for_active_hypotheses.rowwise().maxCoeff();
-        scene_cost = max.sum() / scene_cloud_downsampled_->points.size();
+        scene_fitness_ = max.sum() / scene_cloud_downsampled_->points.size();
     }
 
 
@@ -140,29 +97,30 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
         for(size_t j=0; j<i; j++)
         {
             if(active[i] && active[j])
-                pairwise_cost += intersection_cost_(i,j);
+                pairwise_cost_ += intersection_cost_(i,j);
         }
     }
 
-    double cost = -( model_cost + param_.regularizer_ * scene_cost - param_.clutter_regularizer_ * pairwise_cost );
+    cost_ = -( model_fitness_ + param_.regularizer_ * scene_fitness_ - param_.clutter_regularizer_ * pairwise_cost_ );
 
-    std::cout << "active hypotheses: ";
+//    std::cout << "active hypotheses: ";
 
-    for(size_t i=0; i<active.size(); i++)
-        std::cout << active[i] << " ";
+//    for(size_t i=0; i<active.size(); i++)
+//        std::cout << active[i] << " ";
 
 
-    std::cout << std::endl << "model cost: " << model_cost << "; pairwise cost: " << pairwise_cost <<
-                 "; scene cost: " << scene_cost << "; total cost: " << cost << std::endl;
+//    std::cout << std::endl << "model fitness: " << model_fitness_ << "; scene fitness: " << scene_fitness_ <<
+//                 "; pairwise cost: " << pairwise_cost_ << "; total cost: " << cost_ << std::endl;
+
+//    std::cout << model_fitness_ << " + " << param_.regularizer_ << " * " << scene_fitness_ << " - " <<
+//                 param_.clutter_regularizer_ << " * " << pairwise_cost_ << " = " << -cost_ << std::endl;
 
     if(cost_logger_) {
         cost_logger_->increaseEvaluated();
-        cost_logger_->addCostEachTimeEvaluated(cost);
+        cost_logger_->addCostEachTimeEvaluated(cost_);
     }
 
-//    previous_bad_info_ = bad_info;
-
-    return static_cast<mets::gol_type> (cost); //return the dual to our max problem
+    return static_cast<mets::gol_type> (cost_); //return the dual to our max problem
 }
 
 template<typename ModelT, typename SceneT>
@@ -232,7 +190,7 @@ GHV<ModelT, SceneT>::computePairwiseIntersection()
 
     for(size_t i=1; i<recognition_models_.size(); i++)
     {
-        for(size_t j=0; j<(i-1); j++)
+        for(size_t j=0; j<i; j++)
         {
             const HVRecognitionModel<ModelT> &rm_a = *recognition_models_[i];
             const HVRecognitionModel<ModelT> &rm_b = *recognition_models_[j];
@@ -263,7 +221,8 @@ GHV<ModelT, SceneT>::computePairwiseIntersection()
 
             float conflict_cost = static_cast<float> (num_intersections) / total_rendered_points;
             intersection_cost_(i,j) = intersection_cost_(j,i) = conflict_cost;
-//            std::cout << "num intersections: " << num_intersections << ", total rendered points: "
+//            std::cout << "num intersections between " << i << " and " << j << ": "
+//                      << num_intersections << ", total rendered points: "
 //                      << total_rendered_points << "; conflict cost: " << conflict_cost << std::endl;
 
 //            vis.removeAllPointClouds();
@@ -274,6 +233,8 @@ GHV<ModelT, SceneT>::computePairwiseIntersection()
 //            vis.spin();
         }
     }
+
+//    std::cout << "Intersection cost: " << std::endl << intersection_cost_ << std::endl << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -331,74 +292,43 @@ GHV<ModelT, SceneT>::initialize()
             scene_sampled_indices_[k] = k;
     }
 
-    scene_explained_weight_ = Eigen::MatrixXf::Zero(scene_cloud_downsampled_->points.size(), recognition_models_.size());
-
     octree_scene_downsampled_.reset(new pcl::octree::OctreePointCloudSearch<SceneT>(0.01f));
     octree_scene_downsampled_->setInputCloud(scene_cloud_downsampled_);
     octree_scene_downsampled_->addPointsFromInputCloud();
 
-    recognition_models_map_.clear();
-    recognition_models_map_.resize(recognition_models_.size());
+//    recognition_models_map_.clear();
+//    recognition_models_map_.resize(recognition_models_.size());
 
     // remove recognition models where there are not enough visible points (>95% occluded)
-    size_t kept=0;
-    for(size_t i=0; i<recognition_models_.size(); i++)
-    {
-        const typename HVRecognitionModel<ModelT>::Ptr &rm = recognition_models_[i];
+//    size_t kept=0;
+//    for(size_t i=0; i<recognition_models_.size(); i++)
+//    {
+//        const typename HVRecognitionModel<ModelT>::Ptr &rm = recognition_models_[i];
 
-        if( (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
-            continue;
+//        if( (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
+//            continue;
 
-        recognition_models_[kept] = rm;
-        recognition_models_map_[kept] = i;
-        kept++;
-    }
-    recognition_models_.resize(kept);
-    recognition_models_map_.resize(kept);
+//        recognition_models_[kept] = rm;
+//        recognition_models_map_[kept] = i;
+//        kept++;
+//    }
+//    recognition_models_.resize(kept);
+//    recognition_models_map_.resize(kept);
 
+    scene_explained_weight_ = Eigen::MatrixXf::Zero(scene_cloud_downsampled_->points.size(), recognition_models_.size());
     computePairwiseIntersection();
 
-    #pragma omp parallel sections
-    {
-        #pragma omp section
-        {
-            if (param_.detect_clutter_)
-            {
-                pcl::ScopeTime t("Smooth segmentation of the scene");
-//                segmentScene();
-            }
-        }
-
-        #pragma omp section
-        {
-            pcl::ScopeTime t("Converting scene color values");
-            if(!param_.ignore_color_even_if_exists_)
-                convertColor();
-        }
-    }
-
-    // we need to know the color of scene points before we go on
-    #pragma omp parallel sections
-    {
-        #pragma omp section
-        {
-            pcl::ScopeTime t("Computing cues for recognition models");
-            #pragma omp parallel for schedule(dynamic)
-            for (size_t i = 0; i < recognition_models_.size (); i++)
-                addModel(*recognition_models_[i], i);
-        }
-
-        #pragma omp section
-        {
-            pcl::ScopeTime t("compute cloud occupancy by recognition models");
-//            computeSceneOccupancyGridByRM();
-        }
+    if(!param_.ignore_color_even_if_exists_) {
+        pcl::ScopeTime t("Converting scene color values");
+        convertColor();
     }
 
     {
-        pcl::ScopeTime t("Compute clutter cue at once");
-//        computeClutterCueAtOnce();
+        pcl::ScopeTime t("Computing cues for recognition models");
+        for (size_t i = 0; i < recognition_models_.size (); i++)
+            addModel(*recognition_models_[i], i);
     }
+
 
     // visualize cues
     if(param_.visualize_go_cues_) {
@@ -526,8 +456,6 @@ GHV<ModelT, SceneT>::optimize ()
 
     delete best;
 
-//    GHVSAModel<ModelT, SceneT> _model;
-//    fill_structures(best_seen_.solution_, _model);
     return best_seen_.solution_;
 }
 
@@ -547,15 +475,16 @@ GHV<ModelT, SceneT>::verify()
 
     {
     pcl::ScopeTime t("Optimizing object hypotheses verification cost function");
-    std::vector<bool> solution = optimize ();
+//    std::vector<bool> solution = optimize ();
+    mask_ = optimize();
 
 
     // since we remove hypothese containing too few visible points - mask size does not correspond to recognition_models size anymore --> therefore this map stuff
-    for(size_t i=0; i<mask_.size(); i++)
-        mask_[ i ] = false;
+//    for(size_t i=0; i<mask_.size(); i++)
+//        mask_[ i ] = false;
 
-    for(size_t i=0; i<solution.size(); i++)
-        mask_[ recognition_models_map_[i] ] = solution[i];
+//    for(size_t i=0; i<solution.size(); i++)
+//        mask_[ recognition_models_map_[i] ] = solution[i];
     }
 
     recognition_models_.clear();
@@ -590,243 +519,74 @@ GHV<ModelT, SceneT>::removeNanNormals (HVRecognitionModel<ModelT> &rm)
     return !rm.visible_cloud_->points.empty();
 }
 
-template<typename ModelT, typename SceneT>
-void
-GHV<ModelT, SceneT>::registerModelAndSceneColor(std::vector<size_t> & lookup, HVRecognitionModel<ModelT> & rm)
-{
-    std::vector< std::vector<int> > label_indices;
-    std::vector< std::vector<int> > explained_scene_pts_per_label;
+//template<typename ModelT, typename SceneT>
+//void
+//GHV<ModelT, SceneT>::registerModelAndSceneColor(std::vector<size_t> & lookup, HVRecognitionModel<ModelT> & rm)
+//{
+//    std::vector< std::vector<int> > label_indices;
+//    std::vector< std::vector<int> > explained_scene_pts_per_label;
 
-    label_indices.resize(1);
-    label_indices[0].resize(rm.visible_cloud_->points.size());
-    for(size_t k=0; k < rm.visible_cloud_->points.size(); k++)
-        label_indices[0][k] = k;
+//    label_indices.resize(1);
+//    label_indices[0].resize(rm.visible_cloud_->points.size());
+//    for(size_t k=0; k < rm.visible_cloud_->points.size(); k++)
+//        label_indices[0][k] = k;
 
-    std::vector<bool> scene_pt_is_explained ( scene_cloud_downsampled_->points.size(), false );
-    for (size_t i = 0; i < label_indices[0].size (); i++)
-    {
-        std::vector<int> & nn_indices = rm.scene_inlier_indices_for_visible_pt_[ label_indices[0][i] ];
-        //            std::vector<float> & nn_distances = recog_model.inlier_distances_[ label_indices[0][i] ];
+//    std::vector<bool> scene_pt_is_explained ( scene_cloud_downsampled_->points.size(), false );
+//    for (size_t i = 0; i < label_indices[0].size (); i++)
+//    {
+//        std::vector<int> & nn_indices = scene_inlier_indices_for_visible_pt[ label_indices[0][i] ];
+//        //            std::vector<float> & nn_distances = recog_model.inlier_distances_[ label_indices[0][i] ];
 
-        for (size_t k = 0; k < nn_indices.size (); k++)
-            scene_pt_is_explained[ nn_indices[k] ] = true;
-    }
+//        for (size_t k = 0; k < nn_indices.size (); k++)
+//            scene_pt_is_explained[ nn_indices[k] ] = true;
+//    }
 
-    std::vector<int> explained_scene_pts = createIndicesFromMask<int>(scene_pt_is_explained);
+//    std::vector<int> explained_scene_pts = createIndicesFromMask<int>(scene_pt_is_explained);
 
-    explained_scene_pts_per_label.resize(1, std::vector<int>( explained_scene_pts.size() ) );
-    for (size_t i = 0; i < explained_scene_pts.size (); i++)
-        explained_scene_pts_per_label[0][i] = explained_scene_pts[i];
+//    explained_scene_pts_per_label.resize(1, std::vector<int>( explained_scene_pts.size() ) );
+//    for (size_t i = 0; i < explained_scene_pts.size (); i++)
+//        explained_scene_pts_per_label[0][i] = explained_scene_pts[i];
 
-    for(size_t j=0; j < label_indices.size(); j++)
-    {
-        std::vector<int> explained_scene_pts = explained_scene_pts_per_label[j];
+//    for(size_t j=0; j < label_indices.size(); j++)
+//    {
+//        std::vector<int> explained_scene_pts = explained_scene_pts_per_label[j];
 
-        if(param_.color_space_ == 0 || param_.color_space_ == 3)
-        {
-            std::vector<float> model_L_values ( label_indices[j].size () );
-            std::vector<float> scene_L_values ( explained_scene_pts.size() );
+//        if(param_.color_space_ == 0 || param_.color_space_ == 3)
+//        {
+//            std::vector<float> model_L_values ( label_indices[j].size () );
+//            std::vector<float> scene_L_values ( explained_scene_pts.size() );
 
-            float range_min = -1.0f, range_max = 1.0f;
+//            float range_min = -1.0f, range_max = 1.0f;
 
-            for (size_t i = 0; i < label_indices[j].size (); i++)
-                model_L_values[i] = rm.pt_color_( label_indices[j][i], 0);
+//            for (size_t i = 0; i < label_indices[j].size (); i++)
+//                model_L_values[i] = rm.pt_color_( label_indices[j][i], 0);
 
-            for(size_t i=0; i<explained_scene_pts.size(); i++)
-                scene_L_values[i] = scene_color_channels_(explained_scene_pts[i], 0);
+//            for(size_t i=0; i<explained_scene_pts.size(); i++)
+//                scene_L_values[i] = scene_color_channels_(explained_scene_pts[i], 0);
 
-            size_t hist_size = 100;
-            std::vector<size_t> model_L_hist, scene_L_hist;
-            computeHistogram(model_L_values, model_L_hist, hist_size, range_min, range_max);
-            computeHistogram(scene_L_values, scene_L_hist, hist_size, range_min, range_max);
-//            specifyHistograms(scene_L_hist, model_L_hist, lookup);
+//            size_t hist_size = 100;
+//            std::vector<size_t> model_L_hist, scene_L_hist;
+//            computeHistogram(model_L_values, model_L_hist, hist_size, range_min, range_max);
+//            computeHistogram(scene_L_values, scene_L_hist, hist_size, range_min, range_max);
+////            specifyHistograms(scene_L_hist, model_L_hist, lookup);
 
-            for (size_t i = 0; i < label_indices[j].size(); i++)
-            {
-                float LRefm = rm.pt_color_( label_indices[j][i], 0);
-                int pos = std::floor (hist_size * (LRefm - range_min) / (range_max - range_min));
+//            for (size_t i = 0; i < label_indices[j].size(); i++)
+//            {
+//                float LRefm = rm.pt_color_( label_indices[j][i], 0);
+//                int pos = std::floor (hist_size * (LRefm - range_min) / (range_max - range_min));
 
-                if(pos > lookup.size())
-                    throw std::runtime_error("Color not specified");
+//                if(pos > lookup.size())
+//                    throw std::runtime_error("Color not specified");
 
-                LRefm = lookup[pos] * (range_max - range_min)/hist_size + range_min;
-                rm.pt_color_( label_indices[j][i], 0) = LRefm;
-                rm.cloud_indices_specified_.push_back(label_indices[j][i]);
-            }
-        }
-        else
-            throw std::runtime_error("Specified color space not implemented at the moment!");
-        //        else if(param_.color_space_ == 1 || param_.color_space_ == 5)
-        //        {
-
-        //            std::vector<Eigen::Vector3f> model_gs_values, scene_gs_values;
-
-        //            //compute RGB histogram for the model points
-        //            for (size_t i = 0; i < label_indices[j].size (); i++)
-        //            {
-        //                model_gs_values.push_back(recog_model.cloud_RGB_[label_indices[j][i]] * 255.f);
-        //            }
-
-        //            //compute RGB histogram for the explained points
-        //            std::set<int>::iterator it;
-        //            for(it=explained_scene_pts.begin(); it != explained_scene_pts.end(); it++)
-        //            {
-        //                scene_gs_values.push_back(scene_RGB_values_[*it] * 255.f);
-        //            }
-
-        //            int dim = 3;
-        //            Eigen::MatrixXf gs_model, gs_scene;
-        //            computeRGBHistograms(model_gs_values, gs_model, dim);
-        //            computeRGBHistograms(scene_gs_values, gs_scene, dim);
-
-        //            //histogram specification, adapt model values to scene values
-        //            specifyRGBHistograms(gs_scene, gs_model, lookup, dim);
-
-        //            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-        //            {
-        //                for(int k=0; k < dim; k++)
-        //                {
-        //                    float color = recog_model.cloud_RGB_[label_indices[j][ii]][k] * 255.f;
-        //                    int pos = std::floor (static_cast<float> (color) / 255.f * 256);
-        //                    float specified = lookup(pos, k);
-        //                    recog_model.cloud_RGB_[label_indices[j][ii]][k] = specified / 255.f;
-        //                }
-        //            }
-
-        //            if(param_.color_space_ == 5)
-        //            {
-        //                //transform specified RGB to lab
-        //                for(size_t jj=0; jj < recog_model.cloud_LAB_.size(); jj++)
-        //                {
-        //                    unsigned char rm = recog_model.cloud_RGB_[jj][0] * 255;
-        //                    unsigned char gm = recog_model.cloud_RGB_[jj][1] * 255;
-        //                    unsigned char bm = recog_model.cloud_RGB_[jj][2] * 255;
-
-        //                    float LRefm, aRefm, bRefm;
-        //                    color_transf_omp_.RGB2CIELAB_normalized (rm, gm, bm, LRefm, aRefm, bRefm);
-        //                    recog_model.cloud_LAB_[jj] = Eigen::Vector3f(LRefm, aRefm, bRefm);
-        //                }
-        //            }
-        //        }
-        //        else if(param_.color_space_ == 2) //gray scale
-        //        {
-        //            std::vector<float> model_gs_values, scene_gs_values;
-
-        //            //compute RGB histogram for the model points
-        //            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-        //            {
-        //                model_gs_values.push_back(recog_model.cloud_GS_[label_indices[j][ii]] * 255.f);
-        //            }
-
-        //            //compute RGB histogram for the explained points
-        //            std::set<int>::iterator it;
-        //            for(it=explained_scene_pts.begin(); it != explained_scene_pts.end(); it++)
-        //                scene_gs_values.push_back(scene_GS_values_[*it] * 255.f);
-
-        //            Eigen::MatrixXf gs_model, gs_scene;
-        //            computeHistogram(model_gs_values, gs_model);
-        //            computeHistogram(scene_gs_values, gs_scene);
-
-        //            //histogram specification, adapt model values to scene values
-        //            specifyRGBHistograms(gs_scene, gs_model, lookup, 1);
-
-        //            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-        //            {
-        //                float LRefm = recog_model.cloud_GS_[label_indices[j][ii]] * 255.f;
-        //                int pos = std::floor (static_cast<float> (LRefm) / 255.f * 256);
-        //                float gs_specified = lookup(pos, 0);
-        //                LRefm = gs_specified / 255.f;
-        //                recog_model.cloud_GS_[label_indices[j][ii]] = LRefm;
-        //            }
-        //        }
-        //        else if(param_.color_space_ == 6)
-        //        {
-        //            std::vector<Eigen::Vector3f> model_gs_values, scene_gs_values;
-        //            int dim = 3;
-
-        //            //compute LAB histogram for the model points
-        //            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-        //            {
-        //                Eigen::Vector3f lab = recog_model.cloud_LAB_[label_indices[j][ii]] * 255.f;
-        //                lab[1] = (lab[1] + 255.f) / 2.f;
-        //                lab[2] = (lab[2] + 255.f) / 2.f;
-
-        //                for(int k=0; k < dim; k++)
-        //                {
-        //                    if(!(lab[k] >= 0 && lab[k] <= 255.f))
-        //                    {
-        //                        std::cout << lab[k] << " dim:" << dim << std::endl;
-        //                        assert(lab[k] >= 0 && lab[k] <= 255.f);
-        //                    }
-        //                }
-        //                model_gs_values.push_back(lab);
-        //            }
-
-        //            //compute LAB histogram for the explained points
-        //            for(size_t p_id=0; p_id < explained_scene_pts.size(); p_id++)
-        //            {
-        //                Eigen::Vector3f lab = scene_LAB_values_[ explained_scene_pts[p_id] ] * 255.f;
-        //                lab[1] = (lab[1] + 255.f) / 2.f;
-        //                lab[2] = (lab[2] + 255.f) / 2.f;
-
-        //                for(size_t k=0; k < dim; k++)
-        //                {
-        //                    assert(lab[k] >= 0 && lab[k] <= 255.f);
-        //                }
-        //                scene_gs_values.push_back(lab);
-        //            }
-
-        //            Eigen::MatrixXf gs_model, gs_scene;
-        //            computeRGBHistograms(model_gs_values, gs_model, dim);
-        //            computeRGBHistograms(scene_gs_values, gs_scene, dim);
-
-        //            //histogram specification, adapt model values to scene values
-        //            specifyRGBHistograms(gs_scene, gs_model, lookup, dim);
-
-        //            for (size_t ii = 0; ii < label_indices[j].size (); ii++)
-        //            {
-        //                recog_model.cloud_indices_specified_.push_back(label_indices[j][ii]);
-
-        //                for(int k=0; k < dim; k++)
-        //                {
-        //                    float LRefm = recog_model.cloud_LAB_[label_indices[j][ii]][k] * 255.f;
-        //                    if(k > 0)
-        //                        LRefm = (LRefm + 255.f) / 2.f;
-
-        //                    int pos = std::floor (static_cast<float> (LRefm) / 255.f * 256);
-        //                    assert(pos < lookup.rows());
-        //                    float gs_specified = lookup(pos, k);
-
-        //                    float diff = std::abs(LRefm - gs_specified);
-        //                    assert(gs_specified >= 0 && gs_specified <= 255.f);
-        //                    LRefm = gs_specified / 255.f;
-        //                    assert(LRefm >= 0 && LRefm <= 1.f);
-        //                    if(k > 0)
-        //                    {
-        //                        LRefm *= 2.f;
-        //                        LRefm -= 1.f;
-
-        //                        if(!(LRefm >= -1.f && LRefm <= 1.f))
-        //                        {
-        //                            std::cout << LRefm << " dim:" << k << " diff:" << diff << std::endl;
-        //                            assert(LRefm >= -1.f && LRefm <= 1.f);
-        //                        }
-        //                    }
-        //                    else
-        //                    {
-        //                        if(!(LRefm >= 0.f && LRefm <= 1.f))
-        //                        {
-        //                            std::cout << LRefm << " dim:" << k << std::endl;
-        //                            assert(LRefm >= 0.f && LRefm <= 1.f);
-        //                        }
-        //                    }
-
-        //                    recog_model.cloud_LAB_[label_indices[j][ii]][k] = LRefm;
-        //                }
-        //            }
-        //        }
-    }
-}
+//                LRefm = lookup[pos] * (range_max - range_min)/hist_size + range_min;
+//                rm.pt_color_( label_indices[j][i], 0) = LRefm;
+////                rm.cloud_indices_specified_.push_back(label_indices[j][i]);
+//            }
+//        }
+//        else
+//            throw std::runtime_error("Specified color space not implemented at the moment!");
+//    }
+//}
 
 template<typename ModelT, typename SceneT>
 bool
@@ -835,18 +595,18 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
     if( requires_normals_ )
         removeNanNormals(rm);
 
+    std::vector< std::vector<float> > noise_term_visible_pt; // expected (axial and lateral) noise level at visible point
     if ( param_.use_noise_model_ ) {    // fore each point we compute its associated noise level. This noise level is used as an adaptive threshold for radius search
-        rm.noise_term_visible_pt_.resize( rm.visible_cloud_->points.size(), std::vector<float>(2));
+        noise_term_visible_pt.resize( rm.visible_cloud_->points.size(), std::vector<float>(2));
 #pragma omp parallel for schedule (dynamic)
         for ( size_t i=0; i<rm.visible_cloud_->points.size(); i++ ) {
             NguyenNoiseModel<ModelT>::computeNoiseLevel( rm.visible_cloud_->points[i],
                                                          rm.visible_cloud_normals_->points[i],
-                                                         rm.noise_term_visible_pt_[i][0],
-                                                         rm.noise_term_visible_pt_[i][1],
+                                                         noise_term_visible_pt[i][0],
+                                                         noise_term_visible_pt[i][1],
                                                          param_.focal_length_);
         }
     }
-    pcl::octree::OctreePointCloudSearch<ModelT> octree_model (0.01f);
 
     if(!param_.ignore_color_even_if_exists_)
     {
@@ -898,46 +658,14 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
             }
         }
 
-        if(param_.use_histogram_specification_) {
-            std::vector<size_t> lookup;
-            registerModelAndSceneColor(lookup, rm);
-        }
-
-
-//        // now compute color description around a point taking into its neighboring pixels
-//        rm.local_pt_color_ = Eigen::MatrixXf::Zero ( rm.visible_cloud_->points.size(), 2*num_color_channels);
-//        octree_model.setInputCloud(rm.visible_cloud_);
-//        octree_model.addPointsFromInputCloud();
-
-//        for(size_t pt_id=0; pt_id<rm.visible_cloud_->points.size(); pt_id++) {
-//            std::vector<int> indices;
-//            std::vector<float> distances;
-//            const ModelT &searchPt = rm.visible_cloud_->points[pt_id];
-//            octree_model.nearestKSearch(searchPt, param_.knn_color_neighborhood_, indices, distances);
-
-//            std::vector<std::vector<double> > color_values(rm.pt_color_.cols(), std::vector<double>(indices.size()));
-//            for(size_t k=0; k<indices.size(); k++) {
-//                for(size_t c=0; c<rm.pt_color_.cols(); c++) {
-//                    color_values[c][k] = rm.pt_color_(k,c);
-//                }
-//            }
-
-
-//            // compute mean and standard deviation
-//            for(size_t c=0; c<rm.pt_color_.cols(); c++) {
-//                double mean = std::accumulate( color_values[c].begin(), color_values[c].end(), 0.0) / color_values[c].size();
-//                std::vector<double> diff( color_values[c].size() );
-//                std::transform( color_values[c].begin(), color_values[c].end(), diff.begin(), [mean](double x) { return x - mean; });
-//                double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-//                double stdev = std::sqrt(sq_sum / color_values[c].size());
-//                rm.local_pt_color_(pt_id, 2*c) = static_cast<float>(mean);
-//                rm.local_pt_color_(pt_id, 2*c+1) = static_cast<float>(stdev);
-//            }
+//        if(param_.use_histogram_specification_) {
+//            std::vector<size_t> lookup;
+//            registerModelAndSceneColor(lookup, rm);
 //        }
     }
 
-    rm.scene_inlier_indices_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
-    rm.scene_inlier_distances_for_visible_pt_.resize (rm.visible_cloud_->points.size ());
+    std::vector<std::vector<int> > scene_inlier_indices_for_visible_pt (rm.visible_cloud_->points.size ());
+    std::vector<std::vector<float> > scene_inlier_distances_for_visible_pt (rm.visible_cloud_->points.size ());
 
     //Goes through the visible model points and finds scene points within a radius neighborhood
     //If in this neighborhood, there are no scene points, model point is considered outlier
@@ -950,16 +678,14 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
 
         if ( param_.use_noise_model_ ) {
             float min_radius = 0.01f, max_radius = 0.03f;
-            radius = 2*std::max(rm.noise_term_visible_pt_[pt][0], rm.noise_term_visible_pt_[pt][1]);
+            radius = 2*std::max(noise_term_visible_pt[pt][0], noise_term_visible_pt[pt][1]);
             radius = std::max( std::min(radius, min_radius), max_radius);   // clip threshold to account for pose error etc.
         }
         octree_scene_downsampled_->radiusSearch (rm.visible_cloud_->points[pt], radius,
-                                                 rm.scene_inlier_indices_for_visible_pt_[pt], rm.scene_inlier_distances_for_visible_pt_[pt]);
+                                                 scene_inlier_indices_for_visible_pt[pt],
+                                                 scene_inlier_distances_for_visible_pt[pt]);
 
     }
-
-//    size_t outliers = 0, outliers_3d = 0, outliers_color = 0;
-
     Eigen::VectorXf scene_pt_explained_weight = Eigen::VectorXf::Zero ( scene_cloud_downsampled_->points.size() );
 
     rm.model_fit_ = 0.;
@@ -967,312 +693,54 @@ GHV<ModelT, SceneT>::addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx)
 
     for (size_t m_pt_id = 0; m_pt_id < rm.visible_cloud_->points.size(); m_pt_id++)
     {
-        bool outlier = false;
-//        int outlier_type = OutlierType::DIST;
+        const std::vector<int> & nn_indices = scene_inlier_indices_for_visible_pt[m_pt_id];
+        const std::vector<float> & nn_distances = scene_inlier_distances_for_visible_pt[m_pt_id];
 
-        const std::vector<int> & nn_indices = rm.scene_inlier_indices_for_visible_pt_[m_pt_id];
-        const std::vector<float> & nn_distances = rm.scene_inlier_distances_for_visible_pt_[m_pt_id];
+        if ( !nn_indices.empty() && !param_.ignore_color_even_if_exists_ )
+        {
+            int min_idx = 0;
+            double min_dist = std::numeric_limits<double>::max();
 
-        if( nn_indices.empty() ) // if there is no scene point nearby, count it as an outlier
-        {
-//            rm.outlier_indices_3d_[outliers_3d] = m_pt_id;
-//            outlier = true;
-//            outlier_type = OutlierType::DIST;
-//            outliers_3d++;
-        }
-        else    // check if it is an outlier due to color mismatch
-        {
-            if (!param_.ignore_color_even_if_exists_ )
+            for (size_t k = 0; k < nn_indices.size(); k++)
             {
-//                weights.resize( nn_indices.size () );
-//                float color_weight = 1.f;
-                int min_idx = 0;
-                double min_dist = std::numeric_limits<double>::max();
+                  const Eigen::VectorXf &color_m = rm.pt_color_.row(m_pt_id);
+                  const Eigen::VectorXf &color_s = scene_color_channels_.row( nn_indices[k] );
+                  double sqr_3D_dist = nn_distances[k];
+                  double dist;
 
-                for (size_t k = 0; k < nn_indices.size(); k++)
-                {
-                      const Eigen::VectorXf &color_m = rm.pt_color_.row(m_pt_id);
-                      const Eigen::VectorXf &color_s = scene_color_channels_.row( nn_indices[k] );
-//                      const Eigen::VectorXf &local_color_m = rm.local_pt_color_.row(m_pt_id);
-                      double sqr_3D_dist = nn_distances[k];
-                      double dist;
+                  if(param_.color_space_ == ColorSpace::LAB)
+                  {
+                      float As = color_s(1);
+                      float Bs = color_s(2);
+                      float Am = color_m(1);
+                      float Bm = color_m(2);
 
-                      if(param_.color_space_ == ColorSpace::LAB)
-                      {
-                          float As = color_s(1);
-                          float Bs = color_s(2);
-                          float Am = color_m(1);
-                          float Bm = color_m(2);
+                      double sqr_color_dist = ( (As-Am)*(As-Am)+(Bs-Bm)*(Bs-Bm) );
 
-                          double sqr_color_dist = ( (As-Am)*(As-Am)+(Bs-Bm)*(Bs-Bm) );
+                      dist = sqr_3D_dist / param_.inliers_threshold_ + sqr_color_dist / param_.color_sigma_ab_;
+                  }
 
-                          dist = sqr_3D_dist / param_.inliers_threshold_ + sqr_color_dist / param_.color_sigma_ab_;
-
-//                          float Am_avg = local_color_m(2);
-//                          float Am_std = local_color_m(3);
-//                          float Bm_avg = local_color_m(4);
-//                          float Bm_std = local_color_m(5);
-
-//                          std::vector<int> indices;
-//                          std::vector<float> distances;
-//                          const ModelT &searchPt = rm.visible_cloud_->points[m_pt_id];
-//                          octree_model.nearestKSearch(searchPt, param_.knn_color_neighborhood_, indices, distances);
-
-//                          for(size_t k=0; k<indices.size(); k++) {
-//                              for(size_t c=0; c<rm.pt_color_.cols(); c++) {
-//                                  std::cout << rm.pt_color_(k,c) << " ";
-//                              }
-//                              std::cout << std::endl;
-//                          }
-
-//                          std::cout << "average Am: " << Am_avg << std::endl
-//                                    << "average Bm: " << Bm_avg << std::endl
-//                                    << "std Am: " << Am_std << std::endl
-//                                    << "std Bm: " << Bm_std << std::endl
-//                                    << "As: " << As << std::endl
-//                                    << "Bs: " << Bs << std::endl << std::endl << std::endl;
-
-
-//                          if(    is_in_range(As, Am_avg - param_.color_std_dev_multiplier_threshold_ * Am_std, Am_avg + param_.color_std_dev_multiplier_threshold_ * Am_std)
-//                              && is_in_range(Bs, Bm_avg - param_.color_std_dev_multiplier_threshold_ * Bm_std, Bm_avg + param_.color_std_dev_multiplier_threshold_ * Bm_std)) {
-//                              is_color_outlier = false;
-//                              break;
-//                          }
-                      }
-
-                      if(dist < min_dist) {
-                          min_dist = dist;
-                          min_idx = k;
-                      }
-//                    if (!param_.ignore_color_even_if_exists_ )
-//                    {
-//                        if(param_.color_space_ == ColorSpace::LAB || param_.color_space_ == 5 || param_.color_space_ == 6)
-//                        {
-//                            const Eigen::Vector3f &color_m = rm.pt_color_.row(m_pt_id);
-//                            const Eigen::Vector3f &color_s = scene_color_channels_.row( nn_indices[k] );
-
-//                            color_weight = std::exp ( -0.5f * ( (color_m[0] - color_s[0]) * (color_m[0] - color_s[0]) / sigma_y
-//                                    +( (color_m[1] - color_s[1]) * (color_m[1] - color_s[1]) + (color_m[2] - color_s[2]) * (color_m[2] - color_s[2]) ) / sigma ) );
-//                        }
-//                        else if(param_.color_space_ == ColorSpace::RGB)
-//                        {
-//                            const Eigen::Vector3f &color_m = rm.pt_color_.row(m_pt_id);
-//                            const Eigen::Vector3f &color_s = scene_color_channels_.row( nn_indices[k] );
-
-//                            color_weight = std::exp (-0.5f * (   (color_m[0] - color_s[0]) * (color_m[0] - color_s[0])
-//                                    + (color_m[1] - color_s[1]) * (color_m[1] - color_s[1]) + (color_m[2] - color_s[2]) * (color_m[2] - color_s[2])) / sigma);
-//                        }
-//                        else if(param_.color_space_ == ColorSpace::GRAYSCALE)
-//                        {
-//                            float yuvm = rm.pt_color_( m_pt_id, 0 );
-//                            float yuvs = scene_color_channels_( nn_indices[k], 0 );
-
-//                            color_weight = std::exp (-0.5f * (yuvm - yuvs) * (yuvm - yuvs) / sigma_y);
-//                        }
-//                        else if(param_.color_space_ == 3)
-//                        {
-//                            float yuvm = rm.pt_color_(m_pt_id,0);
-//                            float yuvs = scene_color_channels_( nn_indices[k], 0 );
-
-//                            color_weight = std::exp (-0.5f * (yuvm - yuvs) * (yuvm - yuvs) / sigma_y);
-//                        }
-//                    }
-
-//                    const float dist_weight = std::exp( -nn_distances[k] / inliers_gaussian_soft );
-//                    weights[k] = color_weight * dist_weight;
-
-//                    if (weights[k] > param_.best_color_weight_)
-//                    {
-////                        scene_pt_is_explained_by_model_pt_with_color[ nn_indices[k] ].push_back( std::pair<size_t, float>( m_pt_id, weights[k] ));
-//                        is_color_outlier = false;
-//                    }
-                }
-
-                pcl::Correspondence c;
-                double weight = exp( -min_dist );
-                c.index_query = m_pt_id;
-                c.index_match = nn_indices[ min_idx ];
-                c.distance = weight;
-                rm.model_fit_ += weight;
-
-                if ( weight > scene_pt_explained_weight(nn_indices[ min_idx ]))
-                    scene_pt_explained_weight(nn_indices[ min_idx ]) = weight;
-
-
-//                if(is_color_outlier)
-//                {
-//                    rm.outlier_indices_color_[outliers_color] = m_pt_id;
-//                    outlier = true;
-//                    outliers_color++;
-//                    outlier_type = OutlierType::COLOR;
-//                }
+                  if(dist < min_dist) {
+                      min_dist = dist;
+                      min_idx = k;
+                  }
             }
 
-            // if it is not an outlier, then mark corresponding scene point(s) as explained
-//            for (size_t k = 0; k < nn_distances.size (); k++)
-//            {
-//                int scene_pt_id = nn_indices[k];
-//                float weight = nn_distances[k];
+            pcl::Correspondence c;
+            double weight = exp( -min_dist );
+            c.index_query = m_pt_id;
+            c.index_match = nn_indices[ min_idx ];
+            c.distance = weight;
+            rm.model_scene_c_[ m_pt_id] = c;
+            rm.model_fit_ += weight;
 
-//                if ( k >= weights.size() || weights[k] > param_.best_color_weight_ ) // if color check is enabled, only include if it passes the check
-//                    scene_pt_is_explained_by_model_pt[ scene_pt_id ].push_back( std::pair<size_t, float>( m_pt_id, weight) );
-//            }
-        }
-
-        if(outlier)
-        {
-//            //weight outliers based on noise model
-//            //model points close to occlusion edges or with perpendicular normals
-//            float d_weight = 1.f;
-//            //std::cout << "is an outlier" << is_planar_model << " " << occ_edges_available_ << std::endl;
-
-//            if(!rm.is_planar_ && requires_normals_ && false)
-//            {
-//                //std::cout << "going to weight based on normals..." << std::endl;
-//                Eigen::Vector3f normal_p = rm.visible_cloud_normals_->points[m_pt_id].getNormalVector3fMap();
-//                Eigen::Vector3f normal_vp = Eigen::Vector3f::UnitZ() * -1.f;
-//                normal_p.normalize ();
-//                normal_vp.normalize ();
-
-//                float dot = normal_vp.dot(normal_p);
-//                float angle = pcl::rad2deg(acos(dot));
-//                if (angle > 60.f)
-//                {
-//                    if(outlier_type == OutlierType::COLOR)
-//                        outliers_color--;
-//                    else
-//                        outliers_3d--;
-
-//                    // [60,75) => 0.5
-//                    // [75,90) => 0.25
-//                    // >90 => 0
-
-//                    /*if(angle >= 90.f)
-//                        d_weight = 0.25f;
-//                    else*/
-//                    d_weight = param_.d_weight_for_bad_normals_;
-//                }
-//            }
-
-//            rm.outliers_weight_[outliers] = param_.regularizer_ * d_weight;
-//            rm.outliers_weight_[outliers] = param_.regularizer_;
-//            rm.outlier_indices_[outliers] = m_pt_id;
-//            outliers++;
+            if ( weight > scene_pt_explained_weight( nn_indices[ min_idx ] ))
+                scene_pt_explained_weight( nn_indices[ min_idx ] ) = weight;
         }
     }
 
     rm.model_fit_ /= rm.visible_cloud_->points.size();
     scene_explained_weight_.col(model_idx) = scene_pt_explained_weight;
-
-//    rm.outliers_weight_.resize (outliers);
-//    rm.outlier_indices_.resize (outliers);
-//    rm.outlier_indices_3d_.resize (outliers_3d);
-//    rm.outlier_indices_color_.resize (outliers_color);
-
-//    rm.outliers_total_weight_ = param_.regularizer_ * static_cast<float>(outliers) / rm.visible_cloud_->points.size();
-
-////    if( rm.outlier_indices_.empty() )
-////        rm.outliers_total_weight_ = 1.f;
-////    else
-////    {
-////        if (rm.param_.outliers_weight_computation_method_ == HVRecognitionModel<ModelT>::OutliersWeightType::MEAN)
-////            rm.outliers_total_weight_ = std::accumulate (rm.outliers_weight_.begin (), rm.outliers_weight_.end (), 0.f) / static_cast<float> (rm.outliers_weight_.size ());
-////        else { // use median
-////            std::vector<float> outliers_weight = rm.outliers_weight_;
-////            std::sort(outliers_weight.begin(), outliers_weight.end());
-////            rm.outliers_total_weight_ = outliers_weight [ outliers_weight.size() / 2.f ];
-////        }
-////    }
-
-
-//    // ---------- compute which of the scene points are explained by this model-------
-
-//    rm.scene_pt_is_explained_.clear();
-//    rm.scene_pt_is_explained_.resize(scene_cloud_downsampled_->points.size(), false);
-//    rm.explained_scene_indices_.resize ( scene_cloud_downsampled_->points.size() );
-//    rm.distances_to_explained_scene_indices_.resize ( scene_cloud_downsampled_->points.size() );
-
-//    size_t kept=0;
-//    for(size_t s_pt_id=0; s_pt_id<scene_cloud_downsampled_->points.size(); s_pt_id++)
-//    {
-//        if ( scene_pt_is_explained_by_model_pt[s_pt_id].empty() )
-//            continue;
-
-//        size_t closest = 0;
-//        float min_d = std::numeric_limits<float>::max();
-//        for (size_t i = 0; i < scene_pt_is_explained_by_model_pt[ s_pt_id ].size(); i++)
-//        {
-//            std::pair<size_t, float> m_pt_and_weight_p = scene_pt_is_explained_by_model_pt[ s_pt_id ][i];
-//            if ( m_pt_and_weight_p.second < min_d )
-//            {
-//                min_d = m_pt_and_weight_p.second;
-//                closest = i;
-//            }
-//        }
-
-//        float inliers_gaussian = 2 * param_.inliers_threshold_ * param_.inliers_threshold_;
-//        float d_weight = std::exp( -( scene_pt_is_explained_by_model_pt[ s_pt_id ][closest].second / inliers_gaussian));
-
-//        //using normals to weight inliers
-////        Eigen::Vector3f scene_p_normal = scene_normals_->points[s_pt_id].getNormalVector3fMap ();
-////        scene_p_normal.normalize();
-////        size_t m_pt = scene_pt_is_explained_by_model_pt[ s_pt_id ][closest].first;
-////        Eigen::Vector3f model_p_normal = rm.visible_cloud_normals_->points[ m_pt ].getNormalVector3fMap ();
-////        model_p_normal.normalize();
-
-////        bool use_dot = false;
-////        float dotp = scene_p_normal.dot (model_p_normal); //[-1,1] from antiparallel trough perpendicular to parallel
-
-////        if(use_dot)
-////        {
-////            if (dotp < 0.f)
-////                dotp = 0.f;
-////        }
-////        else
-////        {
-////            if(dotp < -1.f) dotp = -1.f;
-////            if(dotp > 1.f) dotp = 1.f;
-
-////            float angle = pcl::rad2deg(acos(dotp));
-
-////            if(angle > 90.f) //ATTENTION!
-////                dotp = 0;
-////            else
-////                dotp = (1.f - angle / 90.f);
-////        }
-
-
-//        rm.scene_pt_is_explained_[ s_pt_id ] = true; //this scene point is explained by this hypothesis
-
-//        #pragma omp critical
-//        {
-//        rm.explained_scene_indices_[kept] = s_pt_id;
-////        explained_indices_distances [kept] = d_weight * dotp * rm.extra_weight_;
-//        rm.distances_to_explained_scene_indices_ [kept] = d_weight;
-//        kept++;
-//        }
-//    }
-//    rm.explained_scene_indices_.resize(kept);
-//    rm.distances_to_explained_scene_indices_.resize(kept);
-
-//    //compute the amount of information for explained scene points (color)
-////    float mean_distance = 0.f;
-////    if( !explained_indices.empty())
-////        mean_distance = std::accumulate(explained_indices_distances.begin(), explained_indices_distances.end(), 0.f) / static_cast<float>(explained_indices_distances.size());
-
-////    rm.mean_ = mean_distance;
-
-//    //modify the explained weights for planar models if color is being used
-//    if(rm.is_planar_)
-//    {
-//        for(size_t k=0; k < rm.distances_to_explained_scene_indices_.size(); k++)
-//        {
-//            rm.distances_to_explained_scene_indices_[k] *= param_.weight_factor_for_planes_;
-
-////            if (!param_.ignore_color_even_if_exists_)
-////                explained_indices_distances[k] /= 2;
-//        }
-//    }
 
     return true;
 }
@@ -1303,16 +771,10 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     rm_vis_->removeAllPointClouds();
 //    rm_vis_->removeAllShapes();
 
-
-    //update text
-    std::stringstream text_outliers;
-    text_outliers << "model outliers 3d (blue) and color (green). Weight: " << rm.outliers_total_weight_
-                  << ", visible ratio: " << (float)rm.visible_cloud_->points.size() / rm.complete_cloud_->points.size() << std::endl;
-    rm_vis_->updateText(text_outliers.str(),10,10,10,0.5,0.5,0.5,"model outliers");
-
     // scene and model
     rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene1",rm_v1);
     rm_vis_->addPointCloud(rm.visible_cloud_, "model",rm_v1);
+    rm_vis_->addPointCloud(rm.visible_cloud_, "model2",rm_v2);
 
     rm_vis_->resetCamera();
     rm_vis_->spin();
@@ -1324,20 +786,73 @@ GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
 {
     if(!vis_go_cues_) {
         vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
-        vis_go_cues_->createViewPort(0, 0, 0.5, 1, viewport_scene_cues_);
-        vis_go_cues_->createViewPort(0.5, 0, 1, 1, viewport_model_cues_);
+        vis_go_cues_->createViewPort(0, 0, 0.33, 0.5, vp_scene_);
+        vis_go_cues_->createViewPort(0.33, 0, 0.66, 0.5, vp_active_hypotheses_);
+        vis_go_cues_->createViewPort(0.66, 0, 1, 0.5, vp_model_fitness_);
+        vis_go_cues_->createViewPort(0, 0.5, 0.33, 1, vp_scene_fitness_);
     }
 
     vis_go_cues_->removeAllPointClouds();
     vis_go_cues_->removeAllShapes();
 
-    std::ostringstream out;
-    out << "Cost: " << std::setprecision(2) << cost << " , #Evaluations: " << times_evaluated;
+    double model_fitness = 0.f;
+    double pairwise_cost = 0.f;
+    double scene_fitness = 0.f;
 
-    vis_go_cues_->addText ("Model inliers & outliers", 1, 30, 16, 1, 1, 1, "inliers_outliers", viewport_model_cues_);
-    vis_go_cues_->addText ("Explained, multiple assignment & clutter", 1, 30, 16, 1, 1, 1, "scene_cues", viewport_scene_cues_);
+    // model uni term
+    size_t num_active_hypotheses = 0;
+    for(size_t i=0; i<active_solution.size(); i++)
+    {
+        if(active_solution[i]) {
+            model_fitness += recognition_models_[i]->model_fit_;
+            num_active_hypotheses++;
+        }
+    }
+    if(num_active_hypotheses)
+        model_fitness /= num_active_hypotheses;
+    else
+        model_fitness = 0.f;
 
-    vis_go_cues_->addPointCloud (scene_cloud_downsampled_, "scene_cloud", viewport_scene_cues_);
+    // scene uni term
+    Eigen::MatrixXf scene_explained_weight_for_active_hypotheses = scene_explained_weight_;
+    for(size_t i=0; i<active_solution.size(); i++)
+    {
+        if(!active_solution[i]) {
+            scene_explained_weight_for_active_hypotheses.col(i) = Eigen::VectorXf::Zero(
+                        scene_explained_weight_for_active_hypotheses.rows());
+        }
+    }
+
+    if ( scene_explained_weight_for_active_hypotheses.cols() ) {
+        Eigen::VectorXf max = scene_explained_weight_for_active_hypotheses.rowwise().maxCoeff();
+        scene_fitness = max.sum() / scene_cloud_downsampled_->points.size();
+    }
+
+
+    // pairwise term
+    for(size_t i=0; i<active_solution.size(); i++)
+    {
+        for(size_t j=0; j<i; j++)
+        {
+            if(active_solution[i] && active_solution[j])
+                pairwise_cost += intersection_cost_(i,j);
+        }
+    }
+
+
+    std::ostringstream out, model_fitness_txt, scene_fitness_txt;
+    out << "Active Hypotheses" << std::endl;
+    out << "Cost: " << std::setprecision(5) << cost << " , #Evaluations: " << times_evaluated;
+    out << std::endl << "; pairwise cost: " << pairwise_cost << "; total cost: " << cost_ << std::endl;
+    model_fitness_txt << "model fitness: " << model_fitness;
+    scene_fitness_txt << "scene fitness: " << scene_fitness;
+
+
+    vis_go_cues_->addText ("Scene", 1, 30, 16, 1, 1, 1, "inliers_outliers", vp_scene_);
+    vis_go_cues_->addText (out.str(), 1, 30, 16, 1, 1, 1, "scene_cues", vp_active_hypotheses_);
+    vis_go_cues_->addText (model_fitness_txt.str(), 1, 30, 16, 1, 1, 1, "model fitness", vp_model_fitness_);
+    vis_go_cues_->addText (scene_fitness_txt.str(), 1, 30, 16, 1, 1, 1, "scene fitness", vp_scene_fitness_);
+    vis_go_cues_->addPointCloud (scene_cloud_downsampled_, "scene_cloud", vp_scene_);
 
     //display active hypotheses
     for(size_t i=0; i < active_solution.size(); i++)
@@ -1346,8 +861,36 @@ GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution,
         {
             HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
             std::stringstream model_name; model_name << "model_" << i;
-            vis_go_cues_->addPointCloud(rm.visible_cloud_, model_name.str(), viewport_model_cues_);
+            vis_go_cues_->addPointCloud(rm.visible_cloud_, model_name.str(), vp_active_hypotheses_);
+
+            typename pcl::PointCloud<ModelT>::Ptr model_fit_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
+            for(size_t p=0; p < model_fit_cloud->points.size(); p++)
+            {
+                ModelT &mp = model_fit_cloud->points[p];
+                mp.r = mp.g = 0.f;
+
+                const pcl::Correspondence &c = rm.model_scene_c_[p];
+                mp.b = 50.f + 205.f * c.weight;
+            }
+
+            model_name << "_fitness";
+            vis_go_cues_->addPointCloud(model_fit_cloud, model_name.str(), vp_model_fitness_);
         }
+    }
+
+    if ( scene_explained_weight_for_active_hypotheses.cols() ) {
+        Eigen::VectorXf max_fit = scene_explained_weight_for_active_hypotheses.rowwise().maxCoeff();
+        typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*scene_cloud_downsampled_));
+
+        for(size_t p=0; p<scene_fit_cloud->points.size(); p++)
+        {
+            SceneT &sp = scene_fit_cloud->points[p];
+            sp.r = sp.g = 0.f;
+
+            sp.b = 50.f + 205.f * max_fit(p);
+        }
+
+        vis_go_cues_->addPointCloud(scene_fit_cloud, "scene fitness", vp_scene_fitness_);
     }
 
     vis_go_cues_->spin();

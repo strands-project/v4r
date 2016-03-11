@@ -34,12 +34,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FAATPCL_RECOGNITION_HYPOTHESIS_VERIFICATION_H_
-#define FAATPCL_RECOGNITION_HYPOTHESIS_VERIFICATION_H_
+#ifndef V4R_HYPOTHESIS_VERIFICATION_H__
+#define V4R_HYPOTHESIS_VERIFICATION_H__
 
-#include <pcl/pcl_macros.h>
 #include <v4r/core/macros.h>
-#include <v4r/common/common_data_structures.h>
 #include <v4r/common/zbuffering.h>
 #include <v4r/recognition/recognition_model_hv.h>
 #include <pcl/common/common.h>
@@ -62,7 +60,6 @@ namespace v4r
           double resolution_; /// @brief The resolution of models and scene used to verify hypotheses (in meters)
           double inliers_threshold_; /// @brief Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers
           double occlusion_thres_;    /// @brief Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)
-          int zbuffer_scene_resolution_; /// @brief Resolutions in pixel for the depth scene buffer
           int zbuffer_self_occlusion_resolution_;
           bool self_occlusions_reasoning_;
           double focal_length_; /// @brief defines the focal length used for back-projecting points to the image plane (used for occlusion / visibility reasoning)
@@ -73,7 +70,6 @@ namespace v4r
                   double resolution = 0.005f,
                   double inliers_threshold = 0.015f, // 0.005f
                   double occlusion_thres = 0.01f, // 0.005f
-                  int zbuffer_scene_resolution = 100,
                   int zbuffer_self_occlusion_resolution = 250,
                   bool self_occlusions_reasoning = true,
                   double focal_length = 525.f,
@@ -82,7 +78,6 @@ namespace v4r
               : resolution_ (resolution),
                 inliers_threshold_(inliers_threshold),
                 occlusion_thres_ (occlusion_thres),
-                zbuffer_scene_resolution_(zbuffer_scene_resolution),
                 zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
                 self_occlusions_reasoning_(self_occlusions_reasoning),
                 focal_length_ (focal_length),
@@ -107,11 +102,9 @@ namespace v4r
      */
     typename pcl::PointCloud<SceneT>::ConstPtr occlusion_cloud_;
 
-    bool occlusion_cloud_set_;
-
     bool scene_cloud_is_recorded_from_single_view_;
 
-    std::vector<int> recognition_models_map_;
+//    std::vector<int> recognition_models_map_;
 
     typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_; /// \brief Downsampled scene point cloud
 
@@ -137,15 +130,9 @@ namespace v4r
   public:
     HypothesisVerification (const Parameter &p = Parameter()) : param_(p)
     {
-      occlusion_cloud_set_ = false;
       normals_set_ = false;
       requires_normals_ = false;
       scene_cloud_is_recorded_from_single_view_ = true;
-    }
-
-    bool getRequiresNormals()
-    {
-      return requires_normals_;
     }
 
     float getResolution() const
@@ -198,7 +185,6 @@ namespace v4r
     setOcclusionCloud (const typename pcl::PointCloud<SceneT>::Ptr & occ_cloud)
     {
       occlusion_cloud_ = occ_cloud;
-      occlusion_cloud_set_ = true;
     }
 
     /**

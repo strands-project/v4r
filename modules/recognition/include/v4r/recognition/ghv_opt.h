@@ -10,10 +10,8 @@
 
 #include <pcl/pcl_macros.h>
 #include <pcl/common/common.h>
-#include <boost/random/variate_generator.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int.hpp>
-#include <boost/random/variate_generator.hpp>
+#include <boost/function.hpp>
+#include <boost/random.hpp>
 //#include "pcl/recognition/3rdparty/metslib/mets.hh"
 #include <metslib/mets.hh>
 #include <boost/graph/graph_traits.hpp>
