@@ -18,7 +18,7 @@ namespace v4r {
 template <class PointType>
 typename pcl::PointCloud<PointType>::Ptr downsampleCloud(
 		typename pcl::PointCloud<PointType>::Ptr input,
-		double resolution = 0.005f) {
+        double resolution) {
 
     pcl::VoxelGrid<PointType> vg;
     typename pcl::PointCloud<PointType>::Ptr cloud_filtered (new pcl::PointCloud<PointType>());
