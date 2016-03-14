@@ -118,7 +118,7 @@ v4r::GHVmove_manager<ModelT, SceneT>::refresh(mets::feasible_solution& s)
   GHVSAModel<ModelT, SceneT>& model = dynamic_cast<GHVSAModel<ModelT, SceneT>&> (s);
   moves_m.clear();
   moves_m.resize(model.solution_.size() + model.solution_.size()*model.solution_.size());
-  for (int ii = 0; ii != model.solution_.size(); ++ii)
+  for (size_t ii = 0; ii != model.solution_.size(); ii++)
   {
       if(!model.solution_[ii])
       {
@@ -130,40 +130,41 @@ v4r::GHVmove_manager<ModelT, SceneT>::refresh(mets::feasible_solution& s)
       }
   }
 
-  if(use_replace_moves_) {
+  if(use_replace_moves_)
+  {
     //based on s and the explained point intersection, create some replace_hyp_move
     //go through s and select active hypotheses and non-active hypotheses
     //check for each pair if the intersection is big enough
     //if positive, create a replace_hyp_move that will deactivate the act. hyp and activate the other one
     //MAYBE it would be interesting to allow this changes when the temperature is low or
     //there has been some iterations without an improvement
-    std::vector<int> active, inactive;
+    std::vector<size_t> active, inactive;
     active.resize(model.solution_.size());
     inactive.resize(model.solution_.size());
-    int nact, ninact;
-    nact = ninact = 0;
-    for(int i=0; i <static_cast<int>(model.solution_.size()); i++) {
-      if(model.solution_[i]) {
+    size_t nact=0, ninact=0;
+    for(size_t i=0; i < model.solution_.size(); i++)
+    {
+      if(model.solution_[i])
+      {
         active[nact] = i;
         nact++;
-      } else {
+      }
+      else
+      {
         inactive[ninact] = i;
         ninact++;
       }
     }
-
     active.resize(nact);
     inactive.resize(ninact);
 
-    int nm=0;
-    for(size_t i=0; i < active.size(); ++i) {
-      for(size_t j=(i+1); j < inactive.size(); ++j) {
-        std::map< std::pair<int, int>, bool>::iterator it;
-        int minn = std::min(active[i], inactive[j]);
-        int maxx = std::max(active[i], inactive[j]);
-        it = intersections_->find(std::make_pair(minn,maxx));
-        assert(it != intersections_->end());
-        if((*it).second) {
+    size_t nm=0;
+    for(size_t i=0; i < active.size(); i++)
+    {
+      for(size_t j=0; j < inactive.size(); j++)
+      {
+        if( intersection_cost_(active[i], inactive[j]) > std::numeric_limits<float>::epsilon() )
+        {
           moves_m[model.solution_.size() + nm] = new GHVreplace_hyp_move<ModelT, SceneT> (active[i], inactive[j], model.solution_.size());
           nm++;
         }
@@ -171,7 +172,9 @@ v4r::GHVmove_manager<ModelT, SceneT>::refresh(mets::feasible_solution& s)
     }
 
     moves_m.resize(model.solution_.size() + nm);
-  } else {
+  }
+  else
+  {
     moves_m.resize(model.solution_.size());
   }
   std::random_shuffle (moves_m.begin (), moves_m.end ());

@@ -12,7 +12,6 @@
 #include <pcl/common/common.h>
 #include <boost/function.hpp>
 #include <boost/random.hpp>
-//#include "pcl/recognition/3rdparty/metslib/mets.hh"
 #include <metslib/mets.hh>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -132,11 +131,11 @@ namespace v4r
   template<typename ModelT, typename SceneT>
   class V4R_EXPORTS GHVreplace_hyp_move : public GHVgeneric_move
   {
-    int i_, j_; //i_ is an active hypothesis, j_ is an inactive hypothesis
-    int sol_size_;
+    size_t i_, j_; //i_ is an active hypothesis, j_ is an inactive hypothesis
+    size_t sol_size_;
 
   public:
-    GHVreplace_hyp_move (int i, int j, int sol_size) :
+    GHVreplace_hyp_move (size_t i, size_t j, size_t sol_size) :
       i_ (i), j_ (j), sol_size_ (sol_size)
     {
     }
@@ -271,14 +270,14 @@ namespace v4r
   template<typename ModelT, typename SceneT>
     class V4R_EXPORTS GHVmove_activate : public GHVgeneric_move
     {
-      int index_;
+      size_t index_;
     public:
-      GHVmove_activate (int i) :
+      GHVmove_activate (size_t i) :
         index_ (i)
       {
       }
 
-      int
+      size_t
       getIndex ()
       {
         return index_;
@@ -333,15 +332,15 @@ namespace v4r
     template<typename ModelT, typename SceneT>
       class GHVmove_deactivate : public GHVgeneric_move
       {
-        int index_;
-        int problem_size_;
+        size_t index_;
+        size_t problem_size_;
       public:
-        GHVmove_deactivate (int i, int problem_size) :
+        GHVmove_deactivate (size_t i, size_t problem_size) :
             index_ (i), problem_size_(problem_size)
         {
         }
 
-        int
+        size_t
         getIndex ()
         {
           return index_;
@@ -399,9 +398,9 @@ namespace v4r
         bool use_replace_moves_;
       public:
         std::vector<GHVgeneric_move*> moves_m;
-        boost::shared_ptr<std::map<std::pair<int, int>, bool> > intersections_;
+        Eigen::MatrixXf intersection_cost_;
         typedef typename std::vector<GHVgeneric_move*>::iterator iterator;
-        int problem_size_;
+        size_t problem_size_;
         iterator
         begin ()
         {
@@ -413,7 +412,7 @@ namespace v4r
           return moves_m.end ();
         }
 
-        GHVmove_manager (int problem_size, bool rp_moves = true)
+        GHVmove_manager (size_t problem_size, bool rp_moves = true)
         {
           use_replace_moves_ = rp_moves;
           problem_size_ = problem_size;
@@ -430,9 +429,9 @@ namespace v4r
         }
 
         void
-        setExplainedPointIntersections (boost::shared_ptr<std::map<std::pair<int, int>, bool> > & intersections)
+        setExplainedPointIntersections (Eigen::MatrixXf &intersection_cost)
         {
-          intersections_ = intersections;
+            intersection_cost_ = intersection_cost;
         }
 
         void

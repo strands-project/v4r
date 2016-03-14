@@ -88,7 +88,7 @@ public:
                 bool ignore_color_even_if_exists = false,
                 int max_iterations = 5000,
                 double clutter_regularizer =  1.f, //3.f,
-                bool use_replace_moves = false, // true!!!,
+                bool use_replace_moves = true, // true!!!,
                 int opt_type = OptimizationType::LocalSearch,
                 bool use_histogram_specification = false, // false
                 bool initial_status = false,

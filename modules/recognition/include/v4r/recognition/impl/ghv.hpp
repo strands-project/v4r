@@ -356,10 +356,8 @@ GHV<ModelT, SceneT>::optimize ()
     model.setOptimizer (this);
 
     GHVSAModel<ModelT, SceneT> *best = new GHVSAModel<ModelT, SceneT> (model);
-    GHVmove_manager<ModelT, SceneT> neigh (static_cast<int> (recognition_models_.size ()), param_.use_replace_moves_);
-    boost::shared_ptr<std::map< std::pair<int, int>, bool > > intersect_map (new std::map< std::pair<int, int>, bool >);
-
-    neigh.setExplainedPointIntersections(intersect_map);
+    GHVmove_manager<ModelT, SceneT> neigh ( recognition_models_.size (), param_.use_replace_moves_);
+    neigh.setExplainedPointIntersections(intersection_cost_);
 
     //mets::best_ever_solution best_recorder (best);
     cost_logger_.reset(new GHVCostFunctionLogger<ModelT, SceneT>(*best));
@@ -403,8 +401,8 @@ GHV<ModelT, SceneT>::optimize ()
     }
     case OptimizationType::TabuSearchWithLSRM:
     {
-        GHVmove_manager<ModelT, SceneT> neigh4 (static_cast<int> (recognition_models_.size()), false);
-        neigh4.setExplainedPointIntersections(intersect_map);
+        GHVmove_manager<ModelT, SceneT> neigh4 (recognition_models_.size(), false);
+        neigh4.setExplainedPointIntersections(intersection_cost_);
 
         mets::simple_tabu_list tabu_list ( temp_solution.size() * sqrt ( 1.0*temp_solution.size() ) ) ;
         mets::best_ever_criteria aspiration_criteria ;
@@ -412,15 +410,15 @@ GHV<ModelT, SceneT>::optimize ()
         //mets::tabu_search<move_manager> tabu_search(model, best_recorder, neigh, tabu_list, aspiration_criteria, noimprove);
 
         {
-            pcl::ScopeTime t_tabu ("TABU search + LS (RM)...");
+            pcl::ScopeTime t("TABU search + LS (RM)...");
             try { tabu_search.search (); }
             catch (mets::no_moves_error e) { }
 
             std::cout << "Tabu search finished... starting LS with RM" << std::endl;
 
             //after TS, we do LS with RM
-            GHVmove_manager<ModelT, SceneT> neigh4RM (static_cast<int> (recognition_models_.size()), true);
-            neigh4RM.setExplainedPointIntersections(intersect_map);
+            GHVmove_manager<ModelT, SceneT> neigh4RM (recognition_models_.size(), true);
+            neigh4RM.setExplainedPointIntersections(intersection_cost_);
 
             mets::local_search<GHVmove_manager<ModelT, SceneT> > local ( model, *(cost_logger_.get()), neigh4RM, 0, false);
             {
