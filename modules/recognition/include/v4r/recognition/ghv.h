@@ -124,16 +124,6 @@ public:
         {}
     }param_;
 
-private:
-    mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
-    mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> rm_vis_;
-    mutable int vp_active_hypotheses_, vp_scene_, vp_model_fitness_, vp_scene_fitness_;
-    mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6;
-
-
-    double model_fitness_, pairwise_cost_, scene_fitness_, cost_;
-
-
 protected:
     using HypothesisVerification<ModelT, SceneT>::mask_;
     using HypothesisVerification<ModelT, SceneT>::recognition_models_;
@@ -147,6 +137,12 @@ protected:
     using HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_is_recorded_from_single_view_;
 
+    mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
+    mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> rm_vis_;
+    mutable int vp_active_hypotheses_, vp_scene_, vp_model_fitness_, vp_scene_fitness_;
+    mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6;
+
+    double model_fitness_, pairwise_cost_, scene_fitness_, cost_;
 
     pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
     bool scene_and_normals_set_from_outside_;
@@ -162,18 +158,23 @@ protected:
     typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
     boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
 
+    bool removeNanNormals (HVRecognitionModel<ModelT> & recog_model); /// @brief remove all points from visible cloud and normals which are not-a-number
 
-    bool removeNanNormals (HVRecognitionModel<ModelT> & recog_model);
+    void convertSceneColor(); /// @brief converting scene points from RGB to desired color space
 
-    bool addModel (HVRecognitionModel<ModelT> &rm, size_t model_idx);
+    void convertModelColor (HVRecognitionModel<ModelT> &rm); /// @brief converting visible points from the model from RGB to desired color space
 
-    bool initialize ();
+    void computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, size_t model_idx); /// @brief checks for each visible point in the model if there are nearby scene points and how good they match
+
+    void removeModelsWithLowVisibility(); /// @brief remove recognition models where there are not enough visible points (>95% occluded)
+
+    void computePairwiseIntersection(); /// @brief computes the overlap of two visible points when projected to camera view
+
+    void initialize();
 
     mets::gol_type evaluateSolution (const std::vector<bool> & active, int changed);
 
     std::vector<bool> optimize();
-
-    void computePairwiseIntersection();
 
     void visualizeGOCues(const std::vector<bool> & active_solution, float cost_, int times_eval);
 
@@ -181,16 +182,12 @@ protected:
 
     void registerModelAndSceneColor(std::vector<size_t> &lookup, HVRecognitionModel<ModelT> & recog_model);
 
-    void convertColor();
-
     typedef pcl::PointCloud<ModelT> CloudM;
     typedef pcl::PointCloud<SceneT> CloudS;
     typedef typename pcl::traits::fieldList<typename CloudS::PointType>::type FieldListS;
     typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
 
-
 public:
-
     GHV (const Parameter &p=Parameter()) : HypothesisVerification<ModelT, SceneT> (p) , param_(p)
     {
         initial_temp_ = 1000;
