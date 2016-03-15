@@ -750,6 +750,17 @@ template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution, float cost, int times_evaluated)
 {
+    std::cerr << "Visualizing GO Cues is only implemented for XYZRGB point clouds." << std::endl;
+}
+
+
+template<>
+void
+GHV<pcl::PointXYZRGB, pcl::PointXYZRGB>::visualizeGOCues (const std::vector<bool> & active_solution, float cost, int times_evaluated)
+{
+    typedef pcl::PointXYZRGB ModelT;
+    typedef pcl::PointXYZRGB SceneT;
+
     if(!vis_go_cues_) {
         vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
         vis_go_cues_->createViewPort(0, 0, 0.33, 0.5, vp_scene_);
