@@ -142,6 +142,7 @@ public:
         double distance_same_keypoint_; /// @brief defines the minimum distance between two keypoints (of same model) to be seperated
         double same_keypoint_dot_product_; /// @brief defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
         int extension_mode_; /// @brief defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
+        bool use_multiview_verification_; /// @brief if true, verifies against all viewpoints from the scene (i.e. computing visible model cloud taking into account all views and trying to explain all points from reconstructed scene). Otherwise only against the current viewpoint.
         int max_vertices_in_graph_; /// @brief maximum number of views taken into account (views selected in order of latest recognition calls)
         double chop_z_;  /// @brief points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
         bool compute_mst_; /// @brief if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud
@@ -156,6 +157,7 @@ public:
                 double distance_same_keypoint = 0.005f*0.005f,
                 double same_keypoint_dot_product = 0.8f,
                 int extension_mode = 0,
+                bool use_multiview_verification = true,
                 int max_vertices_in_graph = 3,
                 double chop_z = std::numeric_limits<double>::max(),
                 bool compute_mst = true,
@@ -171,6 +173,7 @@ public:
             distance_same_keypoint_ (distance_same_keypoint),
             same_keypoint_dot_product_ (same_keypoint_dot_product),
             extension_mode_ (extension_mode),
+            use_multiview_verification_ (use_multiview_verification),
             max_vertices_in_graph_ (max_vertices_in_graph),
             chop_z_ (chop_z),
             compute_mst_ (compute_mst),

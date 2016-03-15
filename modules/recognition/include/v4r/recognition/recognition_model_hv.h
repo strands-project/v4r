@@ -26,6 +26,17 @@ namespace v4r
       HVRecognitionModel()
       { }
 
+      /**
+       * @brief does dilation and erosion on the occupancy image of the rendered point cloud
+       * @param do_smoothing
+       * @param smoothing_radius
+       * @param do_erosion
+       * @param erosion_radius
+       * @param img_width
+       */
+      void
+      processSilhouette(bool do_smoothing=true, size_t smoothing_radius=2, bool do_erosion=true, size_t erosion_radius=4, size_t img_width=640);
+
       typedef boost::shared_ptr< HVRecognitionModel> Ptr;
       typedef boost::shared_ptr< HVRecognitionModel const> ConstPtr;
   };

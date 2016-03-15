@@ -266,8 +266,8 @@ void
 GHV<ModelT, SceneT>::initialize()
 {
 //    explained_by_RM_model_.clear();
-    mask_.clear ();
-    mask_.resize (recognition_models_.size (), false);
+    solution_.clear ();
+    solution_.resize (recognition_models_.size (), false);
 
     if(!scene_and_normals_set_from_outside_ || scene_cloud_downsampled_->points.size() != scene_normals_->points.size())
     {
@@ -319,6 +319,11 @@ GHV<ModelT, SceneT>::initialize()
     octree_scene_downsampled_->setInputCloud(scene_cloud_downsampled_);
     octree_scene_downsampled_->addPointsFromInputCloud();
 
+    {
+        pcl::ScopeTime t("pose refinement and computing visible model points");
+        computeVisibleModelsAndRefinePose();
+    }
+
     removeModelsWithLowVisibility();
 
     #pragma omp parallel sections
@@ -357,10 +362,11 @@ GHV<ModelT, SceneT>::initialize()
     }
 
 //     visualize cues
-//    if(param_.visualize_go_cues_) {
-//        for (const auto & rm:recognition_models_)
-//            visualizeGOCuesForModel(*rm);
-//    }
+//    if(param_.visualize_go_cues_)
+    {
+        for (const auto & rm:recognition_models_)
+            visualizeGOCuesForModel(*rm);
+    }
 }
 
 template<typename ModelT, typename SceneT>
@@ -389,88 +395,88 @@ GHV<ModelT, SceneT>::optimize ()
 
     switch( param_.opt_type_ )
     {
-    case OptimizationType::LocalSearch:
-    {
-        mets::local_search<GHVmove_manager<ModelT, SceneT> > local ( model, *(cost_logger_.get()), neigh, 0, false);
+        case OptimizationType::LocalSearch:
         {
-            pcl::ScopeTime t ("local search...");
-            local.search ();
-        }
-        break;
-    }
-    case OptimizationType::TabuSearch:
-    {
-        //Tabu search
-        //mets::simple_tabu_list tabu_list ( initial_solution.size() * sqrt ( 1.0*initial_solution.size() ) ) ;
-        mets::simple_tabu_list tabu_list ( 5 * temp_solution.size()) ;
-        mets::best_ever_criteria aspiration_criteria ;
-
-        std::cout << "max iterations:" << param_.max_iterations_ << std::endl;
-        mets::tabu_search<GHVmove_manager<ModelT, SceneT> > tabu_search(model,  *(cost_logger_.get()), neigh, tabu_list, aspiration_criteria, noimprove);
-        //mets::tabu_search<move_manager> tabu_search(model, best_recorder, neigh, tabu_list, aspiration_criteria, noimprove);
-
-        {
-            pcl::ScopeTime t ("TABU search...");
-            try {
-                tabu_search.search ();
-            } catch (mets::no_moves_error e) {
-                //} catch (std::exception e) {
-
-            }
-        }
-        break;
-    }
-    case OptimizationType::TabuSearchWithLSRM:
-    {
-        GHVmove_manager<ModelT, SceneT> neigh4 (recognition_models_.size(), false);
-        neigh4.setExplainedPointIntersections(intersection_cost_);
-
-        mets::simple_tabu_list tabu_list ( temp_solution.size() * sqrt ( 1.0*temp_solution.size() ) ) ;
-        mets::best_ever_criteria aspiration_criteria ;
-        mets::tabu_search<GHVmove_manager<ModelT, SceneT> > tabu_search(model,  *(cost_logger_.get()), neigh4, tabu_list, aspiration_criteria, noimprove);
-        //mets::tabu_search<move_manager> tabu_search(model, best_recorder, neigh, tabu_list, aspiration_criteria, noimprove);
-
-        {
-            pcl::ScopeTime t("TABU search + LS (RM)...");
-            try { tabu_search.search (); }
-            catch (mets::no_moves_error e) { }
-
-            std::cout << "Tabu search finished... starting LS with RM" << std::endl;
-
-            //after TS, we do LS with RM
-            GHVmove_manager<ModelT, SceneT> neigh4RM (recognition_models_.size(), true);
-            neigh4RM.setExplainedPointIntersections(intersection_cost_);
-
-            mets::local_search<GHVmove_manager<ModelT, SceneT> > local ( model, *(cost_logger_.get()), neigh4RM, 0, false);
+            mets::local_search<GHVmove_manager<ModelT, SceneT> > local ( model, *(cost_logger_.get()), neigh, 0, false);
             {
-                pcl::ScopeTime t_local_search ("local search...");
+                pcl::ScopeTime t ("local search...");
                 local.search ();
-                (void)t_local_search;
             }
+            break;
         }
-        break;
-
-    }
-    case OptimizationType::SimulatedAnnealing:
-    {
-        //Simulated Annealing
-        //mets::linear_cooling linear_cooling;
-        mets::exponential_cooling linear_cooling;
-        mets::simulated_annealing<GHVmove_manager<ModelT, SceneT> > sa (model,  *(cost_logger_.get()), neigh, noimprove, linear_cooling, initial_temp_, 1e-7, 1);
-        sa.setApplyAndEvaluate (true);
-
+        case OptimizationType::TabuSearch:
         {
-            pcl::ScopeTime t ("SA search...");
-            sa.search ();
+            //Tabu search
+            //mets::simple_tabu_list tabu_list ( initial_solution.size() * sqrt ( 1.0*initial_solution.size() ) ) ;
+            mets::simple_tabu_list tabu_list ( 5 * temp_solution.size()) ;
+            mets::best_ever_criteria aspiration_criteria ;
+
+            std::cout << "max iterations:" << param_.max_iterations_ << std::endl;
+            mets::tabu_search<GHVmove_manager<ModelT, SceneT> > tabu_search(model,  *(cost_logger_.get()), neigh, tabu_list, aspiration_criteria, noimprove);
+            //mets::tabu_search<move_manager> tabu_search(model, best_recorder, neigh, tabu_list, aspiration_criteria, noimprove);
+
+            {
+                pcl::ScopeTime t ("TABU search...");
+                try {
+                    tabu_search.search ();
+                } catch (mets::no_moves_error e) {
+                    //} catch (std::exception e) {
+
+                }
+            }
+            break;
         }
-        break;
-    }
-    default:
-        throw std::runtime_error("Specified optimization type not implememted!");
+        case OptimizationType::TabuSearchWithLSRM:
+        {
+            GHVmove_manager<ModelT, SceneT> neigh4 (recognition_models_.size(), false);
+            neigh4.setExplainedPointIntersections(intersection_cost_);
+
+            mets::simple_tabu_list tabu_list ( temp_solution.size() * sqrt ( 1.0*temp_solution.size() ) ) ;
+            mets::best_ever_criteria aspiration_criteria ;
+            mets::tabu_search<GHVmove_manager<ModelT, SceneT> > tabu_search(model,  *(cost_logger_.get()), neigh4, tabu_list, aspiration_criteria, noimprove);
+            //mets::tabu_search<move_manager> tabu_search(model, best_recorder, neigh, tabu_list, aspiration_criteria, noimprove);
+
+            {
+                pcl::ScopeTime t("TABU search + LS (RM)...");
+                try { tabu_search.search (); }
+                catch (mets::no_moves_error e) { }
+
+                std::cout << "Tabu search finished... starting LS with RM" << std::endl;
+
+                //after TS, we do LS with RM
+                GHVmove_manager<ModelT, SceneT> neigh4RM (recognition_models_.size(), true);
+                neigh4RM.setExplainedPointIntersections(intersection_cost_);
+
+                mets::local_search<GHVmove_manager<ModelT, SceneT> > local ( model, *(cost_logger_.get()), neigh4RM, 0, false);
+                {
+                    pcl::ScopeTime t_local_search ("local search...");
+                    local.search ();
+                    (void)t_local_search;
+                }
+            }
+            break;
+
+        }
+        case OptimizationType::SimulatedAnnealing:
+        {
+            //Simulated Annealing
+            //mets::linear_cooling linear_cooling;
+            mets::exponential_cooling linear_cooling;
+            mets::simulated_annealing<GHVmove_manager<ModelT, SceneT> > sa (model,  *(cost_logger_.get()), neigh, noimprove, linear_cooling, initial_temp_, 1e-7, 1);
+            sa.setApplyAndEvaluate (true);
+
+            {
+                pcl::ScopeTime t ("SA search...");
+                sa.search ();
+            }
+            break;
+        }
+        default:
+            throw std::runtime_error("Specified optimization type not implememted!");
     }
 
     best_seen_ = static_cast<const GHVSAModel<ModelT, SceneT>&> (cost_logger_->best_seen());
-    std::cout << "*****************************"
+    std::cout << "*****************************" << std::endl
               << "Final cost:" << best_seen_.cost_ << std::endl
               << "Number of ef evaluations:" << cost_logger_->getTimesEvaluated() << std::endl
               << "Number of accepted moves:" << cost_logger_->getAcceptedMovesSize() << std::endl
@@ -498,14 +504,14 @@ GHV<ModelT, SceneT>::verify()
     std::vector<bool> solution = optimize ();
 
     // since we remove hypothese containing too few visible points - mask size does not correspond to recognition_models size anymore --> therefore this map stuff
-    for(size_t i=0; i<mask_.size(); i++)
-        mask_[ i ] = false;
+    for(size_t i=0; i<solution_.size(); i++)
+        solution_[ i ] = false;
 
     for(size_t i=0; i<solution.size(); i++)
-        mask_[ recognition_models_map_[i] ] = solution[i];
+        solution_[ recognition_models_map_[i] ] = solution[i];
     }
 
-    recognition_models_.clear();
+    cleanUp();
 }
 
 template<typename ModelT, typename SceneT>

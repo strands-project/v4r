@@ -1,10 +1,10 @@
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/pcl_opencv.h>
 #include <v4r/common/zbuffering.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/features/uniform_sampling.h>
 #include <pcl/common/time.h>
 #include <pcl/common/common.h>
-#include <v4r/common/pcl_opencv.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/registration/icp.h>
 #include <fstream>
@@ -15,81 +15,77 @@ namespace v4r
 
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models, std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> &model_normals)
+HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
 {
-    pcl::ScopeTime t("pose refinement and computing visible model points");
-
-    size_t existing_models = recognition_models_.size();
-    recognition_models_.resize( existing_models + models.size() );
-
     if(param_.icp_iterations_) {
         refined_model_transforms_.clear();
-        refined_model_transforms_.resize( models.size() );
+        refined_model_transforms_.resize( recognition_models_.size() );
     }
 
-    #pragma omp parallel for schedule(dynamic)
-    for(size_t i=0; i<models.size(); i++)
-    {
-        recognition_models_[existing_models + i].reset(new HVRecognitionModel<ModelT>);
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[existing_models + i];
+    typename ZBuffering<SceneT>::Parameter zbuffParam;
+    zbuffParam.f_ = param_.focal_length_;
+    zbuffParam.width_ = 640;
+    zbuffParam.height_ = 480;
 
-        rm.complete_cloud_.reset(new pcl::PointCloud<ModelT>(*models[i]));
+    ZBuffering<SceneT> zbuf(zbuffParam);
+    Eigen::MatrixXf depth_image_scene;
+    std::vector<int> visible_scene_indices;
+    zbuf.computeDepthMap(*scene_cloud_, depth_image_scene, visible_scene_indices);
+
+    #pragma omp parallel for schedule(dynamic)
+    for(size_t i=0; i<recognition_models_.size(); i++)
+    {
+        HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
         rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
 
         bool redo;
-
         do
         {
             redo = false;
-            if (!param_.do_occlusion_reasoning_)   // just copy complete models
-                *rm.visible_cloud_ = *models[i];
-            else
-            { //we need to reason about occlusions before setting the model
+            if (!param_.do_occlusion_reasoning_) // just copy complete models
+            {
+                *rm.visible_cloud_ = *rm.complete_cloud_;
+                rm.visible_indices_.resize( rm.complete_cloud_->points.size());
+                for(size_t pt=0; pt<rm.visible_indices_.size(); pt++)
+                    rm.visible_indices_[pt] = pt;
+            }
+            else //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
+            {
+                Eigen::MatrixXf depth_image_model;
+                std::vector<int> visible_model_indices;
+                ZBuffering<ModelT> zbufM(zbuffParam);
+                zbufM.computeDepthMap(*rm.complete_cloud_, depth_image_model, visible_model_indices);
+                std::vector<int> indices_map = zbufM.getIndicesMap();
 
-                typename pcl::PointCloud<ModelT>::Ptr filter_self_occ (new pcl::PointCloud<ModelT> ());
-                typename pcl::PointCloud<ModelT>::Ptr filter_self_occ_and_scene (new pcl::PointCloud<ModelT> ());
-                typename ZBuffering<ModelT>::Parameter zbuffParam;
-                zbuffParam.inlier_threshold_ = param_.zbuffer_self_occlusion_resolution_;
-                zbuffParam.f_ = param_.focal_length_;
-                zbuffParam.width_ = 640;
-                zbuffParam.height_ = 480;
-                zbuffParam.u_margin_ = 5;
-                zbuffParam.v_margin_ = 5;
-                zbuffParam.compute_focal_length_ = true;
-                ZBuffering<ModelT> zbuffer_scene (zbuffParam);
-                if (!occlusion_cloud_->isOrganized ())
+                // now compare visible cloud with scene occlusion cloud
+                for (size_t u=0; u<param_.img_width_; u++)
                 {
-                    PCL_WARN("Scene not organized... filtering using computed depth buffer\n");
-                    zbuffer_scene.computeDepthMap (*occlusion_cloud_);
-                }
-
-                zbuffParam.compute_focal_length_ = false;
-                ZBuffering<ModelT> zbuffer_self_occ (zbuffParam);
-                zbuffer_self_occ.computeDepthMap (*models[i]);
-
-                std::vector<int> self_occlusion_indices;
-                zbuffer_self_occ.filter (*models[i], self_occlusion_indices);
-                pcl::copyPointCloud (*models[i], self_occlusion_indices, *filter_self_occ);
-
-                //scene-occlusions
-                std::vector<int> indices_cloud_occlusion;
-                if (occlusion_cloud_->isOrganized ())
-                {
-                    filter_self_occ_and_scene = filter<ModelT,SceneT> (*occlusion_cloud_, *filter_self_occ, param_.focal_length_, param_.occlusion_thres_, indices_cloud_occlusion);
-                    rm.visible_indices_.resize(filter_self_occ_and_scene->points.size());
-
-                    for(size_t k=0; k < indices_cloud_occlusion.size(); k++)
-                        rm.visible_indices_[k] = self_occlusion_indices[indices_cloud_occlusion[k]];
-
-                    if(normals_set_ && requires_normals_) {
-                        rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> ());
-                        pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
+                    for (size_t v=0; v<param_.img_height_; v++)
+                    {
+                        if ( depth_image_scene(v,u) + param_.occlusion_thres_ < depth_image_model(v,u) )
+                            indices_map[v*param_.img_width_ + u] = -1;
                     }
                 }
-                else
-                    zbuffer_scene.filter (*filter_self_occ, *filter_self_occ_and_scene);
 
-                rm.visible_cloud_ = filter_self_occ_and_scene;
+                rm.image_mask_.resize( indices_map.size(), false );
+                rm.visible_indices_.resize( indices_map.size() );
+                size_t kept=0;
+                for(size_t pt=0; pt< indices_map.size(); pt++)
+                {
+                    if(indices_map[pt] >= 0)
+                    {
+                        rm.image_mask_[pt] = true;
+                        rm.visible_indices_[kept] = indices_map[pt];
+                        kept++;
+                    }
+                }
+                rm.visible_indices_.resize(kept);
+                pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
+
+                if(normals_set_ && requires_normals_) {
+                    rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> ());
+                    pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
+                }
             }
 
             if(param_.icp_iterations_ && !refined_model_transforms_[i])
@@ -107,103 +103,37 @@ HypothesisVerification<ModelT, SceneT>::addModels (std::vector<typename pcl::Poi
         while(redo);
 
 
-        // copy normals if provided
-        if ( i<model_normals.size() )
-        {
-            rm.complete_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> (*model_normals[i]) );
-
-            if (param_.icp_iterations_ && refined_model_transforms_[i])
-                v4r::transformNormals(*model_normals[i], *rm.complete_cloud_normals_, *refined_model_transforms_[i]);
-
-            if (!param_.do_occlusion_reasoning_)   // just copy complete models
-                rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> (*rm.complete_cloud_normals_) );
-            else
-            {
-                rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>);
-                pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
-            }
+        if (param_.icp_iterations_ && refined_model_transforms_[i]) {
+            pcl::PointCloud<pcl::Normal> aligned_normals;
+            v4r::transformNormals(*rm.complete_cloud_normals_, aligned_normals, *refined_model_transforms_[i]);
+            *rm.complete_cloud_normals_ = aligned_normals;
         }
 
-        rm.image_mask_ = ConvertPCLCloud2OccupancyImage(*rm.visible_cloud_, param_.img_width_, param_.img_height_, param_.focal_length_, 319.5f, 239.5f);
+        rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>);
+        pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
 
-//        std::stringstream fn; fn << "/tmp/rendered_image_" << i << ".txt";
-//        std::ofstream f(fn.str().c_str());
-//        for(size_t px=0; px<rm.image_mask_.size(); px++)
-//            f<< rm.image_mask_[px] << " ";
-//        f.close();
-
-        if(param_.do_smoothing_)
-        {
-            std::vector<bool> img_mask_smooth = rm.image_mask_;
-            for(int u=0; u<param_.img_width_; u++)
-            {
-                for(int v=0; v <param_.img_height_; v++)
-                {
-                    bool found = false;
-
-                    for(int uu = u-param_.smoothing_radius_; uu < u+param_.smoothing_radius_ && !found; uu++)
-                    {
-                        for(int vv = v-param_.smoothing_radius_; vv < v+param_.smoothing_radius_; vv++)
-                        {
-                            if( uu<0 || vv <0 || uu>(param_.img_width_-1) || vv>(param_.img_height_-1) )
-                                continue;
-
-                            if( rm.image_mask_[vv*param_.img_width_+uu] )
-                            {
-                                img_mask_smooth[v*param_.img_width_+u] = true;
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            rm.image_mask_ = img_mask_smooth;
-
-//            fn.str(""); fn << "/tmp/rendered_image_smooth_" << i << ".txt";
-//            f.open(fn.str().c_str());
-//            for(size_t px=0; px<rm.image_mask_.size(); px++)
-//                f<< rm.image_mask_[px] << " ";
-//            f.close();
-        }
-
-        if(param_.do_erosion_)
-        {
-            std::vector<bool> img_mask_eroded = rm.image_mask_;
-            for(int u=0; u<param_.img_width_; u++)
-            {
-                for(int v=0; v <param_.img_height_; v++)
-                {
-                    bool found = false;
-
-                    for(int uu = u-param_.erosion_radius_; uu < u+param_.erosion_radius_ && !found; uu++)
-                    {
-                        for(int vv = v-param_.erosion_radius_; vv < v+param_.erosion_radius_; vv++)
-                        {
-                            if( uu<0 || vv <0 || uu>(param_.img_width_-1) || vv>(param_.img_height_-1) )
-                                continue;
-
-                            if( !rm.image_mask_[vv*param_.img_width_+uu] )
-                            {
-                                img_mask_eroded[v*param_.img_width_+u] = false;
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            rm.image_mask_ = img_mask_eroded;
-
-//            fn.str(""); fn << "/tmp/rendered_image_eroded_" << i << ".txt";
-//            f.open(fn.str().c_str());
-//            for(size_t px=0; px<rm.image_mask_.size(); px++)
-//                f<< rm.image_mask_[px] << " ";
-//            f.close();
-        }
-
+        rm.processSilhouette(param_.do_smoothing_, param_.smoothing_radius_, param_.do_erosion_, param_.erosion_radius_, param_.img_width_);
     }
 }
+
+template<typename ModelT, typename SceneT>
+void
+HypothesisVerification<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
+                                                   std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> &model_normals)
+{
+    size_t existing_models = recognition_models_.size();
+    recognition_models_.resize( existing_models + models.size() );
+
+    #pragma omp parallel for schedule(dynamic)
+    for(size_t i=0; i<models.size(); i++)
+    {
+        recognition_models_[existing_models + i].reset(new HVRecognitionModel<ModelT>);
+        HVRecognitionModel<ModelT> &rm = *recognition_models_[existing_models + i];
+        rm.complete_cloud_.reset(new pcl::PointCloud<ModelT>(*models[i]));
+        rm.complete_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> (*model_normals[i]) );
+    }
+}
+
 
 template<typename ModelT, typename SceneT>
 Eigen::Matrix4f

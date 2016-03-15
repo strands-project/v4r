@@ -54,7 +54,6 @@ public:
         using HypothesisVerification<ModelT, SceneT>::Parameter::resolution_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::occlusion_thres_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::zbuffer_self_occlusion_resolution_;
-        using HypothesisVerification<ModelT, SceneT>::Parameter::self_occlusions_reasoning_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::focal_length_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::do_occlusion_reasoning_;
 
@@ -125,17 +124,16 @@ public:
     }param_;
 
 protected:
-    using HypothesisVerification<ModelT, SceneT>::mask_;
+    using HypothesisVerification<ModelT, SceneT>::solution_;
     using HypothesisVerification<ModelT, SceneT>::recognition_models_;
     using HypothesisVerification<ModelT, SceneT>::recognition_models_map_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
-    using HypothesisVerification<ModelT, SceneT>::model_point_is_visible_;
     using HypothesisVerification<ModelT, SceneT>::normals_set_;
     using HypothesisVerification<ModelT, SceneT>::requires_normals_;
-    using HypothesisVerification<ModelT, SceneT>::occlusion_cloud_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_;
     using HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
-    using HypothesisVerification<ModelT, SceneT>::scene_cloud_is_recorded_from_single_view_;
+    using HypothesisVerification<ModelT, SceneT>::cleanUp;
+    using HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose;
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
     mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> rm_vis_;

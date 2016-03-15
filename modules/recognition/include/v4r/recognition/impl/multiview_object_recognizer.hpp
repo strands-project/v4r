@@ -41,7 +41,7 @@
 
 #include <v4r/common/normals.h>
 #include <v4r/common/pcl_visualization_utils.h>
-#include <v4r/recognition/hv_go_3D.h>
+#include <v4r/recognition/ghv.h>
 #include <v4r/registration/FeatureBasedRegistration.h>
 #include <v4r/registration/metrics.h>
 #include <v4r/recognition/segmenter.h>
@@ -505,12 +505,7 @@ MultiviewRecognizer<PointT>::recognize ()
         transforms_ = v.transforms_;
     }
 
-    boost::shared_ptr<GO3D<PointT, PointT> > hv_algorithm_3d;
-
-    if( hv_algorithm_ )
-       hv_algorithm_3d = boost::dynamic_pointer_cast<GO3D<PointT, PointT>> (hv_algorithm_);
-
-    if ( hv_algorithm_3d ) {
+     {
         initHVFilters();
 
         NguyenNoiseModel<PointT> nm (nm_param_);
@@ -544,14 +539,11 @@ MultiviewRecognizer<PointT>::recognize ()
             }
         }
 
-
-
         std::vector<typename pcl::PointCloud<PointT>::ConstPtr> occlusion_clouds (original_clouds.size());
         for(size_t i=0; i < original_clouds.size(); i++)
             occlusion_clouds[i].reset(new pcl::PointCloud<PointT>(*original_clouds[i]));
 
-        hv_algorithm_3d->setOcclusionClouds( occlusion_clouds );
-        hv_algorithm_3d->setAbsolutePoses( transforms_to_global );
+        hv_algorithm_->setOcclusionCloudsAndAbsoluteCameraPoses(occlusion_clouds, transforms_to_global );
 
    if (views_.size() > 1 ) { // don't do this if there is only one view otherwise point cloud is not kept organized and multi-plane segmentation takes longer
             //obtain big cloud and occlusion clouds based on noise model integration
@@ -574,7 +566,7 @@ MultiviewRecognizer<PointT>::recognize ()
     }
 
     if ( hv_algorithm_ && !models_.empty() ) {
-        if( !hv_algorithm_3d ) {
+        if( !param_.use_multiview_verification_) {
             scene_ = v.scene_;
             scene_normals_ = v.scene_normals_;
         }
@@ -585,23 +577,18 @@ MultiviewRecognizer<PointT>::recognize ()
                     Eigen::Matrix4f h_pose = v.absolute_pose_ * v.transforms_[mi];
                     hypotheses_in_views[mi] = getHypothesisInViewsMask(models_[mi], h_pose, v.origin_view_id_[mi]);
             }
-            hv_algorithm_3d->setVisibleCloudsForModels(hypotheses_in_views);
+            hv_algorithm_->setVisibleCloudsForModels(hypotheses_in_views);
         }
 
         hypothesisVerification();
         v.model_or_plane_is_verified_ = hypothesis_is_verified_;
         v.transforms_ = transforms_; // save refined pose
-
-        if( hv_algorithm_3d && hv_algorithm_3d->param_.visualize_cues_)
-            hv_algorithm_3d->visualize();
     }
 
     scene_normals_.reset();
 
     pruneGraph();
-    if ( hv_algorithm_3d ) {
-        cleanupHVFilters();
-    }
+    cleanupHVFilters();
     id_++;
 }
 

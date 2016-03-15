@@ -85,7 +85,6 @@ Recognizer<PointT>::hypothesisVerification ()
     if( hv_algorithm_ )
         hv_algorithm_ghv = boost::dynamic_pointer_cast<GHV<PointT, PointT>> (hv_algorithm_);
 
-    hv_algorithm_->setOcclusionCloud (scene_);
     hv_algorithm_->setSceneCloud (scene_);
     hv_algorithm_->addModels (aligned_models, aligned_model_normals);
 

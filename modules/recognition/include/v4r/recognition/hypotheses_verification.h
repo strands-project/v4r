@@ -47,7 +47,7 @@ namespace v4r
 
   /**
    * \brief Abstract class for hypotheses verification methods
-   * \author Aitor Aldoma, Federico Tombari
+   * \author Aitor Aldoma, Federico Tombari, Thomas Faeulhammer
    */
   template<typename ModelT, typename SceneT>
   class V4R_EXPORTS HypothesisVerification
@@ -60,7 +60,6 @@ namespace v4r
           double inliers_threshold_; /// @brief Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers
           double occlusion_thres_;    /// @brief Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)
           int zbuffer_self_occlusion_resolution_;
-          bool self_occlusions_reasoning_;
           double focal_length_; /// @brief defines the focal length used for back-projecting points to the image plane (used for occlusion / visibility reasoning)
           int img_width_; /// @brief image width of the camera in pixel (used for computing pairwise intersection)
           int img_height_;  /// @brief image height of the camera in pixel (used for computing pairwise intersection)
@@ -76,7 +75,6 @@ namespace v4r
                   double inliers_threshold = 0.015f, // 0.005f
                   double occlusion_thres = 0.01f, // 0.005f
                   int zbuffer_self_occlusion_resolution = 250,
-                  bool self_occlusions_reasoning = true,
                   double focal_length = 525.f,
                   int img_width = 640,
                   int img_height = 480,
@@ -90,7 +88,6 @@ namespace v4r
                 inliers_threshold_(inliers_threshold),
                 occlusion_thres_ (occlusion_thres),
                 zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
-                self_occlusions_reasoning_(self_occlusions_reasoning),
                 focal_length_ (focal_length),
                 img_width_ (img_width),
                 img_height_ (img_height),
@@ -104,43 +101,50 @@ namespace v4r
       }param_;
 
   protected:
-    std::vector<bool> mask_; /// @brief Boolean vector indicating if a hypothesis is accepted/rejected (output of HV stage)
+    std::vector<bool> solution_; /// @brief Boolean vector indicating if a hypothesis is accepted (true) or rejected (false)
 
     typename pcl::PointCloud<SceneT>::ConstPtr scene_cloud_; /// @brief scene point cloud
-
-    typename pcl::PointCloud<SceneT>::ConstPtr occlusion_cloud_;
-
-    bool scene_cloud_is_recorded_from_single_view_;
 
     std::vector<int> recognition_models_map_;
 
     typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_; /// \brief Downsampled scene point cloud
 
-    /**
-     * \brief Vector of point clouds representing the 3D models after occlusion reasoning
-	 * the 3D models are pruned of occluded points, and only visible points are left. 
-	 * the coordinate system is that of the scene cloud
-     */
-    std::vector< std::vector<bool> > model_point_is_visible_;
-
     std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > recognition_models_; /// @brief all models to be verified (including planar models if included)
+
     std::vector<boost::shared_ptr<Eigen::Matrix4f> > refined_model_transforms_; /// @brief fine registration of model clouds to scene clouds after ICP (this applies to object model only - not to planes)
 
     bool requires_normals_; /// \brief Whether the HV method requires normals or not, by default = false
+
     bool normals_set_; /// \brief Whether the normals have been set
 
     std::vector<int> scene_sampled_indices_;
 
-    Eigen::Matrix4f
-    poseRefinement(const HVRecognitionModel<ModelT> &rm) const;
+    // ----- MULTI-VIEW VARIABLES------
+    std::vector<typename pcl::PointCloud<SceneT>::ConstPtr> occlusion_clouds_; /// @brief scene clouds from multiple views
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_camera_poses_;
+    std::vector<std::vector<bool> > model_is_present_in_view_; /// \brief for each model this variable stores information in which view it is present (used to check for visible model points - default all true = static scene)
 
+    Eigen::Matrix4f poseRefinement(const HVRecognitionModel<ModelT> &rm) const;
+
+    void computeVisibleModelsAndRefinePose();
+
+    void cleanUp()
+    {
+        recognition_models_.clear();
+        recognition_models_map_.clear();
+        occlusion_clouds_.clear();
+        absolute_camera_poses_.clear();
+        scene_sampled_indices_.clear();
+        model_is_present_in_view_.clear();
+        scene_cloud_downsampled_.reset();
+        scene_cloud_.reset();
+    }
 
   public:
     HypothesisVerification (const Parameter &p = Parameter()) : param_(p)
     {
       normals_set_ = false;
       requires_normals_ = false;
-      scene_cloud_is_recorded_from_single_view_ = true;
     }
 
     float getResolution() const
@@ -153,30 +157,16 @@ namespace v4r
      *  mask vector of booleans
      */
     void
-    getMask (std::vector<bool> & mask)
+    getMask (std::vector<bool> & mask) const
     {
-      mask = mask_;
+      mask = solution_;
     }
 
     /**
-     *  \brief Sets the normals of the 3D complete models and sets normals_set_ to true.
-     *  Normals need to be added before calling the addModels method.
-     *  complete_models The normals of the models.
+     * @brief Sets the models (recognition hypotheses)
+     * @param models vector of point clouds representing the models (in same coordinates as the scene_cloud_)
+     * @param corresponding normal clouds
      */
-    void
-    addNormalsClouds (std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> & complete_models)
-    {
-//      complete_normal_models_ = complete_models;
-        (void)complete_models;
-        throw std::runtime_error("This function is not properly implemented right now!");
-      normals_set_ = true;
-    }
-
-    /**
-     *  \brief Sets the models (recognition hypotheses) - requires the scene_cloud_ to be set first if reasoning about occlusions
-     *  mask models Vector of point clouds representing the models (in same coordinates as the scene_cloud_)
-     */
-    virtual
     void
     addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
                std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr > &model_normals);
@@ -189,10 +179,28 @@ namespace v4r
     void
     setSceneCloud (const typename pcl::PointCloud<SceneT>::Ptr & scene_cloud);
 
+    /**
+     * @brief set Occlusion Clouds And Absolute Camera Poses (used for multi-view recognition)
+     * @param occlusion clouds
+     * @param absolute camera poses
+     */
     void
-    setOcclusionCloud (const typename pcl::PointCloud<SceneT>::Ptr & occ_cloud)
+    setOcclusionCloudsAndAbsoluteCameraPoses(const std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > & occ_clouds,
+                       const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &absolute_camera_poses)
     {
-      occlusion_cloud_ = occ_cloud;
+      occlusion_clouds_ = occ_clouds;
+      absolute_camera_poses_ = absolute_camera_poses;
+    }
+
+
+    /**
+     * @brief for each model this variable stores information in which view it is present
+     * @param presence in model and view
+     */
+    void
+    setVisibleCloudsForModels(const std::vector<std::vector<bool> > &model_is_present_in_view)
+    {
+        model_is_present_in_view_ = model_is_present_in_view;
     }
 
     /**
