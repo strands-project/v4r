@@ -163,6 +163,83 @@ ZBuffering<PointT>::renderPointCloud(const typename pcl::PointCloud<PointT> &clo
 
 template<typename PointT>
 void
+ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & cloud, Eigen::MatrixXf &depth_image, std::vector<int> &visible_indices)
+{
+    indices_map_.clear();
+    indices_map_.resize( param_.width_ * param_.height_, -1 );
+
+    std::vector<omp_lock_t> pt_locks (param_.width_ * param_.height_);
+    for(size_t i=0; i<pt_locks.size(); i++)
+        omp_init_lock(&pt_locks[i]);
+
+    if(!cloud.isOrganized())
+    {
+        depth_image = std::numeric_limits<float>::quiet_NaN() * Eigen::MatrixXf::Ones(param_.height_, param_.width_);
+
+        float cx = static_cast<float> (param_.width_) / 2.f - 0.5f;
+        float cy = static_cast<float> (param_.height_) / 2.f - 0.5f;
+#pragma omp parallel for schedule(dynamic)
+        for(size_t i=0; i<cloud.points.size(); i++)
+        {
+            const PointT &pt = cloud.points[i];
+            int u = static_cast<int> (param_.f_ * pt.x / pt.z + cx);
+            int v = static_cast<int> (param_.f_ * pt.y / pt.z + cy);
+
+            if (u >= param_.width_ || v >= param_.height_  || u < 0 || v < 0)
+                continue;
+
+            int idx = v * param_.width_ + u;
+
+            omp_set_lock(&pt_locks[idx]);
+
+            if ( ( pcl_isfinite(pt.z) && !pcl_isfinite( depth_image(v,u) )) ||
+                 (pt.z < depth_image(v,u) ) ) {
+                depth_image(v,u) = pt.z;
+                indices_map_[idx] = i;
+            }
+
+            omp_unset_lock(&pt_locks[idx]);
+        }
+    }
+    else {
+        if ( cloud.points.size() != param_.height_ * param_.width_)
+            throw std::runtime_error("Occlusion cloud does not have the same size as provided by the parameters img_height and img_width!");
+
+        depth_image = Eigen::MatrixXf(param_.height_, param_.width_);
+
+#pragma omp parallel for schedule (dynamic)
+        for(size_t u=0; u<cloud.width; u++)
+        {
+            for(size_t v=0; v<cloud.height; v++)
+            {
+                const PointT &pt = cloud.at(u,v);
+                if (pcl_isfinite(pt.z))
+                {
+                    depth_image(v,u) = pt.z;
+                    indices_map_[v * param_.width_ + u] = v * param_.width_ + u;
+                }
+            }
+        }
+    }
+
+    for(size_t i=0; i<pt_locks.size(); i++)
+        omp_destroy_lock(&pt_locks[i]);
+
+    visible_indices.resize(indices_map_.size());
+    size_t kept=0;
+    for(size_t i=0; i < param_.height_ * param_.width_; i++)
+    {
+        if(indices_map_[i] >= 0)
+        {
+            visible_indices[kept] = indices_map_[i];
+            kept++;
+        }
+    }
+    visible_indices.resize(kept);
+}
+
+template<typename PointT>
+void
 ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & scene)
 {
     float cx = static_cast<float> (param_.width_) / 2.f - 0.5f;

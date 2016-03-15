@@ -3,4 +3,4 @@
 
 template class V4R_EXPORTS v4r::ZBuffering<pcl::PointXYZ>;
 template class V4R_EXPORTS v4r::ZBuffering<pcl::PointXYZRGB>;
-template class V4R_EXPORTS v4r::ZBuffering<pcl::PointXYZRGBA>;
+//template class V4R_EXPORTS v4r::ZBuffering<pcl::PointXYZRGBA>;

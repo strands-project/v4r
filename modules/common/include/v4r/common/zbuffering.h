@@ -48,7 +48,7 @@ namespace v4r
 {
     /**
      * \brief Class to reason about occlusions
-     * \author Aitor Aldoma
+     * \author Thomas Faeulhammer, Aitor Aldoma
      */
     template<typename PointT>
       class V4R_EXPORTS ZBuffering
@@ -83,6 +83,7 @@ namespace v4r
       private:
         std::vector<float> depth_;
         std::vector<int> kept_indices_;
+        std::vector<int> indices_map_;  /// @brief saves for each pixel which indices of the input cloud it represents. Non-occupied pixels are labelled with index -1.
 
       public:
 
@@ -90,21 +91,27 @@ namespace v4r
 
         void computeDepthMap (const pcl::PointCloud<PointT> &scene);
 
-        void
-        renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view);
+        void computeDepthMap (const pcl::PointCloud<PointT> &scene, Eigen::MatrixXf &depth_image, std::vector<int> &visible_indices);
 
-        std::vector<float> getDepthMap()
-        {
-            return depth_;
-        }
+        void renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view);
 
         void filter (const typename pcl::PointCloud<PointT> & model, typename pcl::PointCloud<PointT> & filtered);
 
         void filter (const typename pcl::PointCloud<PointT> & model, std::vector<int> & indices);
 
+        std::vector<int> getIndicesMap() const
+        {
+            return indices_map_;
+        }
+
         void getKeptIndices(std::vector<int> &indices) const
         {
             indices = kept_indices_;
+        }
+
+        std::vector<float> getDepthMap() const
+        {
+            return depth_;
         }
       };
 
@@ -214,43 +221,6 @@ namespace v4r
       pcl::copyPointCloud (*to_be_filtered, indices_to_keep, *filtered);
       return filtered;
     }
-//      /**
-//       * @brief Computes self-occlusion of an unorganized point cloud using z-buffering (back-projection) with respect to a given focal length
-//       * @param model point cloud
-//       * @param focal length used for back projection
-//       * @param central point of projection in x
-//       * @param central point of projection in y
-//       * @param threshold for a point to be considered occluded or not (depend e.g. on sensor noise)
-//       * @return visible point mask with size equal model point cloud, where each element indicates if point is visible or (self-)occluded
-//       */
-//      std::vector<bool>
-//      getVisiblePointMask (const typename pcl::PointCloud<ModelT> & model,
-//                           float f = 525.f,
-//                           float cx = 100.f,
-//                           float cy = 100.f,
-//                           float threshold = 0.01f)
-//      {
-//        std::vector<bool> mask(model.points.size(), false);
-
-//        for (size_t i = 0; i < model.points.size (); i++)
-//        {
-//          float x = model.points[i].x;
-//          float y = model.points[i].y;
-//          float z = model.points[i].z;
-//          int u = static_cast<int> (f * x / z + cx);
-//          int v = static_cast<int> (f * y / z + cy);
-
-//          if (u >= width_ || v >= height_ || u < 0 || v < 0)
-//            continue;
-
-//          //Check if point depth (distance to camera) is greater than the (u,v) meaning that the point is not visible
-//          if ((z - thres) > depth_[u * height_ + v] || !pcl_isfinite(depth_[u * height_ + v]))
-//            continue;
-
-//          mask[ u * height_ + v ] = true;
-//        }
-//        return mask;
-//      }
 
       /**
      * @brief filters points which are not visible with respect to an organized reference cloud
