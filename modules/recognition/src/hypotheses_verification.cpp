@@ -22,21 +22,32 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
         refined_model_transforms_.resize( recognition_models_.size() );
     }
 
+    if(occlusion_clouds_.empty()) // we can treat single-view as multi-view case with just one view
+    {
+        occlusion_clouds_.push_back(scene_cloud_);
+        absolute_camera_poses_.push_back(Eigen::Matrix4f::Identity());
+    }
+
     typename ZBuffering<SceneT>::Parameter zbuffParam;
     zbuffParam.f_ = param_.focal_length_;
-    zbuffParam.width_ = 640;
-    zbuffParam.height_ = 480;
+    zbuffParam.width_ = param_.img_width_;
+    zbuffParam.height_ = param_.img_height_;
 
     ZBuffering<SceneT> zbuf(zbuffParam);
-    Eigen::MatrixXf depth_image_scene;
-    std::vector<int> visible_scene_indices;
-    zbuf.computeDepthMap(*scene_cloud_, depth_image_scene, visible_scene_indices);
+    std::vector<Eigen::MatrixXf> depth_image_scene (occlusion_clouds_.size());
+    for(size_t view=0; view<occlusion_clouds_.size(); view++)
+    {
+        std::vector<int> visible_scene_indices;
+        zbuf.computeDepthMap(*occlusion_clouds_[view], depth_image_scene[view], visible_scene_indices);
+    }
 
     #pragma omp parallel for schedule(dynamic)
     for(size_t i=0; i<recognition_models_.size(); i++)
     {
         HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
         rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
+        rm.image_mask_.resize(occlusion_clouds_.size(),
+                              std::vector<bool> (param_.img_width_ * param_.img_height_, false) );
 
         bool redo;
         do
@@ -51,35 +62,42 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
             }
             else //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
             {
-                Eigen::MatrixXf depth_image_model;
-                std::vector<int> visible_model_indices;
-                ZBuffering<ModelT> zbufM(zbuffParam);
-                zbufM.computeDepthMap(*rm.complete_cloud_, depth_image_model, visible_model_indices);
-                std::vector<int> indices_map = zbufM.getIndicesMap();
+                std::vector<bool> image_mask_mv(rm.complete_cloud_->points.size(), false);
 
-                // now compare visible cloud with scene occlusion cloud
-                for (size_t u=0; u<param_.img_width_; u++)
+                for(size_t view=0; view<occlusion_clouds_.size(); view++)
                 {
-                    for (size_t v=0; v<param_.img_height_; v++)
+                    // project into respective view
+                    pcl::PointCloud<ModelT> aligned_cloud;
+                    const Eigen::Matrix4f tf = absolute_camera_poses_[view].inverse();
+                    pcl::transformPointCloud(*rm.complete_cloud_, aligned_cloud, tf);
+
+                    Eigen::MatrixXf depth_image_model;
+                    std::vector<int> visible_model_indices;
+                    ZBuffering<ModelT> zbufM(zbuffParam);
+                    zbufM.computeDepthMap(aligned_cloud, depth_image_model, visible_model_indices);
+                    std::vector<int> indices_map = zbufM.getIndicesMap();
+
+                    // now compare visible cloud with scene occlusion cloud
+                    for (size_t u=0; u<param_.img_width_; u++)
                     {
-                        if ( depth_image_scene(v,u) + param_.occlusion_thres_ < depth_image_model(v,u) )
-                            indices_map[v*param_.img_width_ + u] = -1;
+                        for (size_t v=0; v<param_.img_height_; v++)
+                        {
+                            if ( depth_image_scene[view](v,u) + param_.occlusion_thres_ < depth_image_model(v,u) )
+                                indices_map[v*param_.img_width_ + u] = -1;
+                        }
+                    }
+
+                    for(size_t pt=0; pt<indices_map.size(); pt++)
+                    {
+                        if(indices_map[pt] >= 0)
+                        {
+                            rm.image_mask_[view][pt] = true;
+                            image_mask_mv[ indices_map[pt] ] = true;
+                        }
                     }
                 }
 
-                rm.image_mask_.resize( indices_map.size(), false );
-                rm.visible_indices_.resize( indices_map.size() );
-                size_t kept=0;
-                for(size_t pt=0; pt< indices_map.size(); pt++)
-                {
-                    if(indices_map[pt] >= 0)
-                    {
-                        rm.image_mask_[pt] = true;
-                        rm.visible_indices_[kept] = indices_map[pt];
-                        kept++;
-                    }
-                }
-                rm.visible_indices_.resize(kept);
+                rm.visible_indices_ = createIndicesFromMask<int>(image_mask_mv);
                 pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
 
                 if(normals_set_ && requires_normals_) {

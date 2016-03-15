@@ -209,13 +209,17 @@ GHV<ModelT, SceneT>::computePairwiseIntersection()
             const HVRecognitionModel<ModelT> &rm_b = *recognition_models_[j];
 
             size_t num_intersections = 0, total_rendered_points = 0;
-            for(int px=0; px<rm_a.image_mask_.size(); px++)
-            {
-                if( rm_a.image_mask_[px] && rm_b.image_mask_[px])
-                    num_intersections++;
 
-                if ( rm_a.image_mask_[px] || rm_b.image_mask_[px] )
-                    total_rendered_points++;
+            for(size_t view=0; view<rm_a.image_mask_.size(); view++)
+            {
+                for(int px=0; px<rm_a.image_mask_[view].size(); px++)
+                {
+                    if( rm_a.image_mask_[view][px] && rm_b.image_mask_[view][px])
+                        num_intersections++;
+
+                    if ( rm_a.image_mask_[view][px] || rm_b.image_mask_[view][px] )
+                        total_rendered_points++;
+                }
             }
 
             float conflict_cost = static_cast<float> (num_intersections) / total_rendered_points;
@@ -228,8 +232,8 @@ GHV<ModelT, SceneT>::computePairwiseIntersection()
 //            vis.removeAllPointClouds();
 //            vis.addPointCloud(rm_a.visible_cloud_, "cloud_a",v1);
 //            vis.addPointCloud(rm_b.visible_cloud_, "cloud_b",v1);
-//            vis.addPointCloud(rendered_vis_m_a.makeShared(), "cloud_ar",v2);
-//            vis.addPointCloud(rendered_vis_m_b.makeShared(), "cloud_br",v2);
+////            vis.addPointCloud(rendered_vis_m_a.makeShared(), "cloud_ar",v2);
+////            vis.addPointCloud(rendered_vis_m_b.makeShared(), "cloud_br",v2);
 //            vis.spin();
         }
     }
@@ -363,10 +367,10 @@ GHV<ModelT, SceneT>::initialize()
 
 //     visualize cues
 //    if(param_.visualize_go_cues_)
-    {
-        for (const auto & rm:recognition_models_)
-            visualizeGOCuesForModel(*rm);
-    }
+//    {
+//        for (const auto & rm:recognition_models_)
+//            visualizeGOCuesForModel(*rm);
+//    }
 }
 
 template<typename ModelT, typename SceneT>

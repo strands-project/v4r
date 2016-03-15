@@ -14,7 +14,7 @@ namespace v4r
     public:
       typename pcl::PointCloud<ModelT>::Ptr complete_cloud_;
       typename pcl::PointCloud<ModelT>::Ptr visible_cloud_;
-      std::vector<bool> image_mask_;
+      std::vector<std::vector<bool> > image_mask_; /// @brief image mask per view (in single-view case, there will be only one element in outer vector). Used to compute pairwise intersection
       pcl::PointCloud<pcl::Normal>::Ptr visible_cloud_normals_;
       pcl::PointCloud<pcl::Normal>::Ptr complete_cloud_normals_;
       std::vector<int> visible_indices_;
