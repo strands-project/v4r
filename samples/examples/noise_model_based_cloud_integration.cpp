@@ -148,9 +148,11 @@ int main(int argc, const char * argv[]) {
             nm.compute();
             pt_properties[v_id] = nm.getPointProperties();
 
-            pcl::PointCloud<PointT> cloud_aligned;
-            pcl::transformPointCloud( *clouds[v_id], cloud_aligned, camera_transforms[v_id]);
-            *big_cloud_unfiltered += cloud_aligned;
+
+            pcl::PointCloud<PointT> object_cloud, object_aligned;
+            pcl::copyPointCloud(*clouds[v_id], obj_indices[v_id], object_cloud);
+            pcl::transformPointCloud( object_cloud, object_aligned, camera_transforms[v_id]);
+            *big_cloud_unfiltered += object_aligned;
         }
 
         pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
@@ -176,11 +178,11 @@ int main(int argc, const char * argv[]) {
 
             for(size_t v_id=0; v_id<clouds_used.size(); v_id++)
             {
-                std::stringstream fn; fn << out_path << "/filtered_input_" << setfill('0') << setw(5) << v_id << ".pcd";
-                pcl::io::savePCDFileBinary(fn.str(), *clouds_used[v_id]);
-
                 if(debug)
                 {
+                    std::stringstream fn; fn << out_path << "/filtered_input_" << setfill('0') << setw(5) << v_id << ".pcd";
+                    pcl::io::savePCDFileBinary(fn.str(), *clouds_used[v_id]);
+
                     fn.str(""); fn << out_path << "/distance_to_edge_px_" << setfill('0') << setw(5) << v_id << ".txt";
                     std::ofstream f (fn.str());
                     for (size_t pt_id = 0; pt_id < clouds_used[v_id]->points.size (); pt_id++) {
