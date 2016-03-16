@@ -1,18 +1,3 @@
-if(X86)
-  # x86 compiler is known to produce unstable SSE code with -O3 hence we are trying to use -O2 instead
-  if(CMAKE_COMPILER_IS_GNUCXX)
-    foreach(flags CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_DEBUG)
-      string(REPLACE "-O3" "-O2" ${flags} "${${flags}}")
-    endforeach()
-  endif()
-
-  if(CMAKE_COMPILER_IS_GNUCC)
-    foreach(flags CMAKE_C_FLAGS CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_DEBUG)
-      string(REPLACE "-O3" "-O2" ${flags} "${${flags}}")
-    endforeach()
-  endif()
-endif()
-
 set(V4R_EXTRA_FLAGS "")
 set(V4R_EXTRA_C_FLAGS "")
 set(V4R_EXTRA_CXX_FLAGS "")
@@ -80,9 +65,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   add_extra_compiler_option(-fdiagnostics-show-option)
 
   # The -Wno-long-long is required in 64bit systems when including sytem headers.
-  if(X86_64)
-    add_extra_compiler_option(-Wno-long-long)
-  endif()
+  add_extra_compiler_option(-Wno-long-long)
 
   # We need pthread's
   add_extra_compiler_option(-pthread)
@@ -93,10 +76,6 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 
   if(V4R_WARNINGS_ARE_ERRORS)
     add_extra_compiler_option(-Werror)
-  endif()
-
-  if(X86 AND NOT X86_64)
-    add_extra_compiler_option(-march=i686)
   endif()
 
   # Other optimizations
@@ -116,13 +95,13 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   endif()
   if(ENABLE_SSE2)
     add_extra_compiler_option(-msse2)
-  elseif(X86 OR X86_64)
+  else()
     add_extra_compiler_option(-mno-sse2)
   endif()
 
   if(ENABLE_AVX)
     add_extra_compiler_option(-mavx)
-  elseif(X86 OR X86_64)
+  else()
     add_extra_compiler_option(-mno-avx)
   endif()
   if(ENABLE_AVX2)
@@ -136,40 +115,30 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   if(NOT V4R_EXTRA_CXX_FLAGS MATCHES "-mavx")
     if(ENABLE_SSE3)
       add_extra_compiler_option(-msse3)
-    elseif(X86 OR X86_64)
+    else()
       add_extra_compiler_option(-mno-sse3)
     endif()
 
     if(ENABLE_SSSE3)
       add_extra_compiler_option(-mssse3)
-    elseif(X86 OR X86_64)
+    else()
       add_extra_compiler_option(-mno-ssse3)
     endif()
 
     if(ENABLE_SSE41)
       add_extra_compiler_option(-msse4.1)
-    elseif(X86 OR X86_64)
+    else()
       add_extra_compiler_option(-mno-sse4.1)
     endif()
 
     if(ENABLE_SSE42)
       add_extra_compiler_option(-msse4.2)
-    elseif(X86 OR X86_64)
+    else()
       add_extra_compiler_option(-mno-sse4.2)
     endif()
 
     if(ENABLE_POPCNT)
       add_extra_compiler_option(-mpopcnt)
-    endif()
-  endif()
-
-  if(X86 OR X86_64)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-      if(V4R_EXTRA_CXX_FLAGS MATCHES "-m(sse2|avx)")
-        add_extra_compiler_option(-mfpmath=sse)# !! important - be on the same wave with x64 compilers
-      else()
-        add_extra_compiler_option(-mfpmath=387)
-      endif()
     endif()
   endif()
 
