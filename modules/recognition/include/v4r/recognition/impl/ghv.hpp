@@ -56,77 +56,38 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
 {
     int sign = 1;
     if ( !active[changed]) //it has been deactivated
-        sign = -1;
-
-//    double previous_model_fitness = model_fitness_;
-//    double previous_pairwise_cost = pairwise_cost_;
-
-    model_fitness_ = 0.f;
-    pairwise_cost_ = 0.f;
-
-    // model uni term
-    size_t num_active_hypotheses = 0;
-    for(size_t i=0; i<active.size(); i++)
     {
-        if(active[i]) {
-            model_fitness_ += recognition_models_[i]->model_fit_;
-            num_active_hypotheses++;
-        }
+        sign = -1;
+        tmp_solution_(changed) = 0;
     }
-    if(num_active_hypotheses)
-        model_fitness_ /= num_active_hypotheses;
     else
-        model_fitness_ = 0.f;
+        tmp_solution_(changed) = 1;
 
-    // scene uni term
-//    Eigen::MatrixXf scene_explained_weight_for_active_hypotheses = scene_explained_weight_;
-
+    float num_active_hypotheses = tmp_solution_.sum();
     #pragma omp parallel for schedule(dynamic)
-    for(size_t row_id=0; row_id < scene_explained_weight_.rows(); row_id++)
+    for(size_t row_id=0; row_id < scene_explained_weight_compressed_.rows(); row_id++)
     {
         double max = std::numeric_limits<double>::min();
         for(size_t col_id=0; col_id<active.size(); col_id++)
         {
-            if ( active[col_id] && scene_explained_weight_(row_id,col_id)>max)
-                max = scene_explained_weight_(row_id,col_id);
-//            if(!active[i]) {
-//                scene_explained_weight_for_active_hypotheses.col(i) = Eigen::VectorXf::Zero(
-//                            scene_explained_weight_for_active_hypotheses.rows());
-//            }
+            if ( active[col_id] && scene_explained_weight_compressed_(row_id,col_id)>max)
+                max = scene_explained_weight_compressed_(row_id,col_id);
         }
         max_scene_explained_weight_(row_id)=max;
     }
 
-    scene_fitness_ = 0.f;
-    if ( num_active_hypotheses ) {
-//        Eigen::VectorXf max = scene_explained_weight_for_active_hypotheses.rowwise().maxCoeff();
-        scene_fitness_ = max_scene_explained_weight_.sum() / scene_cloud_downsampled_->points.size();
-    }
-
-
-    // pairwise_term
-    for(size_t i=0; i<active.size(); i++)
+    if(num_active_hypotheses > 0.5f)    // since we do not use integer
     {
-        for(size_t j=0; j<i; j++)
-        {
-            if(active[i] && active[j])
-                pairwise_cost_ += intersection_cost_(i,j);
-        }
+        model_fitness_ = model_fitness_v_.dot(tmp_solution_);
+        scene_fitness_ = max_scene_explained_weight_.sum();
+        pairwise_cost_ = 0.5 * tmp_solution_.transpose() * intersection_cost_ * tmp_solution_;
+        cost_ = -( model_fitness_ / num_active_hypotheses + param_.regularizer_ * scene_fitness_ /scene_cloud_downsampled_->points.size()
+                   - param_.clutter_regularizer_ * pairwise_cost_ );
     }
-
-    cost_ = -( model_fitness_ + param_.regularizer_ * scene_fitness_ - param_.clutter_regularizer_ * pairwise_cost_ );
-
-//    std::cout << "active hypotheses: ";
-
-//    for(size_t i=0; i<active.size(); i++)
-//        std::cout << active[i] << " ";
-
-
-//    std::cout << std::endl << "model fitness: " << model_fitness_ << "; scene fitness: " << scene_fitness_ <<
-//                 "; pairwise cost: " << pairwise_cost_ << "; total cost: " << cost_ << std::endl;
-
-//    std::cout << model_fitness_ << " + " << param_.regularizer_ << " * " << scene_fitness_ << " - " <<
-//                 param_.clutter_regularizer_ << " * " << pairwise_cost_ << " = " << -cost_ << std::endl;
+    else
+    {
+        cost_ = model_fitness_ = scene_fitness_ =  pairwise_cost_ = 0.f;
+    }
 
     if(cost_logger_) {
         cost_logger_->increaseEvaluated();
@@ -361,8 +322,28 @@ GHV<ModelT, SceneT>::initialize()
     {
         pcl::ScopeTime t("Computing fitness score between models and scene");
         scene_explained_weight_ = Eigen::MatrixXf::Zero(scene_cloud_downsampled_->points.size(), recognition_models_.size());
-        for (size_t i = 0; i < recognition_models_.size (); i++)
-            computeModel2SceneFitness(*recognition_models_[i], i);
+        scene_explained_weight_duplicates_ = Eigen::MatrixXf (recognition_models_.size (), recognition_models_.size ());
+        model_fitness_v_ = Eigen::VectorXf(recognition_models_.size ());
+
+        for (size_t i = 0; i < recognition_models_.size (); i++){
+            HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
+            computeModel2SceneFitness(rm, i);
+        }
+
+        // remove rows of scene explained matrix, whose point is not explained by any hypothesis. Because it is usually very sparse and would take a lot of computation time.
+        scene_explained_weight_compressed_ = scene_explained_weight_;
+        Eigen::VectorXf min_tmp = scene_explained_weight_.rowwise().maxCoeff();
+        size_t kept=0;
+        for(size_t pt=0; pt<scene_cloud_downsampled_->points.size(); pt++)
+        {
+            if( min_tmp(pt) > std::numeric_limits<float>::epsilon() )
+            {
+                scene_explained_weight_compressed_.row(kept) = scene_explained_weight_.row(pt);
+                kept++;
+            }
+        }
+        size_t num_cols = scene_explained_weight_compressed_.cols();
+        scene_explained_weight_compressed_.conservativeResize(kept, num_cols);
     }
 
 //     visualize cues
@@ -378,6 +359,11 @@ std::vector<bool>
 GHV<ModelT, SceneT>::optimize ()
 {
     std::vector<bool> temp_solution ( recognition_models_.size(), param_.initial_status_);
+    if(param_.initial_status_)
+        tmp_solution_ = Eigen::VectorXf::Ones (recognition_models_.size());
+    else
+        tmp_solution_ = Eigen::VectorXf::Zero (recognition_models_.size());
+
     GHVSAModel<ModelT, SceneT> model;
 
     double initial_cost  = 0.f;
@@ -638,8 +624,10 @@ GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, s
     omp_lock_t scene_pt_lock[ scene_cloud_downsampled_->points.size() ];
     for(size_t i=0; i < scene_cloud_downsampled_->points.size(); i++)
         omp_init_lock( &scene_pt_lock[i] );
+    std::cout << "color sigma ab: " <<  param_.color_sigma_ab_ <<
+                 " inlier thresh: " << param_.inliers_threshold_ << std::endl;
 
-    #pragma omp parallel for schedule(dynamic)
+//    #pragma omp parallel for schedule(dynamic)
     for (size_t m_pt_id = 0; m_pt_id < rm.visible_cloud_->points.size (); m_pt_id++) {
 //        float radius = param_.inliers_threshold_;
 
@@ -652,6 +640,8 @@ GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, s
 
         std::vector<int> nn_indices;
         std::vector<float> nn_distances;
+        double w3d = 1 / (param_.inliers_threshold_ * param_.inliers_threshold_);
+        double w_color = 1 / (2 * param_.color_sigma_ab_ * param_.color_sigma_ab_);
 
         octree_scene_downsampled_->nearestKSearch(rm.visible_cloud_->points[m_pt_id], param_.knn_inliers_,
                                                  nn_indices, nn_distances);
@@ -666,18 +656,19 @@ GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, s
                   const Eigen::VectorXf &color_m = rm.pt_color_.row(m_pt_id);
                   const Eigen::VectorXf &color_s = scene_color_channels_.row( nn_indices[k] );
                   double sqr_3D_dist = nn_distances[k];
-                  double dist = sqr_3D_dist / param_.inliers_threshold_;
+                  double dist = w3d * sqr_3D_dist;
 
                   if(param_.color_space_ == ColorSpace::LAB)
                   {
-                      float As = color_s(1);
-                      float Bs = color_s(2);
-                      float Am = color_m(1);
-                      float Bm = color_m(2);
+                      double As = color_s(1);
+                      double Bs = color_s(2);
+                      double Am = color_m(1);
+                      double Bm = color_m(2);
 
                       double sqr_color_dist = ( (As-Am)*(As-Am)+(Bs-Bm)*(Bs-Bm) );
 
-                      dist += sqr_color_dist / param_.color_sigma_ab_;
+                      std::cout << "sqrdist3d: " << sqr_3D_dist << ", sqrdistColor: " << sqr_color_dist << std::endl;
+                      dist += w_color * sqr_color_dist;
                   }
 
                   if(dist < min_dist) {
@@ -703,12 +694,12 @@ GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, s
         }
     }
 
-
     for(size_t i=0; i < scene_cloud_downsampled_->points.size(); i++)
         omp_destroy_lock( &scene_pt_lock[i] );
 
     rm.model_fit_ /= rm.visible_cloud_->points.size();
     scene_explained_weight_.col(model_idx) = scene_pt_explained_weight;
+    model_fitness_v_(model_idx) = rm.model_fit_;
 }
 
 //######### VISUALIZATION FUNCTIONS #####################
@@ -870,6 +861,7 @@ GHV<pcl::PointXYZRGB, pcl::PointXYZRGB>::visualizeGOCues (const std::vector<bool
         vis_go_cues_->addPointCloud(scene_fit_cloud, "scene fitness", vp_scene_fitness_);
     }
 
+    vis_go_cues_->resetCamera();
     vis_go_cues_->spin();
 }
 

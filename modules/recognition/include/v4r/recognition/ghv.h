@@ -141,12 +141,16 @@ protected:
     mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6;
 
     double model_fitness_, pairwise_cost_, scene_fitness_, cost_;
+    Eigen::VectorXf model_fitness_v_;
+    Eigen::VectorXf tmp_solution_;
 
     pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
     bool scene_and_normals_set_from_outside_;
-    Eigen::MatrixXf intersection_cost_; // represents the pairwise intersection cost
-    Eigen::MatrixXf scene_explained_weight_; // for each point in the scene (row) store how good it is presented from each model (column)
-    Eigen::VectorXf max_scene_explained_weight_; // for each point in the scene (row) store how good it is presented from each model (column)
+    Eigen::MatrixXf intersection_cost_; /// @brief represents the pairwise intersection cost
+    Eigen::MatrixXf scene_explained_weight_; /// @brief for each point in the scene (row) store how good it is presented from each model (column)
+    Eigen::MatrixXf scene_explained_weight_compressed_; /// @brief for each point in the scene (row) store how good it is presented from each model (column)
+    Eigen::MatrixXf scene_explained_weight_duplicates_; //
+    Eigen::VectorXf max_scene_explained_weight_; /// @brief for each point in the scene (row) store how good it is presented from each model (column)
 
     GHVSAModel<ModelT, SceneT> best_seen_;
     float initial_temp_;
