@@ -87,19 +87,15 @@ Recognizer<PointT>::hypothesisVerification ()
 
     hv_algorithm_->setSceneCloud (scene_);
     hv_algorithm_->addModels (aligned_models, aligned_model_normals);
-
-    if( hv_algorithm_ghv )
-        hv_algorithm_ghv->setRequiresNormals(false);
-
     hv_algorithm_->verify ();
     hv_algorithm_->getMask (hypothesis_is_verified_);
 
-    std::vector<boost::shared_ptr<Eigen::Matrix4f> > refined_transforms = hv_algorithm_->getRefinedTransforms();
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>  > refined_transforms;
+    hv_algorithm_->getRefinedTransforms(refined_transforms);
 
     for(size_t i=0; i<refined_transforms.size(); i++)
     {
-        if ( i < refined_transforms.size() && refined_transforms[i])
-            transforms_[i] = *refined_transforms[i] * transforms_[i];
+        transforms_[i] = refined_transforms[i] * transforms_[i];
     }
 }
 

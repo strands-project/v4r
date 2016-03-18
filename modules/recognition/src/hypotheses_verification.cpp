@@ -17,10 +17,8 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
 {
-    if(param_.icp_iterations_) {
-        refined_model_transforms_.clear();
-        refined_model_transforms_.resize( recognition_models_.size() );
-    }
+    refined_model_transforms_.clear();
+    refined_model_transforms_.resize( recognition_models_.size(), Eigen::Matrix4f::Identity() );
 
     if(occlusion_clouds_.empty()) // we can treat single-view as multi-view case with just one view
     {
@@ -35,6 +33,8 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
 
     ZBuffering<SceneT> zbuf(zbuffParam);
     std::vector<Eigen::MatrixXf> depth_image_scene (occlusion_clouds_.size());
+
+    #pragma omp parallel for schedule(dynamic)
     for(size_t view=0; view<occlusion_clouds_.size(); view++)
     {
         std::vector<int> visible_scene_indices;
@@ -46,21 +46,26 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
     {
         HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
         rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
-        rm.image_mask_.resize(occlusion_clouds_.size(),
-                              std::vector<bool> (param_.img_width_ * param_.img_height_, false) );
+        rm.image_mask_.resize(occlusion_clouds_.size(), std::vector<bool> (param_.img_width_ * param_.img_height_, false) );
 
-        bool redo;
-        do
+        if (!param_.do_occlusion_reasoning_) // just copy complete models
         {
-            redo = false;
-            if (!param_.do_occlusion_reasoning_) // just copy complete models
+            *rm.visible_cloud_ = *rm.complete_cloud_;
+            rm.visible_indices_.resize( rm.complete_cloud_->points.size());
+            for(size_t pt=0; pt<rm.visible_indices_.size(); pt++)
+                rm.visible_indices_[pt] = pt;
+
+            if(param_.icp_iterations_)
             {
-                *rm.visible_cloud_ = *rm.complete_cloud_;
-                rm.visible_indices_.resize( rm.complete_cloud_->points.size());
-                for(size_t pt=0; pt<rm.visible_indices_.size(); pt++)
-                    rm.visible_indices_[pt] = pt;
+                refined_model_transforms_[i] = poseRefinement(rm);
+                pcl::transformPointCloud(*rm.complete_cloud_, *rm.complete_cloud_, refined_model_transforms_[i]);
+                pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
             }
-            else //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
+        }
+        else //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
+        {
+            int redo_cycles = 1;
+            while(redo_cycles>=0)  // do icp on visible cloud
             {
                 std::vector<bool> image_mask_mv(rm.complete_cloud_->points.size(), false);
 
@@ -75,7 +80,7 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
                     std::vector<int> visible_model_indices;
                     ZBuffering<ModelT> zbufM(zbuffParam);
                     zbufM.computeDepthMap(aligned_cloud, depth_image_model, visible_model_indices);
-                    std::vector<int> indices_map = zbufM.getIndicesMap();
+                    boost::shared_ptr<std::vector<int> > indices_map = zbufM.getIndicesMap();
 
                     // now compare visible cloud with scene occlusion cloud
                     for (size_t u=0; u<param_.img_width_; u++)
@@ -83,16 +88,16 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
                         for (size_t v=0; v<param_.img_height_; v++)
                         {
                             if ( depth_image_scene[view](v,u) + param_.occlusion_thres_ < depth_image_model(v,u) )
-                                indices_map[v*param_.img_width_ + u] = -1;
+                                indices_map->at(v*param_.img_width_ + u) = -1;
                         }
                     }
 
-                    for(size_t pt=0; pt<indices_map.size(); pt++)
+                    for(size_t pt=0; pt<indices_map->size(); pt++)
                     {
-                        if(indices_map[pt] >= 0)
+                        if(indices_map->at(pt) >= 0)
                         {
                             rm.image_mask_[view][pt] = true;
-                            image_mask_mv[ indices_map[pt] ] = true;
+                            image_mask_mv[ indices_map->at(pt) ] = true;
                         }
                     }
                 }
@@ -100,36 +105,23 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
                 rm.visible_indices_ = createIndicesFromMask<int>(image_mask_mv);
                 pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
 
-                if(normals_set_ && requires_normals_) {
-                    rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> ());
-                    pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
+                if(param_.icp_iterations_ )
+                {
+                    refined_model_transforms_[i] = poseRefinement(rm) * refined_model_transforms_[i];
+                    pcl::transformPointCloud(*rm.complete_cloud_, *rm.complete_cloud_, refined_model_transforms_[i]);
+                    pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
                 }
-            }
-
-            if(param_.icp_iterations_ && !refined_model_transforms_[i])
-            {
-                refined_model_transforms_[i].reset(new Eigen::Matrix4f (poseRefinement(rm)));
-
-                pcl::PointCloud<ModelT> aligned_cloud;
-                pcl::transformPointCloud(*rm.visible_cloud_, aligned_cloud, *refined_model_transforms_[i]);
-                *rm.visible_cloud_  = aligned_cloud;
-                pcl::transformPointCloud(*rm.complete_cloud_, aligned_cloud, *refined_model_transforms_[i]);
-                *rm.complete_cloud_ = aligned_cloud;
-                redo = true;
+                redo_cycles--;
             }
         }
-        while(redo);
 
-
-        if (param_.icp_iterations_ && refined_model_transforms_[i]) {
-            pcl::PointCloud<pcl::Normal> aligned_normals;
-            v4r::transformNormals(*rm.complete_cloud_normals_, aligned_normals, *refined_model_transforms_[i]);
-            *rm.complete_cloud_normals_ = aligned_normals;
+        if (param_.icp_iterations_)
+        {
+             v4r::transformNormals(*rm.complete_cloud_normals_, *rm.complete_cloud_normals_, refined_model_transforms_[i]);
         }
 
         rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>);
         pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
-
         rm.processSilhouette(param_.do_smoothing_, param_.smoothing_radius_, param_.do_erosion_, param_.erosion_radius_, param_.img_width_);
     }
 }
@@ -157,7 +149,6 @@ template<typename ModelT, typename SceneT>
 Eigen::Matrix4f
 HypothesisVerification<ModelT, SceneT>::poseRefinement(const HVRecognitionModel<ModelT> &rm) const
 {
-    Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
     ModelT minPoint, maxPoint;
     pcl::getMinMax3D(*rm.complete_cloud_, minPoint, maxPoint);
     float margin = 0.05;
@@ -184,9 +175,9 @@ HypothesisVerification<ModelT, SceneT>::poseRefinement(const HVRecognitionModel<
     icp.align(aligned_visible_model);
 //            std::cout << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
     if(icp.hasConverged())
-        transform = icp.getFinalTransformation();
+        return icp.getFinalTransformation();
 
-    return transform;
+    return Eigen::Matrix4f::Identity();
 }
 
 

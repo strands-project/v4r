@@ -83,7 +83,7 @@ namespace v4r
       private:
         std::vector<float> depth_;
         std::vector<int> kept_indices_;
-        std::vector<int> indices_map_;  /// @brief saves for each pixel which indices of the input cloud it represents. Non-occupied pixels are labelled with index -1.
+        boost::shared_ptr<std::vector<int> > indices_map_;  /// @brief saves for each pixel which indices of the input cloud it represents. Non-occupied pixels are labelled with index -1.
 
       public:
 
@@ -99,7 +99,7 @@ namespace v4r
 
         void filter (const typename pcl::PointCloud<PointT> & model, std::vector<int> & indices);
 
-        std::vector<int> getIndicesMap() const
+        boost::shared_ptr<std::vector<int> > getIndicesMap() const
         {
             return indices_map_;
         }

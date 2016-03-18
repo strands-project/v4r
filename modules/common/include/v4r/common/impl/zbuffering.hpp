@@ -165,8 +165,7 @@ template<typename PointT>
 void
 ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & cloud, Eigen::MatrixXf &depth_image, std::vector<int> &visible_indices)
 {
-    indices_map_.clear();
-    indices_map_.resize( param_.width_ * param_.height_, -1 );
+    indices_map_.reset (new std::vector<int>( param_.width_ * param_.height_, -1 ));
 
     std::vector<omp_lock_t> pt_locks (param_.width_ * param_.height_);
     for(size_t i=0; i<pt_locks.size(); i++)
@@ -195,7 +194,7 @@ ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & cl
             if ( ( pcl_isfinite(pt.z) && !pcl_isfinite( depth_image(v,u) )) ||
                  (pt.z < depth_image(v,u) ) ) {
                 depth_image(v,u) = pt.z;
-                indices_map_[idx] = i;
+                indices_map_->at(idx) = i;
             }
 
             omp_unset_lock(&pt_locks[idx]);
@@ -216,7 +215,7 @@ ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & cl
                 if (pcl_isfinite(pt.z))
                 {
                     depth_image(v,u) = pt.z;
-                    indices_map_[v * param_.width_ + u] = v * param_.width_ + u;
+                    indices_map_->at(v * param_.width_ + u) = v * param_.width_ + u;
                 }
             }
         }
@@ -225,13 +224,13 @@ ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & cl
     for(size_t i=0; i<pt_locks.size(); i++)
         omp_destroy_lock(&pt_locks[i]);
 
-    visible_indices.resize(indices_map_.size());
+    visible_indices.resize(indices_map_->size());
     size_t kept=0;
     for(size_t i=0; i < param_.height_ * param_.width_; i++)
     {
-        if(indices_map_[i] >= 0)
+        if(indices_map_->at(i) >= 0)
         {
-            visible_indices[kept] = indices_map_[i];
+            visible_indices[kept] = indices_map_->at(i);
             kept++;
         }
     }

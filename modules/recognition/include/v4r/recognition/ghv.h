@@ -72,15 +72,18 @@ public:
         int color_space_; /// @brief specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
         bool use_noise_model_;  /// @brief if set, uses Nguyens noise model for setting threshold parameters
         bool visualize_go_cues_; /// @brief visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
+        bool visualize_model_cues_; /// @brief visualizes the model cues. Useful for debugging
+        bool visualize_pairwise_cues_; /// @brief visualizes the pairwise cues. Useful for debugging
         int knn_inliers_; /// @brief number of nearby scene points to check for a query model point
 
         double min_visible_ratio_; /// @brief defines how much of the object has to be visible in order to be included in the verification stage
+        double min_model_fitness_; /// @brief defines the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)
         int knn_color_neighborhood_; /// @brief number of nearest neighbors used for describing the color around a point
         float color_std_dev_multiplier_threshold_; /// @brief standard deviation multiplier threshold for the local color description for each color channel
 
         Parameter (
                 double color_sigma_l = 0.6f,
-                double color_sigma_ab = 0.1f,
+                double color_sigma_ab = 10.f,
                 double regularizer = 1.f, // 3
                 double radius_neighborhood_clutter = 0.02f,
                 int normal_method = 2,
@@ -96,6 +99,7 @@ public:
                 bool visualize_go_cues = false,
                 int knn_inliers = 3,
                 double min_visible_ratio = 0.10f,
+                double min_model_fitness = 0.60f,
                 int knn_color_neighborhood = 10,
                 float color_std_dev_multiplier_threshold = 1.f
                 )
@@ -118,6 +122,7 @@ public:
               visualize_go_cues_ ( visualize_go_cues ),
               knn_inliers_ (knn_inliers),
               min_visible_ratio_ (min_visible_ratio),
+              min_model_fitness_ (min_model_fitness),
               knn_color_neighborhood_ (knn_color_neighborhood),
               color_std_dev_multiplier_threshold_ (color_std_dev_multiplier_threshold)
         {}
@@ -128,17 +133,14 @@ protected:
     using HypothesisVerification<ModelT, SceneT>::recognition_models_;
     using HypothesisVerification<ModelT, SceneT>::recognition_models_map_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
-    using HypothesisVerification<ModelT, SceneT>::normals_set_;
-    using HypothesisVerification<ModelT, SceneT>::requires_normals_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_;
     using HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
     using HypothesisVerification<ModelT, SceneT>::cleanUp;
     using HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose;
 
-    mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;
-    mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> rm_vis_;
+    mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_, rm_vis_, vis_pairwise_;
     mutable int vp_active_hypotheses_, vp_scene_, vp_model_fitness_, vp_scene_fitness_;
-    mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6;
+    mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6, vp_pair_1_, vp_pair_2_;
 
     double model_fitness_, pairwise_cost_, scene_fitness_, cost_;
     Eigen::VectorXf model_fitness_v_;
@@ -162,6 +164,8 @@ protected:
 
     bool removeNanNormals (HVRecognitionModel<ModelT> & recog_model); /// @brief remove all points from visible cloud and normals which are not-a-number
 
+    void removeSceneNans (); /// @brief remove all points from the scene which are nan or have a nan normal
+
     void convertSceneColor(); /// @brief converting scene points from RGB to desired color space
 
     void convertModelColor (HVRecognitionModel<ModelT> &rm); /// @brief converting visible points from the model from RGB to desired color space
@@ -178,9 +182,11 @@ protected:
 
     std::vector<bool> optimize();
 
-    void visualizeGOCues(const std::vector<bool> & active_solution, float cost_, int times_eval);
+    void visualizeGOCues(const std::vector<bool> & active_solution, float cost_, int times_eval) const;
 
-    void visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm) const;
+    void visualizePairwiseIntersection() const;
+
+    void visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm, int model_id) const;
 
     void registerModelAndSceneColor(std::vector<size_t> &lookup, HVRecognitionModel<ModelT> & recog_model);
 
@@ -193,7 +199,6 @@ public:
     GHV (const Parameter &p=Parameter()) : HypothesisVerification<ModelT, SceneT> (p) , param_(p)
     {
         initial_temp_ = 1000;
-        requires_normals_ = false;
         scene_and_normals_set_from_outside_ = false;
     }
 
@@ -227,12 +232,6 @@ public:
         cost_logger_->writeToLog (of);
         if (all_costs_)
             cost_logger_->writeEachCostToLog (of);
-    }
-
-    void
-    setRequiresNormals (bool b)
-    {
-        requires_normals_ = b;
     }
 
     void

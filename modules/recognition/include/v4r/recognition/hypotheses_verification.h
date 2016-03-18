@@ -72,7 +72,7 @@ namespace v4r
 
           Parameter (
                   double resolution = 0.005f,
-                  double inliers_threshold = 0.015f, // 0.005f
+                  double inliers_threshold = 0.01f, // 0.005f
                   double occlusion_thres = 0.01f, // 0.005f
                   int zbuffer_self_occlusion_resolution = 250,
                   double focal_length = 525.f,
@@ -111,11 +111,7 @@ namespace v4r
 
     std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > recognition_models_; /// @brief all models to be verified (including planar models if included)
 
-    std::vector<boost::shared_ptr<Eigen::Matrix4f> > refined_model_transforms_; /// @brief fine registration of model clouds to scene clouds after ICP (this applies to object model only - not to planes)
-
-    bool requires_normals_; /// \brief Whether the HV method requires normals or not, by default = false
-
-    bool normals_set_; /// \brief Whether the normals have been set
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > refined_model_transforms_; /// @brief fine registration of model clouds to scene clouds after ICP (this applies to object model only - not to planes)
 
     std::vector<int> scene_sampled_indices_;
 
@@ -142,10 +138,7 @@ namespace v4r
 
   public:
     HypothesisVerification (const Parameter &p = Parameter()) : param_(p)
-    {
-      normals_set_ = false;
-      requires_normals_ = false;
-    }
+    { }
 
     float getResolution() const
     {
@@ -207,10 +200,10 @@ namespace v4r
      * @brief returns the refined transformation matrix aligning model with scene cloud (applies to object models only - not plane clouds) and is in order of the input of addmodels
      * @return
      */
-    std::vector<boost::shared_ptr<Eigen::Matrix4f> >
-    getRefinedTransforms() const
+    void
+    getRefinedTransforms(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &tf) const
     {
-        return refined_model_transforms_;
+        tf = refined_model_transforms_;
     }
 
     /**
