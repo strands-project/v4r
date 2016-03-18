@@ -507,6 +507,14 @@ template<typename PointT>
 void
 GHV<ModelT, SceneT>::convertColor(const typename pcl::PointCloud<PointT> &cloud, Eigen::MatrixXf &color_mat)
 {
+    throw std::runtime_error("This function is not implemented for the chosen Point Cloud Type!");
+}
+
+template<typename ModelT, typename SceneT>
+template<pcl::PointXYZRGB>
+void
+GHV<ModelT, SceneT>::convertColor(const typename pcl::PointCloud<pcl::PointXYZRGB> &cloud, Eigen::MatrixXf &color_mat)
+{
     size_t num_color_channels = 0;
     switch (param_.color_space_)
     {
