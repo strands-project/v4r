@@ -73,17 +73,13 @@ class V4R_EXPORTS ColorTransformOMP
 private:
     std::vector<float> sRGB_LUT;
     std::vector<float> sXYZ_LUT;
-    omp_lock_t initialization_lock_;
 
     void initializeLUT();
 
 public:
-    ColorTransformOMP() {
-        omp_init_lock(&initialization_lock_);
-    }
-
-    ~ColorTransformOMP() {
-        omp_destroy_lock(&initialization_lock_);
+    ColorTransformOMP()
+    {
+        initializeLUT();
     }
 
     /**

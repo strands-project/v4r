@@ -7,8 +7,6 @@ namespace v4r
 void
 ColorTransformOMP::initializeLUT()
 {
-    omp_set_lock(&initialization_lock_);
-
     sRGB_LUT.resize(256);
     sXYZ_LUT.resize(4000);
 
@@ -31,16 +29,11 @@ ColorTransformOMP::initializeLUT()
         else
             sXYZ_LUT[i] = static_cast<float>((7.787 * f) + (16.0 / 116.0));
     }
-
-    omp_unset_lock(&initialization_lock_);
 }
 
 void
 ColorTransformOMP::RGB2CIELAB (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2)
 {
-    if (sRGB_LUT.empty())
-        initializeLUT();
-
     float fr = sRGB_LUT[R];
     float fg = sRGB_LUT[G];
     float fb = sRGB_LUT[B];

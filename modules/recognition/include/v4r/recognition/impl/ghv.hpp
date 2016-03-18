@@ -99,61 +99,6 @@ GHV<ModelT, SceneT>::evaluateSolution (const std::vector<bool> & active, int cha
 
 template<typename ModelT, typename SceneT>
 void
-GHV<ModelT, SceneT>::convertSceneColor()
-{
-    size_t num_color_channels = 0;
-    switch (param_.color_space_)
-    {
-    case ColorSpace::LAB: case ColorSpace::RGB: num_color_channels = 3; break;
-    case ColorSpace::GRAYSCALE: num_color_channels = 1; break;
-    default: throw std::runtime_error("Color space not implemented!");
-    }
-
-    scene_color_channels_ = Eigen::MatrixXf::Zero ( scene_cloud_downsampled_->points.size(), num_color_channels);
-
-#pragma omp parallel for schedule(dynamic)
-    for(size_t i=0; i < scene_cloud_downsampled_->points.size(); i++)
-    {
-        float rgb_s = 0.f;
-        bool exists_s;
-        pcl::for_each_type<FieldListS> (
-                    pcl::CopyIfFieldExists<typename CloudS::PointType, float> (scene_cloud_downsampled_->points[i],
-                                                                               "rgb", exists_s, rgb_s));
-        if (exists_s)
-        {
-            uint32_t rgb = *reinterpret_cast<int*> (&rgb_s);
-            unsigned char rs = (rgb >> 16) & 0x0000ff;
-            unsigned char gs = (rgb >> 8) & 0x0000ff;
-            unsigned char bs = (rgb) & 0x0000ff;
-            float rsf,gsf,bsf;
-            rsf = static_cast<float>(rs) / 255.f;
-            gsf = static_cast<float>(gs) / 255.f;
-            bsf = static_cast<float>(bs) / 255.f;
-
-
-            switch (param_.color_space_)
-            {
-            case ColorSpace::LAB:
-                float LRefs, aRefs, bRefs;
-                color_transf_omp_.RGB2CIELAB(rs, gs, bs, LRefs, aRefs, bRefs);
-
-                scene_color_channels_(i, 0) = LRefs;
-                scene_color_channels_(i, 1) = aRefs;
-                scene_color_channels_(i, 2) = bRefs;
-                break;
-            case ColorSpace::RGB:
-                scene_color_channels_(i, 0) = rsf;
-                scene_color_channels_(i, 1) = gsf;
-                scene_color_channels_(i, 2) = bsf;
-            case ColorSpace::GRAYSCALE:
-                scene_color_channels_(i, 0) = .2126 * rsf + .7152 * gsf + .0722 * bsf;
-            }
-        }
-    }
-}
-
-template<typename ModelT, typename SceneT>
-void
 GHV<ModelT, SceneT>::computePairwiseIntersection()
 {
     intersection_cost_ = Eigen::MatrixXf::Zero(recognition_models_.size(), recognition_models_.size());
@@ -238,7 +183,7 @@ GHV<ModelT, SceneT>::initialize()
         if(!param_.ignore_color_even_if_exists_)
         {
             pcl::ScopeTime t("Converting scene color values");
-            convertSceneColor();
+            convertColor(*scene_cloud_downsampled_, scene_color_channels_);
         }
 
         #pragma omp section
@@ -246,10 +191,11 @@ GHV<ModelT, SceneT>::initialize()
             pcl::ScopeTime t("Converting model color values");
             for (size_t i = 0; i < recognition_models_.size (); i++)
             {
-                removeNanNormals(*recognition_models_[i]);
+                HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
+                removeNanNormals(rm);
 
                 if(!param_.ignore_color_even_if_exists_)
-                    convertModelColor(*recognition_models_[i]);
+                    convertColor(*rm.visible_cloud_, rm.pt_color_);
             }
         }
     }
@@ -257,7 +203,6 @@ GHV<ModelT, SceneT>::initialize()
     {
         pcl::ScopeTime t("Computing fitness score between models and scene");
         scene_explained_weight_ = Eigen::MatrixXf::Zero(scene_cloud_downsampled_->points.size(), recognition_models_.size());
-        scene_explained_weight_duplicates_ = Eigen::MatrixXf (recognition_models_.size (), recognition_models_.size ());
 
         for (size_t i = 0; i < recognition_models_.size (); i++){
             HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
@@ -284,6 +229,9 @@ GHV<ModelT, SceneT>::initialize()
     size_t num_rows = scene_explained_weight_.rows();
     scene_explained_weight_.conservativeResize(num_rows, kept);
 
+    if(!kept)
+        return;
+
     {
         pcl::ScopeTime t("Compressing scene explained matrix");
         // remove rows of scene explained matrix, whose point is not explained by any hypothesis. Because it is usually very sparse and would take a lot of computation time.
@@ -299,9 +247,12 @@ GHV<ModelT, SceneT>::initialize()
             }
         }
         scene_explained_weight_compressed_.conservativeResize(kept, scene_explained_weight_.cols());
+
+        if(!kept)
+            return;
     }
 
-    //store model fitness into matrix
+    //store model fitness into vector
     model_fitness_v_ = Eigen::VectorXf(recognition_models_.size ());
     for (size_t i = 0; i < recognition_models_.size (); i++)
         model_fitness_v_[i] = recognition_models_[i]->model_fit_;
@@ -552,76 +503,47 @@ GHV<ModelT, SceneT>::removeNanNormals (HVRecognitionModel<ModelT> &rm)
 }
 
 template<typename ModelT, typename SceneT>
+template<typename PointT>
 void
-GHV<ModelT, SceneT>::convertModelColor(HVRecognitionModel<ModelT> &rm)
+GHV<ModelT, SceneT>::convertColor(const typename pcl::PointCloud<PointT> &cloud, Eigen::MatrixXf &color_mat)
 {
-//    std::vector< std::vector<float> > noise_term_visible_pt; // expected (axial and lateral) noise level at visible point
-//    if ( param_.use_noise_model_ ) {    // fore each point we compute its associated noise level. This noise level is used as an adaptive threshold for radius search
-//        noise_term_visible_pt.resize( rm.visible_cloud_->points.size(), std::vector<float>(2));
-//#pragma omp parallel for schedule (dynamic)
-//        for ( size_t i=0; i<rm.visible_cloud_->points.size(); i++ ) {
-//            NguyenNoiseModel<ModelT>::computeNoiseLevel( rm.visible_cloud_->points[i],
-//                                                         rm.visible_cloud_normals_->points[i],
-//                                                         noise_term_visible_pt[i][0],
-//                                                         noise_term_visible_pt[i][1],
-//                                                         param_.focal_length_);
-//        }
-//    }
-
-    if(!param_.ignore_color_even_if_exists_)
+    size_t num_color_channels = 0;
+    switch (param_.color_space_)
     {
-        //compute cloud LAB values for model visible points
-        size_t num_color_channels = 0;
-        switch (param_.color_space_)
-        {
         case ColorSpace::LAB: case ColorSpace::RGB: num_color_channels = 3; break;
         case ColorSpace::GRAYSCALE: num_color_channels = 1; break;
         default: throw std::runtime_error("Color space not implemented!");
-        }
+    }
 
-        rm.pt_color_ = Eigen::MatrixXf::Zero ( rm.visible_cloud_->points.size(), num_color_channels);
+    color_mat = Eigen::MatrixXf::Zero ( cloud.points.size(), num_color_channels);
 
-        #pragma omp parallel for schedule (dynamic)
-        for(size_t j=0; j < rm.visible_cloud_->points.size(); j++)
+    #pragma omp parallel for schedule (dynamic)
+    for(size_t j=0; j < cloud.points.size(); j++)
+    {
+        const PointT &p = cloud.points[j];
+
+        switch (param_.color_space_)
         {
-            bool exists_m;
-            float rgb_m = 0.f;
-            pcl::for_each_type<FieldListM> ( pcl::CopyIfFieldExists<typename CloudM::PointType, float> (
-                                                 rm.visible_cloud_->points[j], "rgb", exists_m, rgb_m));
-
-            if(!exists_m)
-                throw std::runtime_error("Color verification was requested but point cloud does not have color information!");
-
-            uint32_t rgb = *reinterpret_cast<int*> (&rgb_m);
-            unsigned char rmc = (rgb >> 16) & 0x0000ff;
-            unsigned char gmc = (rgb >> 8) & 0x0000ff;
-            unsigned char bmc = (rgb) & 0x0000ff;
-            float rmf = static_cast<float>(rmc) / 255.f;
-            float gmf = static_cast<float>(gmc) / 255.f;
-            float bmf = static_cast<float>(bmc) / 255.f;
-
-            switch (param_.color_space_)
-            {
             case ColorSpace::LAB:
+            {
+                unsigned char r = (unsigned char)p.r;
+                unsigned char g = (unsigned char)p.g;
+                unsigned char b = (unsigned char)p.b;
                 float LRefm, aRefm, bRefm;
-                color_transf_omp_.RGB2CIELAB(rmc, gmc, bmc, LRefm, aRefm, bRefm);
-                rm.pt_color_(j, 0) = LRefm;
-                rm.pt_color_(j, 1) = aRefm;
-                rm.pt_color_(j, 2) = bRefm;
+                color_transf_omp_.RGB2CIELAB(r, g, b, LRefm, aRefm, bRefm);
+                color_mat(j, 0) = LRefm;
+                color_mat(j, 1) = aRefm;
+                color_mat(j, 2) = bRefm;
                 break;
-            case ColorSpace::RGB:
-                rm.pt_color_(j, 0) = rmf;
-                rm.pt_color_(j, 1) = gmf;
-                rm.pt_color_(j, 2) = bmf;
-            case ColorSpace::GRAYSCALE:
-                rm.pt_color_(j, 0) = .2126 * rmf + .7152 * gmf + .0722 * bmf;
             }
+            case ColorSpace::RGB:
+                color_mat(j, 0) = p.r/255.f;
+                color_mat(j, 1) = p.g/255.f;
+                color_mat(j, 2) = p.b/255.f;
+                break;
+            case ColorSpace::GRAYSCALE:
+                color_mat(j, 0) = .2126 * p.r/255.f + .7152 * p.g/255.f + .0722 * p.b/255.f;
         }
-
-//        if(param_.use_histogram_specification_) {
-//            std::vector<size_t> lookup;
-//            registerModelAndSceneColor(lookup, rm);
-//        }
     }
 }
 
@@ -640,6 +562,8 @@ GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, s
     omp_lock_t scene_pt_lock[ scene_cloud_downsampled_->points.size() ];
     for(size_t i=0; i < scene_cloud_downsampled_->points.size(); i++)
         omp_init_lock( &scene_pt_lock[i] );
+
+//    std::cout << "Color sigma ab " << param_.color_sigma_ab_ << ", inlier thresh: " << param_.inliers_threshold_ << std::endl;
 
     #pragma omp parallel for schedule(dynamic)
     for (size_t m_pt_id = 0; m_pt_id < rm.visible_cloud_->points.size (); m_pt_id++) {
@@ -762,8 +686,8 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
         const pcl::Correspondence &c = rm.model_scene_c_[p];
         mp.g = 50.f + 205.f * c.weight;
     }
-    txt.str(""); txt << "model pts explained (model cost: " << rm.model_fit_ <<
-                        "; normalized: " << rm.model_fit_ / rm.visible_cloud_->points.size() << ")";
+    txt.str(""); txt << "model cost: " << rm.model_fit_ <<
+                        "; normalized: " << rm.model_fit_ / rm.visible_cloud_->points.size();
     rm_vis_->addText(txt.str(),10,10,20,1,1,1,"model cost",rm_v3);
     rm_vis_->addPointCloud(model_fit_cloud, "model cost", rm_v3);
 

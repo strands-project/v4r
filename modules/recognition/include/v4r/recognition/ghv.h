@@ -151,7 +151,6 @@ protected:
     Eigen::MatrixXf intersection_cost_; /// @brief represents the pairwise intersection cost
     Eigen::MatrixXf scene_explained_weight_; /// @brief for each point in the scene (row) store how good it is presented from each model (column)
     Eigen::MatrixXf scene_explained_weight_compressed_; /// @brief for each point in the scene (row) store how good it is presented from each model (column)
-    Eigen::MatrixXf scene_explained_weight_duplicates_; //
     Eigen::VectorXf max_scene_explained_weight_; /// @brief for each point in the scene (row) store how good it is presented from each model (column)
 
     GHVSAModel<ModelT, SceneT> best_seen_;
@@ -166,9 +165,7 @@ protected:
 
     void removeSceneNans (); /// @brief remove all points from the scene which are nan or have a nan normal
 
-    void convertSceneColor(); /// @brief converting scene points from RGB to desired color space
-
-    void convertModelColor (HVRecognitionModel<ModelT> &rm); /// @brief converting visible points from the model from RGB to desired color space
+    template<typename PointT> void convertColor(const typename pcl::PointCloud<PointT> &cloud, Eigen::MatrixXf &color_mat); /// @brief converting points from RGB to desired color space
 
     void computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, size_t model_idx); /// @brief checks for each visible point in the model if there are nearby scene points and how good they match
 
