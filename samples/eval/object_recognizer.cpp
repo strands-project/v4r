@@ -11,7 +11,6 @@
 #include <sstream>
 #include <time.h>
 
-#include <boost/any.hpp>
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
 
@@ -48,32 +47,6 @@ main (int argc, char ** argv)
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
     v4r::io::createDirIfNotExist(out_dir);
-
-    // writing parameters to file
-    ofstream param_file;
-    param_file.open ((out_dir + "/param.nfo").c_str());
-    for(const auto& it : vm)
-    {
-      param_file << "--" << it.first << " ";
-
-      auto& value = it.second.value();
-      if (auto v_double = boost::any_cast<double>(&value))
-        param_file << std::setprecision(3) << *v_double;
-      else if (auto v_string = boost::any_cast<std::string>(&value))
-        param_file << *v_string;
-      else if (auto v_bool = boost::any_cast<bool>(&value))
-        param_file << *v_bool;
-      else if (auto v_int = boost::any_cast<int>(&value))
-        param_file << *v_int;
-      else if (auto v_size_t = boost::any_cast<size_t>(&value))
-        param_file << *v_size_t;
-      else
-        param_file << "error";
-
-      param_file << " ";
-    }
-    param_file.close();
-
 
     v4r::MultiRecognitionPipeline<PointT> r(argc, argv);
 
