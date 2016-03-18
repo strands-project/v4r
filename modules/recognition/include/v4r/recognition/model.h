@@ -156,7 +156,7 @@ public:
       grid.filter (*voxelized);
 
       PointTPtrConst voxelized_const (new pcl::PointCloud<PointT> (*voxelized));
-      voxelized_assembled_[resolution] = voxelized_const;
+      voxelized_assembled_[resolution_mm] = voxelized_const;
       return voxelized_const;
     }
 
