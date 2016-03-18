@@ -23,6 +23,8 @@
 
 #ifndef V4R_COLOR_TRANSFORMS___
 #define V4R_COLOR_TRANSFORMS___
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
 #include <v4r/core/macros.h>
 #include <vector>
 
@@ -71,16 +73,20 @@ public:
 class V4R_EXPORTS ColorTransformOMP
 {
 private:
-    std::vector<float> sRGB_LUT;
-    std::vector<float> sXYZ_LUT;
+    static std::vector<float> sRGB_LUT;
+    static std::vector<float> sXYZ_LUT;
 
-    void initializeLUT();
-
+    static omp_lock_t initialization_lock;
+    static bool is_initialized_;
 public:
     ColorTransformOMP()
     {
-        initializeLUT();
     }
+
+    /**
+     * @brief initializes the Look-Up Table used to convert the color. Must be called before first conversion call!
+     */
+    static void initializeLUT();
 
     /**
      * @brief Converts RGB color in LAB color space defined by CIE
@@ -91,7 +97,7 @@ public:
      * @param A (0...128)
      * @param B2 (0...128)
      */
-    void
+    static void
     RGB2CIELAB (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2);
 
     /**
@@ -103,8 +109,24 @@ public:
      * @param A (-1...1)
      * @param B2 (-1...1)
      */
-    void
+    static void
     RGB2CIELAB_normalized (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2);
+
+    /**
+     * @brief converts all rgb color points within point cloud into desired color space and stores it into matrix
+     * @param[in] point cloud to be converted
+     * @param[out] output matrix
+     */
+    template<typename PointT>
+     V4R_EXPORTS static void
+    convertColor(const typename pcl::PointCloud<PointT> &cloud, Eigen::MatrixXf &color_mat, int color_space=ColorSpace::LAB);
+
+    enum ColorSpace
+    {
+       LAB,
+       RGB,
+       GRAYSCALE
+    };
 };
 }
 #endif

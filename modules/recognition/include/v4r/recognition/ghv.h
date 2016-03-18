@@ -94,7 +94,7 @@ public:
                 int opt_type = OptimizationType::LocalSearch,
                 bool use_histogram_specification = false, // false
                 bool initial_status = false,
-                int color_space = ColorSpace::LAB,
+                int color_space = ColorTransformOMP::LAB,
                 bool use_noise_model = true,
                 bool visualize_go_cues = false,
                 int knn_inliers = 3,
@@ -155,7 +155,6 @@ protected:
 
     GHVSAModel<ModelT, SceneT> best_seen_;
     float initial_temp_;
-    ColorTransformOMP color_transf_omp_;
     boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
     Eigen::MatrixXf scene_color_channels_;
     typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
@@ -198,13 +197,6 @@ public:
         initial_temp_ = 1000;
         scene_and_normals_set_from_outside_ = false;
     }
-
-    enum ColorSpace
-    {
-       LAB,
-       RGB,
-       GRAYSCALE
-    };
 
     enum OptimizationType
     {

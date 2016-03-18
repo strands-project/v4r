@@ -34,7 +34,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <v4r/common/color_transforms.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/miscellaneous.h>
@@ -176,6 +175,7 @@ GHV<ModelT, SceneT>::initialize()
     }
 
     removeModelsWithLowVisibility();
+    ColorTransformOMP::initializeLUT();
 
     #pragma omp parallel sections
     {
@@ -183,7 +183,7 @@ GHV<ModelT, SceneT>::initialize()
         if(!param_.ignore_color_even_if_exists_)
         {
             pcl::ScopeTime t("Converting scene color values");
-            convertColor(*scene_cloud_downsampled_, scene_color_channels_);
+            ColorTransformOMP::convertColor(*scene_cloud_downsampled_, scene_color_channels_);
         }
 
         #pragma omp section
@@ -195,7 +195,7 @@ GHV<ModelT, SceneT>::initialize()
                 removeNanNormals(rm);
 
                 if(!param_.ignore_color_even_if_exists_)
-                    convertColor(*rm.visible_cloud_, rm.pt_color_);
+                    ColorTransformOMP::convertColor(*rm.visible_cloud_, rm.pt_color_);
             }
         }
     }
@@ -503,59 +503,6 @@ GHV<ModelT, SceneT>::removeNanNormals (HVRecognitionModel<ModelT> &rm)
 }
 
 template<typename ModelT, typename SceneT>
-template<typename PointT>
-void
-GHV<ModelT, SceneT>::convertColor(const typename pcl::PointCloud<PointT> &cloud, Eigen::MatrixXf &color_mat)
-{
-    throw std::runtime_error("This function is not implemented for the chosen Point Cloud Type!");
-}
-
-template<typename ModelT, typename SceneT>
-template<pcl::PointXYZRGB>
-void
-GHV<ModelT, SceneT>::convertColor(const typename pcl::PointCloud<pcl::PointXYZRGB> &cloud, Eigen::MatrixXf &color_mat)
-{
-    size_t num_color_channels = 0;
-    switch (param_.color_space_)
-    {
-        case ColorSpace::LAB: case ColorSpace::RGB: num_color_channels = 3; break;
-        case ColorSpace::GRAYSCALE: num_color_channels = 1; break;
-        default: throw std::runtime_error("Color space not implemented!");
-    }
-
-    color_mat = Eigen::MatrixXf::Zero ( cloud.points.size(), num_color_channels);
-
-    #pragma omp parallel for schedule (dynamic)
-    for(size_t j=0; j < cloud.points.size(); j++)
-    {
-        const PointT &p = cloud.points[j];
-
-        switch (param_.color_space_)
-        {
-            case ColorSpace::LAB:
-            {
-                unsigned char r = (unsigned char)p.r;
-                unsigned char g = (unsigned char)p.g;
-                unsigned char b = (unsigned char)p.b;
-                float LRefm, aRefm, bRefm;
-                color_transf_omp_.RGB2CIELAB(r, g, b, LRefm, aRefm, bRefm);
-                color_mat(j, 0) = LRefm;
-                color_mat(j, 1) = aRefm;
-                color_mat(j, 2) = bRefm;
-                break;
-            }
-            case ColorSpace::RGB:
-                color_mat(j, 0) = p.r/255.f;
-                color_mat(j, 1) = p.g/255.f;
-                color_mat(j, 2) = p.b/255.f;
-                break;
-            case ColorSpace::GRAYSCALE:
-                color_mat(j, 0) = .2126 * p.r/255.f + .7152 * p.g/255.f + .0722 * p.b/255.f;
-        }
-    }
-}
-
-template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, size_t model_idx)
 {
@@ -604,7 +551,7 @@ GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, s
                   double sqr_3D_dist = nn_distances[k];
                   double score = w3d * sqr_3D_dist;
 
-                  if(param_.color_space_ == ColorSpace::LAB)
+                  if(param_.color_space_ == ColorTransformOMP::LAB)
                   {
                       double As = color_s(1);
                       double Bs = color_s(2);
@@ -644,11 +591,17 @@ GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, s
 }
 
 //######### VISUALIZATION FUNCTIONS #####################
+template<>
+void
+GHV<pcl::PointXYZ, pcl::PointXYZ>::visualizeGOCuesForModel(const HVRecognitionModel<pcl::PointXYZ> &rm, int model_id) const
+{
+    std::cerr << "The visualization function is not defined for the chosen Point Cloud Type!" << std::endl;
+}
+
 template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm, int model_id) const
 {
-
     if(!rm_vis_) {
         rm_vis_.reset (new pcl::visualization::PCLVisualizer ("model cues"));
         rm_vis_->createViewPort(0   , 0   , 0.33,0.5 , rm_v1);

@@ -29,11 +29,15 @@ ColorTransformOMP::initializeLUT()
         else
             sXYZ_LUT[i] = static_cast<float>((7.787 * f) + (16.0 / 116.0));
     }
+    is_initialized_ = true;
 }
 
 void
 ColorTransformOMP::RGB2CIELAB (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2)
 {
+    if(!is_initialized_)
+        throw std::runtime_error("Color Look-Up table is not initialized. Did you forget to call the initializeLUT function?");
+
     float fr = sRGB_LUT[R];
     float fg = sRGB_LUT[G];
     float fb = sRGB_LUT[B];
@@ -68,7 +72,6 @@ ColorTransformOMP::RGB2CIELAB (unsigned char R, unsigned char G, unsigned char B
         B2 = -120.0f;
 }
 
-
 void
 ColorTransformOMP::RGB2CIELAB_normalized(unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2)
 {
@@ -76,6 +79,57 @@ ColorTransformOMP::RGB2CIELAB_normalized(unsigned char R, unsigned char G, unsig
     L = (L - 50) / 50;
     A /= 128.0f;
     B2 /= 128.0f;
+}
+
+template<>
+V4R_EXPORTS void
+ColorTransformOMP::convertColor(const typename pcl::PointCloud<pcl::PointXYZ> &cloud, Eigen::MatrixXf &color_mat, int color_space)
+{
+
+}
+
+template<typename PointT>
+ V4R_EXPORTS  void
+ColorTransformOMP::convertColor(const typename pcl::PointCloud<PointT> &cloud, Eigen::MatrixXf &color_mat, int color_space)
+{
+    size_t num_color_channels = 0;
+    switch (color_space)
+    {
+        case ColorTransformOMP::LAB: case ColorTransformOMP::RGB: num_color_channels = 3; break;
+        case ColorTransformOMP::GRAYSCALE: num_color_channels = 1; break;
+        default: throw std::runtime_error("Color space not implemented!");
+    }
+
+    color_mat = Eigen::MatrixXf::Zero ( cloud.points.size(), num_color_channels);
+
+    #pragma omp parallel for schedule (dynamic)
+    for(size_t j=0; j < cloud.points.size(); j++)
+    {
+        const PointT &p = cloud.points[j];
+
+        switch (color_space)
+        {
+            case ColorTransformOMP::LAB:
+            {
+                unsigned char r = (unsigned char)p.r;
+                unsigned char g = (unsigned char)p.g;
+                unsigned char b = (unsigned char)p.b;
+                float LRefm, aRefm, bRefm;
+                RGB2CIELAB(r, g, b, LRefm, aRefm, bRefm);
+                color_mat(j, 0) = LRefm;
+                color_mat(j, 1) = aRefm;
+                color_mat(j, 2) = bRefm;
+                break;
+            }
+            case ColorTransformOMP::RGB:
+                color_mat(j, 0) = p.r/255.f;
+                color_mat(j, 1) = p.g/255.f;
+                color_mat(j, 2) = p.b/255.f;
+                break;
+            case ColorTransformOMP::GRAYSCALE:
+                color_mat(j, 0) = .2126 * p.r/255.f + .7152 * p.g/255.f + .0722 * p.b/255.f;
+        }
+    }
 }
 
 void
@@ -153,4 +207,8 @@ ColorTransform::RGB2CIELAB_normalized(unsigned char R, unsigned char G, unsigned
 
 std::vector<float> ColorTransform::sRGB_LUT; //definition required
 std::vector<float> ColorTransform::sXYZ_LUT;
+std::vector<float> ColorTransformOMP::sRGB_LUT;
+std::vector<float> ColorTransformOMP::sXYZ_LUT;
+bool ColorTransformOMP::is_initialized_ = false;
+template V4R_EXPORTS void ColorTransformOMP::convertColor<pcl::PointXYZRGB>(const typename pcl::PointCloud<pcl::PointXYZRGB> &, Eigen::MatrixXf &, int);
 }
