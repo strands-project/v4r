@@ -83,9 +83,12 @@ ColorTransformOMP::RGB2CIELAB_normalized(unsigned char R, unsigned char G, unsig
 
 template<>
 V4R_EXPORTS void
-ColorTransformOMP::convertColor(const typename pcl::PointCloud<pcl::PointXYZ> &cloud, Eigen::MatrixXf &color_mat, int color_space)
+ColorTransformOMP::convertColor<pcl::PointXYZ>(const typename pcl::PointCloud<pcl::PointXYZ> &cloud, Eigen::MatrixXf &color_mat, int color_space)
 {
-
+    (void)cloud;
+    (void)color_mat;
+    (void)color_space;
+    std::cerr << "A point cloud without color information cannot be converted. Please provide another point cloud type!" << std::endl;
 }
 
 template<typename PointT>
