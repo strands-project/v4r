@@ -595,6 +595,8 @@ template<>
 void
 GHV<pcl::PointXYZ, pcl::PointXYZ>::visualizeGOCuesForModel(const HVRecognitionModel<pcl::PointXYZ> &rm, int model_id) const
 {
+    (void)rm;
+    (void)model_id;
     std::cerr << "The visualization function is not defined for the chosen Point Cloud Type!" << std::endl;
 }
 
@@ -714,6 +716,9 @@ template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::visualizeGOCues (const std::vector<bool> & active_solution, float cost, int times_evaluated) const
 {
+    (void)active_solution;
+    (void)cost;
+    (void)times_evaluated;
     std::cerr << "Visualizing GO Cues is only implemented for XYZRGB point clouds." << std::endl;
 }
 
