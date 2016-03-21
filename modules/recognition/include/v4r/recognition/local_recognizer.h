@@ -151,6 +151,9 @@ namespace v4r
 
           void correspondenceGrouping();
 
+          void visualizeKeypoints(const ModelT &m);
+          mutable pcl::visualization::PCLVisualizer::Ptr vis_;
+
       public:
 
         LocalRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
@@ -256,7 +259,7 @@ namespace v4r
         void
         drawCorrespondences (const ObjectHypothesis<PointT> & oh)
         {
-          oh.visualize(*scene_);
+          oh.visualize(*scene_, *scene_keypoints_);
         }
 
         /**
@@ -267,7 +270,7 @@ namespace v4r
         {
             typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it;
             for (it = obj_hypotheses_.begin(); it != obj_hypotheses_.end (); it++) {
-                it->second.visualize(*scene_);
+                it->second.visualize(*scene_, *scene_keypoints_);
             }
         }
 

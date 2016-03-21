@@ -43,7 +43,6 @@ class V4R_EXPORTS ObjectHypothesis
 
   private:
     mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-    int vp1_;
 
   public:
     ModelTPtr model_;
@@ -55,7 +54,7 @@ class V4R_EXPORTS ObjectHypothesis
     pcl::Correspondences model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
     std::vector<int> indices_to_flann_models_;
 
-    void visualize(const typename pcl::PointCloud<PointT> & scene_kp) const;
+    void visualize(const pcl::PointCloud<pcl::PointXYZRGB> &scene, const pcl::PointCloud<pcl::PointXYZRGB> &scene_kp) const;
 
     ObjectHypothesis & operator=(const ObjectHypothesis &rhs)
     {

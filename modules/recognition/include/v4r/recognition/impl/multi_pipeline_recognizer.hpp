@@ -198,6 +198,8 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
         cg.setSceneCloud (scene_keypoints_);
         cg.setInputCloud (oh.model_->keypoints_);
 
+//        oh.visualize(*scene_, *scene_keypoints_);
+
         if(cg.getRequiresNormals())
             cg.setInputAndSceneNormals(oh.model_->kp_normals_, scene_kp_normals_);
 
@@ -265,8 +267,6 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
         }
 
         std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_.size () << " " << oh.model_->id_ << std::endl;
-
-        //        oh.visualize(*scene_);
     }
 }
 
