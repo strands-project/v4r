@@ -21,7 +21,6 @@ template<typename PointT>
 void
 MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(Recognizer<PointT> &rec)
 {
-
     std::map<std::string, ObjectHypothesis<PointT> > oh_m;
     std::vector<ModelTPtr> models;
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms;

@@ -74,7 +74,7 @@ namespace v4r
       {
       public:
           size_t gc_threshold_;  /// @brief Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose
-          double gc_size_; /// @brief Resolution of the consensus set used to cluster correspondences together
+          double gc_size_; /// @brief Resolution of the consensus set used to cluster correspondences together. If the difference in distance between model keypoints and scene keypoints of a pair of correspondence is greater than this threshold, the correspondence pair will not be connected.
           double thres_dot_distance_;
           bool use_graph_;
           double dist_for_cluster_factor_;
@@ -130,42 +130,6 @@ namespace v4r
       }
 
       inline
-      void setMaxTimeForCliquesComputation(float t)
-      {
-          param_.max_time_allowed_cliques_comptutation_ = t;
-      }
-
-      inline
-      void setCheckNormalsOrientation(bool b)
-      {
-        param_.check_normals_orientation_ = b;
-      }
-
-      inline
-      void setSortCliques(bool b)
-      {
-        param_.cliques_big_to_small_ = b;
-      }
-
-      inline
-      void setMaxTaken(size_t t)
-      {
-        param_.max_taken_correspondence_ = t;
-      }
-
-      inline
-      void pruneByCC(bool b)
-      {
-        param_.prune_by_CC_ = b;
-      }
-
-      inline
-      void setDistForClusterFactor(float f)
-      {
-        param_.dist_for_cluster_factor_ = f;
-      }
-
-      inline
       bool poseExists(Eigen::Matrix4f corr_rej_trans)
       {
         if(!param_.prune_)
@@ -204,66 +168,6 @@ namespace v4r
       void setPrune(bool b)
       {
         param_.prune_ = b;
-      }
-
-      inline void
-      setUseGraph (bool b)
-      {
-        param_.use_graph_ = b;
-      }
-
-      inline
-      void setDotDistance(double t)
-      {
-        param_.thres_dot_distance_ = t;
-      }
-
-      /** \brief Sets the minimum cluster size
-        * \param[in] threshold the minimum cluster size 
-        */
-      inline void
-      setGCThreshold (size_t threshold)
-      {
-        param_.gc_threshold_ = threshold;
-      }
-
-      /** \brief Gets the minimum cluster size.
-        * 
-        * \return the minimum cluster size used by GC.
-        */
-      inline size_t
-      getGCThreshold () const
-      {
-        return param_.gc_threshold_;
-      }
-
-      /** \brief Sets the consensus set resolution. This should be in metric units.
-        * 
-        * \param[in] gc_size consensus set resolution.
-        */
-      inline void
-      setGCSize (double gc_size)
-      {
-        param_.gc_size_ = gc_size;
-      }
-
-      /** \brief Gets the consensus set resolution.
-        * 
-        * \return the consensus set resolution.
-        */
-      inline double
-      getGCSize () const
-      {
-        return param_.gc_size_;
-      }
-
-      /** \brief Sets the minimum cluster size
-        * \param[in] threshold the minimum cluster size
-        */
-      inline void
-      setRansacThreshold (double threshold)
-      {
-        param_.ransac_threshold_ = threshold;
       }
 
       /** \brief The main function, recognizes instances of the model into the scene set by the user.
