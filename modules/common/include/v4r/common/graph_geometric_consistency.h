@@ -92,7 +92,7 @@ namespace v4r
                   double thres_dot_distance = 0.2f, // 0.05f
                   bool use_graph = true,
                   double dist_for_cluster_factor = 0., //3.f
-                  size_t max_taken_correspondence = 3, //5
+                  size_t max_taken_correspondence = 5,
                   bool cliques_big_to_small = false,
                   bool check_normals_orientation = true,
                   double max_time_allowed_cliques_comptutation = 100, //std::numeric_limits<double>::infinity()
@@ -130,44 +130,22 @@ namespace v4r
       }
 
       inline
-      bool poseExists(Eigen::Matrix4f corr_rej_trans)
+      bool poseExists(const Eigen::Matrix4f &corr_rej_trans)
       {
         if(!param_.prune_)
           return false;
 
-        bool found = false;
         Eigen::Vector3f trans = corr_rej_trans.block<3,1>(0,3);
-        Eigen::Quaternionf quat(corr_rej_trans.block<3,3>(0,0));
-        quat.normalize();
-        Eigen::Quaternionf quat_conj = quat.conjugate();
 
         for(size_t t=0; t < found_transformations_.size(); t++)
         {
-          Eigen::Matrix4f transf_tmp = found_transformations_[t];
+          const Eigen::Matrix4f &transf_tmp = found_transformations_[t];
           Eigen::Vector3f trans_found = transf_tmp.block<3,1>(0,3);
           if((trans - trans_found).norm() < param_.gc_size_)
-          {
-            found = true;
-            break;
-
-            Eigen::Matrix4f trans_tmp = found_transformations_[t];
-            Eigen::Quaternionf quat_found(trans_tmp.block<3,3>(0,0));
-            quat_found.normalize();
-            Eigen::Quaternionf quat_prod = quat_found * quat_conj;
-            double angle = acos(quat_prod.z());
-            if(std::abs(pcl::rad2deg(angle)) < 5.0)
-            {
-            }
-          }
+              return true;
         }
 
-        return found;
-      }
-
-      inline
-      void setPrune(bool b)
-      {
-        param_.prune_ = b;
+        return false;
       }
 
       /** \brief The main function, recognizes instances of the model into the scene set by the user.

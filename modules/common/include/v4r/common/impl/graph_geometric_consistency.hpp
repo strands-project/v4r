@@ -40,7 +40,7 @@
 #ifndef FAAT_PCL_RECOGNITION_GRAPH_GEOMETRIC_CONSISTENCY_IMPL_H_
 #define FAAT_PCL_RECOGNITION_GRAPH_GEOMETRIC_CONSISTENCY_IMPL_H_
 
-#include "v4r/common/graph_geometric_consistency.h"
+#include <v4r/common/graph_geometric_consistency.h>
 #include <pcl/registration/correspondence_types.h>
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
 #include <pcl/common/io.h>
@@ -71,7 +71,7 @@ bool gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j);
 bool
 gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
 {
-    return (i.distance < j.distance);
+    return i.distance < j.distance;
 }
 
 struct V4R_EXPORTS ViewD
@@ -108,8 +108,8 @@ public:
      {
      }*/
 
-    save_cliques (std::size_t& max, std::size_t& maximum_clique, std::size_t& n_cliques, std::vector<std::vector<size_t> *> & cliquess) :
-        min_size_ (max), maximum_ (maximum_clique), n_cliques_ (n_cliques), cliques_ (cliquess)
+    save_cliques (size_t max, size_t maximum_clique, size_t n_cliques, std::vector<std::vector<size_t> *> & cliques) :
+        min_size_ (max), maximum_ (maximum_clique), n_cliques_ (n_cliques), cliques_ (cliques)
     {
     }
 
@@ -125,40 +125,22 @@ public:
 
             //save clique...
             typename Clique::const_iterator i, end = c.end ();
-            //std::vector<void *> * cc = new std::vector<void *> (c.size ());
             std::vector<size_t> * cc = new std::vector<size_t> (c.size ());
             cliques_.push_back (cc);
             size_t p;
             for (i = c.begin (); i != end; ++i, ++p)
-            {
-                //cc->at (p) = static_cast<void *> (*i);
                 cc->at (p) = (*i);
-            }
 
             n_cliques_++;
         }
         else
-        {
             return;
-        }
-
-        // Simply assert that each vertex in the clique is connected
-        // to all others in the clique.
-        /*typename Clique::const_iterator i, j, end = c.end();
-         for(i = c.begin(); i != end; ++i) {
-         for(j = c.begin(); j != end; ++j) {
-         if(i != j) {
-         BOOST_ASSERT(edge(*i, *j, g).second);
-         }
-         }
-         }*/
     }
 
-    std::size_t& min_size_;
-    std::size_t& maximum_;
-    std::size_t& n_cliques_;
-    //std::vector<std::vector<void *> *> & cliques;
-    std::vector<std::vector<size_t> *> & cliques_;
+    size_t min_size_;
+    size_t maximum_;
+    size_t n_cliques_;
+    std::vector<std::vector<size_t> *> cliques_;
 };
 
 class FAATPCL_CliquesException: public std::exception
@@ -325,7 +307,7 @@ public:
     }
 
     void
-    find_cliques (Graph & G, size_t num_v)
+    find_cliques (const Graph & G, size_t num_v)
     {
         SetType cand, done;
         VectorType clique_so_far;
@@ -357,13 +339,13 @@ public:
     }
 
     size_t
-    getNumCliquesFound ()
+    getNumCliquesFound () const
     {
         return cliques_found_.size ();
     }
 
     void
-    getCliques (std::vector<VectorType *> & cliques)
+    getCliques (std::vector<VectorType *> & cliques) const
     {
         cliques = cliques_found_;
     }
@@ -435,7 +417,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph2(Gr
         for (size_t i = 0; i < to_be_removed.size (); i++)
             clear_vertex (to_be_removed[i], g);
 
-    } while(to_be_removed.size() > 0);
+    } while(!to_be_removed.empty());
 }
 
 template<typename PointModelT, typename PointSceneT>
