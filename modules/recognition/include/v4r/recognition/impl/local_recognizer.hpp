@@ -14,6 +14,36 @@ namespace v4r
 
 template<typename PointT>
 void
+LocalRecognitionPipeline<PointT>::visualizeKeypoints(const ModelT &m)
+{
+    if(!vis_)
+        vis_.reset( new pcl::visualization::PCLVisualizer("keypoints"));
+
+    vis_->removeAllPointClouds();
+    vis_->removeAllShapes();
+
+    typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 3 );
+    typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+    pcl::copyPointCloud(*model_cloud, *model_aligned);
+    vis_->addPointCloud(model_aligned, "model");
+
+    typename pcl::PointCloud<PointT>::Ptr kps_color ( new pcl::PointCloud<PointT>() );
+    kps_color->points.resize(m.keypoints_->points.size());
+    for(size_t j=0; j<m.keypoints_->points.size(); j++)
+    {
+        PointT kp_m = m.keypoints_->points[j];
+        const float r = kp_m.r = 100 + rand() % 155;
+        const float g = kp_m.g = 100 + rand() % 155;
+        const float b = kp_m.b = 100 + rand() % 155;
+        std::stringstream ss; ss << "model_keypoint_ " << j;
+        vis_->addSphere(kp_m, 0.001f, r/255, g/255, b/255, ss.str());
+    }
+    vis_->addPointCloud(m.keypoints_, "kps_model");
+    vis_->spin();
+}
+
+template<typename PointT>
+void
 LocalRecognitionPipeline<PointT>::loadFeaturesAndCreateFLANN ()
 {
     std::vector<ModelTPtr> models = source_->getModels();
@@ -102,6 +132,7 @@ LocalRecognitionPipeline<PointT>::loadFeaturesAndCreateFLANN ()
                 flann_models_.push_back (descr_model);
             }
         }
+//        visualizeKeypoints(*m);
     }
     std::cout << "Total number of " << estimator_->getFeatureDescriptorName() << " features within the model database: " << flann_models_.size () << std::endl;
 
@@ -170,6 +201,7 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
                 estimator_->setNormals(normals);
                 typename pcl::PointCloud<PointT> foo;
                 bool success = estimator_->estimate (*m->views_[v], foo, all_keypoints, all_signatures);
+
                 (void) success;
                 estimator_->getKeypointIndices(all_kp_indices);
 
