@@ -73,6 +73,44 @@ ColorTransformOMP::RGB2CIELAB (unsigned char R, unsigned char G, unsigned char B
 }
 
 void
+ColorTransform::CIELAB2RGB(float L, float a, float b, unsigned char &R, unsigned char &G, unsigned char &B)
+{
+    double X, Y, Z;
+
+    // Lab -> normalized XYZ (X,Y,Z are all in 0...1)
+
+    Y = L * (1.0/116.0) + 16.0/116.0;
+    X = a * (1.0/500.0) + Y;
+    Z = b * (-1.0/200.0) + Y;
+
+    X = X > 6.0/29.0 ? X * X * X : X * (108.0/841.0) - 432.0/24389.0;
+    Y = L > 8.0 ? Y * Y * Y : L * (27.0/24389.0);
+    Z = Z > 6.0/29.0 ? Z * Z * Z : Z * (108.0/841.0) - 432.0/24389.0;
+
+    // normalized XYZ -> linear sRGB (in 0...1)
+
+    double Rf, Gf, Bf;
+
+    Rf = X * (1219569.0/395920.0)     + Y * (-608687.0/395920.0)    + Z * (-107481.0/197960.0);
+    Gf = X * (-80960619.0/87888100.0) + Y * (82435961.0/43944050.0) + Z * (3976797.0/87888100.0);
+    Bf = X * (93813.0/1774030.0)      + Y * (-180961.0/887015.0)    + Z * (107481.0/93370.0);
+
+    // linear sRGB -> gamma-compressed sRGB (in 0...1)
+
+    Rf = Rf > 0.0031308 ? pow(Rf, 1.0 / 2.4) * 1.055 - 0.055 : Rf * 12.92;
+    Gf = Gf > 0.0031308 ? pow(Gf, 1.0 / 2.4) * 1.055 - 0.055 : Gf * 12.92;
+    Bf = Bf > 0.0031308 ? pow(Bf, 1.0 / 2.4) * 1.055 - 0.055 : Bf * 12.92;
+
+    Rf *=255.f;
+    Gf *=255.f;
+    Bf *=255.f;
+
+    R = static_cast<unsigned char>( std::max(0, std::min( static_cast<int>(Rf+0.5f), 255) ) );
+    G = static_cast<unsigned char>( std::max(0, std::min( static_cast<int>(Gf+0.5f), 255) ) );
+    B = static_cast<unsigned char>( std::max(0, std::min( static_cast<int>(Bf+0.5f), 255) ) );
+}
+
+void
 ColorTransformOMP::RGB2CIELAB_normalized(unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2)
 {
     RGB2CIELAB(R,G,B,L,A,B2);

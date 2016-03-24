@@ -63,6 +63,9 @@ public:
      */
     static void
     RGB2CIELAB_normalized (unsigned char R, unsigned char G, unsigned char B, float &L, float &A,float &B2);
+
+    static void
+    CIELAB2RGB(float L, float a, float b, unsigned char &R, unsigned char &G, unsigned char &B);
 };
 
 /**
@@ -115,7 +118,7 @@ public:
     /**
      * @brief converts all rgb color points within point cloud into desired color space and stores it into matrix
      * @param[in] point cloud to be converted
-     * @param[out] output matrix
+     * @param[out] output matrix (rows correspond to points and cols to color channels)
      */
     template<typename PointT>
      V4R_EXPORTS static void
