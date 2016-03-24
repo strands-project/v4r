@@ -365,7 +365,7 @@ createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 }
 
 
-template<typename T>
+template<typename T=int>
 V4R_EXPORTS std::vector<T>
 createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
 {
@@ -497,8 +497,35 @@ removeColumn(Eigen::MatrixXf& matrix, unsigned int colToRemove)
     matrix.conservativeResize(numRows,numCols);
 }
 
+/**
+ * @brief compute histogram of the row entries of a matrix
+ * @param[in] data (row are the elements, columns are the different dimensions
+ * @param[out] histogram
+ * @param[in] number of bins
+ * @param[in] range minimum
+ * @param[in] range maximum
+ */
 void
-V4R_EXPORTS computeHistogram (const std::vector<float> & values, std::vector<size_t> &histogram, size_t hist_size = 100, float min=0.f, float max=255.f);
+V4R_EXPORTS computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXf &histogram, size_t bins=100, float min=0.f, float max=1.f);
+
+
+/**
+ * @brief computes histogram intersection (does not normalize histograms!)
+ * @param[in] histA
+ * @param[in] histB
+ * @return intersection value
+ */
+float
+V4R_EXPORTS computeHistogramIntersection (const Eigen::VectorXf &histA, const Eigen::VectorXf &histB);
+
+/**
+ * @brief shift histogram values by one bin
+ * @param[in] hist
+ * @param[out] hist_shifted
+ * @param[in] direction_is_right (if true, shift histogram to the right. Otherwise to the left)
+ */
+void
+V4R_EXPORTS shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction_is_right=true);
 
 }
 
