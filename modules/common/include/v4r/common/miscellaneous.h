@@ -448,6 +448,23 @@ bool is_in_range(T value, T min, T max)
     return (value >= min) && (value <= max);
 }
 
+/**
+ * @brief sorts a vector and returns sorted indices
+ */
+template <typename T>
+std::vector<size_t> sort_indexes(const std::vector<T> &v) {
+
+  // initialize original index locations
+  std::vector<size_t> idx(v.size());
+  for (size_t i = 0; i != idx.size(); ++i) idx[i] = i;
+
+  // sort indexes based on comparing values in v
+  std::sort(idx.begin(), idx.end(),
+       [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+
+  return idx;
+}
+
 
 V4R_EXPORTS inline void
 removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
