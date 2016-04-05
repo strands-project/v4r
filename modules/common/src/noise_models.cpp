@@ -1,7 +1,5 @@
 #include <v4r/common/organized_edge_detection.h>
-#include <pcl/visualization/pcl_visualizer.h>
 #include "v4r/common/noise_models.h"
-#include "v4r/common/organized_edge_detection.h"
 
 #include <opencv2/opencv.hpp>
 #include <v4r/common/pcl_opencv.h>
@@ -49,9 +47,6 @@ NguyenNoiseModel<PointT>::compute ()
         for (size_t i = 0; i < edge_indices[j].indices.size (); i++)
             discontinuity_edges_.indices[kept++] = edge_indices[j].indices[i];
     }
-
-//    pcl::visualization::PCLVisualizer vis;
-//    vis.addPointCloud(input_);
 
 #pragma omp parallel for schedule(dynamic)
     for(size_t i=0; i < input_->points.size(); i++)

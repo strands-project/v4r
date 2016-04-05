@@ -25,10 +25,7 @@
 #include <pcl/common/io.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/filter.h>
-#include <pcl/visualization/pcl_visualizer.h>
-
 #include <v4r/registration/noise_model_based_cloud_integration.h>
-#include <v4r/common/organized_edge_detection.h>
 
 #include <glog/logging.h>
 #include <omp.h>
@@ -140,7 +137,6 @@ NMBasedCloudIntegration<PointT>::reasonAboutPts ()
     const float cx = static_cast<float> (width) / 2.f;// - 0.5f;
     const float cy = static_cast<float> (height) / 2.f;// - 0.5f;
 
-//    pcl::visualization::PCLVisualizer vis;
     for (size_t i=0; i<big_cloud_info_.size(); i++)
     {
         PointInfo &pt = big_cloud_info_[i];
@@ -182,12 +178,6 @@ NMBasedCloudIntegration<PointT>::reasonAboutPts ()
                else if (z_c > z )
                {
                    pt.violated_ ++;
-
-//                   vis.removeAllShapes();
-//                   vis.removeAllPointClouds();
-//                   vis.addPointCloud(input_clouds_[cloud]);
-//                   vis.addSphere(ptt_aligned, 0.03f, 1.f, 0.f, 0.f);
-//                   vis.spin();
                }
                else
                    pt.occluded_ ++;
