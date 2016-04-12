@@ -206,6 +206,10 @@ namespace v4r
       /*void visualizeCorrespondences(const pcl::Correspondences & correspondences);
 
       void visualizeGraph(GraphGGCG & g, std::string title="Correspondence Graph");*/
+
+  public:
+      typedef boost::shared_ptr<GraphGeometricConsistencyGrouping<PointModelT, PointSceneT> > Ptr;
+      typedef boost::shared_ptr<const GraphGeometricConsistencyGrouping<PointModelT, PointSceneT> > ConstPtr;
   };
 }
 
