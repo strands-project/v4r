@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013 Aitor Aldoma
+ * Copyright (c) 2013 Aitor Aldoma, Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -57,6 +57,7 @@ namespace v4r
             double merge_close_hypotheses_dist_; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
             double merge_close_hypotheses_angle_; /// @brief defines the maximum angle in degrees for clusters to be merged together
             int resolution_mm_model_assembly_; /// @brief the resolution in millimeters of the model when it gets assembled into a point cloud
+            double max_distance_; /// @brief max distance in meters for recognition
 
             Parameter(
                     double voxel_size_icp = 0.0025f,
@@ -65,14 +66,16 @@ namespace v4r
                     bool merge_close_hypotheses = true,
                     double merge_close_hypotheses_dist = 0.02f,
                     double merge_close_hypotheses_angle = 10.f,
-                    int resolution_mm_model_assembly = 3)
+                    int resolution_mm_model_assembly = 3,
+                    double max_distance = std::numeric_limits<double>::max())
                 : voxel_size_icp_ (voxel_size_icp),
                   max_corr_distance_ (max_corr_distance),
                   normal_computation_method_ (normal_computation_method),
                   merge_close_hypotheses_ (merge_close_hypotheses),
                   merge_close_hypotheses_dist_ (merge_close_hypotheses_dist),
                   merge_close_hypotheses_angle_ (merge_close_hypotheses_angle),
-                  resolution_mm_model_assembly_ (resolution_mm_model_assembly)
+                  resolution_mm_model_assembly_ (resolution_mm_model_assembly),
+                  max_distance_ (max_distance)
             {}
         }param_;
 
@@ -85,11 +88,11 @@ namespace v4r
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
 
-        /** \brief Point cloud to be classified */
-        PointTPtr scene_;
+        PointTPtr scene_; /// \brief Point cloud to be classified
+        std::vector<int> indices_; /// @brief segmented cloud to be recognized (if empty, all points will be processed)
+        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_; /// \brief Point cloud to be classified
+        typename Source<PointT>::Ptr source_;  /// \brief Model data source
 
-        /** \brief Point cloud to be classified */
-        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
         mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
         mutable int vp1_, vp2_, vp3_;
 
@@ -124,55 +127,34 @@ namespace v4r
             return 0;
         }
 
-        virtual bool acceptsNormals() const
+        virtual bool
+        needNormals() const
         {
             return false;
         }
 
-        virtual void
-        setSaveHypotheses(bool b)
-        {
-            (void)b;
-            PCL_WARN("Set save hypotheses is not implemented for this class.");
-        }
-
         virtual
         void
-        getSavedHypotheses(symHyp &oh) const
-        {
-            (void)oh;
-            PCL_WARN("getSavedHypotheses is not implemented for this class.");
-        }
-
-        virtual
-        bool
-        getSaveHypothesesParam() const
-        {
-            PCL_WARN("getSaveHypotheses is not implemented for this class.");
-            return false;
-        }
-
-        virtual
-        PointTPtr
-        getKeypointCloud() const
-        {
-            PCL_WARN("getKeypointCloud is not implemented for this class.");
-            PointTPtr foo;
-            return foo;
-        }
-
-        virtual
-        void
-        getKeypointIndices(std::vector<int> & indices) const
+        getKeypointIndices(std::vector<int> &indices) const
         {
             (void)indices;
             PCL_WARN("Get keypoint indices is not implemented for this class.");
         }
 
-        virtual void recognize () = 0;
+        /**
+         * \brief Sets the model data source_
+         */
+        void
+        setDataSource (const typename Source<PointT>::Ptr & source)
+        {
+          source_ = source;
+        }
 
-        virtual typename boost::shared_ptr<Source<PointT> >
-        getDataSource () const = 0;
+        typename Source<PointT>::Ptr
+        getDataSource() const
+        {
+            return source_;
+        }
 
         virtual bool
         initialize(bool force_retrain)
@@ -182,7 +164,8 @@ namespace v4r
             return true;
         }
 
-        void setHVAlgorithm (const typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > & alg)
+        void
+        setHVAlgorithm (const typename HypothesisVerification<PointT, PointT>::Ptr & alg)
         {
           hv_algorithm_ = alg;
         }
@@ -198,7 +181,7 @@ namespace v4r
          * @return potential object model in the scene (not aligned to the scene)
          */
         std::vector<ModelTPtr>
-        getModels () const
+        getModels() const
         {
           return models_;
         }
@@ -279,6 +262,11 @@ namespace v4r
         }
 
         void visualize () const;
+
+        virtual void recognize () = 0;
+
+        typedef boost::shared_ptr< Recognizer<PointT> > Ptr;
+        typedef boost::shared_ptr< Recognizer<PointT> const> ConstPtr;
     };
 }
 #endif /* RECOGNIZER_H_ */

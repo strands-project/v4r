@@ -45,16 +45,16 @@ namespace v4r
      * \date March, 2012
      */
 template<template<class > class Distance, typename PointInT>
-class V4R_EXPORTS GlobalNNClassifier : public GlobalClassifier<PointInT>
+class V4R_EXPORTS GlobalNNClassifier : public GlobalRecognizer<PointInT>
 {
 
 protected:
-    using GlobalClassifier<PointInT>::estimator_;
-    using GlobalClassifier<PointInT>::input_;
-    using GlobalClassifier<PointInT>::indices_;
-    using GlobalClassifier<PointInT>::categories_;
-    using GlobalClassifier<PointInT>::confidences_;
-    using GlobalClassifier<PointInT>::training_dir_;
+    using GlobalRecognizer<PointInT>::estimator_;
+    using GlobalRecognizer<PointInT>::scene_;
+    using GlobalRecognizer<PointInT>::indices_;
+    using GlobalRecognizer<PointInT>::categories_;
+    using GlobalRecognizer<PointInT>::confidences_;
+    using GlobalRecognizer<PointInT>::training_dir_;
 
     struct index_score
     {
@@ -82,13 +82,13 @@ protected:
         }
     } sortIndexScoresOpDesc;
 
-    typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+    typedef typename pcl::PointCloud<PointInT>::Ptr PointTPtr;
     typedef Distance<float> DistT;
     typedef Model<PointInT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
     /** \brief Model data source */
-    typename boost::shared_ptr<Source<PointInT> > source_;
+    typename Source<PointInT>::Ptr source_;
 
     /** \brief Descriptor name */
     std::string descr_name_;
@@ -146,12 +146,13 @@ public:
 
 
     /** \brief Initializes the FLANN structure from the provided source */
-    void
+    bool
     initialize (bool force_retrain = false);
+
 
     /** \brief Performs classification */
     void
-    classify ();
+    recognize ();
 
     /** \brief Sets the model data source */
     void

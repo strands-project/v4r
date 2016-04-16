@@ -47,9 +47,7 @@ class V4R_EXPORTS ObjectHypothesis
   public:
     ModelTPtr model_;
 
-    ObjectHypothesis()
-    {
-    }
+    ObjectHypothesis() { }
 
     pcl::Correspondences model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
     std::vector<int> indices_to_flann_models_;

@@ -44,12 +44,13 @@ namespace v4r
 template<typename PointT>
 class V4R_EXPORTS Model
 {
-  typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
-  typedef typename pcl::PointCloud<PointT>::ConstPtr PointTPtrConst;
-  Eigen::Vector4f centroid_;
-  bool centroid_computed_;
+private:
+  mutable pcl::visualization::PCLVisualizer::Ptr vis_;
+  mutable int vp1_;
 
 public:
+  typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
+  typedef typename pcl::PointCloud<PointT>::ConstPtr PointTPtrConst;
   std::vector<PointTPtr> views_;
   std::vector<std::vector<int> > indices_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
@@ -62,8 +63,10 @@ public:
   pcl::PointCloud<pcl::Normal>::Ptr kp_normals_; //keypoint normals
   mutable typename std::map<int, PointTPtrConst> voxelized_assembled_;
   mutable typename std::map<int, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
-  //typename boost::shared_ptr<VoxelGridDistanceTransform<PointT> > dist_trans_;
   typename boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > dist_trans_;
+  Eigen::Vector4f centroid_;    /// @brief centre of gravity for the whole 3d model
+  Eigen::MatrixX3f view_centroid_;  /// @brief centre of gravity for each 2.5D view of the model (each row corresponds to one view)
+  bool centroid_computed_;
 
   pcl::PointCloud<pcl::PointXYZL>::Ptr faces_cloud_labels_;
   typename std::map<int, pcl::PointCloud<pcl::PointXYZL>::Ptr> voxelized_assembled_labels_;
@@ -217,10 +220,6 @@ public:
     dist_trans_->compute();
   }
 
-  void
-  getVGDT(boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > & dt) {
-    dt = dist_trans_;
-  }
 };
 
 }
