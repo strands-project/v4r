@@ -134,7 +134,7 @@ inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, Eigen::
     }
 }
 
-inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, std::vector<int> &indices, Eigen::Matrix3Xf &matrix)
+inline void convertCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<int> &indices, Eigen::Matrix3Xf &matrix)
 {
     CHECK(!indices.empty());
 
@@ -160,7 +160,7 @@ inline void convertCloud(const pcl::PointCloud<pcl::PointXYZ> &cloud, Eigen::Mat
     }
 }
 
-inline void convertCloud(const pcl::PointCloud<pcl::PointXYZ> &cloud, std::vector<int> &indices, Eigen::Matrix3Xf &matrix)
+inline void convertCloud(const pcl::PointCloud<pcl::PointXYZ> &cloud, const std::vector<int> &indices, Eigen::Matrix3Xf &matrix)
 {
     CHECK(!indices.empty());
 
@@ -187,7 +187,7 @@ inline void convertCloud(const pcl::PointCloud<pcl::Normal> &normal, Eigen::Matr
 }
 
 
-inline void convertCloud(const pcl::PointCloud<pcl::Normal> &normal, std::vector<int> &indices, Eigen::Matrix3Xf &matrix)
+inline void convertCloud(const pcl::PointCloud<pcl::Normal> &normal, const std::vector<int> &indices, Eigen::Matrix3Xf &matrix)
 {
     CHECK (!indices.empty());
 

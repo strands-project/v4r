@@ -40,7 +40,6 @@
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/io.h>
-
 #include <v4r/core/macros.h>
 
 
@@ -64,6 +63,7 @@ namespace v4r
               bool do_smoothing_;
               float inlier_threshold_;
               int smoothing_radius_;
+              bool force_unorganized_; ///@brief re-projects points by given camera intrinsics even if point cloud is already organized
               Parameter(
                       float f=525.f,
                       int width = 640,
@@ -73,10 +73,11 @@ namespace v4r
                       bool compute_focal_length = false,
                       bool do_smoothing = true,
                       float inlier_threshold = 0.01f,
-                      int smoothing_radius = 1) :
+                      int smoothing_radius = 1,
+                      bool force_unorganized = false) :
                   f_(f), width_ (width), height_(height), u_margin_(u_margin), v_margin_(v_margin),
                   compute_focal_length_(compute_focal_length), do_smoothing_(do_smoothing), inlier_threshold_(inlier_threshold),
-                  smoothing_radius_(smoothing_radius)
+                  smoothing_radius_(smoothing_radius), force_unorganized_ (force_unorganized)
               {}
           }param_;
 
@@ -98,6 +99,8 @@ namespace v4r
         void filter (const typename pcl::PointCloud<PointT> & model, typename pcl::PointCloud<PointT> & filtered);
 
         void filter (const typename pcl::PointCloud<PointT> & model, std::vector<int> & indices);
+
+        static void erode(const Eigen::MatrixXf &input, Eigen::MatrixXf &output, int erosion_size = 3, int erosion_elem=0);
 
         boost::shared_ptr<std::vector<int> > getIndicesMap() const
         {

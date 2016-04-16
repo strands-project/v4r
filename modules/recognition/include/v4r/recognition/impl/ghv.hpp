@@ -685,10 +685,18 @@ GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, s
         int sidx = c.index_match;
         int midx = c.index_query;
 
-        const Eigen::Vector3f &normal_m = rm.visible_cloud_normals_->points[midx].getNormalVector3fMap();
-        const Eigen::Vector3f &normal_s = scene_normals_->points[sidx].getNormalVector3fMap();
+        Eigen::Vector3f normal_m = rm.visible_cloud_normals_->points[midx].getNormalVector3fMap();
+        Eigen::Vector3f normal_s = scene_normals_->points[sidx].getNormalVector3fMap();
 
-        double normal_angle_deg = pcl::rad2deg( acos( normal_m.dot(normal_s) ) );
+        normal_m.normalize();
+        normal_s.normalize();
+        double dotp = normal_m.dot(normal_s);
+        if(dotp>0.999f)
+            dotp = 0.999f;
+        if(dotp<-0.999f)
+            dotp = -0.999f;
+        double acoss = acos (dotp);
+        double normal_angle_deg = pcl::rad2deg( acoss );
         double dist = w3d * sqr_3D_dist + w_normals * normal_angle_deg * normal_angle_deg;
 
         const Eigen::VectorXf &color_m = rm.pt_color_.row( midx );

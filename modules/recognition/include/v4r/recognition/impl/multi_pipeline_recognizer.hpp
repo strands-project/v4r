@@ -265,8 +265,6 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
                 models_.resize( transforms_.size(), oh.model_ );
             }
         }
-
-        std::cout << "Merged " << corresp_clusters.size() << " clusters into " << new_transforms.size() << " clusters. Total correspondences: " << oh.model_scene_corresp_.size () << " " << oh.model_->id_ << std::endl;
     }
 }
 

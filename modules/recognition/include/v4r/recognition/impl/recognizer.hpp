@@ -67,7 +67,7 @@ Recognizer<PointT>::hypothesisVerification ()
         return;
     }
 
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
     for(size_t i=0; i<models_.size(); i++)
     {
         typename pcl::PointCloud<PointT>::Ptr aligned_model_tmp (new pcl::PointCloud<PointT>);
