@@ -3,9 +3,9 @@
 namespace v4r
 {
 
-template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
+template<typename PointT>
 void
-RegisteredViewsSource<Full3DPointT, PointInT, OutModelPointT>::generate ()
+RegisteredViewsSource<PointT>::generate ()
 {
     models_.clear();
     std::vector < std::string > model_files = io::getFilesInDirectory (path_, ".*3D_model.pcd",  true);
@@ -47,28 +47,28 @@ RegisteredViewsSource<Full3DPointT, PointInT, OutModelPointT>::generate ()
     this->createVoxelGridAndDistanceTransform(resolution_);
 }
 
-template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
+template<typename PointT>
 void
-RegisteredViewsSource<Full3DPointT, PointInT, OutModelPointT>::loadModel (ModelT & model)
+RegisteredViewsSource<PointT>::loadModel (ModelT & model)
 {
     const std::string training_view_path = path_ + model.class_ + "/" + model.id_ + "/views/";
     const std::string view_pattern = ".*" + view_prefix_ + ".*.pcd";
     model.view_filenames_ = io::getFilesInDirectory(training_view_path, view_pattern, false);
     std::cout << "Object class: " << model.class_ << ", id: " << model.id_ << ", views: " << model.view_filenames_.size() << std::endl;
 
-    typename pcl::PointCloud<Full3DPointT>::Ptr modell (new pcl::PointCloud<Full3DPointT>);
-    typename pcl::PointCloud<Full3DPointT>::Ptr modell_voxelized (new pcl::PointCloud<Full3DPointT>);
+    typename pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr modell (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+    typename pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr modell_voxelized (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
     pcl::io::loadPCDFile(path_ + model.class_ + "/" + model.id_ + "/3D_model.pcd", *modell);
 
     float voxel_grid_size = 0.003f;
-    typename pcl::VoxelGrid<Full3DPointT> grid_;
+    typename pcl::VoxelGrid<pcl::PointXYZRGBNormal> grid_;
     grid_.setInputCloud (modell);
     grid_.setLeafSize (voxel_grid_size, voxel_grid_size, voxel_grid_size);
     grid_.setDownsampleAllData (true);
     grid_.filter (*modell_voxelized);
 
     model.normals_assembled_.reset(new pcl::PointCloud<pcl::Normal>);
-    model.assembled_.reset (new pcl::PointCloud<PointInT>);
+    model.assembled_.reset (new pcl::PointCloud<PointT>);
 
     pcl::copyPointCloud(*modell_voxelized, *model.assembled_);
     pcl::copyPointCloud(*modell_voxelized, *model.normals_assembled_);
@@ -84,7 +84,7 @@ RegisteredViewsSource<Full3DPointT, PointInT, OutModelPointT>::loadModel (ModelT
         {
             // load training view
             const std::string view_file = training_view_path + "/" + model.view_filenames_[i];
-            model.views_[i].reset( new pcl::PointCloud<PointInT> () );
+            model.views_[i].reset( new pcl::PointCloud<PointT> () );
             pcl::io::loadPCDFile (view_file, *model.views_[i]);
 
             // read pose
@@ -95,14 +95,14 @@ RegisteredViewsSource<Full3DPointT, PointInT, OutModelPointT>::loadModel (ModelT
             model.poses_[i] = pose.inverse(); //the recognizer assumes transformation from M to CC - i think!
 
             // read object mask
-            model.indices_[i].indices.clear();
+            model.indices_[i].clear();
             std::string obj_indices_fn (view_file);
             boost::replace_last (obj_indices_fn, view_prefix_, indices_prefix_);
             boost::replace_last (obj_indices_fn, ".pcd", ".txt");
             std::ifstream f ( obj_indices_fn.c_str() );
             int idx;
             while (f >> idx)
-                model.indices_[i].indices.push_back(idx);
+                model.indices_[i].push_back(idx);
             f.close();
 
             model.self_occlusions_[i] = -1.f;
@@ -118,9 +118,9 @@ RegisteredViewsSource<Full3DPointT, PointInT, OutModelPointT>::loadModel (ModelT
 }
 
 
-template<typename Full3DPointT, typename PointInT, typename OutModelPointT>
+template<typename PointT>
 void
-RegisteredViewsSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpecificModel(ModelT &model)
+RegisteredViewsSource<PointT>::loadInMemorySpecificModel(ModelT &model)
 {
     const std::string training_view_path = path_ + "/" + model.class_ + "/" + model.id_ + "/views/";
 
@@ -138,7 +138,7 @@ RegisteredViewsSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
     {
         // load training view
         const std::string view_file = training_view_path + "/" + model.view_filenames_[i];
-        model.views_[i].reset( new pcl::PointCloud<PointInT> () );
+        model.views_[i].reset( new pcl::PointCloud<PointT> () );
         pcl::io::loadPCDFile (view_file, *model.views_[i]);
 
         // read pose
@@ -149,14 +149,14 @@ RegisteredViewsSource<Full3DPointT, PointInT, OutModelPointT>::loadInMemorySpeci
         model.poses_[i] = pose.inverse(); //the recognizer assumes transformation from M to CC - i think!
 
         // read object mask
-        model.indices_[i].indices.clear();
+        model.indices_[i].clear();
         std::string obj_indices_fn (view_file);
         boost::replace_last (obj_indices_fn, view_prefix_, indices_prefix_);
         boost::replace_last (obj_indices_fn, ".pcd", ".txt");
         std::ifstream f ( obj_indices_fn.c_str() );
         int idx;
         while (f >> idx)
-            model.indices_[i].indices.push_back(idx);
+            model.indices_[i].push_back(idx);
         f.close();
 
         model.self_occlusions_[i] = -1.f;

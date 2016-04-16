@@ -100,6 +100,10 @@ namespace v4r
           {}
       }param_;
 
+  private:
+      void
+      computeModelOcclusionByScene(HVRecognitionModel<ModelT> &rm, const std::vector<Eigen::MatrixXf> &depth_image_scene); /// @brief computes the visible points of the model in the given pose and the provided depth map(s) of the scene
+
   protected:
     std::vector<bool> solution_; /// @brief Boolean vector indicating if a hypothesis is accepted (true) or rejected (false)
 
@@ -120,21 +124,9 @@ namespace v4r
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_camera_poses_;
     std::vector<std::vector<bool> > model_is_present_in_view_; /// \brief for each model this variable stores information in which view it is present (used to check for visible model points - default all true = static scene)
 
-    Eigen::Matrix4f poseRefinement(const HVRecognitionModel<ModelT> &rm) const;
+    Eigen::Matrix4f poseRefinement(HVRecognitionModel<ModelT> &rm) const;
 
     void computeVisibleModelsAndRefinePose();
-
-    void cleanUp()
-    {
-        recognition_models_.clear();
-        recognition_models_map_.clear();
-        occlusion_clouds_.clear();
-        absolute_camera_poses_.clear();
-        scene_sampled_indices_.clear();
-        model_is_present_in_view_.clear();
-        scene_cloud_downsampled_.reset();
-        scene_cloud_.reset();
-    }
 
   public:
     HypothesisVerification (const Parameter &p = Parameter()) : param_(p)
@@ -211,6 +203,9 @@ namespace v4r
      *  This function modifies the values of mask_ and needs to be called after both scene and model have been added
      */
     virtual void verify() = 0;
+
+    typedef boost::shared_ptr< HypothesisVerification<ModelT, SceneT> > Ptr;
+    typedef boost::shared_ptr< HypothesisVerification<ModelT, SceneT> const> ConstPtr;
   };
 
 }

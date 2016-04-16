@@ -50,12 +50,12 @@ namespace v4r
      * \brief Abstract data source class, manages filesystem, incremental training, etc.
      * \author Aitor Aldoma
      */
-template<typename PointInT>
+template<typename PointT>
 class V4R_EXPORTS Source
 {
 
 protected:
-    typedef Model<PointInT> ModelT;
+    typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
     std::vector<ModelTPtr> models_;
@@ -232,6 +232,9 @@ public:
     {
         return view_prefix_;
     }
+
+    typedef boost::shared_ptr< Source<PointT> > Ptr;
+    typedef boost::shared_ptr< Source<PointT> const> ConstPtr;
 };
 }
 

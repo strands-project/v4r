@@ -79,6 +79,117 @@ namespace v4r
     return image;
   }
 
+  /**
+   *@brief converts a point cloud to an image and crops it to a fixed size
+   * @param[in] cloud
+   * @param[in] cluster_idx object indices
+   * @param[in] desired output height of the image
+   * @param[in] desired output width of the image
+   * @param[in] desired margin for the bounding box
+   */
+  template<typename PointT>
+  V4R_EXPORTS
+  inline cv::Mat
+  ConvertPCLCloud2FixedSizeImage(const typename pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx,
+                                 size_t out_height = 256, size_t out_width = 256, size_t margin = 10,
+                                 cv::Scalar bg_color = cv::Scalar(255,255,255), bool do_closing_operation = false)
+  {
+      int min_u, min_v, max_u, max_v;
+      max_u = max_v = 0;
+      min_u = cloud.width;
+      min_v = cloud.height;
+
+      std::vector<int> c_tmp = cluster_idx;
+
+      for(size_t idx=0; idx<c_tmp.size(); idx++)
+      {
+          int u = c_tmp[idx] % cloud.width;
+          int v = (int) (c_tmp[idx] / cloud.width);
+
+          if (u>max_u)
+              max_u = u;
+
+          if (v>max_v)
+              max_v = v;
+
+          if (u<min_u)
+              min_u = u;
+
+          if (v<min_v)
+              min_v = v;
+      }
+
+      min_u = std::max (0, min_u);
+      min_v = std::max (0, min_v);
+      max_u = std::min ((int)cloud.width-1, max_u);
+      max_v = std::min ((int)cloud.height-1, max_v);
+
+      if(do_closing_operation)
+      {
+          cv::Mat mask = cv::Mat(cloud.height, cloud.width, CV_8UC1);
+          mask.setTo((unsigned char)0);
+          for(size_t c_idx=0; c_idx<c_tmp.size(); c_idx++)
+          {
+             int idx = c_tmp[c_idx];
+             int u = idx % cloud.width;
+             int v = (int) (idx / cloud.width);
+             mask.at<unsigned char> (v, u) = 255;
+          }
+          cv::Mat const structure_elem = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(20, 20));
+          cv::Mat close_result;
+          cv::morphologyEx(mask, close_result, cv::MORPH_CLOSE, structure_elem);
+
+          c_tmp.resize(cloud.height* cloud.width);
+          size_t kept=0;
+          for(size_t v=0;v<cloud.height;v++)
+          {
+              for(size_t u=0; u<cloud.width; u++)
+              {
+                  int idx = v * cloud.width + u;
+                  if (close_result.at<unsigned char>(v,u) > 128 )
+                  {
+                      c_tmp[kept] = idx;
+                      kept++;
+                  }
+              }
+          }
+          c_tmp.resize(kept);
+      }
+
+      cv::Mat_<cv::Vec3b> image(cloud.height, cloud.width);
+      image.setTo(bg_color);
+      for(size_t c_idx=0; c_idx<c_tmp.size(); c_idx++)
+      {
+          int idx = c_tmp[c_idx];
+          int u = idx % cloud.width;
+          int v = (int) (idx / cloud.width);
+          cv::Vec3b & cvp = image.at<cv::Vec3b> (v, u);
+          const PointT &pt = cloud.points[idx];
+          cvp[0] = pt.b;
+          cvp[1] = pt.g;
+          cvp[2] = pt.r;
+      }
+
+      int side_length_u = max_u - min_u;
+      int side_length_v = max_v - min_v;
+      int side_length = std::max<int>(side_length_u , side_length_v);
+
+      // center object in the middle
+      min_u = std::max<int>(0, int(min_u - (side_length - side_length_u)/2.f));
+      min_v = std::max<int>(0, int(min_v - (side_length - side_length_v)/2.f));
+
+      cv::Mat image_roi = image( cv::Rect(min_u, min_v, side_length, side_length) );
+
+      cv::Mat_<cv::Vec3b> img_tmp (side_length + 2*margin, side_length + 2*margin);
+      img_tmp.setTo(bg_color);
+      cv::Mat img_tmp_roi = img_tmp( cv::Rect(margin, margin, side_length, side_length) );
+      image_roi.copyTo(img_tmp_roi);
+
+      cv::Mat_<cv::Vec3b> dst(out_height, out_width);
+      cv::resize(img_tmp, dst, dst.size(), 0, 0, cv::INTER_CUBIC);
+      return dst;
+  }
+
 
 
   /**

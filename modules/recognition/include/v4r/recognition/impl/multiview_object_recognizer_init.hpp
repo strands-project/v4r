@@ -117,12 +117,12 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
     boost::shared_ptr <Source<PointT> > cast_source;
     if (do_sift || do_shot ) // for local recognizers we need this source type / training data
     {
-        boost::shared_ptr < RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > src
-                (new RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT>(resolution));
+        boost::shared_ptr < RegisteredViewsSource<PointT> > src
+                (new RegisteredViewsSource<PointT>(resolution));
         src->setPath (models_dir);
         src->generate ();
 //            src->createVoxelGridAndDistanceTransform(resolution);
-        cast_source = boost::static_pointer_cast<RegisteredViewsSource<pcl::PointXYZRGBNormal, PointT, PointT> > (src);
+        cast_source = boost::static_pointer_cast<Source<PointT> > (src);
     }
 
     if (do_sift)

@@ -101,16 +101,13 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
     paramLocalRecSift.normal_computation_method_ = paramLocalRecShot.normal_computation_method_ =
             param_.normal_computation_method_ = paramLocalEstimator.normal_computation_method_ = normal_computation_method;
 
-    boost::shared_ptr <Source<pcl::PointXYZRGB> > cast_source;
-    if (do_sift || do_shot ) // for local recognizers we need this source type / training data
-    {
-        boost::shared_ptr < RegisteredViewsSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB, pcl::PointXYZRGB> > src
-                (new RegisteredViewsSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB, pcl::PointXYZRGB>(resolution));
-        src->setPath (models_dir);
-        src->generate ();
-    //            src->createVoxelGridAndDistanceTransform(resolution);
-        cast_source = boost::static_pointer_cast<RegisteredViewsSource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB, pcl::PointXYZRGB> > (src);
-    }
+    typename Source<PointT>::Ptr cast_source;
+
+    typename RegisteredViewsSource<PointT>::Ptr src (new RegisteredViewsSource<PointT>(resolution));
+    src->setPath (models_dir);
+    src->generate ();
+//            src->createVoxelGridAndDistanceTransform(resolution);
+    cast_source = boost::static_pointer_cast<RegisteredViewsSource<PointT> > (src);
 
     if (do_sift)
     {

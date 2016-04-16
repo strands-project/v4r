@@ -13,7 +13,7 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/features/integral_image_normal.h>
 #include <v4r/common/visibility_reasoning.h>
-#include <v4r/features/uniform_sampling.h>
+#include <pcl/keypoints/uniform_sampling.h>
 
 //#define FAAT_PCL_FAST_ICP_VIS_FINAL
 
@@ -21,7 +21,7 @@ namespace v4r
 {
     template<typename PointT>
       inline bool
-      v4r::FastIterativeClosestPointWithGC<PointT>::filterHypothesesByPose (typename boost::shared_ptr<ICPNode<PointT> > & current,
+      FastIterativeClosestPointWithGC<PointT>::filterHypothesesByPose (typename boost::shared_ptr<ICPNode<PointT> > & current,
                                                                             typename std::vector<boost::shared_ptr<ICPNode<PointT> > > & nodes,
                                                                             float trans_threshold)
       {

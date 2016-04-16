@@ -65,11 +65,7 @@ class V4R_EXPORTS ObjectHypothesis
     }
 
     static bool
-    gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
-    {
-        return (i.distance < j.distance);
-    }
-
+    gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j) { return i.distance < j.distance; }
 
     typedef boost::shared_ptr<ObjectHypothesis<PointT> > Ptr;
     typedef boost::shared_ptr<const ObjectHypothesis<PointT> > ConstPtr;

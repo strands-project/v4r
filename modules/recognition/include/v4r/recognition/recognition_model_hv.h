@@ -21,10 +21,16 @@ namespace v4r
       pcl::Correspondences model_scene_c_; /// @brief correspondences between visible model points and scene
       double model_fit_; /// @brief the fitness score of the visible cloud to the model scene (sum of model_scene_c correspondenes weight divided by the number of visible points)
 
-      Eigen::MatrixXf pt_color_;  /// @brief color values for each visible point of the model (row_id). Width is equal to the number of color channels
+      Eigen::MatrixXf pt_color_;  /// @brief color values for each point of the (complete) model (row_id). Width is equal to the number of color channels
+      float mean_brigthness_;   /// @brief average value of the L channel for all visible model points
+      float mean_brigthness_scene_;   /// @brief average value of the L channel for all scene points close to the visible model points
+      std::vector<int> scene_indices_in_crop_box_; /// @brief indices of the scene that are occupied from the bounding box of the (complete) hypothesis
+      float L_value_offset_; /// @brief the offset being added to the computed L color values to compensate for different lighting conditions
 
       HVRecognitionModel()
-      { }
+      {
+          L_value_offset_ = 0.f;
+      }
 
       /**
        * @brief does dilation and erosion on the occupancy image of the rendered point cloud

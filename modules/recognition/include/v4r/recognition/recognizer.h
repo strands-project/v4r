@@ -187,7 +187,8 @@ namespace v4r
           hv_algorithm_ = alg;
         }
 
-        void setInputCloud (const PointTPtr cloud)
+        void
+        setInputCloud (const PointTPtr cloud)
         {
           scene_ = cloud;
         }
@@ -267,18 +268,10 @@ namespace v4r
           models_dir_ = dir;
         }
 
-        std::string
-        getModelsDir() const
-        {
-            return models_dir_;
-        }
-
-
         void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
         {
             scene_normals_ = normals;
         }
-
 
         virtual bool requiresSegmentation() const
         {

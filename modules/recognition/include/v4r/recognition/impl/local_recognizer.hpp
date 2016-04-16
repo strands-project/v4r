@@ -206,7 +206,7 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
                 estimator_->getKeypointIndices(all_kp_indices);
 
                 // remove signatures and keypoints which do not belong to object
-                std::vector<bool> obj_mask = createMaskFromIndices(m->indices_[v].indices, m->views_[v]->points.size());
+                std::vector<bool> obj_mask = createMaskFromIndices(m->indices_[v], m->views_[v]->points.size());
                 obj_kp_indices.resize( all_kp_indices.size() );
                 object_signatures.resize( all_kp_indices.size() ) ;
                 size_t kept=0;

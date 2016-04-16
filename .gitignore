@@ -1,7 +1,6 @@
 
 # Project structure
-build
-build_debug
+build*/
 bin
 lib
 doc

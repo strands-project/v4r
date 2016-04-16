@@ -32,6 +32,7 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/point_cloud.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 
 namespace v4r
@@ -50,7 +51,7 @@ class V4R_EXPORTS Model
 
 public:
   std::vector<PointTPtr> views_;
-  std::vector<pcl::PointIndices> indices_;
+  std::vector<std::vector<int> > indices_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
   std::vector<float>  self_occlusions_;
   std::string class_, id_;
