@@ -40,6 +40,8 @@ protected:
     typename pcl::PointCloud<PointT>::Ptr input_;
     float radius_;
     std::vector<int> keypoint_indices_;
+    std::vector<int> indices_;  /// @brief indices of the segmented object (extracted keypoints outside of this will be neglected)
+    double max_distance_;
 
 public:
 
@@ -55,6 +57,11 @@ public:
         radius_ = f;
     }
 
+    void setMaxDistance(double d)
+    {
+        max_distance_ = d;
+    }
+
     virtual void
     setNormals (const pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {
@@ -68,11 +75,16 @@ public:
         return false;
     }
 
-    void getKeypointsIndices (std::vector<int> &keypoint_indices) const
+    void getKeypointIndices (std::vector<int> &keypoint_indices) const
     {
         keypoint_indices = keypoint_indices_;
     }
 
+    void
+    setIndices(const std::vector<int> &indices)
+    {
+        indices_ = indices;
+    }
 
     virtual void
     compute (pcl::PointCloud<PointT> & keypoints) = 0;

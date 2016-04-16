@@ -59,7 +59,7 @@ protected:
             keypoint_extractor_[i]->compute (detected_keypoints);
 
             std::vector<int> kp_indices;
-            keypoint_extractor_[i]->getKeypointsIndices(kp_indices);
+            keypoint_extractor_[i]->getKeypointIndices(kp_indices);
             keypoint_indices_.insert(keypoint_indices_.end(), kp_indices.begin(), kp_indices.end());
             keypoints += detected_keypoints;
         }

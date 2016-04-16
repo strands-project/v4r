@@ -37,9 +37,10 @@ private:
     bool filter_planar_;
     using KeypointExtractor<PointT>::input_;
     using KeypointExtractor<PointT>::radius_;
+    using KeypointExtractor<PointT>::indices_;
     using KeypointExtractor<PointT>::keypoint_indices_;
+    using KeypointExtractor<PointT>::max_distance_;
     float sampling_density_;
-    float max_distance_;
     float threshold_planar_;
     bool z_adaptative_;
     bool force_unorganized_;
@@ -70,11 +71,6 @@ public:
     void setThresholdPlanar(float t)
     {
         threshold_planar_ = t;
-    }
-
-    void setMaxDistance(float d)
-    {
-        max_distance_ = d;
     }
 
     void

@@ -103,6 +103,7 @@ V4R_OPTION(WITH_EIGEN          "Include Eigen3 support"                      ON)
 V4R_OPTION(WITH_GLM            "Include GLM support"                         ON)
 V4R_OPTION(WITH_GLEW            "Include GLEW support"                       ON)
 V4R_OPTION(WITH_GLOG           "Include Google Logging support"              ON)
+V4R_OPTION(WITH_CAFFE           "Include Caffe support"              ON)
 
 # V4R build components
 # ===================================================
@@ -322,6 +323,7 @@ include(cmake/V4RFindQt.cmake)
 include(cmake/V4RFindOpenCV.cmake)
 include(cmake/V4RFindOpenNI2.cmake)
 include(cmake/V4RFindBoost.cmake)
+include(cmake/V4RFindCaffe.cmake)
 # ----------------------------------------------------------------------------
 #  Detect optional 3rd-party libraries/tools
 # ----------------------------------------------------------------------------
@@ -640,6 +642,13 @@ if(WITH_GLOG AND HAVE_GLOG)
   status("    GLOG:"  "${GLOG_LIBRARIES}")
 else()
   status("    GLOG:"  "NO")
+endif()
+
+
+if(WITH_CAFFE AND HAVE_CAFFE)
+  status("    CAFFE:"  "${CAFFE_LIBRARIES}")
+else()
+  status("    CAFFE:"  "NO")
 endif()
 
 # ========================== VIDEO IO ==========================
