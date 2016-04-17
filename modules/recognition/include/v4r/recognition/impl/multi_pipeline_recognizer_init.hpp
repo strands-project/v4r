@@ -72,7 +72,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
 
             ("do_sift", po::value<bool>(&do_sift)->default_value(true), "if true, generates hypotheses using SIFT (visual texture information)")
             ("do_shot", po::value<bool>(&do_shot)->default_value(false), "if true, generates hypotheses using SHOT (local geometrical properties)")
-            ("knn_sift", po::value<size_t>(&paramShotRecognizer.knn_)->default_value(paramShotRecognizer.knn_), "sets the number k of matches for each extracted SIFT feature to its k nearest neighbors")
+            ("knn_sift", po::value<size_t>(&paramSiftRecognizer.knn_)->default_value(paramSiftRecognizer.knn_), "sets the number k of matches for each extracted SIFT feature to its k nearest neighbors")
             ("knn_shot", po::value<size_t>(&paramShotRecognizer.knn_)->default_value(paramShotRecognizer.knn_), "sets the number k of matches for each extracted SHOT feature to its k nearest neighbors")
 
 
