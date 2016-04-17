@@ -31,6 +31,7 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/features/integral_image_normal.h>
 #include <v4r/core/macros.h>
+#include <glog/logging.h>
 
 namespace v4r
 {
@@ -45,7 +46,7 @@ inline void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &clo
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
                     int method, float radius=0.02f)
 {
-    normals.reset(new pcl::PointCloud<pcl::Normal>());
+    CHECK(normals);
 
     if(method == 0)
     {

@@ -121,17 +121,10 @@ namespace v4r
           requires_segmentation_ = false;
         }
 
-        virtual size_t getFeatureType() const
-        {
-            std::cout << "Get feature type is not implemented for this recognizer. " << std::endl;
-            return 0;
-        }
+        virtual size_t getFeatureType() const = 0;
 
         virtual bool
-        needNormals() const
-        {
-            return false;
-        }
+        needNormals() const = 0;
 
         /**
          * \brief Sets the model data source_
@@ -156,6 +149,10 @@ namespace v4r
             return true;
         }
 
+        /**
+         * @brief sets the Hypotheses Verification algorithm
+         * @param alg
+         */
         void
         setHVAlgorithm (const typename HypothesisVerification<PointT, PointT>::Ptr & alg)
         {

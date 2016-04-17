@@ -188,6 +188,33 @@ namespace v4r
             return ret_value;
         }
 
+        bool
+        needNormals() const
+        {
+            for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
+            {
+                if(recognizers_[r_id]->needNormals())
+                    return true;
+            }
+            if(cg_algorithm_ && cg_algorithm_->getRequiresNormals())
+                return true;
+
+            if(hv_algorithm_)
+                return true;
+
+            return false;
+        }
+
+        size_t
+        getFeatureType() const
+        {
+            size_t feat_type = 0;
+            for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
+                feat_type += recognizers_[r_id]->getFeatureType();
+
+            return feat_type;
+        }
+
         typedef boost::shared_ptr< MultiRecognitionPipeline<PointT> > Ptr;
         typedef boost::shared_ptr< MultiRecognitionPipeline<PointT> const> ConstPtr;
     };

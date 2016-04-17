@@ -51,18 +51,12 @@ SHOTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatu
 
     CHECK( shots.points.size() == indices_.size() );
 
-    if (shots.points.empty() == 0)
-    {
-        PCL_WARN("SHOTLocalEstimationOMP :: No keypoints were found\n");
-        return;
-    }
+    int size_feat = 352;
+        signatures.resize (shots.points.size (), std::vector<float>(size_feat));
 
-  int size_feat = 352;
-  signatures.resize (shots.points.size (), std::vector<float>(size_feat));
-
-  for (size_t k = 0; k < shots.points.size (); k++)
-    for (int i = 0; i < size_feat; i++)
-      signatures[k][i] = shots.points[k].descriptor[i];
+    for (size_t k = 0; k < shots.points.size (); k++)
+        for (int i = 0; i < size_feat; i++)
+            signatures[k][i] = shots.points[k].descriptor[i];
 }
 
 template class V4R_EXPORTS SHOTLocalEstimation<pcl::PointXYZ>;

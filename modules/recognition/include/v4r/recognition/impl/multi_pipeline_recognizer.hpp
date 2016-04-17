@@ -102,8 +102,8 @@ MultiRecognitionPipeline<PointT>::recognize()
     obj_hypotheses_.clear();
     scene_keypoints_.reset(new pcl::PointCloud<PointT>);
     scene_kp_normals_.reset(new pcl::PointCloud<pcl::Normal>);
+    scene_normals_.reset(new pcl::PointCloud<pcl::Normal>);
     computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
-
 
     std::vector<typename boost::shared_ptr<Recognizer<PointT> > > recognizer_without_siftgpu;
     typename boost::shared_ptr<Recognizer<PointT> > rec_siftgpu;

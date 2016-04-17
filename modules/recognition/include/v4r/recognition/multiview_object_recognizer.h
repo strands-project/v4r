@@ -267,6 +267,18 @@ public:
         // nothing by default - implementation expected in derived class
         return std::vector<bool>(views_.size(), true);
     }
+
+    bool
+    needNormals() const
+    {
+        return rr_->needNormals();
+    }
+
+    size_t
+    getFeatureType() const
+    {
+        return rr_->getFeatureType();
+    }
 };
 }
 

@@ -18,11 +18,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
-#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
-#endif
 
 struct CamConnect
 {
@@ -139,25 +135,14 @@ public:
     }
 
     void
-    calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
-                           pcl::PointCloud<PointT> &sift_keypoints,
+    calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
                            std::vector<int> &sift_keypoint_indices,
-                           std::vector<std::vector<float> > &sift_signatures,
-                           std::vector<float> &sift_keypoint_scales)
+                           std::vector<std::vector<float> > &sift_signatures)
     {
-    #ifdef HAVE_SIFTGPU
-        boost::shared_ptr < v4r::SIFTLocalEstimation<PointT> > estimator;
-        estimator.reset (new v4r::SIFTLocalEstimation<PointT>());
-        bool ret = estimator->estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-        (void)ret;
-    #else
-        (void)sift_keypoint_scales; //silences compiler warning of unused variable
-        boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT> > estimator;
-        estimator.reset (new v4r::OpenCVSIFTLocalEstimation<PointT>);
-        pcl::PointCloud<PointT> processed_foo;
-        bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
-    #endif
-        estimator->getKeypointIndices( sift_keypoint_indices );
+        v4r::SIFTLocalEstimation<PointT> estimator;
+        estimator.setInputCloud(cloud_src);
+        estimator.compute (sift_signatures);
+        sift_keypoint_indices = estimator.getKeypointIndices(  );
     }
 
 
@@ -220,10 +205,7 @@ public:
         pass.setKeepOrganized (true);
         pass.filter (*view.cloud_);
 
-        pcl::PointCloud<PointT>sift_keypoints;
-        std::vector<float> sift_keypoint_scales;
-
-        calcSiftFeatures( *view.cloud_, sift_keypoints, view.sift_keypoint_indices_, view.sift_signatures_, sift_keypoint_scales);
+        calcSiftFeatures( view.cloud_, view.sift_keypoint_indices_, view.sift_signatures_);
         grph_.push_back(view);
     }
 
