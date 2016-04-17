@@ -28,6 +28,7 @@
 #include <v4r/ml/types.h>
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Eigen>
+#include <iostream>
 #include <vector>
 
 namespace v4r
