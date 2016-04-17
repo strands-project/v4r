@@ -102,27 +102,10 @@ MultiRecognitionPipeline<PointT>::recognize()
 {
     models_.clear();
     transforms_.clear();
-//    std::vector<int> input_icp_indices;
     obj_hypotheses_.clear();
     scene_keypoints_.reset(new pcl::PointCloud<PointT>);
     scene_kp_normals_.reset(new pcl::PointCloud<pcl::Normal>);
-
-    // check if we have to compute normals due to feature estimation or correspondence grouping
-    bool need_to_compute_normals = false;
-
-    if( !scene_normals_ || scene_normals_->points.size() != scene_->points.size())
-    {
-        if(cg_algorithm_ && cg_algorithm_->getRequiresNormals())
-            need_to_compute_normals = true;
-
-        for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
-        {
-            if( recognizers_[r_id]->needNormals() )
-                need_to_compute_normals = true;
-        }
-    }
-    if(need_to_compute_normals)
-        computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
+    computeNormals<PointT>(scene_, scene_normals_, param_.normal_computation_method_);
 
 
     std::vector<typename boost::shared_ptr<Recognizer<PointT> > > recognizer_without_siftgpu;
