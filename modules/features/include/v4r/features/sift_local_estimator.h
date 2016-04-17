@@ -96,11 +96,10 @@ public:
 #endif
 
     void
-    compute (const cv::Mat_<cv::Vec3b> &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, std::vector<std::vector<float> > &signatures, std::vector<float> & scales);
+    compute (const cv::Mat_<cv::Vec3b> &colorImage, Eigen::Matrix2Xf &keypoints, std::vector<std::vector<float> > &signatures);
 
     void
     compute (std::vector<std::vector<float> > & signatures);
-
 
     bool 
 	acceptsIndices() const
