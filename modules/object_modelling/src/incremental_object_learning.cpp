@@ -56,28 +56,16 @@ namespace object_modelling
 {
 
 bool
-IOL::calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
-                       pcl::PointCloud<PointT> &sift_keypoints,
+IOL::calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
                        std::vector< size_t > &sift_keypoint_indices,
-                       std::vector<std::vector<float> > &sift_signatures,
-                       std::vector<float> &sift_keypoint_scales)
+                       std::vector<std::vector<float> > &sift_signatures)
 {
-    std::vector<int> sift_kp_indices;
-
-#ifdef HAVE_SIFTGPU
-    (void) sift_keypoint_indices;
-    boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator (new SIFTLocalEstimation<PointT>(sift_));
-    bool ret = estimator->compute (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-    sift_kp_indices = estimator->getKeypointIndices( );
-#else
-    (void)sift_keypoint_scales; //silences compiler warning of unused variable
-    boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT> > estimator (new OpenCVSIFTLocalEstimation<PointT>);
-    pcl::PointCloud<PointT> processed_foo;
-    bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
-    estimator->getKeypointIndices( sift_kp_indices );
-#endif
+    SIFTLocalEstimation<PointT>::Ptr estimator (new SIFTLocalEstimation<PointT>(sift_));
+    estimator->setInputCloud(cloud_src);
+    estimator->compute (sift_signatures);
+    std::vector<int> sift_kp_indices = estimator->getKeypointIndices();
     sift_keypoint_indices = convertVecInt2VecSizet(sift_kp_indices);
-    return ret;
+    return true;
 }
 
 void
@@ -646,11 +634,9 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     if ( param_.do_sift_based_camera_pose_estimation_ )
     {
-        pcl::PointCloud<PointT> sift_keypoints;
-        std::vector<float> sift_keypoint_scales;
         try
         {
-            calcSiftFeatures( *view.cloud_, sift_keypoints, view.sift_keypoint_indices_, view.sift_signatures_, sift_keypoint_scales);
+            calcSiftFeatures( view.cloud_, view.sift_keypoint_indices_, view.sift_signatures_);
             convertToFLANN<DistT>(view.sift_signatures_, flann_index );
         }
         catch (int e)

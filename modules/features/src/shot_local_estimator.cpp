@@ -8,8 +8,8 @@ namespace v4r
 {
 
 template<typename PointT>
-bool
-SHOTLocalEstimation<PointT>::compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures)
+void
+SHOTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatures)
 {
 //    if (param_.adaptative_MLS_)
 //    {
@@ -41,8 +41,7 @@ SHOTLocalEstimation<PointT>::compute (const pcl::PointCloud<PointT> & in, pcl::P
     pcl::SHOTEstimationOMP<PointT, pcl::Normal, pcl::SHOT352> shot_estimate;
     shot_estimate.setNumberOfThreads (0);
     shot_estimate.setSearchMethod (tree);
-    shot_estimate.setInputCloud (in.makeShared());
-    throw std::runtime_error ("normals not set");
+    shot_estimate.setInputCloud (cloud_);
     shot_estimate.setInputNormals (normals_);
     boost::shared_ptr<std::vector<int> > IndicesPtr (new std::vector<int>);
     *IndicesPtr = indices_;
@@ -54,19 +53,16 @@ SHOTLocalEstimation<PointT>::compute (const pcl::PointCloud<PointT> & in, pcl::P
 
     if (shots.points.empty() == 0)
     {
-      PCL_WARN("SHOTLocalEstimationOMP :: No keypoints were found\n");
-      return false;
+        PCL_WARN("SHOTLocalEstimationOMP :: No keypoints were found\n");
+        return;
     }
 
   int size_feat = 352;
   signatures.resize (shots.points.size (), std::vector<float>(size_feat));
 
-
   for (size_t k = 0; k < shots.points.size (); k++)
     for (int i = 0; i < size_feat; i++)
       signatures[k][i] = shots.points[k].descriptor[i];
-
-  return true;
 }
 
 template class V4R_EXPORTS SHOTLocalEstimation<pcl::PointXYZ>;

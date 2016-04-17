@@ -38,6 +38,7 @@ protected:
     typename pcl::PointCloud<PointT>::Ptr cloud_;
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
     typename pcl::PointCloud<PointT>::Ptr processed_;
+    typename pcl::PointCloud<PointT>::Ptr keypoints_;
     std::vector<int> keypoint_indices_;
 
     std::vector<int> indices_;
@@ -53,10 +54,11 @@ public:
     }
 
     virtual bool
-    acceptsIndices() const
-    {
-        return false;
-    }
+    acceptsIndices() const = 0;
+
+
+    virtual bool
+    needNormals () const = 0;
 
     /**
      * @brief set indices of the object (segmented cluster). Points not within this indices will be ignored.
@@ -66,12 +68,6 @@ public:
     setIndices (const std::vector<int> & indices)
     {
         indices_ = indices;
-    }
-
-    virtual bool
-    needNormals () const
-    {
-        return false;
     }
 
     /**
@@ -100,6 +96,12 @@ public:
         return keypoint_indices_;
     }
 
+    typename pcl::PointCloud<PointT>::Ptr
+    getKeypointCloud() const
+    {
+        return keypoints_;
+    }
+
     std::string
     getFeatureDescriptorName() const
     {
@@ -118,9 +120,8 @@ public:
         return descr_dims_;
     }
 
-
-    virtual bool
-    compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures)=0;
+    virtual void
+    compute (std::vector<std::vector<float> > & signatures)=0;
 
     typedef boost::shared_ptr< LocalEstimator<PointT> > Ptr;
     typedef boost::shared_ptr< LocalEstimator<PointT> const> ConstPtr;

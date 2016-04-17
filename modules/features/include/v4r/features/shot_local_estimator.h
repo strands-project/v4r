@@ -38,6 +38,7 @@ namespace v4r
           using LocalEstimator<PointT>::normals_;
           using LocalEstimator<PointT>::processed_;
           using LocalEstimator<PointT>::keypoint_indices_;
+          using LocalEstimator<PointT>::keypoints_;
           using LocalEstimator<PointT>::descr_name_;
           using LocalEstimator<PointT>::descr_type_;
           using LocalEstimator<PointT>::descr_dims_;
@@ -63,8 +64,8 @@ namespace v4r
           return true;
         }
 
-        bool 
-		compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures);
+        void
+        compute(std::vector<std::vector<float> > & signatures);
 
         bool
         needNormals () const

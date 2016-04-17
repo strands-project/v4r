@@ -59,23 +59,15 @@ namespace v4r
 
 template<typename PointT>
 bool
-MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<PointT> &cloud_src,
-                                               typename pcl::PointCloud<PointT> &sift_keypoints,
+MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
                                                std::vector< int > &sift_keypoint_indices,
-                                               std::vector<std::vector<float> > &sift_signatures,
-                                               std::vector<float> &sift_keypoint_scales)
+                                               std::vector<std::vector<float> > &sift_signatures)
 {
-#ifdef HAVE_SIFTGPU
     SIFTLocalEstimation<PointT> estimator(sift_);
-    bool ret = estimator.compute (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-#else
-    (void)sift_keypoint_scales; //silences compiler warning of unused variable
-    typename pcl::PointCloud<PointT> processed_foo;
-    OpenCVSIFTLocalEstimation<PointT > estimator;
-    bool ret = estimator.estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
-#endif
+    estimator.setInputCloud(cloud_src);
+    estimator.compute (sift_signatures);
     sift_keypoint_indices = estimator.getKeypointIndices(  );
-    return ret;
+    return true;
 }
 
 template<typename PointT>
@@ -189,12 +181,9 @@ MultiviewRecognizer<PointT>::recognize ()
                                         // matters for their SIFT descriptors, the descriptors are computed on the
                                         // original rather than on the filtered point cloud. Keypoints at infinity
                                         // are removed.
-            typename pcl::PointCloud<PointT> sift_keypoints;
             std::vector<int> sift_kp_indices;
             std::vector<std::vector<float> > sift_signatures;
-            std::vector<float> sift_keypoints_scales;
-
-            calcSiftFeatures( *v.scene_, sift_keypoints, sift_kp_indices, sift_signatures, sift_keypoints_scales);
+            calcSiftFeatures( v.scene_, sift_kp_indices, sift_signatures);
 
             v.sift_kp_indices_.reserve( sift_kp_indices.size() );
             v.sift_signatures_.reserve( sift_signatures.size() );

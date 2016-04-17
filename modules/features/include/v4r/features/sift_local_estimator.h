@@ -43,6 +43,7 @@ template<typename PointT>
 class V4R_EXPORTS SIFTLocalEstimation : public LocalEstimator<PointT>
 {
     using LocalEstimator<PointT>::keypoint_indices_;
+    using LocalEstimator<PointT>::keypoints_;
     using LocalEstimator<PointT>::cloud_;
     using LocalEstimator<PointT>::indices_;
     using LocalEstimator<PointT>::processed_;
@@ -94,17 +95,11 @@ public:
     }
 #endif
 
-    bool
-    compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures, std::vector<float> & scales);
-
-    bool
+    void
     compute (const cv::Mat_<cv::Vec3b> &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, std::vector<std::vector<float> > &signatures, std::vector<float> & scales);
 
-    bool
-    compute (const pcl::PointCloud<PointT> & in, std::vector<std::vector<float> > & signatures);
-
-    bool
-    compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures);
+    void
+    compute (std::vector<std::vector<float> > & signatures);
 
 
     bool 
@@ -117,6 +112,12 @@ public:
     setMaxDistance(float max_distance)
     {
         max_distance_ = max_distance;
+    }
+
+    bool
+    needNormals() const
+    {
+        return false;
     }
 
 

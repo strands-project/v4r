@@ -312,11 +312,9 @@ protected:
     std::vector<bool>
     erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<PointT> & cloud);
 
-    bool calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
-                           pcl::PointCloud<PointT> &sift_keypoints,
+    bool calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
                            std::vector< size_t > &sift_keypoint_indices,
-                           std::vector<std::vector<float> > &sift_signatures,
-                           std::vector<float> &sift_keypoint_scales);
+                           std::vector<std::vector<float> > &sift_signatures);
 
     void
     estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,

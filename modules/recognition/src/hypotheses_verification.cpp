@@ -190,7 +190,6 @@ HypothesisVerification<ModelT, SceneT>::poseRefinement(HVRecognitionModel<ModelT
     icp.setMaximumIterations(param_.icp_iterations_);
     pcl::PointCloud<ModelT> aligned_visible_model;
     icp.align(aligned_visible_model);
-//            std::cout << "has converged:" << icp.hasConverged() << " score: " << icp.getFitnessScore() << std::endl;
     if(icp.hasConverged())
         return icp.getFinalTransformation();
 

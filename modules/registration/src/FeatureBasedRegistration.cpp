@@ -77,16 +77,14 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
         std::vector<int> & indices = this->getIndices(i);
         Eigen::Matrix4f pose = this->getPose(i);
 
-        typename pcl::PointCloud<PointT>::Ptr processed(new pcl::PointCloud<PointT>);
         sift_keypoints_[i].reset(new pcl::PointCloud<PointT>);
         sift_normals_[i].reset(new pcl::PointCloud< pcl::Normal >);
 
         std::vector<std::vector<float> > sift_descs;
-        typename pcl::PointCloud< PointT >::Ptr sift_keys(new pcl::PointCloud< PointT >);
-
+        estimator.setInputCloud(cloud);
         estimator.setIndices(indices);
-        //estimator.estimate(cloud, processed, sift_keypoints_[i], sift_features_[i]);
-        estimator.compute(*cloud, *processed, *sift_keys, sift_descs);
+        estimator.compute(sift_descs);
+        typename pcl::PointCloud< PointT >::Ptr  sift_keys = estimator.getKeypointCloud();
 
         pcl::PointIndices original_indices;
         original_indices.indices = estimator.getKeypointIndices();

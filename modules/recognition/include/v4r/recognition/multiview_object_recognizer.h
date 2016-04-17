@@ -116,11 +116,9 @@ protected:
 
     void correspondenceGrouping();
     
-    bool calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
-                           pcl::PointCloud<PointT> &sift_keypoints,
+    bool calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
                            std::vector< int > &sift_keypoint_indices,
-                           std::vector<std::vector<float> > &sift_signatures,
-                           std::vector<float> &sift_keypoint_scales);
+                           std::vector<std::vector<float> > &sift_signatures);
 
     typename NguyenNoiseModel<PointT>::Parameter nm_param_;
     typename NMBasedCloudIntegration<PointT>::Parameter nmInt_param_;

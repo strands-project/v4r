@@ -195,18 +195,15 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
             {
                 std::vector<std::vector<float> > all_signatures;
                 std::vector<std::vector<float> > object_signatures;
-                typename pcl::PointCloud<PointT> all_keypoints;
                 typename pcl::PointCloud<PointT> object_keypoints;
                 pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
 
                 computeNormals<PointT>(m->views_[v], normals, param_.normal_computation_method_);
 
                 std::vector<int> all_kp_indices, obj_kp_indices;
+                estimator_->setInputCloud(m->views_[v]);
                 estimator_->setNormals(normals);
-                typename pcl::PointCloud<PointT> foo;
-                bool success = estimator_->compute (*m->views_[v], foo, all_keypoints, all_signatures);
-
-                (void) success;
+                estimator_->compute (all_signatures);
                 all_kp_indices = estimator_->getKeypointIndices();
 
                 // remove signatures and keypoints which do not belong to object
@@ -276,7 +273,7 @@ LocalRecognitionPipeline<PointT>::recognize ()
 {
     models_.clear();
     transforms_.clear();
-    scene_keypoints_.reset(new pcl::PointCloud<PointT>);
+    scene_keypoints_.reset();
     obj_hypotheses_.clear();
 
     if (feat_kp_set_from_outside_)
@@ -287,9 +284,10 @@ LocalRecognitionPipeline<PointT>::recognize ()
     }
     else
     {
+        estimator_->setInputCloud( scene_ );
         estimator_->setNormals(scene_normals_);
-        typename pcl::PointCloud<PointT> processed_foo;
-        estimator_->compute (*scene_, processed_foo, *scene_keypoints_, signatures_);
+        estimator_->compute (signatures_);
+        scene_keypoints_ = estimator_->getKeypointCloud();
         scene_kp_indices_ = estimator_->getKeypointIndices();
     }
 

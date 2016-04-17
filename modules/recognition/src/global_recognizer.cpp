@@ -548,6 +548,8 @@ template<typename PointT>
 void
 GlobalRecognizer<PointT>::poseRefinement()
 {
+
+#pragma omp paralell for schedule(dynamic)
     for(size_t i=0; i<models_.size(); i++)
     {
         ModelT &m = *models_[i];
