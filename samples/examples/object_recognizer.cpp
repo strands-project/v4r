@@ -22,7 +22,6 @@ main (int argc, char ** argv)
     typedef v4r::Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-    typedef pcl::PointXYZRGB PointT;
     std::string test_dir;
     bool visualize = false;
     double chop_z = std::numeric_limits<double>::max();

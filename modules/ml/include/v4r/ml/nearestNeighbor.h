@@ -82,6 +82,11 @@ namespace v4r
             distances = knn_distances_;
         }
 
+        int
+        getType(){
+            return ClassifierType::KNN;
+        }
+
         typedef boost::shared_ptr< NearestNeighborClassifier> Ptr;
         typedef boost::shared_ptr< NearestNeighborClassifier const> ConstPtr;
     };

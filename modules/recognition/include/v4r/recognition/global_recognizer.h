@@ -55,9 +55,12 @@ public:
         bool filter_border_pts_; /// @brief Filter keypoints at the boundary
         int boundary_width_; /// @brief Width in pixel of the depth discontinuity
         bool visualize_clusters_;
-        bool check_elongations_;
-        bool use_table_plane_for_alignment_;
-        int icp_iterations_;
+        bool check_elongations_; /// @brief if true, checks if the elongation of the segmented cluster fits approximately the elongation of the matched object hypothesis
+        float max_elongation_ratio_; /// @brief if the elongation of the segment w.r.t. to the matched hypotheses is above this threshold, it will be rejected (used only if check_elongations_ is true.
+        float min_elongation_ratio_; /// @brief if the elongation of the segment w.r.t. to the matched hypotheses is below this threshold, it will be rejected (used only if check_elongations_ is true).
+        bool use_table_plane_for_alignment_; /// @brief if true, aligns the matched object model such that the centroid corresponds to the centroid of the segmented cluster downprojected onto the found table plane. The z-axis corresponds to the normal axis of the table plane and the remaining axis build a orthornmal system. Rotation is then sampled in equidistant angles around the z-axis.
+        float z_angle_sampling_density_degree_; /// @brief if use_table_plane_for_alignment_, this value will generate object hypotheses at each multiple of this value.
+        int icp_iterations_; /// @brief number of ICP iterations to align the estimated object pose to the scene. If 0, no pose refinement.
 
         Parameter(
                 int kdtree_splits = 512,
@@ -67,8 +70,11 @@ public:
                 int boundary_width = 5,
                 bool visualize_clusters = false,
                 bool check_elongations = true,
+                float max_elongation_ratio = 1.2f,
+                float min_elongation_ratio = 0.5f,  // lower because of possible occlusion
                 bool use_table_plane_for_alignment = false,
-                int icp_iterations = 10
+                float z_angle_sampling_density_degree = 60.f,
+                int icp_iterations = 5
                 )
             : Recognizer<PointT>::Parameter(),
               kdtree_splits_ (kdtree_splits),
@@ -78,7 +84,10 @@ public:
               boundary_width_ (boundary_width),
               visualize_clusters_ ( visualize_clusters ),
               check_elongations_ ( check_elongations ),
+              max_elongation_ratio_ ( max_elongation_ratio ),
+              min_elongation_ratio_ ( min_elongation_ratio ),
               use_table_plane_for_alignment_ ( use_table_plane_for_alignment ),
+              z_angle_sampling_density_degree_ ( z_angle_sampling_density_degree ),
               icp_iterations_ (icp_iterations)
         {}
     }param_;

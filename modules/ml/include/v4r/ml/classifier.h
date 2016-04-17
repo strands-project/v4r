@@ -25,6 +25,7 @@
 #define V4R_CLASSIFER_H__
 
 #include <v4r/core/macros.h>
+#include <v4r/ml/types.h>
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Eigen>
 #include <vector>
@@ -73,6 +74,9 @@ public:
         (void)distances;
         std::cerr << "getTrainingSampleIDSforPredictions is not implemented right now." << std::endl;
     }
+
+    virtual int
+    getType() = 0;
 
     typedef boost::shared_ptr< Classifier > Ptr;
     typedef boost::shared_ptr< Classifier const> ConstPtr;

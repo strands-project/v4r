@@ -1,3 +1,4 @@
+#include <v4r/common/miscellaneous.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/ml/svmWrapper.h>
 #include <iostream>
@@ -13,7 +14,11 @@ bool svmSortOp (svmData i, svmData j) { return (i.y<j.y); }
 
 void svmClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label)
 {
-    predicted_label.resize(query_data.rows(), 1);
+
+    if(param_.svm_.probability)
+        predicted_label.resize(query_data.rows(), param_.knn_);
+    else
+        predicted_label.resize(query_data.rows(), 1);
 
     for(int i=0; i<query_data.rows(); i++)
     {
@@ -26,6 +31,25 @@ void svmClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &
         }
         svm_n_test[ query_data.cols() ].index = -1;
         predicted_label(i, 0) = (int)::svm_predict(svm_mod_, svm_n_test);
+
+        if(param_.svm_.probability)
+        {
+            double *prob_estimates = new double[ svm_mod_->nr_class ];
+            double bla = svm_predict_probability(svm_mod_, svm_n_test, prob_estimates);
+            (void) bla;
+
+            std::vector<double> probs ( svm_mod_->nr_class );
+            for(int label_id=0; label_id<svm_mod_->nr_class; label_id++)
+                probs[label_id] = prob_estimates[label_id];
+
+            std::vector<size_t> indices = sort_indexes(probs);  //NOTE sorted in ascending order. We want highest values!
+
+            for(int k=0; k<param_.knn_; k++)
+                predicted_label(i, k) = indices[ indices.size() - 1 - k ];
+
+            delete [] prob_estimates;
+        }
+
         delete svm_n_test;
     }
 }
@@ -86,6 +110,10 @@ void svmClassifier::dokFoldCrossValidation(
     std::vector<Eigen::MatrixXi> best_confusion_matrices_v(k);
     std::vector<Eigen::MatrixXi> confusion_matrices_v(k);
 
+    Eigen::MatrixXf data_train_shuffled = data_train;
+    Eigen::VectorXi target_train_shuffled = target_train;
+    shuffleTrainingData(data_train_shuffled, target_train_shuffled);
+
     for(double C = model_para_C_min; C <= model_para_C_max; C *= step_multiplicator_C)
     {
         for(double gamma = model_para_gamma_min; gamma <= model_para_gamma_max; gamma *= step_multiplicator_gamma)
@@ -107,18 +135,18 @@ void svmClassifier::dokFoldCrossValidation(
                     if(i%k == current_val_set_id)
                     {
                         int num_entries = target_val.rows();
-                        data_val.conservativeResize(num_entries + 1, data_train.cols());
-                        data_val.row(num_entries) = data_train.row(i);
+                        data_val.conservativeResize(num_entries + 1, data_train_shuffled.cols());
+                        data_val.row(num_entries) = data_train_shuffled.row(i);
                         target_val.conservativeResize(num_entries+1);
-                        target_val(num_entries) = target_train(i);
+                        target_val(num_entries) = target_train_shuffled(i);
                     }
                     else
                     {
                         int num_entries = data_train_sub.rows();
-                        data_train_sub.conservativeResize(num_entries + 1, data_train.cols());
-                        data_train_sub.row(num_entries) = data_train.row(i);
+                        data_train_sub.conservativeResize(num_entries + 1, data_train_shuffled.cols());
+                        data_train_sub.row(num_entries) = data_train_shuffled.row(i);
                         target_train_sub.conservativeResize(num_entries+1);
-                        target_train_sub(num_entries) = target_train(i);
+                        target_train_sub(num_entries) = target_train_shuffled(i);
                     }
                 }
                 trainSVM(data_train_sub, target_train_sub);
@@ -204,11 +232,11 @@ void svmClassifier::trainSVM(const Eigen::MatrixXf &training_data, const Eigen::
 
 
     // free memory
-    for(int i = 0; i<svm_prob->l; i++)
-        delete [] svm_prob->x[i];
-    delete svm_prob->x;
-    delete svm_prob->y;
-    delete svm_prob;
+//    for(int i = 0; i<svm_prob->l; i++)
+//        delete [] svm_prob->x[i];
+//    delete svm_prob->x;
+//    delete svm_prob->y;
+//    delete svm_prob;
 }
 
 
@@ -220,15 +248,17 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
 
         std::set<int> labels; // to know how many different labels there are
         for(int i=0; i<training_label.rows(); i++)
-            labels.insert(training_label(i));
+        {
+            int label = training_label(i);
+            if( label > (int)labels.size()+1 )
+                std::cerr << "Training labels are not sorted. Take care with unsorted training labels when using probabilities. The order will then correspond to the time of occurence in the training labels." << std::endl;
+            labels.insert(label);
+        }
 
         num_classes_ = labels.size();
 
         Eigen::MatrixXf training_data_shuffled = training_data;
         Eigen::VectorXi training_label_shuffled = training_label;
-
-        if(param_.shuffle_training_data_)
-            shuffleTrainingData(training_data_shuffled, training_label_shuffled);
 
         if(param_.do_cross_validation_)
             dokFoldCrossValidation(training_data_shuffled, training_label_shuffled, 5);

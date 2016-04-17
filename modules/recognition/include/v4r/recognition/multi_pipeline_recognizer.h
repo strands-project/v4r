@@ -53,7 +53,6 @@ namespace v4r
 
         typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
-        std::vector<pcl::PointIndices> segmentation_indices_;
         omp_lock_t rec_lock_;
 
         typename boost::shared_ptr<GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;  /// @brief algorithm for correspondence grouping

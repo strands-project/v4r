@@ -52,12 +52,10 @@ namespace v4r
         class V4R_EXPORTS Parameter
         {
         public:
-            bool shuffle_training_data_;
             bool do_cross_validation_;
             int knn_;
             ::svm_parameter svm_;
             Parameter(
-                    bool shuffle_training_data = true,
                     bool do_cross_validation = true,
                     int knn = 3,
                     int svm_type = ::C_SVC,
@@ -79,7 +77,6 @@ namespace v4r
                     int probability = 1 /* do probability estimates */
                     )
                 :
-                    shuffle_training_data_ ( shuffle_training_data),
                     do_cross_validation_ ( do_cross_validation ),
                     knn_ (knn)
             {
@@ -164,6 +161,11 @@ namespace v4r
 
         void
         sortTrainingData(Eigen::MatrixXf &data_train, Eigen::VectorXi &target_train);
+
+        int
+        getType(){
+            return ClassifierType::SVM;
+        }
 
         typedef boost::shared_ptr< svmClassifier > Ptr;
         typedef boost::shared_ptr< svmClassifier const> ConstPtr;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013 Aitor Aldoma
+ * Copyright (c) 2015 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,40 +21,17 @@
  *
  ******************************************************************************/
 
-
-#ifndef V4R_UNIFORM_SAMPLING_EXTRACTOR__
-#define V4R_UNIFORM_SAMPLING_EXTRACTOR__
-
-#include <v4r/keypoints/keypoint_extractor.h>
+#ifndef V4R_CLASSIFIER_TYPES__
+#define V4R_CLASSIFIER_TYPES__
 
 namespace v4r
 {
-template<typename PointT>
-class V4R_EXPORTS UniformSamplingExtractor : public KeypointExtractor<PointT>
-{
-private:
-    typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-    using KeypointExtractor<PointT>::input_;
-    using KeypointExtractor<PointT>::indices_;
-    using KeypointExtractor<PointT>::keypoint_indices_;
-    using KeypointExtractor<PointT>::keypoint_extractor_type_;
-    using KeypointExtractor<PointT>::keypoint_extractor_name_;
-
-    float sampling_density_; /// @brief sampling distance in meter
-
-public:
-    UniformSamplingExtractor(float sampling_density = 0.01f) : sampling_density_ (sampling_density)
-    {
-        keypoint_extractor_type_ = KeypointType::UniformSampling;
-        keypoint_extractor_name_ = "uniform_sampling";
-    }
-
-    void
-    compute (pcl::PointCloud<PointT> & keypoints);
-
-    typedef boost::shared_ptr< UniformSamplingExtractor<PointT> > Ptr;
-    typedef boost::shared_ptr< UniformSamplingExtractor<PointT> const> ConstPtr;
-};
+        enum ClassifierType
+        {
+            KNN = 0x01, // 00000001
+            SVM = 0x02, // 00000010
+            CNN  = 0x04 // 00000100
+        };
 }
 
 #endif

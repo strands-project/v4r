@@ -289,6 +289,8 @@ GlobalRecognizer<PointT>::initialize(bool force_retrain)
 
     loadFeaturesFromDisk();
     classifier_->train(all_model_signatures_, all_trained_model_label_);
+    all_model_signatures_.resize(0,0);  // not needed here any more
+    all_trained_model_label_.resize(0);
     return true;
 }
 
@@ -376,7 +378,9 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
     Eigen::MatrixXf knn_distances;
     Eigen::MatrixXi predicted_label;
     classifier_->predict(query_sig, predicted_label);
-    classifier_->getTrainingSampleIDSforPredictions(knn_indices, knn_distances);
+
+    if(classifier_->getType() == ClassifierType::KNN)
+        classifier_->getTrainingSampleIDSforPredictions(knn_indices, knn_distances);
 
     Eigen::Matrix4f tf_trans = Eigen::Matrix4f::Identity();
     Eigen::Matrix4f tf_rot = Eigen::Matrix4f::Identity();
@@ -411,13 +415,22 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
     else    // use eigenvectors for alignment
     {
         centroid = centroids_[cluster_id];
-        Eigen::Matrix3f &eigenBasis = eigen_basis_[cluster_id];
-        Eigen::Matrix4f tf_rot_inv = Eigen::Matrix4f::Identity();
-        tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
-        tf_rot = tf_rot_inv.inverse();
     }
     tf_trans.block<3,1>(0,3) = centroid.topRows(3);
 
+    // pre-allocate memory
+    size_t max_hypotheses = predicted_label.rows() * predicted_label.cols();
+
+    if(param_.use_table_plane_for_alignment_)
+        max_hypotheses *= (int)(360.f / param_.z_angle_sampling_density_degree_);
+    else
+        max_hypotheses *= 4;
+
+    matched_models.resize( max_hypotheses  );
+    distance.resize( max_hypotheses );
+    transforms.resize( max_hypotheses );
+
+    size_t kept=0;
     for(int query_id=0; query_id<predicted_label.rows(); query_id++)
     {
         for (size_t k = 0; k < predicted_label.cols(); k++)
@@ -426,10 +439,19 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
             if(param_.use_table_plane_for_alignment_)
             {
                 m = models[ predicted_label(query_id, k) ];
-                double rot_sampling_dist_deg = 30.f;
-                for(double rot_i=0.f; rot_i<360.f; rot_i+=rot_sampling_dist_deg)
+
+                const Eigen::Vector3f &elongations_model = m->elongations_.colwise().maxCoeff();    // as we don't know the view, we just take the maximum extent of each axis over all training views
+                const Eigen::Vector3f &elongations = elongations_[cluster_id];
+                if( param_.check_elongations_ &&
+                   (elongations(2)/elongations_model(2) < param_.min_elongation_ratio_||
+                    elongations(2)/elongations_model(2) > param_.max_elongation_ratio_||
+                    elongations(1)/elongations_model(1) < param_.min_elongation_ratio_||
+                    elongations(1)/elongations_model(1) > param_.max_elongation_ratio_) )
+                    continue;
+
+                for(double rot_i=0.f; rot_i<360.f; rot_i+=param_.z_angle_sampling_density_degree_)
                 {
-                    matched_models.push_back(m);
+                    matched_models[kept] = m;
 
                     double rot_rad = pcl::deg2rad(rot_i);
                     Eigen::Matrix4f rot_tmp = Eigen::Matrix4f::Identity();
@@ -437,9 +459,10 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
                     rot_tmp(0,1) = -sin(rot_rad);
                     rot_tmp(1,0) =  sin(rot_rad);
                     rot_tmp(1,1) =  cos(rot_rad);
-                    transforms.push_back( tf_trans * tf_rot  * rot_tmp);
+                    transforms[kept] = tf_trans * tf_rot  * rot_tmp;
 
-                    distance.push_back( 0.f );
+                    distance[kept] =  0.f;
+                    kept++;
                 }
             }
             else
@@ -448,24 +471,77 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
                 m = f.model;
 
                 const Eigen::Vector3f &elongations_model = m->elongations_.row( f.view_id);
-
-                Eigen::Vector3f &elongations = elongations_[cluster_id];
-                float elongation_tolerance_ratio_max = 1.2, elongation_tolerance_ratio_min = 0.4f;
+                const Eigen::Vector3f &elongations = elongations_[cluster_id];
                 if( param_.check_elongations_ &&
-                   (elongations(2)/elongations_model(2) < elongation_tolerance_ratio_min||
-                    elongations(2)/elongations_model(2) > elongation_tolerance_ratio_max||
-                    elongations(1)/elongations_model(1) < elongation_tolerance_ratio_min||
-                    elongations(1)/elongations_model(1) > elongation_tolerance_ratio_max) )
+                   (elongations(2)/elongations_model(2) < param_.min_elongation_ratio_||
+                    elongations(2)/elongations_model(2) > param_.max_elongation_ratio_||
+                    elongations(1)/elongations_model(1) < param_.min_elongation_ratio_||
+                    elongations(1)/elongations_model(1) > param_.max_elongation_ratio_) )
                     continue;
 
-                matched_models.push_back(f.model);
-                Eigen::Matrix4f tf_m_inv = m->poses_[f.view_id].inverse();
-                transforms.push_back( tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv );
+                // there are four possibilites (due to sign ambiguity of eigenvector)
+                Eigen::Matrix3f eigenBasis, sign_operator;
+                Eigen::Matrix3f identity = Eigen::Matrix3f::Identity();
 
-                distance.push_back( knn_distances( query_id, k ) );
+                // once take eigen vector as they are computed
+                sign_operator = identity;
+                eigenBasis = eigen_basis_[cluster_id] * sign_operator;
+                Eigen::Matrix4f tf_rot_inv = Eigen::Matrix4f::Identity();
+                tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
+                tf_rot = tf_rot_inv.inverse();
+                matched_models[kept] = f.model;
+                Eigen::Matrix4f tf_m_inv = m->poses_[f.view_id].inverse();
+                transforms[kept] = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
+                distance[kept] = knn_distances( query_id, k );
+                kept++;
+
+                // now take the first one negative
+                sign_operator = identity;
+                sign_operator(0,0) = -1;
+                sign_operator(2,2) = -1;   // due to right-hand rule
+                eigenBasis = eigen_basis_[cluster_id] * sign_operator;
+                tf_rot_inv = Eigen::Matrix4f::Identity();
+                tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
+                tf_rot = tf_rot_inv.inverse();
+                matched_models[kept] = f.model;
+                transforms[kept] = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
+                distance[kept] = knn_distances( query_id, k );
+                kept++;
+
+
+                // now take the second one negative
+                sign_operator = identity;
+                sign_operator(1,1) = -1;
+                sign_operator(2,2) = -1;   // due to right-hand rule
+                eigenBasis = eigen_basis_[cluster_id] * sign_operator;
+                tf_rot_inv = Eigen::Matrix4f::Identity();
+                tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
+                tf_rot = tf_rot_inv.inverse();
+                matched_models[kept] = f.model;
+                transforms[kept] = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
+                distance[kept] = knn_distances( query_id, k );
+                kept++;
+
+
+                // and last take first and second one negative
+                sign_operator = identity;
+                sign_operator(0,0) = -1;
+                sign_operator(1,1) = -1;
+                eigenBasis = eigen_basis_[cluster_id] * sign_operator;
+                tf_rot_inv = Eigen::Matrix4f::Identity();
+                tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
+                tf_rot = tf_rot_inv.inverse();
+                matched_models[kept] = f.model;
+                transforms[kept] = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
+                distance[kept] = knn_distances( query_id, k );
+                kept++;
             }
         }
     }
+
+    matched_models.resize( kept );
+    distance.resize( kept );
+    transforms.resize( kept );
 }
 
 template<typename PointT>
@@ -489,6 +565,8 @@ GlobalRecognizer<PointT>::poseRefinement()
         icp.align(aligned_visible_model);
         if(icp.hasConverged())
             tf = icp.getFinalTransformation() * tf;
+        else
+            std::cout << "ICP did not converge." << std::endl;
     }
 }
 

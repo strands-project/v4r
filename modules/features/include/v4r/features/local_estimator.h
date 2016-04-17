@@ -25,8 +25,6 @@
 #define V4R_LOCAL_ESTIMATOR_H__
 
 #include <v4r/common/normal_estimator.h>
-#include <pcl/surface/mls.h>
-#include <v4r/features/uniform_sampling_extractor.h>
 #include <v4r/core/macros.h>
 #include <vector>
 

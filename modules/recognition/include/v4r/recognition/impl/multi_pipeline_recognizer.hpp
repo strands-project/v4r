@@ -38,11 +38,8 @@ MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(boost::shared_ptr<Reco
 
     if(global_rec) // for global recognizers
     {
-        for(size_t c=0; c < segmentation_indices_.size(); c++)
-        {
-            models = global_rec->getModels ();
-            transforms = global_rec->getTransforms ();
-        }
+        models = global_rec->getModels ();
+        transforms = global_rec->getTransforms ();
     }
     else if(local_rec)  // for local recognizers
     {
@@ -122,7 +119,8 @@ MultiRecognitionPipeline<PointT>::recognize()
 #pragma omp parallel
     {
 #pragma omp master  // SIFT-GPU needs to be exexuted in master thread as SIFT-GPU creates an OpenGL context which never gets destroyed really and crashed if used from another thread
-        callIndiviualRecognizer(rec_siftgpu);
+        if(rec_siftgpu)
+            callIndiviualRecognizer(rec_siftgpu);
 
 #pragma omp for schedule(dynamic)
     for(size_t r_id=0; r_id < recognizer_without_siftgpu.size(); r_id++)
@@ -227,7 +225,7 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
             }
             merged_transforms.resize(kept);
 
-#pragma omp critical
+            #pragma omp critical
             {
                 transforms_.insert(transforms_.end(), merged_transforms.begin(), merged_transforms.end());
                 models_.resize( transforms_.size(), oh.model_ );

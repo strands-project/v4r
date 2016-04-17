@@ -82,18 +82,20 @@ private:
     bool init_;
 
 public:
-    CNN_Feat_Extractor(const Parameter &p = Parameter()) : param_(p), init_ (false)
+    CNN_Feat_Extractor(const Parameter &p = Parameter()) : param_(p)
     {
         descr_name_ = "alexnet";
         descr_type_ = FeatureType::ALEXNET;
         feature_dimensions_ = 4096;
+        init_ = false;
     }
 
-    CNN_Feat_Extractor(int argc, char **argv) : init_ (false), param_ (Parameter())
+    CNN_Feat_Extractor(int argc, char **argv) : param_ (Parameter())
     {
         descr_name_ = "alexnet";
         descr_type_ = FeatureType::ALEXNET;
         feature_dimensions_ = 4096;
+        init_ = false;
 
         po::options_description desc("CNN parameters\n=====================");
         desc.add_options()
