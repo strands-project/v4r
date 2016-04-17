@@ -31,7 +31,7 @@
 namespace v4r
 {
 
-enum KeypointType
+enum V4R_EXPORTS KeypointType
 {
     UniformSampling = 0x01, // 00000001
     ISS = 0x02, // 00000010

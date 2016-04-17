@@ -1,9 +1,12 @@
 #include <v4r/recognition/multi_pipeline_recognizer.h>
+#include <v4r/recognition/local_recognizer.h>
+#include <v4r/recognition/global_recognizer.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <v4r/common/normals.h>
 #include <v4r/features/types.h>
+#include <glog/logging.h>
 #include <omp.h>
-#define NUM_THREADS 4
+
 namespace v4r
 {
 
@@ -19,7 +22,7 @@ MultiRecognitionPipeline<PointT>::initialize(bool force_retrain)
 
 template<typename PointT>
 void
-MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(Recognizer<PointT> &rec)
+MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(boost::shared_ptr<Recognizer<PointT> > &rec)
 {
     std::map<std::string, ObjectHypothesis<PointT> > oh_m;
     std::vector<ModelTPtr> models;
@@ -27,41 +30,31 @@ MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(Recognizer<PointT> &re
     pcl::PointCloud<PointT> scene_kps;
     pcl::PointCloud<pcl::Normal> scene_kp_normals;
 
-    rec.setInputCloud(scene_);
-    if(rec.requiresSegmentation()) // for global recognizers - this might not work in the current state!!
-    {
-        if( rec.acceptsNormals() )
-            rec.setSceneNormals(scene_normals_);
+    rec->setInputCloud(scene_);
+    rec->setSceneNormals(scene_normals_);
+    rec->recognize();
+    typename LocalRecognitionPipeline<PointT>::Ptr local_rec = boost::dynamic_pointer_cast<LocalRecognitionPipeline<PointT> > (rec);
+    typename GlobalRecognizer<PointT>::Ptr global_rec = boost::dynamic_pointer_cast<GlobalRecognizer<PointT> > (rec);
 
+    if(global_rec) // for global recognizers
+    {
         for(size_t c=0; c < segmentation_indices_.size(); c++)
         {
-            rec.recognize();
-            models = rec.getModels ();
-            transforms = rec.getTransforms ();
+            models = global_rec->getModels ();
+            transforms = global_rec->getTransforms ();
         }
     }
-    else    // for local recognizers
+    else if(local_rec)  // for local recognizers
     {
-        rec.recognize();
+        local_rec->recognize();
+        local_rec->getSavedHypotheses(oh_m);
 
-        if(!rec.getSaveHypothesesParam())
-        {
-            models = rec.getModels ();
-            transforms = rec.getTransforms ();
-        }
-        else
-        {
-            rec.getSavedHypotheses(oh_m);
-
-            typename pcl::PointCloud<PointT>::Ptr kp_tmp = rec.getKeypointCloud();
-            scene_kps = *kp_tmp;
-
-            if(scene_normals_) {
-                std::vector<int> kp_indices;
-                rec.getKeypointIndices(kp_indices);
-                pcl::copyPointCloud(*scene_normals_, kp_indices, scene_kp_normals);
-            }
-        }
+        std::vector<int> kp_indices;
+        typename pcl::PointCloud<PointT>::Ptr kp_tmp = local_rec->getKeypointCloud();
+        local_rec->getKeypointIndices(kp_indices);
+        CHECK(kp_tmp->points.size() == kp_indices.size());
+        pcl::copyPointCloud(*scene_normals_, kp_indices, scene_kp_normals);
+        scene_kps = *kp_tmp;
     }
 
     mergeStuff(oh_m, models, transforms, scene_kps, scene_kp_normals);
@@ -124,7 +117,7 @@ MultiRecognitionPipeline<PointT>::recognize()
 
         for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
         {
-            if( recognizers_[r_id]->acceptsNormals() )
+            if( recognizers_[r_id]->needNormals() )
                 need_to_compute_normals = true;
         }
     }
@@ -146,18 +139,18 @@ MultiRecognitionPipeline<PointT>::recognize()
 #pragma omp parallel
     {
 #pragma omp master  // SIFT-GPU needs to be exexuted in master thread as SIFT-GPU creates an OpenGL context which never gets destroyed really and crashed if used from another thread
-        callIndiviualRecognizer(*rec_siftgpu);
+        callIndiviualRecognizer(rec_siftgpu);
 
 #pragma omp for schedule(dynamic)
     for(size_t r_id=0; r_id < recognizer_without_siftgpu.size(); r_id++)
-        callIndiviualRecognizer(*recognizer_without_siftgpu[r_id]);
+        callIndiviualRecognizer(recognizer_without_siftgpu[r_id]);
 
     }
     omp_destroy_lock(&rec_lock_);
 
     compress();
 
-    if(cg_algorithm_ && !param_.save_hypotheses_)    // correspondence grouping is not done outside
+    if(cg_algorithm_)    // correspondence grouping is not done outside
     {
         correspondenceGrouping();
 
@@ -184,7 +177,7 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
     for (it = obj_hypotheses_.begin (), id=0; it != obj_hypotheses_.end (); ++it)
         ohs[id++] = it->second;
 
-#pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)
+#pragma omp parallel for schedule(dynamic)
     for (size_t i=0; i<ohs.size(); i++)
     {
         const ObjectHypothesis<PointT> &oh = ohs[i];
@@ -267,26 +260,4 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
         }
     }
 }
-
-template<typename PointT>
-bool
-MultiRecognitionPipeline<PointT>::isSegmentationRequired() const
-{
-    bool ret_value = false;
-    for(size_t i=0; (i < recognizers_.size()) && !ret_value; i++)
-        ret_value = recognizers_[i]->requiresSegmentation();
-
-    return ret_value;
-}
-
-template<typename PointT>
-typename boost::shared_ptr<Source<PointT> >
-MultiRecognitionPipeline<PointT>::getDataSource () const
-{
-    //NOTE: Assuming source is the same or contains the same models for all recognizers...
-    //Otherwise, we should create a combined data source so that all models are present
-
-    return recognizers_[0]->getDataSource();
-}
-
 }

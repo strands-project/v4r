@@ -24,8 +24,8 @@
 #ifndef MULTI_PIPELINE_RECOGNIZER_H_
 #define MULTI_PIPELINE_RECOGNIZER_H_
 
-#include "recognizer.h"
-#include "local_recognizer.h"
+#include <v4r/recognition/recognizer.h>
+#include <v4r/recognition/local_recognizer.h>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <omp.h>
 
@@ -34,26 +34,6 @@ namespace v4r
     template<typename PointT>
     class V4R_EXPORTS MultiRecognitionPipeline : public Recognizer<PointT>
     {
-    public:
-        class V4R_EXPORTS Parameter : public Recognizer<PointT>::Parameter
-        {
-        public:
-            using Recognizer<PointT>::Parameter::voxel_size_icp_;
-            using Recognizer<PointT>::Parameter::normal_computation_method_;
-            using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
-            using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
-            using Recognizer<PointT>::Parameter::merge_close_hypotheses_angle_;
-
-            bool save_hypotheses_;
-
-            Parameter(
-                    bool save_hypotheses = false
-                    )
-                : Recognizer<PointT>::Parameter(),
-                  save_hypotheses_ ( save_hypotheses )
-            {}
-        }param_;
-
       protected:
         std::vector<typename boost::shared_ptr<Recognizer<PointT> > > recognizers_;
 
@@ -64,6 +44,9 @@ namespace v4r
         using Recognizer<PointT>::transforms_;
         using Recognizer<PointT>::hv_algorithm_;
         using Recognizer<PointT>::hypothesisVerification;
+        using Recognizer<PointT>::getDataSource;
+        using Recognizer<PointT>::param_;
+        using Recognizer<PointT>::source_;
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
@@ -115,7 +98,7 @@ namespace v4r
         }
 
         void
-        callIndiviualRecognizer(Recognizer<PointT> &rec);
+        callIndiviualRecognizer(boost::shared_ptr<Recognizer<PointT> > &rec);
 
         void mergeStuff(std::map<std::string, ObjectHypothesis<PointT> > &oh_m,
                          const std::vector<ModelTPtr> &models,
@@ -123,17 +106,11 @@ namespace v4r
                          const pcl::PointCloud<PointT> &scene_kps,
                          const pcl::PointCloud<pcl::Normal> &scene_kp_normals);
       public:
-        MultiRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
-        {
-            param_ = p;
-        }
+        MultiRecognitionPipeline (const typename Recognizer<PointT>::Parameter &p = Recognizer<PointT>::Parameter()) : Recognizer<PointT>(p)
+        { }
 
         MultiRecognitionPipeline(int argc, char **argv);
 
-        void setSaveHypotheses(bool set_save_hypotheses)
-        {
-            param_.save_hypotheses_ = set_save_hypotheses;
-        }
 
         void
         getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > & hypotheses) const
@@ -141,11 +118,6 @@ namespace v4r
           hypotheses = obj_hypotheses_;
         }
 
-        bool
-        getSaveHypothesesParam() const
-        {
-            return param_.save_hypotheses_;
-        }
 
         void
         getKeypointCloud(PointTPtr & keypoint_cloud) const
@@ -169,14 +141,17 @@ namespace v4r
         getPoseRefinement( const std::vector<ModelTPtr> &models,
                            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms);
 
-        void recognize();
+        void
+        recognize();
 
-        void addRecognizer(typename boost::shared_ptr<Recognizer<PointT> > & rec)
+        void
+        addRecognizer(typename boost::shared_ptr<Recognizer<PointT> > & rec)
         {
           recognizers_.push_back(rec);
         }
 
-        void clearRecognizers()
+        void
+        clearRecognizers()
         {
             recognizers_.clear();
             obj_hypotheses_.clear();
@@ -204,17 +179,18 @@ namespace v4r
           cg_algorithm_ = alg;
         }
 
-        bool isSegmentationRequired() const;
-
-        typename boost::shared_ptr<Source<PointT> >
-        getDataSource () const;
-
-        void
-        setSegmentation(const std::vector<pcl::PointIndices> & ind)
+        bool
+        isSegmentationRequired() const
         {
-          segmentation_indices_ = ind;
+            bool ret_value = false;
+            for(size_t i=0; (i < recognizers_.size()) && !ret_value; i++)
+                ret_value = recognizers_[i]->requiresSegmentation();
+
+            return ret_value;
         }
 
+        typedef boost::shared_ptr< MultiRecognitionPipeline<PointT> > Ptr;
+        typedef boost::shared_ptr< MultiRecognitionPipeline<PointT> const> ConstPtr;
     };
 }
 #endif /* MULTI_PIPELINE_RECOGNIZER_H_ */

@@ -2,10 +2,7 @@
 #include <v4r/io/eigen.h>
 #include <v4r/recognition/model.h>
 #include <v4r/recognition/global_recognizer.h>
-
-#include <pcl/common/angles.h>
 #include <pcl/PointIndices.h>
-#include <pcl/registration/icp.h>
 #include <glog/logging.h>
 #include <sstream>
 #include <omp.h>
@@ -59,8 +56,6 @@ GlobalRecognizer<PointT>::loadFeaturesFromDisk ()
 
             all_model_signatures_.conservativeResize(all_model_signatures_.rows() + view_signatures.rows(), view_signatures.cols());
             all_model_signatures_.bottomRows( view_signatures.rows() ) = view_signatures;
-            all_trained_model_label_.conservativeResize(all_trained_model_label_.rows() + view_signatures.rows());
-            all_trained_model_label_.tail( view_signatures.rows() ) = m_id * Eigen::VectorXi::Ones( view_signatures.rows() );
 
             model_signatures.conservativeResize( model_signatures.rows() + view_signatures.rows(), view_signatures.cols());
             model_signatures.bottomRows( view_signatures.rows() ) = view_signatures;
@@ -105,6 +100,22 @@ GlobalRecognizer<PointT>::loadFeaturesFromDisk ()
         m.signatures_[descr_name] = model_signatures;
     }\
 }
+
+template<typename PointT>
+void
+GlobalRecognizer<PointT>::createFLANN()
+{
+    std::cout << "Total number of " << estimator_->getFeatureDescriptorName() << " features within the model database: " << flann_models_.size () << std::endl;
+
+    CHECK ( flann_models_.size() == all_model_signatures_.rows() );
+
+    flann_.reset ( new EigenFLANN);
+    flann_->param_.knn_ = param_.knn_;
+    flann_->param_.distance_metric_ = param_.distance_metric_;
+    flann_->param_.kdtree_splits_ = param_.kdtree_splits_;
+    flann_->createFLANN(all_model_signatures_);
+}
+
 
 template<typename PointT>
 bool
@@ -288,76 +299,11 @@ GlobalRecognizer<PointT>::initialize(bool force_retrain)
     }
 
     loadFeaturesFromDisk();
-    classifier_->train(all_model_signatures_, all_trained_model_label_);
+    createFLANN();
     return true;
 }
 
 
-template<typename PointT>
-void
-GlobalRecognizer<PointT>::computeEigenBasis()
-{
-    centroids_.resize( clusters_.size() );
-    eigen_basis_.resize( clusters_.size() );
-    elongations_.resize( clusters_.size() );
-
-    for(size_t i=0; i<clusters_.size(); i++)
-    {
-        EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
-        EIGEN_ALIGN16 Eigen::Vector3f eigenValues;
-        EIGEN_ALIGN16 Eigen::Matrix3f eigenVectors;
-        computeMeanAndCovarianceMatrix (*scene_, clusters_[i], covariance_matrix, centroids_[i]);
-        pcl::eigen33 (covariance_matrix, eigenVectors, eigenValues);
-
-        Eigen::Matrix3f &eigenBasis = eigen_basis_[i];
-
-        // create orthonormal rotation matrix from eigenvectors
-        eigenBasis.col(0) = eigenVectors.col(0).normalized();
-        float dotp12 = eigenVectors.col(1).dot(eigenBasis.col(0));
-        Eigen::Vector3f eig2 = eigenVectors.col(1) - dotp12 * eigenBasis.col(0);
-        eigenBasis.col(1) = eig2.normalized();
-        Eigen::Vector3f eig3 = eigenBasis.col(0).cross ( eigenBasis.col(1) );
-        eigenBasis.col(2) = eig3.normalized();
-
-        // transform cluster into origin and align with eigenvectors
-        Eigen::Matrix4f tf_rot_inv = Eigen::Matrix4f::Identity();
-        tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
-        Eigen::Matrix4f tf_trans_inv = Eigen::Matrix4f::Identity();
-        tf_trans_inv.block<3,1>(0,3) = -centroids_[i].topRows(3);
-
-        Eigen::Matrix4f tf_trans = Eigen::Matrix4f::Identity();
-        tf_trans.block<3,1>(0,3) = centroids_[i].topRows(3);
-        Eigen::Matrix4f tf_rot = tf_rot_inv.inverse();
-
-        // compute max elongations
-        typename pcl::PointCloud<PointT>::Ptr eigenvec_aligned(new pcl::PointCloud<PointT>);
-        pcl::copyPointCloud(*scene_, clusters_[i], *eigenvec_aligned);
-        pcl::transformPointCloud(*eigenvec_aligned, *eigenvec_aligned, tf_rot_inv*tf_trans_inv);
-
-        float xmin,ymin,xmax,ymax,zmin,zmax;
-        xmin = ymin = xmax = ymax = zmin = zmax = 0.f;
-        for(size_t pt=0; pt<eigenvec_aligned->points.size(); pt++)
-        {
-            const PointT &p = eigenvec_aligned->points[pt];
-            if(p.x < xmin)
-                xmin = p.x;
-            if(p.x > xmax)
-                xmax = p.x;
-            if(p.y < ymin)
-                ymin = p.y;
-            if(p.y > ymax)
-                ymax = p.y;
-            if(p.z < zmin)
-                zmin = p.z;
-            if(p.z > zmax)
-                zmax = p.z;
-        }
-
-        elongations_[i](0) = xmax - xmin;
-        elongations_[i](1) = ymax - ymin;
-        elongations_[i](2) = zmax - zmin;
-    }
-}
 
 template<typename PointT>
 void
@@ -370,126 +316,132 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
     if(query_sig.cols() == 0 || query_sig.rows() == 0)
         return;
 
-    std::vector<ModelTPtr> models = source_->getModels();
+    CHECK(flann_);
 
     Eigen::MatrixXi knn_indices;
     Eigen::MatrixXf knn_distances;
-    Eigen::MatrixXi predicted_label;
-    classifier_->predict(query_sig, predicted_label);
-    classifier_->getTrainingSampleIDSforPredictions(knn_indices, knn_distances);
+    flann_->nearestKSearch(query_sig, knn_indices, knn_distances);
+
+    matched_models.resize(knn_indices.rows() * knn_indices.cols());
+    transforms.resize(knn_indices.rows() * knn_indices.cols());
+    distance.resize(knn_indices.rows() * knn_indices.cols());
+
+    EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
+    Eigen::Vector4f centroid_scene_cluster;
+    EIGEN_ALIGN16 Eigen::Vector3f eigenValues;
+    EIGEN_ALIGN16 Eigen::Matrix3f eigenVectors, eigenBasis;
+    computeMeanAndCovarianceMatrix (*scene_, clusters_[cluster_id], covariance_matrix, centroid_scene_cluster);
+    pcl::eigen33 (covariance_matrix, eigenVectors, eigenValues);
+
+    // create orthonormal rotation matrix from eigenvectors
+    eigenBasis.col(0) = eigenVectors.col(0).normalized();
+    float dotp12 = eigenVectors.col(1).dot(eigenBasis.col(0));
+    Eigen::Vector3f eig2 = eigenVectors.col(1) - dotp12 * eigenBasis.col(0);
+    eigenBasis.col(1) = eig2.normalized();
+    Eigen::Vector3f eig3 = eigenBasis.col(0).cross ( eigenBasis.col(1) );
+    eigenBasis.col(2) = eig3.normalized();
+
+    // transform cluster into origin and align with eigenvectors
+    Eigen::Matrix4f tf_rot_inv = Eigen::Matrix4f::Identity();
+    tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
+    Eigen::Matrix4f tf_trans_inv = Eigen::Matrix4f::Identity();
+    tf_trans_inv.block<3,1>(0,3) = -centroid_scene_cluster.topRows(3);
 
     Eigen::Matrix4f tf_trans = Eigen::Matrix4f::Identity();
-    Eigen::Matrix4f tf_rot = Eigen::Matrix4f::Identity();
-    Eigen::Vector4f centroid;
+    tf_trans.block<3,1>(0,3) = centroid_scene_cluster.topRows(3);
+    Eigen::Matrix4f tf_rot = tf_rot_inv.inverse();
 
-    if(param_.use_table_plane_for_alignment_)   // we do not need to know the closest training view
+    // compute max elongations
+    typename pcl::PointCloud<PointT>::Ptr eigenvec_aligned(new pcl::PointCloud<PointT>);
+    pcl::copyPointCloud(*scene_, clusters_[cluster_id], *eigenvec_aligned);
+    pcl::transformPointCloud(*eigenvec_aligned, *eigenvec_aligned, tf_rot_inv*tf_trans_inv);
+
+    float xmin,ymin,xmax,ymax,zmin,zmax;
+    xmin = ymin = xmax = ymax = zmin = zmax = 0.f;
+    for(size_t pt=0; pt<eigenvec_aligned->points.size(); pt++)
     {
-        float dist = centroids_[cluster_id].dot( table_plane_ );
-        centroid = centroids_[cluster_id] - dist * table_plane_;
-
-        // create some arbitrary coordinate system on table plane (s.t. normal corresponds to z axis, and others are orthonormal)
-        Eigen::Vector3f vec_z = table_plane_.topRows(3);
-        vec_z.normalize();
-
-        Eigen::Vector3f dummy; ///NOTE we just need to find any other point on the plane except centroid to create a coordinate system (hopefully this one is not close to zero)
-        dummy(0) = 1; dummy(1) = 0; dummy(2) = 0;
-        Eigen::Vector3f vec_x = vec_z.cross(dummy);
-        vec_x.normalize();
-
-        Eigen::Vector3f vec_y = vec_z.cross(vec_x);
-        vec_y.normalize();
-
-        Eigen::Matrix3f rotation_basis;
-        rotation_basis.col(0) = vec_x;
-        rotation_basis.col(1) = vec_y;
-        rotation_basis.col(2) = vec_z;
-
-        Eigen::Matrix4f tf_rot_inv = Eigen::Matrix4f::Identity();
-        tf_rot_inv.block<3,3>(0,0) = rotation_basis.transpose();
-        tf_rot = tf_rot_inv.inverse();
+        const PointT &p = eigenvec_aligned->points[pt];
+        if(p.x < xmin)
+            xmin = p.x;
+        if(p.x > xmax)
+            xmax = p.x;
+        if(p.y < ymin)
+            ymin = p.y;
+        if(p.y > ymax)
+            ymax = p.y;
+        if(p.z < zmin)
+            zmin = p.z;
+        if(p.z > zmax)
+            zmax = p.z;
     }
-    else    // use eigenvectors for alignment
-    {
-        centroid = centroids_[cluster_id];
-        Eigen::Matrix3f &eigenBasis = eigen_basis_[cluster_id];
-        Eigen::Matrix4f tf_rot_inv = Eigen::Matrix4f::Identity();
-        tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
-        tf_rot = tf_rot_inv.inverse();
-    }
-    tf_trans.block<3,1>(0,3) = centroid.topRows(3);
 
-    for(int query_id=0; query_id<predicted_label.rows(); query_id++)
+    Eigen::Vector3f elongations;
+    elongations(0) = xmax - xmin;
+    elongations(1) = ymax - ymin;
+    elongations(2) = zmax - zmin;
+
+//    pcl::visualization::PCLVisualizer vis_tmp;
+//    int vp1,vp2,vp3,vp4, vp5, vp6, vp7, vp8;
+//    vis_tmp.createViewPort(0,0,0.33,0.5,vp1);
+//    vis_tmp.createViewPort(0.33,0,0.66,0.5,vp2);
+//    vis_tmp.createViewPort(0.66,0,0.99,0.5,vp3);
+//    vis_tmp.createViewPort(0,0.5,0.33,1,vp4);
+//    vis_tmp.createViewPort(0.33,0.5,0.66,1,vp5);
+//    vis_tmp.createViewPort(0.66,0.5,0.99,1,vp6);
+//    vis_tmp.addCoordinateSystem(0.08f, vp1);
+//    vis_tmp.addCoordinateSystem(0.08f, vp2);
+//    vis_tmp.addCoordinateSystem(0.08f, vp3);
+//    vis_tmp.addCoordinateSystem(0.08f, vp4);
+//    vis_tmp.addCoordinateSystem(0.08f, vp5);
+//    vis_tmp.addCoordinateSystem(0.08f, vp6);
+//    vis_tmp.addPointCloud(eigenvec_aligned, "cluster", vp1);
+//    vis_tmp.addCoordinateSystem(0.01f,vp1);
+//    vis_tmp.spin();
+
+    size_t kept = 0;
+    for(int query_id=0; query_id<knn_indices.rows(); query_id++)
     {
-        for (size_t k = 0; k < predicted_label.cols(); k++)
+        for (size_t k = 0; k < knn_indices.cols(); k++)
         {
-            ModelTPtr m;
-            if(param_.use_table_plane_for_alignment_)
-            {
-                m = models[ predicted_label(query_id, k) ];
-                double rot_sampling_dist_deg = 30.f;
-                for(double rot_i=0.f; rot_i<360.f; rot_i+=rot_sampling_dist_deg)
-                {
-                    matched_models.push_back(m);
+            const flann_model &f = flann_models_ [ knn_indices( query_id, k ) ];
+            Eigen::Matrix4f tf_m_inv = f.model->poses_[f.view_id].inverse();
+            const Eigen::Vector3f &elongations_model = f.model->elongations_.row( f.view_id);
 
-                    double rot_rad = pcl::deg2rad(rot_i);
-                    Eigen::Matrix4f rot_tmp = Eigen::Matrix4f::Identity();
-                    rot_tmp(0,0) =  cos(rot_rad);
-                    rot_tmp(0,1) = -sin(rot_rad);
-                    rot_tmp(1,0) =  sin(rot_rad);
-                    rot_tmp(1,1) =  cos(rot_rad);
-                    transforms.push_back( tf_trans * tf_rot  * rot_tmp);
+            float elongation_tolerance_ratio_max = 1.2, elongation_tolerance_ratio_min = 0.4f;
+            if( param_.check_elongations_ &&
+               (elongations(2)/elongations_model(2) < elongation_tolerance_ratio_min||
+                elongations(2)/elongations_model(2) > elongation_tolerance_ratio_max||
+                elongations(1)/elongations_model(1) < elongation_tolerance_ratio_min||
+                elongations(1)/elongations_model(1) > elongation_tolerance_ratio_max) )
+                continue;
 
-                    distance.push_back( 0.f );
-                }
-            }
-            else
-            {
-                const flann_model &f = flann_models_ [ knn_indices( query_id, k ) ];
-                m = f.model;
+            matched_models[kept] = f.model;
+            transforms[kept] = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
+            distance[kept] = knn_distances( query_id, k );
+            kept++;
+//            ModelT &m = *f.model;
+//            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+//            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
 
-                const Eigen::Vector3f &elongations_model = m->elongations_.row( f.view_id);
+//            pcl::transformPointCloud(*model_cloud, *model_aligned, tf_m_inv);
+//            vis_tmp.addPointCloud(model_aligned, "model_orig", vp1);
 
-                Eigen::Vector3f &elongations = elongations_[cluster_id];
-                float elongation_tolerance_ratio_max = 1.2, elongation_tolerance_ratio_min = 0.4f;
-                if( param_.check_elongations_ &&
-                   (elongations(2)/elongations_model(2) < elongation_tolerance_ratio_min||
-                    elongations(2)/elongations_model(2) > elongation_tolerance_ratio_max||
-                    elongations(1)/elongations_model(1) < elongation_tolerance_ratio_min||
-                    elongations(1)/elongations_model(1) > elongation_tolerance_ratio_max) )
-                    continue;
+//            pcl::transformPointCloud( *model_aligned, *model_aligned, f.model->eigen_pose_alignment_[f.view_id]);
+//            vis_tmp.addPointCloud(model_aligned, "model_eigen_aligned", vp2);
 
-                matched_models.push_back(f.model);
-                Eigen::Matrix4f tf_m_inv = m->poses_[f.view_id].inverse();
-                transforms.push_back( tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv );
+//            pcl::transformPointCloud( *model_aligned, *model_aligned, tf_rot);
+//            vis_tmp.addPointCloud(model_aligned, "model_eigen_aligned_rot", vp3);
 
-                distance.push_back( knn_distances( query_id, k ) );
-            }
+//            pcl::transformPointCloud( *model_aligned, *model_aligned, tf_trans);
+//            vis_tmp.addPointCloud(model_aligned, "model_eigen_aligned_rot_trans", vp4);
+
+//            vis_tmp.addPointCloud(model_aligned, "model_eigen_aligned_rot_trans_overlay", vp5);
+//            vis_tmp.spin();
         }
     }
-}
-
-template<typename PointT>
-void
-GlobalRecognizer<PointT>::poseRefinement()
-{
-    for(size_t i=0; i<models_.size(); i++)
-    {
-        ModelT &m = *models_[i];
-        Eigen::Matrix4f &tf = transforms_[i];
-
-        typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 3 );
-        pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
-
-        pcl::IterativeClosestPoint<PointT, PointT> icp;
-        icp.setInputSource(model_aligned);
-        icp.setInputTarget(scene_);
-        icp.setMaximumIterations(param_.icp_iterations_);
-        pcl::PointCloud<PointT> aligned_visible_model;
-        icp.align(aligned_visible_model);
-        if(icp.hasConverged())
-            tf = icp.getFinalTransformation() * tf;
-    }
+    matched_models.resize(kept);
+    transforms.resize(kept);
+    distance.resize(kept);
 }
 
 template<typename PointT>
@@ -504,9 +456,6 @@ GlobalRecognizer<PointT>::recognize()
     seg_->setNormalsCloud(scene_normals_);
     seg_->segment();
     seg_->getSegmentIndices(clusters_);
-    table_plane_ = seg_->getTablePlane();
-
-    computeEigenBasis();
 
     size_t feat_dimensions = estimator_->getFeatureDimensions();
 //    signatures_.resize(clusters_.size(), feat_dimensions);
@@ -536,8 +485,6 @@ GlobalRecognizer<PointT>::recognize()
 //    std::ofstream f("/tmp/query_sig.txt");
 //    f<<signatures_<<std::endl;
 //    f.close();
-    if (param_.icp_iterations_)
-        poseRefinement();
 
     if (param_.visualize_clusters_)
     {
@@ -608,8 +555,4 @@ GlobalRecognizer<PointT>::visualize()
     vis_->spin();
 }
 
-template class V4R_EXPORTS GlobalRecognizer<pcl::PointXYZ>;
-template class V4R_EXPORTS GlobalRecognizer<pcl::PointXYZRGB>;
-
 }
-

@@ -7,13 +7,12 @@
 
 #include <v4r/recognition/ghv.h>
 #include <v4r/recognition/registered_views_source.h>
-#include <v4r/features/shot_local_estimator_omp.h>
-
-#ifdef HAVE_SIFTGPU
+#include <v4r/recognition/local_recognizer.h>
+#include <v4r/recognition/global_recognizer.h>
+#include <v4r/features/shot_local_estimator.h>
+//#include <v4r/features/shot_color_local_estimator.h>
 #include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
-#endif
+#include <v4r/keypoints/uniform_sampling_extractor.h>
 
 
 namespace po = boost::program_options;
@@ -36,13 +35,11 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
     // Parameter classes
     typename GHV<PointT, PointT>::Parameter paramGHV;
     typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter paramGgcg;
-    typename LocalRecognitionPipeline<PointT>::Parameter paramLocalRecSift, paramLocalRecShot;
     typename MultiRecognitionPipeline<PointT>::Parameter paramMultiPipeRec;
-    typename SHOTLocalEstimationOMP<PointT>::Parameter paramLocalEstimator;
+    typename LocalRecognitionPipeline<PointT>::Parameter paramSiftRecognizer, paramShotRecognizer;
     nmInt_param_.octree_resolution_ = 0.004f;
 
-    paramLocalRecSift.use_cache_ = paramLocalRecShot.use_cache_ = true;
-    paramLocalRecSift.save_hypotheses_ = paramLocalRecShot.save_hypotheses_ = true;
+#ifdef TEST
     paramLocalRecShot.kdtree_splits_ = 128;
 
     int normal_computation_method = paramLocalRecSift.normal_computation_method_;
@@ -104,8 +101,7 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
     catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
 
     paramLocalRecSift.normal_computation_method_ = paramLocalRecShot.normal_computation_method_ =
-            paramMultiPipeRec.normal_computation_method_ = paramLocalEstimator.normal_computation_method_ =
-            param_.normal_computation_method_ = normal_computation_method;
+            paramMultiPipeRec.normal_computation_method_ = param_.normal_computation_method_ = normal_computation_method;
 
     paramMultiPipeRec.merge_close_hypotheses_ = param_.merge_close_hypotheses_;
 
@@ -117,12 +113,11 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
     boost::shared_ptr <Source<PointT> > cast_source;
     if (do_sift || do_shot ) // for local recognizers we need this source type / training data
     {
-        boost::shared_ptr < RegisteredViewsSource<PointT> > src
-                (new RegisteredViewsSource<PointT>(resolution));
+        typename RegisteredViewsSource<PointT>::Ptr src (new RegisteredViewsSource<PointT>(resolution));
         src->setPath (models_dir);
         src->generate ();
 //            src->createVoxelGridAndDistanceTransform(resolution);
-        cast_source = boost::static_pointer_cast<Source<PointT> > (src);
+        cast_source = boost::static_pointer_cast<RegisteredViewsSource<PointT> > (src);
     }
 
     if (do_sift)
@@ -139,47 +134,37 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
     if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
       throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
 
-    boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator (new SIFTLocalEstimation<PointT>(sift_));
-    boost::shared_ptr < LocalEstimator<PointT> > cast_estimator = boost::dynamic_pointer_cast<SIFTLocalEstimation<PointT > > (estimator);
+    typename SIFTLocalEstimation<PointT>::Ptr estimator (new SIFTLocalEstimation<PointT>(sift_));
 #else
-  boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT> > estimator (new OpenCVSIFTLocalEstimation<PointT >);
-  boost::shared_ptr < LocalEstimator<PointT> > cast_estimator = boost::dynamic_pointer_cast<OpenCVSIFTLocalEstimation<PointT> > (estimator);
+     typename SIFTLocalEstimation<PointT>::Ptr estimator (new SIFTLocalEstimation<PointT>);
 #endif
+        typename LocalEstimator<PointT>::Ptr cast_estimator = boost::dynamic_pointer_cast<SIFTLocalEstimation<PointT > > (estimator);
 
-        boost::shared_ptr<LocalRecognitionPipeline<PointT> > sift_r;
-        sift_r.reset (new LocalRecognitionPipeline<PointT> (paramLocalRecSift));
+        typename LocalRecognitionPipeline<PointT>::Ptr sift_r (new LocalRecognitionPipeline<PointT> (paramLocalRecSift));
         sift_r->setDataSource (cast_source);
         sift_r->setModelsDir (models_dir);
         sift_r->setFeatureEstimator (cast_estimator);
 
-        boost::shared_ptr < Recognizer<PointT> > cast_recog;
+        typename Recognizer<PointT>::Ptr cast_recog;
         cast_recog = boost::static_pointer_cast<LocalRecognitionPipeline<PointT > > (sift_r);
         rr_->addRecognizer (cast_recog);
     }
     if (do_shot)
     {
-        boost::shared_ptr<UniformSamplingExtractor<PointT> > uniform_kp_extractor ( new UniformSamplingExtractor<PointT>);
-        uniform_kp_extractor->setSamplingDensity (0.01f);
-        uniform_kp_extractor->setFilterPlanar (true);
-        uniform_kp_extractor->setThresholdPlanar(0.1);
-        uniform_kp_extractor->setMaxDistance( 1000.0 ); // for training we want to consider all points (except nan values)
+        typename UniformSamplingExtractor<PointT>::Ptr extr ( new UniformSamplingExtractor<PointT>(0.01f));
+        typename KeypointExtractor<PointT>::Ptr keypoint_extractor = boost::static_pointer_cast<KeypointExtractor<PointT> > (extr);
+        typename SHOTLocalEstimation<PointT>::Ptr estimator (new SHOTLocalEstimation<PointT>(paramLocalEstimator));
 
-        boost::shared_ptr<KeypointExtractor<PointT> > keypoint_extractor = boost::static_pointer_cast<KeypointExtractor<PointT> > (uniform_kp_extractor);
-        boost::shared_ptr<SHOTLocalEstimationOMP<PointT> > estimator (new SHOTLocalEstimationOMP<PointT>(paramLocalEstimator));
-        estimator->addKeypointExtractor (keypoint_extractor);
-
-        boost::shared_ptr<LocalEstimator<PointT> > cast_estimator;
+        typename LocalEstimator<PointT>::Ptr cast_estimator;
         cast_estimator = boost::dynamic_pointer_cast<LocalEstimator<PointT> > (estimator);
 
-        boost::shared_ptr<LocalRecognitionPipeline<PointT> > shot_r;
-        shot_r.reset(new LocalRecognitionPipeline<PointT> (paramLocalRecShot));
+        typename LocalRecognitionPipeline<PointT>::Ptr shot_r (new LocalRecognitionPipeline<PointT> (paramLocalRecShot));
         shot_r->setDataSource (cast_source);
         shot_r->setModelsDir(models_dir);
+        shot_r->addKeypointExtractor (keypoint_extractor);
         shot_r->setFeatureEstimator (cast_estimator);
 
-        uniform_kp_extractor->setMaxDistance( param_.chop_z_ ); // for training we do not want this restriction
-
-        boost::shared_ptr<Recognizer<PointT> > cast_recog;
+        typename Recognizer<PointT>::Ptr cast_recog;
         cast_recog = boost::static_pointer_cast<LocalRecognitionPipeline<PointT> > (shot_r);
         rr_->addRecognizer(cast_recog);
     }
@@ -197,6 +182,8 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
     setCGAlgorithm( gcg_alg );
 #ifdef HAVE_SIFTGPU
     setSift(sift_);
+#endif
+
 #endif
 }
 

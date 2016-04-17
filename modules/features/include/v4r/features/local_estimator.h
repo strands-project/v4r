@@ -28,6 +28,7 @@
 #include <pcl/surface/mls.h>
 #include <v4r/features/uniform_sampling_extractor.h>
 #include <v4r/core/macros.h>
+#include <vector>
 
 namespace v4r
 {
@@ -36,139 +37,95 @@ template<typename PointT>
 class V4R_EXPORTS LocalEstimator
 {
 protected:
-    typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-
+    typename pcl::PointCloud<PointT>::Ptr cloud_;
     pcl::PointCloud<pcl::Normal>::Ptr normals_;
-    std::vector<typename boost::shared_ptr<KeypointExtractor<PointT> > > keypoint_extractor_;
+    typename pcl::PointCloud<PointT>::Ptr processed_;
     std::vector<int> keypoint_indices_;
+
+    std::vector<int> indices_;
     std::string descr_name_;
-
-    void
-    computeKeypoints (const pcl::PointCloud<PointT> & cloud, pcl::PointCloud<PointT> & keypoints, const pcl::PointCloud<pcl::Normal>::Ptr & normals)
-    {
-        keypoint_indices_.clear();
-        for (size_t i = 0; i < keypoint_extractor_.size (); i++)
-        {
-            keypoint_extractor_[i]->setInputCloud (cloud.makeShared());
-            if (keypoint_extractor_[i]->needNormals ())
-                keypoint_extractor_[i]->setNormals (normals);
-
-            keypoint_extractor_[i]->setSupportRadius (param_.support_radius_);
-
-            pcl::PointCloud<PointT> detected_keypoints;
-            keypoint_extractor_[i]->compute (detected_keypoints);
-
-            std::vector<int> kp_indices;
-            keypoint_extractor_[i]->getKeypointIndices(kp_indices);
-            keypoint_indices_.insert(keypoint_indices_.end(), kp_indices.begin(), kp_indices.end());
-            keypoints += detected_keypoints;
-        }
-    }
+    size_t descr_type_;
+    size_t descr_dims_;
 
 public:
-
-    class V4R_EXPORTS Parameter
+    size_t
+    getFeatureType() const
     {
-    public:
-        int normal_computation_method_;
-        float support_radius_;
-        bool adaptative_MLS_;
-
-        Parameter(
-                int normal_computation_method = 2,
-                float support_radius = 0.04f,
-                bool adaptive_MLS = false)
-            :
-              normal_computation_method_ (normal_computation_method),
-              support_radius_ (support_radius),
-              adaptative_MLS_ (adaptive_MLS)
-        {}
-    }param_;
-
-    LocalEstimator (const Parameter &p = Parameter())
-    {
-        param_ = p;
-        keypoint_extractor_.clear ();
-    }
-
-
-    virtual size_t getFeatureType() const
-    {
-        return 0;
-    }
-
-    virtual bool acceptsIndices() const
-    {
-        return false;
-    }
-
-    void getKeypointIndices(std::vector<int> & indices) const
-    {
-        indices = keypoint_indices_;
-    }
-
-//    void getKeypointIndices(std::vector<int> &keypoint_indices) const
-//    {
-//        keypoint_indices = &keypoint_indices_;
-//    }
-
-    virtual void
-    setIndices(const pcl::PointIndices & p_indices)
-    {
-        (void) p_indices;
-        std::cerr << "This function is not implemented!" << std::endl;
-    }
-
-    virtual void
-    setIndices(const std::vector<int> & p_indices)
-    {
-        (void) p_indices;
-        std::cerr << "This function is not implemented!" << std::endl;
-    }
-
-    /**
-    * \brief Right now only uniformSampling keypoint extractor is allowed
-    */
-    void
-    addKeypointExtractor (boost::shared_ptr<KeypointExtractor<PointT> > & ke)
-    {
-        keypoint_extractor_.push_back (ke);
-    }
-
-    void
-    setKeypointExtractors (std::vector<typename boost::shared_ptr<KeypointExtractor<PointT> > > & ke)
-    {
-        keypoint_extractor_ = ke;
+        return descr_type_;
     }
 
     virtual bool
-    needNormals ()
+    acceptsIndices() const
     {
         return false;
     }
 
-    void getNormals(pcl::PointCloud<pcl::Normal>::Ptr & normals) const
+    /**
+     * @brief set indices of the object (segmented cluster). Points not within this indices will be ignored.
+     * @param indices
+     */
+    void
+    setIndices (const std::vector<int> & indices)
     {
-        normals = normals_;
+        indices_ = indices;
+    }
+
+    virtual bool
+    needNormals () const
+    {
+        return false;
     }
 
     /**
-     * @brief sets the normals point cloud of the scene
+     * @brief sets the normals point cloud
      * @param normals
      */
-    void setNormals(const pcl::PointCloud<pcl::Normal>::Ptr & normals)
+    void
+    setNormals(const pcl::PointCloud<pcl::Normal>::Ptr & normals)
     {
         normals_ = normals;
     }
 
-    std::string getFeatureDescriptorName() const
+    /**
+     * @brief sets the input point cloud
+     * @param normals
+     */
+    void
+    setInputCloud(const typename pcl::PointCloud<PointT>::Ptr &cloud)
+    {
+        cloud_ = cloud;
+    }
+
+    std::vector<int>
+    getKeypointIndices() const
+    {
+        return keypoint_indices_;
+    }
+
+    std::string
+    getFeatureDescriptorName() const
     {
         return descr_name_;
     }
 
-    virtual bool
-    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures)=0;
+    typename pcl::PointCloud<PointT>::Ptr
+    getProcessedCloud()
+    {
+        return processed_;
+    }
 
+    size_t
+    getFeatureDimensions() const
+    {
+        return descr_dims_;
+    }
+
+
+    virtual bool
+    compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures)=0;
+
+    typedef boost::shared_ptr< LocalEstimator<PointT> > Ptr;
+    typedef boost::shared_ptr< LocalEstimator<PointT> const> ConstPtr;
 };
 }
 

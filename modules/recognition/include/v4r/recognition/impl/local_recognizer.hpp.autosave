@@ -348,6 +348,22 @@ LocalRecognitionPipeline<PointT>::recognize ()
     typename symHyp::iterator it_map;
     for (it_map = obj_hypotheses_.begin(); it_map != obj_hypotheses_.end (); it_map++)
         it_map->second.model_scene_corresp_.shrink_to_fit();   // free memory
+
+    if(cg_algorithm_)    // correspondence grouping is not done outside
+    {
+        correspondenceGrouping();
+
+        //Prepare scene and model clouds for the pose refinement step
+        if ( hv_algorithm_ )
+            source_->voxelizeAllModels (param_.voxel_size_icp_);
+
+        if ( hv_algorithm_ && models_.size() )
+            hypothesisVerification();
+
+        signatures_.clear();
+        scene_keypoints_.reset();
+        scene_kp_indices_.clear();
+    }
 }
 
 

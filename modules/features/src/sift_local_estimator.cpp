@@ -12,29 +12,29 @@ namespace v4r
 
 template<typename PointT>
 bool
-SIFTLocalEstimation<PointT>::estimate(const pcl::PointCloud<PointT> & in, std::vector<std::vector<float> > &signatures)
+SIFTLocalEstimation<PointT>::compute(const pcl::PointCloud<PointT> & in, std::vector<std::vector<float> > &signatures)
 {
     pcl::PointCloud<PointT> keypoints;
     std::vector<float> scales;
-    return estimate(in, keypoints, signatures, scales);
+    return compute(in, keypoints, signatures, scales);
 }
 
 template<typename PointT>
 bool
-SIFTLocalEstimation<PointT>::estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> &processed, pcl::PointCloud<PointT> &keypoints, std::vector<std::vector<float> > &signatures)
+SIFTLocalEstimation<PointT>::compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> &processed, pcl::PointCloud<PointT> &keypoints, std::vector<std::vector<float> > &signatures)
 {
     processed = in;
     std::vector<float> scales;
-    return estimate(in, keypoints, signatures, scales);
+    return compute(in, keypoints, signatures, scales);
 }
 
 template<typename PointT>
 bool
-SIFTLocalEstimation<PointT>::estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> &keypoints, std::vector<std::vector<float> > &signatures, std::vector<float> & scales)
+SIFTLocalEstimation<PointT>::compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> &keypoints, std::vector<std::vector<float> > &signatures, std::vector<float> & scales)
 {
     cv::Mat colorImage = ConvertPCLCloud2Image(in);
     std::vector<SiftGPU::SiftKeypoint> ks;
-    estimate(colorImage, ks, signatures, scales);
+    compute(colorImage, ks, signatures, scales);
 
     keypoints.points.resize(ks.size());
     keypoint_indices_.resize(ks.size());
@@ -76,7 +76,7 @@ SIFTLocalEstimation<PointT>::estimate (const pcl::PointCloud<PointT> & in, pcl::
 
 template<typename PointT>
 bool
-SIFTLocalEstimation<PointT>::estimate (const cv::Mat_ < cv::Vec3b > &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, std::vector<std::vector<float> > &signatures, std::vector<float> & scales)
+SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, std::vector<std::vector<float> > &signatures, std::vector<float> & scales)
 {
     cv::Mat grayImage;
     cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);

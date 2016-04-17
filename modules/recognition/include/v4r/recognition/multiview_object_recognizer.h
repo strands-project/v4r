@@ -238,12 +238,6 @@ public:
         pose_ = tf;
     }
 
-    typename boost::shared_ptr<Source<PointT> >
-    getDataSource () const
-    {
-        return rr_->getDataSource();
-    }
-
     /**
      * @brief clears all stored information from previous views
      */

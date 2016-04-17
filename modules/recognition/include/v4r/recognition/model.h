@@ -54,13 +54,16 @@ public:
   std::vector<PointTPtr> views_;
   std::vector<std::vector<int> > indices_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
-  std::vector<float>  self_occlusions_;
+  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > eigen_pose_alignment_;
+  Eigen::MatrixX3f elongations_; /// @brief elongations in meter for each dimension (column) and each view (row)
+  std::vector<float> self_occlusions_;
   std::string class_, id_;
   PointTPtr assembled_;
   pcl::PointCloud<pcl::Normal>::Ptr normals_assembled_;
   std::vector <std::string> view_filenames_;
   PointTPtr keypoints_; //model keypoints
   pcl::PointCloud<pcl::Normal>::Ptr kp_normals_; //keypoint normals
+  std::map<std::string, Eigen::MatrixXf> signatures_; /// @brief signatures of all local keypoint descriptors. Each element in the map represents a set of keypoint description (e.g. SIFT). The columns of the matrix represent the signature of one keypoint.
   mutable typename std::map<int, PointTPtrConst> voxelized_assembled_;
   mutable typename std::map<int, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
   typename boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > dist_trans_;

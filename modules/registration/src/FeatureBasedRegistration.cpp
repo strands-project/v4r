@@ -86,10 +86,10 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
 
         estimator.setIndices(indices);
         //estimator.estimate(cloud, processed, sift_keypoints_[i], sift_features_[i]);
-        estimator.estimate(*cloud, *processed, *sift_keys, sift_descs);
+        estimator.compute(*cloud, *processed, *sift_keys, sift_descs);
 
         pcl::PointIndices original_indices;
-        estimator.getKeypointIndices(original_indices.indices);
+        original_indices.indices = estimator.getKeypointIndices();
 
         //check if there exist already a feature at sift_keys[k] position, add points to octree that were not found before
         std::vector<int> non_occupied;

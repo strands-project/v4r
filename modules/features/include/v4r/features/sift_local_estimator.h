@@ -28,8 +28,13 @@
 #include <v4r/features/local_estimator.h>
 #include <v4r/features/types.h>
 #include <pcl/point_cloud.h>
-#include <SiftGPU/SiftGPU.h>
 #include <opencv2/opencv.hpp>
+
+#ifdef HAVE_SIFTGPU
+#include <SiftGPU/SiftGPU.h>
+#else
+#include <opencv2/nonfree/features2d.hpp> // requires OpenCV non-free module
+#endif
 
 namespace v4r
 {
@@ -38,20 +43,35 @@ template<typename PointT>
 class V4R_EXPORTS SIFTLocalEstimation : public LocalEstimator<PointT>
 {
     using LocalEstimator<PointT>::keypoint_indices_;
+    using LocalEstimator<PointT>::cloud_;
+    using LocalEstimator<PointT>::indices_;
+    using LocalEstimator<PointT>::processed_;
+    using LocalEstimator<PointT>::descr_name_;
+    using LocalEstimator<PointT>::descr_type_;
+    using LocalEstimator<PointT>::descr_dims_;
+    Eigen::VectorXf scales_;
+    float max_distance_;
 
-    std::vector<int> indices_;
+#ifdef HAVE_SIFTGPU
     boost::shared_ptr<SiftGPU> sift_;
-
+#else
+    boost::shared_ptr<cv::SIFT> sift_;
+#endif
 
 public:
+#ifdef HAVE_SIFTGPU
     SIFTLocalEstimation (const boost::shared_ptr<SiftGPU> &sift) : sift_(sift)
     {
-        this->descr_name_ = "sift";
+        descr_name_ = "sift";
+        descr_type_ = FeatureType::SIFT_GPU;
+        descr_dims_ = 128;
     }
 
     SIFTLocalEstimation ()
     {
-        this->descr_name_ = "sift";
+        descr_name_ = "sift";
+        descr_type_ = FeatureType::SIFT_GPU;
+        descr_dims_ = 128;
 
         //init sift
         static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "0", "-pack"};
@@ -65,33 +85,43 @@ public:
             throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
     }
 
-    bool
-    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures, std::vector<float> & scales);
-
-    bool
-    estimate (const cv::Mat_<cv::Vec3b> &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, std::vector<std::vector<float> > &signatures, std::vector<float> & scales);
-
-    bool
-    estimate(const pcl::PointCloud<PointT> & in, std::vector<std::vector<float> > & signatures);
-
-    bool
-    estimate (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures);
-
-    void
-    setIndices (const std::vector<int> & indices)
+#else
+    SIFTLocalEstimation (double threshold = 0.03, double edge_threshold = 10.0)
     {
-        indices_ = indices;
+      this->descr_name_ = "sift_opencv";
+        this->descr_type_ = FeatureType::SIFT_OPENCV;
+      sift_.reset(new cv::SIFT(0, 3, threshold, edge_threshold));
     }
+#endif
 
-    bool acceptsIndices() const
+    bool
+    compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures, std::vector<float> & scales);
+
+    bool
+    compute (const cv::Mat_<cv::Vec3b> &colorImage, std::vector<SiftGPU::SiftKeypoint> & ks, std::vector<std::vector<float> > &signatures, std::vector<float> & scales);
+
+    bool
+    compute (const pcl::PointCloud<PointT> & in, std::vector<std::vector<float> > & signatures);
+
+    bool
+    compute (const pcl::PointCloud<PointT> & in, pcl::PointCloud<PointT> & processed, pcl::PointCloud<PointT> & keypoints, std::vector<std::vector<float> > & signatures);
+
+
+    bool 
+	acceptsIndices() const
     {
         return true;
     }
 
-    size_t getFeatureType() const
+    void
+    setMaxDistance(float max_distance)
     {
-        return SIFT_GPU;
+        max_distance_ = max_distance;
     }
+
+
+    typedef boost::shared_ptr< SIFTLocalEstimation<PointT> > Ptr;
+    typedef boost::shared_ptr< SIFTLocalEstimation<PointT> const> ConstPtr;
 };
 }
 

@@ -25,7 +25,7 @@
 #ifndef V4R_UNIFORM_SAMPLING_EXTRACTOR__
 #define V4R_UNIFORM_SAMPLING_EXTRACTOR__
 
-#include <v4r/features/keypoint_extractor.h>
+#include <v4r/keypoints/keypoint_extractor.h>
 
 namespace v4r
 {
@@ -34,62 +34,26 @@ class V4R_EXPORTS UniformSamplingExtractor : public KeypointExtractor<PointT>
 {
 private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-    bool filter_planar_;
     using KeypointExtractor<PointT>::input_;
-    using KeypointExtractor<PointT>::radius_;
     using KeypointExtractor<PointT>::indices_;
     using KeypointExtractor<PointT>::keypoint_indices_;
-    using KeypointExtractor<PointT>::max_distance_;
-    float sampling_density_;
-    float threshold_planar_;
-    bool z_adaptative_;
-    bool force_unorganized_;
+    using KeypointExtractor<PointT>::keypoint_extractor_type_;
+    using KeypointExtractor<PointT>::keypoint_extractor_name_;
 
-    void
-    filterPlanar (const PointInTPtr & input, std::vector<int> &kp_idx);
+    float sampling_density_; /// @brief sampling distance in meter
 
 public:
-
-    UniformSamplingExtractor()
+    UniformSamplingExtractor(float sampling_density = 0.01f) : sampling_density_ (sampling_density)
     {
-        max_distance_ = std::numeric_limits<float>::infinity();
-        threshold_planar_ = 1.e-2;
-        z_adaptative_ = false;
-        force_unorganized_ = false;
-    }
-
-    void setForceUnorganized(bool b)
-    {
-        force_unorganized_ = b;
-    }
-
-    void zAdaptative(bool b)
-    {
-        z_adaptative_ = b;
-    }
-
-    void setThresholdPlanar(float t)
-    {
-        threshold_planar_ = t;
-    }
-
-    void
-    setFilterPlanar (bool b)
-    {
-        filter_planar_ = b;
-    }
-
-    void
-    setSamplingDensity (float f)
-    {
-        sampling_density_ = f;
+        keypoint_extractor_type_ = KeypointType::UniformSampling;
+        keypoint_extractor_name_ = "uniform_sampling";
     }
 
     void
     compute (pcl::PointCloud<PointT> & keypoints);
 
-    void
-    compute (std::vector<int> & indices);
+    typedef boost::shared_ptr< UniformSamplingExtractor<PointT> > Ptr;
+    typedef boost::shared_ptr< UniformSamplingExtractor<PointT> const> ConstPtr;
 };
 }
 

@@ -38,6 +38,7 @@
 #include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/common/correspondence_grouping.h>
 #include <v4r/features/local_estimator.h>
+#include <v4r/keypoints/keypoint_extractor.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/recognizer.h>
 #include <v4r/recognition/source.h>
@@ -61,38 +62,34 @@ namespace v4r
           {
           public:
               using Recognizer<PointT>::Parameter::voxel_size_icp_;
+              using Recognizer<PointT>::Parameter::max_corr_distance_;
+              using Recognizer<PointT>::Parameter::max_distance_;
               using Recognizer<PointT>::Parameter::normal_computation_method_;
               using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
               using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
               using Recognizer<PointT>::Parameter::merge_close_hypotheses_angle_;
 
-              bool use_cache_;
               int kdtree_splits_;
               size_t knn_;  /// @brief nearest neighbors to search for when checking feature descriptions of the scene
               float distance_same_keypoint_;
               float max_descriptor_distance_;
               float correspondence_distance_weight_; /// @brief weight factor for correspondences distances. This is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
-              bool save_hypotheses_;
               int distance_metric_; /// @brief defines the norm used for feature matching (1... L1 norm, 2... L2 norm)
 
               Parameter(
-                      bool use_cache = false,
                       int kdtree_splits = 512,
                       size_t knn = 1,
                       float distance_same_keypoint = 0.001f * 0.001f,
                       float max_descriptor_distance = std::numeric_limits<float>::infinity(),
                       float correspondence_distance_weight = 1.f,
-                      bool save_hypotheses = false,
                       int distance_metric = 1
                       )
                   : Recognizer<PointT>::Parameter(),
-                    use_cache_(use_cache),
                     kdtree_splits_ (kdtree_splits),
                     knn_ ( knn ),
                     distance_same_keypoint_ ( distance_same_keypoint ),
                     max_descriptor_distance_ ( max_descriptor_distance ),
                     correspondence_distance_weight_ ( correspondence_distance_weight ),
-                    save_hypotheses_ ( save_hypotheses ),
                     distance_metric_ (distance_metric)
               {}
           }param_;
@@ -154,46 +151,41 @@ namespace v4r
           void visualizeKeypoints(const ModelT &m);
           mutable pcl::visualization::PCLVisualizer::Ptr vis_;
 
+          std::vector<typename KeypointExtractor<PointT>::Ptr > keypoint_extractor_;
       public:
 
         LocalRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
         {
-          param_ = p;
-          feat_kp_set_from_outside_ = false;
+            param_ = p;
+            feat_kp_set_from_outside_ = false;
         }
 
-        size_t getFeatureType() const
+        size_t
+        getFeatureType() const
         {
             return estimator_->getFeatureType();
         }
 
+        std::string
+        getFeatureName() const
+        {
+            return estimator_->getFeatureDescriptorName();
+        }
+
         void
-        setSaveHypotheses(bool set)
+        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > &oh) const
         {
-          param_.save_hypotheses_ = set;
+          oh = obj_hypotheses_;
         }
 
-        bool
-        getSaveHypothesesParam() const
-        {
-            return param_.save_hypotheses_;
-        }
-
-        virtual
-        void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > & hypotheses) const
-        {
-          hypotheses = obj_hypotheses_;
-        }
-
-        PointTPtr
+        typename pcl::PointCloud<PointT>::Ptr
         getKeypointCloud() const
         {
-          return scene_keypoints_;
+            return scene_keypoints_;
         }
 
         void
-        getKeypointIndices(std::vector<int> & indices) const
+        getKeypointIndices(std::vector<int> &indices) const
         {
             indices = scene_kp_indices_;
         }
@@ -263,6 +255,16 @@ namespace v4r
         }
 
         /**
+         * @brief adds a keypoint extractor
+         * @param keypoint extractor object
+         */
+        void
+        addKeypointExtractor (boost::shared_ptr<KeypointExtractor<PointT> > & ke)
+        {
+            keypoint_extractor_.push_back (ke);
+        }
+
+        /**
          * @brief Visualizes all found correspondences between scene and models
          */
         void
@@ -279,6 +281,10 @@ namespace v4r
          */
         void
         recognize ();
+
+
+        typedef boost::shared_ptr< LocalRecognitionPipeline<PointT> > Ptr;
+        typedef boost::shared_ptr< LocalRecognitionPipeline<PointT> const> ConstPtr;
       };
 }
 

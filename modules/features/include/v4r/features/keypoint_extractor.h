@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013 Aitor Aldoma
+ * Copyright (c) 2013 Aitor Aldoma, Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -31,6 +31,14 @@
 namespace v4r
 {
 
+enum KeypointType
+{
+    UniformSampling = 0x01, // 00000001
+    ISS = 0x02, // 00000010
+    NARF  = 0x04, // 00000100
+    HARRIS3D  = 0x08,  // 00001000
+};
+
 template<typename PointT>
 class V4R_EXPORTS KeypointExtractor
 {
@@ -38,28 +46,16 @@ protected:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     typedef typename pcl::PointCloud<PointT>::Ptr PointOutTPtr;
     typename pcl::PointCloud<PointT>::Ptr input_;
-    float radius_;
     std::vector<int> keypoint_indices_;
     std::vector<int> indices_;  /// @brief indices of the segmented object (extracted keypoints outside of this will be neglected)
-    double max_distance_;
+    int keypoint_extractor_type_;
+    std::string keypoint_extractor_name_;
 
 public:
-
     void
     setInputCloud (const PointInTPtr & input)
     {
         input_ = input;
-    }
-
-    void
-    setSupportRadius (float f)
-    {
-        radius_ = f;
-    }
-
-    void setMaxDistance(double d)
-    {
-        max_distance_ = d;
     }
 
     virtual void
@@ -75,9 +71,10 @@ public:
         return false;
     }
 
-    void getKeypointIndices (std::vector<int> &keypoint_indices) const
+    std::vector<int>
+    getKeypointIndices () const
     {
-        keypoint_indices = keypoint_indices_;
+        return keypoint_indices_;
     }
 
     void
@@ -86,8 +83,24 @@ public:
         indices_ = indices;
     }
 
+    int
+    getKeypointExtractorType() const
+    {
+        return keypoint_extractor_type_;
+    }
+
+    std::string
+    getKeypointExtractorName() const
+    {
+        return keypoint_extractor_name_;
+    }
+
     virtual void
     compute (pcl::PointCloud<PointT> & keypoints) = 0;
+
+
+    typedef boost::shared_ptr< KeypointExtractor<PointT> > Ptr;
+    typedef boost::shared_ptr< KeypointExtractor<PointT> const> ConstPtr;
 };
 }
 

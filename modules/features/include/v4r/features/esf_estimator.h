@@ -21,62 +21,73 @@
  *
  ******************************************************************************/
 
-#ifndef REC_FRAMEWORK_ESF_ESTIMATOR_H_
-#define REC_FRAMEWORK_ESF_ESTIMATOR_H_
+#ifndef V4R_ESF_ESTIMATOR_H_
+#define V4R_ESF_ESTIMATOR_H_
 
-#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/core/macros.h>
 #include <v4r/features/global_estimator.h>
+#include <v4r/features/types.h>
 
 #include <pcl/features/esf.h>
 #include <glog/logging.h>
 
 namespace v4r
 {
-    template<typename PointT>
-      class V4R_EXPORTS ESFEstimation : public GlobalEstimator<PointT>
-      {
-      private:
-          using GlobalEstimator<PointT>::indices_;
-          using GlobalEstimator<PointT>::input_cloud_;
+template<typename PointT>
+class V4R_EXPORTS ESFEstimation : public GlobalEstimator<PointT>
+{
+private:
+    using GlobalEstimator<PointT>::indices_;
+    using GlobalEstimator<PointT>::cloud_;
+    using GlobalEstimator<PointT>::descr_name_;
+    using GlobalEstimator<PointT>::descr_type_;
+    using GlobalEstimator<PointT>::feature_dimensions_;
 
-          typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-          PointInTPtr processed_;
+public:
+    ESFEstimation()
+    {
+        descr_name_ = "esf";
+        descr_type_ = FeatureType::ESF;
+        feature_dimensions_ = 640;
+    }
 
-      public:
-          std::vector<float>
-          estimate ()
-          {
-            std::vector<float> signature;
+    bool
+    compute (Eigen::MatrixXf &signature)
+    {
+        CHECK(cloud_ && !cloud_->points.empty());
+        typename pcl::ESFEstimation<PointT, pcl::ESFSignature640> esf;
+        pcl::PointCloud<pcl::ESFSignature640> ESF_signature;
 
-            CHECK(input_cloud_ && !input_cloud_->points.empty());
+        if(!indices_.empty())   /// NOTE: setIndices does not seem to work for ESF
+        {
+            typename pcl::PointCloud<PointT>::Ptr cloud_roi (new pcl::PointCloud<PointT>);
+            pcl::copyPointCloud(*cloud_, indices_, *cloud_roi);
+            esf.setInputCloud(cloud_roi);
+        }
+        else
+        {
+            esf.setInputCloud (cloud_);
+        }
 
-            if(!indices_.empty()) {
-                processed_.reset(new pcl::PointCloud<PointT>);
-                pcl::copyPointCloud(*input_cloud_, indices_, *processed_);
-            }
-            else
-                processed_ = input_cloud_;
+        esf.compute (ESF_signature);
+        signature.resize(ESF_signature.points.size(), feature_dimensions_);
 
+        for(size_t pt=0; pt<ESF_signature.points.size(); pt++)
+        {
+            for(size_t i=0; i<feature_dimensions_; i++)
+                signature(pt, i) = ESF_signature.points[pt].histogram[i];
+        }
 
-            typedef typename pcl::ESFEstimation<PointT, pcl::ESFSignature640> ESFEstimation;
-            pcl::PointCloud<pcl::ESFSignature640> ESF_signature;
-            ESFEstimation esf;
-            esf.setInputCloud (processed_);
-            esf.compute (ESF_signature);
+        indices_.clear();
 
-            const pcl::ESFSignature640 &pt = ESF_signature.points[0];
-            const size_t feat_dim = (size_t) ((double)(sizeof(pt.histogram)) / sizeof(pt.histogram[0]));
-            signature.resize(feat_dim);
+        return true;
+    }
 
-            for(size_t i=0; i<feat_dim; i++)
-                signature[i] = pt.histogram[i];
-
-            indices_.clear();
-
-            return signature;
-          }
-      };
+    bool needNormals() const
+    {
+        return false;
+    }
+};
 }
 
 #endif

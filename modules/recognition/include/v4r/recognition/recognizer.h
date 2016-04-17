@@ -133,14 +133,6 @@ namespace v4r
             return false;
         }
 
-        virtual
-        void
-        getKeypointIndices(std::vector<int> &indices) const
-        {
-            (void)indices;
-            PCL_WARN("Get keypoint indices is not implemented for this class.");
-        }
-
         /**
          * \brief Sets the model data source_
          */

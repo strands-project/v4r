@@ -9,5 +9,5 @@
 #include <v4r/recognition/metrics.h>
 
 //Instantiation
-template class V4R_EXPORTS v4r::GlobalNNClassifier<flann::L1, pcl::PointXYZ>;
-template class V4R_EXPORTS v4r::GlobalNNClassifier<v4r::Metrics::HistIntersectionUnionDistance, pcl::PointXYZ>;
+//template class V4R_EXPORTS v4r::GlobalNNClassifier<flann::L1, pcl::PointXYZ>;
+//template class V4R_EXPORTS v4r::GlobalNNClassifier<v4r::Metrics::HistIntersectionUnionDistance, pcl::PointXYZ>;

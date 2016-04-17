@@ -67,14 +67,14 @@ MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<Po
 {
 #ifdef HAVE_SIFTGPU
     SIFTLocalEstimation<PointT> estimator(sift_);
-    bool ret = estimator.estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
+    bool ret = estimator.compute (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
 #else
     (void)sift_keypoint_scales; //silences compiler warning of unused variable
     typename pcl::PointCloud<PointT> processed_foo;
     OpenCVSIFTLocalEstimation<PointT > estimator;
     bool ret = estimator.estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
 #endif
-    estimator.getKeypointIndices( sift_keypoint_indices );
+    sift_keypoint_indices = estimator.getKeypointIndices(  );
     return ret;
 }
 
@@ -348,7 +348,7 @@ MultiviewRecognizer<PointT>::recognize ()
     rr_->setSceneNormals(v.scene_normals_);
     rr_->recognize();
 
-    if(rr_->getSaveHypothesesParam()) {  // we have to do the correspondence grouping ourselve [Faeulhammer et al 2015, ICRA paper]
+    if(true) {  // we have to do the correspondence grouping ourselve [Faeulhammer et al 2015, ICRA paper]
         rr_->getSavedHypotheses(v.hypotheses_);
         rr_->getKeypointCloud(v.scene_kp_);
         rr_->getKeyPointNormals(v.scene_kp_normals_);
