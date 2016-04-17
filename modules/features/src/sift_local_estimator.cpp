@@ -29,8 +29,8 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
     size_t kept = 0;
     for(size_t i=0; i < ks.size(); i++)
     {
-        const int v = (int)(ks[i].y+.5);    ///NOTE: probably remove this rounding stuff
-        const int u = (int)(ks[i].x+.5);
+        const int v = (int)(ks[i].y);
+        const int u = (int)(ks[i].x);
         const int idx = v * cloud_->width + u;
 
         if(u >= 0 && v >= 0 && u < cloud_->width && v < cloud_->height && pcl::isFinite(cloud_->points[idx]) && obj_mask[idx])
