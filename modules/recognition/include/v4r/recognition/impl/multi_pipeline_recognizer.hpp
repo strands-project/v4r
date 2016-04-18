@@ -43,7 +43,6 @@ MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(boost::shared_ptr<Reco
     }
     else if(local_rec)  // for local recognizers
     {
-        local_rec->recognize();
         local_rec->getSavedHypotheses(oh_m);
 
         std::vector<int> kp_indices;
