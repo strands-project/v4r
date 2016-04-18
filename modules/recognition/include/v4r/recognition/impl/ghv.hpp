@@ -674,7 +674,7 @@ GHV<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, s
         modelSceneCorrespondence = -1 * Eigen::VectorXi::Ones (rm.visible_cloud_->points.size()); // negative value means no correspondence
 
     double w3d = 1 / (param_.inliers_threshold_ * param_.inliers_threshold_);
-    double w_color_AB = 1 / (2 * param_.color_sigma_ab_ * param_.color_sigma_ab_);
+    double w_color_AB = 1 / (param_.color_sigma_ab_ * param_.color_sigma_ab_);
     double w_color_L = 1 / (param_.color_sigma_l_ * param_.color_sigma_l_);
     double w_normals = 1 / (param_.sigma_normals_deg_ * param_.sigma_normals_deg_);
 
