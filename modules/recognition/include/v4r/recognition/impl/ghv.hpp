@@ -1021,6 +1021,8 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     rm_vis_->addText(txt.str(),10,10,12,0,0,0,"visible model cloud",rm_v2);
     rm_vis_->addPointCloud(visible_cloud_colored, "model2",rm_v2);
     rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v2);
+    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
+                                             5, "model2", rm_v2);
 
     typename pcl::PointCloud<ModelT>::Ptr model_fit_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
     for(size_t p=0; p < model_fit_cloud->points.size(); p++)
@@ -1047,6 +1049,8 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     rm_vis_->addText(txt.str(),10,10,12,0,0,0,"model cost",rm_v3);
     rm_vis_->addPointCloud(model_fit_cloud, "model cost", rm_v3);
     rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v3);
+    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
+                                             5, "model cost", rm_v3);
 
 
     typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*scene_cloud_downsampled_));
@@ -1062,6 +1066,8 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
                         "; normalized: " << scene_explained_weight_.col(model_id).sum()/scene_cloud_downsampled_->points.size() << ")";
     rm_vis_->addText(txt.str(),10,10,12,0,0,0,"scene fitness",rm_v4);
     rm_vis_->addPointCloud(scene_fit_cloud, "scene fitness", rm_v4);
+    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
+                                             5, "scene fitness", rm_v4);
     rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v4);
 
     rm_vis_->addText("scene and visible model",10,10,12,1,1,1,"scene_and_model",rm_v5);
