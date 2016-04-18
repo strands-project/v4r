@@ -63,13 +63,15 @@ public:
         float min_distance_between_clusters_;
         int w_size_px_;
         float downsampling_size_;
+        bool compute_table_plane_only_;
         Parameter (int min_cluster_size=500,
                    double object_min_height = 0.01f,
                    double object_max_height = 0.7f,
                    double chop_at_z = 3.f,
                    float min_distance_between_clusters = 0.03f,
                    int w_size_px = 5,
-                   float downsampling_size = 0.005f
+                   float downsampling_size = 0.005f,
+                   bool compute_table_plane_only = false
                 )
             :
               min_cluster_size_ (min_cluster_size),
@@ -78,7 +80,8 @@ public:
               chop_z_ (chop_at_z),
               min_distance_between_clusters_ (min_distance_between_clusters),
               w_size_px_ (w_size_px),
-              downsampling_size_ (downsampling_size)
+              downsampling_size_ (downsampling_size),
+              compute_table_plane_only_ ( compute_table_plane_only )
         {
 
         }
@@ -97,6 +100,7 @@ public:
                 ("min_distance_between_clusters", po::value<float>(&param_.min_distance_between_clusters_)->default_value(param_.min_distance_between_clusters_), "")
                 ("w_size_px", po::value<int>(&param_.w_size_px_)->default_value(param_.w_size_px_), "")
                 ("downsampling_size", po::value<float>(&param_.downsampling_size_)->default_value(param_.downsampling_size_), "")
+                ("compute_table_plane_only", po::value<bool>(&param_.compute_table_plane_only_)->default_value(param_.compute_table_plane_only_), "if true, only computes the table plane and not the Euclidean clusters. This should be faster.")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
@@ -120,8 +124,15 @@ public:
         dps.setDistanceBetweenClusters (param_.min_distance_between_clusters_);
         std::vector<typename pcl::PointCloud<PointT>::Ptr> clusters;
         dps.setDownsamplingSize ( param_.downsampling_size_ );
-        dps.compute_fast (clusters);
-        dps.getIndicesClusters (clusters_);
+        if(param_.compute_table_plane_only_)
+        {
+            dps.compute_table_plane();
+        }
+        else
+        {
+            dps.compute_fast (clusters);
+            dps.getIndicesClusters (clusters_);
+        }
         dps.getTableCoefficients (table_plane_);
     }
 
