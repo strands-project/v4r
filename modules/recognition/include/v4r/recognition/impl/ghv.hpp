@@ -247,9 +247,17 @@ GHV<ModelT, SceneT>::initialize()
     for (size_t i = 0; i < recognition_models_.size (); i++)
     {
         HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-        if(rm.model_fit_ / rm.visible_cloud_->points.size() > param_.min_model_fitness_)
+
+        float visible_ratio = rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
+        float model_fitness = rm.model_fit_ / rm.visible_cloud_->points.size();
+        float model_fitness_threshold = param_.min_model_fitness_;
+
+        if (visible_ratio < 2*param_.min_visible_ratio_)    // highly occluded objects need to have a very strong evidence
+            model_fitness_threshold *= 2;
+
+        if( model_fitness > model_fitness_threshold)
         {
-            recognition_models_[kept] = recognition_models_[i]; //TODO: USE POINTER TO AVOID COPYING
+            recognition_models_[kept] = recognition_models_[i];
             recognition_models_map_[kept] = recognition_models_map_[i];
             scene_explained_weight_.col(kept).swap( scene_explained_weight_.col(i) );
             kept++;
