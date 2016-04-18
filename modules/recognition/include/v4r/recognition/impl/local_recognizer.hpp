@@ -601,8 +601,6 @@ LocalRecognitionPipeline<PointT>::computeFeatures()
         else
         {
             typename pcl::PointCloud<PointT>::Ptr filtered_scene (new pcl::PointCloud<PointT>(*scene_));
-            typename pcl::PointCloud<PointT>::Ptr filtered_scene2 (new pcl::PointCloud<PointT>(*scene_));
-            typename pcl::PointCloud<PointT>::Ptr table_plane_pcl (new pcl::PointCloud<PointT>(*scene_));
             for (size_t j = 0; j < filtered_scene->points.size (); j++)
             {
                 const Eigen::Vector4f xyz_p = filtered_scene->points[j].getVector4fMap ();
@@ -618,31 +616,7 @@ LocalRecognitionPipeline<PointT>::computeFeatures()
                     filtered_scene->points[j].y = std::numeric_limits<float>::quiet_NaN ();
                     filtered_scene->points[j].z = std::numeric_limits<float>::quiet_NaN ();
                 }
-                if (val > 0.01f)
-                {
-                    filtered_scene2->points[j].x = std::numeric_limits<float>::quiet_NaN ();
-                    filtered_scene2->points[j].y = std::numeric_limits<float>::quiet_NaN ();
-                    filtered_scene2->points[j].z = std::numeric_limits<float>::quiet_NaN ();
-                }
-
-                if (std::abs(val) < 0.01f)
-                {
-                    table_plane_pcl->points[j].r = 255.f;
-                    table_plane_pcl->points[j].g = table_plane_pcl->points[j].b = 0.f;
-                }
             }
-
-//            pcl::visualization::PCLVisualizer vis;
-//            int vp1,vp2,vp3;
-//            vis.createViewPort(0,0,0.33,1,vp1);
-//            vis.createViewPort(0.33,0,0.66,1,vp2);
-//            vis.createViewPort(0.66,0,1,1,vp3);
-//            vis.addPointCloud(filtered_scene, "pos", vp1);
-//            vis.addPointCloud(filtered_scene2, "neg", vp2);
-//            vis.addPointCloud(table_plane_pcl, "tableplane", vp3);
-//            vis.resetCamera();
-//            vis.spin();
-//            vis.removeAllPointClouds();
 
             if(filtered_scene->points.size() > 1000)
                 scene_ = filtered_scene;
