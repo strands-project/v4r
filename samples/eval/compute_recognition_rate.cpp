@@ -449,6 +449,9 @@ main (int argc, char ** argv)
                {
                    pcl::PointCloud<PointT> scene_cloud;
                    pcl::io::loadPCDFile( test_set_dir + "/" + view_files[view_id] + ".pcd", scene_cloud);
+                   //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
+                   scene_cloud.sensor_orientation_ = Eigen::Quaternionf::Identity();
+                   scene_cloud.sensor_origin_ = Eigen::Vector4f::Zero(4);
                    vis->addPointCloud(scene_cloud.makeShared(), "scene", vp1);
                    vis->addText(test_set_dir + "/" + view_files[view_id] + ".pcd", 10, 10, 10, 1.f, 1.f, 1.f, "scene_text", vp1);
                    vis->addText("ground-truth objects (occluded objects in gray)", 10, 10, 20, 1.f, 1.f, 1.f, "gt_text", vp2);
