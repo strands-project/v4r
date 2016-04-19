@@ -56,7 +56,7 @@ namespace v4r
             int knn_;
             ::svm_parameter svm_;
             Parameter(
-                    bool do_cross_validation = true,
+                    bool do_cross_validation = false,
                     int knn = 3,
                     int svm_type = ::C_SVC,
                     int kernel_type = ::LINEAR, //::RBF,
