@@ -91,6 +91,7 @@ public:
         float cluster_tolerance_;
         int min_points_;
         float min_ratio_cluster_explained_; /// @brief defines the minimum ratio a smooth cluster has to be explained by the visible points (given there are at least 100 points)
+        bool z_adaptive_;   /// @brief if true, scales the smooth segmentation parameters linear with distance (constant till 1m at the given parameters)
 
         Parameter (
                 double color_sigma_l = 40.f,
@@ -116,11 +117,12 @@ public:
                 int knn_color_neighborhood = 10,
                 float color_std_dev_multiplier_threshold = 1.f,
                 bool check_smooth_clusters = true,
-                float eps_angle_threshold = 0.25, //0.1f
+                float eps_angle_threshold = 0.1f, //0.25f
                 float curvature_threshold = 0.04f,
                 float cluster_tolerance = 0.01f, //0.015f;
                 int min_points = 100, // 20
-                float min_ratio_cluster_explained = 0.5
+                float min_ratio_cluster_explained = 0.5,
+                bool z_adaptive = true
                 )
             :
               HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -148,10 +150,11 @@ public:
               color_std_dev_multiplier_threshold_ (color_std_dev_multiplier_threshold),
               check_smooth_clusters_ ( check_smooth_clusters ),
               eps_angle_threshold_ (eps_angle_threshold),
-              min_points_ (min_points),
               curvature_threshold_ (curvature_threshold),
               cluster_tolerance_ (cluster_tolerance),
-              min_ratio_cluster_explained_ ( min_ratio_cluster_explained )
+              min_points_ (min_points),
+              min_ratio_cluster_explained_ ( min_ratio_cluster_explained ),
+              z_adaptive_ ( z_adaptive )
         {}
     }param_;
 

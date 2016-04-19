@@ -186,14 +186,26 @@ GHV<ModelT, SceneT>::extractEuclideanClustersSmooth()
     while (sq_idx < seed_queue.size ())
     {
 
-      if (scene_normals_->points[ seed_queue[sq_idx] ].curvature > param_.curvature_threshold_)
+        size_t sidx = seed_queue[sq_idx];
+      if (scene_normals_->points[ sidx ].curvature > param_.curvature_threshold_)
       {
         sq_idx++;
         continue;
       }
 
-      // Search for sq_idx
-      if (!octree_scene_downsampled_->radiusSearch (seed_queue[sq_idx], param_.cluster_tolerance_, nn_indices, nn_distances))
+      // Search for sq_idx - scale radius with distance of point (due to noise)
+      float radius = param_.cluster_tolerance_;
+      float curvature_threshold = param_.curvature_threshold_;
+      float eps_angle_threshold = param_.eps_angle_threshold_;
+
+      if ( param_.z_adaptive_ )
+      {
+          radius = param_.cluster_tolerance_ * ( 1 + (std::max(scene_cloud_downsampled_->points[sidx].z, 1.f) - 1.f));
+          curvature_threshold = param_.curvature_threshold_ * ( 1 + (std::max(scene_cloud_downsampled_->points[sidx].z, 1.f) - 1.f));
+          eps_angle_threshold = param_.eps_angle_threshold_ * ( 1 + (std::max(scene_cloud_downsampled_->points[sidx].z, 1.f) - 1.f));
+      }
+
+      if (!octree_scene_downsampled_->radiusSearch (sidx, radius, nn_indices, nn_distances))
       {
         sq_idx++;
         continue;
@@ -204,19 +216,17 @@ GHV<ModelT, SceneT>::extractEuclideanClustersSmooth()
         if (processed[nn_indices[j]]) // Has this point been processed before ?
           continue;
 
-        if (scene_normals_->points[nn_indices[j]].curvature > param_.curvature_threshold_)
-        {
+        if (scene_normals_->points[nn_indices[j]].curvature > curvature_threshold)
           continue;
-        }
 
         //processed[nn_indices[j]] = true;
         // [-1;1]
 
-        double dot_p = scene_normals_->points[ seed_queue[sq_idx] ].normal[0] * scene_normals_->points[nn_indices[j]].normal[0]
-            + scene_normals_->points[ seed_queue[sq_idx] ].normal[1] * scene_normals_->points[nn_indices[j]].normal[1] + scene_normals_->points[seed_queue[sq_idx]].normal[2]
+        double dot_p = scene_normals_->points[ sidx ].normal[0] * scene_normals_->points[nn_indices[j]].normal[0]
+            + scene_normals_->points[ sidx ].normal[1] * scene_normals_->points[nn_indices[j]].normal[1] + scene_normals_->points[sidx].normal[2]
             * scene_normals_->points[ nn_indices[j] ].normal[2];
 
-        if (fabs (acos (dot_p)) < param_.eps_angle_threshold_)
+        if (fabs (acos (dot_p)) < eps_angle_threshold)
         {
           processed[nn_indices[j]] = true;
           seed_queue.push_back (nn_indices[j]);
