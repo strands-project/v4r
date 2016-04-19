@@ -115,13 +115,13 @@ MultiRecognitionPipeline<PointT>::recognize()
     }
 
     omp_init_lock(&rec_lock_);
-#pragma omp parallel
+//#pragma omp parallel
     {
-#pragma omp master  // SIFT-GPU needs to be exexuted in master thread as SIFT-GPU creates an OpenGL context which never gets destroyed really and crashed if used from another thread
+//#pragma omp master  // SIFT-GPU needs to be exexuted in master thread as SIFT-GPU creates an OpenGL context which never gets destroyed really and crashed if used from another thread
         if(rec_siftgpu)
             callIndiviualRecognizer(rec_siftgpu);
 
-#pragma omp for schedule(dynamic)
+//#pragma omp for schedule(dynamic)
     for(size_t r_id=0; r_id < recognizer_without_siftgpu.size(); r_id++)
         callIndiviualRecognizer(recognizer_without_siftgpu[r_id]);
 
