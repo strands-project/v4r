@@ -362,7 +362,7 @@ main (int argc, char ** argv)
            const std::string anno_dir = gt_dir + "/" + test_sets[set_id];
 
            std::vector < std::string > view_files = v4r::io::getFilesInDirectory (test_set_dir, ".*.pcd",  true);
-           for(size_t view_id=0; view_id<test_sets.size(); view_id++)
+           for(size_t view_id=0; view_id<view_files.size(); view_id++)
            {
                int tp = 0;
                int fp = 0;
