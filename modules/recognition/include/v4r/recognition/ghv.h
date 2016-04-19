@@ -86,7 +86,7 @@ public:
 
         //Euclidean smooth segmenation
         bool check_smooth_clusters_;
-        double eps_angle_threshold_;
+        float eps_angle_threshold_;
         float curvature_threshold_;
         float cluster_tolerance_;
         int min_points_;
@@ -116,9 +116,9 @@ public:
                 int knn_color_neighborhood = 10,
                 float color_std_dev_multiplier_threshold = 1.f,
                 bool check_smooth_clusters = true,
-                double eps_angle_threshold = 0.25, //0.1f
-                double curvature_threshold = 0.04f,
-                double cluster_tolerance = 0.01f, //0.015f;
+                float eps_angle_threshold = 0.25, //0.1f
+                float curvature_threshold = 0.04f,
+                float cluster_tolerance = 0.01f, //0.015f;
                 int min_points = 100, // 20
                 float min_ratio_cluster_explained = 0.5
                 )

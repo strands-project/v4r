@@ -148,6 +148,11 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             ("hv_min_model_fitness_upper_bound", po::value<float>(&paramGHV.min_model_fitness_upper_bound_)->default_value(paramGHV.min_model_fitness_upper_bound_, boost::str(boost::format("%.2e") % paramGHV.min_model_fitness_upper_bound_) ), "defines the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)")
             ("hv_min_visible_ratio", po::value<float>(&paramGHV.min_visible_ratio_)->default_value(paramGHV.min_visible_ratio_, boost::str(boost::format("%.2e") % paramGHV.min_visible_ratio_) ), "defines how much of the object has to be visible in order to be included in the verification stage")
             ("hv_min_ratio_smooth_cluster_explained", po::value<float>(&paramGHV.min_ratio_cluster_explained_)->default_value(paramGHV.min_ratio_cluster_explained_, boost::str(boost::format("%.2e") % paramGHV.min_ratio_cluster_explained_) ), " defines the minimum ratio a smooth cluster has to be explained by the visible points (given there are at least 100 points)")
+            ("hv_eps_angle_threshold", po::value<float>(&paramGHV.eps_angle_threshold_)->default_value(paramGHV.eps_angle_threshold_), "smooth clustering parameter for the angle threshold")
+            ("hv_cluster_tolerance", po::value<float>(&paramGHV.cluster_tolerance_)->default_value(paramGHV.cluster_tolerance_), "smooth clustering parameter for cluster_tolerance")
+            ("hv_curvature_threshold", po::value<float>(&paramGHV.curvature_threshold_)->default_value(paramGHV.curvature_threshold_), "smooth clustering parameter for curvate")
+
+
             ("hv_vis_cues", po::bool_switch(&paramGHV.visualize_go_cues_), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
             ("hv_vis_model_cues", po::bool_switch(&paramGHV.visualize_model_cues_), "If set, visualizes the model cues. Useful for debugging")
             ("hv_vis_pairwise_cues", po::bool_switch(&paramGHV.visualize_pairwise_cues_), "If set, visualizes the pairwise cues. Useful for debugging")
