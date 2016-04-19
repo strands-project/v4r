@@ -319,6 +319,8 @@ main (int argc, char ** argv)
         vis->createViewPort(0, 0, 0.33, 1, vp1);
         vis->createViewPort(0.33, 0, 0.66, 1, vp2);
         vis->createViewPort(0.66, 0, 1, 1, vp3);
+        vis->addText("Ground-Truth", 10, 10, 20, 0.f, 0.f, 0.f, "gt", vp2);
+        vis->addText("Recognized Objects", 10, 10, 20, 0.f, 0.f, 0.f, "or", vp3);
         source.reset(new v4r::ModelOnlySource<pcl::PointXYZRGBNormal, PointT>());
         source->setPath (models_dir);
         source->setLoadViews (false);
@@ -418,6 +420,8 @@ main (int argc, char ** argv)
 
                    if(visualize)
                    {
+                       vis->removeCoordinateSystem(vp2);
+                       vis->removeCoordinateSystem(vp3);
                        ModelTPtr model;
                        source->getModelById( model_files[model_id], model );
                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
@@ -427,6 +431,15 @@ main (int argc, char ** argv)
                            typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                            pcl::transformPointCloud(*model_cloud, *model_aligned, rec_pose[rec_files[r_id]]);
                            vis->addPointCloud(model_aligned, rec_files[r_id], vp3);
+
+                           Eigen::Matrix4f tf_tmp = rec_pose[rec_files[r_id]];
+                           Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
+                           Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
+                           Eigen::Affine3f affine_trans;
+                           affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+                           vis->addCoordinateSystem(0.1f, affine_trans, vp3);
+                           vis->setBackgroundColor(1,1,1,vp3);
+
                        }
 
                        for(size_t gt_id=0; gt_id<gt_files.size(); gt_id++)
@@ -440,6 +453,14 @@ main (int argc, char ** argv)
                                pcl::visualization::PointCloudColorHandlerCustom<PointT> handler_occ (model_aligned, 128, 128, 128);
                                vis->addPointCloud(model_aligned, handler_occ, "gt_" + gt_files[gt_id], vp2);
                            }
+
+                           Eigen::Matrix4f tf_tmp = gt_pose[gt_files[gt_id]];
+                           Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
+                           Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
+                           Eigen::Affine3f affine_trans;
+                           affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+                           vis->addCoordinateSystem(0.1f, affine_trans, vp2);
+                           vis->setBackgroundColor(1,1,1,vp2);
                        }
                    }
                }
