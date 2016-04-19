@@ -60,6 +60,21 @@ class V4R_EXPORTS SIFTLocalEstimation : public LocalEstimator<PointT>
 #endif
 
 public:
+    class Parameter
+    {
+    public:
+        bool dense_extraction_;
+        int stride_;    /// @brief is dense_extraction, this will define the stride in pixel for extracting SIFT keypoints
+        Parameter
+        (
+                bool dense_extraction = false,
+                int stride  = 20
+        ):
+            dense_extraction_ ( dense_extraction ),
+            stride_ ( stride )
+        {}
+    }param_;
+
 #ifdef HAVE_SIFTGPU
     SIFTLocalEstimation (const boost::shared_ptr<SiftGPU> &sift) : sift_(sift)
     {

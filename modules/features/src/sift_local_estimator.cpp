@@ -73,6 +73,29 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
         throw std::runtime_error ("SiftGPU: No GL support!");
 
     sift_->VerifyContextGL();
+
+    if(param_.dense_extraction_)
+    {
+        std::vector<SiftGPU::SiftKeypoint> dense_ks;
+        for(size_t u=0; u<colorImage.cols; u++)
+        {
+            for(size_t v=0; v<colorImage.rows; v++)
+            {
+                if( u%param_.stride_ == 0 && v%param_.stride_ == 0 )
+                {
+                    SiftGPU::SiftKeypoint kp;
+                    kp.x = u;
+                    kp.y = v;
+                    dense_ks.push_back(kp);
+                }
+            }
+        }
+        SiftGPU::SiftKeypoint *ksp = new SiftGPU::SiftKeypoint[ dense_ks.size() ];
+        for(size_t i=0; i<dense_ks.size(); i++)
+            ksp[i] = dense_ks[i];
+        sift_->SetKeypointList(dense_ks.size(), ksp, false);
+    }
+
     if (sift_->RunSIFT (grayImage.cols, grayImage.rows, grayImage.ptr<uchar> (0), GL_LUMINANCE, GL_UNSIGNED_BYTE))
     {
         int num = sift_->GetFeatureNum();
