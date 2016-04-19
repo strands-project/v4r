@@ -344,6 +344,7 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
     CHECK(estimator_);
     CHECK(source_);
     feat_kp_set_from_outside_ = false;
+    initialization_phase_ = true;
     descr_name_ = estimator_->getFeatureDescriptorName();
     size_t descr_dims = estimator_->getFeatureDimensions();
     std::vector<ModelTPtr> models = source_->getModels();
@@ -430,7 +431,7 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
 //        visualizeModelProbabilities();
 //        computeCodebook();
 //    }
-
+    initialization_phase_ = false;
     return true;
 }
 
@@ -568,7 +569,7 @@ LocalRecognitionPipeline<PointT>::computeFeatures()
         feat_kp_set_from_outside_ = false;
     }
 
-    if(param_.filter_points_above_plane_)
+    if(param_.filter_points_above_plane_ && !initialization_phase_)
     {
 //        pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
 //        pcl::PointIndices::Ptr inliers (new pcl::PointIndices);

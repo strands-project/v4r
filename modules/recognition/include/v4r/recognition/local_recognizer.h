@@ -155,6 +155,7 @@ namespace v4r
 //          void filterModelKeypointsBasedOnPriorProbability();
 
           float max_prior_prob_;
+          bool initialization_phase_;
 
         protected:
           typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
@@ -212,6 +213,7 @@ namespace v4r
         {
             param_ = p;
             feat_kp_set_from_outside_ = false;
+            initialization_phase_ = false;
         }
 
         size_t
