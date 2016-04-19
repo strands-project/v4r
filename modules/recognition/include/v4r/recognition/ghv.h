@@ -31,6 +31,7 @@
 #include <pcl/octree/octree.h>
 #include <metslib/mets.hh>
 #include <pcl/visualization/cloud_viewer.h>
+#include <glog/logging.h>
 
 namespace v4r
 {
@@ -77,10 +78,19 @@ public:
         bool visualize_pairwise_cues_; /// @brief visualizes the pairwise cues. Useful for debugging
         int knn_inliers_; /// @brief number of nearby scene points to check for a query model point
 
-        double min_visible_ratio_; /// @brief defines how much of the object has to be visible in order to be included in the verification stage
-        double min_model_fitness_; /// @brief defines the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)
+        float min_visible_ratio_; /// @brief defines how much of the object has to be visible in order to be included in the verification stage
+        float min_model_fitness_lower_bound_; /// @brief defines the lower bound (i.e. when model visibility is min_visible_ratio_) of the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)
+        float min_model_fitness_upper_bound_; /// @brief defines the upper bound (i.e. when model visibility is 0.5) of the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)
         int knn_color_neighborhood_; /// @brief number of nearest neighbors used for describing the color around a point
         float color_std_dev_multiplier_threshold_; /// @brief standard deviation multiplier threshold for the local color description for each color channel
+
+        //Euclidean smooth segmenation
+        bool check_smooth_clusters_;
+        double eps_angle_threshold_;
+        float curvature_threshold_;
+        float cluster_tolerance_;
+        int min_points_;
+        float min_ratio_cluster_explained_; /// @brief defines the minimum ratio a smooth cluster has to be explained by the visible points (given there are at least 100 points)
 
         Parameter (
                 double color_sigma_l = 40.f,
@@ -100,10 +110,17 @@ public:
                 bool use_noise_model = true,
                 bool visualize_go_cues = false,
                 int knn_inliers = 3,
-                double min_visible_ratio = 0.10f,
-                double min_model_fitness = 0.60f,
+                float min_visible_ratio = 0.10f,
+                float min_model_fitness_lower_bound = 0.15f,
+                float min_model_fitness_upper_bound = 0.40f,
                 int knn_color_neighborhood = 10,
-                float color_std_dev_multiplier_threshold = 1.f
+                float color_std_dev_multiplier_threshold = 1.f,
+                bool check_smooth_clusters = true,
+                double eps_angle_threshold = 0.25, //0.1f
+                double curvature_threshold = 0.04f,
+                double cluster_tolerance = 0.01f, //0.015f;
+                int min_points = 100, // 20
+                float min_ratio_cluster_explained = 0.5
                 )
             :
               HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -125,9 +142,16 @@ public:
               visualize_go_cues_ ( visualize_go_cues ),
               knn_inliers_ (knn_inliers),
               min_visible_ratio_ (min_visible_ratio),
-              min_model_fitness_ (min_model_fitness),
+              min_model_fitness_lower_bound_ (min_model_fitness_lower_bound),
+              min_model_fitness_upper_bound_ (min_model_fitness_upper_bound),
               knn_color_neighborhood_ (knn_color_neighborhood),
-              color_std_dev_multiplier_threshold_ (color_std_dev_multiplier_threshold)
+              color_std_dev_multiplier_threshold_ (color_std_dev_multiplier_threshold),
+              check_smooth_clusters_ ( check_smooth_clusters ),
+              eps_angle_threshold_ (eps_angle_threshold),
+              min_points_ (min_points),
+              curvature_threshold_ (curvature_threshold),
+              cluster_tolerance_ (cluster_tolerance),
+              min_ratio_cluster_explained_ ( min_ratio_cluster_explained )
         {}
     }param_;
 
@@ -142,7 +166,7 @@ private:
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_, rm_vis_, vis_pairwise_;
     mutable int vp_active_hypotheses_, vp_scene_, vp_model_fitness_, vp_scene_fitness_;
-    mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6, rm_v7, rm_v8, rm_v9, rm_v10, vp_pair_1_, vp_pair_2_;
+    mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6, rm_v7, rm_v8, rm_v9, rm_v10, rm_v11, rm_v12, vp_pair_1_, vp_pair_2_;
 
     double model_fitness_, pairwise_cost_, scene_fitness_, cost_;
     Eigen::VectorXf model_fitness_v_;
@@ -165,6 +189,9 @@ private:
     Eigen::MatrixXf scene_color_channels_; /// @brief converted color values where each point corresponds to a row entry
     typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
     boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
+
+    std::vector<int> scene_smooth_labels_;  /// @brief stores a label for each point of the (downsampled) scene. Points belonging to the same smooth clusters, have the same label
+    std::vector<size_t> smooth_label_count_;    /// @brief counts how many times a certain smooth label occurs in the scene
 
     bool removeNanNormals (HVRecognitionModel<ModelT> & recog_model); /// @brief remove all points from visible cloud and normals which are not-a-number
 
@@ -194,6 +221,8 @@ private:
 
     void visualizeGOCuesForModel (const HVRecognitionModel<ModelT> &rm, int model_id) const;
 
+    void individualRejection(); /// @brief remove badly explained points, or points only partially explaining certain smooth clusters (if check is enabled)
+
     void cleanUp ()
     {
         octree_scene_downsampled_.reset();
@@ -211,6 +240,10 @@ private:
         scene_explained_weight_compressed_.resize(0,0);
         max_scene_explained_weight_.resize(0);
     }
+
+
+    void
+    extractEuclideanClustersSmooth ();
 
     void registerModelAndSceneColor(std::vector<size_t> &lookup, HVRecognitionModel<ModelT> & recog_model);
 

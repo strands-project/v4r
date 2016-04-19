@@ -53,6 +53,9 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
     bool shot_use_color;
     float sift_z;
 
+    bool sift_make_dense = false;
+    int sift_kp_stride = 20;
+
     typename GHV<PointT, PointT>::Parameter paramGHV;
     typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter paramGgcg;
     typename LocalRecognitionPipeline<PointT>::Parameter paramSIFT, paramSHOT;
@@ -80,6 +83,8 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             ("sift_filter_border_pts", po::value<bool>(&paramSIFT.filter_border_pts_)->default_value(paramSIFT.filter_border_pts_), "If true, filters keypoints at the boundary.")
             ("sift_border_width", po::value<int>(&paramSIFT.boundary_width_)->default_value(paramSIFT.boundary_width_), "Width in pixel of the depth discontinuity.")
             ("sift_z,z", po::value<float>(&sift_z)->default_value(3.0f), "points with z-component higher than chop_z_ will be ignored for SIFT (low chop_z reduces computation time and false positives (noise increase with z)")
+            ("sift_make_dense", po::value<bool>(&sift_make_dense)->default_value(sift_make_dense), "if true, uses dense SIFT feature extraction")
+            ("sift_stride", po::value<int>(&sift_kp_stride)->default_value(sift_kp_stride), "if dense SIFT is on, uses this stride for extracting SIFT keypoints")
 
             ("do_shot", po::value<bool>(&do_shot)->default_value(false), "if true, generates hypotheses using SHOT (local geometrical properties)")
             ("shot_use_color", po::value<bool>(&shot_use_color)->default_value(false), "if true, uses the color SHOT descriptor")
@@ -139,8 +144,10 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             ("hv_optimizer_type", po::value<int>(&paramGHV.opt_type_)->default_value(paramGHV.opt_type_), "defines the optimization methdod. 0: Local search (converges quickly, but can easily get trapped in local minima), 1: Tabu Search, 4; Tabu Search + Local Search (Replace active hypotheses moves), else: Simulated Annealing")
             ("hv_radius_clutter", po::value<double>(&paramGHV.radius_neighborhood_clutter_)->default_value(paramGHV.radius_neighborhood_clutter_, boost::str(boost::format("%.2e") % paramGHV.radius_neighborhood_clutter_) ), "defines the maximum distance between two points to be checked for label consistency")
             ("hv_regularizer,r", po::value<double>(&paramGHV.regularizer_)->default_value(paramGHV.regularizer_, boost::str(boost::format("%.2e") % paramGHV.regularizer_) ), "represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.")
-            ("hv_min_model_fitness", po::value<double>(&paramGHV.min_model_fitness_)->default_value(paramGHV.min_model_fitness_, boost::str(boost::format("%.2e") % paramGHV.min_model_fitness_) ), "defines the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)")
-            ("hv_min_visible_ratio", po::value<double>(&paramGHV.min_visible_ratio_)->default_value(paramGHV.min_visible_ratio_, boost::str(boost::format("%.2e") % paramGHV.min_visible_ratio_) ), "defines how much of the object has to be visible in order to be included in the verification stage")
+            ("hv_min_model_fitness_lower_bound", po::value<float>(&paramGHV.min_model_fitness_lower_bound_)->default_value(paramGHV.min_model_fitness_lower_bound_, boost::str(boost::format("%.2e") % paramGHV.min_model_fitness_lower_bound_) ), "defines the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)")
+            ("hv_min_model_fitness_upper_bound", po::value<float>(&paramGHV.min_model_fitness_upper_bound_)->default_value(paramGHV.min_model_fitness_upper_bound_, boost::str(boost::format("%.2e") % paramGHV.min_model_fitness_upper_bound_) ), "defines the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)")
+            ("hv_min_visible_ratio", po::value<float>(&paramGHV.min_visible_ratio_)->default_value(paramGHV.min_visible_ratio_, boost::str(boost::format("%.2e") % paramGHV.min_visible_ratio_) ), "defines how much of the object has to be visible in order to be included in the verification stage")
+            ("hv_min_ratio_smooth_cluster_explained", po::value<float>(&paramGHV.min_ratio_cluster_explained_)->default_value(paramGHV.min_ratio_cluster_explained_, boost::str(boost::format("%.2e") % paramGHV.min_ratio_cluster_explained_) ), " defines the minimum ratio a smooth cluster has to be explained by the visible points (given there are at least 100 points)")
             ("hv_vis_cues", po::bool_switch(&paramGHV.visualize_go_cues_), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
             ("hv_vis_model_cues", po::bool_switch(&paramGHV.visualize_model_cues_), "If set, visualizes the model cues. Useful for debugging")
             ("hv_vis_pairwise_cues", po::bool_switch(&paramGHV.visualize_pairwise_cues_), "If set, visualizes the pairwise cues. Useful for debugging")
@@ -169,6 +176,8 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
     {
         typename SIFTLocalEstimation<PointT>::Ptr estimator (new SIFTLocalEstimation<PointT>());
         estimator->setMaxDistance(sift_z);
+        estimator->param_.dense_extraction_ = sift_make_dense;
+        estimator->param_.stride_ = sift_kp_stride;
         typename LocalEstimator<PointT>::Ptr cast_estimator = boost::dynamic_pointer_cast<LocalEstimator<PointT> > (estimator);
 
         typename LocalRecognitionPipeline<PointT>::Ptr sift_r (new LocalRecognitionPipeline<PointT> (paramSIFT));

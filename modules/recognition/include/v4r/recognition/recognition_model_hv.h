@@ -27,6 +27,8 @@ namespace v4r
       std::vector<int> scene_indices_in_crop_box_; /// @brief indices of the scene that are occupied from the bounding box of the (complete) hypothesis
       float L_value_offset_; /// @brief the offset being added to the computed L color values to compensate for different lighting conditions
 
+      std::vector<size_t> explained_pts_per_smooth_cluster_ ; /// @brief counts how many points in each smooth cluster the recognition model explains
+
       HVRecognitionModel()
       {
           L_value_offset_ = 0.f;

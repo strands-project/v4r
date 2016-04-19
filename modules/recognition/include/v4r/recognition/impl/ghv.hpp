@@ -46,6 +46,7 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <omp.h>
+#include <iomanip>
 
 namespace v4r {
 
@@ -157,6 +158,157 @@ GHV<ModelT, SceneT>::removeModelsWithLowVisibility()
 
 template<typename ModelT, typename SceneT>
 void
+GHV<ModelT, SceneT>::extractEuclideanClustersSmooth()
+
+{
+   size_t max_pts_per_cluster = std::numeric_limits<int>::max();
+
+   CHECK (octree_scene_downsampled_ && octree_scene_downsampled_->getInputCloud ()->points.size () == scene_cloud_downsampled_->points.size ()
+           && scene_cloud_downsampled_->points.size () == scene_normals_->points.size ());
+
+  // Create a bool vector of processed point indices, and initialize it to false
+  std::vector<bool> processed (scene_cloud_downsampled_->points.size (), false);
+  std::vector<std::vector<int> > clusters;
+  std::vector<int> nn_indices;
+  std::vector<float> nn_distances;
+  // Process all points in the indices vector
+  for (size_t i = 0; i < scene_cloud_downsampled_->points.size (); ++i)
+  {
+    if (processed[i])
+      continue;
+
+    std::vector<size_t> seed_queue;
+    size_t sq_idx = 0;
+    seed_queue.push_back (i);
+
+    processed[i] = true;
+
+    while (sq_idx < seed_queue.size ())
+    {
+
+      if (scene_normals_->points[ seed_queue[sq_idx] ].curvature > param_.curvature_threshold_)
+      {
+        sq_idx++;
+        continue;
+      }
+
+      // Search for sq_idx
+      if (!octree_scene_downsampled_->radiusSearch (seed_queue[sq_idx], param_.cluster_tolerance_, nn_indices, nn_distances))
+      {
+        sq_idx++;
+        continue;
+      }
+
+      for (size_t j = 1; j < nn_indices.size (); ++j) // nn_indices[0] should be sq_idx
+      {
+        if (processed[nn_indices[j]]) // Has this point been processed before ?
+          continue;
+
+        if (scene_normals_->points[nn_indices[j]].curvature > param_.curvature_threshold_)
+        {
+          continue;
+        }
+
+        //processed[nn_indices[j]] = true;
+        // [-1;1]
+
+        double dot_p = scene_normals_->points[ seed_queue[sq_idx] ].normal[0] * scene_normals_->points[nn_indices[j]].normal[0]
+            + scene_normals_->points[ seed_queue[sq_idx] ].normal[1] * scene_normals_->points[nn_indices[j]].normal[1] + scene_normals_->points[seed_queue[sq_idx]].normal[2]
+            * scene_normals_->points[ nn_indices[j] ].normal[2];
+
+        if (fabs (acos (dot_p)) < param_.eps_angle_threshold_)
+        {
+          processed[nn_indices[j]] = true;
+          seed_queue.push_back (nn_indices[j]);
+        }
+      }
+
+      sq_idx++;
+    }
+
+    // If this queue is satisfactory, add to the clusters
+    if (seed_queue.size () >= param_.min_points_ && seed_queue.size () <= max_pts_per_cluster)
+    {
+      std::vector<int> r;
+      r.resize (seed_queue.size ());
+      for (size_t j = 0; j < seed_queue.size (); ++j)
+        r[j] = seed_queue[j];
+
+      std::sort (r.begin (), r.end ());
+      r.erase (std::unique (r.begin (), r.end ()), r.end ());
+      clusters.push_back (r); // We could avoid a copy by working directly in the vector
+    }
+  }
+
+  scene_smooth_labels_.clear();
+  scene_smooth_labels_.resize(scene_cloud_downsampled_->points.size(), 0);
+  smooth_label_count_.resize( clusters.size() + 1);
+
+  size_t total_labeled_pts = 0;
+  for (size_t i = 0; i < clusters.size (); i++)
+  {
+      smooth_label_count_[i+1] = clusters[i].size();
+      total_labeled_pts +=clusters[i].size();
+      for (size_t j = 0; j < clusters[i].size (); j++)
+      {
+          int idx = clusters[i][j];
+          scene_smooth_labels_[ idx ] = i+1;
+      }
+  }
+  smooth_label_count_[0] = scene_cloud_downsampled_->points.size() - total_labeled_pts;
+}
+
+template<typename ModelT, typename SceneT>
+void
+GHV<ModelT, SceneT>::individualRejection()
+{
+    // remove badly explained object hypotheses
+    size_t kept=0;
+    for (size_t i = 0; i < recognition_models_.size (); i++)
+    {
+        HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
+
+        if (param_.check_smooth_clusters_)
+        {
+            bool is_rejected_due_to_smooth_cluster_check = false;
+            for(size_t cluster_id=1; cluster_id<rm.explained_pts_per_smooth_cluster_.size(); cluster_id++)  // don't check label 0
+            {
+                if ( smooth_label_count_[cluster_id] > 100 &&  rm.explained_pts_per_smooth_cluster_[cluster_id] > 100 &&
+                     (float)(rm.explained_pts_per_smooth_cluster_[cluster_id]) / smooth_label_count_[cluster_id] < param_.min_ratio_cluster_explained_ )
+                {
+                    is_rejected_due_to_smooth_cluster_check = true;
+                    break;
+                }
+            }
+            if (is_rejected_due_to_smooth_cluster_check)
+                continue;
+        }
+
+        float visible_ratio = rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
+        float model_fitness = rm.model_fit_ / rm.visible_cloud_->points.size();
+
+        CHECK(param_.min_model_fitness_lower_bound_ <= param_.min_model_fitness_upper_bound_); // scale model fitness threshold with the visible ratio of model. Highly occluded objects need to have a very strong evidence
+
+        float model_fitness_threshold = param_.min_model_fitness_upper_bound_ - std::min<float>( 1.f, visible_ratio/0.5f ) *(param_.min_model_fitness_upper_bound_ - param_.min_model_fitness_lower_bound_) ;
+        model_fitness_threshold = std::min(param_.min_model_fitness_lower_bound_, model_fitness_threshold);
+
+        if( model_fitness > model_fitness_threshold)
+        {
+            recognition_models_[kept] = recognition_models_[i];
+            recognition_models_map_[kept] = recognition_models_map_[i];
+            scene_explained_weight_.col(kept).swap( scene_explained_weight_.col(i) );
+            kept++;
+        }
+    }
+    std::cout << "Rejected " << recognition_models_.size() - kept << " (out of " << recognition_models_.size() << ") hypotheses due to low model fitness score." << std::endl;
+    recognition_models_.resize(kept);
+    recognition_models_map_.resize(kept);
+    size_t num_rows = scene_explained_weight_.rows();
+    scene_explained_weight_.conservativeResize(num_rows, kept);
+}
+
+template<typename ModelT, typename SceneT>
+void
 GHV<ModelT, SceneT>::initialize()
 {
     solution_.clear ();
@@ -171,9 +323,19 @@ GHV<ModelT, SceneT>::initialize()
         octree_scene_downsampled_->addPointsFromInputCloud();
     }
 
+    #pragma omp parallel sections
     {
-        pcl::ScopeTime t("pose refinement and computing visible model points");
-        computeVisibleModelsAndRefinePose();
+        #pragma omp section
+        {
+            pcl::ScopeTime t("pose refinement and computing visible model points");
+            computeVisibleModelsAndRefinePose();
+        }
+
+        #pragma omp section
+        {
+            if(param_.check_smooth_clusters_)
+                extractEuclideanClustersSmooth();
+        }
     }
 
     removeModelsWithLowVisibility();
@@ -217,9 +379,6 @@ GHV<ModelT, SceneT>::initialize()
         }
     }
 
-//    std::ofstream f("/tmp/bla.txt");
-//    f<<scene_model_dist_;
-//    f.close();
 
     if(param_.use_histogram_specification_)
     {
@@ -242,34 +401,9 @@ GHV<ModelT, SceneT>::initialize()
         }
     }
 
-    // remove badly explained object hypotheses
-    size_t kept=0;
-    for (size_t i = 0; i < recognition_models_.size (); i++)
-    {
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
+    individualRejection();
 
-        float visible_ratio = rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
-        float model_fitness = rm.model_fit_ / rm.visible_cloud_->points.size();
-        float model_fitness_threshold = param_.min_model_fitness_;
-
-        if (visible_ratio < 2*param_.min_visible_ratio_)    // highly occluded objects need to have a very strong evidence
-            model_fitness_threshold *= 2;
-
-        if( model_fitness > model_fitness_threshold)
-        {
-            recognition_models_[kept] = recognition_models_[i];
-            recognition_models_map_[kept] = recognition_models_map_[i];
-            scene_explained_weight_.col(kept).swap( scene_explained_weight_.col(i) );
-            kept++;
-        }
-    }
-    std::cout << "Rejected " << recognition_models_.size() - kept << " (out of " << recognition_models_.size() << ") hypotheses due to low model fitness score." << std::endl;
-    recognition_models_.resize(kept);
-    recognition_models_map_.resize(kept);
-    size_t num_rows = scene_explained_weight_.rows();
-    scene_explained_weight_.conservativeResize(num_rows, kept);
-
-    if(!kept)
+    if(recognition_models_.empty())
         return;
 
     {
@@ -277,7 +411,7 @@ GHV<ModelT, SceneT>::initialize()
         // remove rows of scene explained matrix, whose point is not explained by any hypothesis. Because it is usually very sparse and would take a lot of computation time.
         scene_explained_weight_compressed_ = scene_explained_weight_;
         Eigen::VectorXf min_tmp = scene_explained_weight_.rowwise().maxCoeff();
-        kept=0;
+        size_t kept=0;
         for(size_t pt=0; pt<scene_cloud_downsampled_->points.size(); pt++)
         {
             if( min_tmp(pt) > std::numeric_limits<float>::epsilon() )
@@ -638,6 +772,9 @@ template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::computeModel2SceneDistances(HVRecognitionModel<ModelT> &rm, int model_id)
 {
+    rm.explained_pts_per_smooth_cluster_.clear();
+    rm.explained_pts_per_smooth_cluster_.resize(smooth_label_count_.size(), 0);
+
     rm.model_scene_c_.resize( rm.visible_cloud_->points.size () * param_.knn_inliers_ );
     size_t kept=0;
 
@@ -660,9 +797,20 @@ GHV<ModelT, SceneT>::computeModel2SceneDistances(HVRecognitionModel<ModelT> &rm,
               c.index_match = sidx;
               c.distance = sqr_3D_dist;
 
+
+
               double old_s_m_dist = scene_model_sqr_dist_(sidx, model_id);
               if ( old_s_m_dist < -1.f || sqr_3D_dist < old_s_m_dist)
-                scene_model_sqr_dist_(sidx, model_id) = sqr_3D_dist;
+              {
+                  scene_model_sqr_dist_(sidx, model_id) = sqr_3D_dist;
+
+                  if( param_.check_smooth_clusters_ && sqr_3D_dist < (param_.occlusion_thres_ * param_.occlusion_thres_ * 1.5 * 1.5)
+                          && ( old_s_m_dist < -1.f || old_s_m_dist >= (param_.occlusion_thres_ * param_.occlusion_thres_ * 1.5 * 1.5) )) // if point is not already taken
+                  {
+                      int l = scene_smooth_labels_[sidx];
+                      rm.explained_pts_per_smooth_cluster_[l] ++;
+                  }
+              }
 
               kept++;
         }
@@ -870,17 +1018,19 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
 {
     if(!rm_vis_) {
         rm_vis_.reset (new pcl::visualization::PCLVisualizer ("model cues"));
-        rm_vis_->createViewPort(0   , 0   , 0.33,0.5 , rm_v1);
-        rm_vis_->createViewPort(0.33, 0   , 0.66,0.5 , rm_v2);
-        rm_vis_->createViewPort(0.66, 0   , 1   ,0.5 , rm_v3);
-        rm_vis_->createViewPort(0   , 0.5 , 0.33,1   , rm_v4);
-        rm_vis_->createViewPort(0.33, 0.5 , 0.66,1   , rm_v5);
-        rm_vis_->createViewPort(0.66, 0.5 , 1   ,1   , rm_v6);
+        rm_vis_->createViewPort(0   , 0   , 0.25,0.5 , rm_v1);
+        rm_vis_->createViewPort(0.25, 0   , 0.50,0.5 , rm_v2);
+        rm_vis_->createViewPort(0.50, 0   , 0.75,0.5 , rm_v3);
+        rm_vis_->createViewPort(0.75, 0   , 1   ,0.5 , rm_v4);
 
-        rm_vis_->createViewPort(0.66, 0.5 , 0.82   , 0.75   , rm_v7);
-        rm_vis_->createViewPort(0.82, 0.5 , 1   , 0.75   , rm_v8);
-        rm_vis_->createViewPort(0.66, 0.75 , 0.82   ,1   , rm_v9);
-        rm_vis_->createViewPort(0.82, 0.75 , 1   ,1   , rm_v10);
+        rm_vis_->createViewPort(0   , 0.5 , 0.25,1   , rm_v5);
+        rm_vis_->createViewPort(0.25, 0.5 , 0.50,1   , rm_v6);
+        rm_vis_->createViewPort(0.50, 0.5 , 0.75,1   , rm_v7);
+
+        rm_vis_->createViewPort(0.75, 0.5 , 0.875   , 0.75   , rm_v11);
+        rm_vis_->createViewPort(0.875, 0.5 , 1   , 0.75   , rm_v12);
+        rm_vis_->createViewPort(0.75, 0.75 , 0.875   ,1   , rm_v11);
+        rm_vis_->createViewPort(0.875, 0.75 , 1   ,1   , rm_v12);
     }
 
     rm_vis_->removeAllPointClouds();
@@ -998,14 +1148,14 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
                      fitness_reg/rm.visible_cloud_->points.size() << "; after registration2: " <<
                      fitness_reg2/rm.visible_cloud_->points.size() << "." << std::endl;
 
-        rm_vis_->addText("explained scene cloud original", 10, 10, 10, 1,1,1,"s_cloud_orig", rm_v7);
-        rm_vis_->addText("model cloud color registered", 10, 10, 10, 1,1,1,"s_cloud_color_reg2", rm_v8);
-        rm_vis_->addText("model cloud original", 10, 10, 10, 1,1,1,"m_cloud_orig", rm_v9);
-        rm_vis_->addText("model cloud color registered", 10, 10, 10, 1,1,1,"m_cloud_reg", rm_v10);
-        rm_vis_->addPointCloud(s_cloud_orig.makeShared(), "s_cloud_original", rm_v7);
-        rm_vis_->addPointCloud(m_cloud_color_reg2.makeShared(), "m_cloud_color_registered2", rm_v8);
-        rm_vis_->addPointCloud(m_cloud_orig.makeShared(), "m_cloud_original", rm_v9);
-        rm_vis_->addPointCloud(m_cloud_color_reg.makeShared(), "m_cloud_color_registered", rm_v10);
+        rm_vis_->addText("explained scene cloud original", 10, 10, 10, 1,1,1,"s_cloud_orig", rm_v9);
+        rm_vis_->addText("model cloud color registered", 10, 10, 10, 1,1,1,"s_cloud_color_reg2", rm_v10);
+        rm_vis_->addText("model cloud original", 10, 10, 10, 1,1,1,"m_cloud_orig", rm_v11);
+        rm_vis_->addText("model cloud color registered", 10, 10, 10, 1,1,1,"m_cloud_reg", rm_v12);
+        rm_vis_->addPointCloud(s_cloud_orig.makeShared(), "s_cloud_original", rm_v9);
+        rm_vis_->addPointCloud(m_cloud_color_reg2.makeShared(), "m_cloud_color_registered2", rm_v10);
+        rm_vis_->addPointCloud(m_cloud_orig.makeShared(), "m_cloud_original", rm_v11);
+        rm_vis_->addPointCloud(m_cloud_color_reg.makeShared(), "m_cloud_color_registered", rm_v12);
     }
 
     typename pcl::PointCloud<ModelT>::Ptr visible_cloud_colored (new pcl::PointCloud<ModelT> (*rm.complete_cloud_));
@@ -1025,7 +1175,7 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
         mp.b = 0.f;
     }
 
-    std::stringstream txt; txt << "visible ratio: " << (float)rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
+    std::stringstream txt; txt << "visible ratio: " << std::fixed << std::setprecision(2) << (float)rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
     rm_vis_->addText(txt.str(),10,10,12,0,0,0,"visible model cloud",rm_v2);
     rm_vis_->addPointCloud(visible_cloud_colored, "model2",rm_v2);
     rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v2);
@@ -1052,13 +1202,52 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
         ModelT &mp = model_fit_cloud->points[midx];
         mp.g = (255.f - mp.g) * weight;   // scale green channel with fitness score
     }
-    txt.str(""); txt << "model cost: " << rm.model_fit_ <<
+    txt.str(""); txt << "model cost: " << std::fixed << std::setprecision(4) << rm.model_fit_ <<
                         "; normalized: " << rm.model_fit_ / rm.visible_cloud_->points.size();
     rm_vis_->addText(txt.str(),10,10,12,0,0,0,"model cost",rm_v3);
     rm_vis_->addPointCloud(model_fit_cloud, "model cost", rm_v3);
     rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v3);
     rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
                                              5, "model cost", rm_v3);
+
+
+    // ---- VISUALIZE SMOOTH SEGMENTATION -------
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_smooth_labels_rgb (new pcl::PointCloud<pcl::PointXYZRGB>(*scene_cloud_downsampled_));
+    if(!smooth_label_count_.empty())
+    {
+        Eigen::Matrix3Xf label_colors (3, smooth_label_count_.size());
+        for(size_t i=0; i<smooth_label_count_.size(); i++)
+        {
+            float r,g,b;
+            if( i==0 )
+            {
+                r = g = b = 255; // label 0 will be white
+            }
+            else
+            {
+                r = rand () % 255;
+                g = rand () % 255;
+                b = rand () % 255;
+            }
+            label_colors(0,i) = r;
+            label_colors(1,i) = g;
+            label_colors(2,i) = b;
+            std::stringstream lbl_txt; lbl_txt << std::fixed << std::setprecision(2) << rm.explained_pts_per_smooth_cluster_[i] << " / " << smooth_label_count_[i];
+            std::stringstream txt_id; txt_id << "smooth_cluster_txt " << i;
+            rm_vis_->addText( lbl_txt.str(), 10, 10+12*i, 12, r/255, g/255, b/255, txt_id.str(), rm_v4);
+        }
+
+        for(size_t i=0; i < scene_smooth_labels_.size(); i++)
+        {
+            int l = scene_smooth_labels_[i];
+            pcl::PointXYZRGB &p = scene_smooth_labels_rgb->points[i];
+            p.r = label_colors(0,l);
+            p.g = label_colors(1,l);
+            p.b = label_colors(2,l);
+        }
+        rm_vis_->addPointCloud(scene_smooth_labels_rgb, "smooth labels", rm_v4);
+    }
+    //---- END VISUALIZE SMOOTH SEGMENTATION-----------
 
 
     typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*scene_cloud_downsampled_));
@@ -1072,20 +1261,19 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     }
     txt.str(""); txt << "scene pts explained (fitness: " << scene_explained_weight_.col(model_id).sum() <<
                         "; normalized: " << scene_explained_weight_.col(model_id).sum()/scene_cloud_downsampled_->points.size() << ")";
-    rm_vis_->addText(txt.str(),10,10,12,0,0,0,"scene fitness",rm_v4);
-    rm_vis_->addPointCloud(scene_fit_cloud, "scene fitness", rm_v4);
+    rm_vis_->addText(txt.str(),10,10,12,0,0,0,"scene fitness",rm_v5);
+    rm_vis_->addPointCloud(scene_fit_cloud, "scene fitness", rm_v5);
     rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
-                                             5, "scene fitness", rm_v4);
-    rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v4);
+                                             5, "scene fitness", rm_v5);
+    rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v5);
 
-    rm_vis_->addText("scene and visible model",10,10,12,1,1,1,"scene_and_model",rm_v5);
-    rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene_model_1", rm_v5);
-    rm_vis_->addPointCloud(rm.visible_cloud_, "scene_model_2", rm_v5);
+    rm_vis_->addText("scene and visible model",10,10,12,1,1,1,"scene_and_model",rm_v6);
+    rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene_model_1", rm_v6);
+    rm_vis_->addPointCloud(rm.visible_cloud_, "scene_model_2", rm_v6);
 
     rm_vis_->resetCamera();
     rm_vis_->spin();
 }
-
 
 template<typename ModelT, typename SceneT>
 void
