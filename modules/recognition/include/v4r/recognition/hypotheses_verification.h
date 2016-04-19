@@ -56,7 +56,7 @@ namespace v4r
       class V4R_EXPORTS Parameter
       {
       public:
-          double resolution_; /// @brief The resolution of models and scene used to verify hypotheses (in meters)
+          int resolution_mm_; /// @brief The resolution of models and scene used to verify hypotheses (in meters)
           double inliers_threshold_; /// @brief Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers
           double occlusion_thres_;    /// @brief Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)
           int zbuffer_self_occlusion_resolution_;
@@ -71,7 +71,7 @@ namespace v4r
           int icp_iterations_;
 
           Parameter (
-                  double resolution = 0.005f,
+                  int resolution_mm = 5,
                   double inliers_threshold = 0.01f, // 0.005f
                   double occlusion_thres = 0.01f, // 0.005f
                   int zbuffer_self_occlusion_resolution = 250,
@@ -84,7 +84,7 @@ namespace v4r
                   int erosion_radius = 4,
                   bool do_occlusion_reasoning = true,
                   int icp_iterations = 10)
-              : resolution_ (resolution),
+              : resolution_mm_ (resolution_mm),
                 inliers_threshold_(inliers_threshold),
                 occlusion_thres_ (occlusion_thres),
                 zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
@@ -132,9 +132,9 @@ namespace v4r
     HypothesisVerification (const Parameter &p = Parameter()) : param_(p)
     { }
 
-    float getResolution() const
+    int getResolution() const
     {
-        return param_.resolution_;
+        return param_.resolution_mm_;
     }
 
     /**

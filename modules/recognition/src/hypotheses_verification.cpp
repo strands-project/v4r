@@ -204,7 +204,7 @@ HypothesisVerification<ModelT, SceneT>::setSceneCloud (const typename pcl::Point
     scene_cloud_ = scene_cloud;
     scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>());
 
-    if(param_.resolution_ <= 0.f)
+    if(param_.resolution_mm_ <= 0)
         scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>(*scene_cloud));
     else
     {
@@ -215,8 +215,9 @@ HypothesisVerification<ModelT, SceneT>::setSceneCloud (const typename pcl::Point
     voxel_grid.filter (*scene_cloud_downsampled_);*/
 
         pcl::UniformSampling<SceneT> us;
-        us.setRadiusSearch(param_.resolution_);
-        us.setInputCloud(scene_cloud_);
+        double resolution = (float)param_.resolution_mm_ / 1000.f;
+        us.setRadiusSearch( resolution );
+        us.setInputCloud( scene_cloud_ );
         pcl::PointCloud<int> sampled_indices;
         us.compute(sampled_indices);
         scene_sampled_indices_.clear();

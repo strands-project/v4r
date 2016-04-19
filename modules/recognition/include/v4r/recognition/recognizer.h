@@ -66,7 +66,7 @@ namespace v4r
                     bool merge_close_hypotheses = true,
                     double merge_close_hypotheses_dist = 0.02f,
                     double merge_close_hypotheses_angle = 10.f,
-                    int resolution_mm_model_assembly = 3,
+                    int resolution_mm_model_assembly = 5,
                     double max_distance = std::numeric_limits<double>::max())
                 : voxel_size_icp_ (voxel_size_icp),
                   max_corr_distance_ (max_corr_distance),

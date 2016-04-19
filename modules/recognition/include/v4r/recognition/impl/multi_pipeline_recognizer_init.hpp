@@ -46,7 +46,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
     bool do_shot;
     bool do_esf;
     bool do_alexnet;
-    float resolution = 0.005f;
+    int resolution_mm = 5;
     float shot_support_radius = 0.02f;
     std::string models_dir;
     int keypoint_type = KeypointType::UniformSampling;
@@ -171,7 +171,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
 
     typename Source<PointT>::Ptr cast_source;
 
-    typename RegisteredViewsSource<PointT>::Ptr src (new RegisteredViewsSource<PointT>(resolution));
+    typename RegisteredViewsSource<PointT>::Ptr src (new RegisteredViewsSource<PointT>(resolution_mm));
     src->setPath (models_dir);
     src->generate ();
 //            src->createVoxelGridAndDistanceTransform(resolution);

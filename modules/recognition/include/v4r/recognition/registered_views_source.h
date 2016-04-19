@@ -58,7 +58,7 @@ private:
     using SourceT::path_;
     using SourceT::models_;
     using SourceT::load_into_memory_;
-    using SourceT::resolution_;
+    using SourceT::resolution_mm_;
     using SourceT::view_prefix_;
     using SourceT::indices_prefix_;
     using SourceT::pose_prefix_;
@@ -66,9 +66,9 @@ private:
 
 
 public:
-    RegisteredViewsSource (float resolution = 0.001f)
+    RegisteredViewsSource (int resolution_mm = 1)
     {
-        resolution_ = resolution;
+        resolution_mm_ = resolution_mm;
         load_into_memory_ = false;
     }
 

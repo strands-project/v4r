@@ -52,7 +52,7 @@ public:
     {
     public:
         using HypothesisVerification<ModelT, SceneT>::Parameter::inliers_threshold_;
-        using HypothesisVerification<ModelT, SceneT>::Parameter::resolution_;
+        using HypothesisVerification<ModelT, SceneT>::Parameter::resolution_mm_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::occlusion_thres_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::zbuffer_self_occlusion_resolution_;
         using HypothesisVerification<ModelT, SceneT>::Parameter::focal_length_;

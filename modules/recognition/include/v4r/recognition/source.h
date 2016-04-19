@@ -63,7 +63,7 @@ protected:
     float model_scale_;
     bool load_views_;
     float radius_normals_;
-    float resolution_;
+    int resolution_mm_;
     bool compute_normals_;
     bool load_into_memory_;
     std::string view_prefix_;
@@ -76,8 +76,8 @@ protected:
 
 public:
 
-    Source(float resolution = 0.001f) {
-        resolution_ = resolution;
+    Source(int resolution_mm = 5) {
+        resolution_mm_ = resolution_mm;
         load_views_ = true;
         compute_normals_ = false;
         load_into_memory_ = true;
@@ -214,10 +214,10 @@ public:
     }
 
     void
-    createVoxelGridAndDistanceTransform(float resolution)
+    createVoxelGridAndDistanceTransform(int resolution_mm)
     {
         for (size_t i = 0; i < models_.size (); i++)
-            models_[i]->createVoxelGridAndDistanceTransform (resolution);
+            models_[i]->createVoxelGridAndDistanceTransform (resolution_mm);
     }
 
 

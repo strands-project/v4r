@@ -74,7 +74,7 @@ Recognizer<PointT>::hypothesisVerification ()
         ConstPointTPtr model_cloud = models_[i]->getAssembled ( param_.resolution_mm_model_assembly_ );
         pcl::transformPointCloud (*model_cloud, *aligned_model_tmp, transforms_[i]);
         aligned_models[i] = aligned_model_tmp;
-        pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models_[i]->getNormalsAssembled (hv_algorithm_->getResolution());
+        pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models_[i]->getNormalsAssembled ( param_.resolution_mm_model_assembly_ );
         transformNormals(*normal_cloud_const, *aligned_normal_tmp, transforms_[i]);
         aligned_model_normals[i] = aligned_normal_tmp;
     }
