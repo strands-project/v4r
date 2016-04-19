@@ -361,7 +361,7 @@ GHV<ModelT, SceneT>::initialize()
         if(!param_.ignore_color_even_if_exists_)
         {
             pcl::ScopeTime t("Converting scene color values");
-            ColorTransformOMP::convertColor(*scene_cloud_downsampled_, scene_color_channels_);
+            convertToLABcolor(*scene_cloud_downsampled_, scene_color_channels_);
         }
 
         #pragma omp section
@@ -373,7 +373,7 @@ GHV<ModelT, SceneT>::initialize()
                 removeNanNormals(rm);
 
                 if(!param_.ignore_color_even_if_exists_)
-                    ColorTransformOMP::convertColor(*rm.complete_cloud_, rm.pt_color_);
+                    convertToLABcolor(*rm.visible_cloud_, rm.pt_color_);
             }
         }
 
@@ -942,11 +942,6 @@ template<typename ModelT, typename SceneT>
 void
 GHV<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT> &rm, int model_id) const
 {
-    Eigen::MatrixXf colorVisibleCloud (rm.visible_indices_.size(), rm.pt_color_.cols());
-    for(size_t i=0; i<rm.visible_indices_.size(); i++)
-        colorVisibleCloud.row(i) = rm.pt_color_.row( rm.visible_indices_[i] );
-
-
     // pre-allocate memory
     size_t kept = 0;
     for(size_t sidx=0; sidx<scene_model_sqr_dist_.rows(); sidx++)
@@ -967,7 +962,7 @@ GHV<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT> &rm, int model_id
     }
 
     Eigen::MatrixXf histLm, histLs;
-    computeHistogram(colorVisibleCloud.col(0), histLm, bins_, Lmin_, Lmax_);
+    computeHistogram(rm.pt_color_.col(0), histLm, bins_, Lmin_, Lmax_);
     computeHistogram(croppedSceneColorMatrix.col(0), histLs, bins_, Lmin_, Lmax_);
 
     Eigen::VectorXf histLs_normalized(bins_), histLm_normalized (bins_);
@@ -1049,7 +1044,7 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     rm_vis_->addText("scene",10,10,12,1,1,1,"scene",rm_v1);
     rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene1",rm_v1);
 
-
+#ifdef L_HIST
     // compute color histogram for visible model points
     {
         pcl::PointCloud<ModelT> m_cloud_orig, m_cloud_color_reg, m_cloud_color_reg2;
@@ -1167,7 +1162,7 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
         rm_vis_->addPointCloud(m_cloud_orig.makeShared(), "m_cloud_original", rm_v11);
         rm_vis_->addPointCloud(m_cloud_color_reg.makeShared(), "m_cloud_color_registered", rm_v12);
     }
-
+#endif
     typename pcl::PointCloud<ModelT>::Ptr visible_cloud_colored (new pcl::PointCloud<ModelT> (*rm.complete_cloud_));
     for(size_t i=0; i<visible_cloud_colored->points.size(); i++)
     {

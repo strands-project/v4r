@@ -244,6 +244,71 @@ private:
         max_scene_explained_weight_.resize(0);
     }
 
+    std::vector<float> sRGB_LUT;
+    std::vector<float> sXYZ_LUT;
+
+    void
+    rgb2cielab (uint8_t R, uint8_t G, uint8_t B, float &L, float &A,float &B2)
+    {
+      CHECK(R < 256 && R >= 0);
+      CHECK(G < 256 && G >= 0);
+      CHECK(B < 256 && B >= 0);
+
+      float fr = sRGB_LUT[R];
+      float fg = sRGB_LUT[G];
+      float fb = sRGB_LUT[B];
+
+      // Use white = D65
+      const float x = fr * 0.412453f + fg * 0.357580f + fb * 0.180423f;
+      const float y = fr * 0.212671f + fg * 0.715160f + fb * 0.072169f;
+      const float z = fr * 0.019334f + fg * 0.119193f + fb * 0.950227f;
+
+      float vx = x / 0.95047f;
+      float vy = y;
+      float vz = z / 1.08883f;
+
+      vx = sXYZ_LUT[std::min(int(vx*4000), 4000-1)];
+      vy = sXYZ_LUT[std::min(int(vy*4000), 4000-1)];
+      vz = sXYZ_LUT[std::min(int(vz*4000), 4000-1)];
+
+      L = 116.0f * vy - 16.0f;
+      if (L > 100)
+        L = 100.0f;
+
+      A = 500.0f * (vx - vy);
+      if (A > 120)
+        A = 120.0f;
+      else if (A <- 120)
+        A = -120.0f;
+
+      B2 = 200.0f * (vy - vz);
+      if (B2 > 120)
+        B2 = 120.0f;
+      else if (B2<- 120)
+        B2 = -120.0f;
+    }
+
+    void
+    convertToLABcolor(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, Eigen::MatrixXf &color_mat)
+    {
+        color_mat.resize( cloud.points.size(), 3);
+
+        for(size_t j=0; j < cloud.points.size(); j++)
+        {
+            const pcl::PointXYZRGB &p = cloud.points[j];
+
+            uint8_t rs, gs, bs;
+            float LRef, aRef, bRef;
+            rs = p.r;
+            gs = p.g;
+            bs = p.b;
+            rgb2cielab(rs, gs, bs, LRef, aRef, bRef);
+            color_mat(j, 0) = LRef;
+            color_mat(j, 1) = aRef;
+            color_mat(j, 2) = bRef;
+        }
+    }
+
 
     void
     extractEuclideanClustersSmooth ();
@@ -268,6 +333,27 @@ public:
     {
         initial_temp_ = 1000;
         scene_and_normals_set_from_outside_ = false;
+        sRGB_LUT.resize(256, -1);
+        sXYZ_LUT.resize(4000, -1);
+
+        // init color LUTs
+          for (int i = 0; i < 256; i++)
+          {
+            float f = static_cast<float> (i) / 255.0f;
+            if (f > 0.04045)
+              sRGB_LUT[i] = powf ((f + 0.055f) / 1.055f, 2.4f);
+            else
+              sRGB_LUT[i] = f / 12.92f;
+          }
+
+          for (int i = 0; i < 4000; i++)
+          {
+            float f = static_cast<float> (i) / 4000.0f;
+            if (f > 0.008856)
+              sXYZ_LUT[i] = static_cast<float> (powf (f, 0.3333f));
+            else
+              sXYZ_LUT[i] = static_cast<float>((7.787 * f) + (16.0 / 116.0));
+          }
     }
 
     enum OptimizationType
