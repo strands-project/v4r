@@ -178,15 +178,19 @@ namespace v4r
       min_u = std::max<int>(0, int(min_u - (side_length - side_length_u)/2.f));
       min_v = std::max<int>(0, int(min_v - (side_length - side_length_v)/2.f));
 
-      cv::Mat image_roi = image( cv::Rect(min_u, min_v, side_length, side_length) );
+      int side_length_uu = std::min<int>(side_length, image.cols  - min_u - 1);
+      int side_length_vv = std::min<int>(side_length, image.rows - min_v - 1);
+
+      cv::Mat image_roi = image( cv::Rect(min_u, min_v, side_length_uu, side_length_vv) );
 
       cv::Mat_<cv::Vec3b> img_tmp (side_length + 2*margin, side_length + 2*margin);
       img_tmp.setTo(bg_color);
-      cv::Mat img_tmp_roi = img_tmp( cv::Rect(margin, margin, side_length, side_length) );
+      cv::Mat img_tmp_roi = img_tmp( cv::Rect(margin, margin, side_length_uu, side_length_vv) );
       image_roi.copyTo(img_tmp_roi);
 
       cv::Mat_<cv::Vec3b> dst(out_height, out_width);
       cv::resize(img_tmp, dst, dst.size(), 0, 0, cv::INTER_CUBIC);
+
       return dst;
   }
 
