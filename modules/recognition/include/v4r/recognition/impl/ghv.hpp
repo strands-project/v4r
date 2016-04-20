@@ -299,8 +299,9 @@ GHV<ModelT, SceneT>::individualRejection()
 
         CHECK(param_.min_model_fitness_lower_bound_ <= param_.min_model_fitness_upper_bound_); // scale model fitness threshold with the visible ratio of model. Highly occluded objects need to have a very strong evidence
 
-        float model_fitness_threshold = param_.min_model_fitness_upper_bound_ - std::min<float>( 1.f, visible_ratio/0.5f ) *(param_.min_model_fitness_upper_bound_ - param_.min_model_fitness_lower_bound_) ;
-        model_fitness_threshold = std::min(param_.min_model_fitness_lower_bound_, model_fitness_threshold);
+        float scale = std::min<float>( 1.f, visible_ratio/0.5f );
+        float range = param_.min_model_fitness_upper_bound_ - param_.min_model_fitness_lower_bound_;
+        float model_fitness_threshold = param_.min_model_fitness_upper_bound_ - scale * range;
 
         if( model_fitness > model_fitness_threshold)
         {
@@ -1036,6 +1037,11 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
         rm_vis_->createViewPort(0.875, 0.5 , 1   , 0.75   , rm_v12);
         rm_vis_->createViewPort(0.75, 0.75 , 0.875   ,1   , rm_v11);
         rm_vis_->createViewPort(0.875, 0.75 , 1   ,1   , rm_v12);
+
+        rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v2);
+        rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v3);
+        rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v4);
+        rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v5);
     }
 
     rm_vis_->removeAllPointClouds();
@@ -1183,7 +1189,6 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     std::stringstream txt; txt << "visible ratio: " << std::fixed << std::setprecision(2) << (float)rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
     rm_vis_->addText(txt.str(),10,10,12,0,0,0,"visible model cloud",rm_v2);
     rm_vis_->addPointCloud(visible_cloud_colored, "model2",rm_v2);
-    rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v2);
     rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
                                              5, "model2", rm_v2);
 
@@ -1211,7 +1216,6 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
                         "; normalized: " << rm.model_fit_ / rm.visible_cloud_->points.size();
     rm_vis_->addText(txt.str(),10,10,12,0,0,0,"model cost",rm_v3);
     rm_vis_->addPointCloud(model_fit_cloud, "model cost", rm_v3);
-    rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v3);
     rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
                                              5, "model cost", rm_v3);
 
@@ -1270,7 +1274,6 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     rm_vis_->addPointCloud(scene_fit_cloud, "scene fitness", rm_v5);
     rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
                                              5, "scene fitness", rm_v5);
-    rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v5);
 
     rm_vis_->addText("scene and visible model",10,10,12,1,1,1,"scene_and_model",rm_v6);
     rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene_model_1", rm_v6);
