@@ -36,6 +36,7 @@ MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(boost::shared_ptr<Reco
     typename LocalRecognitionPipeline<PointT>::Ptr local_rec = boost::dynamic_pointer_cast<LocalRecognitionPipeline<PointT> > (rec);
     typename GlobalRecognizer<PointT>::Ptr global_rec = boost::dynamic_pointer_cast<GlobalRecognizer<PointT> > (rec);
 
+    ///TODO: If all local recognizers are ready, we don't have to wait for global recognizers to finish but can already start with correspondence grouping
     if(global_rec) // for global recognizers
     {
         models = global_rec->getModels ();
