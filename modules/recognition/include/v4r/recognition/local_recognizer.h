@@ -83,6 +83,7 @@ namespace v4r
 
               bool filter_planar_; /// @brief Filter keypoints with a planar surface
               bool filter_points_above_plane_; /// @brief Filter only points above table plane
+              int min_plane_size_; /// @brief Minimum number of points for a plane to be checked if filter only points above table plane
               int planar_computation_method_; /// @brief defines the method used to check for planar points. 0... based on curvate value after normalestimationomp, 1... with eigenvalue check of scatter matrix
               float planar_support_radius_; /// @brief Radius used to check keypoints for planarity.
               float threshold_planar_; /// @brief threshold ratio used for deciding if patch is planar. Ratio defined as largest eigenvalue to all others.
@@ -108,6 +109,7 @@ namespace v4r
                       float kernel_sigma = 1.f,
                       bool filter_planar = false,
                       bool filter_points_above_plane = false,
+                      int min_plane_size = 1000,
                       float planar_support_radius = 0.04f,
                       float threshold_planar = 0.02f,
                       bool filter_border_pts = false,
@@ -129,6 +131,7 @@ namespace v4r
                     kernel_sigma_ (kernel_sigma),
                     filter_planar_ (filter_planar),
                     filter_points_above_plane_ ( filter_points_above_plane ),
+                    min_plane_size_ (min_plane_size),
                     planar_support_radius_ (planar_support_radius),
                     threshold_planar_ (threshold_planar),
                     filter_border_pts_ (filter_border_pts),

@@ -80,6 +80,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             ("sift_codebook_filter_ratio", po::value<float>(&paramSIFT.codebook_filter_ratio_)->default_value(paramSIFT.codebook_filter_ratio_), "signatures clustered into a cluster which occures more often (w.r.t the total number of signatures) than this threshold, will be rejected.")
             ("sift_filter_planar", po::value<bool>(&paramSIFT.filter_planar_)->default_value(false), "If true, filters keypoints which are on a planar surface..")
             ("sift_filter_points_above_plane", po::value<bool>(&paramSIFT.filter_points_above_plane_)->default_value(false), "If true, only recognizes points above dominant plane.")
+            ("sift_min_plane_size", po::value<int>(&paramSIFT.min_plane_size_)->default_value(paramSIFT.min_plane_size_), "This is the minimum number of points required to estimate a plane for filtering.")
             ("sift_filter_border_pts", po::value<bool>(&paramSIFT.filter_border_pts_)->default_value(paramSIFT.filter_border_pts_), "If true, filters keypoints at the boundary.")
             ("sift_border_width", po::value<int>(&paramSIFT.boundary_width_)->default_value(paramSIFT.boundary_width_), "Width in pixel of the depth discontinuity.")
             ("sift_z,z", po::value<float>(&sift_z)->default_value(3.0f), "points with z-component higher than chop_z_ will be ignored for SIFT (low chop_z reduces computation time and false positives (noise increase with z)")

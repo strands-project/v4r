@@ -600,6 +600,13 @@ LocalRecognitionPipeline<PointT>::computeFeatures()
         seg.segment();
         Eigen::Vector4f table_plane = seg.getTablePlane();
 
+        // flip table plane vector towards viewpoint
+        Eigen::Vector3f vp;
+        vp(0)=vp(1)=0.f; vp(2) = 1;
+        Eigen::Vector3f table_vec = table_plane.head(3);
+        if(vp.dot(table_vec)>0)
+            table_plane *= -1.f;
+
         if (0)//inliers->indices.empty())
         {
             std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
@@ -650,7 +657,7 @@ LocalRecognitionPipeline<PointT>::computeFeatures()
 //                        vis.spin();
 //                        vis.removeAllPointClouds();
 
-            if(filtered_scene->points.size() > 1000)
+            if(filtered_scene->points.size() > param_.min_plane_size_)
                 scene_ = filtered_scene;
             else
                 std::cerr << "Could not find a proper dominant plane!" << std::endl;
