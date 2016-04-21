@@ -83,6 +83,12 @@ main (int argc, char ** argv)
     for(size_t val_id=0; val_id<validation_sets.size(); val_id++)
     {
         const std::string out_fn = out_dir + "/results_occlusion_" + validation_sets[val_id] + ".txt";
+        if(v4r::io::existsFile(out_fn))
+        {
+            std::cout << out_fn << " exists already. Skipping it!" << std::endl;
+            continue;
+        }
+
         std::ofstream f(out_fn);
         std::cout << "Writing results to " << out_fn << "..." << std::endl;
 
