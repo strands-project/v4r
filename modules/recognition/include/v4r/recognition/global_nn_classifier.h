@@ -45,16 +45,23 @@ namespace v4r
      * \date March, 2012
      */
 template<template<class > class Distance, typename PointInT>
-class V4R_EXPORTS GlobalNNClassifier : public GlobalRecognizer<PointInT>
+class V4R_EXPORTS GlobalNNClassifier
 {
 
 protected:
-    using GlobalRecognizer<PointInT>::estimator_;
-    using GlobalRecognizer<PointInT>::scene_;
-    using GlobalRecognizer<PointInT>::indices_;
-    using GlobalRecognizer<PointInT>::categories_;
-    using GlobalRecognizer<PointInT>::confidences_;
-    using GlobalRecognizer<PointInT>::training_dir_;
+    typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+
+    std::string training_dir_;  /// @brief directory containing training data
+
+    PointInTPtr input_; /// @brief Point cloud to be classified
+
+    std::vector<int> indices_; /// @brief indices of the object to be classified
+
+    std::vector<std::string> categories_;   /// @brief classification results
+
+    std::vector<float> confidences_;   /// @brief confidences associated to the classification results (normalized to 0...1)
+
+    typename boost::shared_ptr<GlobalEstimator<PointInT> > estimator_; /// @brief estimator used for describing the object
 
     struct index_score
     {
@@ -152,7 +159,7 @@ public:
 
     /** \brief Performs classification */
     void
-    recognize ();
+    classify ();
 
     /** \brief Sets the model data source */
     void
@@ -165,6 +172,44 @@ public:
     setDescriptorName (const std::string & name)
     {
         descr_name_ = name;
+    }
+
+    /** @brief sets the indices of the object to be classified */
+    void
+    setIndices (const std::vector<int> & indices)
+    {
+        indices_ = indices;
+    }
+
+    /** \brief Sets the input cloud to be classified */
+    void
+    setInputCloud (const PointInTPtr & cloud)
+    {
+        input_ = cloud;
+    }
+
+    void
+    setTrainingDir (const std::string & dir)
+    {
+        training_dir_ = dir;
+    }
+
+    void
+    getCategory (std::vector<std::string> & categories) const
+    {
+        categories = categories_;
+    }
+
+    void
+    getConfidence (std::vector<float> & conf) const
+    {
+        conf = confidences_;
+    }
+
+    void
+    setFeatureEstimator (const typename boost::shared_ptr<GlobalEstimator<PointInT> > & feat)
+    {
+        estimator_ = feat;
     }
 };
 }

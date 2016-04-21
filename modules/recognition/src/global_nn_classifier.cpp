@@ -83,15 +83,24 @@ GlobalNNClassifier<Distance, PointInT>::nearestKSearch (flann::Index<DistT> * in
 
 template<template<class > class Distance, typename PointInT>
 void
-GlobalNNClassifier<Distance, PointInT>::recognize ()
+GlobalNNClassifier<Distance, PointInT>::classify ()
 {
     categories_.clear ();
     confidences_.clear ();
     first_nn_category_ = std::string ("");
 
-    estimator_->setInputCloud(scene_);
+    estimator_->setInputCloud(input_);
     estimator_->setIndices(indices_);
-    std::vector<float> signature = estimator_->compute ();
+    std::vector<float> signature;
+    Eigen::MatrixXf signature_m;
+    estimator_->compute (signature_m);
+    if(!signature_m.cols())
+        return;
+
+    signature.resize( signature_m.cols() );
+    for(size_t f=0; f<signature_m.cols(); f++)
+        signature[f] = signature_m(0,f);
+
     std::vector<index_score> indices_scores;
 
     ModelTPtr empty;
@@ -202,8 +211,16 @@ GlobalNNClassifier<Distance, PointInT>::initialize (bool force_retrain)
             for (size_t v = 0; v < m->views_.size (); v++)
             {
                 std::vector<float> signature;
+                Eigen::MatrixXf signature_m;
                 estimator_->setInputCloud(m->views_[v]);
-                signature = estimator_->compute ();
+
+                estimator_->compute (signature_m);
+                if(!signature_m.cols())
+                    continue;
+
+                signature.resize( signature_m.cols() );
+                for(size_t f=0; f<signature_m.cols(); f++)
+                    signature[f] = signature_m(0,f);
 
                 std::stringstream path_entropy;
                 path_entropy << out_dir << "/entropy_" << v << ".txt";
@@ -237,8 +254,8 @@ GlobalNNClassifier<Distance, PointInT>::initialize (bool force_retrain)
 }
 
 //Instantiation
-//template class V4R_EXPORTS v4r::GlobalNNClassifier<flann::L1, pcl::PointXYZ>;
-//template class V4R_EXPORTS v4r::GlobalNNClassifier<v4r::Metrics::HistIntersectionUnionDistance, pcl::PointXYZ>;
+template class V4R_EXPORTS v4r::GlobalNNClassifier<flann::L1, pcl::PointXYZ>;
+template class V4R_EXPORTS v4r::GlobalNNClassifier<v4r::Metrics::HistIntersectionUnionDistance, pcl::PointXYZ>;
 }
 
 
