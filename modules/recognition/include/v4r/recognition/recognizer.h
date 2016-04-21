@@ -58,6 +58,7 @@ namespace v4r
             double merge_close_hypotheses_angle_; /// @brief defines the maximum angle in degrees for clusters to be merged together
             int resolution_mm_model_assembly_; /// @brief the resolution in millimeters of the model when it gets assembled into a point cloud
             double max_distance_; /// @brief max distance in meters for recognition
+            bool vis_for_paper_;   /// @brief if true, optimizes visualization to take screenshots used externally (white background, no titles,...)
 
             Parameter(
                     double voxel_size_icp = 0.0025f,
@@ -67,7 +68,8 @@ namespace v4r
                     double merge_close_hypotheses_dist = 0.02f,
                     double merge_close_hypotheses_angle = 10.f,
                     int resolution_mm_model_assembly = 5,
-                    double max_distance = std::numeric_limits<double>::max())
+                    double max_distance = std::numeric_limits<double>::max(),
+                    bool vis_for_paper = false)
                 : voxel_size_icp_ (voxel_size_icp),
                   max_corr_distance_ (max_corr_distance),
                   normal_computation_method_ (normal_computation_method),
@@ -75,7 +77,8 @@ namespace v4r
                   merge_close_hypotheses_dist_ (merge_close_hypotheses_dist),
                   merge_close_hypotheses_angle_ (merge_close_hypotheses_angle),
                   resolution_mm_model_assembly_ (resolution_mm_model_assembly),
-                  max_distance_ (max_distance)
+                  max_distance_ (max_distance),
+                  vis_for_paper_ (vis_for_paper)
             {}
         }param_;
 
@@ -95,6 +98,7 @@ namespace v4r
 
         mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
         mutable int vp1_, vp2_, vp3_;
+        mutable std::vector<std::string> coordinate_axis_ids_;
 
         /** @brief: generated object hypotheses from correspondence grouping (before verification) */
         std::vector<ModelTPtr> models_;

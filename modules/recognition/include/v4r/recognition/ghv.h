@@ -93,6 +93,8 @@ public:
         float min_ratio_cluster_explained_; /// @brief defines the minimum ratio a smooth cluster has to be explained by the visible points (given there are at least 100 points)
         bool z_adaptive_;   /// @brief if true, scales the smooth segmentation parameters linear with distance (constant till 1m at the given parameters)
 
+        bool vis_for_paper_; /// @brief optimizes visualization for paper (white background, no text labels...)
+
         Parameter (
                 double color_sigma_l = 40.f,
                 double color_sigma_ab = 20.f,
@@ -122,7 +124,8 @@ public:
                 float cluster_tolerance = 0.01f, //0.015f;
                 int min_points = 100, // 20
                 float min_ratio_cluster_explained = 0.5,
-                bool z_adaptive = true
+                bool z_adaptive = true,
+                bool vis_for_paper = false
                 )
             :
               HypothesisVerification<ModelT, SceneT>::Parameter(),
@@ -154,7 +157,8 @@ public:
               cluster_tolerance_ (cluster_tolerance),
               min_points_ (min_points),
               min_ratio_cluster_explained_ ( min_ratio_cluster_explained ),
-              z_adaptive_ ( z_adaptive )
+              z_adaptive_ ( z_adaptive ),
+              vis_for_paper_ ( vis_for_paper )
         {}
     }param_;
 
@@ -168,6 +172,7 @@ private:
     using HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose;
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_, rm_vis_, vis_pairwise_;
+    mutable std::vector<std::string> coordinate_axes_ids_;
     mutable int vp_active_hypotheses_, vp_scene_, vp_model_fitness_, vp_scene_fitness_;
     mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6, rm_v7, rm_v8, rm_v9, rm_v10, rm_v11, rm_v12, vp_pair_1_, vp_pair_2_;
 

@@ -23,6 +23,7 @@ ObjectHypothesis<pcl::PointXYZRGB>::visualize(const pcl::PointCloud<pcl::PointXY
     vis_->removeAllPointClouds();
     vis_->removeAllShapes();
     vis_->addPointCloud(scene.makeShared(), "scene");
+    vis_->setBackgroundColor(1,1,1);
     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr model_cloud = model_->getAssembled( 3 );
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_aligned ( new pcl::PointCloud<pcl::PointXYZRGB>() );
     pcl::copyPointCloud(*model_cloud, *model_aligned);

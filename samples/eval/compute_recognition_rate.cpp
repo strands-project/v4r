@@ -21,6 +21,7 @@ namespace po = boost::program_options;
 float rotation_error_threshold_deg;
 float translation_error_threshold_m;
 float occlusion_threshold;
+std::vector<std::string> coordinate_system_ids_;
 
 typedef pcl::PointXYZRGB PointT;
 typedef v4r::Model<PointT> ModelT;
@@ -319,8 +320,6 @@ main (int argc, char ** argv)
         vis->createViewPort(0, 0, 0.33, 1, vp1);
         vis->createViewPort(0.33, 0, 0.66, 1, vp2);
         vis->createViewPort(0.66, 0, 1, 1, vp3);
-        vis->addText("Ground-Truth", 10, 10, 20, 0.f, 0.f, 0.f, "gt", vp2);
-        vis->addText("Recognized Objects", 10, 10, 20, 0.f, 0.f, 0.f, "or", vp3);
         source.reset(new v4r::ModelOnlySource<pcl::PointXYZRGBNormal, PointT>());
         source->setPath (models_dir);
         source->setLoadViews (false);
@@ -420,8 +419,6 @@ main (int argc, char ** argv)
 
                    if(visualize)
                    {
-                       vis->removeCoordinateSystem(vp2);
-                       vis->removeCoordinateSystem(vp3);
                        ModelTPtr model;
                        source->getModelById( model_files[model_id], model );
                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
@@ -437,7 +434,8 @@ main (int argc, char ** argv)
                            Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
                            Eigen::Affine3f affine_trans;
                            affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
-                           vis->addCoordinateSystem(0.1f, affine_trans, vp3);
+                           std::stringstream co_id; co_id << coordinate_system_ids_.size();
+                           vis->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp3);
                            vis->setBackgroundColor(1,1,1,vp3);
 
                        }
@@ -459,7 +457,8 @@ main (int argc, char ** argv)
                            Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
                            Eigen::Affine3f affine_trans;
                            affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
-                           vis->addCoordinateSystem(0.1f, affine_trans, vp2);
+                           std::stringstream co_id; co_id << coordinate_system_ids_.size();
+                           vis->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp2);
                            vis->setBackgroundColor(1,1,1,vp2);
                        }
                    }
@@ -474,16 +473,19 @@ main (int argc, char ** argv)
                    scene_cloud.sensor_orientation_ = Eigen::Quaternionf::Identity();
                    scene_cloud.sensor_origin_ = Eigen::Vector4f::Zero(4);
                    vis->addPointCloud(scene_cloud.makeShared(), "scene", vp1);
-                   vis->addText(test_set_dir + "/" + view_files[view_id] + ".pcd", 10, 10, 10, 1.f, 1.f, 1.f, "scene_text", vp1);
-                   vis->addText("ground-truth objects (occluded objects in gray)", 10, 10, 20, 1.f, 1.f, 1.f, "gt_text", vp2);
+                   vis->setBackgroundColor(1,1,1,vp1);
+                   vis->addText(test_set_dir + "/" + view_files[view_id] + ".pcd", 10, 10, 15, 0.f, 0.f, 0.f, "scene_text", vp1);
+                   vis->addText("ground-truth objects (occluded objects in gray)", 10, 10, 10, 0.f, 0.f, 0.f, "gt_text", vp2);
                    std::stringstream rec_text;
                    rec_text << "recognized objects (tp: " << tp << ", fp: " << fp << ", fn: " << fn; //", fscore: " << fscore << ")";
                    if(tp)
                        rec_text << " trans_error: " << sum_translation_error/tp;
                    rec_text << ")";
-                   vis->addText(rec_text.str(), 10, 10, 20, 1.f, 1.f, 1.f, "rec_text", vp3);
+                   vis->addText(rec_text.str(), 10, 10, 15, 0.f, 0.f, 0.f, "rec_text", vp3);
                    vis->resetCamera();
                    vis->spin();
+                   vis->removeCoordinateSystem(vp2);
+                   vis->removeCoordinateSystem(vp3);
                }
            }
         }

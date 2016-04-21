@@ -639,6 +639,8 @@ GlobalRecognizer<PointT>::visualize()
         vis_.reset ( new pcl::visualization::PCLVisualizer("Global recognition results") );
         vis_->createViewPort(0,0,0.5,1,vp1_);
         vis_->createViewPort(0.5,0,1,1,vp2_);
+        vis_->setBackgroundColor(1,1,1,vp1_);
+        vis_->setBackgroundColor(1,1,1,vp2_);
     }
     vis_->removeAllPointClouds();
     vis_->removeAllShapes();
@@ -676,11 +678,11 @@ GlobalRecognizer<PointT>::visualize()
             const ModelT &m = *models_per_cluster_[i][k];
             std::stringstream model_id; model_id << m.id_ << ": " << dist_models_per_cluster_[i][k];
             std::stringstream unique_id; unique_id << i << "_" << k;
-            vis_->addText(model_id.str(), 12, 12 + 12*disp_id, 10,
-                          rgb_cluster_colors(0, i)/255.f,
-                          rgb_cluster_colors(1, i)/255.f,
-                          rgb_cluster_colors(2, i)/255.f,
-                          unique_id.str(), vp2_);
+//            vis_->addText(model_id.str(), 12, 12 + 12*disp_id, 10,
+//                          rgb_cluster_colors(0, i)/255.f,
+//                          rgb_cluster_colors(1, i)/255.f,
+//                          rgb_cluster_colors(2, i)/255.f,
+//                          unique_id.str(), vp2_);
             disp_id++;
         }
     }

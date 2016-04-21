@@ -1038,16 +1038,21 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
         rm_vis_->createViewPort(0.75, 0.75 , 0.875   ,1   , rm_v11);
         rm_vis_->createViewPort(0.875, 0.75 , 1   ,1   , rm_v12);
 
+        rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v1);
         rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v2);
         rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v3);
         rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v4);
         rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v5);
+        rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v6);
+        rm_vis_->setBackgroundColor(255.f, 255.f, 255.f, rm_v7);
     }
 
     rm_vis_->removeAllPointClouds();
     rm_vis_->removeAllShapes();
 
-    rm_vis_->addText("scene",10,10,12,1,1,1,"scene",rm_v1);
+    if(!param_.vis_for_paper_)
+        rm_vis_->addText("scene",10,10,12,1,1,1,"scene",rm_v1);
+
     rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene1",rm_v1);
 
 #ifdef L_HIST
@@ -1187,7 +1192,10 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     }
 
     std::stringstream txt; txt << "visible ratio: " << std::fixed << std::setprecision(2) << (float)rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
-    rm_vis_->addText(txt.str(),10,10,12,0,0,0,"visible model cloud",rm_v2);
+
+    if(!param_.vis_for_paper_)
+        rm_vis_->addText(txt.str(),10,10,12,0,0,0,"visible model cloud",rm_v2);
+
     rm_vis_->addPointCloud(visible_cloud_colored, "model2",rm_v2);
     rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
                                              5, "model2", rm_v2);
@@ -1241,9 +1249,13 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
             label_colors(0,i) = r;
             label_colors(1,i) = g;
             label_colors(2,i) = b;
-            std::stringstream lbl_txt; lbl_txt << std::fixed << std::setprecision(2) << rm.explained_pts_per_smooth_cluster_[i] << " / " << smooth_label_count_[i];
-            std::stringstream txt_id; txt_id << "smooth_cluster_txt " << i;
-            rm_vis_->addText( lbl_txt.str(), 10, 10+12*i, 12, r/255, g/255, b/255, txt_id.str(), rm_v4);
+
+            if(!param_.vis_for_paper_)
+            {
+                std::stringstream lbl_txt; lbl_txt << std::fixed << std::setprecision(2) << rm.explained_pts_per_smooth_cluster_[i] << " / " << smooth_label_count_[i];
+                std::stringstream txt_id; txt_id << "smooth_cluster_txt " << i;
+                rm_vis_->addText( lbl_txt.str(), 10, 10+12*i, 12, r/255, g/255, b/255, txt_id.str(), rm_v4);
+            }
         }
 
         for(size_t i=0; i < scene_smooth_labels_.size(); i++)

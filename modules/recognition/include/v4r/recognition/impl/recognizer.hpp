@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013 Aitor Aldoma
+ * Copyright (c) 2013 Aitor Aldoma, Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -169,9 +169,13 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         vis_->createViewPort(0,0,1,0.33,vp1_);
         vis_->createViewPort(0,0.33,1,0.66,vp2_);
         vis_->createViewPort(0,0.66,1,1,vp3_);
-        vis_->addText("input cloud", 10, 10, 20, 1, 1, 1, "input", vp1_);
-        vis_->addText("generated hypotheses", 10, 10, 20, 0, 0, 0, "generated hypotheses", vp2_);
-        vis_->addText("verified hypotheses", 10, 10, 20, 0, 0, 0, "verified hypotheses", vp3_);
+
+        if(!param_.vis_for_paper_)
+        {
+            vis_->addText("input cloud", 10, 10, 20, 1, 1, 1, "input", vp1_);
+            vis_->addText("generated hypotheses", 10, 10, 20, 0, 0, 0, "generated hypotheses", vp2_);
+            vis_->addText("verified hypotheses", 10, 10, 20, 0, 0, 0, "verified hypotheses", vp3_);
+        }
     }
 
     vis_->removeAllPointClouds();
@@ -185,7 +189,16 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
     vis_cloud->sensor_origin_ = zero_origin;
     vis_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
     vis_->addPointCloud(vis_cloud, "input cloud", vp1_);
-    vis_->setBackgroundColor(.0f, .0f, .0f, vp2_);
+
+    if(param_.vis_for_paper_)
+    {
+        vis_->setBackgroundColor(1,1,1,vp1_);
+        for(size_t co_id=0; co_id<coordinate_axis_ids_.size(); co_id++)
+            vis_->removeCoordinateSystem( coordinate_axis_ids_[co_id] );
+        coordinate_axis_ids_.clear();
+    }
+    else
+        vis_->setBackgroundColor(.0f, .0f, .0f, vp1_);
 
     for(size_t i=0; i<models_.size(); i++)
     {
@@ -197,8 +210,23 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
+
+        if(param_.vis_for_paper_)
+        {
+            Eigen::Matrix4f tf_tmp = transforms_[i];
+            Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
+            Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
+            Eigen::Affine3f affine_trans;
+            affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+            std::stringstream co_id; co_id << i << "vp2";
+            vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp2_);
+            coordinate_axis_ids_.push_back(co_id.str());
+        }
     }
-    vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
+    if(param_.vis_for_paper_)
+        vis_->setBackgroundColor(1,1,1,vp2_);
+    else
+        vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
 
     for(size_t i=0; i<models_.size(); i++)
     {
@@ -213,6 +241,18 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
+
+        if(param_.vis_for_paper_)
+        {
+            Eigen::Matrix4f tf_tmp = transforms_[i];
+            Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
+            Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
+            Eigen::Affine3f affine_trans;
+            affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+            std::stringstream co_id; co_id << i << "vp3";
+            vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp3_);
+            coordinate_axis_ids_.push_back(co_id.str());
+        }
     }
 
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
