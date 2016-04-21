@@ -193,8 +193,10 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
     if(param_.vis_for_paper_)
     {
         vis_->setBackgroundColor(1,1,1,vp1_);
+#if PCL_VERSION >= 10702
         for(size_t co_id=0; co_id<coordinate_axis_ids_.size(); co_id++)
             vis_->removeCoordinateSystem( coordinate_axis_ids_[co_id] );
+#endif
         coordinate_axis_ids_.clear();
     }
     else
@@ -211,6 +213,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
 
+#if PCL_VERSION >= 10702
         if(param_.vis_for_paper_)
         {
             Eigen::Matrix4f tf_tmp = transforms_[i];
@@ -222,6 +225,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
             vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp2_);
             coordinate_axis_ids_.push_back(co_id.str());
         }
+#endif
     }
     if(param_.vis_for_paper_)
         vis_->setBackgroundColor(1,1,1,vp2_);
@@ -242,6 +246,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
 
+#if PCL_VERSION >= 10702
         if(param_.vis_for_paper_)
         {
             Eigen::Matrix4f tf_tmp = transforms_[i];
@@ -253,6 +258,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
             vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp3_);
             coordinate_axis_ids_.push_back(co_id.str());
         }
+#endif
     }
 
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);

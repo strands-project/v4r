@@ -434,6 +434,7 @@ main (int argc, char ** argv)
                            pcl::transformPointCloud(*model_cloud, *model_aligned, rec_pose[rec_files[r_id]]);
                            vis->addPointCloud(model_aligned, rec_files[r_id], vp3);
 
+#if PCL_VERSION >= 10702
                            Eigen::Matrix4f tf_tmp = rec_pose[rec_files[r_id]];
                            Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
                            Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
@@ -442,7 +443,7 @@ main (int argc, char ** argv)
                            std::stringstream co_id; co_id << coordinate_system_ids_.size();
                            vis->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp3);
                            vis->setBackgroundColor(1,1,1,vp3);
-
+#endif
                        }
 
                        for(size_t gt_id=0; gt_id<gt_files.size(); gt_id++)
@@ -457,6 +458,7 @@ main (int argc, char ** argv)
                                vis->addPointCloud(model_aligned, handler_occ, "gt_" + gt_files[gt_id], vp2);
                            }
 
+#if PCL_VERSION >= 10702
                            Eigen::Matrix4f tf_tmp = gt_pose[gt_files[gt_id]];
                            Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
                            Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
@@ -465,6 +467,7 @@ main (int argc, char ** argv)
                            std::stringstream co_id; co_id << coordinate_system_ids_.size();
                            vis->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp2);
                            vis->setBackgroundColor(1,1,1,vp2);
+#endif
                        }
                    }
                }
