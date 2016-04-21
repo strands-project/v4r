@@ -96,7 +96,7 @@ public:
         bool vis_for_paper_; /// @brief optimizes visualization for paper (white background, no text labels...)
 
         Parameter (
-                double color_sigma_l = 40.f,
+                double color_sigma_l = 100.f,
                 double color_sigma_ab = 20.f,
                 double sigma_normals_deg = 30.f,
                 double regularizer = 1.f,
@@ -113,8 +113,8 @@ public:
                 bool use_noise_model = true,
                 bool visualize_go_cues = false,
                 int knn_inliers = 3,
-                float min_visible_ratio = 0.10f,
-                float min_model_fitness_lower_bound = 0.15f,
+                float min_visible_ratio = 0.15f,
+                float min_model_fitness_lower_bound = 0.20f,
                 float min_model_fitness_upper_bound = 0.40f,
                 int knn_color_neighborhood = 10,
                 float color_std_dev_multiplier_threshold = 1.f,

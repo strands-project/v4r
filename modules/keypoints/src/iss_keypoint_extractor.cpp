@@ -36,7 +36,9 @@ IssKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
     indices_.clear();
 }
 
+#if PCL_VERSION >= 100702
 template class V4R_EXPORTS IssKeypointExtractor<pcl::PointXYZ>;
 template class V4R_EXPORTS IssKeypointExtractor<pcl::PointXYZRGB>;
+#endif
 
 }

@@ -17,7 +17,7 @@ if(BUILD_EXAMPLES)
   V4R_DEFINE_CPP_EXAMPLE(depth_map_renderer)
 
   #SET(V4R_DEPS v4r_ml v4r_recognition v4r_rendering v4r_segmentation)
-  #V4R_DEFINE_CPP_EXAMPLE(esf_object_classifier)
+ #V4R_DEFINE_CPP_EXAMPLE(esf_object_classifier)
 
   SET(V4R_DEPS v4r_object_modelling)
   V4R_DEFINE_CPP_EXAMPLE(incremental_object_learning)

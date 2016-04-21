@@ -74,7 +74,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             ("models_dir,m", po::value<std::string>(&models_dir)->required(), "directory containing the object models")
 
             ("do_sift", po::value<bool>(&do_sift)->default_value(true), "if true, generates hypotheses using SIFT (visual texture information)")
-            ("sift_knn", po::value<size_t>(&paramSIFT.knn_)->default_value(paramSIFT.knn_), "sets the number k of matches for each extracted SIFT feature to its k nearest neighbors")
+            ("sift_knn", po::value<size_t>(&paramSIFT.knn_)->default_value(7), "sets the number k of matches for each extracted SIFT feature to its k nearest neighbors")
             ("sift_use_codebook", po::value<bool>(&paramSIFT.use_codebook_)->default_value(false), "if true, performs K-Means clustering on all signatures being trained.")
             ("sift_codebook_size", po::value<size_t>(&paramSIFT.codebook_size_)->default_value(paramSIFT.codebook_size_), "number of clusters being computed for the codebook (K-Means)")
             ("sift_codebook_filter_ratio", po::value<float>(&paramSIFT.codebook_filter_ratio_)->default_value(paramSIFT.codebook_filter_ratio_), "signatures clustered into a cluster which occures more often (w.r.t the total number of signatures) than this threshold, will be rejected.")
@@ -100,7 +100,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             ("shot_border_width", po::value<int>(&paramSHOT.boundary_width_)->default_value(paramSHOT.boundary_width_), "Width in pixel of the depth discontinuity.")
             ("shot_visualize_keypoints", po::bool_switch(&paramSHOT.visualize_keypoints_), "If set, visualizes the extracted 3D keypoints")
             ("shot_z", po::value<double>(&paramSHOT.max_distance_)->default_value(1.5f), "points with z-component higher than chop_z_ will be ignored for SHOT (low chop_z reduces computation time and false positives (noise increase with z)")
-            ("shot_knn", po::value<size_t>(&paramSHOT.knn_)->default_value(paramSHOT.knn_), "sets the number k of matches for each extracted SHOT feature to its k nearest neighbors")
+            ("shot_knn", po::value<size_t>(&paramSHOT.knn_)->default_value(3), "sets the number k of matches for each extracted SHOT feature to its k nearest neighbors")
             ("shot_support_radius", po::value<float>(&shot_support_radius)->default_value(shot_support_radius), "Support radius for SHOT feature description")
             ("shot_codebook_size", po::value<size_t>(&paramSHOT.codebook_size_)->default_value(paramSHOT.codebook_size_), "number of clusters being computed for the codebook (K-Means)")
             ("shot_codebook_filter_ratio", po::value<float>(&paramSHOT.codebook_filter_ratio_)->default_value(paramSHOT.codebook_filter_ratio_), "signatures clustered into a cluster which occures more often (w.r.t the total number of signatures) than this threshold, will be rejected.")
@@ -110,7 +110,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             ("esf_vis", po::bool_switch(&paramESF.visualize_clusters_), "If set, visualizes the cluster and displays recognition information for each.")
             ("esf_knn", po::value<size_t>(&paramESF.knn_)->default_value(paramESF.knn_), "sets the number k of matches for each extracted global feature to its k nearest neighbors")
             ("esf_check_elongation", po::value<bool>(&paramESF.check_elongations_)->default_value(paramESF.check_elongations_), "if true, checks each segment for its elongation along the two eigenvectors (with greatest eigenvalue) if they fit the matched model")
-            ("esf_use_table_plane_for_alignment", po::value<bool>(&paramESF.use_table_plane_for_alignment_)->default_value(paramESF.use_table_plane_for_alignment_), "if true, aligns the object model such that the centroid is equal to the centroid of the segmented cluster projected onto the found table plane. The z-axis is aligned with the normal vector of the plane and the other axis are on the table plane")
+            ("esf_use_table_plane_for_alignment", po::value<bool>(&paramESF.use_table_plane_for_alignment_)->default_value(1), "if true, aligns the object model such that the centroid is equal to the centroid of the segmented cluster projected onto the found table plane. The z-axis is aligned with the normal vector of the plane and the other axis are on the table plane")
 
             ("do_alexnet", po::value<bool>(&do_alexnet)->default_value(false), "if true, generates hypotheses using AlexNet features ")
             ("do_svm_cross_validation", po::value<bool>(&paramSVM.do_cross_validation_)->default_value(paramSVM.do_cross_validation_), "if true, does k cross validation on the svm training data")
@@ -224,12 +224,14 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             local->addKeypointExtractor (keypoint_extractor);
         }
 
+#if PCL_VERSION >= 100702
         if ( keypoint_type == KeypointType::ISS )
         {
             typename IssKeypointExtractor<PointT>::Ptr extr (new IssKeypointExtractor<PointT>);
             typename KeypointExtractor<PointT>::Ptr keypoint_extractor = boost::static_pointer_cast<KeypointExtractor<PointT> > (extr);
             local->addKeypointExtractor (keypoint_extractor);
         }
+#endif
 
         if ( keypoint_type == KeypointType::NARF )
         {
@@ -238,12 +240,14 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             local->addKeypointExtractor (keypoint_extractor);
         }
 
+#if PCL_VERSION >= 100702
         if ( keypoint_type == KeypointType::HARRIS3D )
         {
             typename Harris3DKeypointExtractor<PointT>::Ptr extr (new Harris3DKeypointExtractor<PointT>);
             typename KeypointExtractor<PointT>::Ptr keypoint_extractor = boost::static_pointer_cast<KeypointExtractor<PointT> > (extr);
             local->addKeypointExtractor (keypoint_extractor);
         }
+#endif
 
         typename Recognizer<PointT>::Ptr cast_recog = boost::static_pointer_cast<Recognizer<PointT> > (local);
         LOG(INFO) << "Feature Type: " << cast_recog->getFeatureType();
