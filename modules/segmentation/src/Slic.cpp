@@ -217,12 +217,12 @@ void Slic::drawContours(cv::Mat_<cv::Vec3b> &im_rgb, const cv::Mat_<int> &labels
 /**
  * getSeeds
  */
-void Slic::getSeeds(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint> &seeds, const int &step)
+void Slic::getSeeds(const cv::Mat_<cv::Vec3d> &_im_lab, std::vector<SlicPoint> &_seeds, const int &step)
 {
   int numseeds(0);
   int xe, n(0);
-  int width = im_lab.cols;
-  int height = im_lab.rows;
+  int width = _im_lab.cols;
+  int height = _im_lab.rows;
 
   int xstrips = (0.5+double(width)/double(step));
   int ystrips = (0.5+double(height)/double(step));
@@ -240,18 +240,18 @@ void Slic::getSeeds(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint> &s
 
   numseeds = xstrips*ystrips;
 
-  seeds.resize(numseeds);
+  _seeds.resize(numseeds);
 
   for( int y = 0; y < ystrips; y++ )
   {
     int ye = y*yerrperstrip;
     for( int x = 0; x < xstrips; x++ )
     {
-      SlicPoint &pt = seeds[n];
+      SlicPoint &pt = _seeds[n];
       xe = x*xerrperstrip;
       pt.x = (x*step+xoff+xe);
       pt.y = (y*step+yoff+ye); 
-      const cv::Vec3d &lab = im_lab(pt.y,pt.x);
+      const cv::Vec3d &lab = _im_lab(pt.y,pt.x);
       pt.l = lab[0];
       pt.a = lab[1];
       pt.b = lab[2];
@@ -264,12 +264,12 @@ void Slic::getSeeds(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint> &s
  * performSlic
  * Performs k mean segmentation. It is fast because it looks locally, not over the entire image.
  */
-void Slic::performSlic(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint> &seeds, cv::Mat_<int> &labels, const int &step, const double &m)
+void Slic::performSlic(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint> &_seeds, cv::Mat_<int> &labels, const int &step, const double &m)
 {
   int width = im_lab.cols;
   int height = im_lab.rows;
   int sz = width*height;
-	const int numk = seeds.size();
+    const int numk = _seeds.size();
 	int offset = step;
 	
   clustersize.clear();
@@ -294,7 +294,7 @@ void Slic::performSlic(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint>
 
 		for( int n = 0; n < numk; n++ )
 		{
-      const SlicPoint &pt = seeds[n];
+      const SlicPoint &pt = _seeds[n];
       y1 = max(0.0, pt.y-offset);
       y2 = min((double)height, pt.y+offset);
       x1 = max(0.0, pt.x-offset);
@@ -346,7 +346,7 @@ void Slic::performSlic(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint>
 		{
       if( clustersize[k] <= 0 ) clustersize[k] = 1;
       inv = 1./clustersize[k];
-      SlicPoint &pt = seeds[k];
+      SlicPoint &pt = _seeds[k];
       const SlicPoint &sig = sigma[k];
 
 			pt.l = sig.l*inv;
