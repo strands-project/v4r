@@ -24,16 +24,8 @@
 #ifndef V4R_REG_VIEWS_SOURCE_H_
 #define V4R_REG_VIEWS_SOURCE_H_
 
-#include "source.h"
-#include <pcl/io/io.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/visualization/pcl_visualizer.h>
-
+#include <v4r/recognition/source.h>
 #include <v4r/core/macros.h>
-#include <v4r/common/faat_3d_rec_framework_defines.h>
-#include <v4r/io/eigen.h>
-#include <v4r/io/filesystem.h>
 
 namespace v4r
 {
