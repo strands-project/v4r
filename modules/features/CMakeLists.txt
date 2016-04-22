@@ -21,7 +21,6 @@ ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/impl/pcl_ourcvfh.hpp
 
 
     list(APPEND feat_headers
-${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/global_alexnet_cnn_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ComputeImGradientDescriptors.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_KD_ORB.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/types.h
@@ -52,8 +51,11 @@ if(HAVE_CAFFE)
     list(APPEND FEATURE_LIBRARIES ${CAFFE_LIBRARIES})
     v4r_include_directories(${CAFFE_INCLUDE_DIRS})
     list(APPEND feat_srcs
-        ${CMAKE_CURRENT_LIST_DIR}/src/global_alexnet_cnn_estimator.cpp
-)
+            ${CMAKE_CURRENT_LIST_DIR}/src/global_alexnet_cnn_estimator.cpp
+        )
+    list(APPEND feat_headers
+            ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/global_alexnet_cnn_estimator.h
+        )
 endif()
 
 v4r_set_module_sources(HEADERS ${feat_headers} SOURCES ${feat_srcs} ${feat_headers})

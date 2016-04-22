@@ -188,5 +188,6 @@
 #cmakedefine HAVE_OPENCV
 #cmakedefine HAVE_CERES
 #cmakedefine HAVE_ASSIMP
+#cmakedefine HAVE_CAFFE
 
 

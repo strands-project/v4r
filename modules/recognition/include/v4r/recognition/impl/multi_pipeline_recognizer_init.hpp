@@ -9,7 +9,9 @@
 #include <v4r/recognition/global_recognizer.h>
 #include <v4r/recognition/registered_views_source.h>
 #include <v4r/features/esf_estimator.h>
+#ifdef HAVE_CAFFE
 #include <v4r/features/global_alexnet_cnn_estimator.h>
+#endif
 #include <v4r/features/ourcvfh_estimator.h>
 #include <v4r/features/shot_local_estimator.h>
 //#include <v4r/features/shot_color_local_estimator.h>
@@ -285,6 +287,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
     }
 
 
+#ifdef HAVE_CAFFE
     if (do_alexnet)
     {
         // feature type
@@ -315,6 +318,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
         LOG(INFO) << "Feature Type: " << cast_recog->getFeatureType();
         addRecognizer(cast_recog);
     }
+#endif
 
     this->setDataSource(cast_source);
     initialize(false);
