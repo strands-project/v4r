@@ -98,12 +98,18 @@ private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_;
-    mutable int vp1_, vp2_;
+    mutable int vp1_, vp2_, vp3_, vp4_, vp5_;
+    mutable std::vector<std::string> coordinate_axis_ids_global_;
     void visualize();
-
 
     std::vector< std::vector<ModelTPtr> > models_per_cluster_; /// @brief models recognized in each cluster (only used for visualization)
     std::vector< std::vector<float> > dist_models_per_cluster_; /// @brief distance of each model recognized in each cluster (only used for visualization)
+    std::vector< std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_per_cluster_; /// @brief transform of each model recognized in each cluster (only used for visualization)
+
+    /// @brief just for visualization (to see effect of elongation check)
+    std::vector< std::vector<ModelTPtr> > models_per_cluster2_; /// @brief models recognized in each cluster (only used for visualization)
+    std::vector< std::vector<float> > dist_models_per_cluster2_; /// @brief distance of each model recognized in each cluster (only used for visualization)
+    std::vector< std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_per_cluster2_; /// @brief transform of each model recognized in each cluster (only used for visualization)
 
 protected:
 

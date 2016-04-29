@@ -200,6 +200,7 @@ namespace v4r
 
           std::vector<std::vector<float> > scene_signatures_;
           std::vector<int> keypoint_indices_;
+          std::vector<int> keypoint_indices_unfiltered_;    ///@brief only for visualization
 
           /** \brief stores keypoint correspondences */
           typename std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;

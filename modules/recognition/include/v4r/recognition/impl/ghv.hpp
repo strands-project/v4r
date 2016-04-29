@@ -1290,6 +1290,7 @@ GHV<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &r
     rm_vis_->addText("scene and visible model",10,10,12,1,1,1,"scene_and_model",rm_v6);
     rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene_model_1", rm_v6);
     rm_vis_->addPointCloud(rm.visible_cloud_, "scene_model_2", rm_v6);
+    rm_vis_->addPointCloud(rm.visible_cloud_, "scene_model_4", rm_v4);
 
     rm_vis_->resetCamera();
     rm_vis_->spin();
@@ -1321,6 +1322,8 @@ GHV<ModelT, SceneT>::visualizePairwiseIntersection() const
             vis_pairwise_->addText(txt.str(), 10, 10, 12, 1.f, 1.f, 1.f, "intersection_text", vp_pair_1_ );
             vis_pairwise_->addPointCloud(rm_a.visible_cloud_, "cloud_a", vp_pair_1_);
             vis_pairwise_->addPointCloud(rm_b.visible_cloud_, "cloud_b", vp_pair_1_);
+            vis_pairwise_->setBackgroundColor(1,1,1,vp_pair_1_);
+            vis_pairwise_->setBackgroundColor(1,1,1,vp_pair_2_);
 //            vis.addPointCloud(rendered_vis_m_a.makeShared(), "cloud_ar",v2);
 //            vis.addPointCloud(rendered_vis_m_b.makeShared(), "cloud_br",v2);
             vis_pairwise_->resetCamera();

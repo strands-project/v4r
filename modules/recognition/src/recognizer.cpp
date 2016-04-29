@@ -213,7 +213,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
         pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
         vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
 
-#if PCL_VERSION > 100702
+#if PCL_VERSION >= 100702
         if(param_.vis_for_paper_)
         {
             Eigen::Matrix4f tf_tmp = transforms_[i];

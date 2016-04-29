@@ -43,18 +43,35 @@ LocalRecognitionPipeline<PointT>::visualizeKeypoints() const
     {
         pcl::PointCloud<PointT> colored_kps;
         pcl::PointCloud<pcl::Normal> kp_normals;
+        pcl::PointCloud<PointT> colored_kps_unfiltered;
+        pcl::PointCloud<pcl::Normal> kp_unfiltered_normals;
         pcl::copyPointCloud(*scene_, keypoint_indices_, colored_kps);
         pcl::copyPointCloud(*scene_normals_, keypoint_indices_, kp_normals);
+        pcl::copyPointCloud(*scene_, keypoint_indices_unfiltered_, colored_kps_unfiltered);
+        pcl::copyPointCloud(*scene_normals_, keypoint_indices_unfiltered_, kp_unfiltered_normals);
         for(PointT &p : colored_kps.points)
         {
             p.r=255.f;
             p.g=0.f;
             p.b=0.f;
         }
-        vis_->addPointCloudNormals<PointT, pcl::Normal>(colored_kps.makeShared(), kp_normals.makeShared(), 10, 0.05, "normals_model");
+        for(PointT &p : colored_kps_unfiltered.points)
+        {
+            p.r=0.f;
+            p.g=255.f;
+            p.b=0.f;
+        }
+
+//        vis_->addPointCloudNormals<PointT, pcl::Normal>(colored_kps_unfiltered.makeShared(), kp_unfiltered_normals.makeShared(), 10, 0.05, "kp_normals_unfiltered");
+        vis_->addPointCloud(colored_kps_unfiltered.makeShared(), "kps_unfiltered");
+        vis_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "kps_unfiltered");
+
+//        vis_->addPointCloudNormals<PointT, pcl::Normal>(colored_kps.makeShared(), kp_normals.makeShared(), 10, 0.05, "normals_model");
         vis_->addPointCloud(colored_kps.makeShared(), "kps");
         vis_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "kps");
+
     }
+    vis_->setBackgroundColor(1,1,1);
     vis_->resetCamera();
     vis_->spin();
 }
@@ -176,6 +193,9 @@ LocalRecognitionPipeline<PointT>::filterKeypoints (bool filter_signatures)
         return;
 
     std::vector<bool> kp_is_kept(keypoint_indices_.size(), true);
+
+    if(param_.visualize_keypoints_)
+        keypoint_indices_unfiltered_ = keypoint_indices_;
 
     typename pcl::search::KdTree<PointT>::Ptr tree;
     pcl::PointCloud<pcl::Normal>::Ptr normals_for_planarity_check;

@@ -588,9 +588,6 @@ GlobalRecognizer<PointT>::recognize()
 
     computeEigenBasis();
 
-    size_t feat_dimensions = estimator_->getFeatureDimensions();
-//    signatures_.resize(clusters_.size(), feat_dimensions);
-
     for(size_t i=0; i<clusters_.size(); i++)
     {
         indices_ = clusters_[i].indices;
@@ -601,7 +598,6 @@ GlobalRecognizer<PointT>::recognize()
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp;
         std::vector<float> distance;
         featureMatching( signature_tmp, i, models_tmp, transforms_tmp, distance);
-
         models_.insert(models_.end(), models_tmp.begin(), models_tmp.end());
         transforms_.insert(transforms_.end(), transforms_tmp.begin(), transforms_tmp.end());
 
@@ -610,12 +606,25 @@ GlobalRecognizer<PointT>::recognize()
         {
             models_per_cluster_.push_back(models_tmp);
             dist_models_per_cluster_.push_back(distance);
+            transforms_per_cluster_.push_back(transforms_tmp);
+
+
+            // also show results without elongation check
+            bool tmp = param_.check_elongations_;
+            param_.check_elongations_ = false;
+            std::vector<ModelTPtr> models_tmp2;
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp2;
+            std::vector<float> distance2;
+            featureMatching( signature_tmp, i, models_tmp2, transforms_tmp2, distance2);
+            param_.check_elongations_ = tmp;
+
+            models_per_cluster2_.push_back(models_tmp2);
+            dist_models_per_cluster2_.push_back(distance2);
+            transforms_per_cluster2_.push_back(transforms_tmp2);
         }
 //        signatures_.row(i) = signature_tmp;
     }
-//    std::ofstream f("/tmp/query_sig.txt");
-//    f<<signatures_<<std::endl;
-//    f.close();
+
     if (param_.icp_iterations_)
         poseRefinement();
 
@@ -623,8 +632,13 @@ GlobalRecognizer<PointT>::recognize()
     {
         visualize();
         models_per_cluster_.clear();
+        transforms_per_cluster_.clear();
         dist_models_per_cluster_.clear();
+        models_per_cluster2_.clear();
+        transforms_per_cluster2_.clear();
+        dist_models_per_cluster2_.clear();
     }
+
 
     indices_.clear();
 }
@@ -637,13 +651,27 @@ GlobalRecognizer<PointT>::visualize()
     if(!vis_)
     {
         vis_.reset ( new pcl::visualization::PCLVisualizer("Global recognition results") );
-        vis_->createViewPort(0,0,0.5,1,vp1_);
-        vis_->createViewPort(0.5,0,1,1,vp2_);
+        vis_->createViewPort(0  , 0  , 0.33, 0.5, vp1_);
+        vis_->createViewPort(0.33, 0  , 0.66  , 0.5, vp2_);
+        vis_->createViewPort(0.66, 0  , 1  , 0.5, vp3_);
+        vis_->createViewPort(0  , 0.5, 0.33, 1 , vp4_);
+        vis_->createViewPort(0.33, 0.5, 0.66  ,  1, vp5_);
+//        vis_->createViewPort(0.66, 0.5, 1  ,  1, vp6_);
+
         vis_->setBackgroundColor(1,1,1,vp1_);
         vis_->setBackgroundColor(1,1,1,vp2_);
+        vis_->setBackgroundColor(1,1,1,vp3_);
+        vis_->setBackgroundColor(1,1,1,vp4_);
+        vis_->setBackgroundColor(1,1,1,vp5_);
+//        vis_->setBackgroundColor(1,1,1,vp6_);
     }
     vis_->removeAllPointClouds();
     vis_->removeAllShapes();
+#if PCL_VERSION >= 100702
+        for(size_t co_id=0; co_id<coordinate_axis_ids_global_.size(); co_id++)
+            vis_->removeCoordinateSystem( coordinate_axis_ids_global_[co_id] );
+        coordinate_axis_ids_global_.clear();
+#endif
     vis_->addPointCloud(scene_, "cloud", vp1_);
 
 
@@ -669,6 +697,35 @@ GlobalRecognizer<PointT>::visualize()
         }
         *colored_cloud += cluster;
     }
+    vis_->addPointCloud(colored_cloud,"segments", vp2_);
+
+
+    for(size_t i=0; i < models_per_cluster2_.size(); i++)
+    {
+        for(size_t k=0; k<models_per_cluster2_[i].size(); k++)
+        {
+            const ModelT &m = *models_per_cluster2_[i][k];
+            const Eigen::Matrix4f &tf = transforms_per_cluster2_[i][k];
+
+            const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
+            std::stringstream model_label;
+            model_label << model_id << "_" << i << "_" << k << "_vp3";
+            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
+            pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
+            vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
+
+    #if PCL_VERSION >= 100702
+            Eigen::Matrix3f rot_tmp  = tf.block<3,3>(0,0);
+            Eigen::Vector3f trans_tmp = tf.block<3,1>(0,3);
+            Eigen::Affine3f affine_trans;
+            affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+            std::stringstream co_id; co_id << i << "vp3";
+            vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp3_);
+            coordinate_axis_ids_global_.push_back(co_id.str());
+    #endif
+        }
+    }
 
     size_t disp_id=0;
     for(size_t i=0; i < models_per_cluster_.size(); i++)
@@ -676,6 +733,7 @@ GlobalRecognizer<PointT>::visualize()
         for(size_t k=0; k<models_per_cluster_[i].size(); k++)
         {
             const ModelT &m = *models_per_cluster_[i][k];
+            const Eigen::Matrix4f &tf = transforms_per_cluster_[i][k];
             std::stringstream model_id; model_id << m.id_ << ": " << dist_models_per_cluster_[i][k];
             std::stringstream unique_id; unique_id << i << "_" << k;
 //            vis_->addText(model_id.str(), 12, 12 + 12*disp_id, 10,
@@ -684,9 +742,50 @@ GlobalRecognizer<PointT>::visualize()
 //                          rgb_cluster_colors(2, i)/255.f,
 //                          unique_id.str(), vp2_);
             disp_id++;
+
+
+            std::stringstream model_label, model_label_refined;
+            model_label << model_id << "_" << i << "_" << k << "_vp4";
+            model_label_refined << model_id << "_" << i << "_" << k << "_vp5";
+            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+            typename pcl::PointCloud<PointT>::Ptr model_aligned_refined ( new pcl::PointCloud<PointT>() );
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
+            pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
+            vis_->addPointCloud(model_aligned, model_label.str(), vp4_);
+
+    #if PCL_VERSION >= 100702
+            Eigen::Matrix3f rot_tmp  = tf.block<3,3>(0,0);
+            Eigen::Vector3f trans_tmp = tf.block<3,1>(0,3);
+            Eigen::Affine3f affine_trans;
+            affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+            std::stringstream co_id; co_id << i << "vp4";
+            vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp4_);
+            coordinate_axis_ids_global_.push_back(co_id.str());
+    #endif
         }
     }
-    vis_->addPointCloud(colored_cloud,"segments", vp2_);
+
+    for(size_t i=0; i<models_.size(); i++)
+    {
+        const ModelT &m = *models_[i];
+        const Eigen::Matrix4f &tf = transforms_[i];
+        std::stringstream model_label;
+        model_label << "model_" << i << "_vp5";
+        typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
+        pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
+        vis_->addPointCloud(model_aligned, model_label.str(), vp5_);
+
+#if PCL_VERSION >= 100702
+        Eigen::Matrix3f rot_tmp  = tf.block<3,3>(0,0);
+        Eigen::Vector3f trans_tmp = tf.block<3,1>(0,3);
+        Eigen::Affine3f affine_trans;
+        affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+        std::stringstream co_id; co_id << i << "vp5";
+        vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp5_);
+        coordinate_axis_ids_global_.push_back(co_id.str());
+#endif
+    }
     vis_->spin();
 }
 
