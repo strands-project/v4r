@@ -38,7 +38,7 @@ int main (int argc, char ** argv)
             ("output_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "output directory")
             ("use_indices,u", po::bool_switch(&use_indices), "if true, uses indices")
             ("invert_pose,t", po::bool_switch(&invert_pose), "if true, takes the inverse of the pose file (e.g. required for Willow Dataset)")
-            ("cloud_prefix,c", po::value<std::string>(&cloud_prefix)->default_value(cloud_prefix), "prefix of cloud names")
+            ("cloud_prefix,c", po::value<std::string>(&cloud_prefix)->default_value(cloud_prefix)->implicit_value(""), "prefix of cloud names")
             ("pose_prefix,p", po::value<std::string>(&pose_prefix)->default_value(pose_prefix), "prefix of camera pose names (e.g. transformation_)")
             ("indices_prefix,d", po::value<std::string>(&indices_prefix)->default_value(indices_prefix), "prefix of object indices names")
         ;
@@ -132,6 +132,7 @@ int main (int argc, char ** argv)
                     global_trans = global_trans.inverse();
 
                 v4r::setCloudPose(global_trans, *cloud);
+                v4r::io::createDirForFileIfNotExist(out_fn);
                 pcl::io::savePCDFileBinary(out_fn, *cloud);
             }
             else
