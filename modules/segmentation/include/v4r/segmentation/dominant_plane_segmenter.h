@@ -50,24 +50,25 @@ class V4R_EXPORTS DominantPlaneSegmenter : public Segmenter<PointT>
     using Segmenter<PointT>::normals_;
     using Segmenter<PointT>::clusters_;
     using Segmenter<PointT>::scene_;
-    using Segmenter<PointT>::table_plane_;
+    using Segmenter<PointT>::dominant_plane_;
+    using Segmenter<PointT>::visualize_;
 
 public:
     class Parameter
     {
     public:
         int min_cluster_size_;
-        double object_min_height_;
-        double object_max_height_;
-        double chop_z_;
+        float object_min_height_;
+        float object_max_height_;
+        float chop_z_;
         float min_distance_between_clusters_;
         int w_size_px_;
         float downsampling_size_;
         bool compute_table_plane_only_;
         Parameter (int min_cluster_size=500,
-                   double object_min_height = 0.01f,
-                   double object_max_height = 0.7f,
-                   double chop_at_z = 3.f,
+                   float object_min_height = 0.01f,
+                   float object_max_height = 0.7f,
+                   float chop_at_z = 3.f,
                    float min_distance_between_clusters = 0.03f,
                    int w_size_px = 5,
                    float downsampling_size = 0.005f,
@@ -82,25 +83,26 @@ public:
               w_size_px_ (w_size_px),
               downsampling_size_ (downsampling_size),
               compute_table_plane_only_ ( compute_table_plane_only )
-        {
-
-        }
+        {}
     }param_;
 
-    DominantPlaneSegmenter(const Parameter &p = Parameter() ) : param_(p)  { }
+    DominantPlaneSegmenter(const Parameter &p = Parameter() ) : param_(p)  { visualize_ = false; }
 
     DominantPlaneSegmenter(int argc, char **argv)
     {
+        visualize_ = false;
         po::options_description desc("Dominant Plane Segmentation\n=====================");
         desc.add_options()
                 ("help,h", "produce help message")
-                ("min_cluster_size", po::value<int>(&param_.min_cluster_size_)->default_value(param_.min_cluster_size_), "")
-                ("sensor_noise_max", po::value<double>(&param_.object_min_height_)->default_value(param_.object_min_height_), "")
-                ("chop_z_segmentation", po::value<double>(&param_.chop_z_)->default_value(param_.chop_z_), "")
-                ("min_distance_between_clusters", po::value<float>(&param_.min_distance_between_clusters_)->default_value(param_.min_distance_between_clusters_), "")
-                ("w_size_px", po::value<int>(&param_.w_size_px_)->default_value(param_.w_size_px_), "")
-                ("downsampling_size", po::value<float>(&param_.downsampling_size_)->default_value(param_.downsampling_size_), "")
-                ("compute_table_plane_only", po::value<bool>(&param_.compute_table_plane_only_)->default_value(param_.compute_table_plane_only_), "if true, only computes the table plane and not the Euclidean clusters. This should be faster.")
+                ("seg_min_cluster_size", po::value<int>(&param_.min_cluster_size_)->default_value(param_.min_cluster_size_), "")
+                ("seg_obj_min_height", po::value<float>(&param_.object_min_height_)->default_value(param_.object_min_height_), "")
+                ("seg_obj_max_height", po::value<float>(&param_.object_max_height_)->default_value(param_.object_max_height_), "")
+                ("seg_chop_z", po::value<float>(&param_.chop_z_)->default_value(param_.chop_z_), "")
+                ("seg_min_distance_between_clusters", po::value<float>(&param_.min_distance_between_clusters_)->default_value(param_.min_distance_between_clusters_), "")
+                ("seg_w_size_px", po::value<int>(&param_.w_size_px_)->default_value(param_.w_size_px_), "")
+                ("seg_downsampling_size", po::value<float>(&param_.downsampling_size_)->default_value(param_.downsampling_size_), "")
+                ("seg_compute_table_plane_only", po::value<bool>(&param_.compute_table_plane_only_)->default_value(param_.compute_table_plane_only_), "if true, only computes the table plane and not the Euclidean clusters. This should be faster.")
+                ("visualize_segments", po::bool_switch(&visualize_), "If set, visualizes segmented clusters.")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
@@ -109,6 +111,9 @@ public:
         try { po::notify(vm); }
         catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
     }
+
+
+    bool getRequiresNormals() { return false; }
 
     void
     segment()
@@ -130,10 +135,13 @@ public:
         }
         else
         {
-            dps.compute_fast (clusters);
+            dps.compute_fast( clusters);
             dps.getIndicesClusters (clusters_);
         }
-        dps.getTableCoefficients (table_plane_);
+        dps.getTableCoefficients (dominant_plane_);
+
+        if(visualize_)
+            this->visualize();
     }
 
 

@@ -54,7 +54,9 @@ protected:
     pcl::PointCloud<pcl::Normal>::Ptr normals_; /// @brief normals of the cloud to be segmented
     std::vector<pcl::PointIndices> clusters_; /// @brief segmented clusters. Each cluster represents a bunch of indices of the input cloud
     std::vector<int> indices_;  /// @brief region of interest
-    Eigen::Vector4f table_plane_; /// @brief extracted table plane (if segmentation algorithm supports it)
+    Eigen::Vector4f dominant_plane_; /// @brief extracted dominant table plane (if segmentation algorithm supports it)
+    std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > all_planes_; /// @brief all extracted planes (if segmentation algorithm supports it)
+    bool visualize_;
 
 public:
 
@@ -98,6 +100,9 @@ public:
         indices = clusters_;
     }
 
+    virtual bool
+    getRequiresNormals() = 0;
+
 
     /**
      * @brief returns extracted table plane (assumes segmentation algorithm computes it)
@@ -106,7 +111,7 @@ public:
     Eigen::Vector4f
     getTablePlane() const
     {
-        return table_plane_;
+        return dominant_plane_;
     }
 
     /**
@@ -146,27 +151,48 @@ public:
         }
         vis_->addPointCloud(colored_cloud,"segments", vp2_);
 
-        typename pcl::PointCloud<PointT>::Ptr table_plane (new pcl::PointCloud<PointT>(*scene_));
-        for(PointT &pt :table_plane->points)
+        typename pcl::PointCloud<PointT>::Ptr planes (new pcl::PointCloud<PointT>(*scene_));
+
+        Eigen::Matrix3Xf plane_colors(3, all_planes_.size());
+        for(size_t i=0; i<all_planes_.size(); i++)
+        {
+            plane_colors(0, i) = rand()%255;
+            plane_colors(1, i) = rand()%255;
+            plane_colors(2, i) = rand()%255;
+        }
+
+        for(PointT &pt :planes->points)
         {
             if ( !pcl::isFinite( pt ) )
                 continue;
 
             const Eigen::Vector4f xyz_p = pt.getVector4fMap ();
-
-            float val = xyz_p.dot(table_plane_);
-
             pt.g = pt.b = pt.r = 0;
+
+
+            for(size_t i=0; i<all_planes_.size(); i++)
+            {
+                float val = xyz_p.dot(all_planes_[i]);
+
+                if ( std::abs(val) < 0.02f)
+                {
+                    pt.r = plane_colors(0,i);
+                    pt.g = plane_colors(1,i);
+                    pt.b = plane_colors(2,i);
+                }
+            }
+
+            float val = xyz_p.dot(dominant_plane_);
 
             if ( std::abs(val) < 0.02f)
                 pt.r = 255;
         }
-        vis_->addPointCloud(table_plane,"table plane", vp3_);
+        vis_->addPointCloud(planes,"table plane", vp3_);
         vis_->addText("input", 10, 10, 15, 1, 1, 1, "input", vp1_);
         vis_->addText("segments", 10, 10, 15, 1, 1, 1, "segments", vp2_);
         vis_->addText("dominant plane", 10, 10, 15, 1, 1, 1, "dominant_plane", vp3_);
+        vis_->addText("all other planes", 10, 25, 15, 1, 1, 1, "other_planes", vp3_);
         vis_->resetCamera();
-        vis_->spin();
         vis_->spin();
     }
 

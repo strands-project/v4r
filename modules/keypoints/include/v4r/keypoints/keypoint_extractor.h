@@ -26,18 +26,11 @@
 #define V4R_KEYPOINT_EXTRACTOR___
 
 #include <v4r/core/macros.h>
+#include <v4r/keypoints/types.h>
 #include <pcl/common/common.h>
 
 namespace v4r
 {
-
-enum KeypointType
-{
-    UniformSampling = 0x01, // 00000001
-    ISS = 0x02, // 00000010
-    NARF  = 0x04, // 00000100
-    HARRIS3D  = 0x08,  // 00001000
-};
 
 template<typename PointT>
 class V4R_EXPORTS KeypointExtractor

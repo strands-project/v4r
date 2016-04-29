@@ -21,6 +21,7 @@ ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/impl/pcl_ourcvfh.hpp
 
 
     list(APPEND feat_headers
+${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/all_headers.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ComputeImGradientDescriptors.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_KD_ORB.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/types.h

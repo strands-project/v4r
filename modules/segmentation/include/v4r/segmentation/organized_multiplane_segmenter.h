@@ -44,7 +44,7 @@ class V4R_EXPORTS OrganizedMultiplaneSegmenter : public Segmenter<PointT>
     using Segmenter<PointT>::normals_;
     using Segmenter<PointT>::clusters_;
     using Segmenter<PointT>::scene_;
-    using Segmenter<PointT>::table_plane_;
+    using Segmenter<PointT>::dominant_plane_;
 
 public:
 

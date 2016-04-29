@@ -2,32 +2,16 @@
 #include <v4r_config.h>
 #include <omp.h>
 #include <boost/program_options.hpp>
-#include <boost/format.hpp>
 #include <glog/logging.h>
 
 #include <v4r/recognition/ghv.h>
 #include <v4r/recognition/global_recognizer.h>
 #include <v4r/recognition/registered_views_source.h>
-#include <v4r/features/esf_estimator.h>
-#ifdef HAVE_CAFFE
-#include <v4r/features/global_alexnet_cnn_estimator.h>
-#endif
-#include <v4r/features/ourcvfh_estimator.h>
-#include <v4r/features/shot_local_estimator.h>
-//#include <v4r/features/shot_color_local_estimator.h>
-#include <v4r/segmentation/dominant_plane_segmenter.h>
+#include <v4r/features/all_headers.h>
+#include <v4r/keypoints/all_headers.h>
+#include <v4r/segmentation/all_headers.h>
 #include <v4r/ml/nearestNeighbor.h>
 #include <v4r/ml/svmWrapper.h>
-#include <v4r/keypoints/iss_keypoint_extractor.h>
-#include <v4r/keypoints/narf_keypoint_extractor.h>
-#include <v4r/keypoints/harris3d_keypoint_extractor.h>
-#include <v4r/keypoints/uniform_sampling_extractor.h>
-
-#ifdef HAVE_SIFTGPU
-#include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
-#endif
 
 namespace po = boost::program_options;
 
@@ -112,6 +96,8 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             ("esf_vis", po::bool_switch(&paramESF.visualize_clusters_), "If set, visualizes the cluster and displays recognition information for each.")
             ("esf_knn", po::value<size_t>(&paramESF.knn_)->default_value(paramESF.knn_), "sets the number k of matches for each extracted global feature to its k nearest neighbors")
             ("esf_check_elongation", po::value<bool>(&paramESF.check_elongations_)->default_value(paramESF.check_elongations_), "if true, checks each segment for its elongation along the two eigenvectors (with greatest eigenvalue) if they fit the matched model")
+            ("esf_min_elongation_ratio", po::value<float>(&paramESF.min_elongation_ratio_)->default_value(paramESF.min_elongation_ratio_), "Minimum ratio of the elongation of the matched object to the extracted cluster to be accepted")
+            ("esf_max_elongation_ratio", po::value<float>(&paramESF.max_elongation_ratio_)->default_value(paramESF.max_elongation_ratio_), "Maxium ratio of the elongation of the matched object to the extracted cluster to be accepted")
             ("esf_use_table_plane_for_alignment", po::value<bool>(&paramESF.use_table_plane_for_alignment_)->default_value(1), "if true, aligns the object model such that the centroid is equal to the centroid of the segmented cluster projected onto the found table plane. The z-axis is aligned with the normal vector of the plane and the other axis are on the table plane")
 
             ("do_alexnet", po::value<bool>(&do_alexnet)->default_value(false), "if true, generates hypotheses using AlexNet features ")
@@ -154,7 +140,6 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
             ("hv_eps_angle_threshold", po::value<float>(&paramGHV.eps_angle_threshold_)->default_value(paramGHV.eps_angle_threshold_), "smooth clustering parameter for the angle threshold")
             ("hv_cluster_tolerance", po::value<float>(&paramGHV.cluster_tolerance_)->default_value(paramGHV.cluster_tolerance_), "smooth clustering parameter for cluster_tolerance")
             ("hv_curvature_threshold", po::value<float>(&paramGHV.curvature_threshold_)->default_value(paramGHV.curvature_threshold_), "smooth clustering parameter for curvate")
-
 
             ("hv_vis_cues", po::bool_switch(&paramGHV.visualize_go_cues_), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
             ("hv_vis_model_cues", po::bool_switch(&paramGHV.visualize_model_cues_), "If set, visualizes the model cues. Useful for debugging")
@@ -266,12 +251,15 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(int argc, char **argv
 
         // segmentation type
         typename Segmenter<PointT>::Ptr cast_segmenter;
-        typename DominantPlaneSegmenter<PointT>::Ptr dp_seg (new DominantPlaneSegmenter<PointT> (argc, argv));
-        cast_segmenter = boost::dynamic_pointer_cast<Segmenter<PointT> > (dp_seg);
+        typename DominantPlaneSegmenter<PointT>::Ptr seg (new DominantPlaneSegmenter<PointT> (argc, argv));
+//        typename EuclideanSegmenter<PointT>::Ptr seg (new EuclideanSegmenter<PointT> (argc, argv));
+//        typename SmoothEuclideanSegmenter<PointT>::Ptr seg (new SmoothEuclideanSegmenter<PointT> (argc, argv));
+        cast_segmenter = boost::dynamic_pointer_cast<Segmenter<PointT> > (seg);
 
         // classifier
         typename Classifier::Ptr cast_classifier;
-        NearestNeighborClassifier::Ptr classifier (new NearestNeighborClassifier);
+//        NearestNeighborClassifier::Ptr classifier (new NearestNeighborClassifier);
+        svmClassifier::Ptr classifier (new svmClassifier (paramSVM));
         cast_classifier = boost::dynamic_pointer_cast<Classifier > (classifier);
 
         typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>(paramESF));

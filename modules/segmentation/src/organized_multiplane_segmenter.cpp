@@ -78,7 +78,7 @@ OrganizedMultiplaneSegmenter<PointT>::segment()
     }
 
     size_t itt = table_plane_selected;
-    table_plane_ = Eigen::Vector4f (model_coeff[itt].values[0], model_coeff[itt].values[1], model_coeff[itt].values[2], model_coeff[itt].values[3]);
+    dominant_plane_ = Eigen::Vector4f (model_coeff[itt].values[0], model_coeff[itt].values[1], model_coeff[itt].values[2], model_coeff[itt].values[3]);
     Eigen::Vector3f normal_table = Eigen::Vector3f (model_coeff[itt].values[0], model_coeff[itt].values[1], model_coeff[itt].values[2]);
 
     size_t inliers_count_best = plane_inliers_counts[itt];
@@ -98,19 +98,19 @@ OrganizedMultiplaneSegmenter<PointT>::segment()
         {
             //check if this plane is higher, projecting a point on the normal direction
             std::cout << "Check if plane is higher, then change table plane" << std::endl;
-            std::cout << model[3] << " " << table_plane_[3] << std::endl;
-            if (model[3] < table_plane_[3])
+            std::cout << model[3] << " " << dominant_plane_[3] << std::endl;
+            if (model[3] < dominant_plane_[3])
             {
                 PCL_WARN ("Changing table plane...");
                 table_plane_selected = i;
-                table_plane_ = model;
+                dominant_plane_ = model;
                 normal_table = normal;
                 inliers_count_best = inliers_count;
             }
         }
     }
 
-    table_plane_ = Eigen::Vector4f (model_coeff[table_plane_selected].values[0], model_coeff[table_plane_selected].values[1],
+    dominant_plane_ = Eigen::Vector4f (model_coeff[table_plane_selected].values[0], model_coeff[table_plane_selected].values[1],
             model_coeff[table_plane_selected].values[2], model_coeff[table_plane_selected].values[3]);
 
     typename pcl::EuclideanClusterComparator<PointT, pcl::Normal, pcl::Label>::Ptr
@@ -126,7 +126,7 @@ OrganizedMultiplaneSegmenter<PointT>::segment()
         if (! pcl::isFinite(scene_->points[j]) )
             continue;
 
-        float val = xyz_p[0] * table_plane_[0] + xyz_p[1] * table_plane_[1] + xyz_p[2] * table_plane_[2] + table_plane_[3];
+        float val = xyz_p[0] * dominant_plane_[0] + xyz_p[1] * dominant_plane_[1] + xyz_p[2] * dominant_plane_[2] + dominant_plane_[3];
 
         if (val >= param_.sensor_noise_max_)
         {

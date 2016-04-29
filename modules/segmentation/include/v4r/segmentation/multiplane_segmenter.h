@@ -44,28 +44,35 @@ namespace v4r
 template <typename PointT>
 class V4R_EXPORTS MultiplaneSegmenter: public Segmenter<PointT>
 {
+private:
     using Segmenter<PointT>::indices_;
     using Segmenter<PointT>::normals_;
     using Segmenter<PointT>::clusters_;
     using Segmenter<PointT>::scene_;
-    using Segmenter<PointT>::table_plane_;
+    using Segmenter<PointT>::dominant_plane_;
+    using Segmenter<PointT>::all_planes_;
+
 
 public:
     class Parameter
     {
     public:
-        int min_cluster_size_, num_plane_inliers_;
-        double sensor_noise_max_,
-               angular_threshold_deg_;
-        Parameter (int min_cluster_size=500,
+        size_t min_cluster_size_;
+        int num_plane_inliers_;
+        float sensor_noise_max_;
+        float angular_threshold_deg_;
+        float min_distance_between_clusters_;
+        Parameter (size_t min_cluster_size=500,
                    int num_plane_inliers=1000,
-                   double sensor_noise_max = 0.01f,
-                   double angular_threshold_deg = 10.f)
+                   float sensor_noise_max = 0.01f,
+                   float angular_threshold_deg = 10.f,
+                   float min_distance_between_clusters = 0.03f)
             :
               min_cluster_size_ (min_cluster_size),
               num_plane_inliers_ (num_plane_inliers),
               sensor_noise_max_ (sensor_noise_max),
-              angular_threshold_deg_ (angular_threshold_deg)
+              angular_threshold_deg_ (angular_threshold_deg),
+              min_distance_between_clusters_ ( min_distance_between_clusters )
         {
         }
     }param_;
@@ -79,10 +86,11 @@ public:
         po::options_description desc("Multi-Plane Segmentation\n=====================");
         desc.add_options()
                 ("help,h", "produce help message")
-                ("min_cluster_size", po::value<int>(&param_.min_cluster_size_)->default_value(param_.min_cluster_size_), "")
-                ("num_plane_inliers", po::value<int>(&param_.num_plane_inliers_)->default_value(param_.num_plane_inliers_), "")
-                ("sensor_noise_max", po::value<double>(&param_.sensor_noise_max_)->default_value(param_.sensor_noise_max_), "")
-                ("angular_threshold_deg", po::value<double>(&param_.angular_threshold_deg_)->default_value(param_.angular_threshold_deg_), "")
+                ("seg_min_cluster_size", po::value<size_t>(&param_.min_cluster_size_)->default_value(param_.min_cluster_size_), "")
+                ("seg_num_plane_inliers", po::value<int>(&param_.num_plane_inliers_)->default_value(param_.num_plane_inliers_), "")
+                ("seg_sensor_noise_max", po::value<float>(&param_.sensor_noise_max_)->default_value(param_.sensor_noise_max_), "")
+                ("seg_angular_threshold_deg", po::value<float>(&param_.angular_threshold_deg_)->default_value(param_.angular_threshold_deg_), "")
+                ("seg_min_distance_between_clusters", po::value<float>(&param_.min_distance_between_clusters_)->default_value(param_.min_distance_between_clusters_), "")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
@@ -94,6 +102,15 @@ public:
 
     void
     segment();
+
+
+    bool getRequiresNormals() { return true; }
+
+    /**
+     * @brief computes all Planes
+     */
+    void
+    computeTablePlanes();
 
     typedef boost::shared_ptr< MultiplaneSegmenter<PointT> > Ptr;
     typedef boost::shared_ptr< MultiplaneSegmenter<PointT> const> ConstPtr;
