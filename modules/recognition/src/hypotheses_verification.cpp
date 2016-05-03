@@ -73,12 +73,6 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
     refined_model_transforms_.clear();
     refined_model_transforms_.resize( recognition_models_.size(), Eigen::Matrix4f::Identity() );
 
-    if(occlusion_clouds_.empty()) // we can treat single-view as multi-view case with just one view
-    {
-        occlusion_clouds_.push_back(scene_cloud_);
-        absolute_camera_poses_.push_back(Eigen::Matrix4f::Identity());
-    }
-
     typename ZBuffering<SceneT>::Parameter zbuffParam;
     zbuffParam.f_ = param_.focal_length_;
     zbuffParam.width_ = param_.img_width_;
@@ -142,8 +136,8 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
 
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
-                                                   std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> &model_normals)
+HypothesisVerification<ModelT, SceneT>::addModels (const std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
+                                                   const std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> &model_normals)
 {
     size_t existing_models = recognition_models_.size();
     recognition_models_.resize( existing_models + models.size() );
@@ -180,9 +174,9 @@ HypothesisVerification<ModelT, SceneT>::poseRefinement(HVRecognitionModel<ModelT
     cropFilter.setMin(minPoint.getVector4fMap());
     cropFilter.setMax(maxPoint.getVector4fMap());
     cropFilter.filter (*scene_cloud_downsampled_cropped);
-    boost::shared_ptr <const std::vector<int> > indices = cropFilter.getRemovedIndices();
-    std::vector<bool> mask_inv = createMaskFromIndices(*indices, scene_cloud_downsampled_->points.size());
-    rm.scene_indices_in_crop_box_ = createIndicesFromMask<int>(mask_inv, true);
+//    boost::shared_ptr <const std::vector<int> > indices = cropFilter.getRemovedIndices();
+//    std::vector<bool> mask_inv = createMaskFromIndices(*indices, scene_cloud_downsampled_->points.size());
+//    rm.scene_indices_in_crop_box_ = createIndicesFromMask<int>(mask_inv, true);
 
     pcl::IterativeClosestPoint<ModelT, SceneT> icp;
     icp.setInputSource(rm.visible_cloud_);
@@ -196,16 +190,16 @@ HypothesisVerification<ModelT, SceneT>::poseRefinement(HVRecognitionModel<ModelT
     return Eigen::Matrix4f::Identity();
 }
 
-
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::setSceneCloud (const typename pcl::PointCloud<SceneT>::Ptr & scene_cloud)
+HypothesisVerification<ModelT, SceneT>::downsampleSceneCloud()
 {
-    scene_cloud_ = scene_cloud;
-    scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>());
 
     if(param_.resolution_mm_ <= 0)
-        scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>(*scene_cloud));
+    {
+        scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>(*scene_cloud_));
+        scene_normals_downsampled_.reset(new pcl::PointCloud<pcl::Normal>(*scene_normals_));
+    }
     else
     {
         /*pcl::VoxelGrid<SceneT> voxel_grid;
@@ -213,6 +207,9 @@ HypothesisVerification<ModelT, SceneT>::setSceneCloud (const typename pcl::Point
     voxel_grid.setLeafSize (resolution_, resolution_, resolution_);
     voxel_grid.setDownsampleAllData(true);
     voxel_grid.filter (*scene_cloud_downsampled_);*/
+
+        scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>());
+        scene_normals_downsampled_.reset(new pcl::PointCloud<pcl::Normal>());
 
         pcl::UniformSampling<SceneT> us;
         double resolution = (float)param_.resolution_mm_ / 1000.f;
@@ -226,7 +223,36 @@ HypothesisVerification<ModelT, SceneT>::setSceneCloud (const typename pcl::Point
             scene_sampled_indices_[i] = sampled_indices.points[i];
 
         pcl::copyPointCloud(*scene_cloud_, scene_sampled_indices_, *scene_cloud_downsampled_);
+        pcl::copyPointCloud(*scene_normals_, scene_sampled_indices_, *scene_normals_downsampled_);
     }
+
+    removeSceneNans();
+}
+
+
+
+template<typename ModelT, typename SceneT>
+void
+HypothesisVerification<ModelT, SceneT>::removeSceneNans()
+{
+    CHECK( scene_cloud_downsampled_->points.size () == scene_normals_downsampled_->points.size() &&
+           scene_cloud_downsampled_->points.size () == scene_sampled_indices_.size() );
+
+    size_t kept = 0;
+    for (size_t i = 0; i < scene_cloud_downsampled_->points.size (); i++) {
+        if ( pcl::isFinite( scene_cloud_downsampled_->points[i]) && pcl::isFinite( scene_normals_downsampled_->points[i] ))
+        {
+            scene_cloud_downsampled_->points[kept] = scene_cloud_downsampled_->points[i];
+            scene_normals_downsampled_->points[kept] = scene_normals_downsampled_->points[i];
+            scene_sampled_indices_[kept] = scene_sampled_indices_[i];
+            kept++;
+        }
+    }
+    scene_sampled_indices_.resize(kept);
+    scene_cloud_downsampled_->points.resize(kept);
+    scene_normals_downsampled_->points.resize (kept);
+    scene_cloud_downsampled_->width = scene_normals_downsampled_->width = kept;
+    scene_cloud_downsampled_->height = scene_normals_downsampled_->height = 1;
 }
 
 template class V4R_EXPORTS HypothesisVerification<pcl::PointXYZ,pcl::PointXYZ>;

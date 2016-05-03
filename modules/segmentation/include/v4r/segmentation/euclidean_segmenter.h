@@ -152,8 +152,10 @@ public:
             if ( inliers->indices.size() < param_.num_plane_inliers_ )
                 break;
 
-            all_planes_.push_back( Eigen::Vector4f(coefficients->values[0], coefficients->values[1],
-                    coefficients->values[2], coefficients->values[3]) ) ;
+            typename PlaneModel<PointT>::Ptr pm (new PlaneModel<PointT>);
+            pm->coefficients_ = Eigen::Vector4f(coefficients->values[0], coefficients->values[1],
+                    coefficients->values[2], coefficients->values[3]);
+            all_planes_.push_back( pm ) ;
 
             for(size_t i=0; i<inliers->indices.size(); i++)
                 filter_mask_[ inliers->indices[i] ] = false;

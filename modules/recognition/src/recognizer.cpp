@@ -85,6 +85,7 @@ Recognizer<PointT>::hypothesisVerification ()
         hv_algorithm_ghv = boost::dynamic_pointer_cast<GHV<PointT, PointT>> (hv_algorithm_);
 
     hv_algorithm_->setSceneCloud (scene_);
+    hv_algorithm_->setNormals( scene_normals_ );
     hv_algorithm_->addModels (aligned_models, aligned_model_normals);
     hv_algorithm_->verify ();
     hv_algorithm_->getMask (hypothesis_is_verified_);

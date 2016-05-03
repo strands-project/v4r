@@ -1,6 +1,7 @@
 #include <v4r/segmentation/multiplane_segmenter.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
 #include <pcl/segmentation/euclidean_cluster_comparator.h>
+#include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/segmentation/organized_multi_plane_segmentation.h>
 #include <pcl/segmentation/organized_connected_component_segmentation.h>
 
@@ -47,7 +48,44 @@ MultiplaneSegmenter<PointT>::computeTablePlanes()
         if(vp.dot(table_vec)>0)
             plane_tmp *= -1.f;
 
-        all_planes_[i] = plane_tmp;
+        all_planes_[i].reset( new PlaneModel<PointT>);
+        all_planes_[i]->coefficients_ = plane_tmp;
+        all_planes_[i]->inliers_ = inlier_indices[i].indices;
+        all_planes_[i]->cloud_ = scene_;
+
+
+        typename pcl::PointCloud<PointT>::Ptr plane_cloud (new pcl::PointCloud<PointT>);
+        typename pcl::PointCloud<PointT>::Ptr above_plane_cloud (new pcl::PointCloud<PointT>);
+        pcl::copyPointCloud(*scene_, inlier_indices[i], *plane_cloud);
+
+        double z_min = 0., z_max = 0.30; // we want the points above the plane, no farther than zmax cm from the surface
+        typename pcl::PointCloud<PointT>::Ptr hull_points = all_planes_[i]->getConvexHullCloud();
+
+        pcl::PointIndices cloud_indices;
+        pcl::ExtractPolygonalPrismData<PointT> prism;
+        prism.setInputCloud (scene_);
+        prism.setInputPlanarHull (hull_points);
+        prism.setHeightLimits (z_min, z_max);
+        prism.segment (cloud_indices);
+
+        pcl::copyPointCloud(*scene_, cloud_indices, *above_plane_cloud);
+
+        pcl::visualization::PCLVisualizer::Ptr vis;
+        int vp1, vp2;
+        if(!vis)
+        {
+            vis.reset (new pcl::visualization::PCLVisualizer("plane22 visualization"));
+            vis->createViewPort(0,0,0.5,1,vp1);
+            vis->createViewPort(0.5,0,1,1,vp2);
+        }
+        vis->removeAllPointClouds();
+        vis->removeAllShapes();
+        vis->addPointCloud(scene_, "cloud", vp1);
+
+        vis->addPointCloud(above_plane_cloud, "convex_hull", vp2);
+        vis->spin();
+
+        all_planes_[i]->visualize();
     }
 }
 
@@ -76,7 +114,7 @@ MultiplaneSegmenter<PointT>::segment()
 
         for (size_t i = 0; i < all_planes_.size (); i++)
         {
-            const Eigen::Vector3f plane_normal = all_planes_[i].head(3);
+            const Eigen::Vector3f plane_normal = all_planes_[i]->coefficients_.head(3);
             for (size_t j = 0; j < scene_->points.size (); j++)
             {
                 if ( !pcl::isFinite( scene_->points[j] ) )
@@ -96,15 +134,15 @@ MultiplaneSegmenter<PointT>::segment()
         }
 
         size_t itt = table_plane_selected;
-        dominant_plane_ = all_planes_[itt];
-        Eigen::Vector3f normal_table = all_planes_[itt].head(3);
+        dominant_plane_ = all_planes_[itt]->coefficients_;
+        Eigen::Vector3f normal_table = all_planes_[itt]->coefficients_.head(3);
         size_t inliers_count_best = plane_inliers_counts[itt];
 
         //check that the other planes with similar normal are not higher than the table_plane_selected
         for (size_t i = 0; i < all_planes_.size (); i++)
         {
-            Eigen::Vector4f model = all_planes_[i];
-            Eigen::Vector3f normal_tmp = all_planes_[i].head(3);
+            Eigen::Vector4f model = all_planes_[i]->coefficients_;
+            Eigen::Vector3f normal_tmp = all_planes_[i]->coefficients_.head(3);
 
             int inliers_count = plane_inliers_counts[i];
 
@@ -115,14 +153,14 @@ MultiplaneSegmenter<PointT>::segment()
                 if (model[3] < dominant_plane_[3])
                 {
                     PCL_WARN ("Changing table plane...");
-                    dominant_plane_ = all_planes_[i];
+                    dominant_plane_ = all_planes_[i]->coefficients_;
                     normal_table = normal_tmp;
                     inliers_count_best = inliers_count;
                 }
             }
         }
 
-        dominant_plane_ = all_planes_[table_plane_selected];
+        dominant_plane_ = all_planes_[table_plane_selected]->coefficients_;
 
         //create two labels, 1 one for points belonging to or under the plane, 1 for points above the plane
 

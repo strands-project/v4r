@@ -18,7 +18,11 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
+#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
+#else
+#include <v4r/features/opencv_sift_local_estimator.h>
+#endif
 
 struct CamConnect
 {
@@ -135,14 +139,14 @@ public:
     }
 
     void
-    calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
-                           std::vector<int> &sift_keypoint_indices,
-                           std::vector<std::vector<float> > &sift_signatures)
+    calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
+                      std::vector<int> &sift_keypoint_indices,
+                      std::vector<std::vector<float> > &sift_signatures)
     {
         v4r::SIFTLocalEstimation<PointT> estimator;
         estimator.setInputCloud(cloud_src);
-        estimator.compute (sift_signatures);
-        sift_keypoint_indices = estimator.getKeypointIndices(  );
+        estimator.compute(sift_signatures);
+        sift_keypoint_indices = estimator.getKeypointIndices();
     }
 
 
@@ -204,7 +208,6 @@ public:
         pass.setInputCloud (cloud);
         pass.setKeepOrganized (true);
         pass.filter (*view.cloud_);
-
         calcSiftFeatures( view.cloud_, view.sift_keypoint_indices_, view.sift_signatures_);
         grph_.push_back(view);
     }

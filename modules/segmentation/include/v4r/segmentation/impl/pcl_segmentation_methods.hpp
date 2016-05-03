@@ -242,7 +242,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
         {
             v4r::PlaneModel<PointT> plane;
             plane = planes_found[i];
-            Eigen::Vector3f plane_normal = Eigen::Vector3f(plane.coefficients_.values[0],plane.coefficients_.values[1],plane.coefficients_.values[2]);
+            Eigen::Vector3f plane_normal = plane.coefficients_.head(3);
             Eigen::Matrix3f rotation = transform_to_world_.block<3,3>(0,0);
             plane_normal = rotation * plane_normal;
             plane_normal.normalize();
@@ -265,11 +265,11 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
                     std::cout << "Horizontal plane with appropiate table height " << h << std::endl;
 
                     //if(h > max_height)
-                    if(plane.inliers_.indices.size() > max_inliers)
+                    if(plane.inliers_.size() > max_inliers)
                     {
                         //select this plane as table
                         //max_height = h;
-                        max_inliers = plane.inliers_.indices.size();
+                        max_inliers = plane.inliers_.size();
                         selected_plane = plane;
                         good_plane_found = true;
                     }
@@ -283,11 +283,11 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
                 int size_plane = static_cast<int>(plane_cloud->points.size());
                 if(size_plane > param_.max_vertical_plane_size_)
                 {
-                    for(size_t k=0; k < plane.inliers_.indices.size(); k++)
+                    for(size_t k=0; k < plane.inliers_.size(); k++)
                     {
-                        input_cloud_->points[plane.inliers_.indices[k]].x =
-                                input_cloud_->points[plane.inliers_.indices[k]].y =
-                                input_cloud_->points[plane.inliers_.indices[k]].z = std::numeric_limits<float>::quiet_NaN();
+                        input_cloud_->points[plane.inliers_[k]].x =
+                                input_cloud_->points[plane.inliers_[k]].y =
+                                input_cloud_->points[plane.inliers_[k]].z = std::numeric_limits<float>::quiet_NaN();
                     }
                 }
             }
@@ -306,8 +306,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
             return;
         }
 
-        extracted_table_plane_ = Eigen::Vector4f (selected_plane.coefficients_.values[0], selected_plane.coefficients_.values[1],
-                selected_plane.coefficients_.values[2], selected_plane.coefficients_.values[3]);
+        extracted_table_plane_ = selected_plane.coefficients_;
 
         if(input_cloud_->isOrganized())
         {
@@ -386,12 +385,7 @@ PCLSegmenter<PointT>::do_segmentation(std::vector<pcl::PointIndices> & indices)
             typename pcl::PointCloud<PointT>::Ptr table_hull (new pcl::PointCloud<PointT> ( *selected_plane.getConvexHullCloud() ));
 
             // Compute the plane coefficients
-            Eigen::Vector4f model_coefficients;
-
-            model_coefficients[0] = selected_plane.coefficients_.values[0];
-            model_coefficients[1] = selected_plane.coefficients_.values[1];
-            model_coefficients[2] = selected_plane.coefficients_.values[2];
-            model_coefficients[3] = selected_plane.coefficients_.values[3];
+            Eigen::Vector4f model_coefficients  = selected_plane.coefficients_;
 
             // Need to flip the plane normal towards the viewpoint
             Eigen::Vector4f vp (0, 0, 0, 0);

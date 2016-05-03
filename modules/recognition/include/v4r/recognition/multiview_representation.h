@@ -5,7 +5,7 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include <v4r/common/common_data_structures.h>
+#include <v4r/common/plane_model.h>
 #include <v4r/recognition/model.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
 

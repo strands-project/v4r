@@ -25,6 +25,7 @@
 #define V4R_GHV_H_
 
 #include <v4r/common/color_transforms.h>
+#include <v4r/common/plane_model.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/ghv_opt.h>
 #include <pcl/common/common.h>
@@ -84,6 +85,9 @@ public:
         int knn_color_neighborhood_; /// @brief number of nearest neighbors used for describing the color around a point
         float color_std_dev_multiplier_threshold_; /// @brief standard deviation multiplier threshold for the local color description for each color channel
 
+        bool check_plane_intersection_; /// @brief if true, extracts planes and checks if they intersect with hypotheses
+        int plane_method_;  /// method used for plane extraction (0... RANSAC (only available for single-view), 1... region growing)
+
         //Euclidean smooth segmenation
         bool check_smooth_clusters_;
         float eps_angle_threshold_;
@@ -118,6 +122,8 @@ public:
                 float min_model_fitness_upper_bound = 0.40f,
                 int knn_color_neighborhood = 10,
                 float color_std_dev_multiplier_threshold = 1.f,
+                bool check_plane_intersection = true,
+                int plane_method = 2,
                 bool check_smooth_clusters = true,
                 float eps_angle_threshold = 0.1f, //0.25f
                 float curvature_threshold = 0.04f,
@@ -151,6 +157,8 @@ public:
               min_model_fitness_upper_bound_ (min_model_fitness_upper_bound),
               knn_color_neighborhood_ (knn_color_neighborhood),
               color_std_dev_multiplier_threshold_ (color_std_dev_multiplier_threshold),
+              check_plane_intersection_ ( check_plane_intersection ),
+              plane_method_ (plane_method),
               check_smooth_clusters_ ( check_smooth_clusters ),
               eps_angle_threshold_ (eps_angle_threshold),
               curvature_threshold_ (curvature_threshold),
@@ -167,8 +175,11 @@ private:
     using HypothesisVerification<ModelT, SceneT>::recognition_models_;
     using HypothesisVerification<ModelT, SceneT>::recognition_models_map_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_downsampled_;
+    using HypothesisVerification<ModelT, SceneT>::scene_normals_downsampled_;
     using HypothesisVerification<ModelT, SceneT>::scene_cloud_;
     using HypothesisVerification<ModelT, SceneT>::scene_sampled_indices_;
+    using HypothesisVerification<ModelT, SceneT>::occlusion_clouds_;
+    using HypothesisVerification<ModelT, SceneT>::absolute_camera_poses_;
     using HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose;
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_, rm_vis_, vis_pairwise_;
@@ -183,8 +194,6 @@ private:
     float Lmin_ = 0.f, Lmax_ = 100.f;
     int bins_ = 50;
 
-    pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
-    bool scene_and_normals_set_from_outside_;
     Eigen::MatrixXf intersection_cost_; /// @brief represents the pairwise intersection cost
     Eigen::MatrixXf scene_explained_weight_; /// @brief for each point in the scene (row) store how good it is presented from each model (column)
     Eigen::MatrixXf scene_model_sqr_dist_; /// @brief for each point in the scene (row) store the distance to its model point
@@ -195,11 +204,13 @@ private:
     float initial_temp_;
     boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
     Eigen::MatrixXf scene_color_channels_; /// @brief converted color values where each point corresponds to a row entry
-    typename boost::shared_ptr<pcl::octree::OctreePointCloudSearch<SceneT> > octree_scene_downsampled_;
+    typename pcl::octree::OctreePointCloudSearch<SceneT>::Ptr octree_scene_downsampled_;
     boost::function<void (const std::vector<bool> &, float, int)> visualize_cues_during_logger_;
 
     std::vector<int> scene_smooth_labels_;  /// @brief stores a label for each point of the (downsampled) scene. Points belonging to the same smooth clusters, have the same label
     std::vector<size_t> smooth_label_count_;    /// @brief counts how many times a certain smooth label occurs in the scene
+
+    std::vector<typename PlaneModel<SceneT>::Ptr > planes_; /// @brief all extracted planar surfaces (if check enabled)
 
     bool removeNanNormals (HVRecognitionModel<ModelT> & recog_model); /// @brief remove all points from visible cloud and normals which are not-a-number
 
@@ -216,6 +227,10 @@ private:
     void computeModel2SceneDistances (HVRecognitionModel<ModelT> &rm, int model_id);
 
     void computeLoffset (HVRecognitionModel<ModelT> &rm, int model_id) const;
+
+    void computePlanarSurfaces ( );
+
+    void computePlaneIntersection ( );
 
     void initialize ();
 
@@ -337,7 +352,6 @@ public:
     GHV (const Parameter &p=Parameter()) : HypothesisVerification<ModelT, SceneT> (p) , param_(p)
     {
         initial_temp_ = 1000;
-        scene_and_normals_set_from_outside_ = false;
         sRGB_LUT.resize(256, -1);
         sXYZ_LUT.resize(4000, -1);
 
@@ -368,15 +382,6 @@ public:
         TabuSearchWithLSRM,
         SimulatedAnnealing
     };
-
-    void
-    setSceneAndNormals(typename pcl::PointCloud<SceneT>::Ptr & scene,
-                            typename pcl::PointCloud<pcl::Normal>::Ptr & scene_normals)
-    {
-        scene_cloud_downsampled_ = scene;
-        scene_normals_ = scene_normals;
-        scene_and_normals_set_from_outside_ = true;
-    }
 
     void
     writeToLog (std::ofstream & of, bool all_costs_ = false)

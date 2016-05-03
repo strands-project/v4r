@@ -32,6 +32,7 @@
 #define V4R_SEGMENTER_H__
 
 #include <v4r/core/macros.h>
+#include <v4r/common/plane_model.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/PointIndices.h>
@@ -55,7 +56,7 @@ protected:
     std::vector<pcl::PointIndices> clusters_; /// @brief segmented clusters. Each cluster represents a bunch of indices of the input cloud
     std::vector<int> indices_;  /// @brief region of interest
     Eigen::Vector4f dominant_plane_; /// @brief extracted dominant table plane (if segmentation algorithm supports it)
-    std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > all_planes_; /// @brief all extracted planes (if segmentation algorithm supports it)
+    std::vector< typename PlaneModel<PointT>::Ptr > all_planes_; /// @brief all extracted planes (if segmentation algorithm supports it)
     bool visualize_;
 
 public:
@@ -112,6 +113,16 @@ public:
     getTablePlane() const
     {
         return dominant_plane_;
+    }
+
+    /**
+     * @brief returns all extracted planes (assumes segmentation algorithm computes it)
+     * @return extracted planes
+     */
+    std::vector< typename PlaneModel<PointT>::Ptr >
+    getAllPlanes() const
+    {
+        return all_planes_;
     }
 
     /**
@@ -172,7 +183,7 @@ public:
 
             for(size_t i=0; i<all_planes_.size(); i++)
             {
-                float val = xyz_p.dot(all_planes_[i]);
+                float val = xyz_p.dot(all_planes_[i]->coefficients_);
 
                 if ( std::abs(val) < 0.02f)
                 {

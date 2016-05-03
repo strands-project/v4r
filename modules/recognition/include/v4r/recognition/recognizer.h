@@ -100,7 +100,7 @@ namespace v4r
         mutable int vp1_, vp2_, vp3_;
         mutable std::vector<std::string> coordinate_axis_ids_;
 
-        /** @brief: generated object hypotheses from correspondence grouping (before verification) */
+        /** @brief: generated object hypotheses (before verification) */
         std::vector<ModelTPtr> models_;
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
 

@@ -41,6 +41,7 @@
 #include <v4r/recognition/recognition_model_hv.h>
 #include <pcl/common/common.h>
 #include <pcl/search/kdtree.h>
+#include <glog/logging.h>
 
 namespace v4r
 {
@@ -107,17 +108,16 @@ namespace v4r
   protected:
     std::vector<bool> solution_; /// @brief Boolean vector indicating if a hypothesis is accepted (true) or rejected (false)
 
-    typename pcl::PointCloud<SceneT>::ConstPtr scene_cloud_; /// @brief scene point cloud
+    typename pcl::PointCloud<SceneT>::ConstPtr scene_cloud_; /// @brief scene point clou
+    typename pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; /// @brief scene normals cloud
+    typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_; /// \brief Downsampled scene point cloud
+    pcl::PointCloud<pcl::Normal>::Ptr scene_normals_downsampled_; /// \brief Downsampled scene normals cloud
+    std::vector<int> scene_sampled_indices_;    /// @brief downsampled indices of the scene
 
     std::vector<int> recognition_models_map_;
-
-    typename pcl::PointCloud<SceneT>::Ptr scene_cloud_downsampled_; /// \brief Downsampled scene point cloud
-
     std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > recognition_models_; /// @brief all models to be verified (including planar models if included)
 
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > refined_model_transforms_; /// @brief fine registration of model clouds to scene clouds after ICP (this applies to object model only - not to planes)
-
-    std::vector<int> scene_sampled_indices_;
 
     // ----- MULTI-VIEW VARIABLES------
     std::vector<typename pcl::PointCloud<SceneT>::ConstPtr> occlusion_clouds_; /// @brief scene clouds from multiple views
@@ -127,15 +127,12 @@ namespace v4r
     Eigen::Matrix4f poseRefinement(HVRecognitionModel<ModelT> &rm) const;
 
     void computeVisibleModelsAndRefinePose();
+    void downsampleSceneCloud ();    /// \brief downsamples the scene cloud
+    void removeSceneNans ();    /// \brief removes nan values from the downsampled scene cloud
 
   public:
     HypothesisVerification (const Parameter &p = Parameter()) : param_(p)
     { }
-
-    int getResolution() const
-    {
-        return param_.resolution_mm_;
-    }
 
     /**
      *  \brief: Returns a vector of booleans representing which hypotheses have been accepted/rejected (true/false)
@@ -153,8 +150,8 @@ namespace v4r
      * @param corresponding normal clouds
      */
     void
-    addModels (std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
-               std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr > &model_normals);
+    addModels (const std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
+               const std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr > &model_normals);
 
 
     /**
@@ -162,7 +159,20 @@ namespace v4r
      *  \param scene_cloud Point cloud representing the scene
      */
     void
-    setSceneCloud (const typename pcl::PointCloud<SceneT>::Ptr & scene_cloud);
+    setSceneCloud (const typename pcl::PointCloud<SceneT>::Ptr & scene_cloud)
+    {
+        scene_cloud_ = scene_cloud;
+    }
+
+    /**
+     *  \brief Sets the scene normals cloud
+     *  \param normals Point cloud representing the scene normals
+     */
+    void
+    setNormals (const pcl::PointCloud<pcl::Normal>::Ptr & normals)
+    {
+        scene_normals_ = normals;
+    }
 
     /**
      * @brief set Occlusion Clouds And Absolute Camera Poses (used for multi-view recognition)
@@ -173,8 +183,8 @@ namespace v4r
     setOcclusionCloudsAndAbsoluteCameraPoses(const std::vector<typename pcl::PointCloud<SceneT>::ConstPtr > & occ_clouds,
                        const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &absolute_camera_poses)
     {
-      occlusion_clouds_ = occ_clouds;
-      absolute_camera_poses_ = absolute_camera_poses;
+        occlusion_clouds_ = occ_clouds;
+        absolute_camera_poses_ = absolute_camera_poses;
     }
 
 
