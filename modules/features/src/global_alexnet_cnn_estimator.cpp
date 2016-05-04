@@ -42,15 +42,15 @@ CNN_Feat_Extractor<PointT, Dtype>::compute (Eigen::MatrixXf &signature)
         else
           Caffe::set_mode(Caffe::CPU);
 
-        feature_extraction_net_.reset(new Net<Dtype>(feature_extraction_proto_, caffe::TEST));
-        feature_extraction_net_->CopyTrainedLayersFrom(pretrained_binary_proto_);
+        feature_extraction_net_.reset(new Net<Dtype>(param_.feature_extraction_proto_, caffe::TEST));
+        feature_extraction_net_->CopyTrainedLayersFrom(param_.pretrained_binary_proto_);
 
-        size_t num_features = extract_feature_blob_names_.size();
+        size_t num_features = param_.extract_feature_blob_names_.size();
 
         for (size_t i = 0; i < num_features; i++) {
-          CHECK(feature_extraction_net_->has_blob(extract_feature_blob_names_[i]))
-              << "Unknown feature blob name " << extract_feature_blob_names_[i]
-              << " in the network " << feature_extraction_proto_;
+          CHECK(feature_extraction_net_->has_blob(param_.extract_feature_blob_names_[i]))
+              << "Unknown feature blob name " << param_.extract_feature_blob_names_[i]
+              << " in the network " << param_.feature_extraction_proto_;
         }
 
         init_ = true;
@@ -74,7 +74,7 @@ CNN_Feat_Extractor<PointT, Dtype>::compute (Eigen::MatrixXf &signature)
     layer->AddDatumVector(datum_vector);
 
     const std::vector<caffe::Blob<Dtype>*>& result = feature_extraction_net_->ForwardPrefilled();
-    const boost::shared_ptr<Blob<Dtype> > feature_blob = feature_extraction_net_->blob_by_name(extract_feature_blob_names_[0]);
+    const boost::shared_ptr<Blob<Dtype> > feature_blob = feature_extraction_net_->blob_by_name(param_.extract_feature_blob_names_[0]);
     signature.resize( 1, feature_blob->count());
 
     for(size_t i=0; i<feature_blob->count(); i++)

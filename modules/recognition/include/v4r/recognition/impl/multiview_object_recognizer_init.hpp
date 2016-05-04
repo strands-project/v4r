@@ -5,7 +5,7 @@
 #include <boost/format.hpp>
 #include <glog/logging.h>
 
-#include <v4r/recognition/ghv.h>
+#include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/registered_views_source.h>
 #include <v4r/recognition/local_recognizer.h>
 #include <v4r/recognition/global_recognizer.h>
@@ -33,7 +33,7 @@ MultiviewRecognizer<PointT>::MultiviewRecognizer(int argc, char **argv)
     std::string models_dir;
 
     // Parameter classes
-    typename GHV<PointT, PointT>::Parameter paramGHV;
+    typename HypothesisVerification<PointT, PointT>::Parameter paramGHV;
     typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter paramGgcg;
     typename MultiRecognitionPipeline<PointT>::Parameter paramMultiPipeRec;
     typename LocalRecognitionPipeline<PointT>::Parameter paramSiftRecognizer, paramShotRecognizer;

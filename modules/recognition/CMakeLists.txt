@@ -1,16 +1,13 @@
 set(the_description "Recognition")
-v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentation v4r_keypoints v4r_registration v4r_change_detection v4r_ml pcl opencv edt metslib glog boost OPTIONAL v4r_rendering siftgpu)
+v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentation v4r_keypoints v4r_registration v4r_change_detection v4r_ml pcl opencv metslib glog boost OPTIONAL v4r_rendering siftgpu)
 
     list(APPEND rec_srcs
-        ${CMAKE_CURRENT_LIST_DIR}/src/ghv.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/multiview_representation.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/global_nn_classifier.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/model_only_source.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/src/recognition_model_ghv.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/voxel_based_correspondence_estimation.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/partial_pcd_source.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/local_recognizer.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/src/ghv.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/local_rec_object_hypotheses.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/global_recognizer.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/recognition_model_hv.cpp
@@ -52,11 +49,9 @@ v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentat
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/recognizer.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/metrics.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/recognition_model_hv.h
-        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/recognition_model_ghv.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/global_svm_classifier.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/segmenter.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/multiview_object_recognizer.h
-        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/ghv.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/ghv_opt.h
 )
 

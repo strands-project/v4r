@@ -97,6 +97,7 @@ main (int argc, char ** argv)
     ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
+    std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
     po::store(parsed, vm);
     if (vm.count("help")) { std::cout << desc << std::endl; }
     try { po::notify(vm); }
@@ -106,23 +107,40 @@ main (int argc, char ** argv)
     typename v4r::Segmenter<PointT>::Ptr cast_segmenter;
     if(method == v4r::SegmentationType::DominantPlane)
     {
-        typename v4r::DominantPlaneSegmenter<PointT>::Ptr seg (new v4r::DominantPlaneSegmenter<PointT> (argc, argv));
+        typename v4r::DominantPlaneSegmenter<PointT>::Parameter param;
+        to_pass_further = param.init(to_pass_further);
+        typename v4r::DominantPlaneSegmenter<PointT>::Ptr seg (new v4r::DominantPlaneSegmenter<PointT> (param));
         cast_segmenter = boost::dynamic_pointer_cast<v4r::Segmenter<PointT> > (seg);
     }
     else if(method == v4r::SegmentationType::MultiPlane)
     {
-        typename v4r::MultiplaneSegmenter<PointT>::Ptr seg (new v4r::MultiplaneSegmenter<PointT> (argc, argv));
+        typename v4r::MultiplaneSegmenter<PointT>::Parameter param;
+        to_pass_further = param.init(to_pass_further);
+        typename v4r::MultiplaneSegmenter<PointT>::Ptr seg (new v4r::MultiplaneSegmenter<PointT> (param));
         cast_segmenter = boost::dynamic_pointer_cast<v4r::Segmenter<PointT> > (seg);
     }
     else if(method == v4r::SegmentationType::EuclideanSegmentation)
     {
-        typename v4r::EuclideanSegmenter<PointT>::Ptr seg (new v4r::EuclideanSegmenter<PointT> (argc, argv));
+        typename v4r::EuclideanSegmenter<PointT>::Parameter param;
+        to_pass_further = param.init(to_pass_further);
+        typename v4r::EuclideanSegmenter<PointT>::Ptr seg (new v4r::EuclideanSegmenter<PointT> (param));
         cast_segmenter = boost::dynamic_pointer_cast<v4r::Segmenter<PointT> > (seg);
     }
     else if(method == v4r::SegmentationType::SmoothEuclideanClustering)
     {
-        typename v4r::SmoothEuclideanSegmenter<PointT>::Ptr seg (new v4r::SmoothEuclideanSegmenter<PointT> (argc, argv));
+        typename v4r::SmoothEuclideanSegmenter<PointT>::Parameter param;
+        to_pass_further = param.init(to_pass_further);
+        typename v4r::SmoothEuclideanSegmenter<PointT>::Ptr seg (new v4r::SmoothEuclideanSegmenter<PointT> (param));
         cast_segmenter = boost::dynamic_pointer_cast<v4r::Segmenter<PointT> > (seg);
+    }
+
+    if( !to_pass_further.empty() )
+    {
+        std::cerr << "Unused command line arguments: ";
+        for(size_t c=0; c<to_pass_further.size(); c++)
+            std::cerr << to_pass_further[c] << " ";
+
+        std::cerr << "!" << std::endl;
     }
 
 

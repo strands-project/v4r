@@ -33,7 +33,6 @@
 #include <v4r/common/convertCloud.h>
 #include <v4r/common/convertNormals.h>
 #include <v4r/recognition/recognizer.h>
-#include <v4r/recognition/ghv.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/voxel_based_correspondence_estimation.h>
 #include <v4r/segmentation/multiplane_segmentation.h>
@@ -79,17 +78,11 @@ Recognizer<PointT>::hypothesisVerification ()
         aligned_model_normals[i] = aligned_normal_tmp;
     }
 
-
-    boost::shared_ptr<GHV<PointT, PointT> > hv_algorithm_ghv;
-    if( hv_algorithm_ )
-        hv_algorithm_ghv = boost::dynamic_pointer_cast<GHV<PointT, PointT>> (hv_algorithm_);
-
     hv_algorithm_->setSceneCloud (scene_);
     hv_algorithm_->setNormals( scene_normals_ );
     hv_algorithm_->addModels (aligned_models, aligned_model_normals);
     hv_algorithm_->verify ();
     hv_algorithm_->getMask (hypothesis_is_verified_);
-
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>  > refined_transforms;
     hv_algorithm_->getRefinedTransforms(refined_transforms);
 
@@ -300,7 +293,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
 
 
 template class V4R_EXPORTS Recognizer<pcl::PointXYZRGB>;
-template class V4R_EXPORTS Recognizer<pcl::PointXYZ>;
+//template class V4R_EXPORTS Recognizer<pcl::PointXYZ>;
 }
 
 

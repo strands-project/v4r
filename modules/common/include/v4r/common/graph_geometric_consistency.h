@@ -40,16 +40,21 @@
 #ifndef FAAT_PCL_RECOGNITION_GRAPH_GEOMETRIC_CONSISTENCY_H_
 #define FAAT_PCL_RECOGNITION_GRAPH_GEOMETRIC_CONSISTENCY_H_
 
-#include "correspondence_grouping.h"
 #include <pcl/point_cloud.h>
 #include <pcl/common/angles.h>
 #include <pcl/common/centroid.h>
-//#include <pcl/visualization/pcl_visualizer.h>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_matrix.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/undirected_graph.hpp>
 #include <v4r/core/macros.h>
+#include <v4r/common/correspondence_grouping.h>
+
+#include <boost/program_options.hpp>
+#include <boost/format.hpp>
+#include <glog/logging.h>
+
+namespace po = boost::program_options;
 
 namespace v4r
 {
@@ -112,7 +117,49 @@ namespace v4r
             ransac_threshold_ ( ransac_threshold ),
             prune_ ( prune ),
             prune_by_CC_ ( prune_by_CC )
-      {}
+        {}
+
+          /**
+           * @brief init parameters
+           * @param command_line_arguments (according to Boost program options library)
+           * @return unused parameters (given parameters that were not used in this initialization call)
+           */
+          std::vector<std::string>
+          init(int argc, char **argv)
+          {
+                  std::vector<std::string> arguments(argv + 1, argv + argc);
+                  return init(arguments);
+          }
+
+          /**
+           * @brief init parameters
+           * @param command_line_arguments (according to Boost program options library)
+           * @return unused parameters (given parameters that were not used in this initialization call)
+           */
+          std::vector<std::string>
+          init(const std::vector<std::string> &command_line_arguments)
+          {
+              po::options_description desc("Graph Geometric Consistency Grouping Parameters\n=====================");
+              desc.add_options()
+                      ("help,h", "produce help message")
+                      ("cg_size_thresh,c", po::value<size_t>(&gc_threshold_)->default_value(gc_threshold_), "Minimum cluster size. At least 3 correspondences are needed to compute the 6DOF pose ")
+                      ("cg_size", po::value<double>(&gc_size_)->default_value(gc_size_, boost::str(boost::format("%.2e") % gc_size_) ), "Resolution of the consensus set used to cluster correspondences together ")
+                      ("cg_ransac_threshold", po::value<double>(&ransac_threshold_)->default_value(ransac_threshold_, boost::str(boost::format("%.2e") % ransac_threshold_) ), " ")
+                      ("cg_dist_for_clutter_factor", po::value<double>(&dist_for_cluster_factor_)->default_value(dist_for_cluster_factor_, boost::str(boost::format("%.2e") % dist_for_cluster_factor_) ), " ")
+                      ("cg_max_taken", po::value<size_t>(&max_taken_correspondence_)->default_value(max_taken_correspondence_), " ")
+                      ("cg_max_time_for_cliques_computation", po::value<double>(&max_time_allowed_cliques_comptutation_)->default_value(max_time_allowed_cliques_comptutation_, "100.0"), " if grouping correspondences takes more processing time in milliseconds than this defined value, correspondences will be no longer computed by this graph based approach but by the simpler greedy correspondence grouping algorithm")
+                      ("cg_dot_distance", po::value<double>(&thres_dot_distance_)->default_value(thres_dot_distance_, boost::str(boost::format("%.2e") % thres_dot_distance_) ) ,"")
+                      ("cg_use_graph", po::value<bool>(&use_graph_)->default_value(use_graph_), " ")
+                      ;
+              po::variables_map vm;
+              po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
+              std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
+              po::store(parsed, vm);
+              if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
+              try { po::notify(vm); }
+              catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
+              return to_pass_further;
+          }
       }param_;
 
       typedef pcl::PointCloud<PointModelT> PointCloud;

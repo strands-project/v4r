@@ -75,34 +75,52 @@ public:
               min_distance_between_clusters_ ( min_distance_between_clusters )
         {
         }
+
+
+        /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+        std::vector<std::string>
+        init(int argc, char **argv)
+        {
+                std::vector<std::string> arguments(argv + 1, argv + argc);
+                return init(arguments);
+        }
+
+        /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+        std::vector<std::string>
+        init(const std::vector<std::string> &command_line_arguments)
+        {
+            po::options_description desc("Multi-Plane Segmentation\n=====================");
+            desc.add_options()
+                    ("help,h", "produce help message")
+                    ("seg_min_cluster_size", po::value<size_t>(&min_cluster_size_)->default_value(min_cluster_size_), "")
+                    ("seg_num_plane_inliers", po::value<int>(&num_plane_inliers_)->default_value(num_plane_inliers_), "")
+                    ("seg_sensor_noise_max", po::value<float>(&sensor_noise_max_)->default_value(sensor_noise_max_), "")
+                    ("seg_angular_threshold_deg", po::value<float>(&angular_threshold_deg_)->default_value(angular_threshold_deg_), "")
+                    ("seg_min_distance_between_clusters", po::value<float>(&min_distance_between_clusters_)->default_value(min_distance_between_clusters_), "")
+                    ;
+            po::variables_map vm;
+            po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
+            std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
+            po::store(parsed, vm);
+            if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
+            try { po::notify(vm); }
+            catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
+            return to_pass_further;
+        }
     }param_;
 
-    MultiplaneSegmenter(const Parameter &p = Parameter() ) : param_(p)
-    {
-    }
-
-    MultiplaneSegmenter(int argc, char **argv)
-    {
-        po::options_description desc("Multi-Plane Segmentation\n=====================");
-        desc.add_options()
-                ("help,h", "produce help message")
-                ("seg_min_cluster_size", po::value<size_t>(&param_.min_cluster_size_)->default_value(param_.min_cluster_size_), "")
-                ("seg_num_plane_inliers", po::value<int>(&param_.num_plane_inliers_)->default_value(param_.num_plane_inliers_), "")
-                ("seg_sensor_noise_max", po::value<float>(&param_.sensor_noise_max_)->default_value(param_.sensor_noise_max_), "")
-                ("seg_angular_threshold_deg", po::value<float>(&param_.angular_threshold_deg_)->default_value(param_.angular_threshold_deg_), "")
-                ("seg_min_distance_between_clusters", po::value<float>(&param_.min_distance_between_clusters_)->default_value(param_.min_distance_between_clusters_), "")
-                ;
-        po::variables_map vm;
-        po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
-        po::store(parsed, vm);
-        if (vm.count("help")) { std::cout << desc << std::endl; }
-        try { po::notify(vm); }
-        catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
-    }
+    MultiplaneSegmenter(const Parameter &p = Parameter() ) : param_(p) {  }
 
     void
     segment();
-
 
     bool getRequiresNormals() { return true; }
 

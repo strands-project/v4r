@@ -270,12 +270,12 @@ namespace v4r
          * \brief Sets the model data source_
          */
         void
-        setDataSource (const typename boost::shared_ptr<Source<PointT> > & source)
+        setDataSource (const typename Source<PointT>::Ptr & source)
         {
           source_ = source;
         }
 
-        typename boost::shared_ptr<Source<PointT> >
+        typename Source<PointT>::Ptr
         getDataSource () const
         {
           return source_;
@@ -285,9 +285,9 @@ namespace v4r
          * \brief Sets the local feature estimator
          */
         void
-        setFeatureEstimator (const typename boost::shared_ptr<LocalEstimator<PointT> > & feat)
+        setFeatureEstimator (const typename LocalEstimator<PointT>::Ptr & feat)
         {
-          estimator_ = feat;
+            estimator_ = feat;
         }
 
         /**

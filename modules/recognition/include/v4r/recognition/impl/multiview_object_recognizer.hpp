@@ -41,7 +41,7 @@
 
 #include <v4r/common/normals.h>
 #include <v4r/common/pcl_visualization_utils.h>
-#include <v4r/recognition/ghv.h>
+#include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/registration/FeatureBasedRegistration.h>
 #include <v4r/registration/metrics.h>
 #include <v4r/recognition/segmenter.h>

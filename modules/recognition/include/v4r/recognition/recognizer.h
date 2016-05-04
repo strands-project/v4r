@@ -112,7 +112,7 @@ namespace v4r
         std::string models_dir_; /// \brief Directory containing the object models
 
         /** \brief Hypotheses verification algorithm */
-        typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > hv_algorithm_;
+        typename HypothesisVerification<PointT, PointT>::Ptr hv_algorithm_;
 
         void hypothesisVerification ();
 
@@ -136,7 +136,7 @@ namespace v4r
         void
         setDataSource (const typename Source<PointT>::Ptr & source)
         {
-          source_ = source;
+            source_ = source;
         }
 
         typename Source<PointT>::Ptr
@@ -166,7 +166,7 @@ namespace v4r
         void
         setInputCloud (const PointTPtr cloud)
         {
-          scene_ = cloud;
+            scene_ = cloud;
         }
 
         /**
@@ -176,7 +176,7 @@ namespace v4r
         std::vector<ModelTPtr>
         getModels() const
         {
-          return models_;
+            return models_;
         }
 
 
@@ -209,7 +209,7 @@ namespace v4r
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
         getTransforms () const
         {
-          return transforms_;
+            return transforms_;
         }
 
 

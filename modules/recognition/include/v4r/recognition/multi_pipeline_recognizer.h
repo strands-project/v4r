@@ -108,7 +108,7 @@ namespace v4r
         MultiRecognitionPipeline (const typename Recognizer<PointT>::Parameter &p = Recognizer<PointT>::Parameter()) : Recognizer<PointT>(p)
         { }
 
-        MultiRecognitionPipeline(int argc, char **argv);
+        MultiRecognitionPipeline(std::vector<std::string> &arguments);
 
 
         void
@@ -144,9 +144,9 @@ namespace v4r
         recognize();
 
         void
-        addRecognizer(typename boost::shared_ptr<Recognizer<PointT> > & rec)
+        addRecognizer(const typename Recognizer<PointT>::Ptr & rec)
         {
-          recognizers_.push_back(rec);
+            recognizers_.push_back(rec);
         }
 
         void

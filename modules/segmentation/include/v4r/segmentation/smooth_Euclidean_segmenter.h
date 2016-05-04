@@ -59,55 +59,82 @@ public:
     class Parameter
     {
     public:
-        float eps_angle_threshold_;
+        float eps_angle_threshold_deg_;
         float curvature_threshold_;
         float cluster_tolerance_;
         int min_points_;
         bool z_adaptive_;   /// @brief if true, scales the smooth segmentation parameters linear with distance (constant till 1m at the given parameters)
         float octree_resolution_;
+        bool force_unorganized_; /// @brief if true, searches for neighboring points using the search tree and not pixel neighbors (even though input cloud is organized)
+        bool compute_planar_patches_only_;  /// @brief if true, only compute planar surface patches
+        float planar_inlier_dist_;  /// @brief maximum allowed distance of a point to the plane
 
         Parameter (
-                float eps_angle_threshold = 0.1f, //0.25f
+                float eps_angle_threshold_deg = 5.f, //0.25f
                 float curvature_threshold = 0.04f,
                 float cluster_tolerance = 0.01f, //0.015f;
                 int min_points = 100, // 20
                 bool z_adaptive = true,
-                float octree_resolution = 0.01f
+                float octree_resolution = 0.01f,
+                bool force_unorganized = false,
+                bool compute_planar_patches_only = false,
+                float planaer_inlier_dist = 0.02f
                 )
             :
-              eps_angle_threshold_ (eps_angle_threshold),
+              eps_angle_threshold_deg_ (eps_angle_threshold_deg),
               curvature_threshold_ (curvature_threshold),
               cluster_tolerance_ (cluster_tolerance),
               min_points_ (min_points),
               z_adaptive_ ( z_adaptive ),
-              octree_resolution_ ( octree_resolution )
+              octree_resolution_ ( octree_resolution ),
+              force_unorganized_ ( force_unorganized ),
+              compute_planar_patches_only_ (compute_planar_patches_only),
+              planar_inlier_dist_ (planaer_inlier_dist)
         {
+        }
+
+
+        /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+        std::vector<std::string>
+        init(int argc, char **argv)
+        {
+                std::vector<std::string> arguments(argv + 1, argv + argc);
+                return init(arguments);
+        }
+
+        /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+        std::vector<std::string>
+        init(const std::vector<std::string> &command_line_arguments)
+        {
+            po::options_description desc("Smooth Region Growing Segmentation Parameters\n=====================");
+            desc.add_options()
+                    ("help,h", "produce help message")
+                    ("min_cluster_size", po::value<int>(&min_points_)->default_value(min_points_), "")
+                    ("sensor_noise_max", po::value<float>(&cluster_tolerance_)->default_value(cluster_tolerance_), "")
+                    //                ("chop_z_segmentation", po::value<double>(&chop_z_)->default_value(chop_z_), "")
+                    ("eps_angle_threshold", po::value<float>(&eps_angle_threshold_deg_)->default_value(eps_angle_threshold_deg_), "smooth clustering parameter for the angle threshold")
+                    ("curvature_threshold", po::value<float>(&curvature_threshold_)->default_value(curvature_threshold_), "smooth clustering parameter for curvate")
+                    ;
+            po::variables_map vm;
+            po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
+            std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
+            po::store(parsed, vm);
+            if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
+            try { po::notify(vm); }
+            catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
+            return to_pass_further;
         }
     }param_;
 
     SmoothEuclideanSegmenter(const Parameter &p = Parameter() ) : param_(p)  { visualize_ = false; }
-
-    SmoothEuclideanSegmenter(int argc, char **argv)
-    {
-        visualize_ = false;
-        po::options_description desc("Dominant Plane Segmentation\n=====================");
-        desc.add_options()
-                ("help,h", "produce help message")
-                ("min_cluster_size", po::value<int>(&param_.min_points_)->default_value(param_.min_points_), "")
-                ("sensor_noise_max", po::value<float>(&param_.cluster_tolerance_)->default_value(param_.cluster_tolerance_), "")
-                //                ("chop_z_segmentation", po::value<double>(&param_.chop_z_)->default_value(param_.chop_z_), "")
-                ("eps_angle_threshold", po::value<float>(&param_.eps_angle_threshold_)->default_value(param_.eps_angle_threshold_), "smooth clustering parameter for the angle threshold")
-                ("curvature_threshold", po::value<float>(&param_.curvature_threshold_)->default_value(param_.curvature_threshold_), "smooth clustering parameter for curvate")
-                ("visualize_segments", po::bool_switch(&visualize_), "If set, visualizes segmented clusters.")
-                ;
-        po::variables_map vm;
-        po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
-        po::store(parsed, vm);
-        if (vm.count("help")) { std::cout << desc << std::endl; }
-        try { po::notify(vm); }
-        catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
-    }
-
 
     bool getRequiresNormals() { return true; }
 
@@ -118,112 +145,7 @@ public:
     }
 
     void
-    segment()
-    {
-        size_t max_pts_per_cluster = std::numeric_limits<int>::max();
-
-        clusters_.clear();
-        CHECK (scene_->points.size() == normals_->points.size ());
-
-        if(!octree_ || octree_->getInputCloud() != scene_) {// create an octree for search
-            octree_.reset( new pcl::octree::OctreePointCloudSearch<PointT> (param_.octree_resolution_ ) );
-            octree_->setInputCloud(scene_);
-            octree_->addPointsFromInputCloud();
-        }
-
-        // Create a bool vector of processed point indices, and initialize it to false
-        std::vector<bool> processed (scene_->points.size (), false);
-        std::vector<int> nn_indices;
-        std::vector<float> nn_distances;
-
-        // Process all points in the indices vector
-        for (size_t i = 0; i < scene_->points.size (); ++i)
-        {
-            if (processed[i] || !pcl::isFinite(scene_->points[i]))
-                continue;
-
-            std::vector<size_t> seed_queue;
-            size_t sq_idx = 0;
-            seed_queue.push_back (i);
-
-            processed[i] = true;
-
-            while (sq_idx < seed_queue.size ())
-            {
-
-                size_t sidx = seed_queue[sq_idx];
-                const PointT &query_pt = scene_->points[ sidx ];
-                const pcl::Normal &query_n = normals_->points[ sidx ];
-
-                if (normals_->points[ sidx ].curvature > param_.curvature_threshold_)
-                {
-                    sq_idx++;
-                    continue;
-                }
-
-                // Search for sq_idx - scale radius with distance of point (due to noise)
-                float radius = param_.cluster_tolerance_;
-                float curvature_threshold = param_.curvature_threshold_;
-                float eps_angle_threshold = param_.eps_angle_threshold_;
-
-                if ( param_.z_adaptive_ )
-                {
-                    radius = param_.cluster_tolerance_ * ( 1 + (std::max(query_pt.z, 1.f) - 1.f));
-                    curvature_threshold = param_.curvature_threshold_ * ( 1 + (std::max(query_pt.z, 1.f) - 1.f));
-                    eps_angle_threshold = param_.eps_angle_threshold_ * ( 1 + (std::max(query_pt.z, 1.f) - 1.f));
-                }
-
-                if (!octree_->radiusSearch (query_pt, radius, nn_indices, nn_distances))
-                {
-                    sq_idx++;
-                    continue;
-                }
-
-                for (size_t j = 1; j < nn_indices.size (); ++j) // nn_indices[0] should be sq_idx
-                {
-                    if (processed[nn_indices[j]]) // Has this point been processed before ?
-                        continue;
-
-                    if (normals_->points[nn_indices[j]].curvature > curvature_threshold)
-                        continue;
-
-                    //processed[nn_indices[j]] = true;
-                    // [-1;1]
-
-                    Eigen::Vector3f n1 = query_n.getNormalVector3fMap();
-                    Eigen::Vector3f n2 = normals_->points[ nn_indices[j] ].getNormalVector3fMap();
-
-
-                    double dot_p = n1.dot(n2);
-
-                    if (fabs (acos (dot_p)) < eps_angle_threshold)
-                    {
-                        processed[nn_indices[j]] = true;
-                        seed_queue.push_back (nn_indices[j]);
-                    }
-                }
-
-                sq_idx++;
-            }
-
-            // If this queue is satisfactory, add to the clusters
-            if (seed_queue.size () >= param_.min_points_ && seed_queue.size () <= max_pts_per_cluster)
-            {
-                pcl::PointIndices r;
-                r.indices.resize (seed_queue.size ());
-                for (size_t j = 0; j < seed_queue.size (); ++j)
-                    r.indices[j] = seed_queue[j];
-
-                std::sort (r.indices.begin (), r.indices.end ());
-                r.indices.erase (std::unique (r.indices.begin (), r.indices.end ()), r.indices.end ());
-                clusters_.push_back (r); // We could avoid a copy by working directly in the vector
-            }
-        }
-
-        if (visualize_)
-            this->visualize();
-    }
-
+    segment();
 
     typedef boost::shared_ptr< SmoothEuclideanSegmenter<PointT> > Ptr;
     typedef boost::shared_ptr< SmoothEuclideanSegmenter<PointT> const> ConstPtr;

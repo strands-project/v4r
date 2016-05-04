@@ -789,7 +789,7 @@ GlobalRecognizer<PointT>::visualize()
     vis_->spin();
 }
 
-template class V4R_EXPORTS GlobalRecognizer<pcl::PointXYZ>;
+//template class V4R_EXPORTS GlobalRecognizer<pcl::PointXYZ>;
 template class V4R_EXPORTS GlobalRecognizer<pcl::PointXYZRGB>;
 
 }

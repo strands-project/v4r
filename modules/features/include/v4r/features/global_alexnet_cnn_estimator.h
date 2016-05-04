@@ -60,6 +60,8 @@ public:
         size_t image_width_;
         int device_id_;
         std::string device_name_;
+        std::vector<std::string> extract_feature_blob_names_;
+        std::string feature_extraction_proto_, pretrained_binary_proto_;
         Parameter(
                 size_t image_height = 256,
                 size_t image_width = 256,
@@ -72,13 +74,53 @@ public:
                 device_id_ (device_id),
                 device_name_ (device_name)
         {}
+
+
+        /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+        std::vector<std::string>
+        init(int argc, char **argv)
+        {
+                std::vector<std::string> arguments(argv + 1, argv + argc);
+                return init(arguments);
+        }
+
+        /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+        std::vector<std::string>
+        init(const std::vector<std::string> &command_line_arguments)
+        {
+            po::options_description desc("CNN parameters\n=====================");
+            desc.add_options()
+                    ("help,h", "produce help message")
+                    ("feature_extraction_proto", po::value<std::string>(&feature_extraction_proto_)->required(), "")
+                    ("pretrained_net", po::value<std::string>(&pretrained_binary_proto_)->required(), "")
+                    ("extract_feature_blob_names", po::value<std::vector<std::string> >(&extract_feature_blob_names_)->multitoken()->required(), "")
+                    ("device_name", po::value<std::string>(&device_name_)->default_value(device_name_), "")
+                    ("device_id", po::value<int>(&device_id_)->default_value(device_id_), "")
+                    ("cnn_image_height", po::value<size_t>(&image_height_)->default_value(image_height_), "")
+                    ("cnn_image_width", po::value<size_t>(&image_width_)->default_value(image_width_), "")
+                    ;
+            po::variables_map vm;
+            po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
+            std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
+            po::store(parsed, vm);
+            if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
+            try { po::notify(vm); }
+            catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
+            return to_pass_further;
+        }
     } param_;
 
 private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     boost::shared_ptr<caffe::Net<Dtype> > feature_extraction_net_;
-    std::vector<std::string> extract_feature_blob_names_;
-    std::string feature_extraction_proto_, pretrained_binary_proto_;
     bool init_;
 
 public:
@@ -90,47 +132,19 @@ public:
         init_ = false;
     }
 
-    CNN_Feat_Extractor(int argc, char **argv) : param_ (Parameter())
-    {
-        descr_name_ = "alexnet";
-        descr_type_ = FeatureType::ALEXNET;
-        feature_dimensions_ = 4096;
-        init_ = false;
-
-        po::options_description desc("CNN parameters\n=====================");
-        desc.add_options()
-                ("help,h", "produce help message")
-                ("feature_extraction_proto", po::value<std::string>(&feature_extraction_proto_)->required(), "")
-                ("pretrained_net", po::value<std::string>(&pretrained_binary_proto_)->required(), "")
-                ("extract_feature_blob_names", po::value<std::vector<std::string> >(&extract_feature_blob_names_)->multitoken()->required(), "")
-                ("device_name", po::value<std::string>(&param_.device_name_)->default_value(param_.device_name_), "")
-                ("device_id", po::value<int>(&param_.device_id_)->default_value(param_.device_id_), "")
-                ("cnn_image_height", po::value<size_t>(&param_.image_height_)->default_value(param_.image_height_), "")
-                ("cnn_image_width", po::value<size_t>(&param_.image_width_)->default_value(param_.image_width_), "")
-                ;
-        po::variables_map vm;
-        po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
-        po::store(parsed, vm);
-        if (vm.count("help")) { std::cout << desc << std::endl; }
-        try { po::notify(vm); }
-        catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
-    }
-
-    int init();
-
     void setFeatureExtractionProto(const std::string &val)
     {
-        feature_extraction_proto_ = val;
+        param_.feature_extraction_proto_ = val;
     }
 
     void setExtractFeatureBlobNames(const std::vector<std::string> &val)
     {
-        extract_feature_blob_names_ = val;
+        param_.extract_feature_blob_names_ = val;
     }
 
     void setPretrainedBinaryProto(const std::string &val)
     {
-        pretrained_binary_proto_ = val;
+        param_.pretrained_binary_proto_ = val;
     }
 
     bool compute(Eigen::MatrixXf &signature);
@@ -139,7 +153,6 @@ public:
     {
         return false;
     }
-
 
     typedef boost::shared_ptr< ::v4r::CNN_Feat_Extractor<PointT, Dtype> > Ptr;
     typedef boost::shared_ptr< ::v4r::CNN_Feat_Extractor<PointT, Dtype> const> ConstPtr;
