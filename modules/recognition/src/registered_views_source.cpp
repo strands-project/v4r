@@ -45,7 +45,6 @@ RegisteredViewsSource<PointT>::generate ()
         loadModel (*m);
         models_.push_back (m);
     }
-    this->createVoxelGridAndDistanceTransform(resolution_mm_);
 }
 
 template<typename PointT>

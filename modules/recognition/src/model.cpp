@@ -115,18 +115,6 @@ Model<PointT>::getAssembledSmoothFaces (int resolution_mm)
     return it->second;
 }
 
-template<typename PointT>
-void
-Model<PointT>::createVoxelGridAndDistanceTransform ( int resolution_mm )
-{
-    double resolution = (double)resolution_mm / 1000.f;
-    PointTPtrConst assembled (new pcl::PointCloud<PointT> ());
-    assembled = getAssembled(resolution_mm);
-    dist_trans_.reset(new distance_field::PropagationDistanceField<PointT>(resolution));
-    dist_trans_->setInputCloud(assembled);
-    dist_trans_->compute();
-}
-
 template class V4R_EXPORTS Model<pcl::PointXYZ>;
 template class V4R_EXPORTS Model<pcl::PointXYZRGB>;
 }

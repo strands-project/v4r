@@ -25,15 +25,12 @@
 #ifndef RECOGNITION_MODEL_H
 #define RECOGNITION_MODEL_H
 
-#include <EDT/propagation_distance_field.h>
 #include <v4r/core/macros.h>
-
 #include <pcl/common/centroid.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/point_cloud.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/pcl_visualizer.h>
-
 
 namespace v4r
 {
@@ -66,7 +63,6 @@ public:
   std::map<std::string, Eigen::MatrixXf> signatures_; /// @brief signatures of all local keypoint descriptors. Each element in the map represents a set of keypoint description (e.g. SIFT). The columns of the matrix represent the signature of one keypoint.
   mutable typename std::map<int, PointTPtrConst> voxelized_assembled_;
   mutable typename std::map<int, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
-  typename boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > dist_trans_;
   Eigen::Vector4f centroid_;    /// @brief centre of gravity for the whole 3d model
   Eigen::MatrixX3f view_centroid_;  /// @brief centre of gravity for each 2.5D view of the model (each row corresponds to one view)
   bool centroid_computed_;
@@ -116,14 +112,6 @@ public:
   typename pcl::PointCloud<PointT>::ConstPtr getAssembled(int resolution_mm) const;
 
   pcl::PointCloud<pcl::Normal>::ConstPtr getNormalsAssembled (int resolution_mm) const;
-
-  void createVoxelGridAndDistanceTransform(int resolution_mm);
-
-  void
-  getVGDT(boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > & dt) const
-  {
-      dt = dist_trans_;
-  }
 
 };
 

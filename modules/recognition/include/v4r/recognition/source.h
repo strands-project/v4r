@@ -215,14 +215,6 @@ public:
     }
 
     void
-    createVoxelGridAndDistanceTransform(int resolution_mm)
-    {
-        for (size_t i = 0; i < models_.size (); i++)
-            models_[i]->createVoxelGridAndDistanceTransform (resolution_mm);
-    }
-
-
-    void
     setViewPrefix (const std::string &pre)
     {
         view_prefix_ = pre;
