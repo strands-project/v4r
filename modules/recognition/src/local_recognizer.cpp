@@ -381,18 +381,24 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
     {
         const std::string dir = models_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
 
-        if (!io::existsFolder(dir))
+        std::cout << "Loading " << estimator_->getFeatureDescriptorName() << " for model " << m->class_ << " " << m->id_ <<  " ("<< m->view_filenames_.size () << " views)" << std::endl;
+
+        io::createDirIfNotExist(dir);
+
+        if(!source_->getLoadIntoMemory())
+            source_->loadInMemorySpecificModel(*m);
+
+        for (size_t v = 0; v < m->view_filenames_.size(); v++)
         {
-            std::cout << "Model " << m->class_ << " " << m->id_ << " not trained. Training " << estimator_->getFeatureDescriptorName() << " on " << m->view_filenames_.size () << " views..." << std::endl;
+            // check if descriptor file exists. If not, train this view
+            std::string descriptor_basename (m->view_filenames_[v]);
+            boost::replace_last(descriptor_basename, source_->getViewPrefix(), "/descriptors_");
+            boost::replace_last(descriptor_basename, ".pcd", ".desc");
 
-            io::createDirIfNotExist(dir);
-
-            if(!source_->getLoadIntoMemory())
-                source_->loadInMemorySpecificModel(*m);
-
-            for (size_t v = 0; v < m->view_filenames_.size(); v++)
+            if( !io::existsFile(dir+descriptor_basename) )
             {
-                std::stringstream foo; foo << "processing view " << m->view_filenames_[v];
+                std::stringstream foo; foo << "Training " << estimator_->getFeatureDescriptorName() << " on view " << m->class_ << "/" << m->id_ << "/" << m->view_filenames_[v];
+
                 pcl::ScopeTime t(foo.str().c_str());
                 scene_ = m->views_[v];
                 scene_normals_.reset(new pcl::PointCloud<pcl::Normal>);
@@ -407,9 +413,6 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
 
                 CHECK(scene_signatures_.size() == keypoint_indices_.size());
 
-                std::string descriptor_basename (m->view_filenames_[v]);
-                boost::replace_last(descriptor_basename, source_->getViewPrefix(), "/descriptors_");
-                boost::replace_last(descriptor_basename, ".pcd", ".desc");
                 std::ofstream f(dir + descriptor_basename, std::ofstream::binary );
                 int rows = scene_signatures_.size();
                 int cols = scene_signatures_[0].size();
@@ -431,14 +434,11 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
                 pcl::copyPointCloud(*scene_normals_, keypoint_indices_, normals_keypoints);
                 pcl::io::savePCDFileBinary (dir + kp_normals_basename, normals_keypoints);
             }
-
-            if(!source_->getLoadIntoMemory())
-                m->views_.clear();
         }
-        else
+
+        if(!source_->getLoadIntoMemory())
         {
-            std::cout << "Model " << m->class_ << " " << m->id_ << " already trained using " << estimator_->getFeatureDescriptorName() << "." << std::endl;
-            m->views_.clear(); //there is no need to keep the views in memory once the model has been trained
+            m->views_.clear();
         }
     }
 

@@ -161,30 +161,27 @@ GlobalRecognizer<PointT>::initialize(bool force_retrain)
 
     for (ModelTPtr &m : models)
     {
-        const std::string dir = models_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name;
+        const std::string dir = models_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name + "/";
 
-        bool view_is_already_trained = false;
-        if ( io::existsFolder(dir) )   // check if training directory exists and the number of descriptors is equal to the number of views
+        std::cout << "Loading " << estimator_->getFeatureDescriptorName() << " for model " << m->class_ << " " << m->id_ <<  " ("<< m->view_filenames_.size () << " views)" << std::endl;
+
+        io::createDirIfNotExist(dir);
+
+        if(!source_->getLoadIntoMemory())
+            source_->loadInMemorySpecificModel(*m);
+
+        for (size_t v = 0; v < m->view_filenames_.size(); v++)
         {
-            std::vector<std::string> descriptor_files = io::getFilesInDirectory(dir, ".*.desc", false);
-            if(descriptor_files.size()== m->view_filenames_.size())
-                view_is_already_trained = true;
-        }
+            // check if descriptor file exists. If not, train this view
+            std::string descriptor_basename (m->view_filenames_[v]);
+            boost::replace_last(descriptor_basename, ".pcd", ".desc");
 
-        if ( !view_is_already_trained )
-        {
-            std::cout << "Model " << m->class_ << " " << m->id_ << " not trained. Training " << descr_name << " on " << m->view_filenames_.size () << " views..." << std::endl;
-            io::createDirIfNotExist(dir);
-
-            if(!source_->getLoadIntoMemory())
-                source_->loadInMemorySpecificModel(*m);
-
-            LOG(INFO) << "Computing signatures for " << m->class_ << " for id " <<  m->id_ << " with " << m->views_.size() << " views.";
-
-            for (size_t view_id = 0; view_id < m->view_filenames_.size(); view_id++)
+            if( !io::existsFile(dir+descriptor_basename) )
             {
-                std::stringstream foo; foo << "processing view " << view_id;
-                scene_ = m->views_[view_id];
+                std::stringstream foo; foo << "Training " << estimator_->getFeatureDescriptorName() << " on view " << m->class_ << "/" << m->id_ << "/" << m->view_filenames_[v];
+
+                pcl::ScopeTime t(foo.str().c_str());
+                scene_ = m->views_[v];
                 if ( this->needNormals() && !scene_normals_ )
                 {
                     scene_normals_.reset(new pcl::PointCloud<pcl::Normal>);
@@ -193,34 +190,32 @@ GlobalRecognizer<PointT>::initialize(bool force_retrain)
                         computeNormals<PointT>(scene_, scene_normals_, 2);
                     }
                 }
-                indices_ = m->indices_[view_id];
+                indices_ = m->indices_[v];
+
                 Eigen::MatrixXf signature_tmp;
                 if (!featureEncoding(signature_tmp))
                     continue;
 
                 // write signatures and keypoints (with normals) to files
-                std::string signature_basename (m->view_filenames_[view_id]);
-                boost::replace_last(signature_basename, ".pcd", ".desc");
-                Eigen::write_binary(dir+"/"+signature_basename, signature_tmp);
-
+                Eigen::write_binary(dir+"/"+descriptor_basename, signature_tmp);
 
                 // write centroid to disk
                 Eigen::Vector4f centroid;
-                pcl::compute3DCentroid(*m->views_[view_id], centroid);
+                pcl::compute3DCentroid(*m->views_[v], centroid);
                 std::vector<float> centroid_v(3);
                 centroid_v[0] = centroid[0];
                 centroid_v[1] = centroid[1];
                 centroid_v[2] = centroid[2];
 
-                std::string centroid_basename (m->view_filenames_[view_id]);
+                std::string centroid_basename (m->view_filenames_[v]);
                 boost::replace_last(centroid_basename, ".pcd", ".centroid");
                 io::writeVectorToFile (dir+"/"+centroid_basename, centroid_v);
 
 
                 // write entropy to disk ///NOTE: This is not implemented right now
                 std::stringstream path_entropy;
-                path_entropy << dir << "/entropy_" << view_id << ".txt";
-                io::writeFloatToFile (path_entropy.str (), m->self_occlusions_[view_id]);
+                path_entropy << dir << "/entropy_" << v << ".txt";
+                io::writeFloatToFile (path_entropy.str (), m->self_occlusions_[v]);
 
 
                 // write estimated objects orientation(*) to disk (*per view; based on covariance matrix)
@@ -245,7 +240,7 @@ GlobalRecognizer<PointT>::initialize(bool force_retrain)
                 tf_trans.block<3,1>(0,3) = -centroid_scene_cluster.topRows(3);
                 tf_rot.block<3,3>(0,0) = eigenBasis.transpose();
 
-                std::string covariance_pose (m->view_filenames_[view_id]);
+                std::string covariance_pose (m->view_filenames_[v]);
                 boost::replace_last(covariance_pose, ".pcd", ".cov_pose");
                 io::writeMatrixToFile( dir+"/"+covariance_pose, tf_rot*tf_trans);
 
@@ -273,18 +268,18 @@ GlobalRecognizer<PointT>::initialize(bool force_retrain)
                         zmax = p.z;
                 }
 
-                std::string elongationsbn (m->view_filenames_[view_id]);
+                std::string elongationsbn (m->view_filenames_[v]);
                 boost::replace_last(elongationsbn, ".pcd", ".elongations");
                 std::ofstream f(dir+"/"+elongationsbn);
                 f<< xmax - xmin << " " << ymax - ymin << " " << zmax - zmin;
                 f.close();
             }
-
-            if(!source_->getLoadIntoMemory())
-                m->views_.clear();
         }
-        else
-            LOG(INFO) << "Model " << m->class_ << " with id " <<  m->id_ << " (" << m->views_.size() << " views) has already been trained.";
+
+        if(!source_->getLoadIntoMemory())
+        {
+            m->views_.clear();
+        }
     }
 
     loadFeaturesFromDisk();
@@ -549,7 +544,7 @@ void
 GlobalRecognizer<PointT>::poseRefinement()
 {
 
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
     for(size_t i=0; i<models_.size(); i++)
     {
         ModelT &m = *models_[i];
