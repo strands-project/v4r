@@ -544,6 +544,20 @@ V4R_EXPORTS computeHistogramIntersection (const Eigen::VectorXf &histA, const Ei
 void
 V4R_EXPORTS shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction_is_right=true);
 
+/**
+ * @brief runningAverage computes incrementally the average of a vector
+ * @param old_average
+ * @param old_size the number of contributing vectors before updating
+ * @param increment the new vector being added
+ * @return
+ */
+inline Eigen::VectorXf
+V4R_EXPORTS runningAverage (const Eigen::VectorXf &old_average, size_t old_size, const Eigen::VectorXf &increment) {    // update average point
+    double w = old_size / double(old_size + 1);
+    Eigen::VectorXf newAvg = old_average  * w + increment / double(old_size + 1);
+    return newAvg;
+}
+
 }
 
 
