@@ -28,8 +28,8 @@ if(BUILD_EXAMPLES)
   SET(V4R_DEPS v4r_recognition)
   V4R_DEFINE_CPP_EXAMPLE(object_recognizer)
 
-  SET(V4R_DEPS v4r_recognition)
-  V4R_DEFINE_CPP_EXAMPLE(object_recognizer_multiview)
+  #SET(V4R_DEPS v4r_recognition)
+  #V4R_DEFINE_CPP_EXAMPLE(object_recognizer_multiview)
 
   SET(V4R_DEPS v4r_tracking v4r_reconstruction v4r_keypoints)
   V4R_DEFINE_CPP_EXAMPLE(object_tracker_mono)

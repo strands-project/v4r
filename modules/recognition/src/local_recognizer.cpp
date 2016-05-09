@@ -487,22 +487,22 @@ LocalRecognitionPipeline<PointT>::featureMatching()
             float m_dist = param_.correspondence_distance_weight_ * distances[0][i];
 
             typename symHyp::iterator it_map;
-            if ((it_map = obj_hypotheses_.find (f.model->id_)) != obj_hypotheses_.end ())
+            if ((it_map = local_obj_hypotheses_.find (f.model->id_)) != local_obj_hypotheses_.end ())
             {
-                ObjectHypothesis<PointT> &oh = it_map->second;
+                LocalObjectHypothesis<PointT> &loh = it_map->second;
                 pcl::Correspondence c ( (int)f.keypoint_id, (int)idx, m_dist);
-                oh.model_scene_corresp_.push_back(c);
-                oh.indices_to_flann_models_.push_back( indices[0][i] );
+                loh.model_scene_corresp_.push_back(c);
+                loh.indices_to_flann_models_.push_back( indices[0][i] );
             }
             else //create object hypothesis
             {
-                ObjectHypothesis<PointT> oh;
-                oh.model_ = f.model;
-                oh.model_scene_corresp_.reserve (scene_signatures_.size () * param_.knn_);
-                oh.indices_to_flann_models_.reserve(scene_signatures_.size () * param_.knn_);
-                oh.model_scene_corresp_.push_back( pcl::Correspondence ((int)f.keypoint_id, (int)idx, m_dist) );
-                oh.indices_to_flann_models_.push_back( indices[0][i] );
-                obj_hypotheses_[oh.model_->id_] = oh;
+                LocalObjectHypothesis<PointT> loh;
+                loh.model_ = f.model;
+                loh.model_scene_corresp_.reserve (scene_signatures_.size () * param_.knn_);
+                loh.indices_to_flann_models_.reserve(scene_signatures_.size () * param_.knn_);
+                loh.model_scene_corresp_.push_back( pcl::Correspondence ((int)f.keypoint_id, (int)idx, m_dist) );
+                loh.indices_to_flann_models_.push_back( indices[0][i] );
+                local_obj_hypotheses_[loh.model_->id_] = loh;
             }
         }
     }
@@ -512,7 +512,7 @@ LocalRecognitionPipeline<PointT>::featureMatching()
     delete[] query_desc.ptr ();
 
     typename symHyp::iterator it_map;
-    for (it_map = obj_hypotheses_.begin(); it_map != obj_hypotheses_.end (); it_map++)
+    for (it_map = local_obj_hypotheses_.begin(); it_map != local_obj_hypotheses_.end (); it_map++)
         it_map->second.model_scene_corresp_.shrink_to_fit();   // free memory
 }
 
@@ -710,7 +710,7 @@ template<typename PointT>
 void
 LocalRecognitionPipeline<PointT>::recognize ()
 {
-    obj_hypotheses_.clear();
+    local_obj_hypotheses_.clear();
     keypoint_indices_.clear();
 
     if(!computeFeatures())

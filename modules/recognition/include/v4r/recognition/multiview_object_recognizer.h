@@ -68,10 +68,8 @@ protected:
 
     using Recognizer<PointT>::scene_;
     using Recognizer<PointT>::scene_normals_;
-    using Recognizer<PointT>::models_;
-    using Recognizer<PointT>::hypothesis_is_verified_;
-    using Recognizer<PointT>::transforms_;
     using Recognizer<PointT>::hv_algorithm_;
+    using Recognizer<PointT>::verified_hypotheses_;
     using Recognizer<PointT>::hypothesisVerification;
 
     boost::shared_ptr<MultiRecognitionPipeline<PointT> > rr_;
@@ -87,7 +85,7 @@ protected:
     pcl::visualization::PCLVisualizer::Ptr go3d_vis_;
     std::vector<int> go_3d_viewports_;
 
-    typedef typename std::map<std::string, ObjectHypothesis<PointT> > symHyp;
+    typedef typename std::map<std::string, LocalObjectHypothesis<PointT> > symHyp;
 
     size_t id_;
 
@@ -95,7 +93,7 @@ protected:
 
     std::string scene_name_;
 
-    symHyp obj_hypotheses_; /// \brief stores keypoint correspondences
+    symHyp local_obj_hypotheses_; /// \brief stores keypoint correspondences
 
     /** \brief Point-to-point correspondence grouping algorithm */
     typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;
@@ -241,9 +239,7 @@ public:
      */
     void cleanUp()
     {
-        models_.clear();
-        hypothesis_is_verified_.clear();
-        transforms_.clear();
+        verified_hypotheses_.clear();
         views_.clear();
         id_ = 0;
     }

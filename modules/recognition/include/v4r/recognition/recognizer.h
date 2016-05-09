@@ -36,6 +36,7 @@
 #include <v4r/core/macros.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
+#include <v4r/recognition/object_hypothesis.h>
 #include <v4r/recognition/source.h>
 
 #include <pcl/common/common.h>
@@ -86,7 +87,7 @@ namespace v4r
         typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-        typedef typename std::map<std::string, ObjectHypothesis<PointT> > symHyp;
+        typedef typename std::map<std::string, LocalObjectHypothesis<PointT> > symHyp;
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
@@ -101,11 +102,8 @@ namespace v4r
         mutable std::vector<std::string> coordinate_axis_ids_;
 
         /** @brief: generated object hypotheses (before verification) */
-        std::vector<ModelTPtr> models_;
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
-
-        /** @brief boolean vector defining if model or plane is verified (models are first in the vector and its size is equal to models_) */
-        std::vector<bool> hypothesis_is_verified_;
+        std::vector< ObjectHypothesesGroup<PointT> > obj_hypotheses_;   /// @brief generated object hypotheses
+        std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_; /// @brief verified object hypotheses
 
         bool requires_segmentation_;
 
@@ -169,69 +167,11 @@ namespace v4r
             scene_ = cloud;
         }
 
-        /**
-         * @brief return all generated object hypotheses
-         * @return potential object model in the scene (not aligned to the scene)
-         */
-        std::vector<ModelTPtr>
-        getModels() const
+
+        std::vector<ObjectHypothesesGroup<PointT> >
+        getObjectHypothesis() const
         {
-            return models_;
-        }
-
-
-        /**
-         * @brief returns only the models for the objects that have been verified
-         * @return verified object model of the scene (not aligned to the scene)
-         */
-        std::vector<ModelTPtr>
-        getVerifiedModels () const
-        {
-            std::vector<ModelTPtr> models_verified;
-
-            if(hypothesis_is_verified_.size() < models_.size()) {
-                std::cout << "Verification vector is not valid. Did you run hyphotheses verification?" << std::endl;
-                return models_verified;
-            }
-
-            for(size_t i=0; i<models_.size(); i++) {
-                if (hypothesis_is_verified_[i])
-                    models_verified.push_back(models_[i]);
-            }
-            return models_verified;
-        }
-
-
-        /**
-         * @brief return all transforms of generated object hypotheses with respect to the scene
-         * @return 4x4 homogenous transformation matrix
-         */
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
-        getTransforms () const
-        {
-            return transforms_;
-        }
-
-
-        /**
-         * @brief returns only the transformations for the objects that have been verified
-         * @return 4x4 homogenous transformation matrix of verified model to the scene
-         */
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
-        getVerifiedTransforms () const
-        {
-          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
-
-          if(hypothesis_is_verified_.size() < transforms_.size()) {
-              std::cout << "Verification vector is not valid. Did you run hyphotheses verification?" << std::endl;
-              return transforms_verified;
-          }
-
-          for(size_t i=0; i<transforms_.size(); i++) {
-              if (hypothesis_is_verified_[i])
-                  transforms_verified.push_back(transforms_[i]);
-          }
-          return transforms_verified;
+            return obj_hypotheses_;
         }
 
 
@@ -252,6 +192,12 @@ namespace v4r
         virtual bool requiresSegmentation() const
         {
           return requires_segmentation_;
+        }
+
+        std::vector<typename ObjectHypothesis<PointT>::Ptr >
+        getVerifiedHypotheses() const
+        {
+            return verified_hypotheses_;
         }
 
         void visualize () const;

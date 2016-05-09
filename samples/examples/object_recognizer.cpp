@@ -2,6 +2,7 @@
 
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
+#include <v4r/recognition/object_hypothesis.h>
 
 #include <pcl/common/time.h>
 #include <pcl/filters/passthrough.h>
@@ -67,29 +68,34 @@ main (int argc, char ** argv)
             cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
             cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
 
-            if( chop_z > 0)
-            {
-                pcl::PassThrough<PointT> pass;
-                pass.setFilterLimits ( 0.f, chop_z );
-                pass.setFilterFieldName ("z");
-                pass.setInputCloud (cloud);
-                pass.setKeepOrganized (true);
-                pass.filter (*cloud);
-            }
+//            if( chop_z > 0)
+//            {
+//                pcl::PassThrough<PointT> pass;
+//                pass.setFilterLimits ( 0.f, chop_z );
+//                pass.setFilterFieldName ("z");
+//                pass.setInputCloud (cloud);
+//                pass.setKeepOrganized (true);
+//                pass.filter (*cloud);
+//            }
 
             r.setInputCloud (cloud);
             r.recognize();
 
+            std::vector<typename v4r::ObjectHypothesis<PointT>::Ptr > ohs = r.getVerifiedHypotheses();
 
-            std::vector<ModelTPtr> verified_models = r.getVerifiedModels();
-            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
-            transforms_verified = r.getVerifiedTransforms();
+
+//            std::vector<ModelTPtr> verified_models = r.getVerifiedModels();
+//            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
+//            transforms_verified = r.getVerifiedTransforms();
 
             if (visualize)
                 r.visualize();
 
-            for(size_t m_id=0; m_id<verified_models.size(); m_id++)
-                std::cout << "********************" << verified_models[m_id]->id_ << std::endl;
+            for(size_t m_id=0; m_id<ohs.size(); m_id++)
+            {
+                std::cout << "********************" << ohs[m_id]->model_->id_ << std::endl
+                          << ohs[m_id]->transform_ << std::endl << std::endl;
+            }
         }
     }
 }

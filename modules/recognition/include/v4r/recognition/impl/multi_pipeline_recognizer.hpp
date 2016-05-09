@@ -21,12 +21,31 @@ MultiRecognitionPipeline<PointT>::initialize(bool force_retrain)
 }
 
 template<typename PointT>
+bool
+MultiRecognitionPipeline<PointT>::update()
+{
+    for(auto &r:recognizers_)
+        r->initialize(false);
+
+    return true;
+}
+
+template<typename PointT>
+bool
+MultiRecognitionPipeline<PointT>::retrain( const std::string &model_name)
+{
+    for(auto &r:recognizers_)
+        r->initialize(true);
+
+    return true;
+}
+
+template<typename PointT>
 void
 MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(boost::shared_ptr<Recognizer<PointT> > &rec)
 {
-    std::map<std::string, ObjectHypothesis<PointT> > oh_m;
-    std::vector<ModelTPtr> models;
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms;
+    std::map<std::string, LocalObjectHypothesis<PointT> > local_hypotheses;
+    std::vector<ObjectHypothesesGroup<PointT> > global_hypotheses;
     pcl::PointCloud<PointT> scene_kps;
     pcl::PointCloud<pcl::Normal> scene_kp_normals;
 
@@ -39,12 +58,11 @@ MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(boost::shared_ptr<Reco
     ///TODO: If all local recognizers are ready, we don't have to wait for global recognizers to finish but can already start with correspondence grouping
     if(global_rec) // for global recognizers
     {
-        models = global_rec->getModels ();
-        transforms = global_rec->getTransforms ();
+        global_hypotheses = global_rec->getObjectHypothesis();
     }
     else if(local_rec)  // for local recognizers
     {
-        local_rec->getSavedHypotheses(oh_m);
+        local_rec->getSavedHypotheses( local_hypotheses );
 
         std::vector<int> kp_indices;
         typename pcl::PointCloud<PointT>::Ptr kp_tmp = local_rec->getKeypointCloud();
@@ -54,20 +72,18 @@ MultiRecognitionPipeline<PointT>::callIndiviualRecognizer(boost::shared_ptr<Reco
         scene_kps = *kp_tmp;
     }
 
-    mergeStuff(oh_m, models, transforms, scene_kps, scene_kp_normals);
+    mergeStuff(global_hypotheses, local_hypotheses, scene_kps, scene_kp_normals);
 }
 
 template<typename PointT>
 void
-MultiRecognitionPipeline<PointT>::mergeStuff( std::map<std::string, ObjectHypothesis<PointT> > &oh_m,
-                                              const std::vector<ModelTPtr> &models,
-                                              const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms,
+MultiRecognitionPipeline<PointT>::mergeStuff( const std::vector<ObjectHypothesesGroup<PointT>> &global_hypotheses,
+                                              std::map<std::string, LocalObjectHypothesis<PointT> > &oh_m,
                                               const pcl::PointCloud<PointT> &scene_kps,
                                               const pcl::PointCloud<pcl::Normal> &scene_kp_normals)
 {
     omp_set_lock(&rec_lock_);
-    models_.insert(models_.end(), models.begin(), models.end());
-    transforms_.insert(transforms_.end(), transforms.begin(), transforms.end());
+    obj_hypotheses_.insert(obj_hypotheses_.end(), global_hypotheses.begin(), global_hypotheses.end());
 //            input_icp_indices.insert(input_icp_indices.end(), segmentation_indices_[c].indices.begin(), segmentation_indices_[c].indices.end());
 
     for (auto &oh : oh_m) {
@@ -75,9 +91,9 @@ MultiRecognitionPipeline<PointT>::mergeStuff( std::map<std::string, ObjectHypoth
             corr.index_match += scene_keypoints_->points.size();
         }
 
-        auto it_mp_oh = obj_hypotheses_.find(oh.first);
-        if(it_mp_oh == obj_hypotheses_.end())   // no feature correspondences exist yet
-            obj_hypotheses_.insert(oh);//std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
+        auto it_mp_oh = local_obj_hypotheses_.find(oh.first);
+        if(it_mp_oh == local_obj_hypotheses_.end())   // no feature correspondences exist yet
+            local_obj_hypotheses_.insert(oh);//std::pair<std::string, ObjectHypothesis<PointT> >(id, it_tmp->second));
         else
             it_mp_oh->second.model_scene_corresp_.insert(  it_mp_oh->second.model_scene_corresp_.  end(),
                                                                    oh.second.model_scene_corresp_.begin(),
@@ -97,8 +113,7 @@ template<typename PointT>
 void
 MultiRecognitionPipeline<PointT>::recognize()
 {
-    models_.clear();
-    transforms_.clear();
+    local_obj_hypotheses_.clear();
     obj_hypotheses_.clear();
     scene_keypoints_.reset(new pcl::PointCloud<PointT>);
     scene_kp_normals_.reset(new pcl::PointCloud<pcl::Normal>);
@@ -138,7 +153,7 @@ MultiRecognitionPipeline<PointT>::recognize()
         if (hv_algorithm_) //Prepare scene and model clouds for the pose refinement step
             getDataSource()->voxelizeAllModels (param_.voxel_size_icp_);
 
-        if ( hv_algorithm_ && models_.size() )
+        if ( hv_algorithm_ && obj_hypotheses_.size() )
             hypothesisVerification();
 
         scene_keypoints_.reset();
@@ -151,41 +166,41 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
 {
     pcl::ScopeTime t("Correspondence Grouping");
 
-    std::vector<ObjectHypothesis<PointT> > ohs(obj_hypotheses_.size());
+    std::vector<LocalObjectHypothesis<PointT> > lohs(local_obj_hypotheses_.size());
 
     size_t id=0;
-    typename std::map<std::string, ObjectHypothesis<PointT> >::const_iterator it;
-    for (it = obj_hypotheses_.begin (), id=0; it != obj_hypotheses_.end (); ++it)
-        ohs[id++] = it->second;
+    typename std::map<std::string, LocalObjectHypothesis<PointT> >::const_iterator it;
+    for (it = local_obj_hypotheses_.begin (), id=0; it != local_obj_hypotheses_.end (); ++it)
+        lohs[id++] = it->second;
 
 #pragma omp parallel for schedule(dynamic)
-    for (size_t i=0; i<ohs.size(); i++)
+    for (size_t i=0; i<lohs.size(); i++)
     {
-        const ObjectHypothesis<PointT> &oh = ohs[i];
+        const LocalObjectHypothesis<PointT> &loh = lohs[i];
 
-        if(oh.model_scene_corresp_.size() < 3)
+        if(loh.model_scene_corresp_.size() < 3)
             continue;
 
         GraphGeometricConsistencyGrouping<PointT, PointT> cg = *cg_algorithm_;
 
         std::vector < pcl::Correspondences > corresp_clusters;
         cg.setSceneCloud (scene_keypoints_);
-        cg.setInputCloud (oh.model_->keypoints_);
+        cg.setInputCloud (loh.model_->keypoints_);
 
 //        oh.visualize(*scene_, *scene_keypoints_);
 
         if(cg.getRequiresNormals())
-            cg.setInputAndSceneNormals(oh.model_->kp_normals_, scene_kp_normals_);
+            cg.setInputAndSceneNormals(loh.model_->kp_normals_, scene_kp_normals_);
 
         //we need to pass the keypoints_pointcloud and the specific object hypothesis
-        cg.setModelSceneCorrespondences (oh.model_scene_corresp_);
+        cg.setModelSceneCorrespondences (loh.model_scene_corresp_);
         cg.cluster (corresp_clusters);
 
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms (corresp_clusters.size());
         typename pcl::registration::TransformationEstimationSVD < PointT, PointT > t_est;
 
         for (size_t cluster_id = 0; cluster_id < corresp_clusters.size(); cluster_id++)
-            t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_keypoints_, corresp_clusters[cluster_id], new_transforms[cluster_id]);
+            t_est.estimateRigidTransformation (*loh.model_->keypoints_, *scene_keypoints_, corresp_clusters[cluster_id], new_transforms[cluster_id]);
 
         if(param_.merge_close_hypotheses_) {
             std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > merged_transforms (corresp_clusters.size());
@@ -220,23 +235,43 @@ void MultiRecognitionPipeline<PointT>::correspondenceGrouping ()
                     }
                 }
 
-                t_est.estimateRigidTransformation (*oh.model_->keypoints_, *scene_keypoints_, merged_corrs, merged_transforms[kept]);
+                t_est.estimateRigidTransformation (*loh.model_->keypoints_, *scene_keypoints_, merged_corrs, merged_transforms[kept]);
                 kept++;
             }
             merged_transforms.resize(kept);
 
             #pragma omp critical
             {
-                transforms_.insert(transforms_.end(), merged_transforms.begin(), merged_transforms.end());
-                models_.resize( transforms_.size(), oh.model_ );
-                std::cout << "Merged " << corresp_clusters.size() << " clusters into " << kept << " clusters. Total correspondences: " << oh.model_scene_corresp_.size () << " " << oh.model_->id_ << std::endl;
+                for(size_t jj=0; jj<merged_transforms.size(); jj++)
+                {
+                    typename ObjectHypothesis<PointT>::Ptr new_oh (new ObjectHypothesis<PointT>);
+                    new_oh->model_ = loh.model_;
+                    new_oh->transform_ = merged_transforms[jj];
+                    new_oh->confidence_ = corresp_clusters.size();
+
+                    ObjectHypothesesGroup<PointT> new_ohg;
+                    new_ohg.global_hypotheses_ = false;
+                    new_ohg.ohs_.push_back( new_oh );
+                    obj_hypotheses_.push_back( new_ohg );
+                }
+                std::cout << "Merged " << corresp_clusters.size() << " clusters into " << kept << " clusters. Total correspondences: " << loh.model_scene_corresp_.size () << " " << loh.model_->id_ << std::endl;
             }
         }
         else {
             #pragma omp critical
             {
-                transforms_.insert(transforms_.end(), new_transforms.begin(), new_transforms.end());
-                models_.resize( transforms_.size(), oh.model_ );
+                for(size_t jj=0; jj<new_transforms.size(); jj++)
+                {
+                    typename ObjectHypothesis<PointT>::Ptr new_oh (new ObjectHypothesis<PointT>);
+                    new_oh->model_ = loh.model_;
+                    new_oh->transform_ = new_transforms[jj];
+                    new_oh->confidence_ = corresp_clusters.size();
+
+                    ObjectHypothesesGroup<PointT> new_ohg;
+                    new_ohg.global_hypotheses_ = false;
+                    new_ohg.ohs_.push_back( new_oh );
+                    obj_hypotheses_.push_back( new_ohg );
+                }
             }
         }
     }

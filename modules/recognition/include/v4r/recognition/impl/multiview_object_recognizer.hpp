@@ -344,7 +344,7 @@ MultiviewRecognizer<PointT>::recognize ()
 
         scene_keypoints_ = *v.scene_kp_;
         scene_kp_normals_ = *v.scene_kp_normals_;
-        obj_hypotheses_ = v.hypotheses_;
+        local_obj_hypotheses_ = v.hypotheses_;
 
         for (const auto &w_m : views_) {   // merge feature correspondences from other views
             const View<PointT> &w = w_m.second;
@@ -359,16 +359,16 @@ MultiviewRecognizer<PointT>::recognize ()
             transformNormals(*w.scene_kp_normals_, scene_kp_normals, w_tf);
 
             for (const auto &oh_remote_m : w.hypotheses_) {
-                ObjectHypothesis<PointT> oh_remote = oh_remote_m.second; // copy because we need to update correspondences indices and don't change the original information
+                LocalObjectHypothesis<PointT> oh_remote = oh_remote_m.second; // copy because we need to update correspondences indices and don't change the original information
 
                 // check if correspondences for model already exist
                 const std::string &model_name = oh_remote.model_->id_;
-                typename symHyp::iterator oh_local_m = obj_hypotheses_.find( model_name );
-                if( oh_local_m == obj_hypotheses_.end() )   // no feature correspondences exist yet
-                    obj_hypotheses_.insert(std::pair<std::string, ObjectHypothesis<PointT> >(model_name, oh_remote));
+                typename symHyp::iterator oh_local_m = local_obj_hypotheses_.find( model_name );
+                if( oh_local_m == local_obj_hypotheses_.end() )   // no feature correspondences exist yet
+                    local_obj_hypotheses_.insert(std::pair<std::string, LocalObjectHypothesis<PointT> >(model_name, oh_remote));
 
                 else {  // merge with existing object hypotheses
-                    ObjectHypothesis<PointT> &oh_local = oh_local_m->second;
+                    LocalObjectHypothesis<PointT> &oh_local = oh_local_m->second;
 
                     // check each new correspondence for duplicate in existing database. If there is a sufficient close keypoint (Euclidean distance and normal dot product), do not add another one
                     size_t new_corr = oh_remote.model_scene_corresp_.size();
@@ -421,8 +421,7 @@ MultiviewRecognizer<PointT>::recognize ()
 //        vis_tmp.spin();
 
         if(cg_algorithm_) {
-            models_.clear();
-            transforms_.clear();
+            verified_hypotheses_.clear();
             correspondenceGrouping();
             v.models_ = models_;
             v.transforms_ = transforms_;
@@ -587,17 +586,17 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
 {
     double t_start = omp_get_wtime();
 
-    std::vector<ObjectHypothesis<PointT> > ohs(obj_hypotheses_.size());
+    std::vector<LocalObjectHypothesis<PointT> > ohs(local_obj_hypotheses_.size());
 
     size_t id=0;
-    typename std::map<std::string, ObjectHypothesis<PointT> >::const_iterator it;
-    for (it = obj_hypotheses_.begin (), id=0; it != obj_hypotheses_.end (); ++it)
+    typename std::map<std::string, LocalObjectHypothesis<PointT> >::const_iterator it;
+    for (it = local_obj_hypotheses_.begin (), id=0; it != local_obj_hypotheses_.end (); ++it)
         ohs[id++] = it->second;
 
 #pragma omp parallel for schedule(dynamic)
     for (size_t i=0; i<ohs.size(); i++)
     {
-        const ObjectHypothesis<PointT> &oh = ohs[i];
+        const LocalObjectHypothesis<PointT> &oh = ohs[i];
 
         if(oh.model_scene_corresp_.size() < 3)
             continue;

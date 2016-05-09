@@ -4,7 +4,7 @@ namespace v4r
 {
 template <typename PointT>
 void
-ObjectHypothesis<PointT>::visualize(const pcl::PointCloud<pcl::PointXYZRGB> & scene,
+LocalObjectHypothesis<PointT>::visualize(const pcl::PointCloud<pcl::PointXYZRGB> & scene,
                                     const pcl::PointCloud<pcl::PointXYZRGB> & scene_kp) const
 {
     (void)scene;
@@ -14,7 +14,7 @@ ObjectHypothesis<PointT>::visualize(const pcl::PointCloud<pcl::PointXYZRGB> & sc
 
 template <>
 void
-ObjectHypothesis<pcl::PointXYZRGB>::visualize(const pcl::PointCloud<pcl::PointXYZRGB> & scene,
+LocalObjectHypothesis<pcl::PointXYZRGB>::visualize(const pcl::PointCloud<pcl::PointXYZRGB> & scene,
                                               const pcl::PointCloud<pcl::PointXYZRGB> & scene_kp) const
 {
     if(!vis_)
@@ -64,8 +64,8 @@ ObjectHypothesis<pcl::PointXYZRGB>::visualize(const pcl::PointCloud<pcl::PointXY
     }
 }
 
-template class V4R_EXPORTS ObjectHypothesis<pcl::PointXYZRGB>;
-template class V4R_EXPORTS ObjectHypothesis<pcl::PointXYZ>;
+template class V4R_EXPORTS LocalObjectHypothesis<pcl::PointXYZRGB>;
+template class V4R_EXPORTS LocalObjectHypothesis<pcl::PointXYZ>;
 
 }
 

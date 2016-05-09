@@ -1,4 +1,4 @@
-#include <v4r/recognition/recognition_model_hv.h>
+#include <v4r/recognition/object_hypothesis.h>
 #include <fstream>
 
 namespace v4r

@@ -85,9 +85,6 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
 {
-    refined_model_transforms_.clear();
-    refined_model_transforms_.resize( recognition_models_.size(), Eigen::Matrix4f::Identity() );
-
     typename ZBuffering<SceneT>::Parameter zbuffParam;
     zbuffParam.f_ = param_.focal_length_;
     zbuffParam.width_ = param_.img_width_;
@@ -104,66 +101,52 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
     }
 
 #pragma omp parallel for schedule(dynamic)
-    for(size_t i=0; i<recognition_models_.size(); i++)
+    for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
     {
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-        rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
-        rm.image_mask_.resize(occlusion_clouds_.size(), std::vector<bool> (param_.img_width_ * param_.img_height_, false) );
-
-        if (!param_.do_occlusion_reasoning_) // just copy complete models
+        for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
         {
-            *rm.visible_cloud_ = *rm.complete_cloud_;
-            rm.visible_indices_.resize( rm.complete_cloud_->points.size());
-            for(size_t pt=0; pt<rm.visible_indices_.size(); pt++)
-                rm.visible_indices_[pt] = pt;
+            HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
+            rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
+            rm.image_mask_.resize(occlusion_clouds_.size(), std::vector<bool> (param_.img_width_ * param_.img_height_, false) );
 
-            if(param_.icp_iterations_)
+            if (!param_.do_occlusion_reasoning_) // just copy complete models
             {
-                refined_model_transforms_[i] = poseRefinement(rm);
-                pcl::transformPointCloud(*rm.complete_cloud_, *rm.complete_cloud_, refined_model_transforms_[i]);
-                pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
-            }
-        }
-        else //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
-        {
-            computeModelOcclusionByScene(rm, depth_image_scene);    // just do ICP on visible cloud (given by initial estimate)
+                *rm.visible_cloud_ = *rm.complete_cloud_;
+                rm.visible_indices_.resize( rm.complete_cloud_->points.size());
+                for(size_t pt=0; pt<rm.visible_indices_.size(); pt++)
+                    rm.visible_indices_[pt] = pt;
 
-            if(param_.icp_iterations_ )
+                if(param_.icp_iterations_)
+                {
+                    rm.refined_pose_ = poseRefinement(rm);
+                    pcl::transformPointCloud(*rm.complete_cloud_, *rm.complete_cloud_, rm.refined_pose_);
+                    pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
+                }
+            }
+            else //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
             {
-                refined_model_transforms_[i] = poseRefinement(rm) * refined_model_transforms_[i];
-                pcl::transformPointCloud(*rm.complete_cloud_, *rm.complete_cloud_, refined_model_transforms_[i]);
-                pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
+                computeModelOcclusionByScene(rm, depth_image_scene);    // just do ICP on visible cloud (given by initial estimate)
+
+                if(param_.icp_iterations_ )
+                {
+                    Eigen::Matrix4f old_tf = rm.refined_pose_;
+                    rm.refined_pose_ = poseRefinement(rm) * old_tf;
+                    pcl::transformPointCloud(*rm.complete_cloud_, *rm.complete_cloud_, rm.refined_pose_);
+                    pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
+                }
+
+                computeModelOcclusionByScene(rm, depth_image_scene);    // compute updated visible cloud
             }
 
-            computeModelOcclusionByScene(rm, depth_image_scene);    // compute updated visible cloud
+            if (param_.icp_iterations_)
+            {
+                v4r::transformNormals(*rm.complete_cloud_normals_, *rm.complete_cloud_normals_, rm.refined_pose_);
+            }
+
+            rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>);
+            pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
+            rm.processSilhouette(param_.do_smoothing_, param_.smoothing_radius_, param_.do_erosion_, param_.erosion_radius_, param_.img_width_);
         }
-
-        if (param_.icp_iterations_)
-        {
-            v4r::transformNormals(*rm.complete_cloud_normals_, *rm.complete_cloud_normals_, refined_model_transforms_[i]);
-        }
-
-        rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>);
-        pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
-        rm.processSilhouette(param_.do_smoothing_, param_.smoothing_radius_, param_.do_erosion_, param_.erosion_radius_, param_.img_width_);
-    }
-}
-
-template<typename ModelT, typename SceneT>
-void
-HypothesisVerification<ModelT, SceneT>::addModels (const std::vector<typename pcl::PointCloud<ModelT>::ConstPtr> & models,
-                                                   const std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> &model_normals)
-{
-    size_t existing_models = recognition_models_.size();
-    recognition_models_.resize( existing_models + models.size() );
-
-#pragma omp parallel for schedule(dynamic)
-    for(size_t i=0; i<models.size(); i++)
-    {
-        recognition_models_[existing_models + i].reset(new HVRecognitionModel<ModelT>);
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[existing_models + i];
-        rm.complete_cloud_.reset(new pcl::PointCloud<ModelT>(*models[i]));
-        rm.complete_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal> (*model_normals[i]) );
     }
 }
 
@@ -323,14 +306,14 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::computePairwiseIntersection()
 {
-    intersection_cost_ = Eigen::MatrixXf::Zero(recognition_models_.size(), recognition_models_.size());
+    intersection_cost_ = Eigen::MatrixXf::Zero(global_hypotheses_.size(), global_hypotheses_.size());
 
-    for(size_t i=1; i<recognition_models_.size(); i++)
+    for(size_t i=1; i<global_hypotheses_.size(); i++)
     {
-        HVRecognitionModel<ModelT> &rm_a = *recognition_models_[i];
+        HVRecognitionModel<ModelT> &rm_a = *global_hypotheses_[i];
         for(size_t j=0; j<i; j++)
         {
-            const HVRecognitionModel<ModelT> &rm_b = *recognition_models_[j];
+            const HVRecognitionModel<ModelT> &rm_b = *global_hypotheses_[j];
 
             size_t num_intersections = 0, total_rendered_points = 0;
 
@@ -360,22 +343,21 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::removeModelsWithLowVisibility()
 {
-    recognition_models_map_.clear();
-    recognition_models_map_.resize(recognition_models_.size());
-    size_t kept=0;
-    for(size_t i=0; i<recognition_models_.size(); i++)
+    for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
     {
-        const typename HVRecognitionModel<ModelT>::Ptr &rm = recognition_models_[i];
+        for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
+        {
+            typename HVRecognitionModel<ModelT>::Ptr &rm = obj_hypotheses_groups_[i][jj];
 
-        if( (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
-            continue;
+            if( (float)rm->visible_cloud_->points.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
+            {
+                rm->rejected_due_to_low_visibility_ = true;
 
-        recognition_models_[kept] = rm;
-        recognition_models_map_[kept] = i;
-        kept++;
+                if(!param_.visualize_model_cues_)
+                    rm->freeSpace();
+            }
+        }
     }
-    recognition_models_.resize(kept);
-    recognition_models_map_.resize(kept);
 }
 
 template<typename ModelT, typename SceneT>
@@ -506,62 +488,42 @@ HypothesisVerification<ModelT, SceneT>::extractEuclideanClustersSmooth()
 }
 
 template<typename ModelT, typename SceneT>
-void
-HypothesisVerification<ModelT, SceneT>::individualRejection()
+bool
+HypothesisVerification<ModelT, SceneT>::individualRejection(HVRecognitionModel<ModelT> &rm)
 {
-    // remove badly explained object hypotheses
-    size_t kept=0;
-    for (size_t i = 0; i < recognition_models_.size (); i++)
+    if (param_.check_smooth_clusters_)
     {
-        HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-
-        if (param_.check_smooth_clusters_)
+        for(size_t cluster_id=1; cluster_id<rm.explained_pts_per_smooth_cluster_.size(); cluster_id++)  // don't check label 0
         {
-            bool is_rejected_due_to_smooth_cluster_check = false;
-            for(size_t cluster_id=1; cluster_id<rm.explained_pts_per_smooth_cluster_.size(); cluster_id++)  // don't check label 0
+            if ( smooth_label_count_[cluster_id] > 100 &&  rm.explained_pts_per_smooth_cluster_[cluster_id] > 100 &&
+                 (float)(rm.explained_pts_per_smooth_cluster_[cluster_id]) / smooth_label_count_[cluster_id] < param_.min_ratio_cluster_explained_ )
             {
-                if ( smooth_label_count_[cluster_id] > 100 &&  rm.explained_pts_per_smooth_cluster_[cluster_id] > 100 &&
-                     (float)(rm.explained_pts_per_smooth_cluster_[cluster_id]) / smooth_label_count_[cluster_id] < param_.min_ratio_cluster_explained_ )
-                {
-                    is_rejected_due_to_smooth_cluster_check = true;
-                    break;
-                }
+                rm.rejected_due_to_smooth_cluster_check_ = true;
+                break;
             }
-            if (is_rejected_due_to_smooth_cluster_check)
-                continue;
-        }
-
-        float visible_ratio = rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
-        float model_fitness = rm.model_fit_ / rm.visible_cloud_->points.size();
-
-        CHECK(param_.min_model_fitness_lower_bound_ <= param_.min_model_fitness_upper_bound_); // scale model fitness threshold with the visible ratio of model. Highly occluded objects need to have a very strong evidence
-
-        float scale = std::min<float>( 1.f, visible_ratio/0.5f );
-        float range = param_.min_model_fitness_upper_bound_ - param_.min_model_fitness_lower_bound_;
-        float model_fitness_threshold = param_.min_model_fitness_upper_bound_ - scale * range;
-
-        if( model_fitness > model_fitness_threshold)
-        {
-            recognition_models_[kept] = recognition_models_[i];
-            recognition_models_map_[kept] = recognition_models_map_[i];
-            scene_explained_weight_.col(kept).swap( scene_explained_weight_.col(i) );
-            kept++;
         }
     }
-    std::cout << "Rejected " << recognition_models_.size() - kept << " (out of " << recognition_models_.size() << ") hypotheses due to low model fitness score." << std::endl;
-    recognition_models_.resize(kept);
-    recognition_models_map_.resize(kept);
-    size_t num_rows = scene_explained_weight_.rows();
-    scene_explained_weight_.conservativeResize(num_rows, kept);
+
+    float visible_ratio = rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
+    float model_fitness = rm.model_fit_ / rm.visible_cloud_->points.size();
+
+    CHECK(param_.min_model_fitness_lower_bound_ <= param_.min_model_fitness_upper_bound_); // scale model fitness threshold with the visible ratio of model. Highly occluded objects need to have a very strong evidence
+
+    float scale = std::min<float>( 1.f, visible_ratio/0.5f );
+    float range = param_.min_model_fitness_upper_bound_ - param_.min_model_fitness_lower_bound_;
+    float model_fitness_threshold = param_.min_model_fitness_upper_bound_ - scale * range;
+
+    if( model_fitness < model_fitness_threshold)
+        rm.rejected_due_to_low_model_fitness_ = true;
+
+    return rm.isRejected();
 }
 
 template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::initialize()
 {
-    solution_.clear ();
-    solution_.resize (recognition_models_.size (), false);
-
+    global_hypotheses_.clear();
     this->downsampleSceneCloud();
 
     {
@@ -597,10 +559,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
     removeModelsWithLowVisibility();
     ColorTransformOMP::initializeLUT();
 
-    // just initializing to some random negative value to know which ones are explained later on by a simple check for a positive value
-    //NOTE: We could initialize to nan or quite_nan but not sure if the comparison behaves the same on all platforms
-    scene_model_sqr_dist_ = -1000.f * Eigen::MatrixXf::Ones(scene_cloud_downsampled_->points.size(), recognition_models_.size());
-
 #pragma omp parallel sections
     {
 #pragma omp section
@@ -613,24 +571,37 @@ HypothesisVerification<ModelT, SceneT>::initialize()
 #pragma omp section
         {
             pcl::ScopeTime t("Converting model color values");
-            for (size_t i = 0; i < recognition_models_.size(); i++)
+            for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
             {
-                HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-                removeNanNormals(rm);
+                for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
+                {
+                    HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
 
-                if(!param_.ignore_color_even_if_exists_)
-                    convertToLABcolor(*rm.visible_cloud_, rm.pt_color_);
+                    if(!rm.isRejected())
+                    {
+                        removeNanNormals(rm);
+
+                        if(!param_.ignore_color_even_if_exists_)
+                            convertToLABcolor(*rm.visible_cloud_, rm.pt_color_);
+                    }
+                }
             }
         }
+
 
 #pragma omp section
         {
             pcl::ScopeTime t("Computing model to scene fitness");
 #pragma omp parallel for schedule(dynamic)
-            for (size_t i = 0; i < recognition_models_.size (); i++)
+            for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
             {
-                HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-                computeModel2SceneDistances(rm, i);
+                for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
+                {
+                    HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
+
+                    if(!rm.isRejected())
+                        computeModel2SceneDistances(rm);
+                }
             }
         }
     }
@@ -645,28 +616,75 @@ HypothesisVerification<ModelT, SceneT>::initialize()
     if(param_.use_histogram_specification_)
     {
         pcl::ScopeTime t("Computing histogramm specification");
-        for (size_t i = 0; i < recognition_models_.size (); i++)
+        for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
         {
-            HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-            computeLoffset(rm, i);
+            for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
+            {
+                HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
+
+                if(!rm.isRejected())
+                {
+                    computeLoffset(rm, i);
+                }
+            }
         }
     }
+
 
     {
         pcl::ScopeTime t("Computing fitness score between models and scene");
-        scene_explained_weight_ = Eigen::MatrixXf::Zero(scene_cloud_downsampled_->points.size(), recognition_models_.size());
+        #pragma omp parallel for schedule(dynamic)
+        for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
+        {
+            for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
+            {
+                HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
 
-#pragma omp parallel for schedule(dynamic)
-        for (size_t i = 0; i < recognition_models_.size (); i++){
-            HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
-            computeModel2SceneFitness(rm, i);
+                if(!rm.isRejected())
+                    computeModel2SceneFitness(rm);
+            }
         }
     }
 
-    individualRejection();
+    size_t kept_hypotheses = 0;
+    for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
+    {
+        for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
+        {
+            HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
+            if( rm.isRejected() )
+                continue;
 
-    if(recognition_models_.empty())
+            if ( !individualRejection(rm) )
+                kept_hypotheses++;
+        }
+    }
+
+    if( !kept_hypotheses )
         return;
+
+    global_hypotheses_.resize( kept_hypotheses );
+    scene_explained_weight_ = Eigen::MatrixXf(scene_cloud_downsampled_->points.size(), kept_hypotheses);
+
+    kept_hypotheses = 0;
+    for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
+    {
+        for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
+        {
+            typename HVRecognitionModel<ModelT>::Ptr rm = obj_hypotheses_groups_[i][jj];
+
+            if( rm->isRejected() )
+                continue;
+
+            if ( !individualRejection(*rm) )
+            {
+                scene_explained_weight_.col(kept_hypotheses) = rm->scene_explained_weight_;
+                global_hypotheses_[kept_hypotheses] = rm;
+                kept_hypotheses++;
+            }
+        }
+    }
+
 
     {
         pcl::ScopeTime t("Compressing scene explained matrix");
@@ -684,17 +702,10 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         }
         scene_explained_weight_compressed_.conservativeResize(kept, scene_explained_weight_.cols());
 
-        if(!param_.visualize_go_cues_ && !param_.visualize_model_cues_)
-            scene_explained_weight_.resize(0,0);    // not needed any more
-
         if(!kept)
             return;
     }
 
-    //store model fitness into vector
-    model_fitness_v_ = Eigen::VectorXf(recognition_models_.size ());
-    for (size_t i = 0; i < recognition_models_.size (); i++)
-        model_fitness_v_[i] = recognition_models_[i]->model_fit_;
 
     {
         pcl::ScopeTime t("Computing pairwise intersection");
@@ -703,23 +714,40 @@ HypothesisVerification<ModelT, SceneT>::initialize()
 
     if(param_.visualize_model_cues_)
     {
-        for (size_t i = 0; i < recognition_models_.size (); i++)
-            visualizeGOCuesForModel(*recognition_models_[i], i);
+        for(size_t i=0; i<global_hypotheses_.size(); i++)
+        {
+            HVRecognitionModel<ModelT> &rm = *global_hypotheses_[i];
+            visualizeGOCuesForModel(rm);
+        }
     }
 
     if(param_.visualize_pairwise_cues_)
         visualizePairwiseIntersection();
+
+    for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
+    {
+        for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
+        {
+            typename HVRecognitionModel<ModelT>::Ptr rm = obj_hypotheses_groups_[i][jj];
+            rm->freeSpace();
+        }
+    }
 }
 
 template<typename ModelT, typename SceneT>
 std::vector<bool>
 HypothesisVerification<ModelT, SceneT>::optimize ()
 {
-    std::vector<bool> temp_solution ( recognition_models_.size(), param_.initial_status_);
+    std::vector<bool> temp_solution ( global_hypotheses_.size(), param_.initial_status_);
     if(param_.initial_status_)
-        tmp_solution_ = Eigen::VectorXf::Ones (recognition_models_.size());
+        tmp_solution_ = Eigen::VectorXf::Ones ( global_hypotheses_.size());
     else
-        tmp_solution_ = Eigen::VectorXf::Zero (recognition_models_.size());
+        tmp_solution_ = Eigen::VectorXf::Zero ( global_hypotheses_.size());
+
+    //store model fitness into vector
+    model_fitness_v_ = Eigen::VectorXf( global_hypotheses_.size() );
+    for (size_t i = 0; i < global_hypotheses_.size(); i++)
+        model_fitness_v_[i] = global_hypotheses_[i]->model_fit_;
 
     GHVSAModel<ModelT, SceneT> model;
 
@@ -730,7 +758,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     model.setOptimizer (this);
 
     GHVSAModel<ModelT, SceneT> *best = new GHVSAModel<ModelT, SceneT> (model);
-    GHVmove_manager<ModelT, SceneT> neigh ( recognition_models_.size (), param_.use_replace_moves_);
+    GHVmove_manager<ModelT, SceneT> neigh ( global_hypotheses_.size (), param_.use_replace_moves_ );
     neigh.setExplainedPointIntersections(intersection_cost_);
 
     //mets::best_ever_solution best_recorder (best);
@@ -775,7 +803,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     }
     case OptimizationType::TabuSearchWithLSRM:
     {
-        GHVmove_manager<ModelT, SceneT> neigh4 (recognition_models_.size(), false);
+        GHVmove_manager<ModelT, SceneT> neigh4 ( global_hypotheses_.size(), false);
         neigh4.setExplainedPointIntersections(intersection_cost_);
 
         mets::simple_tabu_list tabu_list ( temp_solution.size() * sqrt ( 1.0*temp_solution.size() ) ) ;
@@ -791,7 +819,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
             std::cout << "Tabu search finished... starting LS with RM" << std::endl;
 
             //after TS, we do LS with RM
-            GHVmove_manager<ModelT, SceneT> neigh4RM (recognition_models_.size(), true);
+            GHVmove_manager<ModelT, SceneT> neigh4RM ( global_hypotheses_.size(), true);
             neigh4RM.setExplainedPointIntersections(intersection_cost_);
 
             mets::local_search<GHVmove_manager<ModelT, SceneT> > local ( model, *(cost_logger_.get()), neigh4RM, 0, false);
@@ -848,14 +876,7 @@ HypothesisVerification<ModelT, SceneT>::verify()
 
     {
         pcl::ScopeTime t("Optimizing object hypotheses verification cost function");
-        std::vector<bool> solution = optimize ();
-
-        // since we remove hypothese containing too few visible points - mask size does not correspond to recognition_models size anymore --> therefore this map stuff
-        for(size_t i=0; i<solution_.size(); i++)
-            solution_[ i ] = false;
-
-        for(size_t i=0; i<solution.size(); i++)
-            solution_[ recognition_models_map_[i] ] = solution[i];
+        solution_ = optimize ();
     }
 
     cleanUp();
@@ -981,10 +1002,12 @@ HypothesisVerification<ModelT, SceneT>::removeNanNormals (HVRecognitionModel<Mod
 
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::computeModel2SceneDistances(HVRecognitionModel<ModelT> &rm, int model_id)
+HypothesisVerification<ModelT, SceneT>::computeModel2SceneDistances(HVRecognitionModel<ModelT> &rm)
 {
     rm.explained_pts_per_smooth_cluster_.clear();
     rm.explained_pts_per_smooth_cluster_.resize(smooth_label_count_.size(), 0);
+
+    rm.scene_model_sqr_dist_ = -1000.f * Eigen::VectorXf::Ones(scene_cloud_downsampled_->points.size());
 
     rm.model_scene_c_.resize( rm.visible_cloud_->points.size () * param_.knn_inliers_ );
     size_t kept=0;
@@ -1010,10 +1033,10 @@ HypothesisVerification<ModelT, SceneT>::computeModel2SceneDistances(HVRecognitio
 
 
 
-            double old_s_m_dist = scene_model_sqr_dist_(sidx, model_id);
+            double old_s_m_dist = rm.scene_model_sqr_dist_(sidx);
             if ( old_s_m_dist < -1.f || sqr_3D_dist < old_s_m_dist)
             {
-                scene_model_sqr_dist_(sidx, model_id) = sqr_3D_dist;
+                rm.scene_model_sqr_dist_(sidx) = sqr_3D_dist;
 
                 if( param_.check_smooth_clusters_ && sqr_3D_dist < (param_.occlusion_thres_ * param_.occlusion_thres_ * 1.5 * 1.5)
                         && ( old_s_m_dist < -1.f || old_s_m_dist >= (param_.occlusion_thres_ * param_.occlusion_thres_ * 1.5 * 1.5) )) // if point is not already taken
@@ -1031,10 +1054,10 @@ HypothesisVerification<ModelT, SceneT>::computeModel2SceneDistances(HVRecognitio
 
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm, size_t model_idx)
+HypothesisVerification<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionModel<ModelT> &rm)
 {
-    Eigen::VectorXf rm_scene_expl_weight = -1000.f * Eigen::VectorXf::Ones (scene_explained_weight_.rows());
-    Eigen::VectorXf modelFit             = -1000.f * Eigen::VectorXf::Ones (rm.visible_cloud_->points.size());
+    rm.scene_explained_weight_ = -1000.f * Eigen::VectorXf::Ones (scene_cloud_downsampled_->points.size());
+    Eigen::VectorXf modelFit   = -1000.f * Eigen::VectorXf::Ones (rm.visible_cloud_->points.size());
 
     Eigen::VectorXi modelSceneCorrespondence; // saves the correspondence of each visible model point to its closest scene point (weighted by 3D Euclidean Distance and color). Only used for visualization.
     if(param_.visualize_model_cues_)
@@ -1088,9 +1111,9 @@ HypothesisVerification<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionM
         else
             throw std::runtime_error("Desired color space not implemented so far!");
 
-        float old_scene2model_dist = rm_scene_expl_weight(sidx); ///NOTE: negative if no points explains it yet
+        float old_scene2model_dist = rm.scene_explained_weight_(sidx); ///NOTE: negative if no points explains it yet
         if ( old_scene2model_dist < -1.f || dist<old_scene2model_dist)
-            rm_scene_expl_weight(sidx) = dist;    // 0 for perfect fit
+            rm.scene_explained_weight_(sidx) = dist;    // 0 for perfect fit
 
         float old_model_pt_dist = modelFit(midx);
         if( old_model_pt_dist < -1.f || dist < old_model_pt_dist )
@@ -1103,11 +1126,11 @@ HypothesisVerification<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionM
 
     // now we compute the exponential of the distance to bound it between 0 and 1 (whereby 1 means perfect fit and 0 no fit)
 #pragma omp parallel for schedule(dynamic)
-    for(size_t sidx=0; sidx < rm_scene_expl_weight.rows(); sidx++)
+    for(size_t sidx=0; sidx < rm.scene_explained_weight_.rows(); sidx++)
     {
-        float fit = rm_scene_expl_weight(sidx);
+        float fit = rm.scene_explained_weight_(sidx);
         fit < -1.f ? fit = 0.f : fit = exp(-fit);
-        rm_scene_expl_weight(sidx) = fit;
+        rm.scene_explained_weight_(sidx) = fit;
     }
 
 #pragma omp parallel for schedule(dynamic)
@@ -1119,7 +1142,6 @@ HypothesisVerification<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionM
     }
 
     rm.model_fit_ = modelFit.sum();
-    scene_explained_weight_.col(model_idx) = rm_scene_expl_weight;
 
     rm.model_scene_c_.clear(); // not needed any more
     if(param_.visualize_model_cues_)    // we store the fit for each model point in the correspondences vector
@@ -1147,15 +1169,15 @@ HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT
     size_t kept = 0;
     for(size_t sidx=0; sidx<scene_model_sqr_dist_.rows(); sidx++)
     {
-        if( scene_model_sqr_dist_(sidx,model_id) > -1.f )
+        if( rm.scene_model_sqr_dist_(sidx) > -1.f )
             kept++;
     }
 
     Eigen::MatrixXf croppedSceneColorMatrix (kept, scene_color_channels_.cols());
     kept = 0;
-    for(size_t sidx=0; sidx<scene_model_sqr_dist_.rows(); sidx++)
+    for(size_t sidx=0; sidx < rm.scene_model_sqr_dist_.rows(); sidx++)
     {
-        if( scene_model_sqr_dist_(sidx,model_id) > -1.f )
+        if( rm.scene_model_sqr_dist_(sidx) > -1.f )
         {
             croppedSceneColorMatrix.row(kept) = scene_color_channels_.row(sidx);
             kept++;
@@ -1211,16 +1233,15 @@ HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT
 //######### VISUALIZATION FUNCTIONS #####################
 template<>
 void
-HypothesisVerification<pcl::PointXYZ, pcl::PointXYZ>::visualizeGOCuesForModel(const HVRecognitionModel<pcl::PointXYZ> &rm, int model_id) const
+HypothesisVerification<pcl::PointXYZ, pcl::PointXYZ>::visualizeGOCuesForModel(const HVRecognitionModel<pcl::PointXYZ> &rm) const
 {
     (void)rm;
-    (void)model_id;
     std::cerr << "The visualization function is not defined for the chosen Point Cloud Type!" << std::endl;
 }
 
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm, int model_id) const
+HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm) const
 {
     if(!rm_vis_) {
         rm_vis_.reset (new pcl::visualization::PCLVisualizer ("model cues"));
@@ -1385,10 +1406,8 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
     {
         int idx = rm.visible_indices_[i];
         ModelT &mp = visible_cloud_colored->points[idx];
-        const ModelT &mp2 = rm.visible_cloud_->points[i];
         mp.r = 255.f;
-        mp.g = 0.f;
-        mp.b = 0.f;
+        mp.g = mp.b = 0.f;
     }
 
     std::stringstream txt; txt << "visible ratio: " << std::fixed << std::setprecision(2) << (float)rm.visible_cloud_->points.size() / (float)rm.complete_cloud_->points.size();
@@ -1397,8 +1416,7 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
         rm_vis_->addText(txt.str(),10,10,12,0,0,0,"visible model cloud",rm_v2);
 
     rm_vis_->addPointCloud(visible_cloud_colored, "model2",rm_v2);
-    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
-                                              5, "model2", rm_v2);
+    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "model2", rm_v2);
 
     typename pcl::PointCloud<ModelT>::Ptr model_fit_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
     for(size_t p=0; p < model_fit_cloud->points.size(); p++)
@@ -1473,15 +1491,15 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
 
     typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*scene_cloud_downsampled_));
 
-    for(size_t p=0; p<scene_explained_weight_.rows(); p++)
+    for(size_t p=0; p < rm.scene_explained_weight_.rows(); p++)
     {
         SceneT &sp = scene_fit_cloud->points[p];
         sp.r = sp.b = 0.f;
 
-        sp.g = 255.f * scene_explained_weight_(p,model_id);
+        sp.g = 255.f * rm.scene_explained_weight_(p);
     }
-    txt.str(""); txt << "scene pts explained (fitness: " << scene_explained_weight_.col(model_id).sum() <<
-                        "; normalized: " << scene_explained_weight_.col(model_id).sum()/scene_cloud_downsampled_->points.size() << ")";
+    txt.str(""); txt << "scene pts explained (fitness: " << rm.scene_explained_weight_.sum() <<
+                        "; normalized: " << rm.scene_explained_weight_.sum()/scene_cloud_downsampled_->points.size() << ")";
     rm_vis_->addText(txt.str(),10,10,12,0,0,0,"scene fitness",rm_v5);
     rm_vis_->addPointCloud(scene_fit_cloud, "scene fitness", rm_v5);
     rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
@@ -1507,13 +1525,14 @@ HypothesisVerification<ModelT, SceneT>::visualizePairwiseIntersection() const
         vis_pairwise_->createViewPort(0.5,0,1,1, vp_pair_2_);
     }
 
-    for(size_t i=1; i<recognition_models_.size(); i++)
+    for(size_t i=1; i<global_hypotheses_.size(); i++)
     {
-        const HVRecognitionModel<ModelT> &rm_a = *recognition_models_[i];
+        const HVRecognitionModel<ModelT> &rm_a = *global_hypotheses_[i];
 
         for(size_t j=0; j<i; j++)
         {
-            const HVRecognitionModel<ModelT> &rm_b = *recognition_models_[j];
+            const HVRecognitionModel<ModelT> &rm_b = *global_hypotheses_[j];
+
             std::stringstream txt;
             txt <<  "intersection cost (" << i << ", " << j << "): " << intersection_cost_(j,i);
 
@@ -1571,7 +1590,7 @@ HypothesisVerification<pcl::PointXYZRGB, pcl::PointXYZRGB>::visualizeGOCues (con
     for(size_t i=0; i<active_solution.size(); i++)
     {
         if(active_solution[i]) {
-            model_fitness += recognition_models_[i]->model_fit_;
+            model_fitness += global_hypotheses_[i]->model_fit_;
             num_active_hypotheses++;
         }
     }
@@ -1625,7 +1644,7 @@ HypothesisVerification<pcl::PointXYZRGB, pcl::PointXYZRGB>::visualizeGOCues (con
     {
         if(active_solution[i])
         {
-            HVRecognitionModel<ModelT> &rm = *recognition_models_[i];
+            HVRecognitionModel<ModelT> &rm = *global_hypotheses_[i];
             std::stringstream model_name; model_name << "model_" << i;
             vis_go_cues_->addPointCloud(rm.visible_cloud_, model_name.str(), vp_active_hypotheses_);
 

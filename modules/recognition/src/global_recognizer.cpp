@@ -25,7 +25,7 @@ GlobalRecognizer<PointT>::loadFeaturesFromDisk ()
     for (size_t m_id = 0; m_id < models.size (); m_id++)
     {
         descr_model.model = models[m_id];
-        ModelT &m = *models[m_id];
+        Model<PointT> &m = *models[m_id];
         const std::string out_train_path = models_dir_  + "/" + m.class_ + "/" + m.id_ + "/" + descr_name;
         const std::string in_train_path = models_dir_  + "/" + m.class_ + "/" + m.id_ + "/views/";
 
@@ -360,14 +360,12 @@ template<typename PointT>
 void
 GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
                                           int cluster_id,
-                                          std::vector<ModelTPtr> &matched_models,
-                                          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms,
-                                          std::vector<float> &distance)
+                                          ObjectHypothesesGroup<PointT> &oh)
 {
     if(query_sig.cols() == 0 || query_sig.rows() == 0)
         return;
 
-    std::vector<ModelTPtr> models = source_->getModels();
+    std::vector<typename Model<PointT>::Ptr> models = source_->getModels();
 
     Eigen::MatrixXi knn_indices;
     Eigen::MatrixXf knn_distances;
@@ -414,26 +412,27 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
     tf_trans.block<3,1>(0,3) = centroid.topRows(3);
 
     // pre-allocate memory
-    size_t max_hypotheses = predicted_label.rows() * predicted_label.cols();
+    size_t max_hypotheses = predicted_label.rows()*predicted_label.cols();
 
     if(param_.use_table_plane_for_alignment_)
         max_hypotheses *= (int)(360.f / param_.z_angle_sampling_density_degree_);
     else
         max_hypotheses *= 4;
 
-    matched_models.resize( max_hypotheses  );
-    distance.resize( max_hypotheses );
-    transforms.resize( max_hypotheses );
+    oh.global_hypotheses_ = true;
+    oh.ohs_.resize( max_hypotheses );
+
+    for(size_t i=0; i<max_hypotheses; i++)
+        oh.ohs_[i].reset( new ObjectHypothesis<PointT>);
 
     size_t kept=0;
     for(int query_id=0; query_id<predicted_label.rows(); query_id++)
     {
         for (size_t k = 0; k < predicted_label.cols(); k++)
         {
-            ModelTPtr m;
             if(param_.use_table_plane_for_alignment_)
             {
-                m = models[ predicted_label(query_id, k) ];
+                typename Model<PointT>::Ptr m = models[ predicted_label(query_id, k) ];
 
                 const Eigen::Vector3f &elongations_model = m->elongations_.colwise().maxCoeff();    // as we don't know the view, we just take the maximum extent of each axis over all training views
                 const Eigen::Vector3f &elongations = elongations_[cluster_id];
@@ -446,26 +445,24 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
 
                 for(double rot_i=0.f; rot_i<360.f; rot_i+=param_.z_angle_sampling_density_degree_)
                 {
-                    matched_models[kept] = m;
-
                     double rot_rad = pcl::deg2rad(rot_i);
                     Eigen::Matrix4f rot_tmp = Eigen::Matrix4f::Identity();
                     rot_tmp(0,0) =  cos(rot_rad);
                     rot_tmp(0,1) = -sin(rot_rad);
                     rot_tmp(1,0) =  sin(rot_rad);
                     rot_tmp(1,1) =  cos(rot_rad);
-                    transforms[kept] = tf_trans * tf_rot  * rot_tmp;
 
-                    distance[kept] =  0.f;
+                    oh.ohs_[kept]->model_ = m;
+                    oh.ohs_[kept]->transform_ = tf_trans * tf_rot  * rot_tmp;
+                    oh.ohs_[kept]->confidence_ =  0.f;
                     kept++;
                 }
             }
             else
             {
                 const flann_model &f = flann_models_ [ knn_indices( query_id, k ) ];
-                m = f.model;
 
-                const Eigen::Vector3f &elongations_model = m->elongations_.row( f.view_id);
+                const Eigen::Vector3f &elongations_model = f.model->elongations_.row( f.view_id);
                 const Eigen::Vector3f &elongations = elongations_[cluster_id];
                 if( param_.check_elongations_ &&
                    (elongations(2)/elongations_model(2) < param_.min_elongation_ratio_||
@@ -484,10 +481,10 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
                 Eigen::Matrix4f tf_rot_inv = Eigen::Matrix4f::Identity();
                 tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
                 tf_rot = tf_rot_inv.inverse();
-                matched_models[kept] = f.model;
-                Eigen::Matrix4f tf_m_inv = m->poses_[f.view_id].inverse();
-                transforms[kept] = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
-                distance[kept] = knn_distances( query_id, k );
+                oh.ohs_[kept]->model_ = f.model;
+                Eigen::Matrix4f tf_m_inv = f.model->poses_[f.view_id].inverse();
+                oh.ohs_[kept]->transform_ = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
+                oh.ohs_[kept]->confidence_ = knn_distances( query_id, k );
                 kept++;
 
                 // now take the first one negative
@@ -498,9 +495,9 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
                 tf_rot_inv = Eigen::Matrix4f::Identity();
                 tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
                 tf_rot = tf_rot_inv.inverse();
-                matched_models[kept] = f.model;
-                transforms[kept] = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
-                distance[kept] = knn_distances( query_id, k );
+                oh.ohs_[kept]->model_ = f.model;
+                oh.ohs_[kept]->transform_ = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
+                oh.ohs_[kept]->confidence_ = knn_distances( query_id, k );
                 kept++;
 
 
@@ -512,9 +509,9 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
                 tf_rot_inv = Eigen::Matrix4f::Identity();
                 tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
                 tf_rot = tf_rot_inv.inverse();
-                matched_models[kept] = f.model;
-                transforms[kept] = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
-                distance[kept] = knn_distances( query_id, k );
+                oh.ohs_[kept]->model_ = f.model;
+                oh.ohs_[kept]->transform_ = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
+                oh.ohs_[kept]->confidence_ = knn_distances( query_id, k );
                 kept++;
 
 
@@ -526,17 +523,15 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
                 tf_rot_inv = Eigen::Matrix4f::Identity();
                 tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
                 tf_rot = tf_rot_inv.inverse();
-                matched_models[kept] = f.model;
-                transforms[kept] = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
-                distance[kept] = knn_distances( query_id, k );
+                oh.ohs_[kept]->model_ = f.model;
+                oh.ohs_[kept]->transform_ = tf_trans * tf_rot * f.model->eigen_pose_alignment_[f.view_id] * tf_m_inv;
+                oh.ohs_[kept]->confidence_ = knn_distances( query_id, k );
                 kept++;
             }
         }
     }
 
-    matched_models.resize( kept );
-    distance.resize( kept );
-    transforms.resize( kept );
+    oh.ohs_.resize( kept );
 }
 
 template<typename PointT>
@@ -545,25 +540,29 @@ GlobalRecognizer<PointT>::poseRefinement()
 {
 
 //#pragma omp parallel for schedule(dynamic)
-    for(size_t i=0; i<models_.size(); i++)
+    for(size_t i=0; i<obj_hypotheses_.size(); i++)
     {
-        ModelT &m = *models_[i];
-        Eigen::Matrix4f &tf = transforms_[i];
+        ObjectHypothesesGroup<PointT> &oh = obj_hypotheses_[i];
+        for(size_t j=0; j<oh.ohs_.size(); j++)
+        {
+            Model<PointT> &m = *oh.ohs_[j]->model_;
+            Eigen::Matrix4f &tf = oh.ohs_[j]->transform_;
 
-        typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 3 );
-        pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( 3 );
+            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+            pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
 
-        pcl::IterativeClosestPoint<PointT, PointT> icp;
-        icp.setInputSource(model_aligned);
-        icp.setInputTarget(scene_);
-        icp.setMaximumIterations(param_.icp_iterations_);
-        pcl::PointCloud<PointT> aligned_visible_model;
-        icp.align(aligned_visible_model);
-        if(icp.hasConverged())
-            tf = icp.getFinalTransformation() * tf;
-        else
-            std::cout << "ICP did not converge." << std::endl;
+            pcl::IterativeClosestPoint<PointT, PointT> icp;
+            icp.setInputSource(model_aligned);
+            icp.setInputTarget(scene_);
+            icp.setMaximumIterations(param_.icp_iterations_);
+            pcl::PointCloud<PointT> aligned_visible_model;
+            icp.align(aligned_visible_model);
+            if(icp.hasConverged())
+                tf = icp.getFinalTransformation() * tf;
+            else
+                std::cout << "ICP did not converge." << std::endl;
+        }
     }
 }
 
@@ -572,8 +571,7 @@ void
 GlobalRecognizer<PointT>::recognize()
 {
     CHECK(seg_);
-    models_.clear();
-    transforms_.clear();
+    obj_hypotheses_.clear();
 
     seg_->setInputCloud(scene_);
     seg_->setNormalsCloud(scene_normals_);
@@ -583,39 +581,28 @@ GlobalRecognizer<PointT>::recognize()
 
     computeEigenBasis();
 
+    obj_hypotheses_.resize(clusters_.size()); // each cluster builds a hypothesis group
     for(size_t i=0; i<clusters_.size(); i++)
     {
         indices_ = clusters_[i].indices;
         Eigen::MatrixXf signature_tmp;
         featureEncoding( signature_tmp );
 
-        std::vector<ModelTPtr> models_tmp;
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp;
-        std::vector<float> distance;
-        featureMatching( signature_tmp, i, models_tmp, transforms_tmp, distance);
-        models_.insert(models_.end(), models_tmp.begin(), models_tmp.end());
-        transforms_.insert(transforms_.end(), transforms_tmp.begin(), transforms_tmp.end());
-
+        ObjectHypothesesGroup<PointT> &ohg = obj_hypotheses_[i];
+        ohg.global_hypotheses_ = true;
+        featureMatching( signature_tmp, i, ohg);
 
         if (param_.visualize_clusters_)
         {
-            models_per_cluster_.push_back(models_tmp);
-            dist_models_per_cluster_.push_back(distance);
-            transforms_per_cluster_.push_back(transforms_tmp);
-
-
             // also show results without elongation check
             bool tmp = param_.check_elongations_;
             param_.check_elongations_ = false;
-            std::vector<ModelTPtr> models_tmp2;
-            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_tmp2;
-            std::vector<float> distance2;
-            featureMatching( signature_tmp, i, models_tmp2, transforms_tmp2, distance2);
-            param_.check_elongations_ = tmp;
 
-            models_per_cluster2_.push_back(models_tmp2);
-            dist_models_per_cluster2_.push_back(distance2);
-            transforms_per_cluster2_.push_back(transforms_tmp2);
+            ObjectHypothesesGroup<PointT> ohg2;
+            ohg2.global_hypotheses_ = true;
+            featureMatching( signature_tmp, i, ohg2);
+            obj_hypotheses_wo_elongation_check_.push_back(ohg2);
+            param_.check_elongations_ = tmp;
         }
 //        signatures_.row(i) = signature_tmp;
     }
@@ -626,14 +613,8 @@ GlobalRecognizer<PointT>::recognize()
     if (param_.visualize_clusters_)
     {
         visualize();
-        models_per_cluster_.clear();
-        transforms_per_cluster_.clear();
-        dist_models_per_cluster_.clear();
-        models_per_cluster2_.clear();
-        transforms_per_cluster2_.clear();
-        dist_models_per_cluster2_.clear();
+        obj_hypotheses_wo_elongation_check_.clear();
     }
-
 
     indices_.clear();
 }
@@ -695,12 +676,14 @@ GlobalRecognizer<PointT>::visualize()
     vis_->addPointCloud(colored_cloud,"segments", vp2_);
 
 
-    for(size_t i=0; i < models_per_cluster2_.size(); i++)
+    for(size_t i=0; i < obj_hypotheses_wo_elongation_check_.size(); i++)
     {
-        for(size_t k=0; k<models_per_cluster2_[i].size(); k++)
+        const ObjectHypothesesGroup<PointT> &ohs = obj_hypotheses_wo_elongation_check_[i];
+        for(size_t k=0; k<ohs.ohs_.size(); k++)
         {
-            const ModelT &m = *models_per_cluster2_[i][k];
-            const Eigen::Matrix4f &tf = transforms_per_cluster2_[i][k];
+            const Model<PointT> &m = *ohs.ohs_[k]->model_;
+            const Eigen::Matrix4f &tf = ohs.ohs_[k]->transform_;
+            float conf = ohs.ohs_[k]->confidence_;
 
             const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
             std::stringstream model_label;
@@ -723,13 +706,16 @@ GlobalRecognizer<PointT>::visualize()
     }
 
     size_t disp_id=0;
-    for(size_t i=0; i < models_per_cluster_.size(); i++)
+    for(size_t i=0; i < obj_hypotheses_.size(); i++)
     {
-        for(size_t k=0; k<models_per_cluster_[i].size(); k++)
+        const ObjectHypothesesGroup<PointT> &ohs = obj_hypotheses_[i];
+        for(size_t k=0; k<ohs.ohs_.size(); k++)
         {
-            const ModelT &m = *models_per_cluster_[i][k];
-            const Eigen::Matrix4f &tf = transforms_per_cluster_[i][k];
-            std::stringstream model_id; model_id << m.id_ << ": " << dist_models_per_cluster_[i][k];
+            const Model<PointT> &m = *ohs.ohs_[k]->model_;
+            const Eigen::Matrix4f &tf = ohs.ohs_[k]->transform_;
+            float conf = ohs.ohs_[k]->confidence_;
+
+            std::stringstream model_id; model_id << m.id_ << ": " << conf;
             std::stringstream unique_id; unique_id << i << "_" << k;
 //            vis_->addText(model_id.str(), 12, 12 + 12*disp_id, 10,
 //                          rgb_cluster_colors(0, i)/255.f,
@@ -758,28 +744,6 @@ GlobalRecognizer<PointT>::visualize()
             coordinate_axis_ids_global_.push_back(co_id.str());
     #endif
         }
-    }
-
-    for(size_t i=0; i<models_.size(); i++)
-    {
-        const ModelT &m = *models_[i];
-        const Eigen::Matrix4f &tf = transforms_[i];
-        std::stringstream model_label;
-        model_label << "model_" << i << "_vp5";
-        typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
-        pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
-        vis_->addPointCloud(model_aligned, model_label.str(), vp5_);
-
-#if PCL_VERSION >= 100702
-        Eigen::Matrix3f rot_tmp  = tf.block<3,3>(0,0);
-        Eigen::Vector3f trans_tmp = tf.block<3,1>(0,3);
-        Eigen::Affine3f affine_trans;
-        affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
-        std::stringstream co_id; co_id << i << "vp5";
-        vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp5_);
-        coordinate_axis_ids_global_.push_back(co_id.str());
-#endif
     }
     vis_->spin();
 }

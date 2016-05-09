@@ -113,6 +113,10 @@ public:
 
   pcl::PointCloud<pcl::Normal>::ConstPtr getNormalsAssembled (int resolution_mm) const;
 
+
+  typedef boost::shared_ptr< Model<PointT> > Ptr;
+  typedef boost::shared_ptr< Model<PointT> const> ConstPtr;
+
 };
 
 }

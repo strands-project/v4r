@@ -203,7 +203,7 @@ namespace v4r
           std::vector<int> keypoint_indices_unfiltered_;    ///@brief only for visualization
 
           /** \brief stores keypoint correspondences */
-          typename std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;
+          typename std::map<std::string, LocalObjectHypothesis<PointT> > local_obj_hypotheses_;
 
           void visualizeKeypoints() const;
           mutable pcl::visualization::PCLVisualizer::Ptr vis_;
@@ -233,9 +233,9 @@ namespace v4r
         }
 
         void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > &oh) const
+        getSavedHypotheses(std::map<std::string, LocalObjectHypothesis<PointT> > &oh) const
         {
-          oh = obj_hypotheses_;
+          oh = local_obj_hypotheses_;
         }
 
         typename pcl::PointCloud<PointT>::Ptr
@@ -302,7 +302,7 @@ namespace v4r
          * @param object model to be visualized
          */
         void
-        drawCorrespondences (const ObjectHypothesis<PointT> & oh)
+        drawCorrespondences (const LocalObjectHypothesis<PointT> & oh)
         {
             pcl::PointCloud<PointT> scene_keypoints;
             pcl::copyPointCloud(*scene_, keypoint_indices_, scene_keypoints);
@@ -325,8 +325,8 @@ namespace v4r
         void
         drawCorrespondences()
         {
-            typename std::map<std::string, ObjectHypothesis<PointT> >::iterator it;
-            for (it = obj_hypotheses_.begin(); it != obj_hypotheses_.end (); it++) {
+            typename std::map<std::string, LocalObjectHypothesis<PointT> >::iterator it;
+            for (it = local_obj_hypotheses_.begin(); it != local_obj_hypotheses_.end (); it++) {
                 pcl::PointCloud<PointT> scene_keypoints;
                 pcl::copyPointCloud(*scene_, keypoint_indices_, scene_keypoints);
                 it->second.visualize(*scene_, scene_keypoints);

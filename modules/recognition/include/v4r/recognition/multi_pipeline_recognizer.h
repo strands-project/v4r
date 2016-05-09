@@ -40,8 +40,7 @@ namespace v4r
       private:
         using Recognizer<PointT>::scene_;
         using Recognizer<PointT>::scene_normals_;
-        using Recognizer<PointT>::models_;
-        using Recognizer<PointT>::transforms_;
+        using Recognizer<PointT>::obj_hypotheses_;
         using Recognizer<PointT>::hv_algorithm_;
         using Recognizer<PointT>::hypothesisVerification;
         using Recognizer<PointT>::getDataSource;
@@ -58,7 +57,7 @@ namespace v4r
         typename boost::shared_ptr<GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;  /// @brief algorithm for correspondence grouping
         typename pcl::PointCloud<PointT>::Ptr scene_keypoints_; /// @brief keypoints of the scene
         pcl::PointCloud<pcl::Normal>::Ptr scene_kp_normals_;
-        std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;   /// @brief stores feature correspondences
+        std::map<std::string, LocalObjectHypothesis<PointT> > local_obj_hypotheses_;   /// @brief stores feature correspondences
 
         /**
          * @brief removes all scene keypoints not having a correspondence in the model database and adapt correspondences indices accordingly
@@ -67,7 +66,7 @@ namespace v4r
         compress()
         {
             std::vector<bool> kp_has_correspondence(scene_keypoints_->points.size(), false);
-            for (const auto &oh : obj_hypotheses_) {
+            for (const auto &oh : local_obj_hypotheses_) {
                 for (const auto &corr : oh.second.model_scene_corresp_) {
                     kp_has_correspondence[corr.index_match] = true;
                 }
@@ -89,7 +88,7 @@ namespace v4r
             scene_kp_normals_->width = kept;
 
             // adapt correspondences
-            for (auto &oh : obj_hypotheses_) {
+            for (auto &oh : local_obj_hypotheses_) {
                 for (auto &corr : oh.second.model_scene_corresp_) {
                     corr.index_match = lut[corr.index_match];
                 }
@@ -99,9 +98,8 @@ namespace v4r
         void
         callIndiviualRecognizer(boost::shared_ptr<Recognizer<PointT> > &rec);
 
-        void mergeStuff(std::map<std::string, ObjectHypothesis<PointT> > &oh_m,
-                         const std::vector<ModelTPtr> &models,
-                         const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms,
+        void mergeStuff(const std::vector<ObjectHypothesesGroup<PointT> > &global_hypotheses,
+                         std::map<std::string, LocalObjectHypothesis<PointT> > &loh_m,
                          const pcl::PointCloud<PointT> &scene_kps,
                          const pcl::PointCloud<pcl::Normal> &scene_kp_normals);
       public:
@@ -112,9 +110,9 @@ namespace v4r
 
 
         void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > & hypotheses) const
+        getSavedHypotheses(std::map<std::string, LocalObjectHypothesis<PointT> > & hypotheses) const
         {
-          hypotheses = obj_hypotheses_;
+          hypotheses = local_obj_hypotheses_;
         }
 
 
@@ -132,6 +130,21 @@ namespace v4r
 
         bool
         initialize(bool force_retrain = false);
+
+        /**
+         * @brief updates the model database (checks if new training views are added or existing ones deleted)
+         * @return
+         */
+        bool
+        update();
+
+        /**
+         * @brief retrain the model database ( removes all trained descriptors and retrains from scratch )
+         * @param model_name name of the model to retrain. If empty, all models will be retrained.
+         * @return
+         */
+        bool
+        retrain(const std::string &model_name = "");
 
         void
         correspondenceGrouping();
@@ -153,7 +166,7 @@ namespace v4r
         clearRecognizers()
         {
             recognizers_.clear();
-            obj_hypotheses_.clear();
+            local_obj_hypotheses_.clear();
         }
 
         void

@@ -102,22 +102,14 @@ private:
     mutable std::vector<std::string> coordinate_axis_ids_global_;
     void visualize();
 
-    std::vector< std::vector<ModelTPtr> > models_per_cluster_; /// @brief models recognized in each cluster (only used for visualization)
-    std::vector< std::vector<float> > dist_models_per_cluster_; /// @brief distance of each model recognized in each cluster (only used for visualization)
-    std::vector< std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_per_cluster_; /// @brief transform of each model recognized in each cluster (only used for visualization)
-
-    /// @brief just for visualization (to see effect of elongation check)
-    std::vector< std::vector<ModelTPtr> > models_per_cluster2_; /// @brief models recognized in each cluster (only used for visualization)
-    std::vector< std::vector<float> > dist_models_per_cluster2_; /// @brief distance of each model recognized in each cluster (only used for visualization)
-    std::vector< std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > > transforms_per_cluster2_; /// @brief transform of each model recognized in each cluster (only used for visualization)
+    std::vector<ObjectHypothesesGroup<PointT> > obj_hypotheses_wo_elongation_check_; /// @brief just for visualization (to see effect of elongation check)
 
 protected:
 
     using Recognizer<PointT>::scene_;
     using Recognizer<PointT>::scene_normals_;
-    using Recognizer<PointT>::models_;
     using Recognizer<PointT>::models_dir_;
-    using Recognizer<PointT>::transforms_;
+    using Recognizer<PointT>::obj_hypotheses_;
     using Recognizer<PointT>::indices_;
     using Recognizer<PointT>::source_;
     using Recognizer<PointT>::requires_segmentation_;
@@ -138,7 +130,7 @@ protected:
 
     void computeEigenBasis();
     bool featureEncoding(Eigen::MatrixXf &signatures);
-    void featureMatching(const Eigen::MatrixXf &query_sig, int cluster_id, std::vector<ModelTPtr> &matched_models, std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms, std::vector<float> &distance);
+    void featureMatching(const Eigen::MatrixXf &query_sig, int cluster_id, ObjectHypothesesGroup<PointT> &oh);
     void loadFeaturesFromDisk();
     void poseRefinement();
 

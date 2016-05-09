@@ -36,7 +36,7 @@
 #include <iostream>
 #include <fstream>
 #include <v4r/core/macros.h>
-#include <v4r/recognition/recognition_model_hv.h>
+#include <v4r/recognition/hypotheses_verification.h>
 
 namespace v4r
 {

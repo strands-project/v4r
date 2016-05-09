@@ -29,8 +29,10 @@
 #include <v4r/common/color_transforms.h>
 #include <v4r/common/plane_model.h>
 #include <v4r/recognition/ghv_opt.h>
-#include <v4r/recognition/recognition_model_hv.h>
+#include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/recognition/object_hypothesis.h>
 #include <pcl/common/common.h>
+#include <pcl/common/transforms.h>
 #include <pcl/octree/octree.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/visualization/cloud_viewer.h>
@@ -284,10 +286,11 @@ private:
     pcl::PointCloud<pcl::Normal>::Ptr scene_normals_downsampled_; /// \brief Downsampled scene normals cloud
     std::vector<int> scene_sampled_indices_;    /// @brief downsampled indices of the scene
 
+    std::vector<std::vector<typename HVRecognitionModel<ModelT>::Ptr > > obj_hypotheses_groups_;
+    std::vector<typename HVRecognitionModel<ModelT>::Ptr > global_hypotheses_;  /// @brief all hypotheses not rejected by individual verification
+
     std::vector<int> recognition_models_map_;
     std::vector<boost::shared_ptr<HVRecognitionModel<ModelT> > > recognition_models_; /// @brief all models to be verified (including planar models if included)
-
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > refined_model_transforms_; /// @brief fine registration of model clouds to scene clouds after ICP (this applies to object model only - not to planes)
 
     double model_fitness_, pairwise_cost_, scene_fitness_, cost_;
     Eigen::VectorXf model_fitness_v_;
@@ -336,13 +339,13 @@ private:
 
     template<typename PointT> void convertColor(const typename pcl::PointCloud<PointT> &cloud, Eigen::MatrixXf &color_mat); /// @brief converting points from RGB to desired color space
 
-    void computeModel2SceneFitness (HVRecognitionModel<ModelT> &rm, size_t model_idx); /// @brief checks for each visible point in the model if there are nearby scene points and how good they match
+    void computeModel2SceneFitness (HVRecognitionModel<ModelT> &rm); /// @brief checks for each visible point in the model if there are nearby scene points and how good they match
 
     void removeModelsWithLowVisibility (); /// @brief remove recognition models where there are not enough visible points (>95% occluded)
 
     void computePairwiseIntersection (); /// @brief computes the overlap of two visible points when projected to camera view
 
-    void computeModel2SceneDistances (HVRecognitionModel<ModelT> &rm, int model_id);
+    void computeModel2SceneDistances (HVRecognitionModel<ModelT> &rm);
 
     void computeLoffset (HVRecognitionModel<ModelT> &rm, int model_id) const;
 
@@ -360,15 +363,13 @@ private:
 
     void visualizePairwiseIntersection () const;
 
-    void visualizeGOCuesForModel (const HVRecognitionModel<ModelT> &rm, int model_id) const;
+    void visualizeGOCuesForModel (const HVRecognitionModel<ModelT> &rm) const;
 
-    void individualRejection(); /// @brief remove badly explained points, or points only partially explaining certain smooth clusters (if check is enabled)
+    bool individualRejection(HVRecognitionModel<ModelT> &rm); /// @brief remove hypotheses badly explaining the scene, or only partially explaining smooth clusters (if check is enabled). Returns true if hypothesis is rejected.
 
     void cleanUp ()
     {
         octree_scene_downsampled_.reset();
-        recognition_models_.clear();
-        recognition_models_map_.clear();
         this->occlusion_clouds_.clear();
         this->absolute_camera_poses_.clear();
         scene_sampled_indices_.clear();
@@ -380,6 +381,7 @@ private:
         scene_model_sqr_dist_.resize(0,0);
         scene_explained_weight_compressed_.resize(0,0);
         max_scene_explained_weight_.resize(0);
+        obj_hypotheses_groups_.clear();
     }
 
     void
@@ -500,6 +502,28 @@ public:
     }
 
     /**
+     * @brief returns the vector of verified object hypotheses
+     * @return
+     */
+    std::vector<typename ObjectHypothesis<ModelT>::Ptr >
+    getVerifiedHypotheses() const
+    {
+        std::vector<typename ObjectHypothesis<ModelT>::Ptr > verified_hypotheses  (global_hypotheses_.size());
+
+        size_t kept=0;
+        for(size_t i=0; i<global_hypotheses_.size(); i++)
+        {
+            if(solution_[i])
+            {
+                verified_hypotheses[kept] = global_hypotheses_[i];
+                kept++;
+            }
+        }
+        verified_hypotheses.resize(kept);
+        return verified_hypotheses;
+    }
+
+    /**
      * @brief Sets the models (recognition hypotheses)
      * @param models vector of point clouds representing the models (in same coordinates as the scene_cloud_)
      * @param corresponding normal clouds
@@ -553,15 +577,15 @@ public:
         model_is_present_in_view_ = model_is_present_in_view;
     }
 
-    /**
-     * @brief returns the refined transformation matrix aligning model with scene cloud (applies to object models only - not plane clouds) and is in order of the input of addmodels
-     * @return
-     */
-    void
-    getRefinedTransforms(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &tf) const
-    {
-        tf = refined_model_transforms_;
-    }
+//    /**
+//     * @brief returns the refined transformation matrix aligning model with scene cloud (applies to object models only - not plane clouds) and is in order of the input of addmodels
+//     * @return
+//     */
+//    void
+//    getRefinedTransforms(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &tf) const
+//    {
+//        tf = refined_model_transforms_;
+//    }
 
 
     enum OptimizationType
@@ -571,6 +595,34 @@ public:
         TabuSearchWithLSRM,
         SimulatedAnnealing
     };
+
+
+    void
+    setHypotheses(const std::vector<ObjectHypothesesGroup<ModelT> > &ohs)
+    {
+        obj_hypotheses_groups_.clear();
+        obj_hypotheses_groups_.resize(ohs.size());
+        for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
+        {
+            const ObjectHypothesesGroup<ModelT> &ohg = ohs[i];
+
+            obj_hypotheses_groups_[i].resize(ohg.ohs_.size());
+            for(size_t jj=0; jj<ohg.ohs_.size(); jj++)
+            {
+                const ObjectHypothesis<ModelT> &oh = *ohg.ohs_[jj];
+                obj_hypotheses_groups_[i][jj].reset ( new HVRecognitionModel<ModelT>(oh) );
+                HVRecognitionModel<ModelT> &hv_oh = *obj_hypotheses_groups_[i][jj];
+
+                hv_oh.complete_cloud_.reset ( new pcl::PointCloud<ModelT>);
+                hv_oh.complete_cloud_normals_.reset (new pcl::PointCloud<pcl::Normal>);
+
+                typename pcl::PointCloud<ModelT>::ConstPtr model_cloud = oh.model_->getAssembled ( param_.resolution_mm_ );
+                pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = oh.model_->getNormalsAssembled ( param_.resolution_mm_ );
+                pcl::transformPointCloud (*model_cloud, *hv_oh.complete_cloud_, oh.transform_);
+                transformNormals(*normal_cloud_const, *hv_oh.complete_cloud_normals_, oh.transform_);
+            }
+        }
+    }
 
     void
     writeToLog (std::ofstream & of, bool all_costs_ = false)

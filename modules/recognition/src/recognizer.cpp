@@ -55,41 +55,19 @@ template<typename PointT>
 void
 Recognizer<PointT>::hypothesisVerification ()
 {
-    std::vector<typename pcl::PointCloud<PointT>::ConstPtr> aligned_models (models_.size ());
-    std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> aligned_model_normals (models_.size ());
+    verified_hypotheses_.clear();
 
-    hypothesis_is_verified_.clear();
-
-    if(models_.empty())
+    if(obj_hypotheses_.empty())
     {
         std::cout << "No generated models to verify!" << std::endl;
         return;
     }
 
-    for(size_t i=0; i<models_.size(); i++)
-    {
-        typename pcl::PointCloud<PointT>::Ptr aligned_model_tmp (new pcl::PointCloud<PointT>);
-        pcl::PointCloud<pcl::Normal>::Ptr aligned_normal_tmp (new pcl::PointCloud<pcl::Normal>);
-        ConstPointTPtr model_cloud = models_[i]->getAssembled ( param_.resolution_mm_model_assembly_ );
-        pcl::transformPointCloud (*model_cloud, *aligned_model_tmp, transforms_[i]);
-        aligned_models[i] = aligned_model_tmp;
-        pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = models_[i]->getNormalsAssembled ( param_.resolution_mm_model_assembly_ );
-        transformNormals(*normal_cloud_const, *aligned_normal_tmp, transforms_[i]);
-        aligned_model_normals[i] = aligned_normal_tmp;
-    }
-
     hv_algorithm_->setSceneCloud (scene_);
     hv_algorithm_->setNormals( scene_normals_ );
-    hv_algorithm_->addModels (aligned_models, aligned_model_normals);
+    hv_algorithm_->setHypotheses( obj_hypotheses_ );
     hv_algorithm_->verify ();
-    hv_algorithm_->getMask (hypothesis_is_verified_);
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>  > refined_transforms;
-    hv_algorithm_->getRefinedTransforms(refined_transforms);
-
-    for(size_t i=0; i<refined_transforms.size(); i++)
-    {
-        transforms_[i] = refined_transforms[i] * transforms_[i];
-    }
+    verified_hypotheses_ = hv_algorithm_->getVerifiedHypotheses( );
 }
 
 template<typename PointT>
@@ -118,32 +96,34 @@ Recognizer<PointT>::visualize() const
     vis_->addPointCloud(vis_cloud, "input cloud", vp1_);
     vis_->setBackgroundColor(.0f, .0f, .0f, vp2_);
 
-    for(size_t i=0; i<models_.size(); i++)
+    for(size_t i=0; i<obj_hypotheses_.size(); i++)
     {
-        ModelT &m = *models_[i];
-        const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
-        std::stringstream model_label;
-        model_label << model_id << "_" << i;
-        typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
-        pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
-        vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
+        for(size_t jj=0; jj<obj_hypotheses_[i].ohs_.size(); jj++)
+        {
+            const ObjectHypothesis<PointT> &oh = *obj_hypotheses_[i].ohs_[jj];
+            ModelT &m = *oh.model_;
+            const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
+            std::stringstream model_label;
+            model_label << model_id << "_" << i;
+            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
+            pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
+            vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
+        }
     }
     vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
 
 
-    for(size_t i=0; i<models_.size(); i++)
+    for(size_t i=0; i<verified_hypotheses_.size(); i++)
     {
-        if(!hypothesis_is_verified_[i])
-            continue;
-
-        ModelT &m = *models_[i];
+        const ObjectHypothesis<PointT> &oh = *verified_hypotheses_[i];
+        ModelT &m = *oh.model_;
         const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
         std::stringstream model_label;
         model_label << model_id << "_v_" << i;
         typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
-        pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
+        pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
     }
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
@@ -196,54 +176,56 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
     else
         vis_->setBackgroundColor(.0f, .0f, .0f, vp1_);
 
-    for(size_t i=0; i<models_.size(); i++)
+    for(size_t i=0; i<obj_hypotheses_.size(); i++)
     {
-        ModelT &m = *models_[i];
-        const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
-        std::stringstream model_label;
-        model_label << model_id << "_" << i;
-        typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
-        pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
-        vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
-
-#if PCL_VERSION >= 100702
-        if(param_.vis_for_paper_)
+        for(size_t jj=0; jj<obj_hypotheses_[i].ohs_.size(); jj++)
         {
-            Eigen::Matrix4f tf_tmp = transforms_[i];
-            Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
-            Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
-            Eigen::Affine3f affine_trans;
-            affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
-            std::stringstream co_id; co_id << i << "vp2";
-            vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp2_);
-            coordinate_axis_ids_.push_back(co_id.str());
+            const ObjectHypothesis<PointT> &oh = *obj_hypotheses_[i].ohs_[jj];
+            ModelT &m = *oh.model_;
+            const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
+            std::stringstream model_label;
+            model_label << model_id << "_" << i;
+            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
+            pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
+            vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
+
+    #if PCL_VERSION >= 100702
+            if(param_.vis_for_paper_)
+            {
+                Eigen::Matrix4f tf_tmp = oh.transform_;
+                Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
+                Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
+                Eigen::Affine3f affine_trans;
+                affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+                std::stringstream co_id; co_id << i << "vp2";
+                vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp2_);
+                coordinate_axis_ids_.push_back(co_id.str());
+            }
+    #endif
         }
-#endif
     }
     if(param_.vis_for_paper_)
         vis_->setBackgroundColor(1,1,1,vp2_);
     else
         vis_->setBackgroundColor(.5f, .5f, .5f, vp2_);
 
-    for(size_t i=0; i<models_.size(); i++)
+    for(size_t i=0; i<verified_hypotheses_.size(); i++)
     {
-        if(i >= hypothesis_is_verified_.size() || !hypothesis_is_verified_[i])
-            continue;
-
-        ModelT &m = *models_[i];
+        ObjectHypothesis<PointT> &oh = *verified_hypotheses_[i];
+        ModelT &m = *oh.model_;
         const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
         std::stringstream model_label;
         model_label << model_id << "_v_" << i;
         typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
-        pcl::transformPointCloud( *model_cloud, *model_aligned, transforms_[i]);
+        pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
 
 #if PCL_VERSION >= 100702
         if(param_.vis_for_paper_)
         {
-            Eigen::Matrix4f tf_tmp = transforms_[i];
+            Eigen::Matrix4f tf_tmp = oh.transform_;
             Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
             Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
             Eigen::Affine3f affine_trans;
