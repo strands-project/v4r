@@ -646,6 +646,20 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         }
     }
 
+    // do non-maxima surpression on hypotheses groups w.r.t. to the model fitness
+    for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
+    {
+        std::vector<typename HVRecognitionModel<ModelT>::Ptr > ohg = obj_hypotheses_groups_[i];
+
+        if (ohg.size() > 1)
+        {
+            std::sort(ohg.begin(), ohg.end(), HVRecognitionModel<ModelT>::modelFitCompare);
+
+            for(size_t jj=0; jj<ohg.size()-1; jj++)
+                ohg[jj]->rejected_due_to_better_hypothesis_in_group_ = true;
+        }
+    }
+
     size_t kept_hypotheses = 0;
     for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
     {

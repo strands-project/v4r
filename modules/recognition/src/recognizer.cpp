@@ -184,7 +184,7 @@ Recognizer<pcl::PointXYZRGB>::visualize() const
             ModelT &m = *oh.model_;
             const std::string model_id = m.id_.substr(0, m.id_.length() - 4);
             std::stringstream model_label;
-            model_label << model_id << "_" << i;
+            model_label << model_id << "_" << i << "_" << jj;
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
             typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
             pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);

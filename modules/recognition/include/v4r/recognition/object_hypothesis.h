@@ -77,6 +77,7 @@ namespace v4r
         bool rejected_due_to_low_visibility_;   ///@brief true if the object model rendered in the view is not visible enough
         bool rejected_due_to_low_model_fitness_;    ///@brief true if the object model is not able to explain the scene well enough
         bool rejected_due_to_smooth_cluster_check_; /// @brief true if the object model does not well explain all points in the smooth clusters it occupies
+        bool rejected_due_to_better_hypothesis_in_group_; /// @brief true if there is any other object model in the same hypotheses group which explains the scene better
         bool rejected_globally_;
 
         HVRecognitionModel()
@@ -84,7 +85,8 @@ namespace v4r
             L_value_offset_ = 0.f;
             refined_pose_ = Eigen::Matrix4f::Identity();
             rejected_due_to_low_visibility_ = rejected_due_to_low_model_fitness_ =
-                    rejected_due_to_smooth_cluster_check_ = rejected_globally_ = false;
+                    rejected_due_to_smooth_cluster_check_ = rejected_globally_ =
+                    rejected_due_to_better_hypothesis_in_group_ = false;
         }
 
         HVRecognitionModel(const ObjectHypothesis<PointT> &oh) : ObjectHypothesis<PointT>(oh)
@@ -92,7 +94,8 @@ namespace v4r
             L_value_offset_ = 0.f;
             refined_pose_ = Eigen::Matrix4f::Identity();
             rejected_due_to_low_visibility_ = rejected_due_to_low_model_fitness_ =
-                    rejected_due_to_smooth_cluster_check_ = rejected_globally_ = false;
+                    rejected_due_to_smooth_cluster_check_ = rejected_globally_ =
+                    rejected_due_to_better_hypothesis_in_group_ = false;
         }
 
         void
@@ -115,7 +118,9 @@ namespace v4r
         bool
         isRejected() const
         {
-            return rejected_due_to_low_model_fitness_ || rejected_due_to_low_visibility_ || rejected_due_to_smooth_cluster_check_ || rejected_globally_;
+            return rejected_due_to_low_model_fitness_ || rejected_due_to_low_visibility_ ||
+                    rejected_due_to_smooth_cluster_check_ || rejected_globally_ ||
+                    rejected_due_to_better_hypothesis_in_group_;
         }
 
         /**
@@ -129,10 +134,15 @@ namespace v4r
         void
         processSilhouette(bool do_smoothing=true, size_t smoothing_radius=2, bool do_erosion=true, size_t erosion_radius=4, size_t img_width=640);
 
+        static
+        bool modelFitCompare(typename HVRecognitionModel<PointT>::Ptr const & a, typename HVRecognitionModel<PointT>::Ptr const & b)
+        {
+            return a->model_fit_ < b->model_fit_;
+        }
+
         typedef boost::shared_ptr< HVRecognitionModel> Ptr;
         typedef boost::shared_ptr< HVRecognitionModel const> ConstPtr;
     };
-
 
 
     template<typename PointT>
