@@ -452,6 +452,7 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
 //        computeCodebook();
 //    }
     initialization_phase_ = false;
+    indices_.clear();
     return true;
 }
 
@@ -714,7 +715,10 @@ LocalRecognitionPipeline<PointT>::recognize ()
     keypoint_indices_.clear();
 
     if(!computeFeatures())
+    {
+        indices_.clear();
         return;
+    }
 
     std::cout << "Number of " << estimator_->getFeatureDescriptorName() << " features: " << keypoint_indices_.size() << std::endl;
 
