@@ -36,7 +36,7 @@ int main (int argc, char ** argv)
     source->setLoadViews (false);
     source->setLoadIntoMemory(false);
     source->generate ();
-    source->createVoxelGridAndDistanceTransform (0.005f);
+//    source->createVoxelGridAndDistanceTransform (0.005f);
 
     pcl::visualization::PCLVisualizer vis;
     // Loading file and corresponding indices file (if it exists)
