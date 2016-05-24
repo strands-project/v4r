@@ -365,7 +365,7 @@ createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 }
 
 
-template<typename T=int>
+template<typename T>
 V4R_EXPORTS std::vector<T>
 createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
 {
