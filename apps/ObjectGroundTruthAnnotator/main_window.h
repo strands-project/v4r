@@ -278,6 +278,7 @@ private:
   float inlier_;
   std::vector< std::string> test_sequences_;
   size_t sequence_id_;
+  int resolution_mm_;
 
 
   int model_viewport_;

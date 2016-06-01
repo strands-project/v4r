@@ -192,6 +192,9 @@ GlobalRecognizer<PointT>::initialize(bool force_retrain)
                 }
                 indices_ = m->indices_[v];
 
+                if(indices_.size() < 100)
+                    continue;
+
                 Eigen::MatrixXf signature_tmp;
                 if (!featureEncoding(signature_tmp))
                     continue;
@@ -286,6 +289,7 @@ GlobalRecognizer<PointT>::initialize(bool force_retrain)
     classifier_->train(all_model_signatures_, all_trained_model_label_);
     all_model_signatures_.resize(0,0);  // not needed here any more
     all_trained_model_label_.resize(0);
+    indices_.clear();
     return true;
 }
 

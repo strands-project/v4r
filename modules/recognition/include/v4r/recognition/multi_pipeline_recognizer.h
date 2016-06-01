@@ -35,7 +35,7 @@ namespace v4r
     class V4R_EXPORTS MultiRecognitionPipeline : public Recognizer<PointT>
     {
       protected:
-        std::vector<typename boost::shared_ptr<Recognizer<PointT> > > recognizers_;
+        std::vector<typename Recognizer<PointT>::Ptr > recognizers_;
 
       private:
         using Recognizer<PointT>::scene_;
