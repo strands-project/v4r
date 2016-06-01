@@ -93,6 +93,8 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
     std::string scene_full_path = scenes_dir + "/" + scene_id;
 
     std::vector < std::string > scene_view = v4r::io::getFilesInDirectory( scene_full_path, ".*.pcd", true);
+    std::sort(scene_view.begin(), scene_view.end());
+
     if ( !scene_view.empty() )
     {
         std::cout << "Number of viewpoints in directory is:" << scene_view.size () << std::endl;
@@ -244,17 +246,14 @@ template<typename PointT>
 void PcdGtAnnotator<PointT>::visualize()
 {
     if(!vis_)
-    {
         vis_.reset ( new pcl::visualization::PCLVisualizer ("ground truth model", true));
-    }
 
     std::vector<std::string> subwindow_titles;
     subwindow_titles.push_back( "scene" );
 
     for (size_t m_id=0; m_id < model_id_.size(); m_id++)
-    {
         subwindow_titles.push_back ( model_id_[m_id] );
-    }
+
     std::vector<int> viewports = v4r::pcl_visualizer::visualization_framework(*vis_, 1, model_id_.size() + 1 , subwindow_titles);
 
     size_t vp_id = 0;
@@ -273,7 +272,7 @@ void PcdGtAnnotator<PointT>::visualize()
         source_->getModelById( model_name, pModel );
         typename pcl::PointCloud<PointT>::Ptr visible_model ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::Ptr visible_model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 0.003f );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 3 );
         size_t num_vis_pts = 0;
         for (size_t v_id=0; v_id<visible_model_points_[m_id].size(); v_id++)
         {
@@ -319,7 +318,7 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
         source_->getModelById( model_name, pModel );
         typename pcl::PointCloud<PointT>::Ptr visible_model ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::Ptr visible_model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 0.003f );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 3 );
         size_t num_vis_pts = 0;
         for (size_t v_id=0; v_id<visible_model_points_[m_id].size(); v_id++)
         {
@@ -394,18 +393,11 @@ main (int argc, char ** argv)
         return false;
     }
 
-    try
-    {
-        po::notify(vm);
-    }
-    catch(std::exception& e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
-        return false;
-    }
+    try { po::notify(vm); }
+    catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; return false;  }
 
-    std::vector< std::string> sub_folder_names;
-    if(!v4r::io::getFoldersInDirectory( scene_dir, "", sub_folder_names) )
+    std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( scene_dir );
+    if( sub_folder_names.empty() )
     {
         std::cerr << "No subfolders in directory " << scene_dir << ". " << std::endl;
         sub_folder_names.push_back("");

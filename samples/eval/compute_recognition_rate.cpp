@@ -133,7 +133,7 @@ void selectBestMatch (std::vector<std::string> &rec_files,
         vis_debug_->removeAllShapes();
         ModelTPtr model;
         source->getModelById( debug_model_, model );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(3);
 
         for(size_t r_id=0; r_id<rec_files.size(); r_id++)
         {
@@ -426,7 +426,7 @@ main (int argc, char ** argv)
                    {
                        ModelTPtr model;
                        source->getModelById( model_files[model_id], model );
-                       typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.003f);
+                       typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(3);
 
                        for(size_t r_id=0; r_id<rec_files.size(); r_id++)
                        {
