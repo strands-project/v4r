@@ -30,7 +30,6 @@ void svmClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &
             svm_n_test[kk].index = kk+1;
         }
         svm_n_test[ query_data.cols() ].index = -1;
-        predicted_label(i, 0) = (int)::svm_predict(svm_mod_, svm_n_test);
 
         if(param_.svm_.probability)
         {
@@ -48,6 +47,10 @@ void svmClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &
                 predicted_label(i, k) = indices[ indices.size() - 1 - k ];
 
             delete [] prob_estimates;
+        }
+        else
+        {
+            predicted_label(i, 0) = (int)::svm_predict(svm_mod_, svm_n_test);
         }
 
         delete svm_n_test;
@@ -224,9 +227,9 @@ void svmClassifier::trainSVM(const Eigen::MatrixXf &training_data, const Eigen::
         {
             svm_prob->x[i][kk].value = training_data(i,kk);
             svm_prob->x[i][kk].index = kk+1;
-            svm_prob->y[i] = (double)training_label(i);
         }
         svm_prob->x[i][ training_data.cols() ].index = -1;
+        svm_prob->y[i] = training_label(i);
     }
     svm_mod_ = ::svm_train(svm_prob, &param_.svm_);
 
@@ -270,7 +273,7 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
         svm_mod_ = ::svm_load_model(in_filename_.c_str());
 }
 
-void svmClassifier::saveModel(const std::string &filename)
+void svmClassifier::saveModel(const std::string &filename) const
 {
     if(filename.length())
     {
@@ -279,6 +282,11 @@ void svmClassifier::saveModel(const std::string &filename)
         if( ::svm_save_model(filename.c_str(), svm_mod_) == -1)
             std::cerr << "Could not save svm model to file " << filename << ". " << std::endl;
     }
+}
+
+void svmClassifier::loadModel(const std::string &filename)
+{
+    svm_mod_ = ::svm_load_model(filename.c_str());
 }
 
 void svmClassifier::shuffleTrainingData(Eigen::MatrixXf &data, Eigen::VectorXi &target)

@@ -112,7 +112,10 @@ namespace v4r
         predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label);
 
         void
-        saveModel(const std::string &filename);
+        saveModel(const std::string &filename) const;
+
+        void
+        loadModel(const std::string &filename);
 
         void
         computeConfusionMatrix(const Eigen::MatrixXf &test_data,

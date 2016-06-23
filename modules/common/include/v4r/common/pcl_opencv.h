@@ -25,6 +25,8 @@
 #include <pcl/common/common.h>
 #include <opencv2/opencv.hpp>
 #include <v4r/core/macros.h>
+#include <v4r/common/miscellaneous.h>
+#include <glog/logging.h>
 #include <omp.h>
 
 #ifndef V4R_PCL_OPENCV_H_
@@ -479,6 +481,79 @@ namespace v4r
         return dst;
     }
 
+    /**
+      * @brief computes the depth map of a point cloud with fixed size output
+      * @param RGB-D cloud
+      * @param indices of the points belonging to the object
+      * @param crop if true, image will be cropped to object specified by the indices
+      * @param remove background... if true, will set pixel not specified by the indices to a specific background color (e.g. black)
+      * @return margin in pixel from the image boundaries to the maximal extent of the object (only if crop is set to true)
+      */
+    template<typename PointT>
+    V4R_EXPORTS
+    inline cv::Mat
+    pcl2cvMat (const typename pcl::PointCloud<PointT> &pcl_cloud,
+               std::vector<int> indices, bool crop = false, bool remove_background = true,
+               int margin = 10)
+    {
+        CHECK(!indices.empty());
+
+        std::vector<bool> fg_mask = v4r::createMaskFromIndices(indices, pcl_cloud.width * pcl_cloud.height);
+
+        int min_u = pcl_cloud.width-1, min_v = pcl_cloud.height-1, max_u = 0, max_v = 0;
+
+        cv::Mat_<cv::Vec3b> image (pcl_cloud.height, pcl_cloud.width);
+
+        cv::Vec3b bg_color;
+        bg_color[0] = bg_color[1] = bg_color[2] = 0;
+        image.setTo(bg_color);
+
+        for (unsigned row = 0; row < pcl_cloud.height; row++)
+        {
+            for (unsigned col = 0; col < pcl_cloud.width; col++)
+            {
+                unsigned position = row * pcl_cloud.width + col;
+
+                cv::Vec3b & cvp = image.at<cv::Vec3b> (row, col);
+                const pcl::PointXYZRGB &pt = pcl_cloud.points[position];
+
+                if(remove_background && !fg_mask[position])
+                    continue;
+
+                cvp[0] = pt.b;
+                cvp[1] = pt.g;
+                cvp[2] = pt.r;
+
+                if(!fg_mask[position])
+                    continue;
+
+                if( pcl::isFinite(pt) ) {
+                    if( row < min_v ) min_v = row;
+                    if( row > max_v ) max_v = row;
+                    if( col < min_u ) min_u = col;
+                    if( col > max_u ) max_u = col;
+                }
+            }
+        }
+
+        if(crop) {
+            int side_length_u = max_u - min_u;
+            int side_length_v = max_v - min_v;
+            int side_length = std::max<int>(side_length_u , side_length_v) + 2 * margin;
+
+            // center object in the middle
+            min_u = std::max<int>(0, int(min_u - (side_length - side_length_u)/2.f));
+            min_v = std::max<int>(0, int(min_v - (side_length - side_length_v)/2.f));
+
+            int side_length_uu = std::min<int>(side_length, image.cols  - min_u - 1);
+            int side_length_vv = std::min<int>(side_length, image.rows - min_v - 1);
+
+            cv::Mat image_roi = image( cv::Rect(min_u, min_v, side_length_uu, side_length_vv) );
+            image = image_roi.clone();
+        }
+
+        return image;
+    }
 
 
     /**
