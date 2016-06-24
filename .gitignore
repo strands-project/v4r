@@ -2,6 +2,7 @@
 # Project structure
 build*/
 bin
+data/
 lib
 doc
 *~
