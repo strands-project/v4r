@@ -46,6 +46,21 @@ namespace v4r
 
         typename boost::shared_ptr<PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator_;
       public:
+        GlobalEstimator(const std::string &descr_name = "", size_t descr_type = 0, size_t feature_dimensions = 0)
+            : descr_name_ (descr_name),
+              descr_type_ (descr_type),
+              feature_dimensions_ (feature_dimensions)
+        {
+
+        }
+
+        ~GlobalEstimator()
+        {
+            cloud_.reset();
+            normals_.reset();
+            processed_.reset();
+            indices_.clear();
+        }
 
         /**
          * @brief global feature description

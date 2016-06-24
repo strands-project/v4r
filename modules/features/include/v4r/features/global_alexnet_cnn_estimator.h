@@ -60,19 +60,21 @@ public:
         size_t image_width_;
         int device_id_;
         std::string device_name_;
-        std::vector<std::string> extract_feature_blob_names_;
-        std::string feature_extraction_proto_, pretrained_binary_proto_;
+        std::string output_layer_name_; ///@brief name of the layer of the CNN that is used for feature extraction
+        std::string feature_extraction_proto_, pretrained_binary_proto_, input_mean_file_;
         Parameter(
                 size_t image_height = 256,
                 size_t image_width = 256,
                 int device_id = 0,
-                std::string device_name = "CPU"
+                std::string device_name = "CPU",
+                std::string output_layer_name = "fc7"
                 )
             :
                 image_height_ (image_height),
                 image_width_ (image_width),
                 device_id_ (device_id),
-                device_name_ (device_name)
+                device_name_ (device_name),
+                output_layer_name_ (output_layer_name)
         {}
 
 
@@ -101,8 +103,9 @@ public:
                     ("help,h", "produce help message")
                     ("feature_extraction_proto", po::value<std::string>(&feature_extraction_proto_)->required(), "")
                     ("pretrained_net", po::value<std::string>(&pretrained_binary_proto_)->required(), "")
-                    ("extract_feature_blob_names", po::value<std::vector<std::string> >(&extract_feature_blob_names_)->multitoken()->required(), "")
+                    ("input_mean_file", po::value<std::string>(&input_mean_file_)->required(), "")
                     ("device_name", po::value<std::string>(&device_name_)->default_value(device_name_), "")
+                    ("output_layer_name", po::value<std::string>(&output_layer_name_)->default_value(output_layer_name_), "")
                     ("device_id", po::value<int>(&device_id_)->default_value(device_id_), "")
                     ("cnn_image_height", po::value<size_t>(&image_height_)->default_value(image_height_), "")
                     ("cnn_image_width", po::value<size_t>(&image_width_)->default_value(image_width_), "")
@@ -120,16 +123,26 @@ public:
 
 private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-    boost::shared_ptr<caffe::Net<Dtype> > feature_extraction_net_;
+    boost::shared_ptr<caffe::Net<Dtype> > net_;
     bool init_;
+    cv::Mat mean_;
+    cv::Size input_geometry_;
+    int num_channels_;
+
+    void SetMean(const std::string& mean_file);
+    void Preprocess(const cv::Mat& img, std::vector<cv::Mat>* input_channels);
+    void WrapInputLayer(std::vector<cv::Mat>* input_channels);
+    int init();
 
 public:
-    CNN_Feat_Extractor(const Parameter &p = Parameter()) : param_(p)
+    CNN_Feat_Extractor(const Parameter &p = Parameter(),
+                       const std::string &descr_name = "alexnet",
+                       size_t descr_type = FeatureType::ALEXNET,
+                       size_t feature_dimensions = 4096) :
+        param_(p),
+        GlobalEstimator<PointT>(descr_name, descr_type, feature_dimensions),
+        init_ (false)
     {
-        descr_name_ = "alexnet";
-        descr_type_ = FeatureType::ALEXNET;
-        feature_dimensions_ = 4096;
-        init_ = false;
     }
 
     void setFeatureExtractionProto(const std::string &val)
@@ -137,17 +150,19 @@ public:
         param_.feature_extraction_proto_ = val;
     }
 
-    void setExtractFeatureBlobNames(const std::vector<std::string> &val)
-    {
-        param_.extract_feature_blob_names_ = val;
-    }
-
     void setPretrainedBinaryProto(const std::string &val)
     {
         param_.pretrained_binary_proto_ = val;
     }
 
+    void setMeanFile(const std::string &mean_file)
+    {
+        param_.input_mean_file_ = mean_file;
+    }
+
     bool compute(Eigen::MatrixXf &signature);
+
+    bool compute(const cv::Mat &img, Eigen::MatrixXf &signature);
 
     bool needNormals() const
     {
