@@ -44,12 +44,11 @@ private:
     using GlobalEstimator<PointT>::feature_dimensions_;
 
 public:
-    ESFEstimation()
-    {
-        descr_name_ = "esf";
-        descr_type_ = FeatureType::ESF;
-        feature_dimensions_ = 640;
-    }
+    ESFEstimation(const std::string &descr_name = "esf",
+                  size_t descr_type = FeatureType::ESF,
+                  size_t feature_dimensions = 640)
+        : GlobalEstimator<PointT>(descr_name, descr_type, feature_dimensions)
+    {}
 
     bool
     compute (Eigen::MatrixXf &signature)
@@ -87,6 +86,9 @@ public:
     {
         return false;
     }
+
+    typedef boost::shared_ptr< ESFEstimation<PointT> > Ptr;
+    typedef boost::shared_ptr< ESFEstimation<PointT> const> ConstPtr;
 };
 }
 
