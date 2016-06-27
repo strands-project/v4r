@@ -15,6 +15,15 @@ else
         echo "Failure during unzipping.."
     else
         echo "Successfully unzipped file! Cleaning up..."
+        
+        #remove broken files
+        cd pcd_binary
+        mv tt_hmrr107.pcd tt_hmrr107.pcd_broken
+        mv tt_hmrr116.pcd tt_hmrr116.pcd_broken
+        mv tt_hmrr132.pcd tt_hmrr132.pcd_broken
+        mv tt_hmrr141.pcd tt_hmrr141.pcd_broken
+        cd ..
+        
         cd ../..
         rm Cat10_TestDatabase.zip
         echo "Done!"
