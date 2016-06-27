@@ -8,7 +8,7 @@ if [ $? -ne 0 ]; then
 else
     echo "File has been downloaded"
     echo "Unzipping..."
-    mkdir 3dNet
+    mkdir -p 3dNet
     cd 3dNet
 
     if ! unzip ../Cat10_TestDatabase.zip &> /dev/null; then

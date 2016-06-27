@@ -67,7 +67,8 @@ int main (int argc, char ** argv)
         const std::string path_extended = input_dir + "/" + sub_folder;
 
         std::cout << "Processing all point clouds in folder " << path_extended;
-        const std::string search_pattern = ".*." + cloud_prefix + ".*.pcd";
+//        const std::string search_pattern = ".*." + cloud_prefix + ".*.pcd";
+        const std::string search_pattern = ".*.pcd";
         std::vector < std::string > cloud_files = v4r::io::getFilesInDirectory (path_extended, search_pattern, true);
 
         for (const std::string &cloud_file : cloud_files)
