@@ -8,14 +8,14 @@ if [ $? -ne 0 ]; then
 else
     echo "File has been downloaded"
     echo "Unzipping..."
-    mkdir -p 3dNet
-    cd 3dNet
+    mkdir -p 3dNet/Cat10_TestDatabase
+    cd 3dNet/Cat10_TestDatabase
 
-    if ! unzip ../Cat10_TestDatabase.zip &> /dev/null; then
+    if ! unzip ../../Cat10_TestDatabase.zip &> /dev/null; then
         echo "Failure during unzipping.."
     else
         echo "Successfully unzipped file! Cleaning up..."
-        cd ..
+        cd ../..
         rm Cat10_TestDatabase.zip
         echo "Done!"
     fi
