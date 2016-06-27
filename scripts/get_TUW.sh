@@ -29,14 +29,14 @@ if [ $? -ne 0 ]; then
 else
     echo "File has been downloaded"
     echo "Inflating file..."
-    mkdir TUW
-    cd TUW
+    mkdir -p TUW/test_set
+    cd TUW/test_set
 
-    if ! tar -zxvf ../TUW_test_set.tar.gz &> /dev/null; then
+    if ! tar -zxvf ../../TUW_test_set.tar.gz &> /dev/null; then
         echo "Failure during inflating.."
     else
         echo "Successfully inflated file! Deleting tar file..."
-        cd ..
+        cd ../..
         rm TUW_test_set.tar.gz
         echo "Done!"
     fi
@@ -51,18 +51,17 @@ if [ $? -ne 0 ]; then
 else
     echo "File has been downloaded"
     echo "Inflating file..."
-    mkdir TUW
-    cd TUW
+    mkdir -p TUW/annotations
+    cd TUW/annotations
 
-    if ! tar -zxvf ../TUW_annotations.tar.gz &> /dev/null; then
+    if ! tar -zxvf ../../TUW_annotations.tar.gz &> /dev/null; then
         echo "Failure during inflating.."
     else
         echo "Successfully inflated file! Deleting tar file..."
-        cd ..
+        cd ../..
         rm TUW_annotations.tar.gz
         echo "Done!"
     fi
 fi
 
 cd ..
-

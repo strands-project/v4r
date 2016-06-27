@@ -1,7 +1,8 @@
-# Overview  
+# RTMT Recognition Modeling & Tracking Toolbox
+
 In this tutorial you will learn how to model objects with an RGB-D camera. These 3D models can used for training an object recognizer or used for object tracking
 
-# Object modelling  
+## Object modelling  
 * Place the object on a flat surface on a newspaper or something similar. This allows you to rotate the object without touching it. The texture on the newspaper also helps view registration. The pictures below were taken with the object on a turn table, which is the most convenient way of rotating the object. You can also model objects without a turntable by putting the object on the floor for instance and moving your camera. In this case just skip the step definining the ROI.
 * Start the modelling tool: ~/somewhere/v4r/bin/RTMT
 * Press "Camera Start": You should now see the camera image  
@@ -32,19 +33,19 @@ This is a convenient way to model objects with the STRANDS robots. Put the objec
 
 ![](images/object-modeling-09.jpg)
 
-## Configuration options:  
+### Configuration options:  
 * Set data folder and model name:  
   (File -> Preferences -> Settings -> Path and model name)
 * Configure number of keyfames to be selected using a camera rotation and a camera translation threshold:  
   (File -> Preferences -> Settings -> Min. delta angle, Min. delta camera distance)
 
-## Trouble shooting  
+### Trouble shooting  
 * If you press any of the buttons in the wrong order, just restart. Recovery is futile.
 * If you do not get an image, there is a problem with the OpenNI device driver.
 Check the file `/etc/openni/GlobalDefaults.ini`, set `UsbInterface=2` (i.e. BULK).
 * If the plane supporting the object is not removed completely, try to increase the inlier distance for dominant plane segmentation in File -> Preferences -> Postprocessing.
 
-# References  
+## References  
 When referencing this work, pleace cite:
 
 1. J. Prankl, A. Aldoma Buchaca, A. Svejda, M. Vincze, RGB-D Object Modelling for Object Recognition and Tracking. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), 2015.
