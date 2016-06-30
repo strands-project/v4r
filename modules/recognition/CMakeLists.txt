@@ -48,7 +48,6 @@ v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentat
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/global_nn_classifier.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/recognizer.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/metrics.h
-        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/global_svm_classifier.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/segmenter.h
         #${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/multiview_object_recognizer.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/ghv_opt.h
