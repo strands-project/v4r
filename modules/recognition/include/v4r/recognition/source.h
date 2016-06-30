@@ -76,6 +76,7 @@ protected:
     std::vector<std::string> model_list_to_load_;
 
 public:
+    virtual ~Source() = 0;
 
     Source(int resolution_mm = 5) {
         resolution_mm_ = resolution_mm;

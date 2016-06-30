@@ -60,6 +60,7 @@ protected:
     bool visualize_;
 
 public:
+    virtual ~Segmenter() = 0;
 
     /**
      * @brief sets the cloud which ought to be segmented

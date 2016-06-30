@@ -123,6 +123,8 @@ namespace v4r
           requires_segmentation_ = false;
         }
 
+        virtual ~Recognizer(){}
+
         virtual size_t getFeatureType() const = 0;
 
         virtual bool
