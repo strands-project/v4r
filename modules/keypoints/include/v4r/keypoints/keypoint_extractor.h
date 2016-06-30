@@ -45,6 +45,8 @@ protected:
     std::string keypoint_extractor_name_;
 
 public:
+    virtual ~KeypointExtractor() = 0;
+
     void
     setInputCloud (const PointInTPtr & input)
     {
@@ -59,7 +61,7 @@ public:
     }
 
     virtual bool
-    needNormals ()
+    needNormals () const
     {
         return false;
     }

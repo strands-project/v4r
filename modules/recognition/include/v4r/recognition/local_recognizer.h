@@ -213,11 +213,12 @@ namespace v4r
           std::vector<typename KeypointExtractor<PointT>::Ptr > keypoint_extractor_;
       public:
 
-        LocalRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
+        LocalRecognitionPipeline (const Parameter &p = Parameter()) :
+            Recognizer<PointT>(p),
+            param_(p),
+            feat_kp_set_from_outside_(false),
+            initialization_phase_(false)
         {
-            param_ = p;
-            feat_kp_set_from_outside_ = false;
-            initialization_phase_ = false;
         }
 
         size_t
