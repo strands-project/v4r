@@ -101,9 +101,9 @@ public:
             po::options_description desc("CNN parameters\n=====================");
             desc.add_options()
                     ("help,h", "produce help message")
-                    ("feature_extraction_proto", po::value<std::string>(&feature_extraction_proto_)->required(), "")
-                    ("pretrained_net", po::value<std::string>(&pretrained_binary_proto_)->required(), "")
-                    ("input_mean_file", po::value<std::string>(&input_mean_file_)->required(), "")
+                    ("cnn_net", po::value<std::string>(&feature_extraction_proto_)->required(), "Definition of CNN (.prototxt)")
+                    ("pretrained_net", po::value<std::string>(&pretrained_binary_proto_)->required(), "Trained weights (.caffemodel)")
+                    ("input_mean_file", po::value<std::string>(&input_mean_file_)->required(), "mean pixel values (.binaryproto)")
                     ("device_name", po::value<std::string>(&device_name_)->default_value(device_name_), "")
                     ("output_layer_name", po::value<std::string>(&output_layer_name_)->default_value(output_layer_name_), "")
                     ("device_id", po::value<int>(&device_id_)->default_value(device_id_), "")
@@ -139,8 +139,8 @@ public:
                        const std::string &descr_name = "alexnet",
                        size_t descr_type = FeatureType::ALEXNET,
                        size_t feature_dimensions = 4096) :
-        param_(p),
         GlobalEstimator<PointT>(descr_name, descr_type, feature_dimensions),
+        param_(p),
         init_ (false)
     {
     }
