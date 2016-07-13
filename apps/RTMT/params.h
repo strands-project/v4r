@@ -33,10 +33,12 @@
 #ifndef _GRAB_PCD_PARAMS_H_
 #define _GRAB_PCD_PARAMS_H_
 
+#ifndef Q_MOC_RUN
 #include <QDialog>
 #include <opencv2/core/core.hpp>
 #include <Eigen/Dense>
 #include <v4r/reconstruction/KeypointSlamRGBD2.h>
+#endif
 
 
 namespace Ui {

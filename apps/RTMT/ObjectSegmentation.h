@@ -33,6 +33,7 @@
 #ifndef _OBJECT_SEGMENTATION_H
 #define _OBJECT_SEGMENTATION_H
 
+#ifndef Q_MOC_RUN
 #include <QObject>
 #include <QThread>
 #include <QMutex>
@@ -53,7 +54,7 @@
 #include <v4r/keypoints/impl/triple.hpp>
 #include "params.h"
 #include "sensor.h"
-
+#endif
 
 
 class ObjectSegmentation : public QThread

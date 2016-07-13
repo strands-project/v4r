@@ -30,7 +30,11 @@
 #include <vtkLoopSubdivisionFilter.h>
 #include <vtkTriangle.h>
 #include <vtkTransform.h>
+#if VTK_MAJOR_VERSION == 6 
+#include <vtkHardwareSelector.h>
+#else 
 #include <vtkVisibleCellSelector.h>
+#endif
 #include <vtkSelection.h>
 #include <vtkCellArray.h>
 #include <vtkTransformFilter.h>

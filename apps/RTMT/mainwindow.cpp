@@ -38,12 +38,14 @@
  * - use qt5
  */
 
+#ifndef Q_MOC_RUN
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <v4r/keypoints/impl/toString.hpp>
 
 #include <QFileDialog>
 #include <QMessageBox>
+#endif
 
 Q_DECLARE_METATYPE(cv::Mat)
 

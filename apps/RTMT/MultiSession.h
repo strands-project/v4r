@@ -33,6 +33,7 @@
 #ifndef _MULTI_SESSION_H
 #define _MULTI_SESSION_H
 
+#ifndef Q_MOC_RUN
 #include <QObject>
 #include <QThread>
 #include <QMutex>
@@ -41,6 +42,7 @@
 #include <pcl/point_types.h>
 #include <boost/shared_ptr.hpp>
 #include "sensor.h"
+#endif
 
 
 

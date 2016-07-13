@@ -8,6 +8,7 @@
 #ifndef MAIN_WINDOW_H_
 #define MAIN_WINDOW_H_
 
+#ifndef Q_MOC_RUN
 #include <QVTKWidget.h>
 #include <QObject>
 #include <QtGui>
@@ -18,6 +19,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <v4r/recognition/model_only_source.h>
 #include <v4r/common/miscellaneous.h>
+#endif
 
 namespace bf = boost::filesystem;
 

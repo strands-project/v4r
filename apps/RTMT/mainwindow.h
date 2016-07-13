@@ -33,6 +33,7 @@
 #ifndef _GRAB_PCD_QT_MAINWINDOW_H_
 #define _GRAB_PCD_QT_MAINWINDOW_H_
 
+#ifndef Q_MOC_RUN
 #include <QMainWindow>
 #include <QInputDialog>
 #include "glviewer.h"
@@ -50,6 +51,7 @@
 #include <pcl/octree/octree_pointcloud_voxelcentroid.h>
 #include <pcl/octree/octree.h>
 #include "OctreeVoxelCentroidContainerXYZRGB.hpp"
+#endif
 
 namespace Ui {
 class MainWindow;

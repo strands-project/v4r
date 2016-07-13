@@ -56,7 +56,9 @@ v4r::PartialPCDSource<Full3DPointT, PointInT, OutModelPointT>::loadOrGenerate (c
 
     // Get camera positions
     vtkPolyData *sphere = subdivide->GetOutput ();
+    #if VTK_MAJOR_VERSION < 6
     sphere->Update ();
+    #endif
 
     std::vector<Eigen::Vector3f> cam_positions;
     if (!use_vertices_)

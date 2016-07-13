@@ -11,6 +11,7 @@
 
 #include <boost/any.hpp>
 #include <boost/program_options.hpp>
+#include <boost/format.hpp>
 #include <glog/logging.h>
 
 namespace po = boost::program_options;
