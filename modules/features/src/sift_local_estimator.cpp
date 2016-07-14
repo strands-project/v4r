@@ -94,6 +94,7 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
         for(size_t i=0; i<dense_ks.size(); i++)
             ksp[i] = dense_ks[i];
         sift_->SetKeypointList(dense_ks.size(), ksp, false);
+        delete[] ksp;
     }
 
     if (sift_->RunSIFT (grayImage.cols, grayImage.rows, grayImage.ptr<uchar> (0), GL_LUMINANCE, GL_UNSIGNED_BYTE))

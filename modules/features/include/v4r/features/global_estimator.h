@@ -54,13 +54,7 @@ namespace v4r
 
         }
 
-        ~GlobalEstimator()
-        {
-            cloud_.reset();
-            normals_.reset();
-            processed_.reset();
-            indices_.clear();
-        }
+        virtual ~GlobalEstimator() { }
 
         /**
          * @brief global feature description

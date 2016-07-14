@@ -155,6 +155,8 @@ public:
         requires_segmentation_ = true;
     }
 
+    virtual ~GlobalRecognizer(){}
+
 //    void
 //    setTrainingDir (const std::string & dir)
 //    {

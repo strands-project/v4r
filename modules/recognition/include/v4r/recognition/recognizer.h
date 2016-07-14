@@ -83,6 +83,11 @@ namespace v4r
             {}
         }param_;
 
+    private:
+        mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
+        mutable int vp1_, vp2_, vp3_;
+        mutable std::vector<std::string> coordinate_axis_ids_;
+
       protected:
         typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
@@ -97,10 +102,6 @@ namespace v4r
         pcl::PointCloud<pcl::Normal>::Ptr scene_normals_; /// \brief Point cloud to be classified
         typename Source<PointT>::Ptr source_;  /// \brief Model data source
 
-        mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-        mutable int vp1_, vp2_, vp3_;
-        mutable std::vector<std::string> coordinate_axis_ids_;
-
         /** @brief: generated object hypotheses (before verification) */
         std::vector< ObjectHypothesesGroup<PointT> > obj_hypotheses_;   /// @brief generated object hypotheses
         std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_; /// @brief verified object hypotheses
@@ -113,7 +114,6 @@ namespace v4r
         typename HypothesisVerification<PointT, PointT>::Ptr hv_algorithm_;
 
         void hypothesisVerification ();
-
 
       public:
 

@@ -47,6 +47,8 @@ protected:
     size_t descr_dims_;
 
 public:
+    virtual ~LocalEstimator(){}
+
     size_t
     getFeatureType() const
     {

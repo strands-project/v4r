@@ -41,11 +41,6 @@ namespace v4r
 
     class V4R_EXPORTS svmClassifier : public Classifier
     {
-    private:
-        size_t num_classes_;    /// @brief number of target labels
-        std::string in_filename_;   /// @brief filename to read svm model. If set (file exists), training is skipped and this model loaded instead.
-        std::string out_filename_; /// @brief filename to save trained model
-
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -74,7 +69,7 @@ namespace v4r
 //                    double nu = 0.5,	/* for NU_SVC, ONE_CLASS, and NU_SVR */
 //                    double p = 1,	/* for EPSILON_SVR */
                     int shrinking = 1,	/* use the shrinking heuristics */
-                    int probability = 1 /* do probability estimates */
+                    int probability = 0 /* do probability estimates */
                     )
                 :
                     do_cross_validation_ ( do_cross_validation ),
@@ -99,14 +94,16 @@ namespace v4r
             }
         } param_;
 
+    private:
+        size_t num_classes_;    /// @brief number of target labels
+        std::string in_filename_;   /// @brief filename to read svm model. If set (file exists), training is skipped and this model loaded instead.
+        std::string out_filename_; /// @brief filename to save trained model
+        ::svm_model *svm_mod_;
 
-        ::svm_model  *svm_mod_;
+    public:
 
-        svmClassifier(const Parameter &p = Parameter()) : param_(p)
-        {
-            num_classes_ = 0;
-            out_filename_ = "/tmp/model.svm";
-        }
+        svmClassifier(const Parameter &p = Parameter()) : param_(p), num_classes_(0), out_filename_ ("/tmp/model.svm")
+        { }
 
         void
         predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label);
@@ -165,10 +162,7 @@ namespace v4r
         void
         sortTrainingData(Eigen::MatrixXf &data_train, Eigen::VectorXi &target_train);
 
-        int
-        getType(){
-            return ClassifierType::SVM;
-        }
+        int getType() const { return ClassifierType::SVM; }
 
         typedef boost::shared_ptr< svmClassifier > Ptr;
         typedef boost::shared_ptr< svmClassifier const> ConstPtr;

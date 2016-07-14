@@ -113,7 +113,7 @@ public:
      * @return
      */
     bool
-    nearestKSearch (const Eigen::MatrixXf &query_signature, Eigen::MatrixXi &indices, Eigen::MatrixXf &distances)
+    nearestKSearch (const Eigen::MatrixXf &query_signature, Eigen::MatrixXi &indices, Eigen::MatrixXf &distances) const
     {
         flann::Matrix<int> flann_indices (new int[query_signature.rows() * param_.knn_], query_signature.rows(), param_.knn_);
         flann::Matrix<float> flann_distances (new float[query_signature.rows() * param_.knn_], query_signature.rows(), param_.knn_);

@@ -33,7 +33,16 @@ void svmClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &
 
         if(param_.svm_.probability)
         {
-            double *prob_estimates = new double[ svm_mod_->nr_class ];
+            double *prob_estimates;
+            try
+            {
+                prob_estimates = new double[ svm_mod_->nr_class ];
+            }
+            catch (std::bad_alloc&)
+            {
+                std::cerr << "Error allocating memory " << std::endl;
+            }
+
             double bla = svm_predict_probability(svm_mod_, svm_n_test, prob_estimates);
             (void) bla;
 
@@ -53,7 +62,7 @@ void svmClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &
             predicted_label(i, 0) = (int)::svm_predict(svm_mod_, svm_n_test);
         }
 
-        delete svm_n_test;
+        delete [] svm_n_test;
     }
 }
 
@@ -86,7 +95,7 @@ void svmClassifier::computeConfusionMatrix(const Eigen::MatrixXf &test_data,
         else
             num_falsely_classified++;
 
-        delete svm_n_test;
+        delete [] svm_n_test;
     }
 
     confusion_matrix = Eigen::MatrixXi::Zero(num_classes_, num_classes_);
@@ -233,12 +242,11 @@ void svmClassifier::trainSVM(const Eigen::MatrixXf &training_data, const Eigen::
     }
     svm_mod_ = ::svm_train(svm_prob, &param_.svm_);
 
-
     // free memory
 //    for(int i = 0; i<svm_prob->l; i++)
 //        delete [] svm_prob->x[i];
-//    delete svm_prob->x;
-//    delete svm_prob->y;
+//    delete [] svm_prob->x;
+//    delete [] svm_prob->y;
 //    delete svm_prob;
 }
 

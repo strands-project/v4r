@@ -21,7 +21,6 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
     typedef v4r::Model<PointT> ModelT;
-    typedef boost::shared_ptr<ModelT> ModelTPtr;
 
     std::string test_dir;
     bool visualize = false;
