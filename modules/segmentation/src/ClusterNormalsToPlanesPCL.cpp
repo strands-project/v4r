@@ -358,16 +358,10 @@ ClusterNormalsToPlanesPCL<PointT>::compute(const typename pcl::PointCloud<PointT
       for (size_t i=0; i<planes.size(); i++) {
           if( !planes[i]->is_plane )
               continue;
-          pm.inliers_.indices = planes[i]->indices;
+          pm.inliers_ = planes[i]->indices;
           float curvature;
-          Eigen::Vector4f model_coeff;
-          pcl::computePointNormal<PointT>(*pm.cloud_, pm.inliers_.indices, model_coeff, curvature);
+          pcl::computePointNormal<PointT>(*pm.cloud_, pm.inliers_, pm.coefficients_, curvature);
 //          model_coeff.normalize();
-          pm.coefficients_.values.resize(4);
-          pm.coefficients_.values[0] = model_coeff [0];
-          pm.coefficients_.values[1] = model_coeff [1];
-          pm.coefficients_.values[2] = model_coeff [2];
-          pm.coefficients_.values[3] = model_coeff [3];
           _planes.push_back( pm );
       }
   }
@@ -405,16 +399,10 @@ ClusterNormalsToPlanesPCL<PointT>::compute(const typename pcl::PointCloud<PointT
           clusterNormalsUnorganized(cloud, normals, idx, plane);
 
       pm.cloud_ = cloud;
-      pm.inliers_.indices = plane.indices;
+      pm.inliers_ = plane.indices;
 
         float curvature;
-        Eigen::Vector4f model_coeff;
-        pcl::computePointNormal<PointT>(*pm.cloud_, pm.inliers_.indices, model_coeff, curvature);
-        pm.coefficients_.values.resize(4);
-        pm.coefficients_.values[0] = model_coeff [0];
-        pm.coefficients_.values[1] = model_coeff [1];
-        pm.coefficients_.values[2] = model_coeff [2];
-        pm.coefficients_.values[3] = model_coeff [3];
+        pcl::computePointNormal<PointT>(*pm.cloud_, pm.inliers_, pm.coefficients_, curvature);
   }
 }
 

@@ -52,14 +52,19 @@ private:
     std::vector< std::string > model_id_;
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transform_to_scene_;
     std::vector<std::vector<bool> > pixel_annotated_obj_in_first_view_;
+
+    std::vector<std::vector< std::vector<bool> > > is_pixel_annotated_for_model_in_view_; /// @brief outer loop: model id, middle loop: view id, inner loop: pixel id
     std::vector<View> views_;
 
 public:
     std::string gt_dir_;
     std::string models_dir_;
+    std::string out_dir_;
     float threshold_;
     float f_;
     bool first_view_only_;  // has been used for RA-L 16 paper, where we were interested in the visible object in the first viewpoint
+
+    size_t unique_id_;
 
     PcdGtAnnotator()
     {
@@ -70,6 +75,9 @@ public:
         threshold_ = 0.01f;
         first_view_only_ = false;
         reconstructed_scene_.reset(new pcl::PointCloud<PointT>);
+        out_dir_ = "/tmp/annotated_pcds";
+
+        unique_id_ = 0;
     }
 
     void init_source()
@@ -93,6 +101,8 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
     std::string scene_full_path = scenes_dir + "/" + scene_id;
 
     std::vector < std::string > scene_view = v4r::io::getFilesInDirectory( scene_full_path, ".*.pcd", true);
+    std::sort(scene_view.begin(), scene_view.end());
+
     if ( !scene_view.empty() )
     {
         std::cout << "Number of viewpoints in directory is:" << scene_view.size () << std::endl;
@@ -142,7 +152,7 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         std::cout << "skipping this one" << std::endl;
                         continue;
                     }
-                    std::string model_name = model_instance.substr(0,found) + ".pcd";
+                    std::string model_name = model_instance.substr(0,found);
                     std::cout << "Model: " << model_name << std::endl;
                     ModelTPtr pModel;
                     source_->getModelById(model_name, pModel);
@@ -150,7 +160,7 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                     std::string gt_full_file_path = annotations_dir + "/" + gt_fn;
                     Eigen::Matrix4f transform = v4r::io::readMatrixFromFile(gt_full_file_path);
 
-                    typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled(0.003f);
+                    typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled(3);
                     typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                     pcl::transformPointCloud(*model_cloud, *model_aligned, transform);
 
@@ -177,18 +187,21 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         current_model_id = model_id_.size()-1;
                     }
 
-
                     const float cx = (static_cast<float> (reconstructed_scene_->width) / 2.f - 0.5f);
                     const float cy = (static_cast<float> (reconstructed_scene_->height) / 2.f - 0.5f);
+
+                    std::vector<bool> obj_mask_in_view (reconstructed_scene_->points.size(), false);
 
                     for(size_t m_pt_id=0; m_pt_id < model_aligned->points.size(); m_pt_id++)
                     {
                         PointT mp = model_aligned->points[m_pt_id];
-                        const int u = static_cast<int> (f_ * mp.x / mp.z + cx);
-                        const int v = static_cast<int> (f_ * mp.y / mp.z + cy);
+                        int u = static_cast<int> (f_ * mp.x / mp.z + cx);
+                        int v = static_cast<int> (f_ * mp.y / mp.z + cy);
 
                         if(u<0 || u >= (int)reconstructed_scene_->width || v<0 || v >= (int)reconstructed_scene_->height) // model point outside field of view
                             continue;
+
+                        int px_id = v*reconstructed_scene_->width + u;
 
                         PointT sp = reconstructed_scene_->at(u,v);
 
@@ -198,40 +211,36 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                         if( std::abs(mp.z - sp.z) < threshold_ )
                         {
                             visible_model_points_[current_model_id][m_pt_id] = true;
+
+                            obj_mask_in_view[px_id] = true;
+
                             if( s_id == 0 )
-                                pixel_annotated_obj_in_first_view_[current_model_id][v*reconstructed_scene_->width + u] = true;
+                                pixel_annotated_obj_in_first_view_[current_model_id][px_id] = true;
                         }
                     }
+
+                    std::stringstream out_fn; out_fn << out_dir_ << "/" << setfill('0') << setw(10) << unique_id_ << ".txt";
+                    v4r::io::createDirForFileIfNotExist(out_fn.str());
+                    std::ofstream obj_indices_per_view_f ( out_fn.str().c_str() );
+                    for(size_t i=0; i< obj_mask_in_view.size(); i++)
+                    {
+                        if(obj_mask_in_view[i])
+                            obj_indices_per_view_f << i << std::endl;
+                    }
+                    obj_indices_per_view_f.close();
+
+                    std::ofstream label_file;
+                    label_file.open( out_dir_ + "/label.anno", std::ofstream::out | std::ofstream::app);
+                    label_file << scenes_dir << " " << scene_id << " " << scene_view[s_id] << " " << setfill('0') << setw(10) << unique_id_ << " " << model_name << std::endl;
+                    label_file.close();
+                    unique_id_ ++;
                 }
             }
             std::cout << std::endl;
 
-//            if(s_id==0)
-//            {
-//                pcl::visualization::PCLVisualizer vis("obj_mask");
-//                vis.addPointCloud(pScenePCl_, "cloud");
-//                for (size_t m_id=0; m_id < model_id_.size(); m_id++)
-//                {
-//                    typename pcl::PointCloud<PointT>::Ptr highlight (new pcl::PointCloud<PointT>());
-//                    pcl::copyPointCloud(*pScenePCl_, pixel_annotated_obj_in_first_view_[m_id], *highlight);
-
-//                    const float r=50+rand()%205;
-//                    const float g=50+rand()%205;
-//                    const float b=50+rand()%205;
-
-//                    std::stringstream model_name;
-//                    model_name << m_id;
-//                    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> color (highlight, r, g, b);
-//                    vis.addPointCloud(highlight, color, model_name.str());
-//                    vis.addText(model_name.str(), 40, 15*m_id, 15, r/255, g/255, b/255,model_name.str());
-//                }
-//                vis.spin();
-//            }
-
             view.transform_to_scene_ = transform_to_scene_;
             views_.push_back(view);
         }
-//        visualize();
     }
     else
     {
@@ -244,17 +253,14 @@ template<typename PointT>
 void PcdGtAnnotator<PointT>::visualize()
 {
     if(!vis_)
-    {
         vis_.reset ( new pcl::visualization::PCLVisualizer ("ground truth model", true));
-    }
 
     std::vector<std::string> subwindow_titles;
     subwindow_titles.push_back( "scene" );
 
     for (size_t m_id=0; m_id < model_id_.size(); m_id++)
-    {
         subwindow_titles.push_back ( model_id_[m_id] );
-    }
+
     std::vector<int> viewports = v4r::pcl_visualizer::visualization_framework(*vis_, 1, model_id_.size() + 1 , subwindow_titles);
 
     size_t vp_id = 0;
@@ -268,12 +274,12 @@ void PcdGtAnnotator<PointT>::visualize()
     for (size_t m_id=0; m_id < model_id_.size(); m_id++)
     {
         size_t found = model_id_[m_id].find_last_of("_");
-        std::string model_name = model_id_[m_id].substr(0,found) + ".pcd";
+        std::string model_name = model_id_[m_id].substr(0,found);
         ModelTPtr pModel;
         source_->getModelById( model_name, pModel );
         typename pcl::PointCloud<PointT>::Ptr visible_model ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::Ptr visible_model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 0.003f );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 3 );
         size_t num_vis_pts = 0;
         for (size_t v_id=0; v_id<visible_model_points_[m_id].size(); v_id++)
         {
@@ -314,12 +320,12 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
     for (size_t m_id=0; m_id < model_id_.size(); m_id++)
     {
         size_t found = model_id_[m_id].find_last_of("_");
-        std::string model_name = model_id_[m_id].substr(0,found) + ".pcd";
+        std::string model_name = model_id_[m_id].substr(0,found);
         ModelTPtr pModel;
         source_->getModelById( model_name, pModel );
         typename pcl::PointCloud<PointT>::Ptr visible_model ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::Ptr visible_model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 0.003f );
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 3 );
         size_t num_vis_pts = 0;
         for (size_t v_id=0; v_id<visible_model_points_[m_id].size(); v_id++)
         {
@@ -336,27 +342,15 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
 
         pcl::io::savePCDFileBinary( path + "/" + model_id_[m_id] + ".pcd", *visible_model_aligned);
 
-//        typename pcl::PointCloud<PointT>::Ptr highlight (new pcl::PointCloud<PointT>());
-//        pcl::copyPointCloud(*views_[0].cloud_, pixel_annotated_obj_in_first_view_[m_id], *highlight);
-
-//        const float r=50+rand()%205;
-//        const float g=50+rand()%205;
-//        const float b=50+rand()%205;
-
-//        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> color (highlight, r, g, b);
-//        vis.addPointCloud(highlight, color, model_name);
-//        vis.addText(model_name, 40, 15*m_id, 15, r/255, g/255, b/255,model_name);
-
         if( pixel_annotated_obj_in_first_view_.size() > m_id )
         {
-            std::ofstream mask;
-            mask.open( (path + "/" + model_id_[m_id] + "_mask.txt").c_str() );
+            std::ofstream obj_indices_f ( (path + "/" + model_id_[m_id] + "_mask.txt").c_str() );
             for(size_t i=0; i< pixel_annotated_obj_in_first_view_[m_id].size(); i++)
             {
                 if(pixel_annotated_obj_in_first_view_[m_id][i])
-                    mask << i << std::endl;
+                    obj_indices_f << i << std::endl;
             }
-            mask.close();
+            obj_indices_f.close();
         }
     }
 //    vis.spin();
@@ -370,7 +364,7 @@ main (int argc, char ** argv)
     srand (time(NULL));
     typedef pcl::PointXYZRGB PointT;
     v4r::PcdGtAnnotator<PointT> annotator;
-    std::string scene_dir, output_dir = "/tmp/annotated_pcds";
+    std::string scene_dir;
     bool visualize = false;
 
     po::options_description desc("Pixel-wise annotation of point clouds using recognition results represented as ground-truth object pose\n======================================\n **Allowed options");
@@ -379,7 +373,7 @@ main (int argc, char ** argv)
             ("scenes_dir,s", po::value<std::string>(&scene_dir)->required(), "directory containing the scene .pcd files")
             ("models_dir,m", po::value<std::string>(&annotator.models_dir_)->required(), "directory containing the model .pcd files")
             ("gt_dir,g", po::value<std::string>(&annotator.gt_dir_)->required(), "directory containing recognition results")
-            ("output_dir,o", po::value<std::string>(&output_dir)->default_value(output_dir), "output directory")
+            ("output_dir,o", po::value<std::string>(&annotator.out_dir_)->default_value(annotator.out_dir_), "output directory")
             ("threshold,t", po::value<float>(&annotator.threshold_)->default_value(annotator.threshold_), "Threshold in m for a point to be counted as inlier")
             ("focal_length,f", po::value<float>(&annotator.f_)->default_value(annotator.f_), "Threshold in m for a point to be counted as inlier")
             ("visualize,v", po::bool_switch(&visualize), "turn visualization on")
@@ -394,18 +388,11 @@ main (int argc, char ** argv)
         return false;
     }
 
-    try
-    {
-        po::notify(vm);
-    }
-    catch(std::exception& e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
-        return false;
-    }
+    try { po::notify(vm); }
+    catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; return false;  }
 
-    std::vector< std::string> sub_folder_names;
-    if(!v4r::io::getFoldersInDirectory( scene_dir, "", sub_folder_names) )
+    std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( scene_dir );
+    if( sub_folder_names.empty() )
     {
         std::cerr << "No subfolders in directory " << scene_dir << ". " << std::endl;
         sub_folder_names.push_back("");
@@ -416,9 +403,11 @@ main (int argc, char ** argv)
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {
         annotator.annotate (scene_dir, sub_folder_names[ sub_folder_id ]);
+
         if(visualize)
             annotator.visualize();
-        annotator.save_to_disk(output_dir + "/" + sub_folder_names[ sub_folder_id ]);
+
+        annotator.save_to_disk(annotator.out_dir_ + "/" + sub_folder_names[ sub_folder_id ]);
         annotator.clear();
     }
 }

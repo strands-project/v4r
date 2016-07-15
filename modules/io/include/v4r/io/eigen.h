@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <fstream>
+#include <iostream>
 
 #include <Eigen/Dense>
 
@@ -40,6 +42,33 @@ namespace v4r
         is_number(const std::string& s);
       }
 
+}
+
+namespace Eigen
+{
+    template<class Matrix>
+    V4R_EXPORTS
+    inline void write_binary(const std::string &filename, const Matrix& matrix)
+    {
+        std::ofstream out(filename.c_str(), std::ios::out | std::ios::binary | std::ios::trunc);
+        typename Matrix::Index rows=matrix.rows(), cols=matrix.cols();
+        out.write((char*) (&rows), sizeof(typename Matrix::Index));
+        out.write((char*) (&cols), sizeof(typename Matrix::Index));
+        out.write((char*) matrix.data(), rows*cols*sizeof(typename Matrix::Scalar) );
+        out.close();
+    }
+    template<class Matrix>
+    V4R_EXPORTS
+    inline void read_binary(const std::string &filename, Matrix& matrix)
+    {
+        std::ifstream in(filename.c_str(), std::ios::in | std::ios::binary);
+        typename Matrix::Index rows=0, cols=0;
+        in.read((char*) (&rows),sizeof(typename Matrix::Index));
+        in.read((char*) (&cols),sizeof(typename Matrix::Index));
+        matrix.resize(rows, cols);
+        in.read( (char *) matrix.data() , rows*cols*sizeof(typename Matrix::Scalar) );
+        in.close();
+    }
 }
 
 #endif /* V4R_IO_EIGEN_H_ */

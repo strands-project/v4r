@@ -84,12 +84,12 @@ public:
 
   virtual ~Part();
 
-  virtual void setBaseTransform(const Eigen::Matrix4f &_pose) {}
-  virtual void setBaseTransform(const Eigen::Matrix<double, 6, 1> &_pose) {}
-  virtual void getBaseTransform(Eigen::Matrix4f &_pose) {}
+  virtual void setBaseTransform(const Eigen::Matrix4f &_pose) {(void)_pose;}
+  virtual void setBaseTransform(const Eigen::Matrix<double, 6, 1> &_pose) {(void)_pose;}
+  virtual void getBaseTransform(Eigen::Matrix4f &_pose) {(void)_pose;}
 
   virtual Eigen::VectorXd getParameter() {return Eigen::VectorXd();}
-  virtual void setParameter(const Eigen::VectorXd &_param) {}
+  virtual void setParameter(const Eigen::VectorXd &_param) {(void)_param;}
   virtual void updatePose(const Eigen::Matrix4f &_pose);
   virtual void initParameter() {}
 

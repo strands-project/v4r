@@ -1,5 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2012 Aitor Aldoma
+ * Copyright (c) 2016 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -50,12 +51,12 @@ namespace v4r
      * \brief Abstract data source class, manages filesystem, incremental training, etc.
      * \author Aitor Aldoma
      */
-template<typename PointInT>
+template<typename PointT>
 class V4R_EXPORTS Source
 {
 
 protected:
-    typedef Model<PointInT> ModelT;
+    typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
     std::vector<ModelTPtr> models_;
@@ -63,7 +64,7 @@ protected:
     float model_scale_;
     bool load_views_;
     float radius_normals_;
-    float resolution_;
+    int resolution_mm_;
     bool compute_normals_;
     bool load_into_memory_;
     std::string view_prefix_;
@@ -75,9 +76,10 @@ protected:
     std::vector<std::string> model_list_to_load_;
 
 public:
+    virtual ~Source() = 0;
 
-    Source(float resolution = 0.001f) {
-        resolution_ = resolution;
+    Source(int resolution_mm = 5) {
+        resolution_mm_ = resolution_mm;
         load_views_ = true;
         compute_normals_ = false;
         load_into_memory_ = true;
@@ -214,14 +216,6 @@ public:
     }
 
     void
-    createVoxelGridAndDistanceTransform(float resolution)
-    {
-        for (size_t i = 0; i < models_.size (); i++)
-            models_[i]->createVoxelGridAndDistanceTransform (resolution);
-    }
-
-
-    void
     setViewPrefix (const std::string &pre)
     {
         view_prefix_ = pre;
@@ -232,6 +226,9 @@ public:
     {
         return view_prefix_;
     }
+
+    typedef boost::shared_ptr< Source<PointT> > Ptr;
+    typedef boost::shared_ptr< Source<PointT> const> ConstPtr;
 };
 }
 

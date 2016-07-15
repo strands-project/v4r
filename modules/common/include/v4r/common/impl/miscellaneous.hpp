@@ -1,4 +1,5 @@
 #include <v4r/common/miscellaneous.h>
+#include <omp.h>
 
 namespace v4r
 {
@@ -48,6 +49,67 @@ void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointTy
     cloud.sensor_orientation_ = q;
 }
 
+float
+computeHistogramIntersection (const Eigen::VectorXf &histA, const Eigen::VectorXf &histB)
+{
+    Eigen::MatrixXf histAB (histA.rows(), 2);
+    histAB.col(0) = histA;
+    histAB.col(1) = histB;
+
+    Eigen::VectorXf minv = histAB.rowwise().minCoeff();
+    return minv.sum();
+}
+
+
+void
+computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXf &histogram, size_t bins, float min, float max)
+{
+    float bin_size = (max-min) / bins;
+    int num_dim = data.cols();
+    histogram = Eigen::MatrixXf::Zero (bins, num_dim);
+
+    for (int dim = 0; dim < num_dim; dim++)
+    {
+        omp_lock_t bin_lock[bins];
+        for(size_t pos=0; pos<bins; pos++)
+            omp_init_lock(&bin_lock[pos]);
+
+    #pragma omp parallel for firstprivate(min, max, bins) schedule(dynamic)
+        for (int j = 0; j<data.rows(); j++)
+        {
+            int pos = std::floor( (data(j,dim) - min) / bin_size);
+
+            if(pos < 0)
+                pos = 0;
+
+            if(pos > (int)bins)
+                pos = bins - 1;
+
+            omp_set_lock(&bin_lock[pos]);
+            histogram(pos,dim)++;
+            omp_unset_lock(&bin_lock[pos]);
+        }
+
+        for(size_t pos=0; pos<bins; pos++)
+            omp_destroy_lock(&bin_lock[pos]);
+    }
+}
+
+void
+shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction)
+{
+    int bins = hist.rows();
+    hist_shifted = Eigen::VectorXf::Zero(bins);
+
+    if(direction){ //shift right
+        hist_shifted.tail(bins - 1) = hist.head(bins-1);
+        hist_shifted(bins-1) +=  hist(bins-1);
+    }
+    else { // shift left
+        hist_shifted.head(bins - 1) = hist.tail(bins-1);
+        hist_shifted(0) +=  hist(0);
+    }
+}
 }
 
 

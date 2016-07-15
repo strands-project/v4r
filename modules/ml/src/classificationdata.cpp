@@ -523,7 +523,7 @@ void ClassificationData::SaveToFile(std::string filepath)
   std::ofstream myfile;
   myfile.open(filepath.c_str());
   
-  for(int i=0; i < (data.size()/dimensions); i++){
+  for(int i=0; i < (float)data.size()/dimensions; i++){
     myfile << trainingLabels[i];
     
     for(int j=0; j < dimensions; j++)

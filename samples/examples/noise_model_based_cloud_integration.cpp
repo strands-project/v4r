@@ -102,6 +102,9 @@ int main(int argc, const char * argv[]) {
 
         for (size_t v_id=0; v_id<views.size(); v_id++)
         {
+            std::stringstream txt;
+            txt << "processing view " << v_id;
+            pcl::ScopeTime t(txt.str().c_str());
             clouds[v_id].reset ( new pcl::PointCloud<PointT>);
             normals[v_id].reset ( new pcl::PointCloud<pcl::Normal>);
 
@@ -140,13 +143,21 @@ int main(int argc, const char * argv[]) {
             pass.setKeepOrganized(true);
             pass.filter (*clouds[v_id]);
 
-            computeNormals<PointT>( clouds[v_id], normals[v_id], normal_method);
+            {
+                pcl::ScopeTime tt("Computing normals");
+                computeNormals<PointT>( clouds[v_id], normals[v_id], normal_method);
+            }
 
-            NguyenNoiseModel<PointT> nm (nm_param);
-            nm.setInputCloud(clouds[v_id]);
-            nm.setInputNormals(normals[v_id]);
-            nm.compute();
-            pt_properties[v_id] = nm.getPointProperties();
+            {
+                pcl::ScopeTime tt("Computing noise model parameter for cloud");
+                NguyenNoiseModel<PointT> nm (nm_param);
+                nm.setInputCloud(clouds[v_id]);
+                nm.setInputNormals(normals[v_id]);
+                nm.compute();
+                pt_properties[v_id] = nm.getPointProperties();
+
+            }
+
 
 
             pcl::PointCloud<PointT> object_cloud, object_aligned;

@@ -2,6 +2,8 @@
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
 #include <v4r/recognition/multiview_object_recognizer.h>
+#include <v4r/recognition/multiview_object_recognizer_change_detection.h>
+#include <v4r/change_detection/viewport_checker.h>
 #include <pcl/common/centroid.h>
 #include <pcl/filters/passthrough.h>
 #include <iostream>
@@ -9,16 +11,19 @@
 #include <boost/format.hpp>
 #include <glog/logging.h>
 
+#define USE_CHANGE_DETECTION
+
 namespace po = boost::program_options;
 
+typedef pcl::PointXYZRGB PointT;
+typedef v4r::Model<PointT> ModelT;
+typedef boost::shared_ptr<ModelT> ModelTPtr;
+
+bool isInsideOfView(ModelTPtr model, Eigen::Matrix4f &model_pose);
 
 int
 main (int argc, char ** argv)
 {
-    typedef pcl::PointXYZRGB PointT;
-    typedef v4r::Model<PointT> ModelT;
-    typedef boost::shared_ptr<ModelT> ModelTPtr;
-
     std::string test_dir, out_dir = "/tmp/mv_object_recognizer_results/";
     bool visualize = false;
     std::map<std::string, size_t> rec_models_per_id_;  // just to have a unique filename when writing pose of objects to disk (in case of multiple instances detected in one scene)
@@ -66,7 +71,13 @@ main (int argc, char ** argv)
     }
     param_file.close();
 
+#ifndef USE_CHANGE_DETECTION
     v4r::MultiviewRecognizer<PointT> mv_r(argc, argv);
+    bool ignore_detections_outside_of_view = false;
+#else
+    v4r::MultiviewRecognizerWithChangeDetection<PointT> mv_r(argc, argv);
+    bool ignore_detections_outside_of_view = true;
+#endif
 
     // -----------TEST--------------
     std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir);
@@ -119,6 +130,16 @@ main (int argc, char ** argv)
             for(size_t m_id=0; m_id<verified_models.size(); m_id++)
             {
                  LOG(INFO) << "******" << verified_models[m_id]->id_ << std::endl <<  transforms_verified[m_id] << std::endl;
+
+                 if(ignore_detections_outside_of_view) {
+                     if(isInsideOfView(verified_models[m_id], transforms_verified[m_id])) {
+                         std::cout << "INSIDE of current view volume" << std::endl;
+                     } else {
+                         std::cout << "OUTSIDE of current view volume - IGNORED!" << std::endl;
+                         continue;
+                     }
+                 }
+
                 const std::string model_id = verified_models[m_id]->id_;
                 const Eigen::Matrix4f tf_tmp = transforms_verified[m_id];
                 const Eigen::Matrix4f tf2_world = tf * tf_tmp;
@@ -158,5 +179,20 @@ main (int argc, char ** argv)
             results_3d.close();
         }
         mv_r.cleanUp(); // delete all stored information from last sequences
+    }
+}
+
+bool isInsideOfView(ModelTPtr model, Eigen::Matrix4f &model_pose) {
+    static v4r::ViewVolume<PointT> view_volume = v4r::ViewVolume<PointT>::ofXtion(Eigen::Affine3f::Identity(), 0.0);
+
+    pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(0.01);
+    pcl::PointCloud<PointT>::Ptr model_transformed(new pcl::PointCloud<PointT>);
+    pcl::transformPointCloud(*model_cloud, *model_transformed, model_pose);
+    std::vector<bool> visible_mask(model_transformed->size(), true);
+
+    if(view_volume.computeVisible(model_transformed, visible_mask) > 0) {
+         return true;
+    } else {
+         return false;
     }
 }

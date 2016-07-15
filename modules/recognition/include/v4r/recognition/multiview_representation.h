@@ -5,7 +5,7 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include <v4r/common/common_data_structures.h>
+#include <v4r/common/plane_model.h>
 #include <v4r/recognition/model.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
 
@@ -28,7 +28,7 @@ public:
     Eigen::Matrix4f absolute_pose_;
     typename pcl::PointCloud<PointT>::Ptr scene_kp_;
     pcl::PointCloud<pcl::Normal>::Ptr scene_kp_normals_;
-    typename std::map<std::string, ObjectHypothesis<PointT> > hypotheses_;
+    typename std::map<std::string, LocalObjectHypothesis<PointT> > hypotheses_;
     std::vector<std::vector<float> > sift_signatures_;
 //    std::vector<float> sift_keypoints_scales_;
     std::vector<int> sift_kp_indices_;

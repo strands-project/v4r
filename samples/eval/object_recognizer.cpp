@@ -11,7 +11,6 @@
 #include <sstream>
 #include <time.h>
 
-#include <boost/any.hpp>
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
 
@@ -22,7 +21,6 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
     typedef v4r::Model<PointT> ModelT;
-    typedef boost::shared_ptr<ModelT> ModelTPtr;
 
     std::map<std::string, size_t> rec_models_per_id_;
     typedef pcl::PointXYZRGB PointT;
@@ -42,40 +40,13 @@ main (int argc, char ** argv)
    ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
+    std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
     po::store(parsed, vm);
-    if (vm.count("help")) { std::cout << desc << std::endl; }
+    if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
     try { po::notify(vm); }
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
-    v4r::io::createDirIfNotExist(out_dir);
-
-    // writing parameters to file
-    ofstream param_file;
-    param_file.open ((out_dir + "/param.nfo").c_str());
-    for(const auto& it : vm)
-    {
-      param_file << "--" << it.first << " ";
-
-      auto& value = it.second.value();
-      if (auto v_double = boost::any_cast<double>(&value))
-        param_file << std::setprecision(3) << *v_double;
-      else if (auto v_string = boost::any_cast<std::string>(&value))
-        param_file << *v_string;
-      else if (auto v_bool = boost::any_cast<bool>(&value))
-        param_file << *v_bool;
-      else if (auto v_int = boost::any_cast<int>(&value))
-        param_file << *v_int;
-      else if (auto v_size_t = boost::any_cast<size_t>(&value))
-        param_file << *v_size_t;
-      else
-        param_file << "error";
-
-      param_file << " ";
-    }
-    param_file.close();
-
-
-    v4r::MultiRecognitionPipeline<PointT> r(argc, argv);
+    v4r::MultiRecognitionPipeline<PointT> r(to_pass_further);
 
     // ----------- TEST ----------
     std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir );
@@ -99,6 +70,10 @@ main (int argc, char ** argv)
             typename pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
             pcl::io::loadPCDFile(fn, *cloud);
 
+            //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
+            cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+            cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
             if( chop_z > 0)
             {
                 pcl::PassThrough<PointT> pass;
@@ -114,19 +89,17 @@ main (int argc, char ** argv)
             r.recognize();
             v4r::io::writeFloatToFile( out_path + "/" + views[v_id].substr(0, views[v_id].length()-4) + "_time.nfo", watch.getTimeSeconds());
 
-            std::vector<ModelTPtr> verified_models = r.getVerifiedModels();
-            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
-            transforms_verified = r.getVerifiedTransforms();
+            std::vector<typename v4r::ObjectHypothesis<PointT>::Ptr > ohs = r.getVerifiedHypotheses();
 
             if (visualize)
                 r.visualize();
 
-            for(size_t m_id=0; m_id<verified_models.size(); m_id++)
+            for(size_t m_id=0; m_id<ohs.size(); m_id++)
             {
-                LOG(INFO) << "********************" << verified_models[m_id]->id_ << std::endl;
+                LOG(INFO) << "********************" << ohs[m_id]->model_->id_ << std::endl;
 
-                const std::string model_id = verified_models[m_id]->id_;
-                const Eigen::Matrix4f tf = transforms_verified[m_id];
+                const std::string model_id = ohs[m_id]->model_->id_;
+                const Eigen::Matrix4f tf = ohs[m_id]->transform_;
 
                 size_t num_models_per_model_id;
 

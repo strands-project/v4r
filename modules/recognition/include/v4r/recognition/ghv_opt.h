@@ -1,20 +1,34 @@
-/*
- * hv_go_opt.h
+/******************************************************************************
+ * Copyright (c) 2013 Aitor Aldoma
  *
- *  Created on: Feb 27, 2013
- *      Author: aitor
- */
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
-#ifndef FAAT_PCL_GHV_OPT_H_
-#define FAAT_PCL_GHV_OPT_H_
+
+#ifndef V4R_GHV_OPT_H_
+#define V4R_GHV_OPT_H_
 
 #include <pcl/pcl_macros.h>
 #include <pcl/common/common.h>
-#include <boost/random/variate_generator.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int.hpp>
-#include <boost/random/variate_generator.hpp>
-//#include "pcl/recognition/3rdparty/metslib/mets.hh"
+#include <boost/function.hpp>
+#include <boost/random.hpp>
 #include <metslib/mets.hh>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -22,64 +36,16 @@
 #include <iostream>
 #include <fstream>
 #include <v4r/core/macros.h>
+#include <v4r/recognition/hypotheses_verification.h>
 
 namespace v4r
 {
-
-  //Helper classes
-  template<typename ModelT>
-  struct V4R_EXPORTS GHVRecognitionModel
-  {
-    public:
-      std::vector<int> explained_; /// @brief explained scene points by_RM_
-      std::vector<float> explained_distances_; /// @brief closest distances to the scene for point i
-      std::vector<int> unexplained_in_neighborhood; /// @brief indices vector referencing unexplained_by_RM_neighboorhods
-      std::vector<float> unexplained_in_neighborhood_weights; /// @brief weights for the points not being explained in the neighborhood of a hypothesis
-      std::vector<int> outlier_indices_; /// @brief outlier indices of this model (coming from all types)
-      std::vector<int> color_outliers_indices_; /// @brief all model points that have a scene point nearby but whose color does not match
-      std::vector<int> outliers_3d_indices_;    /// @brief all model points that do not have a scene point nearby
-      std::vector<int> complete_cloud_occupancy_indices_;
-      std::vector<bool> scene_point_explained_by_hypothesis_; /// @brief boolean vector indicating if a scene point is explained by this model or not
-      typename pcl::PointCloud<ModelT>::Ptr visible_cloud_;
-      typename pcl::PointCloud<ModelT>::Ptr complete_cloud_;
-      typename pcl::PointCloud<pcl::Normal>::Ptr complete_cloud_normals_;
-      float bad_information_;
-      float outliers_weight_;
-      pcl::PointCloud<pcl::Normal>::Ptr normals_;
-      pcl::PointCloud<pcl::Normal>::Ptr normals_from_visible_;
-      size_t id_;
-      float extra_weight_; /// @brief descriptor distance weight for instance
-      float color_similarity_;
-      float median_;
-      float mean_;
-      Eigen::MatrixXf color_mapping_;
-      float hyp_penalty_;
-      std::string id_s_;
-      std::vector<Eigen::Vector3f> cloud_LAB_;
-      std::vector<Eigen::Vector3f> cloud_LAB_original_;
-      std::vector<Eigen::Vector3f> cloud_RGB_;
-      std::vector<float> cloud_GS_; /// @brief Grayscale cloud
-      float min_contribution_; /// @brief based on the amount of explained points and the amount of information in the hypotheses
-      std::vector<float> normal_angle_histogram_;
-      std::vector<float> color_diff_histogram_;
-      float normal_entropy_;
-      float color_entropy_;
-      std::vector<int> cloud_indices_specified_;
-      float color_diff_trhough_specification_;
-      pcl::PointCloud<pcl::PointXYZL>::Ptr visible_labels_;
-
-      //inlier indices and distances for cloud_ (this avoids recomputing radius searches twice (one for specification and one for inlier/outlier detection)
-      std::vector<std::vector<int> > inlier_indices_;
-      std::vector<std::vector<float> > inlier_distances_;
-  };
-
-  template<typename ModelT, typename SceneT> class V4R_EXPORTS GHV;
+  template<typename ModelT, typename SceneT> class V4R_EXPORTS HypothesisVerification;
 
   template<typename ModelT, typename SceneT>
   class V4R_EXPORTS GHVSAModel : public mets::evaluable_solution
   {
-
-    typedef GHV<ModelT, SceneT> SAOptimizerT;
+    typedef HypothesisVerification<ModelT, SceneT> SAOptimizerT;
 
   public:
     std::vector<bool> solution_;
@@ -182,11 +148,11 @@ namespace v4r
   template<typename ModelT, typename SceneT>
   class V4R_EXPORTS GHVreplace_hyp_move : public GHVgeneric_move
   {
-    int i_, j_; //i_ is an active hypothesis, j_ is an inactive hypothesis
-    int sol_size_;
+    size_t i_, j_; //i_ is an active hypothesis, j_ is an inactive hypothesis
+    size_t sol_size_;
 
   public:
-    GHVreplace_hyp_move (int i, int j, int sol_size) :
+    GHVreplace_hyp_move (size_t i, size_t j, size_t sol_size) :
       i_ (i), j_ (j), sol_size_ (sol_size)
     {
     }
@@ -321,14 +287,14 @@ namespace v4r
   template<typename ModelT, typename SceneT>
     class V4R_EXPORTS GHVmove_activate : public GHVgeneric_move
     {
-      int index_;
+      size_t index_;
     public:
-      GHVmove_activate (int i) :
+      GHVmove_activate (size_t i) :
         index_ (i)
       {
       }
 
-      int
+      size_t
       getIndex ()
       {
         return index_;
@@ -383,15 +349,15 @@ namespace v4r
     template<typename ModelT, typename SceneT>
       class GHVmove_deactivate : public GHVgeneric_move
       {
-        int index_;
-        int problem_size_;
+        size_t index_;
+        size_t problem_size_;
       public:
-        GHVmove_deactivate (int i, int problem_size) :
+        GHVmove_deactivate (size_t i, size_t problem_size) :
             index_ (i), problem_size_(problem_size)
         {
         }
 
-        int
+        size_t
         getIndex ()
         {
           return index_;
@@ -449,9 +415,9 @@ namespace v4r
         bool use_replace_moves_;
       public:
         std::vector<GHVgeneric_move*> moves_m;
-        boost::shared_ptr<std::map<std::pair<int, int>, bool> > intersections_;
+        Eigen::MatrixXf intersection_cost_;
         typedef typename std::vector<GHVgeneric_move*>::iterator iterator;
-        int problem_size_;
+        size_t problem_size_;
         iterator
         begin ()
         {
@@ -463,7 +429,7 @@ namespace v4r
           return moves_m.end ();
         }
 
-        GHVmove_manager (int problem_size, bool rp_moves = true)
+        GHVmove_manager (size_t problem_size, bool rp_moves = true)
         {
           use_replace_moves_ = rp_moves;
           problem_size_ = problem_size;
@@ -480,9 +446,9 @@ namespace v4r
         }
 
         void
-        setExplainedPointIntersections (boost::shared_ptr<std::map<std::pair<int, int>, bool> > & intersections)
+        setExplainedPointIntersections (Eigen::MatrixXf &intersection_cost)
         {
-          intersections_ = intersections;
+            intersection_cost_ = intersection_cost;
         }
 
         void

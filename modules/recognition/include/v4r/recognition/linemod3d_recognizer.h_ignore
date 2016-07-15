@@ -156,21 +156,6 @@ namespace v4r
         }
 
         /**
-         * \brief Sets the model data source_
-         */
-        void
-        setDataSource (typename boost::shared_ptr<Source<PointInT> > source)
-        {
-          source_ = source;
-        }
-
-        typename boost::shared_ptr<Source<PointInT> >
-        getDataSource () 
-        {
-          return source_;
-        }
-
-        /**
          * \brief Sets the descriptor name
          */
         void

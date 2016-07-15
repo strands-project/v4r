@@ -37,6 +37,7 @@
 #include <pcl/octree/octree_pointcloud_pointvector.h>
 #include <pcl/octree/impl/octree_iterator.hpp>
 #include <v4r/core/macros.h>
+#include <omp.h>
 
 namespace v4r
 {
@@ -48,6 +49,8 @@ V4R_EXPORTS inline void transformNormals(const pcl::PointCloud<pcl::Normal> & no
     normals_aligned.points.resize (normals_cloud.points.size ());
     normals_aligned.width = normals_cloud.width;
     normals_aligned.height = normals_cloud.height;
+
+    #pragma omp parallel for schedule(dynamic)
     for (size_t k = 0; k < normals_cloud.points.size (); k++)
     {
         Eigen::Vector3f nt (normals_cloud.points[k].normal_x, normals_cloud.points[k].normal_y, normals_cloud.points[k].normal_z);
@@ -59,7 +62,6 @@ V4R_EXPORTS inline void transformNormals(const pcl::PointCloud<pcl::Normal> & no
                 + transform (2, 2) * nt[2]);
 
         normals_aligned.points[k].curvature = normals_cloud.points[k].curvature;
-
     }
 }
 
@@ -432,6 +434,130 @@ filterVector(const std::vector<T> &in, const std::vector<int> &indices)
     out.resize(kept);
     return out;
 }
+
+/**
+ * @brief checks if value is in the range between min and max
+ * @param[in] value to check
+ * @param[in] min range
+ * @param[in] max range
+ * @return true if within range
+ */
+template<class T>
+bool is_in_range(T value, T min, T max)
+{
+    return (value >= min) && (value <= max);
+}
+
+/**
+ * @brief sorts a vector and returns sorted indices
+ */
+template <typename T>
+std::vector<size_t> sort_indexes(const std::vector<T> &v) {
+
+  // initialize original index locations
+  std::vector<size_t> idx(v.size());
+  for (size_t i = 0; i != idx.size(); ++i) idx[i] = i;
+
+  // sort indexes based on comparing values in v
+  std::sort(idx.begin(), idx.end(),
+       [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+
+  return idx;
+}
+
+
+V4R_EXPORTS inline void
+removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
+{
+    unsigned int numRows = matrix.rows()-1;
+    unsigned int numCols = matrix.cols();
+
+    if( rowToRemove < numRows )
+        matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+V4R_EXPORTS inline void
+removeColumn(Eigen::MatrixXd& matrix, unsigned int colToRemove)
+{
+    unsigned int numRows = matrix.rows();
+    unsigned int numCols = matrix.cols()-1;
+
+    if( colToRemove < numCols )
+        matrix.block(0,colToRemove,numRows,numCols-colToRemove) = matrix.block(0,colToRemove+1,numRows,numCols-colToRemove);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+V4R_EXPORTS inline void
+removeRow(Eigen::MatrixXf& matrix, unsigned int rowToRemove)
+{
+    unsigned int numRows = matrix.rows()-1;
+    unsigned int numCols = matrix.cols();
+
+    if( rowToRemove < numRows )
+        matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+V4R_EXPORTS inline void
+removeColumn(Eigen::MatrixXf& matrix, unsigned int colToRemove)
+{
+    unsigned int numRows = matrix.rows();
+    unsigned int numCols = matrix.cols()-1;
+
+    if( colToRemove < numCols )
+        matrix.block(0,colToRemove,numRows,numCols-colToRemove) = matrix.block(0,colToRemove+1,numRows,numCols-colToRemove);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+/**
+ * @brief compute histogram of the row entries of a matrix
+ * @param[in] data (row are the elements, columns are the different dimensions
+ * @param[out] histogram
+ * @param[in] number of bins
+ * @param[in] range minimum
+ * @param[in] range maximum
+ */
+void
+V4R_EXPORTS computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXf &histogram, size_t bins=100, float min=0.f, float max=1.f);
+
+
+/**
+ * @brief computes histogram intersection (does not normalize histograms!)
+ * @param[in] histA
+ * @param[in] histB
+ * @return intersection value
+ */
+float
+V4R_EXPORTS computeHistogramIntersection (const Eigen::VectorXf &histA, const Eigen::VectorXf &histB);
+
+/**
+ * @brief shift histogram values by one bin
+ * @param[in] hist
+ * @param[out] hist_shifted
+ * @param[in] direction_is_right (if true, shift histogram to the right. Otherwise to the left)
+ */
+void
+V4R_EXPORTS shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction_is_right=true);
+
+/**
+ * @brief runningAverage computes incrementally the average of a vector
+ * @param old_average
+ * @param old_size the number of contributing vectors before updating
+ * @param increment the new vector being added
+ * @return
+ */
+inline Eigen::VectorXf
+V4R_EXPORTS runningAverage (const Eigen::VectorXf &old_average, size_t old_size, const Eigen::VectorXf &increment) {    // update average point
+    double w = old_size / double(old_size + 1);
+    Eigen::VectorXf newAvg = old_average  * w + increment / double(old_size + 1);
+    return newAvg;
+}
+
 }
 
 

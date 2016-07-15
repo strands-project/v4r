@@ -55,101 +55,6 @@ namespace v4r
 namespace object_modelling
 {
 
-bool
-IOL::calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
-                       pcl::PointCloud<PointT> &sift_keypoints,
-                       std::vector< size_t > &sift_keypoint_indices,
-                       std::vector<std::vector<float> > &sift_signatures,
-                       std::vector<float> &sift_keypoint_scales)
-{
-    std::vector<int> sift_kp_indices;
-
-#ifdef HAVE_SIFTGPU
-    (void) sift_keypoint_indices;
-    boost::shared_ptr < SIFTLocalEstimation<PointT> > estimator (new SIFTLocalEstimation<PointT>(sift_));
-    bool ret = estimator->estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-    estimator->getKeypointIndices( sift_kp_indices );
-#else
-    (void)sift_keypoint_scales; //silences compiler warning of unused variable
-    boost::shared_ptr < OpenCVSIFTLocalEstimation<PointT> > estimator (new OpenCVSIFTLocalEstimation<PointT>);
-    pcl::PointCloud<PointT> processed_foo;
-    bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
-    estimator->getKeypointIndices( sift_kp_indices );
-#endif
-    sift_keypoint_indices = convertVecInt2VecSizet(sift_kp_indices);
-    return ret;
-}
-
-void
-IOL::estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
-                                      const pcl::PointCloud<PointT> &dst_cloud,
-                                      const std::vector<size_t> &src_sift_keypoint_indices,
-                                      const std::vector<size_t> &dst_sift_keypoint_indices,
-                                      const std::vector<std::vector<float> > &src_sift_signatures,
-                                      boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
-                                      std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
-                                      bool use_gc )
-{
-    const int K = 1;
-    flann::Matrix<int> indices = flann::Matrix<int> ( new int[K], 1, K );
-    flann::Matrix<float> distances = flann::Matrix<float> ( new float[K], 1, K );
-
-    boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsSrc (new pcl::PointCloud<PointT>);
-    boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsDst (new pcl::PointCloud<PointT>);
-    pcl::copyPointCloud(src_cloud, src_sift_keypoint_indices, *pSiftKeypointsSrc );
-    pcl::copyPointCloud(dst_cloud, dst_sift_keypoint_indices, *pSiftKeypointsDst);
-
-    pcl::CorrespondencesPtr temp_correspondences ( new pcl::Correspondences );
-    temp_correspondences->resize(pSiftKeypointsSrc->size ());
-
-    for ( size_t keypointId = 0; keypointId < pSiftKeypointsSrc->points.size (); keypointId++ )
-    {
-        nearestKSearch ( dst_flann_index, src_sift_signatures[ keypointId ], K, indices, distances );
-
-        pcl::Correspondence corr;
-        corr.distance = distances[0][0];
-        corr.index_query = keypointId;
-        corr.index_match = indices[0][0];
-        temp_correspondences->at(keypointId) = corr;
-    }
-
-    if(!use_gc)
-    {
-        pcl::registration::CorrespondenceRejectorSampleConsensus<PointT>::Ptr rej;
-        rej.reset (new pcl::registration::CorrespondenceRejectorSampleConsensus<PointT> ());
-        pcl::CorrespondencesPtr after_rej_correspondences (new pcl::Correspondences ());
-
-        rej->setMaximumIterations (50000);
-        rej->setInlierThreshold (0.02);
-        rej->setInputTarget (pSiftKeypointsDst);
-        rej->setInputSource (pSiftKeypointsSrc);
-        rej->setInputCorrespondences (temp_correspondences);
-        rej->getCorrespondences (*after_rej_correspondences);
-
-        Eigen::Matrix4f refined_pose;
-        transformations.push_back( rej->getBestTransformation () );
-        pcl::registration::TransformationEstimationSVD<PointT, PointT> t_est;
-        t_est.estimateRigidTransformation (*pSiftKeypointsSrc, *pSiftKeypointsDst, *after_rej_correspondences, refined_pose);
-        transformations.back() = refined_pose;
-    }
-    else
-    {
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms;
-        pcl::GeometricConsistencyGrouping<PointT, PointT> gcg_alg;
-
-        gcg_alg.setGCThreshold (15);
-        gcg_alg.setGCSize (0.01);
-        gcg_alg.setInputCloud(pSiftKeypointsSrc);
-        gcg_alg.setSceneCloud(pSiftKeypointsDst);
-        gcg_alg.setModelSceneCorrespondences(temp_correspondences);
-
-        std::vector<pcl::Correspondences> clustered_corrs;
-        gcg_alg.recognize(new_transforms, clustered_corrs);
-        transformations.insert(transformations.end(), new_transforms.begin(), new_transforms.end());
-    }
-}
-
-
 std::vector<bool>
 IOL::extractEuclideanClustersSmooth (
         const pcl::PointCloud<PointT>::ConstPtr &cloud,
@@ -497,7 +402,7 @@ IOL::extractPlanePoints(const pcl::PointCloud<PointT>::ConstPtr &cloud,
             if ( cloud->points[id].z < min_z ) // do not consider points that are further away than a certain threshold
                 min_z = cloud->points[id].z;
         }
-        if(min_z < param_.chop_z_)
+        if( pcl_isfinite(param_.chop_z_) || min_z < param_.chop_z_)
         {
             planes[kept] = all_planes[cluster_id];
             kept++;
@@ -570,53 +475,6 @@ IOL::computePlaneProperties(const std::vector<ClusterNormalsToPlanes::Plane::Ptr
 //    planes_not_on_object.resize(kept);
 }
 
-void
-IOL::computeAbsolutePosesRecursive (const Graph & grph,
-                              const Vertex start,
-                              const Eigen::Matrix4f &accum,
-                              std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses,
-                              std::vector<bool> &hop_list)
-{
-    boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
-    boost::graph_traits<Graph>::out_edge_iterator ei, ei_end;
-    for (boost::tie (ei, ei_end) = boost::out_edges (start, grph); ei != ei_end; ++ei)
-    {
-        Vertex targ = boost::target (*ei, grph);
-        size_t target_id = boost::target (*ei, grph);
-
-        if(hop_list[target_id])
-           continue;
-
-        hop_list[target_id] = true;
-        CamConnect my_e = weightmap[*ei];
-        Eigen::Matrix4f intern_accum;
-        Eigen::Matrix4f trans = my_e.transformation_;
-        if( my_e.target_id_ != target_id)
-        {
-            Eigen::Matrix4f trans_inv;
-            trans_inv = trans.inverse();
-            trans = trans_inv;
-        }
-        intern_accum = accum * trans;
-        absolute_poses[target_id] = intern_accum;
-        computeAbsolutePosesRecursive (grph, targ, intern_accum, absolute_poses, hop_list);
-    }
-}
-
-void
-IOL::computeAbsolutePoses (const Graph & grph,
-                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & absolute_poses)
-{
-  size_t num_frames = boost::num_vertices(grph);
-  absolute_poses.resize( num_frames );
-  std::vector<bool> hop_list (num_frames, false);
-  Vertex source_view = 0;
-  hop_list[0] = true;
-  Eigen::Matrix4f accum = grph_[0].tracking_pose_;      // CAN IT ALSO BE grph[0] instead of class member?
-  absolute_poses[0] = accum;
-  computeAbsolutePosesRecursive (grph, source_view, accum, absolute_poses, hop_list);
-}
-
 bool
 IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &camera_pose, const std::vector<size_t> &initial_indices)
 {
@@ -641,24 +499,6 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     octree_.setInputCloud ( view.cloud_ );
     octree_.addPointsFromInputCloud ();
-
-    boost::shared_ptr<flann::Index<DistT> > flann_index;
-
-    if ( param_.do_sift_based_camera_pose_estimation_ )
-    {
-        pcl::PointCloud<PointT> sift_keypoints;
-        std::vector<float> sift_keypoint_scales;
-        try
-        {
-            calcSiftFeatures( *view.cloud_, sift_keypoints, view.sift_keypoint_indices_, view.sift_signatures_, sift_keypoint_scales);
-            convertToFLANN<DistT>(view.sift_signatures_, flann_index );
-        }
-        catch (int e)
-        {
-            param_.do_sift_based_camera_pose_estimation_ = false;
-            std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
-        }
-    }
 
     if (initial_indices.size())   // for first frame use given initial indices and erode them
     {
@@ -710,92 +550,6 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     }
     else
     {
-        if ( param_.do_sift_based_camera_pose_estimation_ )
-        {
-            for (size_t view_id = 0; view_id < grph_.size(); view_id++)
-            {
-                if( view.id_ == grph_[view_id].id_)
-                    continue;
-
-                std::vector<CamConnect> transforms;
-                CamConnect edge;
-                edge.model_name_ = "camera_tracking";
-                edge.source_id_ = view.id_;
-                edge.target_id_ = grph_[view_id].id_;
-                edge.transformation_ = view.tracking_pose_.inverse() * grph_[view_id].tracking_pose_ ;
-                transforms.push_back( edge );
-
-                try
-                {
-                    edge.model_name_ = "sift_background_matching";
-                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
-                    estimateViewTransformationBySIFT( *grph_[view_id].cloud_, *view.cloud_,
-                                                      grph_[view_id].sift_keypoint_indices_, view.sift_keypoint_indices_,
-                                                      grph_[view_id].sift_signatures_, flann_index, sift_transforms);
-                    for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++)
-                    {
-                        edge.transformation_ = sift_transforms[sift_tf_id];
-                        transforms.push_back(edge);
-                    }
-                }
-                catch (int e)
-                {
-                    param_.do_sift_based_camera_pose_estimation_ = false;
-                    std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
-                }
-
-                size_t best_transform_id = 0;
-                float lowest_edge_weight = std::numeric_limits<float>::max();
-                for ( size_t trans_id = 0; trans_id < transforms.size(); trans_id++ )
-                {
-                    try
-                    {
-                        Eigen::Matrix4f icp_refined_trans;
-                        v4r::calcEdgeWeightAndRefineTf<PointT>( grph_[view_id].cloud_, view.cloud_, transforms[ trans_id ].transformation_, transforms[ trans_id ].edge_weight, icp_refined_trans);
-                        transforms[ trans_id ].transformation_ = icp_refined_trans,
-                        std::cout << "Edge weight is " << transforms[ trans_id ].edge_weight << " for edge connecting vertex " <<
-                                     transforms[ trans_id ].source_id_ << " and " << transforms[ trans_id ].target_id_ << " by " <<
-                                     transforms[ trans_id ].model_name_ << std::endl;
-
-                        if(transforms[ trans_id ].edge_weight < lowest_edge_weight)
-                        {
-                            lowest_edge_weight = transforms[ trans_id ].edge_weight;
-                            best_transform_id = trans_id;
-                        }
-                    }
-                    catch (int e)
-                    {
-                        transforms[ trans_id ].edge_weight = std::numeric_limits<float>::max();
-                        param_.do_sift_based_camera_pose_estimation_ = false;
-                        std::cerr << "Something is wrong with the SIFT based camera pose estimation. Turning it off and using the given camera poses only." << std::endl;
-                        break;
-                    }
-                }
-                boost::add_edge (transforms[best_transform_id].source_id_, transforms[best_transform_id].target_id_, transforms[best_transform_id], gs_);
-
-                boost::property_map<Graph, boost::edge_weight_t>::type weightmap = boost::get(boost::edge_weight, gs_);
-                std::vector < Edge > spanning_tree;
-                boost::kruskal_minimum_spanning_tree(gs_, std::back_inserter(spanning_tree));
-
-                Graph grph_mst;
-                std::cout << "Print the edges in the MST:" << std::endl;
-                for (std::vector < Edge >::iterator ei = spanning_tree.begin(); ei != spanning_tree.end(); ++ei)
-                {
-                    CamConnect my_e = weightmap[*ei];
-                    std::cout << "[" << source(*ei, gs_) << "->" << target(*ei, gs_) << "] with weight " << my_e.edge_weight << " by " << my_e.model_name_ << std::endl;
-                    boost::add_edge(source(*ei, gs_), target(*ei, gs_), weightmap[*ei], grph_mst);
-                }
-
-                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > absolute_poses;
-                computeAbsolutePoses(grph_mst, absolute_poses);
-
-                for(size_t v_id=0; v_id<absolute_poses.size(); v_id++)
-                {
-                    grph_[ v_id ].camera_pose_ = absolute_poses [ v_id ];
-                }
-            }
-        }
-
         std::vector<bool> is_occluded;
         for (size_t view_id = 0; view_id < grph_.size(); view_id++)
         {
@@ -916,27 +670,6 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 }
 
 void
-IOL::initSIFT ()
-{
-    if (param_.do_sift_based_camera_pose_estimation_)
-    {
-#ifdef HAVE_SIFTGPU
-        //-----Init-SIFT-GPU-Context--------
-        static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "1", "-pack"};
-        char * argvv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};
-
-        int argcc = sizeof(argvv) / sizeof(char*);
-        sift_.reset( new SiftGPU () );
-        sift_->ParseParam (argcc, argvv);
-
-        //create an OpenGL context for computation
-        if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
-            throw std::runtime_error ("PSiftGPU::PSiftGPU: No GL support!");
-#endif
-    }
-}
-
-void
 IOL::printParams(std::ostream &ostr) const
 {
     ostr << "Started incremental object learning with parameters: " << std::endl
@@ -949,7 +682,6 @@ IOL::printParams(std::ostream &ostr) const
          << "ratio_supervoxel: " << param_.ratio_supervoxel_ << std::endl
          << "max z distance: " << param_.chop_z_ << std::endl
          << "do_erosion: " << param_.do_erosion_ << std::endl
-         << "do_sift_based_camera_pose_estimation_: " << param_.do_sift_based_camera_pose_estimation_ << std::endl
          << "transferring object indices from latest frame only: " << param_.transfer_indices_from_latest_frame_only_ << std::endl
          << "min_points_for_transferring_: " << param_.min_points_for_transferring_ << std::endl
          << "normal_method_: " << param_.normal_method_ << std::endl

@@ -8,7 +8,7 @@
 #ifndef FAAT_PCL_3D_REC_FRAMEWORK_MULTIPLANE_SEGMENTATION_H_
 #define FAAT_PCL_3D_REC_FRAMEWORK_MULTIPLANE_SEGMENTATION_H_
 
-#include <v4r/common/common_data_structures.h>
+#include <v4r/common/plane_model.h>
 #include <v4r/core/macros.h>
 
 namespace v4r
