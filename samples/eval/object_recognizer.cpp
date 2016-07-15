@@ -20,7 +20,6 @@ int
 main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
-    typedef v4r::Model<PointT> ModelT;
 
     std::map<std::string, size_t> rec_models_per_id_;
     typedef pcl::PointXYZRGB PointT;

@@ -45,6 +45,8 @@ namespace v4r
 
         typedef boost::shared_ptr< ObjectHypothesis<PointT> > Ptr;
         typedef boost::shared_ptr< ObjectHypothesis<PointT> const> ConstPtr;
+
+        virtual ~ObjectHypothesis(){}
     };
 
 
@@ -53,6 +55,9 @@ namespace v4r
     class V4R_EXPORTS HVRecognitionModel : public ObjectHypothesis<PointT>
     {
       public:
+        typedef boost::shared_ptr< HVRecognitionModel> Ptr;
+        typedef boost::shared_ptr< HVRecognitionModel const> ConstPtr;
+
         typename pcl::PointCloud<PointT>::Ptr complete_cloud_;
         typename pcl::PointCloud<PointT>::Ptr visible_cloud_;
         std::vector<std::vector<bool> > image_mask_; /// @brief image mask per view (in single-view case, there will be only one element in outer vector). Used to compute pairwise intersection
@@ -139,9 +144,6 @@ namespace v4r
         {
             return a->model_fit_ < b->model_fit_;
         }
-
-        typedef boost::shared_ptr< HVRecognitionModel> Ptr;
-        typedef boost::shared_ptr< HVRecognitionModel const> ConstPtr;
     };
 
 

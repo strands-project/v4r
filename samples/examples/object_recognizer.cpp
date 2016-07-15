@@ -20,7 +20,6 @@ int
 main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
-    typedef v4r::Model<PointT> ModelT;
 
     std::string test_dir;
     bool visualize = false;

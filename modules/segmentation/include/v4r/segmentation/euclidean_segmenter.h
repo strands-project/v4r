@@ -167,7 +167,7 @@ public:
             seg.setInputCloud (cloud_filtered);
             seg.segment (*inliers, *coefficients);
 
-            if ( inliers->indices.size() < param_.num_plane_inliers_ )
+            if ( (int)inliers->indices.size() < param_.num_plane_inliers_ )
                 break;
 
             typename PlaneModel<PointT>::Ptr pm (new PlaneModel<PointT>);

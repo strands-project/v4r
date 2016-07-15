@@ -74,11 +74,11 @@ protected:
 
 public:
   Clustering() {}
-  ~Clustering() {}
+  virtual ~Clustering() {}
 
-  virtual void cluster(const DataMatrix2Df &samples) {};
-  virtual void getClusters(std::vector<std::vector<int> > &_clusters) {};
-  virtual void getCenters(DataMatrix2Df &_centers) {};
+  virtual void cluster(const DataMatrix2Df &) = 0;
+  virtual void getClusters(std::vector<std::vector<int> > &) = 0;
+  virtual void getCenters(DataMatrix2Df &) = 0;
 };
 
 }

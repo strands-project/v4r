@@ -304,9 +304,9 @@ v4r::OrganizedEdgeFromNormals<PointT, PointNT, PointLT>::extractEdges (pcl::Poin
     ny.height = normals_->height;
     ny.resize (normals_->height*normals_->width);
 
-    for (int row=0; row<normals_->height; row++)
+    for (size_t row=0; row<normals_->height; row++)
     {
-      for (int col=0; col<normals_->width; col++)
+      for (size_t col=0; col<normals_->width; col++)
       {
         nx (col, row).intensity = normals_->points[row*normals_->width + col].normal_x;
         ny (col, row).intensity = normals_->points[row*normals_->width + col].normal_y;
@@ -319,12 +319,12 @@ v4r::OrganizedEdgeFromNormals<PointT, PointNT, PointLT>::extractEdges (pcl::Poin
     edge.setHysteresisThresholdHigh (th_hc_canny_high_);
     edge.canny (nx, ny, img_edge);
 
-    for (int row=0; row<labels.height; row++)
+    for (size_t row=0; row<labels.height; row++)
     {
-      for (int col=0; col<labels.width; col++)
+      for (size_t col=0; col<labels.width; col++)
       {
         if (img_edge (col, row).magnitude == 255.f)
-          labels[row*int(labels.width) + col].label |= EDGELABEL_HIGH_CURVATURE;
+          labels[row*labels.width + col].label |= EDGELABEL_HIGH_CURVATURE;
       }
     }
   }

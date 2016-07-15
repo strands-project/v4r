@@ -6,7 +6,7 @@
 
 namespace v4r
 {
-    template<class PointT>
+    template<typename PointT>
     V4R_EXPORTS
     cv::Mat
     ConvertPCLCloud2DepthImage (const typename pcl::PointCloud<PointT> &pcl_cloud)
@@ -30,7 +30,7 @@ namespace v4r
       return image;
     }
 
-    template<class PointT>
+    template<typename PointT>
     V4R_EXPORTS
     cv::Mat
     ConvertUnorganizedPCLCloud2Image (const typename pcl::PointCloud<PointT> &pcl_cloud,
@@ -551,13 +551,144 @@ namespace v4r
         return dst;
     }
 
+
+    /**
+     * @brief pcl2depthMatDouble extracts depth image from pointcloud whereby depth values correspond to distance in meter
+     * @param[in] cloud
+     * @return depth image in meter
+     */
+    template<typename PointT>
+    V4R_EXPORTS
+    cv::Mat
+    pcl2depthMatDouble (const typename pcl::PointCloud<PointT> &cloud)
+    {
+        cv::Mat_<double> image (cloud.height, cloud.width);
+        for (size_t v = 0; v < cloud.height; v++)
+        {
+            for (size_t u = 0; u < cloud.width; u++)
+            {
+                double & cvp = image.at<double> (v, u);
+                const PointT &pt = cloud.at(u,v);
+                pcl_isfinite(pt.z) ? cvp=pt.z : cvp=0.f;
+            }
+        }
+        return image;
+    }
+
+    template<typename PointT>
+    V4R_EXPORTS
+    cv::Mat
+    pcl2cvMat (const typename pcl::PointCloud<PointT> &cloud)
+    {
+        cv::Mat_<cv::Vec3b> image (cloud.height, cloud.width);
+        for (unsigned v = 0; v < cloud.height; v++)
+        {
+            for (unsigned u = 0; u < cloud.width; u++)
+            {
+                cv::Vec3b & cvp = image.at<cv::Vec3b> (v, u);
+                const PointT &pt = cloud.at(u,v);
+                cvp[0] = pt.b;
+                cvp[1] = pt.g;
+                cvp[2] = pt.r;
+            }
+        }
+        return image;
+    }
+
+    template<typename PointT>
+    V4R_EXPORTS
+    cv::Mat
+    pcl2depthMat (const typename pcl::PointCloud<PointT> &cloud, float min_depth, float max_depth)
+    {
+        cv::Mat_<uchar> image (cloud.height, cloud.width);
+
+        for (unsigned v = 0; v < cloud.height; v++)
+        {
+            for (unsigned u = 0; u < cloud.width; u++)
+            {
+                unsigned char & cvp = image.at<unsigned char> (v, u);
+                const PointT &pt = cloud.at(u,v);
+                pcl_isfinite(pt.z) ? cvp = std::min<unsigned char>(255, std::max<unsigned char>(0, 255.f*(pt.z-min_depth)/(max_depth-min_depth)) ) : cvp = 0.f;
+            }
+        }
+
+        return image;
+    }
+
+    template<typename PointT>
+    V4R_EXPORTS
+    cv::Mat
+    pcl2depthMat (const typename pcl::PointCloud<PointT> &pcl_cloud,
+               const std::vector<int> &indices, bool crop, bool remove_background, int margin)
+    {
+        CHECK(!indices.empty());
+
+        std::vector<bool> fg_mask = v4r::createMaskFromIndices(indices, pcl_cloud.width * pcl_cloud.height);
+
+        int min_u = pcl_cloud.width-1, min_v = pcl_cloud.height-1, max_u = 0, max_v = 0;
+
+        cv::Mat_<uchar> image (pcl_cloud.height, pcl_cloud.width);
+        uchar bg_color = 255;
+        image.setTo(bg_color);
+
+        for (unsigned row = 0; row < pcl_cloud.height; row++)
+        {
+            for (unsigned col = 0; col < pcl_cloud.width; col++)
+            {
+                unsigned position = row * pcl_cloud.width + col;
+
+                uchar & cvp = image.at<uchar> (row, col);
+                const pcl::PointXYZRGB &pt = pcl_cloud.points[position];
+
+                float depth = pt.z;
+
+                if(remove_background && !fg_mask[position])
+                    continue;
+
+                cvp = std::min<unsigned char>(255, static_cast<unsigned char> (255.f * depth / 3.0f));
+
+                if(!fg_mask[position])
+                    continue;
+
+                if( pcl::isFinite(pt) ) {
+                    if( row < min_v ) min_v = row;
+                    if( row > max_v ) max_v = row;
+                    if( col < min_u ) min_u = col;
+                    if( col > max_u ) max_u = col;
+                }
+            }
+        }
+
+        if(crop) {
+            int side_length_u = max_u - min_u;
+            int side_length_v = max_v - min_v;
+            int side_length = std::max<int>(side_length_u , side_length_v) + 2 * margin;
+
+            // center object in the middle
+            min_u = std::max<int>(0, int(min_u - (side_length - side_length_u)/2.f));
+            min_v = std::max<int>(0, int(min_v - (side_length - side_length_v)/2.f));
+
+            int side_length_uu = std::min<int>(side_length, image.cols  - min_u - 1);
+            int side_length_vv = std::min<int>(side_length, image.rows - min_v - 1);
+
+            cv::Mat image_roi = image( cv::Rect(min_u, min_v, side_length_uu, side_length_vv) );
+            image = image_roi.clone();
+        }
+
+        return image;
+    }
+
     template V4R_EXPORTS cv::Mat ConvertPCLCloud2Image<pcl::PointXYZRGB> (const typename pcl::PointCloud<pcl::PointXYZRGB> &, bool);
     template V4R_EXPORTS cv::Mat ConvertPCLCloud2Image<pcl::PointXYZRGBA> (const typename pcl::PointCloud<pcl::PointXYZRGBA> &, bool);
     template V4R_EXPORTS cv::Mat ConvertPCLCloud2FixedSizeImage<pcl::PointXYZRGB>(const typename pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<int> &, size_t, size_t, size_t, cv::Scalar, bool);
     template V4R_EXPORTS cv::Mat ConvertPCLCloud2DepthImage<pcl::PointXYZRGB>(const pcl::PointCloud<pcl::PointXYZRGB> &);
-    template V4R_EXPORTS cv::Mat ConvertPCLCloud2Image<pcl::PointXYZRGB>(const typename pcl::PointCloud<pcl::PointXYZRGB> &, const std::vector<int> &, size_t, size_t);
+    template V4R_EXPORTS cv::Mat ConvertPCLCloud2Image<pcl::PointXYZRGB>(const pcl::PointCloud<pcl::PointXYZRGB> &, const std::vector<int> &, size_t, size_t);
     template V4R_EXPORTS cv::Mat ConvertUnorganizedPCLCloud2Image<pcl::PointXYZRGB>(const pcl::PointCloud<pcl::PointXYZRGB> &, bool, float, float, float, int, int, float, float, float);
     template V4R_EXPORTS cv::Mat ConvertPCLCloud2DepthImageFixedSize<pcl::PointXYZRGB>(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const std::vector<int> &, size_t, size_t);
-    template V4R_EXPORTS cv::Mat pcl2cvMat<pcl::PointXYZRGB> (const typename pcl::PointCloud<pcl::PointXYZRGB> &, const std::vector<int>&, bool, bool, int);
+    template V4R_EXPORTS cv::Mat pcl2cvMat<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB> &, const std::vector<int>&, bool, bool, int);
+    template V4R_EXPORTS cv::Mat pcl2cvMat<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB> &);
     template V4R_EXPORTS cv::Mat ConvertPCLCloud2UnsignedDepthImageFixedSize<pcl::PointXYZRGB>(const pcl::PointCloud<pcl::PointXYZRGB> &, const std::vector<int> &, size_t, size_t);
+    template V4R_EXPORTS cv::Mat pcl2depthMatDouble<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB> &);
+    template V4R_EXPORTS cv::Mat pcl2depthMat<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB>&, float, float);
+    template V4R_EXPORTS cv::Mat pcl2depthMat<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB>&, const std::vector<int>&, bool, bool, int);
 }

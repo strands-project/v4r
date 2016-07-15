@@ -97,7 +97,7 @@ namespace v4r
       int max_iterations_;
       float corr_dist_threshold_;
       float ransac_threshold_;
-      int min_number_correspondences_;
+      size_t min_number_correspondences_;
       float gc_size_;
       float cx_, cy_, fl_;
       int max_keep_;

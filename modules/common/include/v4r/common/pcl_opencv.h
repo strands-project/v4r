@@ -140,6 +140,41 @@ namespace v4r
      V4R_EXPORTS
      cv::Mat
      ConvertPCLCloud2UnsignedDepthImageFixedSize(const pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx, size_t out_height, size_t out_width);
+
+
+     /**
+      * @brief pcl2depthMatDouble extracts depth image from pointcloud whereby depth values correspond to distance in meter
+      * @param[in] cloud
+      * @return depth image in meter
+      */
+     template<typename PointT>
+     V4R_EXPORTS
+     cv::Mat
+     pcl2depthMatDouble (const typename pcl::PointCloud<PointT> &cloud);
+
+     template<typename PointT>
+     V4R_EXPORTS
+     cv::Mat
+     pcl2cvMat (const typename pcl::PointCloud<PointT> &cloud);
+
+     /**
+      * @brief pcl2depthMat extracts depth image from pointcloud whereby depth values are scaled linearly to 0 (=min_depth)...255(=max depth))
+      * @param[in] cloud
+      * @param[in] min_depth in meter
+      * @param[in] max_depth in meter
+      * @return scaled depth image
+      */
+     template<typename PointT>
+     V4R_EXPORTS
+     cv::Mat
+     pcl2depthMat (const typename pcl::PointCloud<PointT> &cloud, float min_depth=0.f, float max_depth=5.f);
+
+
+     template<typename PointT>
+     V4R_EXPORTS
+     cv::Mat
+     pcl2depthMat (const typename pcl::PointCloud<PointT> &pcl_cloud,
+                const std::vector<int> &indices, bool crop = false, bool remove_background = true, int margin = 10);
 }
 
 #endif /* PCL_OPENCV_H_ */

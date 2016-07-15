@@ -70,7 +70,7 @@ public:
        pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler(model_cloud_transformed, 0, 255, 0);
        pviz_->addPointCloud(model_cloud_transformed, scene_handler, "highlighted");
 
-       pviz_->spinOnce(0.1, true);
+       pviz_->spinOnce(100, true);
    }
 
    void addSelectedModelCloud(int selected_model)
@@ -146,7 +146,7 @@ public:
 
    void updateHighlightedScene(bool highlight=false)
    {
-       for (size_t i = 0; i < single_scenes_.size (); i++)
+       for (int i = 0; i < (int)single_scenes_.size (); i++)
        {
            if( i == selected_scene_)
            {
@@ -163,7 +163,7 @@ public:
                }
            }
        }
-       pviz_->spinOnce(0.1, true);
+       pviz_->spinOnce(100, true);
    }
 
    void clear()
