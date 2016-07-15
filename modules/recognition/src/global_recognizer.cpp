@@ -542,6 +542,7 @@ template<typename PointT>
 void
 GlobalRecognizer<PointT>::poseRefinement()
 {
+    pcl::ScopeTime t("Pose Refinement for global recognition");
 
 //#pragma omp parallel for schedule(dynamic)
     for(size_t i=0; i<obj_hypotheses_.size(); i++)
