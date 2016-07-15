@@ -24,16 +24,8 @@
 #ifndef V4R_REG_VIEWS_SOURCE_H_
 #define V4R_REG_VIEWS_SOURCE_H_
 
-#include "source.h"
-#include <pcl/io/io.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/visualization/pcl_visualizer.h>
-
+#include <v4r/recognition/source.h>
 #include <v4r/core/macros.h>
-#include <v4r/common/faat_3d_rec_framework_defines.h>
-#include <v4r/io/eigen.h>
-#include <v4r/io/filesystem.h>
 
 namespace v4r
 {
@@ -47,18 +39,18 @@ namespace v4r
      * \author Aitor Aldoma
      */
 
-template<typename Full3DPointT = pcl::PointXYZRGBNormal, typename PointInT = pcl::PointXYZRGB, typename OutModelPointT = pcl::PointXYZRGB>
-class V4R_EXPORTS RegisteredViewsSource : public Source<PointInT>
+template<typename PointT = pcl::PointXYZRGB>
+class V4R_EXPORTS RegisteredViewsSource : public Source<PointT>
 {
 private:
-    typedef Source<PointInT> SourceT;
-    typedef Model<OutModelPointT> ModelT;
+    typedef Source<PointT> SourceT;
+    typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
     using SourceT::path_;
     using SourceT::models_;
     using SourceT::load_into_memory_;
-    using SourceT::resolution_;
+    using SourceT::resolution_mm_;
     using SourceT::view_prefix_;
     using SourceT::indices_prefix_;
     using SourceT::pose_prefix_;
@@ -66,9 +58,9 @@ private:
 
 
 public:
-    RegisteredViewsSource (float resolution = 0.001f)
+    RegisteredViewsSource (int resolution_mm = 1)
     {
-        resolution_ = resolution;
+        resolution_mm_ = resolution_mm;
         load_into_memory_ = false;
     }
 
@@ -76,16 +68,16 @@ public:
     assembleModelFromViewsAndPoses(ModelT & model,
                                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
                                    std::vector<pcl::PointIndices> & indices,
-                                   typename pcl::PointCloud<PointInT>::Ptr &model_cloud)
+                                   typename pcl::PointCloud<PointT>::Ptr &model_cloud)
     {
         for(size_t i=0; i < model.views_.size(); i++)
         {
             Eigen::Matrix4f inv = poses[i];
             inv = inv.inverse();
 
-            typename pcl::PointCloud<PointInT>::Ptr global_cloud_only_indices(new pcl::PointCloud<PointInT>);
+            typename pcl::PointCloud<PointT>::Ptr global_cloud_only_indices(new pcl::PointCloud<PointT>);
             pcl::copyPointCloud(*(model.views_[i]), indices[i], *global_cloud_only_indices);
-            typename pcl::PointCloud<PointInT>::Ptr global_cloud(new pcl::PointCloud<PointInT>);
+            typename pcl::PointCloud<PointT>::Ptr global_cloud(new pcl::PointCloud<PointT>);
             pcl::transformPointCloud(*global_cloud_only_indices, *global_cloud, inv);
             *model_cloud += *global_cloud;
         }
@@ -102,6 +94,9 @@ public:
     */
     void
     generate ();
+
+    typedef boost::shared_ptr< RegisteredViewsSource<PointT> > Ptr;
+    typedef boost::shared_ptr< RegisteredViewsSource<PointT> const> ConstPtr;
 };
 }
 

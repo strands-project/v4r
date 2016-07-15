@@ -24,8 +24,8 @@
 #ifndef MULTI_PIPELINE_RECOGNIZER_H_
 #define MULTI_PIPELINE_RECOGNIZER_H_
 
-#include "recognizer.h"
-#include "local_recognizer.h"
+#include <v4r/recognition/recognizer.h>
+#include <v4r/recognition/local_recognizer.h>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <omp.h>
 
@@ -34,52 +34,30 @@ namespace v4r
     template<typename PointT>
     class V4R_EXPORTS MultiRecognitionPipeline : public Recognizer<PointT>
     {
-    public:
-        class V4R_EXPORTS Parameter : public Recognizer<PointT>::Parameter
-        {
-        public:
-            using Recognizer<PointT>::Parameter::icp_iterations_;
-            using Recognizer<PointT>::Parameter::icp_type_;
-            using Recognizer<PointT>::Parameter::voxel_size_icp_;
-            using Recognizer<PointT>::Parameter::normal_computation_method_;
-            using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
-            using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
-            using Recognizer<PointT>::Parameter::merge_close_hypotheses_angle_;
-
-            bool save_hypotheses_;
-
-            Parameter(
-                    bool save_hypotheses = false
-                    )
-                : Recognizer<PointT>::Parameter(),
-                  save_hypotheses_ ( save_hypotheses )
-            {}
-        }param_;
-
       protected:
-        std::vector<typename boost::shared_ptr<Recognizer<PointT> > > recognizers_;
+        std::vector<typename Recognizer<PointT>::Ptr > recognizers_;
 
       private:
         using Recognizer<PointT>::scene_;
         using Recognizer<PointT>::scene_normals_;
-        using Recognizer<PointT>::models_;
-        using Recognizer<PointT>::transforms_;
+        using Recognizer<PointT>::obj_hypotheses_;
         using Recognizer<PointT>::hv_algorithm_;
-        using Recognizer<PointT>::poseRefinement;
         using Recognizer<PointT>::hypothesisVerification;
+        using Recognizer<PointT>::getDataSource;
+        using Recognizer<PointT>::param_;
+        using Recognizer<PointT>::source_;
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
 
         typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
-        std::vector<pcl::PointIndices> segmentation_indices_;
         omp_lock_t rec_lock_;
 
         typename boost::shared_ptr<GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;  /// @brief algorithm for correspondence grouping
         typename pcl::PointCloud<PointT>::Ptr scene_keypoints_; /// @brief keypoints of the scene
         pcl::PointCloud<pcl::Normal>::Ptr scene_kp_normals_;
-        std::map<std::string, ObjectHypothesis<PointT> > obj_hypotheses_;   /// @brief stores feature correspondences
+        std::map<std::string, LocalObjectHypothesis<PointT> > local_obj_hypotheses_;   /// @brief stores feature correspondences
 
         /**
          * @brief removes all scene keypoints not having a correspondence in the model database and adapt correspondences indices accordingly
@@ -88,7 +66,7 @@ namespace v4r
         compress()
         {
             std::vector<bool> kp_has_correspondence(scene_keypoints_->points.size(), false);
-            for (const auto &oh : obj_hypotheses_) {
+            for (const auto &oh : local_obj_hypotheses_) {
                 for (const auto &corr : oh.second.model_scene_corresp_) {
                     kp_has_correspondence[corr.index_match] = true;
                 }
@@ -110,7 +88,7 @@ namespace v4r
             scene_kp_normals_->width = kept;
 
             // adapt correspondences
-            for (auto &oh : obj_hypotheses_) {
+            for (auto &oh : local_obj_hypotheses_) {
                 for (auto &corr : oh.second.model_scene_corresp_) {
                     corr.index_match = lut[corr.index_match];
                 }
@@ -118,37 +96,25 @@ namespace v4r
         }
 
         void
-        callIndiviualRecognizer(Recognizer<PointT> &rec);
+        callIndiviualRecognizer(boost::shared_ptr<Recognizer<PointT> > &rec);
 
-        void mergeStuff(std::map<std::string, ObjectHypothesis<PointT> > &oh_m,
-                         const std::vector<ModelTPtr> &models,
-                         const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms,
+        void mergeStuff(const std::vector<ObjectHypothesesGroup<PointT> > &global_hypotheses,
+                         std::map<std::string, LocalObjectHypothesis<PointT> > &loh_m,
                          const pcl::PointCloud<PointT> &scene_kps,
                          const pcl::PointCloud<pcl::Normal> &scene_kp_normals);
       public:
-        MultiRecognitionPipeline (const Parameter &p = Parameter()) : Recognizer<PointT>(p)
-        {
-            param_ = p;
-        }
+        MultiRecognitionPipeline (const typename Recognizer<PointT>::Parameter &p = Recognizer<PointT>::Parameter()) : Recognizer<PointT>(p)
+        { }
 
-        MultiRecognitionPipeline(int argc, char **argv);
+        MultiRecognitionPipeline(std::vector<std::string> &arguments);
 
-        void setSaveHypotheses(bool set_save_hypotheses)
-        {
-            param_.save_hypotheses_ = set_save_hypotheses;
-        }
 
         void
-        getSavedHypotheses(std::map<std::string, ObjectHypothesis<PointT> > & hypotheses) const
+        getSavedHypotheses(std::map<std::string, LocalObjectHypothesis<PointT> > & hypotheses) const
         {
-          hypotheses = obj_hypotheses_;
+          hypotheses = local_obj_hypotheses_;
         }
 
-        bool
-        getSaveHypothesesParam() const
-        {
-            return param_.save_hypotheses_;
-        }
 
         void
         getKeypointCloud(PointTPtr & keypoint_cloud) const
@@ -165,6 +131,21 @@ namespace v4r
         bool
         initialize(bool force_retrain = false);
 
+        /**
+         * @brief updates the model database (checks if new training views are added or existing ones deleted)
+         * @return
+         */
+        bool
+        update();
+
+        /**
+         * @brief retrain the model database ( removes all trained descriptors and retrains from scratch )
+         * @param model_name name of the model to retrain. If empty, all models will be retrained.
+         * @return
+         */
+        bool
+        retrain(const std::string &model_name = "");
+
         void
         correspondenceGrouping();
 
@@ -172,17 +153,20 @@ namespace v4r
         getPoseRefinement( const std::vector<ModelTPtr> &models,
                            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transforms);
 
-        void recognize();
+        void
+        recognize();
 
-        void addRecognizer(typename boost::shared_ptr<Recognizer<PointT> > & rec)
+        void
+        addRecognizer(const typename Recognizer<PointT>::Ptr & rec)
         {
-          recognizers_.push_back(rec);
+            recognizers_.push_back(rec);
         }
 
-        void clearRecognizers()
+        void
+        clearRecognizers()
         {
             recognizers_.clear();
-            obj_hypotheses_.clear();
+            local_obj_hypotheses_.clear();
         }
 
         void
@@ -207,17 +191,45 @@ namespace v4r
           cg_algorithm_ = alg;
         }
 
-        bool isSegmentationRequired() const;
-
-        typename boost::shared_ptr<Source<PointT> >
-        getDataSource () const;
-
-        void
-        setSegmentation(const std::vector<pcl::PointIndices> & ind)
+        bool
+        isSegmentationRequired() const
         {
-          segmentation_indices_ = ind;
+            bool ret_value = false;
+            for(size_t i=0; (i < recognizers_.size()) && !ret_value; i++)
+                ret_value = recognizers_[i]->requiresSegmentation();
+
+            return ret_value;
         }
 
+        bool
+        needNormals() const
+        {
+            for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
+            {
+                if(recognizers_[r_id]->needNormals())
+                    return true;
+            }
+            if(cg_algorithm_ && cg_algorithm_->getRequiresNormals())
+                return true;
+
+            if(hv_algorithm_)
+                return true;
+
+            return false;
+        }
+
+        size_t
+        getFeatureType() const
+        {
+            size_t feat_type = 0;
+            for(size_t r_id=0; r_id < recognizers_.size(); r_id++)
+                feat_type += recognizers_[r_id]->getFeatureType();
+
+            return feat_type;
+        }
+
+        typedef boost::shared_ptr< MultiRecognitionPipeline<PointT> > Ptr;
+        typedef boost::shared_ptr< MultiRecognitionPipeline<PointT> const> ConstPtr;
     };
 }
 #endif /* MULTI_PIPELINE_RECOGNIZER_H_ */

@@ -130,6 +130,9 @@ namespace v4r
         void
         generate();
 
+
+        typedef boost::shared_ptr< MeshSource<PointT> > Ptr;
+        typedef boost::shared_ptr< MeshSource<PointT> const> ConstPtr;
       };
 }
 

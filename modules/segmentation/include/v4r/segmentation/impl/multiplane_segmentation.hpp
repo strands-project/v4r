@@ -173,9 +173,10 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
     for(size_t i=0; i < model_coefficients.size(); i++)
     {
       PlaneModel<PointT> pm;
-      pm.coefficients_ = model_coefficients[i];
+      pm.coefficients_ = Eigen::Vector4f( model_coefficients[0].values[0], model_coefficients[0].values[1],
+              model_coefficients[0].values[2], model_coefficients[0].values[3]);
       pm.cloud_ = input_;
-      pm.inliers_ = inlier_indices[i];
+      pm.inliers_ = inlier_indices[i].indices;
 
       //recompute coefficients based on distance to camera and normal?
       Eigen::Vector4f centroid;
@@ -211,10 +212,7 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
       //std::cout << "normal:" << n << std::endl;
       //std::cout << "d:" << d << std::endl;
 
-      pm.coefficients_.values[0] = n[0];
-      pm.coefficients_.values[1] = n[1];
-      pm.coefficients_.values[2] = n[2];
-      pm.coefficients_.values[3] = d;
+      pm.coefficients_ = Eigen::Vector4f(n[0], n[1], n[2], d);
 
       pcl::PointIndices clean_inlier_indices;
       float dist_threshold_ = 0.01f;
@@ -229,7 +227,7 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
               clean_inlier_indices.indices.push_back( idx );
       }
 
-      pm.inliers_ = clean_inlier_indices;
+      pm.inliers_ = clean_inlier_indices.indices;
       models_.push_back(pm);
     }
   }
@@ -295,9 +293,9 @@ v4r::MultiPlaneSegmentation<PointT>::segment(bool force_unorganized)
 
       //save coefficients
         PlaneModel<PointT> pm;
-        pm.coefficients_ = coefficients;
+        pm.coefficients_ = Eigen::Vector4f( coefficients.values[0], coefficients.values[1], coefficients.values[2], coefficients.values[3] );
         pm.cloud_ = cloud_filtered;
-        pm.inliers_ = indices_in_original_cloud;
+        pm.inliers_ = indices_in_original_cloud.indices;
         models_.push_back(pm);
 
         pcl::copyPointCloud(*cloud_filtered, pixel_has_not_been_labelled, *cloud_filtered_leftover);

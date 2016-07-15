@@ -212,7 +212,7 @@ namespace v4r
       inline bool
       deinitCompute ()
       {
-        return (true);
+        return true;
       }
 
   };

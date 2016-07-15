@@ -180,9 +180,6 @@ public:
     void
     setInputClouds (const std::vector<PointTPtr> & input)
     {
-        if ( input.size() < 2)
-            std::cerr << "There are not enough point clouds to do a noise model based cloud integration. I need at least two!" << std::endl;
-
         input_clouds_ = input;
     }
 

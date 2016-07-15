@@ -1,38 +1,25 @@
-/*
- * Software License Agreement (BSD License)
+/******************************************************************************
+ * Copyright (c) 2012 Aitor Aldoma
  *
- *  Point Cloud Library (PCL) - www.pointclouds.org
- *  Copyright (c) 2010-2011, Willow Garage, Inc.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- *  All rights reserved.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following
- *     disclaimer in the documentation and/or other materials provided
- *     with the distribution.
- *   * Neither the name of Willow Garage, Inc. nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- */
+ ******************************************************************************/
 
 #ifndef V4R_ZBUFFERING_H_
 #define V4R_ZBUFFERING_H_
@@ -40,7 +27,6 @@
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/io.h>
-
 #include <v4r/core/macros.h>
 
 
@@ -48,27 +34,75 @@ namespace v4r
 {
     /**
      * \brief Class to reason about occlusions
-     * \author Aitor Aldoma
+     * \author Thomas Faeulhammer, Aitor Aldoma
      */
-    template<typename ModelT, typename SceneT>
+    template<typename PointT>
       class V4R_EXPORTS ZBuffering
       {
+      public:
+          class Parameter
+          {
+          public:
+              float f_;
+              int width_, height_;
+              int u_margin_, v_margin_;
+              bool compute_focal_length_;
+              bool do_smoothing_;
+              float inlier_threshold_;
+              int smoothing_radius_;
+              bool force_unorganized_; ///@brief re-projects points by given camera intrinsics even if point cloud is already organized
+              Parameter(
+                      float f=525.f,
+                      int width = 640,
+                      int height = 480,
+                      int u_margin = 0,
+                      int v_margin = 0,
+                      bool compute_focal_length = false,
+                      bool do_smoothing = true,
+                      float inlier_threshold = 0.01f,
+                      int smoothing_radius = 1,
+                      bool force_unorganized = false) :
+                  f_(f), width_ (width), height_(height), u_margin_(u_margin), v_margin_(v_margin),
+                  compute_focal_length_(compute_focal_length), do_smoothing_(do_smoothing), inlier_threshold_(inlier_threshold),
+                  smoothing_radius_(smoothing_radius), force_unorganized_ (force_unorganized)
+              {}
+          }param_;
+
       private:
-        float f_;
-        int width_, height_;
-        float * depth_;
+        std::vector<float> depth_;
+        std::vector<int> kept_indices_;
+        boost::shared_ptr<std::vector<int> > indices_map_;  /// @brief saves for each pixel which indices of the input cloud it represents. Non-occupied pixels are labelled with index -1.
 
       public:
 
-        ZBuffering ();
-        ZBuffering (int resx, int resy, float f);
-        ~ZBuffering ();
+        ZBuffering (const Parameter &p=Parameter()) : param_(p) { }
 
-        void computeDepthMap (const typename pcl::PointCloud<SceneT> & scene, bool compute_focal = false, bool smooth = false, int wsize = 3);
+        void computeDepthMap (const pcl::PointCloud<PointT> &scene);
 
-        void filter (const typename pcl::PointCloud<ModelT> & model, typename pcl::PointCloud<ModelT> & filtered, float thres = 0.01);
+        void computeDepthMap (const pcl::PointCloud<PointT> &scene, Eigen::MatrixXf &depth_image, std::vector<int> &visible_indices);
 
-        void filter (const typename pcl::PointCloud<ModelT> & model, std::vector<int> & indices, float thres = 0.01);
+        void renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view);
+
+        void filter (const typename pcl::PointCloud<PointT> & model, typename pcl::PointCloud<PointT> & filtered);
+
+        void filter (const typename pcl::PointCloud<PointT> & model, std::vector<int> & indices);
+
+        static void erode(const Eigen::MatrixXf &input, Eigen::MatrixXf &output, int erosion_size = 3, int erosion_elem=0);
+
+        boost::shared_ptr<std::vector<int> > getIndicesMap() const
+        {
+            return indices_map_;
+        }
+
+        void getKeptIndices(std::vector<int> &indices) const
+        {
+            indices = kept_indices_;
+        }
+
+        std::vector<float> getDepthMap() const
+        {
+            return depth_;
+        }
       };
 
       template<typename SceneT, typename ModelT>
@@ -177,43 +211,6 @@ namespace v4r
       pcl::copyPointCloud (*to_be_filtered, indices_to_keep, *filtered);
       return filtered;
     }
-//      /**
-//       * @brief Computes self-occlusion of an unorganized point cloud using z-buffering (back-projection) with respect to a given focal length
-//       * @param model point cloud
-//       * @param focal length used for back projection
-//       * @param central point of projection in x
-//       * @param central point of projection in y
-//       * @param threshold for a point to be considered occluded or not (depend e.g. on sensor noise)
-//       * @return visible point mask with size equal model point cloud, where each element indicates if point is visible or (self-)occluded
-//       */
-//      std::vector<bool>
-//      getVisiblePointMask (const typename pcl::PointCloud<ModelT> & model,
-//                           float f = 525.f,
-//                           float cx = 100.f,
-//                           float cy = 100.f,
-//                           float threshold = 0.01f)
-//      {
-//        std::vector<bool> mask(model.points.size(), false);
-
-//        for (size_t i = 0; i < model.points.size (); i++)
-//        {
-//          float x = model.points[i].x;
-//          float y = model.points[i].y;
-//          float z = model.points[i].z;
-//          int u = static_cast<int> (f * x / z + cx);
-//          int v = static_cast<int> (f * y / z + cy);
-
-//          if (u >= width_ || v >= height_ || u < 0 || v < 0)
-//            continue;
-
-//          //Check if point depth (distance to camera) is greater than the (u,v) meaning that the point is not visible
-//          if ((z - thres) > depth_[u * height_ + v] || !pcl_isfinite(depth_[u * height_ + v]))
-//            continue;
-
-//          mask[ u * height_ + v ] = true;
-//        }
-//        return mask;
-//      }
 
       /**
      * @brief filters points which are not visible with respect to an organized reference cloud

@@ -31,6 +31,7 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/features/integral_image_normal.h>
 #include <v4r/core/macros.h>
+#include <glog/logging.h>
 
 namespace v4r
 {
@@ -43,14 +44,14 @@ namespace v4r
 template<typename PointT> V4R_EXPORTS
 inline void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
-                    int method)
+                    int method, float radius=0.02f)
 {
-    normals.reset(new pcl::PointCloud<pcl::Normal>());
+    CHECK(normals);
 
     if(method == 0)
     {
         pcl::NormalEstimation<PointT, pcl::Normal> n3d;
-        n3d.setRadiusSearch (0.01f);
+        n3d.setRadiusSearch (radius);
         n3d.setInputCloud (cloud);
         n3d.compute (*normals);
     }
@@ -68,7 +69,7 @@ inline void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &clo
     else if(method == 2)
     {
         pcl::NormalEstimationOMP<PointT, pcl::Normal> ne;
-        ne.setRadiusSearch ( 0.02f );
+        ne.setRadiusSearch ( radius );
         ne.setInputCloud ( cloud );
         ne.compute ( *normals );
     }

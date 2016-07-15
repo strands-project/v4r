@@ -2,5 +2,12 @@
 #include <pcl/impl/instantiate.hpp>
 #include <v4r/recognition/source.h>
 
-template class V4R_EXPORTS v4r::Source<pcl::PointXYZ>;
-template class V4R_EXPORTS v4r::Source<pcl::PointXYZRGB>;
+namespace v4r
+{
+
+template <typename PointT> Source<PointT>::~Source(){}
+
+template class V4R_EXPORTS Source<pcl::PointXYZ>;
+template class V4R_EXPORTS Source<pcl::PointXYZRGB>;
+
+}

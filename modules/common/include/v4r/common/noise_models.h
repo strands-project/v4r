@@ -26,6 +26,7 @@
 
 #include <pcl/common/common.h>
 #include <pcl/common/io.h>
+#include <pcl/common/angles.h>
 
 #include <v4r/core/macros.h>
 
@@ -117,6 +118,42 @@ public:
     {
         return pt_properties_;
     }
+
+    /**
+     * @brief compute the expected noise level for one pixel only
+     * @param point for which to compute noise level
+     * @param surface normal at this point
+     * @param sigma_lateral in metres
+     * @param sigma_axial in metres
+     * @return true if pt and normal are finite, false otherwise
+     */
+    static
+    bool
+    computeNoiseLevel(const PointT &pt, const pcl::Normal &n, float &sigma_lateral, float &sigma_axial, float focal_length = 525.f)
+    {
+        const Eigen::Vector3f & np = n.getNormalVector3fMap();
+
+         if( !pcl::isFinite(pt) || !pcl::isFinite(n) ) {
+             sigma_lateral = sigma_axial = std::numeric_limits<float>::max();
+             return false;
+         }
+
+         //origin to pint
+         //Eigen::Vector3f o2p = input_->points[i].getVector3fMap() * -1.f;
+         Eigen::Vector3f o2p = Eigen::Vector3f::UnitZ() * -1.f;
+         o2p.normalize();
+         float angle = pcl::rad2deg(acos(o2p.dot(np)));
+
+         if (angle > 80.f)
+             angle = 80.f;
+
+         float sigma_lateral_px = (0.8 + 0.034 * angle / (90.f - angle)) * pt.z / focal_length; // in pixel
+         sigma_lateral = sigma_lateral_px * pt.z * 1; // in metres
+         sigma_axial = 0.0012 + 0.0019 * ( pt.z - 0.4 ) * ( pt.z - 0.4 ) + 0.0001 * angle * angle / ( sqrt(pt.z) * (90 - angle) * (90 - angle));
+
+         return true;
+    }
+
 };
 }
 

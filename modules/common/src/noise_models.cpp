@@ -1,8 +1,5 @@
-#include <pcl/common/angles.h>
 #include <v4r/common/organized_edge_detection.h>
-#include <pcl/visualization/pcl_visualizer.h>
 #include "v4r/common/noise_models.h"
-#include "v4r/common/organized_edge_detection.h"
 
 #include <opencv2/opencv.hpp>
 #include <v4r/common/pcl_opencv.h>
@@ -51,9 +48,6 @@ NguyenNoiseModel<PointT>::compute ()
             discontinuity_edges_.indices[kept++] = edge_indices[j].indices[i];
     }
 
-//    pcl::visualization::PCLVisualizer vis;
-//    vis.addPointCloud(input_);
-
 #pragma omp parallel for schedule(dynamic)
     for(size_t i=0; i < input_->points.size(); i++)
     {
@@ -75,8 +69,9 @@ NguyenNoiseModel<PointT>::compute ()
         if (angle > 85.f)
             angle = 85.f;
 
-        float sigma_lateral = (0.8 + 0.034 * angle / (90.f - angle)) * pt.z / param_.focal_length_;
-        float sigma_axial = 0.0012 + 0.0019 * ( pt.z - 0.4 ) * ( pt.z - 0.4 ) + 0.0001 * angle * angle / ( sqrt(pt.z) * (90 - angle) * (90 - angle));
+        float sigma_lateral_px = (0.8 + 0.034 * angle / (90.f - angle)) * pt.z / param_.focal_length_; // in pixel
+        float sigma_lateral = sigma_lateral_px * pt.z * 1; // in metres
+        float sigma_axial = 0.0012 + 0.0019 * ( pt.z - 0.4 ) * ( pt.z - 0.4 ) + 0.0001 * angle * angle / ( sqrt(pt.z) * (90 - angle) * (90 - angle));  // in metres
 
         pt_properties_[i][0] = sigma_lateral;
         pt_properties_[i][1] = sigma_axial;
