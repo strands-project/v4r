@@ -125,7 +125,18 @@ namespace v4r
     V4R_EXPORTS
     cv::Mat
     pcl2cvMat (const typename pcl::PointCloud<PointT> &pcl_cloud,
-               const std::vector<int> &indices, bool crop = false, bool remove_background = true, int margin = 10);
+               const std::vector<int> &indices = std::vector<int>(), bool crop = false, bool remove_background = true, int margin = 10);
+
+    /**
+      * @brief computes the depth map of a point cloud with fixed size output
+      * @param indices of the points belonging to the object (assumes row major indices)
+      * @param width of the image/point cloud
+      * @param height of the image/point cloud
+      * @return margin in pixel from the image boundaries to the maximal extent of the object (only if crop is set to true)
+      */
+    V4R_EXPORTS
+    cv::Rect
+    computeBoundingBox (const std::vector<int> &indices, size_t width, size_t height, int margin = 0);
 
 
     /**
@@ -151,11 +162,6 @@ namespace v4r
      V4R_EXPORTS
      cv::Mat
      pcl2depthMatDouble (const typename pcl::PointCloud<PointT> &cloud);
-
-     template<typename PointT>
-     V4R_EXPORTS
-     cv::Mat
-     pcl2cvMat (const typename pcl::PointCloud<PointT> &cloud);
 
      /**
       * @brief pcl2depthMat extracts depth image from pointcloud whereby depth values are scaled linearly to 0 (=min_depth)...255(=max depth))
