@@ -5,6 +5,7 @@
  *      Author: Aitor Aldoma, Thomas Faeulhammer
  */
 
+#ifndef Q_MOC_RUN
 #include "main_window.h"
 #include <boost/filesystem.hpp>
 #include <pcl/filters/crop_box.h>
@@ -24,6 +25,7 @@
 #include <QKeyEvent>
 
 #include <boost/program_options.hpp>
+#endif
 
 namespace bf = boost::filesystem;
 namespace po = boost::program_options;

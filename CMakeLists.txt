@@ -15,6 +15,14 @@ cmake_minimum_required(VERSION "${MIN_VER_CMAKE}" FATAL_ERROR)
 # it _must_ go before project(V4R) in order to work
 set(CMAKE_INSTALL_PREFIX "/usr/local" CACHE PATH "Installation Directory")
 
+if(POLICY CMP0048)
+    cmake_policy(SET CMP0048 NEW)
+endif()
+
+if(POLICY CMP0054)
+    cmake_policy(SET CMP0054 NEW)
+endif()
+
 if(POLICY CMP0022)
   cmake_policy(SET CMP0022 OLD)
 endif()

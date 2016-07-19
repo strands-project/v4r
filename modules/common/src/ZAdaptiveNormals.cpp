@@ -103,7 +103,7 @@ void ZAdaptiveNormals::getIndices(const v4r::DataMatrix2D<Eigen::Vector3f> &clou
       if (x>0 && y>0 && x<width && y<height) {
         idx = getIdx(x,y);
         const Eigen::Vector3f &pt1 = cloud.data[idx];
-        if(!isnan(pt1[2])) {
+        if(!std::isnan(pt1[2])) {
           float new_sqr_radius = sqr_radius;
           if(param.adaptive) {
             float val = param.kappa * center_dist * pt1[2] + param.d;
@@ -160,7 +160,7 @@ void ZAdaptiveNormals::estimateNormals(const v4r::DataMatrix2D<Eigen::Vector3f> 
       int idx = getIdx(u,v);
       const Eigen::Vector3f &pt = cloud.data[idx];
       Eigen::Vector3f &n = normals.data[idx];
-      if(!isnan(pt[0]) && !isnan(pt[1]) && !isnan(pt[2])) {      
+      if(!std::isnan(pt[0]) && !std::isnan(pt[1]) && !std::isnan(pt[2])) {      
         if(param.adaptive) {
           int dist = (int) (pt[2]*2); // *2 => every 0.5 meter another kernel radius
           getIndices(cloud, u,v, param.kernel_radius[dist], indices);
@@ -206,7 +206,7 @@ void ZAdaptiveNormals::estimateNormals(const v4r::DataMatrix2D<Eigen::Vector3f> 
       int v = idx/width;
       const Eigen::Vector3f &pt = cloud.data[idx];
       Eigen::Vector3f &n = normals[i];
-      if(!isnan(pt[0]) && !isnan(pt[1]) && !isnan(pt[2])) {      
+      if(!std::isnan(pt[0]) && !std::isnan(pt[1]) && !std::isnan(pt[2])) {      
         if(param.adaptive) {
           int dist = (int) (pt[2]*2); // *2 => every 0.5 meter another kernel radius
           getIndices(cloud, u,v, param.kernel_radius[dist], indices);

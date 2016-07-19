@@ -30,8 +30,8 @@
  *
  */
 
+#ifndef Q_MOC_RUN
 #include "MultiSession.h"
-
 
 #include <cmath>
 #include <pcl/sample_consensus/ransac.h>
@@ -49,6 +49,7 @@
 #include <v4r/keypoints/impl/PoseIO.hpp>
 #include <pcl/io/pcd_io.h>
 //#include <pcl/visualization/pcl_visualizer.h>
+#endif
 
 using namespace std;
 

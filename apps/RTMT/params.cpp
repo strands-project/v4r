@@ -30,6 +30,7 @@
  *
  */
 
+#ifndef Q_MOC_RUN
 #include "params.h"
 #include "ui_params.h"
 
@@ -39,6 +40,7 @@
 #include <fstream>
 
 #include <QFileDialog>
+#endif
 
 using namespace cv;
 using namespace std;
