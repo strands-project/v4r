@@ -57,9 +57,9 @@ HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecogniti
         boost::shared_ptr<std::vector<int> > indices_map = zbufM.getIndicesMap();
 
         // now compare visible cloud with scene occlusion cloud
-        for (size_t u=0; u<param_.img_width_; u++)
+        for (int u=0; u<param_.img_width_; u++)
         {
-            for (size_t v=0; v<param_.img_height_; v++)
+            for (int v=0; v<param_.img_height_; v++)
             {
                 if ( depth_image_scene[view](v,u) + param_.occlusion_thres_ < depth_image_model(v,u) )
                     indices_map->at(v*param_.img_width_ + u) = -1;
@@ -270,7 +270,7 @@ HypothesisVerification<ModelT, SceneT>::evaluateSolution (const std::vector<bool
 
     float num_active_hypotheses = tmp_solution_.sum();
 #pragma omp parallel for schedule(dynamic)
-    for(size_t row_id=0; row_id < scene_explained_weight_compressed_.rows(); row_id++)
+    for(int row_id=0; row_id < scene_explained_weight_compressed_.rows(); row_id++)
     {
         double max = std::numeric_limits<double>::min();
         for(size_t col_id=0; col_id<active.size(); col_id++)
@@ -319,7 +319,7 @@ HypothesisVerification<ModelT, SceneT>::computePairwiseIntersection()
 
             for(size_t view=0; view<rm_a.image_mask_.size(); view++)
             {
-                for(int px=0; px<rm_a.image_mask_[view].size(); px++)
+                for(size_t px=0; px<rm_a.image_mask_[view].size(); px++)
                 {
                     if( rm_a.image_mask_[view][px] && rm_b.image_mask_[view][px])
                         num_intersections++;
@@ -624,7 +624,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
 
                 if(!rm.isRejected())
                 {
-                    computeLoffset(rm, i);
+                    computeLoffset(rm);
                 }
             }
         }
@@ -929,9 +929,9 @@ HypothesisVerification<ModelT, SceneT>::specifyHistogram (const Eigen::MatrixXf 
         }
 
         int last = 0;
-        for (int bin = 0; bin < bins; bin++)
+        for (size_t bin = 0; bin < bins; bin++)
         {
-            for (int z = last; z < bins; z++)
+            for (size_t z = last; z < bins; z++)
             {
                 if (src_cumulative (z, dim) - dst_cumulative (bin, dim) >= 0)
                 {
@@ -946,7 +946,7 @@ HypothesisVerification<ModelT, SceneT>::specifyHistogram (const Eigen::MatrixXf 
         }
 
         int min = 0;
-        for (int k = 0; k < bins; k++)
+        for (size_t k = 0; k < bins; k++)
         {
             if (lookup (k, dim) != 0)
             {
@@ -955,7 +955,7 @@ HypothesisVerification<ModelT, SceneT>::specifyHistogram (const Eigen::MatrixXf 
             }
         }
 
-        for (int k = 0; k < bins; k++)
+        for (size_t k = 0; k < bins; k++)
         {
             if (lookup (k, dim) == 0)
                 lookup (k, dim) = min;
@@ -1140,7 +1140,7 @@ HypothesisVerification<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionM
 
     // now we compute the exponential of the distance to bound it between 0 and 1 (whereby 1 means perfect fit and 0 no fit)
 #pragma omp parallel for schedule(dynamic)
-    for(size_t sidx=0; sidx < rm.scene_explained_weight_.rows(); sidx++)
+    for(int sidx=0; sidx < rm.scene_explained_weight_.rows(); sidx++)
     {
         float fit = rm.scene_explained_weight_(sidx);
         fit < -1.f ? fit = 0.f : fit = exp(-fit);
@@ -1148,7 +1148,7 @@ HypothesisVerification<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionM
     }
 
 #pragma omp parallel for schedule(dynamic)
-    for(size_t midx=0; midx < modelFit.rows(); midx++)
+    for(int midx=0; midx < modelFit.rows(); midx++)
     {
         float fit = modelFit(midx);
         fit < -1.f ? fit = 0.f : fit = exp(-fit);
@@ -1177,11 +1177,11 @@ HypothesisVerification<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionM
 
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT> &rm, int model_id) const
+HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT> &rm) const
 {
     // pre-allocate memory
     size_t kept = 0;
-    for(size_t sidx=0; sidx<scene_model_sqr_dist_.rows(); sidx++)
+    for(int sidx=0; sidx<scene_model_sqr_dist_.rows(); sidx++)
     {
         if( rm.scene_model_sqr_dist_(sidx) > -1.f )
             kept++;
@@ -1189,7 +1189,7 @@ HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT
 
     Eigen::MatrixXf croppedSceneColorMatrix (kept, scene_color_channels_.cols());
     kept = 0;
-    for(size_t sidx=0; sidx < rm.scene_model_sqr_dist_.rows(); sidx++)
+    for(int sidx=0; sidx < rm.scene_model_sqr_dist_.rows(); sidx++)
     {
         if( rm.scene_model_sqr_dist_(sidx) > -1.f )
         {
@@ -1505,7 +1505,7 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
 
     typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*scene_cloud_downsampled_));
 
-    for(size_t p=0; p < rm.scene_explained_weight_.rows(); p++)
+    for(int p=0; p < rm.scene_explained_weight_.rows(); p++)
     {
         SceneT &sp = scene_fit_cloud->points[p];
         sp.r = sp.b = 0.f;

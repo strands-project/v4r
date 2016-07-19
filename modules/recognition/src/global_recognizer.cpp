@@ -52,7 +52,7 @@ GlobalRecognizer<PointT>::loadFeaturesFromDisk ()
             if(view_signatures.rows()==0)
                 continue;
 
-            for(size_t i=0; i<view_signatures.rows(); i++)
+            for(int i=0; i<view_signatures.rows(); i++)
             {
                 flann_models_.push_back(descr_model); // TODO: pre-allocate memory.
             }
@@ -432,7 +432,7 @@ GlobalRecognizer<PointT>::featureMatching(const Eigen::MatrixXf &query_sig,
     size_t kept=0;
     for(int query_id=0; query_id<predicted_label.rows(); query_id++)
     {
-        for (size_t k = 0; k < predicted_label.cols(); k++)
+        for (int k = 0; k < predicted_label.cols(); k++)
         {
             if(param_.use_table_plane_for_alignment_)
             {
@@ -731,8 +731,8 @@ GlobalRecognizer<PointT>::visualize()
 
 
             std::stringstream model_label, model_label_refined;
-            model_label << model_id << "_" << i << "_" << k << "_vp4";
-            model_label_refined << model_id << "_" << i << "_" << k << "_vp5";
+            model_label << model_id.str() << "_" << i << "_" << k << "_vp4";
+            model_label_refined << model_id.str() << "_" << i << "_" << k << "_vp5";
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
             typename pcl::PointCloud<PointT>::Ptr model_aligned_refined ( new pcl::PointCloud<PointT>() );
             typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );

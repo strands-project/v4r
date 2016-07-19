@@ -5,6 +5,7 @@
  *      Author: Aitor Aldoma, Thomas Faeulhammer
  */
 
+#ifndef Q_MOC_RUN
 #include "main_window.h"
 #include <boost/filesystem.hpp>
 #include <pcl/filters/crop_box.h>
@@ -24,6 +25,7 @@
 #include <QKeyEvent>
 
 #include <boost/program_options.hpp>
+#endif
 
 namespace bf = boost::filesystem;
 namespace po = boost::program_options;
@@ -142,7 +144,7 @@ void MainWindow::model_list_clicked(const QModelIndex & idx)
 
   pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler(cloud, 0, 255, 0);
   pviz_->addPointCloud(cloud, scene_handler, "highlighted");
-  pviz_->spinOnce(0.1, true);
+  pviz_->spinOnce(100, true);
 
 }
 
@@ -162,7 +164,7 @@ void MainWindow::fillScene()
         pviz_->addPointCloud(single_scenes_[i], scene_handler, cloud_name.str(), pviz_v1_);
     }
 
-    pviz_->spinOnce(0.1, true);
+    pviz_->spinOnce(100, true);
 }
 
 void MainWindow::fillModels()
@@ -188,7 +190,7 @@ void MainWindow::fillModels()
     loaded_models_.push_back(models.at(i));
   }
 
-  pviz_models_->spinOnce(0.1, true);
+  pviz_models_->spinOnce(100, true);
 }
 
 void MainWindow::fillHypotheses()
@@ -278,7 +280,7 @@ void MainWindow::fillViews()
       pviz_scenes_->addPointCloud(single_scenes_[i], view_name.str(), view_viewport[i]);
   }
 
-  pviz_->spinOnce(0.1, true);
+  pviz_->spinOnce(100, true);
 }
 
 void MainWindow::lock_with_icp()
@@ -427,7 +429,7 @@ MainWindow::remove_selected()
   fillHypotheses();
   enablePoseRefinmentButtons(false);
 
-  pviz_->spinOnce(0.1, true);
+  pviz_->spinOnce(100, true);
 }
 
 void MainWindow::updateSelectedHypothesis()

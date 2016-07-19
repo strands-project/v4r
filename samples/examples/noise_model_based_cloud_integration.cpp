@@ -14,6 +14,7 @@
 #include <v4r/common/pcl_opencv.h>
 
 #include <pcl/common/transforms.h>
+#include <pcl/common/time.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>

@@ -30,8 +30,8 @@
  *
  */
 
+#ifndef Q_MOC_RUN
 #include "ObjectSegmentation.h"
-
 
 #include <cmath>
 #include <boost/filesystem.hpp>
@@ -55,6 +55,7 @@
 
 #ifdef ER_TEST_MLS
 #include <pcl/surface/mls.h>
+#endif
 #endif
 
 using namespace std;

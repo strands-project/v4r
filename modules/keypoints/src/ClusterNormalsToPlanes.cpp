@@ -210,7 +210,7 @@ void ClusterNormalsToPlanes::doClustering(const v4r::DataMatrix2D<Eigen::Vector3
     {
       clusterNormals(cloud, normals, i, *plane);
 
-      if (plane->size()>=param.minPoints)
+      if ((int)plane->size()>=param.minPoints)
       {
         planes.push_back(plane);
         plane.reset(new Plane(true));
@@ -247,7 +247,7 @@ void ClusterNormalsToPlanes::doClustering(const v4r::DataMatrix2D<Eigen::Vector3
       {
         smoothClustering(cloud, normals, i, *plane);
 
-        if (plane->size()>=param.minPointsSmooth)
+        if ((int)plane->size()>=param.minPointsSmooth)
         {
           planes.push_back(plane);
           plane.reset(new Plane(false));

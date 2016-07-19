@@ -32,7 +32,7 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
         obj_mask = createMaskFromIndices(indices_, cloud_->width * cloud_->height);
 
     size_t kept = 0;
-    for(size_t i=0; i < keypoints2d.cols(); i++)
+    for(int i=0; i < keypoints2d.cols(); i++)
     {
         int u = std::max<int>(0, std::min<int>((int)cloud_->width  -1, keypoints2d(0,i) ) );
         int v = std::max<int>(0, std::min<int>((int)cloud_->height -1, keypoints2d(1,i) ) );
@@ -77,9 +77,9 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
     if(param_.dense_extraction_)
     {
         std::vector<SiftGPU::SiftKeypoint> dense_ks;
-        for(size_t u=0; u<colorImage.cols; u++)
+        for(int u=0; u<colorImage.cols; u++)
         {
-            for(size_t v=0; v<colorImage.rows; v++)
+            for(int v=0; v<colorImage.rows; v++)
             {
                 if( u%param_.stride_ == 0 && v%param_.stride_ == 0 )
                 {

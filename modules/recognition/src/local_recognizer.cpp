@@ -105,7 +105,7 @@ LocalRecognitionPipeline<PointT>::loadFeaturesFromDisk ()
             f.read((char*) &nrows, sizeof(nrows));
             f.read((char*) &ncols, sizeof(ncols));
             std::vector<std::vector<float> > signature (nrows, std::vector<float>(ncols));
-            for(size_t sig_id=0; sig_id<nrows; sig_id++)
+            for(int sig_id=0; sig_id<nrows; sig_id++)
                 f.read((char*) &signature[sig_id][0], sizeof(signature[sig_id][0])*signature[sig_id].size());
             f.close();
 
@@ -652,7 +652,7 @@ LocalRecognitionPipeline<PointT>::computeFeatures()
                 }
             }
 
-            if(filtered_scene->points.size() > param_.min_plane_size_)
+            if((int)filtered_scene->points.size() > param_.min_plane_size_)
                 scene_ = filtered_scene;
             else
                 std::cerr << "Could not find a proper dominant plane!" << std::endl;

@@ -134,7 +134,9 @@ namespace v4r
         }
 
         vtkSmartPointer<vtkPolyData> poly = mapper->GetInput ();
+        #if VTK_MAJOR_VERSION < 6
         poly->Update ();
+        #endif
 
         uniform_sampling (poly, n_samples, cloud_out);
 

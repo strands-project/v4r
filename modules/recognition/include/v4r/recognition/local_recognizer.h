@@ -216,8 +216,8 @@ namespace v4r
         LocalRecognitionPipeline (const Parameter &p = Parameter()) :
             Recognizer<PointT>(p),
             param_(p),
-            feat_kp_set_from_outside_(false),
-            initialization_phase_(false)
+            initialization_phase_(false),
+            feat_kp_set_from_outside_(false)
         {
         }
 

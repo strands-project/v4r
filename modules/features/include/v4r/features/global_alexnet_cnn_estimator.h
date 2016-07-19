@@ -27,7 +27,6 @@
 #include <caffe/net.hpp>
 #include <opencv/cv.h>
 #include <v4r/features/global_estimator.h>
-#include <v4r/common/pcl_opencv.h>
 
 #include <boost/program_options.hpp>
 #include <glog/logging.h>

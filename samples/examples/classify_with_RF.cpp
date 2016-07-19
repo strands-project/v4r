@@ -49,8 +49,8 @@ bool  testRF(const std::string &test_dir, v4r::RandomForest::Forest &rf);
 
 bool trainRF(const std::string &training_dir, v4r::RandomForest::Forest &rf)
 {
-    std::vector < std::string > files_intern;
-    if( v4r::io::getFilesInDirectory (training_dir, files_intern, "", ".*.data", true) == -1)
+    std::vector < std::string > files_intern = v4r::io::getFilesInDirectory (training_dir, ".*.data", true);
+    if(files_intern.empty() )
     {
         std::cerr << "Folder " << training_dir << " does not exist. " << std::endl;
         return false;
@@ -88,9 +88,8 @@ bool trainRF(const std::string &training_dir, v4r::RandomForest::Forest &rf)
 
 bool testRF(const std::string &test_dir, v4r::RandomForest::Forest &rf)
 {
-    std::vector < std::string > files_intern;
-
-    if( v4r::io::getFilesInDirectory (test_dir, files_intern, "", ".*.data", true) == - 1)
+    std::vector < std::string > files_intern = v4r::io::getFilesInDirectory (test_dir, ".*.data", true);
+    if( files_intern.empty() )
     {
         std::cerr << "Folder " << test_dir << " does not exist. " << std::endl;
         return false;
@@ -124,10 +123,17 @@ bool testRF(const std::string &test_dir, v4r::RandomForest::Forest &rf)
             // assuming featureVector contains values...
             int ID = rf.ClassifyPoint(featureVector);
 
+            std::cout << "Hard classification result: " << ID << std::endl << std::endl;
+
             // Soft classification, returning probabilities for each label
             std::vector<float> labelProbabilities = rf.SoftClassify(featureVector);
-        }
 
+            std::cout << "Soft classification results: " << std::endl;
+            for(size_t l=0; l<labelProbabilities.size(); l++)
+                std::cout << l << ": " << labelProbabilities[l] << std::endl;
+
+            std::cout << std::endl;
+        }
     }
     return true;
 }

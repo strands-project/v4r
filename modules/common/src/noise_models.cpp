@@ -108,7 +108,7 @@ NguyenNoiseModel<PointT>::compute ()
             {
                 for (int col_k = (col_start - param_.edge_radius_); col_k <= (col_start + param_.edge_radius_); col_k++)
                 {
-                    if( col_k<0 || row_k < 0 || col_k >= input_->width || row_k >= input_->height || row_k == row_start || col_k == col_start)
+                    if( col_k<0 || row_k < 0 || col_k >= (int)input_->width || row_k >= (int)input_->height || row_k == row_start || col_k == col_start)
                         continue;
 
                     int idx_k = row_k * input_->width + col_k;
@@ -132,7 +132,7 @@ NguyenNoiseModel<PointT>::compute ()
             }
         }
 
-        for (int i = 0; i < input_->points.size (); i++) {
+        for (size_t i = 0; i < input_->points.size (); i++) {
             pt_properties_[i][2] = dist_to_edge_px[i];
             omp_destroy_lock(&px_locks[i]);
         }

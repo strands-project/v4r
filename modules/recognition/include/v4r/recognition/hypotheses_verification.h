@@ -39,7 +39,7 @@
 #include <metslib/mets.hh>
 #include <glog/logging.h>
 
-
+#include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
 namespace po = boost::program_options;
@@ -348,7 +348,7 @@ private:
 
     void computeModel2SceneDistances (HVRecognitionModel<ModelT> &rm);
 
-    void computeLoffset (HVRecognitionModel<ModelT> &rm, int model_id) const;
+    void computeLoffset (HVRecognitionModel<ModelT> &rm) const;
 
     void computePlanarSurfaces ( );
 
