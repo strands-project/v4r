@@ -30,8 +30,10 @@
  *
  */
 
+#ifndef Q_MOC_RUN
 #include "BundleAdjustment.h"
 #include <v4r/keypoints/impl/toString.hpp>
+#endif
 
 using namespace std;
 

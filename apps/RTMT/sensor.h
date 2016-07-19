@@ -33,6 +33,7 @@
 #ifndef _GRAB_PCD_SENSOR_H_
 #define _GRAB_PCD_SENSOR_H_
 
+#ifndef Q_MOC_RUN
 #include <QThread>
 #include <QMutex>
 #include <queue>
@@ -56,7 +57,7 @@
 #include <v4r/common/convertCloud.h>
 #include <v4r/keypoints/ClusterNormalsToPlanes.h>
 #include "OctreeVoxelCentroidContainerXYZRGB.hpp"
-
+#endif
 
 
 class Sensor : public QThread
@@ -208,7 +209,7 @@ private:
  */
 inline bool Sensor::isNaN(const Eigen::Vector3f &pt)
 {
-  if (isnan(pt[0]) || isnan(pt[1]) || isnan(pt[2]))
+  if (std::isnan(pt[0]) || std::isnan(pt[1]) || std::isnan(pt[2]))
     return true;
   return false;
 }

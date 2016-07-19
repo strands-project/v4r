@@ -62,7 +62,11 @@ set(FORMS
 
 find_package(VTK REQUIRED)
 add_executable(GT6DOF GT6DOF.cpp ${foo_MOC_SRCS} main_window.cpp)
+if(VTK_VERSION_MAJOR LESS 6)
 target_link_libraries(GT6DOF ${ObjectGroundTruthAnnotator_DEPS} QVTK ${DEP_LIBS} ${QT_LIBRARIES} ${GL_LIBRARIES})
+else ()
+target_link_libraries(GT6DOF ${ObjectGroundTruthAnnotator_DEPS} ${DEP_LIBS} ${QT_LIBRARIES} ${GL_LIBRARIES})
+endif()
 
 INSTALL(TARGETS GT6DOF
   RUNTIME DESTINATION bin

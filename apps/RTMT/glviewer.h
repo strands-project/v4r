@@ -24,6 +24,7 @@
 #ifndef _GRAB_PCD_GL_VIEWER_H_
 #define _GRAB_PCD_GL_VIEWER_H_
 
+#ifndef Q_MOC_RUN
 #include <qgraphicswidget.h>
 #include <QGLWidget>
 #include <QMouseEvent>
@@ -48,6 +49,7 @@
 #include "OctreeVoxelCentroidContainerXYZRGB.hpp"
 
 #include <QGraphicsView>
+#endif
 
 
 class GLGraphicsView : public QGraphicsView

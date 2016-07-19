@@ -1,5 +1,6 @@
 if(WITH_PCL)
   find_package(PCL "${MIN_VER_PCL}")
+  list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
   if(PCL_FOUND)
     set(HAVE_PCL TRUE)
   endif()

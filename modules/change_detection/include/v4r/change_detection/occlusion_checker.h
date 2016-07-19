@@ -116,7 +116,7 @@ public:
 	}
 
 	bool isPointValid(const PointType &pt) {
-		return pcl::isFinite(pt) && !isnan(pt.x) && !isnan(pt.y) && !isnan(pt.z);
+		return pcl::isFinite(pt) && !std::isnan(pt.x) && !std::isnan(pt.y) && !std::isnan(pt.z);
 	}
 
 private:

@@ -30,9 +30,9 @@
  *
  */
 
+#ifndef Q_MOC_RUN
 #include "sensor.h"
 #include <pcl/common/io.h>
-
 
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/keypoints/impl/PoseIO.hpp>
@@ -41,6 +41,7 @@
 #include <v4r/keypoints/impl/toString.hpp>
 //#include "v4r/KeypointTools/ScopeTime.hpp"
 #include <pcl/io/pcd_io.h>
+#endif
 
 using namespace std;
 

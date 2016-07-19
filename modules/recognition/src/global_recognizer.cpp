@@ -731,8 +731,8 @@ GlobalRecognizer<PointT>::visualize()
 
 
             std::stringstream model_label, model_label_refined;
-            model_label << model_id << "_" << i << "_" << k << "_vp4";
-            model_label_refined << model_id << "_" << i << "_" << k << "_vp5";
+            model_label << model_id.str() << "_" << i << "_" << k << "_vp4";
+            model_label_refined << model_id.str() << "_" << i << "_" << k << "_vp5";
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
             typename pcl::PointCloud<PointT>::Ptr model_aligned_refined ( new pcl::PointCloud<PointT>() );
             typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.getAssembled( param_.resolution_mm_model_assembly_ );
