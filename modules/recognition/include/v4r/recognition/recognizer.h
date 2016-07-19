@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013 Aitor Aldoma
+ * Copyright (c) 2013 Aitor Aldoma, Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -36,6 +36,7 @@
 #include <v4r/core/macros.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
+#include <v4r/recognition/object_hypothesis.h>
 #include <v4r/recognition/source.h>
 
 #include <pcl/common/common.h>
@@ -50,8 +51,6 @@ namespace v4r
         class V4R_EXPORTS Parameter
         {
         public:
-            int icp_iterations_;    /// @brief number of icp iterations. If 0, no pose refinement will be done.
-            int icp_type_; /// @brief defines the icp method being used for pose refinement (0... regular ICP with CorrespondenceRejectorSampleConsensus, 1... crops point cloud of the scene to the bounding box of the model that is going to be refined)
             double voxel_size_icp_;
             double max_corr_distance_; /// @brief defines the margin for the bounding box used when doing pose refinement with ICP of the cropped scene to the model
             int normal_computation_method_; /// @brief chosen normal computation method of the V4R library
@@ -59,64 +58,62 @@ namespace v4r
             double merge_close_hypotheses_dist_; /// @brief defines the maximum distance of the centroids in meter for clusters to be merged together
             double merge_close_hypotheses_angle_; /// @brief defines the maximum angle in degrees for clusters to be merged together
             int resolution_mm_model_assembly_; /// @brief the resolution in millimeters of the model when it gets assembled into a point cloud
+            double max_distance_; /// @brief max distance in meters for recognition
+            bool vis_for_paper_;   /// @brief if true, optimizes visualization to take screenshots used externally (white background, no titles,...)
 
             Parameter(
-                    int icp_iterations = 0,
-                    int icp_type = 0,
                     double voxel_size_icp = 0.0025f,
                     double max_corr_distance = 0.03f,
                     int normal_computation_method = 2,
                     bool merge_close_hypotheses = true,
                     double merge_close_hypotheses_dist = 0.02f,
                     double merge_close_hypotheses_angle = 10.f,
-                    int resolution_mm_model_assembly = 3)
-                : icp_iterations_ (icp_iterations),
-                  icp_type_ (icp_type),
-                  voxel_size_icp_ (voxel_size_icp),
+                    int resolution_mm_model_assembly = 5,
+                    double max_distance = std::numeric_limits<double>::max(),
+                    bool vis_for_paper = false)
+                : voxel_size_icp_ (voxel_size_icp),
                   max_corr_distance_ (max_corr_distance),
                   normal_computation_method_ (normal_computation_method),
                   merge_close_hypotheses_ (merge_close_hypotheses),
                   merge_close_hypotheses_dist_ (merge_close_hypotheses_dist),
                   merge_close_hypotheses_angle_ (merge_close_hypotheses_angle),
-                  resolution_mm_model_assembly_ (resolution_mm_model_assembly)
+                  resolution_mm_model_assembly_ (resolution_mm_model_assembly),
+                  max_distance_ (max_distance),
+                  vis_for_paper_ (vis_for_paper)
             {}
         }param_;
+
+    private:
+        mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
+        mutable int vp1_, vp2_, vp3_;
+        mutable std::vector<std::string> coordinate_axis_ids_;
 
       protected:
         typedef Model<PointT> ModelT;
         typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-        typedef typename std::map<std::string, ObjectHypothesis<PointT> > symHyp;
+        typedef typename std::map<std::string, LocalObjectHypothesis<PointT> > symHyp;
 
         typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
         typedef typename pcl::PointCloud<PointT>::ConstPtr ConstPointTPtr;
 
-        /** \brief Point cloud to be classified */
-        PointTPtr scene_;
+        PointTPtr scene_; /// \brief Point cloud to be classified
+        std::vector<int> indices_; /// @brief segmented cloud to be recognized (if empty, all points will be processed)
+        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_; /// \brief Point cloud to be classified
+        typename Source<PointT>::Ptr source_;  /// \brief Model data source
 
-        /** \brief Point cloud to be classified */
-        pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
-        mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-        mutable int vp1_, vp2_, vp3_;
-
-        /** @brief: generated object hypotheses from correspondence grouping (before verification) */
-        std::vector<ModelTPtr> models_;
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;
-        std::vector<PlaneModel<PointT> > planes_;
-
-        /** @brief boolean vector defining if model or plane is verified (models are first in the vector and its size is equal to models_) */
-        std::vector<bool> model_or_plane_is_verified_;
+        /** @brief: generated object hypotheses (before verification) */
+        std::vector< ObjectHypothesesGroup<PointT> > obj_hypotheses_;   /// @brief generated object hypotheses
+        std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_; /// @brief verified object hypotheses
 
         bool requires_segmentation_;
 
         std::string models_dir_; /// \brief Directory containing the object models
 
         /** \brief Hypotheses verification algorithm */
-        typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > hv_algorithm_;
+        typename HypothesisVerification<PointT, PointT>::Ptr hv_algorithm_;
 
-        void poseRefinement();
         void hypothesisVerification ();
-
 
       public:
 
@@ -126,61 +123,27 @@ namespace v4r
           requires_segmentation_ = false;
         }
 
-        virtual size_t getFeatureType() const
-        {
-            std::cout << "Get feature type is not implemented for this recognizer. " << std::endl;
-            return 0;
-        }
+        virtual ~Recognizer(){}
 
-        virtual bool acceptsNormals() const
-        {
-            return false;
-        }
+        virtual size_t getFeatureType() const = 0;
 
-        virtual void
-        setSaveHypotheses(bool b)
-        {
-            (void)b;
-            PCL_WARN("Set save hypotheses is not implemented for this class.");
-        }
+        virtual bool
+        needNormals() const = 0;
 
-        virtual
+        /**
+         * \brief Sets the model data source_
+         */
         void
-        getSavedHypotheses(symHyp &oh) const
+        setDataSource (const typename Source<PointT>::Ptr & source)
         {
-            (void)oh;
-            PCL_WARN("getSavedHypotheses is not implemented for this class.");
+            source_ = source;
         }
 
-        virtual
-        bool
-        getSaveHypothesesParam() const
+        typename Source<PointT>::Ptr
+        getDataSource() const
         {
-            PCL_WARN("getSaveHypotheses is not implemented for this class.");
-            return false;
+            return source_;
         }
-
-        virtual
-        PointTPtr
-        getKeypointCloud() const
-        {
-            PCL_WARN("getKeypointCloud is not implemented for this class.");
-            PointTPtr foo;
-            return foo;
-        }
-
-        virtual
-        void
-        getKeypointIndices(std::vector<int> & indices) const
-        {
-            (void)indices;
-            PCL_WARN("Get keypoint indices is not implemented for this class.");
-        }
-
-        virtual void recognize () = 0;
-
-        virtual typename boost::shared_ptr<Source<PointT> >
-        getDataSource () const = 0;
 
         virtual bool
         initialize(bool force_retrain)
@@ -190,79 +153,27 @@ namespace v4r
             return true;
         }
 
-        void setHVAlgorithm (const typename boost::shared_ptr<HypothesisVerification<PointT, PointT> > & alg)
+        /**
+         * @brief sets the Hypotheses Verification algorithm
+         * @param alg
+         */
+        void
+        setHVAlgorithm (const typename HypothesisVerification<PointT, PointT>::Ptr & alg)
         {
           hv_algorithm_ = alg;
         }
 
-        void setInputCloud (const PointTPtr cloud)
+        void
+        setInputCloud (const PointTPtr cloud)
         {
-          scene_ = cloud;
-        }
-
-        /**
-         * @brief return all generated object hypotheses
-         * @return potential object model in the scene (not aligned to the scene)
-         */
-        std::vector<ModelTPtr>
-        getModels () const
-        {
-          return models_;
+            scene_ = cloud;
         }
 
 
-        /**
-         * @brief returns only the models for the objects that have been verified
-         * @return verified object model of the scene (not aligned to the scene)
-         */
-        std::vector<ModelTPtr>
-        getVerifiedModels () const
+        std::vector<ObjectHypothesesGroup<PointT> >
+        getObjectHypothesis() const
         {
-            std::vector<ModelTPtr> models_verified;
-
-            if(model_or_plane_is_verified_.size() < models_.size()) {
-                std::cout << "Verification vector is not valid. Did you run hyphotheses verification?" << std::endl;
-                return models_verified;
-            }
-
-            for(size_t i=0; i<models_.size(); i++) {
-                if (model_or_plane_is_verified_[i])
-                    models_verified.push_back(models_[i]);
-            }
-            return models_verified;
-        }
-
-
-        /**
-         * @brief return all transforms of generated object hypotheses with respect to the scene
-         * @return 4x4 homogenous transformation matrix
-         */
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
-        getTransforms () const
-        {
-          return transforms_;
-        }
-
-
-        /**
-         * @brief returns only the transformations for the objects that have been verified
-         * @return 4x4 homogenous transformation matrix of verified model to the scene
-         */
-        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
-        getVerifiedTransforms () const
-        {
-          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_verified;
-
-          if(model_or_plane_is_verified_.size() < transforms_.size()) {
-              std::cout << "Verification vector is not valid. Did you run hyphotheses verification?" << std::endl;
-              return transforms_verified;
-          }
-
-          for(size_t i=0; i<transforms_.size(); i++) {
-              if (model_or_plane_is_verified_[i])
-                  transforms_verified.push_back(transforms_[i]);
-          }
-          return transforms_verified;
+            return obj_hypotheses_;
         }
 
 
@@ -275,25 +186,28 @@ namespace v4r
           models_dir_ = dir;
         }
 
-        std::string
-        getModelsDir() const
-        {
-            return models_dir_;
-        }
-
-
         void setSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr &normals)
         {
             scene_normals_ = normals;
         }
-
 
         virtual bool requiresSegmentation() const
         {
           return requires_segmentation_;
         }
 
+        std::vector<typename ObjectHypothesis<PointT>::Ptr >
+        getVerifiedHypotheses() const
+        {
+            return verified_hypotheses_;
+        }
+
         void visualize () const;
+
+        virtual void recognize () = 0;
+
+        typedef boost::shared_ptr< Recognizer<PointT> > Ptr;
+        typedef boost::shared_ptr< Recognizer<PointT> const> ConstPtr;
     };
 }
 #endif /* RECOGNIZER_H_ */

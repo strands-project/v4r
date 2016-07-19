@@ -131,7 +131,7 @@ main (int argc, char ** argv)
 
                         const Eigen::Matrix4f gt_pose = v4r::io::readMatrixFromFile( annotations_dir+"/"+gt_file );
 
-                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled(0.003f);
+                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled(3);
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, gt_pose);
                         gt_cloud += *model_aligned;

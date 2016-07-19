@@ -14,8 +14,9 @@
 #include <set>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
-#include <v4r/common/common_data_structures.h>
+#include <v4r/common/plane_model.h>
 #include <v4r/core/macros.h>
+#include <pcl/common/angles.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
@@ -38,13 +39,13 @@ public:
   class Parameter
   {
   public:
-    double thrAngle;             // Threshold of angle for normal clustering
-    double inlDist;              // Maximum inlier distance
-    unsigned minPoints;              // Minimum number of points for a plane
+    double thrAngle;             /// @brief Threshold of angle for normal clustering
+    double inlDist;              /// @brief Maximum inlier distance
+    unsigned minPoints;              /// @brief Minimum number of points for a plane
     bool least_squares_refinement;
     bool smooth_clustering;
-    double thrAngleSmooth;             // Threshold of angle for normal clustering
-    double inlDistSmooth;              // Maximum inlier distance
+    double thrAngleSmooth;             /// @brief Threshold of angle for normal clustering
+    double inlDistSmooth;              /// @brief Maximum inlier distance
     unsigned minPointsSmooth;
     int K_; // k in nearest neighor search when doing smooth clustering in unorganized point clouds
     int normal_computation_method_; /// @brief defines the method used for normal computation (only used when point cloud is downsampled / unorganized)
@@ -121,8 +122,8 @@ public:
   ClusterNormalsToPlanesPCL(const Parameter &_p=Parameter())
       : param(_p)
   {
-      cos_rad_thr_angle = cos(param.thrAngle*M_PI/180.);
-      cos_rad_thr_angle_smooth = cos(param.thrAngleSmooth*M_PI/180.);
+      cos_rad_thr_angle = cos( pcl::deg2rad(param.thrAngle) );
+      cos_rad_thr_angle_smooth = cos( pcl::deg2rad(param.thrAngleSmooth) );
   }
 
   ~ClusterNormalsToPlanesPCL()

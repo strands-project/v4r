@@ -55,7 +55,6 @@ main (int argc, char ** argv)
             ("ratio", po::value<double>(&m.param_.ratio_supervoxel_)->default_value(m.param_.ratio_supervoxel_), "")
             ("do_erosion", po::value<bool>(&m.param_.do_erosion_)->default_value(m.param_.do_erosion_), "")
             ("do_mst_refinement", po::value<bool>(&m.param_.do_mst_refinement_)->default_value(m.param_.do_mst_refinement_), "")
-            ("do_sift_based_camera_pose_estimation", po::value<bool>(&m.param_.do_sift_based_camera_pose_estimation_)->default_value(m.param_.do_sift_based_camera_pose_estimation_), "")
             ("transfer_latest_only", po::value<bool>(&m.param_.transfer_indices_from_latest_frame_only_)->default_value(m.param_.transfer_indices_from_latest_frame_only_), "")
             ("chop_z,z", po::value<double>(&m.param_.chop_z_)->default_value(m.param_.chop_z_), "Cut-off distance of the input clouds with respect to the camera. Points further away than this distance will be ignored.")
             ("normal_method,n", po::value<int>(&m.param_.normal_method_)->default_value(m.param_.normal_method_), "")
@@ -86,8 +85,6 @@ main (int argc, char ** argv)
         std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;
         return false;
     }
-
-    m.initSIFT();
 
     v4r::io::createDirIfNotExist(output_dir);
 

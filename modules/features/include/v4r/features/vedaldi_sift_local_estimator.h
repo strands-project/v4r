@@ -44,7 +44,7 @@ namespace v4r
         }
 
         bool
-        estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
+        compute (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 
           keypoint_indices_.clear();

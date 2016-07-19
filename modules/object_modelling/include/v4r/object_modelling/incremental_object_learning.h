@@ -40,10 +40,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/graph/graph_traits.hpp>
 
-#ifdef HAVE_SIFTGPU
-    #include <SiftGPU/SiftGPU.h>
-#endif
-
 namespace v4r
 {
 namespace object_modelling
@@ -89,7 +85,6 @@ public:
         double ratio_supervoxel_;
         double chop_z_; /// @brief cut-off distance in meters
         bool do_erosion_;
-        bool do_sift_based_camera_pose_estimation_;
         bool transfer_indices_from_latest_frame_only_;
         size_t min_points_for_transferring_;
         int normal_method_;
@@ -104,7 +99,6 @@ public:
                    double ratio = 0.25f,
                    double chop_z = std::numeric_limits<double>::quiet_NaN(),
                    bool do_erosion = true,
-                   bool do_sift_based_camera_pose_estimation = false,
                    bool transfer_indices_from_latest_frame_only = false,
                    size_t min_points_for_transferring = 10,
                    int normal_method = 0,
@@ -119,7 +113,6 @@ public:
             ratio_supervoxel_(ratio),
             chop_z_(chop_z),
             do_erosion_(do_erosion),
-            do_sift_based_camera_pose_estimation_(do_sift_based_camera_pose_estimation),
             transfer_indices_from_latest_frame_only_(transfer_indices_from_latest_frame_only),
             min_points_for_transferring_(min_points_for_transferring),
             normal_method_(normal_method),
@@ -145,8 +138,6 @@ public:
 
 protected:
 
-    typedef flann::L1<float> DistT;
-    typedef pcl::Histogram<128> FeatureT;
     typedef boost::property<boost::edge_weight_t, CamConnect> EdgeWeightProperty;
     typedef boost::adjacency_list < boost::vecS, boost::vecS, boost::undirectedS, size_t, EdgeWeightProperty> Graph;
     typedef boost::graph_traits < Graph >::vertex_descriptor Vertex;
@@ -168,10 +159,6 @@ protected:
     boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_, vis_reconstructed_, vis_seg_;
     std::vector<int> vis_reconstructed_viewpoint_;
     std::vector<int> vis_viewpoint_;
-
-#ifdef HAVE_SIFTGPU
-        boost::shared_ptr<SiftGPU> sift_;
-#endif
 
     std::vector<modelView> grph_;
     pcl::octree::OctreePointCloudSearch<PointT> octree_;
@@ -311,22 +298,6 @@ protected:
 
     std::vector<bool>
     erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<PointT> & cloud);
-
-    bool calcSiftFeatures (const pcl::PointCloud<PointT> &cloud_src,
-                           pcl::PointCloud<PointT> &sift_keypoints,
-                           std::vector< size_t > &sift_keypoint_indices,
-                           std::vector<std::vector<float> > &sift_signatures,
-                           std::vector<float> &sift_keypoint_scales);
-
-    void
-    estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
-                                          const pcl::PointCloud<PointT> &dst_cloud,
-                                          const std::vector<size_t> &src_sift_keypoint_indices,
-                                          const std::vector<size_t> &dst_sift_keypoint_indices,
-                                          const std::vector<std::vector<float> > &src_sift_signatures,
-                                          boost::shared_ptr< flann::Index<DistT> > &src_flann_index,
-                                          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
-                                          bool use_gc = false);
 
 public:
 

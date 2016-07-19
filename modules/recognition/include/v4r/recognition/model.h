@@ -25,14 +25,12 @@
 #ifndef RECOGNITION_MODEL_H
 #define RECOGNITION_MODEL_H
 
-#include <EDT/propagation_distance_field.h>
 #include <v4r/core/macros.h>
-
 #include <pcl/common/centroid.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/point_cloud.h>
 #include <pcl/filters/voxel_grid.h>
-
+#include <pcl/visualization/pcl_visualizer.h>
 
 namespace v4r
 {
@@ -43,26 +41,31 @@ namespace v4r
 template<typename PointT>
 class V4R_EXPORTS Model
 {
-  typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
-  typedef typename pcl::PointCloud<PointT>::ConstPtr PointTPtrConst;
-  Eigen::Vector4f centroid_;
-  bool centroid_computed_;
+private:
+  mutable pcl::visualization::PCLVisualizer::Ptr vis_;
+  mutable int vp1_;
 
 public:
+  typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
+  typedef typename pcl::PointCloud<PointT>::ConstPtr PointTPtrConst;
   std::vector<PointTPtr> views_;
-  std::vector<pcl::PointIndices> indices_;
+  std::vector<std::vector<int> > indices_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
-  std::vector<float>  self_occlusions_;
+  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > eigen_pose_alignment_;
+  Eigen::MatrixX3f elongations_; /// @brief elongations in meter for each dimension (column) and each view (row)
+  std::vector<float> self_occlusions_;
   std::string class_, id_;
   PointTPtr assembled_;
   pcl::PointCloud<pcl::Normal>::Ptr normals_assembled_;
   std::vector <std::string> view_filenames_;
   PointTPtr keypoints_; //model keypoints
   pcl::PointCloud<pcl::Normal>::Ptr kp_normals_; //keypoint normals
+  std::map<std::string, Eigen::MatrixXf> signatures_; /// @brief signatures of all local keypoint descriptors. Each element in the map represents a set of keypoint description (e.g. SIFT). The columns of the matrix represent the signature of one keypoint.
   mutable typename std::map<int, PointTPtrConst> voxelized_assembled_;
   mutable typename std::map<int, pcl::PointCloud<pcl::Normal>::ConstPtr> normals_voxelized_assembled_;
-  //typename boost::shared_ptr<VoxelGridDistanceTransform<PointT> > dist_trans_;
-  typename boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > dist_trans_;
+  Eigen::Vector4f centroid_;    /// @brief centre of gravity for the whole 3d model
+  Eigen::MatrixX3f view_centroid_;  /// @brief centre of gravity for each 2.5D view of the model (each row corresponds to one view)
+  bool centroid_computed_;
 
   pcl::PointCloud<pcl::PointXYZL>::Ptr faces_cloud_labels_;
   typename std::map<int, pcl::PointCloud<pcl::PointXYZL>::Ptr> voxelized_assembled_labels_;
@@ -102,124 +105,18 @@ public:
     return (id_ == other.id_) && (class_ == other.class_);
   }
 
-  void computeNormalsAssembledCloud(float radius_normals) {
-    typename pcl::search::KdTree<PointT>::Ptr normals_tree (new pcl::search::KdTree<PointT>);
-    typedef typename pcl::NormalEstimationOMP<PointT, pcl::Normal> NormalEstimator_;
-    NormalEstimator_ n3d;
-    normals_assembled_.reset (new pcl::PointCloud<pcl::Normal> ());
-    normals_tree->setInputCloud (assembled_);
-    n3d.setRadiusSearch (radius_normals);
-    n3d.setSearchMethod (normals_tree);
-    n3d.setInputCloud (assembled_);
-    n3d.compute (*normals_assembled_);
-  }
+  void computeNormalsAssembledCloud(float radius_normals);
 
-  pcl::PointCloud<pcl::PointXYZL>::Ptr
-  getAssembledSmoothFaces (int resolution_mm)
-  {
-    if(resolution_mm <= 0)
-      return faces_cloud_labels_;
+  pcl::PointCloud<pcl::PointXYZL>::Ptr getAssembledSmoothFaces (int resolution_mm);
 
-    typename std::map<int, pcl::PointCloud<pcl::PointXYZL>::Ptr>::iterator it = voxelized_assembled_labels_.find (resolution_mm);
-    if (it == voxelized_assembled_labels_.end ())
-    {
-      double resolution = resolution_mm / (double)1000.f;
-      pcl::PointCloud<pcl::PointXYZL>::Ptr voxelized (new pcl::PointCloud<pcl::PointXYZL>);
-      pcl::VoxelGrid<pcl::PointXYZL> grid;
-      grid.setInputCloud (faces_cloud_labels_);
-      grid.setLeafSize (resolution, resolution, resolution);
-      grid.setDownsampleAllData(true);
-      grid.filter (*voxelized);
+  typename pcl::PointCloud<PointT>::ConstPtr getAssembled(int resolution_mm) const;
 
-      voxelized_assembled_labels_[resolution] = voxelized;
-      return voxelized;
-    }
-
-    return it->second;
-  }
-
-  PointTPtrConst
-  getAssembled (int resolution_mm) const
-  {
-    if(resolution_mm <= 0)
-      return assembled_;
-
-    typename std::map<int, PointTPtrConst>::iterator it = voxelized_assembled_.find (resolution_mm);
-    if (it == voxelized_assembled_.end ())
-    {
-      double resolution = (double)resolution_mm / 1000.f;
-      PointTPtr voxelized (new pcl::PointCloud<PointT>);
-      pcl::VoxelGrid<PointT> grid;
-      grid.setInputCloud (assembled_);
-      grid.setLeafSize (resolution, resolution, resolution);
-      grid.setDownsampleAllData(true);
-      grid.filter (*voxelized);
-
-      PointTPtrConst voxelized_const (new pcl::PointCloud<PointT> (*voxelized));
-      voxelized_assembled_[resolution] = voxelized_const;
-      return voxelized_const;
-    }
-
-    return it->second;
-  }
-
-  pcl::PointCloud<pcl::Normal>::ConstPtr
-  getNormalsAssembled (int resolution_mm) const
-  {
-    if(resolution_mm <= 0)
-      return normals_assembled_;
-
-    typename std::map<int, pcl::PointCloud<pcl::Normal>::ConstPtr >::iterator it = normals_voxelized_assembled_.find (resolution_mm);
-    if (it == normals_voxelized_assembled_.end ())
-    {
-      double resolution = resolution_mm / 1000.f;
-      pcl::PointCloud<pcl::PointNormal>::Ptr voxelized (new pcl::PointCloud<pcl::PointNormal>);
-      pcl::PointCloud<pcl::PointNormal>::Ptr assembled_with_normals (new pcl::PointCloud<pcl::PointNormal>);
-      assembled_with_normals->points.resize(assembled_->points.size());
-      assembled_with_normals->width = assembled_->width;
-      assembled_with_normals->height = assembled_->height;
-
-      for(size_t i=0; i < assembled_->points.size(); i++) {
-        assembled_with_normals->points[i].getVector4fMap() = assembled_->points[i].getVector4fMap();
-        assembled_with_normals->points[i].getNormalVector4fMap() = normals_assembled_->points[i].getNormalVector4fMap();
-      }
-
-      pcl::VoxelGrid<pcl::PointNormal> grid;
-      grid.setInputCloud (assembled_with_normals);
-      grid.setLeafSize (resolution, resolution, resolution);
-      grid.setDownsampleAllData(true);
-      grid.filter (*voxelized);
-
-      pcl::PointCloud<pcl::Normal>::Ptr voxelized_const (new pcl::PointCloud<pcl::Normal> ());
-      voxelized_const->points.resize(voxelized->points.size());
-      voxelized_const->width = voxelized->width;
-      voxelized_const->height = voxelized->height;
-
-      for(size_t i=0; i < voxelized_const->points.size(); i++)
-        voxelized_const->points[i].getNormalVector4fMap() = voxelized->points[i].getNormalVector4fMap();
+  pcl::PointCloud<pcl::Normal>::ConstPtr getNormalsAssembled (int resolution_mm) const;
 
 
-      normals_voxelized_assembled_[resolution] = voxelized_const;
-      return voxelized_const;
-    }
+  typedef boost::shared_ptr< Model<PointT> > Ptr;
+  typedef boost::shared_ptr< Model<PointT> const> ConstPtr;
 
-    return it->second;
-  }
-
-  void
-  createVoxelGridAndDistanceTransform(int resolution_mm) {
-    double resolution = (double)resolution_mm / 1000.f;
-    PointTPtrConst assembled (new pcl::PointCloud<PointT> ());
-    assembled = getAssembled(resolution_mm);
-    dist_trans_.reset(new distance_field::PropagationDistanceField<PointT>(resolution));
-    dist_trans_->setInputCloud(assembled);
-    dist_trans_->compute();
-  }
-
-  void
-  getVGDT(boost::shared_ptr<distance_field::PropagationDistanceField<PointT> > & dt) {
-    dt = dist_trans_;
-  }
 };
 
 }

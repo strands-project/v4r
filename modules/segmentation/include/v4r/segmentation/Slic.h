@@ -42,7 +42,7 @@ private:
 
   void performSlic(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint> &seeds, cv::Mat_<int> &labels, 
         const int &step, const double &m);
-  void getSeeds(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint> &seeds, const int &step);
+  void getSeeds(const cv::Mat_<cv::Vec3d> &im_lab, std::vector<SlicPoint> &_seeds, const int &step);
   void enforceLabelConnectivity(cv::Mat_<int> &labels, cv::Mat_<int> &out_labels, int& numlabels, const int& K);
 
 public:

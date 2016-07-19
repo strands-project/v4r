@@ -13,7 +13,7 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/features/integral_image_normal.h>
 #include <v4r/common/visibility_reasoning.h>
-#include <v4r/features/uniform_sampling.h>
+#include <pcl/keypoints/uniform_sampling.h>
 
 //#define FAAT_PCL_FAST_ICP_VIS_FINAL
 
@@ -21,7 +21,7 @@ namespace v4r
 {
     template<typename PointT>
       inline bool
-      v4r::FastIterativeClosestPointWithGC<PointT>::filterHypothesesByPose (typename boost::shared_ptr<ICPNode<PointT> > & current,
+      FastIterativeClosestPointWithGC<PointT>::filterHypothesesByPose (typename boost::shared_ptr<ICPNode<PointT> > & current,
                                                                             typename std::vector<boost::shared_ptr<ICPNode<PointT> > > & nodes,
                                                                             float trans_threshold)
       {
@@ -392,14 +392,15 @@ namespace v4r
               if (!standard_cg_)
               {
                 //pcl::ScopeTime t ("GraphGeometricConsistencyGrouping...");
-                v4r::GraphGeometricConsistencyGrouping<PointT, PointT> gcg_alg;
-                gcg_alg.setGCThreshold (min_number_correspondences_);
-                gcg_alg.setGCSize (gc_size_);
-                gcg_alg.setDotDistance (0.25f);
-                gcg_alg.setRansacThreshold (ransac_threshold_);
-                gcg_alg.setDistForClusterFactor (1.f);
-                gcg_alg.setUseGraph (false);
-                gcg_alg.setPrune (false);
+                  typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter gcg_param;
+                  gcg_param.gc_threshold_ = min_number_correspondences_;
+                  gcg_param.gc_size_ = gc_size_;
+                  gcg_param.ransac_threshold_ = ransac_threshold_;
+                  gcg_param.dist_for_cluster_factor_ = 1.f;
+                  gcg_param.thres_dot_distance_ = 0.25f;
+                  gcg_param.use_graph_ = false;
+                  gcg_param.prune_ = false;
+                GraphGeometricConsistencyGrouping<PointT, PointT> gcg_alg(gcg_param);
                 gcg_alg.setModelSceneCorrespondences (*correspondences_alive_node);
                 gcg_alg.setSceneCloud (tgt_keypoints);
                 gcg_alg.setInputCloud (src_keypoints_local);

@@ -41,7 +41,7 @@
 
 #include <v4r/common/normals.h>
 #include <v4r/common/pcl_visualization_utils.h>
-#include <v4r/recognition/hv_go_3D.h>
+#include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/registration/FeatureBasedRegistration.h>
 #include <v4r/registration/metrics.h>
 #include <v4r/recognition/segmenter.h>
@@ -59,23 +59,15 @@ namespace v4r
 
 template<typename PointT>
 bool
-MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<PointT> &cloud_src,
-                                               typename pcl::PointCloud<PointT> &sift_keypoints,
+MultiviewRecognizer<PointT>::calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
                                                std::vector< int > &sift_keypoint_indices,
-                                               std::vector<std::vector<float> > &sift_signatures,
-                                               std::vector<float> &sift_keypoint_scales)
+                                               std::vector<std::vector<float> > &sift_signatures)
 {
-#ifdef HAVE_SIFTGPU
     SIFTLocalEstimation<PointT> estimator(sift_);
-    bool ret = estimator.estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-#else
-    (void)sift_keypoint_scales; //silences compiler warning of unused variable
-    typename pcl::PointCloud<PointT> processed_foo;
-    OpenCVSIFTLocalEstimation<PointT > estimator;
-    bool ret = estimator.estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
-#endif
-    estimator.getKeypointIndices( sift_keypoint_indices );
-    return ret;
+    estimator.setInputCloud(cloud_src);
+    estimator.compute (sift_signatures);
+    sift_keypoint_indices = estimator.getKeypointIndices(  );
+    return true;
 }
 
 template<typename PointT>
@@ -189,12 +181,9 @@ MultiviewRecognizer<PointT>::recognize ()
                                         // matters for their SIFT descriptors, the descriptors are computed on the
                                         // original rather than on the filtered point cloud. Keypoints at infinity
                                         // are removed.
-            typename pcl::PointCloud<PointT> sift_keypoints;
             std::vector<int> sift_kp_indices;
             std::vector<std::vector<float> > sift_signatures;
-            std::vector<float> sift_keypoints_scales;
-
-            calcSiftFeatures( *v.scene_, sift_keypoints, sift_kp_indices, sift_signatures, sift_keypoints_scales);
+            calcSiftFeatures( v.scene_, sift_kp_indices, sift_signatures);
 
             v.sift_kp_indices_.reserve( sift_kp_indices.size() );
             v.sift_signatures_.reserve( sift_signatures.size() );
@@ -348,14 +337,14 @@ MultiviewRecognizer<PointT>::recognize ()
     rr_->setSceneNormals(v.scene_normals_);
     rr_->recognize();
 
-    if(rr_->getSaveHypothesesParam()) {  // we have to do the correspondence grouping ourselve [Faeulhammer et al 2015, ICRA paper]
+    if(true) {  // we have to do the correspondence grouping ourselve [Faeulhammer et al 2015, ICRA paper]
         rr_->getSavedHypotheses(v.hypotheses_);
         rr_->getKeypointCloud(v.scene_kp_);
         rr_->getKeyPointNormals(v.scene_kp_normals_);
 
         scene_keypoints_ = *v.scene_kp_;
         scene_kp_normals_ = *v.scene_kp_normals_;
-        obj_hypotheses_ = v.hypotheses_;
+        local_obj_hypotheses_ = v.hypotheses_;
 
         for (const auto &w_m : views_) {   // merge feature correspondences from other views
             const View<PointT> &w = w_m.second;
@@ -370,16 +359,16 @@ MultiviewRecognizer<PointT>::recognize ()
             transformNormals(*w.scene_kp_normals_, scene_kp_normals, w_tf);
 
             for (const auto &oh_remote_m : w.hypotheses_) {
-                ObjectHypothesis<PointT> oh_remote = oh_remote_m.second; // copy because we need to update correspondences indices and don't change the original information
+                LocalObjectHypothesis<PointT> oh_remote = oh_remote_m.second; // copy because we need to update correspondences indices and don't change the original information
 
                 // check if correspondences for model already exist
                 const std::string &model_name = oh_remote.model_->id_;
-                typename symHyp::iterator oh_local_m = obj_hypotheses_.find( model_name );
-                if( oh_local_m == obj_hypotheses_.end() )   // no feature correspondences exist yet
-                    obj_hypotheses_.insert(std::pair<std::string, ObjectHypothesis<PointT> >(model_name, oh_remote));
+                typename symHyp::iterator oh_local_m = local_obj_hypotheses_.find( model_name );
+                if( oh_local_m == local_obj_hypotheses_.end() )   // no feature correspondences exist yet
+                    local_obj_hypotheses_.insert(std::pair<std::string, LocalObjectHypothesis<PointT> >(model_name, oh_remote));
 
                 else {  // merge with existing object hypotheses
-                    ObjectHypothesis<PointT> &oh_local = oh_local_m->second;
+                    LocalObjectHypothesis<PointT> &oh_local = oh_local_m->second;
 
                     // check each new correspondence for duplicate in existing database. If there is a sufficient close keypoint (Euclidean distance and normal dot product), do not add another one
                     size_t new_corr = oh_remote.model_scene_corresp_.size();
@@ -432,8 +421,7 @@ MultiviewRecognizer<PointT>::recognize ()
 //        vis_tmp.spin();
 
         if(cg_algorithm_) {
-            models_.clear();
-            transforms_.clear();
+            verified_hypotheses_.clear();
             correspondenceGrouping();
             v.models_ = models_;
             v.transforms_ = transforms_;
@@ -462,10 +450,41 @@ MultiviewRecognizer<PointT>::recognize ()
 
             for(size_t i=0; i<w.models_.size(); i++) {
                 if(w.model_or_plane_is_verified_[i]) {
-                    v.models_.push_back( w.models_[i] );
-                    v.transforms_.push_back( v.absolute_pose_.inverse() * w.absolute_pose_ * w.transforms_[i] );
-                    v.origin_view_id_.push_back( w.origin_view_id_[i] );
-                    v.model_or_plane_is_verified_.push_back( false );
+
+                    bool add_hypothesis = true;
+
+                    if(param_.merge_close_hypotheses_) {  // check if similar object hypotheses exist
+                        Eigen::Matrix4f object_pose_in_v_co_system = v.absolute_pose_.inverse() * w.absolute_pose_ * w.transforms_[i];
+                        Eigen::Vector3f centroid_w = object_pose_in_v_co_system.block<3, 1> (0, 3);
+                        Eigen::Matrix3f rot_w = object_pose_in_v_co_system.block<3, 3> (0, 0);
+                        const double angle_thresh_rad = param_.merge_close_hypotheses_angle_ * M_PI / 180.f ;
+
+                        for(size_t j=0; j<v.models_.size(); j++) {
+                            if(w.models_[i]->id_ != v.models_[j]->id_)
+                                continue;
+
+                            const Eigen::Matrix4f tf_v = v.transforms_[j];
+                            Eigen::Vector3f centroid_v = tf_v.block<3, 1> (0, 3);
+                            Eigen::Matrix3f rot_v = tf_v.block<3, 3> (0, 0);
+                            Eigen::Matrix3f rot_diff = rot_v * rot_w.transpose();
+
+                            double rotx = atan2(rot_diff(2,1), rot_diff(2,2));
+                            double roty = atan2(-rot_diff(2,0), sqrt(rot_diff(2,1) * rot_diff(2,1) + rot_diff(2,2) * rot_diff(2,2)));
+                            double rotz = atan2(rot_diff(1,0), rot_diff(0,0));
+                            double dist = (centroid_v - centroid_w).norm();
+
+                            if ( (dist < param_.merge_close_hypotheses_dist_) && (rotx < angle_thresh_rad) && (roty < angle_thresh_rad) && (rotz < angle_thresh_rad) ) {
+                                add_hypothesis = false;
+                                break;
+                            }
+                        }
+                    }
+                    if(add_hypothesis) {
+                        v.models_.push_back( w.models_[i] );
+                        v.transforms_.push_back( v.absolute_pose_.inverse() * w.absolute_pose_ * w.transforms_[i] );
+                        v.origin_view_id_.push_back( w.origin_view_id_[i] );
+                        v.model_or_plane_is_verified_.push_back( false );
+                    }
                 }
             }
         }
@@ -474,12 +493,9 @@ MultiviewRecognizer<PointT>::recognize ()
         transforms_ = v.transforms_;
     }
 
-    boost::shared_ptr<GO3D<PointT, PointT> > hv_algorithm_3d;
+     {
+        initHVFilters();
 
-    if( hv_algorithm_ )
-       hv_algorithm_3d = boost::dynamic_pointer_cast<GO3D<PointT, PointT>> (hv_algorithm_);
-
-    if ( hv_algorithm_3d ) {
         NguyenNoiseModel<PointT> nm (nm_param_);
         nm.setInputCloud(v.scene_);
         nm.setInputNormals( v.scene_normals_);
@@ -499,33 +515,35 @@ MultiviewRecognizer<PointT>::recognize ()
             transforms_to_global [view_id] = v.absolute_pose_.inverse() * w.absolute_pose_;
             pt_properties [view_id ] = w.pt_properties_;
             view_id++;
+
+            if (param_.run_reconstruction_filter_) {
+                reconstructionFiltering(original_clouds [view_id ], normal_clouds [view_id],
+                        w.absolute_pose_, w_m.first);
+                NguyenNoiseModel<PointT> nm_again(nm_param_);
+                nm_again.setInputCloud(original_clouds [view_id ]);
+                nm_again.setInputNormals(normal_clouds [view_id]);
+                nm_again.compute();
+                pt_properties [view_id ] = nm_again.getPointProperties();
+            }
         }
-
-        //obtain big cloud and occlusion clouds based on noise model integration
-
-        typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
-        NMBasedCloudIntegration<PointT> nmIntegration (nmInt_param_);
-        nmIntegration.setInputClouds(original_clouds);
-        nmIntegration.setTransformations(transforms_to_global);
-        nmIntegration.setInputNormals(normal_clouds);
-        nmIntegration.setPointProperties(pt_properties);
-        nmIntegration.compute(octree_cloud);
-        pcl::PointCloud<pcl::Normal>::Ptr big_normals(new pcl::PointCloud<pcl::Normal>);
-        nmIntegration.getOutputNormals(big_normals);
 
         std::vector<typename pcl::PointCloud<PointT>::ConstPtr> occlusion_clouds (original_clouds.size());
         for(size_t i=0; i < original_clouds.size(); i++)
             occlusion_clouds[i].reset(new pcl::PointCloud<PointT>(*original_clouds[i]));
 
-        hv_algorithm_3d->setOcclusionClouds( occlusion_clouds );
-        hv_algorithm_3d->setAbsolutePoses( transforms_to_global );
+        hv_algorithm_->setOcclusionCloudsAndAbsoluteCameraPoses(occlusion_clouds, transforms_to_global );
 
-        //Instantiate HV go 3D, reimplement addModels that will reason about occlusions
-        //Set occlusion cloudS!!
-        //Set the absolute poses so we can go from the global coordinate system to the occlusion clouds
-        //TODO: Normals might be a problem!! We need normals from the models and normals from the scene, correctly oriented!
-        //right now, all normals from the scene will be oriented towards some weird 0, same for models actually
    if (views_.size() > 1 ) { // don't do this if there is only one view otherwise point cloud is not kept organized and multi-plane segmentation takes longer
+            //obtain big cloud and occlusion clouds based on noise model integration
+            typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
+            NMBasedCloudIntegration<PointT> nmIntegration (nmInt_param_);
+            nmIntegration.setInputClouds(original_clouds);
+            nmIntegration.setTransformations(transforms_to_global);
+            nmIntegration.setInputNormals(normal_clouds);
+            nmIntegration.setPointProperties(pt_properties);
+            nmIntegration.compute(octree_cloud);
+            pcl::PointCloud<pcl::Normal>::Ptr big_normals(new pcl::PointCloud<pcl::Normal>);
+            nmIntegration.getOutputNormals(big_normals);
             scene_ = octree_cloud;
             scene_normals_ = big_normals;
         }
@@ -535,25 +553,30 @@ MultiviewRecognizer<PointT>::recognize ()
         }
     }
 
-    if ( param_.icp_iterations_ > 0 )
-        poseRefinement();
-
     if ( hv_algorithm_ && !models_.empty() ) {
-        if( !hv_algorithm_3d ) {
+        if( !param_.use_multiview_verification_) {
             scene_ = v.scene_;
             scene_normals_ = v.scene_normals_;
         }
 
-        hypothesisVerification();
-        v.model_or_plane_is_verified_ = model_or_plane_is_verified_;
+        if(param_.run_hypotheses_filter_) {
+            std::vector< std::vector<bool> > hypotheses_in_views(models_.size());
+            for(int mi = 0; mi < models_.size(); mi++) {
+                    Eigen::Matrix4f h_pose = v.absolute_pose_ * v.transforms_[mi];
+                    hypotheses_in_views[mi] = getHypothesisInViewsMask(models_[mi], h_pose, v.origin_view_id_[mi]);
+            }
+            hv_algorithm_->setVisibleCloudsForModels(hypotheses_in_views);
+        }
 
-        if( hv_algorithm_3d && hv_algorithm_3d->param_.visualize_cues_)
-            hv_algorithm_3d->visualize();
+        hypothesisVerification();
+        v.model_or_plane_is_verified_ = hypothesis_is_verified_;
+        v.transforms_ = transforms_; // save refined pose
     }
 
     scene_normals_.reset();
 
     pruneGraph();
+    cleanupHVFilters();
     id_++;
 }
 
@@ -563,17 +586,17 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
 {
     double t_start = omp_get_wtime();
 
-    std::vector<ObjectHypothesis<PointT> > ohs(obj_hypotheses_.size());
+    std::vector<LocalObjectHypothesis<PointT> > ohs(local_obj_hypotheses_.size());
 
     size_t id=0;
-    typename std::map<std::string, ObjectHypothesis<PointT> >::const_iterator it;
-    for (it = obj_hypotheses_.begin (), id=0; it != obj_hypotheses_.end (); ++it)
+    typename std::map<std::string, LocalObjectHypothesis<PointT> >::const_iterator it;
+    for (it = local_obj_hypotheses_.begin (), id=0; it != local_obj_hypotheses_.end (); ++it)
         ohs[id++] = it->second;
 
 #pragma omp parallel for schedule(dynamic)
     for (size_t i=0; i<ohs.size(); i++)
     {
-        const ObjectHypothesis<PointT> &oh = ohs[i];
+        const LocalObjectHypothesis<PointT> &oh = ohs[i];
 
         if(oh.model_scene_corresp_.size() < 3)
             continue;
