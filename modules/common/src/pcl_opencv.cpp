@@ -456,13 +456,19 @@ namespace v4r
             {
                 int extension_half = (roi.width - roi.height) / 2;
                 roi.y = std::max(0, roi.y - extension_half);
-                roi.height = std::min<int>(cloud.height, roi.width);
+                roi.height = std::min<int>(cloud.height - roi.y, roi.width);
+
+                if(roi.height < roi.width) // in case the roi reaches outside of image, use some pixel from the other side instead to avoid changing aspect ratio
+                    roi.y = std::max(0, roi.y - (roi.width - roi.height));
             }
             else
             {
                 int extension_half = (roi.height - roi.width) / 2;
                 roi.x = std::max(0, roi.x - extension_half);
-                roi.width = std::min<int>(cloud.width, roi.height);
+                roi.width = std::min<int>(cloud.width - roi.x, roi.height);
+
+                if(roi.width < roi.height) // in case the roi reaches outside of image, use some pixel from the other side instead to avoid changing aspect ratio
+                    roi.x = std::max(0, roi.x - (roi.height - roi.width));
             }
 
             cv::Mat image_roi = image( roi );
