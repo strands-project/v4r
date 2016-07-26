@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2012 Aitor Aldoma, Thomas Faeulhammer
+ * Copyright (c) 2016 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,42 +21,33 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_ESF_ESTIMATOR_H_
-#define V4R_ESF_ESTIMATOR_H_
+#ifndef V4R_OCCLUSION_REASONING_H_
+#define V4R_OCCLUSION_REASONING_H_
 
-#include <v4r/core/macros.h>
-#include <v4r/features/global_estimator.h>
-#include <v4r/features/types.h>
+#include <boost/dynamic_bitset.hpp>
+#include <pcl/point_cloud.h>
+#include <v4r/common/camera.h>
 
-#include <pcl/features/esf.h>
-#include <glog/logging.h>
 
 namespace v4r
 {
-template<typename PointT>
-class V4R_EXPORTS ESFEstimation : public GlobalEstimator<PointT>
-{
-private:
-    using GlobalEstimator<PointT>::indices_;
-    using GlobalEstimator<PointT>::cloud_;
-    using GlobalEstimator<PointT>::descr_name_;
-    using GlobalEstimator<PointT>::descr_type_;
-    using GlobalEstimator<PointT>::feature_dimensions_;
-
-public:
-    ESFEstimation(const std::string &descr_name = "esf",
-                  size_t descr_type = FeatureType::ESF,
-                  size_t feature_dimensions = 640)
-        : GlobalEstimator<PointT>(descr_name, descr_type, feature_dimensions)
-    {}
-
-    bool compute (Eigen::MatrixXf &signature);
-
-    bool needNormals() const { return false; }
-
-    typedef boost::shared_ptr< ESFEstimation<PointT> > Ptr;
-    typedef boost::shared_ptr< ESFEstimation<PointT> const> ConstPtr;
-};
+/**
+ * @brief reason about occlusion
+ * @param organized_cloud point cloud that causes occlusion
+ * @param to_be_filtered point cloud to be checked for occlusion
+ * @param camera parameters for re-projection
+ * @param occlusion threshold in meter
+ * @param true if points projected outsided the field of view should be also considered as occluded
+ * @return bitmask indicating which points of to_be_filtered are occluded (bits set to true)
+ */
+template<typename PointTA, typename PointTB>
+V4R_EXPORTS
+boost::dynamic_bitset<>
+occlusion_reasoning (const pcl::PointCloud<PointTA> & organized_cloud,
+                     const pcl::PointCloud<PointTB> & to_be_filtered,
+                     const Camera::Ptr cam = Camera(),
+                     float threshold = 0.01f,
+                     bool is_occluded_out_fov = true);
 }
 
 #endif

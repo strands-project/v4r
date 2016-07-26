@@ -119,7 +119,8 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(std::vector<std::stri
 
     typename HypothesisVerification<PointT, PointT>::Parameter paramGHV;
     to_pass_further = paramGHV.init(to_pass_further);
-    hv_algorithm_.reset(new HypothesisVerification<PointT, PointT>(paramGHV) );
+    Camera::Ptr kinect (new Camera(525.f, 640, 480, 319.5f, 239.5f));
+    hv_algorithm_.reset(new HypothesisVerification<PointT, PointT>(kinect, paramGHV) );
 
     typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter paramGgcg;
     to_pass_further = paramGgcg.init(to_pass_further);

@@ -8,6 +8,7 @@
 #include <v4r/segmentation/multiplane_segmenter.h>
 #include <v4r/recognition/local_recognizer.h>
 
+#include <pcl/common/time.h>
 #include <pcl/features/boundary.h>
 #include <pcl/keypoints/uniform_sampling.h>
 #include <pcl/registration/transformation_estimation_svd.h>
@@ -192,7 +193,8 @@ LocalRecognitionPipeline<PointT>::filterKeypoints (bool filter_signatures)
     if (keypoint_indices_.empty() )
         return;
 
-    std::vector<bool> kp_is_kept(keypoint_indices_.size(), true);
+    boost::dynamic_bitset<> kp_is_kept(keypoint_indices_.size());
+    kp_is_kept.set();
 
     if(param_.visualize_keypoints_)
         keypoint_indices_unfiltered_ = keypoint_indices_;
@@ -218,7 +220,7 @@ LocalRecognitionPipeline<PointT>::filterKeypoints (bool filter_signatures)
         for(size_t i=0; i<keypoint_indices_.size(); i++)
         {
             if(normals_for_planarity_check->points[i].curvature < param_.threshold_planar_)
-                kp_is_kept[i] = false;
+                kp_is_kept.reset(i);
         }
     }
 
@@ -280,7 +282,7 @@ LocalRecognitionPipeline<PointT>::filterKeypoints (bool filter_signatures)
             int v = idx/scene_->width;
 
             if ( boundary_mask_dilated.at<unsigned char>(v,u) )
-                kp_is_kept[i] = false;
+                kp_is_kept.reset(i);
         }
     }
 
@@ -314,9 +316,12 @@ LocalRecognitionPipeline<PointT>::extractKeypoints ()
 
     keypoint_indices_.clear();
 
-    std::vector<bool> obj_mask;
+    boost::dynamic_bitset<> obj_mask;
     if(indices_.empty())
-        obj_mask.resize( scene_->points.size(), true);
+    {
+        obj_mask.resize( scene_->points.size());
+        obj_mask.set();
+    }
     else
         obj_mask = createMaskFromIndices(indices_, scene_->points.size());
 
@@ -366,7 +371,7 @@ LocalRecognitionPipeline<PointT>::initialize (bool force_retrain)
     feat_kp_set_from_outside_ = false;
     initialization_phase_ = true;
     descr_name_ = estimator_->getFeatureDescriptorName();
-    size_t descr_dims = estimator_->getFeatureDimensions();
+//    size_t descr_dims = estimator_->getFeatureDimensions();
     std::vector<ModelTPtr> models = source_->getModels();
 
     std::cout << "Models size:" << models.size () << std::endl;

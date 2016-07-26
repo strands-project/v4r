@@ -435,7 +435,7 @@ namespace v4r
 
         if ( !indices.empty() && remove_background)
         {
-            std::vector<bool> fg_mask = v4r::createMaskFromIndices(indices, cloud.width * cloud.height);
+            boost::dynamic_bitset<> fg_mask = v4r::createMaskFromIndices(indices, cloud.width * cloud.height);
             cv::Vec3b bg_color (0,0,0);
             for (size_t row = 0; row < cloud.height; row++)
             {
@@ -602,7 +602,7 @@ namespace v4r
     {
         CHECK(!indices.empty());
 
-        std::vector<bool> fg_mask = v4r::createMaskFromIndices(indices, pcl_cloud.width * pcl_cloud.height);
+        boost::dynamic_bitset<> fg_mask = v4r::createMaskFromIndices(indices, pcl_cloud.width * pcl_cloud.height);
 
         int min_u = pcl_cloud.width-1, min_v = pcl_cloud.height-1, max_u = 0, max_v = 0;
 

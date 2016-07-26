@@ -1,6 +1,7 @@
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 #include <v4r/recognition/local_recognizer.h>
 #include <v4r/recognition/global_recognizer.h>
+#include <pcl/common/time.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <v4r/common/normals.h>
 #include <v4r/features/types.h>

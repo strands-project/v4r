@@ -4,6 +4,7 @@
 #include <v4r/recognition/global_recognizer.h>
 
 #include <pcl/common/angles.h>
+#include <pcl/common/time.h>
 #include <pcl/PointIndices.h>
 #include <pcl/registration/icp.h>
 #include <glog/logging.h>

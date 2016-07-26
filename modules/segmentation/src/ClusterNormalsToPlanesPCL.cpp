@@ -7,6 +7,7 @@
 
 #include <v4r/common/normals.h>
 #include <v4r/segmentation/ClusterNormalsToPlanesPCL.h>
+#include <pcl/filters/voxel_grid.h>
 #include <pcl/features/normal_3d.h>
 
 namespace v4r

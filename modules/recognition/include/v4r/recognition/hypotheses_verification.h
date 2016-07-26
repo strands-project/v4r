@@ -27,6 +27,7 @@
 
 #include <v4r/core/macros.h>
 #include <v4r/common/color_transforms.h>
+#include <v4r/common/camera.h>
 #include <v4r/common/plane_model.h>
 #include <v4r/recognition/ghv_opt.h>
 #include <v4r/recognition/hypotheses_verification.h>
@@ -66,9 +67,6 @@ public:
         double inliers_threshold_; /// @brief Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers
         double occlusion_thres_;    /// @brief Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)
         int zbuffer_self_occlusion_resolution_;
-        double focal_length_; /// @brief defines the focal length used for back-projecting points to the image plane (used for occlusion / visibility reasoning)
-        int img_width_; /// @brief image width of the camera in pixel (used for computing pairwise intersection)
-        int img_height_;  /// @brief image height of the camera in pixel (used for computing pairwise intersection)
         int smoothing_radius_; /// @brief radius in pixel used for smoothing the visible image mask of an object hypotheses (used for computing pairwise intersection)
         bool do_smoothing_;   /// @brief if true, smoothes the silhouette of the reproject object hypotheses (used for computing pairwise intersection)
         bool do_erosion_; /// @brief if true, performs erosion on the silhouette of the reproject object hypotheses. This should avoid a pairwise cost for touching objects (used for computing pairwise intersection)
@@ -121,9 +119,6 @@ public:
                 double inliers_threshold = 0.01f, // 0.005f
                 double occlusion_thres = 0.01f, // 0.005f
                 int zbuffer_self_occlusion_resolution = 250,
-                double focal_length = 525.f,
-                int img_width = 640,
-                int img_height = 480,
                 int smoothing_radius = 2,
                 bool do_smoothing = true,
                 bool do_erosion = true,
@@ -466,7 +461,7 @@ private:
     typedef typename pcl::traits::fieldList<typename CloudM::PointType>::type FieldListM;
 
 public:
-    HypothesisVerification (const Parameter &p = Parameter()) : param_(p)
+    HypothesisVerification (const Camera::ConstPtr &cam, const Parameter &p = Parameter()) : param_(p), cam_(cam), initial_temp_(1000)
     {
         initial_temp_ = 1000;
         sRGB_LUT.resize(256, -1);

@@ -13,6 +13,7 @@
 #include <pcl/common/time.h>
 #include <pcl/common/common.h>
 #include <pcl/filters/crop_box.h>
+#include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
@@ -32,12 +33,7 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecognitionModel<ModelT> &rm, const std::vector<Eigen::MatrixXf> &depth_image_scene)
 {
-    typename ZBuffering<SceneT>::Parameter zbuffParam;
-    zbuffParam.f_ = param_.focal_length_;
-    zbuffParam.width_ = param_.img_width_;
-    zbuffParam.height_ = param_.img_height_;
-
-    std::vector<bool> image_mask_mv(rm.complete_cloud_->points.size(), false);
+    boost::dynamic_bitset<> image_mask_mv(rm.complete_cloud_->points.size(), 0);
     for(size_t view=0; view<depth_image_scene.size(); view++)
     {
         // project into respective view
@@ -47,7 +43,7 @@ HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecogniti
 
         Eigen::MatrixXf depth_image_model;
         std::vector<int> visible_model_indices;
-        ZBuffering<ModelT> zbufM(zbuffParam);
+        ZBuffering<ModelT> zbufM(cam_);
         zbufM.computeDepthMap(aligned_cloud, depth_image_model, visible_model_indices);
 
         //                    std::ofstream f("/tmp/model_depth.txt");
@@ -57,12 +53,12 @@ HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecogniti
         boost::shared_ptr<std::vector<int> > indices_map = zbufM.getIndicesMap();
 
         // now compare visible cloud with scene occlusion cloud
-        for (int u=0; u<param_.img_width_; u++)
+        for (int u=0; u<cam_->getWidth(); u++)
         {
-            for (int v=0; v<param_.img_height_; v++)
+            for (int v=0; v<cam_->getHeight(); v++)
             {
                 if ( depth_image_scene[view](v,u) + param_.occlusion_thres_ < depth_image_model(v,u) )
-                    indices_map->at(v*param_.img_width_ + u) = -1;
+                    indices_map->at(v*cam_->getWidth() + u) = -1;
             }
         }
 
@@ -85,12 +81,7 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
 {
-    typename ZBuffering<SceneT>::Parameter zbuffParam;
-    zbuffParam.f_ = param_.focal_length_;
-    zbuffParam.width_ = param_.img_width_;
-    zbuffParam.height_ = param_.img_height_;
-
-    ZBuffering<SceneT> zbuf(zbuffParam);
+    ZBuffering<SceneT> zbuf(cam_);
     std::vector<Eigen::MatrixXf> depth_image_scene (occlusion_clouds_.size());
 
 #pragma omp parallel for schedule(dynamic)
@@ -107,7 +98,7 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
         {
             HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
             rm.visible_cloud_.reset( new pcl::PointCloud<ModelT> );
-            rm.image_mask_.resize(occlusion_clouds_.size(), std::vector<bool> (param_.img_width_ * param_.img_height_, false) );
+            rm.image_mask_.resize(occlusion_clouds_.size(), boost::dynamic_bitset<> (cam_->getWidth() * cam_->getHeight(), 0) );
 
             if (!param_.do_occlusion_reasoning_) // just copy complete models
             {
@@ -145,7 +136,7 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
 
             rm.visible_cloud_normals_.reset(new pcl::PointCloud<pcl::Normal>);
             pcl::copyPointCloud(*rm.complete_cloud_normals_, rm.visible_indices_, *rm.visible_cloud_normals_);
-            rm.processSilhouette(param_.do_smoothing_, param_.smoothing_radius_, param_.do_erosion_, param_.erosion_radius_, param_.img_width_);
+            rm.processSilhouette(param_.do_smoothing_, param_.smoothing_radius_, param_.do_erosion_, param_.erosion_radius_, cam_->getWidth());
         }
     }
 }
@@ -1696,6 +1687,7 @@ HypothesisVerification<pcl::PointXYZRGB, pcl::PointXYZRGB>::visualizeGOCues (con
     vis_go_cues_->spin();
 }
 
-//template class V4R_EXPORTS HypothesisVerification<pcl::PointXYZ,pcl::PointXYZ>;
-template class V4R_EXPORTS HypothesisVerification<pcl::PointXYZRGB,pcl::PointXYZRGB>;
+#define PCL_INSTANTIATE_HypothesisVerification(ModelT, SceneT) template class V4R_EXPORTS HypothesisVerification<ModelT, SceneT>;
+PCL_INSTANTIATE_PRODUCT(HypothesisVerification, ((pcl::PointXYZRGB))((pcl::PointXYZRGB)) )
+
 }

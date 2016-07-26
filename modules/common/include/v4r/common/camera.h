@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2012 Aitor Aldoma, Thomas Faeulhammer
+ * Copyright (c) 2016 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,42 +21,41 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_ESF_ESTIMATOR_H_
-#define V4R_ESF_ESTIMATOR_H_
+#ifndef V4R_CAMERA_H__
+#define V4R_CAMERA_H__
 
 #include <v4r/core/macros.h>
-#include <v4r/features/global_estimator.h>
-#include <v4r/features/types.h>
-
-#include <pcl/features/esf.h>
-#include <glog/logging.h>
+#include <boost/shared_ptr.hpp>
+#include <Eigen/Core>
+#include <stdlib.h>
 
 namespace v4r
 {
-template<typename PointT>
-class V4R_EXPORTS ESFEstimation : public GlobalEstimator<PointT>
+class V4R_EXPORTS Camera
 {
-private:
-    using GlobalEstimator<PointT>::indices_;
-    using GlobalEstimator<PointT>::cloud_;
-    using GlobalEstimator<PointT>::descr_name_;
-    using GlobalEstimator<PointT>::descr_type_;
-    using GlobalEstimator<PointT>::feature_dimensions_;
+protected:
+    size_t width_, height_;
+    float f_, cx_, cy_;
+    Eigen::Matrix4f extrinsics_;
 
 public:
-    ESFEstimation(const std::string &descr_name = "esf",
-                  size_t descr_type = FeatureType::ESF,
-                  size_t feature_dimensions = 640)
-        : GlobalEstimator<PointT>(descr_name, descr_type, feature_dimensions)
+
+    typedef boost::shared_ptr< Camera > Ptr;
+    typedef boost::shared_ptr< Camera const> ConstPtr;
+
+    Camera(float focal_length = 525.f, int width = 640, int height = 480, float cx = 319.5f, float cy = 239.5f, const Eigen::Matrix4f &ext = Eigen::Matrix4f::Identity())
+        : width_ (width), height_(height), f_(focal_length), cx_(cx), cy_ (cy), extrinsics_ (ext)
     {}
 
-    bool compute (Eigen::MatrixXf &signature);
-
-    bool needNormals() const { return false; }
-
-    typedef boost::shared_ptr< ESFEstimation<PointT> > Ptr;
-    typedef boost::shared_ptr< ESFEstimation<PointT> const> ConstPtr;
+    size_t getWidth() const { return width_; }
+    size_t getHeight() const { return height_; }
+    float getFocalLength() const { return f_; }
+    float getCx() const { return cx_; }
+    float getCy() const { return cy_; }
+    Eigen::Matrix4f getExtrinsic() const { return extrinsics_; }
+    void setExtrinsics( const Eigen::Matrix4f &ext ) { extrinsics_ = ext; }
 };
+
 }
 
 #endif

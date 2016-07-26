@@ -31,6 +31,7 @@
 #ifndef V4R_COMMON_MISCELLANEOUS_H_
 #define V4R_COMMON_MISCELLANEOUS_H_
 
+#include <boost/dynamic_bitset.hpp>
 #include <pcl/common/common.h>
 #include <pcl/kdtree/flann.h>
 #include <pcl/octree/octree.h>
@@ -214,25 +215,25 @@ convertPCLIndices2VecSizet(const pcl::PointIndices &input)
     return v_size_t;
 }
 
-V4R_EXPORTS inline std::vector<bool>
-createMaskFromIndices(const std::vector<size_t> &indices,size_t image_size)
+V4R_EXPORTS inline boost::dynamic_bitset<>
+createMaskFromIndices(const std::vector<size_t> &indices, size_t image_size)
 {
-    std::vector<bool> mask (image_size, false);
+    boost::dynamic_bitset<> mask (image_size, 0);
 
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-        mask [ indices[obj_pt_id] ] = true;
+        mask.set(indices[obj_pt_id]);
 
     return mask;
 }
 
 
-V4R_EXPORTS inline std::vector<bool>
+V4R_EXPORTS inline boost::dynamic_bitset<>
 createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 {
-    std::vector<bool> mask (image_size, false);
+    boost::dynamic_bitset<> mask (image_size, 0);
 
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-        mask [ indices[obj_pt_id] ] = true;
+        mask.set(indices[obj_pt_id]);
 
     return mask;
 }
@@ -240,10 +241,9 @@ createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 
 template<typename T>
 V4R_EXPORTS std::vector<T>
-createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
+createIndicesFromMask(const boost::dynamic_bitset<> &mask, bool invert=false)
 {
-    std::vector<T> out;
-    out.resize(mask.size());
+    std::vector<T> out (mask.size());
 
     size_t kept=0;
     for(size_t i=0; i<mask.size(); i++)
@@ -374,8 +374,7 @@ removeColumn(Eigen::MatrixXf& matrix, int colToRemove)
  * @param[in] range minimum
  * @param[in] range maximum
  */
-void
-V4R_EXPORTS computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXf &histogram, size_t bins=100, float min=0.f, float max=1.f);
+V4R_EXPORTS void computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXf &histogram, size_t bins=100, float min=0.f, float max=1.f);
 
 
 /**
@@ -384,8 +383,7 @@ V4R_EXPORTS computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXf &hist
  * @param[in] histB
  * @return intersection value
  */
-float
-V4R_EXPORTS computeHistogramIntersection (const Eigen::VectorXf &histA, const Eigen::VectorXf &histB);
+V4R_EXPORTS float computeHistogramIntersection (const Eigen::VectorXf &histA, const Eigen::VectorXf &histB);
 
 /**
  * @brief shift histogram values by one bin
@@ -393,8 +391,7 @@ V4R_EXPORTS computeHistogramIntersection (const Eigen::VectorXf &histA, const Ei
  * @param[out] hist_shifted
  * @param[in] direction_is_right (if true, shift histogram to the right. Otherwise to the left)
  */
-void
-V4R_EXPORTS shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction_is_right=true);
+V4R_EXPORTS void shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction_is_right=true);
 
 /**
  * @brief runningAverage computes incrementally the average of a vector
@@ -409,6 +406,9 @@ V4R_EXPORTS runningAverage (const Eigen::VectorXf &old_average, size_t old_size,
     Eigen::VectorXf newAvg = old_average  * w + increment / double(old_size + 1);
     return newAvg;
 }
+
+template<typename PointT>
+V4R_EXPORTS float computeMeshResolution (const typename pcl::PointCloud<PointT>::ConstPtr & input);
 
 }
 
@@ -442,6 +442,11 @@ copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
 template <typename PointT> V4R_EXPORTS void
 copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
                      const std::vector<bool> &mask,
+                     pcl::PointCloud<PointT> &cloud_out);
+
+template <typename PointT> V4R_EXPORTS void
+copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                     const boost::dynamic_bitset<> &mask,
                      pcl::PointCloud<PointT> &cloud_out);
 }
 

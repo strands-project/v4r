@@ -23,7 +23,7 @@ HVRecognitionModel<ModelT>::processSilhouette(bool do_smoothing,
 //                f.close();
         if(do_smoothing)
         {
-            std::vector<bool> img_mask_smooth = image_mask_[view];
+            boost::dynamic_bitset<> img_mask_smooth = image_mask_[view];
             for(int u=0; u<img_width; u++)
             {
                 for(int v=0; v <img_height; v++)
@@ -58,7 +58,7 @@ HVRecognitionModel<ModelT>::processSilhouette(bool do_smoothing,
 
         if(do_erosion)
         {
-            std::vector<bool> img_mask_eroded = image_mask_[view];
+            boost::dynamic_bitset<> img_mask_eroded = image_mask_[view];
             for(int u=0; u<img_width; u++)
             {
                 for(int v=0; v <img_height; v++)

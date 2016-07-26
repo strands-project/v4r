@@ -1,7 +1,7 @@
 #include <v4r_config.h>
-
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/pcl_opencv.h>
+#include <pcl/common/io.h>
 #include <glog/logging.h>
 
 #ifdef HAVE_SIFTGPU
@@ -25,9 +25,12 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
     compute(colorImage, keypoints2d, signatures);
     keypoint_indices_.resize(keypoints2d.cols());
 
-    std::vector<bool> obj_mask;
+    boost::dynamic_bitset<> obj_mask;
     if(indices_.empty())
-        obj_mask.resize(cloud_->width * cloud_->height, true);
+    {
+        obj_mask.resize(cloud_->width * cloud_->height);
+        obj_mask.set();
+    }
     else
         obj_mask = createMaskFromIndices(indices_, cloud_->width * cloud_->height);
 
