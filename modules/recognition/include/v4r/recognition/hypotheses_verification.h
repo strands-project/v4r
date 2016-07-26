@@ -26,8 +26,8 @@
 #define V4R_HYPOTHESIS_VERIFICATION_H__
 
 #include <v4r/core/macros.h>
-#include <v4r/common/color_transforms.h>
 #include <v4r/common/camera.h>
+#include <v4r/common/rgb2cielab.h>
 #include <v4r/common/plane_model.h>
 #include <v4r/recognition/ghv_opt.h>
 #include <v4r/recognition/hypotheses_verification.h>
@@ -87,7 +87,7 @@ public:
         int opt_type_; /// @brief defines the optimization methdod<BR><BR> 0: Local search (converges quickly, but can easily get trapped in local minima),<BR> 1: Tabu Search,<BR> 2; Tabu Search + Local Search (Replace active hypotheses moves),<BR> 3: Simulated Annealing
         bool use_histogram_specification_; /// @brief if true, tries to globally match brightness (L channel of LAB color space) of visible hypothesis cloud to brightness of nearby scene points. It does so by computing the L channel histograms for both clouds and shifting it to maximize histogram intersection.
         bool initial_status_; /// @brief sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.
-        int color_space_; /// @brief specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
+//        int color_space_; /// @brief specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
         bool use_noise_model_;  /// @brief if set, uses Nguyens noise model for setting threshold parameters
         bool visualize_go_cues_; /// @brief visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
         bool visualize_model_cues_; /// @brief visualizes the model cues. Useful for debugging
@@ -138,7 +138,7 @@ public:
                 int opt_type = OptimizationType::LocalSearch,
                 bool use_histogram_specification = false,
                 bool initial_status = false,
-                int color_space = ColorTransformOMP::LAB,
+//                int color_space = ColorTransformOMP::LAB,
                 bool use_noise_model = true,
                 bool visualize_go_cues = false,
                 int knn_inliers = 3,
@@ -161,9 +161,6 @@ public:
               inliers_threshold_(inliers_threshold),
               occlusion_thres_ (occlusion_thres),
               zbuffer_self_occlusion_resolution_(zbuffer_self_occlusion_resolution),
-              focal_length_ (focal_length),
-              img_width_ (img_width),
-              img_height_ (img_height),
               smoothing_radius_ (smoothing_radius),
               do_smoothing_ (do_smoothing),
               do_erosion_ (do_erosion),
@@ -183,7 +180,7 @@ public:
               opt_type_ (opt_type),
               use_histogram_specification_ (use_histogram_specification),
               initial_status_ (initial_status),
-              color_space_ (color_space),
+//              color_space_ (color_space),
               use_noise_model_ (use_noise_model),
               visualize_go_cues_ ( visualize_go_cues ),
               knn_inliers_ (knn_inliers),
@@ -236,7 +233,7 @@ public:
                     ("hv_histogram_specification", po::value<bool>(&use_histogram_specification_)->default_value(use_histogram_specification_), " ")
                     ("hv_ignore_color", po::value<bool>(&ignore_color_even_if_exists_)->default_value(ignore_color_even_if_exists_), " ")
                     ("hv_initial_status", po::value<bool>(&initial_status_)->default_value(initial_status_), "sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.")
-                    ("hv_color_space", po::value<int>(&color_space_)->default_value(color_space_), "specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ?)")
+//                    ("hv_color_space", po::value<int>(&color_space_)->default_value(color_space_), "specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ?)")
                     ("hv_color_stddev_mul", po::value<float>(&color_std_dev_multiplier_threshold_)->default_value(color_std_dev_multiplier_threshold_), "standard deviation multiplier threshold for the local color description for each color channel")
                     ("hv_inlier_threshold", po::value<double>(&inliers_threshold_)->default_value(inliers_threshold_, boost::str(boost::format("%.2e") % inliers_threshold_) ), "Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers")
                     ("hv_occlusion_threshold", po::value<double>(&occlusion_thres_)->default_value(occlusion_thres_, boost::str(boost::format("%.2e") % occlusion_thres_) ), "Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)")
@@ -274,6 +271,9 @@ private:
     mutable int vp_active_hypotheses_, vp_scene_, vp_model_fitness_, vp_scene_fitness_;
     mutable int rm_v1, rm_v2, rm_v3, rm_v4, rm_v5, rm_v6, rm_v7, rm_v8, rm_v9, rm_v10, rm_v11, rm_v12, vp_pair_1_, vp_pair_2_;
 
+    Camera::ConstPtr cam_;
+    ColorTransform::Ptr colorTransf_;
+
     std::vector<bool> solution_; /// @brief Boolean vector indicating if a hypothesis is accepted (true) or rejected (false)
 
     typename pcl::PointCloud<SceneT>::ConstPtr scene_cloud_; /// @brief scene point clou
@@ -294,9 +294,6 @@ private:
 
     float Lmin_ = 0.f, Lmax_ = 100.f;
     int bins_ = 50;
-
-    std::vector<float> sRGB_LUT;
-    std::vector<float> sXYZ_LUT;
 
     Eigen::MatrixXf intersection_cost_; /// @brief represents the pairwise intersection cost
     Eigen::MatrixXf scene_explained_weight_; /// @brief for each point in the scene (row) store how good it is presented from each model (column)
@@ -380,68 +377,6 @@ private:
         obj_hypotheses_groups_.clear();
     }
 
-    void
-    rgb2cielab (uint8_t R, uint8_t G, uint8_t B, float &L, float &A,float &B2)
-    {
-        CHECK(R < 256 && R >= 0);
-        CHECK(G < 256 && G >= 0);
-        CHECK(B < 256 && B >= 0);
-
-        float fr = sRGB_LUT[R];
-        float fg = sRGB_LUT[G];
-        float fb = sRGB_LUT[B];
-
-        // Use white = D65
-        const float x = fr * 0.412453f + fg * 0.357580f + fb * 0.180423f;
-        const float y = fr * 0.212671f + fg * 0.715160f + fb * 0.072169f;
-        const float z = fr * 0.019334f + fg * 0.119193f + fb * 0.950227f;
-
-        float vx = x / 0.95047f;
-        float vy = y;
-        float vz = z / 1.08883f;
-
-        vx = sXYZ_LUT[std::min(int(vx*4000), 4000-1)];
-        vy = sXYZ_LUT[std::min(int(vy*4000), 4000-1)];
-        vz = sXYZ_LUT[std::min(int(vz*4000), 4000-1)];
-
-        L = 116.0f * vy - 16.0f;
-        if (L > 100)
-            L = 100.0f;
-
-        A = 500.0f * (vx - vy);
-        if (A > 120)
-            A = 120.0f;
-        else if (A <- 120)
-            A = -120.0f;
-
-        B2 = 200.0f * (vy - vz);
-        if (B2 > 120)
-            B2 = 120.0f;
-        else if (B2<- 120)
-            B2 = -120.0f;
-    }
-
-    void
-    convertToLABcolor(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, Eigen::MatrixXf &color_mat)
-    {
-        color_mat.resize( cloud.points.size(), 3);
-
-        for(size_t j=0; j < cloud.points.size(); j++)
-        {
-            const pcl::PointXYZRGB &p = cloud.points[j];
-
-            uint8_t rs, gs, bs;
-            float LRef, aRef, bRef;
-            rs = p.r;
-            gs = p.g;
-            bs = p.b;
-            rgb2cielab(rs, gs, bs, LRef, aRef, bRef);
-            color_mat(j, 0) = LRef;
-            color_mat(j, 1) = aRef;
-            color_mat(j, 2) = bRef;
-        }
-    }
-
 
     void extractEuclideanClustersSmooth ();
 
@@ -463,28 +398,7 @@ private:
 public:
     HypothesisVerification (const Camera::ConstPtr &cam, const Parameter &p = Parameter()) : param_(p), cam_(cam), initial_temp_(1000)
     {
-        initial_temp_ = 1000;
-        sRGB_LUT.resize(256, -1);
-        sXYZ_LUT.resize(4000, -1);
-
-        // init color LUTs
-        for (int i = 0; i < 256; i++)
-        {
-            float f = static_cast<float> (i) / 255.0f;
-            if (f > 0.04045)
-                sRGB_LUT[i] = powf ((f + 0.055f) / 1.055f, 2.4f);
-            else
-                sRGB_LUT[i] = f / 12.92f;
-        }
-
-        for (int i = 0; i < 4000; i++)
-        {
-            float f = static_cast<float> (i) / 4000.0f;
-            if (f > 0.008856)
-                sXYZ_LUT[i] = static_cast<float> (powf (f, 0.3333f));
-            else
-                sXYZ_LUT[i] = static_cast<float>((7.787 * f) + (16.0 / 116.0));
-        }
+        colorTransf_.reset(new RGB2CIELAB);
     }
 
     /**

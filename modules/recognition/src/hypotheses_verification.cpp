@@ -1,3 +1,4 @@
+#include <v4r/common/color_comparison.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/miscellaneous.h>
@@ -548,7 +549,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
     }
 
     removeModelsWithLowVisibility();
-    ColorTransformOMP::initializeLUT();
 
 #pragma omp parallel sections
     {
@@ -556,7 +556,16 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         if(!param_.ignore_color_even_if_exists_)
         {
             pcl::ScopeTime t("Converting scene color values");
-            convertToLABcolor(*scene_cloud_downsampled_, scene_color_channels_);
+            colorTransf_->convert(*scene_cloud_downsampled_, scene_color_channels_);
+
+            std::ofstream f("/tmp/scene_color_lab.txt");
+            f << scene_color_channels_;
+            f.close();
+
+            f.open("/tmp/scene_color_rgb.txt");
+            for(const auto &p : scene_cloud_downsampled_->points)
+                f << (float)p.r << " " << (float)p.g << " " << (float)p.b << std::endl;
+            f.close();
         }
 
 #pragma omp section
@@ -573,7 +582,16 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                         removeNanNormals(rm);
 
                         if(!param_.ignore_color_even_if_exists_)
-                            convertToLABcolor(*rm.visible_cloud_, rm.pt_color_);
+                            colorTransf_->convert (*rm.visible_cloud_, rm.pt_color_);
+
+                        std::ofstream f("/tmp/model_color_lab.txt");
+                        f << rm.pt_color_;
+                        f.close();
+
+                        f.open("/tmp/model_color_rgb.txt");
+                        for(const auto &p : rm.visible_cloud_->points)
+                            f << (float)p.r << " " << (float)p.g << " " << (float)p.b << std::endl;
+                        f.close();
                     }
                 }
             }
@@ -1098,23 +1116,25 @@ HypothesisVerification<ModelT, SceneT>::computeModel2SceneFitness(HVRecognitionM
         const Eigen::VectorXf &color_s = scene_color_channels_.row( sidx );
 
 
-        if(param_.color_space_ == ColorTransformOMP::LAB)
+//        if(param_.color_space_ == ColorTransformOMP::LAB)
         {
-            double Ls = color_s(0);
-            double As = color_s(1);
-            double Bs = color_s(2);
-            double Lm = std::max(0.f, std::min(100.f, rm.L_value_offset_ + color_m(0)) );
-            double Am = color_m(1);
-            double Bm = color_m(2);
+            float Ls = color_s(0);
+            float As = color_s(1);
+            float Bs = color_s(2);
+            float Lm = std::max(0.f, std::min(100.f, rm.L_value_offset_ + color_m(0)) );
+            float Am = color_m(1);
+            float Bm = color_m(2);
 
-            double sqr_color_dist_AB = ( (As-Am)*(As-Am)+(Bs-Bm)*(Bs-Bm) );
-            dist += w_color_AB * sqr_color_dist_AB;
+//            float sqr_color_dist_AB = ( (As-Am)*(As-Am)+(Bs-Bm)*(Bs-Bm) );
+//            dist += w_color_AB * sqr_color_dist_AB;
 
-            double sqr_color_dist_L = ( (Ls-Lm)*(Ls-Lm) );
-            dist += w_color_L * sqr_color_dist_L;
+//            float sqr_color_dist_L = ( (Ls-Lm)*(Ls-Lm) );
+//            dist += w_color_L * sqr_color_dist_L;
+
+            dist += CIEDE2000(color_s, color_m) / param_.color_sigma_ab_;
         }
-        else
-            throw std::runtime_error("Desired color space not implemented so far!");
+//        else
+//            throw std::runtime_error("Desired color space not implemented so far!");
 
         float old_scene2model_dist = rm.scene_explained_weight_(sidx); ///NOTE: negative if no points explains it yet
         if ( old_scene2model_dist < -1.f || dist<old_scene2model_dist)
