@@ -22,3 +22,6 @@ build:
     - cd build
     - cmake ..
     - make -j8
+  only:
+    # the line below is required by shyiko/gitlab-ci-build-on-merge-request
+    - triggers
