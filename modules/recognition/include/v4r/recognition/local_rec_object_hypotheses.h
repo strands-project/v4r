@@ -36,41 +36,37 @@ namespace v4r{
  * @author Aitor Aldoma, Thomas Faeulhammer
  */
 template<typename PointT>
-class V4R_EXPORTS ObjectHypothesis
+class V4R_EXPORTS LocalObjectHypothesis
 {
   typedef Model<PointT> ModelT;
   typedef boost::shared_ptr<ModelT> ModelTPtr;
 
   private:
     mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-    int vp1_;
 
   public:
     ModelTPtr model_;
 
-    ObjectHypothesis()
-    {
-        model_scene_corresp_.reset(new pcl::Correspondences);
-    }
+    LocalObjectHypothesis() { }
 
-    pcl::CorrespondencesPtr model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
+    pcl::Correspondences model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
     std::vector<int> indices_to_flann_models_;
 
-    void visualize(const typename pcl::PointCloud<PointT> & scene) const;
+    void visualize(const pcl::PointCloud<pcl::PointXYZRGB> &scene, const pcl::PointCloud<pcl::PointXYZRGB> &scene_kp) const;
 
-    ObjectHypothesis & operator=(const ObjectHypothesis &rhs)
+    LocalObjectHypothesis & operator=(const LocalObjectHypothesis &rhs)
     {
-        *(this->model_scene_corresp_) = *rhs.model_scene_corresp_;
+        this->model_scene_corresp_ = rhs.model_scene_corresp_;
         this->indices_to_flann_models_ = rhs.indices_to_flann_models_;
         this->model_ = rhs.model_;
         return *this;
     }
 
     static bool
-    gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
-    {
-        return (i.distance < j.distance);
-    }
+    gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j) { return i.distance < j.distance; }
+
+    typedef boost::shared_ptr<LocalObjectHypothesis<PointT> > Ptr;
+    typedef boost::shared_ptr<const LocalObjectHypothesis<PointT> > ConstPtr;
 };
 
 }

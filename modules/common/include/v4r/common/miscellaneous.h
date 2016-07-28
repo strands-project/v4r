@@ -31,65 +31,28 @@
 #ifndef V4R_COMMON_MISCELLANEOUS_H_
 #define V4R_COMMON_MISCELLANEOUS_H_
 
+#include <boost/dynamic_bitset.hpp>
 #include <pcl/common/common.h>
 #include <pcl/kdtree/flann.h>
 #include <pcl/octree/octree.h>
 #include <pcl/octree/octree_pointcloud_pointvector.h>
 #include <pcl/octree/impl/octree_iterator.hpp>
 #include <v4r/core/macros.h>
+#include <omp.h>
 
 namespace v4r
 {
 
-inline void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
+V4R_EXPORTS void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
                              pcl::PointCloud<pcl::Normal> & normals_aligned,
-                             const Eigen::Matrix4f & transform)
-{
-    normals_aligned.points.resize (normals_cloud.points.size ());
-    normals_aligned.width = normals_cloud.width;
-    normals_aligned.height = normals_cloud.height;
-    for (size_t k = 0; k < normals_cloud.points.size (); k++)
-    {
-        Eigen::Vector3f nt (normals_cloud.points[k].normal_x, normals_cloud.points[k].normal_y, normals_cloud.points[k].normal_z);
-        normals_aligned.points[k].normal_x = static_cast<float> (transform (0, 0) * nt[0] + transform (0, 1) * nt[1]
-                + transform (0, 2) * nt[2]);
-        normals_aligned.points[k].normal_y = static_cast<float> (transform (1, 0) * nt[0] + transform (1, 1) * nt[1]
-                + transform (1, 2) * nt[2]);
-        normals_aligned.points[k].normal_z = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1]
-                + transform (2, 2) * nt[2]);
+                             const Eigen::Matrix4f & transform);
 
-        normals_aligned.points[k].curvature = normals_cloud.points[k].curvature;
-
-    }
-}
-
-inline void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
+V4R_EXPORTS void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
                              pcl::PointCloud<pcl::Normal> & normals_aligned,
                              const std::vector<int> & indices,
-                             const Eigen::Matrix4f & transform)
-{
-    normals_aligned.points.resize (indices.size ());
-    normals_aligned.width = indices.size();
-    normals_aligned.height = 1;
-    for (size_t k = 0; k < indices.size(); k++)
-    {
-        Eigen::Vector3f nt (normals_cloud.points[indices[k]].normal_x,
-                normals_cloud.points[indices[k]].normal_y,
-                normals_cloud.points[indices[k]].normal_z);
+                             const Eigen::Matrix4f & transform);
 
-        normals_aligned.points[k].normal_x = static_cast<float> (transform (0, 0) * nt[0] + transform (0, 1) * nt[1]
-                + transform (0, 2) * nt[2]);
-        normals_aligned.points[k].normal_y = static_cast<float> (transform (1, 0) * nt[0] + transform (1, 1) * nt[1]
-                + transform (1, 2) * nt[2]);
-        normals_aligned.points[k].normal_z = static_cast<float> (transform (2, 0) * nt[0] + transform (2, 1) * nt[1]
-                + transform (2, 2) * nt[2]);
-
-        normals_aligned.points[k].curvature = normals_cloud.points[indices[k]].curvature;
-
-    }
-}
-
-inline void transformNormal(const Eigen::Vector3f & nt,
+V4R_EXPORTS inline void transformNormal(const Eigen::Vector3f & nt,
                             Eigen::Vector3f & normal_out,
                             const Eigen::Matrix4f & transform)
 {
@@ -105,7 +68,7 @@ inline void transformNormal(const Eigen::Vector3f & nt,
  * @return tf 4x4 homogeneous transformation matrix
  *
  */
-inline Eigen::Matrix4f
+V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();;
@@ -123,7 +86,7 @@ RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
  * @return tf 4x4 homogeneous transformation matrix
  *
  */
-inline Eigen::Matrix4f
+V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
@@ -139,62 +102,17 @@ RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans)
  * @param trans homogenous translation
  */
 inline void
-Mat4f2RotTrans(const Eigen::Matrix4f &tf, Eigen::Quaternionf &q, Eigen::Vector4f &trans)
+V4R_EXPORTS Mat4f2RotTrans(const Eigen::Matrix4f &tf, Eigen::Quaternionf &q, Eigen::Vector4f &trans)
 {
     Eigen::Matrix3f rotation = tf.block<3,3>(0,0);
     q = rotation;
     trans = tf.block<4,1>(0,3);
 }
 
-inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
+V4R_EXPORTS
+void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
                                 pcl::PointCloud<pcl::PointXYZRGB> & voxel_grided,
-                                float resolution)
-{
-    pcl::octree::OctreePointCloudPointVector<pcl::PointXYZRGB> octree(resolution);
-    octree.setInputCloud(cloud);
-    octree.addPointsFromInputCloud();
-
-    pcl::octree::OctreePointCloudPointVector<pcl::PointXYZRGB>::LeafNodeIterator it2;
-    const pcl::octree::OctreePointCloudPointVector<pcl::PointXYZRGB>::LeafNodeIterator it2_end = octree.leaf_end();
-
-    int leaves = 0;
-    for (it2 = octree.leaf_begin(); it2 != it2_end; ++it2, leaves++)
-    {
-
-    }
-
-    voxel_grided.points.resize(leaves);
-    voxel_grided.width = leaves;
-    voxel_grided.height = 1;
-    voxel_grided.is_dense = true;
-
-    int kk=0;
-    for (it2 = octree.leaf_begin(); it2 != it2_end; ++it2, kk++)
-    {
-        pcl::octree::OctreeContainerPointIndices& container = it2.getLeafContainer();
-        std::vector<int> indexVector;
-        container.getPointIndices (indexVector);
-
-        int r,g,b;
-        r = g = b = 0;
-        pcl::PointXYZRGB p;
-        p.getVector3fMap() = Eigen::Vector3f::Zero();
-
-        for(size_t k=0; k < indexVector.size(); k++)
-        {
-            p.getVector3fMap() = p.getVector3fMap() +  cloud->points[indexVector[k]].getVector3fMap();
-            r += cloud->points[indexVector[k]].r;
-            g += cloud->points[indexVector[k]].g;
-            b += cloud->points[indexVector[k]].b;
-        }
-
-        p.getVector3fMap() = p.getVector3fMap() / static_cast<int>(indexVector.size());
-        p.r = r / static_cast<int>(indexVector.size());
-        p.g = g / static_cast<int>(indexVector.size());
-        p.b = b / static_cast<int>(indexVector.size());
-        voxel_grided.points[kk] = p;
-    }
-}
+                                float resolution);
 
 
 /**
@@ -205,32 +123,11 @@ inline void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
  * @param resolution (optional)
  */
 template<typename PointInT>
-inline void
+V4R_EXPORTS void
 getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_input_cloud,
                     const typename pcl::PointCloud<PointInT>::ConstPtr & search_points,
                     std::vector<int> & indices,
-                    float resolution = 0.005f)
-{
-    pcl::octree::OctreePointCloudSearch<PointInT> octree (resolution);
-    octree.setInputCloud (full_input_cloud);
-    octree.addPointsFromInputCloud ();
-
-    std::vector<int> pointIdxNKNSearch;
-    std::vector<float> pointNKNSquaredDistance;
-
-    indices.resize( search_points->points.size() );
-    size_t kept=0;
-
-    for(size_t j=0; j < search_points->points.size(); j++)
-    {
-        if (octree.nearestKSearch (search_points->points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
-        {
-            indices[kept] = pointIdxNKNSearch[0];
-            kept++;
-        }
-    }
-    indices.resize(kept);
-}
+                    float resolution = 0.005f);
 
 /**
  * @brief returns point indices from a point cloud which are closest to search points
@@ -240,36 +137,17 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_in
  * @param resolution (optional)
  */
 template<typename PointT, typename Type>
-inline void
+V4R_EXPORTS void
 getIndicesFromCloud(const typename pcl::PointCloud<PointT>::ConstPtr & full_input_cloud,
                     const typename pcl::PointCloud<PointT> & search_pts,
                     typename std::vector<Type> & indices,
-                    float resolution = 0.005f)
-{
-    pcl::octree::OctreePointCloudSearch<PointT> octree (resolution);
-    octree.setInputCloud (full_input_cloud);
-    octree.addPointsFromInputCloud ();
+                    float resolution = 0.005f);
 
-    std::vector<int> pointIdxNKNSearch;
-    std::vector<float> pointNKNSquaredDistance;
+template<typename DistType>
+V4R_EXPORTS void convertToFLANN ( const std::vector<std::vector<float> > &data, boost::shared_ptr< typename flann::Index<DistType> > &flann_index);
 
-    indices.resize( search_pts.points.size() );
-    size_t kept=0;
-
-    for(size_t j=0; j < search_pts.points.size(); j++)
-    {
-        if (octree.nearestKSearch (search_pts.points[j], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
-        {
-            indices[kept] = pointIdxNKNSearch[0];
-            kept++;
-        }
-    }
-    indices.resize(kept);
-}
-
-template<typename PointType, typename DistType> V4R_EXPORTS void convertToFLANN ( const typename pcl::PointCloud<PointType>::ConstPtr & cloud, typename boost::shared_ptr< flann::Index<DistType> > &flann_index);
-
-template<typename DistType> V4R_EXPORTS void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, float * descr, int descr_size, int k, flann::Matrix<int> &indices,
+template<typename DistType>
+V4R_EXPORTS void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
                                                   flann::Matrix<float> &distances );
 
 /**
@@ -277,7 +155,7 @@ template<typename DistType> V4R_EXPORTS void nearestKSearch ( typename boost::sh
  */
 template<typename PointType> V4R_EXPORTS void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud);
 
-inline std::vector<size_t>
+V4R_EXPORTS inline std::vector<size_t>
 convertVecInt2VecSizet(const std::vector<int> &input)
 {
     std::vector<size_t> v_size_t;
@@ -292,7 +170,7 @@ convertVecInt2VecSizet(const std::vector<int> &input)
     return v_size_t;
 }
 
-inline std::vector<int>
+V4R_EXPORTS inline std::vector<int>
 convertVecSizet2VecInt(const std::vector<size_t> &input)
 {
     std::vector<int> v_int;
@@ -307,7 +185,7 @@ convertVecSizet2VecInt(const std::vector<size_t> &input)
     return v_int;
 }
 
-inline pcl::PointIndices
+V4R_EXPORTS inline pcl::PointIndices
 convertVecSizet2PCLIndices(const std::vector<size_t> &input)
 {
     pcl::PointIndices pind;
@@ -322,7 +200,7 @@ convertVecSizet2PCLIndices(const std::vector<size_t> &input)
     return pind;
 }
 
-inline std::vector<size_t>
+V4R_EXPORTS inline std::vector<size_t>
 convertPCLIndices2VecSizet(const pcl::PointIndices &input)
 {
     std::vector<size_t> v_size_t;
@@ -337,36 +215,35 @@ convertPCLIndices2VecSizet(const pcl::PointIndices &input)
     return v_size_t;
 }
 
-inline std::vector<bool>
-createMaskFromIndices(const std::vector<size_t> &indices,size_t image_size)
+V4R_EXPORTS inline boost::dynamic_bitset<>
+createMaskFromIndices(const std::vector<size_t> &indices, size_t image_size)
 {
-    std::vector<bool> mask (image_size, false);
+    boost::dynamic_bitset<> mask (image_size, 0);
 
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-        mask [ indices[obj_pt_id] ] = true;
+        mask.set(indices[obj_pt_id]);
 
     return mask;
 }
 
 
-inline std::vector<bool>
+V4R_EXPORTS inline boost::dynamic_bitset<>
 createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 {
-    std::vector<bool> mask (image_size, false);
+    boost::dynamic_bitset<> mask (image_size, 0);
 
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-        mask [ indices[obj_pt_id] ] = true;
+        mask.set(indices[obj_pt_id]);
 
     return mask;
 }
 
 
 template<typename T>
-std::vector<T>
-createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
+V4R_EXPORTS std::vector<T>
+createIndicesFromMask(const boost::dynamic_bitset<> &mask, bool invert=false)
 {
-    std::vector<T> out;
-    out.resize(mask.size());
+    std::vector<T> out (mask.size());
 
     size_t kept=0;
     for(size_t i=0; i<mask.size(); i++)
@@ -387,30 +264,152 @@ createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
   * @param inc_v Incremented output vector
   * @return overflow (true if overflow)
   */
-inline V4R_EXPORTS bool
-incrementVector(const std::vector<bool> &v, std::vector<bool> &inc_v)
+V4R_EXPORTS bool
+incrementVector(const std::vector<bool> &v, std::vector<bool> &inc_v);
+
+
+/**
+  * @brief: extracts elements from a vector indicated by some indices
+  * @param[in] Input vector
+  * @param[in] indices to extract
+  * @return extracted elements
+  */
+template<typename T>
+inline V4R_EXPORTS typename std::vector<T>
+filterVector(const std::vector<T> &in, const std::vector<int> &indices)
 {
-    inc_v = v;
+    typename std::vector<T> out(in.size());
+    size_t kept=0;
+    for(size_t i = 0; i < indices.size(); i++)
+        out[kept++] = in[ indices[i] ];
 
-    bool overflow=true;
-    for(size_t bit=0; bit<v.size(); bit++)
-    {
-        if(!v[bit])
-        {
-            overflow = false;
-            break;
-        }
-    }
-
-    bool carry = v.back();
-    inc_v.back() = !v.back();
-    for(int bit=v.size()-2; bit>=0; bit--)
-    {
-        inc_v[bit] = v[ bit ] != carry;
-        carry = v[ bit ] && carry;
-    }
-    return overflow;
+    out.resize(kept);
+    return out;
 }
+
+/**
+ * @brief checks if value is in the range between min and max
+ * @param[in] value to check
+ * @param[in] min range
+ * @param[in] max range
+ * @return true if within range
+ */
+template<class T>
+bool is_in_range(T value, T min, T max)
+{
+    return (value >= min) && (value <= max);
+}
+
+/**
+ * @brief sorts a vector and returns sorted indices
+ */
+template <typename T>
+std::vector<size_t> sort_indexes(const std::vector<T> &v) {
+
+  // initialize original index locations
+  std::vector<size_t> idx(v.size());
+  for (size_t i = 0; i != idx.size(); ++i) idx[i] = i;
+
+  // sort indexes based on comparing values in v
+  std::sort(idx.begin(), idx.end(),
+       [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+
+  return idx;
+}
+
+
+V4R_EXPORTS inline void
+removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
+{
+    unsigned int numRows = matrix.rows()-1;
+    unsigned int numCols = matrix.cols();
+
+    if( rowToRemove < numRows )
+        matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+V4R_EXPORTS inline void
+removeColumn(Eigen::MatrixXd& matrix, unsigned int colToRemove)
+{
+    unsigned int numRows = matrix.rows();
+    unsigned int numCols = matrix.cols()-1;
+
+    if( colToRemove < numCols )
+        matrix.block(0,colToRemove,numRows,numCols-colToRemove) = matrix.block(0,colToRemove+1,numRows,numCols-colToRemove);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+V4R_EXPORTS inline void
+removeRow(Eigen::MatrixXf& matrix, int rowToRemove)
+{
+    int numRows = matrix.rows()-1;
+    int numCols = matrix.cols();
+
+    if( rowToRemove < numRows )
+        matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+V4R_EXPORTS inline void
+removeColumn(Eigen::MatrixXf& matrix, int colToRemove)
+{
+    int numRows = matrix.rows();
+    int numCols = matrix.cols()-1;
+
+    if( colToRemove < numCols )
+        matrix.block(0,colToRemove,numRows,numCols-colToRemove) = matrix.block(0,colToRemove+1,numRows,numCols-colToRemove);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+/**
+ * @brief compute histogram of the row entries of a matrix
+ * @param[in] data (row are the elements, columns are the different dimensions
+ * @param[out] histogram
+ * @param[in] number of bins
+ * @param[in] range minimum
+ * @param[in] range maximum
+ */
+V4R_EXPORTS void computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXf &histogram, size_t bins=100, float min=0.f, float max=1.f);
+
+
+/**
+ * @brief computes histogram intersection (does not normalize histograms!)
+ * @param[in] histA
+ * @param[in] histB
+ * @return intersection value
+ */
+V4R_EXPORTS float computeHistogramIntersection (const Eigen::VectorXf &histA, const Eigen::VectorXf &histB);
+
+/**
+ * @brief shift histogram values by one bin
+ * @param[in] hist
+ * @param[out] hist_shifted
+ * @param[in] direction_is_right (if true, shift histogram to the right. Otherwise to the left)
+ */
+V4R_EXPORTS void shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction_is_right=true);
+
+/**
+ * @brief runningAverage computes incrementally the average of a vector
+ * @param old_average
+ * @param old_size the number of contributing vectors before updating
+ * @param increment the new vector being added
+ * @return
+ */
+inline Eigen::VectorXf
+V4R_EXPORTS runningAverage (const Eigen::VectorXf &old_average, size_t old_size, const Eigen::VectorXf &increment) {    // update average point
+    double w = old_size / double(old_size + 1);
+    Eigen::VectorXf newAvg = old_average  * w + increment / double(old_size + 1);
+    return newAvg;
+}
+
+template<typename PointT>
+V4R_EXPORTS float computeMeshResolution (const typename pcl::PointCloud<PointT>::ConstPtr & input);
+
 }
 
 
@@ -443,6 +442,11 @@ copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
 template <typename PointT> V4R_EXPORTS void
 copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
                      const std::vector<bool> &mask,
+                     pcl::PointCloud<PointT> &cloud_out);
+
+template <typename PointT> V4R_EXPORTS void
+copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
+                     const boost::dynamic_bitset<> &mask,
                      pcl::PointCloud<PointT> &cloud_out);
 }
 

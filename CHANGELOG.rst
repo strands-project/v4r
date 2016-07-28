@@ -2,6 +2,219 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.4.3 (2016-02-26)
+------------------
+
+1.4.2 (2016-02-26)
+------------------
+* Merge pull request `#60 <https://github.com/strands-project/v4r/issues/60>`_ from strands-project/strands
+  some quick fixes regarding range check exceptions, need proper fix eventually
+* Merge branch 'master' of github.com:strands-project/v4r into strands
+* added quick fixed to handle some range check exceptions
+  needs proper handling soon
+* Merge pull request `#59 <https://github.com/strands-project/v4r/issues/59>`_ from strands-project/fix_range_error_when_using_hv_use_histogram_specification
+  Update ghv.h
+* Update ghv.h
+* Contributors: Michael Zillich, Thomas Fäulhammer, mzillich
+
+1.4.1 (2016-02-01)
+------------------
+* Merge pull request `#58 <https://github.com/strands-project/v4r/issues/58>`_ from strands-project/fix1
+  initialize counter variable
+* initialize counter variable
+* Merge pull request `#57 <https://github.com/strands-project/v4r/issues/57>`_ from strands-project/remove_c+11_from_header
+  remove c++11 construct in header file
+* remove c++11 construct in header file
+* Merge pull request `#56 <https://github.com/strands-project/v4r/issues/56>`_ from strands-project/fix1
+  Fix1
+* add siftgpu as optional dependency in RTMT
+* copy uniform_sampling files from PCL 1.7.2 to make V4R also compile on PCL 1.8
+* updated RTMT noise model parameters
+* Merge remote-tracking branch 'v4r_root/master'
+* Merge branch 'dynamic_object_learning' into 'master'
+  Dynamic object learning
+  See merge request !50
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !49
+* Contributors: Thomas Fäulhammer
+
+1.4.0 (2016-01-27)
+------------------
+* Merge pull request `#55 <https://github.com/strands-project/v4r/issues/55>`_ from strands-project/new_recognition_resolved_merge_conflict
+  New recognition resolved merge conflict
+* Merge branch 'new_recognition'
+* Merge remote-tracking branch 'strands/master'
+* change default values
+* fix noise model based cloud integration
+* make opencv sift instantiation conditional on siftgpu presence
+* integrate parse console arguments into library
+* Merge pull request `#54 <https://github.com/strands-project/v4r/issues/54>`_ from taketwo/speed-up
+  Speed-up info collection in NMBasedCloudIntegration
+* uses more parallelization
+* Merge remote-tracking branch 'sergey_strands/speed-up' into new_recognition
+* Speed-up info collection in NMBasedCloudIntegration
+  Pre-compute the number of points and resize big_cloud_info\_ only once.
+  This achieves > 2x speed-up in Debug mode.
+* tmp commit to test siftgpu
+* some beauty
+* add present of model in view variable for go3d
+  change default noise model param
+* parallelize add models function in go3d
+* some beauty
+* normalize all components of LAB colors in range -1 to 1
+* put color transform into seperate class
+* remove a few pointers and add parallel block
+  refactor code for merging feature correspondences in multiview recognizer
+* fix conditional compilation with -DWITH_SIFTGPU=OFF
+* remove hough_3d as it is not used and within PCL (maybe other version though)
+* remove accidentally added build folder
+* remove template parameters FeatureT and DistT for local recognizer/estimator
+  save descriptors as binary text file on disk
+* getting rid of some pointers
+  move duplicated functions in a common file
+* make multipipeline recognizer code parallel
+* parallelize correspondence grouping
+* make converttoflann create its flann data internally (to make interfacing simpler)
+* hopefully solves range_check_error during correspondence grouping
+  refactored some code
+* add missing ifdef HAVE_SIFTGPU
+* fix interface problem in IOL and avoid deprecated interface
+* Merge pull request `#52 <https://github.com/strands-project/v4r/issues/52>`_ from strands-project/add_citation_license_file
+  add citation, license and authors file
+* add citation, license and authors file
+* Merge pull request `#51 <https://github.com/strands-project/v4r/issues/51>`_ from strands-project/build-fixes
+  Build fixes
+* Merge remote-tracking branch 'severin/build-fixes'
+  Conflicts:
+  samples/examples/object_recognizer_new.cpp
+* Merge pull request `#49 <https://github.com/strands-project/v4r/issues/49>`_ from strands-project/fix_siftgpu_problem_in_IOL
+  Fix siftgpu problem in iol
+* use HAVE_SIFTGPU to check if siftgpu is available on system in object modelling module
+* rename dynamic object learning to incremental object learning
+* Added missing header 'boost/format.hpp' in a few examples
+* [cmake] ObjectGroundTruthAnnotator requires VTK
+* [cmake] Ensure v4r compiles without ceres at CMake level
+  Note that V4R *does not yet* compile without ceres due to
+  modules/reconstruction/include/v4r/reconstruction/impl/ReprojectionError.hpp
+  requiring ceres.h
+* Properly guards omp.h includes so that the project compile without OpenMP support
+* [cmake] Cosmetic in CMakeLists
+* [cmake] Use pkg-config to find OpenNI2
+  The Debian package for libopenni2 provides a .pc but no
+  FindOpenNI2.cmake
+* [cmake] FindOpenGL does not return the version
+* [cmake] Added support for compiling with Qt5
+  Note that CMake option WITH_QT needs to be enabled,
+  and *WIT_QT4* needs to be disabled.
+* [cmake] Enable WITH_QT by default
+* Merge pull request `#44 <https://github.com/strands-project/v4r/issues/44>`_ from strands-project/dynamic_object_learning
+  Dynamic object learning
+* make compatible to new v4r interfaces
+* Merge branch 'dol_rebased'
+* Merge branch 'master' of github.com:strands-project/v4r
+* fix deprecated warning
+* remnants from RAL paper
+* fixed some bugs
+* fix of fix
+* fixed bug in evaluation - don't test on same set as object was trained
+* write eval recognition for uncontrolled scenes to test on controlled ones
+  added visualization of all learnt models
+* fix wrong parameter type
+* added file to test model coverage
+* skip patrol run for which no object has been modelled
+* recognition evaluation with respect to coverage for controlled runs
+* Merge branch 'recognition_dev' into dol_rebased
+  Conflicts:
+  modules/recognition/include/v4r/recognition/impl/local_recognizer.hpp
+* taken view file is now correct
+* forgot to undo temporary change
+* added evaluation tool for recognition performance measure of partial model coverage
+* add FindX11 and FindXRandR
+* fixed error when training views do not begin with 0
+* recognition evaluation for partial model and for offline data more or less ready
+* added first evaluation tool to compute recognition performance with respect to percentage of visible model
+* added visualize_masked_pcd again
+* Merge branch 'recognition_dev' into dol_rebased
+* Merge branch 'dol_rebased' of rgit.acin.tuwien.ac.at:t-faeulhammer/v4r into dol_rebased
+  Conflicts:
+  samples/examples/dynamic_object_learning.cpp
+  samples/icra16/eval_dol_gt.cpp
+  samples/icra16/eval_dynamic_object_learning_with_mask_pertubation.cpp
+* add eval
+  use boost program options
+* adapt code to make rebase compile
+* rebase commit
+* added noise level evaluation for initial mask ICRA16
+* added eval for inital mask evaluation
+  added for icra16 singleview
+* fixed sv eval when test_dir is not present
+* fixed bug in icra sv eval, when csv file has only 2 columns
+* eval almost ready
+* added icra vis
+* seperate post-processing and save to disk in object learning
+* fixed wrong output file if name of mask is mask.txt only
+* removed overhead computation when sift based camera pose estimation is disabled
+* fixed ground truth labelling
+* fixed color in add text
+* just addded a const
+* removing nan points in initial mask - otherwise seg fault when after erosion not enough points
+* included plane merge
+  moved logical stuff to common module
+  added plane visualization
+  added plane properties
+* added function to write images to disk for intermediate steps
+* make ratio parameter accessible from outside for occluded and object supported points
+* sort files before evaluation and output debug info
+* added some V4R_EXPORTS in registration module
+  removed redundant fast_icp in common module
+  added app for 3D reconstruction based on SIFT and MST
+  fixed CERES version conflict
+  fixed some dependency issues
+* up
+* add Willow Dataset definition for save_pose_into_pcd sample
+* set sensor pose to identity in eval to show right visiualization
+* parameters can now also be set in constructor
+  initial eval code now in samples (should be moved somewhere else later on)
+* moved mask<->indices conversion function into v4r common module
+* added object_modelling again
+* adapt code to make rebase compile
+* rebase commit
+* added noise level evaluation for initial mask ICRA16
+* added eval for inital mask evaluation
+  added for icra16 singleview
+* fixed sv eval when test_dir is not present
+* fixed bug in icra sv eval, when csv file has only 2 columns
+* eval almost ready
+* added icra vis
+* seperate post-processing and save to disk in object learning
+* fixed wrong output file if name of mask is mask.txt only
+* removed overhead computation when sift based camera pose estimation is disabled
+* fixed ground truth labelling
+* fixed color in add text
+* just addded a const
+* removing nan points in initial mask - otherwise seg fault when after erosion not enough points
+* included plane merge
+  moved logical stuff to common module
+  added plane visualization
+  added plane properties
+* added function to write images to disk for intermediate steps
+* make ratio parameter accessible from outside for occluded and object supported points
+* sort files before evaluation and output debug info
+* added some V4R_EXPORTS in registration module
+  removed redundant fast_icp in common module
+  added app for 3D reconstruction based on SIFT and MST
+  fixed CERES version conflict
+  fixed some dependency issues
+* up
+* add Willow Dataset definition for save_pose_into_pcd sample
+* set sensor pose to identity in eval to show right visiualization
+* parameters can now also be set in constructor
+  initial eval code now in samples (should be moved somewhere else later on)
+* moved mask<->indices conversion function into v4r common module
+* added object_modelling again
+* Contributors: Sergey Alexandrov, Séverin Lemaignan, Thomas Fäulhammer
+
 1.3.1 (2016-01-13)
 ------------------
 * Merge pull request `#43 <https://github.com/strands-project/v4r/issues/43>`_ from strands-project/fix_classifier

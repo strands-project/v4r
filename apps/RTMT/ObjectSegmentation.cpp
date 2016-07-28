@@ -30,8 +30,8 @@
  *
  */
 
+#ifndef Q_MOC_RUN
 #include "ObjectSegmentation.h"
-
 
 #include <cmath>
 #include <boost/filesystem.hpp>
@@ -55,6 +55,7 @@
 
 #ifdef ER_TEST_MLS
 #include <pcl/surface/mls.h>
+#endif
 #endif
 
 using namespace std;
@@ -87,8 +88,6 @@ ObjectSegmentation::ObjectSegmentation()
   max_dist = 0.01f;
   max_iterations = 50;
   diff_type = 1;
-
-  nm_integration_min_weight_ = 0.8f;
 
   tmp_cloud1.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
   tmp_cloud2.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -178,12 +177,12 @@ void ObjectSegmentation::activateROI(bool enable)
  * @param offs
  * @param _use_dense_mv
  */
-void ObjectSegmentation::set_segmentation_params(bool use_roi_segm, const double &offs, bool _use_dense_mv, const double &_nm_integration_min_weight)
+void ObjectSegmentation::set_segmentation_params(bool use_roi_segm, const double &offs, bool _use_dense_mv, const double &_edge_radius_px)
 {
   use_roi_segmentation = use_roi_segm;
   roi_offs = offs;
   use_dense_mv = _use_dense_mv;
-  nm_integration_min_weight_ = _nm_integration_min_weight;
+  om_params.edge_radius_px = _edge_radius_px;
 }
 
 /**
@@ -781,7 +780,9 @@ void ObjectSegmentation::createObjectCloudFiltered()
   if (clouds->size()==0 || masks.size()!=clouds->size())
     return;
 
-  v4r::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+  v4r::NguyenNoiseModel<pcl::PointXYZRGB>::Parameter nmparam;
+  nmparam.edge_radius_ = om_params.edge_radius_px;
+  v4r::NguyenNoiseModel<pcl::PointXYZRGB> nm(nmparam);
   std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > &ref_clouds = *clouds;
   std::vector< std::vector<std::vector<float> > > pt_properties (ref_clouds.size());
   std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > ptr_clouds(ref_clouds.size());
@@ -811,6 +812,7 @@ void ObjectSegmentation::createObjectCloudFiltered()
 
     v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nmparam;
     nmparam.octree_resolution_ = om_params.vx_size_object;
+    nmparam.edge_radius_px_ = om_params.edge_radius_px;
     nmparam.min_points_per_voxel_ = 1;
     octree_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
     v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration(nmparam);

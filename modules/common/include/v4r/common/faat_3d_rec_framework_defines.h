@@ -25,16 +25,4 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<128>,
     (float[128], histogram, histogramSIFT)
 )
 
-namespace v4r
-{
-        enum FeatureType
-        {
-            SIFT = 0x01, // 00000001
-            ESF = 0x02, // 00000010
-            SHOT  = 0x04, // 00000100
-            OURCVFH  = 0x08,  // 00001000
-            FPFH = 0x10  // 00010000
-        };
-}
-
 #endif

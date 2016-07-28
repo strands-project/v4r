@@ -34,13 +34,12 @@ namespace v4r
          * @param[in] operation (AND, AND_N, OR, XOR)
          * @return output bit mask
          */
-        inline V4R_EXPORTS std::vector<bool>
-        binary_operation(const std::vector<bool> &mask1, const std::vector<bool> &mask2, int operation)
+        inline V4R_EXPORTS boost::dynamic_bitset<>
+        binary_operation(const boost::dynamic_bitset<> &mask1, const boost::dynamic_bitset<> &mask2, int operation)
         {
             assert(mask1.size() == mask2.size());
 
-            std::vector<bool> output_mask;
-            output_mask.resize(mask1.size());
+            boost::dynamic_bitset<> output_mask ( mask1.size() );
 
             for(size_t i=0; i<mask1.size(); i++)
             {
@@ -72,6 +71,7 @@ namespace v4r
             return output_mask;
         }
 
+
         /**
          * @brief given vector of indices of an image or pointcloud,
          * this function creates a boolean mask of the concatenated indices
@@ -79,20 +79,22 @@ namespace v4r
          * @param image_size
          * @return object bit mask
          */
-        template<typename IdxT> inline V4R_EXPORTS std::vector<bool>
+        template<typename IdxT>
+        inline
+        boost::dynamic_bitset<>
         createMaskFromVecIndices( const typename std::vector< std::vector<IdxT> > &v_indices,
                                        size_t image_size)
         {
-            std::vector<bool> mask;
+            boost::dynamic_bitset<> mask;
 
             if ( mask.size() != image_size )
-                mask = std::vector<bool>( image_size, false );
+                mask.resize( image_size, 0 );
 
             for(size_t i=0; i<v_indices.size(); i++)
             {
-                std::vector<bool> mask_tmp = v4r::createMaskFromIndices(v_indices[i], image_size);
+                boost::dynamic_bitset<> mask_tmp = v4r::createMaskFromIndices(v_indices[i], image_size);
 
-                if(mask.size())
+                if( !mask.empty() )
                     mask = binary_operation(mask, mask_tmp, BINARY_OPERATOR::OR);
                 else
                     mask = mask_tmp;

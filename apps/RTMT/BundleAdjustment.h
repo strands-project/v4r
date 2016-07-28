@@ -33,6 +33,7 @@
 #ifndef _BUNDLE_ADJUSTMENT_H
 #define _BUNDLE_ADJUSTMENT_H
 
+#ifndef Q_MOC_RUN
 #include <QThread>
 #include <QMutex>
 #include <queue>
@@ -47,6 +48,7 @@
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/reconstruction/ProjBundleAdjuster.h>
+#endif
 
 
 

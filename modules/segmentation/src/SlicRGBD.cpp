@@ -13,7 +13,9 @@
 #include <fstream>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include "pcl/features/integral_image_normal.h"
 
 namespace v4r

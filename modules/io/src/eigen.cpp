@@ -1,6 +1,5 @@
 #include <v4r/io/eigen.h>
 #include <vector>
-#include <fstream>
 #include <iostream>
 
 #include <boost/algorithm/string.hpp>

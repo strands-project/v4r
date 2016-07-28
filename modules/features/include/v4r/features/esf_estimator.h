@@ -21,62 +21,42 @@
  *
  ******************************************************************************/
 
-#ifndef REC_FRAMEWORK_ESF_ESTIMATOR_H_
-#define REC_FRAMEWORK_ESF_ESTIMATOR_H_
+#ifndef V4R_ESF_ESTIMATOR_H_
+#define V4R_ESF_ESTIMATOR_H_
 
-#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <v4r/core/macros.h>
 #include <v4r/features/global_estimator.h>
+#include <v4r/features/types.h>
 
 #include <pcl/features/esf.h>
 #include <glog/logging.h>
 
 namespace v4r
 {
-    template<typename PointT>
-      class V4R_EXPORTS ESFEstimation : public GlobalEstimator<PointT>
-      {
-      private:
-          using GlobalEstimator<PointT>::indices_;
-          using GlobalEstimator<PointT>::input_cloud_;
+template<typename PointT>
+class V4R_EXPORTS ESFEstimation : public GlobalEstimator<PointT>
+{
+private:
+    using GlobalEstimator<PointT>::indices_;
+    using GlobalEstimator<PointT>::cloud_;
+    using GlobalEstimator<PointT>::descr_name_;
+    using GlobalEstimator<PointT>::descr_type_;
+    using GlobalEstimator<PointT>::feature_dimensions_;
 
-          typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-          PointInTPtr processed_;
+public:
+    ESFEstimation(const std::string &descr_name = "esf",
+                  size_t descr_type = FeatureType::ESF,
+                  size_t feature_dimensions = 640)
+        : GlobalEstimator<PointT>(descr_name, descr_type, feature_dimensions)
+    {}
 
-      public:
-          std::vector<float>
-          estimate ()
-          {
-            std::vector<float> signature;
+    bool compute (Eigen::MatrixXf &signature);
 
-            CHECK(input_cloud_ && !input_cloud_->points.empty());
+    bool needNormals() const { return false; }
 
-            if(!indices_.empty()) {
-                processed_.reset(new pcl::PointCloud<PointT>);
-                pcl::copyPointCloud(*input_cloud_, indices_, *processed_);
-            }
-            else
-                processed_ = input_cloud_;
-
-
-            typedef typename pcl::ESFEstimation<PointT, pcl::ESFSignature640> ESFEstimation;
-            pcl::PointCloud<pcl::ESFSignature640> ESF_signature;
-            ESFEstimation esf;
-            esf.setInputCloud (processed_);
-            esf.compute (ESF_signature);
-
-            const pcl::ESFSignature640 &pt = ESF_signature.points[0];
-            const size_t feat_dim = (size_t) ((double)(sizeof(pt.histogram)) / sizeof(pt.histogram[0]));
-            signature.resize(feat_dim);
-
-            for(size_t i=0; i<feat_dim; i++)
-                signature[i] = pt.histogram[i];
-
-            indices_.clear();
-
-            return signature;
-          }
-      };
+    typedef boost::shared_ptr< ESFEstimation<PointT> > Ptr;
+    typedef boost::shared_ptr< ESFEstimation<PointT> const> ConstPtr;
+};
 }
 
 #endif

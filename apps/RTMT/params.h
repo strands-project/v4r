@@ -33,10 +33,12 @@
 #ifndef _GRAB_PCD_PARAMS_H_
 #define _GRAB_PCD_PARAMS_H_
 
+#ifndef Q_MOC_RUN
 #include <QDialog>
 #include <opencv2/core/core.hpp>
 #include <Eigen/Dense>
 #include <v4r/reconstruction/KeypointSlamRGBD2.h>
+#endif
 
 
 namespace Ui {
@@ -91,7 +93,9 @@ class ObjectModelling
 {
 public:
   double vx_size_object;
-  ObjectModelling() : vx_size_object(0.001) {}
+  double edge_radius_px;
+
+  ObjectModelling() : vx_size_object(0.001), edge_radius_px(3) {}
 };
 
 /**
@@ -126,7 +130,7 @@ signals:
   void segmentation_parameter_changed(const SegmentationParameter& param);
   void object_modelling_parameter_changed(const ObjectModelling& param);
   void set_roi_params(const double &_bbox_scale_xy, const double &_bbox_scale_height, const double &_seg_offs);
-  void set_segmentation_params(bool use_roi_segm, const double &offs, bool _use_dense_mv, const double &_nm_integration_min_weight);
+  void set_segmentation_params(bool use_roi_segm, const double &offs, bool _use_dense_mv, const double &_edge_radius_px);
   void set_cb_param(bool create_cb, float rnn_thr);
 
 

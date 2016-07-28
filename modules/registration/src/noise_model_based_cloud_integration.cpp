@@ -25,12 +25,10 @@
 #include <pcl/common/io.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/filter.h>
-#include <pcl/visualization/pcl_visualizer.h>
-
 #include <v4r/registration/noise_model_based_cloud_integration.h>
-#include <v4r/common/organized_edge_detection.h>
 
 #include <glog/logging.h>
+#include <omp.h>
 
 namespace v4r
 {
@@ -39,72 +37,95 @@ template<typename PointT>
 void
 NMBasedCloudIntegration<PointT>::collectInfo ()
 {
-    for(size_t i=0; i < input_clouds_.size(); i++)
+  size_t total_point_count = 0;
+  for(size_t i = 0; i < input_clouds_.size(); i++)
+    total_point_count += (indices_.empty() || indices_[i].empty()) ? input_clouds_[i]->size() : indices_[i].size();
+  big_cloud_info_.resize(total_point_count);
+
+  std::vector<pcl::PointCloud<PointT> > input_clouds_aligned (input_clouds_.size());
+  std::vector<pcl::PointCloud<pcl::Normal> > input_normals_aligned (input_clouds_.size());
+
+#pragma omp parallel for schedule(dynamic)
+  for(size_t i=0; i < input_clouds_.size(); i++)
+  {
+      pcl::transformPointCloud(*input_clouds_[i], input_clouds_aligned[i], transformations_to_global_[i]);
+      transformNormals(*input_normals_[i], input_normals_aligned[i], transformations_to_global_[i]);
+  }
+
+  size_t point_count = 0;
+  for(size_t i=0; i < input_clouds_.size(); i++)
+  {
+    const pcl::PointCloud<PointT> &cloud_aligned = input_clouds_aligned[i];
+    const pcl::PointCloud<pcl::Normal> &normals_aligned = input_normals_aligned[i];
+
+    size_t kept_new_pts = 0;
+    if (indices_.empty() || indices_[i].empty())
     {
-        pcl::PointCloud<PointT> cloud_aligned;
-        pcl::transformPointCloud(*input_clouds_[i], cloud_aligned, transformations_to_global_[i]);
-        pcl::PointCloud<pcl::Normal> normals_aligned;
-        transformNormals(*input_normals_[i], normals_aligned, transformations_to_global_[i]);
+      for(size_t jj=0; jj<cloud_aligned.points.size(); jj++)
+      {
+        if ( !pcl::isFinite(cloud_aligned.points[jj]) || !pcl::isFinite(normals_aligned.points[jj]) )
+          continue;
 
-        size_t existing_pts = big_cloud_info_.size();
-        size_t kept_new_pts = 0;
-
-        if (indices_.empty())
-        {
-            big_cloud_info_.resize( existing_pts + cloud_aligned.points.size());
-
-            for(size_t jj=0; jj<cloud_aligned.points.size(); jj++)
-            {
-                if ( !pcl::isFinite(cloud_aligned.points[jj]))
-                    continue;
-
-                PointInfo &pt = big_cloud_info_ [ existing_pts + kept_new_pts ];
-                pt.pt = cloud_aligned.points[jj];
-                pt.normal = normals_aligned.points[jj];
-                pt.sigma_lateral = pt_properties_[i][jj][0];
-                pt.sigma_axial = pt_properties_[i][jj][1];
-                pt.distance_to_depth_discontinuity = pt_properties_[i][jj][2];
-                kept_new_pts++;
-            }
-        }
-        else
-        {
-            big_cloud_info_.resize( existing_pts + indices_[i].size());
-
-            for(const auto idx : indices_[i])
-            {
-                if(!pcl::isFinite(cloud_aligned.points[idx]))
-                    continue;
-
-                PointInfo &pt = big_cloud_info_ [ existing_pts + kept_new_pts ];
-                pt.pt = cloud_aligned.points[idx];
-                pt.normal = normals_aligned.points[ idx ];
-                pt.sigma_lateral = pt_properties_[i][idx][0];
-                pt.sigma_axial = pt_properties_[i][idx][1];
-                pt.distance_to_depth_discontinuity = pt_properties_[i][idx][2];
-                kept_new_pts++;
-            }
-        }
-        big_cloud_info_.resize( existing_pts + kept_new_pts);
-
-        // compute and store remaining information
-        for(size_t jj=0; jj<kept_new_pts; jj++)
-        {
-            PointInfo &pt = big_cloud_info_ [ existing_pts + jj ];
-            pt.origin = i;
-
-            Eigen::Matrix3f sigma = Eigen::Matrix3f::Zero(), sigma_aligned = Eigen::Matrix3f::Zero();
-            sigma(0,0) = pt.sigma_lateral;
-            sigma(1,1) = pt.sigma_lateral;
-            sigma(2,2) = pt.sigma_axial;
-
-            const Eigen::Matrix4f &tf = transformations_to_global_[ i ];
-            Eigen::Matrix3f rotation = tf.block<3,3>(0,0); // or inverse?
-            sigma_aligned = rotation * sigma * rotation.transpose();
-
-            pt.probability = 1/ sqrt(2 * M_PI * sigma_aligned.determinant());
-        }
+        PointInfo &pt = big_cloud_info_[point_count + kept_new_pts];
+        pt.pt = cloud_aligned.points[jj];
+        pt.normal = normals_aligned.points[jj];
+        pt.sigma_lateral = pt_properties_[i][jj][0];
+        pt.sigma_axial = pt_properties_[i][jj][1];
+        pt.distance_to_depth_discontinuity = pt_properties_[i][jj][2];
+        pt.pt_idx = jj;
+        kept_new_pts++;
+      }
     }
+    else
+    {
+      for(const auto idx : indices_[i])
+      {
+        if ( !pcl::isFinite(cloud_aligned.points[idx]) || !pcl::isFinite(normals_aligned.points[idx]) )
+           continue;
+
+        PointInfo &pt = big_cloud_info_[point_count + kept_new_pts];
+        pt.pt = cloud_aligned.points[idx];
+        pt.normal = normals_aligned.points[ idx ];
+        pt.sigma_lateral = pt_properties_[i][idx][0];
+        pt.sigma_axial = pt_properties_[i][idx][1];
+        pt.distance_to_depth_discontinuity = pt_properties_[i][idx][2];
+        pt.pt_idx = idx;
+        kept_new_pts++;
+      }
+    }
+
+    // compute and store remaining information
+#pragma omp parallel for schedule (dynamic) firstprivate(i, point_count, kept_new_pts)
+    for(size_t jj=0; jj<kept_new_pts; jj++)
+    {
+      PointInfo &pt = big_cloud_info_ [point_count + jj];
+      pt.origin = i;
+
+      Eigen::Matrix3f sigma = Eigen::Matrix3f::Zero(), sigma_aligned = Eigen::Matrix3f::Zero();
+      sigma(0,0) = pt.sigma_lateral;
+      sigma(1,1) = pt.sigma_lateral;
+      sigma(2,2) = pt.sigma_axial;
+
+      const Eigen::Matrix4f &tf = transformations_to_global_[ i ];
+      Eigen::Matrix3f rotation = tf.block<3,3>(0,0); // or inverse?
+      sigma_aligned = rotation * sigma * rotation.transpose();
+      double det = sigma_aligned.determinant();
+
+//      if( std::isfinite(det) && det>0)
+//          pt.probability = 1 / sqrt(2 * M_PI * det);
+//      else
+//          pt.probability = std::numeric_limits<float>::min();
+
+      if( std::isfinite(det) && det>0)
+          pt.weight = det;
+      else
+          pt.weight = std::numeric_limits<float>::max();
+    }
+
+    point_count += kept_new_pts;
+  }
+
+  big_cloud_info_.resize(point_count);
 }
 
 template<typename PointT>
@@ -116,7 +137,6 @@ NMBasedCloudIntegration<PointT>::reasonAboutPts ()
     const float cx = static_cast<float> (width) / 2.f;// - 0.5f;
     const float cy = static_cast<float> (height) / 2.f;// - 0.5f;
 
-//    pcl::visualization::PCLVisualizer vis;
     for (size_t i=0; i<big_cloud_info_.size(); i++)
     {
         PointInfo &pt = big_cloud_info_[i];
@@ -158,12 +178,6 @@ NMBasedCloudIntegration<PointT>::reasonAboutPts ()
                else if (z_c > z )
                {
                    pt.violated_ ++;
-
-//                   vis.removeAllShapes();
-//                   vis.removeAllPointClouds();
-//                   vis.addPointCloud(input_clouds_[cloud]);
-//                   vis.addSphere(ptt_aligned, 0.03f, 1.f, 0.f, 0.f);
-//                   vis.spin();
                }
                else
                    pt.occluded_ ++;
@@ -202,12 +216,10 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     typename pcl::octree::OctreePointCloudPointVector<PointT>::LeafNodeIterator leaf_it;
     const typename pcl::octree::OctreePointCloudPointVector<PointT>::LeafNodeIterator it2_end = octree.leaf_end();
 
-    output->points.resize( big_cloud_info_.size() );
-    output_normals_.reset(new pcl::PointCloud<pcl::Normal>);
-    output_normals_->points.resize( big_cloud_info_.size());
-
     size_t kept = 0;
     size_t total_used = 0;
+
+    std::vector<PointInfo> filtered_cloud_info ( big_cloud_info_.size() );
 
     for (leaf_it = octree.leaf_begin(); leaf_it != it2_end; ++leaf_it)
     {
@@ -217,7 +229,7 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         std::vector<int> indexVector;
         container.getPointIndices (indexVector);
 
-        if(indexVector.empty() || indexVector.size() < param_.min_points_per_voxel_)
+        if(indexVector.empty())
             continue;
 
         std::vector<PointInfo> voxel_pts ( indexVector.size() );
@@ -225,79 +237,78 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         for(size_t k=0; k < indexVector.size(); k++)
             voxel_pts[k] = big_cloud_info_ [indexVector[k]];
 
-        PointT p;
-        pcl::Normal n;
+        PointInfo p;
 
+        size_t num_good_pts = 0;
         if(param_.average_)
         {
-            p.getVector3fMap() = Eigen::Vector3f::Zero();
-            p.r = p.g = p.b = 0.f;
-            n.getNormalVector3fMap() = Eigen::Vector3f::Zero();
-            n.curvature = 0.f;
-
-            for(const PointInfo &pt_tmp : voxel_pts)
-            {
-                p.getVector3fMap() = p.getVector3fMap() +  pt_tmp.pt.getVector3fMap();
-                p.r += pt_tmp.pt.r;
-                p.g += pt_tmp.pt.g;
-                p.b += pt_tmp.pt.b;
-
-                Eigen::Vector3f normal = pt_tmp.normal.getNormalVector3fMap();
-                normal.normalize();
-                n.getNormalVector3fMap() = n.getNormalVector3fMap() + normal;
-                n.curvature += pt_tmp.normal.curvature;
-            }
-
-            p.getVector3fMap() = p.getVector3fMap() / indexVector.size();
-            p.r /= indexVector.size();
-            p.g /= indexVector.size();
-            p.b /= indexVector.size();
-
-            n.getNormalVector3fMap() = n.getNormalVector3fMap() / indexVector.size();
-            n.curvature /= indexVector.size();
-
-            total_used += indexVector.size();
-        }
-        else // take only point with max probability
-        {
-            std::sort(voxel_pts.begin(), voxel_pts.end());
-
-            bool found_good_pt = false;
-
             for(const PointInfo &pt_tmp : voxel_pts)
             {
                 if (pt_tmp.distance_to_depth_discontinuity > param_.edge_radius_px_)
                 {
-                    p.getVector3fMap() = pt_tmp.pt.getVector3fMap();
-                    p.r = pt_tmp.pt.r;
-                    p.g = pt_tmp.pt.g;
-                    p.b = pt_tmp.pt.b;
-
-                    n.getNormalVector3fMap() = pt_tmp.normal.getNormalVector3fMap();
-                    n.curvature = pt_tmp.normal.curvature;
-                    found_good_pt = true;
-                    break;
+                    p.moving_average( pt_tmp );
+                    num_good_pts++;
                 }
             }
 
-            if( !found_good_pt )
+            if( !num_good_pts || num_good_pts < param_.min_points_per_voxel_ )
+                continue;
+
+            total_used += num_good_pts;
+        }
+        else // take only point with min weight
+        {
+            for(const PointInfo &pt_tmp : voxel_pts)
+            {
+                if ( pt_tmp.distance_to_depth_discontinuity > param_.edge_radius_px_)
+                {
+                    num_good_pts++;
+                    if ( pt_tmp.weight < p.weight || num_good_pts == 1)
+                        p = pt_tmp;
+                }
+            }
+
+            if( !num_good_pts || num_good_pts < param_.min_points_per_voxel_ )
                 continue;
 
             total_used++;
         }
-
-        output->points[kept] = p;
-        output_normals_->points[kept] = n;
-        kept++;
+        filtered_cloud_info[kept++] = p;
     }
 
     std::cout << "Number of points in final model:" << kept << " used:" << total_used << std::endl;
 
+
+    if(!output)
+        output.reset(new pcl::PointCloud<PointT>);
+
+    if(!output_normals_)
+        output_normals_.reset( new pcl::PointCloud<pcl::Normal>);
+
+    filtered_cloud_info.resize(kept);
     output->points.resize(kept);
     output_normals_->points.resize(kept);
     output->width = output_normals_->width = kept;
     output->height = output_normals_->height = 1;
     output->is_dense = output_normals_->is_dense = true;
+
+    PointT na;
+    na.x = na.y = na.z = std::numeric_limits<float>::quiet_NaN();
+
+    input_clouds_used_.resize( input_clouds_.size() );
+    for(size_t i=0; i<input_clouds_used_.size(); i++) {
+        input_clouds_used_[i].reset( new pcl::PointCloud<PointT> );
+        input_clouds_used_[i]->points.resize( input_clouds_[i]->points.size(), na);
+        input_clouds_used_[i]->width =  input_clouds_[i]->width;
+        input_clouds_used_[i]->height =  input_clouds_[i]->height;
+    }
+
+    for(size_t i=0; i<kept; i++) {
+        output->points[i] = filtered_cloud_info[i].pt;
+        output_normals_->points[i] = filtered_cloud_info[i].normal;
+        int origin = filtered_cloud_info[i].origin;
+        input_clouds_used_[origin]->points[filtered_cloud_info[i].pt_idx] = filtered_cloud_info[i].pt;
+    }
 
     cleanUp();
 }

@@ -33,8 +33,9 @@
 
 #include <v4r/features/ComputeImGradientDescriptors.h>
 
+#ifdef _OPENMP
 #include <omp.h>
-
+#endif
 
 namespace v4r
 {

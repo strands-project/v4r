@@ -77,11 +77,11 @@ void ArticulatedObject::setParameters(const std::vector<Eigen::VectorXd> &_param
 }
 
 /* updatePoseRecursive */
-void ArticulatedObject::updatePoseRecursive(const Eigen::Matrix4f &_pose, Part &part, std::vector<Part::Ptr> &parts) 
+void ArticulatedObject::updatePoseRecursive(const Eigen::Matrix4f &_pose, Part &part, std::vector<Part::Ptr> &_parts)
 {
   part.updatePose(_pose);
   for (unsigned i=0; i<part.subparts.size(); i++) {
-    updatePoseRecursive(part.pose, *parts[part.subparts[i]], parts);
+    updatePoseRecursive(part.pose, *_parts[part.subparts[i]], _parts);
   } 
 } 
 
@@ -95,9 +95,9 @@ void ArticulatedObject::updatePoseRecursive(const Eigen::Matrix4f &_pose)
 }
 
 /* getKinematicChain */
-void ArticulatedObject::getChainRecursive(const Part &part, const std::vector<Part::Ptr> &parts, int idx, std::vector< std::vector<int> > &kinematics) 
+void ArticulatedObject::getChainRecursive(const Part &part, const std::vector<Part::Ptr> &parts, int _idx, std::vector< std::vector<int> > &kinematics)
 {
-  kinematics[part.idx] = kinematics[idx];
+  kinematics[part.idx] = kinematics[_idx];
   kinematics[part.idx].push_back(part.idx);
 
   for (unsigned i=0; i<part.subparts.size(); i++)
@@ -160,11 +160,11 @@ int ArticulatedObject::addCamera(const std::vector<Eigen::VectorXd> &_part_param
   if (_part_parameter.size()==0)
     return -1;
 
-  Eigen::Matrix4f pose;
+  Eigen::Matrix4f _pose;
 
-  convertPose(_part_parameter[0],pose);
+  convertPose(_part_parameter[0],_pose);
   part_parameter.push_back(_part_parameter);
-  cameras.push_back(pose);
+  cameras.push_back(_pose);
 
   return part_parameter.size()-1;  
 }

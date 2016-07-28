@@ -45,16 +45,23 @@ namespace v4r
      * \date March, 2012
      */
 template<template<class > class Distance, typename PointInT>
-class V4R_EXPORTS GlobalNNClassifier : public GlobalClassifier<PointInT>
+class V4R_EXPORTS GlobalNNClassifier
 {
 
 protected:
-    using GlobalClassifier<PointInT>::estimator_;
-    using GlobalClassifier<PointInT>::input_;
-    using GlobalClassifier<PointInT>::indices_;
-    using GlobalClassifier<PointInT>::categories_;
-    using GlobalClassifier<PointInT>::confidences_;
-    using GlobalClassifier<PointInT>::training_dir_;
+    typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+
+    std::string training_dir_;  /// @brief directory containing training data
+
+    PointInTPtr input_; /// @brief Point cloud to be classified
+
+    std::vector<int> indices_; /// @brief indices of the object to be classified
+
+    std::vector<std::string> categories_;   /// @brief classification results
+
+    std::vector<float> confidences_;   /// @brief confidences associated to the classification results (normalized to 0...1)
+
+    typename boost::shared_ptr<GlobalEstimator<PointInT> > estimator_; /// @brief estimator used for describing the object
 
     struct index_score
     {
@@ -82,13 +89,13 @@ protected:
         }
     } sortIndexScoresOpDesc;
 
-    typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
+    typedef typename pcl::PointCloud<PointInT>::Ptr PointTPtr;
     typedef Distance<float> DistT;
     typedef Model<PointInT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
     /** \brief Model data source */
-    typename boost::shared_ptr<Source<PointInT> > source_;
+    typename Source<PointInT>::Ptr source_;
 
     /** \brief Descriptor name */
     std::string descr_name_;
@@ -146,8 +153,9 @@ public:
 
 
     /** \brief Initializes the FLANN structure from the provided source */
-    void
+    bool
     initialize (bool force_retrain = false);
+
 
     /** \brief Performs classification */
     void
@@ -164,6 +172,44 @@ public:
     setDescriptorName (const std::string & name)
     {
         descr_name_ = name;
+    }
+
+    /** @brief sets the indices of the object to be classified */
+    void
+    setIndices (const std::vector<int> & indices)
+    {
+        indices_ = indices;
+    }
+
+    /** \brief Sets the input cloud to be classified */
+    void
+    setInputCloud (const PointInTPtr & cloud)
+    {
+        input_ = cloud;
+    }
+
+    void
+    setTrainingDir (const std::string & dir)
+    {
+        training_dir_ = dir;
+    }
+
+    void
+    getCategory (std::vector<std::string> & categories) const
+    {
+        categories = categories_;
+    }
+
+    void
+    getConfidence (std::vector<float> & conf) const
+    {
+        conf = confidences_;
+    }
+
+    void
+    setFeatureEstimator (const typename boost::shared_ptr<GlobalEstimator<PointInT> > & feat)
+    {
+        estimator_ = feat;
     }
 };
 }

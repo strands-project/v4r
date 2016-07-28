@@ -40,7 +40,7 @@
 #ifndef FAAT_PCL_RECOGNITION_GRAPH_GEOMETRIC_CONSISTENCY_IMPL_H_
 #define FAAT_PCL_RECOGNITION_GRAPH_GEOMETRIC_CONSISTENCY_IMPL_H_
 
-#include "v4r/common/graph_geometric_consistency.h"
+#include <v4r/common/graph_geometric_consistency.h>
 #include <pcl/registration/correspondence_types.h>
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
 #include <pcl/common/io.h>
@@ -71,7 +71,7 @@ bool gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j);
 bool
 gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j)
 {
-    return (i.distance < j.distance);
+    return i.distance < j.distance;
 }
 
 struct V4R_EXPORTS ViewD
@@ -108,8 +108,8 @@ public:
      {
      }*/
 
-    save_cliques (std::size_t& max, std::size_t& maximum_clique, std::size_t& n_cliques, std::vector<std::vector<size_t> *> & cliquess) :
-        min_size (max), maximum (maximum_clique), n_cliques (n_cliques), cliques (cliquess)
+    save_cliques (size_t max, size_t maximum_clique, size_t n_cliques, std::vector<std::vector<size_t> *> & cliques) :
+        min_size_ (max), maximum_ (maximum_clique), n_cliques_ (n_cliques), cliques_ (cliques)
     {
     }
 
@@ -118,47 +118,29 @@ public:
     clique (const Clique& c, Graph2& g)
     {
 
-        if (c.size () >= min_size)
+        if (c.size () >= min_size_)
         {
             BOOST_USING_STD_MAX();
-            maximum = std::max BOOST_PREVENT_MACRO_SUBSTITUTION (maximum, c.size());
+            maximum_ = std::max BOOST_PREVENT_MACRO_SUBSTITUTION (maximum_, c.size());
 
             //save clique...
             typename Clique::const_iterator i, end = c.end ();
-            //std::vector<void *> * cc = new std::vector<void *> (c.size ());
             std::vector<size_t> * cc = new std::vector<size_t> (c.size ());
-            cliques.push_back (cc);
+            cliques_.push_back (cc);
             size_t p;
             for (i = c.begin (); i != end; ++i, ++p)
-            {
-                //cc->at (p) = static_cast<void *> (*i);
                 cc->at (p) = (*i);
-            }
 
-            n_cliques++;
+            n_cliques_++;
         }
         else
-        {
             return;
-        }
-
-        // Simply assert that each vertex in the clique is connected
-        // to all others in the clique.
-        /*typename Clique::const_iterator i, j, end = c.end();
-         for(i = c.begin(); i != end; ++i) {
-         for(j = c.begin(); j != end; ++j) {
-         if(i != j) {
-         BOOST_ASSERT(edge(*i, *j, g).second);
-         }
-         }
-         }*/
     }
 
-    std::size_t& min_size;
-    std::size_t& maximum;
-    std::size_t& n_cliques;
-    //std::vector<std::vector<void *> *> & cliques;
-    std::vector<std::vector<size_t> *> & cliques;
+    size_t min_size_;
+    size_t maximum_;
+    size_t n_cliques_;
+    std::vector<std::vector<size_t> *> cliques_;
 };
 
 class FAATPCL_CliquesException: public std::exception
@@ -184,7 +166,7 @@ class V4R_EXPORTS Tomita
     bool max_time_reached_;
 
     void
-    addClique (VectorType & clique)
+    addClique (const VectorType & clique)
     {
         if (clique.size () >= min_clique_size_)
         {
@@ -199,18 +181,15 @@ class V4R_EXPORTS Tomita
     }
 
     void
-    printSet (SetType & s)
+    printSet (const SetType & s)
     {
-        typename SetType::iterator vertexIt, vertexEnd;
-        SetType tmp;
+        typename SetType::const_iterator vertexIt, vertexEnd;
 
         vertexIt = s.begin ();
         vertexEnd = s.end ();
 
         for (; vertexIt != vertexEnd; ++vertexIt)
-        {
             std::cout << *vertexIt + 1 << " ";
-        }
 
         std::cout << std::endl;
     }
@@ -328,7 +307,7 @@ public:
     }
 
     void
-    find_cliques (Graph & G, size_t num_v)
+    find_cliques (const Graph & G, size_t num_v)
     {
         SetType cand, done;
         VectorType clique_so_far;
@@ -360,13 +339,13 @@ public:
     }
 
     size_t
-    getNumCliquesFound ()
+    getNumCliquesFound () const
     {
         return cliques_found_.size ();
     }
 
     void
-    getCliques (std::vector<VectorType *> & cliques)
+    getCliques (std::vector<VectorType *> & cliques) const
     {
         cliques = cliques_found_;
     }
@@ -438,7 +417,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph2(Gr
         for (size_t i = 0; i < to_be_removed.size (); i++)
             clear_vertex (to_be_removed[i], g);
 
-    } while(to_be_removed.size() > 0);
+    } while(!to_be_removed.empty());
 }
 
 template<typename PointModelT, typename PointSceneT>
@@ -453,37 +432,37 @@ template<typename PointModelT, typename PointSceneT>
 void
 v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances)
 {
+  try
+  {
     model_instances.clear ();
     found_transformations_.clear ();
 
     //for the old gc...
-    pcl::CorrespondencesPtr sorted_corrs (new pcl::Correspondences (*model_scene_corrs_));
-    std::sort (sorted_corrs->begin (), sorted_corrs->end (), gcGraphCorrespSorter);
-    model_scene_corrs_ = sorted_corrs;
+    std::sort (model_scene_corrs_.begin (), model_scene_corrs_.end (), gcGraphCorrespSorter);
 
-    if (!model_scene_corrs_)
+    if (model_scene_corrs_.empty())
         throw std::runtime_error("[pcl::GeometricConsistencyGrouping::clusterCorrespondences()] Error! Correspondences not set, please set them before calling again this function.\n");
 
     //temp copy of scene cloud with the type cast to ModelT in order to use Ransac
     PointCloudPtr temp_scene_cloud_ptr (new PointCloud ());
     pcl::copyPointCloud<PointSceneT, PointModelT> (*scene_, *temp_scene_cloud_ptr);
 
-    GraphGGCG correspondence_graph (model_scene_corrs_->size ());
+    GraphGGCG correspondence_graph (model_scene_corrs_.size ());
     float min_dist_for_cluster = param_.gc_size_ * param_.dist_for_cluster_factor_;
 
-    for (size_t k = 0; k < model_scene_corrs_->size (); ++k)
+    for (size_t k = 0; k < model_scene_corrs_.size (); ++k)
     {
-        int scene_index_k = model_scene_corrs_->at (k).index_match;
-        int model_index_k = model_scene_corrs_->at (k).index_query;
+        int scene_index_k = model_scene_corrs_[k].index_match;
+        int model_index_k = model_scene_corrs_[k].index_query;
         const Eigen::Vector3f& scene_point_k = scene_->at (scene_index_k).getVector3fMap ();
         const Eigen::Vector3f& model_point_k = input_->at (model_index_k).getVector3fMap ();
         const Eigen::Vector3f& scene_normal_k = scene_normals_->at (scene_index_k).getNormalVector3fMap ();
         const Eigen::Vector3f& model_normal_k = input_normals_->at (model_index_k).getNormalVector3fMap ();
 
-        for (size_t j = (k + 1); j < model_scene_corrs_->size (); ++j)
+        for (size_t j = (k + 1); j < model_scene_corrs_.size (); ++j)
         {
-            int scene_index_j = model_scene_corrs_->at (j).index_match;
-            int model_index_j = model_scene_corrs_->at (j).index_query;
+            int scene_index_j = model_scene_corrs_[j].index_match;
+            int model_index_j = model_scene_corrs_[j].index_query;
 
             //same scene or model point constraint
             if(scene_index_j == scene_index_k || model_index_j == model_index_k)
@@ -495,27 +474,25 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
             const Eigen::Vector3f& scene_normal_j = scene_normals_->at (scene_index_j).getNormalVector3fMap ();
             const Eigen::Vector3f& model_normal_j = input_normals_->at (model_index_j).getNormalVector3fMap ();
 
-            Eigen::Vector3f dist_trg = model_point_k - model_point_j;
-            Eigen::Vector3f dist_ref = scene_point_k - scene_point_j;
+            float dist_model_pts = (model_point_k - model_point_j).norm();
+            float dist_scene_pts = (scene_point_k - scene_point_j).norm();
 
             //minimum distance constraint
-            if ((dist_trg.norm () < min_dist_for_cluster) || (dist_ref.norm () < min_dist_for_cluster))
+            if ((dist_model_pts < min_dist_for_cluster) || (dist_scene_pts < min_dist_for_cluster))
                 continue;
 
-            double distance = fabs (dist_trg.norm () - dist_ref.norm());
-            double dot_distance = 0;
-            if (pcl_isnan(scene_normal_k.dot (scene_normal_j)) || pcl_isnan(model_normal_k.dot (model_normal_j)))
-                dot_distance = 0.f;
-            else
-            {
-                float dot_model = model_normal_k.dot (model_normal_j);
-                dot_distance = std::abs (scene_normal_k.dot (scene_normal_j) - dot_model);
-            }
+            double distance = fabs (dist_model_pts - dist_scene_pts);
+
+            double dot_scene_pts = scene_normal_k.dot (scene_normal_j);
+            double dot_model_pts = model_normal_k.dot (model_normal_j);
 
             //Model normals should be consistently oriented! otherwise reject!
-            float dot_distance_model = model_normal_k.dot (model_normal_j);
-            if(dot_distance_model < -0.1f)
+            if(dot_model_pts < -0.1f)
                 continue;
+
+            double dot_distance = 0;
+            if ( !pcl_isnan(dot_scene_pts)  && !pcl_isnan(dot_model_pts))
+                dot_distance = fabs(dot_scene_pts - dot_model_pts);
 
             //gc constraint and dot_product constraint!
             if ((distance < param_.gc_size_) && (dot_distance <= param_.thres_dot_distance_))
@@ -582,7 +559,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
         }
 
         //std::cout << "Num edges connnected component:" << boost::num_edges(connected_graph) << std::endl;
-        //visualizeGraph(connected_graph, "connected component");
+//        visualizeGraph(connected_graph, "connected component");
 
         float arboricity = num_edges (connected_graph) / static_cast<float>(num_v_in_cc - 1);
         //std::cout << "arboricity:" << arboricity << " num_v:" << num_v_in_cc << " edges:" << num_edges (connected_graph) << std::endl;
@@ -591,7 +568,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
 
         std::vector< std::vector<size_t> > correspondence_to_instance;
         if(param_.prune_by_CC_)
-            correspondence_to_instance.resize(model_scene_corrs_->size());
+            correspondence_to_instance.resize(model_scene_corrs_.size());
 
         if (cliques_computation_possible_[c] && arboricity < 25 /*&& (num_v_in_cc < 400) && (num_edges (connected_graph) < 8000) && arboricity < 10*/)
         {
@@ -603,10 +580,10 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                 //pcl::ScopeTime t ("tomita cliques...");
                 Tomita<GraphGGCG> tom (param_.gc_threshold_);
                 tom.setMaxTimeAllowed(param_.max_time_allowed_cliques_comptutation_);
-                tom.find_cliques (connected_graph, model_scene_corrs_->size ());
+                tom.find_cliques (connected_graph, model_scene_corrs_.size ());
                 if(tom.getMaxTimeReached())
                 {
-                    PCL_WARN("Max time reached during clique computation %f!!\n", param_.max_time_allowed_cliques_comptutation_);
+                    std::cout << "Max time ( " << std::setprecision(2) << param_.max_time_allowed_cliques_comptutation_ << " ms) reached during clique computation" << std::endl;
                     cliques_computation_possible_[c] = false;
                     c--;
                     analyzed_ccs--;
@@ -631,7 +608,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                 float far_away_average_weight_ = 0.f;
 
                 for(size_t jj=0; jj < cliques[k]->size(); jj++)
-                    avg_dist += model_scene_corrs_->at(cliques[k]->at(jj)).distance;
+                    avg_dist += model_scene_corrs_[ cliques[k]->at(jj) ].distance;
 
                 avg_dist /= static_cast<float>(cliques[k]->size());
                 cliques_with_average_weight.push_back(std::make_pair(avg_dist, cliques[k]));
@@ -641,8 +618,8 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                 for(size_t jj=0; jj < cliques[k]->size(); jj++)
                 {
 
-                    int scene_index_j = model_scene_corrs_->at (cliques[k]->at(jj)).index_match;
-                    int model_index_j = model_scene_corrs_->at (cliques[k]->at(jj)).index_query;
+                    int scene_index_j = model_scene_corrs_[ cliques[k]->at(jj) ].index_match;
+                    int model_index_j = model_scene_corrs_[ cliques[k]->at(jj) ].index_query;
                     const Eigen::Vector3f& scene_point_j = scene_->at (scene_index_j).getVector3fMap ();
                     const Eigen::Vector3f& model_point_j = input_->at (model_index_j).getVector3fMap ();
 
@@ -650,8 +627,8 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                     {
                         //for each pair, average 3D distance
 
-                        int scene_index_k = model_scene_corrs_->at (cliques[k]->at(kk)).index_match;
-                        int model_index_k = model_scene_corrs_->at (cliques[k]->at(kk)).index_query;
+                        int scene_index_k = model_scene_corrs_[ cliques[k]->at(kk) ].index_match;
+                        int model_index_k = model_scene_corrs_[ cliques[k]->at(kk) ].index_query;
 
                         const Eigen::Vector3f& scene_point_k = scene_->at (scene_index_k).getVector3fMap ();
                         const Eigen::Vector3f& model_point_k = input_->at (model_index_k).getVector3fMap ();
@@ -714,7 +691,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
             sort (extended_cliques.begin (), extended_cliques.end (), best_extended_cliques);
 
             std::vector<std::vector<size_t> *>::iterator it;
-            std::vector<size_t> taken_corresps (model_scene_corrs_->size (), 0);
+            std::vector<size_t> taken_corresps (model_scene_corrs_.size (), 0);
             int max_taken = param_.max_taken_correspondence_;
 
             if(!param_.cliques_big_to_small_)
@@ -745,8 +722,8 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                     temp_corrs.reserve (used);
                     for (size_t j = 0; j < new_clique->size (); j++)
                     {
-                        assert(new_clique->at (j) < model_scene_corrs_->size());
-                        temp_corrs.push_back (model_scene_corrs_->at (new_clique->at (j)));
+                        assert(new_clique->at (j) < model_scene_corrs_.size());
+                        temp_corrs.push_back (model_scene_corrs_[ new_clique->at (j) ]);
                     }
 
                     corr_rejector.getRemainingCorrespondences (temp_corrs, filtered_corrs);
@@ -829,33 +806,33 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
         else
         {
             //use iterative gc for simple cases with lots of correspondences...
-            PCL_WARN("Problem is too hard to solve it using cliques...\n");
-            std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
+            std::cout << "Correspondence grouping is too hard to solve it using cliques..." << std::endl;
+//            std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
 
             std::vector<size_t> consensus_set;
-            consensus_set.resize(model_scene_corrs_->size ());
-            std::vector<bool> taken_corresps (model_scene_corrs_->size (), false);
+            consensus_set.resize(model_scene_corrs_.size ());
+            std::vector<bool> taken_corresps (model_scene_corrs_.size (), false);
 
-            GraphGGCG connected_graph(correspondence_graph);
+            GraphGGCG connected_graph2(correspondence_graph);
             //iterate over edges and remove those not belonging to this biconnected component
-            boost::tie (edgeIt, edgeEnd) = edges (connected_graph);
+            boost::tie (edgeIt, edgeEnd) = edges (connected_graph2);
             for (; edgeIt != edgeEnd; ++edgeIt)
             {
                 if (components[*edgeIt] != c)
                 {
-                    boost::remove_edge(*edgeIt, connected_graph);
+                    boost::remove_edge(*edgeIt, connected_graph2);
                 }
             }
 
             typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
-            boost::tie (vertexIt, vertexEnd) = vertices (connected_graph);
+            boost::tie (vertexIt, vertexEnd) = vertices (connected_graph2);
             for (; vertexIt != vertexEnd; ++vertexIt)
             {
-                if ( boost::out_degree(*vertexIt, connected_graph) < (param_.gc_threshold_ - 1))
+                if ( boost::out_degree(*vertexIt, connected_graph2) < (param_.gc_threshold_ - 1))
                     taken_corresps[*vertexIt] = true;
             }
 
-            for (size_t i = 0; i < model_scene_corrs_->size (); ++i)
+            for (size_t i = 0; i < model_scene_corrs_.size (); ++i)
             {
                 if (taken_corresps[i])
                     continue;
@@ -863,7 +840,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                 int consensus_size = 0;
                 consensus_set[consensus_size++] = i;
 
-                for (size_t j = 0; j < model_scene_corrs_->size (); ++j)
+                for (size_t j = 0; j < model_scene_corrs_.size (); ++j)
                 {
                     if (j != i && !taken_corresps[j])
                     {
@@ -873,7 +850,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                         for (int k = 0; k < consensus_size; ++k)
                         {
                             //check if edge (j, consensus_set[k] exists in the graph, if it does not, is_a_good_candidate = false!...
-                            if (!(boost::edge (j, consensus_set[k], connected_graph).second))
+                            if (!(boost::edge (j, consensus_set[k], connected_graph2).second))
                             {
                                 is_a_good_candidate = false;
                                 break;
@@ -891,7 +868,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                     temp_corrs.reserve (consensus_size);
 
                     for (size_t j = 0; j < consensus_size; j++)
-                        temp_corrs.push_back (model_scene_corrs_->at (consensus_set[j]));
+                        temp_corrs.push_back (model_scene_corrs_[ consensus_set[j] ]);
 
                     if ( param_.ransac_threshold_ > 0)
                     {
@@ -994,17 +971,17 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
             for (size_t i = 0; i < to_be_removed.size (); i++)
                 clear_vertex (to_be_removed[i], connected_graph_used_edges);
 
-            boost::vector_property_map<size_t> components (boost::num_vertices (connected_graph_used_edges));
-            size_t n_cc = boost::connected_components (connected_graph_used_edges, &components[0]);
+            boost::vector_property_map<size_t> components2 (boost::num_vertices (connected_graph_used_edges));
+            size_t n_cc2 = boost::connected_components (connected_graph_used_edges, &components2[0]);
 
-            std::vector<size_t> cc_sizes  (n_cc, 0);
-            for (size_t i = 0; i < model_scene_corrs_->size (); i++)
-                cc_sizes[components[i]]++;
+            std::vector<size_t> cc_sizes2  (n_cc2, 0);
+            for (size_t i = 0; i < model_scene_corrs_.size (); i++)
+                cc_sizes2[components2[i]]++;
 
             size_t ncc_overthres = 0;
-            for (size_t i = 0; i < n_cc; i++)
+            for (size_t i = 0; i < n_cc2; i++)
             {
-                if(cc_sizes[i] >= param_.gc_threshold_)
+                if(cc_sizes2[i] >= param_.gc_threshold_)
                     ncc_overthres++;
             }
 
@@ -1014,10 +991,10 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
             //gather instances that were generated with correspondences found in a specific CC
             //correspondence_to_instance maps correspondences (vertices) to instance, we can use that i guess
 
-            for (size_t internal_c = 0; internal_c < n_cc; internal_c++)
+            for (size_t internal_c = 0; internal_c < n_cc2; internal_c++)
             {
                 //ignore if not enough vertices...
-                size_t num_v_in_cc_tmp = cc_sizes[internal_c];
+                size_t num_v_in_cc_tmp = cc_sizes2[internal_c];
                 if (num_v_in_cc_tmp < param_.gc_threshold_)
                     continue;
 
@@ -1027,7 +1004,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
 
                     for (; vertexIt != vertexEnd; ++vertexIt)
                     {
-                        if (components[*vertexIt] == internal_c)
+                        if (components2[*vertexIt] == internal_c)
                         {
                             for(size_t k=0; k < correspondence_to_instance[*vertexIt].size(); k++)
                             {
@@ -1079,6 +1056,15 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
 
     //visualizeCorrespondences(*model_scene_corrs_);
 
+  }
+  // HACK: Michael Zillich: added this try/catch, as somewhere above somtimes a range
+  // check exception is thrown. This will have to be handled properly eventually
+  catch(std::exception e)
+  {
+      std::cerr << "v4r::GraphGeometricConsistencyGroupingi: caught exception: "
+        << e.what() << "\n";
+  }
+  // HACK END
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1103,8 +1089,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
     transformations.clear ();
     if (!this->initCompute ())
     {
-        PCL_ERROR(
-                    "[v4r::GraphGeometricConsistencyGrouping::recognize()] Error! Model cloud or Scene cloud not set, please set them before calling again this function.\n");
+        PCL_ERROR("[v4r::GraphGeometricConsistencyGrouping::recognize()] Error! Model cloud or Scene cloud not set, please set them before calling again this function.\n");
         return (false);
     }
 
@@ -1113,7 +1098,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::recognize (
     transformations = found_transformations_;
 
     this->deinitCompute ();
-    return (true);
+    return true;
 }
 
 #endif // FAAT_PCL_RECOGNITION_SI_GEOMETRIC_CONSISTENCY_IMPL_H_

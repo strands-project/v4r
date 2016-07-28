@@ -8,6 +8,7 @@
 #ifndef MAIN_WINDOW_H_
 #define MAIN_WINDOW_H_
 
+#ifndef Q_MOC_RUN
 #include <QVTKWidget.h>
 #include <QObject>
 #include <QtGui>
@@ -18,6 +19,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <v4r/recognition/model_only_source.h>
 #include <v4r/common/miscellaneous.h>
+#endif
 
 namespace bf = boost::filesystem;
 
@@ -70,7 +72,7 @@ public:
        pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler(model_cloud_transformed, 0, 255, 0);
        pviz_->addPointCloud(model_cloud_transformed, scene_handler, "highlighted");
 
-       pviz_->spinOnce(0.1, true);
+       pviz_->spinOnce(100, true);
    }
 
    void addSelectedModelCloud(int selected_model)
@@ -146,7 +148,7 @@ public:
 
    void updateHighlightedScene(bool highlight=false)
    {
-       for (size_t i = 0; i < single_scenes_.size (); i++)
+       for (int i = 0; i < (int)single_scenes_.size (); i++)
        {
            if( i == selected_scene_)
            {
@@ -163,7 +165,7 @@ public:
                }
            }
        }
-       pviz_->spinOnce(0.1, true);
+       pviz_->spinOnce(100, true);
    }
 
    void clear()
@@ -278,6 +280,7 @@ private:
   float inlier_;
   std::vector< std::string> test_sequences_;
   size_t sequence_id_;
+  int resolution_mm_;
 
 
   int model_viewport_;

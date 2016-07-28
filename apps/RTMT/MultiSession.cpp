@@ -30,8 +30,8 @@
  *
  */
 
+#ifndef Q_MOC_RUN
 #include "MultiSession.h"
-
 
 #include <cmath>
 #include <pcl/sample_consensus/ransac.h>
@@ -49,6 +49,7 @@
 #include <v4r/keypoints/impl/PoseIO.hpp>
 #include <pcl/io/pcd_io.h>
 //#include <pcl/visualization/pcl_visualizer.h>
+#endif
 
 using namespace std;
 
@@ -449,7 +450,9 @@ void MultiSession::createObjectCloudFiltered()
   if (clouds->size()==0 || masks.size()!=clouds->size())
     return;
 
-  v4r::NguyenNoiseModel<pcl::PointXYZRGB> nm;
+  v4r::NguyenNoiseModel<pcl::PointXYZRGB>::Parameter nmparam;
+  nmparam.edge_radius_ = om_params.edge_radius_px;
+  v4r::NguyenNoiseModel<pcl::PointXYZRGB> nm(nmparam);
   std::vector< std::vector<std::vector<float> > > pt_properties (sessions_clouds_.size());
 
   if (!sessions_clouds_.empty())
@@ -464,6 +467,7 @@ void MultiSession::createObjectCloudFiltered()
 
     v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nmparam;
     nmparam.octree_resolution_ = om_params.vx_size_object;
+    nmparam.edge_radius_px_ = om_params.edge_radius_px;
     nmparam.min_points_per_voxel_ = 1;
     octree_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
     big_normals.reset(new pcl::PointCloud<pcl::Normal>);

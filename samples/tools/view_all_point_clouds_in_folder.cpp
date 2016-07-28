@@ -23,19 +23,19 @@
 #include <v4r/common/pcl_opencv.h>
 #include <v4r/io/filesystem.h>
 
-typedef pcl::PointXYZRGB PointT;
-
 int main (int argc, char ** argv)
 {
+    typedef pcl::PointXYZRGB PointT;
+
     std::string path;
     int i_rows = 2;
     bool center = false;
     bool save_img = false;
 
     bool multi_view = true;
-    std::string cloud_prefix = "cloud";
-    std::string pose_prefix = "pose";
-    std::string indices_prefix = "object_indices";
+    std::string cloud_prefix = "cloud_";
+    std::string pose_prefix = "pose_";
+    std::string indices_prefix = "object_indices_";
     std::string out_img_dir = "/tmp/my_imgages/";
 
     pcl::console::parse_argument (argc, argv, "-path", path);
@@ -96,21 +96,17 @@ int main (int argc, char ** argv)
         // Check if indices and pose file exist
         std::string indices_filename ( cloud_files[file_id] );
         boost::replace_first (indices_filename, cloud_prefix, indices_prefix);
+        boost::replace_last (indices_filename, ".pcd", ".txt");
         const std::string full_indices_path = path + "/"  + indices_filename;
-
-        std::string pose_filename ( cloud_files[file_id] );
-        boost::replace_first (pose_filename, cloud_prefix, pose_prefix);
-        boost::replace_last (pose_filename, ".pcd", ".txt");
-        const std::string full_pose_path = path + "/"  + pose_filename;
 
         if( v4r::io::existsFile( full_indices_path) )
         {
-            pcl::PointCloud<IndexPoint> obj_indices_cloud;
-            pcl::io::loadPCDFile(full_indices_path, obj_indices_cloud);
-            pcl::PointIndices indices;
-            indices.indices.resize(obj_indices_cloud.points.size());
-            for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
-              indices.indices[kk] = obj_indices_cloud.points[kk].idx;
+            std::vector<int> indices;
+            std::ifstream f ( full_indices_path.c_str() );
+            int idx;
+            while (f >> idx)
+                indices.push_back(idx);
+            f.close();
             pcl::copyPointCloud(*cloud, indices, *cloud);
         }
         else
@@ -118,11 +114,16 @@ int main (int argc, char ** argv)
             std::cout << "Indices file " << full_indices_path << " does not exist." << std::endl;
         }
 
+
+        std::string pose_filename ( cloud_files[file_id] );
+        boost::replace_first (pose_filename, cloud_prefix, pose_prefix);
+        boost::replace_last (pose_filename, ".pcd", ".txt");
+        const std::string full_pose_path = path + "/"  + pose_filename;
         if( v4r::io::existsFile( full_pose_path ) )
         {
             Eigen::Matrix4f tf = v4r::io::readMatrixFromFile(full_pose_path);
-            const Eigen::Matrix4f tf_inv = tf.inverse();
-            pcl::transformPointCloud(*cloud, *cloud, tf_inv);
+//            const Eigen::Matrix4f tf_inv = tf.inverse();
+            pcl::transformPointCloud(*cloud, *cloud, tf);
         }
         else
         {
@@ -156,10 +157,10 @@ int main (int argc, char ** argv)
             int col_id = file_id%cols;
             int row_id = std::floor(file_id/float(cols));
             vis.createViewPort( float(col_id)/cols, float(row_id)/rows, float(col_id + 1.0)/cols, float(row_id + 1.0)/rows, viewport[file_id]);
-            vis.addPointCloud<PointT> (cloud, cloud_files[file_id], viewport[file_id]);
+            vis.addPointCloud(cloud, cloud_files[file_id], viewport[file_id]);
         }
         else
-            vis.addPointCloud<PointT> (cloud, cloud_files[file_id]);
+            vis.addPointCloud(cloud, cloud_files[file_id]);
     }
 
     if(multi_view) { // display remaining windows with same background

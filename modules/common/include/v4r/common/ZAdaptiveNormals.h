@@ -29,7 +29,9 @@
 
 #include <iostream>
 #include <stdexcept>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <math.h>
 #include <Eigen/Dense>
 #include <v4r/core/macros.h>

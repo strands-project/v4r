@@ -44,10 +44,10 @@ namespace v4r
         }
 
         bool
-        estimate (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
+        compute (const PointInTPtr & in, PointInTPtr & processed, PointInTPtr & keypoints, FeatureTPtr & signatures)
         {
 
-          keypoint_indices_.indices.clear();
+          keypoint_indices_.clear();
           if(indices_.indices.size() == 0)
           {
             indices_.indices.resize(in->points.size());
@@ -115,7 +115,7 @@ namespace v4r
               if(pcl_isfinite(in->at(u,v).z) && pcl_isfinite(in->at(u,v).x) && pcl_isfinite(in->at(u,v).y))
               {
                 keypoints->points[kept] = in->at(u,v);
-                keypoint_indices_.indices.push_back(v * in->width + u);
+                keypoint_indices_.push_back(v * in->width + u);
                 assert((v * in->width + u) < (in->points.size()));
                 for (int k = 0; k < 128; k++)
                   signatures->points[kept].histogram[k] = descriptors.at<float>(i,k);

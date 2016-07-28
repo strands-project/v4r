@@ -2,6 +2,7 @@ SET(3D_SCENE_RECONSTRUCTION_BY_SIFT_AND_MST_DEPS v4r_core v4r_registration v4r_i
 v4r_check_dependencies(${3D_SCENE_RECONSTRUCTION_BY_SIFT_AND_MST_DEPS})
 
 if(NOT V4R_DEPENDENCIES_FOUND)
+  message(***3D_SCENE_RECONSTRUCTION_BY_SIFT_AND_MST_DEPS does not meed dependencies*****)
   return()
 endif()
 

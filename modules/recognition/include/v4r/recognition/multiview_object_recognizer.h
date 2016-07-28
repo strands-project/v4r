@@ -52,12 +52,8 @@
 #include <v4r/recognition/multiview_representation.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 
-#include <SiftGPU/SiftGPU.h>
-
 #ifdef HAVE_SIFTGPU
-#include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
+#include <SiftGPU/SiftGPU.h>
 #endif
 
 namespace v4r
@@ -69,17 +65,11 @@ class V4R_EXPORTS MultiviewRecognizer : public Recognizer<PointT>
 protected:
     typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
-    typedef flann::L1<float> DistT;
 
     using Recognizer<PointT>::scene_;
     using Recognizer<PointT>::scene_normals_;
-    using Recognizer<PointT>::models_;
-    using Recognizer<PointT>::model_or_plane_is_verified_;
-    using Recognizer<PointT>::transforms_;
-    using Recognizer<PointT>::planes_;
     using Recognizer<PointT>::hv_algorithm_;
-
-    using Recognizer<PointT>::poseRefinement;
+    using Recognizer<PointT>::verified_hypotheses_;
     using Recognizer<PointT>::hypothesisVerification;
 
     boost::shared_ptr<MultiRecognitionPipeline<PointT> > rr_;
@@ -95,7 +85,7 @@ protected:
     pcl::visualization::PCLVisualizer::Ptr go3d_vis_;
     std::vector<int> go_3d_viewports_;
 
-    typedef typename std::map<std::string, ObjectHypothesis<PointT> > symHyp;
+    typedef typename std::map<std::string, LocalObjectHypothesis<PointT> > symHyp;
 
     size_t id_;
 
@@ -103,14 +93,19 @@ protected:
 
     std::string scene_name_;
 
-    symHyp obj_hypotheses_; /// \brief stores keypoint correspondences
+    symHyp local_obj_hypotheses_; /// \brief stores keypoint correspondences
 
     /** \brief Point-to-point correspondence grouping algorithm */
-    typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > cg_algorithm_;
+    typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;
 
     Eigen::Matrix4f pose_;
 
-    cv::Ptr<SiftGPU> sift_;
+    pcl::PointCloud<PointT> scene_keypoints_; /// @brief accumulated scene keypoints
+    pcl::PointCloud<pcl::Normal> scene_kp_normals_; /// @brief accumulated scene keypoint normals
+
+#ifdef HAVE_SIFTGPU
+    boost::shared_ptr<SiftGPU> sift_;
+#endif
 
     bool computeAbsolutePose(CamConnect & e, bool is_first_edge = false);
 
@@ -118,26 +113,10 @@ protected:
     void pruneGraph();
 
     void correspondenceGrouping();
-
-    float calcEdgeWeightAndRefineTf (const typename pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                                    const typename pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                                    Eigen::Matrix4f &refined_transform,
-                                    const Eigen::Matrix4f &transform = Eigen::Matrix4f::Identity());
-
+    
     bool calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
-                           typename pcl::PointCloud<PointT>::Ptr &sift_keypoints,
                            std::vector< int > &sift_keypoint_indices,
-                           pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
-                           std::vector<float> &sift_keypoint_scales);
-
-    void estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
-                                          const pcl::PointCloud<PointT> &dst_cloud,
-                                          const std::vector<int> &src_sift_keypoint_indices,
-                                          const std::vector<int> &dst_sift_keypoint_indices,
-                                          const pcl::PointCloud<FeatureT> &src_sift_signatures,
-                                          boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
-                                          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
-                                          bool use_gc = false );
+                           std::vector<std::vector<float> > &sift_signatures);
 
     typename NguyenNoiseModel<PointT>::Parameter nm_param_;
     typename NMBasedCloudIntegration<PointT>::Parameter nmInt_param_;
@@ -146,8 +125,6 @@ public:
     class Parameter : public Recognizer<PointT>::Parameter
     {
     public:
-        using Recognizer<PointT>::Parameter::icp_iterations_;
-        using Recognizer<PointT>::Parameter::icp_type_;
         using Recognizer<PointT>::Parameter::normal_computation_method_;
         using Recognizer<PointT>::Parameter::voxel_size_icp_;
         using Recognizer<PointT>::Parameter::merge_close_hypotheses_;
@@ -161,9 +138,12 @@ public:
         double distance_same_keypoint_; /// @brief defines the minimum distance between two keypoints (of same model) to be seperated
         double same_keypoint_dot_product_; /// @brief defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
         int extension_mode_; /// @brief defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
+        bool use_multiview_verification_; /// @brief if true, verifies against all viewpoints from the scene (i.e. computing visible model cloud taking into account all views and trying to explain all points from reconstructed scene). Otherwise only against the current viewpoint.
         int max_vertices_in_graph_; /// @brief maximum number of views taken into account (views selected in order of latest recognition calls)
         double chop_z_;  /// @brief points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
         bool compute_mst_; /// @brief if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud
+        bool run_reconstruction_filter_; /// @brief run special filtering before reconstruction. This filtering must be implemented by derived class.
+        bool run_hypotheses_filter_; /// @brief run hypotheses pre-filtering before verification. This filtering must be implemented by derived class.
 
         Parameter (
                 bool scene_to_scene = true,
@@ -173,9 +153,12 @@ public:
                 double distance_same_keypoint = 0.005f*0.005f,
                 double same_keypoint_dot_product = 0.8f,
                 int extension_mode = 0,
+                bool use_multiview_verification = true,
                 int max_vertices_in_graph = 3,
                 double chop_z = std::numeric_limits<double>::max(),
-                bool compute_mst = true
+                bool compute_mst = true,
+                bool run_reconstruction_filter = false,
+                bool run_hypotheses_filter = false
                 ) :
 
             Recognizer<PointT>::Parameter(),
@@ -186,17 +169,20 @@ public:
             distance_same_keypoint_ (distance_same_keypoint),
             same_keypoint_dot_product_ (same_keypoint_dot_product),
             extension_mode_ (extension_mode),
+            use_multiview_verification_ (use_multiview_verification),
             max_vertices_in_graph_ (max_vertices_in_graph),
             chop_z_ (chop_z),
-            compute_mst_ (compute_mst)
+            compute_mst_ (compute_mst),
+            run_reconstruction_filter_(run_reconstruction_filter),
+            run_hypotheses_filter_(run_hypotheses_filter)
         {}
     }param_;
 
-    MultiviewRecognizer(const Parameter &p = Parameter()) : Recognizer<PointT>(p){
+    MultiviewRecognizer(const Parameter &p = Parameter()) : Recognizer<PointT>(p), id_(0), pose_(Eigen::Matrix4f::Identity()){
         param_ = p;
-        id_ = 0;
-        pose_ = Eigen::Matrix4f::Identity();
     }
+
+    MultiviewRecognizer(int argc, char ** argv);
 
     /**
      * @brief sets the underlying single-view recognition
@@ -207,16 +193,22 @@ public:
         rr_ = rec;
     }
 
-
     std::string get_scene_name() const
     {
         return scene_name_;
     }
 
-    void setSift(cv::Ptr<SiftGPU> &sift)
+    void set_scene_name(const std::string &name)
+    {
+        scene_name_ = name;
+    }
+
+#ifdef HAVE_SIFTGPU
+    void setSift(boost::shared_ptr<SiftGPU> &sift)
     {
         sift_ = sift;
     }
+#endif
 
     void setNoiseModelParameters(const typename NguyenNoiseModel<PointT>::Parameter &p)
     {
@@ -230,7 +222,8 @@ public:
 
 
     /** \brief Sets the algorithm for Correspondence Grouping (Hypotheses generation from keypoint correspondences) */
-    void setCGAlgorithm (const typename boost::shared_ptr<v4r::CorrespondenceGrouping<PointT, PointT> > & alg)
+    void
+    setCGAlgorithm (const typename boost::shared_ptr<GraphGeometricConsistencyGrouping<PointT, PointT> > & alg)
     {
       cg_algorithm_ = alg;
     }
@@ -241,25 +234,47 @@ public:
         pose_ = tf;
     }
 
-    typename boost::shared_ptr<Source<PointT> >
-    getDataSource () const
-    {
-        return rr_->getDataSource();
-    }
-
     /**
      * @brief clears all stored information from previous views
      */
     void cleanUp()
     {
-        models_.clear();
-        model_or_plane_is_verified_.clear();
-        transforms_.clear();
-        planes_.clear();
+        verified_hypotheses_.clear();
         views_.clear();
+        id_ = 0;
     }
 
     void recognize();
+
+    virtual void initHVFilters() {
+        // nothing by default - implementation expected in derived class
+    }
+
+    virtual void cleanupHVFilters() {
+        // nothing by default - implementation expected in derived class
+    }
+
+    virtual void reconstructionFiltering(typename pcl::PointCloud<PointT>::Ptr observation,
+            pcl::PointCloud<pcl::Normal>::Ptr observation_normals, const Eigen::Matrix4f &absolute_pose, size_t view_id) {
+        // nothing by default - implementation expected in derived class
+    }
+
+    virtual std::vector<bool> getHypothesisInViewsMask(ModelTPtr model, const Eigen::Matrix4f &pose, size_t origin_id) {
+        // nothing by default - implementation expected in derived class
+        return std::vector<bool>(views_.size(), true);
+    }
+
+    bool
+    needNormals() const
+    {
+        return rr_->needNormals();
+    }
+
+    size_t
+    getFeatureType() const
+    {
+        return rr_->getFeatureType();
+    }
 };
 }
 

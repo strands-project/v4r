@@ -33,6 +33,7 @@
 #ifndef _OBJECT_SEGMENTATION_H
 #define _OBJECT_SEGMENTATION_H
 
+#ifndef Q_MOC_RUN
 #include <QObject>
 #include <QThread>
 #include <QMutex>
@@ -53,7 +54,7 @@
 #include <v4r/keypoints/impl/triple.hpp>
 #include "params.h"
 #include "sensor.h"
-
+#endif
 
 
 class ObjectSegmentation : public QThread
@@ -96,7 +97,7 @@ public slots:
   void segmentation_parameter_changed(const SegmentationParameter& param);
   void object_modelling_parameter_changed(const ObjectModelling& param);
   void set_roi(const Eigen::Vector3f &_bb_min, const Eigen::Vector3f &_bb_max, const Eigen::Matrix4f &_roi_pose);
-  void set_segmentation_params(bool use_roi_segm, const double &offs, bool _use_dense_mv, const double &_nm_integration_min_weight);
+  void set_segmentation_params(bool use_roi_segm, const double &offs, bool _use_dense_mv, const double &_edge_radius_px);
 
 signals:
   void new_image(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &_cloud, const cv::Mat_<cv::Vec3b> &image);
@@ -153,8 +154,6 @@ private:
   double max_dist;
   int max_iterations;
   int diff_type;
-
-  double nm_integration_min_weight_;
 
   v4r::ZAdaptiveNormals::Ptr nest;
   v4r::ClusterNormalsToPlanes::Ptr pest;

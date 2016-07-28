@@ -2,6 +2,7 @@
 #include <v4r/common/miscellaneous.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
+#include <v4r/registration/FeatureBasedRegistration.h>
 #include <v4r/registration/fast_icp_with_gc.h>
 #include <pcl/console/parse.h>
 #include <pcl/filters/passthrough.h>
@@ -29,60 +30,31 @@ struct CamConnect
     float edge_weight;
     size_t source_id_, target_id_;
 
-    explicit CamConnect(float w) :
-        edge_weight(w)
-    {
+    explicit CamConnect(float w) : edge_weight(w) { }
 
-    }
+    CamConnect() : edge_weight(0.f)  {}
 
-    CamConnect() : edge_weight(0.f)
-    {
+    bool operator<(const CamConnect& e) const { return edge_weight < e.edge_weight; }
 
-    }
+    bool operator<=(const CamConnect& e) const { return edge_weight <= e.edge_weight; }
 
-    bool operator<(const CamConnect& e) const {
-        if(edge_weight < e.edge_weight)
-            return true;
+    bool operator>(const CamConnect& e) const { return edge_weight > e.edge_weight; }
 
-        return false;
-    }
-
-    bool operator<=(const CamConnect& e) const {
-        if(edge_weight <= e.edge_weight)
-            return true;
-
-        return false;
-    }
-
-    bool operator>(const CamConnect& e) const {
-        if(edge_weight > e.edge_weight)
-            return true;
-
-        return false;
-    }
-
-    bool operator>=(const CamConnect& e) const {
-        if(edge_weight >= e.edge_weight)
-            return true;
-
-        return false;
-    }
+    bool operator>=(const CamConnect& e) const { return edge_weight >= e.edge_weight ; }
 };
 
 class View
 {
 public:
-    typedef pcl::Histogram<128> FeatureT;
     typedef pcl::PointXYZRGB PointT;
 
-    pcl::PointCloud<FeatureT>::Ptr  sift_signatures_;
-    std::vector< size_t > sift_keypoint_indices_;
+    std::vector<std::vector<float> >  sift_signatures_;
+    std::vector<int> sift_keypoint_indices_;
     Eigen::Matrix4f camera_pose_;
     pcl::PointCloud<PointT>::Ptr  cloud_;
 
     View()
     {
-        sift_signatures_.reset (new pcl::PointCloud<FeatureT>());
         cloud_.reset(new pcl::PointCloud<PointT>());
     }
 };
@@ -92,7 +64,6 @@ class scene_registration
 private:
     typedef pcl::PointXYZRGB PointT;
     typedef flann::L1<float> DistT;
-    typedef pcl::Histogram<128> FeatureT;
 
 #ifdef HAVE_SIFTGPU
     cv::Ptr<SiftGPU> sift_;
@@ -118,14 +89,15 @@ public:
         chop_z_ = std::numeric_limits<double>::max();
     }
 
-    float
-    calcEdgeWeightAndRefineTf (const pcl::PointCloud<PointT>::ConstPtr &cloud_src,
-                                    const pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
-                                    Eigen::Matrix4f &refined_transform,
-                                    const Eigen::Matrix4f &transform)
+    void
+    calcEdgeWeightAndRefineTf (const typename pcl::PointCloud<PointT>::ConstPtr &cloud_src,
+                                                            const typename pcl::PointCloud<PointT>::ConstPtr &cloud_dst,
+                                                            const Eigen::Matrix4f &transform,
+                                                            float &registration_quality,
+                                                            Eigen::Matrix4f &refined_transform)
     {
-        pcl::PointCloud<PointT>::Ptr cloud_src_wo_nan ( new pcl::PointCloud<PointT>());
-        pcl::PointCloud<PointT>::Ptr cloud_dst_wo_nan ( new pcl::PointCloud<PointT>());
+        typename pcl::PointCloud<PointT>::Ptr cloud_src_wo_nan ( new pcl::PointCloud<PointT>());
+        typename pcl::PointCloud<PointT>::Ptr cloud_dst_wo_nan ( new pcl::PointCloud<PointT>());
 
         pcl::PassThrough<PointT> pass;
         pass.setFilterLimits (0.f, 5.f);
@@ -144,7 +116,7 @@ public:
         float w_after_icp_ = std::numeric_limits<float>::max ();
         const float best_overlap_ = 0.75f;
 
-        v4r::FastIterativeClosestPointWithGC<pcl::PointXYZRGB> icp;
+        v4r::FastIterativeClosestPointWithGC<PointT> icp;
         icp.setMaxCorrespondenceDistance ( 0.02f );
         icp.setInputSource ( cloud_src_wo_nan );
         icp.setInputTarget ( cloud_dst_wo_nan );
@@ -163,107 +135,18 @@ public:
             w_after_icp_ = best_overlap_ - w_after_icp_;
 
         //    transform = icp_trans; // refined transformation
-        return w_after_icp_;
+        registration_quality = w_after_icp_;
     }
 
     void
-    estimateViewTransformationBySIFT(const pcl::PointCloud<PointT> &src_cloud,
-                                          const pcl::PointCloud<PointT> &dst_cloud,
-                                          const std::vector<size_t> &src_sift_keypoint_indices,
-                                          const std::vector<size_t> &dst_sift_keypoint_indices,
-                                          const pcl::PointCloud<FeatureT> &src_sift_signatures,
-                                          boost::shared_ptr< flann::Index<DistT> > &dst_flann_index,
-                                          std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations,
-                                          bool use_gc = false)
+    calcSiftFeatures (const typename pcl::PointCloud<PointT>::Ptr &cloud_src,
+                      std::vector<int> &sift_keypoint_indices,
+                      std::vector<std::vector<float> > &sift_signatures)
     {
-        const int K = 1;
-        flann::Matrix<int> indices = flann::Matrix<int> ( new int[K], 1, K );
-        flann::Matrix<float> distances = flann::Matrix<float> ( new float[K], 1, K );
-
-        boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsSrc (new pcl::PointCloud<PointT>);
-        boost::shared_ptr< pcl::PointCloud<PointT> > pSiftKeypointsDst (new pcl::PointCloud<PointT>);
-        pcl::copyPointCloud(src_cloud, src_sift_keypoint_indices, *pSiftKeypointsSrc );
-        pcl::copyPointCloud(dst_cloud, dst_sift_keypoint_indices, *pSiftKeypointsDst);
-
-        pcl::CorrespondencesPtr temp_correspondences ( new pcl::Correspondences );
-        temp_correspondences->resize(pSiftKeypointsSrc->size ());
-
-        for ( size_t keypointId = 0; keypointId < pSiftKeypointsSrc->points.size (); keypointId++ )
-        {
-            FeatureT searchFeature = src_sift_signatures[ keypointId ];
-            int size_feat = sizeof ( searchFeature.histogram ) / sizeof ( float );
-            v4r::nearestKSearch ( dst_flann_index, searchFeature.histogram, size_feat, K, indices, distances );
-
-            pcl::Correspondence corr;
-            corr.distance = distances[0][0];
-            corr.index_query = keypointId;
-            corr.index_match = indices[0][0];
-            temp_correspondences->at(keypointId) = corr;
-        }
-
-        if(!use_gc)
-        {
-            pcl::registration::CorrespondenceRejectorSampleConsensus<PointT>::Ptr rej;
-            rej.reset (new pcl::registration::CorrespondenceRejectorSampleConsensus<PointT> ());
-            pcl::CorrespondencesPtr after_rej_correspondences (new pcl::Correspondences ());
-
-            rej->setMaximumIterations (50000);
-            rej->setInlierThreshold (0.02);
-            rej->setInputTarget (pSiftKeypointsDst);
-            rej->setInputSource (pSiftKeypointsSrc);
-            rej->setInputCorrespondences (temp_correspondences);
-            rej->getCorrespondences (*after_rej_correspondences);
-
-            Eigen::Matrix4f refined_pose;
-            transformations.push_back( rej->getBestTransformation () );
-            pcl::registration::TransformationEstimationSVD<PointT, PointT> t_est;
-            t_est.estimateRigidTransformation (*pSiftKeypointsSrc, *pSiftKeypointsDst, *after_rej_correspondences, refined_pose);
-            transformations.back() = refined_pose;
-        }
-        else
-        {
-            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > new_transforms;
-            pcl::GeometricConsistencyGrouping<pcl::PointXYZRGB, pcl::PointXYZRGB> gcg_alg;
-
-            gcg_alg.setGCThreshold (15);
-            gcg_alg.setGCSize (0.01);
-            gcg_alg.setInputCloud(pSiftKeypointsSrc);
-            gcg_alg.setSceneCloud(pSiftKeypointsDst);
-            gcg_alg.setModelSceneCorrespondences(temp_correspondences);
-
-            std::vector<pcl::Correspondences> clustered_corrs;
-            gcg_alg.recognize(new_transforms, clustered_corrs);
-            transformations.insert(transformations.end(), new_transforms.begin(), new_transforms.end());
-        }
-    }
-
-    bool
-    calcSiftFeatures (const pcl::PointCloud<PointT>::Ptr &cloud_src,
-                           pcl::PointCloud<PointT>::Ptr &sift_keypoints,
-                           std::vector< size_t > &sift_keypoint_indices,
-                           pcl::PointCloud<FeatureT>::Ptr &sift_signatures,
-                           std::vector<float> &sift_keypoint_scales)
-    {
-        pcl::PointIndices sift_keypoint_pcl_indices;
-
-    #ifdef HAVE_SIFTGPU
-        boost::shared_ptr < v4r::SIFTLocalEstimation<PointT, FeatureT> > estimator;
-        estimator.reset (new v4r::SIFTLocalEstimation<PointT, FeatureT>());
-
-        bool ret = estimator->estimate (cloud_src, sift_keypoints, sift_signatures, sift_keypoint_scales);
-        estimator->getKeypointIndices( sift_keypoint_pcl_indices );
-    #else
-        (void)sift_keypoint_scales; //silences compiler warning of unused variable
-        boost::shared_ptr < v4r::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> > > estimator;
-        estimator.reset (new v4r::OpenCVSIFTLocalEstimation<PointT, pcl::Histogram<128> >);
-
-        pcl::PointCloud<PointT>::Ptr processed_foo (new pcl::PointCloud<PointT>());
-
-        bool ret = estimator->estimate (cloud_src, processed_foo, sift_keypoints, sift_signatures);
-        estimator->getKeypointIndices( sift_keypoint_pcl_indices );
-    #endif
-        sift_keypoint_indices = v4r::convertPCLIndices2VecSizet(sift_keypoint_pcl_indices);
-        return ret;
+        v4r::SIFTLocalEstimation<PointT> estimator;
+        estimator.setInputCloud(cloud_src);
+        estimator.compute(sift_signatures);
+        sift_keypoint_indices = estimator.getKeypointIndices();
     }
 
 
@@ -325,11 +208,7 @@ public:
         pass.setInputCloud (cloud);
         pass.setKeepOrganized (true);
         pass.filter (*view.cloud_);
-
-        pcl::PointCloud<PointT>::Ptr sift_keypoints (new pcl::PointCloud<PointT>());
-        std::vector<float> sift_keypoint_scales;
-
-        calcSiftFeatures( view.cloud_, sift_keypoints, view.sift_keypoint_indices_, view.sift_signatures_, sift_keypoint_scales);
+        calcSiftFeatures( view.cloud_, view.sift_keypoint_indices_, view.sift_signatures_);
         grph_.push_back(view);
     }
 
@@ -343,15 +222,15 @@ public:
                 CamConnect edge;
                 edge.source_id_ = view_b;
                 edge.target_id_ = view_a;
-                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms;
-
 
                 boost::shared_ptr<flann::Index<DistT> > flann_index;
-                v4r::convertToFLANN<FeatureT, DistT>(grph_[view_b].sift_signatures_, flann_index );
+                v4r::convertToFLANN<DistT>(grph_[view_b].sift_signatures_, flann_index );
 
-                estimateViewTransformationBySIFT( *grph_[view_a].cloud_, *grph_[view_b].cloud_,
-                                                  grph_[view_a].sift_keypoint_indices_, grph_[view_b].sift_keypoint_indices_,
-                                                  *grph_[view_a].sift_signatures_, flann_index, sift_transforms);
+                std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sift_transforms =
+                v4r::Registration::FeatureBasedRegistration<PointT>::estimateViewTransformationBySIFT(
+                            *grph_[view_a].cloud_, *grph_[view_b].cloud_,
+                            grph_[view_a].sift_keypoint_indices_, grph_[view_b].sift_keypoint_indices_,
+                            grph_[view_a].sift_signatures_, grph_[view_b].sift_signatures_);
 
                 for(size_t sift_tf_id = 0; sift_tf_id < sift_transforms.size(); sift_tf_id++)
                 {
@@ -365,7 +244,7 @@ public:
                 for ( size_t trans_id = 0; trans_id < transforms.size(); trans_id++ )
                 {
                     Eigen::Matrix4f icp_refined_trans;
-                    transforms[ trans_id ].edge_weight = calcEdgeWeightAndRefineTf( grph_[view_a].cloud_, grph_[view_b].cloud_, icp_refined_trans, transforms[ trans_id ].transformation_);
+                    calcEdgeWeightAndRefineTf(grph_[view_a].cloud_, grph_[view_b].cloud_, transforms[ trans_id ].transformation_, transforms[ trans_id ].edge_weight, icp_refined_trans);
                     transforms[ trans_id ].transformation_ = icp_refined_trans,
                     std::cout << "Edge weight is " << transforms[ trans_id ].edge_weight << " for edge connecting vertex " <<
                                  transforms[ trans_id ].source_id_ << " and " << transforms[ trans_id ].target_id_ << std::endl;
@@ -426,12 +305,10 @@ int main (int argc, char ** argv)
 
     std::cout << "Processing all point clouds in folder " << path;
 
-    std::vector< std::string> sub_folder_names;
-    if(!v4r::io::getFoldersInDirectory( path, "", sub_folder_names) )
-    {
-        std::cerr << "No subfolders in directory " << path << ". " << std::endl;
+    std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory(path);
+    if(sub_folder_names.empty() )
         sub_folder_names.push_back("");
-    }
+
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {
         const std::string path_sub = path + "/" + sub_folder_names[sub_folder_id];
@@ -440,10 +317,10 @@ int main (int argc, char ** argv)
         scene_registration sr;
         sr.chop_z_ = chop_z;
 
-        std::vector < std::string > files_intern;
-        if (v4r::io::getFilesInDirectory (path_sub, files_intern, "", ".*.pcd", true) == -1)
+        std::vector < std::string > files_intern = v4r::io::getFilesInDirectory (path_sub, ".*.pcd", true);
+        if (files_intern.empty())
         {
-            std::cerr << "Given path: " << path_sub << " does not exist. Usage " << argv[0] << " -path <folder name> -rows <number of rows used for displaying files>" << std::endl;
+            std::cerr << "No files in directory: " << path_sub << ". Usage " << argv[0] << " -path <folder name> -rows <number of rows used for displaying files>" << std::endl;
             return -1;
         }
 

@@ -5,6 +5,7 @@
  *      Author: Aitor Aldoma, Thomas Faeulhammer
  */
 
+#ifndef Q_MOC_RUN
 #include "main_window.h"
 #include <boost/filesystem.hpp>
 #include <pcl/filters/crop_box.h>
@@ -24,6 +25,7 @@
 #include <QKeyEvent>
 
 #include <boost/program_options.hpp>
+#endif
 
 namespace bf = boost::filesystem;
 namespace po = boost::program_options;
@@ -136,13 +138,13 @@ void MainWindow::model_list_clicked(const QModelIndex & idx)
   selectScene(-1);
   ModelTPtr model = sequence_hypotheses_[ selected_hypothesis_ ];
 
-  pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled( 3 );
+  pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled( resolution_mm_ );
   pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>(*model_cloud));
   pcl::transformPointCloud(*model_cloud, *cloud, hypotheses_poses_[ selected_hypothesis_ ]);
 
   pcl::visualization::PointCloudColorHandlerCustom<PointT> scene_handler(cloud, 0, 255, 0);
   pviz_->addPointCloud(cloud, scene_handler, "highlighted");
-  pviz_->spinOnce(0.1, true);
+  pviz_->spinOnce(100, true);
 
 }
 
@@ -162,7 +164,7 @@ void MainWindow::fillScene()
         pviz_->addPointCloud(single_scenes_[i], scene_handler, cloud_name.str(), pviz_v1_);
     }
 
-    pviz_->spinOnce(0.1, true);
+    pviz_->spinOnce(100, true);
 }
 
 void MainWindow::fillModels()
@@ -180,7 +182,7 @@ void MainWindow::fillModels()
     model_name << "poly_" << i;
 
     model_clouds_[i].reset(new pcl::PointCloud<PointT>);
-    pcl::PointCloud<PointT>::ConstPtr model_cloud = models.at(i)->getAssembled( 3 );
+    pcl::PointCloud<PointT>::ConstPtr model_cloud = models.at(i)->getAssembled( resolution_mm_ );
     pviz_models_->createViewPort (i * x_step, 0, (i + 1) * x_step, 200, model_viewport_);
 
     //create scale transform...
@@ -188,7 +190,7 @@ void MainWindow::fillModels()
     loaded_models_.push_back(models.at(i));
   }
 
-  pviz_models_->spinOnce(0.1, true);
+  pviz_models_->spinOnce(100, true);
 }
 
 void MainWindow::fillHypotheses()
@@ -202,7 +204,7 @@ void MainWindow::fillHypotheses()
       std::stringstream model_name;
       model_name << "hypotheses_" << i;
 
-      pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[i]->getAssembled( 3 );
+      pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[i]->getAssembled( resolution_mm_ );
       pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>(*model_cloud));
       pcl::transformPointCloud(*cloud, *cloud, hypotheses_poses_[i]);
 
@@ -278,7 +280,7 @@ void MainWindow::fillViews()
       pviz_scenes_->addPointCloud(single_scenes_[i], view_name.str(), view_viewport[i]);
   }
 
-  pviz_->spinOnce(0.1, true);
+  pviz_->spinOnce(100, true);
 }
 
 void MainWindow::lock_with_icp()
@@ -320,10 +322,11 @@ void MainWindow::lock_with_icp()
     {
         ModelTPtr model = sequence_hypotheses_[selected_hypothesis_];
         boost::shared_ptr < distance_field::PropagationDistanceField<pcl::PointXYZRGB> > dt;
-        model->getVGDT (dt);
+//        model->getVGDT (dt);
 
         pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr model_cloud;
-        dt->getInputCloud (model_cloud);
+        model_cloud = model->getAssembled( resolution_mm_ );
+//        dt->getInputCloud (model_cloud);
 
         pcl::PointCloud<PointT>::Ptr model_cloud_transformed(new pcl::PointCloud<PointT>(*model_cloud));
         pcl::transformPointCloud(*model_cloud, *model_cloud_transformed, hypotheses_poses_[selected_hypothesis_]);
@@ -426,7 +429,7 @@ MainWindow::remove_selected()
   fillHypotheses();
   enablePoseRefinmentButtons(false);
 
-  pviz_->spinOnce(0.1, true);
+  pviz_->spinOnce(100, true);
 }
 
 void MainWindow::updateSelectedHypothesis()
@@ -438,7 +441,7 @@ void MainWindow::updateSelectedHypothesis()
     if(selected_hypothesis_>=0)
     {
         pviz_->removePointCloud(model_name.str(), pviz_v2_);
-        pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[selected_hypothesis_]->getAssembled( 3 );
+        pcl::PointCloud<PointT>::ConstPtr model_cloud = sequence_hypotheses_[selected_hypothesis_]->getAssembled( resolution_mm_ );
         pcl::PointCloud<PointT>::Ptr model_cloud_transformed(new pcl::PointCloud<PointT>(*model_cloud));
         pcl::transformPointCloud(*model_cloud, *model_cloud_transformed, hypotheses_poses_[selected_hypothesis_]);
 
@@ -868,7 +871,7 @@ void MainWindow::save_model()
                 //compute occlusion value
                 size_t overlap = 0;
                 std::vector<int> indices;
-                pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled( 3 );
+                pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled( resolution_mm_ );
                 pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                 pcl::transformPointCloud(*model_cloud, *model_aligned, hypotheses_poses_[k]);
 
@@ -931,6 +934,7 @@ MainWindow::MainWindow(int argc, char *argv[])
   pose_xsize_ = 300;
 
   inlier_ = 0.003f;
+  resolution_mm_ = 3;
 
   zero_origin[0] = zero_origin[1] = zero_origin[2] = zero_origin[3] = 0.f;
   sequence_id_ = 0;
@@ -946,6 +950,7 @@ MainWindow::MainWindow(int argc, char *argv[])
           ("export_ground_truth_to,o", po::value<std::string>(&export_ground_truth_to_)->default_value("/tmp/exported_ground_truth/"), "Output directory")
           ("icp_scene_to_model", po::value<bool>(&icp_scene_to_model_)->default_value(false), "if true, does pose refinement.")
           ("model_scale", po::value<double>(&model_scale_)->default_value(model_scale_), "model scale")
+          ("resolution_mm", po::value<int>(&resolution_mm_)->default_value(resolution_mm_), "Resolution in mm used for ICP and visualization")
 ;
 
   po::variables_map vm;
@@ -977,7 +982,7 @@ MainWindow::MainWindow(int argc, char *argv[])
   source_->setLoadViews (false);
   source_->setLoadIntoMemory(false);
   source_->generate ();
-  source_->createVoxelGridAndDistanceTransform (0.005f);
+//  source_->createVoxelGridAndDistanceTransform (0.005f);
 
   QApplication app(argc,argv);
   mainWindow_ = new QWidget;
