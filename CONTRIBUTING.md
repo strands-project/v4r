@@ -10,8 +10,8 @@ patches and features.
 
 
 ## Dependencies
-V4R is an open-source project with the goal to be easily installed on different platforms by providing released Debian packages for Ubuntu systems. To allow packaging the V4R library, all dependencies need to be defined in `package.xlm`. The required names for specific packages can be found [here](https://github.com/strands-project/rosdistro/blob/strands-devel/rosdep/base.yaml). Packages not included in this list need to be added as (3rdparty libraries)[https://rgit.acin.tuwien.ac.at/root/v4r/wikis/how-to-add-third-party-dependency] to V4R. Whenever possible, try to depend on packaged libraries. This especially applies to PCL and OpenCV. Currently this means contribute your code such that it is compatible to PCL 1.7.2 and OpenCV 2.4.9.  
-Also, even though V4R stands for Vision for Robotics, our library is independent of ROS. If you need a ROS component, put your core algorithms into this V4R library and create wrapper interfaces in the seperate (v4r_ros_wrappers repository)[https://github.com/strands-project/v4r_ros_wrappers].
+V4R is an open-source project with the goal to be easily installed on different platforms by providing released Debian packages for Ubuntu systems. To allow packaging the V4R library, all dependencies need to be defined in `package.xml`. The required names for specific packages can be found [here](https://github.com/strands-project/rosdistro/blob/strands-devel/rosdep/base.yaml). Packages not included in this list need to be added as [3rdparty libraries](https://rgit.acin.tuwien.ac.at/root/v4r/wikis/how-to-add-third-party-dependency) to V4R. Whenever possible, try to depend on packaged libraries. This especially applies to PCL and OpenCV. Currently this means contribute your code such that it is compatible to PCL 1.7.2 and OpenCV 2.4.9.  
+Also, even though V4R stands for Vision for Robotics, our library is independent of ROS. If you need a ROS component, put your core algorithms into this V4R library and create wrapper interfaces in the seperate [v4r_ros_wrappers repository](https://github.com/strands-project/v4r_ros_wrappers).
 
 
 ## Using the issue tracker
@@ -29,6 +29,7 @@ restrictions:
 ## Pull requests
 
 Pull requests let you tell others about changes you've pushed to a repository on GitHub. Once a pull request is sent, interested parties can review the set of changes, discuss potential modifications, and even push follow-up commits if necessary. Therefore, this is the preferred way of pushing your changes - **do not** push your changes directly onto the master branch!
+Also, keep your pull requests small and focussed on a specific issue/feature. Do not accumulate months of changes into a single pull request! Such a pull request can not be reviewed!
 
 Good pull requests - patches, improvements, new features - are a fantastic
 help. They should remain focused in scope and avoid containing unrelated
@@ -82,7 +83,7 @@ of each `.h` and `.cpp` file:
 
 ```cpp
 /******************************************************************************
- * Copyright (c) 2015 Thomas Faeulhammer
+ * Copyright (c) 2016 Firstname Lastname
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
