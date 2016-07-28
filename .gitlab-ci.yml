@@ -1,6 +1,7 @@
 # Ubuntu 14.04
 image: ubuntu:trusty
 
+# we use ROS indigo for now
 variables:
   CI_ROS_DISTRO: indigo
 
