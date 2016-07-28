@@ -10,7 +10,7 @@
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/pcl_utils.h>
 #include <pcl/common/transforms.h>
 #include <pcl/console/parse.h>
 #include <pcl/io/pcd_io.h>

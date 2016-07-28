@@ -32,7 +32,7 @@
 #define V4R_EUCLIDEAN_SEGMENTER_H__
 
 #include <v4r/core/macros.h>
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/pcl_utils.h>
 #include <v4r/segmentation/segmenter.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
