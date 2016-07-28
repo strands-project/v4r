@@ -23,6 +23,3 @@ build:
     - cd build
     - cmake ..
     - make -j8
-  only:
-    - master
-    - triggers
