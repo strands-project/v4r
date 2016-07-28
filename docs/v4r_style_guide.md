@@ -212,7 +212,7 @@ For the compute, filter, segment, etc. type methods the following rules apply:
 To allow clients of your class to immediately see which variable can be altered and which are used for read only access, define input arguments *const*. The same applies for member functions which do not change member variables.
 
 ## 3.3 Do not clutter header files
-To reduce compile time amongst others, put your definitions into seperate .cpp or .hpp files.
+To reduce compile time amongst others, put your definitions into seperate .cpp or .hpp files. Define functions inline in the header only when they are small, say, 10 lines or fewer.
 
 ## 3.4 Fix warnings
 To keep the compiler output non-verbose and reduce potential conflicts, avoid warnings produced by the compiler. If you encounter warnings from other parts in the library, either try to fix them directly or report them using the issue tracker.
