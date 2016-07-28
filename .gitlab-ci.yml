@@ -13,17 +13,12 @@ before_script:
   - sudo apt-get install -qq -y python-rosdep build-essential cmake
   - sudo rosdep init
   - rosdep update
-  - pwd
 
 build:
   stage: build
   script:
-    - pwd
-    - ls
     - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
     - mkdir build
-    - pwd
-    - ls
     - cd build
     - cmake ..
     - make -j8
