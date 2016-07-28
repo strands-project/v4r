@@ -1,6 +1,7 @@
 #include <v4r/object_modelling/incremental_object_learning.h>
 #include <pcl/common/transforms.h>
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/pcl_utils.h>
 #include <v4r/common/pcl_visualization_utils.h>
 
 #include <opencv2/opencv.hpp>

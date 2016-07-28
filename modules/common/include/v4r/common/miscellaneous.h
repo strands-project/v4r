@@ -143,17 +143,12 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointT>::ConstPtr & full_inpu
                     typename std::vector<Type> & indices,
                     float resolution = 0.005f);
 
-template<typename DistType>
-V4R_EXPORTS void convertToFLANN ( const std::vector<std::vector<float> > &data, boost::shared_ptr< typename flann::Index<DistType> > &flann_index);
+DEPRECATED(template<typename DistType>
+V4R_EXPORTS void convertToFLANN ( const std::vector<std::vector<float> > &data, boost::shared_ptr< typename flann::Index<DistType> > &flann_index));
 
-template<typename DistType>
+DEPRECATED(template<typename DistType>
 V4R_EXPORTS void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
-                                                  flann::Matrix<float> &distances );
-
-/**
- * @brief sets the sensor origin and sensor orientation fields of the PCL pointcloud header by the given transform
- */
-template<typename PointType> V4R_EXPORTS void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud);
+                                                  flann::Matrix<float> &distances ));
 
 V4R_EXPORTS inline std::vector<size_t>
 convertVecInt2VecSizet(const std::vector<int> &input)
@@ -367,33 +362,6 @@ removeColumn(Eigen::MatrixXf& matrix, int colToRemove)
 }
 
 /**
- * @brief compute histogram of the row entries of a matrix
- * @param[in] data (row are the elements, columns are the different dimensions
- * @param[out] histogram
- * @param[in] number of bins
- * @param[in] range minimum
- * @param[in] range maximum
- */
-V4R_EXPORTS void computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXf &histogram, size_t bins=100, float min=0.f, float max=1.f);
-
-
-/**
- * @brief computes histogram intersection (does not normalize histograms!)
- * @param[in] histA
- * @param[in] histB
- * @return intersection value
- */
-V4R_EXPORTS float computeHistogramIntersection (const Eigen::VectorXf &histA, const Eigen::VectorXf &histB);
-
-/**
- * @brief shift histogram values by one bin
- * @param[in] hist
- * @param[out] hist_shifted
- * @param[in] direction_is_right (if true, shift histogram to the right. Otherwise to the left)
- */
-V4R_EXPORTS void shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction_is_right=true);
-
-/**
  * @brief runningAverage computes incrementally the average of a vector
  * @param old_average
  * @param old_size the number of contributing vectors before updating
@@ -412,42 +380,5 @@ V4R_EXPORTS float computeMeshResolution (const typename pcl::PointCloud<PointT>:
 
 }
 
-
-namespace pcl
-{
-/** \brief Extract the indices of a given point cloud as a new point cloud (instead of int types, this function uses a size_t vector)
-  * \param[in] cloud_in the input point cloud dataset
-  * \param[in] indices the vector of indices representing the points to be copied from \a cloud_in
-  * \param[out] cloud_out the resultant output point cloud dataset
-  * \note Assumes unique indices.
-  * \ingroup common
-  */
-template <typename PointT> V4R_EXPORTS void
-copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
-                const std::vector<size_t> &indices,
-                pcl::PointCloud<PointT> &cloud_out);
-
-/** \brief Extract the indices of a given point cloud as a new point cloud (instead of int types, this function uses a size_t vector)
-  * \param[in] cloud_in the input point cloud dataset
-  * \param[in] indices the vector of indices representing the points to be copied from \a cloud_in
-  * \param[out] cloud_out the resultant output point cloud dataset
-  * \note Assumes unique indices.
-  * \ingroup common
-  */
-template <typename PointT> V4R_EXPORTS void
-copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
-                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
-                pcl::PointCloud<PointT> &cloud_out);
-
-template <typename PointT> V4R_EXPORTS void
-copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
-                     const std::vector<bool> &mask,
-                     pcl::PointCloud<PointT> &cloud_out);
-
-template <typename PointT> V4R_EXPORTS void
-copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
-                     const boost::dynamic_bitset<> &mask,
-                     pcl::PointCloud<PointT> &cloud_out);
-}
 
 #endif
