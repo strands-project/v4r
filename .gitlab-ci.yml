@@ -2,7 +2,7 @@
 image: ubuntu:trusty
 
 variables:
-  CI_ROS_DISTRO="indigo"
+  CI_ROS_DISTRO: indigo
 
 before_script:
   - sudo apt-get update -qq
