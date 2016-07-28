@@ -2,7 +2,12 @@
 image: ubuntu:trusty
 
 before_script:
-  - apt-get update -qq && apt-get install -y -qq build-essential cmake
+  - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list'
+  - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq -y python-rosdep python-catkin-tools build-essential cmake
+  - sudo rosdep init
+  - rosdep update
   - pwd
 
 build:
@@ -10,7 +15,10 @@ build:
   script:
     - pwd
     - ls
+    - rosdep install --from-paths . -i -y
     - mkdir build
+    - pwd
+    - ls
     - cd build
     - cmake ..
     - make
