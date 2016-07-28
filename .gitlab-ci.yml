@@ -20,7 +20,7 @@ build:
   script:
     - pwd
     - ls
-    - rosdep install --from-paths . -i -y --rosdistro $CI_ROS_DISTRO
+    - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
     - mkdir build
     - pwd
     - ls
