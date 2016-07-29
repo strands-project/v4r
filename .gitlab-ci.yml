@@ -15,12 +15,11 @@ before_script:
   - sudo rosdep init
   - rosdep update
   
-before_script:
-  - pwd
-  - ls 
-  - uname -a
-
 job:
   stage: build
   script:
-    - ls
+    - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make -j8
