@@ -1326,7 +1326,7 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
             ColorTransform::CIELAB2RGB( l_w_offset, colorVisibleCloud(i,1), colorVisibleCloud(i,2), m2.r, m2.g, m2.b);
         }
 
-        Eigen::MatrixXf histLm, histLs;
+        Eigen::MatrixXi histLm, histLs;
         computeHistogram(colorVisibleCloud.col(0), histLm, bins_, Lmin_, Lmax_);
 
         // pre-allocate memory
