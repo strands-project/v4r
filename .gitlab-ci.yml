@@ -1,20 +1,22 @@
 # Ubuntu 14.04
-image: ubuntu:trusty
+#image: ubuntu:trusty
+image: v4rtuw/ubuntu1404:0.0.1
 
+# we use ROS indigo for now
 variables:
   CI_ROS_DISTRO: indigo
 
-before_script:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq -y wget
-  - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list'
-  - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq -y python-rosdep build-essential cmake
-  - sudo rosdep init
-  - rosdep update
-
-build:
+#before_script:
+#  - sudo apt-get update -qq
+#  - sudo apt-get install -qq -y wget
+#  - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list'
+#  - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+#  - sudo apt-get update -qq
+#  - sudo apt-get install -qq -y python-rosdep build-essential cmake
+#  - sudo rosdep init
+#  - rosdep update
+  
+job:
   stage: build
   script:
     - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
@@ -22,6 +24,3 @@ build:
     - cd build
     - cmake ..
     - make -j8
-  only:
-    # the line below is required by shyiko/gitlab-ci-build-on-merge-request
-    - triggers
