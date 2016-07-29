@@ -1,5 +1,4 @@
 #include <v4r/common/miscellaneous.h>
-#include <v4r/common/impl/miscellaneous.hpp>
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -221,15 +220,40 @@ float computeMeshResolution (const typename pcl::PointCloud<PointT>::ConstPtr & 
     return avg;
 }
 
-template V4R_EXPORTS void convertToFLANN<flann::L1<float> > (const std::vector<std::vector<float> > &, boost::shared_ptr< flann::Index<flann::L1<float> > > &flann_index); // explicit instantiation.
-template V4R_EXPORTS void convertToFLANN<flann::L2<float> > (const std::vector<std::vector<float> > &, boost::shared_ptr< flann::Index<flann::L2<float> > > &flann_index); // explicit instantiation.
-template V4R_EXPORTS void nearestKSearch<flann::L1<float> > ( boost::shared_ptr< flann::Index< flann::L1<float> > > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
-flann::Matrix<float> &distances );
-template void V4R_EXPORTS nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
-flann::Matrix<float> &distances );
 
-#define PCL_INSTANTIATE_setCloudPose(T) template V4R_EXPORTS void setCloudPose<T>(const Eigen::Matrix4f &, pcl::PointCloud<T> &);
-PCL_INSTANTIATE(setCloudPose, PCL_XYZ_POINT_TYPES(pcl::Normal) )
+template<typename DistType>
+void
+convertToFLANN ( const std::vector<std::vector<float> > &data, boost::shared_ptr< typename flann::Index<DistType> > &flann_index)
+{
+    if(data.empty()) {
+        std::cerr << "No data provided for building Flann index!" << std::endl;
+        return;
+    }
+
+    size_t rows = data.size ();
+    size_t cols = data[0].size(); // number of histogram bins
+
+    flann::Matrix<float> flann_data ( new float[rows * cols], rows, cols );
+
+    for ( size_t i = 0; i < rows; ++i )
+    {
+        for ( size_t j = 0; j < cols; ++j )
+            flann_data.ptr() [i * cols + j] = data[i][j];
+    }
+    flann_index.reset (new flann::Index<DistType> ( flann_data, flann::KDTreeIndexParams ( 4 ) ) );
+    flann_index->buildIndex ();
+}
+
+template <typename DistType>
+void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
+                        flann::Matrix<float> &distances )
+{
+    flann::Matrix<float> p = flann::Matrix<float> ( new float[descr.size()], 1, descr.size() );
+    memcpy ( &p.ptr () [0], &descr[0], p.cols * p.rows * sizeof ( float ) );
+    index->knnSearch ( p, indices, distances, k, flann::SearchParams ( 128 ) );
+    delete[] p.ptr ();
+}
+
 
 #define PCL_INSTANTIATE_computeMeshResolution(T) template V4R_EXPORTS float computeMeshResolution<T>(const typename pcl::PointCloud<T>::ConstPtr &);
 PCL_INSTANTIATE(computeMeshResolution, PCL_XYZ_POINT_TYPES )
@@ -264,23 +288,11 @@ template V4R_EXPORTS
 std::vector<int>
 createIndicesFromMask(const boost::dynamic_bitset<> &mask, bool invert);
 
+template V4R_EXPORTS void convertToFLANN<flann::L1<float> > (const std::vector<std::vector<float> > &, boost::shared_ptr< flann::Index<flann::L1<float> > > &flann_index); // explicit instantiation.
+template V4R_EXPORTS void convertToFLANN<flann::L2<float> > (const std::vector<std::vector<float> > &, boost::shared_ptr< flann::Index<flann::L2<float> > > &flann_index); // explicit instantiation.
+template V4R_EXPORTS void nearestKSearch<flann::L1<float> > ( boost::shared_ptr< flann::Index< flann::L1<float> > > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
+flann::Matrix<float> &distances );
+template void V4R_EXPORTS nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
+flann::Matrix<float> &distances );
 
 }
-
-namespace pcl{
-#define PCL_INSTANTIATE_copyPointCloud(T) template V4R_EXPORTS void copyPointCloud<T>(const PointCloud<T> &, const boost::dynamic_bitset<> &, PointCloud<T> &);
-PCL_INSTANTIATE(copyPointCloud, PCL_XYZ_POINT_TYPES(Normal) )
-
-#define PCL_INSTANTIATE_copyPointCloud(T) template V4R_EXPORTS void copyPointCloud<T>(const PointCloud<T> &, const std::vector<bool> &, PointCloud<T> &);
-PCL_INSTANTIATE(copyPointCloud, PCL_XYZ_POINT_TYPES(Normal) )
-
-#define PCL_INSTANTIATE_copyPointCloud(T) template V4R_EXPORTS void copyPointCloud<T>(const PointCloud<T> &, const std::vector<size_t, Eigen::aligned_allocator<size_t> > &, PointCloud<T> &);
-PCL_INSTANTIATE(copyPointCloud, PCL_XYZ_POINT_TYPES(Normal) )
-
-#define PCL_INSTANTIATE_copyPointCloud(T) template V4R_EXPORTS void copyPointCloud<T>(const PointCloud<T> &, const std::vector<size_t> &, PointCloud<T> &);
-PCL_INSTANTIATE(copyPointCloud, PCL_XYZ_POINT_TYPES(Normal) )
-}
-
-
-
-//PCL_INSTANTIATE_PRODUCT (pcl::copyPointCloud, PCL_XYZ_POINT_TYPES)

@@ -1,4 +1,5 @@
 #include <v4r/common/color_comparison.h>
+#include <v4r/common/histogram.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/miscellaneous.h>

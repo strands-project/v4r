@@ -30,6 +30,7 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
 
+#include <v4r_config.h>
 #include <v4r/common/convertCloud.h>
 #include <v4r/common/convertNormals.h>
 #include <v4r/common/impl/DataMatrix2D.hpp>
@@ -37,6 +38,7 @@
 #include <v4r/common/normals.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/occlusion_reasoning.h>
+#include <v4r/common/pcl_utils.h>
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/common/zbuffering.h>
 #include <v4r/io/filesystem.h>

@@ -18,19 +18,24 @@ All directories and subdirectories should be under_scored.
 
 ## 1.3. Includes
 
-Include statements are made with “quotes” only if the file is in the same directory, in any other case the include statement is made with <chevron_brackets>, e.g.:
+All include statement are made with <chevron_brackets>, e.g.:
 ```cpp
 #include <pcl/module_name/file_name.h>
 #incluce <pcl/module_name/impl/file_name.hpp>
 ```
+Also keep the list of includes clean and orderly by first including system level, then external libraries, then v4r internal. 
+I.e. as a general rule: the more general include files go first. Sort includes within a group alphabetically. 
 
-## 1.4. Defines & Macros
+## 1.4. Defines & Macros & Include guards
 
-Macros should all be *ALL_CAPITALS_AND_UNDERSCORED*.
-Defines for header type files also need a trailing underscore.
-Their naming should be mapped from their include name: v4r/filters/bilateral.h becomes V4R_FILTERS_BILATERAL_H_.
-The #ifndef and #define lines should be placed just past the MIT license. The #endif goes all the way at the bottom e.g:
-
+Macros should all be *ALL_CAPITALS_AND_UNDERSCORED*. 
+To avoid the problem of double inclusion of header files, guard each header file with a `#pragma once` statement placed just past the MIT license.
+```cpp
+// the license
+#pragma once
+// the code
+```
+You might still encounter include guards in existing files which names are mapped from their include name, e.g.: v4r/filters/bilateral.h becomes V4R_FILTERS_BILATERAL_H_.
 ```cpp
 // the license
 
@@ -77,16 +82,9 @@ Variable names should be *under_scored*.
 ```cpp
 int my_variable;
 ```
-## 1.8.1. Iterators
+Give meaningful names to all your variables.
 
-Iterator variables should indicate what they’re iterating over, e.g.:
-
-```cpp
-std::list<int> pid_list;
-std::list<int>::iterator pid_it;
-```
-
-## 1.8.2. Constants
+## 1.8.1. Constants
 
 Constants should be *ALL_CAPITALS*, e.g.:
 
@@ -94,7 +92,7 @@ Constants should be *ALL_CAPITALS*, e.g.:
 const static int MY_CONSTANT = 1000;
 ```
 
-## 1.8.3. Member variables
+## 1.8.2. Member variables
 
 Variables that are members of a class are *under_scored_*, with a trailing underscore added, e.g.:
 ```cpp
