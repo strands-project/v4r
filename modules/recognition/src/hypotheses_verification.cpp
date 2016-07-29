@@ -1174,6 +1174,7 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT> &rm) const
 {
+/*
     // pre-allocate memory
     size_t kept = 0;
     for(int sidx=0; sidx<scene_model_sqr_dist_.rows(); sidx++)
@@ -1237,6 +1238,7 @@ HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT
     }
 
     rm.L_value_offset_ = best_shift * (Lmax_ - Lmin_) / bins_;
+*/
 }
 
 //######### VISUALIZATION FUNCTIONS #####################
