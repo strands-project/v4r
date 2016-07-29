@@ -203,7 +203,7 @@ HypothesisVerification<ModelT, SceneT>::downsampleSceneCloud()
         scene_normals_downsampled_.reset(new pcl::PointCloud<pcl::Normal>());
 
         pcl::UniformSampling<SceneT> us;
-        double resolution = (float)param_.resolution_mm_ / 1000.f;
+        double resolution = param_.resolution_mm_ / 1000.0;
         us.setRadiusSearch( resolution );
         us.setInputCloud( scene_cloud_ );
         pcl::PointCloud<int> sampled_indices;
@@ -517,11 +517,11 @@ void
 HypothesisVerification<ModelT, SceneT>::initialize()
 {
     global_hypotheses_.clear();
-    this->downsampleSceneCloud();
+    downsampleSceneCloud();
 
     {
         pcl::ScopeTime t("Computing octree");
-        octree_scene_downsampled_.reset(new pcl::octree::OctreePointCloudSearch<SceneT>( (double)param_.resolution_mm_ / 1000.f));
+        octree_scene_downsampled_.reset(new pcl::octree::OctreePointCloudSearch<SceneT>( param_.resolution_mm_ / 1000.0));
         octree_scene_downsampled_->setInputCloud(scene_cloud_downsampled_);
         octree_scene_downsampled_->addPointsFromInputCloud();
     }
@@ -558,15 +558,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         {
             pcl::ScopeTime t("Converting scene color values");
             colorTransf_->convert(*scene_cloud_downsampled_, scene_color_channels_);
-
-            std::ofstream f("/tmp/scene_color_lab.txt");
-            f << scene_color_channels_;
-            f.close();
-
-            f.open("/tmp/scene_color_rgb.txt");
-            for(const auto &p : scene_cloud_downsampled_->points)
-                f << (float)p.r << " " << (float)p.g << " " << (float)p.b << std::endl;
-            f.close();
         }
 
 #pragma omp section
@@ -584,15 +575,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
 
                         if(!param_.ignore_color_even_if_exists_)
                             colorTransf_->convert (*rm.visible_cloud_, rm.pt_color_);
-
-                        std::ofstream f("/tmp/model_color_lab.txt");
-                        f << rm.pt_color_;
-                        f.close();
-
-                        f.open("/tmp/model_color_rgb.txt");
-                        for(const auto &p : rm.visible_cloud_->points)
-                            f << (float)p.r << " " << (float)p.g << " " << (float)p.b << std::endl;
-                        f.close();
                     }
                 }
             }
@@ -602,6 +584,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
 #pragma omp section
         {
             pcl::ScopeTime t("Computing model to scene fitness");
+
 #pragma omp parallel for schedule(dynamic)
             for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
             {
@@ -609,8 +592,8 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                 {
                     HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
 
-                    if(!rm.isRejected())
-                        computeModel2SceneDistances(rm);
+                    if( !rm.isRejected() )
+                        computeModelFitness(rm);
                 }
             }
         }
@@ -1210,7 +1193,7 @@ HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT
         }
     }
 
-    Eigen::MatrixXf histLm, histLs;
+    Eigen::MatrixXi histLm, histLs;
     computeHistogram(rm.pt_color_.col(0), histLm, bins_, Lmin_, Lmax_);
     computeHistogram(croppedSceneColorMatrix.col(0), histLs, bins_, Lmin_, Lmax_);
 
