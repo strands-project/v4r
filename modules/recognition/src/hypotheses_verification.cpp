@@ -593,7 +593,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                     HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
 
                     if( !rm.isRejected() )
-                        computeModelFitness(rm);
+                        computeModel2SceneDistances(rm);
                 }
             }
         }
