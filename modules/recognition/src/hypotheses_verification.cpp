@@ -605,7 +605,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         //        computePlaneIntersection();
     }
 
-
     if(param_.use_histogram_specification_)
     {
         pcl::ScopeTime t("Computing histogramm specification");
@@ -622,7 +621,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
             }
         }
     }
-
 
     {
         pcl::ScopeTime t("Computing fitness score between models and scene");
@@ -1174,6 +1172,7 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT> &rm) const
 {
+/*
     // pre-allocate memory
     size_t kept = 0;
     for(int sidx=0; sidx<scene_model_sqr_dist_.rows(); sidx++)
@@ -1237,6 +1236,7 @@ HypothesisVerification<ModelT, SceneT>::computeLoffset(HVRecognitionModel<ModelT
     }
 
     rm.L_value_offset_ = best_shift * (Lmax_ - Lmin_) / bins_;
+*/
 }
 
 //######### VISUALIZATION FUNCTIONS #####################
