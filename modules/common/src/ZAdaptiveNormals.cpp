@@ -24,7 +24,7 @@
  */
 
 
-#include <v4r/common/eigen.h>
+#include <pcl/common/eigen.h>
 #include <v4r/common/ZAdaptiveNormals.h>
 
 namespace v4r
