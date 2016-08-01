@@ -45,7 +45,7 @@
   <build_depend>libopenni2-dev</build_depend>
   <build_depend>libglm-dev</build_depend>
   <build_depend>assimp</build_depend>
-  <build_depend>libsvm</build_depend>
+  <build_depend>libsvm-dev</build_depend>
   <build_depend>libgoogle-glog-dev</build_depend>
   <build_depend>libx11-dev</build_depend>
   <build_depend>libxinerama-dev</build_depend>
@@ -65,7 +65,7 @@
   <run_depend>libqt4-opengl-dev</run_depend>
   <run_depend>libglm-dev</run_depend>
   <run_depend>assimp</run_depend>
-  <run_depend>libsvm</run_depend>
+  <run_depend>libsvm-dev</run_depend>
   <run_depend>libgoogle-glog-dev</run_depend>
   <run_depend>libx11-dev</run_depend>
   <run_depend>libxinerama-dev</run_depend>
