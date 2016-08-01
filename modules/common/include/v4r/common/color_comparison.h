@@ -46,5 +46,13 @@ V4R_EXPORTS float CIE94(const Eigen::Vector3f &a, const Eigen::Vector3f &b, floa
 
 V4R_EXPORTS float CIEDE2000(const Eigen::Vector3f &a, const Eigen::Vector3f &b);
 
+
+enum ColorComparisonMethod
+{
+    cie76,
+    cie94,
+    ciede2000
+};
+
 }
 #endif
