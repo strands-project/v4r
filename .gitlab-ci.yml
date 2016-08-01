@@ -33,7 +33,7 @@ ubuntu-xenial:
     - apt-get update -qq
     - apt-get install -qq -y wget
     - sh -c 'echo "deb http://packages.ros.org/ros/ubuntu xenial main" > /etc/apt/sources.list.d/ros-latest.list'
-    - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+    - wget http://packages.ros.org/ros.key -O - | apt-key add -
     - apt-get update -qq
     - apt-get install -qq -y python-rosdep build-essential cmake
     - rosdep init
