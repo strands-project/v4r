@@ -30,13 +30,13 @@ ubuntu-xenial:
   variables:
     CI_ROS_DISTRO: kinetic
   before_script:
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq -y wget
-    - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu xenial main" > /etc/apt/sources.list.d/ros-latest.list'
+    - apt-get update -qq
+    - apt-get install -qq -y wget
+    - sh -c 'echo "deb http://packages.ros.org/ros/ubuntu xenial main" > /etc/apt/sources.list.d/ros-latest.list'
     - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq -y python-rosdep build-essential cmake
-    - sudo rosdep init
+    - apt-get update -qq
+    - apt-get install -qq -y python-rosdep build-essential cmake
+    - rosdep init
     - rosdep update
 
   stage: build
