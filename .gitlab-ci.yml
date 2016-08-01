@@ -26,7 +26,7 @@ ubuntu-trusty:
 
 # Ubuntu 16.04
 ubuntu-xenial:
-  image: ubuntu:trusty
+  image: ubuntu:xenial
   variables:
     CI_ROS_DISTRO: kinetic
   before_script:
