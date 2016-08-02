@@ -44,7 +44,7 @@ ubuntu-xenial:
     - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
     # we need a specific version of libceres
     - apt-get purge libceres-dev ceres-solver-doc libceres1 -y
-    - apt-get install libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
+    - apt-get install -y libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
     - wget http://ceres-solver.org/ceres-solver-1.11.0.tar.gz
     - tar xfz ceres-solver-1.11.0.tar.gz
     - mkdir ceres-build
