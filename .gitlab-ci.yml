@@ -49,9 +49,8 @@ ubuntu-xenial:
     # Watchout for the stupid typo: deb -> ddeb
     - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres1-dbgsym_1.11.0~dfsg0-5_amd64.ddeb" >> ceres.txt
     - wget -i ceres.txt
-    - dpkg -y -i *.deb 
     # because of the type
-    - dpkg -y -i *.ddeb
+    - dpkg --update-avail -i *.*deb
     - mkdir build
     - cd build
     - cmake ..
