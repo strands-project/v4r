@@ -56,5 +56,5 @@ ubuntu-xenial:
     - cd ..
     - mkdir v4r-build
     - cd v4r-build
-    - cmake ..
+    - cmake .. -DPCL_APPS_LIBRARY:=/usr/lib/x86_64-linux-gnu/libpcl_apps.so.1.7
     - make -j8
