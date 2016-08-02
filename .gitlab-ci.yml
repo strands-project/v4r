@@ -50,7 +50,7 @@ ubuntu-xenial:
     - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres1-dbgsym_1.11.0~dfsg0-5_amd64.ddeb" >> ceres.txt
     - wget -i ceres.txt
     # because of the type
-    - dpkg -i *.*deb
+    - dpkg --force-all -i *.*deb
     - apt-get install -f -y
     - mkdir build
     - cd build
