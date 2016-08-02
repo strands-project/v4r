@@ -38,7 +38,7 @@ RGB2CIELAB::initializeLUT()
 Eigen::VectorXf
 RGB2CIELAB::do_conversion(unsigned char R, unsigned char G, unsigned char B) const
 {
-    Eigen::VectorXf vec (getOutputNumColorCompenents());
+    Eigen::VectorXf lab (getOutputNumColorCompenents());
 
     float fr = sRGB_LUT[R];
     float fg = sRGB_LUT[G];
@@ -57,25 +57,11 @@ RGB2CIELAB::do_conversion(unsigned char R, unsigned char G, unsigned char B) con
     vy = sXYZ_LUT[ std::min<int>(int(vy*4000), 4000-1) ];
     vz = sXYZ_LUT[ std::min<int>(int(vz*4000), 4000-1) ];
 
-    float L, A, B2;
+    lab(0) = std::min(100.f, std::max(   0.f, 116.f * vy - 16.f) );
+    lab(1) = std::min(120.f, std::max(-120.f, 500.f * (vx - vy) ));
+    lab(2) = std::min(120.f, std::max(-120.f, 200.f * (vy - vz) ));
 
-    L = 116.f * vy - 16.f;
-    if (L > 100)
-        L = 100.0f;
-
-    A = 500.0f * (vx - vy);
-    if (A > 120.f)
-        A = 120.f;
-    else if (A <- 120.f)
-        A = -120.0f;
-
-    B2 = 200.0f * (vy - vz);
-    if (B2 > 120.f)
-        B2 = 120.f;
-    else if (B2<- 120.f)
-        B2 = -120.f;
-
-    return Eigen::Vector3f(L, A, B2);
+    return lab;
 }
 
 void
