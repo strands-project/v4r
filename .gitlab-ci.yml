@@ -42,16 +42,17 @@ ubuntu-xenial:
   stage: build
   script:
     - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
-    # hack because of Ubuntu bug https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1595692
-    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/ceres-solver-doc_1.11.0~dfsg0-5_all.deb" >> ceres.txt
-    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres-dev_1.11.0~dfsg0-5_amd64.deb" >> ceres.txt
-    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres1_1.11.0~dfsg0-5_amd64.deb" >> ceres.txt
-    # Watchout for the stupid typo: deb -> ddeb
-    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres1-dbgsym_1.11.0~dfsg0-5_amd64.ddeb" >> ceres.txt
-    - wget -i ceres.txt
-    # because of the type
-    - dpkg --force-all -i *.*deb
-    - apt-get install -f -y
+    # we need a specific version of libceres
+    - apt-get purge libceres-dev ceres-solver-doc libceres1 libceres1-dbgsym -y
+    - apt-get install libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
+    - wget http://ceres-solver.org/ceres-solver-1.11.0.tar.gz
+    - tar xfz ceres-solver-1.11.0.tar.gz
+    - mkdir ceres-build
+    - cd ceres-build
+    - cmake ../ceres-solver-1.11.0
+    - make -j8
+    - make install
+    # finally v4r build starts
     - mkdir build
     - cd build
     - cmake ..
