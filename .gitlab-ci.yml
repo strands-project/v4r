@@ -46,9 +46,12 @@ ubuntu-xenial:
     - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/ceres-solver-doc_1.11.0~dfsg0-5_all.deb" >> ceres.txt
     - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres-dev_1.11.0~dfsg0-5_amd64.deb" >> ceres.txt
     - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres1_1.11.0~dfsg0-5_amd64.deb" >> ceres.txt
-    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres1-dbgsym_1.11.0~dfsg0-5_amd64.deb" >> ceres.txt
+    # Watchout for the stupid typo: deb -> ddeb
+    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres1-dbgsym_1.11.0~dfsg0-5_amd64.ddeb" >> ceres.txt
     - wget -i ceres.txt
     - dpkg -y -i *.deb 
+    # because of the type
+    - dpkg -y -i *.ddeb
     - mkdir build
     - cd build
     - cmake ..
