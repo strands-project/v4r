@@ -42,6 +42,13 @@ ubuntu-xenial:
   stage: build
   script:
     - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
+    # hack because of Ubuntu bug https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1595692
+    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/ceres-solver-doc_1.11.0~dfsg0-5_all.deb" >> ceres.txt
+    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres-dev_1.11.0~dfsg0-5_amd64.deb" >> ceres.txt
+    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres1_1.11.0~dfsg0-5_amd64.deb" >> ceres.txt
+    - echo "https://launchpad.net/ubuntu/+source/ceres-solver/1.11.0~dfsg0-5/+build/10472806/+files/libceres1-dbgsym_1.11.0~dfsg0-5_amd64.deb" >> ceres.txt
+    - wget -i ceres.txt
+    - dpkg -y -i *.deb 
     - mkdir build
     - cd build
     - cmake ..
