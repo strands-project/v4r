@@ -18,8 +18,8 @@ ubuntu-trusty:
   stage: build
   script:
     - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
-    - mkdir build
-    - cd build
+    - mkdir v4r-build
+    - cd v4r-build
     - cmake ..
     - make -j8
 
@@ -53,7 +53,8 @@ ubuntu-xenial:
     - make -j8
     - make install
     # finally v4r build starts
-    - mkdir build
-    - cd build
+    - cd ..
+    - mkdir v4r-build
+    - cd v4r-build
     - cmake ..
     - make -j8
