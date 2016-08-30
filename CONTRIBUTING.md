@@ -163,7 +163,7 @@ They can be used to cite the approproate modules if you use V4R in your work.
 
 
 <a name="Documentation"></a>
-##Documentation
+## Documentation
 ALWAYS document your code. We use Doxygen Style Comments. A nice introduction do Doxygen styled coding can be found [here](https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html)
 
 The Doxygen documentation has to be compiled at the moment localy on your system.
