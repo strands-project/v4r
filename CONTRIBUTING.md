@@ -163,7 +163,8 @@ They can be used to cite the approproate modules if you use V4R in your work.
 
 
 <a name="Documentation"></a>
-ALWAYS document your code. We use Doxygen Style Comments. A nice introduction do Doxygen styled coding can be found [here]()
+##Documentation
+ALWAYS document your code. We use Doxygen Style Comments. A nice introduction do Doxygen styled coding can be found [here](https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html)
 
 The Doxygen documentation has to be compiled at the moment localy on your system.
 However, it will be available on gitlab quiet soon.
@@ -175,7 +176,7 @@ As mentioned allready, V4R is using a package.xml file and rosdep to install all
 
 1. Do all the necessary git magic to download v4r on your machine, then open a console.
 2. Install and initialize rosdep
-```sh
+```
 sudo apt-get update
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list'
 wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
@@ -185,7 +186,7 @@ sudo rosdep init
 rosdep update
 ```
 3. Install dependencies and compile v4r
-```sh
+```
 cd /wherever_it_is_located/v4r
 rosdep install --from-paths . -i -y -r --rosdistro indigo
 mkdir build && cd build
