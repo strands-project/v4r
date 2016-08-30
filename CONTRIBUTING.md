@@ -115,20 +115,20 @@ line.
 ## Structure
 The repostiory consists of several folders and files containing specific parts of the library. This section gives a short introduction to the most important ones.
 
-###./3rdparty
+### ./3rdparty
 See Dependencies.
 
-###./apps
+### ./apps
 Bigger code examples and tools (=more than only one file) as RTMT.
 Apps depend on modules.
 
-###./cmake
+### ./cmake
 Several cmake macros.
 
-###./docs
+### ./docs
 Tutorials and further documentations.
 
-###./modules
+### ./modules
 Contains all core components of the library and is organized in logical sub folders which are further called 'packages'.
 A package holds the source files which are located in './src'. 
 The corresponding header files are located in './include/v4r/package_name/'
@@ -151,7 +151,7 @@ v4r/core/macros
 class V4R_EXPORTS
 ```
 
-###samples
+### samples 
 *./samples/exsamples: short code pieces that demonsrate how to use a module.
 *./samples/tools: small tools with only one file
 
@@ -175,7 +175,7 @@ As mentioned allready, V4R is using a package.xml file and rosdep to install all
 
 1. Do all the necessary git magic to download v4r on your machine, then open a console.
 2. Install and initialize rosdep
-```shell
+```sh
 sudo apt-get update
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list'
 wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
@@ -185,7 +185,7 @@ sudo rosdep init
 rosdep update
 ```
 3. Install dependencies and compile v4r
-```shell
+```sh
 cd /wherever_it_is_located/v4r
 rosdep install --from-paths . -i -y -r --rosdistro indigo
 mkdir build && cd build
