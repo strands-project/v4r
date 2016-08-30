@@ -115,20 +115,20 @@ line.
 ## Structure
 The repostiory consists of several folders and files containing specific parts of the library. This section gives a short introduction to the most important ones.
 
-**./3rdparty**
+###./3rdparty
 See Dependencies.
 
-**./apps**
+###./apps
 Bigger code examples and tools (=more than only one file) as RTMT.
 Apps depend on modules.
 
-**./cmake**
+###./cmake
 Several cmake macros.
 
-**./docs**
+###./docs
 Tutorials and further documentations.
 
-**./modules**
+###./modules
 Contains all core components of the library and is organized in logical sub folders which are further called 'packages'.
 A package holds the source files which are located in './src'. 
 The corresponding header files are located in './include/v4r/package_name/'
@@ -142,20 +142,24 @@ i.e.
 v4r_define_module(change_detection REQUIRED v4r_common pcl opencv)
 ```
 
-* ./modules/common: anything that can be reused by other packages
+* ./modules/common &mdash; anything that can be reused by other packages
 
-* ./modules/commoncore: core is used by every model and does only include macros -> Visibility has to be defined, use in nearly every headerfile include v4r/core/macros and use class V4R_EXPORTS
+* ./modules/core &mdash; core is used by every module and does only include macros -> To make your modules visible to other modules you have to use 
+```cpp
+v4r/core/macros 
+...
+class V4R_EXPORTS
+```
 
-**samples**
+###samples
 *./samples/exsamples: short code pieces that demonsrate how to use a module.
 *./samples/tools: small tools with only one file
 
-**CITATION.md**
-This files includes bibTex encoded references.
+### Other Files
+**CITATION.md** &mdash; This files includes bibTex encoded references.
 They can be used to cite the approproate modules if you use V4R in your work.
 
-**CNTRIBUTING.md**
-The file you read at the moment.
+**CNTRIBUTING.md** &mdash; The file you read at the moment.
 
 
 <a name="Documentation"></a>
