@@ -144,11 +144,11 @@ v4r_define_module(change_detection REQUIRED v4r_common pcl opencv)
 
 * ./modules/common &mdash; anything that can be reused by other packages
 
-* ./modules/core &mdash; core is used by every module and does only include macros -> To make your modules visible to other modules you have to use 
+* ./modules/core &mdash; core is used by every module and does only include macros -> To make your modules visible to other modules you have to add the macros and 'V4R_EXPORTS' to your header files. 
 ```cpp
-v4r/core/macros 
+#include <v4r/core/macros.h>
 ...
-class V4R_EXPORTS
+class V4R_EXPORTS ...
 ```
 
 ### samples 
