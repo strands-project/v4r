@@ -157,17 +157,17 @@ class V4R_EXPORTS ...
 
 ### Other Files
 **CITATION.md** &mdash; This files includes bibTex encoded references.
-They can be used to cite the approproate modules if you use V4R in your work.
+They can be used to cite the appropriate modules if you use V4R in your work.
 
 **CNTRIBUTING.md** &mdash; The file you read at the moment.
 
 
 <a name="Documentation"></a>
 ## Documentation
-ALWAYS document your code. We use Doxygen Style Comments. A nice introduction do Doxygen styled coding can be found [here](https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html)
+ALWAYS document your code. We use Doxygen. A nice introduction to Doxygen can be found [here](https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html)
 
-The Doxygen documentation has to be compiled at the moment localy on your system.
-However, it will be available on gitlab quiet soon.
+The Doxygen documentation has to be compiled localy on your system for the moment.
+However, it will be available *online* on gitlab quiet soon.
 Bajo will find a nice solution for that using the CI system.
 
 ## How to Build V4R? (Ubuntu 14.04)
@@ -175,7 +175,7 @@ Bajo will find a nice solution for that using the CI system.
 As mentioned allready, V4R is using a package.xml file and rosdep to install all necessary dependencies.
 
 1. Do all the necessary git magic to download v4r on your machine, then open a console.
-2. Install and initialize rosdep
+2. Install and initialize rosdep, cmake and build-essential
 ```
 sudo apt-get update
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list'
@@ -187,11 +187,11 @@ rosdep update
 ```
 3. Install dependencies and compile v4r
 ```
-cd /wherever_it_is_located/v4r
+cd /wherever_v4r_is_located/v4r
 rosdep install --from-paths . -i -y -r --rosdistro indigo
 mkdir build && cd build
 cmake ..
-make
+make -j8
 ```
 
 
