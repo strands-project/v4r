@@ -37,6 +37,9 @@ if(BUILD_EXAMPLES)
   SET(V4R_DEPS v4r_segmentation)
   V4R_DEFINE_CPP_EXAMPLE(segment_pcd)
 
+  SET(V4R_DEPS v4r_keypoints)
+  V4R_DEFINE_CPP_EXAMPLE(temporalFiltering)
+
 endif()
 
 if (INSTALL_C_EXAMPLES AND NOT WIN32)
