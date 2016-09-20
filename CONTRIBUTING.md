@@ -159,7 +159,7 @@ class V4R_EXPORTS ...
 **CITATION.md** &mdash; This files includes bibTex encoded references.
 They can be used to cite the appropriate modules if you use V4R in your work.
 
-**CNTRIBUTING.md** &mdash; The file you read at the moment.
+**CONTRIBUTING.md** &mdash; The file you read at the moment.
 
 
 <a name="Documentation"></a>
