@@ -164,7 +164,7 @@ They can be used to cite the appropriate modules if you use V4R in your work.
 
 <a name="Documentation"></a>
 ## Documentation
-ALWAYS document your code. We use Doxygen. A nice introduction to Doxygen can be found [here](https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html)
+ALWAYS document your code. We use Doxygen. A nice introduction to Doxygen can be found [here](https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html).
 
 The Doxygen documentation has to be compiled localy on your system for the moment.
 However, it will be available *online* on gitlab quiet soon.
