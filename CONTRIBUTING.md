@@ -72,7 +72,7 @@ A good bug report shouldn't leave others needing to chase you up for more
 information. Please try to be as detailed as possible in your report. What is
 your environment? What steps will reproduce the issue? What would you expect to
 be the outcome? All these details will help people to fix any potential bugs.
-After the report of a bug, a responsible person will selected and informed to solve the issue.
+After the report of a bug, a responsible person will be selected and informed to solve the issue.
 
 <a name="license"></a>
 ## License
@@ -119,7 +119,7 @@ The repostiory consists of several folders and files containing specific parts o
 See Dependencies.
 
 ### ./apps
-Bigger code examples and tools (=more than only one file) as RTMT.
+Bigger code examples and tools (=more than only one file) such as RTMT.
 Apps depend on modules.
 
 ### ./cmake
@@ -133,7 +133,7 @@ Contains all core components of the library and is organized in logical sub fold
 A package holds the source files which are located in './src'. 
 The corresponding header files are located in './include/v4r/package_name/'
 
-By following this structur, new modules can be easily added to the corresponding CMakeLists.txt with
+By following this structure, new modules can be easily added to the corresponding CMakeLists.txt with
 ```cpp
 v4r_define_module(package_name REQUIRED components)
 ```
