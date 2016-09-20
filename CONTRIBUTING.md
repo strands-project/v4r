@@ -10,7 +10,7 @@ patches and features.
 
 
 ## Dependencies
-V4R is an open-source project with the goal to be easily installed on different platforms by providing released Debian packages for Ubuntu systems. To allow packaging the V4R library, all dependencies need to be defined in `package.xml`. The required names for specific packages can be found [here](https://github.com/strands-project/rosdistro/blob/strands-devel/rosdep/base.yaml). Packages not included in this list need to be added as [3rdparty libraries](https://rgit.acin.tuwien.ac.at/root/v4r/wikis/how-to-add-third-party-dependency) to V4R. Whenever possible, try to depend on packaged libraries. This especially applies to PCL and OpenCV. Currently this means contribute your code such that it is compatible to PCL 1.7.2 and OpenCV 2.4.9.  
+V4R is an open-source project with the goal to be easily installed on different platforms by providing released Debian packages for Ubuntu systems. To allow packaging the V4R library, all dependencies need to be defined in `package.xml`. The required names for specific packages can be found [here](https://github.com/strands-project/rosdistro/blob/strands-devel/rosdep/base.yaml) or [here](https://raw.githubusercontent.com/ros/rosdistro/master/rosdep/base.yaml). Packages not included in this list need to be added as [3rdparty libraries](https://rgit.acin.tuwien.ac.at/root/v4r/wikis/how-to-add-third-party-dependency) to V4R. Whenever possible, try to depend on packaged libraries. This especially applies to PCL and OpenCV. Currently this means contribute your code such that it is compatible to PCL 1.7.2 and OpenCV 2.4.9.  
 Also, even though V4R stands for Vision for Robotics, our library is independent of ROS. If you need a ROS component, put your core algorithms into this V4R library and create wrapper interfaces in the seperate [v4r_ros_wrappers repository](https://github.com/strands-project/v4r_ros_wrappers).
 
 
@@ -72,6 +72,7 @@ A good bug report shouldn't leave others needing to chase you up for more
 information. Please try to be as detailed as possible in your report. What is
 your environment? What steps will reproduce the issue? What would you expect to
 be the outcome? All these details will help people to fix any potential bugs.
+After the report of a bug, a responsible person will be selected and informed to solve the issue.
 
 <a name="license"></a>
 ## License
@@ -109,4 +110,89 @@ of each `.h` and `.cpp` file:
 Please note that if the academic institution or company you are affiliated with
 does not allow to give up the rights, you may insert an additional copyright
 line.
+
+<a name="structure"></a>
+## Structure
+The repostiory consists of several folders and files containing specific parts of the library. This section gives a short introduction to the most important ones.
+
+### ./3rdparty
+See Dependencies.
+
+### ./apps
+Bigger code examples and tools (=more than only one file) such as RTMT.
+Apps depend on modules.
+
+### ./cmake
+Several cmake macros.
+
+### ./docs
+Tutorials and further documentations.
+
+### ./modules
+Contains all core components of the library and is organized in logical sub folders which are further called 'packages'.
+A package holds the source files which are located in './src'. 
+The corresponding header files are located in './include/v4r/package_name/'
+
+By following this structure, new modules can be easily added to the corresponding CMakeLists.txt with
+```cpp
+v4r_define_module(package_name REQUIRED components)
+```
+i.e. 
+```cpp
+v4r_define_module(change_detection REQUIRED v4r_common pcl opencv)
+```
+
+* ./modules/common &mdash; anything that can be reused by other packages
+
+* ./modules/core &mdash; core is used by every module and does only include macros -> To make your modules visible to other modules you have to add the macros and 'V4R_EXPORTS' to your header files. 
+```cpp
+#include <v4r/core/macros.h>
+...
+class V4R_EXPORTS ...
+```
+
+### samples 
+*./samples/exsamples: short code pieces that demonsrate how to use a module.
+*./samples/tools: small tools with only one file
+
+### Other Files
+**CITATION.md** &mdash; This files includes bibTex encoded references.
+They can be used to cite the appropriate modules if you use V4R in your work.
+
+**CONTRIBUTING.md** &mdash; The file you read at the moment.
+
+
+<a name="Documentation"></a>
+## Documentation
+ALWAYS document your code. We use Doxygen. A nice introduction to Doxygen can be found [here](https://www.stack.nl/~dimitri/doxygen/manual/docblocks.html).
+
+The Doxygen documentation has to be compiled localy on your system for the moment.
+However, it will be available *online* on gitlab quiet soon.
+Bajo will find a nice solution for that using the CI system.
+
+## How to Build V4R? (Ubuntu 14.04)
+
+As mentioned allready, V4R is using a package.xml file and rosdep to install all necessary dependencies.
+
+1. Do all the necessary git magic to download v4r on your machine, then open a console.
+2. Install and initialize rosdep, cmake and build-essential
+```
+sudo apt-get update
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list'
+wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install -y python-rosdep build-essential cmake
+sudo rosdep init
+rosdep update
+```
+3. Install dependencies and compile v4r
+```
+cd /wherever_v4r_is_located/v4r
+rosdep install --from-paths . -i -y -r --rosdistro indigo
+mkdir build && cd build
+cmake ..
+make -j8
+```
+
+
 
