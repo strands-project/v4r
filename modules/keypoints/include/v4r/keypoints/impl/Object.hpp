@@ -92,19 +92,19 @@ public:
   ObjectView(Object *_o, int _camera_id=-1) : idx(-1), camera_id(_camera_id), center(Eigen::Vector3f::Zero()), object(_o) {}
 
   /** access a global 3d point **/
-  inline GlobalPoint& getPt(unsigned idx);
+  inline GlobalPoint& getPt(const unsigned &_idx);
 
   /** access a global 3d point **/
-  inline const GlobalPoint& getPt(unsigned idx) const;
+  inline const GlobalPoint& getPt(const unsigned &_idx) const;
 
   /** add a global 3d point **/
   inline void addPt(const Eigen::Vector3f &pt, const Eigen::Vector3f &n=Eigen::Vector3f(std::numeric_limits<double>::quiet_NaN(),std::numeric_limits<double>::quiet_NaN(),std::numeric_limits<double>::quiet_NaN()));
 
   /** add a point and increment the global counter **/
-  inline void addPt(unsigned glob_idx); 
+  inline void addPt(unsigned glob_idx);
 
   /** decrement the global point counter **/
-  inline bool decPt(unsigned idx);
+  inline bool decPt(const unsigned &_idx);
 
   /** get global 3d points **/
   void getPoints(std::vector<Eigen::Vector3f> &pts);
@@ -296,13 +296,21 @@ public:
 /******************** impl ObjectView **************************/
 
 /** access a global 3d point **/
-inline GlobalPoint& ObjectView::getPt(unsigned idx) { 
-  return object->getPt(points[idx]); 
+inline GlobalPoint& ObjectView::getPt(const unsigned &_idx) {
+//  std::cout<<"ov 1"<<std::endl;
+//  if (_idx>=points.size()) std::cout<<"ov points"<<std::endl;
+//  if (object==0) std::cout<<"ov object"<<std::endl;
+//  if (points[_idx]>=object->points.size()) std::cout<<"o points"<<std::endl;
+  return object->getPt(points[_idx]);
 }
 
 /** access a global 3d point **/
-inline const GlobalPoint& ObjectView::getPt(unsigned idx) const { 
-  return object->getPt(points[idx]); 
+inline const GlobalPoint& ObjectView::getPt(const unsigned &_idx) const {
+//  std::cout<<"ov 2"<<std::endl;
+//  if (_idx>=points.size()) std::cout<<"ov points"<<std::endl;
+//  if (object==0) std::cout<<"ov object"<<std::endl;
+//  if (points[_idx]>=object->points.size()) std::cout<<"o points"<<std::endl;
+  return object->getPt(points[_idx]);
 }
 
 /** add a new global 3d point **/
@@ -317,9 +325,9 @@ inline void ObjectView::addPt(unsigned glob_idx) {
 }
 
 /** decrement the global point counter */
-inline bool ObjectView::decPt(unsigned idx)
+inline bool ObjectView::decPt(const unsigned &_idx)
 {
-  return object->decPt(points[idx]);
+  return object->decPt(points[_idx]);
 }
 
 /** get camera pose **/

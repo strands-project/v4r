@@ -40,14 +40,13 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <Eigen/Dense>
-#include <v4r/common/impl/SmartPtr.hpp>
+#include <v4r/common/impl/SmartPtr.hpp> 
 #include <v4r/keypoints/CodebookMatcher.h>
-#include <v4r/features/FeatureDetectorHeaders.h>
+#include <v4r/features/FeatureDetector.h>
 #include <v4r/keypoints/impl/Object.hpp>
-#include <v4r/core/macros.h>
 
 
-namespace v4r
+namespace v4r 
 {
 
 
@@ -57,7 +56,7 @@ namespace v4r
 class V4R_EXPORTS KeypointObjectRecognizerR2
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     double inl_dist;
@@ -68,7 +67,7 @@ public:
     int use_n_views;
     CodebookMatcher::Parameter cb_param;
     Parameter(double _inl_dist=3, double _eta_ransac=0.01, unsigned _max_rand_trials=5000,
-      int _pnp_method=cv::P3P, int _nb_ransac_points=4, int _use_n_views=3,
+      int _pnp_method=INT_MIN, int _nb_ransac_points=4, int _use_n_views=3,
       const CodebookMatcher::Parameter &_cb_param=CodebookMatcher::Parameter())
     : inl_dist(_inl_dist), eta_ransac(_eta_ransac), max_rand_trials(_max_rand_trials),
       pnp_method(_pnp_method), nb_ransac_points(_nb_ransac_points), use_n_views(_use_n_views),
@@ -112,9 +111,9 @@ private:
 public:
   cv::Mat dbg;
 
-  KeypointObjectRecognizerR2(const Parameter &p=Parameter(),
-                             const v4r::FeatureDetector::Ptr &_detector=v4r::FeatureDetector::Ptr(),
-                             const v4r::FeatureDetector::Ptr &_descEstimator=new v4r::FeatureDetector_KD_FAST_IMGD(v4r::FeatureDetector_KD_FAST_IMGD::Parameter(10000, 1.44, 2, 17)));
+  KeypointObjectRecognizerR2(const Parameter &p,
+                             const v4r::FeatureDetector::Ptr &_detector,
+                             const v4r::FeatureDetector::Ptr &_descEstimator);
   ~KeypointObjectRecognizerR2();
 
   double detect(const cv::Mat &image, Eigen::Matrix4f &pose, int &view_idx);

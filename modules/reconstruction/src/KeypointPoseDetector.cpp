@@ -31,10 +31,13 @@
  */
 
 #include <v4r/reconstruction/KeypointPoseDetector.h>
-#include <v4r/common/impl/ScopeTime.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
-namespace v4r
+#if CV_MAJOR_VERSION < 3
+#define HAVE_OCV_2
+#endif
+
+namespace v4r 
 {
 
 using namespace std;
@@ -113,7 +116,11 @@ double KeypointPoseDetector::detect(const cv::Mat &image, Eigen::Matrix4f &pose)
 
   if (model_pts.size()<4) return 0.;
 
+  #ifdef HAVE_OCV_2
   cv::solvePnPRansac(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, rvec, tvec, false, param.iterationsCount, param.reprojectionError, param.minInliersCount, inliers, cv::P3P );
+  #else
+  cv::solvePnPRansac(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, rvec, tvec, false, param.iterationsCount, param.reprojectionError, param.minInliersCount, inliers, cv::SOLVEPNP_P3P );
+  #endif
 
   if (inliers.size()<4) return 0.;
 
@@ -128,7 +135,11 @@ double KeypointPoseDetector::detect(const cv::Mat &image, Eigen::Matrix4f &pose)
     if (!dbg.empty()) cv::line(dbg,model->keys[ma_inliers[inliers[i]]].pt, query_pts2[i],CV_RGB(255,0,0));
     if (!dbg.empty()) cv::circle(dbg,query_pts2[i],2,CV_RGB(0,255,0));
   }
+  #ifdef HAVE_OCV_2
   cv::solvePnP(cv::Mat(model_pts2), cv::Mat(query_pts2), intrinsic, dist_coeffs, rvec, tvec, true, cv::ITERATIVE );
+  #else
+  cv::solvePnP(cv::Mat(model_pts2), cv::Mat(query_pts2), intrinsic, dist_coeffs, rvec, tvec, true, cv::SOLVEPNP_ITERATIVE );
+  #endif
 
 
   cv::Rodrigues(rvec, R);

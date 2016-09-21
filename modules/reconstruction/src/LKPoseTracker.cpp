@@ -30,11 +30,16 @@
  *
  */
 
-#include "v4r/reconstruction/LKPoseTracker.h"
-#include "opencv2/video/tracking.hpp"
+#include <v4r/reconstruction/LKPoseTracker.h>
+#include <opencv2/video/tracking.hpp>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 
-namespace v4r
+#if CV_MAJOR_VERSION < 3
+#define HAVE_OCV_2
+#endif
+
+
+namespace v4r 
 {
 
 using namespace std;
@@ -47,6 +52,11 @@ LKPoseTracker::LKPoseTracker(const Parameter &p)
  : param(p), last_pose(Eigen::Matrix4f::Identity()), have_im_last(false)
 { 
   sqr_inl_dist = param.inl_dist*param.inl_dist;
+  #ifdef HAVE_OCV_2
+  if (param.pnp_method==INT_MIN) param.pnp_method=cv::P3P;
+  #else
+  if (param.pnp_method==INT_MIN) param.pnp_method=cv::SOLVEPNP_P3P;
+  #endif
 }
 
 LKPoseTracker::~LKPoseTracker()
@@ -186,7 +196,11 @@ void LKPoseTracker::ransacSolvePnP(const std::vector<cv::Point3f> &points, const
     query_pts[i] = im_points[inliers[i]];
   }
 
+  #ifdef HAVE_OCV_2
   cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, sv_rvec, sv_tvec, true, cv::ITERATIVE );
+  #else
+  cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, sv_rvec, sv_tvec, true, cv::SOLVEPNP_ITERATIVE );
+  #endif
 
   cv::Rodrigues(sv_rvec, R);
   cvToEigen(R, sv_tvec, pose);
@@ -276,7 +290,9 @@ double LKPoseTracker::detectIncremental(const cv::Mat &image, Eigen::Matrix4f &p
 
   if (int(query_pts.size())<4) return 0.;
 
+cout<<"1"<<endl;
   ransacSolvePnP(model_pts, query_pts, pose, pnp_inliers);
+cout<<"2"<<endl;
 
   if (int(pnp_inliers.size())<4) return 0.;
 
@@ -342,7 +358,10 @@ double LKPoseTracker::detect(const cv::Mat &image, Eigen::Matrix4f &pose)
 
   if (int(query_pts.size())<4) return 0.;
 
+cout<<"3"<<endl;
   ransacSolvePnP(model_pts, query_pts, pose, pnp_inliers);
+cout<<"4"<<endl;
+
 
   if (int(pnp_inliers.size())<4) return 0.;
 

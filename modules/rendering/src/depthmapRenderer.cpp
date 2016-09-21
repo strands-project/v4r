@@ -728,7 +728,7 @@ pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float 
 
     cv::Mat color;
     const cv::Mat depth = renderDepthmap(visibleSurfaceArea,color);
-    cv::vector<cv::Mat> color_channels(3);
+    std::vector<cv::Mat> color_channels(3);
     cv::split(color, color_channels);
     cv::Mat b, g, r;
     b = color_channels[0];
