@@ -33,7 +33,11 @@
 #include <v4r/tracking/KeypointObjectRecognizerR2.h>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 
-namespace v4r
+#if CV_MAJOR_VERSION < 3
+#define HAVE_OCV_2
+#endif
+
+namespace v4r 
 {
 
 using namespace std;
@@ -50,6 +54,12 @@ KeypointObjectRecognizerR2::KeypointObjectRecognizerR2(const Parameter &p,
   sqr_inl_dist = param.inl_dist*param.inl_dist;
   if (detector.get()==0) detector = descEstimator;
   cbMatcher.reset(new CodebookMatcher(param.cb_param));
+  
+  #ifdef HAVE_OCV_2
+  if (param.pnp_method==INT_MIN) param.pnp_method = cv::P3P;
+  #else
+  if (param.pnp_method==INT_MIN) param.pnp_method = cv::SOLVEPNP_P3P;
+  #endif
 }
 
 KeypointObjectRecognizerR2::~KeypointObjectRecognizerR2()
@@ -191,7 +201,11 @@ void KeypointObjectRecognizerR2::ransacSolvePnP(const std::vector<cv::Point3f> &
     query_pts[i] = im_points[inliers[i]];
   }
 
+  #ifdef HAVE_OCV_2
   cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, sv_rvec, sv_tvec, true, cv::ITERATIVE );
+  #else 
+  cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, sv_rvec, sv_tvec, true, cv::SOLVEPNP_ITERATIVE );
+  #endif
 
   cv::Rodrigues(sv_rvec, R);
   cvToEigen(R, sv_tvec, pose);

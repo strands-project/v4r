@@ -30,11 +30,11 @@
  *
  */
 
-#ifndef V4R_KEYPOINT_DETECTOR_ORB_IMGDESC_HH
-#define V4R_KEYPOINT_DETECTOR_ORB_IMGDESC_HH
+#ifndef KP_KEYPOINT_DETECTOR_ORB_IMGDESC_HH
+#define KP_KEYPOINT_DETECTOR_ORB_IMGDESC_HH
 
 #include <opencv2/features2d/features2d.hpp>
-#include "FeatureDetector.h"
+#include <v4r/features/FeatureDetector.h>
 #include <v4r/features/ComputeImGradientDescriptors.h>
 #include <v4r/features/FeatureSelection.h>
 
@@ -46,7 +46,7 @@ namespace v4r
 class V4R_EXPORTS FeatureDetector_KD_FAST_IMGD : public FeatureDetector
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     int nfeatures;

@@ -41,12 +41,11 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <Eigen/Dense>
 #include <v4r/common/impl/SmartPtr.hpp>
-#include <v4r/features/FeatureDetectorHeaders.h>
+#include <v4r/features/FeatureDetector.h>
 #include <v4r/keypoints/impl/Object.hpp>
-#include <v4r/core/macros.h>
 
 
-namespace v4r
+namespace v4r 
 {
 
 
@@ -56,7 +55,7 @@ namespace v4r
 class V4R_EXPORTS KeypointPoseDetector
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     int iterationsCount;       // 1000
@@ -99,9 +98,9 @@ private:
 public:
   cv::Mat dbg;
 
-  KeypointPoseDetector(const Parameter &p=Parameter(), 
-    const v4r::FeatureDetector::Ptr &_detector=v4r::FeatureDetector::Ptr(),
-    const v4r::FeatureDetector::Ptr &_descEstimator=new v4r::FeatureDetector_KD_FAST_IMGD(v4r::FeatureDetector_KD_FAST_IMGD::Parameter(10000, 1.44, 2, 17)));
+  KeypointPoseDetector(const Parameter &p, 
+    const v4r::FeatureDetector::Ptr &_detector,
+    const v4r::FeatureDetector::Ptr &_descEstimator);
   ~KeypointPoseDetector();
 
   double detect(const cv::Mat &image, Eigen::Matrix4f &pose);

@@ -54,10 +54,10 @@ namespace v4r
 /**
  * KeypointPoseDetectorRT
  */
-class KeypointPoseDetectorRT
+class V4R_EXPORTS KeypointPoseDetectorRT
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     float nnr;

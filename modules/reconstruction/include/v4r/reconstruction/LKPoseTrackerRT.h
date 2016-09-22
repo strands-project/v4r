@@ -54,10 +54,10 @@ namespace v4r
 /**
  * LKPoseTrackerRT
  */
-class LKPoseTrackerRT
+class V4R_EXPORTS LKPoseTrackerRT
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     bool compute_global_pose;

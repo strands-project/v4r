@@ -33,7 +33,7 @@
 #ifndef KP_FEATURE_DETECTOR_ORB_HH
 #define KP_FEATURE_DETECTOR_ORB_HH
 
-#include "FeatureDetector.h"
+#include <v4r/features/FeatureDetector.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
@@ -45,7 +45,7 @@ namespace v4r
 class V4R_EXPORTS FeatureDetector_KD_ORB : public FeatureDetector
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     int nfeatures;
