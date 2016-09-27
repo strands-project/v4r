@@ -24,7 +24,7 @@
 
 #include "v4r/attention_segmentation/FrintropSaliencyMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 FrintropSaliencyMap::FrintropSaliencyMap():
@@ -156,7 +156,7 @@ void FrintropSaliencyMap::initializePyramid(FrintropPyramid::Ptr pyramid, cv::Ma
   pyramid->setSMLevel(0);//
   pyramid->setWidth(width);//
   pyramid->setHeight(height);//
-  pyramid->setNormalizationType(normalization_type);//v4r::EPUtils::NT_FRINTROP_NORM
+  pyramid->setNormalizationType(normalization_type);//v4r::NT_FRINTROP_NORM
   
   std::vector<int> R;//
   R.resize(2); R.at(0) = 3; R.at(1) = 7;//
@@ -175,7 +175,7 @@ void FrintropSaliencyMap::initializePyramid(SimplePyramid::Ptr pyramid, cv::Mat 
   pyramid->setSMLevel(0);//
   pyramid->setWidth(width);//
   pyramid->setHeight(height);//
-  pyramid->setNormalizationType(normalization_type);//v4r::EPUtils::NT_FRINTROP_NORM;
+  pyramid->setNormalizationType(normalization_type);//v4r::NT_FRINTROP_NORM;
   
   pyramid->setImage(IM);
   pyramid->buildPyramid();
@@ -275,8 +275,8 @@ int FrintropSaliencyMap::calculate()
   
   float maxIntensityValue = std::max(pyramidIOn->getMaxMapValue(),pyramidIOff->getMaxMapValue());
   cv::Mat intensity = pyramidIOn_map + pyramidIOff_map;
-  v4r::EPUtils::normalize(intensity,v4r::EPUtils::NT_NONE,maxIntensityValue);
-  v4r::EPUtils::normalize(intensity,normalization_type);
+  v4r::normalize(intensity,v4r::NT_NONE,maxIntensityValue);
+  v4r::normalize(intensity,normalization_type);
   
   cv::Mat orientation;
   float maxOrientationValue = 0;
@@ -297,8 +297,8 @@ int FrintropSaliencyMap::calculate()
     else
       orientation = orientation + orientation_temp;
   }
-  v4r::EPUtils::normalize(orientation,v4r::EPUtils::NT_NONE,maxOrientationValue);
-  v4r::EPUtils::normalize(orientation,normalization_type);
+  v4r::normalize(orientation,v4r::NT_NONE,maxOrientationValue);
+  v4r::normalize(orientation,normalization_type);
   
 //   cv::imshow("orientation",orientation);
 //   cv::waitKey(-1);
@@ -352,15 +352,15 @@ int FrintropSaliencyMap::calculate()
 //     cv::waitKey(-1);
     
     cv::Mat color = pyramidR_map + pyramidG_map + pyramidB_map + pyramidY_map;
-    v4r::EPUtils::normalize(color,v4r::EPUtils::NT_NONE,maxColorValue);
-    v4r::EPUtils::normalize(color,normalization_type);
+    v4r::normalize(color,v4r::NT_NONE,maxColorValue);
+    v4r::normalize(color,normalization_type);
     map = map + color;
   }
   
 //   cv::imshow("map",map);
 //   cv::waitKey(-1);
   
-  v4r::EPUtils::normalize(map);
+  v4r::normalize(map);
   
   calculated = true;
 
@@ -411,7 +411,7 @@ int FrintropSaliencyMap::createFeatureMapsO(SimplePyramid::Ptr pyramid, float an
     }
     
     cv::Mat gaborKernel0, gaborKernel90;
-    v4r::EPUtils::makeGaborFilter(gaborKernel0,gaborKernel90,angle);
+    v4r::makeGaborFilter(gaborKernel0,gaborKernel90,angle);
     cv::Mat temp0, temp90;
     cv::filter2D(current_image,temp0,-1,gaborKernel0);
     temp0 = cv::abs(temp0);

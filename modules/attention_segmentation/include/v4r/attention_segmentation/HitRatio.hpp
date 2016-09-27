@@ -26,8 +26,9 @@
 #define HITRATIO_HPP
 
 #include "v4r/attention_segmentation/headers.hpp"
+#include <v4r/core/macros.h>
 
-namespace AttentionModule {
+namespace v4r {
 
 struct ObjectDistance{
   float distance;
@@ -42,7 +43,7 @@ struct PointEvaluation{
   float bestDistance;
 };
 
-class AttentionPointsEvaluation
+class V4R_EXPORTS AttentionPointsEvaluation
 {
 public:
   AttentionPointsEvaluation();

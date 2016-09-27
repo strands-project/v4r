@@ -24,7 +24,7 @@
 
 #include "v4r/attention_segmentation/MapsCombination.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 int CombineMaps(std::vector<cv::Mat> &maps, cv::Mat &combinedMap, int combination_type, int normalization_type)
@@ -44,8 +44,8 @@ int CombineMaps(std::vector<cv::Mat> &maps, cv::Mat &combinedMap, int combinatio
         cv::add(maps.at(i),combinedMap,combinedMap);
       }
       combinedMap = combinedMap / maps.size();
-      v4r::EPUtils::normalize(combinedMap,normalization_type);
-      //v4r::EPUtils::normalize(combinedMap,v4r::EPUtils::NT_NONE);
+      v4r::normalize(combinedMap,normalization_type);
+      //v4r::normalize(combinedMap,v4r::NT_NONE);
       return(AM_OK);
     case AM_MUL:
       combinedMap = cv::Mat_<float>::ones(maps.at(0).rows,maps.at(0).cols);
@@ -53,8 +53,8 @@ int CombineMaps(std::vector<cv::Mat> &maps, cv::Mat &combinedMap, int combinatio
       {
         cv::multiply(maps.at(i),combinedMap,combinedMap);
       }
-      v4r::EPUtils::normalize(combinedMap,normalization_type);
-      //v4r::EPUtils::normalize(combinedMap,v4r::EPUtils::NT_NONE);
+      v4r::normalize(combinedMap,normalization_type);
+      //v4r::normalize(combinedMap,v4r::NT_NONE);
       return(AM_OK);
     case AM_MIN:
       combinedMap = cv::Mat_<float>::ones(maps.at(0).rows,maps.at(0).cols);
@@ -62,8 +62,8 @@ int CombineMaps(std::vector<cv::Mat> &maps, cv::Mat &combinedMap, int combinatio
       {
         combinedMap = cv::min(maps.at(i),combinedMap);
       }
-      v4r::EPUtils::normalize(combinedMap,normalization_type);
-      //v4r::EPUtils::normalize(combinedMap,v4r::EPUtils::NT_NONE);
+      v4r::normalize(combinedMap,normalization_type);
+      //v4r::normalize(combinedMap,v4r::NT_NONE);
       return(AM_OK);
     case AM_MAX:
       combinedMap = cv::Mat_<float>::zeros(maps.at(0).rows,maps.at(0).cols);
@@ -71,8 +71,8 @@ int CombineMaps(std::vector<cv::Mat> &maps, cv::Mat &combinedMap, int combinatio
       {
         combinedMap = cv::max(maps.at(i),combinedMap);
       }
-      v4r::EPUtils::normalize(combinedMap,normalization_type);
-      //v4r::EPUtils::normalize(combinedMap,v4r::EPUtils::NT_NONE);
+      v4r::normalize(combinedMap,normalization_type);
+      //v4r::normalize(combinedMap,v4r::NT_NONE);
       return(AM_OK);
     default:
       combinedMap = cv::Mat_<float>::zeros(maps.at(0).rows,maps.at(0).cols);

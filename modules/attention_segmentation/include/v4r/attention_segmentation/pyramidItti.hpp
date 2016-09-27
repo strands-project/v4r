@@ -25,12 +25,13 @@
 #ifndef PYRAMID_ITTI_HPP
 #define PYRAMID_ITTI_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/pyramidBase.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
-class IttiPyramid: public BasePyramid
+class V4R_EXPORTS IttiPyramid: public BasePyramid
 {
 public:
   IttiPyramid();

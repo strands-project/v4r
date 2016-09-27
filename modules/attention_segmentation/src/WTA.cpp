@@ -27,7 +27,7 @@
 
 #include "v4r/attention_segmentation/WTA.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 void defaultLeakyIntFire(LIF& lif)
@@ -804,4 +804,4 @@ void PrintImage(const cv::Mat &img)
     }
 }
 
-} //namespace AttentionModule
+} //namespace v4r

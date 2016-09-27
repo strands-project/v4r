@@ -24,7 +24,7 @@
 
 #include "v4r/attention_segmentation/pyramidSimple.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 SimplePyramid::SimplePyramid():
@@ -70,13 +70,13 @@ void SimplePyramid::combinePyramid(bool standard)
     }
     else
     {
-      v4r::EPUtils::scaleImage(pyramidFeatures,pyramidFeatures.at(i),temp,i,sm_level);
+      v4r::scaleImage(pyramidFeatures,pyramidFeatures.at(i),temp,i,sm_level);
     }
     
 //     cv::imshow("temp",temp);
 //     cv::waitKey(-1);
     
-    v4r::EPUtils::normalize(temp,normalization_type);
+    v4r::normalize(temp,normalization_type);
 //     cv::imshow("temp",temp);
 //     cv::waitKey(-1);
     combineConspicuityMaps(map,temp);
@@ -88,7 +88,7 @@ void SimplePyramid::combinePyramid(bool standard)
   double maxValue, minValue;
   cv::minMaxLoc(map,&minValue,&maxValue);
   max_map_value = maxValue;
-  v4r::EPUtils::normalize(map,normalization_type);
+  v4r::normalize(map,normalization_type);
   
   calculated = true;
 }

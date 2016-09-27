@@ -46,16 +46,17 @@
 #ifndef SYMMETRY_MAP_HPP
 #define SYMMETRY_MAP_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 /**
 * calculates symmetry saliency map
 **/
   
-class SymmetryMap: public BaseMap
+class V4R_EXPORTS SymmetryMap: public BaseMap
 {
   
 public:
@@ -95,6 +96,6 @@ protected:
   virtual int combinePyramid(BasePyramid::Ptr pyramid);
 };
 
-} //namespace AttentionModule
+} //namespace v4r
 
 #endif //SYMMETRY_MAP_HPP

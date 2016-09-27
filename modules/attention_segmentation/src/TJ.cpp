@@ -24,14 +24,16 @@
 
 #include "v4r/attention_segmentation/TJ.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
+/*
 int dy8[8] = {-1,-1,-1,0,1,1,1,0};
 int dx8[8] = {-1,0,1,1,1,0,-1,-1};
 
 int dx4[4] = {-1,1,0,0};
 int dy4[4] = {0,0,-1,1};
+*/
 
 SaliencyLine::SaliencyLine()
 {
@@ -391,7 +393,7 @@ void createSimpleLine(SaliencyLine saliencyLine, std::vector<cv::Point> &points)
 bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine, unsigned int th)
 {
   cv::Mat skeleton;
-  v4r::EPUtils::Skeleton(mask,skeleton);
+  v4r::Skeleton(mask,skeleton);
   
   //cv::imshow("skeleton",255*skeleton);
   //cv::waitKey();

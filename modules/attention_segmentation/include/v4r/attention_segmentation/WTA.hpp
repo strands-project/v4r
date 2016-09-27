@@ -29,9 +29,10 @@
 #ifndef WTA_HPP
 #define WTA_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/headers.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 struct LIF {
@@ -72,7 +73,7 @@ struct Params
 };
 
 void defaultLeakyIntFire(LIF& lif);
-void defaultParams(Params& params);
+V4R_EXPORTS void defaultParams(Params& params);
 void initializeWTA(WTA& wta, const cv::Mat& salmap, Params& salParams);
 void evolveLeakyIntFire(LIF& lif, float t, cv::Mat& spikes);
 void evolveWTA(WTA& wta, cv::Point& winner);
@@ -83,11 +84,11 @@ void diskIOR(WTA& wta, cv::Point& winner, Params& params);
 //void shapeIOR(WTA& wta, cv::Point& winner, Params& params, cv::Mat& binaryMap, cv::Mat& binMap);
 void winnerToImgCoords(cv::Point& win2, cv::Point& winner, Params& params, cv::Mat& img, const cv::Mat& _salmap);
 void plotSalientLocation(cv::Point& win2, cv::Point& lastWinner, cv::Mat& img, Params& params, int pointNumber);
-int  CalculateWTA(cv::Mat& img, cv::Mat& _salmap, std::vector<cv::Point>& attented_points, int AttentionPointsNumber, Params &params);
+V4R_EXPORTS int  CalculateWTA(cv::Mat& img, cv::Mat& _salmap, std::vector<cv::Point>& attented_points, int AttentionPointsNumber, Params &params);
 void PrintImage(const cv::Mat &img);
 void UpdateWinner(cv::Mat &salmap, cv::Point &winner,Params& params);
 void UpdateWinner2(cv::Mat &salmap, cv::Point &winner);
 
-} //namespace AttentionModule
+} //namespace v4r
 
 #endif //WTA_HPP

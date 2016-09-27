@@ -25,7 +25,7 @@
 #ifndef AM_ERRORS_HPP
 #define AM_ERRORS_HPP
 
-namespace AttentionModule
+namespace v4r
 {
 
 enum AttentionModuleErrors
@@ -52,6 +52,6 @@ enum CombinationTypeEnum
   AM_COMB_MAX,
 };
 
-} //namespace AttentionModule
+} //namespace v4r
 
 #endif // AM_ERRORS_HPP

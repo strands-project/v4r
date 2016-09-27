@@ -25,9 +25,10 @@
 #ifndef RELATIVE_SURFACE_ORIENATION_HPP
 #define RELATIVE_SURFACE_ORIENATION_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 enum OrientationTypes
@@ -40,7 +41,7 @@ enum OrientationTypes
  * class for relative surface orientation saliency map
  * */
 
-class RelativeSurfaceOrientationMap: public BaseMap
+class V4R_EXPORTS RelativeSurfaceOrientationMap: public BaseMap
 {
 public:
   RelativeSurfaceOrientationMap();
@@ -84,6 +85,6 @@ protected:
   virtual int combinePyramid(BasePyramid::Ptr pyramid);
 };
 
-} // namespace AttentionModule
+} // namespace v4r
 
 #endif //RELATIVE_SURFACE_ORIENATION_HPP

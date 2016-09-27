@@ -24,7 +24,7 @@
 
 #include "v4r/attention_segmentation/LocationMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 LocationSaliencyMap::LocationSaliencyMap():
@@ -162,10 +162,10 @@ int LocationSaliencyMap::calculate()
   
   cv::blur(map,map,cv::Size(filter_size,filter_size));
 
-  v4r::EPUtils::normalize(map,normalization_type);
+  v4r::normalize(map,normalization_type);
 
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
   return(AM_OK);
 }
-} //namespace AttentionModule
+} //namespace v4r

@@ -25,12 +25,13 @@
 #ifndef IKN_SALIENCYMAP
 #define IKN_SALIENCYMAP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
-class IKNSaliencyMap: public BaseMap
+class V4R_EXPORTS IKNSaliencyMap : public BaseMap
 {
 public:
   IKNSaliencyMap();//
@@ -65,6 +66,6 @@ protected:
   
 };
 
-} // AttentionModule
+} // v4r
 
 #endif //IKN_SALIENCYMAP

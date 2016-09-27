@@ -25,9 +25,10 @@
 #ifndef SURFACEHEIGHT_HPP
 #define SURFACEHEIGHT_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 /**
@@ -41,7 +42,7 @@ enum SurfaceTypes
   AM_DISTANCE,
 };
 
-class SurfaceHeightSaliencyMap: public BaseMap 
+class V4R_EXPORTS SurfaceHeightSaliencyMap: public BaseMap 
 {
 public:
   SurfaceHeightSaliencyMap();
@@ -94,6 +95,6 @@ protected:
   virtual int combinePyramid(BasePyramid::Ptr pyramid);
 };
 
-} // namespace AttentionModule
+} // namespace v4r
 
 #endif //SURFACEHEIGHT_HPP

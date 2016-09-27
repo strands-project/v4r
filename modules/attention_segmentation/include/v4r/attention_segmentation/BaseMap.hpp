@@ -25,6 +25,7 @@
 #ifndef BASE_MAP_HPP
 #define BASE_MAP_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/headers.hpp"
 
 #include "v4r/attention_segmentation/pyramidBase.hpp"
@@ -32,7 +33,7 @@
 #include "v4r/attention_segmentation/pyramidItti.hpp"
 #include "v4r/attention_segmentation/pyramidFrintrop.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 enum PyramidType
@@ -42,7 +43,7 @@ enum PyramidType
   FRINTROP_PYRAMID,
 };
   
-class BaseMap
+class V4R_EXPORTS BaseMap
 {
 public:
   
@@ -134,6 +135,6 @@ protected:
 
 };
 
-} // namespace AttentionModule
+} // namespace v4r
 
 #endif //BASE_MAP_HPP

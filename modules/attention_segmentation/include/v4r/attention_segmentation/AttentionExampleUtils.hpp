@@ -22,28 +22,21 @@
  */
 
 
-#ifndef PYRAMID_SIMPLE_HPP
-#define PYRAMID_SIMPLE_HPP
+#ifndef ATTENTION_MODULE_EXAMPLES_UTILS_HPP
+#define ATTENTION_MODULE_EXAMPLES_UTILS_HPP
 
 #include <v4r/core/macros.h>
-#include "v4r/attention_segmentation/pyramidBase.hpp"
+#include "v4r/eputils/ZAdaptiveNormals.hh"
+//#include "v4r/eputils/EPUtils.hpp"
 
 namespace v4r
 {
 
-class V4R_EXPORTS SimplePyramid: public BasePyramid
-{
-public:
-  SimplePyramid();
-  virtual ~SimplePyramid();
-  typedef boost::shared_ptr<SimplePyramid> Ptr;
+V4R_EXPORTS int preparePointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, pcl::ModelCoefficients::Ptr coefficients, 
+                      pcl::PointCloud<pcl::Normal>::Ptr normals, pcl::PointIndices::Ptr object_indices_in_the_hull, bool useStandartNormals = false);
+V4R_EXPORTS int preparePointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, pcl::PointCloud<pcl::Normal>::Ptr normals, pcl::PointIndices::Ptr object_indices, 
+		      bool useStandartNormals = false);
 
-  virtual void reset();
-  virtual void combinePyramid(bool standard = false);
-
-private:
-
-};
-
-}
-#endif //PYRAMID_SIMPLE_HPP
+bool checkIsNaN(const pcl::PointXYZRGB &p);
+} // namespace v4r
+#endif //ATTENTION_MODULE_EXAMPLES_UTILS_HPP

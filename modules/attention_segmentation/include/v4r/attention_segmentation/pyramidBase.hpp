@@ -25,12 +25,13 @@
 #ifndef PYRAMID_BASE_HPP
 #define PYRAMID_BASE_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/headers.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
   
-class BasePyramid
+class V4R_EXPORTS BasePyramid
 {
 public:
   BasePyramid();

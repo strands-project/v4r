@@ -27,7 +27,7 @@
 
 #include "v4r/attention_segmentation/headers.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 enum CombinationTypes
@@ -40,8 +40,8 @@ enum CombinationTypes
   
 // assume that maps are normalized to (0,1) range
 int CombineMaps(std::vector<cv::Mat> &maps, cv::Mat &combinedMap, int combination_type = AM_SUM, 
-                int normalization_type = v4r::EPUtils::NT_NONE);
+                int normalization_type = v4r::NT_NONE);
   
-} //namespace AttentionModule
+} //namespace v4r
 
 #endif //MAPS_COMBINATION_HPP

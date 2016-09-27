@@ -25,16 +25,17 @@
 #ifndef ORIENTATION_MAP_HPP
 #define ORIENTATION_MAP_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 /**
  * parameters for orientation saliency map
  * */
 
-class OrientationSaliencyMap: public BaseMap
+class V4R_EXPORTS OrientationSaliencyMap: public BaseMap
 {
 public:
   OrientationSaliencyMap();//
@@ -69,6 +70,6 @@ protected:
 
 };
 
-} // namespace AttentionModule
+} // namespace v4r
 
 #endif //ORIENTATION_MAP_HPP

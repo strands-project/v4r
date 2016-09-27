@@ -24,7 +24,7 @@
 
 #include "v4r/attention_segmentation/pyramidItti.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 IttiPyramid::IttiPyramid():
@@ -200,7 +200,7 @@ void IttiPyramid::combinePyramid(bool standard)
           resize(pyramidFeatures.at(i+j),temp,cv::Size(pyramidFeatures.at(i).cols,pyramidFeatures.at(i).rows));
 	}
 	else{
-	  v4r::EPUtils::scaleImage(pyramidFeatures,pyramidFeatures.at(i+j),temp,i+j,i);
+	  v4r::scaleImage(pyramidFeatures,pyramidFeatures.at(i+j),temp,i+j,i);
 	}
     
 //         cv::imshow("temp",temp);
@@ -210,7 +210,7 @@ void IttiPyramid::combinePyramid(bool standard)
 // 	  temp = -1 * temp;
 	
 	cv::absdiff(pyramidFeatures.at(i),temp,pyramidConspicuities.at(current));
-	v4r::EPUtils::normalize(pyramidConspicuities.at(current),normalization_type);
+	v4r::normalize(pyramidConspicuities.at(current),normalization_type);
 	trueLevel.push_back(i);
       }
     }
@@ -234,14 +234,14 @@ void IttiPyramid::combinePyramid(bool standard)
     }
     else
     {
-      v4r::EPUtils::scaleImage(pyramidImages,pyramidConspicuities.at(i),temp,trueLevel.at(i),sm_level);
+      v4r::scaleImage(pyramidImages,pyramidConspicuities.at(i),temp,trueLevel.at(i),sm_level);
     }
 //     cv::imshow("temp",temp);
 //     cv::waitKey(-1);
     combineConspicuityMaps(map,temp);
   }
   
-  v4r::EPUtils::normalize(map,normalization_type);
+  v4r::normalize(map,normalization_type);
   
   calculated = true;
 }

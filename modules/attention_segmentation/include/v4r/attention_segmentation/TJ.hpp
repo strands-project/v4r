@@ -24,17 +24,19 @@
 #ifndef TJ_HPP
 #define TJ_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/headers.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
-extern int dy8[8];
+/*extern int dy8[8];
 extern int dx8[8];
 
 extern int dx4[4];
 extern int dy4[4];
-  
+*/
+
 enum PointJunctionType {
   UNKNOWN       = 0,
   T_JUNCTION    = 3,
@@ -56,7 +58,7 @@ struct JunctionNode {
   }
 };
 
-class SaliencyLine
+class V4R_EXPORTS SaliencyLine
 {
 private:
   std::vector<JunctionNode> points;
@@ -83,13 +85,13 @@ std::vector<int> findEndPoints(SaliencyLine saliencyLine);
 std::vector<int> getEdges(std::vector<JunctionNode> nodes,int nodeIdx);
 void breakIntoSegments(SaliencyLine saliencyLine, std::vector<std::vector<int> > &segments);
 void modifySymmetryLine(SaliencyLine saliencyLine, std::vector<bool> &usedPoints, float th = 0.5);
-void selectSaliencyCenterPoint(SaliencyLine saliencyLine, PointSaliency &center);
+V4R_EXPORTS void selectSaliencyCenterPoint(SaliencyLine saliencyLine, PointSaliency &center);
 void createSimpleLine(SaliencyLine saliencyLine, std::vector<cv::Point> &points);
-bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine, unsigned int th = 10);
-void createAttentionPoints(std::vector<PointSaliency> saliencyPoints, std::vector<cv::Point> &attentionPoints);
+V4R_EXPORTS bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine, unsigned int th = 10);
+V4R_EXPORTS void createAttentionPoints(std::vector<PointSaliency> saliencyPoints, std::vector<cv::Point> &attentionPoints);
 
 inline bool saliencyPointsSort (PointSaliency p1, PointSaliency p2) { return (p1.saliency>p2.saliency); }
 
-} //namespace AttentionModule
+} //namespace v4r
 
 #endif //TJ_HPP

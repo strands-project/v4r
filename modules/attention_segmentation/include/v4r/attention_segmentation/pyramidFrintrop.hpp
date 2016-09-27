@@ -25,12 +25,13 @@
 #ifndef PYRAMID_FRINTROP_HPP
 #define PYRAMID_FRINTROP_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/pyramidBase.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
-class FrintropPyramid: public BasePyramid
+class V4R_EXPORTS FrintropPyramid: public BasePyramid
 {
 public:
   FrintropPyramid();

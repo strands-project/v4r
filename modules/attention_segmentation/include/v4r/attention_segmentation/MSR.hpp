@@ -26,8 +26,9 @@
 #define MSR_HPP
 
 #include "v4r/attention_segmentation/headers.hpp"
+#include <v4r/core/macros.h>
 
-namespace AttentionModule
+namespace v4r
 {
 
 struct MRSParams {
@@ -36,9 +37,9 @@ struct MRSParams {
   bool  useMorphologyOpenning;
 };  
 
-void defaultParamsMSR(MRSParams &params);
-void detectMSR(std::vector<cv::Point> &centers, cv::Mat map_, MRSParams params);
+void V4R_EXPORTS defaultParamsMSR(MRSParams &params);
+void V4R_EXPORTS detectMSR(std::vector<cv::Point> &centers, cv::Mat map_, MRSParams params);
   
-} //namespace AttentionModule
+} //namespace v4r
 
 #endif //MSR_HPP

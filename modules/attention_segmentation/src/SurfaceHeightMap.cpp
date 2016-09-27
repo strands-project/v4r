@@ -25,7 +25,7 @@
 #include "v4r/attention_segmentation/SurfaceHeightMap.hpp"
 #include <sys/time.h>
 
-namespace AttentionModule
+namespace v4r
 {
 
 SurfaceHeightSaliencyMap::SurfaceHeightSaliencyMap():
@@ -206,8 +206,8 @@ int SurfaceHeightSaliencyMap::calculateHeightMap()
 
   refineMap();
   
-  v4r::EPUtils::normalize(map,normalization_type);
-  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
+  v4r::normalize(map,normalization_type);
+  //v4r::normalize(map,v4r::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
@@ -227,7 +227,7 @@ void SurfaceHeightSaliencyMap::calculateHeightMap(pcl::PointCloud<pcl::PointXYZR
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_projected (new pcl::PointCloud<pcl::PointXYZRGB>());
   std::vector<float> distances;
   // calculate coordinates of the projections and normalized distances to the plane
-  v4r::EPUtils::ProjectPointsOnThePlane(coefficients,cloud_cur,points_projected,distances,indices_cur);
+  v4r::ProjectPointsOnThePlane(coefficients,cloud_cur,points_projected,distances,indices_cur);
 
   if(cloud_cur->points.size() < 10)
   {
@@ -347,8 +347,8 @@ int SurfaceHeightSaliencyMap::calculatePointDistanceMap()
   
   refineMap();
   
-  v4r::EPUtils::normalize(map,normalization_type);
-  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
+  v4r::normalize(map,normalization_type);
+  //v4r::normalize(map,v4r::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
@@ -447,7 +447,7 @@ int SurfaceHeightSaliencyMap::calculatePyramidSimple()
   
   refineMap();
   
-  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
+  //v4r::normalize(map,v4r::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
@@ -492,7 +492,7 @@ int SurfaceHeightSaliencyMap::calculatePyramidItti()
   
   refineMap();
   
-  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
+  //v4r::normalize(map,v4r::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
@@ -554,12 +554,12 @@ int SurfaceHeightSaliencyMap::calculatePyramidFrintrop()
   
   maxIntensityValue = std::max(maxIntensityValue,pyramid->getMaxMapValue());
   map = map_on + map_off;
-  v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE,maxIntensityValue);
-  v4r::EPUtils::normalize(map,normalization_type);
+  v4r::normalize(map,v4r::NT_NONE,maxIntensityValue);
+  v4r::normalize(map,normalization_type);
   
   refineMap();
   
-  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
+  //v4r::normalize(map,v4r::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
@@ -602,7 +602,7 @@ int SurfaceHeightSaliencyMap::combinePyramid(BasePyramid::Ptr pyramid)
     }
     
 //     cv::Mat depth;
-//     v4r::EPUtils::pointCloud_2_depth(depth,current_cloud,current_width,current_height,current_indices);
+//     v4r::pointCloud_2_depth(depth,current_cloud,current_width,current_height,current_indices);
 //     cv::imshow("depth",depth);
 //     cv::waitKey(-1);
     
@@ -633,7 +633,7 @@ int SurfaceHeightSaliencyMap::combinePyramid(BasePyramid::Ptr pyramid)
     
 //     cv::imshow("current_map",current_map);
 //     cv::Mat upscaled_current_map;
-//     v4r::EPUtils::upscalePyramid(current_map,upscaled_current_map);
+//     v4r::upscalePyramid(current_map,upscaled_current_map);
 //     cv::imshow("current_map",upscaled_current_map);
 //     cv::waitKey(-1);
     
@@ -673,4 +673,4 @@ float SurfaceHeightSaliencyMap::getHeightCoefficient(int heightType_)
   return(-1.0);
 }
 
-} //namespace AttentionModule
+} //namespace v4r

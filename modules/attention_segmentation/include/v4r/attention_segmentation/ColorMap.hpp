@@ -25,16 +25,17 @@
 #ifndef COLOR_MAP_HPP
 #define COLOR_MAP_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 /**
  * parameters for color saliency map
  * */
 
-class ColorSaliencyMap: public BaseMap
+class V4R_EXPORTS ColorSaliencyMap: public BaseMap
 {
 public:
   ColorSaliencyMap();
@@ -69,6 +70,6 @@ protected:
   virtual int combinePyramid(BasePyramid::Ptr pyramid);
 };
 
-} // namespace AttentionModule
+} // namespace v4r
 
 #endif //COLOR_MAP_HPP

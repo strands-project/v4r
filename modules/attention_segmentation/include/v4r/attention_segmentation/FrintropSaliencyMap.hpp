@@ -25,13 +25,14 @@
 #ifndef FRINTROP_SALIENCYMAP_HPP
 #define FRINTROP_SALIENCYMAP_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 #include "v4r/attention_segmentation/ColorMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
-class FrintropSaliencyMap: public BaseMap
+class V4R_EXPORTS FrintropSaliencyMap: public BaseMap
 {
 public:
   FrintropSaliencyMap();//
@@ -58,7 +59,7 @@ protected:
   virtual int checkParameters();//
 };
 
-} // AttentionModule
+} // v4r
 
 #endif //FRINTROP_SALIENCYMAP_HPP
   

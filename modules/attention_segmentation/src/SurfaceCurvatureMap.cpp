@@ -24,7 +24,7 @@
 
 #include "v4r/attention_segmentation/SurfaceCurvatureMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 SurfaceCurvatureMap::SurfaceCurvatureMap():
@@ -126,7 +126,7 @@ int SurfaceCurvatureMap::calculate()
 
   refineMap();
   
-  v4r::EPUtils::normalize(map,normalization_type);
+  v4r::normalize(map,normalization_type);
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
 
@@ -177,4 +177,4 @@ float SurfaceCurvatureMap::getCurvatureCoefficient(int curvatureType_)
   return(0.0);
 }
 
-} //namespace AttentionModule
+} //namespace v4r

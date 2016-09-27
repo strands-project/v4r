@@ -24,7 +24,7 @@
 
 #include "v4r/attention_segmentation/MSR.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 void winnerToImgCoords(cv::Point& p_new, cv::Point& p, int mapLevel)
@@ -119,4 +119,4 @@ void detectMSR(std::vector<cv::Point> &centers, cv::Mat map_, MRSParams params)
   }
 }
 
-} //namespace AttentionModule
+} //namespace v4r

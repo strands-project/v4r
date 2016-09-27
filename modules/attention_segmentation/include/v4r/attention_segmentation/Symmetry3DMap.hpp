@@ -25,9 +25,10 @@
 #ifndef SYMMETRY3D_MAP_HPP
 #define SYMMETRY3D_MAP_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 struct MiddlePoint {
@@ -50,7 +51,7 @@ MiddlePoint::MiddlePoint()
   point.z = 0;
 }
   
-class Symmetry3DMap: public BaseMap
+class V4R_EXPORTS Symmetry3DMap: public BaseMap
 {
 private:
   int R;
@@ -80,6 +81,6 @@ protected:
   virtual int combinePyramid(BasePyramid::Ptr pyramid);
 };
 
-} //namespace AttentionModule
+} //namespace v4r
 
 #endif //SYMMETRY3D_MAP_HPP

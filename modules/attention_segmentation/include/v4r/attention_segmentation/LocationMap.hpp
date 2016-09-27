@@ -25,9 +25,10 @@
 #ifndef LOCATION_MAP_HPP
 #define LOCATION_MAP_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 enum LocationTypes
@@ -44,7 +45,7 @@ enum LocationTypes
   AM_LOCATION_CUSTOM ,
 };
   
-class LocationSaliencyMap: public BaseMap
+class V4R_EXPORTS LocationSaliencyMap: public BaseMap
 {
 public:
   
@@ -75,6 +76,6 @@ protected:
 
 };
 
-} // namespace AttentionModule
+} // namespace v4r
 
 #endif //LOCATION_MAP_HPP

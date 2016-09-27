@@ -24,7 +24,7 @@
 
 #include "v4r/attention_segmentation/ColorMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 ColorSaliencyMap::ColorSaliencyMap():
@@ -265,7 +265,7 @@ int ColorSaliencyMap::calculate()
   
   cv::blur(map,map,cv::Size(filter_size,filter_size));
 
-  v4r::EPUtils::normalize(map,normalization_type);
+  v4r::normalize(map,normalization_type);
 
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
@@ -460,4 +460,4 @@ int ColorSaliencyMap::combinePyramid(BasePyramid::Ptr pyramid)
   return(AM_OK);
 }
 
-} //namespace AttentionModule
+} //namespace v4r

@@ -25,9 +25,10 @@
 #ifndef SURFACE_CURVATURE_HPP
 #define SURFACE_CURVATURE_HPP
 
+#include <v4r/core/macros.h>
 #include "v4r/attention_segmentation/BaseMap.hpp"
 
-namespace AttentionModule
+namespace v4r
 {
 
 /**
@@ -40,7 +41,7 @@ enum CurvatureTypes
   AM_CONVEX,
 };
 
-class SurfaceCurvatureMap: public BaseMap
+class V4R_EXPORTS SurfaceCurvatureMap: public BaseMap
 {
 public:
   SurfaceCurvatureMap();
@@ -70,6 +71,6 @@ protected:
   virtual int checkParameters();//
 };
 
-} // namespace AttentionModule
+} // namespace v4r
 
 #endif //SURFACE_CURVATURE_HPP
