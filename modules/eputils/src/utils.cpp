@@ -21,8 +21,10 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#include "utils.hpp"
+#include "v4r/eputils/utils.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -681,3 +683,4 @@ void readDistribution(std::vector<float> &dist, std::string filename)
 }
 
 } //namespace EPUtils
+} //namespace v4r

@@ -22,8 +22,10 @@
  */
 
 
-#include "normalization.hpp"
+#include "v4r/eputils/normalization.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -209,3 +211,4 @@ void normalize(cv::Mat &map, int normalization_type, float newMaxValue, float ne
 }
 
 } // namespace EPUtils 
+} // namespace v4r 

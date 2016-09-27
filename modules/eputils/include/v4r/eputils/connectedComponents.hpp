@@ -25,8 +25,11 @@
 #ifndef EPCONNECTEDCOMPONENTS_H
 #define EPCONNECTEDCOMPONENTS_H
 
-#include "headers.hpp"
+#include <v4r/core/macros.h>
+#include "v4r/eputils/headers.hpp"
 
+namespace v4r 
+{
 namespace EPUtils
 {
   
@@ -60,5 +63,6 @@ void drawConnectedComponent(ConnectedComponent component, cv::Mat &image, cv::Sc
 void drawConnectedComponents(std::vector<ConnectedComponent> components, cv::Mat &image, cv::Scalar color);
 
 } //namespace EPUtils
+} //namespace v4r 
 
 #endif // EPCONNECTEDCOMPONENTS_H

@@ -25,8 +25,11 @@
 #ifndef EPDEBUG_H
 #define EPDEBUG_H
 
-#include "headers.hpp"
+#include <v4r/core/macros.h>
+#include "v4r/eputils/headers.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -85,5 +88,6 @@ public:
 //DebugPrints debug;
 
 } //namespace EPUtils
+} //namespace v4r
 
 #endif //EPDEBUG_H

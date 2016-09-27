@@ -22,8 +22,10 @@
  */
 
 
-#include "convertions.hpp"
+#include "v4r/eputils/convertions.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -664,3 +666,4 @@ void FloatMap2UcharMap(cv::Mat &map_u, const cv::Mat map_f)
 }
 
 } //namespace EPUtils
+} //namespace v4r

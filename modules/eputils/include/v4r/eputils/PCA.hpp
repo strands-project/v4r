@@ -24,8 +24,12 @@
 #ifndef EPUTILS_PCA_HPP
 #define EPUTILS_PCA_HPP
 
-#include "headers.hpp"
+#include <v4r/core/macros.h>
 
+#include "v4r/eputils/headers.hpp"
+
+namespace v4r
+{
 namespace EPUtils
 {
   
@@ -34,5 +38,6 @@ bool computeCovarianceMatrix(pcl::PointCloud<pcl::Normal>::ConstPtr cloud, const
 void principleAxis(pcl::PointCloud<pcl::Normal>::ConstPtr cloud, std::vector<pcl::Normal> &axis);
   
 } //namespace EPUtils
+} //namespace v4r
 
 #endif //EPUTILS_PCA_HPP

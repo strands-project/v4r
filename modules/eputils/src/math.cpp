@@ -22,9 +22,11 @@
  */
 
 
-#include "convertions.hpp"
+#include "v4r/eputils/convertions.hpp"
 #include <pcl/filters/project_inliers.h>
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -362,3 +364,4 @@ void ProjectPointsOnThePlane(pcl::ModelCoefficients::ConstPtr coefficients,
 
 
 } //namespace EPUtils
+} //namespace v4r

@@ -39,14 +39,18 @@
 
 #include <eigen3/Eigen/Eigen>
 
+#include <v4r/core/macros.h>
+
 // #ifndef NOT_USE_PCL
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
-#include "PCLPreprocessingXYZRC.hpp"
+#include "v4r/eputils/PCLPreprocessingXYZRC.hpp"
 // #endif
 
+namespace v4r
+{
 namespace EPUtils
 {
   
@@ -57,5 +61,6 @@ static const int dx4[4] = {-1,1,0,0};
 static const int dy4[4] = {0,0,-1,1};
 
 } //namespace EPUtils
+} //namespace v4r
 
 #endif //EPUTILS_MODULE_HEADERS_HPP

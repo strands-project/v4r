@@ -22,9 +22,11 @@
  */
 
 
-#include "debugUtils.hpp"
-#include "convertions.hpp"
+#include "v4r/eputils/debugUtils.hpp"
+#include "v4r/eputils/convertions.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -125,3 +127,4 @@ void DebugPrints::print(const int type, const char *fmt, ...)
 //}
 
 } //namespace EPUtils
+} //namespace v4r

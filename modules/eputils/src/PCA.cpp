@@ -21,9 +21,11 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#include "PCA.hpp"
+#include "v4r/eputils/PCA.hpp"
 #include <Eigen/Dense>
 
+namespace v4r
+{
 namespace EPUtils
 {
  
@@ -115,3 +117,4 @@ void principleAxis(pcl::PointCloud<pcl::Normal>::ConstPtr cloud, std::vector<pcl
 }
   
 } //namespace EPUtils
+} //namespace v4r

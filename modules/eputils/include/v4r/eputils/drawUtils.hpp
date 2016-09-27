@@ -25,9 +25,12 @@
 #ifndef EPDRAWUTILS_H
 #define EPDRAWUTILS_H
 
-#include "headers.hpp"
-#include "connectedComponents.hpp"
+#include <v4r/core/macros.h>
+#include "v4r/eputils/headers.hpp"
+#include "v4r/eputils/connectedComponents.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -75,5 +78,6 @@ void drawPath(cv::Mat &image, std::vector<cv::Point> &path, cv::Mat &mapx, cv::M
 void drawLine(cv::Mat &image, std::vector<cv::Point> points, cv::Scalar color = cv::Scalar(0));
 
 } //namespace EPUtils
+} //namespace v4r
 
 #endif //EPDRAWUTILS_H

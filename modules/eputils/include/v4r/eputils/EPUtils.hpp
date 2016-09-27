@@ -25,19 +25,19 @@
 #ifndef EPUTILS_INCLUDE_HEADERS_HPP
 #define EPUTILS_INCLUDE_HEADERS_HPP
 
-#include "algo.hpp"
-#include "convertions.hpp"
-#include "normalization.hpp"
-#include "utils.hpp"
-//#include "sphereHistogram.hpp"
-#include "math.hpp"
-#include "drawUtils.hpp"
-//#include "debugUtils.hpp"
-#include "connectedComponents.hpp"
-#include "timeUtils.hpp"
+#include "v4r/eputils/algo.hpp"
+#include "v4r/eputils/convertions.hpp"
+#include "v4r/eputils/normalization.hpp"
+#include "v4r/eputils/utils.hpp"
+//#include "v4r/eputils/sphereHistogram.hpp"
+#include "v4r/eputils/math.hpp"
+#include "v4r/eputils/drawUtils.hpp"
+//#include "v4r/eputils/debugUtils.hpp"
+#include "v4r/eputils/connectedComponents.hpp"
+#include "v4r/eputils/timeUtils.hpp"
 #ifndef NOT_USE_PCL
-#include "PCLPreprocessingXYZRC.hpp"
-#include "PCA.hpp"
+#include "v4r/eputils/PCLPreprocessingXYZRC.hpp"
+#include "v4r/eputils/PCA.hpp"
 #endif
 
 #endif //EPUTILS_INCLUDE_HEADERS_HPP

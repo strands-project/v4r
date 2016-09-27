@@ -25,8 +25,11 @@
 #ifndef NORMALIZATION_HPP
 #define NORMALIZATION_HPP
 
-#include "headers.hpp"
+#include <v4r/core/macros.h>
+#include "v4r/eputils/headers.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -44,15 +47,16 @@ void computeLocalMax(cv::Mat &image, int &numLocalMax, float &averageLocalMax, f
 /**
  * normalizes image
  * */
-void normalize(cv::Mat &map, int normalization_type = NT_NONE, float newMaxValue = 1, float newMinValue = 0);
-void normalizeNonMax(cv::Mat &map);
-void normalizeFrintrop(cv::Mat &map);
-void normalizeMin2Zero(cv::Mat &map);
+V4R_EXPORTS void normalize(cv::Mat &map, int normalization_type = NT_NONE, float newMaxValue = 1, float newMinValue = 0);
+V4R_EXPORTS void normalizeNonMax(cv::Mat &map);
+V4R_EXPORTS void normalizeFrintrop(cv::Mat &map);
+V4R_EXPORTS void normalizeMin2Zero(cv::Mat &map);
 /**
  * normalizes image by simply dividind image by its maximum value
  * */
-void normalizeMax2One(cv::Mat &map);
+V4R_EXPORTS void normalizeMax2One(cv::Mat &map);
 
 } //namespace EPUtils
+} //namespace v4r
 
 #endif //NORMALIZATION_HPP

@@ -22,8 +22,10 @@
  */
 
 
-#include "drawUtils.hpp"
+#include "v4r/eputils/drawUtils.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -269,3 +271,4 @@ void drawLine(cv::Mat &image, std::vector<cv::Point> points, cv::Scalar color)
 }
 
 } //namespace EPUtils
+} //namespace v4r

@@ -21,11 +21,13 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#include "timeUtils.hpp"
+#include "v4r/eputils/timeUtils.hpp"
 
 #include <stdio.h>
 #include <unistd.h>
 
+namespace v4r
+{
 namespace EPUtils
 {
   
@@ -173,3 +175,4 @@ unsigned long TimeEstimationClass::getWorkTimeInSeconds()
 // }
 
 } //namespace EPUtils
+} //namespace v4r

@@ -24,8 +24,11 @@
 #ifndef EPUTILS_H
 #define EPUTILS_H
 
-#include "headers.hpp"
+#include <v4r/core/macros.h>
+#include "v4r/eputils/headers.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -95,5 +98,6 @@ void saveDistribution(std::vector<float> dist, std::string filename);
 void readDistribution(std::vector<float> &dist, std::string filename);
 
 } //namespace EPUtils
+} //namespace v4r
 
 #endif // EPUTILS_H

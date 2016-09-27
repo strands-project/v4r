@@ -25,8 +25,11 @@
 #ifndef EPCONVERTIONS_H
 #define EPCONVERTIONS_H
 
-#include "headers.hpp"
+#include <v4r/core/macros.h>
+#include "v4r/eputils/headers.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -110,5 +113,6 @@ void Disparity2Depth(cv::Mat &depth, const cv::Mat disparity, float f = 525, flo
 void FloatMap2UcharMap(cv::Mat &map_u, const cv::Mat map_f);
 
 } //namespace EPUtils
+} //namespace v4r
 
 #endif // EPCONVERTIONS_H

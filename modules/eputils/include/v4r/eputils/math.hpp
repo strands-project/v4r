@@ -25,8 +25,12 @@
 #ifndef EPMATH_H
 #define EPMATH_H
 
-#include "headers.hpp"
+#include <v4r/core/macros.h>
 
+#include "v4r/eputils/headers.hpp"
+
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -177,5 +181,6 @@ bool computeCovarianceMatrix(const typename pcl::PointCloud<T> &cloud, const Eig
 #endif
 
 } //namespace EPUtils
+} //namespace v4r
 
 #endif

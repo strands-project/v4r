@@ -21,7 +21,7 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#include "sphereHistogram.hpp"
+#include "v4r/eputils/sphereHistogram.hpp"
 
 
 namespace EPUtils 

@@ -25,8 +25,11 @@
 #ifndef EPALGO_H
 #define EPALGO_H
 
-#include "headers.hpp"
+#include <v4r/core/macros.h>
+#include "v4r/eputils/headers.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 //ep:begin: revision at 17-07-2014
@@ -96,11 +99,11 @@ void MConnectivity(cv::Mat &s, uchar *element);
 /**
  * extracts skeleton
  * */
-void Skeleton(cv::Mat a, cv::Mat &s);
+V4R_EXPORTS void Skeleton(cv::Mat a, cv::Mat &s);
 /**
  * calculates distance between two points using eucledian normal
  * */
-float calculateDistance(cv::Point center, cv::Point point);
+V4R_EXPORTS float calculateDistance(cv::Point center, cv::Point point);
 /**
  * calculates gaussian distance
  * */
@@ -177,5 +180,7 @@ void get3DNeighbors(const cv::Mat &patches, cv::Mat &neighbors, int patchesNumbe
 
 #endif
 } //namespace EPUtils
+
+} // namespace v4r
 
 #endif // EPALGO_H

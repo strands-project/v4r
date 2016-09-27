@@ -22,10 +22,12 @@
  */
 
 
-#include "algo.hpp"
+#include "v4r/eputils/algo.hpp"
 
 #include <Eigen/Dense>
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -667,7 +669,7 @@ void MConnectivity(cv::Mat &s, uchar *element)
   }
 }
 
-void Skeleton(cv::Mat a, cv::Mat &s)
+V4R_EXPORTS void Skeleton(cv::Mat a, cv::Mat &s)
 {
   int width  = a.cols;
   int height = a.rows;
@@ -952,3 +954,4 @@ void get2DNeighbors(const cv::Mat &patches, cv::Mat &neighbors, int patchesNumbe
 }
 
 } //namespace EPUtils
+} //namespace v4r

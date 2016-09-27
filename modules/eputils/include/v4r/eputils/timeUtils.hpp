@@ -24,8 +24,11 @@
 #ifndef TIMEUTILS_H
 #define TIMEUTILS_H
 
-#include "headers.hpp"
+#include "v4r/eputils/headers.hpp"
+#include <v4r/core/macros.h>
 
+namespace v4r
+{
 namespace EPUtils
 {
   
@@ -54,5 +57,6 @@ public:
 };
 
 } //namespace EPUtils
+} //namespace v4r
 
 #endif //TIMEUTILS_H

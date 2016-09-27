@@ -22,8 +22,10 @@
  */
 
 
-#include "connectedComponents.hpp"
+#include "v4r/eputils/connectedComponents.hpp"
 
+namespace v4r
+{
 namespace EPUtils
 {
 
@@ -246,3 +248,4 @@ void drawConnectedComponents(std::vector<ConnectedComponent> components, cv::Mat
 }
 
 } //namespace EPUtils
+} //namespace v4r

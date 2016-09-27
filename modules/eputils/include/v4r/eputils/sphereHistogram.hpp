@@ -24,8 +24,8 @@
 #ifndef EPSPHEREHISTOGRAM_HPP
 #define EPSPHEREHISTOGRAM_HPP
 
-#include "headers.hpp"
-#include "convertions.hpp"
+#include "v4r/eputils/headers.hpp"
+#include "v4r/eputils/convertions.hpp"
 
 namespace EPUtils
 {
