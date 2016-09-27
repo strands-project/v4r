@@ -27,8 +27,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 void showImageForDebug(std::string name, const cv::Mat &image, int waitTime)
 {
@@ -126,5 +124,4 @@ void DebugPrints::print(const int type, const char *fmt, ...)
   //return debug;
 //}
 
-} //namespace EPUtils
 } //namespace v4r

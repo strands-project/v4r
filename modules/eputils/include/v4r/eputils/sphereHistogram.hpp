@@ -27,8 +27,6 @@
 #include "v4r/eputils/headers.hpp"
 #include "v4r/eputils/convertions.hpp"
 
-namespace EPUtils
-{
 
 struct v1v2new_v{
   unsigned int v1, v2, new_v;
@@ -65,6 +63,5 @@ private:
   std::vector<v1v2new_v> checkedVertices;
 };
 
-} //namespace EPUtils
 
 #endif //EPSPHEREHISTOGRAM_HPP

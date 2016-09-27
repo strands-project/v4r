@@ -29,8 +29,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
   
 class TimeEstimationClass
 {
@@ -56,7 +54,6 @@ public:
   unsigned long getWorkTimeInSeconds();
 };
 
-} //namespace EPUtils
 } //namespace v4r
 
 #endif //TIMEUTILS_H

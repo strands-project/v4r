@@ -25,8 +25,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 int readFiles(const std::string &directoryName, std::vector<std::string> &names)
 {
@@ -682,5 +680,4 @@ void readDistribution(std::vector<float> &dist, std::string filename)
   indata.close();
 }
 
-} //namespace EPUtils
 } //namespace v4r

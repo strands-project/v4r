@@ -28,8 +28,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 void filterGaussian(cv::Mat &input, cv::Mat &output, cv::Mat &mask)
 {
@@ -953,5 +951,4 @@ void get2DNeighbors(const cv::Mat &patches, cv::Mat &neighbors, int patchesNumbe
   }
 }
 
-} //namespace EPUtils
 } //namespace v4r

@@ -28,8 +28,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
   
 TimeEstimationClass::TimeEstimationClass(clockid_t clockID)
 {
@@ -174,5 +172,4 @@ unsigned long TimeEstimationClass::getWorkTimeInSeconds()
 // 
 // }
 
-} //namespace EPUtils
 } //namespace v4r

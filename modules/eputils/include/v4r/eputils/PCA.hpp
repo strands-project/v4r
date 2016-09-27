@@ -30,14 +30,11 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
   
 Eigen::Vector4f getMean(pcl::PointCloud<pcl::Normal>::ConstPtr cloud);
 bool computeCovarianceMatrix(pcl::PointCloud<pcl::Normal>::ConstPtr cloud, const Eigen::Vector4f &mean, Eigen::Matrix3f &cov);
-void principleAxis(pcl::PointCloud<pcl::Normal>::ConstPtr cloud, std::vector<pcl::Normal> &axis);
+V4R_EXPORTS void principleAxis(pcl::PointCloud<pcl::Normal>::ConstPtr cloud, std::vector<pcl::Normal> &axis);
   
-} //namespace EPUtils
 } //namespace v4r
 
 #endif //EPUTILS_PCA_HPP

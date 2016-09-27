@@ -22,12 +22,11 @@
  */
 
 
+#include <v4r/core/macros.h>
 #include "v4r/eputils/convertions.hpp"
 #include <pcl/filters/project_inliers.h>
 
 namespace v4r
-{
-namespace EPUtils
 {
 
 float dotProduct(Eigen::Vector3f v1, Eigen::Vector3f v2)
@@ -200,7 +199,7 @@ float vectorLength(pcl::PointXYZ v)
   return(vectorLength(v_));
 }
 
-float calculateCosine(pcl::Normal v1, pcl::Normal v2)
+V4R_EXPORTS float calculateCosine(pcl::Normal v1, pcl::Normal v2)
 {
   Eigen::Vector3f v1_, v2_;
   v1_[0] = v1.normal[0]; v1_[1] = v1.normal[1]; v1_[2] = v1.normal[2];
@@ -216,7 +215,7 @@ float calculateCosine(pcl::PointXYZ v1, pcl::PointXYZ v2)
   return(calculateCosine(v1_,v2_));
 }
 
-pcl::Normal normalize(pcl::Normal v)
+V4R_EXPORTS pcl::Normal normalize(pcl::Normal v)
 {
   Eigen::Vector3f v_;
   v_[0] = v.normal[0]; v_[1] = v.normal[1]; v_[2] = v.normal[2];
@@ -278,7 +277,7 @@ pcl::PointXYZ crossProduct(pcl::PointXYZ p1, pcl::PointXYZ p2, pcl::PointXYZ p3)
   return(v);
 }
 
-pcl::Normal calculatePlaneNormal(pcl::Normal v1, pcl::Normal v2)
+V4R_EXPORTS pcl::Normal calculatePlaneNormal(pcl::Normal v1, pcl::Normal v2)
 {
   pcl::Normal v = crossProduct(v1,v2);
   v = normalize(v);
@@ -308,7 +307,7 @@ pcl::PointXYZ calculatePlaneNormal(pcl::PointXYZ p1, pcl::PointXYZ p2, pcl::Poin
 
 #endif
 
-void ProjectPointsOnThePlane(pcl::ModelCoefficients::ConstPtr coefficients,
+V4R_EXPORTS void ProjectPointsOnThePlane(pcl::ModelCoefficients::ConstPtr coefficients,
                              pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud,
                              pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_projected,
                              std::vector<float> &distances, pcl::PointIndices::Ptr indices, 
@@ -363,5 +362,4 @@ void ProjectPointsOnThePlane(pcl::ModelCoefficients::ConstPtr coefficients,
 }
 
 
-} //namespace EPUtils
 } //namespace v4r

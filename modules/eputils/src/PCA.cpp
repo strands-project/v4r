@@ -26,8 +26,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
  
 Eigen::Vector4f getMean(pcl::PointCloud<pcl::Normal>::ConstPtr cloud)
 {
@@ -116,5 +114,4 @@ void principleAxis(pcl::PointCloud<pcl::Normal>::ConstPtr cloud, std::vector<pcl
   
 }
   
-} //namespace EPUtils
 } //namespace v4r

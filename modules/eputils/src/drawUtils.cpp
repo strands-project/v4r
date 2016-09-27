@@ -26,8 +26,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 void drawSegmentationMask(cv::Mat &image, cv::Mat mask, cv::Scalar color, int line_width)
 {
@@ -270,5 +268,4 @@ void drawLine(cv::Mat &image, std::vector<cv::Point> points, cv::Scalar color)
   }
 }
 
-} //namespace EPUtils
 } //namespace v4r

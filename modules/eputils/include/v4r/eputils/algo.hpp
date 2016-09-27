@@ -30,18 +30,16 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 //ep:begin: revision at 17-07-2014
-void filterGaussian(cv::Mat &input, cv::Mat &output, cv::Mat &mask);
-void buildDepthPyramid(cv::Mat &image, std::vector<cv::Mat> &pyramid, cv::Mat &mask, unsigned int levelNumber);
-void createPointCloudPyramid(std::vector<cv::Mat> &pyramidX, std::vector<cv::Mat> &pyramidY, std::vector<cv::Mat> &pyramidZ, 
+V4R_EXPORTS void filterGaussian(cv::Mat &input, cv::Mat &output, cv::Mat &mask);
+V4R_EXPORTS void buildDepthPyramid(cv::Mat &image, std::vector<cv::Mat> &pyramid, cv::Mat &mask, unsigned int levelNumber);
+V4R_EXPORTS void createPointCloudPyramid(std::vector<cv::Mat> &pyramidX, std::vector<cv::Mat> &pyramidY, std::vector<cv::Mat> &pyramidZ, 
 			     std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > &pyramidCloud);
-void createNormalPyramid(std::vector<cv::Mat> &pyramidNx, std::vector<cv::Mat> &pyramidNy, std::vector<cv::Mat> &pyramidNz, std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointCloud<pcl::Normal>::Ptr > &pyramidNormal);
-void createIndicesPyramid(std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointIndices::Ptr> &pyramidIndiceSets);
-void upscaleImage(cv::Mat &input, cv::Mat &output);
-void downscaleImage(cv::Mat &input, cv::Mat &output, unsigned int width, unsigned int height);
-void scaleImage(std::vector<cv::Mat> &inputPyramid, cv::Mat &input, cv::Mat &output, int inLevel, int outLevel);
+V4R_EXPORTS void createNormalPyramid(std::vector<cv::Mat> &pyramidNx, std::vector<cv::Mat> &pyramidNy, std::vector<cv::Mat> &pyramidNz, std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointCloud<pcl::Normal>::Ptr > &pyramidNormal);
+V4R_EXPORTS void createIndicesPyramid(std::vector<cv::Mat> &pyramidIndices, std::vector<pcl::PointIndices::Ptr> &pyramidIndiceSets);
+V4R_EXPORTS void upscaleImage(cv::Mat &input, cv::Mat &output);
+V4R_EXPORTS void downscaleImage(cv::Mat &input, cv::Mat &output, unsigned int width, unsigned int height);
+V4R_EXPORTS void scaleImage(std::vector<cv::Mat> &inputPyramid, cv::Mat &input, cv::Mat &output, int inLevel, int outLevel);
 //ep:end: revision at 17-07-2014
   
 /**
@@ -51,16 +49,16 @@ bool inPoly(std::vector<cv::Point> &poly, cv::Point p);
 /**
  * creates polygon map
  * */
-void buildPolygonMap(cv::Mat &polygonMap, std::vector<std::vector<cv::Point> > &polygons);
+V4R_EXPORTS void buildPolygonMap(cv::Mat &polygonMap, std::vector<std::vector<cv::Point> > &polygons);
 /**
  * builds contour map
  * */
-void buildCountourMap(cv::Mat &polygonMap, std::vector<std::vector<cv::Point> > &polygons,
+V4R_EXPORTS void buildCountourMap(cv::Mat &polygonMap, std::vector<std::vector<cv::Point> > &polygons,
                       cv::Scalar color = cv::Scalar(255,255,255));
 /**
  * adds noise to the image
  * */
-void addNoise(cv::Mat &image, cv::Mat &nImage, cv::RNG &rng,float min, float max);
+V4R_EXPORTS void addNoise(cv::Mat &image, cv::Mat &nImage, cv::RNG &rng,float min, float max);
 /**
  * returns number of the point in the cammulative distribution for 
  * given x value
@@ -69,13 +67,13 @@ long commulativeFunctionArgValue(float x, std::vector<float> &A);
 /**
  * calculates normal pdf of the image given mean and stddev
  * */
-void normPDF(cv::Mat &mat, float mean, float stddev, cv::Mat &res);
+V4R_EXPORTS void normPDF(cv::Mat &mat, float mean, float stddev, cv::Mat &res);
 float normPDF(float x, float mean, float stddev);
 float normPDF(std::vector<float> x, std::vector<float> mean, cv::Mat stddev);
 /**
  * normalizes distribution
  * */
-void normalizeDist(std::vector<float> &dist);
+V4R_EXPORTS void normalizeDist(std::vector<float> &dist);
 /**
  * calculates mean
  * */
@@ -87,7 +85,7 @@ float getStd(std::vector<float> dist, float mean, float total_num = 1);
 /**
  * creates contours from masks
  * */
-void createContoursFromMasks(std::vector<cv::Mat> &masks, std::vector<std::vector<cv::Point> > &contours);
+V4R_EXPORTS void createContoursFromMasks(std::vector<cv::Mat> &masks, std::vector<std::vector<cv::Point> > &contours);
 /**
  * checks transitions from 0 to 1 in the neighbourhood
  * */
@@ -95,7 +93,7 @@ uchar Num01Transitions(cv::Mat s, int j, int i);
 /**
  * removes extra connections according to M-connectivity
  * */
-void MConnectivity(cv::Mat &s, uchar *element);
+V4R_EXPORTS void MConnectivity(cv::Mat &s, uchar *element);
 /**
  * extracts skeleton
  * */
@@ -111,19 +109,19 @@ float calculateDistance(cv::Point center, cv::Point point, float sigma);
 /**
  * calculate object center
  * */
-void calculateObjectCenter(cv::Mat mask, cv::Point &center);
-void calculateObjectCenter(std::vector<cv::Point> contour, cv::Mat mask, cv::Point &center);
+V4R_EXPORTS void calculateObjectCenter(cv::Mat mask, cv::Point &center);
+V4R_EXPORTS void calculateObjectCenter(std::vector<cv::Point> contour, cv::Mat mask, cv::Point &center);
 /**
  * calculate neigbors in 2D
  * */
-void get2DNeighbors(const cv::Mat &patches, cv::Mat &neighbors, int patchesNumber);
+V4R_EXPORTS void get2DNeighbors(const cv::Mat &patches, cv::Mat &neighbors, int patchesNumber);
 /**
  * calculate neigbors in 3D
  * */
 #ifndef NOT_USE_PCL
 
 template <typename T>
-void get3DNeighbors(const cv::Mat &patches, cv::Mat &neighbors, int patchesNumber, 
+V4R_EXPORTS void get3DNeighbors(const cv::Mat &patches, cv::Mat &neighbors, int patchesNumber, 
                     typename pcl::PointCloud<T>::Ptr cloud, double z_max_dist)
 {
   neighbors = cv::Mat_<bool>(patchesNumber,patchesNumber);
@@ -179,7 +177,6 @@ void get3DNeighbors(const cv::Mat &patches, cv::Mat &neighbors, int patchesNumbe
 }
 
 #endif
-} //namespace EPUtils
 
 } // namespace v4r
 

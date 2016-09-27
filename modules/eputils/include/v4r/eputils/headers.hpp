@@ -51,8 +51,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
   
 static const int dy8[8] = {-1,-1,-1,0,1,1,1,0};
 static const int dx8[8] = {-1,0,1,1,1,0,-1,-1};
@@ -60,7 +58,6 @@ static const int dx8[8] = {-1,0,1,1,1,0,-1,-1};
 static const int dx4[4] = {-1,1,0,0};
 static const int dy4[4] = {0,0,-1,1};
 
-} //namespace EPUtils
 } //namespace v4r
 
 #endif //EPUTILS_MODULE_HEADERS_HPP

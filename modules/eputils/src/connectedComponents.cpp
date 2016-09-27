@@ -26,8 +26,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 ConnectedComponent::ConnectedComponent()
 {
@@ -247,5 +245,4 @@ void drawConnectedComponents(std::vector<ConnectedComponent> components, cv::Mat
   }
 }
 
-} //namespace EPUtils
 } //namespace v4r

@@ -30,21 +30,19 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 /**
  * show image for debug
  * */
-void showImageForDebug(std::string name, const cv::Mat &image, int waitTime = 5);
+V4R_EXPORTS void showImageForDebug(std::string name, const cv::Mat &image, int waitTime = 5);
 /**
  * print mat
  * */
-void printMat(std::string name, cv::Mat &mat);
+V4R_EXPORTS void printMat(std::string name, cv::Mat &mat);
 /**
  * print value
  * */
-void printParameter(std::string name, float value);
+V4R_EXPORTS void printParameter(std::string name, float value);
 
 // class to print
 class DebugPrints
@@ -87,7 +85,6 @@ public:
 
 //DebugPrints debug;
 
-} //namespace EPUtils
 } //namespace v4r
 
 #endif //EPDEBUG_H

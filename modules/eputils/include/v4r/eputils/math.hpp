@@ -31,8 +31,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 float dotProduct(Eigen::Vector3f v1, Eigen::Vector3f v2);
 float dotProduct(cv::Point3f v1, cv::Point3f v2);
@@ -40,11 +38,11 @@ float dotProduct(cv::Point3f v1, cv::Point3f v2);
 float vectorLength(Eigen::Vector3f v);
 float vectorLength(cv::Point3d v);
 
-float calculateCosine(Eigen::Vector3f v1, Eigen::Vector3f v2);
-float calculateCosine(cv::Point3d v1, cv::Point3d v2);
+V4R_EXPORTS float calculateCosine(Eigen::Vector3f v1, Eigen::Vector3f v2);
+V4R_EXPORTS float calculateCosine(cv::Point3d v1, cv::Point3d v2);
 
-Eigen::Vector3f normalize(Eigen::Vector3f v);
-cv::Point3d normalize(cv::Point3d v);
+V4R_EXPORTS Eigen::Vector3f normalize(Eigen::Vector3f v);
+V4R_EXPORTS cv::Point3d normalize(cv::Point3d v);
 
 Eigen::Vector3f crossProduct(Eigen::Vector3f v1, Eigen::Vector3f v2);
 cv::Point3d crossProduct(cv::Point3d v1, cv::Point3d v2);
@@ -66,8 +64,8 @@ float dotProduct(pcl::PointXYZ v1, pcl::PointXYZ v2);
 float vectorLength(pcl::Normal v);
 float vectorLength(pcl::PointXYZ v);
 
-float calculateCosine(pcl::Normal v1, pcl::Normal v2);
-float calculateCosine(pcl::PointXYZ v1, pcl::PointXYZ v2);
+V4R_EXPORTS float calculateCosine(pcl::Normal v1, pcl::Normal v2);
+V4R_EXPORTS float calculateCosine(pcl::PointXYZ v1, pcl::PointXYZ v2);
 
 pcl::Normal normalize(pcl::Normal v);
 pcl::PointXYZ normalize(pcl::PointXYZ v);
@@ -78,12 +76,12 @@ pcl::PointXYZ crossProduct(pcl::PointXYZ v1, pcl::PointXYZ v2);
 pcl::Normal crossProduct(pcl::Normal p1, pcl::Normal p2, pcl::Normal p3);
 pcl::PointXYZ crossProduct(pcl::PointXYZ p1, pcl::PointXYZ p2, pcl::PointXYZ p3);
 
-pcl::Normal calculatePlaneNormal(pcl::Normal v1, pcl::Normal v2);
+V4R_EXPORTS pcl::Normal calculatePlaneNormal(pcl::Normal v1, pcl::Normal v2);
 pcl::Normal calculatePlaneNormal(pcl::Normal p1, pcl::Normal p2, pcl::Normal p3);
 pcl::PointXYZ calculatePlaneNormal(pcl::PointXYZ v1, pcl::PointXYZ v2);
 pcl::PointXYZ calculatePlaneNormal(pcl::PointXYZ p1, pcl::PointXYZ p2, pcl::PointXYZ p3);
 
-void ProjectPointsOnThePlane(pcl::ModelCoefficients::ConstPtr coefficients,
+V4R_EXPORTS void ProjectPointsOnThePlane(pcl::ModelCoefficients::ConstPtr coefficients,
                              pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud,
                              pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_projected,
                              std::vector<float> &distances, 
@@ -180,7 +178,6 @@ bool computeCovarianceMatrix(const typename pcl::PointCloud<T> &cloud, const Eig
 
 #endif
 
-} //namespace EPUtils
 } //namespace v4r
 
 #endif

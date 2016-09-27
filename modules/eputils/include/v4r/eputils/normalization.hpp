@@ -30,8 +30,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 enum NormalizationTypes
 {
@@ -43,7 +41,7 @@ enum NormalizationTypes
   NT_NONE_REAL,
 };
   
-void computeLocalMax(cv::Mat &image, int &numLocalMax, float &averageLocalMax, float threshold = 0);
+V4R_EXPORTS void computeLocalMax(cv::Mat &image, int &numLocalMax, float &averageLocalMax, float threshold = 0);
 /**
  * normalizes image
  * */
@@ -56,7 +54,6 @@ V4R_EXPORTS void normalizeMin2Zero(cv::Mat &map);
  * */
 V4R_EXPORTS void normalizeMax2One(cv::Mat &map);
 
-} //namespace EPUtils
 } //namespace v4r
 
 #endif //NORMALIZATION_HPP

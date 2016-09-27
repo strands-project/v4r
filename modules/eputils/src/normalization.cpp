@@ -26,8 +26,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 void computeLocalMax(cv::Mat &image, int &numLocalMax, float &averageLocalMax, float threshold)
 {
@@ -210,5 +208,4 @@ void normalize(cv::Mat &map, int normalization_type, float newMaxValue, float ne
   }
 }
 
-} // namespace EPUtils 
 } // namespace v4r 

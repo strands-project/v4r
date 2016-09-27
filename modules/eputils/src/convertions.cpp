@@ -26,8 +26,6 @@
 
 namespace v4r
 {
-namespace EPUtils
-{
 
 #ifndef NOT_USE_PCL
   
@@ -665,5 +663,4 @@ void FloatMap2UcharMap(cv::Mat &map_u, const cv::Mat map_f)
   cv::convertScaleAbs(map_f,map_u,255,0);
 }
 
-} //namespace EPUtils
 } //namespace v4r
