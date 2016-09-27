@@ -24,7 +24,7 @@
 #ifndef TJ_HPP
 #define TJ_HPP
 
-#include "headers.hpp"
+#include "v4r/attention_segmentation/headers.hpp"
 
 namespace AttentionModule
 {

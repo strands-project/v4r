@@ -24,7 +24,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "Symmetry3DMap.hpp"
+#include "v4r/attention_segmentation/Symmetry3DMap.hpp"
 
 namespace AttentionModule {
 
@@ -191,8 +191,8 @@ int Symmetry3DMap::calculate()
 
   refineMap();
   
-  EPUtils::normalize(map,normalization_type);
-  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  v4r::EPUtils::normalize(map,normalization_type);
+  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
 
@@ -262,7 +262,7 @@ void Symmetry3DMap::symmetry3DMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_c
       continue;
     
     std::vector<pcl::Normal> axis;
-    EPUtils::principleAxis(small_normals,axis);
+    v4r::EPUtils::principleAxis(small_normals,axis);
 
     std::vector<float> W;
     W.resize(axis.size());
@@ -274,7 +274,7 @@ void Symmetry3DMap::symmetry3DMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_c
       // create plane
       pcl::Normal plane_normal;
       plane_normal = axis.at(axis_num);
-      plane_normal = EPUtils::normalize(plane_normal);
+      plane_normal = v4r::EPUtils::normalize(plane_normal);
 
       pcl::PointXYZRGB point0 = cloud_cur->points.at(indices_cur->indices.at(idx));
      
@@ -302,7 +302,7 @@ void Symmetry3DMap::symmetry3DMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_c
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr points_projected (new pcl::PointCloud<pcl::PointXYZRGB>);
       std::vector<float> distances;
       pcl::PointIndices::Ptr small_indices(new pcl::PointIndices());
-      EPUtils::ProjectPointsOnThePlane(coefficients,small_cloud,points_projected,distances,small_indices,false);
+      v4r::EPUtils::ProjectPointsOnThePlane(coefficients,small_cloud,points_projected,distances,small_indices,false);
 
       MiddlePoint leftPoint, rightPoint;
   
@@ -370,25 +370,25 @@ void Symmetry3DMap::symmetry3DMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_c
         lineNormal.normal[0] = leftPoint.point.x - rightPoint.point.x;
         lineNormal.normal[1] = leftPoint.point.y - rightPoint.point.y;
         lineNormal.normal[2] = leftPoint.point.z - rightPoint.point.z;
-        lineNormal = EPUtils::normalize(lineNormal);
+        lineNormal = v4r::EPUtils::normalize(lineNormal);
      
         //float Ci;
-        //EPUtils::calculateCosine(leftPoint.normal,N,Ci);
+        //v4r::EPUtils::calculateCosine(leftPoint.normal,N,Ci);
         //Ci = Ci > 0 ? Ci : -Ci;
         //Ci = sqrt(1-Ci*Ci);
 	pcl::Normal N, N2;
-        N = EPUtils::calculatePlaneNormal(leftPoint.normal,rightPoint.normal);
-	N = EPUtils::normalize(N);
-// 	N2 = EPUtils::crossProduct(N,lineNormal);
+        N = v4r::EPUtils::calculatePlaneNormal(leftPoint.normal,rightPoint.normal);
+	N = v4r::EPUtils::normalize(N);
+// 	N2 = v4r::EPUtils::crossProduct(N,lineNormal);
 // 	float Ci = sqrt(N2.normal[0]*N2.normal[0] + N2.normal[1]*N2.normal[1] + N2.normal[2]*N2.normal[2]);
-	float Ci = EPUtils::calculateCosine(lineNormal,N);
+	float Ci = v4r::EPUtils::calculateCosine(lineNormal,N);
         //Ci = Ci > 0 ? Ci : -Ci;
         Ci = sqrt(1-Ci*Ci);
      
         float d=plane_normal.normal[0]*(leftPoint.point.x-point0.x)+plane_normal.normal[1]*(leftPoint.point.y-point0.y)+plane_normal.normal[2]*(leftPoint.point.z-point0.z);
         float cos_left=0, cos_right=0;
-	cos_left = EPUtils::calculateCosine(leftPoint.normal,plane_normal);
-	cos_right = EPUtils::calculateCosine(rightPoint.normal,plane_normal);
+	cos_left = v4r::EPUtils::calculateCosine(leftPoint.normal,plane_normal);
+	cos_right = v4r::EPUtils::calculateCosine(rightPoint.normal,plane_normal);
 	bool point_is_ok=false;
         if (d<0)
         {
@@ -402,8 +402,8 @@ void Symmetry3DMap::symmetry3DMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_c
         }
      
         float cos1, cos2;
-        cos1 = EPUtils::calculateCosine(lineNormal,leftPoint.normal);
-        cos2 = EPUtils::calculateCosine(lineNormal,rightPoint.normal);
+        cos1 = v4r::EPUtils::calculateCosine(lineNormal,leftPoint.normal);
+        cos2 = v4r::EPUtils::calculateCosine(lineNormal,rightPoint.normal);
         //cos2 = -cos2;
     
         float alpha1 = acos(cos1);
@@ -484,7 +484,7 @@ int Symmetry3DMap::calculatePyramidSimple()
   
   refineMap();
   
-  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
@@ -529,7 +529,7 @@ int Symmetry3DMap::calculatePyramidItti()
   
   refineMap();
   
-  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
@@ -589,12 +589,12 @@ int Symmetry3DMap::calculatePyramidFrintrop()
   
   maxIntensityValue = std::max(maxIntensityValue,pyramid->getMaxMapValue());
   map = map_on + map_off;
-  EPUtils::normalize(map,EPUtils::NT_NONE,maxIntensityValue);
-  EPUtils::normalize(map,normalization_type);
+  v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE,maxIntensityValue);
+  v4r::EPUtils::normalize(map,normalization_type);
   
   refineMap();
   
-  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
@@ -649,7 +649,7 @@ int Symmetry3DMap::combinePyramid(BasePyramid::Ptr pyramid)
 //     cv::Mat current_map_temp;
 //     current_map.copyTo(current_map_temp);
 //     cv::imshow("current_map_temp",current_map_temp);
-//     EPUtils::normalize(current_map_temp,normalization_type);
+//     v4r::EPUtils::normalize(current_map_temp,normalization_type);
 //     cv::waitKey(-1);
     
     if(!pyramid->setFeatureMap(i,current_map))

@@ -46,7 +46,7 @@
 #ifndef SYMMETRY_MAP_HPP
 #define SYMMETRY_MAP_HPP
 
-#include "BaseMap.hpp"
+#include "v4r/attention_segmentation/BaseMap.hpp"
 
 namespace AttentionModule
 {

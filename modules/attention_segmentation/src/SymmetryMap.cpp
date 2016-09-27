@@ -43,7 +43,7 @@
  * 10.1109/IROS.2009.5354402.
 */
 
-#include "SymmetryMap.hpp"
+#include "v4r/attention_segmentation/SymmetryMap.hpp"
 
 namespace AttentionModule
 {
@@ -212,7 +212,7 @@ int SymmetryMap::calculate()
   
   symmetryMap(image_cur,width,height,R1,R2,S,map);
 
-  EPUtils::normalize(map,normalization_type);
+  v4r::EPUtils::normalize(map,normalization_type);
 
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());

@@ -22,7 +22,7 @@
  */
 
 
-#include "MSR.hpp"
+#include "v4r/attention_segmentation/MSR.hpp"
 
 namespace AttentionModule
 {

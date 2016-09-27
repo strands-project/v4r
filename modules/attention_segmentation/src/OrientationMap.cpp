@@ -22,7 +22,7 @@
  */
 
 
-#include "OrientationMap.hpp"
+#include "v4r/attention_segmentation/OrientationMap.hpp"
 
 namespace AttentionModule
 {
@@ -143,7 +143,7 @@ int OrientationSaliencyMap::calculate()
   
   cv::blur(map,map,cv::Size(filter_size,filter_size));
 
-  EPUtils::normalize(map,normalization_type);
+  v4r::EPUtils::normalize(map,normalization_type);
 
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
@@ -156,7 +156,7 @@ void OrientationSaliencyMap::orientationMap(cv::Mat &image_cur, int image_width,
   
   //create Gabor kernel
   cv::Mat gaborKernel;
-  EPUtils::makeGaborKernel2D(gaborKernel,max_sum,angle,bandwidth);
+  v4r::EPUtils::makeGaborKernel2D(gaborKernel,max_sum,angle,bandwidth);
   assert (gaborKernel.rows == gaborKernel.cols);
   assert (gaborKernel.rows % 2 == 1);
   int gaborFilerSize = gaborKernel.rows / 2;

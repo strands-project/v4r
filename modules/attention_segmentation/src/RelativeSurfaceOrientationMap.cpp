@@ -22,7 +22,7 @@
  */
 
 
-#include "RelativeSurfaceOrientationMap.hpp"
+#include "v4r/attention_segmentation/RelativeSurfaceOrientationMap.hpp"
 
 namespace AttentionModule
 {
@@ -243,8 +243,8 @@ int RelativeSurfaceOrientationMap::calculate()
 
   refineMap();
   
-  EPUtils::normalize(map,normalization_type);
-  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  v4r::EPUtils::normalize(map,normalization_type);
+  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
@@ -356,7 +356,7 @@ int RelativeSurfaceOrientationMap::calculatePyramidSimple()
   
   refineMap();
   
-  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
@@ -402,7 +402,7 @@ int RelativeSurfaceOrientationMap::calculatePyramidItti()
   
   refineMap();
   
-  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());
@@ -462,12 +462,12 @@ int RelativeSurfaceOrientationMap::calculatePyramidFrintrop()
   
   maxIntensityValue = std::max(maxIntensityValue,pyramid->getMaxMapValue());
   map = map_on + map_off;
-  EPUtils::normalize(map,EPUtils::NT_NONE,maxIntensityValue);
-  EPUtils::normalize(map,normalization_type);
+  v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE,maxIntensityValue);
+  v4r::EPUtils::normalize(map,normalization_type);
   
   refineMap();
   
-  //EPUtils::normalize(map,EPUtils::NT_NONE);
+  //v4r::EPUtils::normalize(map,v4r::EPUtils::NT_NONE);
   
   calculated = true;
   printf("[INFO]: %s: Pyramid computation succeed.\n",mapName.c_str());

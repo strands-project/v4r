@@ -22,7 +22,7 @@
  */
 
 
-#include "BaseMap.hpp"
+#include "v4r/attention_segmentation/BaseMap.hpp"
 
 namespace AttentionModule
 {
@@ -43,7 +43,7 @@ void BaseMap::reset()
   cloud = pcl::PointCloud<pcl::PointXYZRGB>::Ptr ( new pcl::PointCloud<pcl::PointXYZRGB>() );
   normals = pcl::PointCloud<pcl::Normal>::Ptr ( new pcl::PointCloud<pcl::Normal>() );
   indices = pcl::PointIndices::Ptr ( new pcl::PointIndices() );
-  normalization_type = EPUtils::NT_NONE;
+  normalization_type = v4r::EPUtils::NT_NONE;
   combination_type = AM_COMB_SUM;
   filter_size = 5;
   map = cv::Mat_<float>::zeros(0,0);

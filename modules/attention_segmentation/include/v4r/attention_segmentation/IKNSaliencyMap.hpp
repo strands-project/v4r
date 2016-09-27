@@ -25,7 +25,7 @@
 #ifndef IKN_SALIENCYMAP
 #define IKN_SALIENCYMAP
 
-#include "BaseMap.hpp"
+#include "v4r/attention_segmentation/BaseMap.hpp"
 
 namespace AttentionModule
 {

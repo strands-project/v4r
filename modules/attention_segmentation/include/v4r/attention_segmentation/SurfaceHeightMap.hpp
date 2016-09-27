@@ -25,7 +25,7 @@
 #ifndef SURFACEHEIGHT_HPP
 #define SURFACEHEIGHT_HPP
 
-#include "BaseMap.hpp"
+#include "v4r/attention_segmentation/BaseMap.hpp"
 
 namespace AttentionModule
 {

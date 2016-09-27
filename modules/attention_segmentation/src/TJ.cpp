@@ -22,7 +22,7 @@
  */
 
 
-#include "TJ.hpp"
+#include "v4r/attention_segmentation/TJ.hpp"
 
 namespace AttentionModule
 {
@@ -391,7 +391,7 @@ void createSimpleLine(SaliencyLine saliencyLine, std::vector<cv::Point> &points)
 bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine, unsigned int th)
 {
   cv::Mat skeleton;
-  EPUtils::Skeleton(mask,skeleton);
+  v4r::EPUtils::Skeleton(mask,skeleton);
   
   //cv::imshow("skeleton",255*skeleton);
   //cv::waitKey();

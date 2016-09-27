@@ -21,55 +21,50 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
+#ifndef EPSPHEREHISTOGRAM_HPP
+#define EPSPHEREHISTOGRAM_HPP
 
-#ifndef SURFACE_CURVATURE_HPP
-#define SURFACE_CURVATURE_HPP
+#include "headers.hpp"
+#include "convertions.hpp"
 
-#include "v4r/attention_segmentation/BaseMap.hpp"
-
-namespace AttentionModule
+namespace EPUtils
 {
 
-/**
- * surface curvature saliency map
- * */
-
-enum CurvatureTypes
-{
-  AM_FLAT      = 0,
-  AM_CONVEX,
+struct v1v2new_v{
+  unsigned int v1, v2, new_v;
 };
-
-class SurfaceCurvatureMap: public BaseMap
+  
+class FacePatch
 {
 public:
-  SurfaceCurvatureMap();
-  ~SurfaceCurvatureMap();
+  unsigned int vs[3];         // vertices
   
-  void setCurvatureType(int curvatureType_);
-  int getCurvatureType();
+  cv::Point3d norm; // normal
+  float weight; // what ever you want to accumulate
   
-  /**
-   * calculates single curvature map
-   * */
-  
-  virtual int calculate();
-  
-  virtual void reset();//
-  virtual void print();//
-  
-private:
-  
-  int curvatureType;
-  float getCurvatureCoefficient(int curvatureType_);
-  void curvatureMap(pcl::PointCloud<pcl::Normal>::Ptr normals_cur, pcl::PointIndices::Ptr indices_cur, int image_width, int image_height, 
-	           float curvatureCoefficient, cv::Mat &map_cur);
-  
-protected:
-  
-  virtual int checkParameters();//
+  FacePatch() : weight(0.) {};
 };
 
-} // namespace AttentionModule
+class SphereHistogram
+{
+public:
+  std::vector<cv::Point3d> vertices;
+  std::vector<FacePatch> faces; // 20 icosahedron faces
+  
+  SphereHistogram();
+  void Subdevide();
+  void ComputeNormals();
+  int FindMatch(cv::Point3d &n);
+  
+private:
+  void InitIcosahedron();
+  unsigned int AddMidpoint(unsigned v1, unsigned v2);
+  void SubdevideFace(FacePatch &face, std::vector<FacePatch> &newFaces);
+  bool findEdge(unsigned int v1,unsigned int v2,unsigned int &new_v);
+  
+  std::vector<v1v2new_v> checkedVertices;
+};
 
-#endif //SURFACE_CURVATURE_HPP
+} //namespace EPUtils
+
+#endif //EPSPHEREHISTOGRAM_HPP

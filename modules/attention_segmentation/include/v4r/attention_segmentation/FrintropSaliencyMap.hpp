@@ -25,8 +25,8 @@
 #ifndef FRINTROP_SALIENCYMAP_HPP
 #define FRINTROP_SALIENCYMAP_HPP
 
-#include "BaseMap.hpp"
-#include "ColorMap.hpp"
+#include "v4r/attention_segmentation/BaseMap.hpp"
+#include "v4r/attention_segmentation/ColorMap.hpp"
 
 namespace AttentionModule
 {

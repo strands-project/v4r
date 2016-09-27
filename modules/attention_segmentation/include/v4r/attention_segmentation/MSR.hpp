@@ -25,7 +25,7 @@
 #ifndef MSR_HPP
 #define MSR_HPP
 
-#include "headers.hpp"
+#include "v4r/attention_segmentation/headers.hpp"
 
 namespace AttentionModule
 {

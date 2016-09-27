@@ -22,7 +22,7 @@
  */
 
 
-#include "SurfaceCurvatureMap.hpp"
+#include "v4r/attention_segmentation/SurfaceCurvatureMap.hpp"
 
 namespace AttentionModule
 {
@@ -126,7 +126,7 @@ int SurfaceCurvatureMap::calculate()
 
   refineMap();
   
-  EPUtils::normalize(map,normalization_type);
+  v4r::EPUtils::normalize(map,normalization_type);
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());
 

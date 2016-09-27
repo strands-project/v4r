@@ -22,7 +22,7 @@
  */
 
 
-#include "ColorMap.hpp"
+#include "v4r/attention_segmentation/ColorMap.hpp"
 
 namespace AttentionModule
 {
@@ -265,7 +265,7 @@ int ColorSaliencyMap::calculate()
   
   cv::blur(map,map,cv::Size(filter_size,filter_size));
 
-  EPUtils::normalize(map,normalization_type);
+  v4r::EPUtils::normalize(map,normalization_type);
 
   calculated = true;
   printf("[INFO]: %s: Computation succeed.\n",mapName.c_str());

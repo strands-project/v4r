@@ -22,7 +22,7 @@
  */
 
 
-#include "IKNSaliencyMap.hpp"
+#include "v4r/attention_segmentation/IKNSaliencyMap.hpp"
 
 namespace AttentionModule
 {
@@ -136,7 +136,7 @@ void IKNSaliencyMap::initializePyramid(IttiPyramid::Ptr pyramid, cv::Mat &IM, bo
   pyramid->setSMLevel(4);//
   pyramid->setWidth(width);//
   pyramid->setHeight(height);//
-  pyramid->setNormalizationType(normalization_type);//EPUtils::NT_NONMAX
+  pyramid->setNormalizationType(normalization_type);//v4r::EPUtils::NT_NONMAX
   pyramid->setLowestC(2);//
   pyramid->setHighestC(4);//
   pyramid->setSmallestCS(3);//
@@ -251,7 +251,7 @@ int IKNSaliencyMap::calculate()
     else
       orientation = orientation + orientation_temp;
   }
-  EPUtils::normalize(orientation,normalization_type);
+  v4r::EPUtils::normalize(orientation,normalization_type);
   orientation = weightOfOrientations*orientation/totalWeight;
   
 //   cv::imshow("orientation",orientation);
@@ -278,7 +278,7 @@ int IKNSaliencyMap::calculate()
 //   cv::waitKey(-1);
   
   cv::Mat color = colorRG + colorBY;
-  EPUtils::normalize(color,normalization_type);
+  v4r::EPUtils::normalize(color,normalization_type);
   color = weightOfColor*color/totalWeight;
   
 //   cv::imshow("color",color);
@@ -408,7 +408,7 @@ int IKNSaliencyMap::createFeatureMapsO(IttiPyramid::Ptr pyramid, float angle)
     }
     
     cv::Mat gaborKernel0, gaborKernel90;
-    EPUtils::makeGaborFilter(gaborKernel0,gaborKernel90,angle);
+    v4r::EPUtils::makeGaborFilter(gaborKernel0,gaborKernel90,angle);
     cv::Mat temp0, temp90;
     cv::filter2D(current_image,temp0,-1,gaborKernel0);
     temp0 = cv::abs(temp0);

@@ -22,7 +22,7 @@
  */
 
 
-#include "pyramidBase.hpp"
+#include "v4r/attention_segmentation/pyramidBase.hpp"
 
 namespace AttentionModule
 {
@@ -37,7 +37,7 @@ void BasePyramid::reset()
   start_level = 0;
   max_level = 4;
   sm_level = 0;
-  normalization_type = EPUtils::NT_NONE;
+  normalization_type = v4r::EPUtils::NT_NONE;
   width = 0;
   height = 0;
   combination_type = AM_COMB_SUM;
@@ -420,27 +420,27 @@ int BasePyramid::buildDepthPyramid()
   printf("[INFO]: %s: Depth pyramid computation started.\n",pyramidName.c_str());
 
   cv::Mat xchannel, ychannel, zchannel;
-  EPUtils::pointCloud_2_channels(xchannel,ychannel,zchannel,cloud,width,height,indices);
+  v4r::EPUtils::pointCloud_2_channels(xchannel,ychannel,zchannel,cloud,width,height,indices);
   
-  EPUtils::buildDepthPyramid(xchannel,pyramidX,zchannel,max_level);
-  EPUtils::buildDepthPyramid(ychannel,pyramidY,zchannel,max_level);
-  EPUtils::buildDepthPyramid(zchannel,pyramidZ,zchannel,max_level);
+  v4r::EPUtils::buildDepthPyramid(xchannel,pyramidX,zchannel,max_level);
+  v4r::EPUtils::buildDepthPyramid(ychannel,pyramidY,zchannel,max_level);
+  v4r::EPUtils::buildDepthPyramid(zchannel,pyramidZ,zchannel,max_level);
   
   cv::Mat xnormals, ynormals, znormals;
-  EPUtils::normals_2_channels(xnormals,ynormals,znormals,normals,width,height,indices);
+  v4r::EPUtils::normals_2_channels(xnormals,ynormals,znormals,normals,width,height,indices);
   
-  EPUtils::buildDepthPyramid(xnormals,pyramidNx,zchannel,max_level);
-  EPUtils::buildDepthPyramid(ynormals,pyramidNy,zchannel,max_level);
-  EPUtils::buildDepthPyramid(znormals,pyramidNz,zchannel,max_level);
+  v4r::EPUtils::buildDepthPyramid(xnormals,pyramidNx,zchannel,max_level);
+  v4r::EPUtils::buildDepthPyramid(ynormals,pyramidNy,zchannel,max_level);
+  v4r::EPUtils::buildDepthPyramid(znormals,pyramidNz,zchannel,max_level);
   
   cv::Mat indices_image;
-  EPUtils::indices_2_image(indices_image,width,height,indices);
+  v4r::EPUtils::indices_2_image(indices_image,width,height,indices);
   
-  EPUtils::buildDepthPyramid(indices_image,pyramidImages,indices_image,max_level);
+  v4r::EPUtils::buildDepthPyramid(indices_image,pyramidImages,indices_image,max_level);
   
-  EPUtils::createIndicesPyramid(pyramidImages,pyramidIndices);
-  EPUtils::createPointCloudPyramid(pyramidX,pyramidY,pyramidZ,pyramidImages,pyramidCloud);
-  EPUtils::createNormalPyramid(pyramidNx,pyramidNy,pyramidNz,pyramidImages,pyramidNormals);
+  v4r::EPUtils::createIndicesPyramid(pyramidImages,pyramidIndices);
+  v4r::EPUtils::createPointCloudPyramid(pyramidX,pyramidY,pyramidZ,pyramidImages,pyramidCloud);
+  v4r::EPUtils::createNormalPyramid(pyramidNx,pyramidNy,pyramidNz,pyramidImages,pyramidNormals);
   
 //   for(int i = 0; i < pyramidCloud.at(6)->points.size(); ++i)
 //   {

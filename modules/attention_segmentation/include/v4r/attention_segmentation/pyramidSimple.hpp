@@ -25,7 +25,7 @@
 #ifndef PYRAMID_SIMPLE_HPP
 #define PYRAMID_SIMPLE_HPP
 
-#include "pyramidBase.hpp"
+#include "v4r/attention_segmentation/pyramidBase.hpp"
 
 namespace AttentionModule
 {

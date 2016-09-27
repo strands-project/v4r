@@ -25,12 +25,12 @@
 #ifndef BASE_MAP_HPP
 #define BASE_MAP_HPP
 
-#include "headers.hpp"
+#include "v4r/attention_segmentation/headers.hpp"
 
-#include "pyramidBase.hpp"
-#include "pyramidSimple.hpp"
-#include "pyramidItti.hpp"
-#include "pyramidFrintrop.hpp"
+#include "v4r/attention_segmentation/pyramidBase.hpp"
+#include "v4r/attention_segmentation/pyramidSimple.hpp"
+#include "v4r/attention_segmentation/pyramidItti.hpp"
+#include "v4r/attention_segmentation/pyramidFrintrop.hpp"
 
 namespace AttentionModule
 {

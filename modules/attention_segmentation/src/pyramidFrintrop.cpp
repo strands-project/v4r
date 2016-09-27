@@ -22,7 +22,7 @@
  */
 
 
-#include "pyramidFrintrop.hpp"
+#include "v4r/attention_segmentation/pyramidFrintrop.hpp"
 
 namespace AttentionModule
 {
@@ -124,7 +124,7 @@ void FrintropPyramid::combinePyramid(bool standard)
 	}
   
         cv::max(temp,0.0,pyramidConspicuities.at(current));
-	EPUtils::normalize(pyramidConspicuities.at(current),normalization_type);
+	v4r::EPUtils::normalize(pyramidConspicuities.at(current),normalization_type);
 	trueLevel.push_back(s);
       }
     }
@@ -148,7 +148,7 @@ void FrintropPyramid::combinePyramid(bool standard)
     }
     else
     {
-      EPUtils::scaleImage(pyramidImages,pyramidConspicuities.at(i),temp,trueLevel.at(i),sm_level);
+      v4r::EPUtils::scaleImage(pyramidImages,pyramidConspicuities.at(i),temp,trueLevel.at(i),sm_level);
     }
 //     cv::imshow("temp",temp);
 //     cv::waitKey(-1);
@@ -159,7 +159,7 @@ void FrintropPyramid::combinePyramid(bool standard)
   cv::minMaxLoc(map,&minValue,&maxValue);
   max_map_value = maxValue;
   
-  EPUtils::normalize(map,normalization_type);
+  v4r::EPUtils::normalize(map,normalization_type);
   
 //   cv::minMaxLoc(map,&minValue,&maxValue);
 //   std::cerr << maxValue << std::endl;

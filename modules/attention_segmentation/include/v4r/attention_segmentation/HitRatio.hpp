@@ -25,7 +25,7 @@
 #ifndef HITRATIO_HPP
 #define HITRATIO_HPP
 
-#include "headers.hpp"
+#include "v4r/attention_segmentation/headers.hpp"
 
 namespace AttentionModule {
 

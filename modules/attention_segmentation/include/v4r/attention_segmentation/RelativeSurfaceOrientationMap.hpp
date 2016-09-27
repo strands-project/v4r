@@ -25,7 +25,7 @@
 #ifndef RELATIVE_SURFACE_ORIENATION_HPP
 #define RELATIVE_SURFACE_ORIENATION_HPP
 
-#include "BaseMap.hpp"
+#include "v4r/attention_segmentation/BaseMap.hpp"
 
 namespace AttentionModule
 {

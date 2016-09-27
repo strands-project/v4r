@@ -22,7 +22,7 @@
  */
 
 
-#include "HitRatio.hpp"
+#include "v4r/attention_segmentation/HitRatio.hpp"
 #include <list>
 
 namespace AttentionModule {
@@ -85,7 +85,7 @@ bool AttentionPointsEvaluation::calculate()
     }
     
     //calculate distance to the center
-    float distance = EPUtils::calculateDistance(centers.at(objNum-1),p);
+    float distance = v4r::EPUtils::calculateDistance(centers.at(objNum-1),p);
     
     evaluated_points.at(i).objectIdx = objNum;
     evaluated_points.at(i).distance = distance / maxDist2Center.at(objNum-1);
@@ -119,7 +119,7 @@ void AttentionPointsEvaluation::calculateCenters()
     cv::Mat mask_i;
     labeling2Mask(mask_i,i+1);
     cv::Point center_i;
-    EPUtils::calculateObjectCenter(mask_i,center_i);
+    v4r::EPUtils::calculateObjectCenter(mask_i,center_i);
     centers.at(i) = center_i;
     
     
