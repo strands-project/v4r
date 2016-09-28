@@ -1,11 +1,11 @@
 /**
  *  Copyright (C) 2012  
- *    Ekaterina Potapova
+ *    Ekaterina Potapova, Andreas Richtsfeld, Johann Prankl, Thomas Mörwald, Michael Zillich
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
- *    1040 Vienna, Austria
- *    potapova(at)acin.tuwien.ac.at
+ *    1170 Vienna, Austria
+ *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,39 +21,43 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#ifndef TIMEUTILS_H
-#define TIMEUTILS_H
+/**
+ * @file BoundaryRelationsBase.hpp
+ * @author Potapova
+ * @date August 2013
+ * @version 0.1
+ * @brief Class to calculate boundary depth and standart deviation.
+ */
 
-#include "v4r/attention_segmentation/eputils_headers.hpp"
+#ifndef BOUNDARY_RELATIONS_MEANDEPTH_H
+#define BOUNDARY_RELATIONS_MEANDEPTH_H
+
 #include <v4r/core/macros.h>
+#include "v4r/segmentation/BoundaryRelationsBase.h"
 
 namespace v4r
 {
-  
-class V4R_EXPORTS TimeEstimationClass
+
+class V4R_EXPORTS BoundaryRelationsMeanDepth : public BoundaryRelationsBase
 {
-private:
-  bool isCounterStarted;
-  bool isCounterWorkComplete;
-    
-  clockid_t clockID;
-  timespec startTime, endTime;
-    
 public:
-  TimeEstimationClass(clockid_t clockID = CLOCK_REALTIME);
-  virtual ~TimeEstimationClass(){};
-    
-  void setClockID(clockid_t clockID);
-  void countingStart();
-  void countingEnd();
-  
-  unsigned long long getRealNanosecondsCount(timespec time);
-  unsigned long long getCurrentTimeInNanoseconds();
-  unsigned long getCurrentTimeInSeconds();
-  unsigned long long getWorkTimeInNanoseconds();
-  unsigned long getWorkTimeInSeconds();
+
+protected:
+
+private:
+
+public:
+
+  typedef boost::shared_ptr<BoundaryRelationsMeanDepth> Ptr;
+
+  BoundaryRelationsMeanDepth();
+  ~BoundaryRelationsMeanDepth();
+
+  //@ep: not so sure that the type of the return argument is the best
+  virtual v4r::meanVal compute();
 };
 
 } //namespace v4r
 
-#endif //TIMEUTILS_H
+#endif //BOUNDARY_RELATIONS_MEANDEPTH_H
+
