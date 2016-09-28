@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/eputils/drawUtils.hpp"
+#include "v4r/attention_segmentation/drawUtils.hpp"
 
 namespace v4r
 {

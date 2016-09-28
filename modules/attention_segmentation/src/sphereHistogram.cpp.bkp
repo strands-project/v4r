@@ -21,10 +21,10 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#include "v4r/eputils/sphereHistogram.hpp"
+#include "v4r/attention_segmentation/sphereHistogram.hpp"
 
 
-namespace EPUtils 
+namespace v4r
 {
 /********************** SphereHistogram ************************
  * Constructor/Destructor
@@ -252,5 +252,5 @@ int SphereHistogram::FindMatch(cv::Point3d &n)
 }
 
 
-} //namespace EPUtils
+} //namespace v4r
 

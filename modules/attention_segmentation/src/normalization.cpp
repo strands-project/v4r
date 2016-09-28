@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/eputils/normalization.hpp"
+#include "v4r/attention_segmentation/normalization.hpp"
 
 namespace v4r
 {

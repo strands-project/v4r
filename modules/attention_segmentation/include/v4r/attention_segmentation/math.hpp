@@ -27,7 +27,7 @@
 
 #include <v4r/core/macros.h>
 
-#include "v4r/eputils/headers.hpp"
+#include "v4r/attention_segmentation/eputils_headers.hpp"
 
 namespace v4r
 {

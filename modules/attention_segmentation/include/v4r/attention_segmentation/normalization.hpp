@@ -21,39 +21,39 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#ifndef TIMEUTILS_H
-#define TIMEUTILS_H
 
-#include "v4r/eputils/headers.hpp"
+#ifndef NORMALIZATION_HPP
+#define NORMALIZATION_HPP
+
 #include <v4r/core/macros.h>
+#include "v4r/attention_segmentation/eputils_headers.hpp"
 
 namespace v4r
 {
-  
-class TimeEstimationClass
+
+enum NormalizationTypes
 {
-private:
-  bool isCounterStarted;
-  bool isCounterWorkComplete;
-    
-  clockid_t clockID;
-  timespec startTime, endTime;
-    
-public:
-  TimeEstimationClass(clockid_t clockID = CLOCK_REALTIME);
-  virtual ~TimeEstimationClass(){};
-    
-  void setClockID(clockid_t clockID);
-  void countingStart();
-  void countingEnd();
-  
-  unsigned long long getRealNanosecondsCount(timespec time);
-  unsigned long long getCurrentTimeInNanoseconds();
-  unsigned long getCurrentTimeInSeconds();
-  unsigned long long getWorkTimeInNanoseconds();
-  unsigned long getWorkTimeInSeconds();
+  NT_NONE        = 0,
+  NT_NONMAX,
+  NT_FRINTROP_NORM,
+  NT_EMPTY,
+  NT_MAX_DIVIDE,
+  NT_NONE_REAL,
 };
+  
+V4R_EXPORTS void computeLocalMax(cv::Mat &image, int &numLocalMax, float &averageLocalMax, float threshold = 0);
+/**
+ * normalizes image
+ * */
+V4R_EXPORTS void normalize(cv::Mat &map, int normalization_type = NT_NONE, float newMaxValue = 1, float newMinValue = 0);
+V4R_EXPORTS void normalizeNonMax(cv::Mat &map);
+V4R_EXPORTS void normalizeFrintrop(cv::Mat &map);
+V4R_EXPORTS void normalizeMin2Zero(cv::Mat &map);
+/**
+ * normalizes image by simply dividind image by its maximum value
+ * */
+V4R_EXPORTS void normalizeMax2One(cv::Mat &map);
 
 } //namespace v4r
 
-#endif //TIMEUTILS_H
+#endif //NORMALIZATION_HPP

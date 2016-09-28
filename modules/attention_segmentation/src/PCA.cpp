@@ -21,7 +21,7 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#include "v4r/eputils/PCA.hpp"
+#include "v4r/attention_segmentation/PCA.hpp"
 #include <Eigen/Dense>
 
 namespace v4r

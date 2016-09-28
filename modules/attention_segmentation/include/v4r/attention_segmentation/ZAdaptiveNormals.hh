@@ -38,7 +38,7 @@
 #include <pcl/common/eigen.h>
 #include <boost/shared_ptr.hpp>
 
-#include "v4r/eputils/EPUtils.hpp"
+#include "v4r/attention_segmentation/EPUtils.hpp"
 
 
 namespace v4r

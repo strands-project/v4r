@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/eputils/connectedComponents.hpp"
+#include "v4r/attention_segmentation/connectedComponents.hpp"
 
 namespace v4r
 {

@@ -21,23 +21,43 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
+#ifndef EPUTILS_MODULE_HEADERS_HPP
+#define EPUTILS_MODULE_HEADERS_HPP
 
-#ifndef EPUTILS_INCLUDE_HEADERS_HPP
-#define EPUTILS_INCLUDE_HEADERS_HPP
+#include <string>
+#include <iostream>
+#include <stdio.h>
+#include <stdarg.h>
+#include <time.h>
 
-#include "v4r/eputils/algo.hpp"
-#include "v4r/eputils/convertions.hpp"
-#include "v4r/eputils/normalization.hpp"
-#include "v4r/eputils/utils.hpp"
-//#include "v4r/eputils/sphereHistogram.hpp"
-#include "v4r/eputils/math.hpp"
-#include "v4r/eputils/drawUtils.hpp"
-//#include "v4r/eputils/debugUtils.hpp"
-#include "v4r/eputils/connectedComponents.hpp"
-#include "v4r/eputils/timeUtils.hpp"
-#ifndef NOT_USE_PCL
-#include "v4r/eputils/PCLPreprocessingXYZRC.hpp"
-#include "v4r/eputils/PCA.hpp"
-#endif
+#define BOOST_FILESYSTEM_DEPRECATED
 
-#endif //EPUTILS_INCLUDE_HEADERS_HPP
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem.hpp>
+
+#include <opencv2/opencv.hpp>
+
+#include <eigen3/Eigen/Eigen>
+
+#include <v4r/core/macros.h>
+
+// #ifndef NOT_USE_PCL
+#include <pcl/ModelCoefficients.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/io/pcd_io.h>
+#include "v4r/attention_segmentation/PCLPreprocessingXYZRC.hpp"
+// #endif
+
+namespace v4r
+{
+  
+static const int dy8[8] = {-1,-1,-1,0,1,1,1,0};
+static const int dx8[8] = {-1,0,1,1,1,0,-1,-1};
+
+static const int dx4[4] = {-1,1,0,0};
+static const int dy4[4] = {0,0,-1,1};
+
+} //namespace v4r
+
+#endif //EPUTILS_MODULE_HEADERS_HPP

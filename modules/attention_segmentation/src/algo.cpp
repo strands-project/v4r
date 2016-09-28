@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/eputils/algo.hpp"
+#include "v4r/attention_segmentation/algo.hpp"
 
 #include <Eigen/Dense>
 

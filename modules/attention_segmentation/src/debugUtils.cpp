@@ -22,8 +22,8 @@
  */
 
 
-#include "v4r/eputils/debugUtils.hpp"
-#include "v4r/eputils/convertions.hpp"
+#include "v4r/attention_segmentation/debugUtils.hpp"
+#include "v4r/attention_segmentation/convertions.hpp"
 
 namespace v4r
 {

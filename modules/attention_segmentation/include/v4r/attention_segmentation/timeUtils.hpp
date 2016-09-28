@@ -21,47 +21,39 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#ifndef EPSPHEREHISTOGRAM_HPP
-#define EPSPHEREHISTOGRAM_HPP
+#ifndef TIMEUTILS_H
+#define TIMEUTILS_H
 
-#include "v4r/eputils/headers.hpp"
-#include "v4r/eputils/convertions.hpp"
+#include "v4r/attention_segmentation/eputils_headers.hpp"
+#include <v4r/core/macros.h>
 
-
-struct v1v2new_v{
-  unsigned int v1, v2, new_v;
-};
-  
-class FacePatch
+namespace v4r
 {
-public:
-  unsigned int vs[3];         // vertices
   
-  cv::Point3d norm; // normal
-  float weight; // what ever you want to accumulate
-  
-  FacePatch() : weight(0.) {};
-};
-
-class SphereHistogram
+class TimeEstimationClass
 {
-public:
-  std::vector<cv::Point3d> vertices;
-  std::vector<FacePatch> faces; // 20 icosahedron faces
-  
-  SphereHistogram();
-  void Subdevide();
-  void ComputeNormals();
-  int FindMatch(cv::Point3d &n);
-  
 private:
-  void InitIcosahedron();
-  unsigned int AddMidpoint(unsigned v1, unsigned v2);
-  void SubdevideFace(FacePatch &face, std::vector<FacePatch> &newFaces);
-  bool findEdge(unsigned int v1,unsigned int v2,unsigned int &new_v);
+  bool isCounterStarted;
+  bool isCounterWorkComplete;
+    
+  clockid_t clockID;
+  timespec startTime, endTime;
+    
+public:
+  TimeEstimationClass(clockid_t clockID = CLOCK_REALTIME);
+  virtual ~TimeEstimationClass(){};
+    
+  void setClockID(clockid_t clockID);
+  void countingStart();
+  void countingEnd();
   
-  std::vector<v1v2new_v> checkedVertices;
+  unsigned long long getRealNanosecondsCount(timespec time);
+  unsigned long long getCurrentTimeInNanoseconds();
+  unsigned long getCurrentTimeInSeconds();
+  unsigned long long getWorkTimeInNanoseconds();
+  unsigned long getWorkTimeInSeconds();
 };
 
+} //namespace v4r
 
-#endif //EPSPHEREHISTOGRAM_HPP
+#endif //TIMEUTILS_H

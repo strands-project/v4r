@@ -1,11 +1,13 @@
 /**
+ * $Id$
+ *
  *  Copyright (C) 2012  
- *    Ekaterina Potapova
+ *    Andreas Richtsfeld, Johann Prankl, Thomas Mörwald
  *    Automation and Control Institute
  *    Vienna University of Technology
  *    Gusshausstraße 25-29
- *    1040 Vienna, Austria
- *    potapova(at)acin.tuwien.ac.at
+ *    1170 Vienn, Austria
+ *    ari(at)acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,20 +23,12 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#ifndef EPUTILS_PCA_HPP
-#define EPUTILS_PCA_HPP
 
-#include <v4r/core/macros.h>
-
-#include "v4r/eputils/headers.hpp"
+#include "v4r/attention_segmentation/ZAdaptiveNormals.hh"
 
 namespace v4r
 {
-  
-Eigen::Vector4f getMean(pcl::PointCloud<pcl::Normal>::ConstPtr cloud);
-bool computeCovarianceMatrix(pcl::PointCloud<pcl::Normal>::ConstPtr cloud, const Eigen::Vector4f &mean, Eigen::Matrix3f &cov);
-V4R_EXPORTS void principleAxis(pcl::PointCloud<pcl::Normal>::ConstPtr cloud, std::vector<pcl::Normal> &axis);
-  
-} //namespace v4r
 
-#endif //EPUTILS_PCA_HPP
+
+} //namespace v4r 
+

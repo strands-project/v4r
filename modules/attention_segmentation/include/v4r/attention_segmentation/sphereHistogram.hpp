@@ -24,18 +24,15 @@
 #ifndef EPSPHEREHISTOGRAM_HPP
 #define EPSPHEREHISTOGRAM_HPP
 
-#include <v4r/core/macros.h>
-#include "headers.hpp"
-#include "convertions.hpp"
+#include "v4r/attention_segmentation/eputils_headers.hpp"
+#include "v4r/attention_segmentation/convertions.hpp"
 
-namespace v4r
-{
 
 struct v1v2new_v{
   unsigned int v1, v2, new_v;
 };
   
-class V4R_EXPORTS FacePatch
+class FacePatch
 {
 public:
   unsigned int vs[3];         // vertices
@@ -46,7 +43,7 @@ public:
   FacePatch() : weight(0.) {};
 };
 
-class V4R_EXPORTS SphereHistogram
+class SphereHistogram
 {
 public:
   std::vector<cv::Point3d> vertices;
@@ -66,6 +63,5 @@ private:
   std::vector<v1v2new_v> checkedVertices;
 };
 
-} //namespace v4r
 
 #endif //EPSPHEREHISTOGRAM_HPP
