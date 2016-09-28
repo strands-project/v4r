@@ -26,8 +26,8 @@
 #define ATTENTION_MODULE_EXAMPLES_UTILS_HPP
 
 #include <v4r/core/macros.h>
-#include "v4r/eputils/ZAdaptiveNormals.hh"
-//#include "v4r/eputils/EPUtils.hpp"
+#include "v4r/attention_segmentation/ZAdaptiveNormals.hh"
+//#include "v4r/attention_segmentation/EPUtils.hpp"
 
 namespace v4r
 {

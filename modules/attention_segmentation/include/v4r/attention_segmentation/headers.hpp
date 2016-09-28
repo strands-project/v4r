@@ -37,7 +37,7 @@
 #include "v4r/attention_segmentation/AttentionModuleErrors.hpp"
 
 // v4r EPUtils library
-#include "v4r/eputils/EPUtils.hpp"
+#include "v4r/attention_segmentation/EPUtils.hpp"
 
 // pcl
 //#include <pcl/visualization/pcl_visualizer.h>

@@ -393,7 +393,7 @@ void createSimpleLine(SaliencyLine saliencyLine, std::vector<cv::Point> &points)
 bool extractSaliencyLine(cv::Mat mask, cv::Mat map, SaliencyLine &saliencyLine, unsigned int th)
 {
   cv::Mat skeleton;
-  v4r::Skeleton(mask,skeleton);
+  Skeleton(mask,skeleton);
   
   //cv::imshow("skeleton",255*skeleton);
   //cv::waitKey();
