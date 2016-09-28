@@ -25,7 +25,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "v4r/attention_segmentation/AttentionModule.hpp"
-#include "v4r/eputils/EPUtils.hpp"
+#include "v4r/attention_segmentation/EPUtils.hpp"
 
 // This program shows the use of WTA to extract attention points
 
