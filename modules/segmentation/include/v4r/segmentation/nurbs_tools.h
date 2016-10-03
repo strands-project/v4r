@@ -39,7 +39,7 @@
 #define NURBS_TOOLS_H
 
 #include "v4r/segmentation/nurbs_data.h"
-#include <v4r/segmentation/opennurbs/opennurbs.h>
+#include <opennurbs/opennurbs.h>
 
 #undef Success
 #include <Eigen/Dense>
