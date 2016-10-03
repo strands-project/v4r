@@ -2093,7 +2093,7 @@ bool ON_3dmView::Write( ON_BinaryArchive& file ) const
   if(rc && file.Archive3dmVersion() >= 3 ) 
   {
     // Added 5 June 2003 to support additional wallpaper attributes.
-    // Older versions of Rhino/opennurbs
+    // Older versions of Rhinoopennurbs
     // will just skip this chunk and get filename from the
     // TCODE_VIEW_WALLPAPER chunk written above.
     rc = file.BeginWrite3dmChunk( TCODE_VIEW_WALLPAPER_V3, 0 );
@@ -2231,7 +2231,7 @@ bool ON_3dmView::Read( ON_BinaryArchive& file )
       break;
     case TCODE_VIEW_WALLPAPER:
       // used prior to 5 June 2003 and still written
-      // after 5 June 2003 so older Rhinos/opennurbs
+      // after 5 June 2003 so older Rhinosopennurbs
       // will not loose the filename information.
       rc = file.ReadString(m_wallpaper_image.m_bitmap_filename);
       m_wallpaper_image.m_bGrayScale = true;

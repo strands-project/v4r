@@ -1,7 +1,7 @@
 SET(EXT_OPENNURBS 1 CACHE BOOL "Open NURBS library, needed by on_nurbs" )
 IF(EXT_OPENNURBS)
 
-PROJECT(v4ropennurbs)
+PROJECT(opennurbs)
 SET(SOURCE_CPP
     opennurbs_3dm_attributes.cpp
     opennurbs_3dm_properties.cpp
