@@ -1,6 +1,7 @@
 if(WITH_OpenNURBS)
   if(BUILD_OpenNURBS)
     v4r_clear_vars(OpenNURBS_FOUND)
+  endif()
   if(NOT OpenNURBS_FOUND)
     v4r_clear_vars(OpenNURBS_LIBRARY OpenNURBS_INCLUDE_DIRS OpenNURBS_VERSION)
     set(OpenNURBS_LIBRARY opennurbs)
