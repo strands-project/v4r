@@ -138,6 +138,7 @@ V4R_OPTION(BUILD_JASPER             "Build libjasper from source"        WIN32 O
 V4R_OPTION(BUILD_JPEG               "Build libjpeg from source"          WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_PNG                "Build libpng from source"           WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_OPENEXR            "Build openexr from source"          (WIN32 OR ANDROID OR APPLE) AND NOT WINRT)
+V4R_OPTION(BUILD_OpenNURBS          "Build OpenNURBS from source" 	 ON)
 V4R_OPTION(BUILD_TBB                "Download and build TBB from source" ANDROID )
 V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
 V4R_OPTION(BUILD_METSLIB            "Download and build METSlib from source" ON)
@@ -340,6 +341,7 @@ include(cmake/V4RFindEDT.cmake)
 include(cmake/V4RFindSiftGPU.cmake)
 include(cmake/V4RFindMETSlib.cmake)
 include(cmake/V4RFindLIBSVM.cmake)
+include(cmake/V4RFindOpenNURBS.cmake)
 
 # --- Doxygen for documentation ---
 unset(DOXYGEN_FOUND CACHE)
