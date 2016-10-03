@@ -1,0 +1,13 @@
+if(WITH_OpenNURBS)
+  if(BUILD_OpenNURBS)
+    v4r_clear_vars(OpenNURBS_FOUND)
+  if(NOT OpenNURBS_FOUND)
+    v4r_clear_vars(OpenNURBS_LIBRARY OpenNURBS_INCLUDE_DIRS OpenNURBS_VERSION)
+    set(OpenNURBS_LIBRARY opennurbs)
+    set(OpenNURBS_LIBRARIES ${OpenNURBS_LIBRARY})
+    add_subdirectory("${V4R_SOURCE_DIR}/3rdparty/OpenNURBS")
+    set(OpenNURBS_INCLUDE_DIRS "${V4R_SOURCE_DIR}/3rdparty")
+    set(OpenNURBS_VERSION "1.0") # TODO
+  endif()
+  set(HAVE_OpenNURBS YES)
+endif()
