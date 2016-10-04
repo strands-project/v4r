@@ -1,5 +1,6 @@
 # Ubuntu 14.04
 image: ubuntu:trusty
+# image: v4rtuw/ubuntu1404:0.0.1
 
 # we use ROS indigo for now
 variables:
@@ -14,8 +15,8 @@ before_script:
   - sudo apt-get install -qq -y python-rosdep build-essential cmake
   - sudo rosdep init
   - rosdep update
-
-build:
+  
+job:
   stage: build
   script:
     - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO

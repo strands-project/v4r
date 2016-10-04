@@ -48,10 +48,10 @@ namespace v4r
 /**
  * RefinePatchLocationLK
  */
-class RefinePatchLocationLK
+class V4R_EXPORTS RefinePatchLocationLK
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     float step_factor;        // 2.???

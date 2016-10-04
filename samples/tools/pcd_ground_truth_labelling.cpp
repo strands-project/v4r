@@ -8,6 +8,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <v4r/recognition/model_only_source.h>
+#include <v4r/common/pcl_utils.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/zbuffering.h>
 #include <v4r/common/pcl_visualization_utils.h>

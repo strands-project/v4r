@@ -1,5 +1,6 @@
 #include <v4r_config.h>
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/pcl_utils.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
 #include <v4r/registration/FeatureBasedRegistration.h>

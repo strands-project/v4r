@@ -41,7 +41,7 @@
 #include <v4r/common/impl/SmartPtr.hpp>
 
 
-namespace v4r
+namespace v4r 
 {
 
 /**
@@ -75,7 +75,7 @@ private:
         const std::vector<int> &indices,
         Eigen::Vector3f &centroid);
 
-  void Ransac(
+  int Ransac(
         const std::vector<Eigen::Vector3f > &srcPts,
         const std::vector<Eigen::Vector3f > &tgtPts,
         Eigen::Matrix4f &transform,
@@ -110,7 +110,7 @@ public:
         const std::vector<int> &tgtIndices,
         Eigen::Matrix4f &transform);
 
-  void compute(
+  int compute(
         const std::vector<Eigen::Vector3f > &srcPts,
         const std::vector<Eigen::Vector3f > &tgtPts,
         Eigen::Matrix4f &transform,

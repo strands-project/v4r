@@ -11,9 +11,9 @@ template<typename PointTA, typename PointTB>
 boost::dynamic_bitset<>
 occlusion_reasoning (const pcl::PointCloud<PointTA> & organized_cloud,
                      const pcl::PointCloud<PointTB> & to_be_filtered,
-                     const Camera::Ptr cam = Camera(),
-                     float threshold = 0.01f,
-                     bool is_occluded_out_fov = true)
+                     const Camera::Ptr cam,
+                     float threshold,
+                     bool is_occluded_out_fov)
 {
     CHECK(organized_cloud.isOrganized());
     float cx = cam->getCx();

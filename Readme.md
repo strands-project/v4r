@@ -1,3 +1,5 @@
+[![build status](https://rgit.acin.tuwien.ac.at/root/v4r/badges/master/build.svg)](https://rgit.acin.tuwien.ac.at/root/v4r/commits/master)
+
 The library itself is independent of ROS, so it is built outside ROS catkin. There are wrappers for ROS (https://github.com/strands-project/v4r_ros_wrappers), which can then be placed inside the normal catkin workspace.
 
 # Dependencies:  
