@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 // If you are using opennurbs as a statically linked library, then
 // you may make calls to the same zlib that opennurbs uses.  This

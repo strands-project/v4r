@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 // Easy way to toggle the name of the obsolete ON_3dmView::m_target
 // variable when you want to change the name and compile to insure

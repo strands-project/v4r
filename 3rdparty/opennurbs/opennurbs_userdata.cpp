@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_VIRTUAL_OBJECT_IMPLEMENT(ON_UserData,ON_Object,"850324A7-050E-11d4-BFFA-0010830122F0");
 

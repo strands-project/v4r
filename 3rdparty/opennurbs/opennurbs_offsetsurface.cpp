@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_OBJECT_IMPLEMENT(ON_OffsetSurface,ON_SurfaceProxy,"00C61749-D430-4ecc-83A8-29130A20CF9C");
 

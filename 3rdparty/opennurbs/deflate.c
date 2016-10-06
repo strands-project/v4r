@@ -49,7 +49,7 @@
 
 /* @(#) $Id$ */
 
-#include "pcl/surface/3rdparty/opennurbs/deflate.h"
+#include "deflate.h"
 
 const char deflate_copyright[] =
    " deflate 1.2.3 Copyright 1995-2005 Jean-loup Gailly ";

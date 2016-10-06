@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 /*
 Changes and additions 5/01/07 LW

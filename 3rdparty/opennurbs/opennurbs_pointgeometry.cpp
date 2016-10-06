@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_OBJECT_IMPLEMENT( ON_Point, ON_Geometry, "C3101A1D-F157-11d3-BFE7-0010830122F0" );
 

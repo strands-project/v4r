@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 static bool IdIsNotZero(const ON_UUID* id)
 {
@@ -235,7 +235,7 @@ static int ON_SORT_TEMPLATE_COMPARE(const struct ON_SerialNumberMap::SN_ELEMENT 
   return ( ( (asn = a->m_sn) < (bsn = b->m_sn) ) ? -1 : (asn > bsn) ? 1 : 0 );
 }
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs_qsort_template.h"
+#include "opennurbs_qsort_template.h"
 
 #undef ON_COMPILING_OPENNURBS_QSORT_FUNCTIONS
 #undef ON_SORT_TEMPLATE_STATIC_FUNCTION

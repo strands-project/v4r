@@ -15,7 +15,7 @@
 */
 
 // Delete evertyhing this comment and everything below it except
-// the "#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"" for the public version of 
+// the "#include "opennurbs.h"" for the public version of 
 // opennurbs source code.
 
 
@@ -73,7 +73,7 @@
 
 
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 
 

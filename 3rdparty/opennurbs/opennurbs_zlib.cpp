@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 #if defined(ON_DLL_EXPORTS)
 // When compiling a Windows DLL opennurbs, we

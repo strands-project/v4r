@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////
 */
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON__UINT16 ON_CRC16( ON__UINT16 current_remainder, size_t count, const void* p )
 {

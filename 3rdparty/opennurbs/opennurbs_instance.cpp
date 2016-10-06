@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 #define ON_BOZO_VACCINE_11EE2C1FF90D4C6AA7CDEC8532E1E32D
 #define ON_BOZO_VACCINE_F42D967121EB46929B9ABC3507FF28F5

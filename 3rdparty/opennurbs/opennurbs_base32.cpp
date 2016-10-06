@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 bool ON_Base32ToString( const ON_SimpleArray<unsigned char>& base32_digits, ON_String& sBase32 )
 {

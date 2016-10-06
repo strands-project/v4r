@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"   // openNURBS declarations of functions that perform simple calculations
+#include "opennurbs.h"   // openNURBS declarations of functions that perform simple calculations
 
 ON_2dPointArray::ON_2dPointArray() 
 {}

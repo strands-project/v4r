@@ -10,10 +10,10 @@
    inflate_fast() can be used with either inflate.c or infback.c.
  */
 
-#include "pcl/surface/3rdparty/opennurbs/zutil.h"
-#include "pcl/surface/3rdparty/opennurbs/inftrees.h"
-#include "pcl/surface/3rdparty/opennurbs/inflate.h"
-#include "pcl/surface/3rdparty/opennurbs/inffast.h"
+#include "zutil.h"
+#include "inftrees.h"
+#include "inflate.h"
+#include "inffast.h"
 
 /* function prototypes */
 local void fixedtables OF((struct inflate_state FAR *state));
@@ -105,7 +105,7 @@ struct inflate_state FAR *state;
         virgin = 0;
     }
 #else /* !BUILDFIXED */
-#   include "pcl/surface/3rdparty/opennurbs/inffixed.h"
+#   include "inffixed.h"
 #endif /* BUILDFIXED */
     state->lencode = lenfix;
     state->lenbits = 9;

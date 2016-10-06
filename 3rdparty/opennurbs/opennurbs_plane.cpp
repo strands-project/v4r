@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 const ON_Plane ON_xy_plane( ON_3dPoint(0.0,0.0,0.0),
                               ON_3dVector(1.0,0.0,0.0),

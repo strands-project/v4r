@@ -1,4 +1,4 @@
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_FixedSizePool::ON_FixedSizePool()
 {

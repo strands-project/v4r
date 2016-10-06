@@ -3,10 +3,10 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
-#include "pcl/surface/3rdparty/opennurbs/zutil.h"
-#include "pcl/surface/3rdparty/opennurbs/inftrees.h"
-#include "pcl/surface/3rdparty/opennurbs/inflate.h"
-#include "pcl/surface/3rdparty/opennurbs/inffast.h"
+#include "zutil.h"
+#include "inftrees.h"
+#include "inflate.h"
+#include "inffast.h"
 
 #ifndef ASMINF
 

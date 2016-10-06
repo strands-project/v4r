@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_OBJECT_IMPLEMENT( ON_SumSurface, ON_Surface, "C4CD5359-446D-4690-9FF5-29059732472B" );
 

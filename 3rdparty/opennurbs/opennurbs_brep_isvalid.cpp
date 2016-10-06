@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 bool
 ON_Brep::IsValidVertexTopology( int vertex_index, ON_TextLog* text_log ) const

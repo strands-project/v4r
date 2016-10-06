@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_OBJECT_IMPLEMENT(ON_DetailView,ON_Geometry,"C8C66EFA-B3CB-4e00-9440-2AD66203379E");
 

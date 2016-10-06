@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_OBJECT_IMPLEMENT( ON_Group, ON_Object, "721D9F97-3645-44c4-8BE6-B2CF697D25CE" );
 

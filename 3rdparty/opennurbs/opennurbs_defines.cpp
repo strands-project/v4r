@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 // {EA2EFFD2-C9A9-4cb1-BE15-D2F46290F1A1}
 //const ON_UUID ON_MaterialRef::material_from_layer = 
@@ -1042,7 +1042,7 @@ void on_wsplitpath(
 int ON::Version()
 {
 #define OPENNURBS_VERSION_DEFINITION
-#include "pcl/surface/3rdparty/opennurbs/opennurbs_version.h"
+#include "opennurbs_version.h"
   return OPENNURBS_VERSION;
 #undef OPENNURBS_VERSION
 #undef OPENNURBS_VERSION_DEFINITION

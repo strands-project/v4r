@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 FILE* ON_FileStream::Open( const wchar_t* filename, const wchar_t* mode )
 {

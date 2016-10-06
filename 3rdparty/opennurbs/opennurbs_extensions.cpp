@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////
 */
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 
 #if defined(ON_COMPILER_MSC)

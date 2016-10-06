@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 
 // NEVER COPY OR MOVE THE NEXT 2 LINES
@@ -10239,7 +10239,7 @@ static int ON_SORT_TEMPLATE_COMPARE(
 }
 
 #define ON_QSORT_FNAME ON_qsort_MeshFaceSide
-#include "pcl/surface/3rdparty/opennurbs/opennurbs_qsort_template.h"
+#include "opennurbs_qsort_template.h"
 
 void ON_SortMeshFaceSidesByVertexIndex( int sides_count, struct ON_MeshFaceSide* sides )
 {

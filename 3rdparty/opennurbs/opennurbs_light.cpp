@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////
 */
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_OBJECT_IMPLEMENT(ON_Light,ON_Geometry,"85A08513-F383-11d3-BFE7-0010830122F0");
 

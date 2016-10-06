@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_VIRTUAL_OBJECT_IMPLEMENT(ON_Geometry,ON_Object,"4ED7D4DA-E947-11d3-BFE5-0010830122F0");
 

@@ -14,9 +14,9 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs_system.h"
-#include "pcl/surface/3rdparty/opennurbs/opennurbs_defines.h"
-#include "pcl/surface/3rdparty/opennurbs/opennurbs_memory.h"
+#include "opennurbs_system.h"
+#include "opennurbs_defines.h"
+#include "opennurbs_memory.h"
 
 // Memory utilities used by OpenNURBS.  If you are using
 // custom memory managment, NOTHING in this file needs to

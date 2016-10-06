@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////
 */
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 //March 23, 2008 - LW
 //Adding ON_HatchExtra class to support movable base point for hatches

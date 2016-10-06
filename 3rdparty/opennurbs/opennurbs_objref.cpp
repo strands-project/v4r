@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_COMPONENT_INDEX::ON_COMPONENT_INDEX() 
                    : m_type(ON_COMPONENT_INDEX::invalid_type),

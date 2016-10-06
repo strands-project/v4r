@@ -5,7 +5,7 @@
 
 /* @(#) $Id$ */
 
-#include "pcl/surface/3rdparty/opennurbs/zutil.h"
+#include "zutil.h"
 
 #ifndef NO_DUMMY_DECL
 struct internal_state      {int dummy;}; /* for buggy compilers */

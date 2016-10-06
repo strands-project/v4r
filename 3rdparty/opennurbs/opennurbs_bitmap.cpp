@@ -14,7 +14,7 @@
  ////////////////////////////////////////////////////////////////
  */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 ON_VIRTUAL_OBJECT_IMPLEMENT( ON_Bitmap, ON_Object, "390465E9-3721-11d4-800B-0010830122F0")
 ;

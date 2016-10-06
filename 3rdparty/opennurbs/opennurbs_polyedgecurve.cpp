@@ -1,5 +1,5 @@
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
-#include "pcl/surface/3rdparty/opennurbs/opennurbs_polyedgecurve.h"
+#include "opennurbs.h"
+#include "opennurbs_polyedgecurve.h"
 
 ON_OBJECT_IMPLEMENT(ON_PolyEdgeSegment,ON_CurveProxy,"42F47A87-5B1B-4e31-AB87-4639D78325D6");
 

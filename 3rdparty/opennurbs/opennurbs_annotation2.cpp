@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 // This define is up here so anybody who want's to defeat the
 // bozo vaccine has to be doing it on purpose.

@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////
 */
 
-#include "pcl/surface/3rdparty/opennurbs/opennurbs.h"
+#include "opennurbs.h"
 
 // wide char (unicode) <-> char (ascii) converter
 static int w2c_size( int, const wchar_t* ); // gets minimum "c_count" arg for w2c().
