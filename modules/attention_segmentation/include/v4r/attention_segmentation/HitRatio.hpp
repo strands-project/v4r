@@ -25,58 +25,28 @@
 #ifndef HITRATIO_HPP
 #define HITRATIO_HPP
 
-#include <v4r/core/macros.h>
-#include "v4r/attention_segmentation/headers.hpp"
+#include "headers.hpp"
 
-namespace v4r {
+namespace EPEvaluation {
 
-struct ObjectDistance{
+struct ObjectEvaluation{
   float distance;
   int attentionPointIdx;
 };
 
 struct PointEvaluation{
   float distance;
-  int objectIdx;
-  float hitRatio;
-  float firstDistance;
-  float bestDistance;
+  int ObjectIdx;
 };
 
-class V4R_EXPORTS AttentionPointsEvaluation
-{
-public:
-  AttentionPointsEvaluation();
-  ~AttentionPointsEvaluation();
-  
-  V4R_EXPORTS void setAttentionPoints(std::vector<cv::Point> attention_points_);
-  std::vector<cv::Point> getAttentionPoints();
-  
-  V4R_EXPORTS void setMask(cv::Mat &mask_);
-  bool getMask(cv::Mat &mask_);
-  
-  V4R_EXPORTS bool calculate();
-  
-  V4R_EXPORTS bool writeToFile(std::string file_name);
-  
-  std::vector<PointEvaluation> getEvaluatedPoints();
-  
-private:
-  std::vector<cv::Point> attention_points;
-  
-  bool haveMask;
-  cv::Mat mask;
-  
-  std::vector<PointEvaluation> evaluated_points;
-  
-  void calculateCenters();
-  std::vector<cv::Point> centers;
-  std::vector<float> maxDist2Center;
-  void labeling2Mask(cv::Mat &mask_i, int maskNum);
-  void hitRatio();
-  
-  void calculateDistance2objects();
-};
+void labeling2Mask(cv::Mat &mask, cv::Mat labeling, int maskNum);
+float hitRatio(std::vector<cv::Point> attentionPoints, cv::Mat labeling, std::vector<bool> &usedPoints);
+void calculateAccumulatedHR(std::vector<bool> usedPoints, std::vector<int> &accumulatedHR);
+void distance2Center(std::vector<cv::Point> attentionPoints, cv::Mat labeling, std::vector<cv::Point> centers, 
+                     std::vector<ObjectEvaluation> &firstDistance2Objects, std::vector<ObjectEvaluation> &bestDistance2Objects, 
+                     std::vector<bool> &usedObjects);
+void distance2Center(std::vector<cv::Point> attentionPoints, cv::Mat labeling, std::vector<cv::Point> centers, 
+                     std::vector<PointEvaluation> &distances, std::vector<bool> &usedAttentionPoints);
   
 } //namespace EPEvaluation
 

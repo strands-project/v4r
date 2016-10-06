@@ -46,5 +46,6 @@
 #include "v4r/attention_segmentation/TJ.hpp"
 #include "v4r/attention_segmentation/MSR.hpp"
 #include "v4r/attention_segmentation/HitRatio.hpp"
+#include "v4r/attention_segmentation/AmHitRatio.hpp"
 
 #endif //ATTENTION_MODULE_INCLUDE_HEADERS_HPP
