@@ -25,8 +25,8 @@
 #ifndef HITRATIO_HPP
 #define HITRATIO_HPP
 
-#include "v4r/attention_segmentation/headers.hpp"
 #include <v4r/core/macros.h>
+#include "v4r/attention_segmentation/headers.hpp"
 
 namespace v4r {
 
@@ -49,15 +49,15 @@ public:
   AttentionPointsEvaluation();
   ~AttentionPointsEvaluation();
   
-  void setAttentionPoints(std::vector<cv::Point> attention_points_);
+  V4R_EXPORTS void setAttentionPoints(std::vector<cv::Point> attention_points_);
   std::vector<cv::Point> getAttentionPoints();
   
-  void setMask(cv::Mat &mask_);
+  V4R_EXPORTS void setMask(cv::Mat &mask_);
   bool getMask(cv::Mat &mask_);
   
-  bool calculate();
+  V4R_EXPORTS bool calculate();
   
-  bool writeToFile(std::string file_name);
+  V4R_EXPORTS bool writeToFile(std::string file_name);
   
   std::vector<PointEvaluation> getEvaluatedPoints();
   
