@@ -45,8 +45,30 @@ set(FORMS
         params.ui
 )
 
-add_executable(segmentAttention segmentAttention.cpp)
-target_link_libraries(segmentAttention ${AttentionSegmentation_DEPS} ${DEP_LIBS}) 
+SET(BINARY_NAME createTrainingSet)
+add_executable(${BINARY_NAME} createTrainingSet.cpp)
+target_link_libraries(${BINARY_NAME} ${AttentionSegmentation_DEPS} ${DEP_LIBS}) 
+
+SET(BINARY_NAME scaleTrainingSet)
+add_executable(${BINARY_NAME} scaleTrainingSet.cpp)
+target_link_libraries(${BINARY_NAME} ${AttentionSegmentation_DEPS} ${DEP_LIBS}) 
+
+SET(BINARY_NAME trainSVM)
+add_executable(${BINARY_NAME} trainSVM.cpp)
+target_link_libraries(${BINARY_NAME} ${AttentionSegmentation_DEPS} ${DEP_LIBS}) 
+
+SET(BINARY_NAME segment)
+add_executable(${BINARY_NAME} segment.cpp)
+target_link_libraries(${BINARY_NAME} ${AttentionSegmentation_DEPS} ${DEP_LIBS}) 
+
+SET(BINARY_NAME segmentAttention)
+add_executable(${BINARY_NAME} segmentAttention.cpp)
+target_link_libraries(${BINARY_NAME} ${AttentionSegmentation_DEPS} ${DEP_LIBS}) 
+
+SET(BINARY_NAME segmentIncremental)
+add_executable(${BINARY_NAME} segmentIncremental.cpp)
+target_link_libraries(${BINARY_NAME} ${AttentionSegmentation_DEPS} ${DEP_LIBS}) 
+
 
 INSTALL(TARGETS segmentAttention
   RUNTIME DESTINATION bin
