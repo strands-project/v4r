@@ -14,7 +14,7 @@ before_script:
 job:
   stage: build
   script:
-    - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
+  #  - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
     - mkdir build
     - cd build
     - cmake ..
