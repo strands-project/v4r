@@ -31,10 +31,14 @@
  */
 
 #include <v4r/reconstruction/ProjLKPoseTrackerR2.h>
-#include "opencv2/video/tracking.hpp"
+#include <opencv2/video/tracking.hpp>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 
-namespace v4r
+#if CV_MAJOR_VERSION < 3
+#define HAVE_OCV_2
+#endif
+
+namespace v4r 
 {
 
 using namespace std;
@@ -47,6 +51,12 @@ ProjLKPoseTrackerR2::ProjLKPoseTrackerR2(const Parameter &p)
  : param(p)
 { 
   plk.reset(new RefineProjectedPointLocationLK(p.plk_param) );
+
+  #ifdef HAVE_OCV_2
+  if (param.pnp_method==INT_MIN) param.pnp_method=cv::P3P;
+  #else
+  if (param.pnp_method==INT_MIN) param.pnp_method=cv::SOLVEPNP_P3P;
+  #endif
 
   sqr_inl_dist = param.inl_dist*param.inl_dist;
 }
@@ -189,7 +199,11 @@ void ProjLKPoseTrackerR2::ransacSolvePnP(const std::vector<cv::Point3f> &points,
     query_pts[i] = im_points[inliers[i]];
   }
 
+  #ifdef HAVE_OCV_2
   cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), tgt_intrinsic, tgt_dist_coeffs, sv_rvec, sv_tvec, true, cv::ITERATIVE );
+  #else
+  cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), tgt_intrinsic, tgt_dist_coeffs, sv_rvec, sv_tvec, true, cv::SOLVEPNP_ITERATIVE );
+  #endif
 
   cv::Rodrigues(sv_rvec, R);
   cvToEigen(R, sv_tvec, pose);

@@ -32,7 +32,13 @@
 
 #include <v4r/features/FeatureDetector_KD_ORB.h>
 
-namespace v4r
+#if CV_MAJOR_VERSION < 3
+#define HAVE_OCV_2
+#endif
+
+
+
+namespace v4r 
 {
 
 
@@ -47,7 +53,12 @@ FeatureDetector_KD_ORB::FeatureDetector_KD_ORB(const Parameter &_p)
 { 
   //orb = new cv::ORB(10000, 1.2, 6, 13, 0, 2, cv::ORB::HARRIS_SCORE, 13); //31
   //orb = new cv::ORB(1000, 1.44, 2, 17, 0, 2, cv::ORB::HARRIS_SCORE, 17);
+
+  #ifdef HAVE_OCV_2
   orb = new cv::ORB(param.nfeatures, param.scaleFactor, param.nlevels, param.patchSize, 0, 2, cv::ORB::HARRIS_SCORE, param.patchSize);
+  #else
+  orb = cv::ORB::create( param.nfeatures, param.scaleFactor, param.nlevels, 31, 0, 2, cv::ORB::HARRIS_SCORE, param.patchSize);
+  #endif
 }
 
 FeatureDetector_KD_ORB::~FeatureDetector_KD_ORB()
@@ -65,7 +76,11 @@ void FeatureDetector_KD_ORB::detect(const cv::Mat &image, std::vector<cv::KeyPoi
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
   else im_gray = image;  
 
+  #ifdef HAVE_OCV_2
   (*orb)(im_gray, cv::Mat(), keys, descriptors);
+  #else
+  orb->detectAndCompute(im_gray, cv::Mat(), keys, descriptors);
+  #endif
 }
 
 /**
@@ -76,7 +91,7 @@ void FeatureDetector_KD_ORB::detect(const cv::Mat &image, std::vector<cv::KeyPoi
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
   else im_gray = image;  
 
-  (*orb)(im_gray, cv::Mat(), keys);
+  orb->detect(im_gray,keys);
 }
 
 /**
@@ -87,8 +102,24 @@ void FeatureDetector_KD_ORB::extract(const cv::Mat &image, std::vector<cv::KeyPo
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
   else im_gray = image;  
 
+  #ifdef HAVE_OCV_2
   (*orb)(im_gray, cv::Mat(), keys, descriptors, true);
+  #else
+  orb->detectAndCompute(im_gray,cv::Mat(),keys,descriptors,true);
+  #endif
+
+}
+
 }
 
 
-}
+
+
+
+
+
+
+
+
+
+

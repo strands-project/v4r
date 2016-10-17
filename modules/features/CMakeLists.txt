@@ -11,7 +11,6 @@ ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_K_HARRIS.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/sift_local_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/esf_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/ImGradientDescriptor.cpp
-${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_D_FREAK.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_FAST_IMGD.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/shot_local_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureSelection.cpp
@@ -40,7 +39,6 @@ ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_K_HARRIS.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/pcl_ourcvfh.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/sift_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector.h
-${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_D_FREAK.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ImGradientDescriptor.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetectorHeaders.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/local_estimator.h

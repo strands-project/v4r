@@ -32,10 +32,18 @@
 
 #include <v4r/features/FeatureDetector_KD_FAST_IMGD.h>
 
-namespace v4r
+#if CV_MAJOR_VERSION < 3
+#define HAVE_OCV_2
+#else
+#include <opencv2/core/ocl.hpp>
+#endif
+
+namespace v4r 
 {
 
+
 using namespace std;
+
 
 /************************************************************************************
  * Constructor/Destructor
@@ -45,7 +53,11 @@ FeatureDetector_KD_FAST_IMGD::FeatureDetector_KD_FAST_IMGD(const Parameter &_p)
 { 
   //orb = new cv::ORB(10000, 1.2, 6, 13, 0, 2, cv::ORB::HARRIS_SCORE, 13); //31
   //orb = new cv::ORB(1000, 1.44, 2, 17, 0, 2, cv::ORB::HARRIS_SCORE, 17);
+  #ifdef HAVE_OCV_2
   orb = new cv::ORB(param.nfeatures, param.scaleFactor, param.nlevels, param.patchSize, 0, 2, cv::ORB::HARRIS_SCORE, param.patchSize);
+  #else
+  orb = cv::ORB::create( param.nfeatures, param.scaleFactor, param.nlevels, 31, 0, 2, cv::ORB::HARRIS_SCORE, param.patchSize);
+  #endif
 
   imGDesc.reset(new ComputeImGradientDescriptors(param.gdParam));
 
@@ -66,7 +78,11 @@ void FeatureDetector_KD_FAST_IMGD::detect(const cv::Mat &image, std::vector<cv::
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
   else im_gray = image;  
 
-  (*orb)(im_gray, cv::Mat(), keys);
+  #ifndef HAVE_OCV_2
+  cv::ocl::setUseOpenCL(false);
+  #endif
+
+  orb->detect(im_gray,keys);
 
   imGDesc->compute(im_gray, keys, descriptors);
 }
@@ -80,6 +96,10 @@ void FeatureDetector_KD_FAST_IMGD::detect(const cv::Mat &image, std::vector<cv::
 
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
   else im_gray = image;  
+
+  #ifndef HAVE_OCV_2
+  cv::ocl::setUseOpenCL(false);
+  #endif
 
   if (param.tiles>1)
   {
@@ -95,7 +115,8 @@ void FeatureDetector_KD_FAST_IMGD::detect(const cv::Mat &image, std::vector<cv::
       for (int u=0; u<param.tiles; u++)
       {
         getExpandedRect(u,v, image.rows, image.cols, rect);
-        (*orb)(im_gray(rect), cv::Mat(), tmp_keys);
+
+        orb->detect(im_gray(rect),tmp_keys);
     
         pt_offs = cv::Point2f(rect.x, rect.y);
 
@@ -106,7 +127,7 @@ void FeatureDetector_KD_FAST_IMGD::detect(const cv::Mat &image, std::vector<cv::
         //cout<<"tile "<<v*param.tiles+u<<": "<<tmp_keys.size()<<" features"<<endl;  //DEBUG!!!!
       } 
     }
-  } else (*orb)(im_gray, cv::Mat(), keys);
+  } else orb->detect(im_gray,keys);
 }
 
 /**
@@ -116,6 +137,10 @@ void FeatureDetector_KD_FAST_IMGD::extract(const cv::Mat &image, std::vector<cv:
 {
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
   else im_gray = image;  
+
+  #ifndef HAVE_OCV_2
+  cv::ocl::setUseOpenCL(false);
+  #endif
 
   imGDesc->compute(im_gray, keys, descriptors);
 
@@ -127,4 +152,19 @@ void FeatureDetector_KD_FAST_IMGD::extract(const cv::Mat &image, std::vector<cv:
     //cout<<"[FeatureDetector_KD_FAST_IMGD::extract] num selected: "<<keys.size()<<", "<<descriptors.rows<<endl;
   }
 }
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+

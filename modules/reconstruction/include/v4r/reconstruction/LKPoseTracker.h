@@ -43,10 +43,9 @@
 #include <Eigen/Dense>
 #include <v4r/common/impl/SmartPtr.hpp>
 #include <v4r/keypoints/impl/Object.hpp>
-#include <v4r/core/macros.h>
 
 
-namespace v4r
+namespace v4r 
 {
 
 
@@ -56,7 +55,7 @@ namespace v4r
 class V4R_EXPORTS LKPoseTracker
 {
 public:
-  class Parameter
+  class V4R_EXPORTS Parameter
   {
   public:
     cv::Size win_size;
@@ -71,7 +70,7 @@ public:
     Parameter(const cv::Size &_win_size=cv::Size(21,21), int _max_level=2,
       const cv::TermCriteria &_termcrit=cv::TermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,20,0.03), 
       float _max_error=100, double _inl_dist=2, double _eta_ransac=0.01, unsigned _max_rand_trials=2000,
-      int _pnp_method=cv::P3P, int _nb_ransac_points=4)
+      int _pnp_method=INT_MIN, int _nb_ransac_points=4)
     : win_size(_win_size), max_level(_max_level),
       termcrit(_termcrit),
       max_error(_max_error), inl_dist(_inl_dist), eta_ransac(_eta_ransac), max_rand_trials(_max_rand_trials),
