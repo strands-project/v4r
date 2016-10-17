@@ -6,11 +6,11 @@ ubuntu-trusty:
   variables:
     CI_ROS_DISTRO: indigo
 
-before_script:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq -y wget
-  - ./setup.sh
-  
+  before_script:
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq -y wget
+    - ./setup.sh
+    
   stage: build
   script:
   #  - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
