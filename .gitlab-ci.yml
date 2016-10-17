@@ -1,5 +1,11 @@
 # we use ROS indigo for now
 
+# Ubuntu 14.04
+ubuntu-trusty:
+  image: ubuntu:trusty
+  variables:
+    CI_ROS_DISTRO: indigo
+
 before_script:
   - sudo apt-get update -qq
   - sudo apt-get install -qq -y wget
