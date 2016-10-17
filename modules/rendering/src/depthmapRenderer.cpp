@@ -523,7 +523,7 @@ Eigen::Matrix4f DepthmapRenderer::getPoseLookingToCenterFrom(Eigen::Vector3f pos
     Eigen::Matrix4f ePose;
     for(size_t i=0; i<4; i++){
         for(size_t j=0; j<4; j++){
-            ePose(i,j) = pose_tmp[i][j];
+            ePose(i,j) = pose_tmp[j][i];//needed to transpose this
         }
     }
     return ePose;
@@ -542,14 +542,7 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color) const
     glUseProgram(shaderProgram);
 
     //set the uniforms
-    glm::mat4 gPose; //Keep this conversion code... might be useful
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
-            gPose[i][j]=pose(i,j);
-        }
-    }
-
-    glUniformMatrix4fv(poseUniform,1,GL_FALSE,(float*)&gPose);
+    glUniformMatrix4fv(poseUniform,1,GL_FALSE,(float*)&pose);//TODO: set this to GL_TRUE (BECAUSE TRANSPOSE !!!! THATS WHY)
     glUniform4f(projectionUniform,fxycxy[0]/(float)res[0],fxycxy[1]/(float)res[1],fxycxy[2]/(float)res[0],fxycxy[3]/(float)res[1]);
     glUniform2i(viewportResUniform,res[0],res[1]);
 
@@ -679,9 +672,10 @@ pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visible
             ePose(i,j)=pose[i][j];
         }
     }*/
-    cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)));
-    Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3))*Eigen::Vector3f(pose(3,0),pose(3,1),pose(3,2));
-    cloud.sensor_origin_ = Eigen::Vector4f(trans(0), trans(1), trans(2), 1.0f);
+
+    cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)).transpose());
+    Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3)).transpose()*Eigen::Vector3f(pose(0,3),pose(1,3),pose(2,3));
+    cloud.sensor_origin_ = Eigen::Vector4f(trans(0),trans(1),trans(2),1.0f);
 
     cv::Mat color;
     cv::Mat depth=renderDepthmap(visibleSurfaceArea,color);
@@ -722,8 +716,8 @@ pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float 
             ePose(i,j)=pose[i][j];
         }
     }*/
-    cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)));
-    Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3))*Eigen::Vector3f(pose(3,0),pose(3,1),pose(3,2));
+    cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)).transpose());
+    Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3)).transpose()*Eigen::Vector3f(pose(0,3),pose(1,3),pose(2,3));
     cloud.sensor_origin_ = Eigen::Vector4f(trans(0),trans(1),trans(2),1.0f);
 
     cv::Mat color;
