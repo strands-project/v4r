@@ -51,17 +51,17 @@ void ObjectView::add(const cv::KeyPoint &key, float *d, int dsize, unsigned glob
 }
 
 /** delete a complete entry **/
-void ObjectView::del(unsigned idx)
+void ObjectView::del(unsigned idx_)
 {
-  if (idx<keys.size()) keys.erase(keys.begin()+idx);
-  if (idx<points.size()) {
-    object->decPt(points[idx]);  
-    points.erase(points.begin()+idx);
+  if (idx_<keys.size()) keys.erase(keys.begin()+idx_);
+  if (idx_<points.size()) {
+    object->decPt(points[idx_]);
+    points.erase(points.begin()+idx_);
   }
-  if (idx<viewrays.size()) viewrays.erase(viewrays.begin()+idx);
-  if (idx<cam_points.size()) cam_points.erase(cam_points.begin()+idx);
-  if (idx<projs.size()) projs.erase(projs.begin()+idx);
-  if (idx<part_indices.size()) part_indices.erase(part_indices.begin()+idx);
+  if (idx_<viewrays.size()) viewrays.erase(viewrays.begin()+idx_);
+  if (idx_<cam_points.size()) cam_points.erase(cam_points.begin()+idx_);
+  if (idx_<projs.size()) projs.erase(projs.begin()+idx_);
+  if (idx_<part_indices.size()) part_indices.erase(part_indices.begin()+idx_);
 
   std::cout<<"[ObjectView::delPt] TODO: delete the descriptor!"<<std::endl;
 }

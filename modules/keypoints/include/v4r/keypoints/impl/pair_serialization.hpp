@@ -38,6 +38,10 @@
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/vector.hpp>
 
+//A makro to get rid of the unused warning
+#ifndef UNUSED
+#define UNUSED(expr) do { (void)(expr); } while (0)
+#endif
 
 namespace boost {
     namespace serialization {
@@ -45,6 +49,7 @@ namespace boost {
     template<class Archive, typename F, typename S>
     void serialize(Archive & ar, std::pair<F,S> &t, const unsigned int version)
     {
+      UNUSED(version);
       ar & t.first;
       ar & t.second;
     }
