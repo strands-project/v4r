@@ -5,11 +5,12 @@ ubuntu-trusty:
   image: ubuntu:trusty
   variables:
     CI_ROS_DISTRO: indigo
+    UBUNTU_DISTRO: trusty
 
   before_script:
     - sudo apt-get update -qq
     - sudo apt-get install -qq -y wget
-    - ./setup.sh
+    - sudo ./setup.sh $UBUNTU_DISTRO $CI_ROS_DISTRO
     
   stage: build
   script:
@@ -24,11 +25,12 @@ ubuntu-xenial:
   image: ubuntu:xenial
   variables:
     CI_ROS_DISTRO: kinetic
+    UBUNTU_DISTRO: xenial 
 
   before_script:
     - apt-get update -qq
     - apt-get install -qq -y wget sudo
-    - sudo ./setup.sh xenial    
+    - sudo ./setup.sh $UBUNTU_DISTRO $CI_ROS_DISTRO
 
   stage: build
   script:
