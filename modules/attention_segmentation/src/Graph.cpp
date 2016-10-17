@@ -30,6 +30,7 @@
  */
 
 #include "v4r/attention_segmentation/Graph.h"
+#include <cmath>
 
 #ifndef GC_DEBUG
 #define GC_DEBUG true
@@ -200,7 +201,7 @@ void Graph::BuildFromPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &_pcl_clo
   // normalization of curvature
   float max_curv = 0.0;
   for(unsigned i=0; i<normals->points.size(); i++)
-    if(!isnan(pcl_cloud->points[i].z))
+    if(!std::isnan(pcl_cloud->points[i].z))
       if(normals->points[i].curvature > max_curv)
         max_curv = normals->points[i].curvature;
   printf("[Graph::BuildFromPointCloud] Max curvature: %5.5f\n", max_curv);
@@ -319,17 +320,17 @@ void Graph::BuildFromPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &_pcl_clo
 // printf("color distance: %4.3f\n", e.w);      
       // normals angle 
       double angle = 0.0;
-      if(isnan(pcl_cloud->points[idx].z))
+      if(std::isnan(pcl_cloud->points[idx].z))
         angle = 1.57;
       else
         angle = acos( Dot3(&normals->points[idx].normal[0], &normals->points[idx+1].normal[0]) );
-      if(!isnan(angle))
+      if(!std::isnan(angle))
         e.w2 = angle;
       else
         e.w2 = 1.57;
       
       float z_dist = fabs(pcl_cloud->points[idx].z - pcl_cloud->points[idx+1].z);
-      if(!isnan(pcl_cloud->points[idx].z) && !isnan(pcl_cloud->points[idx+1].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
+      if(!std::isnan(pcl_cloud->points[idx].z) && !std::isnan(pcl_cloud->points[idx+1].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
         edges.push_back(e);
 
       /// BOTTOM
@@ -341,17 +342,17 @@ void Graph::BuildFromPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &_pcl_clo
       
       // normals angle 
       angle = 0.0;
-      if(isnan(pcl_cloud->points[idx].z))
+      if(std::isnan(pcl_cloud->points[idx].z))
         angle = 1.57;
       else
         angle = acos( Dot3(&normals->points[idx].normal[0], &normals->points[idx+pcl_cloud->width].normal[0]) );
-      if(!isnan(angle))
+      if(!std::isnan(angle))
         e.w2 = angle;
       else
         e.w2 = 1.57;      
 
       z_dist = fabs(pcl_cloud->points[idx].z - pcl_cloud->points[idx+pcl_cloud->width].z);
-      if(!isnan(pcl_cloud->points[idx].z) && !isnan(pcl_cloud->points[idx+pcl_cloud->width].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
+      if(!std::isnan(pcl_cloud->points[idx].z) && !std::isnan(pcl_cloud->points[idx+pcl_cloud->width].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
         edges.push_back(e);
       
       /// BOTTOM-RIGHT
@@ -363,17 +364,17 @@ void Graph::BuildFromPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &_pcl_clo
       
       // normals angle 
       angle = 0.0;
-      if(isnan(pcl_cloud->points[idx].z))
+      if(std::isnan(pcl_cloud->points[idx].z))
         angle = 1.57;
       else
         angle = acos( Dot3(&normals->points[idx].normal[0], &normals->points[idx+pcl_cloud->width+1].normal[0]) );
-      if(!isnan(angle))
+      if(!std::isnan(angle))
         e.w2 = angle;
       else
         e.w2 = 1.57;      
       
       z_dist = fabs(pcl_cloud->points[idx].z - pcl_cloud->points[idx+pcl_cloud->width+1].z);
-      if(!isnan(pcl_cloud->points[idx].z) && !isnan(pcl_cloud->points[idx+pcl_cloud->width+1].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
+      if(!std::isnan(pcl_cloud->points[idx].z) && !std::isnan(pcl_cloud->points[idx+pcl_cloud->width+1].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
         edges.push_back(e);
       
       /// BOTTOM-LEFT
@@ -386,23 +387,23 @@ void Graph::BuildFromPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr &_pcl_clo
        
         // normals angle 
         angle = 0.0;
-        if(isnan(pcl_cloud->points[idx].z))
+        if(std::isnan(pcl_cloud->points[idx].z))
           angle = 1.57;
         else
           angle = acos( Dot3(&normals->points[idx].normal[0], &normals->points[idx+pcl_cloud->width-1].normal[0]) );
-        if(!isnan(angle))
+        if(!std::isnan(angle))
           e.w2 = angle;
         else
           e.w2 = 1.57;      
 
         z_dist = fabs(pcl_cloud->points[idx].z - pcl_cloud->points[idx+pcl_cloud->width-1].z);
-        if(!isnan(pcl_cloud->points[idx].z) && !isnan(pcl_cloud->points[idx+pcl_cloud->width-1].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
+        if(!std::isnan(pcl_cloud->points[idx].z) && !std::isnan(pcl_cloud->points[idx+pcl_cloud->width-1].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
           edges.push_back(e);
       }
       else {
         e.w = 1.0;
         z_dist = fabs(pcl_cloud->points[idx].z - pcl_cloud->points[idx+pcl_cloud->width-1].z);
-        if(!isnan(pcl_cloud->points[idx].z) && !isnan(pcl_cloud->points[idx+pcl_cloud->width-1].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
+        if(!std::isnan(pcl_cloud->points[idx].z) && !std::isnan(pcl_cloud->points[idx+pcl_cloud->width-1].z) && z_dist < (z_adapt*pcl_cloud->points[idx].z))
           edges.push_back(e);
       }
     }

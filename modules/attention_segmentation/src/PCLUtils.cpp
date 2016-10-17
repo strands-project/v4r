@@ -30,7 +30,7 @@
  */
 
 #include "v4r/attention_segmentation/PCLUtils.h"
-#include "cmath"
+#include <cmath>
 
 namespace v4r {
 
@@ -503,7 +503,7 @@ void ConvertPCLCloud2Image(const pcl::PointCloud<pcl::PointXYZRGBL>::ConstPtr &p
 
       if(use_labels_for_coloring)
       {
-        if(isnan(pt.z))
+        if(std::isnan(pt.z))
           continue;     // background is always black
 
         while(pt.label>=colormap.size()) // if there is no color for this label (first occurance)
