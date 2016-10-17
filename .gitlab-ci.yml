@@ -13,9 +13,8 @@ ubuntu-trusty:
     
   stage: build
   script:
-  #  - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
-    - mkdir build
-    - cd build
+    - mkdir v4r-build
+    - cd v4r-build
     - cmake ..
     - make -j8
 
@@ -25,22 +24,18 @@ ubuntu-xenial:
   image: ubuntu:xenial
   variables:
     CI_ROS_DISTRO: kinetic
+
   before_script:
     - apt-get update -qq
     - apt-get install -qq -y wget sudo
-    - sh -c 'echo "deb http://packages.ros.org/ros/ubuntu xenial main" > /etc/apt/sources.list.d/ros-latest.list'
-    - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq -y python-rosdep build-essential cmake
-    - sudo rosdep init
-    - rosdep update
+    - sudo ./setup.sh xenial    
 
   stage: build
   script:
-    - rosdep install --from-paths . -i -y -r --rosdistro $CI_ROS_DISTRO
+    - apt-get install -y libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
+
     # we need a specific version of libceres
     - apt-get purge libceres-dev ceres-solver-doc libceres1 -y
-    - apt-get install -y libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
     - wget http://ceres-solver.org/ceres-solver-1.11.0.tar.gz
     - tar xfz ceres-solver-1.11.0.tar.gz
     - mkdir ceres-build
@@ -48,8 +43,9 @@ ubuntu-xenial:
     - cmake ../ceres-solver-1.11.0
     - make -j8
     - make install
-    # finally v4r build starts
     - cd ..
+
+    # finally v4r build starts
     - mkdir v4r-build
     - cd v4r-build
     - cmake .. -DPCL_APPS_LIBRARY:=/usr/lib/x86_64-linux-gnu/libpcl_apps.so.1.7
