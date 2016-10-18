@@ -20,7 +20,7 @@ ubuntu-trusty:
     - make -j8
 
 # Ubuntu 14.04 debian package generation
-ubuntu-trusty:
+ubuntu-trusty-build-package:
   image: ubuntu:trusty
   variables:
     CI_ROS_DISTRO: indigo
@@ -82,7 +82,7 @@ ubuntu-xenial:
 
 
 # Ubuntu 16.04 debian package generation
-ubuntu-xenial:
+ubuntu-xenial-build-package:
   image: ubuntu:xenial
   variables:
     CI_ROS_DISTRO: kinetic
