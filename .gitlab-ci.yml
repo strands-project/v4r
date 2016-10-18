@@ -19,13 +19,40 @@ ubuntu-trusty:
     - cmake ..
     - make -j8
 
+# Ubuntu 14.04 debian package generation
+ubuntu-trusty:
+  image: ubuntu:trusty
+  variables:
+    CI_ROS_DISTRO: indigo
+    UBUNTU_DISTRO: trusty
+
+  before_script:
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq -y wget
+    - ./setup.sh
+
+  stage: build
+  script:
+    - bloom-generate rosdebian --os-name ubuntu --os-version $UBUNTU_DISTRO --ros-distro $CI_ROS_DISTRO
+    - debuild -rfakeroot -us -uc -b
+    - mkdir build
+    - mv ../ros-*.deb build
+
+  # This stage is only executed for new tags
+  only:
+    - tags
+
+  # The files which are to be made available in GitLab
+  artifacts:
+    paths:
+      - build/*
 
 # Ubuntu 16.04
 ubuntu-xenial:
   image: ubuntu:xenial
   variables:
     CI_ROS_DISTRO: kinetic
-    UBUNTU_DISTRO: xenial 
+    UBUNTU_DISTRO: xenial
 
   before_script:
     - apt-get update -qq
@@ -52,3 +79,46 @@ ubuntu-xenial:
     - cd v4r-build
     - cmake .. -DPCL_APPS_LIBRARY:=/usr/lib/x86_64-linux-gnu/libpcl_apps.so.1.7
     - make -j8
+
+
+# Ubuntu 16.04 debian package generation
+ubuntu-xenial:
+  image: ubuntu:xenial
+  variables:
+    CI_ROS_DISTRO: kinetic
+    UBUNTU_DISTRO: xenial
+
+  before_script:
+    - apt-get update -qq
+    - apt-get install -qq -y wget sudo
+    - sudo ./setup.sh $UBUNTU_DISTRO
+
+  stage: build
+  script:
+    - apt-get install -y libgoogle-glog-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
+
+    # we need a specific version of libceres
+    - apt-get purge libceres-dev ceres-solver-doc libceres1 -y
+    - wget http://ceres-solver.org/ceres-solver-1.11.0.tar.gz
+    - tar xfz ceres-solver-1.11.0.tar.gz
+    - mkdir ceres-build
+    - cd ceres-build
+    - cmake ../ceres-solver-1.11.0
+    - make -j8
+    - make install
+    - cd ..
+
+    # finally v4r build starts
+    - bloom-generate rosdebian --os-name ubuntu --os-version $UBUNTU_DISTRO --ros-distro $CI_ROS_DISTRO
+    - debuild -rfakeroot -us -uc -b
+    - mkdir build
+    - mv ../ros-*.deb build
+
+  # This stage is only executed for new tags
+  only:
+    - tags
+
+  # The files which are to be made available in GitLab
+  artifacts:
+    paths:
+      - build/*
