@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 SET(APPS_SEGMENTATION 1 CACHE BOOL "App to test segmentation" )
-set(SUBSYS_DEPS v4r_segmentation v4r_common_io v4r_common)
+set(SUBSYS_DEPS v4r_segmentation v4r_io v4r_common)
 IF(APPS_SEGMENTATION)
 IF(V4R_SEGMENTATION)
   find_package (OpenCV)
