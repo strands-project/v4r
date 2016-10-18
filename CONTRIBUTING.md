@@ -9,12 +9,34 @@ they should reciprocate that respect in addressing your issue or assessing
 patches and features.
 
 
-## Dependencies and Installation
+## Dependencies
 V4R is an open-source project with the goal to be easily installed on different platforms by providing released Debian packages for Ubuntu systems. To allow packaging the V4R library, all dependencies need to be defined in `package.xml`. The required names for specific packages can be found [here](https://github.com/strands-project/rosdistro/blob/strands-devel/rosdep/base.yaml) or [here](https://raw.githubusercontent.com/ros/rosdistro/master/rosdep/base.yaml). Packages not included in this list need to be added as [3rdparty libraries](https://rgit.acin.tuwien.ac.at/root/v4r/wikis/how-to-add-third-party-dependency) to V4R. Whenever possible, try to depend on packaged libraries. This especially applies to PCL and OpenCV. Currently this means contribute your code such that it is compatible to PCL 1.7.2 and OpenCV 2.4.9.  
 Also, even though V4R stands for Vision for Robotics, our library is independent of ROS. If you need a ROS component, put your core algorithms into this V4R library and create wrapper interfaces in the seperate [v4r_ros_wrappers repository](https://github.com/strands-project/v4r_ros_wrappers).
-If you are running Ubuntu 14.04 you can install all dependencies by executing ./setup.sh. The script will install all needed dependencies.
-If you are running Ubuntu 16.04 you can install all dependencies by executing './setup.sh xenial kinetic'. 
 
+### Dependency Installation (Ubuntu 14.04 & Ubuntu 16.04)
+If you are running a freshly installed Ubuntu 14.04 or Ubuntu 16.04, you can use 'setup.sh' to install all necessary dependencies. Under the hood './setup.sh' installs a phyton script which associates the dependencies listed in the package.xml file with corresponding debian packages and installs them right away.
+
+**Ubuntu 14.04, 'Trusty'**
+```
+cd /wherever_v4r_is_located/v4r
+./setup.sh
+```
+**Ubuntu 16.04, 'Xenial'**
+```
+cd /wherever_v4r_is_located/v4r
+./setup.sh xenial kinetic
+```
+
+After executing ./setup.sh within your v4r root directory you should be able to compile v4r on your machine with
+
+```
+cd /wherever_v4r_is_located/v4r
+mkdir build && cd build
+cmake ..
+make -j8
+```
+
+If you don't want to use 'setup.sh' for any wired reason, click [here](#HowToBuild) to jump to *"How to Build V4R without using './setup.sh'? (Ubuntu 14.04)"*.
 
 ## Using the issue tracker
 
@@ -172,9 +194,10 @@ The Doxygen documentation has to be compiled localy on your system for the momen
 However, it will be available *online* on gitlab quiet soon.
 Bajo will find a nice solution for that using the CI system.
 
-## How to Build V4R? (Ubuntu 14.04)
+##  <a name="HowToBuild"></a>How to Build V4R without using './setup.sh'? (Ubuntu 14.04)
 
-As mentioned allready, V4R is using a package.xml file and rosdep to install all necessary dependencies.
+As mentioned allready, V4R is using a package.xml file and rosdep to install all necessary dependencies. This can be easily done using ./setup.sh.
+However, if you don't want to use 'setup.sh' for any reason follow the instructions below.
 
 1. Do all the necessary git magic to download v4r on your machine, then open a console.
 2. Install and initialize rosdep, cmake and build-essential
