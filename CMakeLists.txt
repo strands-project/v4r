@@ -109,9 +109,11 @@ V4R_OPTION(WITH_QT4            "Include QT support"                          ON)
 V4R_OPTION(WITH_BOOST          "Include Boost support"                       ON)
 V4R_OPTION(WITH_EIGEN          "Include Eigen3 support"                      ON)
 V4R_OPTION(WITH_GLM            "Include GLM support"                         ON)
-V4R_OPTION(WITH_GLEW            "Include GLEW support"                       ON)
+V4R_OPTION(WITH_GLEW           "Include GLEW support"                        ON)
 V4R_OPTION(WITH_GLOG           "Include Google Logging support"              ON)
-V4R_OPTION(WITH_CAFFE           "Include Caffe support"              ON)
+V4R_OPTION(WITH_CAFFE          "Include Caffe support"                       ON)
+V4R_OPTION(WITH_OPENNURBS      "Include OPENNURBS support"                   ON)
+V4R_OPTION(WITH_ON_NURBS       "Include ON_NURBS support"                    ON)
 
 # V4R build components
 # ===================================================
@@ -138,6 +140,8 @@ V4R_OPTION(BUILD_JASPER             "Build libjasper from source"        WIN32 O
 V4R_OPTION(BUILD_JPEG               "Build libjpeg from source"          WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_PNG                "Build libpng from source"           WIN32 OR ANDROID OR APPLE )
 V4R_OPTION(BUILD_OPENEXR            "Build openexr from source"          (WIN32 OR ANDROID OR APPLE) AND NOT WINRT)
+V4R_OPTION(BUILD_OPENNURBS          "Build OPENNURBS from source" 	 ON)
+V4R_OPTION(BUILD_ON_NURBS           "Build ON_NURBS from source" 	 ON)
 V4R_OPTION(BUILD_TBB                "Download and build TBB from source" ANDROID )
 V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
 V4R_OPTION(BUILD_METSLIB            "Download and build METSlib from source" ON)
@@ -332,6 +336,8 @@ include(cmake/V4RFindOpenCV.cmake)
 include(cmake/V4RFindOpenNI2.cmake)
 include(cmake/V4RFindBoost.cmake)
 include(cmake/V4RFindCaffe.cmake)
+include(cmake/V4RFindOpenNURBS.cmake)
+include(cmake/V4RFindON_NURBS.cmake)
 # ----------------------------------------------------------------------------
 #  Detect optional 3rd-party libraries/tools
 # ----------------------------------------------------------------------------

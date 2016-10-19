@@ -34,6 +34,11 @@ if(HAVE_EDT)
   list(APPEND DEP_LIBS ${EDT_LIBRARIES})
 endif()
 
+if(HAVE_OPENNURBS)
+  v4r_include_directories(${OPENNURBS_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${OPENNURBS_LIBRARIES})
+endif()
+
 if(HAVE_QT4)
   v4r_include_directories(${QT4_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${QT4_LIBRARIES})
