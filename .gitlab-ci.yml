@@ -34,7 +34,7 @@ ubuntu-trusty-build-package:
 
   stage: build
   script:
-    - bloom-generate rosdebian --os-name ubuntu --os-version $UBUNTU_DISTRO --ros-distro $CI_ROS_DISTRO
+    - bloom-generate debian --os-name ubuntu --os-version $UBUNTU_DISTRO
     - debuild -rfakeroot -us -uc -b
     - mkdir build
     - mv ../ros-*.deb build
