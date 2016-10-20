@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/connectedComponents.hpp"
+#include "v4r/attention_segmentation/connectedComponents.h"
 
 namespace v4r
 {

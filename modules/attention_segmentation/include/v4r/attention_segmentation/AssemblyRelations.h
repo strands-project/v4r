@@ -38,15 +38,15 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "v4r/SurfaceUtils/SurfaceModel.hpp"
-// #include "v4r/SurfaceBoundary/VisionCore.hh"
+#include "v4r/SurfaceUtils/SurfaceModel.h"
+// #include "v4r/SurfaceBoundary/VisionCore.h"
 
 #include "ColorHistogram.h"
 #include "Texture.h"
 #include "Fourier.h"
 #include "Gabor.h"
 #include "BoundaryRelations.h"
-#include "ContourNormalsDistance.hh"
+#include "ContourNormalsDistance.h"
 // #include "Vs3ArcRelations.h"
 
 

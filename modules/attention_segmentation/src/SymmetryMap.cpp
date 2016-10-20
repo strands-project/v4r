@@ -43,7 +43,7 @@
  * 10.1109/IROS.2009.5354402.
 */
 
-#include "v4r/attention_segmentation/SymmetryMap.hpp"
+#include "v4r/attention_segmentation/SymmetryMap.h"
 
 namespace v4r
 {

@@ -23,7 +23,7 @@
 
 
 #include <v4r/core/macros.h>
-#include "v4r/attention_segmentation/convertions.hpp"
+#include "v4r/attention_segmentation/convertions.h"
 #include <pcl/filters/project_inliers.h>
 
 namespace v4r

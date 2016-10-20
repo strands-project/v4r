@@ -24,8 +24,8 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "v4r/attention_segmentation/AttentionModule.hpp"
-#include "v4r/attention_segmentation/EPUtils.hpp"
+#include "v4r/attention_segmentation/AttentionModule.h"
+#include "v4r/attention_segmentation/EPUtils.h"
 
 // This program shows the use of MSR to extract attention points
 

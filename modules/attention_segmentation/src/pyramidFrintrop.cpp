@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/pyramidFrintrop.hpp"
+#include "v4r/attention_segmentation/pyramidFrintrop.h"
 
 namespace v4r
 {

@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/FrintropSaliencyMap.hpp"
+#include "v4r/attention_segmentation/FrintropSaliencyMap.h"
 
 namespace v4r
 {

@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/BaseMap.hpp"
+#include "v4r/attention_segmentation/BaseMap.h"
 
 namespace v4r
 {

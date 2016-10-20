@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/normalization.hpp"
+#include "v4r/attention_segmentation/normalization.h"
 
 namespace v4r
 {

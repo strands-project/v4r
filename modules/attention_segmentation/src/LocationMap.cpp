@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/LocationMap.hpp"
+#include "v4r/attention_segmentation/LocationMap.h"
 
 namespace v4r
 {

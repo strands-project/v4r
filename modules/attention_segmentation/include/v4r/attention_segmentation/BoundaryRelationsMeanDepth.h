@@ -22,7 +22,7 @@
  */
 
 /**
- * @file BoundaryRelationsBase.hpp
+ * @file BoundaryRelationsBase.h
  * @author Potapova
  * @date August 2013
  * @version 0.1

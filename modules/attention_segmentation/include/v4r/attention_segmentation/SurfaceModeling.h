@@ -22,7 +22,7 @@
  */
 
 /**
- * @file SurfaceModeling.hh
+ * @file SurfaceModeling.h
  * @author Richtsfeld
  * @date October 2012
  * @version 0.1
@@ -46,7 +46,7 @@
 #include "v4r/attention_segmentation/SurfaceModel.h"
 #include "v4r/attention_segmentation/EPBase.h"
 
-#include "v4r/attention_segmentation/EPUtils.hpp"
+#include "v4r/attention_segmentation/EPUtils.h"
 
 /*
  *@ep: things that are not clear:
