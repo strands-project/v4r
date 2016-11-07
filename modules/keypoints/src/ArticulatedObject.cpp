@@ -51,9 +51,9 @@ ObjectView &ArticulatedObject::addArticulatedView(const Eigen::Matrix4f &_pose, 
 }
 
 /* add projections */
-void ArticulatedObject::addArticulatedProjections(ObjectView &view, const std::vector< std::pair<int,cv::Point2f> > &im_pts, const Eigen::Matrix4f &pose, const std::vector<Eigen::VectorXd> &_part_parameter) 
+void ArticulatedObject::addArticulatedProjections(ObjectView &view, const std::vector< std::pair<int,cv::Point2f> > &im_pts, const Eigen::Matrix4f &pose_, const std::vector<Eigen::VectorXd> &_part_parameter)
 {
-  addProjections(view, im_pts, pose);
+  addProjections(view, im_pts, pose_);
   part_parameter.push_back(_part_parameter);
 }
 
@@ -95,13 +95,13 @@ void ArticulatedObject::updatePoseRecursive(const Eigen::Matrix4f &_pose)
 }
 
 /* getKinematicChain */
-void ArticulatedObject::getChainRecursive(const Part &part, const std::vector<Part::Ptr> &parts, int _idx, std::vector< std::vector<int> > &kinematics)
+void ArticulatedObject::getChainRecursive(const Part &part, const std::vector<Part::Ptr> &parts_, int _idx, std::vector< std::vector<int> > &kinematics)
 {
   kinematics[part.idx] = kinematics[_idx];
   kinematics[part.idx].push_back(part.idx);
 
   for (unsigned i=0; i<part.subparts.size(); i++)
-    getChainRecursive(*parts[part.subparts[i]], parts, part.idx, kinematics);
+    getChainRecursive(*parts_[part.subparts[i]], parts_, part.idx, kinematics);
 }
 
 /* getKinematicChain */
@@ -116,12 +116,12 @@ void ArticulatedObject::getKinematicChain(std::vector< std::vector<int> > &kinem
 }
 
 /* getFeatures */
-void ArticulatedObject::getFeatures(int part_idx, int view_idx, FeatureGroup &features)
+void ArticulatedObject::getFeatures(int part_idx, int view_idx, FeatureGroup &features_)
 {
-  features.part_idx = part_idx;
-  features.view_idx = view_idx;
+  features_.part_idx = part_idx;
+  features_.view_idx = view_idx;
 
-  features.clear();
+  features_.clear();
   ObjectView &view = *views[view_idx];
   Part &part = *parts[part_idx];
 
@@ -129,26 +129,26 @@ void ArticulatedObject::getFeatures(int part_idx, int view_idx, FeatureGroup &fe
   {
     std::pair<int,int> &f = part.features[i];
     if (f.first == view_idx) 
-      features.push_back(view.keys[f.second].pt,view.getPt(f.second).pt.cast<float>(), view.getPt(f.second).n.cast<float>(), i, f.second);      
+      features_.push_back(view.keys[f.second].pt,view.getPt(f.second).pt.cast<float>(), view.getPt(f.second).n.cast<float>(), i, f.second);
   }
 }
 
 /**
  * getDescriptors
  */
-void ArticulatedObject::getDescriptors(const FeatureGroup &features, cv::Mat &descs)
+void ArticulatedObject::getDescriptors(const FeatureGroup &features_, cv::Mat &descs)
 {
   descs = cv::Mat();
-  if (features.points.size()==0)
+  if (features_.points.size()==0)
     return;
 
-  cv::Mat &dst = views[features.view_idx]->descs;
+  cv::Mat &dst = views[features_.view_idx]->descs;
 
-  descs = cv::Mat_<float>(features.view_feature_indices.size(), dst.cols);
+  descs = cv::Mat_<float>(features_.view_feature_indices.size(), dst.cols);
   
-  for (unsigned i=0; i<features.view_feature_indices.size(); i++)
+  for (unsigned i=0; i<features_.view_feature_indices.size(); i++)
   {
-    std::memcpy(descs.ptr<float>(i,0), dst.ptr<float>(features.view_feature_indices[i],0), dst.cols*sizeof(float));
+    std::memcpy(descs.ptr<float>(i,0), dst.ptr<float>(features_.view_feature_indices[i],0), dst.cols*sizeof(float));
   }
 }
 
