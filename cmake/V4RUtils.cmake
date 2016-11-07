@@ -74,7 +74,7 @@ function(v4r_include_directories)
       include_directories(AFTER SYSTEM "${dir}")
     endif()
   endforeach()
-  include_directories(BEFORE  ${__add_before})
+  include_directories(BEFORE ${__add_before})
 endfunction()
 
 # adds include directories in such way that directories from the V4R source tree go first
