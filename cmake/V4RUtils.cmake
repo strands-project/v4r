@@ -74,7 +74,7 @@ function(v4r_include_directories)
       include_directories(AFTER SYSTEM "${dir}")
     endif()
   endforeach()
-  include_directories(BEFORE ${__add_before})
+  include_directories(BEFORE  ${__add_before})
 endfunction()
 
 # adds include directories in such way that directories from the V4R source tree go first
@@ -90,10 +90,10 @@ function(v4r_target_include_directories target)
     endif()
   endforeach()
   if(HAVE_CUDA OR CMAKE_VERSION VERSION_LESS 2.8.11)
-    include_directories(${__params})
+    include_directories(SYSTEM ${__params})#(simon) add include directories as system directories.... this suppresses warnings
   else()
     if(TARGET ${target})
-      target_include_directories(${target} PRIVATE ${__params})
+      target_include_directories(${target} SYSTEM PRIVATE ${__params})#(simon) suppress warnings
     else()
       set(__new_inc "${V4R_TARGET_INCLUDE_DIRS_${target}};${__params}")
       set(V4R_TARGET_INCLUDE_DIRS_${target} "${__new_inc}" CACHE INTERNAL "")
