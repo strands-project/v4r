@@ -72,7 +72,7 @@ V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();;
-    tf.block<3,3>(0,0) = q.toRotationMatrix();
+    tf.block<3,3>(0,0) = q.normalized().toRotationMatrix();
     tf.block<4,1>(0,3) = trans;
     tf(3,3) = 1.f;
     return tf;
@@ -90,7 +90,7 @@ V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
-    tf.block<3,3>(0,0) = q.toRotationMatrix();
+    tf.block<3,3>(0,0) = q.normalized().toRotationMatrix();
     tf.block<3,1>(0,3) = trans;
     return tf;
 }
@@ -221,7 +221,12 @@ createMaskFromIndices(const std::vector<size_t> &indices, size_t image_size)
     return mask;
 }
 
-
+/**
+ * @brief createMaskFromIndices creates a boolean mask of all indices set
+ * @param indices
+ * @param image_size
+ * @return
+ */
 V4R_EXPORTS inline boost::dynamic_bitset<>
 createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 {
