@@ -48,6 +48,10 @@
 #include <v4r/keypoints/PartMotion6D.h>
 #include <v4r/keypoints/PartRotation1D.h>
  
+//A makro to get rid of the unused warning
+#ifndef UNUSED
+#define UNUSED(expr) do { (void)(expr); } while (0)
+#endif
 
 /** ObjectView serialization **/
 namespace boost{namespace serialization{
@@ -55,6 +59,7 @@ namespace boost{namespace serialization{
   template<class Archive>
   void serialize(Archive & ar, v4r::GlobalPoint &pt, const unsigned int version)
   {
+    UNUSED(version);
     ar & pt.cnt;
     ar & pt.pt;
     ar & pt.n;
@@ -68,6 +73,7 @@ namespace boost{namespace serialization{
   template<class Archive>
   void serialize(Archive & ar, v4r::ObjectView &view, const unsigned int version)
   {
+    UNUSED(version);
     ar & view.idx;
     ar & view.camera_id;
     ar & view.center;
@@ -91,12 +97,14 @@ namespace boost{namespace serialization{
   template<class Archive>
   void save(Archive & ar, const ::v4r::ObjectView::Ptr& view, const unsigned int version)
   {
+    UNUSED(version);
     ar & *view;
   }
 
   template <class Archive>
   void load(Archive & ar, ::v4r::ObjectView::Ptr& view, const unsigned int version)
   {
+    UNUSED(version);
     view.reset(new v4r::ObjectView(0));
     ar & *view;
   }
@@ -111,6 +119,7 @@ namespace boost{namespace serialization{
   template <class Archive>
   void save(Archive & ar, const v4r::Object &o, const unsigned int version)
   {
+    UNUSED(version);
     ar & o.id;
     ar & o.cameras;
     ar & o.camera_parameter;
@@ -123,6 +132,7 @@ namespace boost{namespace serialization{
   template <class Archive>
   void load(Archive & ar, v4r::Object &o, const unsigned int version)
   {
+    UNUSED(version);
     ar & o.id;
     ar & o.cameras;
     ar & o.camera_parameter;
@@ -144,6 +154,7 @@ namespace boost{namespace serialization{
   template <class Archive>
   void serialize(Archive & ar, v4r::Part &p, const unsigned int version)
   {
+    UNUSED(version);
     ar & p.type;
     ar & p.idx;
     ar & p.is_hyp;
@@ -161,6 +172,7 @@ namespace boost{namespace serialization{
   template <class Archive>
   void serialize(Archive & ar, v4r::PartRotation1D &p, const unsigned int version)
   {
+    UNUSED(version);
     ar & boost::serialization::base_object<v4r::Part> ( p );
     ar & p.angle;
     ar & p.rt;
@@ -174,6 +186,7 @@ namespace boost{namespace serialization{
   template <class Archive>
   void serialize(Archive & ar, v4r::PartMotion6D &p, const unsigned int version)
   {
+    UNUSED(version);
     ar & boost::serialization::base_object<v4r::Part> ( p );
     ar & p.rt;
   }
@@ -187,9 +200,10 @@ namespace boost{namespace serialization{
   template<class Archive>
   void save(Archive & ar, const ::v4r::Part::Ptr& p, const unsigned int version)
   {
+    UNUSED(version);
     ar & p->type;
 
-    switch (p->type)
+    switch (p  ->type)
     {
       case v4r::Part::STATIC:
       {
@@ -215,6 +229,7 @@ namespace boost{namespace serialization{
   template <class Archive>
   void load(Archive & ar, ::v4r::Part::Ptr& p, const unsigned int version)
   {
+    UNUSED(version);
     v4r::Part::Type type;
 
     ar & type;
@@ -256,6 +271,7 @@ namespace boost{namespace serialization{
   template<class Archive>
   void save(Archive & ar, const ::v4r::ArticulatedObject::Ptr &o, const unsigned int version)
   {
+    UNUSED(version);
     ar & o->version;
     ar & boost::serialization::base_object<v4r::Object> ( *o );
     ar & boost::serialization::base_object<v4r::PartMotion6D> ( *o );
@@ -273,6 +289,7 @@ namespace boost{namespace serialization{
   template <class Archive>
   void load(Archive & ar, ::v4r::ArticulatedObject::Ptr& o, const unsigned int version)
   {
+    UNUSED(version);
     o.reset(new v4r::ArticulatedObject());
 
     ar & o->version;

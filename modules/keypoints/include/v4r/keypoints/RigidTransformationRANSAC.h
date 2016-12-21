@@ -132,11 +132,11 @@ inline bool RigidTransformationRANSAC::Contains(const std::vector<int> &idx, int
   return false;
 }
 
-inline void RigidTransformationRANSAC::InvPose(const Eigen::Matrix4f &pose, Eigen::Matrix4f &invPose)
+inline void RigidTransformationRANSAC::InvPose(const Eigen::Matrix4f &pose, Eigen::Matrix4f &invPose_)
 { 
-  invPose.setIdentity();
-  invPose.block<3, 3> (0, 0) = pose.block<3, 3> (0, 0).transpose();
-  invPose.block<3, 1> (0, 3) = -1*(invPose.block<3, 3> (0, 0)*pose.block<3, 1> (0, 3));
+  invPose_.setIdentity();
+  invPose_.block<3, 3> (0, 0) = pose.block<3, 3> (0, 0).transpose();
+  invPose_.block<3, 1> (0, 3) = -1*(invPose_.block<3, 3> (0, 0)*pose.block<3, 1> (0, 3));
 }
 
 

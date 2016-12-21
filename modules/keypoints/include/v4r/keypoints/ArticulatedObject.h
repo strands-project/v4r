@@ -44,6 +44,10 @@
 #include <v4r/keypoints/impl/Object.hpp>
 #include <v4r/common/convertPose.h>
 
+//A makro to get rid of the unused warning
+#ifndef UNUSED
+#define UNUSED(expr) do { (void)(expr); } while (0)
+#endif
 
 namespace v4r
 {
@@ -72,6 +76,7 @@ public:
   }
   /** add data **/
   inline void push_back(const cv::Point2f &im_pt, const Eigen::Vector3f &pt3, const Eigen::Vector3f &n, int _part_feature_idx, int _view_feature_idx) {
+    UNUSED(im_pt);
     points.push_back(pt3);
     normals.push_back(n);
     part_feature_indices.push_back(_part_feature_idx);

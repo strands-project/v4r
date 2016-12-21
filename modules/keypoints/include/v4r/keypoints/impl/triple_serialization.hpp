@@ -40,12 +40,18 @@
 
 #include "triple.hpp"
 
+//A makro to get rid of the unused warning
+#ifndef UNUSED
+#define UNUSED(expr) do { (void)(expr); } while (0)
+#endif
+
 namespace boost {
     namespace serialization {
 
     template<class Archive, typename F, typename S, typename T>
     void serialize(Archive & ar, v4r::triple<F,S,T> &t, const unsigned int version)
     {
+      UNUSED(version);
       ar & t.first;
       ar & t.second;
       ar & t.third;
