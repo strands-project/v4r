@@ -31,7 +31,7 @@
  */
 
 #include <v4r/keypoints/CodebookMatcher.h>
-#include <v4r/common/impl/ScopeTime.hpp>
+#include <pcl/common/time.h>
 
 
 namespace v4r
@@ -101,7 +101,7 @@ void CodebookMatcher::addView(const cv::Mat &descriptors, int view_idx)
  */
 void CodebookMatcher::createCodebook()
 {
-  v4r::ScopeTime t_("CodebookMatcher::createCodebook");
+  pcl::ScopeTime t("CodebookMatcher::createCodebook");
 
   // rnn clustering
   v4r::DataMatrix2Df centers;
@@ -127,7 +127,7 @@ void CodebookMatcher::createCodebook()
   cout<<"codbeook.size()="<<clusters.size()<<"/"<<descs.rows<<endl;
 
   // create flann for matching
-  { v4r::ScopeTime t_("create FLANN");
+  { pcl::ScopeTime t("create FLANN");
   matcher = new cv::FlannBasedMatcher();
   matcher->add(std::vector<cv::Mat>(1,cb_centers));
   matcher->train();
@@ -148,7 +148,7 @@ void CodebookMatcher::createCodebook()
  */
 void CodebookMatcher::createCodebook(cv::Mat &_cb_centers, std::vector< std::vector< std::pair<int,int> > > &_cb_entries)
 {
-  v4r::ScopeTime t_("CodebookMatcher::createCodebook");
+  pcl::ScopeTime t("CodebookMatcher::createCodebook");
 
   // rnn clustering
   v4r::DataMatrix2Df centers;
@@ -174,7 +174,7 @@ void CodebookMatcher::createCodebook(cv::Mat &_cb_centers, std::vector< std::vec
   cout<<"codbeook.size()="<<clusters.size()<<"/"<<descs.rows<<endl;
 
   // create flann for matching
-  { v4r::ScopeTime t_("create FLANN");
+  { pcl::ScopeTime t("create FLANN");
   matcher = new cv::FlannBasedMatcher();
   matcher->add(std::vector<cv::Mat>(1,cb_centers));
   matcher->train();
@@ -211,7 +211,7 @@ void CodebookMatcher::setCodebook(const cv::Mat &_cb_centers, const std::vector<
   max_view_index++;
 
   // create flann for matching
-  { v4r::ScopeTime t_("create FLANN");
+  { pcl::ScopeTime t("create FLANN");
   matcher = new cv::FlannBasedMatcher();
   matcher->add(std::vector<cv::Mat>(1,cb_centers));
   matcher->train();

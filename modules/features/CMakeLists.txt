@@ -7,11 +7,11 @@ ${CMAKE_CURRENT_LIST_DIR}/src/ourcvfh_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/ImGDescOrientation.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_ORB.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/pcl_ourcvfh.cpp
-${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_K_HARRIS.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/sift_local_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/esf_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/ImGradientDescriptor.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_FAST_IMGD.cpp
+${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_K_HARRIS.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/shot_local_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureSelection.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/ComputeImGDescOrientations.cpp
@@ -34,8 +34,8 @@ ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ImGDescOrientation.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/color_ourcvfh_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/image_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_KD_FAST_IMGD.h
-${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/vedaldi_sift_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_K_HARRIS.h
+${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/vedaldi_sift_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/pcl_ourcvfh.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/sift_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector.h

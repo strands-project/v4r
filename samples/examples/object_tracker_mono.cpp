@@ -40,12 +40,12 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <pcl/common/time.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <v4r/common/convertImage.h>
 #include <v4r/common/convertPose.h>
-#include <v4r/common/impl/SmartPtr.hpp>
-#include <v4r/common/impl/ScopeTime.hpp>
+#include <boost/smart_ptr.hpp>
 #include <v4r/common/pcl_opencv.h>
 #include <v4r/keypoints/ArticulatedObject.h>
 #include <v4r/keypoints/impl/invPose.hpp>
@@ -323,7 +323,7 @@ public:
                 tracker_->dbg = im_draw_;
 
             {
-                v4r::ScopeTime t("overall time");
+                pcl::ScopeTime t("overall time");
                 is_ok = tracker_->track(image_, pose_, conf);
                 time = t.getTime();
             }
