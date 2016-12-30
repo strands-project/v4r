@@ -7,21 +7,12 @@
 #include <pcl/PCLHeader.h>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/vector.hpp>
-#include <std_msgs/Header.h>
 
 namespace boost
 {
 
 namespace serialization
 {
-
-template<class Archive>
-void serialize(Archive & ar,std_msgs::Header & g, const unsigned int version)
-{
-    ar & g.seq;
-    //ar & g.stamp;
-    ar & g.frame_id;
-}
 
 template<class Archive>
 void serialize(Archive & ar, pcl::PCLHeader & g, const unsigned int version)
