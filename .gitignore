@@ -10,6 +10,7 @@ docs/*
 
 # git backups
 *.orig
+*.autosave
 
 # CMake
 CMakeCache.txt
