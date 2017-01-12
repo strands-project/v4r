@@ -57,6 +57,7 @@ int main(int argc, const char * argv[]) {
 //            ("threshold_explained", po::value<float>(&nm_int_param.threshold_explained_)->default_value(nm_int_param.threshold_explained_), "")
             ("use_depth_edges", po::value<bool>(&nm_param.use_depth_edges_)->default_value(nm_param.use_depth_edges_), "")
             ("edge_radius", po::value<int>(&nm_param.edge_radius_)->default_value(nm_param.edge_radius_), "")
+            ("focal_length,f", po::value<float>(&nm_param.focal_length_)->default_value(nm_param.focal_length_), "")
             ("normal_method,n", po::value<int>(&normal_method)->default_value(normal_method), "method used for normal computation")
             ("chop_z,z", po::value<float>(&chop_z)->default_value(chop_z), "cut of distance in m ")
             ("visualize,v", po::bool_switch(&visualize), "turn visualization on")

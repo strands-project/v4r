@@ -72,7 +72,7 @@ V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();;
-    tf.block<3,3>(0,0) = q.toRotationMatrix();
+    tf.block<3,3>(0,0) = q.normalized().toRotationMatrix();
     tf.block<4,1>(0,3) = trans;
     tf(3,3) = 1.f;
     return tf;
@@ -90,7 +90,7 @@ V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
-    tf.block<3,3>(0,0) = q.toRotationMatrix();
+    tf.block<3,3>(0,0) = q.normalized().toRotationMatrix();
     tf.block<3,1>(0,3) = trans;
     return tf;
 }
@@ -221,7 +221,12 @@ createMaskFromIndices(const std::vector<size_t> &indices, size_t image_size)
     return mask;
 }
 
-
+/**
+ * @brief createMaskFromIndices creates a boolean mask of all indices set
+ * @param indices
+ * @param image_size
+ * @return
+ */
 V4R_EXPORTS inline boost::dynamic_bitset<>
 createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 {
@@ -320,6 +325,19 @@ std::vector<size_t> sort_indexes(const std::vector<T> &v) {
 
   return idx;
 }
+
+/**
+ * @brief computePointCloudProperties computes centroid and elongations along principal compenents for a point cloud
+ * @param[in] cloud input cloud
+ * @param centroid computed centroid of cloud
+ * @param elongationsXYZ computes elongations along first, second and third principal component
+ * @param indices region of interest (if empty, whole point cloud will be processed)
+ */
+
+template<typename PointT>
+V4R_EXPORTS
+void
+computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4f &centroid, Eigen::Vector4f &elongationsXYZ,  const std::vector<int> &indices = std::vector<int>());
 
 
 V4R_EXPORTS inline void
