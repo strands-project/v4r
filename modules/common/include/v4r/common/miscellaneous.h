@@ -326,6 +326,19 @@ std::vector<size_t> sort_indexes(const std::vector<T> &v) {
   return idx;
 }
 
+/**
+ * @brief computePointCloudProperties computes centroid and elongations along principal compenents for a point cloud
+ * @param[in] cloud input cloud
+ * @param centroid computed centroid of cloud
+ * @param elongationsXYZ computes elongations along first, second and third principal component
+ * @param indices region of interest (if empty, whole point cloud will be processed)
+ */
+
+template<typename PointT>
+V4R_EXPORTS
+void
+computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4f &centroid, Eigen::Vector4f &elongationsXYZ,  const std::vector<int> &indices = std::vector<int>());
+
 
 V4R_EXPORTS inline void
 removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
