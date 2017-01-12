@@ -1061,7 +1061,12 @@ v4r::Registration::MvLMIcp<PointT>::compute()
     options.function_tolerance = 1e-6;
     options.num_threads = 4;
     options.num_linear_solver_threads = 4;
+#if CERES_VERSION_MAJOR > 1 || (CERES_VERSION_MAJOR == 1 && CERES_VERSION_MINOR >=12 )
+    options.gradient_check_numeric_derivative_relative_step_size = 1e-8;
+#else
     options.numeric_derivative_relative_step_size = 1e-8;
+#endif
+
     if(diff_type == 2)
         options.initial_trust_region_radius = 1e-2;
 
