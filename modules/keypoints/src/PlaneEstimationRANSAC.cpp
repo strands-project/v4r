@@ -8,6 +8,10 @@
 
 #include "v4r/keypoints/PlaneEstimationRANSAC.h"
 
+//A makro to get rid of the unused warning
+#ifndef UNUSED
+#define UNUSED(expr) do { (void)(expr); } while (0)
+#endif
 
 namespace v4r
 {
@@ -183,6 +187,7 @@ void PlaneEstimationRANSAC::computeCovarianceMatrix (const std::vector<Eigen::Ve
  */
 void PlaneEstimationRANSAC::estimatePlaneLS(const std::vector<Eigen::Vector3f> &pts, const std::vector<int> &indices, Eigen::Vector3f &pt, Eigen::Vector3f &n)
 {
+  UNUSED(pt);
   Eigen::Vector3f mean;
   EIGEN_ALIGN16 Eigen::Matrix3f cov;
   

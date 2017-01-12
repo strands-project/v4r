@@ -175,7 +175,7 @@ void TemporalSmoothingFilter::filterValidPoints3D(std::vector<cv::Point2f> &pts1
  * @param points
  * @param points3d
  */
-void TemporalSmoothingFilter::filterInliers(std::vector<cv::Point2f> &pts1, std::vector<Eigen::Vector3f> &pts3d1, std::vector<cv::Point2f> &pts2, std::vector<Eigen::Vector3f> &pts3d2, std::vector<int> &inliers)
+void TemporalSmoothingFilter::filterInliers(std::vector<cv::Point2f> &pts1, std::vector<Eigen::Vector3f> &pts3d1, std::vector<cv::Point2f> &pts2, std::vector<Eigen::Vector3f> &pts3d2, std::vector<int> &inliers_)
 {
   if (pts1.size()!=pts3d1.size() || pts1.size()!=pts3d2.size() ||  pts1.size()!=pts2.size())
     return;
@@ -185,17 +185,17 @@ void TemporalSmoothingFilter::filterInliers(std::vector<cv::Point2f> &pts1, std:
   std::vector<cv::Point2f> tmp_pts2;
   std::vector<Eigen::Vector3f> tmp_pts3d2;
 
-  tmp_pts1.reserve(inliers.size());
-  tmp_pts2.reserve(inliers.size());
-  tmp_pts3d1.reserve(inliers.size());
-  tmp_pts3d2.reserve(inliers.size());
+  tmp_pts1.reserve(inliers_.size());
+  tmp_pts2.reserve(inliers_.size());
+  tmp_pts3d1.reserve(inliers_.size());
+  tmp_pts3d2.reserve(inliers_.size());
 
-  for (unsigned i=0; i<inliers.size(); i++)
+  for (unsigned i=0; i<inliers_.size(); i++)
   {
-    tmp_pts1.push_back(pts1[inliers[i]]);
-    tmp_pts2.push_back(pts2[inliers[i]]);
-    tmp_pts3d1.push_back(pts3d1[inliers[i]]);
-    tmp_pts3d2.push_back(pts3d2[inliers[i]]);
+    tmp_pts1.push_back(pts1[inliers_[i]]);
+    tmp_pts2.push_back(pts2[inliers_[i]]);
+    tmp_pts3d1.push_back(pts3d1[inliers_[i]]);
+    tmp_pts3d2.push_back(pts3d2[inliers_[i]]);
   }
 
   pts1 = tmp_pts1;
@@ -342,7 +342,7 @@ bool TemporalSmoothingFilter::needReinit(const std::vector<cv::Point2f> &points)
 //  sf_pose = pose;
 //}
 
-void TemporalSmoothingFilter::addCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const Eigen::Matrix4f &pose, v4r::DataMatrix2D<Surfel>::Ptr &sf_cloud, Eigen::Matrix4f &sf_pose)
+void TemporalSmoothingFilter::addCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const Eigen::Matrix4f &pose, v4r::DataMatrix2D<Surfel>::Ptr &sf_cloud_, Eigen::Matrix4f &sf_pose_)
 {
   if (intrinsic.empty())
     throw std::runtime_error("[TemporalSmoothingFilter::addCloud] Camera parameter not set!");
@@ -355,13 +355,13 @@ void TemporalSmoothingFilter::addCloud(const pcl::PointCloud<pcl::PointXYZRGB> &
   double invC0 = 1./C[0];
   double invC4 = 1./C[4];
   Eigen::Matrix4f inv_sf, inc_pose;
-  v4r::invPose(sf_pose, inv_sf);
+  v4r::invPose(sf_pose_, inv_sf);
   inc_pose = pose*inv_sf;
 
   // init
-  if (sf_cloud->rows!=sf_height || sf_cloud->cols!=sf_width)
+  if (sf_cloud_->rows!=sf_height || sf_cloud_->cols!=sf_width)
   {
-    v4r::DataMatrix2D<Surfel> &ref = *sf_cloud;
+    v4r::DataMatrix2D<Surfel> &ref = *sf_cloud_;
     ref.resize(sf_height, sf_width);
 
     for (unsigned v=0; v<cloud.height; v++)
@@ -375,10 +375,10 @@ void TemporalSmoothingFilter::addCloud(const pcl::PointCloud<pcl::PointXYZRGB> &
   else
   {
     //transform to current frame
-    std::swap(sf_cloud, tmp_cloud);
-    v4r::DataMatrix2D<Surfel> &ref_sf = *sf_cloud;
+    std::swap(sf_cloud_, tmp_cloud);
+    v4r::DataMatrix2D<Surfel> &ref_sf = *sf_cloud_;
     v4r::DataMatrix2D<Surfel> &ref_tmp = *tmp_cloud;
-    Eigen::Vector3f pt,n;
+    Eigen::Vector3f pt;//,n;
     Eigen::Matrix3f R = inc_pose.topLeftCorner<3,3>();
     Eigen::Vector3f t = inc_pose.block<3,1>(0,3);
     int x, y;
@@ -469,20 +469,20 @@ void TemporalSmoothingFilter::addCloud(const pcl::PointCloud<pcl::PointXYZRGB> &
           inv_norm = 1./sf.norm;
           sf.pt[2] *= inv_norm;
           sf.weight *= inv_norm;
-          const pcl::PointXYZRGB &pt = cloud(u,v);
-          sf.pt[2] = (sf.pt[2]*(float)sf.weight + pt.z) / (float)(sf.weight+1.);
+          const pcl::PointXYZRGB &pt_ = cloud(u,v);
+          sf.pt[2] = (sf.pt[2]*(float)sf.weight + pt_.z) / (float)(sf.weight+1.);
           sf.pt[0] = sf.pt[2]*((u-C[2])*invC0);
           sf.pt[1] = sf.pt[2]*((v-C[5])*invC4);
-          sf.r = pt.r;
-          sf.g = pt.g;
-          sf.b = pt.b;
+          sf.r = pt_.r;
+          sf.g = pt_.g;
+          sf.b = pt_.b;
           if (sf.weight<param.max_integration_frames) sf.weight+=1;
         }
       }
     }
   }
 
-  sf_pose = pose;
+  sf_pose_ = pose;
 }
 
 
@@ -543,8 +543,8 @@ void TemporalSmoothingFilter::logGlobalMap(const v4r::DataMatrix2D<Surfel> &cfil
   if (out.points.size()>param.global_map_size)
   {
     int z=0;
-    int start = out.points.size()-param.global_map_size;
-    for (int i=start; i<(int)out.points.size(); i++,z++)
+    int _start = out.points.size()-param.global_map_size;
+    for (int i=_start; i<(int)out.points.size(); i++,z++)
       out.points[z] = out.points[i];
     out.points.resize(z);
   }
@@ -558,31 +558,31 @@ void TemporalSmoothingFilter::logGlobalMap(const v4r::DataMatrix2D<Surfel> &cfil
  * @brief TemporalSmoothingFilter::computeNormal
  * @param sf_cloud
  */
-void TemporalSmoothingFilter::computeNormal(v4r::DataMatrix2D<Surfel> &sf_cloud)
+void TemporalSmoothingFilter::computeNormal(v4r::DataMatrix2D<Surfel> &sf_cloud_)
 {
   Surfel *s1, *s2, *s3;
   Eigen::Vector3f l1, l2;
   int z;
 
-  for (int v=0; v<sf_cloud.rows; v++)
+  for (int v=0; v<sf_cloud_.rows; v++)
   {
-    for (int u=0; u<sf_cloud.cols; u++)
+    for (int u=0; u<sf_cloud_.cols; u++)
     {
       s2=s3=0;
-      s1 = &sf_cloud(v,u);
+      s1 = &sf_cloud_(v,u);
       if (std::isnan(s1->pt[0]) || std::isnan(s1->pt[1]) || std::isnan(s1->pt[2]))
         continue;
 
       for (z=0; z<4; z++)
       {
         const cv::Vec4i &p = npat[z];
-        if (u+p[0]>=0 && u+p[0]<sf_cloud.cols && v+p[1]>=0 && v+p[1]<sf_cloud.rows &&
-            u+p[2]>=0 && u+p[2]<sf_cloud.cols && v+p[3]>=0 && v+p[3]<sf_cloud.rows)
+        if (u+p[0]>=0 && u+p[0]<sf_cloud_.cols && v+p[1]>=0 && v+p[1]<sf_cloud_.rows &&
+            u+p[2]>=0 && u+p[2]<sf_cloud_.cols && v+p[3]>=0 && v+p[3]<sf_cloud_.rows)
         {
-          s2 = &sf_cloud(v+p[1],u+p[0]);
+          s2 = &sf_cloud_(v+p[1],u+p[0]);
           if (std::isnan(s2->pt[0]) || std::isnan(s2->pt[1]) || std::isnan(s2->pt[2]))
             continue;
-          s3 = &sf_cloud(v+p[3],u+p[2]);
+          s3 = &sf_cloud_(v+p[3],u+p[2]);
           if (std::isnan(s3->pt[0]) || std::isnan(s3->pt[1]) || std::isnan(s3->pt[2]))
             continue;
           break;
@@ -699,13 +699,13 @@ void TemporalSmoothingFilter::filter(const pcl::PointCloud<pcl::PointXYZRGB> &cl
 
     if (shm.points3d[1].size()>=5)
     {
-      Eigen::Matrix4f pose;
-      int nb_iter = rt->compute(shm.points3d[0], shm.points3d[1], pose, inliers);
+      Eigen::Matrix4f pose_;
+      int nb_iter = rt->compute(shm.points3d[0], shm.points3d[1], pose_, inliers);
       //cout<<"Ransac iter: "<<nb_iter<<"("<<inliers.size()<<"/"<<shm.points3d[0].size()<<")"<<endl;
       filterInliers(shm.points[0],shm.points3d[0], shm.points[1], shm.points3d[1], inliers);
 
       if (nb_iter < (int)param.rt.max_rand_trials)
-        shm.pose = pose*shm.kf_pose;
+        shm.pose = pose_*shm.kf_pose;
     }
 
     // test stability
