@@ -254,6 +254,15 @@ createIndicesFromMask(const boost::dynamic_bitset<> &mask, bool invert=false)
 }
 
 /**
+ * @brief computeMaskFromImageMap
+ * @param image_map map indicating which pixel belong to which point of the point cloud.
+ * @param nr_points number of points
+ * @return bitmask indicating which points are represented in the image map
+ */
+V4R_EXPORTS boost::dynamic_bitset<>
+computeMaskFromIndexMap( const Eigen::MatrixXi &image_map, size_t nr_points );
+
+/**
   * @brief: Increments a boolean vector by 1 (LSB at the end)
   * @param v Input vector
   * @param inc_v Incremented output vector
