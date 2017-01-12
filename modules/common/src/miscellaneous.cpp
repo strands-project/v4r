@@ -1,4 +1,8 @@
 #include <v4r/common/miscellaneous.h>
+
+#include <pcl/common/centroid.h>
+#include <pcl/common/eigen.h>
+#include <pcl/common/transforms.h>
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -267,6 +271,78 @@ computeMaskFromIndexMap( const Eigen::MatrixXi &image_map, size_t nr_points )
 
     return mask;
 }
+
+template<typename PointT>
+V4R_EXPORTS
+void
+computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4f &centroid, Eigen::Vector4f &elongationsXYZ, const std::vector<int> &indices)
+{
+    EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
+    EIGEN_ALIGN16 Eigen::Vector3f eigenValues;
+    EIGEN_ALIGN16 Eigen::Matrix3f eigenVectors;
+    EIGEN_ALIGN16 Eigen::Matrix3f eigenBasis;
+
+    if(indices.empty())
+        computeMeanAndCovarianceMatrix ( cloud, covariance_matrix, centroid );
+    else
+        computeMeanAndCovarianceMatrix ( cloud, indices, covariance_matrix, centroid );
+
+    pcl::eigen33 (covariance_matrix, eigenVectors, eigenValues);
+
+    // create orthonormal rotation matrix from eigenvectors
+    eigenBasis.col(0) = eigenVectors.col(0).normalized();
+    float dotp12 = eigenVectors.col(1).dot(eigenBasis.col(0));
+    Eigen::Vector3f eig2 = eigenVectors.col(1) - dotp12 * eigenBasis.col(0);
+    eigenBasis.col(1) = eig2.normalized();
+    Eigen::Vector3f eig3 = eigenBasis.col(0).cross ( eigenBasis.col(1) );
+    eigenBasis.col(2) = eig3.normalized();
+
+    // transform cluster into origin and align with eigenvectors
+    Eigen::Matrix4f tf_rot_inv = Eigen::Matrix4f::Identity();
+    tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
+    Eigen::Matrix4f tf_trans_inv = Eigen::Matrix4f::Identity();
+    tf_trans_inv.block<3,1>(0,3) = -centroid.topRows(3);
+
+    Eigen::Matrix4f tf_trans = Eigen::Matrix4f::Identity();
+    tf_trans.block<3,1>(0,3) = centroid.topRows(3);
+//    Eigen::Matrix4f tf_rot = tf_rot_inv.inverse();
+
+    // compute max elongations
+    pcl::PointCloud<PointT> eigenvec_aligned;
+
+    if(indices.empty())
+        pcl::copyPointCloud( cloud, eigenvec_aligned);
+    else
+        pcl::copyPointCloud( cloud, indices, eigenvec_aligned);
+
+    pcl::transformPointCloud(eigenvec_aligned, eigenvec_aligned, tf_rot_inv*tf_trans_inv);
+
+    float xmin,ymin,xmax,ymax,zmin,zmax;
+    xmin = ymin = xmax = ymax = zmin = zmax = 0.f;
+    for(size_t pt=0; pt<eigenvec_aligned.points.size(); pt++)
+    {
+        const PointT &p = eigenvec_aligned.points[pt];
+        if(p.x < xmin)
+            xmin = p.x;
+        if(p.x > xmax)
+            xmax = p.x;
+        if(p.y < ymin)
+            ymin = p.y;
+        if(p.y > ymax)
+            ymax = p.y;
+        if(p.z < zmin)
+            zmin = p.z;
+        if(p.z > zmax)
+            zmax = p.z;
+    }
+
+    elongationsXYZ(0) = xmax - xmin;
+    elongationsXYZ(1) = ymax - ymin;
+    elongationsXYZ(2) = zmax - zmin;
+}
+
+#define PCL_INSTANTIATE_computePointCloudProperties(T) template V4R_EXPORTS void computePointCloudProperties<T>(const pcl::PointCloud<T> &, Eigen::Vector4f &, Eigen::Vector4f &, const std::vector<int> &);
+PCL_INSTANTIATE(computePointCloudProperties, PCL_XYZ_POINT_TYPES )
 
 #define PCL_INSTANTIATE_computeMeshResolution(T) template V4R_EXPORTS float computeMeshResolution<T>(const typename pcl::PointCloud<T>::ConstPtr &);
 PCL_INSTANTIATE(computeMeshResolution, PCL_XYZ_POINT_TYPES )
