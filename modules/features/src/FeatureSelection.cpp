@@ -31,7 +31,6 @@
  */
 
 #include <v4r/features/FeatureSelection.h>
-#include <v4r/common/impl/ScopeTime.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
 

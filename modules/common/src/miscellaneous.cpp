@@ -254,6 +254,19 @@ void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &inde
     delete[] p.ptr ();
 }
 
+boost::dynamic_bitset<>
+computeMaskFromIndexMap( const Eigen::MatrixXi &image_map, size_t nr_points )
+{
+    boost::dynamic_bitset<> mask (nr_points, 0);
+    for (int i = 0; i < image_map.size(); i++)
+    {
+        int val = *(image_map.data() + i);
+        if ( val>= 0)
+            mask.set(val);
+    }
+
+    return mask;
+}
 
 #define PCL_INSTANTIATE_computeMeshResolution(T) template V4R_EXPORTS float computeMeshResolution<T>(const typename pcl::PointCloud<T>::ConstPtr &);
 PCL_INSTANTIATE(computeMeshResolution, PCL_XYZ_POINT_TYPES )

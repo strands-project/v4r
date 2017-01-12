@@ -23,36 +23,29 @@
 
 
 
-#include <Eigen/Eigen>
 #include <v4r/core/macros.h>
-#ifndef V4R_COLOR_COMPARISON_H_
-#define V4R_COLOR_COMPARISON_H_
+#include <vector>
+#include <Eigen/Core>
+#ifndef V4R_APPEARANCE_HISTOGRAM_EQUALIZATION_H_
+#define V4R_APPEARANCE_HISTOGRAM_EQUALIZATION_H_
 
 namespace v4r
 {
 
 /**
- * @brief CIE76 standard for color comparison --> sqrt ( norm(L_diff) + norm(A_diff) + norm(B_diff) )
- * @param color matrix a (each row is a color)
- * @param color matrix a (each row is a color)
- * @param diff
+ * @brief
+ * The histogram equalization is an approach to enhance a given image.
+ * The approach is to design a transformation T such that the gray values in the output is uniformly distributed in [0, 1].
+ * Based on http://www.programming-techniques.com/2013/01/histogram-equalization-using-c-image.html
+ * @date July 2016
+ * @author Thomas Faeulhammer
  */
-//V4R_EXPORTS Eigen::VectorXf CIE76(const Eigen::MatrixXf &a, const Eigen::MatrixXf &b);
-
-V4R_EXPORTS float CIE76(const Eigen::Vector3f &a, const Eigen::Vector3f &b);
-
-V4R_EXPORTS float CIE94(const Eigen::Vector3f &a, const Eigen::Vector3f &b, float K1=1.f, float K2=.045f, float Kl=.015f); // default parameters for graphics
-//V4R_EXPORTS float CIE94(const Eigen::Vector3f &a, const Eigen::Vector3f &b, float K1=2.f, float K2=.048f, float Kl=.014f); // default parameters for textiles
-
-V4R_EXPORTS float CIEDE2000(const Eigen::Vector3f &a, const Eigen::Vector3f &b);
-
-
-enum ColorComparisonMethod
+class V4R_EXPORTS HistogramEqualizer
 {
-    cie76,
-    cie94,
-    ciede2000
-};
+private:
 
+public:
+    void equalize(const Eigen::VectorXf &input, Eigen::VectorXf &output);
+};
 }
 #endif
