@@ -33,7 +33,6 @@
 #include <v4r/reconstruction/KeypointSlamRGBD2.h>
 #include <boost/thread.hpp>
 #include <v4r/features/FeatureDetector_K_HARRIS.h>
-#include <v4r/common/impl/ScopeTime.hpp>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 

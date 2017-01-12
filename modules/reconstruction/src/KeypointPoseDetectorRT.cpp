@@ -31,7 +31,6 @@
  */
 
 #include <v4r/reconstruction/KeypointPoseDetectorRT.h>
-#include <v4r/common/impl/ScopeTime.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
 #if CV_MAJOR_VERSION < 3
