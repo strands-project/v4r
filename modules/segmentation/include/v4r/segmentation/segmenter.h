@@ -45,18 +45,16 @@ template<typename PointT>
 class V4R_EXPORTS Segmenter
 {
 private:
-    typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
-
     mutable pcl::visualization::PCLVisualizer::Ptr vis_;
     mutable int vp1_, vp2_, vp3_;
 
 protected:
-    PointTPtr scene_; /// \brief point cloud to be segmented
-    pcl::PointCloud<pcl::Normal>::Ptr normals_; /// @brief normals of the cloud to be segmented
-    std::vector<pcl::PointIndices> clusters_; /// @brief segmented clusters. Each cluster represents a bunch of indices of the input cloud
-    std::vector<int> indices_;  /// @brief region of interest
-    Eigen::Vector4f dominant_plane_; /// @brief extracted dominant table plane (if segmentation algorithm supports it)
-    std::vector< typename PlaneModel<PointT>::Ptr > all_planes_; /// @brief all extracted planes (if segmentation algorithm supports it)
+    typename pcl::PointCloud<PointT>::ConstPtr scene_; ///< point cloud to be segmented
+    pcl::PointCloud<pcl::Normal>::ConstPtr normals_; ///< normals of the cloud to be segmented
+    std::vector<pcl::PointIndices> clusters_; ///< segmented clusters. Each cluster represents a bunch of indices of the input cloud
+    std::vector<int> indices_;  ///< region of interest
+    Eigen::Vector4f dominant_plane_; ///< extracted dominant table plane (if segmentation algorithm supports it)
+    std::vector< typename PlaneModel<PointT>::Ptr > all_planes_; ///< all extracted planes (if segmentation algorithm supports it)
     bool visualize_;
 
 public:
@@ -70,7 +68,7 @@ public:
      * @param cloud
      */
     void
-    setInputCloud ( const typename pcl::PointCloud<PointT>::Ptr &cloud )
+    setInputCloud ( const typename pcl::PointCloud<PointT>::ConstPtr &cloud )
     {
         scene_ = cloud;
     }
@@ -80,7 +78,7 @@ public:
      * @param normals
      */
     void
-    setNormalsCloud ( const pcl::PointCloud<pcl::Normal>::Ptr &normals )
+    setNormalsCloud ( const pcl::PointCloud<pcl::Normal>::ConstPtr &normals )
     {
         normals_ = normals;
     }

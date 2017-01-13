@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_LOCAL_ESTIMATOR_H__
-#define V4R_LOCAL_ESTIMATOR_H__
+#pragma once
 
 #include <v4r/common/normal_estimator.h>
 #include <v4r/core/macros.h>
@@ -35,11 +34,11 @@ template<typename PointT>
 class V4R_EXPORTS LocalEstimator
 {
 protected:
-    typename pcl::PointCloud<PointT>::Ptr cloud_;
-    pcl::PointCloud<pcl::Normal>::Ptr normals_;
-    typename pcl::PointCloud<PointT>::Ptr processed_;
-    typename pcl::PointCloud<PointT>::Ptr keypoints_;
-    std::vector<int> keypoint_indices_;
+    typename pcl::PointCloud<PointT>::ConstPtr cloud_;  ///< input cloud
+    pcl::PointCloud<pcl::Normal>::ConstPtr normals_;    ///< input normals
+    typename pcl::PointCloud<PointT>::Ptr processed_;   ///< processesed point cloud (empty if equal to input cloud)
+    typename pcl::PointCloud<PointT>::Ptr keypoints_;   ///< extracted keypoints
+    std::vector<int> keypoint_indices_; ///< extracted keypoint indices
 
     std::vector<int> indices_;
     std::string descr_name_;
@@ -77,7 +76,7 @@ public:
      * @param normals
      */
     void
-    setNormals(const pcl::PointCloud<pcl::Normal>::Ptr & normals)
+    setNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr & normals)
     {
         normals_ = normals;
     }
@@ -87,7 +86,7 @@ public:
      * @param normals
      */
     void
-    setInputCloud(const typename pcl::PointCloud<PointT>::Ptr &cloud)
+    setInputCloud(const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
     {
         cloud_ = cloud;
     }
@@ -122,6 +121,10 @@ public:
         return descr_dims_;
     }
 
+    /**
+     * @brief compute features from given input cloud
+     * @param signatures
+     */
     virtual void
     compute (std::vector<std::vector<float> > & signatures)=0;
 
@@ -129,5 +132,3 @@ public:
     typedef boost::shared_ptr< LocalEstimator<PointT> const> ConstPtr;
 };
 }
-
-#endif

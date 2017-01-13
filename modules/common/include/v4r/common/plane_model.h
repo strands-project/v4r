@@ -21,7 +21,7 @@ public:
 
     Eigen::Vector4f coefficients_;
     pcl::PolygonMeshPtr convex_hull_;
-    typename pcl::PointCloud<PointT>::Ptr cloud_;
+    typename pcl::PointCloud<PointT>::ConstPtr cloud_;
     std::vector<int> inliers_;
 
     typename pcl::PointCloud<PointT>::Ptr

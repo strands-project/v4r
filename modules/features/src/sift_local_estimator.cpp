@@ -58,7 +58,7 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
     indices_.clear();
     keypoints_.reset( new pcl::PointCloud<PointT>);
     pcl::copyPointCloud(*cloud_, keypoint_indices_, *keypoints_);
-    processed_ = cloud_;
+    processed_.reset();
 }
 
 

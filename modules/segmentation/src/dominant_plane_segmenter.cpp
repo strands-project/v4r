@@ -1,4 +1,7 @@
+
+#include <pcl/apps/dominant_plane_segmentation.h>
 #include <v4r/segmentation/dominant_plane_segmenter.h>
+#include <boost/pointer_cast.hpp>
 
 namespace v4r
 {
@@ -9,7 +12,8 @@ DominantPlaneSegmenter<PointT>::segment()
 {
     clusters_.clear();
     pcl::apps::DominantPlaneSegmentation<PointT> dps;
-    dps.setInputCloud (scene_);
+    typename pcl::PointCloud<PointT>::Ptr scene ( boost::const_pointer_cast< pcl::PointCloud<PointT> > (scene_ ) ); ///NOTE: This cast is due to an PCL issue!
+    dps.setInputCloud ( scene );
     dps.setMaxZBounds (param_.chop_z_);
     dps.setObjectMinHeight (param_.object_min_height_);
     dps.setObjectMaxHeight (param_.object_max_height_);
