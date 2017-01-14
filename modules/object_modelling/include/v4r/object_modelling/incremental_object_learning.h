@@ -84,7 +84,7 @@ public:
         double voxel_resolution_;
         double seed_resolution_;
         double ratio_supervoxel_;
-        double chop_z_; /// @brief cut-off distance in meters
+        double chop_z_; ///< cut-off distance in meters
         bool do_erosion_;
         bool transfer_indices_from_latest_frame_only_;
         size_t min_points_for_transferring_;
@@ -146,9 +146,9 @@ protected:
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
     typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
 
-    std::vector< pcl::PointCloud<PointT>::Ptr > keyframes_used_;  /// @brief all keyframes containing the object with sufficient number of points
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used_;  /// @brief camera pose belonging to the keyframes containing the object with sufficient number of points
-    std::vector<std::vector<size_t> > object_indices_clouds_used_;  /// @brief indices of the object in all keyframes containing the object with sufficient number of points
+    std::vector< pcl::PointCloud<PointT>::Ptr > keyframes_used_;  ///< all keyframes containing the object with sufficient number of points
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used_;  ///< camera pose belonging to the keyframes containing the object with sufficient number of points
+    std::vector<std::vector<size_t> > object_indices_clouds_used_;  ///< indices of the object in all keyframes containing the object with sufficient number of points
 
     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_normals_oriented_;
 

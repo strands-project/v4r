@@ -20,8 +20,7 @@
  * SOFTWARE.
  *
  ******************************************************************************/
-#ifndef V4R_GLOBAL_RECOGNIZER_H__
-#define V4R_GLOBAL_RECOGNIZER_H__
+#pragma once
 
 #include <pcl/common/common.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -222,5 +221,3 @@ public:
     typedef boost::shared_ptr< GlobalRecognizer<PointT> const> ConstPtr;
 };
 }
-
-#endif

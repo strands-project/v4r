@@ -37,9 +37,7 @@ namespace v4r
  * @param color matrix a (each row is a color)
  * @param diff
  */
-//V4R_EXPORTS Eigen::VectorXf CIE76(const Eigen::MatrixXf &a, const Eigen::MatrixXf &b);
-
-V4R_EXPORTS float CIE76(const Eigen::Vector3f &a, const Eigen::Vector3f &b);
+V4R_EXPORTS float CIE76(const Eigen::VectorXf &a, const Eigen::VectorXf &b);
 
 V4R_EXPORTS float CIE94(const Eigen::Vector3f &a, const Eigen::Vector3f &b, float K1=1.f, float K2=.045f, float Kl=.015f); // default parameters for graphics
 //V4R_EXPORTS float CIE94(const Eigen::Vector3f &a, const Eigen::Vector3f &b, float K1=2.f, float K2=.048f, float Kl=.014f); // default parameters for textiles

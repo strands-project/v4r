@@ -21,8 +21,8 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_SIFT_ESTIMATOR_H_
-#define V4R_SIFT_ESTIMATOR_H_
+#pragma once
+
 #include <v4r_config.h>
 
 #include <v4r/features/local_estimator.h>
@@ -35,6 +35,9 @@
 #else
 #include <opencv2/nonfree/features2d.hpp> // requires OpenCV non-free module
 #endif
+
+//This stuff is needed to be able to make the SIFT histograms persistent
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<128>, (float[128], histogram, histogramSIFT) )
 
 namespace v4r
 {
@@ -64,7 +67,7 @@ public:
     {
     public:
         bool dense_extraction_;
-        int stride_;    /// @brief is dense_extraction, this will define the stride in pixel for extracting SIFT keypoints
+        int stride_;    ///< is dense_extraction, this will define the stride in pixel for extracting SIFT keypoints
         Parameter
         (
                 bool dense_extraction = false,
@@ -90,11 +93,11 @@ public:
         descr_dims_ = 128;
 
         //init sift
-        static char kw[][16] = {"-m", "-fo", "-1", "-s", "-v", "0", "-pack"};
-        char * argv[] = {kw[0], kw[1], kw[2], kw[3],kw[4],kw[5],kw[6], NULL};
+//        const char *argv[] = {"-m", "-fo","-1", "-s", "-v", "0", "-pack", "-maxd", "8192"};   // for Kinect v2
+        const char *argv[] = {"-m", "-fo","-1", "-s", "-v", "0", "-pack"};  // for Kinect v1
         int argc = sizeof(argv) / sizeof(char*);
         sift_.reset(new SiftGPU());
-        sift_->ParseParam (argc, argv);
+        sift_->ParseParam (argc, (char **)argv);
 
         //create an OpenGL context for computation
         if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
@@ -122,6 +125,10 @@ public:
         return true;
     }
 
+    /**
+     * @brief setMaxDistance sets the maximum distance in meter for a keypoint to be valid
+     * @param max_distance in meters
+     */
     void
     setMaxDistance(float max_distance)
     {
@@ -139,5 +146,3 @@ public:
     typedef boost::shared_ptr< SIFTLocalEstimation<PointT> const> ConstPtr;
 };
 }
-
-#endif /* REC_FRAMEWORK_SHOT_LOCAL_ESTIMATOR_H_ */

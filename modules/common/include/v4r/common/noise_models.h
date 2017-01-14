@@ -47,9 +47,9 @@ public:
     class Parameter
     {
     public:
-        bool use_depth_edges_; /// @brief if true, uses PCL's organized edge detection algorithm to compute distance of each pixel to these discontinuites.
-        float focal_length_; /// @brief Focal length of the camera
-        int edge_radius_;   /// @brief radius in pixel. Only pixels within this radius with respect to an edge point will compute the distance to the edge. Remaining points will have infinite distance to edge
+        bool use_depth_edges_; ///< if true, uses PCL's organized edge detection algorithm to compute distance of each pixel to these discontinuites.
+        float focal_length_; ///< Focal length of the camera
+        int edge_radius_;   ///< radius in pixel. Only pixels within this radius with respect to an edge point will compute the distance to the edge. Remaining points will have infinite distance to edge
         Parameter(
                 bool use_depth_edges = true,
                 float focal_length = 525.f,
@@ -64,10 +64,10 @@ public:
 private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
     typedef typename pcl::PointCloud<pcl::Normal>::Ptr PointNormalTPtr;
-    PointTPtr input_; /// @brief input cloud
-    PointNormalTPtr normals_; /// @brief input normal
-    std::vector<std::vector<float> > pt_properties_; /// @brief for each pixel save lateral [idx=0] and axial sigma [idx=1] as well as Euclidean distance to depth discontinuity [idx=2]
-    pcl::PointIndices discontinuity_edges_; /// @brief indices of the point cloud which represent edges
+    PointTPtr input_; ///< input cloud
+    PointNormalTPtr normals_; ///< input normal
+    std::vector<std::vector<float> > pt_properties_; ///< for each pixel save lateral [idx=0] and axial sigma [idx=1] as well as Euclidean distance to depth discontinuity [idx=2]
+    pcl::PointIndices discontinuity_edges_; ///< indices of the point cloud which represent edges
 
 public:
     NguyenNoiseModel (const Parameter &param=Parameter());

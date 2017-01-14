@@ -30,8 +30,7 @@
 *      @brief object model database
 */
 
-#ifndef V4R_VIEWS_SOURCE_H_
-#define V4R_VIEWS_SOURCE_H_
+#pragma once
 
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
@@ -137,12 +136,6 @@ public:
         PCL_ERROR("This function is not implemented in this Source class\n");
     }
 
-    float
-    getScale ()
-    {
-        return model_scale_;
-    }
-
     void
     setRadiusNormals(float r)
     {
@@ -239,5 +232,3 @@ public:
     typedef boost::shared_ptr< Source<PointT> const> ConstPtr;
 };
 }
-
-#endif /* REC_FRAMEWORK_VIEWS_SOURCE_H_ */

@@ -95,9 +95,9 @@ namespace v4r
         } param_;
 
     private:
-        size_t num_classes_;    /// @brief number of target labels
-        std::string in_filename_;   /// @brief filename to read svm model. If set (file exists), training is skipped and this model loaded instead.
-        std::string out_filename_; /// @brief filename to save trained model
+        size_t num_classes_;    ///< number of target labels
+        std::string in_filename_;   ///< filename to read svm model. If set (file exists), training is skipped and this model loaded instead.
+        std::string out_filename_; ///< filename to save trained model
         ::svm_model *svm_mod_;
 
     public:

@@ -51,17 +51,17 @@ class V4R_EXPORTS GlobalNNClassifier
 protected:
     typedef typename pcl::PointCloud<PointInT>::Ptr PointInTPtr;
 
-    std::string training_dir_;  /// @brief directory containing training data
+    std::string training_dir_;  ///< directory containing training data
 
-    PointInTPtr input_; /// @brief Point cloud to be classified
+    PointInTPtr input_; ///< Point cloud to be classified
 
-    std::vector<int> indices_; /// @brief indices of the object to be classified
+    std::vector<int> indices_; ///< indices of the object to be classified
 
-    std::vector<std::string> categories_;   /// @brief classification results
+    std::vector<std::string> categories_;   ///< classification results
 
-    std::vector<float> confidences_;   /// @brief confidences associated to the classification results (normalized to 0...1)
+    std::vector<float> confidences_;   ///< confidences associated to the classification results (normalized to 0...1)
 
-    typename boost::shared_ptr<GlobalEstimator<PointInT> > estimator_; /// @brief estimator used for describing the object
+    typename boost::shared_ptr<GlobalEstimator<PointInT> > estimator_; ///< estimator used for describing the object
 
     struct index_score
     {

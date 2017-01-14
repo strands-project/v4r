@@ -38,7 +38,7 @@ class V4R_EXPORTS KeypointExtractor
 protected:
     typename pcl::PointCloud<PointT>::ConstPtr input_;
     std::vector<int> keypoint_indices_;
-    std::vector<int> indices_;  /// @brief indices of the segmented object (extracted keypoints outside of this will be neglected)
+    std::vector<int> indices_;  ///< indices of the segmented object (extracted keypoints outside of this will be neglected)
     int keypoint_extractor_type_;
     std::string keypoint_extractor_name_;
 

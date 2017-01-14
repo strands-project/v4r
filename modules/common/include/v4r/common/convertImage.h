@@ -9,6 +9,7 @@
 #define KP_CONVERT_CLOUDTOIMAGE_HPP
 
 #include <float.h>
+#include <v4r/core/macros.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 //#include <pcl/point_cloud.h>
@@ -18,6 +19,7 @@
 namespace v4r
 {
 
+DEPRECATED( inline void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image) );
 
 inline void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image)
 {

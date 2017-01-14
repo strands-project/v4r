@@ -45,13 +45,13 @@ public:
     {
         public:
 
-        double salient_radius_; /// @brief Set the radius of the spherical neighborhood used to compute the scatter matrix.
-        double non_max_radius_; /// @brief Set the radius for the application of the non maxima supression algorithm.
-        double normal_radius_; /// @brief Set the radius used for the estimation of the surface normals of the input cloud. If the radius is too large, the temporal performances of the detector may degrade significantly. Only used if parameter with_border_estimation equal true.
-        double border_radius_; /// @brief Set the radius used for the estimation of the boundary points. If the radius is too large, the temporal performances of the detector may degrade significantly. Only used if parameter with_border_estimation equal true.
-        double gamma_21_; /// @brief Set the upper bound on the ratio between the second and the first eigenvalue.
-        double gamma_32_; /// @brief Set the upper bound on the ratio between the third and the second eigenvalue.
-        double min_neighbors_ ; /// @brief Set the minimum number of neighbors that has to be found while applying the non maxima suppression algorithm.
+        double salient_radius_; ///< Set the radius of the spherical neighborhood used to compute the scatter matrix.
+        double non_max_radius_; ///< Set the radius for the application of the non maxima supression algorithm.
+        double normal_radius_; ///< Set the radius used for the estimation of the surface normals of the input cloud. If the radius is too large, the temporal performances of the detector may degrade significantly. Only used if parameter with_border_estimation equal true.
+        double border_radius_; ///< Set the radius used for the estimation of the boundary points. If the radius is too large, the temporal performances of the detector may degrade significantly. Only used if parameter with_border_estimation equal true.
+        double gamma_21_; ///< Set the upper bound on the ratio between the second and the first eigenvalue.
+        double gamma_32_; ///< Set the upper bound on the ratio between the third and the second eigenvalue.
+        double min_neighbors_ ; ///< Set the minimum number of neighbors that has to be found while applying the non maxima suppression algorithm.
         bool with_border_estimation_;
         int threads_;
 
