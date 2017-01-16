@@ -108,13 +108,13 @@ private:
 
   
   // cluster normals
-  void doClustering(const typename pcl::PointCloud<PointT>::Ptr &cloud, const pcl::PointCloud<pcl::Normal> &normals, std::vector<typename ClusterNormalsToPlanesPCL<PointT>::Plane::Ptr> &planes);
+  void doClustering(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const pcl::PointCloud<pcl::Normal> &normals, std::vector<typename ClusterNormalsToPlanesPCL<PointT>::Plane::Ptr> &planes);
   // cluster normals from point
-  void clusterNormals(const typename pcl::PointCloud<PointT>::Ptr &cloud, const pcl::PointCloud<pcl::Normal> &normals, size_t idx, Plane &plane);
+  void clusterNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const pcl::PointCloud<pcl::Normal> &normals, size_t idx, Plane &plane);
   // cluster normals from point for an unorganized pointcloud
-  void clusterNormalsUnorganized(const typename pcl::PointCloud<PointT>::Ptr &cloud, const pcl::PointCloud<pcl::Normal> &normals, size_t idx, Plane &plane);
+  void clusterNormalsUnorganized(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const pcl::PointCloud<pcl::Normal> &normals, size_t idx, Plane &plane);
   // do a smooth clustering
-  void smoothClustering(const typename pcl::PointCloud<PointT>::Ptr &cloud, const pcl::PointCloud<pcl::Normal> &normals, size_t idx, Plane &plane);
+  void smoothClustering(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const pcl::PointCloud<pcl::Normal> &normals, size_t idx, Plane &plane);
   // adds normals to each point of segmented patches
 
 public:
@@ -130,10 +130,10 @@ public:
   {}
 
   /** Compute planes by surface normal grouping **/
-  void compute(const typename pcl::PointCloud<PointT>::Ptr &cloud, const pcl::PointCloud<pcl::Normal> &normals, std::vector<PlaneModel<PointT> > &_planes);
+  void compute(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const pcl::PointCloud<pcl::Normal> &normals, std::vector<PlaneModel<PointT> > &_planes);
 
   /** Compute a plane starting from a seed point **/
-  void compute(const typename pcl::PointCloud<PointT>::Ptr &cloud, const pcl::PointCloud<pcl::Normal> &normals, int x, int y, PlaneModel<PointT> &pm);
+  void compute(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const pcl::PointCloud<pcl::Normal> &normals, int x, int y, PlaneModel<PointT> &pm);
 
 
   typedef boost::shared_ptr< ::v4r::ClusterNormalsToPlanesPCL<PointT> > Ptr;

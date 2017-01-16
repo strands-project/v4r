@@ -33,9 +33,9 @@ namespace v4r
 /**
  * @brief sets the sensor origin and sensor orientation fields of the PCL pointcloud header by the given transform
  */
-template<typename PointType>
+template<typename PointT>
 V4R_EXPORTS void
-setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud);
+setCloudPose(const Eigen::Matrix4f &trans, pcl::PointCloud<PointT> &cloud);
 
 }
 

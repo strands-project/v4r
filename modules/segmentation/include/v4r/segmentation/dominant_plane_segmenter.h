@@ -33,8 +33,6 @@
 
 #include <v4r/core/macros.h>
 #include <v4r/segmentation/segmenter.h>
-#include <pcl/apps/dominant_plane_segmentation.h>
-
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
 
