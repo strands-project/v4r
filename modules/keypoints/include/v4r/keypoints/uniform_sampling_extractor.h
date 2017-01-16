@@ -40,7 +40,7 @@ private:
     using KeypointExtractor<PointT>::keypoint_extractor_type_;
     using KeypointExtractor<PointT>::keypoint_extractor_name_;
 
-    float sampling_density_; /// @brief sampling distance in meter
+    float sampling_density_; ///< sampling distance in meter
 
 public:
     UniformSamplingExtractor(float sampling_density = 0.01f) : sampling_density_ (sampling_density)
