@@ -39,16 +39,16 @@ public:
   class Parameter
   {
   public:
-    double thrAngle;             /// @brief Threshold of angle for normal clustering
-    double inlDist;              /// @brief Maximum inlier distance
-    unsigned minPoints;              /// @brief Minimum number of points for a plane
+    double thrAngle;             ///< Threshold of angle for normal clustering
+    double inlDist;              ///< Maximum inlier distance
+    unsigned minPoints;              ///< Minimum number of points for a plane
     bool least_squares_refinement;
     bool smooth_clustering;
-    double thrAngleSmooth;             /// @brief Threshold of angle for normal clustering
-    double inlDistSmooth;              /// @brief Maximum inlier distance
+    double thrAngleSmooth;             ///< Threshold of angle for normal clustering
+    double inlDistSmooth;              ///< Maximum inlier distance
     unsigned minPointsSmooth;
     int K_; // k in nearest neighor search when doing smooth clustering in unorganized point clouds
-    int normal_computation_method_; /// @brief defines the method used for normal computation (only used when point cloud is downsampled / unorganized)
+    int normal_computation_method_; ///< defines the method used for normal computation (only used when point cloud is downsampled / unorganized)
     
     Parameter(double thrAngleNC=30, double _inlDist=0.01, unsigned _minPoints=9, bool _least_squares_refinement=true, bool _smooth_clustering=false,
               double _thrAngleSmooth=30, double _inlDistSmooth=0.02, unsigned _minPointsSmooth=3, int K=5, int normal_computation_method = 2)

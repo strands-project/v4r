@@ -71,7 +71,7 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
 
     cv::Mat descriptors;
 
-    #ifdef HAVE_SIFTGPU
+#ifdef HAVE_SIFTGPU
     if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
         throw std::runtime_error ("SiftGPU: No GL support!");
 

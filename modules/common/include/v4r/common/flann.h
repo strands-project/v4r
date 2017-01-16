@@ -49,7 +49,7 @@ public:
     {
     public:
         int kdtree_splits_;
-        int distance_metric_; /// @brief defines the norm used for feature matching (1... L1 norm, 2... L2 norm)
+        int distance_metric_; ///< defines the norm used for feature matching (1... L1 norm, 2... L2 norm)
         int knn_;
 
         Parameter(

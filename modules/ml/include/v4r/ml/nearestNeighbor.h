@@ -38,8 +38,8 @@ namespace v4r
         {
         public:
             int kdtree_splits_;
-            size_t knn_;  /// @brief nearest neighbors to search for when checking feature descriptions of the scene
-            int distance_metric_; /// @brief defines the norm used for feature matching (1... L1 norm, 2... L2 norm)
+            size_t knn_;  ///< nearest neighbors to search for when checking feature descriptions of the scene
+            int distance_metric_; ///< defines the norm used for feature matching (1... L1 norm, 2... L2 norm)
 
             Parameter(
                     int kdtree_splits = 512,

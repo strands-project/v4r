@@ -50,10 +50,10 @@ public:
     public:
         int u_margin_, v_margin_;
         bool compute_focal_length_;
-        bool do_smoothing_;
+        bool do_smoothing_; ///< tries to fill holes by dilating points over neighboring pixel
         float inlier_threshold_;
         int smoothing_radius_;
-        bool force_unorganized_; ///@brief re-projects points by given camera intrinsics even if point cloud is already organized
+        bool force_unorganized_; ///< re-projects points by given camera intrinsics even if point cloud is already organized
         Parameter(
                 int u_margin = 0,
                 int v_margin = 0,

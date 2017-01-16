@@ -51,13 +51,13 @@ public:
     class V4R_EXPORTS Parameter
     {
     public:
-        int min_points_per_voxel_;  /// @brief the minimum number of points in a leaf of the octree of the big cloud.
-        float octree_resolution_;   /// @brief resolution of the octree of the big point cloud
-        float focal_length_;   /// @brief focal length of the cameras; used for reprojection of the points into each image plane
-        bool average_;  /// @brief if true, takes the average color (for each color componenent) and normal within all the points in the leaf of the octree. Otherwise, it takes the point within the octree with the best noise weight
-        float threshold_explained_; /// @brief Euclidean distance for a nearby point to explain a query point. Only used if reason_about_points = true
-        bool reason_about_points_; /// @brief if true, projects each point into each viewpoint and checks for occlusion or if it can be explained by the points in the other viewpoints (this should filter lonely points but is computational expensive) --> FILTER NOT IMPLEMENTED SO FAR!!
-        float edge_radius_px_; /// @brief points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed
+        int min_points_per_voxel_;  ///< the minimum number of points in a leaf of the octree of the big cloud.
+        float octree_resolution_;   ///< resolution of the octree of the big point cloud
+        float focal_length_;   ///< focal length of the cameras; used for reprojection of the points into each image plane
+        bool average_;  ///< if true, takes the average color (for each color componenent) and normal within all the points in the leaf of the octree. Otherwise, it takes the point within the octree with the best noise weight
+        float threshold_explained_; ///< Euclidean distance for a nearby point to explain a query point. Only used if reason_about_points = true
+        bool reason_about_points_; ///< if true, projects each point into each viewpoint and checks for occlusion or if it can be explained by the points in the other viewpoints (this should filter lonely points but is computational expensive) --> FILTER NOT IMPLEMENTED SO FAR!!
+        float edge_radius_px_; ///< points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed
         Parameter(
                 int min_points_per_voxel = 1,
                 float octree_resolution =  0.003f,
@@ -83,7 +83,7 @@ private:
 
     class PointInfo{
     private:
-        size_t num_pts_for_average_; /// @brief number of points used for building average
+        size_t num_pts_for_average_; ///< number of points used for building average
 
     public:
         PointT pt;
@@ -94,8 +94,8 @@ private:
             //  [1] can be explained by a nearby point;
             //  [2] could be seen but does not make sense (i.e. the view-ray is not blocked, but there is no sensed point)
         size_t occluded_, explained_, violated_;
-        int origin; /// @brief cloud index where the point comes from
-        int pt_idx; /// @brief pt index in the original cloud
+        int origin; ///< cloud index where the point comes from
+        int pt_idx; ///< pt index in the original cloud
         float distance_to_depth_discontinuity;
         float sigma_lateral;
         float sigma_axial;
@@ -141,9 +141,9 @@ private:
     std::vector<PointTPtr> input_clouds_;
     std::vector<PointTPtr> input_clouds_used_;
     std::vector<PointNormalTPtr> input_normals_;
-    std::vector<std::vector<int> > indices_; /// @brief Indices of the object in each cloud (remaining points will be ignored)
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations_to_global_; /// @brief transform aligning the input point clouds when multiplied
-    std::vector<std::vector<std::vector<float> > > pt_properties_; /// @brief for each cloud, for each pixel represent lateral [idx=0] and axial [idx=1] as well as distance to closest depth discontinuity [idx=2]
+    std::vector<std::vector<int> > indices_; ///< Indices of the object in each cloud (remaining points will be ignored)
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations_to_global_; ///< transform aligning the input point clouds when multiplied
+    std::vector<std::vector<std::vector<float> > > pt_properties_; ///< for each cloud, for each pixel represent lateral [idx=0] and axial [idx=1] as well as distance to closest depth discontinuity [idx=2]
     PointNormalTPtr output_normals_;
 
     void cleanUp()

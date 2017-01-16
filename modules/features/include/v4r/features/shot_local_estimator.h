@@ -28,6 +28,9 @@
 #include <v4r/features/local_estimator.h>
 #include <v4r/features/types.h>
 
+//This stuff is needed to be able to make the SHOT histograms persistent
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<352>, (float[352], histogram, histogram352) )
+
 namespace v4r
 {
     template<typename PointT>
