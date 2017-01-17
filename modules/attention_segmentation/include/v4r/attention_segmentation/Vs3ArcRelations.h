@@ -37,18 +37,18 @@
 // #include <cstdio>
 // 
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/core/core.hpp>
+#include <opencv2/core/core.h>
 #include <opencv2/opencv.hpp>
 
-#include "v4r/SurfaceUtils/SurfaceModel.hpp"
-// #include "v4r/SurfaceBoundary/VisionCore.hh"
+#include "v4r/SurfaceUtils/SurfaceModel.h"
+// #include "v4r/SurfaceBoundary/VisionCore.h"
 // 
 // #include "ColorHistogram3D.h"
 // #include "Texture.h"
 // #include "Fourier.h"
 // #include "Gabor.h"
 // #include "BoundaryRelations.h"
-// #include "ContourNormalsDistance.hh"
+// #include "ContourNormalsDistance.h"
 
 
 namespace surface

@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/RelativeSurfaceOrientationMap.hpp"
+#include "v4r/attention_segmentation/RelativeSurfaceOrientationMap.h"
 
 namespace v4r
 {

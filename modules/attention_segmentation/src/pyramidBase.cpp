@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/pyramidBase.hpp"
+#include "v4r/attention_segmentation/pyramidBase.h"
 
 namespace v4r
 {

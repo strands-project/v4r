@@ -48,7 +48,7 @@
 #include "v4r/attention_segmentation/SurfaceModel.h"
 #include "v4r/attention_segmentation//EPBase.h"
 
-#include "v4r/attention_segmentation/EPUtils.hpp"
+#include "v4r/attention_segmentation/EPUtils.h"
 
 
 namespace v4r

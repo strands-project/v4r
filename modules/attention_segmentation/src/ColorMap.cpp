@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/ColorMap.hpp"
+#include "v4r/attention_segmentation/ColorMap.h"
 
 namespace v4r
 {

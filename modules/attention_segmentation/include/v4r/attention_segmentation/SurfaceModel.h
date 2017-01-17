@@ -44,7 +44,7 @@
 //  #include "v4r/TomGine/tgRenderModel.h"
 //#endif
 
-#include "v4r/attention_segmentation/EPUtils.hpp"
+#include "v4r/attention_segmentation/EPUtils.h"
 
 namespace v4r
 {

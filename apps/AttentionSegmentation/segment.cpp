@@ -41,8 +41,8 @@
 #include <boost/filesystem.hpp>
 
 #include "v4r/attention_segmentation/PCLUtils.h"
-#include "v4r/attention_segmentation/segmentation.hpp"
-#include "v4r/attention_segmentation/EPEvaluation.hpp"
+#include "v4r/attention_segmentation/segmentation.h"
+#include "v4r/attention_segmentation/EPEvaluation.h"
 
 void readData(std::string filename, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pcl_cloud, pcl::PointCloud<pcl::PointXYZRGBL>::Ptr &pcl_cloud_l)
 {

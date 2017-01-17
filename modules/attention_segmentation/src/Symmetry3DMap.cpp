@@ -24,7 +24,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "v4r/attention_segmentation/Symmetry3DMap.hpp"
+#include "v4r/attention_segmentation/Symmetry3DMap.h"
 
 namespace v4r {
 

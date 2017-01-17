@@ -22,12 +22,12 @@
  */
 
 
-#include "v4r/attention_segmentation/AttentionExampleUtils.hpp"
+#include "v4r/attention_segmentation/AttentionExampleUtils.h"
 
 #include <opencv2/opencv.hpp>
 
-#include "v4r/attention_segmentation/AttentionModule.hpp"
-#include "v4r/attention_segmentation/AttentionExampleUtils.hpp"
+#include "v4r/attention_segmentation/AttentionModule.h"
+#include "v4r/attention_segmentation/AttentionExampleUtils.h"
 
 // This program shows the use of Surface Height Saliency Map on one image
 

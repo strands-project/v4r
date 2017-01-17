@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/segmentEvaluation.hpp"
+#include "v4r/attention_segmentation/segmentEvaluation.h"
 
 namespace EPEvaluation {
 

@@ -22,7 +22,7 @@
  */
 
 /**
- * @file BoundaryRelationsMeanColor.hpp
+ * @file BoundaryRelationsMeanColor.h
  * @author Potapova
  * @date August 2013
  * @version 0.1

@@ -22,7 +22,7 @@
  */
 
 /**
- * @file BoundaryRelationsMeanDepth.hpp
+ * @file BoundaryRelationsMeanDepth.h
  * @author Potapova
  * @date August 2013
  * @version 0.1

@@ -22,8 +22,8 @@
  */
 
 
-#include "v4r/attention_segmentation/debugUtils.hpp"
-#include "v4r/attention_segmentation/convertions.hpp"
+#include "v4r/attention_segmentation/debugUtils.h"
+#include "v4r/attention_segmentation/convertions.h"
 
 namespace v4r
 {

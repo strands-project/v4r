@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/AttentionModule.hpp"
+#include "v4r/attention_segmentation/AttentionModule.h"
 
 // This program shows the use of Itti Saliency Map on one image
 

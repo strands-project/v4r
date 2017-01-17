@@ -2,6 +2,436 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge branch 'attention' into 'master'
+  Integrate attention based segmentation Now works on Ubuntu 14.04 and 16.04
+  @michael-zillich-1 @msuchi Can I get some feedback before I merge this?
+  See merge request !112
+* Adaptions for v4r source code for compiling under Ubuntu 16.04.
+  + changed include from "cvmath" to <cvmath>
+  + changed namespace of isnan to std::isnan
+  this is tested for opencv 2.4 and pcl 1.7.2 which have to be set when launchi9ng cmake:
+  cmake -DPCL_DIR=<path to pcl> -DOpenCV_DIR=<oath to opencv 2.4>
+* Merged origin/attention_segmentation into master
+* Merge branch 'Update_Contributing.md' into 'master'
+  Update contributing.md
+  Added usage of  setup.sh to CONTRIBUTING.md
+  See merge request !111
+* Update CONTRIBUTING.md
+* Added dependency installation "how to" to Contributing.md
+* Merged branch master into master
+* Merge branch 'ubuntu16.04+opencv3' into 'master'
+  Ubuntu16.04+opencv3
+  @ghalmets
+  See merge request !103
+* pass 2 parameters to setup. ubuntu and ros codename
+* escape variables
+* update setup.sh and gitlab-ci.yml to be more generic
+* gitlab's lint checker says it is OK now. Let's see.
+* fix gitlab syntax after strange merge issue
+* Merge remote-tracking branch 'refs/remotes/upstream/master'
+  Conflicts:
+  .gitlab-ci.yml
+* Merge branch 'bug_transposed_rendering' into 'master'
+  Changed camera matrix input and output of the pointcloud generation class. Now i…
+  This is the bugfix to: https://rgit.acin.tuwien.ac.at/root/v4r/issues/13
+  See merge request !98
+* Merge branch 'Install_dependencies' into 'master'
+  Adding Setup.sh
+  Added Setup.sh to v4r for a more convenient dependency installation.
+  .gitlab-ci.yml was edited to use setup.sh to keep the script in the CI loop.
+  Workflow:
+  `git clone git@my-awesome-v4r-repo`
+  `cd v4r`
+  `./setup.sh`
+  `mkdir build && cd build`
+  `cmake ..`
+  `make -j8`
+  See merge request !96
+* Update Readme.md
+* Update Readme.md to rgit and added usage of ./setup.sh
+* Changed camera matrix input and output of the pointcloud generation class. Now it is not transposed, or does not has to be transposed anymore.
+* Update .gitlab-ci.yml
+* Added Setup.sh
+* Add script for first build
+  Installing rosdep and dependencies, building v4r.
+* update apps to include all programs for attention based segmentation
+* update attention_segmentation module
+* Add first sample app for attention based segmentation! Yes it works.
+* fix header files
+* fix cmake mistake
+* add and activate opennurbs and on_nurbs
+* shifted around attention\_* files
+* Merged branch master into master
+* fix cmake file
+* add opennurbs as build option for V4R
+* reflect change of opennurbs directory
+* add cmake find file for openNurbs
+* moved opennurbs to 3rdparty
+* delete autosave file
+* change dependencies
+* bring in all the files for attention segmentation -HACK
+* Update examples after eputils merge
+* Small changes because of the eputils merge into attention_segmentation
+* We no longer need/have a v4r_eputils module
+* move eputils into attention_segmentation
+* Add examples for attention based segmentation
+* Adapt to new v4r structure for attention based segmentation
+  mainly namespace changes, V4R_EXPORTS, etc.
+* Add missing files for eputils
+* Adapt to new v4r structure
+  namespaces, V4R_EXPORTS, etc.
+* small changes to bring attention_segmentation into the new v4r structure
+* small changes to bring eputils into the new v4r structure
+* Inital copy of attention_segmentation from v4r svn
+* Inital copy of eputils from v4r svn
+* Merge branch 'master' into 'master'
+  v4r now compiles with OpenCV 2.x and 3.1 on Ubuntu 14.04 and 16.04
+  See merge request !94
+* v4r now compiles with OpenCV 2.x and 3.1 on Ubuntu 14.04 and 16.04
+* Merge branch 'master' into 'master'
+  temporal filter (tracks pose and integrates several rgb-d frames)
+  incl. bug fix: default param in common/occlusion_reasoning.cpp
+  See merge request !93
+* Merge branch 'master' into 'master'
+  Update of Contribution.md with results from Structure Workshop.
+  I have merged the minutes of V4R structure workshop into the Contribution.md
+  See merge request !92
+* Update CONTRIBUTING.md
+* Fixed some Typos
+* Update CONTRIBUTING.md
+* temporal filter (tracks pose and integrates several rgb-d frames)
+* Update CONTRIBUTING.md
+* Update CONTRIBUTING.md
+* Update CONTRIBUTING.md
+* Update CONTRIBUTING.md Update description v4r exports
+* Update CONTRIBUTING.md minor changes
+* Update CONTRIBUTING.md: Formating
+* Update CONTRIBUTING.md: added sections: "Structure", "Documentation", and "How to Build V4R?".
+* Manually set PCL_APPS_LIBRARY
+* Merged branch ubuntu16.04+opencv3 into ubuntu16.04+opencv3
+* I think this is it.
+* say yes to apt-get. all the time
+* No debug symbols installed
+* build ceres from source
+* We can force the dpkg installation
+* handle install with apt-get force
+* Next Ubuntu hack
+* fix stupid Ubuntu typo
+* Introduce hack because Ubuntu
+* rosdep really needs sudo. install it.
+* No sudo in xenial image
+* No sudo in xenial image
+* fix ubuntu version. and again.
+* fix ubuntu version
+* Also build on Ubuntu 16.04
+* fix: no default values
+* I think this is it.
+* say yes to apt-get. all the time
+* No debug symbols installed
+* build ceres from source
+* We can force the dpkg installation
+* handle install with apt-get force
+* Next Ubuntu hack
+* fix stupid Ubuntu typo
+* Introduce hack because Ubuntu
+* rosdep really needs sudo. install it.
+* No sudo in xenial image
+* No sudo in xenial image
+* fix ubuntu version. and again.
+* fix ubuntu version
+* Also build on Ubuntu 16.04
+* Merge branch 'Test' into 'master'
+  Update AUTHORS
+  See merge request !89
+* Merge branch 'libsvm' into 'master'
+  fix libsvm dependency in package.xml
+  See merge request !90
+* fix libsvm dependency in package.xml
+* Update AUTHORS
+* Merge branch 'add_boost_dependency' into 'master'
+  Update hypotheses_verification.cpp (wtf? I just commited this change)
+  See merge request !88
+* Update hypotheses_verification.cpp
+* Update hypotheses_verification.cpp (wtf? I just commited this change)
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !82
+* Merge branch 'add_boost_dependency' into 'master'
+  add missing boost dependency
+  See merge request !86
+* add missing boost dependency
+* Go back to use standard ubuntu trusty docker image
+  This is easier to support in the future.
+* Merged branch master into master
+* Merged branch master into master
+* Merge branch 'fix_vector_type' into 'master'
+  Fix vector type
+  See merge request !79
+* Update hypotheses_verification.cpp
+* Update hypotheses_verification.cpp
+* fix vector type
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* fix vector type for new histogram interface
+* Update Readme.md
+* Merge branch 'master' into 'master'
+  Use docker image that has those dependencies already installed
+  See merge request !78
+* Use docker image that has those dependencies already installed
+* Merge branch 'master' into 'master'
+  Update .gitlab-ci.yml
+  See merge request !77
+* Update .gitlab-ci.yml
+* Merged branch master into master
+* Update .gitlab-ci.yml
+* Update .gitlab-ci.yml
+* Merge branch 'some_fixes' into 'master'
+  Some fixes
+  See merge request !56
+* Update .gitlab-ci.yml
+* Merged branch master into master
+* Update .gitlab-ci.yml
+  yet again. ;-)
+* Update .gitlab-ci.yml
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* put some header defintions into cpp files and remove .hpp files
+* Update .gitlab-ci.yml
+* put miscellaneous functions into more specific files
+* Update v4r_style_guide.md
+* fix merge conflict
+* Merged branch master into master
+* added: only small inline functions
+* Update CONTRIBUTING.md
+* Update CONTRIBUTING.md
+* Update CONTRIBUTING.md
+* Merged branch master into master
+* added: keep pull requests short
+* fixed typo
+* fixed typo
+* clean up .gitlab-ci.yml
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* add depdendencies description
+* Update .gitlab-ci.yml
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* add contributing and style_format doc files
+* Update package.xml
+  test if this compiles now
+* Update .gitlab-ci.yml
+  Continue on rosdep errors. Arrrrrr
+* Update .gitlab-ci.yml
+  fix syntax
+* Update .gitlab-ci.yml
+  specify the ROS version (needed to resolve packages from package.xml)
+* Update .gitlab-ci.yml
+  We need wget as well.
+* Update .gitlab-ci.yml
+* Update .gitlab-ci.yml
+  Seems like we need cmake after all
+* Add .gitlab-ci.yml
+  First try
+* update color transformation and comparison
+* use boost::dynamic_bitset instead of vector<bool>, add camera class, put some definitions into header files + some code refactoring
+* fix roi when reaching boundary
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* Merge branch 'master' into 'master'
+  Ubuntu 16.04 compatibility
+  See merge request !54
+* Merge pull request #67 from strands-project/ubuntu1604_compatibility
+  Ubuntu1604 compatibility
+* Merge remote-tracking branch 'hannes/master'
+* add pcl time header
+* Merge remote-tracking branch 'v4r-master/master'
+* add bounding box function
+* seperate definitions from some header files to reduce compile time
+* fix some warnings
+* Merge pull request #66 from strands-project/sync_from_gitlab
+  Sync from gitlab
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* Merge branch 'new_try' into 'master'
+  New try
+  See merge request !53
+* Merge pull request #64 from strands-project/new_try
+  [WIP] New try
+* add timing for pose refinement
+* update citation file
+* put pcl_opencv functions from header into implementation file
+* some code optimization
+* some changes for compiling with Ubuntu 16.04
+* some beauty
+* add script for obtaining alexNet CNN
+* use const
+* make destructors virtual for virtual classes
+* remove empty file
+* remove broken files
+* put test data into directory
+* fix existing directory warning
+* add docs for recognition
+  update get_TUW script
+* add script for downloading 3dnet test data
+* add doc for RTMT
+* include scripts to obtain training data from TUW and 3dNet
+* include missing mean substraction in alexnet feature estimation
+* update for shape cnn classifier to work
+* fix wrong model assembly resolution
+* fix compilation errors for eval and app pieces
+* fix missing clear of indices when no keypoints are detected
+* remove voxelgriddistancetransform method call
+* remove default typename in createIndicesFromMask method to allow usage without c++11
+* add global hypotheses non-maxima surpression to rejection method
+* group hypotheses by segmentation cluster
+* add online averaging function
+* add hyp stuff (should have been staged earlier)
+* remove EDT stuff
+* check if all views are trained during initialization (not just if directory exist)
+* put boost program options directly into parameter classes, merge ghv with hypotheses verification class
+* make seperate table class
+* minor fixes for save pose into pcd
+* update some visualization functions in recognition
+* remove sift based alignment in incremental object learning class
+* use new segmentation class and provide combined feature, keypoint and segmentation layer
+* hopefully fixing Caffe optional dependency
+* up pcl version
+* fix compilation error caused by addcoordinatesystem if used with PCL < 1.7.2
+* add esf classifier again
+* fix typo in openmp call
+* fix some warnings
+* fix bug in optional dependening on caffe and rendering
+* change default params and do not instantiate harris and iss keypoint extractor on PCL versions < 1.7.2 (as keypoint indices is not available for these versions)
+* make recognition library dependency to rendering and Caffe optional
+* move some hpps into cpps
+* skip recongition rate computation if output file already exists
+* add nicer visualization for paper
+* add todo comment
+* add eval for rec rate over occlusion
+* fix crop bug in pcl opencv conversion
+* fix min fitness threshold scaling
+* flip table plane towards viewpoint and make parameter for min points accessible
+* make resolution as an integer in mm
+* add coordinate system for visualizing recognition results
+* fix bug in color conversion
+* change default parameter for svm cross validation
+* make smooth segmentation parameter scale with depth
+* avoid table plane filtering for initialization in local recognizer
+* add parameter options for smooth clustering
+* add dense SIFT option (not tested yet and only available for SIFTGPU)
+* add smooth clustering and linear thresholding of model fitness threshold (with visibliity)
+* use multi-plane segmentation for local recognizer to find *heighest* table plane
+* fix visualization for recognition rate computation when cloud sensor header is changed
+* temporary remove parallel call of recognizer
+  QH6205 qhull error (qh_initqhull_start): qh_qh already defined.  Call qh_save_qhull() first
+* fix bug in compute recognition rate
+* ignore multiview and esf object classifier for now
+* make model fitness threshold adaptive to visible ratio (TODO: write a proper function)
+* use bigger rendering points in model cues visualization
+* fix wrong sigma for AB color components
+* remove table plane debug visualization
+* rename some recognition init parameters
+* reset view to do not mess up visualization in evaluation recognition example
+* add option to just compute dominant plane (without clustering)
+* fix bug with multiple call to recognize if recognizer is local
+* add all the options for initialization
+* make local recognizer more modular
+* fix bug in knn_sift initialization
+* add missing iostream include in classifier.h
+* add opencv sift option again (NOTE: Not tested yet)
+* remove keypoint rounding stuff in sift
+* rewrite local estimator interfaces
+* remove redundant files, take into acccount sign ambiguity of eigen vectors for global recognizer
+* fix bug with missing normal computation
+* migrated feature estimator changes (except eigen matrix). kinda working but only for first test view it seems
+* add global recognizer
+* add ourcvfh pcl trunk version, fix view all point clouds in folder
+* merging svmwrapper, classifier classes, keypoint extractors... still working
+* merged many things from rec_optimization_isolated branch (hyp generation still working - verificaiton not)
+* add point cloud to eigen matrix conversion with indices
+* add ptr for gcg
+* remove old comments
+* add ptr for gcg
+* fix merge conflict
+* add vector sort with indices return
+* add some histogram functions
+* add cielab2rgb transformation
+* some code polish in graph based geometric consistency grouping
+* avoid some warnings
+* add visualization of model keypoints
+* fix visualization of correspondences
+* remove global requirement for samples to have all modules enabled
+  it now only looks for the individual dependency of each sample and compiles just the ones which meet their dependencies
+* using parameter class for gcg when gcg is used... small code polish
+* addition to previous commit
+* fix color conversion compilation error in case of PointXYZ instantiation
+* make ghv compile for PointXYZ type instantation as well
+* fix error with color retrieval in verification code
+* optimize speed
+* fix bug in model assembly
+* remove parameter output
+* speed up verification evaluation by compressing scene fitting matrix
+* add recognition rate evaluation
+* make it compile for PointXYZ as well
+* compute visible model cloud on multiple views
+* merge hv_go3d into ghv (not ready yet)
+  optimize visible model cloud computation in verification
+* add depth image computation in zBuffering class
+  (remove XYZRGBA template instantition)
+* split code into more functions, add omp sections again, and some minor beauty
+* add replace moves again by checking pairwise intersection matrix
+* enhance pairwise intersection computation by fixing smoothing, speeding up computation and adding erosion
+* remove some more obsolete code
+* use new verification cost function and remove obsolete code pieces
+* add smoothing function to zbuffering (does not work properly though)
+* add function to remove column or row from eigen matrix
+* fix compiler error in change detection module
+* implement pairwise intersection computation in verification algorithm
+* add rendering function in zbuffering (explicit)
+* use local point color to compare color
+* delete obsolet member variables
+* delete count active hypotheses function in verificitation (as it is not used anyway)
+* make update function use member variables instead of having to pass them as an argument
+* do not use weights for outliers - just ratio of number of outliers compared to visible points
+* clip noise model based radius for inliers search
+* rename variable and do label check earlier to avoid redundant processing
+* fix seg fault when not using icp for pose refinement
+* reset camera view point in object recognizer to avoid messing up visualization
+* clip max viewing angle in noise model to 80 degrees to avoid huge noise terms (was 85)
+* use noise model for model explained points
+* fix ignore color even if exists check
+* fix wrong use of row and column counter in self zbuffering module
+* do incremental smooth clustering via noise model (not finished yet)
+* make visualize go cues a switch parameter
+* add a static function to query noise level for a single point
+* temp commit
+* Integration of change detection into recognition module
+* Annotation of changes in GT data
+* Change detection module added
+* Compilation fix: duplicated pragma
+* add merge for multiview
+* normalize optimization variables
+* fix multipipeline merging of hypotheses when disabled. Also skip merging of ident hypothesis
+* fixed self occlusion reasoning
+* add pose refinement
+  fix noise model based cloud integration for just one input cloud as well as for no indices given
+* fixed points on plane side variable in ghv
+* working again
+* explained and unexplained points seem okay
+* fix merge conflict
+* fix merge conflict
+* Merge pull request #63 from taketwo/remove-x86
+  Remove all mentions of x86 and x86_64 in CMake scripts
+* Remove all mentions of x86 and x86_64 in CMake scripts
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* use object indices also for unfiltered registered model cloud and only save filtered input clouds if debug option is set
+* Merge branch 'master' into 'master'
+  added quick fixed to handle some range check exceptions
+  needs proper handling soon
+  See merge request !51
+* 1.3.3
+* 1.3.2
+* Merge remote-tracking branch 'upstream/master'
+* add missing Xxf86vm lib
+* Merge remote-tracking branch 'remotes/upstream/recognition_update'
+* Contributors: Georg, Georg Halmetschlager-Funek, Johann Prankl, Markus Bajones, Markus Suchi, Martin Velas, Michael Zillich, Sergey Alexandrov, Simon Schreiberhuber, Thomas Fäulhammer
+
 1.4.3 (2016-02-26)
 ------------------
 

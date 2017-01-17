@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/AmHitRatio.hpp"
+#include "v4r/attention_segmentation/AmHitRatio.h"
 #include <list>
 
 namespace v4r {

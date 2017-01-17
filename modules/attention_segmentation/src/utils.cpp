@@ -21,7 +21,7 @@
  *  along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-#include "v4r/attention_segmentation/utils.hpp"
+#include "v4r/attention_segmentation/utils.h"
 
 namespace v4r
 {

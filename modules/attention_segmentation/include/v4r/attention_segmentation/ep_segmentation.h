@@ -43,8 +43,8 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem.hpp>
 
-#include "v4r/attention_segmentation/EPUtils.hpp"
-#include "v4r/attention_segmentation/ZAdaptiveNormals.hh"
+#include "v4r/attention_segmentation/EPUtils.h"
+#include "v4r/attention_segmentation/ZAdaptiveNormals.h"
 
 //#include "v4r/attention_segmentation/PCLUtils.h"
 

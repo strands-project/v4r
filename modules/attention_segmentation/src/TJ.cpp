@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/TJ.hpp"
+#include "v4r/attention_segmentation/TJ.h"
 
 namespace v4r
 {

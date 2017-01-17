@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/IKNSaliencyMap.hpp"
+#include "v4r/attention_segmentation/IKNSaliencyMap.h"
 
 namespace v4r
 {
