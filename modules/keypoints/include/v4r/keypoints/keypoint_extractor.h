@@ -36,11 +36,9 @@ template<typename PointT>
 class V4R_EXPORTS KeypointExtractor
 {
 protected:
-    typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-    typedef typename pcl::PointCloud<PointT>::Ptr PointOutTPtr;
-    typename pcl::PointCloud<PointT>::Ptr input_;
+    typename pcl::PointCloud<PointT>::ConstPtr input_;
     std::vector<int> keypoint_indices_;
-    std::vector<int> indices_;  /// @brief indices of the segmented object (extracted keypoints outside of this will be neglected)
+    std::vector<int> indices_;  ///< indices of the segmented object (extracted keypoints outside of this will be neglected)
     int keypoint_extractor_type_;
     std::string keypoint_extractor_name_;
 
@@ -48,13 +46,13 @@ public:
     virtual ~KeypointExtractor() = 0;
 
     void
-    setInputCloud (const PointInTPtr & input)
+    setInputCloud (const typename pcl::PointCloud<PointT>::ConstPtr & input)
     {
         input_ = input;
     }
 
     virtual void
-    setNormals (const pcl::PointCloud<pcl::Normal>::Ptr & normals)
+    setNormals (const pcl::PointCloud<pcl::Normal>::ConstPtr & normals)
     {
         (void)normals;
         std::cerr << "setNormals is not implemented for this object." << std::endl;

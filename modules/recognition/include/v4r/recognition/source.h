@@ -30,14 +30,15 @@
 *      @brief object model database
 */
 
-#ifndef V4R_VIEWS_SOURCE_H_
-#define V4R_VIEWS_SOURCE_H_
+#pragma once
 
+#include <algorithm>
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/transforms.h>
-#include <boost/regex.hpp>
+
 #include <v4r/core/macros.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/model.h>
@@ -48,9 +49,9 @@ namespace v4r
 {
 
 /**
-     * \brief Abstract data source class, manages filesystem, incremental training, etc.
-     * \author Aitor Aldoma
-     */
+* \brief Abstract data source class, manages filesystem, incremental training, etc.
+* \author Aitor Aldoma, Thomas Faeulhammer
+*/
 template<typename PointT>
 class V4R_EXPORTS Source
 {
@@ -115,7 +116,7 @@ public:
     }
 
     bool
-    getLoadIntoMemory()
+    getLoadIntoMemory() const
     {
         return load_into_memory_;
     }
@@ -133,12 +134,6 @@ public:
     {
         (void)model;
         PCL_ERROR("This function is not implemented in this Source class\n");
-    }
-
-    float
-    getScale ()
-    {
-        return model_scale_;
     }
 
     void
@@ -180,6 +175,12 @@ public:
         return models_;
     }
 
+    /**
+     * @brief getModelById
+     * @param model_id unique identifier of the model
+     * @param m pointer to the object model
+     * @return true if model was fount
+     */
     bool
     getModelById (const std::string & model_id, ModelTPtr & m) const
     {
@@ -231,5 +232,3 @@ public:
     typedef boost::shared_ptr< Source<PointT> const> ConstPtr;
 };
 }
-
-#endif /* REC_FRAMEWORK_VIEWS_SOURCE_H_ */

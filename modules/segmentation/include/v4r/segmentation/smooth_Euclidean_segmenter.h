@@ -63,11 +63,11 @@ public:
         float curvature_threshold_;
         float cluster_tolerance_;
         int min_points_;
-        bool z_adaptive_;   /// @brief if true, scales the smooth segmentation parameters linear with distance (constant till 1m at the given parameters)
+        bool z_adaptive_;   ///< if true, scales the smooth segmentation parameters linear with distance (constant till 1m at the given parameters)
         float octree_resolution_;
-        bool force_unorganized_; /// @brief if true, searches for neighboring points using the search tree and not pixel neighbors (even though input cloud is organized)
-        bool compute_planar_patches_only_;  /// @brief if true, only compute planar surface patches
-        float planar_inlier_dist_;  /// @brief maximum allowed distance of a point to the plane
+        bool force_unorganized_; ///< if true, searches for neighboring points using the search tree and not pixel neighbors (even though input cloud is organized)
+        bool compute_planar_patches_only_;  ///< if true, only compute planar surface patches
+        float planar_inlier_dist_;  ///< maximum allowed distance of a point to the plane
 
         Parameter (
                 float eps_angle_threshold_deg = 5.f, //0.25f

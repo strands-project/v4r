@@ -58,7 +58,7 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
     indices_.clear();
     keypoints_.reset( new pcl::PointCloud<PointT>);
     pcl::copyPointCloud(*cloud_, keypoint_indices_, *keypoints_);
-    processed_ = cloud_;
+    processed_.reset();
 }
 
 
@@ -71,7 +71,7 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
 
     cv::Mat descriptors;
 
-    #ifdef HAVE_SIFTGPU
+#ifdef HAVE_SIFTGPU
     if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
         throw std::runtime_error ("SiftGPU: No GL support!");
 

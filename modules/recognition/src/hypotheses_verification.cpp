@@ -10,7 +10,7 @@
 #include <v4r/segmentation/smooth_Euclidean_segmenter.h>
 #include <v4r/segmentation/multiplane_segmenter.h>
 
-#include <pcl/keypoints/uniform_sampling.h>
+#include <v4r/keypoints/uniform_sampling.h>
 #include <pcl/common/angles.h>
 #include <pcl/common/time.h>
 #include <pcl/common/common.h>

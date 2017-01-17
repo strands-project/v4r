@@ -25,7 +25,7 @@
  * @brief this implementation was inspired by http://www.saliencytoolbox.net
  */
 
-#include "v4r/attention_segmentation/WTA.hpp"
+#include "v4r/attention_segmentation/WTA.h"
 
 namespace v4r
 {

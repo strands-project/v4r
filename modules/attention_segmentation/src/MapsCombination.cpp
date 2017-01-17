@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/MapsCombination.hpp"
+#include "v4r/attention_segmentation/MapsCombination.h"
 
 namespace v4r
 {

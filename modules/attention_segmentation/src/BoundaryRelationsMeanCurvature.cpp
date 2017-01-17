@@ -22,7 +22,7 @@
  */
 
 /**
- * @file BoundaryRelationsMeanCurvature.hpp
+ * @file BoundaryRelationsMeanCurvature.h
  * @author Potapova
  * @date August 2013
  * @version 0.1

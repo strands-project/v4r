@@ -22,7 +22,7 @@
  */
 
 /**
- * @file PCLUtils.hh
+ * @file PCLUtils.h
  * @author Richtsfeld
  * @date June 2011
  * @version 0.1

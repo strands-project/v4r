@@ -28,15 +28,13 @@
 *      @brief dominant plane segmentation (taken from PCL)
 */
 
-#ifndef V4R_DOMINANT_PLANE_SEGMENTER_H__
-#define V4R_DOMINANT_PLANE_SEGMENTER_H__
-
-#include <v4r/core/macros.h>
-#include <v4r/segmentation/segmenter.h>
-#include <pcl/apps/dominant_plane_segmentation.h>
+#pragma once
 
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
+
+#include <v4r/core/macros.h>
+#include <v4r/segmentation/segmenter.h>
 
 namespace po = boost::program_options;
 
@@ -140,5 +138,3 @@ public:
 };
 
 }
-
-#endif

@@ -98,7 +98,7 @@ GlobalNNClassifier<Distance, PointInT>::classify ()
         return;
 
     signature.resize( signature_m.cols() );
-    for(size_t f=0; f<signature_m.cols(); f++)
+    for(int f=0; f<signature_m.cols(); f++)
         signature[f] = signature_m(0,f);
 
     std::vector<index_score> indices_scores;
@@ -175,9 +175,9 @@ GlobalNNClassifier<Distance, PointInT>::classify ()
     }
 }
 
-template<template<class > class Distance, typename PointInT>
+template<template<class > class Distance, typename PointT>
 bool
-GlobalNNClassifier<Distance, PointInT>::initialize (bool force_retrain)
+GlobalNNClassifier<Distance, PointT>::initialize (bool force_retrain)
 {
     //use the source to know what has to be trained and what not, checking if the descr_name directory exists
     //unless force_retrain is true, then train everything
@@ -219,7 +219,7 @@ GlobalNNClassifier<Distance, PointInT>::initialize (bool force_retrain)
                     continue;
 
                 signature.resize( signature_m.cols() );
-                for(size_t f=0; f<signature_m.cols(); f++)
+                for(int f=0; f<signature_m.cols(); f++)
                     signature[f] = signature_m(0,f);
 
                 std::stringstream path_entropy;

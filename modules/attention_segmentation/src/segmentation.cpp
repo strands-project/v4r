@@ -30,7 +30,7 @@
  */
 
 
-#include "v4r/attention_segmentation/segmentation.hpp"
+#include "v4r/attention_segmentation/segmentation.h"
 
 namespace v4r
 {

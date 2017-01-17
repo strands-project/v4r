@@ -7,7 +7,7 @@
 namespace v4r
 {
 
-float CIE76(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
+float CIE76(const Eigen::VectorXf &a, const Eigen::VectorXf &b)
 {
     return (a-b).norm();
 }

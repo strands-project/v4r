@@ -35,11 +35,10 @@ namespace v4r
     template <typename PointT>
     class V4R_EXPORTS GlobalEstimator {
       protected:
-        typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-        pcl::PointCloud<pcl::Normal>::Ptr normals_;
-        PointInTPtr cloud_; /// @brief point cloud containing the object
+        pcl::PointCloud<pcl::Normal>::ConstPtr normals_;
+        typename pcl::PointCloud<PointT>::ConstPtr cloud_; ///< point cloud containing the object
         typename pcl::PointCloud<PointT>::Ptr processed_;
-        std::vector<int> indices_; /// @brief indices of the point cloud belonging to the object
+        std::vector<int> indices_; ///< indices of the point cloud belonging to the object
         std::string descr_name_;
         size_t descr_type_;
         size_t feature_dimensions_;
@@ -65,7 +64,7 @@ namespace v4r
 
         /** @brief sets the normals of the point cloud belonging to the object (optional) */
         void
-        setNormals(const pcl::PointCloud<pcl::Normal>::Ptr & normals)
+        setNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr & normals)
         {
           normals_ = normals;
         }
@@ -81,7 +80,7 @@ namespace v4r
 
         /** @brief sets the input cloud containing the object to be classified */
         void
-        setInputCloud(const PointInTPtr & in)
+        setInputCloud(const typename pcl::PointCloud<PointT>::ConstPtr & in)
         {
             cloud_ = in;
         }

@@ -24,7 +24,7 @@
  */
 
 
-#include "v4r/attention_segmentation/ZAdaptiveNormals.hh"
+#include "v4r/attention_segmentation/ZAdaptiveNormals.h"
 
 namespace v4r
 {

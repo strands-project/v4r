@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/AttentionExampleUtils.hpp"
+#include "v4r/attention_segmentation/AttentionExampleUtils.h"
 
 namespace v4r 
 {

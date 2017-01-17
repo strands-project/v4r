@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/SurfaceCurvatureMap.hpp"
+#include "v4r/attention_segmentation/SurfaceCurvatureMap.h"
 
 namespace v4r
 {

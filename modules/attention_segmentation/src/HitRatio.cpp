@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/HitRatio.hpp"
+#include "v4r/attention_segmentation/HitRatio.h"
 #include <list>
 
 namespace EPEvaluation {

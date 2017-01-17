@@ -22,7 +22,7 @@
  */
 
 
-#include "v4r/attention_segmentation/SurfaceHeightMap.hpp"
+#include "v4r/attention_segmentation/SurfaceHeightMap.h"
 #include <sys/time.h>
 
 namespace v4r
