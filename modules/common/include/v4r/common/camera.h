@@ -28,9 +28,9 @@
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/shared_ptr.hpp>
-#include <Eigen/Core>
 #include <fstream>
 #include <stdlib.h>
+#include <math.h>
 
 namespace v4r
 {
@@ -47,12 +47,8 @@ protected:
     float cx_;  ///< central point of projection in x
     float cy_; ///< central point of projection in y
     float horizontal_fov_deg_; ///< camera's horizontal field of view in degree
-    float vertical_fov_deg_; ///< camera's vertical field of view in degree
-
 
     friend class boost::serialization::access;
-
-//    BOOST_CLASS_VERSION(HV_Parameter, 1)
 
     template<class Archive> V4R_EXPORTS void serialize(Archive & ar, const unsigned int version)
     {
@@ -63,7 +59,7 @@ protected:
                 & BOOST_SERIALIZATION_NVP(cx_)
                 & BOOST_SERIALIZATION_NVP(cy_)
                 & BOOST_SERIALIZATION_NVP(horizontal_fov_deg_)
-                & BOOST_SERIALIZATION_NVP(vertical_fov_deg_);
+                ;
     }
 
 public:
@@ -77,8 +73,7 @@ public:
             size_t height = 480,
             float cx = 319.5f,
             float cy = 239.5f,
-            float horizontal_fov_deg = 58.f,
-            float vertical_fov_deg = 45.f
+            float horizontal_fov_deg = 58.f
             )
         :
           width_ (width),
@@ -86,8 +81,7 @@ public:
           focal_length_(focal_length),
           cx_(cx),
           cy_ (cy),
-          horizontal_fov_deg_ (horizontal_fov_deg),
-          vertical_fov_deg_ (vertical_fov_deg)
+          horizontal_fov_deg_ (horizontal_fov_deg)
     {}
 
     /**
@@ -130,7 +124,10 @@ public:
      * @brief getVerticalFOV
      * @return
      */
-    float getVerticalFOV() const { return vertical_fov_deg_; }
+    float getVerticalFOV() const
+    {
+        return 2 * atan( tan( horizontal_fov_deg_ * 0.017453293f / 2.f ) * static_cast<float>(height_) / width_) * 57.29578f;
+    }
 
 
     /**
