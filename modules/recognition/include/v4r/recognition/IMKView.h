@@ -30,69 +30,41 @@
  *
  */
 
-#ifndef KP_CLUSTERING_RNN_HH
-#define KP_CLUSTERING_RNN_HH
+#ifndef KP_IMK_VIEW_HH
+#define KP_IMK_VIEW_HH
 
-#include <vector>
+#include <stdio.h>
 #include <string>
 #include <stdexcept>
-#include <float.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <Eigen/Dense>
 #include <v4r/common/impl/DataMatrix2D.hpp>
-#include <v4r/common/Clustering.h>
-#include <v4r/core/macros.h>
-
-
 
 
 namespace v4r
 {
 
-/**
- * ClusteringRNN
- */
-class V4R_EXPORTS ClusteringRNN : public Clustering
+
+class V4R_EXPORTS IMKView
 {
 public:
-  class Parameter
-  {
-  public:
-    float dist_thr;
+  unsigned object_id;
+  std::vector< Eigen::Vector3f > points;
+  std::vector< cv::KeyPoint > keys;
 
-    Parameter(float _dist_thr=0.4)
-     : dist_thr(_dist_thr) {}
-  };
+  DataMatrix2D<Eigen::Vector3f> cloud;
+  cv::Mat_<float> weight_mask;
+  std::vector<float> conf_desc;
 
-private:
-  std::vector< Cluster::Ptr > clusters;
-
-  int getNearestNeighbour(const Cluster &cluster, const std::vector<Cluster::Ptr> &clusters, float &sim);
-  void agglomerate(const Cluster &src, Cluster &dst);
-
-  void initDataStructure(const DataMatrix2Df &samples, std::vector< Cluster::Ptr > &data);
-
-
- 
-public:
-  Parameter param;
-  bool dbg;
-
-  ClusteringRNN(const Parameter &_param = Parameter(), bool _dbg=true);
-  ~ClusteringRNN();
-
-  virtual void cluster(const DataMatrix2Df &samples); 
-  virtual void getClusters(std::vector<std::vector<int> > &_clusters);
-  virtual void getCenters(DataMatrix2Df &_centers);
+  cv::Mat_<unsigned char> im_gray;
+  IMKView(){}
+  IMKView(const unsigned &_object_id) : object_id(_object_id) {}
 };
 
 
-
-
-
-/************************** INLINE METHODES ******************************/
-
-
-
-}
+} //--END--
 
 #endif
 

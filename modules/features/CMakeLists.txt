@@ -57,6 +57,24 @@ if(HAVE_CAFFE)
         )
 endif()
 
+if(HAVE_SIFTGPU)
+    list(APPEND feat_srcs
+            ${CMAKE_CURRENT_LIST_DIR}/src/PSiftGPU.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_SIFTGPU.cpp
+         )
+    list(APPEND feat_headers
+            ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/PSiftGPU.h
+            ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_KD_SIFTGPU.h
+         )
+ else()
+    list(APPEND feat_srcs
+            ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_CVSIFT.cpp
+         )
+    list(APPEND feat_headers
+            ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_KD_CVSIFT.h
+         )
+endif()
+
 v4r_set_module_sources(HEADERS ${feat_headers} SOURCES ${feat_srcs} ${feat_headers})
 v4r_module_include_directories()
 

@@ -137,7 +137,7 @@ void CodebookMatcher::createCodebook()
   rnn = ClusteringRNN();
   descs = DataMatrix2Df();
   vk_indices = std::vector< std::pair<int,int> >();
-  cb_centers.release();
+//  cb_centers.release(); // o.k. we could release them, but then we need to store the flann
 
 }
 
@@ -261,7 +261,7 @@ void CodebookMatcher::queryViewRank(const cv::Mat &descriptors, std::vector< std
  * @param descriptors
  * @param matches
  */
-void CodebookMatcher::queryMatches(const cv::Mat &descriptors, std::vector< std::vector< cv::DMatch > > &matches)
+void CodebookMatcher::queryMatches(const cv::Mat &descriptors, std::vector< std::vector< cv::DMatch > > &matches, bool sort_view_rank)
 {
   std::vector< std::vector< cv::DMatch > > cb_matches;
 
@@ -294,7 +294,8 @@ void CodebookMatcher::queryMatches(const cv::Mat &descriptors, std::vector< std:
   }
 
   //sort
-  std::sort(view_rank.begin(),view_rank.end(),cmpViewRandDec);
+  if (sort_view_rank)
+    std::sort(view_rank.begin(),view_rank.end(),cmpViewRandDec);
 }
 
 
