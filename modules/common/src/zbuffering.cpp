@@ -30,7 +30,7 @@ ZBuffering<PointT>::filter (const typename pcl::PointCloud<PointT> & model, std:
         int u = static_cast<int> (f * x / z + cx);
         int v = static_cast<int> (f * y / z + cy);
 
-        if (u >= (width - param_.u_margin_) || v >= (height - param_.v_margin_) || u < param_.u_margin_ || v < param_.v_margin_)
+        if (u >= ((int)width - param_.u_margin_) || v >= ((int)height - param_.v_margin_) || u < param_.u_margin_ || v < param_.v_margin_)
             continue;
 
         //Check if poeint depth (distance to camera) is greater than the (u,v) meaning that the point is not visible
@@ -97,7 +97,7 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
         int u = static_cast<int> (f * pt.x / pt.z + cx);
         int v = static_cast<int> (f * pt.y / pt.z + cy);
 
-        if (u >= width || v >= height  || u < 0 || v < 0)
+        if (u >= (int)width || v >= (int)height  || u < 0 || v < 0)
             continue;
 
         int idx = v * width + u;
@@ -129,7 +129,7 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
                 {
                     for (int vv = (v - param_.smoothing_radius_); vv <= (v + param_.smoothing_radius_); vv++)
                     {
-                        if( uu<0 || vv<0 || uu>=width || vv>=height)    // this shouldn't happen anyway
+                        if( uu<0 || vv<0 || uu>=(int)width || vv>=(int)height)    // this shouldn't happen anyway
                             continue;
 
                         PointT &p = rendered_view_unsmooth.at(uu,vv);
@@ -174,7 +174,7 @@ ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & cl
             int u = static_cast<int> (f * pt.x / pt.z + cx);
             int v = static_cast<int> (f * pt.y / pt.z + cy);
 
-            if (u >= width || v >= height  || u < 0 || v < 0)
+            if (u >= (int)width || v >= (int)height  || u < 0 || v < 0)
                 continue;
 
             int idx = v * width + u;
@@ -277,7 +277,7 @@ ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & sc
         int u = static_cast<int> (f * pt.x / pt.z + cx);
         int v = static_cast<int> (f * pt.y / pt.z + cy);
 
-        if (u >= width - param_.u_margin_ || v >= height - param_.v_margin_ || u < param_.u_margin_ || v < param_.v_margin_)
+        if (u >= (int)width - param_.u_margin_ || v >= (int)height - param_.v_margin_ || u < param_.u_margin_ || v < param_.v_margin_)
             continue;
 
         int idx = v * width + u;
@@ -301,9 +301,9 @@ ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & sc
         std::vector<float> depth_smooth (width * height, std::numeric_limits<float>::quiet_NaN());
         std::vector<int> indices2input_smooth = indices2input;
 
-        for (int u = param_.smoothing_radius_; u < (width - param_.smoothing_radius_); u++)
+        for (int u = param_.smoothing_radius_; u < ((int)width - param_.smoothing_radius_); u++)
         {
-            for (int v = param_.smoothing_radius_; v < (height - param_.smoothing_radius_); v++)
+            for (int v = param_.smoothing_radius_; v < ((int)height - param_.smoothing_radius_); v++)
             {
                 float min = std::numeric_limits<float>::max();
                 int min_idx = v * width + u;

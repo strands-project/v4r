@@ -604,7 +604,7 @@ namespace v4r
 
         boost::dynamic_bitset<> fg_mask = v4r::createMaskFromIndices(indices, pcl_cloud.width * pcl_cloud.height);
 
-        int min_u = pcl_cloud.width-1, min_v = pcl_cloud.height-1, max_u = 0, max_v = 0;
+        size_t min_u = pcl_cloud.width-1, min_v = pcl_cloud.height-1, max_u = 0, max_v = 0;
 
         cv::Mat_<uchar> image (pcl_cloud.height, pcl_cloud.width);
         uchar bg_color = 255;
