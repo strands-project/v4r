@@ -1,51 +1,48 @@
 project(${PCL_1_8_LIBRARY})
 # This project contains files from PCL which are either not available in or have a different ABI than the currently released PCL version. 
-
 v4r_assert(HAVE_PCL)
+v4r_assert(HAVE_BOOST)
 
 v4r_include_directories(
-${PCL_INCLUDE_DIRS}
+    ${PCL_INCLUDE_DIRS}
+    ${BOOST_INCLUDE_DIRS}
 ${CMAKE_CURRENT_SOURCE_DIR} 
 )
 
 set(lib_srcs
-filters/src/uniform_sampling.cpp
-segmentation/src/conditional_euclidean_clustering.cpp
-features/src/organized_edge_detection.cpp
+ uniform_sampling.cpp
+ conditional_euclidean_clustering.cpp
+ organized_edge_detection.cpp
 #2d/src/examples.cpp
-2d/src/convolution_2d.cpp
+ convolution_2d.cpp
 
 )
 
 SET(lib_hdrs
-filters/include/pcl_1_8/filters/impl/uniform_sampling.hpp
-segmentation/include/pcl_1_8/segmentation/impl/conditional_euclidean_clustering.hpp
-features/include/pcl_1_8/features/impl/organized_edge_detection.hpp
-2d/include/pcl_1_8/2d/impl/convolution.hpp
-2d/include/pcl_1_8/2d/impl/morphology.hpp
-2d/include/pcl_1_8/2d/impl/kernel.hpp
-2d/include/pcl_1_8/2d/impl/edge.hpp
-2d/include/pcl_1_8/2d/impl/keypoint.hpp
-filters/include/pcl_1_8/filters/uniform_sampling.h
-segmentation/include/pcl_1_8/segmentation/conditional_euclidean_clustering.h
-features/include/pcl_1_8/features/organized_edge_detection.h
-2d/include/pcl_1_8/2d/edge.h
-2d/include/pcl_1_8/2d/convolution.h
-2d/include/pcl_1_8/2d/morphology.h
-2d/include/pcl_1_8/2d/kernel.h
-2d/include/pcl_1_8/2d/keypoint.h
+ pcl_1_8/filters/impl/uniform_sampling.hpp
+ pcl_1_8/segmentation/impl/conditional_euclidean_clustering.hpp
+ pcl_1_8/features/impl/organized_edge_detection.hpp
+ pcl_1_8/2d/impl/convolution.hpp
+ pcl_1_8/2d/impl/morphology.hpp
+ pcl_1_8/2d/impl/kernel.hpp
+ pcl_1_8/2d/impl/edge.hpp
+ pcl_1_8/2d/impl/keypoint.hpp
+ pcl_1_8/filters/uniform_sampling.h
+ pcl_1_8/segmentation/conditional_euclidean_clustering.h
+ pcl_1_8/features/organized_edge_detection.h
+ pcl_1_8/2d/edge.h
+ pcl_1_8/2d/convolution.h
+ pcl_1_8/2d/morphology.h
+ pcl_1_8/2d/kernel.h
+ pcl_1_8/2d/keypoint.h
 )
 
 include_directories(
 ${PCL_INCLUDE_DIRS}
-${CMAKE_CURRENT_SOURCE_DIR}/2d/include/
-${CMAKE_CURRENT_SOURCE_DIR}/features/include/
-${CMAKE_CURRENT_SOURCE_DIR}/filters/include/
-${CMAKE_CURRENT_SOURCE_DIR}/segmentation/include/
+${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-
-add_library(${PCL_1_8_LIBRARY} STATIC ${lib_srcs} )
+add_library(${PCL_1_8_LIBRARY} STATIC ${lib_srcs} ${lib_hdrs} )
 target_link_libraries(${PCL_1_8_LIBRARY} ${PCL_LIBRARIES} )
 
 set_target_properties(${PCL_1_8_LIBRARY}
