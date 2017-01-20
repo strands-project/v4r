@@ -40,7 +40,7 @@
 #include <pcl_1_8/segmentation/conditional_euclidean_clustering.h>
 
 template<typename PointT> void
-pcl_1_8::ConditionalEuclideanClustering<PointT>::segment (pcl::IndicesClusters &clusters)
+pcl_1_8::ConditionalEuclideanClustering<PointT>::segment (pcl_1_8::IndicesClusters &clusters)
 {
   // Prepare output (going to use push_back)
   clusters.clear ();

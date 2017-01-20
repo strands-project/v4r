@@ -58,14 +58,14 @@ namespace pcl_1_8
     * \ingroup keypoints
     */
   template <typename PointT>
-  class UniformSampling: public Filter<PointT>
+  class UniformSampling: public pcl::Filter<PointT>
   {
-    typedef typename Filter<PointT>::PointCloud PointCloud;
+    typedef typename pcl::Filter<PointT>::PointCloud PointCloud;
 
-    using Filter<PointT>::filter_name_;
-    using Filter<PointT>::input_;
-    using Filter<PointT>::indices_;
-    using Filter<PointT>::getClassName;
+    using pcl::Filter<PointT>::filter_name_;
+    using pcl::Filter<PointT>::input_;
+    using pcl::Filter<PointT>::indices_;
+    using pcl::Filter<PointT>::getClassName;
 
     public:
       typedef boost::shared_ptr<UniformSampling<PointT> > Ptr;

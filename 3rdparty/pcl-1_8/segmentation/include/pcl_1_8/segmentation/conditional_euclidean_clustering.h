@@ -80,15 +80,15 @@ namespace pcl_1_8
     * \ingroup segmentation
     */
   template<typename PointT>
-  class ConditionalEuclideanClustering : public PCLBase<PointT>
+  class ConditionalEuclideanClustering : public pcl::PCLBase<PointT>
   {
     protected:
       typedef typename pcl::search::Search<PointT>::Ptr SearcherPtr;
 
-      using PCLBase<PointT>::input_;
-      using PCLBase<PointT>::indices_;
-      using PCLBase<PointT>::initCompute;
-      using PCLBase<PointT>::deinitCompute;
+      using pcl::PCLBase<PointT>::input_;
+      using pcl::PCLBase<PointT>::indices_;
+      using pcl::PCLBase<PointT>::initCompute;
+      using pcl::PCLBase<PointT>::deinitCompute;
 
     public:
       /** \brief Constructor.
@@ -101,8 +101,8 @@ namespace pcl_1_8
           min_cluster_size_ (1),
           max_cluster_size_ (std::numeric_limits<int>::max ()),
           extract_removed_clusters_ (extract_removed_clusters),
-          small_clusters_ (new pcl::IndicesClusters),
-          large_clusters_ (new pcl::IndicesClusters)
+          small_clusters_ (new IndicesClusters),
+          large_clusters_ (new IndicesClusters)
       {
       }
 
@@ -236,10 +236,10 @@ namespace pcl_1_8
       bool extract_removed_clusters_;
 
       /** \brief The resultant clusters that contain less than min_cluster_size points */
-      pcl::IndicesClustersPtr small_clusters_;
+      IndicesClustersPtr small_clusters_;
 
       /** \brief The resultant clusters that contain more than max_cluster_size points */
-      pcl::IndicesClustersPtr large_clusters_;
+      IndicesClustersPtr large_clusters_;
 
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
