@@ -35,11 +35,11 @@
  *
  */
 
-#ifndef PCL-1_8_FEATURES_IMPL_ORGANIZED_EDGE_DETECTION_H_
-#define PCL-1_8_FEATURES_IMPL_ORGANIZED_EDGE_DETECTION_H_
+#ifndef PCL_1_8_FEATURES_IMPL_ORGANIZED_EDGE_DETECTION_H_
+#define PCL_1_8_FEATURES_IMPL_ORGANIZED_EDGE_DETECTION_H_
 
 #include <pcl/2d/edge.h>
-#include <pcl-1_8/features/organized_edge_detection.h>
+#include <pcl_1_8/features/organized_edge_detection.h>
 #include <pcl/console/print.h>
 #include <pcl/console/time.h>
 
@@ -53,7 +53,7 @@
 template<typename PointT, typename PointLT> void
 pcl_1_8::OrganizedEdgeBase<PointT, PointLT>::compute (pcl::PointCloud<PointLT>& labels, std::vector<pcl::PointIndices>& label_indices) const
 {
-  pcl-::Label invalid_pt;
+  pcl::Label invalid_pt;
   invalid_pt.label = unsigned (0);
   labels.points.resize (input_->points.size (), invalid_pt);
   labels.width = input_->width;

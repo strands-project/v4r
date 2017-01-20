@@ -35,11 +35,11 @@
  *
  */
 
-#ifndef PCL-1_8_FILTERS_UNIFORM_SAMPLING_IMPL_H_
-#define PCL-1_8_FILTERS_UNIFORM_SAMPLING_IMPL_H_
+#ifndef PCL_1_8_FILTERS_UNIFORM_SAMPLING_IMPL_H_
+#define PCL_1_8_FILTERS_UNIFORM_SAMPLING_IMPL_H_
 
 #include <pcl/common/common.h>
-#include <pcl-1_8/filters/uniform_sampling.h>
+#include <pcl_1_8/filters/uniform_sampling.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void

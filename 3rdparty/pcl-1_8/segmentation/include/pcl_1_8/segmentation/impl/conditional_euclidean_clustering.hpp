@@ -34,10 +34,10 @@
  *
  */
 
-#ifndef PCL-1_8_SEGMENTATION_IMPL_CONDITIONAL_EUCLIDEAN_CLUSTERING_HPP_
-#define PCL-1_8_SEGMENTATION_IMPL_CONDITIONAL_EUCLIDEAN_CLUSTERING_HPP_
+#ifndef PCL_1_8_SEGMENTATION_IMPL_CONDITIONAL_EUCLIDEAN_CLUSTERING_HPP_
+#define PCL_1_8_SEGMENTATION_IMPL_CONDITIONAL_EUCLIDEAN_CLUSTERING_HPP_
 
-#include <pcl-1_8/segmentation/conditional_euclidean_clustering.h>
+#include <pcl_1_8/segmentation/conditional_euclidean_clustering.h>
 
 template<typename PointT> void
 pcl_1_8::ConditionalEuclideanClustering<PointT>::segment (pcl::IndicesClusters &clusters)

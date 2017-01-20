@@ -36,7 +36,7 @@
  *
  */
 
-#include <pcl-1_8/features/impl/organized_edge_detection.hpp>
+#include <pcl_1_8/features/impl/organized_edge_detection.hpp>
 
 #ifndef PCL_NO_PRECOMPILE
 #include <pcl/point_types.h>

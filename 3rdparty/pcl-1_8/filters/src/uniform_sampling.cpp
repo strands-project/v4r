@@ -35,8 +35,8 @@
  * $Id$
  */
 
-#include <pcl-1_8/filters/uniform_sampling.h>
-#include <pcl-1_8/filters/impl/uniform_sampling.hpp>
+#include <pcl_1_8/filters/uniform_sampling.h>
+#include <pcl_1_8/filters/impl/uniform_sampling.hpp>
 #include <pcl/point_types.h>
 #include <pcl/impl/instantiate.hpp>
 

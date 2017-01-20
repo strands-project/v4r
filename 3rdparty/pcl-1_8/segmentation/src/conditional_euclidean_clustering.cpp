@@ -37,7 +37,7 @@
 
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
-#include <pcl-1_8/segmentation/impl/conditional_euclidean_clustering.hpp>
+#include <pcl_1_8/segmentation/impl/conditional_euclidean_clustering.hpp>
 
 // Instantiations of specific point types
 #ifdef PCL_ONLY_CORE_POINT_TYPES
