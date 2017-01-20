@@ -343,6 +343,7 @@ include(cmake/V4RFindON_NURBS.cmake)
 # ----------------------------------------------------------------------------
 
 include(cmake/V4RFindEDT.cmake)
+include(cmake/V4RFindPCL-1_8.cmake)
 include(cmake/V4RFindSiftGPU.cmake)
 include(cmake/V4RFindMETSlib.cmake)
 include(cmake/V4RFindLIBSVM.cmake)

@@ -10,7 +10,7 @@
 
 #include <pcl/common/time.h>
 #include <pcl/features/boundary.h>
-#include <pcl/keypoints/uniform_sampling.h>
+#include <pcl-1_8/filters/uniform_sampling.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 
 #include <pcl/sample_consensus/method_types.h>

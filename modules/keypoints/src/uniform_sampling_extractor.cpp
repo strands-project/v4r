@@ -1,5 +1,5 @@
 #include <v4r/keypoints/uniform_sampling_extractor.h>
-#include <v4r/keypoints/uniform_sampling.h>
+#include <pcl-1_8/filters/uniform_sampling.h>
 
 namespace v4r
 {
