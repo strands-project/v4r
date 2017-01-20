@@ -183,7 +183,8 @@ void Gabor::computeGaborFilters()
       IplImage temp_image = image;
       IplImage* temp_filter = cvCreateImage(cvGetSize(&temp_image), 8, 1);
       gabor.conv_img(&temp_image,temp_filter,CV_GABOR_MAG);
-      gaborFilters.at(idx) = cv::Mat(temp_filter,true);
+//      gaborFilters.at(idx) = cv::Mat(temp_filter,true);
+      gaborFilters.at(idx) = cv::cvarrToMat(temp_filter,true);
       cvReleaseImage(&temp_filter);
     }
   }
