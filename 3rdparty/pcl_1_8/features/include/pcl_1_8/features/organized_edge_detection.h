@@ -55,7 +55,7 @@ namespace pcl_1_8
     * \author Changhyun Choi
     */
   template <typename PointT, typename PointLT>
-  class OrganizedEdgeBase : public PCLBase<PointT>
+  class OrganizedEdgeBase : public pcl::PCLBase<PointT>
   {
     typedef typename pcl::PointCloud<PointT> PointCloud;
     typedef typename PointCloud::Ptr PointCloudPtr;
@@ -68,10 +68,10 @@ namespace pcl_1_8
     public:
       typedef boost::shared_ptr<OrganizedEdgeBase<PointT, PointLT> > Ptr;
       typedef boost::shared_ptr<const OrganizedEdgeBase<PointT, PointLT> > ConstPtr;
-      using PCLBase<PointT>::input_;
-      using PCLBase<PointT>::indices_;
-      using PCLBase<PointT>::initCompute;
-      using PCLBase<PointT>::deinitCompute;
+      using pcl::PCLBase<PointT>::input_;
+      using pcl::PCLBase<PointT>::indices_;
+      using pcl::PCLBase<PointT>::initCompute;
+      using pcl::PCLBase<PointT>::deinitCompute;
 
       /** \brief Constructor for OrganizedEdgeBase */
       OrganizedEdgeBase ()

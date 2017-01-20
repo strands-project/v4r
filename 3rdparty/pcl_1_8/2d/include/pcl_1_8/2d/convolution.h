@@ -147,7 +147,7 @@ namespace pcl_1_8
 
 #include <pcl_1_8/2d/impl/convolution.hpp>
 
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::PointXYZIEdge,
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl_1_8::PointXYZIEdge,
     (float, x, x)
     (float, y, y)
     (float, z, z)

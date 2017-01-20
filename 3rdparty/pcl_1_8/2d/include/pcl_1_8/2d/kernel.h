@@ -211,7 +211,7 @@ namespace pcl_1_8
        * kernel [-1 1 0]'
        */
 
-      void derivativeYBackwardKernel (PointCloud<PointT> &kernel);
+      void derivativeYBackwardKernel (pcl::PointCloud<PointT> &kernel);
 
       /**
        *

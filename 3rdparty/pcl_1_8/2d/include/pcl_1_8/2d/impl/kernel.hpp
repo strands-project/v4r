@@ -312,7 +312,7 @@ pcl_1_8::kernel<PointT>::setKernelType (KERNEL_ENUM kernel_type)
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-pcl::kernel<PointT>::setKernelSize (int kernel_size)
+pcl_1_8::kernel<PointT>::setKernelSize (int kernel_size)
 {
   kernel_size_ = kernel_size;
 }

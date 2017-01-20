@@ -52,7 +52,7 @@ namespace pcl_1_8
       typedef typename PointCloudIn::Ptr PointCloudInPtr;
 
       PointCloudInPtr input_;
-      pcl::Convolution<PointInT> convolution_;
+      pcl_1_8::Convolution<PointInT> convolution_;
       kernel<PointInT>  kernel_;
 
       /** \brief This function performs edge tracing for Canny Edge detector.
@@ -300,7 +300,7 @@ namespace pcl_1_8
       }
   };
 }
-#include <pcl/2d/impl/edge.hpp>
+#include <pcl_1_8/2d/impl/edge.hpp>
 
 #endif    // PCL_2D_EDGE_H 
 

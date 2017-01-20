@@ -52,7 +52,7 @@ namespace pcl_1_8
       PointCloudInPtr structuring_element_;
 
     public:
-      using PCLBase<PointT>::input_;
+      using pcl::PCLBase<PointT>::input_;
 
       Morphology () {}
 

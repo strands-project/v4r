@@ -12,7 +12,7 @@ set(lib_srcs
 filters/src/uniform_sampling.cpp
 segmentation/src/conditional_euclidean_clustering.cpp
 features/src/organized_edge_detection.cpp
-2d/src/examples.cpp
+#2d/src/examples.cpp
 2d/src/convolution_2d.cpp
 
 )
@@ -45,7 +45,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/segmentation/include/
 )
 
 
-add_library(${PCL_1_8_LIBRARY} STATIC ${lib_srcs} ${lib_hdrs})
+add_library(${PCL_1_8_LIBRARY} STATIC ${lib_srcs} )
 target_link_libraries(${PCL_1_8_LIBRARY} ${PCL_LIBRARIES})
 
 set_target_properties(${PCL_1_8_LIBRARY}

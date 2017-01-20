@@ -245,7 +245,7 @@ pcl_1_8::OrganizedEdgeFromRGB<PointT, PointLT>::extractEdges (pcl::PointCloud<Po
 {
   if ((detecting_edge_types_ & EDGELABEL_RGB_CANNY))
   {
-    pcl::PointCloud<PointXYZI>::Ptr gray (new pcl::PointCloud<PointXYZI>);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr gray (new pcl::PointCloud<pcl::PointXYZI>);
     gray->width = input_->width;
     gray->height = input_->height;
     gray->resize (input_->height*input_->width);
@@ -253,8 +253,8 @@ pcl_1_8::OrganizedEdgeFromRGB<PointT, PointLT>::extractEdges (pcl::PointCloud<Po
     for (size_t i = 0; i < input_->size (); ++i)
       (*gray)[i].intensity = float (((*input_)[i].r + (*input_)[i].g + (*input_)[i].b) / 3);
 
-    pcl::PointCloud<pcl::PointXYZIEdge> img_edge_rgb;
-    pcl::Edge<PointXYZI, pcl::PointXYZIEdge> edge;
+    pcl::PointCloud<pcl_1_8::PointXYZIEdge> img_edge_rgb;
+    pcl_1_8::Edge<pcl::PointXYZI, pcl_1_8::PointXYZIEdge> edge;
     edge.setInputCloud (gray);
     edge.setHysteresisThresholdLow (th_rgb_canny_low_);
     edge.setHysteresisThresholdHigh (th_rgb_canny_high_);
@@ -294,7 +294,7 @@ pcl_1_8::OrganizedEdgeFromNormals<PointT, PointNT, PointLT>::extractEdges (pcl::
   if ((detecting_edge_types_ & EDGELABEL_HIGH_CURVATURE))
   {
 
-    pcl::PointCloud<PointXYZI> nx, ny;
+    pcl::PointCloud<pcl::PointXYZI> nx, ny;
     nx.width = normals_->width;
     nx.height = normals_->height;
     nx.resize (normals_->height*normals_->width);
@@ -312,8 +312,8 @@ pcl_1_8::OrganizedEdgeFromNormals<PointT, PointNT, PointLT>::extractEdges (pcl::
       }
     }
 
-    pcl::PointCloud<pcl::PointXYZIEdge> img_edge;
-    pcl::Edge<PointXYZI, pcl::PointXYZIEdge> edge;
+    pcl::PointCloud<pcl_1_8::PointXYZIEdge> img_edge;
+    pcl_1_8::Edge<pcl::PointXYZI, pcl_1_8::PointXYZIEdge> edge;
     edge.setHysteresisThresholdLow (th_hc_canny_low_);
     edge.setHysteresisThresholdHigh (th_hc_canny_high_);
     edge.canny (nx, ny, img_edge);

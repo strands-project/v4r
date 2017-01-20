@@ -38,17 +38,17 @@
 
 #include <pcl/point_types.h>
 
-#include <pcl_1_8/2d/Convolution.h>
-#include <pcl_1_8/2d/Edge.h>
-#include <pcl_1_8/2d/Kernel.h>
-#include <pcl_1_8/2d/Morphology.h>
+#include <pcl_1_8/2d/convolution.h>
+#include <pcl_1_8/2d/edge.h>
+#include <pcl_1_8/2d/kernel.h>
+#include <pcl_1_8/2d/morphology.h>
 #include <pcl/pcl_base.h>
 
 using namespace pcl_1_8;
 
 void example_edge ()
 {
-  Edge<pcl::PointXYZRGB> edge;
+  pcl::Edge<pcl::PointXYZRGB> edge;
 
   /*dummy clouds*/
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
