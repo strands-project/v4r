@@ -10,7 +10,7 @@
 #include <v4r/segmentation/smooth_Euclidean_segmenter.h>
 #include <v4r/segmentation/multiplane_segmenter.h>
 
-#include <v4r/keypoints/uniform_sampling.h>
+#include <pcl_1_8/keypoints/uniform_sampling.h>
 #include <pcl/common/angles.h>
 #include <pcl/common/time.h>
 #include <pcl/common/common.h>
@@ -202,7 +202,7 @@ HypothesisVerification<ModelT, SceneT>::downsampleSceneCloud()
         scene_cloud_downsampled_.reset(new pcl::PointCloud<SceneT>());
         scene_normals_downsampled_.reset(new pcl::PointCloud<pcl::Normal>());
 
-        pcl::UniformSampling<SceneT> us;
+        pcl_1_8::UniformSampling<SceneT> us;
         double resolution = param_.resolution_mm_ / 1000.0;
         us.setRadiusSearch( resolution );
         us.setInputCloud( scene_cloud_ );
