@@ -37,10 +37,10 @@
  *
  */
 
-#ifndef PCL_1_8_FILTERS_UNIFORM_SAMPLING_H_
-#define PCL_1_8_FILTERS_UNIFORM_SAMPLING_H_
+#ifndef PCL_1_8_KEYPOINTS_UNIFORM_SAMPLING_H_
+#define PCL_1_8_KEYPOINTS_UNIFORM_SAMPLING_H_
 
-#include <pcl/filters/filter.h>
+#include <pcl/keypoints/keypoint.h>
 #include <boost/unordered_map.hpp>
 
 namespace pcl_1_8
@@ -57,19 +57,21 @@ namespace pcl_1_8
     * \author Radu Bogdan Rusu
     * \ingroup keypoints
     */
-  template <typename PointT>
-  class UniformSampling: public pcl::Filter<PointT>
+  template <typename PointInT>
+  class UniformSampling: public pcl::Keypoint<PointInT, int>
   {
-    typedef typename pcl::Filter<PointT>::PointCloud PointCloud;
+    typedef typename pcl::Keypoint<PointInT, int>::PointCloudIn PointCloudIn;
+    typedef typename pcl::Keypoint<PointInT, int>::PointCloudOut PointCloudOut;
 
-    using pcl::Filter<PointT>::filter_name_;
-    using pcl::Filter<PointT>::input_;
-    using pcl::Filter<PointT>::indices_;
-    using pcl::Filter<PointT>::getClassName;
+    using pcl::Keypoint<PointInT, int>::name_;
+    using pcl::Keypoint<PointInT, int>::input_;
+    using pcl::Keypoint<PointInT, int>::indices_;
+    using pcl::Keypoint<PointInT, int>::search_radius_;
+    using pcl::Keypoint<PointInT, int>::getClassName;
 
     public:
-      typedef boost::shared_ptr<UniformSampling<PointT> > Ptr;
-      typedef boost::shared_ptr<const UniformSampling<PointT> > ConstPtr;
+      typedef boost::shared_ptr<UniformSampling<PointInT> > Ptr;
+      typedef boost::shared_ptr<const UniformSampling<PointInT> > ConstPtr;
 
       /** \brief Empty constructor. */
       UniformSampling () :
@@ -79,10 +81,9 @@ namespace pcl_1_8
         min_b_ (Eigen::Vector4i::Zero ()),
         max_b_ (Eigen::Vector4i::Zero ()),
         div_b_ (Eigen::Vector4i::Zero ()),
-        divb_mul_ (Eigen::Vector4i::Zero ()),
-        search_radius_ (0)
+        divb_mul_ (Eigen::Vector4i::Zero ())
       {
-        filter_name_ = "UniformSampling";
+        name_ = "UniformSampling";
       }
 
       /** \brief Destructor. */
@@ -94,9 +95,9 @@ namespace pcl_1_8
       /** \brief Set the 3D grid leaf size.
         * \param radius the 3D grid leaf size
         */
-      virtual inline void 
-      setRadiusSearch (double radius) 
-      { 
+      virtual inline void
+      setRadiusSearch (double radius)
+      {
         leaf_size_[0] = leaf_size_[1] = leaf_size_[2] = static_cast<float> (radius);
         // Avoid division errors
         if (leaf_size_[3] == 0)
@@ -120,26 +121,23 @@ namespace pcl_1_8
       /** \brief The size of a leaf. */
       Eigen::Vector4f leaf_size_;
 
-      /** \brief Internal leaf sizes stored as 1/leaf_size_ for efficiency reasons. */ 
+      /** \brief Internal leaf sizes stored as 1/leaf_size_ for efficiency reasons. */
       Eigen::Array4f inverse_leaf_size_;
 
       /** \brief The minimum and maximum bin coordinates, the number of divisions, and the division multiplier. */
       Eigen::Vector4i min_b_, max_b_, div_b_, divb_mul_;
 
-      /** \brief The nearest neighbors search radius for each point. */
-      double search_radius_;
-
       /** \brief Downsample a Point Cloud using a voxelized grid approach
-        * \param[out] output the resultant point cloud message
+        * \param output the resultant point cloud message
         */
       void
-      applyFilter (PointCloud &output);
+      detectKeypoints (PointCloudOut &output);
   };
 }
 
 #ifdef PCL_NO_PRECOMPILE
-#include <pcl-1_8/filters/impl/uniform_sampling.hpp>
+#include <pcl_1_8/keypoints/impl/uniform_sampling.hpp>
 #endif
 
-#endif  //#ifndef PCL_FILTERS_UNIFORM_SAMPLING_H_
+#endif  //#ifndef PCL_KEYPOINTS_UNIFORM_SAMPLING_H_
 

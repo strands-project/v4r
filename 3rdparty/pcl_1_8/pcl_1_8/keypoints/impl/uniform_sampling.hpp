@@ -35,15 +35,15 @@
  *
  */
 
-#ifndef PCL_1_8_FILTERS_UNIFORM_SAMPLING_IMPL_H_
-#define PCL_1_8_FILTERS_UNIFORM_SAMPLING_IMPL_H_
+#ifndef PCL_1_8_KEYPOINTS_UNIFORM_SAMPLING_IMPL_H_
+#define PCL_1_8_KEYPOINTS_UNIFORM_SAMPLING_IMPL_H_
 
 #include <pcl/common/common.h>
-#include <pcl_1_8/filters/uniform_sampling.h>
+#include <pcl_1_8/keypoints/uniform_sampling.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
-pcl_1_8::UniformSampling<PointT>::applyFilter (PointCloud &output)
+template <typename PointInT> void
+pcl_1_8::UniformSampling<PointInT>::detectKeypoints (PointCloudOut &output)
 {
   // Has the input dataset been set already?
   if (!input_)
@@ -59,7 +59,7 @@ pcl_1_8::UniformSampling<PointT>::applyFilter (PointCloud &output)
 
   Eigen::Vector4f min_p, max_p;
   // Get the minimum and maximum dimensions
-  pcl::getMinMax3D<PointT>(*input_, min_p, max_p);
+  pcl::getMinMax3D<PointInT>(*input_, min_p, max_p);
 
   // Compute the minimum and maximum bounding box values
   min_b_[0] = static_cast<int> (floor (min_p[0] * inverse_leaf_size_[0]));
@@ -84,8 +84,8 @@ pcl_1_8::UniformSampling<PointT>::applyFilter (PointCloud &output)
   {
     if (!input_->is_dense)
       // Check if the point is invalid
-      if (!pcl_isfinite (input_->points[(*indices_)[cp]].x) || 
-          !pcl_isfinite (input_->points[(*indices_)[cp]].y) || 
+      if (!pcl_isfinite (input_->points[(*indices_)[cp]].x) ||
+          !pcl_isfinite (input_->points[(*indices_)[cp]].y) ||
           !pcl_isfinite (input_->points[(*indices_)[cp]].z))
         continue;
 
@@ -118,11 +118,11 @@ pcl_1_8::UniformSampling<PointT>::applyFilter (PointCloud &output)
   int cp = 0;
 
   for (typename boost::unordered_map<size_t, Leaf>::const_iterator it = leaves_.begin (); it != leaves_.end (); ++it)
-    output.points[cp++] = input_->points[it->second.idx];
+    output.points[cp++] = it->second.idx;
   output.width = static_cast<uint32_t> (output.points.size ());
 }
 
 #define PCL_INSTANTIATE_UniformSampling(T) template class PCL_EXPORTS pcl_1_8::UniformSampling<T>;
 
-#endif    // PCL_FILTERS_UNIFORM_SAMPLING_IMPL_H_
+#endif    // PCL_KEYPOINTS_UNIFORM_SAMPLING_IMPL_H_
 

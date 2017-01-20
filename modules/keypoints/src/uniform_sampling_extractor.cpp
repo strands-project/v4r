@@ -1,5 +1,5 @@
 #include <v4r/keypoints/uniform_sampling_extractor.h>
-#include <pcl_1_8/filters/impl/uniform_sampling.hpp>
+#include <pcl_1_8/keypoints/impl/uniform_sampling.hpp>
 
 namespace v4r
 {
@@ -18,7 +18,7 @@ UniformSamplingExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
         us.setIndices(IndicesPtr);
     }
     pcl::PointCloud<int> keypoints_idxes;
-    us.filter(keypoints_idxes);
+    us.compute(keypoints_idxes);
 
     keypoint_indices_.resize (keypoints_idxes.points.size ());
     for(size_t i=0; i < keypoints_idxes.points.size(); i++)
