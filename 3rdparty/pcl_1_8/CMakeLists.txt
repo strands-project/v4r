@@ -46,7 +46,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/segmentation/include/
 
 
 add_library(${PCL_1_8_LIBRARY} STATIC ${lib_srcs} )
-target_link_libraries(${PCL_1_8_LIBRARY} ${PCL_LIBRARIES})
+target_link_libraries(${PCL_1_8_LIBRARY} ${PCL_LIBRARIES} )
 
 set_target_properties(${PCL_1_8_LIBRARY}
   PROPERTIES
