@@ -99,7 +99,7 @@ template<typename PointT>
 float
 VisibilityReasoning<PointT>::computeFocalLength (int width, int height, const typename pcl::PointCloud<PointT>::ConstPtr & scene)
 {
-  float cx;//, cy;
+  float cx, cy;
   cx = static_cast<float> (width) / 2.f - 0.5f;
   cy = static_cast<float> (height) / 2.f - 0.5f;
   (void)cy;
