@@ -5,7 +5,6 @@ bin
 cfg/*
 data/
 lib
-docs/*
 *~
 
 # git backups
