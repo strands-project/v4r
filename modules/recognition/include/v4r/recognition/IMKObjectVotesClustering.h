@@ -53,7 +53,7 @@ public:
   public:
     double cluster_dist;
     Parameter()
-    : cluster_dist(50) {}
+    : cluster_dist(70) {}
   };
 
 private:

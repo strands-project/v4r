@@ -78,7 +78,10 @@ private:
   cv::Mat_<double> dist_coeffs;
   cv::Mat_<double> intrinsic;
   
-  cv::Mat_<unsigned char> im_gray, im_warped, im_warped_scaled;
+  cv::Mat_<cv::Vec3b> im_lab;
+  std::vector< cv::Mat_<unsigned char> > im_channels;
+  cv::Mat_<unsigned char> im_warped_scaled;
+  std::vector<cv::Mat_<unsigned char> > ims_warped;
   std::vector< cv::Point2f > im_points;
   std::vector< int > inliers;
   std::vector<int> cnt_view_matches;
@@ -107,15 +110,15 @@ private:
   void createObjectModel(const unsigned &idx);
   void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image);
   void addView(const unsigned &idx, const std::vector<cv::KeyPoint> &keys, const cv::Mat &descs, const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &pose, Eigen::Vector3d &centroid, unsigned &cnt);
-  void poseEstimation(const cv::Mat_<unsigned char> &im_gray, const std::vector<std::string> &object_names, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &keys, const cv::Mat &descs,
+  void poseEstimation(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const std::vector<std::string> &object_names, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &keys, const cv::Mat &descs,
                       const std::vector< std::vector< cv::DMatch > > &matches,
                       const std::vector< boost::shared_ptr<v4r::triple<unsigned, double, std::vector< cv::DMatch > > > > &clusters,
                       std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects);
   int getMaxViewIndex(const std::vector<IMKView> &views, const std::vector<cv::DMatch> &matches, const std::vector<int> &inliers);
   void getNearestNeighbours(const Eigen::Vector2f &pt, const std::vector<cv::KeyPoint> &keys, const float &sqr_inl_radius_conf, std::vector<int> &nn_indices);
   float getMinDescDist32F(const cv::Mat &desc, const cv::Mat &descs, const std::vector<int> &indices);
-  void setViewDescriptor(const cv::Mat_<unsigned char> &im_gray, const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &pose, IMKView &view);
-  double computeGradientHistogramConf(const cv::Mat_<unsigned char> &im_gray, const IMKView &view, const Eigen::Matrix4f &pose);
+  void setViewDescriptor(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &pose, IMKView &view);
+  double computeGradientHistogramConf(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const IMKView &view, const Eigen::Matrix4f &pose);
 
 
 

@@ -31,7 +31,7 @@
  */
 
 
-#define USE_SIFT_GPU
+
 
 
 #include <map>
@@ -56,7 +56,7 @@
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r_config.h>
 #ifdef HAVE_SIFTGPU
-//#ifdef USE_SIFT_GPU
+#define USE_SIFT_GPU
 #include <v4r/features/FeatureDetector_KD_SIFTGPU.h>
 #else
 #include <v4r/features/FeatureDetector_KD_CVSIFT.h>
@@ -112,7 +112,6 @@ double thr_conf=0;
  */
 int main(int argc, char *argv[] )
 {
-  int cnt=0;
   int sleep = 0;
   char filename[PATH_MAX];
   track_win[0] = cv::Point(0, 0);
@@ -197,14 +196,14 @@ int main(int argc, char *argv[] )
 
     cout<<"Confidence value threshold for visualization: "<<thr_conf<<endl;
     cout<<"Found objects:"<<endl;
-    for (unsigned i=0; i<objects.size(); i++)
+    for (unsigned j=0; j<objects.size(); j++)
     {
-      cout<<i<<": name= "<<objects[i].first<<", conf= "<<objects[i].second<<endl;
-      if (objects[i].second>=thr_conf)
+      cout<<j<<": name= "<<objects[j].first<<", conf= "<<objects[j].second<<endl;
+      if (objects[j].second>=thr_conf)
       {
-        cv::Point2f origin = drawCoordinateSystem(im_draw, objects[i].third, intrinsic, dist_coeffs, 0.1, 4);
+        cv::Point2f origin = drawCoordinateSystem(im_draw, objects[j].third, intrinsic, dist_coeffs, 0.1, 4);
         //cv::addText( im_draw, objects[i].first+std::string(" (")+v4r::toString(objects[i].second)<<std::string(")"), origin+cv::Point(0,-10), font);
-        std::string txt = v4r::toString(i)+std::string(": ")+objects[i].first+std::string(" (")+v4r::toString(objects[i].second)+std::string(")");
+        std::string txt = v4r::toString(j)+std::string(": ")+objects[j].first+std::string(" (")+v4r::toString(objects[j].second)+std::string(")");
         cv::putText(im_draw, txt, origin+cv::Point2f(0,10), cv::FONT_HERSHEY_PLAIN, 1.5,  CV_RGB(255,255,255), 2, CV_AA);
       }
     }

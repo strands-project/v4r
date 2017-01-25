@@ -42,7 +42,7 @@
 //#define DEBUG_AR_GUI
 
 #ifdef DEBUG_AR_GUI
-#include "v4r/TomGine/tgTomGineThread.h"
+//#include "v4r/TomGine/tgTomGineThread.h"
 #include "opencv2/highgui/highgui.hpp"
 #include <numeric>
 #endif
@@ -53,10 +53,6 @@ namespace v4r
 
 using namespace std;
 
-
-#ifdef DEBUG_AR_GUI
-boost::shared_ptr<TomGine::tgTomGineThread> win(new TomGine::tgTomGineThread(1024,768, "TomGine"));
-#endif
 
 
 inline bool cmpObjectsDec(const v4r::triple<std::string, double, Eigen::Matrix4f> &a, const v4r::triple<std::string, double, Eigen::Matrix4f> &b)
@@ -73,14 +69,6 @@ IMKRecognizer::IMKRecognizer(const Parameter &p,
                                                        const v4r::FeatureDetector::Ptr &_descEstimator)
  : param(p), detector(_detector), descEstimator(_descEstimator)
 {
-#ifdef DEBUG_AR_GUI
-cv::Mat_<double> cam = (cv::Mat_<double>(3,3) << 525, 0, 320, 0, 525, 240, 0, 0, 1);
-cv::Mat_<float> cR = cv::Mat_<float>::eye(3,3);
-cv::Mat_<float> ct = cv::Mat_<float>::zeros(3,1);
-win->SetCamera(cam);
-win->SetCamera(cR,ct);
-#endif
-
   if (detector.get()==0) detector = descEstimator;
   cbMatcher.reset(new CodebookMatcher(param.cb_param));
   votesClustering.setParameter(p.vc_param);
@@ -152,11 +140,6 @@ void IMKRecognizer::addView(const unsigned &idx, const std::vector<cv::KeyPoint>
         //view.descs.push_back(descs.row(i));
         centroid += view.points.back().cast<double>();
         cnt++;
-
-#ifdef DEBUG_AR_GUI
-//  cout<<view.points.back().transpose()<<endl;
-//  win->AddPoint3D(view.points.back()[0],view.points.back()[1],view.points.back()[2], 0,0,255, 1);
-#endif
       }
     }
   }
@@ -172,9 +155,12 @@ void IMKRecognizer::addView(const unsigned &idx, const std::vector<cv::KeyPoint>
  * @param mask
  * @param view
  */
-void IMKRecognizer::setViewDescriptor(const cv::Mat_<unsigned char> &im_gray, const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &pose, IMKView &view)
+void IMKRecognizer::setViewDescriptor(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &pose, IMKView &view)
 {
   //kp::ScopeTime tc("IMKRecognizer::setViewDescriptor");
+
+  if (_im_channels.size()==0)
+    return;
 
   double min_val=DBL_MAX, max_val=-DBL_MAX;
   int min_x = INT_MAX;
@@ -204,7 +190,6 @@ void IMKRecognizer::setViewDescriptor(const cv::Mat_<unsigned char> &im_gray, co
   // get depth map and image roi
   cv::Mat_<float> depth(max_y-min_y+1, max_x-min_x+1);
   view.cloud.resize(max_y-min_y+1, max_x-min_x+1);
-  cv::Mat_<unsigned char> im_roi(max_y-min_y+1, max_x-min_x+1);
   cv::Mat_<unsigned char> mask_roi(max_y-min_y+1, max_x-min_x+1);
   Eigen::Matrix3f R = pose.topLeftCorner<3,3>();
   Eigen::Vector3f pt_tmp, t = pose.block<3,1>(0,3);
@@ -215,7 +200,6 @@ void IMKRecognizer::setViewDescriptor(const cv::Mat_<unsigned char> &im_gray, co
       const pcl::PointXYZRGB &pt = cloud(u+min_x, v+min_y);
       depth(v,u) = (isnan(pt.z)?10000:pt.z);
       view.cloud(v,u) = R*pt.getVector3fMap()+t;
-      im_roi(v,u) = im_gray(v+min_y, u+min_x);
       mask_roi(v,u) = mask(v+min_y, u+min_x);
     }
   }
@@ -235,9 +219,6 @@ void IMKRecognizer::setViewDescriptor(const cv::Mat_<unsigned char> &im_gray, co
     }
   }
   //set cloud to view in global coordinates
-  #ifdef DEBUG_AR_GUI
-  //win->Clear();
-  #endif
   double invC0 = 1./intrinsic(0,0);
   double invC4 = 1./intrinsic(1,1);
   for (int v=0; v<depth.rows; v++)
@@ -251,29 +232,28 @@ void IMKRecognizer::setViewDescriptor(const cv::Mat_<unsigned char> &im_gray, co
         pt_tmp[0] = pt_tmp[2]*((u+min_x-intrinsic(0,2))*invC0);
         pt_tmp[1] = pt_tmp[2]*((v+min_y-intrinsic(1,2))*invC4);
         pt = R*pt_tmp + t;
-        #ifdef DEBUG_AR_GUI
-        //win->AddPoint3D(pt[0],pt[1],pt[2], 255,100,100, 1);
-        #endif
       }
-      #ifdef DEBUG_AR_GUI
-      //else win->AddPoint3D(pt[0],pt[1],pt[2], 255,255,255, 1);
-      #endif
     }
   }
   // compute descriptor
   cv::Mat_<unsigned char> im_roi_scaled, mask_roi_scaled;
-  cv::resize(im_roi,im_roi_scaled, cv::Size(param.image_size_conf_desc,param.image_size_conf_desc));
   cv::resize(mask_roi,mask_roi_scaled, cv::Size(param.image_size_conf_desc,param.image_size_conf_desc));
   mask_roi_scaled.convertTo(view.weight_mask, CV_32F, 1./255);
   view.weight_mask = (view.weight_mask>0.5);
-  cp.compute(im_roi_scaled, view.weight_mask, view.conf_desc);
+  view.conf_desc.clear();
+  std::vector<float> desc;
+  for (unsigned i=0; i<_im_channels.size(); i++)
+  {
+    cv::resize(_im_channels[i]( cv::Rect(min_x,min_y,depth.cols,depth.rows) )  ,im_roi_scaled, cv::Size(param.image_size_conf_desc,param.image_size_conf_desc));
+    cp.compute(im_roi_scaled, view.weight_mask, desc);
+    view.conf_desc.insert(view.conf_desc.begin(), desc.begin(), desc.end());
+  }
 
   #ifdef DEBUG_AR_GUI
-  //win->Update();
-  im_roi.copyTo(view.im_gray);  // debug
+  _im_channels[0](cv::Rect(min_x,min_y,depth.cols,depth.rows)).copyTo(view.im_gray);  // debug
   cv::imshow("depth8U",depth8U);
   cv::imshow("inp8U",inp8U);
-  cv::imshow("im_roi",im_roi);
+  cv::imshow("im_roi",_im_channels[0](cv::Rect(min_x,min_y,depth.cols,depth.rows)));
   cv::imshow("im_roi_scaled",im_roi_scaled);
   //cv::waitKey(0);
   #endif
@@ -301,7 +281,7 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
   std::string pattern =  std::string("cloud_")+std::string(".*.")+std::string("pcd");
   const std::string &name = object_names[idx];
 
-  v4r::io::getFilesInDirectory(base_dir+std::string("/models/")+name+std::string("/views/"),cloud_files,so_far,pattern,false);
+  v4r::io::getFilesInDirectory(base_dir+std::string("/")+name+std::string("/views/"),cloud_files,so_far,pattern,false);
 
   pcl::PCDReader pcd;
   Eigen::Vector4f origin;
@@ -315,10 +295,6 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
   unsigned key_cnt = 0;
   unsigned start_frame = object_models.size();
 
-#ifdef DEBUG_AR_GUI
-  win->Clear();
-#endif
-
   for (unsigned i=0; i<cloud_files.size(); i++)
   {
     mask_file = pose_file = cloud_files[i];
@@ -327,10 +303,10 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
     boost::replace_last (pose_file, "pcd", "txt");
     boost::replace_last (pose_file, "cloud_", "pose_");
 
-    if (pcd.read (base_dir+std::string("/models/")+name+std::string("/views/")+cloud_files[i], *cloud2, origin, orientation, version) < 0)
+    if (pcd.read (base_dir+std::string("/")+name+std::string("/views/")+cloud_files[i], *cloud2, origin, orientation, version) < 0)
       continue;
 
-    mask = cv::imread(base_dir+std::string("/models/")+name+std::string("/views/")+mask_file, CV_LOAD_IMAGE_GRAYSCALE);
+    mask = cv::imread(base_dir+std::string("/")+name+std::string("/views/")+mask_file, CV_LOAD_IMAGE_GRAYSCALE);
 
     if (mask.empty())
       continue;
@@ -338,19 +314,19 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
     pcl::fromPCLPointCloud2 (*cloud2, *cloud);
     convertImage(*cloud, image);
 
-    if (!readPose(base_dir+std::string("/models/")+name+std::string("/views/")+pose_file, pose))
+    if (!readPose(base_dir+std::string("/")+name+std::string("/views/")+pose_file, pose))
       continue;
 
-    if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
-    else im_gray = image;
+    cv::cvtColor(image, im_lab, CV_BGR2Lab);
+    cv::split(im_lab, im_channels);
 
-    detector->detect(im_gray,keys);
-    descEstimator->extract(im_gray, keys, descs);
+    detector->detect(im_channels[0],keys);
+    descEstimator->extract(im_channels[0], keys, descs);
 
     int tmp_nb = key_cnt;
 
     addView(idx, keys, descs, *cloud, mask, pose, centroid, key_cnt);
-    setViewDescriptor(im_gray, *cloud, mask, pose, object_models.back());
+    setViewDescriptor(im_channels, *cloud, mask, pose, object_models.back());
 
     cout<<"Load "<<(name+std::string("/")+cloud_files[i])<<": detected "<<key_cnt-tmp_nb<<" keys"<<endl;
 
@@ -362,12 +338,6 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
   {
     centroid /= (double)key_cnt;
   }
-
-#ifdef DEBUG_AR_GUI
-  win->AddPoint3D(centroid[0],centroid[1],centroid[2], 255,0,0, 5);
-  win->Update();
-  cv::waitKey(0);
-#endif
 
   cv::Point2f center;
 
@@ -447,40 +417,57 @@ float IMKRecognizer::getMinDescDist32F(const cv::Mat &desc, const cv::Mat &descs
  * @param view
  * @return
  */
-double IMKRecognizer::computeGradientHistogramConf(const cv::Mat_<unsigned char> &im_gray, const IMKView &view, const Eigen::Matrix4f &pose)
+double IMKRecognizer::computeGradientHistogramConf(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const IMKView &view, const Eigen::Matrix4f &pose)
 {
   //kp::ScopeTime tc("IMKRecognizer::computeGradientHistogramConf");
   if (view.conf_desc.size()==0 || view.cloud.rows<5 || view.cloud.cols<5 || view.weight_mask.rows!=param.image_size_conf_desc || view.weight_mask.cols!=param.image_size_conf_desc)
     throw std::runtime_error("[IMKRecognizer::computeGradientHistogramConf] The object model does not fit to the current configuration! Please rebuild the model (delete the auto-generated model folder)!");
+  if (_im_channels.size()==0)
+    return 0.;
 
   // warp image to model view
+  int max_x = _im_channels[0].cols-1;
+  int max_y = _im_channels[0].rows-1;
   Eigen::Vector2f im_pt;
   Eigen::Matrix3f R = pose.topLeftCorner<3,3>();
   Eigen::Vector3f pt, t = pose.block<3,1>(0,3);
-  im_warped = cv::Mat_<unsigned char>(view.cloud.rows, view.cloud.cols);
-  for (int v=0; v<im_warped.rows; v++)
+  ims_warped.resize(_im_channels.size());
+  for (unsigned i=0; i<ims_warped.size(); i++)
+    ims_warped[i] = cv::Mat_<unsigned char>(view.cloud.rows, view.cloud.cols);
+  for (int v=0; v<view.cloud.rows; v++)
   {
-    for (int u=0; u<im_warped.cols; u++)
+    for (int u=0; u<view.cloud.cols; u++)
     {
       pt = R * view.cloud(v,u) + t;
       if (dist_coeffs.empty())
         projectPointToImage(&pt[0],&intrinsic(0,0),&im_pt[0]);
       else projectPointToImage(&pt[0],&intrinsic(0,0), &dist_coeffs(0,0), &im_pt[0]);
-      if (im_pt[0]>=0 && im_pt[1]>=0 && im_pt[0]<im_gray.cols-1 && im_pt[1]<im_gray.rows-1)
-        im_warped(v,u) = getInterpolated(im_gray, im_pt);
-      else im_warped(v,u) = 128;
+      for (unsigned i=0; i<ims_warped.size(); i++)
+      {
+        if (im_pt[0]>=0 && im_pt[1]>=0 && im_pt[0]<max_x && im_pt[1]<max_y)
+          ims_warped[i](v,u) = getInterpolated(_im_channels[i], im_pt);
+        else ims_warped[i](v,u) = 128;
+      }
     }
   }
   // compute descriptor
-  cv::resize(im_warped,im_warped_scaled, cv::Size(param.image_size_conf_desc,param.image_size_conf_desc));
-  cp.compute(im_warped_scaled, view.weight_mask, desc);
-  #ifdef DEBUG_AR_GUI
-  if (!view.im_gray.empty()) cv::imshow("view.im_gray",view.im_gray);
-  cv::imshow("im_warped", im_warped);
-  cv::waitKey(0);
-  #endif
-  if (view.conf_desc.size()>0 && view.conf_desc.size()==desc.size())
-    return 1.-sqrt(squaredDistance(&view.conf_desc[0],&desc[0],desc.size()));
+  desc.clear();
+  std::vector<float> tmp_desc;
+  for (unsigned i=0; i<ims_warped.size(); i++)
+  {
+    cv::resize(ims_warped[i],im_warped_scaled, cv::Size(param.image_size_conf_desc,param.image_size_conf_desc));
+    cp.compute(im_warped_scaled, view.weight_mask, tmp_desc);
+    desc.insert(desc.begin(), tmp_desc.begin(), tmp_desc.end());
+    #ifdef DEBUG_AR_GUI
+    if (!view.im_gray.empty()) cv::imshow("view.im_gray",view.im_gray);
+    cv::imshow("im_warped", ims_warped[i]);
+    cv::waitKey(0);
+    #endif
+  }
+  int size = (desc.size()<view.conf_desc.size()?desc.size():view.conf_desc.size());
+  double norm = size/128;                    // gradient hist size => 128
+  if (size>0)
+    return ( 1. - sqrt( squaredDistance(&view.conf_desc[0], &desc[0], size)/norm ) );
   return 0.;
 }
 
@@ -492,8 +479,11 @@ double IMKRecognizer::computeGradientHistogramConf(const cv::Mat_<unsigned char>
  * @param matches
  * @param clusters
  */
-void IMKRecognizer::poseEstimation(const cv::Mat_<unsigned char> &im_gray, const std::vector<std::string> &object_names, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &keys, const cv::Mat &descs, const std::vector< std::vector< cv::DMatch > > &matches, const std::vector< boost::shared_ptr<v4r::triple<unsigned, double, std::vector< cv::DMatch > > > > &clusters, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects)
+void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const std::vector<std::string> &object_names, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &keys, const cv::Mat &descs, const std::vector< std::vector< cv::DMatch > > &matches, const std::vector< boost::shared_ptr<v4r::triple<unsigned, double, std::vector< cv::DMatch > > > > &clusters, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects)
 {
+  if (_im_channels.size()==0)
+    return;
+
   std::vector<cv::Point3f> points;
   std::vector<cv::Point2f> im_points;
   std::vector<cv::DMatch> tmp_matches;
@@ -530,8 +520,8 @@ void IMKRecognizer::poseEstimation(const cv::Mat_<unsigned char> &im_gray, const
       int view_idx = getMaxViewIndex(views, tmp_matches, inliers);
       //double conf = getConfidenceKeypointMatch(views, keys, descs, pose, getMaxViewIndex(views, tmp_matches, inliers) );
 //      double conf = (view_idx>=0 && view_idx<(int)views.size()? (views[view_idx].keys.size()>0? ((double)inliers.size())/(double)views[view_idx].keys.size() : 0.) : 0.);
-      double conf = computeGradientHistogramConf(im_gray, views[view_idx], pose);
-      objects.push_back(v4r::triple<std::string, double, Eigen::Matrix4f>(object_names[ms.first],(conf>1?1.:conf), pose));
+      double conf = computeGradientHistogramConf(_im_channels, views[view_idx], pose);
+      objects.push_back(v4r::triple<std::string, double, Eigen::Matrix4f>(object_names[ms.first],(conf>1?1.:conf<0?0:conf), pose));
     }
 
 #ifdef DEBUG_AR_GUI
@@ -564,13 +554,20 @@ void IMKRecognizer::recognize(const cv::Mat &image, std::vector<v4r::triple<std:
   if (intrinsic.empty())
     throw std::runtime_error("[IMKRecognizer::detect] Intrinsic camera parameter not set!");
 
-  if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
-  else im_gray = image;
+  if( image.type() != CV_8U )
+  {
+    cv::cvtColor(image, im_lab, CV_BGR2Lab);
+    cv::split(im_lab, im_channels);
+  }
+  else
+  {
+    im_channels.assign(1, image);
+  }
 
   // get matches
   { //kp::ScopeTime t("IMKRecognizer::recognize - keypoint detection");
-  detector->detect(im_gray, keys);
-  descEstimator->extract(im_gray, keys, descs);
+  detector->detect(im_channels[0], keys);
+  descEstimator->extract(im_channels[0], keys, descs);
   }
 
 #ifdef DEBUG_AR_GUI
@@ -587,7 +584,7 @@ void IMKRecognizer::recognize(const cv::Mat &image, std::vector<v4r::triple<std:
   }
 
   { //kp::ScopeTime t("IMKRecognizer::recognize - pnp pose estimation");
-  poseEstimation(im_gray, object_names, object_models, keys, descs, matches, clusters, objects);
+  poseEstimation(im_channels, object_names, object_models, keys, descs, matches, clusters, objects);
   }
 
   std::sort(objects.begin(), objects.end(), cmpObjectsDec);
@@ -629,7 +626,7 @@ void IMKRecognizer::addObject(const std::string &_object_name)
 void IMKRecognizer::initModels()
 {
   IMKRecognizerIO io;
-  if ( IMKRecognizerIO::read(base_dir+std::string("/models/"), object_names, object_models, *cbMatcher) )
+  if ( IMKRecognizerIO::read(base_dir+std::string("/"), object_names, object_models, *cbMatcher) )
   {
   }
   else
@@ -640,7 +637,7 @@ void IMKRecognizer::initModels()
     }
     cbMatcher->createCodebook();
 
-    IMKRecognizerIO::write(base_dir+std::string("/models/"), object_names, object_models, *cbMatcher);
+    IMKRecognizerIO::write(base_dir+std::string("/"), object_names, object_models, *cbMatcher);
   }
 }
 
