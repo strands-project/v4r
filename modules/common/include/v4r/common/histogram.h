@@ -56,7 +56,7 @@ V4R_EXPORTS int computeHistogramIntersection (const Eigen::VectorXi &histA, cons
  * @param[out] hist_shifted
  * @param[in] direction_is_right (if true, shift histogram to the right. Otherwise to the left)
  */
-V4R_EXPORTS void shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction_is_right=true);
+V4R_EXPORTS void shiftHistogram (const Eigen::VectorXi &hist, Eigen::VectorXi &hist_shifted, bool direction_is_right=true);
 
 }
 

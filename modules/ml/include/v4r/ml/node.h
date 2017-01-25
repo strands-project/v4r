@@ -49,6 +49,7 @@ private:
   template<class Archive>
   void serialize(Archive & ar, const unsigned int version)
   {
+      (void)version;
     ar & isSplitNode_;
     ar & splitOnFeatureIdx_;
     ar & threshold_;
