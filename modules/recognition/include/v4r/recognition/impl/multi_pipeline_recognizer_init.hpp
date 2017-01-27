@@ -227,7 +227,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(std::vector<std::stri
         // classifier
 //        NearestNeighborClassifier::Ptr classifier (new NearestNeighborClassifier);
         svmClassifier::Ptr classifier (new svmClassifier (paramSVM));
-        classifier->setInFilename(esf_svm_model_fn);
+        //classifier->setInFilename(esf_svm_model_fn);
 
         typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>(paramESF));
         global_r->setSegmentationAlgorithm(seg);
@@ -255,7 +255,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(std::vector<std::stri
         // classifier
 //        NearestNeighborClassifier::Ptr classifier (new NearestNeighborClassifier);
         svmClassifier::Ptr classifier (new svmClassifier (paramSVM));
-        classifier->setInFilename(alexnet_svm_model_fn);
+        //classifier->setInFilename(alexnet_svm_model_fn);
 
         typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>(paramESF));
         global_r->setSegmentationAlgorithm(seg);
