@@ -275,7 +275,7 @@ computeMaskFromIndexMap( const Eigen::MatrixXi &image_map, size_t nr_points )
 template<typename PointT>
 V4R_EXPORTS
 void
-computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4f &centroid, Eigen::Vector4f &elongationsXYZ, const std::vector<int> &indices)
+computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4f &centroid, Eigen::Vector3f &elongationsXYZ, Eigen::Matrix4f &covariancePose, const std::vector<int> &indices)
 {
     EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
     EIGEN_ALIGN16 Eigen::Vector3f eigenValues;
@@ -298,13 +298,12 @@ computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4
     eigenBasis.col(2) = eig3.normalized();
 
     // transform cluster into origin and align with eigenvectors
-    Eigen::Matrix4f tf_rot_inv = Eigen::Matrix4f::Identity();
-    tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
-    Eigen::Matrix4f tf_trans_inv = Eigen::Matrix4f::Identity();
-    tf_trans_inv.block<3,1>(0,3) = -centroid.topRows(3);
-
+    Eigen::Matrix4f tf_rot = Eigen::Matrix4f::Identity();
+    tf_rot.block<3,3>(0,0) = eigenBasis.transpose();
     Eigen::Matrix4f tf_trans = Eigen::Matrix4f::Identity();
-    tf_trans.block<3,1>(0,3) = centroid.topRows(3);
+    tf_trans.block<3,1>(0,3) = -centroid.topRows(3);
+
+    covariancePose = tf_rot * tf_trans;
 //    Eigen::Matrix4f tf_rot = tf_rot_inv.inverse();
 
     // compute max elongations
@@ -315,7 +314,7 @@ computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4
     else
         pcl::copyPointCloud( cloud, indices, eigenvec_aligned);
 
-    pcl::transformPointCloud(eigenvec_aligned, eigenvec_aligned, tf_rot_inv*tf_trans_inv);
+    pcl::transformPointCloud(eigenvec_aligned, eigenvec_aligned, tf_rot*tf_trans);
 
     float xmin,ymin,xmax,ymax,zmin,zmax;
     xmin = ymin = xmax = ymax = zmin = zmax = 0.f;
@@ -341,7 +340,7 @@ computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4
     elongationsXYZ(2) = zmax - zmin;
 }
 
-#define PCL_INSTANTIATE_computePointCloudProperties(T) template V4R_EXPORTS void computePointCloudProperties<T>(const pcl::PointCloud<T> &, Eigen::Vector4f &, Eigen::Vector4f &, const std::vector<int> &);
+#define PCL_INSTANTIATE_computePointCloudProperties(T) template V4R_EXPORTS void computePointCloudProperties<T>(const pcl::PointCloud<T> &, Eigen::Vector4f &, Eigen::Vector3f &, Eigen::Matrix4f &eigenBasis, const std::vector<int> &);
 PCL_INSTANTIATE(computePointCloudProperties, PCL_XYZ_POINT_TYPES )
 
 #define PCL_INSTANTIATE_computeMeshResolution(T) template V4R_EXPORTS float computeMeshResolution<T>(const typename pcl::PointCloud<T>::ConstPtr &);
