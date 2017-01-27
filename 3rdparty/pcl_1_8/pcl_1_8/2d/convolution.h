@@ -35,15 +35,14 @@
  *
  */
 
-#ifndef FAAT_PCL_2D_CONVOLUTION_H
-#define FAAT_PCL_2D_CONVOLUTION_H
+#ifndef PCL_1_8_2D_CONVOLUTION_H
+#define PCL_1_8_2D_CONVOLUTION_H
 
-#include <v4r/core/macros.h>
 #include <pcl/pcl_base.h>
 #include <pcl/filters/filter.h>
 #include <pcl/point_types.h>
 
-namespace v4r
+namespace pcl_1_8
 {
   /**
    * This typedef is used to represent a point cloud containing edge information
@@ -60,7 +59,7 @@ namespace v4r
 
   /** \brief A 2D convolution class. */ 
   template <typename PointT>
-  class V4R_EXPORTS Convolution : public pcl::Filter<PointT>
+  class Convolution : public pcl::Filter<PointT>
   {
     public:
       using pcl::Filter<PointT>::input_;
@@ -146,9 +145,9 @@ namespace v4r
   };
 }
 
-#include <v4r/common/impl/convolution.hpp>
+#include <pcl_1_8/2d/impl/convolution.hpp>
 
-POINT_CLOUD_REGISTER_POINT_STRUCT (v4r::PointXYZIEdge,
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl_1_8::PointXYZIEdge,
     (float, x, x)
     (float, y, y)
     (float, z, z)
@@ -157,5 +156,4 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (v4r::PointXYZIEdge,
     (float, magnitude_x, magnitude_x)
     (float, magnitude_y, magnitude_y)
 )
-
 #endif // PCL_2D_CONVOLUTION_2D_H

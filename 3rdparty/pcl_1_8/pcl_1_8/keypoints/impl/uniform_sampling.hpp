@@ -35,15 +35,15 @@
  *
  */
 
-#ifndef PCL_KEYPOINTS_UNIFORM_SAMPLING_IMPL_H_
-#define PCL_KEYPOINTS_UNIFORM_SAMPLING_IMPL_H_
+#ifndef PCL_1_8_KEYPOINTS_UNIFORM_SAMPLING_IMPL_H_
+#define PCL_1_8_KEYPOINTS_UNIFORM_SAMPLING_IMPL_H_
 
 #include <pcl/common/common.h>
-#include <v4r/keypoints/uniform_sampling.h>
+#include <pcl_1_8/keypoints/uniform_sampling.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT> void
-pcl::UniformSampling<PointInT>::detectKeypoints (PointCloudOut &output)
+pcl_1_8::UniformSampling<PointInT>::detectKeypoints (PointCloudOut &output)
 {
   // Has the input dataset been set already?
   if (!input_)
@@ -122,7 +122,7 @@ pcl::UniformSampling<PointInT>::detectKeypoints (PointCloudOut &output)
   output.width = static_cast<uint32_t> (output.points.size ());
 }
 
-#define PCL_INSTANTIATE_UniformSampling(T) template class V4R_EXPORTS pcl::UniformSampling<T>;
+#define PCL_INSTANTIATE_UniformSampling(T) template class PCL_EXPORTS pcl_1_8::UniformSampling<T>;
 
 #endif    // PCL_KEYPOINTS_UNIFORM_SAMPLING_IMPL_H_
 

@@ -35,15 +35,14 @@
  *
  */
 
-#ifndef FAAT_PCL_2D_KERNEL_H_
-#define FAAT_PCL_2D_KERNEL_H_
-#include <v4r/core/macros.h>
+#ifndef PCL_1_8_2D_KERNEL_H_
+#define PCL_1_8_2D_KERNEL_H_
 #include <pcl/pcl_base.h>
 #include <pcl/point_types.h>
-namespace v4r
+namespace pcl_1_8
 {
   template<typename PointT>
-  class V4R_EXPORTS kernel
+  class kernel
   {
     public:
 
@@ -113,7 +112,7 @@ namespace v4r
        * 3x3 Sobel kernel in the X direction
        */
 
-      void sobelKernelX (pcl::PointCloud<PointT> &Kernel);
+      void sobelKernelX (pcl::PointCloud<PointT> &kernel);
 
       /**
        *
@@ -122,7 +121,7 @@ namespace v4r
        * 3x3 Prewitt kernel in the X direction
        */
 
-      void prewittKernelX (pcl::PointCloud<PointT> &Kernel);
+      void prewittKernelX (pcl::PointCloud<PointT> &kernel);
 
       /**
        *
@@ -140,7 +139,7 @@ namespace v4r
        * 3x3 Sobel kernel in the Y direction
        */
 
-      void sobelKernelY (pcl::PointCloud<PointT> &Kernel);
+      void sobelKernelY (pcl::PointCloud<PointT> &kernel);
 
       /**
        *
@@ -149,7 +148,7 @@ namespace v4r
        * 3x3 Prewitt kernel in the Y direction
        */
 
-      void prewittKernelY (pcl::PointCloud<PointT> &Kernel);
+      void prewittKernelY (pcl::PointCloud<PointT> &kernel);
 
       /**
        *
@@ -240,6 +239,6 @@ namespace v4r
   };
 }
 
-#include <v4r/common/impl/kernel.hpp>
+#include <pcl_1_8/2d/impl/kernel.hpp>
 
 #endif    // PCL_2D_KERNEL_H_

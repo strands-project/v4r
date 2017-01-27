@@ -71,7 +71,7 @@ else()
   list(APPEND CMAKE_LIBRARY_PATH /usr/lib)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fopenmp")
 
 # ----------------------------------------------------------------------------
 # V4R cmake options
@@ -343,6 +343,7 @@ include(cmake/V4RFindON_NURBS.cmake)
 # ----------------------------------------------------------------------------
 
 include(cmake/V4RFindEDT.cmake)
+include(cmake/V4RFindPCL_1_8.cmake)
 include(cmake/V4RFindSiftGPU.cmake)
 include(cmake/V4RFindMETSlib.cmake)
 include(cmake/V4RFindLIBSVM.cmake)

@@ -10,7 +10,7 @@
 
 #include <boost/unordered_map.hpp>
 
-#include <v4r/common/organized_edge_detection.h>
+#include <pcl_1_8/features/organized_edge_detection.h>
 #include <v4r/core/macros.h>
 
 #include <pcl/common/angles.h>
@@ -155,11 +155,11 @@ namespace v4r
       inline void
       computeRGBEdges (typename pcl::PointCloud<PointT>::Ptr & cloud, std::vector<int> & indices)
       {
-        v4r::OrganizedEdgeFromRGB<PointT, pcl::Label> oed;
+        pcl_1_8::OrganizedEdgeFromRGB<PointT, pcl::Label> oed;
         oed.setDepthDisconThreshold (0.03f);
         oed.setRGBCannyLowThreshold (150.f);
         oed.setRGBCannyHighThreshold (200.f);
-        oed.setEdgeType (v4r::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_RGB_CANNY);
+        oed.setEdgeType (pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_RGB_CANNY);
         oed.setInputCloud (cloud);
 
         pcl::PointCloud<pcl::Label>::Ptr labels (new pcl::PointCloud<pcl::Label>);

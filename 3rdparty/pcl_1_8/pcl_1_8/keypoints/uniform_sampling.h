@@ -37,14 +37,13 @@
  *
  */
 
-#ifndef PCL_KEYPOINTS_UNIFORM_SAMPLING_H_
-#define PCL_KEYPOINTS_UNIFORM_SAMPLING_H_
+#ifndef PCL_1_8_KEYPOINTS_UNIFORM_SAMPLING_H_
+#define PCL_1_8_KEYPOINTS_UNIFORM_SAMPLING_H_
 
-#include <v4r/core/macros.h>
 #include <pcl/keypoints/keypoint.h>
 #include <boost/unordered_map.hpp>
 
-namespace pcl
+namespace pcl_1_8
 {
   /** \brief @b UniformSampling assembles a local 3D grid over a given PointCloud, and downsamples + filters the data.
     *
@@ -59,16 +58,16 @@ namespace pcl
     * \ingroup keypoints
     */
   template <typename PointInT>
-  class V4R_EXPORTS UniformSampling: public Keypoint<PointInT, int>
+  class UniformSampling: public pcl::Keypoint<PointInT, int>
   {
-    typedef typename Keypoint<PointInT, int>::PointCloudIn PointCloudIn;
-    typedef typename Keypoint<PointInT, int>::PointCloudOut PointCloudOut;
+    typedef typename pcl::Keypoint<PointInT, int>::PointCloudIn PointCloudIn;
+    typedef typename pcl::Keypoint<PointInT, int>::PointCloudOut PointCloudOut;
 
-    using Keypoint<PointInT, int>::name_;
-    using Keypoint<PointInT, int>::input_;
-    using Keypoint<PointInT, int>::indices_;
-    using Keypoint<PointInT, int>::search_radius_;
-    using Keypoint<PointInT, int>::getClassName;
+    using pcl::Keypoint<PointInT, int>::name_;
+    using pcl::Keypoint<PointInT, int>::input_;
+    using pcl::Keypoint<PointInT, int>::indices_;
+    using pcl::Keypoint<PointInT, int>::search_radius_;
+    using pcl::Keypoint<PointInT, int>::getClassName;
 
     public:
       typedef boost::shared_ptr<UniformSampling<PointInT> > Ptr;
@@ -137,7 +136,7 @@ namespace pcl
 }
 
 #ifdef PCL_NO_PRECOMPILE
-#include <v4r/keypoints/impl/uniform_sampling.hpp>
+#include <pcl_1_8/keypoints/impl/uniform_sampling.hpp>
 #endif
 
 #endif  //#ifndef PCL_KEYPOINTS_UNIFORM_SAMPLING_H_

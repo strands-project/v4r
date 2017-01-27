@@ -19,6 +19,8 @@ endif()
 if(HAVE_PCL)
   v4r_include_directories(${PCL_INCLUDE_DIRS})
   list(APPEND DEP_LIBS ${PCL_LIBRARIES})
+  v4r_include_directories(${PCL_1_8_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${PCL_1_8_LIBRARIES})
 endif()
 
 if(HAVE_OPENCV)
