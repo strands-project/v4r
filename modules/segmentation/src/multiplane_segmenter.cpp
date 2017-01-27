@@ -1,5 +1,7 @@
+#include <v4r/common/plane_utils.h>
 #include <v4r/segmentation/multiplane_segmenter.h>
-#include <v4r/segmentation/multiplane_segmentation.h>
+
+#include <pcl/filters/voxel_grid.h>
 #include <pcl/segmentation/euclidean_cluster_comparator.h>
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/segmentation/organized_multi_plane_segmentation.h>
@@ -59,7 +61,19 @@ MultiplaneSegmenter<PointT>::computeTablePlanes()
         pcl::copyPointCloud(*scene_, inlier_indices[i], *plane_cloud);
 
         double z_min = 0., z_max = 0.30; // we want the points above the plane, no farther than zmax cm from the surface
-        typename pcl::PointCloud<PointT>::Ptr hull_points = all_planes_[i]->getConvexHullCloud();
+
+        typename pcl::PointCloud<PointT>::Ptr plane_cloud_downsampled (new pcl::PointCloud<PointT>);
+        typename pcl::PointCloud<PointT>::Ptr projected(new pcl::PointCloud<PointT>);
+        //      pcl::copyPointCloud(*cloud_, inliers_, *projected);
+        pcl::SampleConsensusModelPlane<PointT> sacmodel (all_planes_[i]->cloud_);
+        sacmodel.projectPoints (all_planes_[i]->inliers_, all_planes_[i]->coefficients_, *projected, false);
+
+        pcl::VoxelGrid<PointT> vg;
+        vg.setInputCloud (projected);
+        float leaf_size = 0.005f;
+        vg.setLeafSize (leaf_size, leaf_size, leaf_size);
+        vg.filter (*plane_cloud_downsampled);
+        typename pcl::PointCloud<PointT>::Ptr hull_points = getConvexHullCloud<PointT>(plane_cloud_downsampled);//all_planes_[i]->getConvexHullCloud();
 
         pcl::PointIndices cloud_indices;
         pcl::ExtractPolygonalPrismData<PointT> prism;
