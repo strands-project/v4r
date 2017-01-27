@@ -39,7 +39,19 @@ namespace v4r
  * @param[in] range minimum
  * @param[in] range maximum
  */
-V4R_EXPORTS void computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXi &histogram, size_t bins=100, float min=0.f, float max=1.f);
+V4R_EXPORTS void
+computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXi &histogram, size_t bins=100, float min=0.f, float max=1.f);
+
+
+
+/**
+ * @brief compute cumulative histogram
+ * @param[in] histogram
+ * @param[out] cumulative histogram
+ */
+V4R_EXPORTS void
+computeCumulativeHistogram (const Eigen::VectorXi &histogram, Eigen::VectorXi &cumulative_histogram);
+
 
 
 /**
@@ -48,7 +60,10 @@ V4R_EXPORTS void computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXi 
  * @param[in] histB
  * @return intersection value
  */
-V4R_EXPORTS int computeHistogramIntersection (const Eigen::VectorXi &histA, const Eigen::VectorXi &histB);
+V4R_EXPORTS int
+computeHistogramIntersection (const Eigen::VectorXi &histA, const Eigen::VectorXi &histB);
+
+
 
 /**
  * @brief shift histogram values by one bin
@@ -56,7 +71,22 @@ V4R_EXPORTS int computeHistogramIntersection (const Eigen::VectorXi &histA, cons
  * @param[out] hist_shifted
  * @param[in] direction_is_right (if true, shift histogram to the right. Otherwise to the left)
  */
-V4R_EXPORTS void shiftHistogram (const Eigen::VectorXi &hist, Eigen::VectorXi &hist_shifted, bool direction_is_right=true);
+V4R_EXPORTS void
+shiftHistogram (const Eigen::VectorXi &hist, Eigen::VectorXi &hist_shifted, bool direction_is_right=true);
+
+
+
+/**
+ * @brief specifyHistogram (based on http://fourier.eng.hmc.edu/e161/lectures/contrast_transform/node3.html)
+ * @param input_image color values of input image
+ * @param desired_color color values of desired image
+ * @param bins histogram bins
+ * @param min minimum color value
+ * @param max maximum color value
+ * @return specified histogram
+ */
+V4R_EXPORTS Eigen::VectorXf
+specifyHistogram (const Eigen::VectorXf &input_image, const Eigen::VectorXf &desired_image, size_t bins=100, float min=0.f, float max=1.f);
 
 }
 

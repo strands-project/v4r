@@ -28,6 +28,7 @@
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/shared_ptr.hpp>
+#include <opencv/cv.h>
 #include <fstream>
 #include <stdlib.h>
 #include <math.h>
@@ -47,6 +48,7 @@ protected:
     float cx_;  ///< central point of projection in x
     float cy_; ///< central point of projection in y
     float horizontal_fov_deg_; ///< camera's horizontal field of view in degree
+    cv::Mat_<uchar> camera_depth_registration_mask_; ///< this mask has the same size as the camera image and tells us which pixels can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.
 
     friend class boost::serialization::access;
 
@@ -82,7 +84,10 @@ public:
           cx_(cx),
           cy_ (cy),
           horizontal_fov_deg_ (horizontal_fov_deg)
-    {}
+    {
+        camera_depth_registration_mask_ = cv::Mat_<uchar> (height_, width_);
+        camera_depth_registration_mask_.setTo(255);
+    }
 
     /**
      * @brief getWidth
@@ -127,6 +132,24 @@ public:
     float getVerticalFOV() const
     {
         return 2 * atan( tan( horizontal_fov_deg_ * 0.017453293f / 2.f ) * static_cast<float>(height_) / width_) * 57.29578f;
+    }
+
+    /**
+     * @brief setCameraDepthRegistrationMask this mask has the same size as the camera image and tells us which pixels can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.
+     * @param mask valid pixels are set to 255, pixels that are outside depth camera's field of view are set to 0
+     */
+    void setCameraDepthRegistrationMask( const cv::Mat_<uchar> &mask)
+    {
+        camera_depth_registration_mask_ = mask;
+    }
+
+    /**
+     * @brief getCameraDepthRegistrationMask this mask has the same size as the camera image and tells us which pixels can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.
+     * @return mask valid pixels are set to 255, pixels that are outside depth camera's field of view are set to 0
+     */
+    cv::Mat_<uchar> getCameraDepthRegistrationMask() const
+    {
+        return camera_depth_registration_mask_;
     }
 
 

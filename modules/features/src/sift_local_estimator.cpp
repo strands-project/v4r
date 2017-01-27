@@ -109,21 +109,46 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
             descriptors = cv::Mat(num,128,CV_32F);
             sift_->GetFeatureVector(&ks[0], descriptors.ptr<float>(0));
             keypoints = Eigen::Matrix2Xf(2, ks.size());
-    		signatures.resize (ks.size (), std::vector<float>(128));
+            signatures.resize (ks.size (), std::vector<float>(128));
 
-    		for(size_t i=0; i < ks.size(); i++)
+            boost::dynamic_bitset<> obj_mask;
+            if(indices_.empty())
+            {
+                obj_mask.resize(colorImage.cols * colorImage.rows);
+                obj_mask.set();
+            }
+            else
+                obj_mask = createMaskFromIndices(indices_, colorImage.cols * colorImage.rows);
+
+            keypoint_indices_.resize( ks.size() );
+            size_t kept = 0;
+            for(size_t i=0; i < ks.size(); i++)
             {
                 const SiftGPU::SiftKeypoint &kp = ks[i];
+                int u = std::max<int>(0, std::min<int>((int)colorImage.cols -1, kp.x ) );
+                int v = std::max<int>(0, std::min<int>((int)colorImage.rows -1, kp.y ) );
+                int idx = v * colorImage.cols + u;
 
-                for (int k = 0; k < 128; k++)
-                    signatures[i][k] = descriptors.at<float>(i,k);
+                if( obj_mask[idx] ) // keypoint does not belong to given object mask
+                {
+                    for (size_t k = 0; k < 128; k++)
+                        signatures[kept][k] = descriptors.at<float>(i,k);
 
-                keypoints(0,i) = kp.x;
-                keypoints(1,i) = kp.y;
-    		}
+                    keypoints(0,kept) = kp.x;
+                    keypoints(1,kept) = kp.y;
+                    keypoint_indices_[kept] = idx;
+                    kept++;
+                }
+            }
+            signatures.resize(kept);
+            keypoints.conservativeResize(2, kept);
+            keypoint_indices_.resize( kept );
         }
         else
+        {
             std::cout << "No SIFT features found!" << std::endl;
+            keypoint_indices_.clear();
+        }
     }
     else
     {
@@ -154,6 +179,47 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
         std::cout << "No SIFT features found!" << std::endl;
 #endif
 }
+
+
+#ifdef HAVE_SIFTGPU
+template<typename PointT>
+std::vector<std::pair<int, int> >
+SIFTLocalEstimation<PointT>::matchSIFT( const std::vector<std::vector<float> >& desc1, const std::vector<std::vector<float> >& desc2)
+{
+    SiftMatchGPU matcher(4096 * 4);
+    matcher.VerifyContextGL();
+
+    std::vector<float> desc_1 ( desc1.size() * 128);
+    std::vector<float> desc_2 ( desc2.size() * 128);
+    for(size_t i=0; i<desc1.size(); i++)
+    {
+        for(size_t j=0; j<128; j++)
+            desc_1[i*128+j] = desc1[i][j];
+    }
+
+    for(size_t i=0; i<desc2.size(); i++)
+    {
+        for(size_t j=0; j<128; j++)
+            desc_2[i*128+j] = desc2[i][j];
+    }
+
+    matcher.SetDescriptors(0, desc1.size(), &desc_1[0]); //image 1
+    matcher.SetDescriptors(1, desc2.size(), &desc_2[0]); //image 2
+
+    //match and get result.
+    int (*match_buf)[2] = new int[desc1.size()][2];
+
+//        int num_match = matcher->GetSiftMatch(num1, match_buf,0.75, 0.8, 1);
+    int num_match = matcher.GetSiftMatch(desc1.size(), match_buf, 0.5, 0.95, 1);
+
+    std::vector<std::pair<int, int> > matches(num_match);
+    for(int j = 0; j < num_match; j++)
+        matches[j] = std::pair<int, int>( match_buf[j][0], match_buf[j][1] );
+
+    delete[] match_buf;
+    return matches;
+}
+#endif
 
 template class V4R_EXPORTS SIFTLocalEstimation<pcl::PointXYZRGB>;
 }

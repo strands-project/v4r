@@ -5,8 +5,8 @@ namespace v4r
 {
 
 
-template<typename PointType>
-void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud)
+template<typename PointT>
+void setCloudPose(const Eigen::Matrix4f &trans, pcl::PointCloud<PointT> &cloud)
 {
     cloud.sensor_origin_[0] = trans(0,3);
     cloud.sensor_origin_[1] = trans(1,3);
