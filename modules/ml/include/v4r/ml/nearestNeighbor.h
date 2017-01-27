@@ -56,8 +56,8 @@ namespace v4r
         EigenFLANN::Ptr flann_;
         boost::shared_ptr<flann::Index<flann::L1<float> > > flann_index_l1_;
         boost::shared_ptr<flann::Index<flann::L2<float> > > flann_index_l2_;
-        Eigen::MatrixXi knn_indices_;
-        Eigen::MatrixXf knn_distances_;
+        mutable Eigen::MatrixXi knn_indices_;
+        mutable Eigen::MatrixXf knn_distances_;
         Eigen::VectorXi training_label_;
 
     public:
@@ -65,7 +65,7 @@ namespace v4r
         {}
 
         void
-        predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label);
+        predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label) const;
 
         void
         train(const Eigen::MatrixXf &training_data, const Eigen::VectorXi & training_label);

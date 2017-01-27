@@ -53,7 +53,7 @@ public:
      * @param predicted_label (each query produces a row of predicted labels, the columns of the predicted labels correspond to the most probable predictions. Predictions are sorted - most likely one is on the left)
      */
     virtual void
-    predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label) = 0;
+    predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label) const = 0;
 
     virtual void
     computeConfusionMatrix(const Eigen::MatrixXf &test_data,
