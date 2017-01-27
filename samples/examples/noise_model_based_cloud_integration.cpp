@@ -208,7 +208,9 @@ int main(int argc, const char * argv[]) {
                     f.close();
 
                     fn.str(""); fn << out_path << "/filter_input_image" << setfill('0') << setw(5) << v_id << ".png";
-                    cv::imwrite(fn.str(), ConvertPCLCloud2Image(*clouds_used[v_id]));
+                    PCLOpenCVConverter<PointT> pcl_opencv_converter;
+                    pcl_opencv_converter.setInputCloud( clouds_used[v_id] );
+                    cv::imwrite(fn.str(), pcl_opencv_converter.getRGBImage() );
                 }
             }
         }

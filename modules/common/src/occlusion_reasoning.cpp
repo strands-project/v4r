@@ -1,63 +1,91 @@
-#include <v4r/common/occlusion_reasoning.h>
+#include <glog/logging.h>
 #include <pcl/point_types.h>
 #include <pcl/common/point_tests.h>
 #include <pcl/impl/instantiate.hpp>
-#include <glog/logging.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
+#include <v4r/common/occlusion_reasoning.h>
+#include <v4r/common/zbuffering.h>
+
 
 namespace v4r
 {
-
 template<typename PointTA, typename PointTB>
 boost::dynamic_bitset<>
-occlusion_reasoning (const pcl::PointCloud<PointTA> & organized_cloud,
-                     const pcl::PointCloud<PointTB> & to_be_filtered,
-                     const Camera::Ptr cam,
-                     float threshold,
-                     bool is_occluded_out_fov)
+OcclusionReasoner<PointTA, PointTB>::computeVisiblePoints()
 {
-    CHECK(organized_cloud.isOrganized());
-    float cx = cam->getCx();
-    float cy = cam->getCy();
-    float f = cam->getFocalLength();
-    size_t width = cam->getWidth();
-    size_t height = cam->getHeight();
+    CHECK( occlusion_cloud_ && cloud_to_be_filtered_ && ( (occlusion_cloud_->isOrganized() && cloud_to_be_filtered_->isOrganized() ) || cam_));
 
-    boost::dynamic_bitset<> is_occluded (to_be_filtered.points.size(), 0);
-
-    for (size_t i = 0; i < to_be_filtered.points.size (); i++)
+    if( !occlusion_cloud_->isOrganized() )
     {
-        if ( !pcl::isFinite(to_be_filtered.points[i]) )
-            continue;
-
-        const float x = to_be_filtered.points[i].x;
-        const float y = to_be_filtered.points[i].y;
-        const float z = to_be_filtered.points[i].z;
-        const int u = static_cast<int> (f * x / z + cx);
-        const int v = static_cast<int> (f * y / z + cy);
-
-        // points out of the field of view in the first frame
-        if ( (u >= static_cast<int> (width)) || (v >= static_cast<int> (height)) || (u < 0) || (v < 0) )
-        {
-            is_occluded[i] = is_occluded_out_fov;
-            continue;
-        }
-
-        // Check for invalid depth
-        if ( !pcl::isFinite (organized_cloud.at (u, v)) )
-        {
-            is_occluded.set(i);
-            continue;
-        }
-
-
-        //Check if point depth (distance to camera) is greater than the (u,v)
-        if ( ( z - organized_cloud.at(u, v).z ) > threshold )
-            is_occluded.set(i);
+        ZBuffering<PointTA> zbuf (cam_);
+        typename pcl::PointCloud<PointTA>::Ptr organized_occlusion_cloud (new pcl::PointCloud<PointTA>);
+        zbuf.renderPointCloud( *occlusion_cloud_, *organized_occlusion_cloud);
+        occlusion_cloud_ = organized_occlusion_cloud;
     }
-    return is_occluded;
+
+    Eigen::MatrixXi index_map;
+    boost::dynamic_bitset<> mask(cloud_to_be_filtered_->points.size(), 0);
+
+    if( !cloud_to_be_filtered_->isOrganized() )
+    {
+        typename ZBuffering<PointTB>::Parameter zBparam;
+        zBparam.do_noise_filtering_ = false;
+        zBparam.do_smoothing_ = false;
+        zBparam.inlier_threshold_ = 0.015f;
+        ZBuffering<PointTB> zbuf (cam_, zBparam);
+        typename pcl::PointCloud<PointTB>::Ptr organized_cloud_to_be_filtered (new pcl::PointCloud<PointTB>);
+        zbuf.renderPointCloud( *cloud_to_be_filtered_, *organized_cloud_to_be_filtered );
+        cloud_to_be_filtered_ = organized_cloud_to_be_filtered;
+//        pcl::visualization::PCLVisualizer vis;
+//        vis.addPointCloud(organized_cloud_to_be_filtered);
+//        vis.spin();
+        index_map = zbuf.getIndexMap();
+
+//        size_t check1=0;
+//        for(int u=0; u<index_map.cols(); u++)
+//            for (int v=0; v<index_map.rows(); v++)
+//                if (index_map(v,u)>=0)
+//                    check1++;
+
+//        size_t check2=0;
+//        for(PointTB p: cloud_to_be_filtered_->points)
+//            if(pcl::isFinite(p) ) check2++;
+
+//        std::cout << "check " << check1 << " " << check2;
+    }
+
+    CHECK (occlusion_cloud_->width == cloud_to_be_filtered_->width && occlusion_cloud_->height == cloud_to_be_filtered_->height)
+            << "Occlusion cloud and the cloud that is filtered need to have the same image size!";
+
+    px_is_visible_ = boost::dynamic_bitset<> (occlusion_cloud_->points.size(), 0);
+
+    for (size_t u=0; u<cloud_to_be_filtered_->width; u++)
+    {
+        for (size_t v=0; v<cloud_to_be_filtered_->height; v++)
+        {
+            const PointTB &pt = cloud_to_be_filtered_->at(u,v);
+
+            if ( !pcl::isFinite(pt) )
+                continue;
+
+            const PointTA &pt_occ = occlusion_cloud_->at(u,v);
+
+            if( !pcl::isFinite(pt_occ) || ( pt.z - pt_occ.z ) < occlusion_threshold_m_ )
+            {
+                int idx;
+                index_map.size() ? idx = index_map(v,u) : idx = v*cloud_to_be_filtered_->width + u;
+                mask.set(idx);
+
+                px_is_visible_.set( v*cloud_to_be_filtered_->width + u );
+            }
+        }
+    }
+//    std::cout << "Mask size: " << mask.count() << std::endl;
+    return mask;
 }
 
-#define PCL_INSTANTIATE_occlusion_reasoning(TA,TB) template V4R_EXPORTS boost::dynamic_bitset<> occlusion_reasoning<TA,TB>(const pcl::PointCloud<TA> &, const pcl::PointCloud<TB> &, const Camera::Ptr, float, bool);
-PCL_INSTANTIATE_PRODUCT(occlusion_reasoning, (PCL_XYZ_POINT_TYPES)(PCL_XYZ_POINT_TYPES) )
+#define PCL_INSTANTIATE_OcclusionReasoner(TA,TB) template class V4R_EXPORTS OcclusionReasoner<TA,TB>;
+PCL_INSTANTIATE_PRODUCT(OcclusionReasoner, (PCL_XYZ_POINT_TYPES)(PCL_XYZ_POINT_TYPES))
 
 }

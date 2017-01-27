@@ -320,7 +320,7 @@ private:
 
     Eigen::Matrix4f poseRefinement(HVRecognitionModel<ModelT> &rm) const;
 
-    void computeModelOcclusionByScene(HVRecognitionModel<ModelT> &rm, const std::vector<Eigen::MatrixXf> &depth_image_scene); /// @brief computes the visible points of the model in the given pose and the provided depth map(s) of the scene
+    void computeModelOcclusionByScene(HVRecognitionModel<ModelT> &rm); /// @brief computes the visible points of the model in the given pose and the provided depth map(s) of the scene
 
     void computeVisibleModelsAndRefinePose();
 

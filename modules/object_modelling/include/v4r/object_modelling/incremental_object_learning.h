@@ -375,7 +375,7 @@ public:
      * @brief This creates images of all intermediate steps of the object learning and writes them to disk
      * @param[in] path - folder where to write the files to
      */
-    void writeImagesToDisk(const std::string &path = std::string("/tmp/dol_images/"), bool crop=false);
+    void writeImagesToDisk(const std::string &path = std::string("/tmp/dol_images/"));
 
     /**
      * @brief transforms each keyframe to global coordinate system using given camera

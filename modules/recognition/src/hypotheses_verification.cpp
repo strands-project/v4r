@@ -1,8 +1,9 @@
 #include <v4r/common/color_comparison.h>
 #include <v4r/common/histogram.h>
+#include <v4r/common/miscellaneous.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/common/miscellaneous.h>
+#include <v4r/common/occlusion_reasoning.h>
 #include <v4r/common/pcl_opencv.h>
 #include <v4r/common/zbuffering.h>
 #include <v4r/recognition/hypotheses_verification.h>
@@ -33,45 +34,24 @@ namespace v4r
 
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecognitionModel<ModelT> &rm, const std::vector<Eigen::MatrixXf> &depth_image_scene)
+HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecognitionModel<ModelT> &rm)
 {
     boost::dynamic_bitset<> image_mask_mv(rm.complete_cloud_->points.size(), 0);
-    for(size_t view=0; view<depth_image_scene.size(); view++)
+
+    for(size_t view=0; view<occlusion_clouds_.size(); view++)
     {
         // project into respective view
-        pcl::PointCloud<ModelT> aligned_cloud;
+        typename pcl::PointCloud<ModelT>::Ptr aligned_cloud (new pcl::PointCloud<ModelT>);
         const Eigen::Matrix4f tf = absolute_camera_poses_[view].inverse();
-        pcl::transformPointCloud(*rm.complete_cloud_, aligned_cloud, tf);
+        pcl::transformPointCloud(*rm.complete_cloud_, *aligned_cloud, tf);
 
-        Eigen::MatrixXf depth_image_model;
-        std::vector<int> visible_model_indices;
-        ZBuffering<ModelT> zbufM(cam_);
-        zbufM.computeDepthMap(aligned_cloud, depth_image_model, visible_model_indices);
-
-        //                    std::ofstream f("/tmp/model_depth.txt");
-        //                    f << depth_image_model;
-        //                    f.close();
-
-        boost::shared_ptr<std::vector<int> > indices_map = zbufM.getIndicesMap();
-
-        // now compare visible cloud with scene occlusion cloud
-        for (int u=0; u<cam_->getWidth(); u++)
-        {
-            for (int v=0; v<cam_->getHeight(); v++)
-            {
-                if ( depth_image_scene[view](v,u) + param_.occlusion_thres_ < depth_image_model(v,u) )
-                    indices_map->at(v*cam_->getWidth() + u) = -1;
-            }
-        }
-
-        for(size_t pt=0; pt<indices_map->size(); pt++)
-        {
-            if(indices_map->at(pt) >= 0)
-            {
-                rm.image_mask_[view][pt] = true;
-                image_mask_mv[ indices_map->at(pt) ] = true;
-            }
-        }
+        OcclusionReasoner<SceneT, ModelT> occ_reasoner;
+        occ_reasoner.setCamera(cam_);
+        occ_reasoner.setInputCloud( aligned_cloud );
+        occ_reasoner.setOcclusionCloud( occlusion_clouds_[view] );
+        occ_reasoner.setOcclusionThreshold( param_.occlusion_thres_ );
+        image_mask_mv |=  occ_reasoner.computeVisiblePoints();
+        rm.image_mask_[view] = occ_reasoner.getPixelMask();
     }
 
     rm.visible_indices_ = createIndicesFromMask<int>(image_mask_mv);
@@ -83,16 +63,6 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
 {
-    ZBuffering<SceneT> zbuf(cam_);
-    std::vector<Eigen::MatrixXf> depth_image_scene (occlusion_clouds_.size());
-
-#pragma omp parallel for schedule(dynamic)
-    for(size_t view=0; view<occlusion_clouds_.size(); view++)
-    {
-        std::vector<int> visible_scene_indices;
-        zbuf.computeDepthMap(*occlusion_clouds_[view], depth_image_scene[view], visible_scene_indices);
-    }
-
 #pragma omp parallel for schedule(dynamic)
     for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
     {
@@ -118,7 +88,7 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
             }
             else //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
             {
-                computeModelOcclusionByScene(rm, depth_image_scene);    // just do ICP on visible cloud (given by initial estimate)
+                computeModelOcclusionByScene(rm);    // just do ICP on visible cloud (given by initial estimate)
 
                 if(param_.icp_iterations_ )
                 {
@@ -128,7 +98,7 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleModelsAndRefinePose()
                     pcl::copyPointCloud (*rm.complete_cloud_, rm.visible_indices_, *rm.visible_cloud_);
                 }
 
-                computeModelOcclusionByScene(rm, depth_image_scene);    // compute updated visible cloud
+                computeModelOcclusionByScene(rm);    // compute updated visible cloud
             }
 
             if (param_.icp_iterations_)
