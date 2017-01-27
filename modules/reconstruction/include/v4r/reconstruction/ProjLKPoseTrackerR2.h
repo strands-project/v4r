@@ -90,7 +90,7 @@ private:
 
   void ransacSolvePnP(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, Eigen::Matrix4f &pose, std::vector<int> &inliers);
   void getRandIdx(int size, int num, std::vector<int> &idx);
-  unsigned countInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4f &pose);
+  unsigned countInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &_im_points, const Eigen::Matrix4f &pose);
   void getInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4f &pose, std::vector<int> &inliers);
 
   inline void cvToEigen(const cv::Mat_<double> &R, const cv::Mat_<double> &t, Eigen::Matrix4f &pose); 
