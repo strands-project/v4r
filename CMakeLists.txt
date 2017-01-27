@@ -360,10 +360,9 @@ endif(BUILD_DOCS)
   #include(cmake/V4RDetectOpenCL.cmake)
 #endif()
 
-# TODO
-#if(WITH_VTK)
-  #include(cmake/V4RDetectVTK.cmake)
-#endif()
+if(WITH_VTK)
+  include(cmake/V4RDetectVTK.cmake)
+endif()
 
 # ----------------------------------------------------------------------------
 # Add CUDA libraries (needed for apps/tools, samples)
