@@ -21,7 +21,7 @@
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
-#include <pcl/segmentation/conditional_euclidean_clustering.h>
+#include <pcl_1_8/segmentation/conditional_euclidean_clustering.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/segmentation/sac_segmentation.h>
@@ -420,13 +420,13 @@ HypothesisVerification<ModelT, SceneT>::extractEuclideanClustersSmooth()
 
     boost::function<bool (const SceneTWithNormal&, const SceneTWithNormal&, float)> custom_f = boost::bind (&HypothesisVerification<ModelT, SceneT>::customRegionGrowing, this, _1, _2, _3);
 
-    pcl::ConditionalEuclideanClustering<SceneTWithNormal> cec (false);
+    pcl_1_8::ConditionalEuclideanClustering<SceneTWithNormal> cec (false);
     cec.setInputCloud (scene_downsampled_w_normals);
     cec.setConditionFunction (custom_f);
     cec.setClusterTolerance ( param_.cluster_tolerance_ * 3. );
     cec.setMinClusterSize ( param_.min_points_ );
     cec.setMaxClusterSize (std::numeric_limits<int>::max());
-    pcl::IndicesClusters clusters;
+    pcl_1_8::IndicesClusters clusters;
     cec.segment (clusters);
 
     scene_smooth_labels_.clear();
