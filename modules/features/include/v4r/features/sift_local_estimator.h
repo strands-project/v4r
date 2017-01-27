@@ -142,6 +142,17 @@ public:
     }
 
 
+#ifdef HAVE_SIFTGPU
+    /**
+     * @brief matchSIFT matches two sets of SIFT descriptors
+     * @param desc1 descriptor 1
+     * @param desc2 descriptor 2
+     * @return indices of the matching descriptors
+     */
+    std::vector<std::pair<int, int> >
+    matchSIFT( const std::vector<std::vector<float> >& desc1, const std::vector<std::vector<float> >& desc2);
+#endif
+
     typedef boost::shared_ptr< SIFTLocalEstimation<PointT> > Ptr;
     typedef boost::shared_ptr< SIFTLocalEstimation<PointT> const> ConstPtr;
 };
