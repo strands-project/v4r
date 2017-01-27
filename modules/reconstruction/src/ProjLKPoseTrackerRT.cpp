@@ -101,9 +101,9 @@ double ProjLKPoseTrackerRT::detect(const cv::Mat &image, const DataMatrix2D<Eige
   {
     points = m.cam_points;
     m.getNormals(normals);
-    Eigen::Matrix3f R = model->getCamera().topLeftCorner<3,3>();
+    Eigen::Matrix3f _R = model->getCamera().topLeftCorner<3,3>();
     for (unsigned i=0; i<normals.size(); i++)
-      normals[i] = R*normals[i];
+      normals[i] = _R*normals[i];
   }
 
   inliers.clear();

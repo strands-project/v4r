@@ -1,7 +1,7 @@
 #include <v4r_config.h>
 #include <v4r/registration/FeatureBasedRegistration.h>
 #include <v4r/common/miscellaneous.h>
-#include <v4r/common/impl/geometric_consistency.hpp>
+#include <pcl/recognition/impl/cg/geometric_consistency.hpp>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <pcl/registration/correspondence_estimation.h>
 #include <pcl/registration/impl/correspondence_estimation.hpp>
@@ -230,14 +230,12 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         bool graph_based = true;
         if(!graph_based)
         {
-            GeometricConsistencyGrouping<PointT, PointT> gc_clusterer;
+            pcl::GeometricConsistencyGrouping<PointT, PointT> gc_clusterer;
             gc_clusterer.setGCSize (inlier_threshold_);
             gc_clusterer.setGCThreshold (gc_threshold_);
-
             gc_clusterer.setInputCloud (kps_s2);
             gc_clusterer.setSceneCloud (kps_s1);
-            gc_clusterer.setModelSceneCorrespondences (*cor);
-
+            gc_clusterer.setModelSceneCorrespondences (cor);
             gc_clusterer.cluster (clustered_corrs);
         }
         else
