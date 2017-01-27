@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_REG_VIEWS_SOURCE_H_
-#define V4R_REG_VIEWS_SOURCE_H_
+#pragma once
 
 #include <v4r/recognition/source.h>
 #include <v4r/core/macros.h>
@@ -43,61 +42,30 @@ template<typename PointT = pcl::PointXYZRGB>
 class V4R_EXPORTS RegisteredViewsSource : public Source<PointT>
 {
 private:
-    typedef Source<PointT> SourceT;
-    typedef Model<PointT> ModelT;
-    typedef boost::shared_ptr<ModelT> ModelTPtr;
-
-    using SourceT::path_;
-    using SourceT::models_;
-    using SourceT::load_into_memory_;
-    using SourceT::resolution_mm_;
-    using SourceT::view_prefix_;
-    using SourceT::indices_prefix_;
-    using SourceT::pose_prefix_;
-    using SourceT::entropy_prefix_;
-
+    using Source<PointT>::path_;
+    using Source<PointT>::models_;
+    using Source<PointT>::load_into_memory_;
+    using Source<PointT>::view_prefix_;
+    using Source<PointT>::indices_prefix_;
+    using Source<PointT>::pose_prefix_;
+    using Source<PointT>::entropy_prefix_;
 
 public:
-    RegisteredViewsSource (int resolution_mm = 1)
+    RegisteredViewsSource ()
     {
-        resolution_mm_ = resolution_mm;
         load_into_memory_ = false;
     }
 
     void
-    assembleModelFromViewsAndPoses(ModelT & model,
-                                   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
-                                   std::vector<pcl::PointIndices> & indices,
-                                   typename pcl::PointCloud<PointT>::Ptr &model_cloud)
-    {
-        for(size_t i=0; i < model.views_.size(); i++)
-        {
-            Eigen::Matrix4f inv = poses[i];
-            inv = inv.inverse();
-
-            typename pcl::PointCloud<PointT>::Ptr global_cloud_only_indices(new pcl::PointCloud<PointT>);
-            pcl::copyPointCloud(*(model.views_[i]), indices[i], *global_cloud_only_indices);
-            typename pcl::PointCloud<PointT>::Ptr global_cloud(new pcl::PointCloud<PointT>);
-            pcl::transformPointCloud(*global_cloud_only_indices, *global_cloud, inv);
-            *model_cloud += *global_cloud;
-        }
-    }
+    loadInMemorySpecificModel(Model<PointT> &model);
 
     void
-    loadInMemorySpecificModel(ModelT &model);
+    loadModel (Model<PointT> & model);
 
     void
-    loadModel (ModelT & model);
-
-    /**
-    * \brief Creates the model representation of the training set, generating views if needed
-    */
-    void
-    generate ();
+    generate (); ///< Creates the model representation of the training set, generating views if needed
 
     typedef boost::shared_ptr< RegisteredViewsSource<PointT> > Ptr;
     typedef boost::shared_ptr< RegisteredViewsSource<PointT> const> ConstPtr;
 };
 }
-
-#endif

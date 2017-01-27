@@ -7,7 +7,7 @@
 #include <boost/program_options.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <v4r/recognition/model_only_source.h>
+#include <v4r/recognition/source.h>
 #include <v4r/common/pcl_utils.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/zbuffering.h>
@@ -42,10 +42,8 @@ public:
     };
 
 private:
-    typedef Model<PointT> ModelT;
-    typedef boost::shared_ptr<ModelT> ModelTPtr;
     typename pcl::PointCloud<PointT>::Ptr reconstructed_scene_;
-    boost::shared_ptr < v4r::ModelOnlySource<pcl::PointXYZRGBNormal, PointT> > source_;
+    typename v4r::Source<PointT>::Ptr source_;
     pcl::visualization::PCLVisualizer::Ptr vis_;
     std::vector<int> viewports_;
 
@@ -70,7 +68,7 @@ public:
     PcdGtAnnotator()
     {
         f_ = 525.f;
-        source_.reset(new v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>);
+        source_.reset(new v4r::Source<PointT>);
         models_dir_ = "";
         gt_dir_ = "";
         threshold_ = 0.01f;
@@ -83,10 +81,7 @@ public:
 
     void init_source()
     {
-        source_->setPath (models_dir_);
-        source_->setLoadViews (false);
-        source_->setLoadIntoMemory(false);
-        source_->generate ();
+        source_.reset( new v4r::Source<PointT> (models_dir_) );
     }
 
     void annotate(const std::string &scenes_dir, const std::string & scene_id = "");
@@ -155,8 +150,13 @@ void PcdGtAnnotator<PointT>::annotate (const std::string &scenes_dir, const std:
                     }
                     std::string model_name = model_instance.substr(0,found);
                     std::cout << "Model: " << model_name << std::endl;
-                    ModelTPtr pModel;
-                    source_->getModelById(model_name, pModel);
+
+                    bool found_model;
+                    typename Model<PointT>::ConstPtr pModel = source_->getModelById("", model_name, found_model);
+
+                    if (!found_model)
+                        std::cerr << "Did not find " << model_name << ". There is something wrong! " << std::endl;
+
 
                     std::string gt_full_file_path = annotations_dir + "/" + gt_fn;
                     Eigen::Matrix4f transform = v4r::io::readMatrixFromFile(gt_full_file_path);
@@ -276,8 +276,13 @@ void PcdGtAnnotator<PointT>::visualize()
     {
         size_t found = model_id_[m_id].find_last_of("_");
         std::string model_name = model_id_[m_id].substr(0,found);
-        ModelTPtr pModel;
-        source_->getModelById( model_name, pModel );
+
+        bool found_model;
+        typename Model<PointT>::ConstPtr pModel = source_->getModelById("", model_name, found_model);
+
+        if (!found_model)
+            std::cerr << "Did not find " << model_name << ". There is something wrong! " << std::endl;
+
         typename pcl::PointCloud<PointT>::Ptr visible_model ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::Ptr visible_model_aligned ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 3 );
@@ -322,8 +327,13 @@ void PcdGtAnnotator<PointT>::save_to_disk(const std::string &path)
     {
         size_t found = model_id_[m_id].find_last_of("_");
         std::string model_name = model_id_[m_id].substr(0,found);
-        ModelTPtr pModel;
-        source_->getModelById( model_name, pModel );
+
+        bool found_model;
+        typename Model<PointT>::ConstPtr pModel = source_->getModelById("", model_name, found_model);
+
+        if (!found_model)
+            std::cerr << "Did not find " << model_name << ". There is something wrong! " << std::endl;
+
         typename pcl::PointCloud<PointT>::Ptr visible_model ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::Ptr visible_model_aligned ( new pcl::PointCloud<PointT>() );
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled( 3 );

@@ -1,5 +1,8 @@
 #include <v4r/recognition/registered_views_source.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
+
+#include <pcl/io/pcd_io.h>
 
 namespace v4r
 {
@@ -14,7 +17,7 @@ RegisteredViewsSource<PointT>::generate ()
 
     for (const std::string &model_file : model_files)
     {
-        ModelTPtr m(new ModelT);
+        typename Model<PointT>::Ptr m(new Model<PointT>);
 
         std::vector < std::string > strs;
         boost::split (strs, model_file, boost::is_any_of ("/\\"));
@@ -35,10 +38,6 @@ RegisteredViewsSource<PointT>::generate ()
             m->id_ = strs[0];
         }
 
-        //check if the model has to be loaded according to the list
-        if(!this->isModelIdInList(m->id_))
-            continue;
-
         //check which of them have been trained using training_dir and the model_id_
         //load views, poses and self-occlusions for those that exist
         //generate otherwise
@@ -49,7 +48,7 @@ RegisteredViewsSource<PointT>::generate ()
 
 template<typename PointT>
 void
-RegisteredViewsSource<PointT>::loadModel (ModelT & model)
+RegisteredViewsSource<PointT>::loadModel (Model<PointT> & model)
 {
     const std::string training_view_path = path_ + model.class_ + "/" + model.id_ + "/views/";
     const std::string view_pattern = ".*" + view_prefix_ + ".*.pcd";
@@ -120,7 +119,7 @@ RegisteredViewsSource<PointT>::loadModel (ModelT & model)
 
 template<typename PointT>
 void
-RegisteredViewsSource<PointT>::loadInMemorySpecificModel(ModelT &model)
+RegisteredViewsSource<PointT>::loadInMemorySpecificModel(Model<PointT> &model)
 {
     const std::string training_view_path = path_ + "/" + model.class_ + "/" + model.id_ + "/views/";
 
@@ -163,7 +162,7 @@ RegisteredViewsSource<PointT>::loadInMemorySpecificModel(ModelT &model)
     }
 }
 
-template class V4R_EXPORTS RegisteredViewsSource<typename pcl::PointXYZRGB>;
+//template class V4R_EXPORTS RegisteredViewsSource<typename pcl::PointXYZRGB>;
 }
 
 

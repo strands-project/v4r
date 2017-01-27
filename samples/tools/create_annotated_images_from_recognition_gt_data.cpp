@@ -3,9 +3,11 @@
  *      Author: Thomas Faeulhammer, Aitor Aldoma
  */
 #include <opencv2/opencv.hpp>
+#include <pcl/common/transforms.h>
 #include <pcl/console/parse.h>
+#include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
-#include <v4r/recognition/model_only_source.h>
+#include <v4r/recognition/source.h>
 #include <v4r/common/pcl_opencv.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
@@ -59,13 +61,8 @@ main (int argc, char ** argv)
         return false;
     }
 
-    ModelOnlySource<pcl::PointXYZRGBNormal, PointT> source;
-    source.setPath (models_dir);
-    source.setLoadViews (false);
-    source.setLoadIntoMemory(false);
-    source.generate();
-
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
+    Source<PointT> source (models_dir);
+    pcl::visualization::PCLVisualizer::Ptr vis_;
 
     std::vector<std::string> sub_folder_names = v4r::io::getFoldersInDirectory(scenes_dir);
 
@@ -126,8 +123,13 @@ main (int argc, char ** argv)
                         model_name = model_name.substr(scene_file_wo_ext.size() + 1);
                         model_name = model_name.substr(0, model_name.find_last_of("_"));
 
-                        ModelTPtr pModel;
-                        source.getModelById(model_name, pModel);
+
+                        bool found_model;
+                        typename Model<PointT>::ConstPtr pModel = source.getModelById("", model_name, found_model);
+
+                        if (!found_model)
+                            std::cerr << "Did not find " << model_name << ". There is something wrong! " << std::endl;
+
 
                         const Eigen::Matrix4f gt_pose = v4r::io::readMatrixFromFile( annotations_dir+"/"+gt_file );
 

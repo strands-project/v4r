@@ -105,7 +105,7 @@ MeshSource<PointT>::loadOrGenerate (const std::string & model_path, ModelT & mod
 
             std::stringstream path_entropy;
             path_entropy << direc << "/" << entropy_prefix_ << i << ".txt";
-            v4r::io::writeFloatToFile (path_entropy.str (), model.self_occlusions_[i]);
+            io::writeFloatToFile (path_entropy.str (), model.self_occlusions_[i]);
         }
 
         loadOrGenerate ( model_path, model);
@@ -144,7 +144,7 @@ template<typename PointT>
 void
 MeshSource<PointT>::generate ()
 {
-    std::vector < std::string > files = v4r::io::getFilesInDirectory(mesh_dir_, ".*.ply", true);
+    std::vector < std::string > files = io::getFilesInDirectory(mesh_dir_, ".*.ply", true);
     models_.clear();
 
     for (const std::string &file : files)
@@ -161,7 +161,7 @@ MeshSource<PointT>::generate ()
 }
 
 
-template class V4R_EXPORTS MeshSource<pcl::PointXYZ>;
-template class V4R_EXPORTS MeshSource<pcl::PointXYZRGB>;
+//template class V4R_EXPORTS MeshSource<pcl::PointXYZ>;
+//template class V4R_EXPORTS MeshSource<pcl::PointXYZRGB>;
 }
 

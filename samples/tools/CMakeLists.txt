@@ -28,7 +28,7 @@ if(BUILD_UTILITY_TOOLS)
   SET(V4R_DEPS v4r_common v4r_io)
   V4R_DEFINE_CPP_EXAMPLE(view_all_point_clouds_in_folder)
 
-  SET(V4R_DEPS v4r_recognition)
+  SET(V4R_DEPS)
   V4R_DEFINE_CPP_EXAMPLE(visualize_hypothesis)
 
 endif()

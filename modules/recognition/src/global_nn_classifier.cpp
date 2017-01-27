@@ -25,6 +25,7 @@
 
 #include <v4r/recognition/global_nn_classifier.h>
 #include <v4r/io/eigen.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/recognition/metrics.h>
 
 namespace v4r
@@ -34,11 +35,11 @@ template<template<class > class Distance, typename PointInT>
 void
 GlobalNNClassifier<Distance, PointInT>::loadFeaturesAndCreateFLANN ()
 {
-    std::vector<ModelTPtr> models = source_->getModels();
+    std::vector<typename Model<PointInT>::ConstPtr> models = source_->getModels();
 
     for (size_t i = 0; i < models.size (); i++)
     {
-        const ModelTPtr &m = models[i];
+        const typename Model<PointInT>::ConstPtr &m = models[i];
         const std::string path = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
 
         std::vector<std::string> descriptor_files = io::getFilesInDirectory(path, ".*descriptor.*.txt", false);
@@ -181,7 +182,7 @@ GlobalNNClassifier<Distance, PointT>::initialize (bool force_retrain)
 {
     //use the source to know what has to be trained and what not, checking if the descr_name directory exists
     //unless force_retrain is true, then train everything
-    std::vector<ModelTPtr> models = source_->getModels();
+    std::vector<typename Model<PointT>::ConstPtr> models = source_->getModels();
     std::cout << "Models size:" << models.size () << std::endl;
 
     if (force_retrain)
@@ -192,7 +193,7 @@ GlobalNNClassifier<Distance, PointT>::initialize (bool force_retrain)
 
     for (size_t i = 0; i < models.size (); i++)
     {
-        const ModelTPtr &m = models[i];
+        const typename Model<PointT>::ConstPtr &m = models[i];
         const std::string out_dir = training_dir_ + "/" + m->class_ + "/" + m->id_ + "/" + descr_name_;
 
         bool view_is_already_trained = false;
@@ -254,8 +255,8 @@ GlobalNNClassifier<Distance, PointT>::initialize (bool force_retrain)
 }
 
 //Instantiation
-template class V4R_EXPORTS v4r::GlobalNNClassifier<flann::L1, pcl::PointXYZ>;
-template class V4R_EXPORTS v4r::GlobalNNClassifier<v4r::Metrics::HistIntersectionUnionDistance, pcl::PointXYZ>;
+//template class V4R_EXPORTS v4r::GlobalNNClassifier<flann::L1, pcl::PointXYZ>;
+//template class V4R_EXPORTS v4r::GlobalNNClassifier<v4r::Metrics::HistIntersectionUnionDistance, pcl::PointXYZ>;
 }
 
 

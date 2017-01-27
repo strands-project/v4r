@@ -7,15 +7,15 @@ namespace v4r
 template<typename ModelT>
 void
 HVRecognitionModel<ModelT>::processSilhouette(bool do_smoothing,
-                                              size_t smoothing_radius,
+                                              int smoothing_radius,
                                               bool do_erosion,
-                                              size_t erosion_radius,
-                                              size_t img_width)
+                                              int erosion_radius,
+                                              int img_width)
 {
 
     for(size_t view=0; view<image_mask_.size(); view++)
     {
-        size_t img_height = image_mask_[view].size() / img_width;
+        int img_height = image_mask_[view].size() / img_width;
 //                std::stringstream fn; fn << "/tmp/rendered_image_" << view << ".txt";
 //                std::ofstream f(fn.str().c_str());
 //                for(size_t px=0; px<image_mask_[view].size(); px++)
