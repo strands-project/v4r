@@ -83,16 +83,16 @@ main (int argc, char ** argv)
       param_file << "--" << it.first << " ";
 
       auto& value = it.second.value();
-      if (auto v = boost::any_cast<double>(&value))
-        param_file << std::setprecision(3) << *v;
-      else if (auto v = boost::any_cast<std::string>(&value))
-        param_file << *v;
-      else if (auto v = boost::any_cast<bool>(&value))
-        param_file << *v;
-      else if (auto v = boost::any_cast<int>(&value))
-        param_file << *v;
-      else if (auto v = boost::any_cast<size_t>(&value))
-        param_file << *v;
+      if (auto val = boost::any_cast<double>(&value))
+        param_file << std::setprecision(3) << *val;
+      else if (auto val2 = boost::any_cast<std::string>(&value))
+        param_file << *val2;
+      else if (auto val3 = boost::any_cast<bool>(&value))
+        param_file << *val3;
+      else if (auto val4 = boost::any_cast<int>(&value))
+        param_file << *val4;
+      else if (auto val5 = boost::any_cast<size_t>(&value))
+        param_file << *val5;
       else
         param_file << "error";
 
