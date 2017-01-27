@@ -137,9 +137,9 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
     }
 }
 
+
 #define PCL_INSTANTIATE_ZBuffering(T) template class V4R_EXPORTS ZBuffering<T>;
 PCL_INSTANTIATE(ZBuffering, PCL_XYZ_POINT_TYPES )
-
 }
 
 
