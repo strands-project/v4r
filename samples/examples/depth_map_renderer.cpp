@@ -50,7 +50,6 @@ int main(int argc, const char * argv[]) {
             ("cx", po::value<float>(&cx)->default_value(cx, boost::str(boost::format("%.2e") % cx)), "defines the central point of projection in x direction used for rendering")
             ("cy", po::value<float>(&cy)->default_value(cy, boost::str(boost::format("%.2e") % cy)), "defines the central point of projection in y direction used for rendering")
             ("visualize,v", po::bool_switch(&visualize), "visualize the rendered depth and color map")
-
     ;
 
     po::variables_map vm;

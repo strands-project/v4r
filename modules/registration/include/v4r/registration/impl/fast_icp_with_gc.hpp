@@ -392,7 +392,7 @@ namespace v4r
               if (!standard_cg_)
               {
                 //pcl::ScopeTime t ("GraphGeometricConsistencyGrouping...");
-                  typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter gcg_param;
+                  GraphGeometricConsistencyGroupingParameter gcg_param;
                   gcg_param.gc_threshold_ = min_number_correspondences_;
                   gcg_param.gc_size_ = gc_size_;
                   gcg_param.ransac_threshold_ = ransac_threshold_;
@@ -401,7 +401,7 @@ namespace v4r
                   gcg_param.use_graph_ = false;
                   gcg_param.prune_ = false;
                 GraphGeometricConsistencyGrouping<PointT, PointT> gcg_alg(gcg_param);
-                gcg_alg.setModelSceneCorrespondences (*correspondences_alive_node);
+                gcg_alg.setModelSceneCorrespondences (correspondences_alive_node);
                 gcg_alg.setSceneCloud (tgt_keypoints);
                 gcg_alg.setInputCloud (src_keypoints_local);
                 gcg_alg.setInputAndSceneNormals (normal_src_keypoints_local, normal_tgt_keypoints);

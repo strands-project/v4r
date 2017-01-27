@@ -240,7 +240,7 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
         }
         else
         {
-            typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter param;
+            GraphGeometricConsistencyGroupingParameter param;
             param.gc_size_ = inlier_threshold_;
             param.gc_threshold_ = gc_threshold_;
             param.ransac_threshold_ = inlier_threshold_;
@@ -249,12 +249,12 @@ FeatureBasedRegistration<PointT>::compute(int s1, int s2)
             param.max_taken_correspondence_ = 2;
             param.max_time_allowed_cliques_comptutation_ = 50;
             param.check_normals_orientation_ = true;
-            GraphGeometricConsistencyGrouping<PointT, PointT> gc_clusterer;
 
+            GraphGeometricConsistencyGrouping<PointT, PointT> gc_clusterer (param);
             gc_clusterer.setInputCloud (kps_s2);
             gc_clusterer.setSceneCloud (kps_s1);
             gc_clusterer.setInputAndSceneNormals(normals_s2, normals_s1);
-            gc_clusterer.setModelSceneCorrespondences (*cor);
+            gc_clusterer.setModelSceneCorrespondences (cor);
             gc_clusterer.cluster (clustered_corrs);
         }
 
