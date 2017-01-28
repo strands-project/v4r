@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_SVMWRAPPER_H__
-#define V4R_SVMWRAPPER_H__
+#pragma once
 
 #include <v4r/ml/classifier.h>
 #include <libsvm/svm.h>
@@ -32,13 +31,6 @@
 
 namespace v4r
 {
-    struct V4R_EXPORTS svmData
-    {
-        Eigen::VectorXf x;
-        int y;
-    };
-
-
     class V4R_EXPORTS svmClassifier : public Classifier
     {
     public:
@@ -47,8 +39,8 @@ namespace v4r
         class V4R_EXPORTS Parameter
         {
         public:
-            bool do_cross_validation_;
-            int knn_;
+            bool do_cross_validation_; /// if true, runs cross validation
+            int knn_;   ///< return the knn most probably classes when parameter probability is set to true
             ::svm_parameter svm_;
             Parameter(
                     bool do_cross_validation = false,
@@ -78,7 +70,7 @@ namespace v4r
                 svm_.svm_type = svm_type;
                 svm_.kernel_type = kernel_type;
 //                svm_.degree = degree;
-                svm_.gamma = gamma;// default 1/k;
+                svm_.gamma = gamma;// default 1/ (num_features);
 //                svm_.coef0 = coef0;
 
                 svm_.cache_size = cache_size;
@@ -95,30 +87,10 @@ namespace v4r
         } param_;
 
     private:
-        size_t num_classes_;    ///< number of target labels
-        std::string in_filename_;   ///< filename to read svm model. If set (file exists), training is skipped and this model loaded instead.
-        std::string out_filename_; ///< filename to save trained model
         ::svm_model *svm_mod_;
 
-    public:
-
-        svmClassifier(const Parameter &p = Parameter()) : param_(p), num_classes_(0), out_filename_ ("/tmp/model.svm")
-        { }
-
         void
-        predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label);
-
-        void
-        saveModel(const std::string &filename) const;
-
-        void
-        loadModel(const std::string &filename);
-
-        void
-        computeConfusionMatrix(const Eigen::MatrixXf &test_data,
-                               const Eigen::VectorXi &actual_label,
-                               Eigen::VectorXi &predicted_label,
-                               Eigen::MatrixXi &confusion_matrix);
+        trainSVM(const Eigen::MatrixXf &training_data, const Eigen::VectorXi & training_label);
 
         void
         dokFoldCrossValidation(
@@ -132,35 +104,30 @@ namespace v4r
                 double model_para_gamma_max = exp(5),
                 double step_multiplicator_gamma = 2);
 
+    public:
+
+        svmClassifier(const Parameter &p = Parameter()) : param_(p)
+        { }
+
         void
-        shuffleTrainingData( Eigen::MatrixXf &data_train, Eigen::VectorXi &target_train);
+        predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label) const;
+
+        /**
+         * @brief saveModel save current svm model
+         * @param filename filename to save trained model
+         */
+        void
+        saveModel(const std::string &filename) const;
+
+        /**
+         * @brief loadModel load an SVM model from file
+         * @param filename filename to read svm model
+         */
+        void
+        loadModel(const std::string &filename);
 
         void
         train(const Eigen::MatrixXf &training_data, const Eigen::VectorXi & training_label);
-
-        void
-        trainSVM(const Eigen::MatrixXf &training_data, const Eigen::VectorXi & training_label);
-
-        void
-        setNumClasses(const size_t num_classes)
-        {
-            num_classes_ =  num_classes;
-        }
-
-        void
-        setOutFilename( const std::string &fn)
-        {
-            out_filename_ = fn;
-        }
-
-        void
-        setInFilename( const std::string &fn)
-        {
-            in_filename_ = fn;
-        }
-
-        void
-        sortTrainingData(Eigen::MatrixXf &data_train, Eigen::VectorXi &target_train);
 
         int getType() const { return ClassifierType::SVM; }
 
@@ -168,4 +135,3 @@ namespace v4r
         typedef boost::shared_ptr< svmClassifier const> ConstPtr;
 };
 }
-#endif //SVMWRAPPER_H

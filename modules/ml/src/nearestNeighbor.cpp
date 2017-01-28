@@ -19,7 +19,7 @@ NearestNeighborClassifier::train(const Eigen::MatrixXf &training_data, const Eig
 }
 
 void
-NearestNeighborClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label)
+NearestNeighborClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label) const
 {
     flann_->nearestKSearch(query_data, knn_indices_, knn_distances_);
 
