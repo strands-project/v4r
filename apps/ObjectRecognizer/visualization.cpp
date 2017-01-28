@@ -172,7 +172,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
     if(normals_)
         vis_->addPointCloudNormals<PointT,pcl::Normal>( cloud_, normals_, 300, 0.02f, "normals", vp1_);
 
-#if PCL_VERSION >= 100702
+#if PCL_VERSION >= 100800
     vis_->removeAllCoordinateSystems(vp2_);
     vis_->removeAllCoordinateSystems(vp3_);
         for(size_t co_id=0; co_id<coordinate_axis_ids_.size(); co_id++)
@@ -281,7 +281,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
             *kp_cloud_scene2 += *kp_cloud_scene_tmp2;
 
 
-    #if PCL_VERSION >= 100702
+    #if PCL_VERSION >= 100800
             Eigen::Matrix4f tf_tmp = oh.transform_;
             Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
             Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
@@ -307,7 +307,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
         pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
 
-#if PCL_VERSION >= 100702
+#if PCL_VERSION >= 100800
         Eigen::Matrix4f tf_tmp = oh.transform_;
         Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
         Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
