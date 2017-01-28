@@ -13,7 +13,7 @@ if(BUILD_UTILITY_TOOLS)
   SET(V4R_DEPS v4r_recognition)
   V4R_DEFINE_CPP_EXAMPLE(create_annotated_images_from_recognition_gt_data)
 
-  SET(V4R_DEPS v4r_recognition)
+  SET(V4R_DEPS v4r_common v4r_io v4r_rendering)
   V4R_DEFINE_CPP_EXAMPLE(create_classification_db_from_ply_files)
 
   SET(V4R_DEPS v4r_common v4r_io)

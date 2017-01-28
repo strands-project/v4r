@@ -1,7 +1,5 @@
-#include <v4r/common/miscellaneous.h>  // to extract Pose intrinsically stored in pcd file
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
-#include <v4r/recognition/model_only_source.h>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -23,8 +21,6 @@ float translation_error_threshold_m;
 float occlusion_threshold;
 
 typedef pcl::PointXYZRGB PointT;
-typedef v4r::Model<PointT> ModelT;
-typedef boost::shared_ptr<ModelT> ModelTPtr;
 
 int
 main (int argc, char ** argv)
