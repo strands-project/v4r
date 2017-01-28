@@ -294,40 +294,32 @@ main (int argc, char ** argv)
                 LOG(INFO) << "********************" << model_id << std::endl << tf << std::endl << std::endl;
             }
 
-            if ( !out_dir.empty() )  // write results to disk (for each verified hypothesis create a txt file with the object pose in row-major order
+            if ( !out_dir.empty() )  // write results to disk (for each verified hypothesis add a row in the text file with object name, dummy confidence value and object pose in row-major order)
             {
-                v4r::io::createDirIfNotExist( out_dir + "/" + sub_folder_name );
-                std::map<std::string, size_t> rec_models_per_id_;
+                std::string out_basename = views[v_id];
+                boost::replace_last(out_basename, ".pcd", ".anno");
+                bf::path out_path = out_dir;
+                out_path /= sub_folder_name;
+                out_path /= out_basename;
 
+                v4r::io::createDirForFileIfNotExist(out_path.string());
+
+                std::ofstream f ( out_path.string().c_str() );
                 for ( const ObjectHypothesis<PointT>::Ptr &voh : verified_hypotheses )
                 {
-                    const std::string &model_id = voh->model_id_;
-                    const Eigen::Matrix4f &tf = voh->transform_;
-
-                    size_t num_models_per_model_id = 0;
-
-                    auto it_rec_mod = rec_models_per_id_.find(model_id);
-                    if( it_rec_mod == rec_models_per_id_.end() )
-                        rec_models_per_id_.insert( std::pair<std::string, size_t>(model_id, 1) );
-                    else
-                        num_models_per_model_id = it_rec_mod->second++;
-
-                    std::stringstream out_fn;
-                    out_fn << out_dir << "/" << sub_folder_name << "/" <<
-                              views[v_id].substr(0, views[v_id].length()-4) << "_" <<
-                              model_id << "_" << num_models_per_model_id << ".txt";
-
-                    std::ofstream f ( out_fn.str().c_str() );
+                    f << voh->model_id_ << " (-1.): ";
                     for (size_t row=0; row <4; row++)
                         for(size_t col=0; col<4; col++)
-                            f << tf(row, col) << " ";
-                    f.close();
-
-                    f.open( out_dir + "/" + sub_folder_name + "/" + views[v_id].substr(0, views[v_id].length()-4) + "_times.nfo");
-                    for( const auto &t : elapsed_time)
-                        f << t << " ";
-                    f.close();
+                            f << voh->transform_(row, col) << " ";
+                    f << std::endl;
                 }
+                f.close();
+
+
+//                    f.open( out_dir + "/" + sub_folder_name + "/" + views[v_id].substr(0, views[v_id].length()-4) + "_times.nfo");
+//                    for( const auto &t : elapsed_time)
+//                        f << t << " ";
+//                    f.close();
             }
 
 
