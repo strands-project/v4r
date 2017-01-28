@@ -232,13 +232,15 @@ main (int argc, char ** argv)
         std::vector< std::string > views = v4r::io::getFilesInDirectory( test_dir+"/"+sub_folder_name, ".*.pcd", false );
         for (size_t v_id=0; v_id<views.size(); v_id++)
         {
-            const std::string fn = test_dir + "/" + sub_folder_name + "/" + views[ v_id ];
+            bf::path test_path = test_dir;
+            test_path /= sub_folder_name;
+            test_path /= views[v_id];
 
             std::vector<double> elapsed_time;
 
-            LOG(INFO) << "Recognizing file " << fn;
+            LOG(INFO) << "Recognizing file " << test_path.string();
             pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
-            pcl::io::loadPCDFile(fn, *cloud);
+            pcl::io::loadPCDFile( test_path.string(), *cloud);
 
             //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
             cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
@@ -314,7 +316,6 @@ main (int argc, char ** argv)
                     f << std::endl;
                 }
                 f.close();
-
 
 //                    f.open( out_dir + "/" + sub_folder_name + "/" + views[v_id].substr(0, views[v_id].length()-4) + "_times.nfo");
 //                    for( const auto &t : elapsed_time)
