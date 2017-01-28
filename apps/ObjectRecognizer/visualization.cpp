@@ -163,8 +163,6 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
     vis_->removeAllPointClouds(vp1_);
     vis_->removeAllPointClouds(vp2_);
     vis_->removeAllPointClouds(vp3_);
-    vis_->removeAllCoordinateSystems(vp2_);
-    vis_->removeAllCoordinateSystems(vp3_);
 
     typename pcl::PointCloud<PointT>::Ptr vis_cloud (new pcl::PointCloud<PointT>);
     pcl::copyPointCloud(*cloud_, *vis_cloud);
@@ -175,6 +173,8 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
         vis_->addPointCloudNormals<PointT,pcl::Normal>( cloud_, normals_, 300, 0.02f, "normals", vp1_);
 
 #if PCL_VERSION >= 100702
+    vis_->removeAllCoordinateSystems(vp2_);
+    vis_->removeAllCoordinateSystems(vp3_);
         for(size_t co_id=0; co_id<coordinate_axis_ids_.size(); co_id++)
             vis_->removeCoordinateSystem( coordinate_axis_ids_[co_id] );
 #endif
