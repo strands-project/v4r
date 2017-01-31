@@ -63,7 +63,7 @@ double ObjectTrackerMono::viewPointChange(const Eigen::Vector3f &pt, const Eigen
  * @param pose
  * @param view
  */
-void ObjectTrackerMono::updateView(const Eigen::Matrix4f &pose, const Object &model, ObjectView::Ptr &view)
+void ObjectTrackerMono::updateView(const Eigen::Matrix4f &pose, const Object &_model, ObjectView::Ptr &_view)
 {
   double angle, min_angle = DBL_MAX;
   int idx = -1;
@@ -71,11 +71,11 @@ void ObjectTrackerMono::updateView(const Eigen::Matrix4f &pose, const Object &mo
 
   invPose(pose, inv_pose);
 
-  for (unsigned i=0; i<model.views.size(); i++)
+  for (unsigned i=0; i<_model.views.size(); i++)
   {
-    const ObjectView &view = *model.views[i];
-    invPose(model.cameras[view.camera_id],inv_pose2);
-    angle = viewPointChange(view.center, inv_pose2, inv_pose);
+    const ObjectView &ov = *_model.views[i];
+    invPose(_model.cameras[ov.camera_id],inv_pose2);
+    angle = viewPointChange(ov.center, inv_pose2, inv_pose);
 
     if ( angle < min_angle)
     {
@@ -84,13 +84,13 @@ void ObjectTrackerMono::updateView(const Eigen::Matrix4f &pose, const Object &mo
     }
   }
 
-  if (idx != view->idx && idx != -1)
+  if (idx != _view->idx && idx != -1)
   {
-    view = model.views[idx];
+    _view = _model.views[idx];
 
-    kpDetector->setModel(view);
-    projTracker->setModel(view, model.cameras[view->camera_id]);
-    lkTracker->setModel(view);
+    kpDetector->setModel(_view);
+    projTracker->setModel(_view, _model.cameras[_view->camera_id]);
+    lkTracker->setModel(_view);
   }
   //--
   //cout<<idx<<endl;
@@ -103,7 +103,7 @@ void ObjectTrackerMono::updateView(const Eigen::Matrix4f &pose, const Object &mo
  * @param view
  * @return confidence value
  */
-double ObjectTrackerMono::reinit(const cv::Mat_<unsigned char> &im, Eigen::Matrix4f &pose, ObjectView::Ptr &view)
+double ObjectTrackerMono::reinit(const cv::Mat_<unsigned char> &im, Eigen::Matrix4f &pose, ObjectView::Ptr &_view)
 {
 //--
 //  std::vector< std::pair<int, int> > view_rank;
@@ -133,26 +133,26 @@ double ObjectTrackerMono::reinit(const cv::Mat_<unsigned char> &im, Eigen::Matri
   if (model->haveCodebook() && param.use_codebook)
   {
     int view_idx;
-    double conf = kpRecognizer->detect(im, pose, view_idx);
+    double _conf = kpRecognizer->detect(im, pose, view_idx);
 
     if (view_idx != -1)
     {
-      view = model->views[view_idx];
-      kpDetector->setModel(view);
-      projTracker->setModel(view, model->cameras[view->camera_id]);
-      lkTracker->setModel(view);
+      _view = model->views[view_idx];
+      kpDetector->setModel(_view);
+      projTracker->setModel(_view, model->cameras[_view->camera_id]);
+      lkTracker->setModel(_view);
     }
 
-    return conf;
+    return _conf;
   }
   else
   {
     // random sample views and try to reinit
-    view = model->views[rand()%model->views.size()];
+    _view = model->views[rand()%model->views.size()];
 
-    kpDetector->setModel(view);
-    projTracker->setModel(view, model->cameras[view->camera_id]);
-    lkTracker->setModel(view);
+    kpDetector->setModel(_view);
+    projTracker->setModel(_view, model->cameras[_view->camera_id]);
+    lkTracker->setModel(_view);
 
     return kpDetector->detect(im, pose);
   }
@@ -267,21 +267,21 @@ void ObjectTrackerMono::setCameraParameter(const cv::Mat &_intrinsic, const cv::
  */
 void ObjectTrackerMono::setObjectCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs)
 {
-  cv::Mat_<double> intrinsic;
-  cv::Mat_<double> dist_coeffs = cv::Mat_<double>();
+  cv::Mat_<double> intrinsicc;
+  cv::Mat_<double> dist_coeffss = cv::Mat_<double>();
 
   if (_intrinsic.type() != CV_64F)
-    _intrinsic.convertTo(intrinsic, CV_64F);
-  else _intrinsic.copyTo(intrinsic);
+    _intrinsic.convertTo(intrinsicc, CV_64F);
+  else _intrinsic.copyTo(intrinsicc);
 
   if (!_dist_coeffs.empty())
   {
-    dist_coeffs = cv::Mat_<double>::zeros(1,8);
+    dist_coeffss = cv::Mat_<double>::zeros(1,8);
     for (int i=0; i<_dist_coeffs.cols*_dist_coeffs.rows; i++)
-      dist_coeffs(0,i) = _dist_coeffs.at<double>(0,i);
+      dist_coeffss(0,i) = _dist_coeffs.at<double>(0,i);
   }
 
-  projTracker->setSourceCameraParameter(intrinsic, dist_coeffs);
+  projTracker->setSourceCameraParameter(intrinsicc, dist_coeffss);
 }
 
 
@@ -299,26 +299,26 @@ void ObjectTrackerMono::setObjectModel(const Object::Ptr &_model)
   // set camera parameter
   if (model->camera_parameter.size()==1)
   {
-    std::vector<double> &param = model->camera_parameter.back();
+    std::vector<double> &_param = model->camera_parameter.back();
     cv::Mat_<double> cam(cv::Mat_<double>::eye(3,3));
     cv::Mat_<double> dcoeffs;
 
-    if (param.size()==9)
+    if (_param.size()==9)
     {
       dcoeffs = cv::Mat_<double>::zeros(1,5);
-      dcoeffs(0,0) = param[4];
-      dcoeffs(0,1) = param[5];
-      dcoeffs(0,5) = param[6];
-      dcoeffs(0,2) = param[7];
-      dcoeffs(0,4) = param[8];
+      dcoeffs(0,0) = _param[4];
+      dcoeffs(0,1) = _param[5];
+      dcoeffs(0,5) = _param[6];
+      dcoeffs(0,2) = _param[7];
+      dcoeffs(0,4) = _param[8];
     }
 
-    if (param.size()==4 || param.size()==9)
+    if (_param.size()==4 || _param.size()==9)
     {
-      cam(0,0) = param[0];
-      cam(1,1) = param[1];
-      cam(0,2) = param[2];
-      cam(1,2) = param[3];
+      cam(0,0) = _param[0];
+      cam(1,1) = _param[1];
+      cam(0,2) = _param[2];
+      cam(1,2) = _param[3];
 
       setObjectCameraParameter(cam, dcoeffs);
     }
