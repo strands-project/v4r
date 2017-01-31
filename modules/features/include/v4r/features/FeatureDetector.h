@@ -80,12 +80,20 @@ public:
   virtual ~FeatureDetector() {}
 
   virtual void detect(const cv::Mat &image, std::vector<cv::KeyPoint> &keys, cv::Mat &descriptors) { 
-    std::cout<<"[FeatureDetector::detect] Not implemented!]"<<std::endl; };
+      (void)image;
+      (void)keys;
+      (void)descriptors;
+      std::cout<<"[FeatureDetector::detect] Not implemented!]"<<std::endl; };
 
   virtual void detect(const cv::Mat &image, std::vector<cv::KeyPoint> &keys) {
+      (void)image;
+      (void)keys;
     std::cout<<"[FeatureDetector::detect] Not implemented!]"<<std::endl; }
 
    virtual void extract(const cv::Mat &image, std::vector<cv::KeyPoint> &keys, cv::Mat &descriptors) {
+      (void)image;
+      (void)keys;
+      (void)descriptors;
     std::cout<<"[FeatureDetector::extract] Not implemented!]"<<std::endl; }
  
 

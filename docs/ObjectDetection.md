@@ -15,7 +15,7 @@ The files will be extracted in the `data/TUW` directory.
 Assuming you built the examples samples, you can now run the classifier. If you run it for the first time, it will automatically extract the descriptors of choice from your model data (`-m`). The test directory can be specified by the argument `-t` and the cut-off distance in meter by `-z`. For a full list of available parameters, you can use `-h`.
 
 ```
-./build/bin/example-object_recognizer -m data/TUW/models -t data/TUW/test_set -z 2.5 --do_sift true --do_shot false --do_esf false --do_alexnet false -v
+./build/bin/example-object_recognizer -m data/TUW/TUW_models -t data/TUW/test_set -z 2.5 --do_sift true --do_shot false --do_esf false --do_alexnet false -v
 ```
 
 ## References

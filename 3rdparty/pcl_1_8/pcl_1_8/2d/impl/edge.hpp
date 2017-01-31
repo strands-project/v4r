@@ -35,16 +35,16 @@
  *
  */
 
-#ifndef FAAT_PCL_2D_EDGE_IMPL_HPP
-#define FAAT_PCL_2D_EDGE_IMPL_HPP
+#ifndef PCL_1_8_2D_EDGE_IMPL_HPP
+#define PCL_1_8_2D_EDGE_IMPL_HPP
 
-#include <v4r/common/convolution.h>
+#include <pcl_1_8/2d/convolution.h>
 #include <pcl/common/common_headers.h> // rad2deg()
 #include <pcl/console/time.h>
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::detectEdgeSobel (
+pcl_1_8::Edge<PointInT, PointOutT>::detectEdgeSobel (
     pcl::PointCloud<PointOutT> &output)
 {
   //pcl::console::TicToc tt;
@@ -88,7 +88,7 @@ v4r::Edge<PointInT, PointOutT>::detectEdgeSobel (
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::sobelMagnitudeDirection (
+pcl_1_8::Edge<PointInT, PointOutT>::sobelMagnitudeDirection (
     const pcl::PointCloud<PointInT> &input_x, 
     const pcl::PointCloud<PointInT> &input_y,
     pcl::PointCloud<PointOutT> &output)
@@ -130,7 +130,7 @@ v4r::Edge<PointInT, PointOutT>::sobelMagnitudeDirection (
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::detectEdgePrewitt (pcl::PointCloud<PointOutT> &output)
+pcl_1_8::Edge<PointInT, PointOutT>::detectEdgePrewitt (pcl::PointCloud<PointOutT> &output)
 {
   convolution_.setInputCloud (input_);
 
@@ -169,7 +169,7 @@ v4r::Edge<PointInT, PointOutT>::detectEdgePrewitt (pcl::PointCloud<PointOutT> &o
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::detectEdgeRoberts (pcl::PointCloud<PointOutT> &output)
+pcl_1_8::Edge<PointInT, PointOutT>::detectEdgeRoberts (pcl::PointCloud<PointOutT> &output)
 {
   convolution_.setInputCloud (input_);
 
@@ -208,7 +208,7 @@ v4r::Edge<PointInT, PointOutT>::detectEdgeRoberts (pcl::PointCloud<PointOutT> &o
 
 //////////////////////////////////////////////////////////////////////////////
 template<typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::cannyTraceEdge (
+pcl_1_8::Edge<PointInT, PointOutT>::cannyTraceEdge (
     int rowOffset, int colOffset, int row, int col, 
     pcl::PointCloud<pcl::PointXYZI> &maxima)
 {
@@ -216,7 +216,7 @@ v4r::Edge<PointInT, PointOutT>::cannyTraceEdge (
   int newCol = col + colOffset;
   pcl::PointXYZI &pt = maxima (newCol, newRow);
 
-  if (newRow > 0 && newRow < maxima.height && newCol > 0 && newCol < maxima.width)
+  if (newRow > 0 && newRow < static_cast<int> (maxima.height) && newCol > 0 && newCol < static_cast<int> (maxima.width))
   {
     if (pt.intensity == 0.0f || pt.intensity == std::numeric_limits<float>::max ())
       return;
@@ -235,7 +235,7 @@ v4r::Edge<PointInT, PointOutT>::cannyTraceEdge (
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::discretizeAngles (pcl::PointCloud<PointOutT> &thet)
+pcl_1_8::Edge<PointInT, PointOutT>::discretizeAngles (pcl::PointCloud<PointOutT> &thet)
 {
   const int height = thet.height;
   const int width = thet.width;
@@ -262,7 +262,7 @@ v4r::Edge<PointInT, PointOutT>::discretizeAngles (pcl::PointCloud<PointOutT> &th
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::suppressNonMaxima (
+pcl_1_8::Edge<PointInT, PointOutT>::suppressNonMaxima (
     const pcl::PointCloud<PointXYZIEdge> &edges, 
     pcl::PointCloud<pcl::PointXYZI> &maxima, float tLow)
 {
@@ -326,7 +326,7 @@ v4r::Edge<PointInT, PointOutT>::suppressNonMaxima (
 
 //////////////////////////////////////////////////////////////////////////////
 template<typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::detectEdgeCanny (pcl::PointCloud<PointOutT> &output)
+pcl_1_8::Edge<PointInT, PointOutT>::detectEdgeCanny (pcl::PointCloud<PointOutT> &output)
 {
   float tHigh = hysteresis_threshold_high_;
   float tLow = hysteresis_threshold_low_;
@@ -400,7 +400,7 @@ v4r::Edge<PointInT, PointOutT>::detectEdgeCanny (pcl::PointCloud<PointOutT> &out
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::canny (
+pcl_1_8::Edge<PointInT, PointOutT>::canny (
     const pcl::PointCloud<PointInT> &input_x, 
     const pcl::PointCloud<PointInT> &input_y,
     pcl::PointCloud<PointOutT> &output)
@@ -476,14 +476,11 @@ v4r::Edge<PointInT, PointOutT>::canny (
 
 //////////////////////////////////////////////////////////////////////////////
 template<typename PointInT, typename PointOutT> void
-v4r::Edge<PointInT, PointOutT>::detectEdgeLoG (
+pcl_1_8::Edge<PointInT, PointOutT>::detectEdgeLoG (
     const float kernel_sigma, const float kernel_size,
     pcl::PointCloud<PointOutT> &output)
 {
   convolution_.setInputCloud (input_);
-
-  const int height = input_->height;
-  const int width = input_->width;
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr log_kernel (new pcl::PointCloud<pcl::PointXYZI>);
   kernel_.setKernelType (kernel<pcl::PointXYZI>::LOG);

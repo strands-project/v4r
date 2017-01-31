@@ -2,8 +2,7 @@
  * Software License Agreement (BSD License)
  *
  *  Point Cloud Library (PCL) - www.pointclouds.org
- *  Copyright (c) 2010-2012, Willow Garage, Inc.
- *  Copyright (c) 2012-, Open Perception, Inc.
+ *  Copyright (c) 2010-2011, Willow Garage, Inc.
  *
  *  All rights reserved.
  *
@@ -17,7 +16,7 @@
  *     copyright notice, this list of conditions and the following
  *     disclaimer in the documentation and/or other materials provided
  *     with the distribution.
- *   * Neither the name of the copyright holder(s) nor the names of its
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
  *     contributors may be used to endorse or promote products derived
  *     from this software without specific prior written permission.
  *
@@ -36,15 +35,4 @@
  *
  */
 
-#include <v4r/common/organized_edge_detection.h>
-#include <v4r/common/impl/organized_edge_detection.hpp>
-
-#ifndef PCL_NO_PRECOMPILE
-#include <pcl/point_types.h>
-#include <pcl/impl/instantiate.hpp>
-PCL_INSTANTIATE_PRODUCT(OrganizedEdgeBase, (PCL_XYZ_POINT_TYPES)((pcl::Label)))
-PCL_INSTANTIATE_PRODUCT(OrganizedEdgeFromRGB, (PCL_RGB_POINT_TYPES)((pcl::Label)))
-PCL_INSTANTIATE_PRODUCT(OrganizedEdgeFromNormals, (PCL_XYZ_POINT_TYPES)(PCL_NORMAL_POINT_TYPES)((pcl::Label)))
-PCL_INSTANTIATE_PRODUCT(OrganizedEdgeFromRGBNormals, (PCL_RGB_POINT_TYPES)(PCL_NORMAL_POINT_TYPES)((pcl::Label)))
-#endif    // PCL_NO_PRECOMPILE
-
+// Instantiations of specific point types

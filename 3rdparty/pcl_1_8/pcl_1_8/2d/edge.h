@@ -35,24 +35,24 @@
  *
  */
 
-#ifndef FAAT_PCL_2D_EDGE_H
-#define FAAT_PCL_2D_EDGE_H
+#ifndef PCL_1_8_2D_EDGE_H
+#define PCL_1_8_2D_EDGE_H
 
 #include <pcl/pcl_base.h>
-#include "convolution.h"
-#include "kernel.h"
+#include <pcl_1_8/2d/convolution.h>
+#include <pcl_1_8/2d/kernel.h>
 
-namespace v4r
+namespace pcl_1_8
 {
   template <typename PointInT, typename PointOutT>
-  class V4R_EXPORTS Edge
+  class Edge
   {
     private:
       typedef typename pcl::PointCloud<PointInT> PointCloudIn;
       typedef typename PointCloudIn::Ptr PointCloudInPtr;
 
       PointCloudInPtr input_;
-      v4r::Convolution<PointInT> convolution_;
+      pcl_1_8::Convolution<PointInT> convolution_;
       kernel<PointInT>  kernel_;
 
       /** \brief This function performs edge tracing for Canny Edge detector.
@@ -286,10 +286,9 @@ namespace v4r
       computeDerivativeYBackward (pcl::PointCloud<PointOutT> &output);
 
       /** \brief Override function to implement the pcl::Filter interface
-        * \param output Output point cloud passed by reference
         */
       void 
-      applyFilter (pcl::PointCloud<PointOutT> &output) {}
+      applyFilter (pcl::PointCloud<PointOutT>& /*output*/) {}
 
       /** \brief Set the input point cloud pointer
         * \param[in] input pointer to input point cloud
@@ -301,7 +300,7 @@ namespace v4r
       }
   };
 }
-#include <v4r/common/impl/edge.hpp>
+#include <pcl_1_8/2d/impl/edge.hpp>
 
 #endif    // PCL_2D_EDGE_H 
 

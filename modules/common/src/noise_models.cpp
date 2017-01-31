@@ -1,4 +1,4 @@
-#include <v4r/common/organized_edge_detection.h>
+#include <pcl_1_8/features/organized_edge_detection.h>
 #include "v4r/common/noise_models.h"
 
 #include <opencv2/opencv.hpp>
@@ -21,12 +21,12 @@ NguyenNoiseModel<PointT>::compute ()
     pt_properties_.resize(input_->points.size());
 
     //compute depth discontinuity edges
-    OrganizedEdgeBase<PointT, pcl::Label> oed;
+    pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label> oed;
     oed.setDepthDisconThreshold (0.05f); //at 1m, adapted linearly with depth
     oed.setMaxSearchNeighbors(100);
-    oed.setEdgeType (  OrganizedEdgeBase<PointT,           pcl::Label>::EDGELABEL_OCCLUDING
-                     | OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_OCCLUDED
-                     | OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_NAN_BOUNDARY
+    oed.setEdgeType (  pcl_1_8::OrganizedEdgeBase<PointT,           pcl::Label>::EDGELABEL_OCCLUDING
+                     | pcl_1_8::OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_OCCLUDED
+                     | pcl_1_8::OrganizedEdgeBase<pcl::PointXYZRGB, pcl::Label>::EDGELABEL_NAN_BOUNDARY
                      );
     oed.setInputCloud (input_);
 
