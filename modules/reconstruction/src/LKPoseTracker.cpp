@@ -290,9 +290,7 @@ double LKPoseTracker::detectIncremental(const cv::Mat &image, Eigen::Matrix4f &p
 
   if (int(query_pts.size())<4) return 0.;
 
-cout<<"1"<<endl;
   ransacSolvePnP(model_pts, query_pts, pose, pnp_inliers);
-cout<<"2"<<endl;
 
   if (int(pnp_inliers.size())<4) return 0.;
 
