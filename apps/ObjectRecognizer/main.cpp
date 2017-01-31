@@ -61,13 +61,7 @@ main (int argc, char ** argv)
     std::string shot_config_xml = "cfg/shot_config.xml";
     std::string alexnet_config_xml  = "cfg/alexnet_config.xml";
     std::string esf_config_xml = "cfg/esf_config.xml";
-
-    // camera parameters
-    float focal_length = 525.f;
-    int img_width = 640;
-    int img_height = 480;
-    float cx = 319.5f;
-    float cy = 239.5f;
+    std::string camera_config_xml = "cfg/camera.xml";
     std::string depth_img_mask = "cfg/xtion_depth_mask.png";
 
     // Correspondence grouping parameters for local recognition pipeline
@@ -94,17 +88,13 @@ main (int argc, char ** argv)
             ("do_shot", po::value<bool>(&do_shot)->default_value(do_shot), "if true, enables SHOT feature matching")
             ("do_esf", po::value<bool>(&do_esf)->default_value(do_esf), "if true, enables ESF global matching")
             ("do_alexnet", po::value<bool>(&do_alexnet)->default_value(do_alexnet), "if true, enables AlexNet global matching")
-            ("focal_length", po::value<float>(&focal_length)->default_value(focal_length, boost::str(boost::format("%.2e") % focal_length) ), "Focal length of camera")
-            ("img_width", po::value<int>(&img_width)->default_value(img_width), "image width in pixel")
-            ("img_height", po::value<int>(&img_height)->default_value(img_height), "image height in pixel")
-            ("cx", po::value<float>(&cx)->default_value(cx, boost::str(boost::format("%.2e") % cx) ), "Camera's central point of projection in x")
-            ("cy", po::value<float>(&cy)->default_value(cy, boost::str(boost::format("%.2e") % cy) ), "Camera's central point of projection in x")
             ("depth_img_mask", po::value<std::string>(&depth_img_mask)->default_value(depth_img_mask), "filename for image registration mask. This mask tells which pixels in the RGB image can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.")
 //            ("hv_config_xml", po::value<std::string>(&hv_config_xml)->default_value(hv_config_xml), "Filename of Hypotheses Verification XML configuration file.")
             ("sift_config_xml", po::value<std::string>(&sift_config_xml)->default_value(sift_config_xml), "Filename of SIFT XML configuration file.")
             ("shot_config_xml", po::value<std::string>(&shot_config_xml)->default_value(shot_config_xml), "Filename of SHOT XML configuration file.")
             ("alexnet_config_xml", po::value<std::string>(&alexnet_config_xml)->default_value(alexnet_config_xml), "Filename of Alexnet XML configuration file.")
             ("esf_config_xml", po::value<std::string>(&esf_config_xml)->default_value(esf_config_xml), "Filename of ESF XML configuration file.")
+            ("camera_xml", po::value<std::string>(&camera_config_xml)->default_value(esf_config_xml), "Filename of camera parameter XML file.")
             ("visualize,v", po::bool_switch(&visualize), "visualize recognition results")
             ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
             ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
@@ -121,7 +111,7 @@ main (int argc, char ** argv)
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
     // ====== DEFINE CAMERA =======
-    Camera::Ptr xtion (new Camera( focal_length, img_width, img_height, cx, cy) );
+    Camera::Ptr xtion (new Camera(camera_config_xml) );
 
     cv::Mat_<uchar> img_mask = cv::imread(depth_img_mask, CV_LOAD_IMAGE_GRAYSCALE);
     if( img_mask.data )

@@ -162,7 +162,7 @@ public:
     {
         std::ofstream ofs(filename);
         boost::archive::xml_oarchive oa(ofs);
-        oa << BOOST_SERIALIZATION_NVP( *this );
+        oa << boost::serialization::make_nvp("CameraParameter", *this );
         ofs.close();
     }
 
@@ -174,7 +174,7 @@ public:
     {
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
-        ia >> BOOST_SERIALIZATION_NVP( *this );
+        ia >> boost::serialization::make_nvp("CameraParameter", *this );
         ifs.close();
     }
 };

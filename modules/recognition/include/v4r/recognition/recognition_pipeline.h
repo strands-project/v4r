@@ -52,8 +52,8 @@ protected:
     typedef Model<PointT> ModelT;
     typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-    typename pcl::PointCloud<PointT>::ConstPtr scene_; ///< Point cloud to be classified
-    pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< Point cloud to be classified
+    typename pcl::PointCloud<PointT>::ConstPtr scene_; ///< Point cloud to be recognized
+    pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< associated normals
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
     std::vector< ObjectHypothesesGroup<PointT> > obj_hypotheses_;   ///< generated object hypotheses
 
