@@ -136,13 +136,13 @@ int main(int argc, char *argv[] )
   // init recognizer
   #ifdef USE_SIFT_GPU
   v4r::IMKRecognizer::Parameter param;
-  param.cb_param.nnr = .9;
-  param.cb_param.thr_desc_rnn = 0.25;
+  param.cb_param.nnr = .92;
+  param.cb_param.thr_desc_rnn = 0.3;
   param.cb_param.max_dist = 0.4;
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_SIFTGPU());
   #else
   v4r::KeypointObjectRecognizer::Parameter param;
-  param.cb_param.nnr = .90;
+  param.cb_param.nnr = .92;
   param.cb_param.thr_desc_rnn = 250.;
   param.cb_param.max_dist = 500;
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_CVSIFT());

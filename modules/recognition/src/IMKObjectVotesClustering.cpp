@@ -127,7 +127,7 @@ void IMKObjectVotesClustering::createVotes(unsigned id, const std::vector<IMKVie
   if (!dbg.empty())
   {
     cv::imshow("dbg votes", im_tmp);
-    cv::waitKey(0);
+//    cv::waitKey(0);
   }
 #endif
 }
@@ -185,10 +185,11 @@ void IMKObjectVotesClustering::operate(const std::vector<std::string> &object_na
     cv::Mat im_tmp;
     float scale, delta_angle;
     cv::Point2f pt, pt_scaled;
+    dbg.copyTo(im_tmp);
 
     for (unsigned i=0; i<clusters.size() && i<50; i++)
     {
-      dbg.copyTo(im_tmp);
+//      dbg.copyTo(im_tmp);
       const v4r::triple<unsigned, double, std::vector< cv::DMatch > > &cl = *clusters[i];
       cv::Vec3b col(rand()%255,rand()%255,rand()%255);
 
@@ -213,7 +214,7 @@ void IMKObjectVotesClustering::operate(const std::vector<std::string> &object_na
       }
 
       cv::imshow("dbg votes", im_tmp);
-      cv::waitKey(0);
+//      cv::waitKey(0);
     }
 
     cout<<"-- end --"<<endl;

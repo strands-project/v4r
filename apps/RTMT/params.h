@@ -57,7 +57,7 @@ public:
     c[0] = 320; c[1] = 240;
     width = 640;
     height = 480;
-    range[0] = 0.4; range[1] = 3.14;
+    range[0] = 0.1; range[1] = 3.14;
   }
 };
 
