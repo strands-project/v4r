@@ -129,7 +129,7 @@ main (int argc, char ** argv)
     MultiviewRecognizer<PointT>::Ptr mv_rec (new MultiviewRecognizer<PointT>);
     {
         // ====== SETUP MULTI PIPELINE RECOGNIZER ======
-        MultiRecognitionPipeline<PointT> mrec;
+        MultiRecognitionPipeline<PointT>::Ptr mrec (new MultiRecognitionPipeline<PointT>);
         LocalRecognitionPipeline<PointT>::Ptr local_recognition_pipeline (new LocalRecognitionPipeline<PointT>);
         {
             // ====== SETUP LOCAL RECOGNITION PIPELINE =====
@@ -165,7 +165,7 @@ main (int argc, char ** argv)
                 }
 
                 RecognitionPipeline<PointT>::Ptr rec_pipeline_tmp = boost::static_pointer_cast<RecognitionPipeline<PointT> > (local_recognition_pipeline);
-                mrec.addRecognitionPipeline(rec_pipeline_tmp);
+                mrec->addRecognitionPipeline(rec_pipeline_tmp);
             }
 
             // ====== SETUP GLOBAL RECOGNITION PIPELINE =====
@@ -202,11 +202,11 @@ main (int argc, char ** argv)
                 }
 
                 RecognitionPipeline<PointT>::Ptr rec_pipeline_tmp = boost::static_pointer_cast<RecognitionPipeline<PointT> > (global_recognition_pipeline);
-                mrec.addRecognitionPipeline( rec_pipeline_tmp );
+                mrec->addRecognitionPipeline( rec_pipeline_tmp );
             }
 
-            mrec.setModelDatabase( model_database );
-            mrec.initialize( models_dir, false );
+            mrec->setModelDatabase( model_database );
+            mrec->initialize( models_dir, false );
         }
         RecognitionPipeline<PointT>::Ptr rec_pipeline_tmp = boost::static_pointer_cast<RecognitionPipeline<PointT> > (mrec);
         mv_rec->setSingleViewRecognitionPipeline( rec_pipeline_tmp );
@@ -244,7 +244,7 @@ main (int argc, char ** argv)
             cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
             pcl::PointCloud<pcl::Normal>::Ptr normals;
 
-            if( mrec.needNormals() || hv)
+            if( mv_rec->needNormals() || hv)
             {
                 pcl::ScopeTime t("Computing normals");
                 normals.reset (new pcl::PointCloud<pcl::Normal>);
@@ -254,7 +254,7 @@ main (int argc, char ** argv)
                 ne.setNormalSmoothingSize(10.0f);
                 ne.setInputCloud(cloud);
                 ne.compute(*normals);
-                mvrec->setSceneNormals( normals );
+                mv_rec->setSceneNormals( normals );
                 elapsed_time.push_back( t.getTime() );
             }
 
@@ -321,7 +321,7 @@ main (int argc, char ** argv)
 //                LocalObjectModelDatabase::ConstPtr lomdb = local_recognition_pipeline->getLocalObjectModelDatabase();
                 rec_vis.setCloud( cloud );
                 rec_vis.setGeneratedObjectHypotheses( generated_object_hypotheses );
-                rec_vis.setLocalModelDatabase(lomdb);
+//                rec_vis.setLocalModelDatabase(lomdb);
                 rec_vis.setVerifiedObjectHypotheses( verified_hypotheses );
                 rec_vis.visualize();
             }
