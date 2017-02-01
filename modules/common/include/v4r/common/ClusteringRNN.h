@@ -38,7 +38,8 @@
 #include <stdexcept>
 #include <float.h>
 #include <v4r/common/impl/DataMatrix2D.hpp>
-#include "Clustering.h"
+#include <v4r/common/Clustering.h>
+#include <v4r/core/macros.h>
 
 
 

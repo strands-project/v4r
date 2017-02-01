@@ -1,5 +1,5 @@
 set(the_description "Recognition")
-v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentation v4r_keypoints v4r_registration v4r_change_detection v4r_ml pcl pcl_1_8 opencv metslib glog boost OPTIONAL v4r_rendering siftgpu)
+v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentation v4r_keypoints v4r_registration v4r_change_detection v4r_ml pcl pcl_1_8 opencv metslib glog boost OPTIONAL v4r_rendering siftgpu v4r_reconstruction)
 
     list(APPEND rec_srcs
         #${CMAKE_CURRENT_LIST_DIR}/src/multiview_representation.cpp
@@ -20,6 +20,10 @@ v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentat
         ${CMAKE_CURRENT_LIST_DIR}/src/recognizer.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/registered_views_source.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/ghv_opt.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/IMKObjectVotesClustering.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/IMKRecognizer.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/IMKRecognizerIO.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/RansacSolvePnP.cpp
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/impl/multi_pipeline_recognizer.hpp
         #${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/impl/multiview_object_recognizer_init.hpp
         #${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/impl/multiview_object_recognizer.hpp
@@ -52,6 +56,13 @@ v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentat
         #${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/multiview_object_recognizer.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/ghv_opt.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/object_hypothesis.h
+        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/IMKObjectVotesClustering.h
+        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/IMKObjectVotesClustering.h
+        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/IMKRecognizer.h
+        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/IMKRecognizerIO.h
+        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/IMKRecognizer_serialization.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/IMKView.h
+        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/RansacSolvePnP.h
 )
 
 
