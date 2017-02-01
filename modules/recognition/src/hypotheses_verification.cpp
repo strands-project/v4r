@@ -763,7 +763,10 @@ HypothesisVerification<ModelT, SceneT>::initialize()
     obj_hypotheses_groups_.clear(); // free space
 
     if( !kept_hypotheses )
+    {
+        global_hypotheses_.clear();
         return;
+    }
 
     global_hypotheses_.resize( kept_hypotheses );
 
