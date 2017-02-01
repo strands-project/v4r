@@ -2,8 +2,9 @@
 #include <sstream>
 #include <fstream>
 #include <v4r/io/filesystem.h>
+#include <v4r/common/camera.h>
+#include <v4r/common/img_utils.h>
 #include <v4r/common/pcl_opencv.h>
-#include <v4r/common/faat_3d_rec_framework_defines.h>
 #include <pcl/io/pcd_io.h>
 #include <opencv2/opencv.hpp>
 
@@ -14,6 +15,7 @@ namespace po = boost::program_options;
 
 int main(int argc, char** argv)
 {
+    typedef pcl::PointXYZRGB PointT;
     google::InitGoogleLogging(argv[0]);
     std::string input_dir, output_dir = "/tmp/output_images/";
     const std::string view_prefix = "cloud";
@@ -66,19 +68,21 @@ int main(int argc, char** argv)
             const std::string input_fn = sequence_path + "/" + views[v_id];
 
             std::cout << "Converting image " << input_fn << std::endl;
-            pcl::PointCloud<pcl::PointXYZRGB> cloud;
-            pcl::io::loadPCDFile(input_fn, cloud);
+            pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
+            pcl::io::loadPCDFile(input_fn, *cloud);
 
             // Read object indices
-            std::string indices_file (views[v_id]);
-            boost::replace_all (indices_file, view_prefix, indices_prefix);
-            pcl::PointCloud<IndexPoint> obj_indices_cloud;
-            const std::string oi_file = sequence_path + "/" + + "/" + indices_file;
-            pcl::io::loadPCDFile (oi_file, obj_indices_cloud);
-            pcl::PointIndices indices;
-            indices.indices.resize(obj_indices_cloud.points.size());
-            for(size_t kk=0; kk < obj_indices_cloud.points.size(); kk++)
-                indices.indices[kk] = obj_indices_cloud.points[kk].idx;
+            // read object mask
+            std::string obj_indices_fn (views[v_id]);
+            boost::replace_last (obj_indices_fn, view_prefix, indices_prefix);
+            boost::replace_last (obj_indices_fn, ".pcd", ".txt");
+            obj_indices_fn = sequence_path + "/" + + "/" + obj_indices_fn;
+            std::ifstream f ( obj_indices_fn.c_str() );
+            std::vector<int> indices;
+            int idx;
+            while (f >> idx)
+               indices.push_back(idx);
+            f.close();
 
 
             // Read camera pose
@@ -87,10 +91,10 @@ int main(int argc, char** argv)
 
 
             // convert point cloud
-            cv::Mat rgb =  v4r::ConvertPCLCloud2Image(cloud);
-            cv::Mat rgb_cropped = v4r::ConvertPCLCloud2Image(cloud, indices.indices, img_height, img_width);
-            cv::Mat depth = v4r::ConvertPCLCloud2DepthImage(cloud);
-            cv::Mat depth_cropped = v4r::ConvertPCLCloud2DepthImageFixedSize(cloud, indices.indices, img_height, img_width);
+            cv::Mat rgb =  v4r::ConvertPCLCloud2Image(*cloud);
+            cv::Mat rgb_cropped = v4r::ConvertPCLCloud2Image(*cloud, indices, img_height, img_width);
+            cv::Mat depth = v4r::ConvertPCLCloud2DepthImage(*cloud);
+            cv::Mat depth_cropped = v4r::ConvertPCLCloud2DepthImageFixedSize(*cloud, indices, img_height, img_width);
 
             cv::Mat depth_mm = 1000./depth_cropped;
 
@@ -107,8 +111,6 @@ int main(int argc, char** argv)
             cv::imwrite(fn.str(), depth);
             fn.str(""); fn << output_dir << "/" << id << "_depth_cropped.png";
             cv::imwrite(fn.str(), depth_cropped);
-            fn.str(""); fn << output_dir << "/" << id << "_depth_cropped_unsigned.png";
-            cv::imwrite(fn.str(), depth_mm_ushort);
 
             // add to file list
             file2label.push_back( std::pair<std::string, size_t> ( fn.str(), sub_folder_id ));
