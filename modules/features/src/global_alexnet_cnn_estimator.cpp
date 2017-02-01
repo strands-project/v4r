@@ -15,6 +15,7 @@
 #include <caffe/layer.hpp>
 #include <caffe/layers/memory_data_layer.hpp>
 
+#include <v4r/common/img_utils.h>
 #include <v4r/common/pcl_opencv.h>
 
 using caffe::Blob;
@@ -190,9 +191,18 @@ bool
 CNN_Feat_Extractor<PointT, Dtype>::compute (Eigen::MatrixXf &signature)
 {
     CHECK( cloud_ && cloud_->isOrganized() && !cloud_->points.empty() && !indices_.empty());
-    cv::Mat img = v4r::ConvertPCLCloud2FixedSizeImage(*cloud_, indices_, param_.image_height_,
-                                                      param_.image_width_, 10, cv::Scalar(255,255,255), true);
-    compute(img, signature);
+    PCLOpenCVConverter<PointT> pcl_opencv_converter;
+    pcl_opencv_converter.setInputCloud(cloud_);
+    pcl_opencv_converter.setIndices(indices_);
+    pcl_opencv_converter.setBackgroundColor( 255, 255, 255 );
+    cv::Mat img = pcl_opencv_converter.getRGBImage();
+    cv::Rect roi = pcl_opencv_converter.getROI();
+    int margin = 10;
+    cv::Mat img_cropped = cropImage(img, roi, margin, true);
+
+    std::cerr << "Closing operation not implemented right now!" << std::endl;   ///TODO: re-implement closing operation to avoid sharp transitions from noisy measurements
+
+    compute(img_cropped, signature);
     indices_.clear();
     return true;
 }

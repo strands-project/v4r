@@ -135,7 +135,10 @@ int main (int argc, char ** argv)
             std::stringstream filename;
             v4r::io::createDirIfNotExist(out_img_dir);
             filename << out_img_dir << "/" << file_id << ".jpg";
-            cv::Mat colorImage = v4r::ConvertPCLCloud2Image (*cloud);
+
+            v4r::PCLOpenCVConverter<PointT> pcl_opencv_converter;
+            pcl_opencv_converter.setInputCloud(cloud);
+            cv::Mat colorImage = pcl_opencv_converter.getRGBImage();
             cv::imwrite( filename.str(), colorImage);
         }
 

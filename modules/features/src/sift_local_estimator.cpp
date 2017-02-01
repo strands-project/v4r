@@ -20,7 +20,9 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
 {
     CHECK( cloud_ && cloud_->isOrganized() );
 
-    cv::Mat colorImage = ConvertPCLCloud2Image(*cloud_);
+    PCLOpenCVConverter<PointT> pcl_opencv_converter;
+    pcl_opencv_converter.setInputCloud(cloud_);
+    cv::Mat colorImage = pcl_opencv_converter.getRGBImage();
     Eigen::Matrix2Xf keypoints2d;
     compute(colorImage, keypoints2d, signatures);
     keypoint_indices_.resize(keypoints2d.cols());

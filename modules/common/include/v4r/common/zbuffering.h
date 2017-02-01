@@ -51,6 +51,7 @@ public:
         int u_margin_, v_margin_;
         bool compute_focal_length_;
         bool do_smoothing_; ///< tries to fill holes by dilating points over neighboring pixel
+        bool do_noise_filtering_;
         float inlier_threshold_;
         int smoothing_radius_;
         bool force_unorganized_; ///< re-projects points by given camera intrinsics even if point cloud is already organized
@@ -59,11 +60,13 @@ public:
                 int v_margin = 0,
                 bool compute_focal_length = false,
                 bool do_smoothing = true,
+                bool do_noise_filtering = false,
                 float inlier_threshold = 0.01f,
                 int smoothing_radius = 1,
                 bool force_unorganized = false) :
             u_margin_(u_margin), v_margin_(v_margin),
-            compute_focal_length_(compute_focal_length), do_smoothing_(do_smoothing), inlier_threshold_(inlier_threshold),
+            compute_focal_length_(compute_focal_length), do_smoothing_(do_smoothing),
+            do_noise_filtering_ (do_noise_filtering), inlier_threshold_(inlier_threshold),
             smoothing_radius_(smoothing_radius), force_unorganized_ (force_unorganized)
         {}
     }param_;
@@ -71,8 +74,8 @@ public:
 private:
     std::vector<float> depth_;
     std::vector<int> kept_indices_;
-    boost::shared_ptr<std::vector<int> > indices_map_;  /// @brief saves for each pixel which indices of the input cloud it represents. Non-occupied pixels are labelled with index -1.
-    Camera::ConstPtr cam_;   /// @brief camera parameters
+    Camera::ConstPtr cam_;   ///< camera parameters
+    Eigen::MatrixXi index_map_; ///< saves for each pixel which indices of the input cloud it represents. Non-occupied pixels are labelled with index -1.
 
 public:
 
@@ -83,31 +86,21 @@ public:
         cam_ = cam;
     }
 
-    void computeDepthMap (const pcl::PointCloud<PointT> &scene);
-
-    void computeDepthMap (const pcl::PointCloud<PointT> &scene, Eigen::MatrixXf &depth_image, std::vector<int> &visible_indices);
-
     void renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view);
-
-    void filter (const typename pcl::PointCloud<PointT> & model, typename pcl::PointCloud<PointT> & filtered);
-
-    void filter (const typename pcl::PointCloud<PointT> & model, std::vector<int> & indices);
-
-    //        static void erode(const Eigen::MatrixXf &input, Eigen::MatrixXf &output, int erosion_size = 3, int erosion_elem=0);
-
-    boost::shared_ptr<std::vector<int> > getIndicesMap() const
-    {
-        return indices_map_;
-    }
 
     void getKeptIndices(std::vector<int> &indices) const
     {
         indices = kept_indices_;
     }
 
-    std::vector<float> getDepthMap() const
+    /**
+     * @brief getIndexMap
+     * @return each pixel indicates which point of the input cloud it represents. Non-occupied pixels are labelled with index -1.
+     */
+    Eigen::MatrixXi
+    getIndexMap() const
     {
-        return depth_;
+        return index_map_;
     }
 };
 }

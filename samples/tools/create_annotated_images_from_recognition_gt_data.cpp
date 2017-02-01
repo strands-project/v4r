@@ -112,7 +112,7 @@ main (int argc, char ** argv)
                     vis_->addPointCloud(scene, scene_handler, scene_file_path);
                 }
 
-                pcl::PointCloud<PointT> gt_cloud;
+                pcl::PointCloud<PointT>::Ptr gt_cloud (new pcl::PointCloud<PointT>);
 
                 for(const std::string &gt_file : gt_files)
                 {
@@ -134,7 +134,7 @@ main (int argc, char ** argv)
                         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = pModel->getAssembled(3);
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, gt_pose);
-                        gt_cloud += *model_aligned;
+                        *gt_cloud += *model_aligned;
 
                         if(visualize) {
                             pcl::visualization::PointCloudColorHandlerRGBField<PointT> model_handler(model_aligned);
@@ -153,8 +153,12 @@ main (int argc, char ** argv)
                 const std::string out_scene_fn = output_dir +"/scenes/"+ sub_folder_name +"/"+ scene_file_wo_ext+".jpg";
                 v4r::io::createDirForFileIfNotExist(out_gt_fn);
                 v4r::io::createDirForFileIfNotExist(out_scene_fn);
-                cv::imwrite(out_gt_fn, ConvertUnorganizedPCLCloud2Image(gt_cloud, false, 255.0, 255.0, 255.0));
-                cv::imwrite(out_scene_fn, ConvertUnorganizedPCLCloud2Image(*scene, false, 255.0, 255.0, 255.0));
+                PCLOpenCVConverter<PointT> pcl_opencv_converter;
+                pcl_opencv_converter.setInputCloud(gt_cloud);
+                pcl_opencv_converter.setBackgroundColor( 255, 255, 255 );
+                cv::imwrite(out_gt_fn, pcl_opencv_converter.getRGBImage());
+                pcl_opencv_converter.setInputCloud(scene);
+                cv::imwrite(out_scene_fn, pcl_opencv_converter.getRGBImage());
             }
         }
         else

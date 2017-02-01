@@ -188,7 +188,9 @@ public:
     void
     cloud_cb (const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr &cloud)
     {
-        image_ = v4r::ConvertPCLCloud2Image(*cloud);
+        PCLOpenCVConverter<pcl::PointXYZRGBA> pcl_opencv_converter;
+        pcl_opencv_converter.setInputCloud(cloud);
+        image_ = pcl_opencv_converter.getRGBImage();
     }
 
 

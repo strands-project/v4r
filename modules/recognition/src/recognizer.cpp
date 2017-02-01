@@ -35,7 +35,6 @@
 #include <v4r/recognition/recognizer.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/voxel_based_correspondence_estimation.h>
-#include <v4r/segmentation/multiplane_segmentation.h>
 #include <v4r/segmentation/ClusterNormalsToPlanesPCL.h>
 
 #include <pcl/common/centroid.h>

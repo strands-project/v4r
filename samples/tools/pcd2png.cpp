@@ -91,15 +91,23 @@ int main(int argc, char** argv)
 
 
             // convert point cloud
-            cv::Mat rgb =  v4r::ConvertPCLCloud2Image(*cloud);
-            cv::Mat rgb_cropped = v4r::ConvertPCLCloud2Image(*cloud, indices, img_height, img_width);
-            cv::Mat depth = v4r::ConvertPCLCloud2DepthImage(*cloud);
-            cv::Mat depth_cropped = v4r::ConvertPCLCloud2DepthImageFixedSize(*cloud, indices, img_height, img_width);
+            v4r::PCLOpenCVConverter<PointT> img_conv;
+            cloud->width = cloud->width * cloud->height;
+            cloud->height = 1;
+            img_conv.setInputCloud(cloud);
+            if(!cloud->isOrganized())
+            {
+                v4r::Camera::Ptr kinect (  new v4r::Camera(525.f,640,480,319.5f,239.5f) );
+                img_conv.setCamera( kinect );
+            }
 
-            cv::Mat depth_mm = 1000./depth_cropped;
-
-            cv::Mat depth_mm_ushort;
-            depth_mm.convertTo(depth_mm_ushort, CV_16U);
+            img_conv.setIndices(indices);
+            img_conv.setMinMaxDepth(0.3f,1.5f);
+            cv::Mat rgb = img_conv.getRGBImage();
+            cv::Mat depth = img_conv.getNormalizedDepth();
+            cv::Rect roi = img_conv.getROI();
+            cv::Mat rgb_cropped = v4r::cropImage( rgb, roi, 0, false);
+            cv::Mat depth_cropped = v4r::cropImage( depth, roi, 0, false);
 
 
             // save to disk
