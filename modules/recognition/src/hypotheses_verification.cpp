@@ -1386,10 +1386,10 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCues (const boost::dynamic_bi
             for(size_t p=0; p < model_fit_cloud->points.size(); p++)
             {
                 ModelT &mp = model_fit_cloud->points[p];
-                mp.r = mp.g = 0.f;
+                mp.r = mp.b = 0.f;
 
                 const ModelSceneCorrespondence &c = rm.model_scene_c_[p];
-                mp.b = 50.f + 205.f * c.dist_3D_;
+                mp.g   = 255.f * getFitness(c);
             }
 
             model_name << "_fitness";
