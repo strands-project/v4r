@@ -741,14 +741,13 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         for(size_t jj=1; jj<ohg.size(); jj++)
             ohg[jj]->rejected_due_to_better_hypothesis_in_group_ = true;
     }
+    obj_hypotheses_groups_.clear(); // free space
+
 
     if(param_.visualize_model_cues_)
     {
-        for(size_t i=0; i<global_hypotheses_.size(); i++)
-        {
-            HVRecognitionModel<ModelT> &rm = *global_hypotheses_[i];
-            visualizeGOCuesForModel(rm);
-        }
+        for(const typename HVRecognitionModel<ModelT>::ConstPtr &rm : global_hypotheses_)
+            visualizeGOCuesForModel(*rm);
     }
 
     size_t kept_hypotheses = 0;
@@ -760,27 +759,10 @@ HypothesisVerification<ModelT, SceneT>::initialize()
             global_hypotheses_[kept_hypotheses++] = global_hypotheses_[i];
     }
 
-    obj_hypotheses_groups_.clear(); // free space
-
-    if( !kept_hypotheses )
-    {
-        global_hypotheses_.clear();
-        return;
-    }
-
     global_hypotheses_.resize( kept_hypotheses );
 
-    scene_pts_explained_vec_.resize( scene_cloud_downsampled_->points.size() );
-
-    for(size_t i=0; i<global_hypotheses_.size(); i++)
-    {
-        const typename HVRecognitionModel<ModelT>::Ptr rm = global_hypotheses_[i];
-        for (Eigen::SparseVector<float>::InnerIterator it(rm->scene_explained_weight_); it; ++it)
-            scene_pts_explained_vec_[ it.row() ].push_back( PtFitness(it.value(), i) );
-    }
-
-    for(auto spt_it = scene_pts_explained_vec_.begin(); spt_it!=scene_pts_explained_vec_.end(); ++spt_it)
-        std::sort(spt_it->begin(), spt_it->end());
+    if( !kept_hypotheses )
+        return;
 
     {
         pcl::ScopeTime t("Computing pairwise intersection");
@@ -806,6 +788,18 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     model_fitness_v_ = Eigen::VectorXf( global_hypotheses_.size() );
     for (size_t i = 0; i < global_hypotheses_.size(); i++)
         model_fitness_v_[i] = global_hypotheses_[i]->model_fit_;
+
+
+    scene_pts_explained_vec_.resize( scene_cloud_downsampled_->points.size() );
+    for(size_t i=0; i<global_hypotheses_.size(); i++)
+    {
+        const typename HVRecognitionModel<ModelT>::Ptr rm = global_hypotheses_[i];
+        for (Eigen::SparseVector<float>::InnerIterator it(rm->scene_explained_weight_); it; ++it)
+            scene_pts_explained_vec_[ it.row() ].push_back( PtFitness(it.value(), i) );
+    }
+
+    for(auto spt_it = scene_pts_explained_vec_.begin(); spt_it!=scene_pts_explained_vec_.end(); ++spt_it)
+        std::sort(spt_it->begin(), spt_it->end());
 
 
     GHVSAModel<ModelT, SceneT> model;
@@ -1416,7 +1410,7 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCues (const boost::dynamic_bi
         }
     }
 
-    vis_go_cues_->addPointCloud(scene_fit_cloud, "scene fitness", vp_scene_fitness_);
+    vis_go_cues_->addPointCloud(scene_fit_cloud, "scene fitness cloud", vp_scene_fitness_);
     vis_go_cues_->resetCamera();
     vis_go_cues_->spin();
 }
