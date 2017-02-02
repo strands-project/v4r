@@ -67,9 +67,6 @@ endif()
 set(V4R_COMPUTE_CAPABILITIES @V4R_CUDA_CC_CONFIGCMAKE@)
 
 set(V4R_CUDA_VERSION @V4R_CUDA_VERSION@)
-set(V4R_USE_CUBLAS   @HAVE_CUBLAS@)
-set(V4R_USE_CUFFT    @HAVE_CUFFT@)
-set(V4R_USE_NVCUVID  @HAVE_NVCUVID@)
 
 # Some additional settings are required if V4R is built as static libs
 set(V4R_SHARED @BUILD_SHARED_LIBS@)
@@ -226,14 +223,6 @@ foreach(__opttype OPT DBG)
 
     if(V4R_USE_CUBLAS)
       list(APPEND V4R_CUDA_LIBS_ABSPATH ${CUDA_CUBLAS_LIBRARIES})
-    endif()
-
-    if(V4R_USE_CUFFT)
-      list(APPEND V4R_CUDA_LIBS_ABSPATH ${CUDA_CUFFT_LIBRARIES})
-    endif()
-
-    if(V4R_USE_NVCUVID)
-      list(APPEND V4R_CUDA_LIBS_ABSPATH ${CUDA_nvcuvid_LIBRARIES})
     endif()
 
     if(WIN32)
