@@ -4,6 +4,7 @@ v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentat
     list(APPEND rec_srcs
         ${CMAKE_CURRENT_LIST_DIR}/src/ghv_opt.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/hypotheses_verification.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/hypotheses_verification_visualization.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/global_recognizer.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/global_recognition_pipeline.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/local_feature_matching.cpp
@@ -36,6 +37,7 @@ v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentat
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/global_recognition_pipeline.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/hypotheses_verification.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/hypotheses_verification_param.h
+        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/hypotheses_verification_visualization.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/local_feature_matching.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/local_recognition_pipeline.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/local_rec_object_hypotheses.h

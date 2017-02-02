@@ -143,7 +143,7 @@ public:
     Eigen::SparseVector<float> scene_explained_weight_;   ///< stores for each scene point how well it is explained by the visible model points
 
     bool rejected_due_to_low_visibility_;   ///< true if the object model rendered in the view is not visible enough
-    bool rejected_due_to_low_model_fitness_;    ///< true if the object model is not able to explain the scene well enough
+    bool is_outlier_;    ///< true if the object model is not able to explain the scene well enough
     bool rejected_due_to_smooth_cluster_check_; ///< true if the object model does not well explain all points in the smooth clusters it occupies
     bool rejected_due_to_better_hypothesis_in_group_; ///< true if there is any other object model in the same hypotheses group which explains the scene better
     bool rejected_globally_;
@@ -152,7 +152,7 @@ public:
         L_value_offset_ (0.f),
         refined_pose_ ( Eigen::Matrix4f::Identity() ),
         rejected_due_to_low_visibility_ (false),
-        rejected_due_to_low_model_fitness_ (false),
+        is_outlier_ (false),
         rejected_due_to_smooth_cluster_check_ (false),
         rejected_due_to_better_hypothesis_in_group_ (false),
         rejected_globally_ (false)
@@ -163,7 +163,7 @@ public:
         L_value_offset_ (0.f),
         refined_pose_ ( Eigen::Matrix4f::Identity() ),
         rejected_due_to_low_visibility_ (false),
-        rejected_due_to_low_model_fitness_ (false),
+        is_outlier_ (false),
         rejected_due_to_smooth_cluster_check_ (false),
         rejected_due_to_better_hypothesis_in_group_ (false),
         rejected_globally_ (false)
@@ -188,7 +188,7 @@ public:
     bool
     isRejected() const
     {
-        return rejected_due_to_low_model_fitness_ || rejected_due_to_low_visibility_ ||
+        return is_outlier_ || rejected_due_to_low_visibility_ ||
                 rejected_due_to_smooth_cluster_check_ || rejected_globally_ ||
                 rejected_due_to_better_hypothesis_in_group_;
     }

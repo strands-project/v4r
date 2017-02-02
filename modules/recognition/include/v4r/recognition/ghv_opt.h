@@ -28,6 +28,7 @@
 #include <iostream>
 #include <fstream>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/function.hpp>
 #include <boost/random.hpp>
 #include <boost/shared_ptr.hpp>
 #include <glog/logging.h>
@@ -94,15 +95,12 @@ public:
     mets::gol_type
     evaluate ()
     {
-        opt_->updateTerms ( solution_ );
-        cost_ = opt_->evaluateSolution( solution_ );
-        return cost_;
+        return opt_->evaluateSolution( solution_ );
     }
 
     void
     apply ()
     {
-        opt_->applySolution( solution_ );
         cost_ = opt_->evaluateSolution( solution_ );
     }
 

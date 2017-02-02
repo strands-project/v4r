@@ -17,7 +17,7 @@
 	<color_sigma_l_>3</color_sigma_l_>
 	<color_sigma_ab_>0.1</color_sigma_ab_>
 	<sigma_normals_deg_>30</sigma_normals_deg_>
-	<regularizer_>100</regularizer_>
+	<regularizer_>3</regularizer_>
 	<radius_neighborhood_clutter_>0.02</radius_neighborhood_clutter_>
 	<normal_method_>2</normal_method_>
 	<ignore_color_even_if_exists_>0</ignore_color_even_if_exists_>

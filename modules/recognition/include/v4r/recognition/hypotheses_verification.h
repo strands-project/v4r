@@ -28,10 +28,9 @@
 #include <v4r/common/camera.h>
 #include <v4r/common/color_comparison.h>
 #include <v4r/common/rgb2cielab.h>
-#include <v4r/common/pcl_visualization_utils.h>
-#include <v4r/common/plane_model.h>
 #include <v4r/recognition/ghv_opt.h>
 #include <v4r/recognition/hypotheses_verification_param.h>
+#include <v4r/recognition/hypotheses_verification_visualization.h>
 #include <v4r/recognition/object_hypothesis.h>
 
 #include <glog/logging.h>
@@ -42,25 +41,38 @@
 #include <pcl/common/transforms.h>
 #include <pcl/octree/octree.h>
 #include <pcl/search/kdtree.h>
-#include <pcl/visualization/pcl_visualizer.h>
 
+#include <pcl/common/time.h>
 #include <pcl/octree/octree_pointcloud_pointvector.h>
 #include <pcl/octree/impl/octree_iterator.hpp>
 
 #include <boost/bind.hpp>
-#include <boost/format.hpp>
 #include <boost/function.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/map.hpp>
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
 
 namespace v4r
 {
 
-template<typename ModelT, typename SceneT> class GHVmove_manager;   // forward declaration
-template<typename ModelT, typename SceneT> class GHVSAModel;   // forward declaration
-template<typename ModelT, typename SceneT> class GHVCostFunctionLogger;   // forward declaration
+// forward declarations
+template<typename ModelT, typename SceneT> class GHVmove_manager;
+template<typename ModelT, typename SceneT> class GHVSAModel;
+template<typename ModelT, typename SceneT> class GHVCostFunctionLogger;
+template<typename ModelT, typename SceneT> class HV_ModelVisualizer;
+template<typename ModelT, typename SceneT> class HV_CuesVisualizer;
+template<typename ModelT, typename SceneT> class HV_PairwiseVisualizer;
+
+class PtFitness
+{
+public:
+    float fit_;
+    size_t rm_id_;
+
+    bool operator<(const PtFitness &other) const { return this->fit_ < other.fit_; }
+
+    PtFitness(float fit, size_t rm_id)
+        : fit_(fit), rm_id_ (rm_id) {}
+};
 
 
 /**
@@ -73,15 +85,17 @@ class V4R_EXPORTS HypothesisVerification
 {
     friend class GHVmove_manager<ModelT, SceneT>;
     friend class GHVSAModel<ModelT, SceneT>;
+    friend class HV_ModelVisualizer<ModelT, SceneT>;
+    friend class HV_CuesVisualizer<ModelT, SceneT>;
+    friend class HV_PairwiseVisualizer<ModelT, SceneT>;
 
 public:
     typedef boost::shared_ptr< HypothesisVerification<ModelT, SceneT> > Ptr;
     typedef boost::shared_ptr< HypothesisVerification<ModelT, SceneT> const> ConstPtr;
 
-public:
     HV_Parameter param_;
 
-private:
+protected:
 
     typedef boost::mpl::map
     <
@@ -97,24 +111,16 @@ private:
 
     typedef typename boost::mpl::at<PointTypeAssociations, SceneT>::type SceneTWithNormal;
 
-    mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_, vis_model_, vis_pairwise_;
-    mutable int vp_scene_scene_, vp_scene_active_hypotheses_, vp_model_scene_3D_dist_, vp_model_scene_color_dist_,
-    vp_scene_fitness_, vp_scene_smooth_regions_;
-
-    mutable int
-    vp_model_scene_, vp_model_, vp_model_scene_overlay_, vp_model_smooth_regions_, vp_model_scene_fit_,
-    vp_model_visible_, vp_model_total_fit_, vp_model_3d_fit_, vp_model_color_fit_, vp_model_normals_fit_,
-    vp_model_outliers_,
-    vp_pair_1_, vp_pair_2_, vp_pair_3_;
+    mutable HV_ModelVisualizer<ModelT, SceneT> vis_model_;
+    mutable HV_CuesVisualizer<ModelT, SceneT> vis_cues_;
+    mutable HV_PairwiseVisualizer<ModelT, SceneT> vis_pairwise_;
 
     Camera::ConstPtr cam_;
-    PCLVisualizationParams::ConstPtr vis_param_;
     ColorTransform::Ptr colorTransf_;
 
     typename Source<ModelT>::ConstPtr m_db_;  ///< model data base
 
     boost::dynamic_bitset<> solution_; ///< Boolean vector indicating if a hypothesis is accepted (true) or rejected (false)
-    boost::dynamic_bitset<> solution_tmp_;
 
     typename pcl::PointCloud<SceneT>::ConstPtr scene_cloud_; ///< scene point clou
     typename pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< scene normals cloud
@@ -125,45 +131,19 @@ private:
     std::vector<std::vector<typename HVRecognitionModel<ModelT>::Ptr > > obj_hypotheses_groups_;
     std::vector<typename HVRecognitionModel<ModelT>::Ptr > global_hypotheses_;  ///< all hypotheses not rejected by individual verification
 
-    std::vector<int> recognition_models_map_;
     std::map<std::string, boost::shared_ptr< pcl::octree::OctreePointCloudPointVector<ModelT> > > octree_model_representation_; ///< for each model we create an octree representation (used for computing visible points)
     typename pcl::search::KdTree<SceneT>::Ptr kdtree_scene_;
-    std::vector<typename HVRecognitionModel<ModelT>::Ptr > recognition_models_; ///< all models to be verified (including planar models if included)
+    std::vector<typename HVRecognitionModel<ModelT>::Ptr > recognition_models_; ///< all models to be verified
 
     double model_fitness_, pairwise_cost_, scene_fitness_;
-    double model_fitness_tmp_, pairwise_cost_tmp_, scene_fitness_tmp_;
-
-    Eigen::VectorXf model_fitness_v_;
 
     float Lmin_ = 0.f, Lmax_ = 100.f;
     int bins_ = 50;
 
-    class PtFitness
-    {
-    public:
-        float fit_;
-        size_t rm_id_;
-
-        bool operator<(const PtFitness &other) const { return this->fit_ < other.fit_; }
-
-        PtFitness(float fit, size_t rm_id)
-            : fit_(fit), rm_id_ (rm_id) {}
-    };
-
-    void applySolution( const boost::dynamic_bitset<> &new_solution )
-    {
-        updateTerms ( new_solution );
-        solution_ = new_solution;
-
-        model_fitness_ = model_fitness_tmp_;
-        pairwise_cost_ = pairwise_cost_tmp_;
-        scene_fitness_ = scene_fitness_tmp_;
-    }
-
     Eigen::MatrixXf intersection_cost_; ///< represents the pairwise intersection cost
-    std::vector<std::vector<PtFitness> > scene_pts_explained_vec_;
 
-    GHVSAModel<ModelT, SceneT> best_seen_;
+    std::vector<std::vector<PtFitness> > scene_pts_explained_solution_;
+
     float initial_temp_;
     boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
     Eigen::MatrixXf scene_color_channels_; ///< converted color values where each point corresponds to a row entry
@@ -172,6 +152,7 @@ private:
 
     std::vector<int> scene_smooth_labels_;  ///< stores a label for each point of the (downsampled) scene. Points belonging to the same smooth clusters, have the same label
     std::vector<size_t> smooth_label_count_;    ///< counts how many times a certain smooth label occurs in the scene
+    std::vector<boost::dynamic_bitset<> > scene_pt_is_in_smooth_cluster_; ///< for each smooth cluster, we check which point indices belongs to it (corresponding index $i,j$ true if scene point $j$ belongs to cluster $i$)
 
     // ----- MULTI-VIEW VARIABLES------
     std::vector<typename pcl::PointCloud<SceneT>::ConstPtr> occlusion_clouds_; ///< scene clouds from multiple views (stored as organized point clouds)
@@ -217,15 +198,7 @@ private:
 
     mets::gol_type evaluateSolution (const boost::dynamic_bitset<> &solution);
 
-    void updateTerms(const boost::dynamic_bitset<> &solution);
-
     void optimize();
-
-    void visualizeGOCues (const boost::dynamic_bitset<> &active_solution, float cost, int times_eval) const;
-
-    void visualizePairwiseIntersection () const;
-
-    void visualizeGOCuesForModel (const HVRecognitionModel<ModelT> &rm) const;
 
     bool individualRejection(HVRecognitionModel<ModelT> &rm) const;///< remove hypotheses badly explaining the scene, or only partially explaining smooth clusters (if check is enabled). Returns true if hypothesis is rejected.
 
@@ -239,8 +212,8 @@ private:
         scene_cloud_downsampled_.reset();
         scene_cloud_.reset();
         intersection_cost_.resize(0,0);
-        scene_pts_explained_vec_.clear();
         obj_hypotheses_groups_.clear();
+        scene_pt_is_in_smooth_cluster_.clear();
     }
 
     /**
@@ -257,7 +230,22 @@ private:
     float
     getFitness( const ModelSceneCorrespondence& c ) const
     {
-        return (param_.w_3D_ * modelScene3DDistCostTerm(c) + param_.w_color_ * modelSceneColorCostTerm(c) + param_.w_normals_ * modelSceneNormalsCostTerm(c)) / (param_.w_3D_ + param_.w_color_ + param_.w_normals_);
+        float fit_3d = modelScene3DDistCostTerm (c);
+        float fit_color = modelSceneColorCostTerm (c);
+        float fit_normal = modelSceneNormalsCostTerm(c);
+
+        if ( fit_3d < std::numeric_limits<float>::epsilon() ||
+             fit_color < std::numeric_limits<float>::epsilon() ||
+             fit_normal < std::numeric_limits<float>::epsilon()  )
+            return 0.f;
+
+        float sum_weights = param_.w_3D_ + param_.w_color_ + param_.w_normals_;
+        float weighted_geometric_mean = exp( ( param_.w_3D_      * log(fit_3d) +
+                                               param_.w_color_   * log(fit_color ) +
+                                               param_.w_normals_ * log(fit_normal)  )
+                                             / sum_weights );
+        return weighted_geometric_mean;
+//        return (param_.w_3D_ * modelScene3DDistCostTerm(c) + param_.w_color_ * modelSceneColorCostTerm(c) + param_.w_normals_ * modelSceneNormalsCostTerm(c)) / (param_.w_3D_ + param_.w_color_ + param_.w_normals_);
     }
 
     /**
@@ -268,8 +256,6 @@ private:
     float
     modelSceneColorCostTerm( const ModelSceneCorrespondence& c ) const
     {
-        //        return exp( - c.color_distance_ / param_.color_sigma_ab_ );
-        //        return std::max(0.f, std::min(1.f, 1.f-c.color_distance_ / 50.f));
         return exp (- c.color_distance_/param_.color_sigma_ab_ );
     }
 
@@ -365,9 +351,8 @@ private:
 public:
 
     HypothesisVerification (const Camera::ConstPtr &cam,
-                            const HV_Parameter &p = HV_Parameter(),
-                            const PCLVisualizationParams::ConstPtr &vis_params = boost::make_shared<PCLVisualizationParams>())
-        : param_(p), cam_(cam), vis_param_(vis_params), initial_temp_(1000)
+                            const HV_Parameter &p = HV_Parameter())
+        : param_(p), cam_(cam), initial_temp_(1000)
     {
         colorTransf_.reset(new RGB2CIELAB);
 
@@ -519,7 +504,6 @@ public:
     {
         m_db_ = m_db;
     }
-
 
 
     /**
