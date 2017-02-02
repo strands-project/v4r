@@ -402,8 +402,8 @@ HypothesisVerification<ModelT, SceneT>::setHypotheses(const std::vector<ObjectHy
 
             bool found_model;
             typename Model<ModelT>::ConstPtr m = m_db_->getModelById("", oh.model_id_, found_model);
-            typename pcl::PointCloud<ModelT>::ConstPtr model_cloud = m->getAssembled ( -1 );
-            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = m->getNormalsAssembled ( -1 );
+            typename pcl::PointCloud<ModelT>::ConstPtr model_cloud = m->getAssembled ( param_.resolution_mm_ );
+            pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = m->getNormalsAssembled ( param_.resolution_mm_ );
             pcl::transformPointCloud (*model_cloud, *hv_oh.complete_cloud_, oh.transform_);
             transformNormals(*normal_cloud_const, *hv_oh.complete_cloud_normals_, oh.transform_);
         }
