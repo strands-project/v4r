@@ -963,11 +963,18 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
 //    vis.setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "scene1");
 
 
+    rm.visible_pt_is_outlier_.resize( rm.visible_cloud_->points.size (), 0);
     for (size_t midx = 0; midx < rm.visible_cloud_->points.size (); midx++)
     {
         std::vector<int> nn_indices;
         std::vector<float> nn_sqr_distances;
-        octree_scene_downsampled_->nearestKSearch(rm.visible_cloud_->points[midx], param_.knn_inliers_, nn_indices, nn_sqr_distances);
+        std::vector<int> nn_indices2;
+        std::vector<float> nn_sqr_distances2;
+
+        bool is_outlier = true;
+        double radius = 2. * param_.resolution_mm_ / 1000.;
+        octree_scene_downsampled_->radiusSearch(rm.visible_cloud_->points[midx], radius, nn_indices, nn_sqr_distances);
+        octree_scene_downsampled_->radiusSearch(rm.visible_cloud_->points[midx], radius, nn_indices2, nn_sqr_distances2, param_.knn_inliers_);
 
 //        vis.addSphere(rm.visible_cloud_->points[midx], 0.005, 0., 1., 0., "queryPoint", vp1 );
 
@@ -985,11 +992,10 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
 //            vis.addPointCloud(scene_cloud_downsampled_, gray, "scene2", vp2);
 //            vis.setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "scene2");
 
-            if (sqr_3D_dist > ( 1.5f * 1.5f * param_.inliers_threshold_ * param_.inliers_threshold_ ) ) ///TODO: consider camera's noise level
-                continue;
+//            if (sqr_3D_dist > ( 1.5f * 1.5f * param_.inliers_threshold_ * param_.inliers_threshold_ ) ) ///TODO: consider camera's noise level
+//                continue;
 
-
-            ModelSceneCorrespondence &c = rm.model_scene_c_[ kept ];
+            ModelSceneCorrespondence c;
             c.model_id_ = midx;
             c.scene_id_ = sidx;
             c.dist_3D_ = sqrt(sqr_3D_dist);
@@ -1009,13 +1015,17 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
             CHECK (c.color_distance_ >= 0.f);
 
             c.fitness_ = getFitness( c );
-            kept++;
+            rm.model_scene_c_.push_back( c );
+
+            if(c.fitness_ > 0.3f)
+                is_outlier=false;
         }
 //        vis.removeAllShapes(vp1);
+        rm.visible_pt_is_outlier_[ midx ] = is_outlier;
     }
 
 //    vis.spin();
-    rm.model_scene_c_.resize(kept);
+//    rm.model_scene_c_.resize(kept);
 
     std::sort( rm.model_scene_c_.begin(), rm.model_scene_c_.end() );
 
@@ -1069,59 +1079,63 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognitionModel<ModelT> &rm) const
 {
-    if(!rm_vis_) {
-        rm_vis_.reset (new pcl::visualization::PCLVisualizer ("model cues"));
-        rm_vis_->createViewPort(0   , 0  , 0.2, 0.33, rm_vp_scene_);
-        rm_vis_->createViewPort(0.2 , 0  , 0.4, 0.33, rm_vp_model_);
-        rm_vis_->createViewPort(0.4 , 0  , 0.6, 0.33, rm_vp_scene_and_model_);
-        rm_vis_->createViewPort(0.6 , 0  , 0.8, 0.33, rm_vp_smooth_labels_);
-        rm_vis_->createViewPort(0.8 , 0  , 1  , 0.33, rm_vp_scene_fitness_);
+    if(!vis_model_) {
+        vis_model_.reset (new pcl::visualization::PCLVisualizer ("model cues"));
+        vis_model_->createViewPort(0   , 0  , 0.2, 0.33, vp_model_scene_);
+        vis_model_->createViewPort(0.2 , 0  , 0.4, 0.33, vp_model_);
+        vis_model_->createViewPort(0.4 , 0  , 0.6, 0.33, vp_model_scene_overlay_);
+        vis_model_->createViewPort(0.6 , 0  , 0.8, 0.33, vp_model_smooth_regions_);
+        vis_model_->createViewPort(0.8 , 0  , 1  , 0.33, vp_model_scene_fit_);
 
-        rm_vis_->createViewPort(0. , 0.33 , 0.2 ,0.66 , rm_vp_visible_model_);
-        rm_vis_->createViewPort(0.2, 0.33 , 0.4 ,0.66 , rm_vp_model_scene_model_fit_);
-        rm_vis_->createViewPort(0.4, 0.33 , 0.6 ,0.66 , rm_vp_model_scene_3d_dist_);
-        rm_vis_->createViewPort(0.6, 0.33 , 0.8 ,0.66 , rm_vp_model_scene_color_dist_);
-        rm_vis_->createViewPort(0.8, 0.33 , 1   ,0.66 , rm_vp_model_scene_normals_dist_);
+        vis_model_->createViewPort(0. , 0.33 , 0.2 ,0.66 , vp_model_visible_);
+        vis_model_->createViewPort(0.2, 0.33 , 0.4 ,0.66 , vp_model_total_fit_);
+        vis_model_->createViewPort(0.4, 0.33 , 0.6 ,0.66 , vp_model_3d_fit_);
+        vis_model_->createViewPort(0.6, 0.33 , 0.8 ,0.66 , vp_model_color_fit_);
+        vis_model_->createViewPort(0.8, 0.33 , 1   ,0.66 , vp_model_normals_fit_);
 
-        rm_vis_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2]);
+        vis_model_->createViewPort(0. , 0.66 , 0.2 ,1 , vp_model_outliers_);
+
+        vis_model_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2]);
     }
 
-    rm_vis_->removeAllPointClouds();
-    rm_vis_->removeAllShapes();
+    vis_model_->removeAllPointClouds();
+    vis_model_->removeAllShapes();
 
-    rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene1", rm_vp_scene_);
-    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene1", rm_vp_scene_);
+    vis_model_->addPointCloud(scene_cloud_downsampled_, "scene1", vp_model_scene_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene1", vp_model_scene_);
 
     pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_downsampled_, 128, 128, 128);
-    rm_vis_->addPointCloud(rm.visible_cloud_, "model", rm_vp_model_);
-    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "model", rm_vp_model_);
-    rm_vis_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_", rm_vp_model_);
-    rm_vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_");
+    vis_model_->addPointCloud(rm.visible_cloud_, "model", vp_model_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "model", vp_model_);
+    vis_model_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_", vp_model_);
+    vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_");
 
 
     if(!vis_param_->no_text_)
     {
-        rm_vis_->addText("scene",10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1] ,vis_param_->text_color_[2], "scene",rm_vp_scene_);
-        rm_vis_->addText("model",10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1] ,vis_param_->text_color_[2], "model",rm_vp_model_);
+        vis_model_->addText("scene",10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1] ,vis_param_->text_color_[2], "scene",vp_model_scene_);
+        vis_model_->addText("model",10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1] ,vis_param_->text_color_[2], "model",vp_model_);
     }
 
     if(!vis_param_->no_text_)
     {
         std::stringstream txt; txt << "visible ratio: " << std::fixed << std::setprecision(2) << rm.visible_indices_by_octree_.size() / (float)rm.complete_cloud_->points.size();
-        rm_vis_->addText(txt.str(), 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1] ,vis_param_->text_color_[2], "visible model cloud", rm_vp_visible_model_);
+        vis_model_->addText(txt.str(), 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1] ,vis_param_->text_color_[2], "visible model cloud", vp_model_visible_);
     }
 
+    // ===== VISUALIZE VISIBLE PART =================
     typename pcl::PointCloud<ModelT>::Ptr visible_cloud_colored (new pcl::PointCloud<ModelT> (*rm.complete_cloud_));
-
     for(ModelT &mp : visible_cloud_colored->points)
         mp.r = mp.g = mp.b = 0.f;
 
     for(int idx : rm.visible_indices_by_octree_)
         visible_cloud_colored->points[idx].r = 255;
 
-    rm_vis_->addPointCloud(visible_cloud_colored, "model2", rm_vp_visible_model_);
-    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "model2", rm_vp_model_);
+    vis_model_->addPointCloud(visible_cloud_colored, "model2", vp_model_visible_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "model2", vp_model_);
 
+
+    // ===== VISUALIZE FITNESS SCORES =================
     typename pcl::PointCloud<ModelT>::Ptr model_3D_fit_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
     typename pcl::PointCloud<ModelT>::Ptr model_color_fit_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
     typename pcl::PointCloud<ModelT>::Ptr model_normals_fit_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
@@ -1174,35 +1188,58 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
     {
         std::stringstream txt;
         txt.str(""); txt << std::fixed << std::setprecision(2)  << "3D fitness (" << (int)(param_.w_3D_*100) << "\%): " << (float)fitness_3d.sum() / rm.visible_indices_.size();
-        rm_vis_->addText(txt.str(),10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "3D distance",rm_vp_model_scene_3d_dist_);
+        vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "3D distance",vp_model_3d_fit_);
         txt.str(""); txt << "color fitness(" << (int)(param_.w_color_ *100) << "\%): " << std::fixed << std::setprecision(2) << (float)color_fitness.sum() / rm.visible_indices_.size();
-        rm_vis_->addText(txt.str(),10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "color distance",rm_vp_model_scene_color_dist_);
+        vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "color distance",vp_model_color_fit_);
         txt.str(""); txt << "normals fitness(" << (int)(param_.w_normals_*100) << "\%): " << std::fixed << std::setprecision(2) << (float)normals_fitness.sum() / rm.visible_indices_.size();
-        rm_vis_->addText(txt.str(), 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2],  "normals distance",rm_vp_model_scene_normals_dist_);
+        vis_model_->addText(txt.str(), 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2],  "normals distance",vp_model_normals_fit_);
         txt.str(""); txt << "model fitness: " << std::fixed << std::setprecision(2) << rm.model_fit_ << "; normalized: " << rm.model_fit_ / rm.visible_cloud_->points.size();
-        rm_vis_->addText(txt.str(),10,10, vis_param_->fontsize_,vis_param_->text_color_[0], vis_param_->text_color_[1] ,vis_param_->text_color_[2], "model fitness",rm_vp_model_scene_model_fit_);
+        vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_,vis_param_->text_color_[0], vis_param_->text_color_[1] ,vis_param_->text_color_[2], "model fitness",vp_model_total_fit_);
     }
 
-    rm_vis_->addPointCloud(model_3D_fit_cloud, "3D_distance", rm_vp_model_scene_3d_dist_);
-    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "3D_distance", rm_vp_model_scene_3d_dist_);
-    rm_vis_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_3d_dist_", rm_vp_model_scene_3d_dist_);
-    rm_vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_3d_dist_");
+    vis_model_->addPointCloud(model_3D_fit_cloud, "3D_distance", vp_model_3d_fit_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "3D_distance", vp_model_3d_fit_);
+    vis_model_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_3d_dist_", vp_model_3d_fit_);
+    vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_3d_dist_");
 
-    rm_vis_->addPointCloud(model_color_fit_cloud, "color_distance", rm_vp_model_scene_color_dist_);
-    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "color_distance", rm_vp_model_scene_color_dist_);
-    rm_vis_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_color_dist_", rm_vp_model_scene_color_dist_);
-    rm_vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_color_dist_");
+    vis_model_->addPointCloud(model_color_fit_cloud, "color_distance", vp_model_color_fit_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "color_distance", vp_model_color_fit_);
+    vis_model_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_color_dist_", vp_model_color_fit_);
+    vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_color_dist_");
 
-    rm_vis_->addPointCloud(model_normals_fit_cloud, "normals_distance", rm_vp_model_scene_normals_dist_);
-    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "normals_distance", rm_vp_model_scene_normals_dist_);
-    rm_vis_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_normals_dist_", rm_vp_model_scene_normals_dist_);
-    rm_vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_normals_dist_");
+    vis_model_->addPointCloud(model_normals_fit_cloud, "normals_distance", vp_model_normals_fit_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "normals_distance", vp_model_normals_fit_);
+    vis_model_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_normals_dist_", vp_model_normals_fit_);
+    vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_normals_dist_");
 
-    rm_vis_->addPointCloud(model_fit_cloud, "model_fitness", rm_vp_model_scene_model_fit_);
-    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "model_fitness", rm_vp_model_scene_model_fit_);
-    rm_vis_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_model_fit_", rm_vp_model_scene_model_fit_);
-    rm_vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_model_fit_");
+    vis_model_->addPointCloud(model_fit_cloud, "model_fitness", vp_model_total_fit_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "model_fitness", vp_model_total_fit_);
+    vis_model_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_model_fit_", vp_model_total_fit_);
+    vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_model_fit_");
 
+
+
+    // ===== VISUALIZE MODEL OUTLIERS =================
+    typename pcl::PointCloud<ModelT>::Ptr outlier_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
+    for(size_t p=0; p < outlier_cloud->points.size(); p++)
+    {
+        ModelT &mp = outlier_cloud->points[p];
+        mp.r = mp.g = mp.b = 0.f;
+
+        if( rm.visible_pt_is_outlier_[p] )
+            mp.r = 255.f;
+    }
+
+    vis_model_->addPointCloud(outlier_cloud, "outlier_cloud", vp_model_outliers_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "outlier_cloud", vp_model_outliers_);
+    vis_model_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_outliers_", vp_model_outliers_);
+    vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_outliers_");
+    if(!vis_param_->no_text_)
+    {
+        std::stringstream txt;
+        txt.str(""); txt << "model outliers (" << rm.visible_pt_is_outlier_.count() << " / " << rm.visible_cloud_->points.size() << " ( " << std::fixed << std::setprecision(2)  << 100.f * (float)rm.visible_pt_is_outlier_.count() / rm.visible_cloud_->points.size() << " % )";
+        vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "model outliers txt", vp_model_outliers_);
+    }
 
     // ---- VISUALIZE SMOOTH SEGMENTATION -------
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_smooth_labels_rgb (new pcl::PointCloud<pcl::PointXYZRGB>(*scene_cloud_downsampled_));
@@ -1228,7 +1265,7 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
             {
                 std::stringstream lbl_txt; lbl_txt << std::fixed << std::setprecision(2) << rm.explained_pts_per_smooth_cluster_[i] << " / " << smooth_label_count_[i];
                 std::stringstream txt_id; txt_id << "smooth_cluster_txt " << i;
-                rm_vis_->addText( lbl_txt.str(), 10, 10+12*i, vis_param_->fontsize_, r/255, g/255, b/255, txt_id.str(), rm_vp_smooth_labels_);
+                vis_model_->addText( lbl_txt.str(), 10, 10+12*i, vis_param_->fontsize_, r/255, g/255, b/255, txt_id.str(), vp_model_smooth_regions_);
             }
         }
 
@@ -1240,7 +1277,7 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
             p.g = label_colors(1,l);
             p.b = label_colors(2,l);
         }
-        rm_vis_->addPointCloud(scene_smooth_labels_rgb, "smooth labels", rm_vp_smooth_labels_);
+        vis_model_->addPointCloud(scene_smooth_labels_rgb, "smooth labels", vp_model_smooth_regions_);
     }
     //---- END VISUALIZE SMOOTH SEGMENTATION-----------
 
@@ -1258,19 +1295,19 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
     {
         std::stringstream txt;
         txt.str(""); txt << "scene pts explained (fitness: " << rm.scene_explained_weight_.sum() << "; normalized: " << rm.scene_explained_weight_.sum()/scene_cloud_downsampled_->points.size() << ")";
-        rm_vis_->addText(txt.str(),10,10, vis_param_->fontsize_,0,0,0,"scene fitness",rm_vp_scene_fitness_);
-        rm_vis_->addText("scene and visible model",10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene_and_model",rm_vp_scene_and_model_);
-        rm_vis_->addPointCloud(scene_cloud_downsampled_, "scene_model_1", rm_vp_scene_and_model_);
+        vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_,0,0,0,"scene fitness",vp_model_scene_fit_);
+        vis_model_->addText("scene and visible model",10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene_and_model",vp_model_scene_overlay_);
+        vis_model_->addPointCloud(scene_cloud_downsampled_, "scene_model_1", vp_model_scene_overlay_);
     }
 
-    rm_vis_->addPointCloud(scene_fit_cloud, "scene_fitness", rm_vp_scene_fitness_);
-    rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene_fitness", rm_vp_scene_fitness_);
+    vis_model_->addPointCloud(scene_fit_cloud, "scene_fitness", vp_model_scene_fit_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene_fitness", vp_model_scene_fit_);
 
-    rm_vis_->addPointCloud(rm.visible_cloud_, "scene_model_2", rm_vp_scene_and_model_);
-    rm_vis_->addPointCloud(rm.visible_cloud_, "scene_model_4", rm_vp_smooth_labels_);
+    vis_model_->addPointCloud(rm.visible_cloud_, "scene_model_2", vp_model_scene_overlay_);
+    vis_model_->addPointCloud(rm.visible_cloud_, "scene_model_4", vp_model_smooth_regions_);
 
-    rm_vis_->resetCamera();
-    rm_vis_->spin();
+    vis_model_->resetCamera();
+    vis_model_->spin();
 }
 
 template<typename ModelT, typename SceneT>
@@ -1316,10 +1353,11 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCues (const boost::dynamic_bi
 {
     if(!vis_go_cues_) {
         vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
-        vis_go_cues_->createViewPort(0, 0, 0.33, 0.5, vp_scene_);
-        vis_go_cues_->createViewPort(0.33, 0, 0.66, 0.5, vp_active_hypotheses_);
+        vis_go_cues_->createViewPort(0, 0, 0.33, 0.5, vp_scene_scene_);
+        vis_go_cues_->createViewPort(0.33, 0, 0.66, 0.5, vp_scene_active_hypotheses_);
         vis_go_cues_->createViewPort(0.66, 0, 1, 0.5, vp_model_scene_3D_dist_);
         vis_go_cues_->createViewPort(0, 0.5, 0.33, 1, vp_scene_fitness_);
+        vis_go_cues_->createViewPort(0.33, 0.5, 0.66, 1, vp_scene_smooth_regions_);
         vis_go_cues_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2]);
     }
 
@@ -1361,11 +1399,11 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCues (const boost::dynamic_bi
     scene_fitness_txt << "scene fitness: " << scene_fitness;
 
 
-    vis_go_cues_->addText ("Scene", 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "inliers_outliers", vp_scene_);
-    vis_go_cues_->addText (out.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene_cues", vp_active_hypotheses_);
+    vis_go_cues_->addText ("Scene", 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "inliers_outliers", vp_scene_scene_);
+    vis_go_cues_->addText (out.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene_cues", vp_scene_active_hypotheses_);
     vis_go_cues_->addText (model_fitness_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "model fitness", vp_model_scene_3D_dist_);
     vis_go_cues_->addText (scene_fitness_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene fitness", vp_scene_fitness_);
-    vis_go_cues_->addPointCloud (scene_cloud_downsampled_, "scene_cloud", vp_scene_);
+    vis_go_cues_->addPointCloud (scene_cloud_downsampled_, "scene_cloud", vp_scene_scene_);
 
     //display active hypotheses
     for(size_t i=0; i < active_solution.size(); i++)
@@ -1374,7 +1412,8 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCues (const boost::dynamic_bi
         {
             HVRecognitionModel<ModelT> &rm = *global_hypotheses_[i];
             std::stringstream model_name; model_name << "model_" << i;
-            vis_go_cues_->addPointCloud(rm.visible_cloud_, model_name.str(), vp_active_hypotheses_);
+            vis_go_cues_->addPointCloud(rm.visible_cloud_, model_name.str(), vp_scene_active_hypotheses_);
+            vis_go_cues_->addPointCloud(rm.visible_cloud_, model_name.str()+"_smooth", vp_scene_smooth_regions_);
 
             typename pcl::PointCloud<ModelT>::Ptr model_fit_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
             for(size_t p=0; p < model_fit_cloud->points.size(); p++)
@@ -1411,6 +1450,47 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCues (const boost::dynamic_bi
     }
 
     vis_go_cues_->addPointCloud(scene_fit_cloud, "scene fitness cloud", vp_scene_fitness_);
+
+
+    // ---- VISUALIZE SMOOTH SEGMENTATION -------
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_smooth_labels_rgb (new pcl::PointCloud<pcl::PointXYZRGB>(*scene_cloud_downsampled_));
+    if(!smooth_label_count_.empty())
+    {
+        Eigen::Matrix3Xf label_colors (3, smooth_label_count_.size());
+        for(size_t i=0; i<smooth_label_count_.size(); i++)
+        {
+            float r,g,b;
+            if( i==0 )
+                r = g = b = 255; // label 0 will be white
+            else
+            {
+                r = rand () % 255;
+                g = rand () % 255;
+                b = rand () % 255;
+            }
+            label_colors(0,i) = r;
+            label_colors(1,i) = g;
+            label_colors(2,i) = b;
+
+            if(!vis_param_->no_text_)
+            {
+                std::stringstream lbl_txt; lbl_txt << std::fixed << std::setprecision(2) << smooth_label_count_[i];
+                std::stringstream txt_id; txt_id << "smooth_cluster_txt " << i;
+                vis_go_cues_->addText( lbl_txt.str(), 10, 10+12*i, vis_param_->fontsize_, r/255, g/255, b/255, txt_id.str(), vp_scene_smooth_regions_);
+            }
+        }
+
+        for(size_t i=0; i < scene_smooth_labels_.size(); i++)
+        {
+            int l = scene_smooth_labels_[i];
+            pcl::PointXYZRGB &p = scene_smooth_labels_rgb->points[i];
+            p.r = label_colors(0,l);
+            p.g = label_colors(1,l);
+            p.b = label_colors(2,l);
+        }
+        vis_go_cues_->addPointCloud(scene_smooth_labels_rgb, "smooth labels", vp_scene_smooth_regions_);
+    }
+
     vis_go_cues_->resetCamera();
     vis_go_cues_->spin();
 }

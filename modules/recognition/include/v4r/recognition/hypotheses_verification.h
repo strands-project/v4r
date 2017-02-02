@@ -97,13 +97,15 @@ private:
 
     typedef typename boost::mpl::at<PointTypeAssociations, SceneT>::type SceneTWithNormal;
 
-    mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_, rm_vis_, vis_pairwise_;
-    mutable std::vector<std::string> coordinate_axes_ids_;
-    mutable int vp_active_hypotheses_, vp_scene_, vp_model_scene_3D_dist_, vp_model_scene_color_dist_, vp_scene_fitness_;
+    mutable pcl::visualization::PCLVisualizer::Ptr vis_go_cues_, vis_model_, vis_pairwise_;
+    mutable int vp_scene_scene_, vp_scene_active_hypotheses_, vp_model_scene_3D_dist_, vp_model_scene_color_dist_,
+    vp_scene_fitness_, vp_scene_smooth_regions_;
 
-    mutable int rm_vp_scene_, rm_vp_model_, rm_vp_visible_model_,
-    rm_vp_model_scene_3d_dist_, rm_vp_model_scene_color_dist_, rm_vp_model_scene_normals_dist_, rm_vp_model_scene_model_fit_,
-    rm_vp_smooth_labels_, rm_vp_scene_fitness_, rm_vp_scene_and_model_, rm_v7, rm_v8, rm_v9, rm_v10, rm_v11, rm_v12, vp_pair_1_, vp_pair_2_, vp_pair_3_;
+    mutable int
+    vp_model_scene_, vp_model_, vp_model_scene_overlay_, vp_model_smooth_regions_, vp_model_scene_fit_,
+    vp_model_visible_, vp_model_total_fit_, vp_model_3d_fit_, vp_model_color_fit_, vp_model_normals_fit_,
+    vp_model_outliers_,
+    vp_pair_1_, vp_pair_2_, vp_pair_3_;
 
     Camera::ConstPtr cam_;
     PCLVisualizationParams::ConstPtr vis_param_;

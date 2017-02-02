@@ -129,6 +129,7 @@ public:
     std::vector<int> visible_indices_by_octree_; ///< visible indices computed by creating an octree for the model and checking which leaf nodes are occupied by a visible point computed from the z-buffering approach
     std::vector<ModelSceneCorrespondence> model_scene_c_; ///< correspondences between visible model points and scene
     float model_fit_; ///< the fitness score of the visible cloud to the model scene (sum of model_scene_c correspondenes weight divided by the number of visible points)
+    boost::dynamic_bitset<> visible_pt_is_outlier_; ///< indicates for each visible point if it is considered an outlier
 
     Eigen::MatrixXf pt_color_;  ///< color values for each point of the (complete) model (row_id). Width is equal to the number of color channels
     float mean_brigthness_;   ///< average value of the L channel for all visible model points
