@@ -1198,7 +1198,7 @@ HypothesisVerification<ModelT, SceneT>::visualizeGOCuesForModel(const HVRecognit
     rm_vis_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_normals_dist_", rm_vp_model_scene_normals_dist_);
     rm_vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_normals_dist_");
 
-    rm_vis_->addPointCloud(model_color_fit_cloud, "model_fitness", rm_vp_model_scene_model_fit_);
+    rm_vis_->addPointCloud(model_fit_cloud, "model_fitness", rm_vp_model_scene_model_fit_);
     rm_vis_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "model_fitness", rm_vp_model_scene_model_fit_);
     rm_vis_->addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_model_fit_", rm_vp_model_scene_model_fit_);
     rm_vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_model_fit_");
