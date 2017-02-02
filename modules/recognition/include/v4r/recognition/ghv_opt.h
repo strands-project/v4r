@@ -103,6 +103,7 @@ public:
     apply ()
     {
         opt_->applySolution( solution_ );
+        cost_ = opt_->evaluateSolution( solution_ );
     }
 
 //    void
@@ -473,7 +474,7 @@ public:
     GHVCostFunctionLogger ();
 
     GHVCostFunctionLogger (mets::evaluable_solution& best) :
-        mets::solution_recorder (), best_ever_m (best), times_evaluated_(0)
+        mets::solution_recorder (), times_evaluated_(0), best_ever_m (best)
     {
         costs_.resize (1);
         costs_[0] = 0.f;
