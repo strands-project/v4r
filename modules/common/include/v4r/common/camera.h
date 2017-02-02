@@ -176,6 +176,9 @@ public:
         boost::archive::xml_iarchive ia(ifs);
         ia >> boost::serialization::make_nvp("CameraParameter", *this );
         ifs.close();
+
+        camera_depth_registration_mask_ = cv::Mat_<uchar> (height_, width_);
+        camera_depth_registration_mask_.setTo(255);
     }
 };
 
