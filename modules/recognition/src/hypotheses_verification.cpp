@@ -26,6 +26,45 @@ namespace v4r
 {
 
 template<typename ModelT, typename SceneT>
+bool
+HypothesisVerification<ModelT, SceneT>::customRegionGrowing (const SceneTWithNormal& seed_pt, const SceneTWithNormal& candidate_pt, float squared_distance) const
+{
+    float curvature_threshold = param_.curvature_threshold_ ;
+    float radius = param_.cluster_tolerance_;
+    float eps_angle_threshold_rad = pcl::deg2rad(param_.eps_angle_threshold_deg_);
+
+    if ( param_.z_adaptive_ )
+    {
+        float mult = std::max(seed_pt.z, 1.f);
+//            mult *= mult;
+        radius = param_.cluster_tolerance_ * mult;
+        curvature_threshold = param_.curvature_threshold_ * mult;
+        eps_angle_threshold_rad = eps_angle_threshold_rad * mult;
+    }
+
+    if( seed_pt.curvature > param_.curvature_threshold_)
+        return false;
+
+    if(candidate_pt.curvature > param_.curvature_threshold_)
+        return false;
+
+    if (squared_distance > radius * radius)
+        return false;
+
+    float dotp = seed_pt.getNormalVector3fMap().dot (candidate_pt.getNormalVector3fMap() );
+    if (fabs (dotp) < cos(eps_angle_threshold_rad))
+        return false;
+
+    float intensity_a = .2126 * seed_pt.r + .7152 * seed_pt.g + .0722 * seed_pt.b;
+    float intensity_b = .2126 * candidate_pt.r + .7152 * candidate_pt.g + .0722 * candidate_pt.b;
+
+    if( fabs(intensity_a - intensity_b) > 5.)
+        return false;
+
+    return true;
+}
+
+template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecognitionModel<ModelT> &rm) const
 {
@@ -862,7 +901,7 @@ HypothesisVerification<ModelT, SceneT>::verify()
     }
 
     if(param_.visualize_go_cues_)
-        visualize_cues_during_logger_ = boost::bind(&HV_CuesVisualizer<ModelT, SceneT>::visualize, vis_cues_, this, _1, _2, _3);
+        visualize_cues_during_logger_ = boost::bind(&HypothesisVerification<ModelT, SceneT>::visualizeGOcues, this, _1, _2, _3);
 
     {
         pcl::ScopeTime t("Optimizing object hypotheses verification cost function");

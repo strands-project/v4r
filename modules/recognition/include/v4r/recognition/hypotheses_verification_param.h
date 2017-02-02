@@ -54,7 +54,7 @@ public:
     bool do_smoothing_;   ///< if true, smoothes the silhouette of the reproject object hypotheses (used for computing pairwise intersection)
     bool do_erosion_; ///< if true, performs erosion on the silhouette of the reproject object hypotheses. This should avoid a pairwise cost for touching objects (used for computing pairwise intersection)
     int erosion_radius_;  ///< erosion radius in px (used for computing pairwise intersection)
-    int icp_iterations_;
+    int icp_iterations_; ///< number of icp iterations for pose refinement
 
     float w_normals_;   ///< weighting factor for normal fitness
     float w_color_;   ///< weighting factor for color fitness
@@ -75,15 +75,12 @@ public:
     bool initial_status_; ///< sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.
 //        int color_space_; ///< specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
     int color_comparison_method_; ///< method used for color comparison (0... CIE76, 1... CIE94, 2... CIEDE2000)
-    bool use_noise_model_;  ///< if set, uses Nguyens noise model for setting threshold parameters
     bool visualize_go_cues_; ///< visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
     bool visualize_model_cues_; ///< visualizes the model cues. Useful for debugging
     bool visualize_pairwise_cues_; ///< visualizes the pairwise cues. Useful for debugging
     int knn_inliers_; ///< number of nearby scene points to check for a query model point
 
     float min_visible_ratio_; ///< defines how much of the object has to be visible in order to be included in the verification stage
-    float min_model_fitness_lower_bound_; ///< defines the lower bound (i.e. when model visibility is min_visible_ratio_) of the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)
-    float min_model_fitness_upper_bound_; ///< defines the upper bound (i.e. when model visibility is 0.5) of the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)
     int knn_color_neighborhood_; ///< number of nearest neighbors used for describing the color around a point
     float color_std_dev_multiplier_threshold_; ///< standard deviation multiplier threshold for the local color description for each color channel
 
@@ -127,7 +124,6 @@ public:
             bool initial_status = false,
 //                int color_space = ColorTransformOMP::LAB,
             int color_comparison = ColorComparisonMethod::ciede2000,
-            bool use_noise_model = true,
             bool visualize_go_cues = false,
             int knn_inliers = 5,
             float min_visible_ratio = 0.15f,
@@ -171,12 +167,9 @@ public:
           initial_status_ (initial_status),
 //              color_space_ (color_space),
           color_comparison_method_ (color_comparison),
-          use_noise_model_ (use_noise_model),
           visualize_go_cues_ ( visualize_go_cues ),
           knn_inliers_ (knn_inliers),
           min_visible_ratio_ (min_visible_ratio),
-          min_model_fitness_lower_bound_ (min_model_fitness_lower_bound),
-          min_model_fitness_upper_bound_ (min_model_fitness_upper_bound),
           knn_color_neighborhood_ (knn_color_neighborhood),
           color_std_dev_multiplier_threshold_ (color_std_dev_multiplier_threshold),
           check_plane_intersection_ ( check_plane_intersection ),
@@ -231,8 +224,6 @@ public:
                 ("hv_radius_clutter", po::value<float>(&radius_neighborhood_clutter_)->default_value(radius_neighborhood_clutter_, boost::str(boost::format("%.2e") % radius_neighborhood_clutter_) ), "defines the maximum distance between two points to be checked for label consistency")
                 ("hv_regularizer,r", po::value<float>(&regularizer_)->default_value(regularizer_, boost::str(boost::format("%.2e") % regularizer_) ), "represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.")
                 ("hv_resolution_mm", po::value<int>(&resolution_mm_)->default_value(resolution_mm_), "The resolution of models and scene used to verify hypotheses (in milli meters)")
-                ("hv_min_model_fitness_lower_bound", po::value<float>(&min_model_fitness_lower_bound_)->default_value(min_model_fitness_lower_bound_, boost::str(boost::format("%.2e") % min_model_fitness_lower_bound_) ), "defines the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)")
-                ("hv_min_model_fitness_upper_bound", po::value<float>(&min_model_fitness_upper_bound_)->default_value(min_model_fitness_upper_bound_, boost::str(boost::format("%.2e") % min_model_fitness_upper_bound_) ), "defines the fitness threshold for a hypothesis to be kept for optimization (0... no threshold, 1... everything gets rejected)")
                 ("hv_min_visible_ratio", po::value<float>(&min_visible_ratio_)->default_value(min_visible_ratio_, boost::str(boost::format("%.2e") % min_visible_ratio_) ), "defines how much of the object has to be visible in order to be included in the verification stage")
                 ("hv_min_ratio_smooth_cluster_explained", po::value<float>(&min_ratio_cluster_explained_)->default_value(min_ratio_cluster_explained_, boost::str(boost::format("%.2e") % min_ratio_cluster_explained_) ), " defines the minimum ratio a smooth cluster has to be explained by the visible points (given there are at least 100 points)")
                 ("hv_eps_angle_threshold", po::value<float>(&eps_angle_threshold_deg_)->default_value(eps_angle_threshold_deg_), "smooth clustering parameter for the angle threshold")
@@ -288,11 +279,8 @@ public:
                 & BOOST_SERIALIZATION_NVP(initial_status_)
                 //              color_space_
                 & BOOST_SERIALIZATION_NVP(color_comparison_method_)
-                & BOOST_SERIALIZATION_NVP(use_noise_model_)
                 & BOOST_SERIALIZATION_NVP(knn_inliers_)
                 & BOOST_SERIALIZATION_NVP( min_visible_ratio_)
-                & BOOST_SERIALIZATION_NVP(min_model_fitness_lower_bound_)
-                & BOOST_SERIALIZATION_NVP(min_model_fitness_upper_bound_)
                 & BOOST_SERIALIZATION_NVP(knn_color_neighborhood_)
                 & BOOST_SERIALIZATION_NVP(color_std_dev_multiplier_threshold_)
                 & BOOST_SERIALIZATION_NVP(check_plane_intersection_)

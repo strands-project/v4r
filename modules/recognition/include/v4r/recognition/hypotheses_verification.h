@@ -194,6 +194,16 @@ protected:
 
     void computeModelFitness (HVRecognitionModel<ModelT> &rm) const;
 
+    void visualizeGOcues(const boost::dynamic_bitset<> & active_solution, float cost, int times_evaluated) const
+    {
+        vis_cues_.visualize( this, active_solution, cost, times_evaluated );
+    }
+
+    void applySolution(const boost::dynamic_bitset<> &sol)
+    {
+        solution_ = sol;    // nothing needs to be updated as we always compute from scratch
+    }
+
     void initialize ();
 
     mets::gol_type evaluateSolution (const boost::dynamic_bitset<> &solution);
@@ -311,42 +321,7 @@ protected:
      * @return
      */
     bool
-    customRegionGrowing (const SceneTWithNormal& seed_pt, const SceneTWithNormal& candidate_pt, float squared_distance) const
-    {
-        float curvature_threshold = param_.curvature_threshold_ ;
-        float radius = param_.cluster_tolerance_;
-        float eps_angle_threshold_rad = pcl::deg2rad(param_.eps_angle_threshold_deg_);
-
-        if ( param_.z_adaptive_ )
-        {
-            float mult = std::max(seed_pt.z, 1.f);
-//            mult *= mult;
-            radius = param_.cluster_tolerance_ * mult;
-            curvature_threshold = param_.curvature_threshold_ * mult;
-            eps_angle_threshold_rad = eps_angle_threshold_rad * mult;
-        }
-
-        if( seed_pt.curvature > param_.curvature_threshold_)
-            return false;
-
-        if(candidate_pt.curvature > param_.curvature_threshold_)
-            return false;
-
-        if (squared_distance > radius * radius)
-            return false;
-
-        float dotp = seed_pt.getNormalVector3fMap().dot (candidate_pt.getNormalVector3fMap() );
-        if (fabs (dotp) < cos(eps_angle_threshold_rad))
-            return false;
-
-        float intensity_a = .2126 * seed_pt.r + .7152 * seed_pt.g + .0722 * seed_pt.b;
-        float intensity_b = .2126 * candidate_pt.r + .7152 * candidate_pt.g + .0722 * candidate_pt.b;
-
-        if( fabs(intensity_a - intensity_b) > 5.)
-            return false;
-
-        return true;
-    }
+    customRegionGrowing (const SceneTWithNormal& seed_pt, const SceneTWithNormal& candidate_pt, float squared_distance) const;
 
 public:
 

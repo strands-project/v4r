@@ -22,17 +22,14 @@
 	<normal_method_>2</normal_method_>
 	<ignore_color_even_if_exists_>0</ignore_color_even_if_exists_>
 	<max_iterations_>5000</max_iterations_>
-	<clutter_regularizer_>10000</clutter_regularizer_>
+	<clutter_regularizer_>10</clutter_regularizer_>
 	<use_replace_moves_>1</use_replace_moves_>
 	<opt_type_>0</opt_type_>
 	<use_histogram_specification_>0</use_histogram_specification_>
 	<initial_status_>0</initial_status_>
 	<color_comparison_method_>3</color_comparison_method_>
-	<use_noise_model_>1</use_noise_model_>
 	<knn_inliers_>5</knn_inliers_>
 	<min_visible_ratio_>0</min_visible_ratio_>
-	<min_model_fitness_lower_bound_>0.6</min_model_fitness_lower_bound_>
-	<min_model_fitness_upper_bound_>0.02</min_model_fitness_upper_bound_>
 	<knn_color_neighborhood_>10</knn_color_neighborhood_>
 	<color_std_dev_multiplier_threshold_>1</color_std_dev_multiplier_threshold_>
 	<check_plane_intersection_>1</check_plane_intersection_>

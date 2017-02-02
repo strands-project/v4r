@@ -68,7 +68,7 @@ template<typename ModelT, typename SceneT>
 class V4R_EXPORTS HV_CuesVisualizer
 {
 private:
-    int vp_scene_scene_, vp_scene_active_hypotheses_, vp_model_scene_3D_dist_, vp_model_scene_color_dist_,
+    int vp_scene_scene_, vp_scene_active_hypotheses_, vp_model_fitness_, vp_model_scene_color_dist_,
     vp_scene_fitness_, vp_scene_duplicity_, vp_scene_smooth_regions_;
 
     pcl::visualization::PCLVisualizer::Ptr vis_go_cues_;

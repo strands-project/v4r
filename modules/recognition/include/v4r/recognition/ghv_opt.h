@@ -101,6 +101,7 @@ public:
     void
     apply ()
     {
+        opt_->applySolution( solution_ );
         cost_ = opt_->evaluateSolution( solution_ );
     }
 
@@ -298,135 +299,6 @@ public:
         return mm.index_ == index_;
     }
 };
-
-//template<typename ModelT, typename SceneT>
-//class V4R_EXPORTS GHVmove_activate : public GHVgeneric_move
-//{
-//    size_t index_;
-//public:
-//    GHVmove_activate (size_t i) :
-//        index_ (i)
-//    { }
-
-//    size_t
-//    getIndex ()
-//    {
-//        return index_;
-//    }
-
-//    mets::gol_type
-//    evaluate (const mets::feasible_solution& cs) const
-//    {
-//        //mets::copyable copyable = dynamic_cast<mets::copyable> (&cs);
-//        GHVSAModel<ModelT, SceneT> model;
-//        model.copy_from (cs);
-//        model.opt_->updateTerms( index_ );
-//        return model.opt_->evaluateSolution();
-//    }
-
-//    mets::gol_type
-//    apply_and_evaluate (mets::feasible_solution& cs)
-//    {
-//        GHVSAModel<ModelT, SceneT>& model = dynamic_cast<GHVSAModel<ModelT, SceneT>&> (cs);
-//        return model.apply_and_evaluate (index_, true);
-//    }
-
-//    void
-//    apply (mets::feasible_solution& s) const
-//    {
-//        GHVSAModel<ModelT, SceneT>& model = dynamic_cast<GHVSAModel<ModelT, SceneT>&> (s);
-//        model.apply_and_evaluate (index_, true);
-//    }
-
-//    void
-//    unapply (mets::feasible_solution& s) const
-//    {
-//        GHVSAModel<ModelT, SceneT>& model = dynamic_cast<GHVSAModel<ModelT, SceneT>&> (s);
-//        model.unapply (index_, false);
-//    }
-
-//    mets::clonable*
-//    clone () const
-//    {
-//        GHVmove_activate * m = new GHVmove_activate (index_);
-//        return static_cast<mets::clonable*> (m);
-//    }
-
-//    size_t
-//    hash () const
-//    {
-//        return index_;
-//    }
-
-//    bool
-//    operator== (const mets::mana_move& m) const;
-//};
-
-//template<typename ModelT, typename SceneT>
-//class GHVmove_deactivate : public GHVgeneric_move
-//{
-//    size_t index_;
-//    size_t problem_size_;
-//public:
-//    GHVmove_deactivate (size_t i, size_t problem_size) :
-//        index_ (i), problem_size_(problem_size)
-//    {
-//    }
-
-//    size_t
-//    getIndex ()
-//    {
-//        return index_;
-//    }
-
-//    mets::gol_type
-//    evaluate (const mets::feasible_solution& cs) const
-//    {
-//        //mets::copyable copyable = dynamic_cast<mets::copyable> (&cs);
-//        GHVSAModel<ModelT, SceneT> model;
-//        model.copy_from (cs);
-//        mets::gol_type cost = model.apply_and_evaluate (index_, false);
-//        model.apply_and_evaluate (index_, true);
-//        return cost;
-//    }
-
-//    mets::gol_type
-//    apply_and_evaluate (mets::feasible_solution& cs)
-//    {
-//        GHVSAModel<ModelT, SceneT>& model = dynamic_cast<GHVSAModel<ModelT, SceneT>&> (cs);
-//        return model.apply_and_evaluate (index_, false);
-//    }
-
-//    void
-//    apply (mets::feasible_solution& s) const
-//    {
-//        GHVSAModel<ModelT, SceneT>& model = dynamic_cast<GHVSAModel<ModelT, SceneT>&> (s);
-//        model.apply_and_evaluate (index_, false);
-//    }
-
-//    void
-//    unapply (mets::feasible_solution& s) const
-//    {
-//        GHVSAModel<ModelT, SceneT>& model = dynamic_cast<GHVSAModel<ModelT, SceneT>&> (s);
-//        model.unapply (index_, true);
-//    }
-
-//    mets::clonable*
-//    clone () const
-//    {
-//        GHVmove_deactivate * m = new GHVmove_deactivate (index_, problem_size_);
-//        return static_cast<mets::clonable*> (m);
-//    }
-
-//    size_t
-//    hash () const
-//    {
-//        return index_ + problem_size_;
-//    }
-
-//    bool
-//    operator== (const mets::mana_move& m) const;
-//};
 
 template<typename ModelT, typename SceneT>
 class V4R_EXPORTS GHVmove_manager

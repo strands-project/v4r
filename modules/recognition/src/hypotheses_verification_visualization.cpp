@@ -13,7 +13,7 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
         vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
         vis_go_cues_->createViewPort(0, 0, 0.33, 0.5, vp_scene_scene_);
         vis_go_cues_->createViewPort(0.33, 0, 0.66, 0.5, vp_scene_active_hypotheses_);
-        vis_go_cues_->createViewPort(0.66, 0, 1, 0.5, vp_model_scene_3D_dist_);
+        vis_go_cues_->createViewPort(0.66, 0, 1, 0.5, vp_model_fitness_);
         vis_go_cues_->createViewPort(0, 0.5, 0.33, 1, vp_scene_fitness_);
         vis_go_cues_->createViewPort(0.33, 0.5, 0.66, 1, vp_scene_duplicity_);
         vis_go_cues_->createViewPort(0.66, 0.5, 1, 1, vp_scene_smooth_regions_);
@@ -24,7 +24,7 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
     vis_go_cues_->removeAllShapes();
 
     size_t model_outliers = 0;
-    float pairwise_cost = 0.f, scene_fitness = 0.f;
+    float pairwise_cost = 0.f;
 
     // model uni term
     size_t num_active_hypotheses = 0;
@@ -53,15 +53,20 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
     out << "Active Hypotheses: " << active_solution << std::endl
         << "Cost: " << std::setprecision(5) << cost << " , #Evaluations: " << times_evaluated
         << std::endl << "; pairwise cost: " << pairwise_cost << "; total cost: " << cost << std::endl;
-    model_fitness_txt << "model outliers: " << model_outliers;
+    model_fitness_txt << "model fitness. Outliers: " << model_outliers;
 
 
     vis_go_cues_->addText ("Scene", 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "inliers_outliers", vp_scene_scene_);
-    vis_go_cues_->addText (out.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene_cues", vp_scene_active_hypotheses_);
-    vis_go_cues_->addText (model_fitness_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "model fitness", vp_model_scene_3D_dist_);
+    vis_go_cues_->addText (out.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "active_hypotheses", vp_scene_active_hypotheses_);
+    vis_go_cues_->addText (model_fitness_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "model fitness", vp_model_fitness_);
     vis_go_cues_->addPointCloud (hv->scene_cloud_downsampled_, "scene_cloud", vp_scene_scene_);
 
-    //display active hypotheses
+    pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (hv->scene_cloud_downsampled_, 128, 128, 128);
+    vis_go_cues_->addPointCloud(hv->scene_cloud_downsampled_, gray, "input_active_hypotheses", vp_scene_active_hypotheses_);
+    vis_go_cues_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_active_hypotheses");
+
+
+    // ==== VISUALIZE ACTIVE HYPOTHESES =======
     {
         for(size_t i=0; i < active_solution.size(); i++)
         {
@@ -73,17 +78,34 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
                 vis_go_cues_->addPointCloud(rm.visible_cloud_, model_name.str()+"_smooth", vp_scene_smooth_regions_);
 
                 typename pcl::PointCloud<ModelT>::Ptr model_fit_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
-                for(size_t p=0; p < model_fit_cloud->points.size(); p++)
-                {
-                    ModelT &mp = model_fit_cloud->points[p];
-                    mp.r = mp.b = mp.g = 0.f;
+                for( ModelT &mp : model_fit_cloud->points)
+                    mp.r = mp.g = mp.b = 0.f;
 
-                    const ModelSceneCorrespondence &c = rm.model_scene_c_[p];
-                    mp.g  = 255.f * hv->getFitness(c);
+                for(size_t cidx=0; cidx < rm.model_scene_c_.size(); cidx++)
+                {
+                    const ModelSceneCorrespondence &c = rm.model_scene_c_[cidx];
+                    int sidx = c.scene_id_;
+                    int midx = c.model_id_;
+
+                    if(sidx<0)
+                        continue;
+
+                    CHECK ( hv->getFitness(c) <= 1 );
+
+                    ModelT &mp = model_fit_cloud->points[midx];
+
+                    // scale green color channels with fitness terms
+                    mp.g   = 255.f * hv->getFitness(c);
+                }
+
+                for(size_t midx=0; midx < model_fit_cloud->points.size(); midx++)
+                {
+                    if ( rm.visible_pt_is_outlier_[ midx ] )
+                        model_fit_cloud->points[ midx ].r = 255.f;
                 }
 
                 model_name << "_fitness";
-                vis_go_cues_->addPointCloud(model_fit_cloud, model_name.str(), vp_model_scene_3D_dist_);
+                vis_go_cues_->addPointCloud(model_fit_cloud, model_name.str(), vp_model_fitness_);
             }
         }
     }
@@ -95,22 +117,27 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
         for( SceneT &p : scene_fit_cloud->points)
             p.r = p.g = p.b = 0.f;
 
+
+        double scene_fit =0.;
         for(size_t s_id=0; s_id < hv->scene_pts_explained_solution_.size(); s_id++)
         {
             const std::vector<PtFitness> &s_pt = hv->scene_pts_explained_solution_[s_id];
             if(  !s_pt.empty() )
             {
                 SceneT &p = scene_fit_cloud->points[s_id];
-                p.r = 255.f * s_pt.back().fit_; // uses the maximum value for scene explanation
+                double s_fit_tmp = static_cast<double>( s_pt.back().fit_ );
+                scene_fit += s_fit_tmp;
+                p.g = 255.f * s_fit_tmp; // uses the maximum value for scene explanation
             }
         }
         vis_go_cues_->addPointCloud(scene_fit_cloud, "scene fitness cloud", vp_scene_fitness_);
-        std::stringstream scene_fitness_txt; scene_fitness_txt << "scene fitness: " << scene_fitness << ", outliers: " << model_outliers;
+        std::stringstream scene_fitness_txt; scene_fitness_txt << "scene fitness: " << scene_fit;
         vis_go_cues_->addText (scene_fitness_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene fitness", vp_scene_fitness_);
     }
 
     // ==== VISUALIZE DUPLICATED POINTS FITNESS =======
     {
+        double duplicity =0.;
         typename pcl::PointCloud<SceneT>::Ptr duplicity_cloud (new pcl::PointCloud<SceneT> (*hv->scene_cloud_downsampled_));
         for( SceneT &p : duplicity_cloud->points)
             p.r = p.g = p.b = 0.f;
@@ -122,10 +149,14 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
             SceneT &p = duplicity_cloud->points[s_id];
             if ( s_pt.size() > 1 ) // two or more hypotheses explain the same scene point
             {
-                p.r = 255 * s_pt[ s_pt.size() - 2 ].fit_; // uses the second best explanation
+                double duplicity_tmp = static_cast<double>( s_pt[ s_pt.size() - 2 ].fit_ );
+                p.r = 255 * duplicity_tmp; // uses the second best explanation
+                duplicity += duplicity_tmp;
             }
         }
         vis_go_cues_->addPointCloud(duplicity_cloud, "duplicity cloud", vp_scene_duplicity_);
+        std::stringstream duplicity_txt; duplicity_txt << "duplicity: " << duplicity;
+        vis_go_cues_->addText (duplicity_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "duplicity txt", vp_scene_duplicity_);
     }
 
 
@@ -455,13 +486,13 @@ HV_PairwiseVisualizer<ModelT, SceneT>::visualize( const HypothesisVerification<M
     }
 }
 
-#define PCL_INSTANTIATE_HV_CuesVisualizer(MT, SC) template class V4R_EXPORTS HV_CuesVisualizer<MT, SC>;
+#define PCL_INSTANTIATE_HV_CuesVisualizer(MT, ST) template class V4R_EXPORTS HV_CuesVisualizer<MT, ST>;
 PCL_INSTANTIATE_PRODUCT(HV_CuesVisualizer, ((pcl::PointXYZRGB))((pcl::PointXYZRGB)) )
 
-#define PCL_INSTANTIATE_HV_ModelVisualizer(MT, SC) template class V4R_EXPORTS HV_ModelVisualizer<MT, SC>;
+#define PCL_INSTANTIATE_HV_ModelVisualizer(MT, ST) template class V4R_EXPORTS HV_ModelVisualizer<MT, ST>;
 PCL_INSTANTIATE_PRODUCT(HV_ModelVisualizer, ((pcl::PointXYZRGB))((pcl::PointXYZRGB)) )
 
-#define PCL_INSTANTIATE_HV_PairwiseVisualizer(MT, SC) template class V4R_EXPORTS HV_PairwiseVisualizer<MT, SC>;
+#define PCL_INSTANTIATE_HV_PairwiseVisualizer(MT, ST) template class V4R_EXPORTS HV_PairwiseVisualizer<MT, ST>;
 PCL_INSTANTIATE_PRODUCT(HV_PairwiseVisualizer, ((pcl::PointXYZRGB))((pcl::PointXYZRGB)) )
 
 }
