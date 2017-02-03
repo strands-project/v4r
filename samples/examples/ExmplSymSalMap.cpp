@@ -25,6 +25,7 @@
 #include "v4r/attention_segmentation/AttentionModule.h"
 
 // This program shows the use of Symmetry Saliency Map on one image
+void printUsage(const char *argv0);
 
 void printUsage(const char *argv0)
 {

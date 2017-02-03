@@ -87,10 +87,10 @@ int main(int argc, char *argv[] )
   int sleep = 0;
   char filename[PATH_MAX];
   bool loop=false;
-  Eigen::Matrix4f pose, inv_pose;
-  int id_cloud = -1;
-  double time, mean_time=0;
-  int cnt_time=0;
+  Eigen::Matrix4f _pose;//, inv_pose;
+//  int id_cloud = -1;
+//  double time, mean_time=0;
+//  int cnt_time=0;
   int vis_mode = 0;
 
   setup(argc,argv);
@@ -107,9 +107,9 @@ int main(int argc, char *argv[] )
 
   cv::namedWindow( "image", CV_WINDOW_AUTOSIZE );
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr _cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::PointCloud<pcl::PointXYZRGBNormal> filt_cloud;
-  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr global_cloud;
+//  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr global_cloud;
 
   v4r::TemporalSmoothingFilter filter;
   filter.setCameraParameter(intrinsic);
@@ -124,14 +124,14 @@ int main(int argc, char *argv[] )
     snprintf(filename,PATH_MAX, filenames.c_str(), i);
     cout<<filename<<endl;
 
-    if(pcl::io::loadPCDFile(filename, *cloud)==-1)
+    if(pcl::io::loadPCDFile(filename, *_cloud)==-1)
       continue;
 
-    v4r::convertImage(*cloud, image);
+    v4r::convertImage(*_cloud, image);
     image.copyTo(im_draw);
 
     // track
-    filter.filter(*cloud, filt_cloud, pose);
+    filter.filter(*_cloud, filt_cloud, _pose);
 
 
     // debug out draw

@@ -28,6 +28,7 @@
 #include "v4r/attention_segmentation/EPUtils.h"
 
 // This program calculates HitRatio from attention points
+void printUsage(const char *argv0);
 
 void printUsage(const char *argv0)
 {

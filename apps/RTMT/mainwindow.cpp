@@ -409,6 +409,7 @@ void MainWindow::on_OptimizePoses_clicked()
 
 void MainWindow::finishedOptimizeCameras(int num_cameras)
 {
+    (void)num_cameras;
   //std::string txt = std::string("Status: Optimized ")+v4r::toString(num_cameras,0)+std::string(" cameras");
   //m_ui->statusLabel->setText(txt.c_str());
 

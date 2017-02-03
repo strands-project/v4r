@@ -117,10 +117,10 @@ double KeypointPoseDetectorRT::detect(const cv::Mat &image, const DataMatrix2D<E
         {
           query_pts.push_back(pt);
           if (param.compute_global_pose) {
-            if (ma0.trainIdx>=model->points.size()) { query_pts.pop_back(); continue; }
+            if (ma0.trainIdx>=(int)model->points.size()) { query_pts.pop_back(); continue; }
             model_pts.push_back(model->getPt(ma0.trainIdx).pt.cast<float>());
           } else {
-            if (ma0.trainIdx>=model->cam_points.size()) { query_pts.pop_back(); continue; }
+            if (ma0.trainIdx>=(int)model->cam_points.size()) { query_pts.pop_back(); continue; }
             model_pts.push_back(model->cam_points[ma0.trainIdx]);
           }
           ma_inliers.push_back(ma0.trainIdx);

@@ -167,9 +167,9 @@ const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >& 
  * @brief Sensor::start
  * @param cam_id
  */
-void Sensor::start(int cam_id)
+void Sensor::start(int _cam_id)
 {
-  m_cam_id = cam_id;
+  m_cam_id = _cam_id;
   QThread::start();
 }
 
@@ -190,9 +190,9 @@ void Sensor::stop()
  * @brief Sensor::startTracker
  * @param cam_id
  */
-void Sensor::startTracker(int cam_id)
+void Sensor::startTracker(int _cam_id)
 {
-  if (!m_run) start(cam_id);
+  if (!m_run) start(_cam_id);
 
   m_run_tracker = true;
 }
@@ -362,7 +362,7 @@ void Sensor::reset()
 void Sensor::storeKeyframes(const std::string &_folder)
 {
   char filename[PATH_MAX];
-  cv::Mat_<cv::Vec3b> image;
+  cv::Mat_<cv::Vec3b> _image;
 
   std::string cloud_names = _folder+"/cloud_%04d.pcd";
   std::string image_names = _folder+"/image_%04d.jpg";
@@ -374,9 +374,9 @@ void Sensor::storeKeyframes(const std::string &_folder)
   {
     snprintf(filename,PATH_MAX, cloud_names.c_str(), i);
     pcl::io::savePCDFileBinary(filename, *log_clouds->at(i).second);
-    v4r::convertImage(*log_clouds->at(i).second, image);
+    v4r::convertImage(*log_clouds->at(i).second, _image);
     snprintf(filename,PATH_MAX, image_names.c_str(), i);
-    cv::imwrite(filename, image);
+    cv::imwrite(filename, _image);
     snprintf(filename,PATH_MAX, pose_names.c_str(), i);
     v4r::writePose(filename, _folder, model.cameras[log_clouds->at(i).first]);
   }
@@ -388,18 +388,18 @@ void Sensor::storeKeyframes(const std::string &_folder)
  */
 void Sensor::storePointCloudModel(const std::string &_folder)
 {
-  pcl::PointCloud<pcl::PointXYZRGB> &cloud = *tmp_cloud;
+  pcl::PointCloud<pcl::PointXYZRGB> &_cloud = *tmp_cloud;
   const AlignedPointXYZRGBVector &oc = *oc_cloud;
 
-  cloud.resize(oc.size());
-  cloud.width = oc.size();
-  cloud.height = 1;
-  cloud.is_dense = true;
+  _cloud.resize(oc.size());
+  _cloud.width = oc.size();
+  _cloud.height = 1;
+  _cloud.is_dense = true;
 
   for (unsigned i=0; i<oc.size(); i++)
-    cloud.points[i] = oc[i];
+    _cloud.points[i] = oc[i];
 
-  if (cloud.points.size()>0)
+  if (_cloud.points.size()>0)
     pcl::io::savePCDFileBinary(_folder+"/model.pcd", *tmp_cloud);
 }
 
@@ -430,6 +430,7 @@ void Sensor::selectROI(int _seed_x, int _seed_y)
  */
 void Sensor::activateROI(bool enable)
 {
+    (void)enable;
   m_activate_roi = true;
 }
 
@@ -591,6 +592,7 @@ void Sensor::filterCloud(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, const 
  */
 void Sensor::initCloud(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, const Eigen::Matrix4f &_pose, v4r::DataMatrix2D<Surfel> &_sf_cloud, Eigen::Matrix4f &_sf_pose)
 {
+    (void)_pose;
   _sf_cloud.resize(_cloud.height, _cloud.width);
   for (unsigned v=0; v<_cloud.height; v++)
   {
@@ -785,18 +787,18 @@ void Sensor::integrateData(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, cons
       }
       else
       {
-        const pcl::PointXYZRGB &pt = _cloud(u,v);
+        const pcl::PointXYZRGB &_pt = _cloud(u,v);
         const float &tz = tmp_z(v,u);
         inv_norm = 1./depth_norm(v,u);
         sf.pt[2] = tz*inv_norm;
         sf.weight = dw*inv_norm;
-        if (!isnan(pt.z))
-          sf.pt[2] = (sf.pt[2]*(float)sf.weight + pt.z) / (float)(sf.weight+1.);
+        if (!isnan(_pt.z))
+          sf.pt[2] = (sf.pt[2]*(float)sf.weight + _pt.z) / (float)(sf.weight+1.);
         sf.pt[0] = sf.pt[2]*((u-C[2])*invC0);
         sf.pt[1] = sf.pt[2]*((v-C[5])*invC4);
-        sf.r = pt.r;
-        sf.g = pt.g;
-        sf.b = pt.b;
+        sf.r = _pt.r;
+        sf.g = _pt.g;
+        sf.b = _pt.b;
         if (sf.weight<max_integration_frames) sf.weight+=1;
       }
     }
@@ -814,17 +816,17 @@ void Sensor::integrateData(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, cons
  * @param traj
  * @return type
  */
-int Sensor::selectFrames(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, int cam_id, const Eigen::Matrix4f &pose, std::vector<CameraLocation> &traj)
+int Sensor::selectFrames(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, int _cam_id, const Eigen::Matrix4f &_pose, std::vector<CameraLocation> &traj)
 {
   int type = 0;
 
 
-  if (cam_tracker_params.log_point_clouds && cam_id>=0)
+  if (cam_tracker_params.log_point_clouds && _cam_id>=0)
   {
     type = 1;
 
     Eigen::Matrix4f inv_pose;
-    v4r::invPose(pose, inv_pose);
+    v4r::invPose(_pose, inv_pose);
 
     unsigned z;
     for (z=0; z<cameras.size(); z++)
@@ -840,13 +842,13 @@ int Sensor::selectFrames(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, int cam
     {
       type = 2;
       cameras.push_back(inv_pose);
-      log_clouds->push_back(make_pair(cam_id, pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>())));
-      pcl::copyPointCloud(cloud,*log_clouds->back().second);
+      log_clouds->push_back(make_pair(_cam_id, pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>())));
+      pcl::copyPointCloud(_cloud,*log_clouds->back().second);
 
       //create preview modelclouds[i].first
       if (cam_tracker_params.create_prev_cloud)
       {
-        pcl::removeNaNFromPointCloud(cloud,*tmp_cloud,indices);
+        pcl::removeNaNFromPointCloud(_cloud,*tmp_cloud,indices);
         pass.setInputCloud (tmp_cloud);
         pass.setFilterFieldName ("z");
         pass.setFilterLimits (0.0, cam_tracker_params.prev_z_cutoff);
@@ -861,7 +863,7 @@ int Sensor::selectFrames(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, int cam
       emit printStatus(std::string("Status: Selected ")+v4r::toString(log_clouds->size(),0)+std::string(" keyframes"));
     }
 
-    traj.push_back( CameraLocation(cam_id, type,inv_pose.block<3,1>(0,3),inv_pose.block<3,1>(0,2)) );
+    traj.push_back( CameraLocation(_cam_id, type,inv_pose.block<3,1>(0,3),inv_pose.block<3,1>(0,2)) );
   }
 
 
@@ -900,11 +902,11 @@ void Sensor::renewPrevCloud(const std::vector<Eigen::Matrix4f, Eigen::aligned_al
 /**
  * drawConfidenceBar
  */
-void Sensor::drawConfidenceBar(cv::Mat &im, const double &conf)
+void Sensor::drawConfidenceBar(cv::Mat &im, const double &_conf)
 {
   int bar_start = 50, bar_end = 200;
   int diff = bar_end-bar_start;
-  int draw_end = diff*conf;
+  int draw_end = diff*_conf;
   double col_scale = 255./(double)diff;
   cv::Point2f pt1(0,30);
   cv::Point2f pt2(0,30);
@@ -926,13 +928,13 @@ void Sensor::drawConfidenceBar(cv::Mat &im, const double &conf)
  * @param cloud
  * @param im
  */
-void Sensor::drawDepthMask(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &im)
+void Sensor::drawDepthMask(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, cv::Mat &im)
 {
-  if ((int)cloud.width!=im.cols || (int)cloud.height!=im.rows)
+  if ((int)_cloud.width!=im.cols || (int)_cloud.height!=im.rows)
     return;
 
-  for (unsigned i=0; i<cloud.width*cloud.height; i++)
-    if (isnan(cloud.points[i].x)) im.at<cv::Vec3b>(i) = cv::Vec3b(255,0,0);
+  for (unsigned i=0; i<_cloud.width*_cloud.height; i++)
+    if (isnan(_cloud.points[i].x)) im.at<cv::Vec3b>(i) = cv::Vec3b(255,0,0);
 
 //  for (unsigned i=0; i<plane.indices.size(); i++)
 //  {
@@ -946,9 +948,9 @@ void Sensor::drawDepthMask(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::M
  * @param normal
  * @param pose
  */
-void Sensor::getInplaneTransform(const Eigen::Vector3f &pt, const Eigen::Vector3f &normal, Eigen::Matrix4f &pose)
+void Sensor::getInplaneTransform(const Eigen::Vector3f &pt, const Eigen::Vector3f &normal, Eigen::Matrix4f &_pose)
 {
-  pose.setIdentity();
+  _pose.setIdentity();
 
   Eigen::Vector3f px, py;
   Eigen::Vector3f pz = normal;
@@ -957,10 +959,10 @@ void Sensor::getInplaneTransform(const Eigen::Vector3f &pt, const Eigen::Vector3
   px = (Eigen::Vector3f(1,0,0).cross(pz)).normalized();
   py = (pz.cross(px)).normalized();
 
-  pose.block<3,1>(0,0) = px;
-  pose.block<3,1>(0,1) = py;
-  pose.block<3,1>(0,2) = pz;
-  pose.block<3,1>(0,3) = pt;
+  _pose.block<3,1>(0,0) = px;
+  _pose.block<3,1>(0,1) = py;
+  _pose.block<3,1>(0,2) = pz;
+  _pose.block<3,1>(0,3) = pt;
 
 //  std::vector<Eigen::Vector3f> pts0(4), pts1(4);
 //  std::vector<int> indices(4,0);
@@ -992,23 +994,23 @@ void Sensor::getInplaneTransform(const Eigen::Vector3f &pt, const Eigen::Vector3
  * @param bb_min
  * @param bb_max
  */
-void Sensor::maskCloud(const Eigen::Matrix4f &pose, const Eigen::Vector3f &bb_min, const Eigen::Vector3f &bb_max, v4r::DataMatrix2D<Eigen::Vector3f> &cloud)
+void Sensor::maskCloud(const Eigen::Matrix4f &_pose, const Eigen::Vector3f &_bb_min, const Eigen::Vector3f &_bb_max, v4r::DataMatrix2D<Eigen::Vector3f> &_cloud)
 {
   Eigen::Vector3f pt_glob;
   Eigen::Matrix4f inv_pose;
-  v4r::invPose(pose,inv_pose);
+  v4r::invPose(_pose,inv_pose);
   Eigen::Matrix3f R = inv_pose.topLeftCorner<3,3>();
   Eigen::Vector3f t = inv_pose.block<3,1>(0,3);
 
-  for (unsigned i=0; i<cloud.data.size(); i++)
+  for (unsigned i=0; i<_cloud.data.size(); i++)
   {
-    Eigen::Vector3f &pt = cloud[i];
+    Eigen::Vector3f &pt = _cloud[i];
 
     if (!isNaN(pt))
     {
       pt_glob = R*pt + t;
 
-      if (pt_glob[0]<bb_min[0] || pt_glob[0]>bb_max[0] || pt_glob[1]<bb_min[1] || pt_glob[1]>bb_max[1] || pt_glob[2]<bb_min[2] || pt_glob[2]>bb_max[2])
+      if (pt_glob[0]<_bb_min[0] || pt_glob[0]>_bb_max[0] || pt_glob[1]<_bb_min[1] || pt_glob[1]>_bb_max[1] || pt_glob[2]<_bb_min[2] || pt_glob[2]>_bb_max[2])
       {
         pt = Eigen::Vector3f(std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN());
       }
@@ -1027,7 +1029,7 @@ void Sensor::maskCloud(const Eigen::Matrix4f &pose, const Eigen::Vector3f &bb_mi
  * @param ymin
  * @param ymax
  */
-void Sensor::getBoundingBox(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &indices, const Eigen::Matrix4f &pose, std::vector<Eigen::Vector3f> &bbox, Eigen::Vector3f &bb_min, Eigen::Vector3f &bb_max)
+void Sensor::getBoundingBox(const v4r::DataMatrix2D<Eigen::Vector3f> &_cloud, const std::vector<int> &_indices, const Eigen::Matrix4f &_pose, std::vector<Eigen::Vector3f> &bbox, Eigen::Vector3f &_bb_min, Eigen::Vector3f &_bb_max)
 {
   Eigen::Vector3f pt, bbox_center_xy;
   double xmin, xmax, ymin, ymax, bbox_height, h_bbox_length, h_bbox_width;
@@ -1036,13 +1038,13 @@ void Sensor::getBoundingBox(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, con
   xmax = ymax = -DBL_MAX;
 
   Eigen::Matrix4f inv_pose;
-  v4r::invPose(pose,inv_pose);
+  v4r::invPose(_pose,inv_pose);
   Eigen::Matrix3f R = inv_pose.topLeftCorner<3,3>();
   Eigen::Vector3f t = inv_pose.block<3,1>(0,3);
 
-  for (unsigned i=0; i<indices.size(); i++)
+  for (unsigned i=0; i<_indices.size(); i++)
   {
-    pt = R*cloud[indices[i]]+t;
+    pt = R*_cloud[_indices[i]]+t;
     if (pt[0]>xmax) xmax = pt[0];
     if (pt[0]<xmin) xmin = pt[0];
     if (pt[1]>ymax) ymax = pt[1];
@@ -1080,8 +1082,8 @@ void Sensor::getBoundingBox(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, con
     bbox.push_back(bbox[i+8]);
   }
 
-  bb_min = bbox_center_xy+Eigen::Vector3f(-h_bbox_length,-h_bbox_width, -seg_offs);
-  bb_max = bbox_center_xy+Eigen::Vector3f(h_bbox_length,h_bbox_width, bbox_height);
+  _bb_min = bbox_center_xy+Eigen::Vector3f(-h_bbox_length,-h_bbox_width, -seg_offs);
+  _bb_max = bbox_center_xy+Eigen::Vector3f(h_bbox_length,h_bbox_width, bbox_height);
 }
 
 
@@ -1089,18 +1091,18 @@ void Sensor::getBoundingBox(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, con
  * @brief Sensor::detectROI
  * @param cloud
  */
-void Sensor::detectROI(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud)
+void Sensor::detectROI(const v4r::DataMatrix2D<Eigen::Vector3f> &_cloud)
 {
   v4r::DataMatrix2D<Eigen::Vector3f> normals;
   //v4r::ClusterNormalsToPlanes::Plane plane;
 
-  nest->compute(cloud, normals);
-  pest->compute(cloud, normals, roi_seed_x, roi_seed_y, plane);
+  nest->compute(_cloud, normals);
+  pest->compute(_cloud, normals, roi_seed_x, roi_seed_y, plane);
 
   if (plane.indices.size()>3)
   {
     getInplaneTransform(plane.pt,plane.normal,bbox_base_transform);
-    getBoundingBox(cloud, plane.indices, bbox_base_transform, edges, bb_min, bb_max);
+    getBoundingBox(_cloud, plane.indices, bbox_base_transform, edges, bb_min, bb_max);
     emit update_boundingbox(edges, bbox_base_transform);
     emit set_roi(bb_min, bb_max, bbox_base_transform);
   }

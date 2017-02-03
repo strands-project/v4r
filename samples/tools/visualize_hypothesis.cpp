@@ -17,6 +17,7 @@ namespace po = boost::program_options;
 
 Eigen::Matrix4f readMatrixFromFile(const std::string &file, int padding = 0);
 Eigen::Matrix4f RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans);
+Eigen::Matrix4f RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans);
 
 Eigen::Matrix4f
 readMatrixFromFile(const std::string &file, int padding)

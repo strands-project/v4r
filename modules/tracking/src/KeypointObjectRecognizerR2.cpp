@@ -85,7 +85,7 @@ void KeypointObjectRecognizerR2::getRandIdx(int size, int num, std::vector<int> 
 /**
  * countInliers
  */
-unsigned KeypointObjectRecognizerR2::countInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4f &pose)
+unsigned KeypointObjectRecognizerR2::countInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &_im_points, const Eigen::Matrix4f &pose)
 {
   unsigned cnt=0;
 
@@ -104,7 +104,7 @@ unsigned KeypointObjectRecognizerR2::countInliers(const std::vector<cv::Point3f>
       projectPointToImage(&pt3[0], intrinsic.ptr<double>(), dist_coeffs.ptr<double>(), &im_pt[0]);
     else projectPointToImage(&pt3[0], intrinsic.ptr<double>(), &im_pt[0]);
 
-    if ((im_pt - Eigen::Map<const Eigen::Vector2f>(&im_points[i].x)).squaredNorm() < sqr_inl_dist)
+    if ((im_pt - Eigen::Map<const Eigen::Vector2f>(&_im_points[i].x)).squaredNorm() < sqr_inl_dist)
     {
       cnt++;
     }
@@ -116,7 +116,7 @@ unsigned KeypointObjectRecognizerR2::countInliers(const std::vector<cv::Point3f>
 /**
  * getInliers
  */
-void KeypointObjectRecognizerR2::getInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4f &pose, std::vector<int> &inliers)
+void KeypointObjectRecognizerR2::getInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &_im_points, const Eigen::Matrix4f &pose, std::vector<int> &_inliers)
 {
   Eigen::Vector2f im_pt;
   Eigen::Vector3f pt3;
@@ -125,7 +125,7 @@ void KeypointObjectRecognizerR2::getInliers(const std::vector<cv::Point3f> &poin
   Eigen::Matrix3f R = pose.topLeftCorner<3, 3>();
   Eigen::Vector3f t = pose.block<3,1>(0, 3);
 
-  inliers.clear();
+  _inliers.clear();
 
   for (unsigned i=0; i<points.size(); i++)
   {
@@ -135,9 +135,9 @@ void KeypointObjectRecognizerR2::getInliers(const std::vector<cv::Point3f> &poin
       projectPointToImage(&pt3[0], intrinsic.ptr<double>(), dist_coeffs.ptr<double>(), &im_pt[0]);
     else projectPointToImage(&pt3[0], intrinsic.ptr<double>(), &im_pt[0]);
 
-    if ((im_pt - Eigen::Map<const Eigen::Vector2f>(&im_points[i].x)).squaredNorm() < sqr_inl_dist)
+    if ((im_pt - Eigen::Map<const Eigen::Vector2f>(&_im_points[i].x)).squaredNorm() < sqr_inl_dist)
     {
-      inliers.push_back(i);
+      _inliers.push_back(i);
     }
   }
 }
@@ -146,16 +146,16 @@ void KeypointObjectRecognizerR2::getInliers(const std::vector<cv::Point3f> &poin
 /**
  * ransacSolvePnP
  */
-void KeypointObjectRecognizerR2::ransacSolvePnP(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, Eigen::Matrix4f &pose, std::vector<int> &inliers)
+void KeypointObjectRecognizerR2::ransacSolvePnP(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &_im_points, Eigen::Matrix4f &pose, std::vector<int> &_inliers)
 {
   int k=0;
   float sig=param.nb_ransac_points, sv_sig=0.;
   float eps = sig/(float)points.size();
   std::vector<int> indices;
-  std::vector<cv::Point3f> model_pts(param.nb_ransac_points);
-  std::vector<cv::Point2f> query_pts(param.nb_ransac_points);
+  std::vector<cv::Point3f> _model_pts(param.nb_ransac_points);
+  std::vector<cv::Point2f> _query_pts(param.nb_ransac_points);
   cv::Mat_<double> R(3,3), rvec, tvec, sv_rvec, sv_tvec;
-  inliers.clear();
+  _inliers.clear();
 
   while (pow(1. - pow(eps,param.nb_ransac_points), k) >= param.eta_ransac && k < (int)param.max_rand_trials)
   {
@@ -163,16 +163,16 @@ void KeypointObjectRecognizerR2::ransacSolvePnP(const std::vector<cv::Point3f> &
 
     for (unsigned i=0; i<indices.size(); i++)
     {
-      model_pts[i] = points[indices[i]];
-      query_pts[i] = im_points[indices[i]];
+      _model_pts[i] = points[indices[i]];
+      _query_pts[i] = _im_points[indices[i]];
     }
 
-    cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, rvec, tvec, false, param.pnp_method);
+    cv::solvePnP(cv::Mat(_model_pts), cv::Mat(_query_pts), intrinsic, dist_coeffs, rvec, tvec, false, param.pnp_method);
 
     cv::Rodrigues(rvec, R);
     cvToEigen(R, tvec, pose);  
   
-    sig = countInliers(points, im_points, pose);
+    sig = countInliers(points, _im_points, pose);
 
     if (sig > sv_sig)
     {
@@ -190,19 +190,19 @@ void KeypointObjectRecognizerR2::ransacSolvePnP(const std::vector<cv::Point3f> &
 
   cv::Rodrigues(sv_rvec, R);
   cvToEigen(R, sv_tvec, pose);
-  getInliers(points, im_points, pose, inliers);
+  getInliers(points, _im_points, pose, _inliers);
 
-  model_pts.resize(inliers.size());
-  query_pts.resize(inliers.size());
+  _model_pts.resize(_inliers.size());
+  _query_pts.resize(_inliers.size());
 
-  for (unsigned i=0; i<inliers.size(); i++)
+  for (unsigned i=0; i<_inliers.size(); i++)
   {
-    model_pts[i] = points[inliers[i]];
-    query_pts[i] = im_points[inliers[i]];
+    _model_pts[i] = points[_inliers[i]];
+    _query_pts[i] = _im_points[_inliers[i]];
   }
 
   #ifdef HAVE_OCV_2
-  cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, sv_rvec, sv_tvec, true, cv::ITERATIVE );
+  cv::solvePnP(cv::Mat(_model_pts), cv::Mat(_query_pts), intrinsic, dist_coeffs, sv_rvec, sv_tvec, true, cv::ITERATIVE );
   #else 
   cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, sv_rvec, sv_tvec, true, cv::SOLVEPNP_ITERATIVE );
   #endif
