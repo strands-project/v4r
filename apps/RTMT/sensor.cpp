@@ -66,7 +66,8 @@ Sensor::Sensor() :
   bbox_scale_height(1.),
   seg_offs(0.01),
   bb_min(Eigen::Vector3f(-2.,-2.,-0.01)),
-  bb_max(Eigen::Vector3f(2.,2.,.5))
+  bb_max(Eigen::Vector3f(2.,2.,.5)),
+  max_integration_frames(20.)
 {
   /**
      * kd_param: ransac inlier distance for interest point based reinitialization [m] (e.g. 0.01)
@@ -85,7 +86,7 @@ Sensor::Sensor() :
 
 
   // set cameras
-  cv::Mat_<double> cam = cv::Mat_<double>::eye(3,3);
+  cam = cv::Mat_<double>::eye(3,3);
   cv::Mat_<double> dist_coeffs;
 
   cam(0,0) = cam_params.f[0]; cam(1,1) = cam_params.f[1];
@@ -119,6 +120,15 @@ Sensor::Sensor() :
   v4r::ZAdaptiveNormals::Parameter n_param;
   n_param.adaptive = true;
   nest.reset(new v4r::ZAdaptiveNormals(n_param));
+
+  double sigma_depth = 0.008;
+  exp_error_lookup.resize(1000);
+  for (unsigned i=0; i<exp_error_lookup.size(); i++)
+  {
+    exp_error_lookup[i] = exp(-sqr(((float)i)/1000.)/(2.*sqr(sigma_depth)));
+  }
+  occ.param.thr_std_dev = 0.05;
+
 }
 
 /**
@@ -234,7 +244,7 @@ void Sensor::cam_params_changed(const RGBDCameraParameter &_cam_params)
 
   cam_params = _cam_params;
 
-  cv::Mat_<double> cam = cv::Mat_<double>::eye(3,3);
+  cam = cv::Mat_<double>::eye(3,3);
   cv::Mat_<double> dist_coeffs;
 
   cam(0,0) = cam_params.f[0]; cam(1,1) = cam_params.f[1];
@@ -499,6 +509,13 @@ void Sensor::run()
 
         if (is_conf)
         {
+          if (sf_cloud.rows==(int)cloud->height && sf_cloud.cols==(int)cloud->width)
+          {
+            occ.compute(*cloud, occ_mask);
+            filterCloud(*cloud, pose, *cloud, occ_mask);
+          }
+          else initCloud(*cloud, pose, sf_cloud, sf_pose);
+
           type = selectFrames(*cloud, cam_id, pose, *cam_trajectory);
 
           if (type >= 0) emit update_cam_trajectory(cam_trajectory);
@@ -521,6 +538,273 @@ void Sensor::run()
   interface->stop ();
   usleep(50000);
 }
+
+
+/**
+ * @brief Sensor::filterCloud
+ * @param _cloud
+ * @param _pose
+ * @param _filt_cloud
+ * @param _mask
+ */
+void Sensor::filterCloud(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, const Eigen::Matrix4f &_pose, pcl::PointCloud<pcl::PointXYZRGB> &_filt_cloud, const cv::Mat_<unsigned char> &_mask)
+{
+  integrateData(_cloud, _pose, sf_cloud, sf_pose);
+
+  if (_mask.rows == sf_cloud.rows && _mask.cols == sf_cloud.cols)
+  {
+    for (int v=0; v<sf_cloud.rows; v++)
+    {
+      for (int u=0; u<sf_cloud.cols; u++)
+      {
+        if (_mask(v,u)>128)
+        {
+          sf_cloud(v,u).weight = 0.;
+          sf_cloud(v,u).pt = Eigen::Vector3f(std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN());
+        }
+      }
+    }
+  }
+
+  _filt_cloud.resize(sf_cloud.data.size());
+  _filt_cloud.width = sf_cloud.cols;
+  _filt_cloud.height = sf_cloud.rows;
+  _filt_cloud.is_dense = false;
+  for (unsigned i=0; i<sf_cloud.data.size(); i++)
+  {
+    const Surfel &s = sf_cloud.data[i];
+    pcl::PointXYZRGB &o = _filt_cloud.points[i];
+    o.getVector3fMap() = s.pt;
+    o.r = s.r;
+    o.g = s.g;
+    o.b = s.b;
+  }
+}
+
+
+/**
+ * @brief Sensor::initCloud
+ * @param _cloud
+ * @param _pose
+ * @param _sf_cloud
+ * @param _sf_pose
+ */
+void Sensor::initCloud(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, const Eigen::Matrix4f &_pose, v4r::DataMatrix2D<Surfel> &_sf_cloud, Eigen::Matrix4f &_sf_pose)
+{
+  _sf_cloud.resize(_cloud.height, _cloud.width);
+  for (unsigned v=0; v<_cloud.height; v++)
+  {
+    for (unsigned u=0; u<_cloud.width; u++)
+    {
+      _sf_cloud(v,u) = Surfel(_cloud(u,v));
+    }
+  }
+  _sf_pose = pose;
+}
+
+/**
+ * @brief Sensor::integrateData
+ * @param _cloud
+ * @param _pose
+ * @param _sf_cloud
+ * @param _sf_pose
+ */
+void Sensor::integrateData(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, const Eigen::Matrix4f &_pose, v4r::DataMatrix2D<Surfel> &_sf_cloud, Eigen::Matrix4f &_sf_pose)
+{
+  if (cam.empty())
+    throw std::runtime_error("[TSFDataIntegration::addCloud] Camera parameter not set!");
+
+  cv::Point2f im_pt;
+  int width = _cloud.width;
+  int height = _cloud.height;
+  double *C = &cam(0,0);
+  double invC0 = 1./C[0];
+  double invC4 = 1./C[4];
+  Eigen::Matrix4f inv_sf, inc_pose;
+  v4r::invPose(_sf_pose, inv_sf);
+  inc_pose = _pose*inv_sf;
+
+
+  //transform to current frame
+  Eigen::Vector3f pt;
+  Eigen::Matrix3f R = inc_pose.topLeftCorner<3,3>();
+  Eigen::Vector3f t = inc_pose.block<3,1>(0,3);
+  int x, y;
+  float ax, ay, inv_z, norm;
+  depth_norm = cv::Mat_<float>::zeros(height, width);
+  depth_weight = cv::Mat_<float>::zeros(height, width);
+  tmp_z = cv::Mat_<float>::zeros(height, width);
+  nan_z = cv::Mat_<float>(height,width);
+
+  // tranform filt cloud to current frame and update
+  for (int v=0; v<_sf_cloud.rows; v++)
+  {
+    for (int u=0; u<_sf_cloud.cols; u++)
+    {
+      const Surfel &s = _sf_cloud(v,u);
+
+      if (std::isnan(s.pt[0])||std::isnan(s.pt[1])||std::isnan(s.pt[2]))
+        continue;
+
+      pt = R*s.pt+t;
+      inv_z = 1./pt[2];
+      im_pt.x = C[0]*pt[0]*inv_z + C[2];
+      im_pt.y = C[4]*pt[1]*inv_z + C[5];
+      x = (int)(im_pt.x);
+      y = (int)(im_pt.y);
+
+      if (x<=0 || y<=0 || x>=width-1 || y>=height-1)
+        continue;
+
+      ax = im_pt.x-x;
+      ay = im_pt.y-y;
+      float *dn = &depth_norm(y,x);
+      float *dw = &depth_weight(y,x);
+      float *tz = &tmp_z(y,x);
+
+      {
+        norm = 0;
+        const float &d = _cloud(x,y).z;
+        if (!std::isnan(d))
+        {
+          int err_idx = (int)(fabs(inv_z-1./d)*1000.);
+          if (err_idx<1000) norm = exp_error_lookup[err_idx];
+        }
+        else
+        {
+          if (dn[0]<=std::numeric_limits<float>::epsilon())
+          {
+            norm = 1.;
+            nan_z(y,x) = pt[2];
+          }
+          else
+          {
+            int err_idx = (int)(fabs(inv_z-1./nan_z(y,x))*1000.);
+            if (err_idx<1000) norm = exp_error_lookup[err_idx];
+          }
+        }
+        norm *= (1.-ax) * (1.-ay);
+        tz[0] += norm*pt[2];
+        dw[0] += norm*s.weight;
+        dn[0] += norm;
+      }
+      {
+        norm = 0;
+        const float &d = _cloud(x+1,y).z;
+        if (!std::isnan(d))
+        {
+          int err_idx = (int)(fabs(inv_z-1./d)*1000.);
+          if (err_idx<1000) norm = exp_error_lookup[err_idx];
+        }
+        else
+        {
+          if (dn[1]<=std::numeric_limits<float>::epsilon())
+          {
+            norm = 1.;
+            nan_z(y,x+1) = pt[2];
+          }
+          else
+          {
+            int err_idx = (int)(fabs(inv_z-1./nan_z(y,x+1))*1000.);
+            if (err_idx<1000) norm = exp_error_lookup[err_idx];
+          }
+        }
+        norm *= ax * (1.-ay);
+        tz[1] += norm*pt[2];
+        dw[1] += norm*s.weight;
+        dn[1] += norm;
+      }
+      {
+        norm = 0;
+        const float &d = _cloud(x, y+1).z;
+        if (!std::isnan(d))
+        {
+          int err_idx = (int)(fabs(inv_z-1./d)*1000.);
+          if (err_idx<1000) norm = exp_error_lookup[err_idx];
+        }
+        else
+        {
+          if (dn[width]<=std::numeric_limits<float>::epsilon())
+          {
+            norm = 1.;
+            nan_z(y+1,x) = pt[2];
+          }
+          else
+          {
+            int err_idx = (int)(fabs(inv_z-1./nan_z(y+1,x))*1000.);
+            if (err_idx<1000) norm = exp_error_lookup[err_idx];
+          }
+        }
+        norm *= (1.-ax) *  ay;
+        tz[width] += norm*pt[2];
+        dw[width] += norm*s.weight;
+        dn[width] += norm;
+      }
+      {
+        norm = 0;
+        const float &d = _cloud(x+1, y+1).z;
+        if (!std::isnan(d))
+        {
+          int err_idx = (int)(fabs(inv_z-1./d)*1000.);
+          if (err_idx<1000) norm = exp_error_lookup[err_idx];
+        }
+        else
+        {
+          if (dn[width+1]<=std::numeric_limits<float>::epsilon())
+          {
+            norm = 1.;
+            nan_z(y+1,x+1) = pt[2];
+          }
+          else
+          {
+            int err_idx = (int)(fabs(inv_z-1./nan_z(y+1,x+1))*1000.);
+            if (err_idx<1000) norm = exp_error_lookup[err_idx];
+          }
+        }
+        norm *= ax * ay;
+        tz[width+1] += norm*pt[2];
+        dw[width+1] += norm*s.weight;
+        dn[width+1] += norm;
+      }
+    }
+  }
+
+
+  // integrate new data
+  float inv_norm;
+  for (unsigned v=0; v<_cloud.height; v++)
+  {
+    for (unsigned u=0; u<_cloud.width; u++)
+    {
+      const float &dw = depth_weight(v,u);
+      Surfel &sf = _sf_cloud(v,u);
+
+      if (fabs(dw)<=std::numeric_limits<float>::epsilon())
+      {
+        sf = Surfel(_cloud(u,v));
+      }
+      else
+      {
+        const pcl::PointXYZRGB &pt = _cloud(u,v);
+        const float &tz = tmp_z(v,u);
+        inv_norm = 1./depth_norm(v,u);
+        sf.pt[2] = tz*inv_norm;
+        sf.weight = dw*inv_norm;
+        if (!isnan(pt.z))
+          sf.pt[2] = (sf.pt[2]*(float)sf.weight + pt.z) / (float)(sf.weight+1.);
+        sf.pt[0] = sf.pt[2]*((u-C[2])*invC0);
+        sf.pt[1] = sf.pt[2]*((v-C[5])*invC4);
+        sf.r = pt.r;
+        sf.g = pt.g;
+        sf.b = pt.b;
+        if (sf.weight<max_integration_frames) sf.weight+=1;
+      }
+    }
+  }
+
+  _sf_pose = pose;
+}
+
 
 /**
  * @brief Sensor::selectFrames

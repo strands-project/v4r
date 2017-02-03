@@ -259,6 +259,38 @@ void IMKRecognizer::setViewDescriptor(const std::vector< cv::Mat_<unsigned char>
   #endif
 }
 
+/**
+ * @brief IMKRecognizer::loadObjectIndices
+ * @param _filename
+ * @param _mask
+ * @param _size
+ * @return
+ */
+bool IMKRecognizer::loadObjectIndices(const std::string &_filename, cv::Mat_<unsigned char> &_mask, const cv::Size &_size)
+{
+  int idx;
+  std::vector<int> indices;
+
+  std::ifstream mi_f (  _filename );
+  if (mi_f.is_open())
+  {
+    while ( mi_f >> idx )
+      indices.push_back(idx);
+    mi_f.close();
+
+    _mask = cv::Mat_<unsigned char>::zeros(_size);
+    int size = _mask.rows*_mask.cols;
+
+    for (unsigned i=0; i<indices.size(); i++)
+    {
+      if (indices[i]<size)
+        _mask(indices[i]/_mask.cols, indices[i]%_mask.cols) = 255;
+    }
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * @brief IMKRecognizer::createObjectModel
@@ -276,7 +308,7 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
   cv::Mat_<unsigned char> im_gray;
   cv::Mat_<unsigned char> mask;
   std::vector<std::string> cloud_files;
-  std::string pose_file, mask_file;
+  std::string pose_file, mask_file, object_indices_file;
   std::string so_far = "";
   std::string pattern =  std::string("cloud_")+std::string(".*.")+std::string("pcd");
   const std::string &name = object_names[idx];
@@ -297,11 +329,13 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
 
   for (unsigned i=0; i<cloud_files.size(); i++)
   {
-    mask_file = pose_file = cloud_files[i];
+    object_indices_file = mask_file = pose_file = cloud_files[i];
     boost::replace_last (mask_file, "pcd", "png");
     boost::replace_last (mask_file, "cloud_", "mask_");
     boost::replace_last (pose_file, "pcd", "txt");
     boost::replace_last (pose_file, "cloud_", "pose_");
+    boost::replace_last (object_indices_file, "pcd", "txt");
+    boost::replace_last (object_indices_file, "cloud_", "object_indices_");
 
     if (pcd.read (base_dir+std::string("/")+name+std::string("/views/")+cloud_files[i], *cloud2, origin, orientation, version) < 0)
       continue;
@@ -309,7 +343,10 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
     mask = cv::imread(base_dir+std::string("/")+name+std::string("/views/")+mask_file, CV_LOAD_IMAGE_GRAYSCALE);
 
     if (mask.empty())
-      continue;
+    {
+      if (!loadObjectIndices(base_dir+std::string("/")+name+std::string("/views/")+object_indices_file, mask, cv::Size(cloud2->width,cloud2->height)))
+        continue;
+    }
 
     pcl::fromPCLPointCloud2 (*cloud2, *cloud);
     convertImage(*cloud, image);
@@ -461,7 +498,7 @@ double IMKRecognizer::computeGradientHistogramConf(const std::vector< cv::Mat_<u
     #ifdef DEBUG_AR_GUI
     if (!view.im_gray.empty()) cv::imshow("view.im_gray",view.im_gray);
     cv::imshow("im_warped", ims_warped[i]);
-    cv::waitKey(0);
+//    cv::waitKey(0);
     #endif
   }
   int size = (desc.size()<view.conf_desc.size()?desc.size():view.conf_desc.size());
