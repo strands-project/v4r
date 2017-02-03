@@ -64,7 +64,6 @@ public:
     float color_sigma_ab_; ///< allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
     float sigma_normals_deg_; ///< variance for normals between model and scene
     float regularizer_; ///< represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.
-    float radius_neighborhood_clutter_; ///< defines the maximum distance between an <i>explained</i> scene point <b>p</b> and other unexplained scene points such that they influence the clutter term associated with <b>p</b>
     int normal_method_; ///< method used for computing the normals of the downsampled scene point cloud (defined by the V4R Library)
     bool ignore_color_even_if_exists_; ///< if true, only checks 3D Eucliden distance of neighboring points
     int max_iterations_; ///< max iterations the optimization strategy explores local neighborhoods before stopping because the cost does not decrease.
@@ -75,26 +74,17 @@ public:
     bool initial_status_; ///< sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.
 //        int color_space_; ///< specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ???)
     int color_comparison_method_; ///< method used for color comparison (0... CIE76, 1... CIE94, 2... CIEDE2000)
-    bool visualize_go_cues_; ///< visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
-    bool visualize_model_cues_; ///< visualizes the model cues. Useful for debugging
-    bool visualize_pairwise_cues_; ///< visualizes the pairwise cues. Useful for debugging
-    int knn_inliers_; ///< number of nearby scene points to check for a query model point
-
     float min_visible_ratio_; ///< defines how much of the object has to be visible in order to be included in the verification stage
-    int knn_color_neighborhood_; ///< number of nearest neighbors used for describing the color around a point
-    float color_std_dev_multiplier_threshold_; ///< standard deviation multiplier threshold for the local color description for each color channel
-
-    bool check_plane_intersection_; ///< if true, extracts planes and checks if they intersect with hypotheses
-    int plane_method_;  ///< method used for plane extraction (0... RANSAC (only available for single-view), 1... region growing)
 
     //Euclidean smooth segmenation
-    bool check_smooth_clusters_;
-    float eps_angle_threshold_deg_;
-    float curvature_threshold_;
-    float cluster_tolerance_;
-    int min_points_;
+    bool check_smooth_clusters_; ///< if true, checks if hypotheses explain whole smooth regions of input cloud (if they only partially explain one smooth region, the solution is rejected)
+    float eps_angle_threshold_deg_; ///< angle threshold in degree to cluster two neighboring points together
+    float curvature_threshold_; ///< curvature threshold to allow clustering of two points (points with surface curvatures higher than this threshold are skipped)
+    float cluster_tolerance_; ///< cluster tolerance in meters for point to be clustered together
+    int min_points_; ///< mininum number of points for a smooth region to be extracted
     float min_ratio_cluster_explained_; ///< defines the minimum ratio a smooth cluster has to be explained by the visible points (given there are at least 100 points)
     bool z_adaptive_;   ///< if true, scales the smooth segmentation parameters linear with distance (constant till 1m at the given parameters)
+    size_t min_pts_smooth_cluster_to_be_epxlained_; ///< minimum number of points a cluster need to be explained by model points to be considered for a check (avoids the fact that boundary points of a smooth region can be close to an object)
 
     HV_Parameter (
             int resolution_mm = 5,
@@ -113,7 +103,6 @@ public:
             float color_sigma_ab = 20.f,
             float sigma_normals_deg = 30.f,
             float regularizer = 1.f,
-            float radius_neighborhood_clutter = 0.02f,
             int normal_method = 2,
             bool ignore_color_even_if_exists = false,
             int max_iterations = 5000,
@@ -124,22 +113,16 @@ public:
             bool initial_status = false,
 //                int color_space = ColorTransformOMP::LAB,
             int color_comparison = ColorComparisonMethod::ciede2000,
-            bool visualize_go_cues = false,
-            int knn_inliers = 5,
             float min_visible_ratio = 0.15f,
-            float min_model_fitness_lower_bound = 0.20f,
-            float min_model_fitness_upper_bound = 0.40f,
-            int knn_color_neighborhood = 10,
-            float color_std_dev_multiplier_threshold = 1.f,
-            bool check_plane_intersection = true,
-            int plane_method = 2,
             bool check_smooth_clusters = true,
             float eps_angle_threshold_deg = 5.f, //0.25rad
             float curvature_threshold = 0.04f,
             float cluster_tolerance = 0.01f, //0.015f;
             int min_points = 100, // 20
             float min_ratio_cluster_explained = 0.5,
-            bool z_adaptive = true)
+            bool z_adaptive = true,
+            size_t min_pts_smooth_cluster_to_be_epxlained = 50
+            )
         : resolution_mm_ (resolution_mm),
           inliers_threshold_(inliers_threshold),
           inliers_surface_angle_thres_ (inliers_surface_angle_thres),
@@ -156,7 +139,6 @@ public:
           color_sigma_ab_ (color_sigma_ab),
           sigma_normals_deg_ (sigma_normals_deg),
           regularizer_ (regularizer),
-          radius_neighborhood_clutter_ (radius_neighborhood_clutter),
           normal_method_ (normal_method),
           ignore_color_even_if_exists_ (ignore_color_even_if_exists),
           max_iterations_ (max_iterations),
@@ -167,20 +149,15 @@ public:
           initial_status_ (initial_status),
 //              color_space_ (color_space),
           color_comparison_method_ (color_comparison),
-          visualize_go_cues_ ( visualize_go_cues ),
-          knn_inliers_ (knn_inliers),
           min_visible_ratio_ (min_visible_ratio),
-          knn_color_neighborhood_ (knn_color_neighborhood),
-          color_std_dev_multiplier_threshold_ (color_std_dev_multiplier_threshold),
-          check_plane_intersection_ ( check_plane_intersection ),
-          plane_method_ (plane_method),
           check_smooth_clusters_ ( check_smooth_clusters ),
           eps_angle_threshold_deg_ (eps_angle_threshold_deg),
           curvature_threshold_ (curvature_threshold),
           cluster_tolerance_ (cluster_tolerance),
           min_points_ (min_points),
           min_ratio_cluster_explained_ ( min_ratio_cluster_explained ),
-          z_adaptive_ ( z_adaptive )
+          z_adaptive_ ( z_adaptive ),
+          min_pts_smooth_cluster_to_be_epxlained_ (min_pts_smooth_cluster_to_be_epxlained)
     {}
 
 
@@ -217,11 +194,9 @@ public:
                 ("hv_initial_status", po::value<bool>(&initial_status_)->default_value(initial_status_), "sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.")
 //                    ("hv_color_space", po::value<int>(&color_space_)->default_value(color_space_), "specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ?)")
                 ("hv_color_comparison_method", po::value<int>(&color_comparison_method_)->default_value(color_comparison_method_), "method used for color comparison (0... CIE76, 1... CIE94, 2... CIEDE2000)")
-                ("hv_color_stddev_mul", po::value<float>(&color_std_dev_multiplier_threshold_)->default_value(color_std_dev_multiplier_threshold_), "standard deviation multiplier threshold for the local color description for each color channel")
                 ("hv_inlier_threshold", po::value<float>(&inliers_threshold_)->default_value(inliers_threshold_, boost::str(boost::format("%.2e") % inliers_threshold_) ), "Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers")
                 ("hv_occlusion_threshold", po::value<float>(&occlusion_thres_)->default_value(occlusion_thres_, boost::str(boost::format("%.2e") % occlusion_thres_) ), "Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)")
                 ("hv_optimizer_type", po::value<int>(&opt_type_)->default_value(opt_type_), "defines the optimization methdod. 0: Local search (converges quickly, but can easily get trapped in local minima), 1: Tabu Search, 4; Tabu Search + Local Search (Replace active hypotheses moves), else: Simulated Annealing")
-                ("hv_radius_clutter", po::value<float>(&radius_neighborhood_clutter_)->default_value(radius_neighborhood_clutter_, boost::str(boost::format("%.2e") % radius_neighborhood_clutter_) ), "defines the maximum distance between two points to be checked for label consistency")
                 ("hv_regularizer,r", po::value<float>(&regularizer_)->default_value(regularizer_, boost::str(boost::format("%.2e") % regularizer_) ), "represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.")
                 ("hv_resolution_mm", po::value<int>(&resolution_mm_)->default_value(resolution_mm_), "The resolution of models and scene used to verify hypotheses (in milli meters)")
                 ("hv_min_visible_ratio", po::value<float>(&min_visible_ratio_)->default_value(min_visible_ratio_, boost::str(boost::format("%.2e") % min_visible_ratio_) ), "defines how much of the object has to be visible in order to be included in the verification stage")
@@ -230,10 +205,6 @@ public:
                 ("hv_cluster_tolerance", po::value<float>(&cluster_tolerance_)->default_value(cluster_tolerance_), "smooth clustering parameter for cluster_tolerance")
                 ("hv_curvature_threshold", po::value<float>(&curvature_threshold_)->default_value(curvature_threshold_), "smooth clustering parameter for curvate")
                 ("hv_check_smooth_clusters", po::value<bool>(&check_smooth_clusters_)->default_value(check_smooth_clusters_), "if true, checks for each hypotheses how well it explains occupied smooth surface patches. Hypotheses are rejected if they only partially explain smooth clusters.")
-
-                ("hv_vis_cues", po::bool_switch(&visualize_go_cues_), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
-                ("hv_vis_model_cues", po::bool_switch(&visualize_model_cues_), "If set, visualizes the model cues. Useful for debugging")
-                ("hv_vis_pairwise_cues", po::bool_switch(&visualize_pairwise_cues_), "If set, visualizes the pairwise cues. Useful for debugging")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -268,7 +239,6 @@ public:
                 & BOOST_SERIALIZATION_NVP(color_sigma_ab_)
                 & BOOST_SERIALIZATION_NVP(sigma_normals_deg_)
                 & BOOST_SERIALIZATION_NVP(regularizer_)
-                & BOOST_SERIALIZATION_NVP(radius_neighborhood_clutter_)
                 & BOOST_SERIALIZATION_NVP(normal_method_)
                 & BOOST_SERIALIZATION_NVP(ignore_color_even_if_exists_)
                 & BOOST_SERIALIZATION_NVP(max_iterations_)
@@ -279,19 +249,16 @@ public:
                 & BOOST_SERIALIZATION_NVP(initial_status_)
                 //              color_space_
                 & BOOST_SERIALIZATION_NVP(color_comparison_method_)
-                & BOOST_SERIALIZATION_NVP(knn_inliers_)
                 & BOOST_SERIALIZATION_NVP( min_visible_ratio_)
-                & BOOST_SERIALIZATION_NVP(knn_color_neighborhood_)
-                & BOOST_SERIALIZATION_NVP(color_std_dev_multiplier_threshold_)
-                & BOOST_SERIALIZATION_NVP(check_plane_intersection_)
-                & BOOST_SERIALIZATION_NVP(plane_method_)
                 & BOOST_SERIALIZATION_NVP(check_smooth_clusters_)
                 & BOOST_SERIALIZATION_NVP(eps_angle_threshold_deg_)
                 & BOOST_SERIALIZATION_NVP(curvature_threshold_)
                 & BOOST_SERIALIZATION_NVP(cluster_tolerance_)
                 & BOOST_SERIALIZATION_NVP(min_points_)
                 & BOOST_SERIALIZATION_NVP(min_ratio_cluster_explained_)
-                & BOOST_SERIALIZATION_NVP(z_adaptive_);
+                & BOOST_SERIALIZATION_NVP(z_adaptive_)
+                & BOOST_SERIALIZATION_NVP(min_pts_smooth_cluster_to_be_epxlained_)
+                ;
     }
 
     void

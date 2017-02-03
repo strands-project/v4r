@@ -99,9 +99,6 @@ main (int argc, char ** argv)
             ("visualize,v", po::bool_switch(&visualize), "visualize recognition results")
             ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
             ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
-            ("hv_vis_cues", po::bool_switch(&paramHV.visualize_go_cues_), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
-            ("hv_vis_model_cues", po::bool_switch(&paramHV.visualize_model_cues_), "If set, visualizes the model cues. Useful for debugging")
-            ("hv_vis_pairwise_cues", po::bool_switch(&paramHV.visualize_pairwise_cues_), "If set, visualizes the pairwise cues. Useful for debugging")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();

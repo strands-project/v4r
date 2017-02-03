@@ -3,12 +3,10 @@
 #include <v4r/common/normals.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/occlusion_reasoning.h>
-#include <v4r/common/pcl_opencv.h>
 #include <v4r/common/zbuffering.h>
 #include <v4r/recognition/hypotheses_verification.h>
 
 #include <Eigen/Sparse>
-#include <opencv2/opencv.hpp>
 #include <pcl_1_8/keypoints/uniform_sampling.h>
 #include <pcl/common/angles.h>
 #include <pcl/common/common.h>
@@ -18,7 +16,7 @@
 #include <pcl_1_8/segmentation/conditional_euclidean_clustering.h>
 
 #include <fstream>
-#include <iomanip>
+//#include <iomanip>
 #include <omp.h>
 #include <numeric>
 
@@ -291,10 +289,10 @@ template<typename ModelT, typename SceneT>
 mets::gol_type
 HypothesisVerification<ModelT, SceneT>::evaluateSolution (const boost::dynamic_bitset<> &solution)
 {
-    pcl::ScopeTime t("evaluate solution");
-
     scene_pts_explained_solution_.clear();
     scene_pts_explained_solution_.resize( scene_cloud_downsampled_->points.size() );
+    double cost = std::numeric_limits<double>::max();
+
     for(size_t i=0; i<global_hypotheses_.size(); i++)
     {
         const typename HVRecognitionModel<ModelT>::Ptr rm = global_hypotheses_[i];
@@ -310,18 +308,45 @@ HypothesisVerification<ModelT, SceneT>::evaluateSolution (const boost::dynamic_b
         std::sort(spt_it->begin(), spt_it->end());
 
     double scene_fit =0., duplicity=0.;
-    for(size_t s_id=0; s_id < scene_pts_explained_solution_.size(); s_id++)
+    Eigen::Array<bool, Eigen::Dynamic, 1> scene_pt_is_explained( scene_cloud_downsampled_->points.size() );
+    scene_pt_is_explained.setConstant( scene_cloud_downsampled_->points.size(), false);
+
+    CHECK( scene_cloud_downsampled_->points.size() == scene_pts_explained_solution_.size());
+    for(size_t s_id=0; s_id < scene_cloud_downsampled_->points.size(); s_id++)
     {
         const std::vector<PtFitness> &s_pt = scene_pts_explained_solution_[s_id];
         if(  !s_pt.empty() )
+        {
             scene_fit += s_pt.back().fit_; // uses the maximum value for scene explanation
+            scene_pt_is_explained(s_id) = true;
+        }
 
         if ( s_pt.size() > 1 ) // two or more hypotheses explain the same scene point
             duplicity += s_pt[ s_pt.size() - 2 ].fit_; // uses the second best explanation
     }
 
+    bool violates_smooth_region_check = false;
+    if (param_.check_smooth_clusters_)
+    {
+        int max_label = scene_pt_smooth_label_id_.maxCoeff();
+        for(int i=1; i<max_label; i++) // label "0" is for points not belonging to any smooth region
+        {
+            auto s_pt_in_region = (scene_pt_smooth_label_id_.array() == i );
+            auto explained_pt_in_region = (s_pt_in_region.array() && scene_pt_is_explained.array());
+            size_t num_explained_pts_in_region = explained_pt_in_region.count();
+            size_t num_pts_in_smooth_regions = s_pt_in_region.count();
 
-    double cost = -( scene_fit - param_.clutter_regularizer_ * duplicity );
+            if ( num_explained_pts_in_region > param_.min_pts_smooth_cluster_to_be_epxlained_ &&
+                 (float)(num_explained_pts_in_region) / num_pts_in_smooth_regions < param_.min_ratio_cluster_explained_ )
+            {
+                violates_smooth_region_check = true;
+                break;
+            }
+        }
+    }
+
+    if( !violates_smooth_region_check )
+        cost = -( scene_fit - param_.clutter_regularizer_ * duplicity );
 
     if(cost_logger_)
     {
@@ -363,7 +388,7 @@ HypothesisVerification<ModelT, SceneT>::computePairwiseIntersection()
             intersection_cost_(i,j) = intersection_cost_(j,i) = conflict_cost;
         }
 
-        if(!param_.visualize_pairwise_cues_)
+        if(!vis_pairwise_)
             rm_a.image_mask_.clear();
     }
 }
@@ -385,7 +410,7 @@ HypothesisVerification<ModelT, SceneT>::removeModelsWithLowVisibility()
 
                 std::cout << "Removed " << rm->model_id_ << " due to low visibility!" << std::endl;
 
-                if(!param_.visualize_model_cues_)
+                if( !vis_model_ )
                     rm->freeSpace();
             }
         }
@@ -441,25 +466,12 @@ HypothesisVerification<ModelT, SceneT>::extractEuclideanClustersSmooth()
     pcl_1_8::IndicesClusters clusters;
     cec.segment (clusters);
 
-    scene_smooth_labels_.clear();
-    scene_smooth_labels_.resize( scene_cloud_downsampled_->points.size(), 0 );
-    smooth_label_count_.resize( clusters.size() + 1);
-
-    scene_pt_is_in_smooth_cluster_.resize( clusters.size(), boost::dynamic_bitset<>( scene_cloud_downsampled_->points.size(), 0) );
-
-    size_t total_labeled_pts = 0;
+    scene_pt_smooth_label_id_ = Eigen::VectorXi::Zero( scene_cloud_downsampled_->points.size() );
     for (size_t i = 0; i < clusters.size (); i++)
     {
-        smooth_label_count_[i+1] = clusters[i].indices.size();
-        total_labeled_pts +=clusters[i].indices.size();
-        for (size_t j = 0; j < clusters[i].indices.size (); j++)
-        {
-            int idx = clusters[i].indices[j];
-            scene_smooth_labels_[ idx ] = i+1;
-            scene_pt_is_in_smooth_cluster_[i].set(idx);
-        }
+        for (int sidx : clusters[i].indices)
+            scene_pt_smooth_label_id_( sidx ) = i+1; // label "0" for points not belonging to any smooth region
     }
-    smooth_label_count_[0] = scene_cloud_downsampled_->points.size() - total_labeled_pts;
 }
 
 template<typename ModelT, typename SceneT>
@@ -477,27 +489,6 @@ HypothesisVerification<ModelT, SceneT>::computeLOffset(HVRecognitionModel<ModelT
 
     Eigen::VectorXf color_new = specifyHistogram( rm.pt_color_.col( 0 ), color_s, 100, 0.f, 100.f );
     rm.pt_color_.col( 0 ) = color_new;
-}
-
-template<typename ModelT, typename SceneT>
-bool
-HypothesisVerification<ModelT, SceneT>::individualRejection(HVRecognitionModel<ModelT> &rm) const
-{
-    if (param_.check_smooth_clusters_)
-    {
-        for(size_t cluster_id=1; cluster_id<rm.explained_pts_per_smooth_cluster_.size(); cluster_id++)  // don't check label 0
-        {
-            if ( smooth_label_count_[cluster_id] > 100 &&  rm.explained_pts_per_smooth_cluster_[cluster_id] > 100 &&
-                 (float)(rm.explained_pts_per_smooth_cluster_[cluster_id]) / smooth_label_count_[cluster_id] < param_.min_ratio_cluster_explained_ )
-            {
-                rm.rejected_due_to_smooth_cluster_check_ = true;
-                break;
-            }
-        }
-    }
-
-    rm.is_outlier_ = ( param_.regularizer_ * rm.visible_pt_is_outlier_.count() > rm.scene_explained_weight_.sum() );
-    return rm.isRejected();
 }
 
 template<typename ModelT, typename SceneT>
@@ -743,7 +734,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
 
     global_hypotheses_.resize( obj_hypotheses_groups_.size() );
 
-    // do non-maxima surpression on all hypotheses in a hypotheses group based on model fitness
+    // do non-maxima surpression on all hypotheses in a hypotheses group based on model fitness (i.e. select only the one hypothesis in group with best model fit)
     for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
     {
         std::vector<typename HVRecognitionModel<ModelT>::Ptr > ohg = obj_hypotheses_groups_[i];
@@ -757,18 +748,19 @@ HypothesisVerification<ModelT, SceneT>::initialize()
     obj_hypotheses_groups_.clear(); // free space
 
 
-    if(param_.visualize_model_cues_)
+    if( vis_model_ )
     {
         for(const typename HVRecognitionModel<ModelT>::ConstPtr &rm : global_hypotheses_)
-            vis_model_.visualize( this, *rm);
+            vis_model_->visualize( this, *rm);
     }
 
     size_t kept_hypotheses = 0;
     for(size_t i=0; i<global_hypotheses_.size(); i++)
     {
         typename HVRecognitionModel<ModelT>::Ptr rm = global_hypotheses_[i];
+        rm->is_outlier_ = isOutlier(*rm);
 
-        if ( !rm->isRejected() && !individualRejection(*rm) )
+        if ( !rm->isRejected() )
             global_hypotheses_[kept_hypotheses++] = global_hypotheses_[i];
     }
 
@@ -783,8 +775,8 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         (void)t;
     }
 
-    if(param_.visualize_pairwise_cues_)
-        vis_pairwise_.visualize(this);
+    if( vis_pairwise_ )
+        vis_pairwise_->visualize(this);
 }
 
 template<typename ModelT, typename SceneT>
@@ -810,7 +802,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     cost_logger_.reset(new GHVCostFunctionLogger<ModelT, SceneT>(*best));
     mets::noimprove_termination_criteria noimprove (param_.max_iterations_);
 
-    if(param_.visualize_go_cues_)
+    if( vis_cues_ )
         cost_logger_->setVisualizeFunction(visualize_cues_during_logger_);
 
     switch( param_.opt_type_ )
@@ -900,7 +892,7 @@ HypothesisVerification<ModelT, SceneT>::verify()
         (void)t;
     }
 
-    if(param_.visualize_go_cues_)
+    if( vis_cues_ )
         visualize_cues_during_logger_ = boost::bind(&HypothesisVerification<ModelT, SceneT>::visualizeGOcues, this, _1, _2, _3);
 
     {
@@ -963,13 +955,10 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
     {
         std::vector<int> nn_indices;
         std::vector<float> nn_sqr_distances;
-        std::vector<int> nn_indices2;
-        std::vector<float> nn_sqr_distances2;
 
         bool is_outlier = true;
         double radius = 2. * param_.resolution_mm_ / 1000.;
         octree_scene_downsampled_->radiusSearch(rm.visible_cloud_->points[midx], radius, nn_indices, nn_sqr_distances);
-        octree_scene_downsampled_->radiusSearch(rm.visible_cloud_->points[midx], radius, nn_indices2, nn_sqr_distances2, param_.knn_inliers_);
 
 //        vis.addSphere(rm.visible_cloud_->points[midx], 0.005, 0., 1., 0., "queryPoint", vp1 );
 
@@ -1031,9 +1020,6 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
     boost::dynamic_bitset<> scene_explained_pts ( scene_cloud_downsampled_->points.size(), 0);
     boost::dynamic_bitset<> model_explained_pts ( rm.visible_cloud_->points.size(), 0);
 
-    rm.explained_pts_per_smooth_cluster_.clear();
-    rm.explained_pts_per_smooth_cluster_.resize(smooth_label_count_.size(), 0);
-
     for( const ModelSceneCorrespondence &c : rm.model_scene_c_ )
     {
         int sidx = c.scene_id_;
@@ -1043,12 +1029,6 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
         {
             scene_explained_pts.set(sidx);
             rm.scene_explained_weight_.insert(sidx) = c.fitness_ ;
-
-            if( param_.check_smooth_clusters_ )
-            {
-                int l = scene_smooth_labels_[sidx];
-                rm.explained_pts_per_smooth_cluster_[l] ++;
-            }
         }
 
         if( !model_explained_pts[midx] )

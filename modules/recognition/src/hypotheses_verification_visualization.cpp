@@ -110,6 +110,8 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
         }
     }
 
+    Eigen::Array<bool, Eigen::Dynamic, 1> scene_pt_is_explained( hv->scene_cloud_downsampled_->points.size() ); // needed for smooth region visualization
+    scene_pt_is_explained.setConstant(hv->scene_cloud_downsampled_->points.size(), false);
 
     // ==== VISUALIZE SCENE FITNESS =======
     {
@@ -128,11 +130,15 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
                 double s_fit_tmp = static_cast<double>( s_pt.back().fit_ );
                 scene_fit += s_fit_tmp;
                 p.g = 255.f * s_fit_tmp; // uses the maximum value for scene explanation
+                scene_pt_is_explained(s_id) = true;
             }
         }
         vis_go_cues_->addPointCloud(scene_fit_cloud, "scene fitness cloud", vp_scene_fitness_);
-        std::stringstream scene_fitness_txt; scene_fitness_txt << "scene fitness: " << scene_fit;
-        vis_go_cues_->addText (scene_fitness_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene fitness", vp_scene_fitness_);
+        if(!vis_param_->no_text_)
+        {
+            std::stringstream scene_fitness_txt; scene_fitness_txt << "scene fitness: " << scene_fit;
+            vis_go_cues_->addText (scene_fitness_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene fitness", vp_scene_fitness_);
+        }
     }
 
     // ==== VISUALIZE DUPLICATED POINTS FITNESS =======
@@ -155,18 +161,29 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
             }
         }
         vis_go_cues_->addPointCloud(duplicity_cloud, "duplicity cloud", vp_scene_duplicity_);
-        std::stringstream duplicity_txt; duplicity_txt << "duplicity: " << duplicity;
-        vis_go_cues_->addText (duplicity_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "duplicity txt", vp_scene_duplicity_);
+
+        if(!vis_param_->no_text_)
+        {
+            std::stringstream duplicity_txt; duplicity_txt << "duplicity: " << duplicity;
+            vis_go_cues_->addText (duplicity_txt.str(), 1, 30, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "duplicity txt", vp_scene_duplicity_);
+        }
     }
 
 
     // ---- VISUALIZE SMOOTH SEGMENTATION -------
     {
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_smooth_labels_rgb (new pcl::PointCloud<pcl::PointXYZRGB>(*hv->scene_cloud_downsampled_));
-        if(!hv->smooth_label_count_.empty())
+        int max_label = hv->scene_pt_smooth_label_id_.maxCoeff() + 1;
+        if( max_label >= 1 )
         {
-            Eigen::Matrix3Xf label_colors (3, hv->smooth_label_count_.size());
-            for(size_t i=0; i<hv->smooth_label_count_.size(); i++)
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_smooth_labels_rgb (new pcl::PointCloud<pcl::PointXYZRGB>(*hv->scene_cloud_downsampled_));
+
+            if(!vis_param_->no_text_)
+                vis_go_cues_->addText( "smooth regions", 1, 30, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "smooth seg text", vp_scene_smooth_regions_);
+
+
+            Eigen::Matrix3Xf label_colors (3, max_label);
+            size_t num_smooth_regions_of_interest = 0;
+            for(int i=0; i<max_label; i++)
             {
                 float r,g,b;
                 if( i==0 )
@@ -181,17 +198,28 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
                 label_colors(1,i) = g;
                 label_colors(2,i) = b;
 
-                if(!vis_param_->no_text_)
+
+                auto s_pt_in_region = (hv->scene_pt_smooth_label_id_.array() == i );
+                auto explained_pt_in_region = (s_pt_in_region.array() && scene_pt_is_explained.array());
+                size_t num_explained_pts_in_region = explained_pt_in_region.count();
+                size_t num_pts_in_smooth_regions = s_pt_in_region.count();
+
+                if(!vis_param_->no_text_ && num_explained_pts_in_region)
                 {
-                    std::stringstream lbl_txt; lbl_txt << std::fixed << std::setprecision(2) << hv->smooth_label_count_[i];
+                    std::stringstream lbl_txt; lbl_txt << std::fixed << std::setprecision(2) << num_explained_pts_in_region << " /" << " " << num_pts_in_smooth_regions;
+
+                    if ( num_explained_pts_in_region > hv->param_.min_pts_smooth_cluster_to_be_epxlained_ &&
+                         (float)(num_explained_pts_in_region) / num_pts_in_smooth_regions < hv->param_.min_ratio_cluster_explained_ )
+                        lbl_txt << " !!";   // violates smooth region check
+
                     std::stringstream txt_id; txt_id << "smooth_cluster_txt " << i;
-                    vis_go_cues_->addText( lbl_txt.str(), 10, 10+12*i, vis_param_->fontsize_, r/255, g/255, b/255, txt_id.str(), vp_scene_smooth_regions_);
+                    vis_go_cues_->addText( lbl_txt.str(), 10, 40+12*num_smooth_regions_of_interest++, vis_param_->fontsize_, r/255, g/255, b/255, txt_id.str(), vp_scene_smooth_regions_);
                 }
             }
 
-            for(size_t i=0; i < hv->scene_smooth_labels_.size(); i++)
+            for(int i=0; i < hv->scene_pt_smooth_label_id_.rows(); i++)
             {
-                int l = hv->scene_smooth_labels_[i];
+                int l = hv->scene_pt_smooth_label_id_(i);
                 pcl::PointXYZRGB &p = scene_smooth_labels_rgb->points[i];
                 p.r = label_colors(0,l);
                 p.g = label_colors(1,l);
@@ -216,7 +244,7 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
         vis_model_->createViewPort(0   , 0  , 0.2, 0.33, vp_model_scene_);
         vis_model_->createViewPort(0.2 , 0  , 0.4, 0.33, vp_model_);
         vis_model_->createViewPort(0.4 , 0  , 0.6, 0.33, vp_model_scene_overlay_);
-        vis_model_->createViewPort(0.6 , 0  , 0.8, 0.33, vp_model_smooth_regions_);
+        vis_model_->createViewPort(0.6 , 0  , 0.8, 0.33, vp_model_outliers_);
         vis_model_->createViewPort(0.8 , 0  , 1  , 0.33, vp_model_scene_fit_);
 
         vis_model_->createViewPort(0. , 0.33 , 0.2 ,0.66 , vp_model_visible_);
@@ -224,8 +252,6 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
         vis_model_->createViewPort(0.4, 0.33 , 0.6 ,0.66 , vp_model_3d_fit_);
         vis_model_->createViewPort(0.6, 0.33 , 0.8 ,0.66 , vp_model_color_fit_);
         vis_model_->createViewPort(0.8, 0.33 , 1   ,0.66 , vp_model_normals_fit_);
-
-        vis_model_->createViewPort(0. , 0.66 , 0.2 ,1 , vp_model_outliers_);
 
         vis_model_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2]);
     }
@@ -377,48 +403,6 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
         }
     }
 
-    // ---- VISUALIZE SMOOTH SEGMENTATION -------
-    {
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_smooth_labels_rgb (new pcl::PointCloud<pcl::PointXYZRGB>(*hv->scene_cloud_downsampled_));
-        if(!hv->smooth_label_count_.empty())
-        {
-            Eigen::Matrix3Xf label_colors (3, hv->smooth_label_count_.size());
-            for(size_t i=0; i<hv->smooth_label_count_.size(); i++)
-            {
-                float r,g,b;
-                if( i==0 )
-                    r = g = b = 255; // label 0 will be white
-                else
-                {
-                    r = rand () % 255;
-                    g = rand () % 255;
-                    b = rand () % 255;
-                }
-                label_colors(0,i) = r;
-                label_colors(1,i) = g;
-                label_colors(2,i) = b;
-
-                if(!vis_param_->no_text_)
-                {
-                    std::stringstream lbl_txt; lbl_txt << std::fixed << std::setprecision(2) << rm.explained_pts_per_smooth_cluster_[i] << " / " << hv->smooth_label_count_[i];
-                    std::stringstream txt_id; txt_id << "smooth_cluster_txt " << i;
-                    vis_model_->addText( lbl_txt.str(), 10, 10+12*i, vis_param_->fontsize_, r/255, g/255, b/255, txt_id.str(), vp_model_smooth_regions_);
-                }
-            }
-
-            for(size_t i=0; i < hv->scene_smooth_labels_.size(); i++)
-            {
-                int l = hv->scene_smooth_labels_[i];
-                pcl::PointXYZRGB &p = scene_smooth_labels_rgb->points[i];
-                p.r = label_colors(0,l);
-                p.g = label_colors(1,l);
-                p.b = label_colors(2,l);
-            }
-            vis_model_->addPointCloud(scene_smooth_labels_rgb, "smooth labels", vp_model_smooth_regions_);
-        }
-    }
-
-
     // ==== VISUALIZE SCENE FITNESS CLOUD =====
     {
         typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*hv->scene_cloud_downsampled_));
@@ -443,7 +427,6 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
     }
 
     vis_model_->addPointCloud(rm.visible_cloud_, "scene_model_2", vp_model_scene_overlay_);
-    vis_model_->addPointCloud(rm.visible_cloud_, "scene_model_4", vp_model_smooth_regions_);
 
     vis_model_->resetCamera();
     vis_model_->spin();

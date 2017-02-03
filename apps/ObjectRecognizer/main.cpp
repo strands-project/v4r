@@ -55,22 +55,23 @@ main (int argc, char ** argv)
     bool do_shot = true;
     bool do_esf = true;
     bool do_alexnet = false;
+    bool visualize_hv_go_cues = false;
+    bool visualize_hv_model_cues = false;
+    bool visualize_hv_pairwise_cues = false;
     double chop_z = std::numeric_limits<double>::max();
     std::string hv_config_xml = "cfg/hv_config.xml";
-    std::string sift_config_xml = "cfg/sift_config.xml";
     std::string shot_config_xml = "cfg/shot_config.xml";
     std::string alexnet_config_xml  = "cfg/alexnet_config.xml";
     std::string esf_config_xml = "cfg/esf_config.xml";
     std::string camera_config_xml = "cfg/camera.xml";
     std::string depth_img_mask = "cfg/xtion_depth_mask.png";
+    std::string sift_config_xml = "cfg/sift_config.xml";
 
     // Correspondence grouping parameters for local recognition pipeline
     float cg_size = 0.01f; // Size for correspondence grouping.
     int cg_thresh = 7; // Threshold for correspondence grouping. The lower the more hypotheses are generated, the higher the more confident and accurate. Minimum 3.
 
     google::InitGoogleLogging(argv[0]);
-
-    HV_Parameter paramHV (hv_config_xml);   ///TODO: this does not allow to read hv_config_xml filename from console
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
@@ -89,7 +90,7 @@ main (int argc, char ** argv)
             ("do_esf", po::value<bool>(&do_esf)->default_value(do_esf), "if true, enables ESF global matching")
             ("do_alexnet", po::value<bool>(&do_alexnet)->default_value(do_alexnet), "if true, enables AlexNet global matching")
             ("depth_img_mask", po::value<std::string>(&depth_img_mask)->default_value(depth_img_mask), "filename for image registration mask. This mask tells which pixels in the RGB image can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.")
-//            ("hv_config_xml", po::value<std::string>(&hv_config_xml)->default_value(hv_config_xml), "Filename of Hypotheses Verification XML configuration file.")
+            ("hv_config_xml", po::value<std::string>(&hv_config_xml)->default_value(hv_config_xml), "Filename of Hypotheses Verification XML configuration file.")
             ("sift_config_xml", po::value<std::string>(&sift_config_xml)->default_value(sift_config_xml), "Filename of SIFT XML configuration file.")
             ("shot_config_xml", po::value<std::string>(&shot_config_xml)->default_value(shot_config_xml), "Filename of SHOT XML configuration file.")
             ("alexnet_config_xml", po::value<std::string>(&alexnet_config_xml)->default_value(alexnet_config_xml), "Filename of Alexnet XML configuration file.")
@@ -98,9 +99,9 @@ main (int argc, char ** argv)
             ("visualize,v", po::bool_switch(&visualize), "visualize recognition results")
             ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
             ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
-            ("hv_vis_cues", po::bool_switch(&paramHV.visualize_go_cues_), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
-            ("hv_vis_model_cues", po::bool_switch(&paramHV.visualize_model_cues_), "If set, visualizes the model cues. Useful for debugging")
-            ("hv_vis_pairwise_cues", po::bool_switch(&paramHV.visualize_pairwise_cues_), "If set, visualizes the pairwise cues. Useful for debugging")
+            ("hv_vis_cues", po::bool_switch(&visualize_hv_go_cues), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
+            ("hv_vis_model_cues", po::bool_switch(&visualize_hv_model_cues), "If set, visualizes the model cues. Useful for debugging")
+            ("hv_vis_pairwise_cues", po::bool_switch(&visualize_hv_pairwise_cues), "If set, visualizes the pairwise cues. Useful for debugging")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
@@ -207,8 +208,16 @@ main (int argc, char ** argv)
 
 
     // ====== SETUP HYPOTHESES VERIFICATION =====
+    HV_Parameter paramHV (hv_config_xml);
     HypothesisVerification<PointT, PointT>::Ptr hv (new HypothesisVerification<PointT, PointT> (xtion, paramHV) );
+    if( visualize_hv_go_cues )
+        hv->visualizeCues();
+    if( visualize_hv_model_cues )
+        hv->visualizeModelCues();
+    if( visualize_hv_pairwise_cues )
+        hv->visualizePairwiseCues();
     hv->setModelDatabase(model_database);
+
 
     // ====== TEST RECOGNIZER ===================
     std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir );
@@ -296,6 +305,7 @@ main (int argc, char ** argv)
 
                 v4r::io::createDirForFileIfNotExist(out_path.string());
 
+                // save verified hypotheses
                 std::ofstream f ( out_path.string().c_str() );
                 for ( const ObjectHypothesis<PointT>::Ptr &voh : verified_hypotheses )
                 {
@@ -307,10 +317,31 @@ main (int argc, char ** argv)
                 }
                 f.close();
 
-//                    f.open( out_dir + "/" + sub_folder_name + "/" + views[v_id].substr(0, views[v_id].length()-4) + "_times.nfo");
-//                    for( const auto &t : elapsed_time)
-//                        f << t << " ";
-//                    f.close();
+                // save generated hypotheses
+                std::string out_path_generated_hypotheses = out_path.string();
+                boost::replace_last(out_path_generated_hypotheses, ".anno", ".generated_hyps");
+                f.open ( out_path_generated_hypotheses.c_str() );
+                for ( const ObjectHypothesesGroup<PointT> &gohg : generated_object_hypotheses )
+                {
+                    for ( const ObjectHypothesis<PointT>::Ptr &goh : gohg.ohs_ )
+                    {
+                        f << goh->model_id_ << " (-1.): ";
+                        for (size_t row=0; row <4; row++)
+                            for(size_t col=0; col<4; col++)
+                                f << goh->transform_(row, col) << " ";
+                        f << std::endl;
+
+                    }
+                }
+                f.close();
+
+                // save elapsed time(s)
+                std::string out_path_times = out_path.string();
+                boost::replace_last(out_path_times, ".anno", ".times");
+                f.open( out_path_times.c_str() );
+                for( const auto &t : elapsed_time)
+                    f << t << " ";
+                f.close();
             }
 
 

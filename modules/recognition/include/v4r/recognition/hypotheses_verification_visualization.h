@@ -42,9 +42,8 @@ private:
     friend class HypothesisVerification<ModelT, SceneT>;
 
     int
-    vp_model_scene_, vp_model_, vp_model_scene_overlay_, vp_model_smooth_regions_, vp_model_scene_fit_,
-    vp_model_visible_, vp_model_total_fit_, vp_model_3d_fit_, vp_model_color_fit_, vp_model_normals_fit_,
-    vp_model_outliers_;
+    vp_model_scene_, vp_model_, vp_model_scene_overlay_, vp_model_outliers_, vp_model_scene_fit_,
+    vp_model_visible_, vp_model_total_fit_, vp_model_3d_fit_, vp_model_color_fit_, vp_model_normals_fit_;
 
     pcl::visualization::PCLVisualizer::Ptr vis_model_;
 

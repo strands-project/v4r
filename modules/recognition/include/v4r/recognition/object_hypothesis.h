@@ -137,14 +137,11 @@ public:
     std::vector<int> scene_indices_in_crop_box_; ///< indices of the scene that are occupied from the bounding box of the (complete) hypothesis
     float L_value_offset_; ///< the offset being added to the computed L color values to compensate for different lighting conditions
 
-    std::vector<size_t> explained_pts_per_smooth_cluster_ ; ///< counts how many points in each smooth cluster the recognition model explains
-
     Eigen::Matrix4f refined_pose_;  ///< refined pose after ICP (do be multiplied by the initial transform)
     Eigen::SparseVector<float> scene_explained_weight_;   ///< stores for each scene point how well it is explained by the visible model points
 
     bool rejected_due_to_low_visibility_;   ///< true if the object model rendered in the view is not visible enough
     bool is_outlier_;    ///< true if the object model is not able to explain the scene well enough
-    bool rejected_due_to_smooth_cluster_check_; ///< true if the object model does not well explain all points in the smooth clusters it occupies
     bool rejected_due_to_better_hypothesis_in_group_; ///< true if there is any other object model in the same hypotheses group which explains the scene better
     bool rejected_globally_;
 
@@ -153,7 +150,6 @@ public:
         refined_pose_ ( Eigen::Matrix4f::Identity() ),
         rejected_due_to_low_visibility_ (false),
         is_outlier_ (false),
-        rejected_due_to_smooth_cluster_check_ (false),
         rejected_due_to_better_hypothesis_in_group_ (false),
         rejected_globally_ (false)
     {}
@@ -164,7 +160,6 @@ public:
         refined_pose_ ( Eigen::Matrix4f::Identity() ),
         rejected_due_to_low_visibility_ (false),
         is_outlier_ (false),
-        rejected_due_to_smooth_cluster_check_ (false),
         rejected_due_to_better_hypothesis_in_group_ (false),
         rejected_globally_ (false)
     {}
@@ -181,16 +176,12 @@ public:
         model_scene_c_.clear();
         pt_color_.resize(0,0);
         scene_indices_in_crop_box_.clear();
-        explained_pts_per_smooth_cluster_.clear();
-        scene_explained_weight_.resize(0);
     }
 
     bool
     isRejected() const
     {
-        return is_outlier_ || rejected_due_to_low_visibility_ ||
-                rejected_due_to_smooth_cluster_check_ || rejected_globally_ ||
-                rejected_due_to_better_hypothesis_in_group_;
+        return is_outlier_ || rejected_due_to_low_visibility_  || rejected_globally_ || rejected_due_to_better_hypothesis_in_group_;
     }
 
     /**

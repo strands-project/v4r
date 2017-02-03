@@ -35,7 +35,6 @@
 
 #include <glog/logging.h>
 #include <metslib/mets.hh>
-#include <opencv/cv.h>
 #include <pcl/common/angles.h>
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
@@ -85,6 +84,7 @@ class V4R_EXPORTS HypothesisVerification
 {
     friend class GHVmove_manager<ModelT, SceneT>;
     friend class GHVSAModel<ModelT, SceneT>;
+    friend class GHVCostFunctionLogger<ModelT, SceneT>;
     friend class HV_ModelVisualizer<ModelT, SceneT>;
     friend class HV_CuesVisualizer<ModelT, SceneT>;
     friend class HV_PairwiseVisualizer<ModelT, SceneT>;
@@ -111,12 +111,14 @@ protected:
 
     typedef typename boost::mpl::at<PointTypeAssociations, SceneT>::type SceneTWithNormal;
 
-    mutable HV_ModelVisualizer<ModelT, SceneT> vis_model_;
-    mutable HV_CuesVisualizer<ModelT, SceneT> vis_cues_;
-    mutable HV_PairwiseVisualizer<ModelT, SceneT> vis_pairwise_;
+    mutable typename HV_ModelVisualizer<ModelT, SceneT>::Ptr vis_model_;
+    mutable typename HV_CuesVisualizer<ModelT, SceneT>::Ptr vis_cues_;
+    mutable typename HV_PairwiseVisualizer<ModelT, SceneT>::Ptr vis_pairwise_;
 
     Camera::ConstPtr cam_;
     ColorTransform::Ptr colorTransf_;
+
+    bool visualize_pairwise_cues_; ///< visualizes the pairwise cues. Useful for debugging
 
     typename Source<ModelT>::ConstPtr m_db_;  ///< model data base
 
@@ -150,9 +152,7 @@ protected:
     typename pcl::octree::OctreePointCloudSearch<SceneT>::Ptr octree_scene_downsampled_;
     boost::function<void (const boost::dynamic_bitset<> &, float, int)> visualize_cues_during_logger_;
 
-    std::vector<int> scene_smooth_labels_;  ///< stores a label for each point of the (downsampled) scene. Points belonging to the same smooth clusters, have the same label
-    std::vector<size_t> smooth_label_count_;    ///< counts how many times a certain smooth label occurs in the scene
-    std::vector<boost::dynamic_bitset<> > scene_pt_is_in_smooth_cluster_; ///< for each smooth cluster, we check which point indices belongs to it (corresponding index $i,j$ true if scene point $j$ belongs to cluster $i$)
+    Eigen::VectorXi scene_pt_smooth_label_id_;  ///< stores a label for each point of the (downsampled) scene. Points belonging to the same smooth clusters, have the same label
 
     // ----- MULTI-VIEW VARIABLES------
     std::vector<typename pcl::PointCloud<SceneT>::ConstPtr> occlusion_clouds_; ///< scene clouds from multiple views (stored as organized point clouds)
@@ -196,7 +196,7 @@ protected:
 
     void visualizeGOcues(const boost::dynamic_bitset<> & active_solution, float cost, int times_evaluated) const
     {
-        vis_cues_.visualize( this, active_solution, cost, times_evaluated );
+        vis_cues_->visualize( this, active_solution, cost, times_evaluated );
     }
 
     void applySolution(const boost::dynamic_bitset<> &sol)
@@ -210,7 +210,16 @@ protected:
 
     void optimize();
 
-    bool individualRejection(HVRecognitionModel<ModelT> &rm) const;///< remove hypotheses badly explaining the scene, or only partially explaining smooth clusters (if check is enabled). Returns true if hypothesis is rejected.
+    /**
+     * @brief isOutlier remove hypotheses with a lot of outliers. Returns true if hypothesis is rejected.
+     * @param rm
+     * @return
+     */
+    bool isOutlier(HVRecognitionModel<ModelT> &rm) const
+    {
+        return ( param_.regularizer_ * rm.visible_pt_is_outlier_.count() > rm.scene_explained_weight_.sum() );
+    }
+
 
     void cleanUp ()
     {
@@ -223,7 +232,10 @@ protected:
         scene_cloud_.reset();
         intersection_cost_.resize(0,0);
         obj_hypotheses_groups_.clear();
-        scene_pt_is_in_smooth_cluster_.clear();
+        scene_pt_smooth_label_id_.resize(0);
+        scene_color_channels_.resize(0,0);
+        scene_pts_explained_solution_.clear();
+        kdtree_scene_.reset();
     }
 
     /**
@@ -255,7 +267,6 @@ protected:
                                                param_.w_normals_ * log(fit_normal)  )
                                              / sum_weights );
         return weighted_geometric_mean;
-//        return (param_.w_3D_ * modelScene3DDistCostTerm(c) + param_.w_color_ * modelSceneColorCostTerm(c) + param_.w_normals_ * modelSceneNormalsCostTerm(c)) / (param_.w_3D_ + param_.w_color_ + param_.w_normals_);
     }
 
     /**
@@ -323,6 +334,16 @@ protected:
     bool
     customRegionGrowing (const SceneTWithNormal& seed_pt, const SceneTWithNormal& candidate_pt, float squared_distance) const;
 
+    /**
+     *  \brief: Returns a vector of booleans representing which hypotheses have been accepted/rejected (true/false)
+     *  mask vector of booleans
+     */
+    boost::dynamic_bitset<>
+    getSolution () const
+    {
+        return solution_;
+    }
+
 public:
 
     HypothesisVerification (const Camera::ConstPtr &cam,
@@ -348,27 +369,6 @@ public:
         default:
             throw std::runtime_error("Color comparison method not defined!");
         }
-    }
-
-    /**
-     *  \brief: Returns a vector of booleans representing which hypotheses have been accepted/rejected (true/false)
-     *  mask vector of booleans
-     */
-    boost::dynamic_bitset<>
-    getSolution () const
-    {
-        return solution_;
-    }
-
-    /**
-     * @brief setSolution
-     * @param solution
-     */
-    void
-    setSolution (const boost::dynamic_bitset<> &solution)
-    {
-        CHECK(solution.size() == global_hypotheses_.size());
-        solution_ = solution;
     }
 
     /**
@@ -478,6 +478,36 @@ public:
     setModelDatabase(const typename Source<ModelT>::ConstPtr &m_db)
     {
         m_db_ = m_db;
+    }
+
+    /**
+     * @brief visualizeModelCues visualizes the model cues during computation. Useful for debugging
+     * @param vis_params visualization parameters
+     */
+    void
+    visualizeModelCues(const PCLVisualizationParams::ConstPtr &vis_params = boost::make_shared<PCLVisualizationParams>())
+    {
+        vis_model_.reset( new HV_ModelVisualizer<ModelT, SceneT>(vis_params) );
+    }
+
+    /**
+     * @brief visualizeCues visualizes the cues during the computation and shows cost and number of evaluations. Useful for debugging
+     * @param vis_params visualization parameters
+     */
+    void
+    visualizeCues(const PCLVisualizationParams::ConstPtr &vis_params = boost::make_shared<PCLVisualizationParams>())
+    {
+        vis_cues_.reset( new HV_CuesVisualizer<ModelT, SceneT>(vis_params) );
+    }
+
+    /**
+     * @brief visualizePairwiseCues visualizes the pairwise intersection of two hypotheses during computation. Useful for debugging
+     * @param vis_params visualization parameters
+     */
+    void
+    visualizePairwiseCues(const PCLVisualizationParams::ConstPtr &vis_params = boost::make_shared<PCLVisualizationParams>())
+    {
+        vis_pairwise_.reset ( new HV_PairwiseVisualizer<ModelT, SceneT>(vis_params) );
     }
 
 
