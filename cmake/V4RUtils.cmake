@@ -302,43 +302,6 @@ macro(V4R_OPTION variable description value)
 endmacro()
 
 
-# Macros that checks if module have been installed.
-# After it adds module to build and define
-# constants passed as second arg
-macro(CHECK_MODULE module_name define)
-  set(${define} 0)
-  if(PKG_CONFIG_FOUND)
-    set(ALIAS               ALIASOF_${module_name})
-    set(ALIAS_FOUND                 ${ALIAS}_FOUND)
-    set(ALIAS_INCLUDE_DIRS   ${ALIAS}_INCLUDE_DIRS)
-    set(ALIAS_LIBRARY_DIRS   ${ALIAS}_LIBRARY_DIRS)
-    set(ALIAS_LIBRARIES         ${ALIAS}_LIBRARIES)
-
-    PKG_CHECK_MODULES(${ALIAS} ${module_name})
-
-    if(${ALIAS_FOUND})
-      set(${define} 1)
-      foreach(P "${ALIAS_INCLUDE_DIRS}")
-        if(${P})
-          list(APPEND VIDEOIO_INCLUDE_DIRS ${${P}})
-          list(APPEND HIGHGUI_INCLUDE_DIRS ${${P}})
-        endif()
-      endforeach()
-
-      foreach(P "${ALIAS_LIBRARY_DIRS}")
-        if(${P})
-          list(APPEND VIDEOIO_LIBRARY_DIRS ${${P}})
-          list(APPEND HIGHGUI_LIBRARY_DIRS ${${P}})
-        endif()
-      endforeach()
-
-      list(APPEND VIDEOIO_LIBRARIES ${${ALIAS_LIBRARIES}})
-      list(APPEND HIGHGUI_LIBRARIES ${${ALIAS_LIBRARIES}})
-    endif()
-  endif()
-endmacro()
-
-
 set(V4R_BUILD_INFO_FILE "${V4R_BINARY_DIR}/version_string.tmp")
 file(REMOVE "${V4R_BUILD_INFO_FILE}")
 function(v4r_output_status msg)
