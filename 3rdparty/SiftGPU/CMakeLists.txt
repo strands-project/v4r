@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 2.8.12)
 project(${SIFTGPU_LIBRARY})
 include(ExternalProject)
 
+find_package(DevIL REQUIRED)
+if(NOT IL_FOUND)
+  message(FATAL_ERROR "SiftGPU requires DevIL")
+endif()
+
 # Make a target that downloads and builds SiftGPU from source.
 # The install command copies the (only) library header to the root SiftGPU directory. This is needed to allow using V4R
 # from without installation (directly from build/ location).
