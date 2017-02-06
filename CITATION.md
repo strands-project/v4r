@@ -17,17 +17,15 @@ If you use V4R in your work, please cite the appropriate moduls:
 
 ## Object Instance Recognition  
 
-Fäulhammer et al, "A Multi-Modal RGB-D Object Recognizer", IEEE Int. Conf. on Pattern Recognition (ICPR), 2016, to appear
+Thomas Fäulhammer, Michael Zillich, Johann Prankl, Markus Vincze, "A Multi-Modal RGB-D Object Recognizer", IAPR Internation Conference on Pattern Recognition (ICPR), 2016,
 
 ```
-@article{faeulhammer2016_ICPR,  
+@incproceedings{faeulhammer2016_ICPR,  
   title={A Multi-Modal RGB-D Object Recognizer},  
   author={F{\"a}ulhammer, Thomas and Zillich, Michael and Prankl, Johann and Vincze, Markus},  
-  booktitle={Pattern Recognition (ICPR), International Conference on},  
-  pages={to appear},  
+  booktitle={Pattern Recognition (ICPR), International Conference on}, 
   year={2016},  
-  organization={IEEE},  
-  intype = {to appear in}  
+  organization={IAPR}
 }
 ```
 
