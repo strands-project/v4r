@@ -52,7 +52,11 @@ namespace v4r
 {
 
 
+#if CV_MAJOR_VERSION < 3
 class V4R_EXPORTS PSiftGPU : public cv::FeatureDetector, public cv::DescriptorExtractor, public cv::DescriptorMatcher
+#else
+class V4R_EXPORTS PSiftGPU : public cv::FeatureDetector, public cv::DescriptorMatcher
+#endif
 {
 public:
   class Parameter
@@ -89,6 +93,24 @@ protected:
              int k, const std::vector<cv::Mat>& masks=std::vector<cv::Mat>(), bool compactResult=false );
   virtual void radiusMatchImpl( const cv::Mat& queryDescriptors, std::vector<std::vector<cv::DMatch> >& matches, 
              float maxDistance, const std::vector<cv::Mat>& masks=std::vector<cv::Mat>(), bool compactResult=false );
+
+#if CV_MAJOR_VERSION >= 3
+  virtual void knnMatchImpl( cv::InputArray queryDescriptors, std::vector<std::vector<cv::DMatch> >& matches, int k,
+      cv::InputArrayOfArrays masks=cv::noArray(), bool compactResult=false )
+  {
+      cv::Mat queryDesc;
+      queryDesc.setTo( queryDescriptors);
+      knnMatchImpl( queryDesc, matches, k, masks, compactResult );
+  }
+
+  virtual void radiusMatchImpl( cv::InputArray queryDescriptors, std::vector<std::vector<cv::DMatch> >& matches, float maxDistance,
+      cv::InputArrayOfArrays masks=cv::noArray(), bool compactResult=false )
+  {
+      cv::Mat queryDesc;
+      queryDesc.setTo( queryDescriptors);
+      radiusMatchImpl( queryDesc, matches, maxDistance, masks, compactResult );
+  }
+#endif
 
   
 public:
