@@ -181,6 +181,7 @@ public:
         bool table_plane_set_;
 
     public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
         std::vector<int> indices_; ///< segmented cloud to be recognized (if empty, all points will be processed)
         Eigen::Vector4f table_plane_; ///< extracted table plane of input cloud (if used for pose estimation)
         Eigen::Vector4f centroid_; ///< centroid of cluster

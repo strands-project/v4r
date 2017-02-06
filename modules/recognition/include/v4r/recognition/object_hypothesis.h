@@ -58,6 +58,7 @@ private:
     }
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     typedef boost::shared_ptr< ObjectHypothesis<PointT> > Ptr;
     typedef boost::shared_ptr< ObjectHypothesis<PointT> const> ConstPtr;
 
@@ -117,6 +118,7 @@ private:
     }
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     typedef boost::shared_ptr< HVRecognitionModel> Ptr;
     typedef boost::shared_ptr< HVRecognitionModel const> ConstPtr;
 

@@ -16,6 +16,7 @@ private:
     mutable int vp1_, vp2_, vp3_, vp4_;
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     typedef boost::shared_ptr< PlaneModel> Ptr;
     typedef boost::shared_ptr< PlaneModel const> ConstPtr;
 

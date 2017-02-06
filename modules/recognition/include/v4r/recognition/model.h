@@ -65,6 +65,8 @@ private:
     }
 
 public:
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     TrainingView()
         : pose_(Eigen::Matrix4f::Identity()),
           filename_(""),
@@ -127,9 +129,11 @@ private:
     typedef typename boost::mpl::at<PointTypeAssociations, PointT>::type PointTWithNormal;
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
     typedef typename pcl::PointCloud<PointT>::ConstPtr PointTPtrConst;
-    std::vector<typename TrainingView<PointT>::ConstPtr > views_;
+    std::vector<typename TrainingView<PointT>::ConstPtr> views_;
     std::string class_, id_;
     PointT minPoint_, maxPoint_;
     PointTPtr assembled_;
