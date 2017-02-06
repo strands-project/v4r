@@ -39,7 +39,7 @@ ObjectRecognitionVisualizer<PointT>::pointPickingEventOccured (const pcl::visual
 //          std::cout << "NN: " << pointIdxNKNSearch[i] << ", Distance: " << sqrt(pointNKNSquaredDistance[i]) << std::endl;
           int s_kp_idx = pointIdxNKNSearch[i];
 
-          size_t counter=0;
+          int counter=0;
           bool found = false;
           for(size_t ohg_id=0; ohg_id<generated_object_hypotheses_.size(); ohg_id++)
           {

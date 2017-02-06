@@ -12,11 +12,11 @@ LocalObjectHypothesis<PointT>::visualize(const pcl::PointCloud<pcl::PointXYZRGB>
     std::cerr << "This function is not implemented for this point cloud type!" << std::endl;
 }
 
-template <>
-void
-LocalObjectHypothesis<pcl::PointXYZRGB>::visualize(const pcl::PointCloud<pcl::PointXYZRGB> & scene,
-                                              const pcl::PointCloud<pcl::PointXYZRGB> & scene_kp) const
-{
+//template <>
+//void
+//LocalObjectHypothesis<pcl::PointXYZRGB>::visualize(const pcl::PointCloud<pcl::PointXYZRGB> & scene,
+//                                              const pcl::PointCloud<pcl::PointXYZRGB> & scene_kp) const
+//{
 //    if(!vis_)
 //        vis_.reset(new pcl::visualization::PCLVisualizer("correspondences for hypothesis"));
 
@@ -62,7 +62,7 @@ LocalObjectHypothesis<pcl::PointXYZRGB>::visualize(const pcl::PointCloud<pcl::Po
 //        vis_->addPointCloud(kp_colored_model, "kps_model");
 //        vis_->spin();
 //    }
-}
+//}
 
 template class V4R_EXPORTS LocalObjectHypothesis<pcl::PointXYZRGB>;
 template class V4R_EXPORTS LocalObjectHypothesis<pcl::PointXYZ>;

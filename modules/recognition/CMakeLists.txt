@@ -24,11 +24,6 @@ v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentat
         ${CMAKE_CURRENT_LIST_DIR}/src/IMKRecognizer.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/IMKRecognizerIO.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/RansacSolvePnP.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/impl/multi_pipeline_recognizer.hpp
-        #${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/impl/multiview_object_recognizer_init.hpp
-        #${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/impl/multiview_object_recognizer.hpp
-        #${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/impl/multiview_object_recognizer_change_detection.hpp
-#        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/impl/multi_pipeline_recognizer_init.hpp
     )
 
     list(APPEND rec_headers

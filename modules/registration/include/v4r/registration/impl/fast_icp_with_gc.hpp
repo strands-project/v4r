@@ -13,7 +13,7 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/features/integral_image_normal.h>
 #include <v4r/common/visibility_reasoning.h>
-#include <pcl/keypoints/uniform_sampling.h>
+#include <pcl_1_8/keypoints/uniform_sampling.h>
 
 //#define FAAT_PCL_FAST_ICP_VIS_FINAL
 
@@ -332,10 +332,10 @@ namespace v4r
 
             boost::shared_ptr<std::vector<int> > ind_src;
             ind_src.reset (new std::vector<int>);
-            UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
-            keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
-            keypoint_extractor.setVoxelGridValues (min_b, max_b);
-            uniformSamplingOfKeypoints (src_keypoints, ind_src_cedges, *ind_src, keypoint_extractor);
+            UniformSamplingSharedVoxelGrid<PointT> _keypoint_extractor;
+            _keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
+            _keypoint_extractor.setVoxelGridValues (min_b, max_b);
+            uniformSamplingOfKeypoints (src_keypoints, ind_src_cedges, *ind_src, _keypoint_extractor);
 
             pcl::PointCloud<pcl::Normal>::Ptr normal_src_keypoints_local(new pcl::PointCloud<pcl::Normal>);
 

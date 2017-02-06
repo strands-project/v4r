@@ -16,7 +16,6 @@
 #include <pcl_1_8/segmentation/conditional_euclidean_clustering.h>
 
 #include <fstream>
-//#include <iomanip>
 #include <omp.h>
 #include <numeric>
 

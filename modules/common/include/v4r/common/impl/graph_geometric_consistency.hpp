@@ -694,7 +694,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
 
             std::vector<std::vector<size_t> *>::iterator it;
             std::vector<size_t> taken_corresps (model_scene_corrs_->size (), 0);
-            int max_taken = param_.max_taken_correspondence_;
+            size_t max_taken = param_.max_taken_correspondence_;
 
             if(!param_.cliques_big_to_small_)
                 std::reverse (cliques.begin (), cliques.end ());
@@ -839,7 +839,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                 if (taken_corresps[i])
                     continue;
 
-                int consensus_size = 0;
+                size_t consensus_size = 0;
                 consensus_set[consensus_size++] = i;
 
                 for (size_t j = 0; j < model_scene_corrs_->size (); ++j)
@@ -849,7 +849,7 @@ v4r::GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresp
                         //Let's check if j fits into the current consensus set
                         bool is_a_good_candidate = true;
 
-                        for (int k = 0; k < consensus_size; ++k)
+                        for (size_t k = 0; k < consensus_size; k++)
                         {
                             //check if edge (j, consensus_set[k] exists in the graph, if it does not, is_a_good_candidate = false!...
                             if (!(boost::edge (j, consensus_set[k], connected_graph2).second))

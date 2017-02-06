@@ -52,7 +52,6 @@ using namespace std;
 
 
 //------------------------------ helper methods -----------------------------------
-static void onMouse( int event, int x, int y, int flags, void* );
 void setup(int argc, char **argv);
 
 //----------------------------- data containers -----------------------------------
