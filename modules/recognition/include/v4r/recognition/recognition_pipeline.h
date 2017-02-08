@@ -122,6 +122,16 @@ public:
         m_db_ = m_db;
     }
 
+    /**
+     * @brief getModelDatabase
+     * @return model database
+     */
+    typename Source<PointT>::ConstPtr
+    getModelDatabase() const
+    {
+        return m_db_;
+    }
+
     virtual bool requiresSegmentation() const = 0;
     virtual void recognize () = 0;
 };

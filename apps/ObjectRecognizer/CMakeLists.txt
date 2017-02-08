@@ -1,4 +1,4 @@
-SET(OR_DEPS v4r_core v4r_common v4r_io v4r_features v4r_keypoints v4r_segmentation v4r_recognition v4r_ml)
+SET(OR_DEPS v4r_core v4r_common v4r_io v4r_features v4r_keypoints v4r_segmentation v4r_recognition v4r_ml v4r_apps)
 v4r_check_dependencies(${OR_DEPS})
 
 if(NOT V4R_DEPENDENCIES_FOUND)
@@ -48,13 +48,8 @@ endif()
 add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
 add_definitions(-Dlinux -D__x86_64__)
 
-set(incs visualization.h)
-set(srcs visualization.cpp main.cpp)
-
-add_executable(ObjectRecognizer ${incs} ${srcs})
+add_executable(ObjectRecognizer main.cpp)
 target_link_libraries(ObjectRecognizer ${OR_DEPS} ${DEP_LIBS})
-
-
 add_executable(compute_recognition_rate_over_occlusion compute_recognition_rate_over_occlusion.cpp)
 target_link_libraries(compute_recognition_rate_over_occlusion ${OR_DEPS} ${DEP_LIBS})
 add_executable(compute_recognition_rate compute_recognition_rate.cpp)

@@ -1,4 +1,4 @@
-#include "visualization.h"
+#include <v4r/apps/visualization.h>
 #include <v4r/recognition/model.h>
 #include <pcl/common/transforms.h>
 #include <time.h>
