@@ -13,7 +13,7 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/features/integral_image_normal.h>
 #include <v4r/common/visibility_reasoning.h>
-#include <pcl/keypoints/uniform_sampling.h>
+#include <pcl_1_8/keypoints/uniform_sampling.h>
 
 //#define FAAT_PCL_FAST_ICP_VIS_FINAL
 
@@ -332,10 +332,10 @@ namespace v4r
 
             boost::shared_ptr<std::vector<int> > ind_src;
             ind_src.reset (new std::vector<int>);
-            UniformSamplingSharedVoxelGrid<PointT> keypoint_extractor;
-            keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
-            keypoint_extractor.setVoxelGridValues (min_b, max_b);
-            uniformSamplingOfKeypoints (src_keypoints, ind_src_cedges, *ind_src, keypoint_extractor);
+            UniformSamplingSharedVoxelGrid<PointT> _keypoint_extractor;
+            _keypoint_extractor.setRadiusSearch (uniform_sampling_radius_);
+            _keypoint_extractor.setVoxelGridValues (min_b, max_b);
+            uniformSamplingOfKeypoints (src_keypoints, ind_src_cedges, *ind_src, _keypoint_extractor);
 
             pcl::PointCloud<pcl::Normal>::Ptr normal_src_keypoints_local(new pcl::PointCloud<pcl::Normal>);
 
@@ -392,7 +392,7 @@ namespace v4r
               if (!standard_cg_)
               {
                 //pcl::ScopeTime t ("GraphGeometricConsistencyGrouping...");
-                  typename GraphGeometricConsistencyGrouping<PointT, PointT>::Parameter gcg_param;
+                  GraphGeometricConsistencyGroupingParameter gcg_param;
                   gcg_param.gc_threshold_ = min_number_correspondences_;
                   gcg_param.gc_size_ = gc_size_;
                   gcg_param.ransac_threshold_ = ransac_threshold_;
@@ -401,7 +401,7 @@ namespace v4r
                   gcg_param.use_graph_ = false;
                   gcg_param.prune_ = false;
                 GraphGeometricConsistencyGrouping<PointT, PointT> gcg_alg(gcg_param);
-                gcg_alg.setModelSceneCorrespondences (*correspondences_alive_node);
+                gcg_alg.setModelSceneCorrespondences (correspondences_alive_node);
                 gcg_alg.setSceneCloud (tgt_keypoints);
                 gcg_alg.setInputCloud (src_keypoints_local);
                 gcg_alg.setInputAndSceneNormals (normal_src_keypoints_local, normal_tgt_keypoints);

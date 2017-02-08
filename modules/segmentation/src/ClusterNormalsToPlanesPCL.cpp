@@ -383,7 +383,7 @@ ClusterNormalsToPlanesPCL<PointT>::compute(const typename pcl::PointCloud<PointT
   mask_.clear();
   mask_.resize(cloud->height*cloud->width,true);
 
-  for (int i = 0; i < cloud->height*cloud->width; i++)
+  for (size_t i = 0; i < cloud->height*cloud->width; i++)
   {
     if(!pcl::isFinite(cloud->points[i]))
       mask_[i] = false;

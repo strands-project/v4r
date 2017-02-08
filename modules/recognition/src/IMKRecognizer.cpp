@@ -111,20 +111,20 @@ void IMKRecognizer::convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud,
  * @param mask
  * @param pose
  */
-void IMKRecognizer::addView(const unsigned &idx, const std::vector<cv::KeyPoint> &keys, const cv::Mat &descs, const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &pose, Eigen::Vector3d &centroid, unsigned &cnt)
+void IMKRecognizer::addView(const unsigned &idx, const std::vector<cv::KeyPoint> &_keys, const cv::Mat &_descs, const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &pose, Eigen::Vector3d &centroid, unsigned &cnt)
 {
   object_models.push_back(IMKView(idx));
   IMKView &view = object_models.back();
-  view.keys.reserve(keys.size());
-  view.points.reserve(keys.size());
+  view.keys.reserve(_keys.size());
+  view.points.reserve(_keys.size());
   cv::Mat tmp_descs;
 
   Eigen::Matrix3f R = pose.topLeftCorner<3,3>();
   Eigen::Vector3f t = pose.block<3,1>(0,3);
 
-  for (unsigned i=0; i<keys.size(); i++)
+  for (unsigned i=0; i<_keys.size(); i++)
   {
-    const cv::KeyPoint &key = keys[i];
+    const cv::KeyPoint &key = _keys[i];
     if ((int)key.pt.x>=0 && (int)key.pt.x<(int)cloud.width && (int)key.pt.y>=0 && (int)key.pt.y<(int)cloud.height)
     {
       if (mask.rows == (int)cloud.height && mask.cols == (int)cloud.width && mask((int)key.pt.y, (int)key.pt.x)<128)
@@ -136,7 +136,7 @@ void IMKRecognizer::addView(const unsigned &idx, const std::vector<cv::KeyPoint>
       {
         view.keys.push_back(key);
         view.points.push_back(R*pt.getVector3fMap()+t);
-        tmp_descs.push_back(descs.row(i));
+        tmp_descs.push_back(_descs.row(i));
         //view.descs.push_back(descs.row(i));
         centroid += view.points.back().cast<double>();
         cnt++;
@@ -241,12 +241,12 @@ void IMKRecognizer::setViewDescriptor(const std::vector< cv::Mat_<unsigned char>
   mask_roi_scaled.convertTo(view.weight_mask, CV_32F, 1./255);
   view.weight_mask = (view.weight_mask>0.5);
   view.conf_desc.clear();
-  std::vector<float> desc;
+  std::vector<float> _desc;
   for (unsigned i=0; i<_im_channels.size(); i++)
   {
     cv::resize(_im_channels[i]( cv::Rect(min_x,min_y,depth.cols,depth.rows) )  ,im_roi_scaled, cv::Size(param.image_size_conf_desc,param.image_size_conf_desc));
-    cp.compute(im_roi_scaled, view.weight_mask, desc);
-    view.conf_desc.insert(view.conf_desc.begin(), desc.begin(), desc.end());
+    cp.compute(im_roi_scaled, view.weight_mask, _desc);
+    view.conf_desc.insert(view.conf_desc.begin(), _desc.begin(), _desc.end());
   }
 
   #ifdef DEBUG_AR_GUI
@@ -307,13 +307,10 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
   cv::Mat_<cv::Vec3b> image;
   cv::Mat_<unsigned char> im_gray;
   cv::Mat_<unsigned char> mask;
-  std::vector<std::string> cloud_files;
   std::string pose_file, mask_file, object_indices_file;
-  std::string so_far = "";
   std::string pattern =  std::string("cloud_")+std::string(".*.")+std::string("pcd");
   const std::string &name = object_names[idx];
-
-  v4r::io::getFilesInDirectory(base_dir+std::string("/")+name+std::string("/views/"),cloud_files,so_far,pattern,false);
+  std::vector<std::string> cloud_files = v4r::io::getFilesInDirectory(base_dir+std::string("/")+name+std::string("/views/"),pattern,false);
 
   pcl::PCDReader pcd;
   Eigen::Vector4f origin;
@@ -406,12 +403,12 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
  * @param matches
  * @param inliers
  */
-int IMKRecognizer::getMaxViewIndex(const std::vector<IMKView> &views, const std::vector<cv::DMatch> &matches, const std::vector<int> &inliers)
+int IMKRecognizer::getMaxViewIndex(const std::vector<IMKView> &views, const std::vector<cv::DMatch> &_matches, const std::vector<int> &_inliers)
 {
   cnt_view_matches.assign(views.size(),0);
-  for (unsigned i=0; i<inliers.size(); i++)
+  for (unsigned i=0; i<_inliers.size(); i++)
   {
-    cnt_view_matches[matches[inliers[i]].imgIdx] ++;
+    cnt_view_matches[_matches[_inliers[i]].imgIdx] ++;
   }
   return std::distance(cnt_view_matches.begin(), std::max_element(cnt_view_matches.begin(), cnt_view_matches.end()));
 }
@@ -419,12 +416,12 @@ int IMKRecognizer::getMaxViewIndex(const std::vector<IMKView> &views, const std:
 /**
  * @brief IMKRecognizer::getNearestNeighbours
  */
-void IMKRecognizer::getNearestNeighbours(const Eigen::Vector2f &pt, const std::vector<cv::KeyPoint> &keys, const float &sqr_inl_radius_conf, std::vector<int> &nn_indices)
+void IMKRecognizer::getNearestNeighbours(const Eigen::Vector2f &pt, const std::vector<cv::KeyPoint> &_keys, const float &sqr_inl_radius_conf, std::vector<int> &nn_indices)
 {
   nn_indices.clear();
-  for (unsigned i=0; i<keys.size(); i++)
+  for (unsigned i=0; i<_keys.size(); i++)
   {
-    if ((pt-Eigen::Map<const Eigen::Vector2f>(&keys[i].pt.x)).squaredNorm() < sqr_inl_radius_conf)
+    if ((pt-Eigen::Map<const Eigen::Vector2f>(&_keys[i].pt.x)).squaredNorm() < sqr_inl_radius_conf)
       nn_indices.push_back(i);
   }
 }
@@ -436,12 +433,12 @@ void IMKRecognizer::getNearestNeighbours(const Eigen::Vector2f &pt, const std::v
  * @param indices
  * @return
  */
-float IMKRecognizer::getMinDescDist32F(const cv::Mat &desc, const cv::Mat &descs, const std::vector<int> &indices)
+float IMKRecognizer::getMinDescDist32F(const cv::Mat &_desc, const cv::Mat &_descs, const std::vector<int> &indices)
 {
   float dist, min = FLT_MAX;
   for (unsigned i=0; i<indices.size(); i++)
   {
-    dist = distanceL1(&desc.at<float>(0,0), &descs.at<float>(indices[i],0),desc.cols);
+    dist = distanceL1(&_desc.at<float>(0,0), &_descs.at<float>(indices[i],0),_desc.cols);
     if (dist<min)
       min = dist;
   }
@@ -516,23 +513,25 @@ double IMKRecognizer::computeGradientHistogramConf(const std::vector< cv::Mat_<u
  * @param matches
  * @param clusters
  */
-void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const std::vector<std::string> &object_names, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &keys, const cv::Mat &descs, const std::vector< std::vector< cv::DMatch > > &matches, const std::vector< boost::shared_ptr<v4r::triple<unsigned, double, std::vector< cv::DMatch > > > > &clusters, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects)
+void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const std::vector<std::string> &_object_names, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &_keys, const cv::Mat &_descs, const std::vector< std::vector< cv::DMatch > > &_matches, const std::vector< boost::shared_ptr<v4r::triple<unsigned, double, std::vector< cv::DMatch > > > > &_clusters, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects)
 {
+    (void)_descs;
+    (void)_matches;
   if (_im_channels.size()==0)
     return;
 
   std::vector<cv::Point3f> points;
-  std::vector<cv::Point2f> im_points;
+  std::vector<cv::Point2f> _im_points;
   std::vector<cv::DMatch> tmp_matches;
   Eigen::Matrix4f pose;
-  std::vector<int> inliers;
+  std::vector<int> _inliers;
 
-  for (int i=0; i<(int)clusters.size() && i<param.use_n_clusters; i++)
+  for (int i=0; i<(int)_clusters.size() && i<param.use_n_clusters; i++)
   {
 
     int nb_ransac_trials;
-    const v4r::triple<unsigned, double, std::vector< cv::DMatch > > &ms = *clusters[i];
-    im_points.clear();
+    const v4r::triple<unsigned, double, std::vector< cv::DMatch > > &ms = *_clusters[i];
+    _im_points.clear();
     points.clear();
     tmp_matches.clear();
 
@@ -544,21 +543,21 @@ void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > 
       const cv::DMatch &m = ms.third[j];
       if (m.distance<=std::numeric_limits<float>::epsilon())
         continue;
-      im_points.push_back(keys[m.queryIdx].pt);
+      _im_points.push_back(_keys[m.queryIdx].pt);
       const Eigen::Vector3f &pt = views[m.imgIdx].points[m.trainIdx];
       points.push_back(cv::Point3f(pt[0],pt[1],pt[2]));
       tmp_matches.push_back(m);
     }
 
-    nb_ransac_trials = pnp.ransacSolvePnP(points, im_points, pose, inliers);
+    nb_ransac_trials = pnp.ransacSolvePnP(points, _im_points, pose, _inliers);
 
     if (nb_ransac_trials<(int)param.pnp_param.max_rand_trials)
     {
-      int view_idx = getMaxViewIndex(views, tmp_matches, inliers);
+      int view_idx = getMaxViewIndex(views, tmp_matches, _inliers);
       //double conf = getConfidenceKeypointMatch(views, keys, descs, pose, getMaxViewIndex(views, tmp_matches, inliers) );
 //      double conf = (view_idx>=0 && view_idx<(int)views.size()? (views[view_idx].keys.size()>0? ((double)inliers.size())/(double)views[view_idx].keys.size() : 0.) : 0.);
       double conf = computeGradientHistogramConf(_im_channels, views[view_idx], pose);
-      objects.push_back(v4r::triple<std::string, double, Eigen::Matrix4f>(object_names[ms.first],(conf>1?1.:conf<0?0:conf), pose));
+      objects.push_back(v4r::triple<std::string, double, Eigen::Matrix4f>(_object_names[ms.first],(conf>1?1.:conf<0?0:conf), pose));
     }
 
 #ifdef DEBUG_AR_GUI

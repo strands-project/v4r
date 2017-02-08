@@ -113,7 +113,7 @@ unsigned LKPoseTracker::countInliers(const std::vector<cv::Point3f> &points, con
 /**
  * getInliers
  */
-void LKPoseTracker::getInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4f &pose, std::vector<int> &inliers)
+void LKPoseTracker::getInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4f &pose, std::vector<int> &_inliers)
 {
   Eigen::Vector2f im_pt;
   Eigen::Vector3f pt3;
@@ -122,7 +122,7 @@ void LKPoseTracker::getInliers(const std::vector<cv::Point3f> &points, const std
   Eigen::Matrix3f R = pose.topLeftCorner<3, 3>();
   Eigen::Vector3f t = pose.block<3,1>(0, 3);
 
-  inliers.clear();
+  _inliers.clear();
 
   for (unsigned i=0; i<points.size(); i++)
   {
@@ -134,7 +134,7 @@ void LKPoseTracker::getInliers(const std::vector<cv::Point3f> &points, const std
 
     if ((im_pt - Eigen::Map<const Eigen::Vector2f>(&im_points[i].x)).squaredNorm() < sqr_inl_dist)
     {
-      inliers.push_back(i);
+      _inliers.push_back(i);
     }
   }
 }
@@ -142,7 +142,7 @@ void LKPoseTracker::getInliers(const std::vector<cv::Point3f> &points, const std
 /**
  * ransacSolvePnP
  */
-void LKPoseTracker::ransacSolvePnP(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, Eigen::Matrix4f &pose, std::vector<int> &inliers)
+void LKPoseTracker::ransacSolvePnP(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, Eigen::Matrix4f &pose, std::vector<int> &_inliers)
 {
   int k=0;
   float sig=param.nb_ransac_points, sv_sig=0.;
@@ -185,15 +185,15 @@ void LKPoseTracker::ransacSolvePnP(const std::vector<cv::Point3f> &points, const
 
   cv::Rodrigues(sv_rvec, R);
   cvToEigen(R, sv_tvec, pose);
-  getInliers(points, im_points, pose, inliers);
+  getInliers(points, im_points, pose, _inliers);
 
-  model_pts.resize(inliers.size());
-  query_pts.resize(inliers.size());
+  model_pts.resize(_inliers.size());
+  query_pts.resize(_inliers.size());
 
-  for (unsigned i=0; i<inliers.size(); i++)
+  for (unsigned i=0; i<_inliers.size(); i++)
   {
-    model_pts[i] = points[inliers[i]];
-    query_pts[i] = im_points[inliers[i]];
+    model_pts[i] = points[_inliers[i]];
+    query_pts[i] = im_points[_inliers[i]];
   }
 
   #ifdef HAVE_OCV_2

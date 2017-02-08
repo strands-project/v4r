@@ -38,29 +38,16 @@ namespace v4r{
 template<typename PointT>
 class V4R_EXPORTS LocalObjectHypothesis
 {
-  typedef Model<PointT> ModelT;
-  typedef boost::shared_ptr<ModelT> ModelTPtr;
-
   private:
     mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
 
   public:
-    ModelTPtr model_;
+    std::string model_id_; ///< object model identifier
+    pcl::CorrespondencesPtr model_scene_corresp_; ///< indices between model keypoints (index query) and scene cloud (index match)
 
     LocalObjectHypothesis() { }
 
-    pcl::Correspondences model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
-    std::vector<int> indices_to_flann_models_;
-
     void visualize(const pcl::PointCloud<pcl::PointXYZRGB> &scene, const pcl::PointCloud<pcl::PointXYZRGB> &scene_kp) const;
-
-    LocalObjectHypothesis & operator=(const LocalObjectHypothesis &rhs)
-    {
-        this->model_scene_corresp_ = rhs.model_scene_corresp_;
-        this->indices_to_flann_models_ = rhs.indices_to_flann_models_;
-        this->model_ = rhs.model_;
-        return *this;
-    }
 
     static bool
     gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j) { return i.distance < j.distance; }

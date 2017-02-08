@@ -28,6 +28,7 @@
 #include "v4r/attention_segmentation/EPUtils.h"
 
 // This program shows the use of TJ to extract attention points
+void printUsage(const char *argv0);
 
 void printUsage(const char *argv0)
 {

@@ -427,13 +427,13 @@ void ObjectSegmentation::segment_image(int x, int y)
         v4r::projectPointToImage(&pt[0],&intrinsic(0,0), &im_pt.x);
       else v4r::projectPointToImage(&pt[0],&intrinsic(0,0), &dist_coeffs(0,0), &im_pt.x);
 
-      int segm_idx = INT_MAX;
+      int _segm_idx = INT_MAX;
 
       if (im_pt.x>=0 && im_pt.x<mask.cols && im_pt.y>=0 && im_pt.y<mask.rows)
-        segm_idx = labels[i]((int)(im_pt.y+.5), (int)(im_pt.x+.5));
+        _segm_idx = labels[i]((int)(im_pt.y+.5), (int)(im_pt.x+.5));
 
 
-      if (segm_idx>(int)planes[i].size())
+      if (_segm_idx>(int)planes[i].size())
       {
         for (int v=-1; v<=1; v++)
         {
@@ -443,20 +443,20 @@ void ObjectSegmentation::segment_image(int x, int y)
 
             if (tmp_pt.x>=0 && tmp_pt.x<mask.cols && tmp_pt.y>=0 && tmp_pt.y<mask.rows)
             {
-              segm_idx = labels[i]((int)(tmp_pt.y+.5), (int)(tmp_pt.x+.5));
+              _segm_idx = labels[i]((int)(tmp_pt.y+.5), (int)(tmp_pt.x+.5));
             }
           }
         }
       }
 
-      if (segm_idx>=(int)planes[i].size()) continue;
+      if (_segm_idx>=(int)planes[i].size()) continue;
 
-      v4r::ClusterNormalsToPlanes::Plane &plane = *planes[i][segm_idx];
-      cv::Mat_<unsigned char> &mask = masks[i];
+      v4r::ClusterNormalsToPlanes::Plane &_plane = *planes[i][_segm_idx];
+      cv::Mat_<unsigned char> &_mask = masks[i];
 
       // mark object
-      for (unsigned j=0; j<plane.size(); j++)
-         mask(plane.indices[j]) = mark_obj;
+      for (unsigned j=0; j<_plane.size(); j++)
+         _mask(_plane.indices[j]) = mark_obj;
     }
   }
 
@@ -711,12 +711,12 @@ void ObjectSegmentation::postProcessingSegmentation(bool do_mv)
  * @param bb_max
  * @param roi_offs
  */
-void ObjectSegmentation::createMaskFromROI(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &object_base_transform, const Eigen::Vector3f &bb_min, const Eigen::Vector3f &bb_max, const double &roi_offs)
+void ObjectSegmentation::createMaskFromROI(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &_object_base_transform, const Eigen::Vector3f &_bb_min, const Eigen::Vector3f &_bb_max, const double &_roi_offs)
 {
   Eigen::Vector3f pt;
   Eigen::Matrix4f inv_pose;
 
-  v4r::invPose(object_base_transform,inv_pose);
+  v4r::invPose(_object_base_transform,inv_pose);
 
   Eigen::Matrix3f R = inv_pose.topLeftCorner<3,3>();
   Eigen::Vector3f t = inv_pose.block<3,1>(0,3);
@@ -731,7 +731,7 @@ void ObjectSegmentation::createMaskFromROI(const v4r::DataMatrix2D<Eigen::Vector
     {
       pt = R*pt0 + t;
 
-      if (pt[0]>bb_min[0] && pt[0]<bb_max[0] && pt[1]>bb_min[1] && pt[1]<bb_max[1] && pt[2]>roi_offs && pt[2]<bb_max[2])
+      if (pt[0]>_bb_min[0] && pt[0]<_bb_max[0] && pt[1]>_bb_min[1] && pt[1]<_bb_max[1] && pt[2]>_roi_offs && pt[2]<_bb_max[2])
         mask(i) = 255;
     }
   }
@@ -810,12 +810,12 @@ void ObjectSegmentation::createObjectCloudFiltered()
           indices[i].push_back(j);
     }
 
-    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nmparam;
-    nmparam.octree_resolution_ = om_params.vx_size_object;
-    nmparam.edge_radius_px_ = om_params.edge_radius_px;
-    nmparam.min_points_per_voxel_ = 1;
+    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter _nmparam;
+    _nmparam.octree_resolution_ = om_params.vx_size_object;
+    _nmparam.edge_radius_px_ = om_params.edge_radius_px;
+    _nmparam.min_points_per_voxel_ = 1;
     octree_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration(nmparam);
+    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration(_nmparam);
     nmIntegration.setInputClouds(ptr_clouds);
     nmIntegration.setTransformations(inv_poses);
     nmIntegration.setInputNormals(normals);
@@ -904,15 +904,15 @@ void ObjectSegmentation::getInplaneTransform(const Eigen::Vector3f &pt, const Ei
  * @param cloud
  * @param image
  */
-void ObjectSegmentation::convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat_<cv::Vec3b> &image)
+void ObjectSegmentation::convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat_<cv::Vec3b> &_image)
 {
-  image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
+  _image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
 
   for (unsigned v = 0; v < cloud.height; v++)
   {
     for (unsigned u = 0; u < cloud.width; u++)
     {
-      cv::Vec3b &cv_pt = image.at<cv::Vec3b> (v, u);
+      cv::Vec3b &cv_pt = _image.at<cv::Vec3b> (v, u);
       const pcl::PointXYZRGB &pt = cloud(u,v);
 
       cv_pt[2] = pt.r;
@@ -929,15 +929,16 @@ void ObjectSegmentation::convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &c
  * @param image
  * @param alpha
  */
-void ObjectSegmentation::getMaskedImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, cv::Mat_<cv::Vec3b> &image, float alpha)
+void ObjectSegmentation::getMaskedImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, cv::Mat_<cv::Vec3b> &_image, float alpha)
 {
-  image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
+    (void)alpha;
+  _image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
 
   for (unsigned v = 0; v < cloud.height; v++)
   {
     for (unsigned u = 0; u < cloud.width; u++)
     {
-      cv::Vec3b &cv_pt = image.at<cv::Vec3b> (v, u);
+      cv::Vec3b &cv_pt = _image.at<cv::Vec3b> (v, u);
       const pcl::PointXYZRGB &pt = cloud(u,v);
 
       if (mask(v,u)>128)
@@ -974,10 +975,10 @@ void ObjectSegmentation::detectCoordinateSystem(Eigen::Matrix4f &pose)
   {
     pcl::PointCloud<pcl::PointXYZRGB> &cloud = *clouds->at(i).second;
     cv::Mat_<unsigned char> &mask = masks[i];
-    Eigen::Matrix4f &pose = cameras[clouds->at(i).first];
+    Eigen::Matrix4f &_pose = cameras[clouds->at(i).first];
     Eigen::Matrix4f inv_pose;
 
-    v4r::invPose(pose,inv_pose);
+    v4r::invPose(_pose,inv_pose);
 
     Eigen::Matrix3f R = inv_pose.topLeftCorner<3,3>();
     Eigen::Vector3f t = inv_pose.block<3,1>(0,3);

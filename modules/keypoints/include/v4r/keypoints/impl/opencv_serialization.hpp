@@ -49,6 +49,7 @@ namespace boost {
     template<class Archive, typename T>
     void serialize(Archive & ar, ::cv::Mat_<T>& m, const unsigned int version)
     {
+        (void)version;
       if(Archive::is_loading::value == true)
       {
         int cols, rows;
@@ -162,6 +163,7 @@ namespace boost {
       template<class Archive>
         void serialize(Archive & ar, cv::Point2f &pt, const unsigned int version)
         {
+            (void)version;
           ar & pt.x;
           ar & pt.y;
         }

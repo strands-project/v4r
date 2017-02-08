@@ -16,6 +16,7 @@ private:
     mutable int vp1_, vp2_, vp3_, vp4_;
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     typedef boost::shared_ptr< PlaneModel> Ptr;
     typedef boost::shared_ptr< PlaneModel const> ConstPtr;
 
@@ -24,11 +25,11 @@ public:
     typename pcl::PointCloud<PointT>::ConstPtr cloud_;
     std::vector<int> inliers_;
 
-    typename pcl::PointCloud<PointT>::Ptr
-    projectPlaneCloud(float resolution=0.005f) const;
+//    typename pcl::PointCloud<PointT>::Ptr
+//    projectPlaneCloud(float resolution=0.005f) const;
 
-    typename pcl::PointCloud<PointT>::Ptr
-    getConvexHullCloud();
+//    typename pcl::PointCloud<PointT>::Ptr
+//    getConvexHullCloud();
 
     bool operator < (const PlaneModel& pm2) const { return inliers_.size() < pm2.inliers_.size(); }
     bool operator > (const PlaneModel& pm2) const  { return inliers_.size() > pm2.inliers_.size(); }

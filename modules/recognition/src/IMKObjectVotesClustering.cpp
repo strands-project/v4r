@@ -71,14 +71,14 @@ IMKObjectVotesClustering::~IMKObjectVotesClustering()
  * @param votes
  * @param voting_matches
  */
-void IMKObjectVotesClustering::createVotes(unsigned id, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &keys, const std::vector< std::vector< cv::DMatch > > &matches, DataMatrix2Df &votes, std::vector< cv::DMatch > &voting_matches, std::vector<double> &weights)
+void IMKObjectVotesClustering::createVotes(unsigned id, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &keys, const std::vector< std::vector< cv::DMatch > > &matches, DataMatrix2Df &_votes, std::vector< cv::DMatch > &_voting_matches, std::vector<double> &_weights)
 {
   float scale, delta_angle;
   cv::Point2f pt, pt_scaled;
 
-  votes.resize(0,2);
-  voting_matches.clear();
-  weights.clear();
+  _votes.resize(0,2);
+  _voting_matches.clear();
+  _weights.clear();
 
 
 #ifdef DEBUG_VOTE_CL
@@ -107,9 +107,9 @@ void IMKObjectVotesClustering::createVotes(unsigned id, const std::vector<IMKVie
 
 //    pt = train_key.pt+query_key.pt;
 
-        weights.push_back(1./(double)ms.size());
-        voting_matches.push_back(m);
-        votes.push_back(&pt.x, 2);
+        _weights.push_back(1./(double)ms.size());
+        _voting_matches.push_back(m);
+        _votes.push_back(&pt.x, 2);
 
 #ifdef DEBUG_VOTE_CL
   if (!dbg.empty())

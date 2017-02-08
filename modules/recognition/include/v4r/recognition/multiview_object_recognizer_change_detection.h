@@ -62,16 +62,16 @@ protected:
     using MultiviewRecognizer<PointT>::views_;
     using MultiviewRecognizer<PointT>::id_;
 
-    std::map < size_t, typename pcl::PointCloud<PointT>::Ptr > removed_points_history_; /// @brief changes detected in previous observations
-    std::map < size_t, typename pcl::PointCloud<PointT>::Ptr > removed_points_cumulated_history_; /// @brief changes detected in previous observations (cumulated for reconstruction filtering)
+    std::map < size_t, typename pcl::PointCloud<PointT>::Ptr > removed_points_history_; ///< changes detected in previous observations
+    std::map < size_t, typename pcl::PointCloud<PointT>::Ptr > removed_points_cumulated_history_; ///< changes detected in previous observations (cumulated for reconstruction filtering)
 
-    CloudPtr changing_scene; /// @brief current status of dynamic scene
+    CloudPtr changing_scene; ///< current status of dynamic scene
 
 public:
     class Parameter: public MultiviewRecognizer<PointT>::Parameter {
     public:
-        int min_points_for_hyp_removal_; /// @brief how many removed points must overlap hypothesis to be also considered removed
-        float tolerance_for_cloud_diff_; /// @brief tolerance for point cloud difference [2cm]
+        int min_points_for_hyp_removal_; ///< how many removed points must overlap hypothesis to be also considered removed
+        float tolerance_for_cloud_diff_; ///< tolerance for point cloud difference [2cm]
 
         Parameter(
                 int min_points_for_hyp_removal = 50,

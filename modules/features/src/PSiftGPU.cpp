@@ -209,6 +209,9 @@ void PSiftGPU::computeImpl(const cv::Mat& image, std::vector<cv::KeyPoint>& keyp
 void PSiftGPU::knnMatchImpl( const cv::Mat& queryDescriptors, vector<vector<cv::DMatch> >& matches,
                  int k, const vector<cv::Mat>& masks, bool compactResult) 
 {
+    (void)k;
+    (void)masks;
+    (void)compactResult;
   matches.clear();
   if (trainDescCollection.size()==0 || queryDescriptors.rows == 0)
     return;
@@ -294,6 +297,8 @@ void PSiftGPU::knnMatchImpl( const cv::Mat& queryDescriptors, vector<vector<cv::
 void PSiftGPU::radiusMatchImpl(const cv::Mat& queryDescriptors,vector<vector<cv::DMatch> >& matches,
              float maxDistance, const vector<cv::Mat>& masks, bool compactResult )
 {
+    (void)masks;
+    (void)compactResult;
   matches.clear();
   if (trainDescCollection.size()==0 || queryDescriptors.rows == 0)
     return;
@@ -524,6 +529,7 @@ cout<<"add"<<endl;
  */
 cv::Ptr<cv::DescriptorMatcher> PSiftGPU::clone( bool emptyTrainData ) const 
 {
+    (void)emptyTrainData;
   PSiftGPU* tmpMatcher = new PSiftGPU(param, sift,matcher, gpuMemSize);
 
   return tmpMatcher;

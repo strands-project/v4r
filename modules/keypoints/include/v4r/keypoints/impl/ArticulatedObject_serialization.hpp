@@ -306,7 +306,7 @@ namespace boost{namespace serialization{
       o->parts.resize(num_parts);
       o->parts[0] = o;  // the first part is the object itself
 
-      for (unsigned i=1; i<num_parts; i++)
+      for (int i=1; i<num_parts; i++)
       {
         ar & o->parts[i];
       }

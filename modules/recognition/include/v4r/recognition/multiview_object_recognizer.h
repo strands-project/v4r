@@ -38,8 +38,6 @@
 #include <string>
 #include <sstream>
 
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
 #include <pcl/common/transforms.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
@@ -93,15 +91,15 @@ protected:
 
     std::string scene_name_;
 
-    symHyp local_obj_hypotheses_; /// \brief stores keypoint correspondences
+    symHyp local_obj_hypotheses_; ///< stores keypoint correspondences
 
     /** \brief Point-to-point correspondence grouping algorithm */
     typename boost::shared_ptr<v4r::GraphGeometricConsistencyGrouping<PointT, PointT> > cg_algorithm_;
 
     Eigen::Matrix4f pose_;
 
-    pcl::PointCloud<PointT> scene_keypoints_; /// @brief accumulated scene keypoints
-    pcl::PointCloud<pcl::Normal> scene_kp_normals_; /// @brief accumulated scene keypoint normals
+    pcl::PointCloud<PointT> scene_keypoints_; ///< accumulated scene keypoints
+    pcl::PointCloud<pcl::Normal> scene_kp_normals_; ///< accumulated scene keypoint normals
 
 #ifdef HAVE_SIFTGPU
     boost::shared_ptr<SiftGPU> sift_;
@@ -131,19 +129,19 @@ public:
         using Recognizer<PointT>::Parameter::merge_close_hypotheses_dist_;
         using Recognizer<PointT>::Parameter::merge_close_hypotheses_angle_;
 
-        bool scene_to_scene_;  /// @brief if true, tries to register two views based on SIFT background matching
-        bool use_robot_pose_;   /// @brief if true, uses given pose between two views as relative camera pose estimate
-        bool hyp_to_hyp_;   /// @brief if true adds edges for common object hypotheses (not implemented atm)
-        bool use_gc_s2s_;   /// @brief defines method used for SIFT background matching
-        double distance_same_keypoint_; /// @brief defines the minimum distance between two keypoints (of same model) to be seperated
-        double same_keypoint_dot_product_; /// @brief defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
-        int extension_mode_; /// @brief defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
-        bool use_multiview_verification_; /// @brief if true, verifies against all viewpoints from the scene (i.e. computing visible model cloud taking into account all views and trying to explain all points from reconstructed scene). Otherwise only against the current viewpoint.
-        int max_vertices_in_graph_; /// @brief maximum number of views taken into account (views selected in order of latest recognition calls)
-        double chop_z_;  /// @brief points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
-        bool compute_mst_; /// @brief if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud
-        bool run_reconstruction_filter_; /// @brief run special filtering before reconstruction. This filtering must be implemented by derived class.
-        bool run_hypotheses_filter_; /// @brief run hypotheses pre-filtering before verification. This filtering must be implemented by derived class.
+        bool scene_to_scene_;  ///< if true, tries to register two views based on SIFT background matching
+        bool use_robot_pose_;   ///< if true, uses given pose between two views as relative camera pose estimate
+        bool hyp_to_hyp_;   ///< if true adds edges for common object hypotheses (not implemented atm)
+        bool use_gc_s2s_;   ///< defines method used for SIFT background matching
+        double distance_same_keypoint_; ///< defines the minimum distance between two keypoints (of same model) to be seperated
+        double same_keypoint_dot_product_; ///< defines the minimum dot distance between the normals of two keypoints (of same model) to be seperated
+        int extension_mode_; ///< defines method used to extend information from other views (0 = keypoint correspondences (ICRA2015 paper); 1 = full hypotheses only (MVA2015 paper))
+        bool use_multiview_verification_; ///< if true, verifies against all viewpoints from the scene (i.e. computing visible model cloud taking into account all views and trying to explain all points from reconstructed scene). Otherwise only against the current viewpoint.
+        int max_vertices_in_graph_; ///< maximum number of views taken into account (views selected in order of latest recognition calls)
+        double chop_z_;  ///< points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)
+        bool compute_mst_; ///< if true, does point cloud registration by SIFT background matching (given scene_to_scene_ == true), by using given pose (if use_robot_pose_ == true) and by common object hypotheses (if hyp_to_hyp_ == true) from all the possible connection a Mimimum Spanning Tree is computed. If false, it only uses the given pose for each point cloud
+        bool run_reconstruction_filter_; ///< run special filtering before reconstruction. This filtering must be implemented by derived class.
+        bool run_hypotheses_filter_; ///< run hypotheses pre-filtering before verification. This filtering must be implemented by derived class.
 
         Parameter (
                 bool scene_to_scene = true,

@@ -46,7 +46,12 @@ PCLOpenCVConverter<PointT>::getRGBImage()
     if(cloud_->isOrganized())
         output_matrix_ = cv::Mat_<cv::Vec3b>(cloud_->height, cloud_->width);
     else
+    {
+        if(!cam_)
+            throw std::runtime_error("Point cloud is not organized and camera parameters are not set.");
+
         output_matrix_ = cv::Mat_<cv::Vec3b>(cam_->getHeight(), cam_->getWidth());
+    }
 
     output_matrix_.setTo( background_color_ );
 

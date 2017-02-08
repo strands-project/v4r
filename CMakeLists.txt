@@ -108,7 +108,6 @@ V4R_OPTION(BUILD_DOCS               "Create build rules for V4R Documentation"  
 V4R_OPTION(BUILD_EXAMPLES           "Build all examples"                                                 ON)
 V4R_OPTION(BUILD_EVALUATION_TOOLS   "Build all evaluation tools"                                         OFF)
 V4R_OPTION(BUILD_UTILITY_TOOLS      "Build all utility tools"                                            ON)
-#V4R_OPTION(BUILD_ICRA16_TOOLS       "Build evaluations for RA-L Paper 2016, Faeulhammer"    OFF )
 V4R_OPTION(BUILD_TESTS              "Build tests"                                                        ON)
 V4R_OPTION(BUILD_WITH_DEBUG_INFO    "Include debug info into debug libs (not MSCV only)"                 ON)
 

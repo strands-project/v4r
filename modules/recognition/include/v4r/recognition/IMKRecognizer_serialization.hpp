@@ -45,6 +45,7 @@ namespace boost{namespace serialization{
   template<class Archive>
   void serialize(Archive & ar, v4r::IMKView &view, const unsigned int version)
   {
+      (void)version;
     ar & view.object_id;
     ar & view.points;
     ar & view.keys;

@@ -25,9 +25,6 @@ if(BUILD_EXAMPLES)
   SET(V4R_DEPS v4r_registration)
   V4R_DEFINE_CPP_EXAMPLE(noise_model_based_cloud_integration)
 
-  SET(V4R_DEPS v4r_recognition)
-  V4R_DEFINE_CPP_EXAMPLE(object_recognizer)
-
   #SET(V4R_DEPS v4r_recognition)
   #V4R_DEFINE_CPP_EXAMPLE(object_recognizer_multiview)
 

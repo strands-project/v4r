@@ -28,6 +28,7 @@
 #include "v4r/attention_segmentation/AttentionExampleUtils.h"
 
 // This program shows the use of 3D Symmentry Saliency Map on one image
+void printUsage(const char *argv0);
 
 void printUsage(const char *argv0)
 {

@@ -76,6 +76,7 @@ void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image
 //--------------------------- default configuration -------------------------------
 
 
+void InitParameter();
 
 void InitParameter()
 {
@@ -307,10 +308,10 @@ void drawConfidenceBar(cv::Mat &im, const double &conf)
 
 
 
-cv::Point2f drawCoordinateSystem(cv::Mat &im, const Eigen::Matrix4f &pose, const cv::Mat_<double> &intrinsic, const cv::Mat_<double> &dist_coeffs, double size, int thickness)
+cv::Point2f drawCoordinateSystem(cv::Mat &im, const Eigen::Matrix4f &_pose, const cv::Mat_<double> &_intrinsic, const cv::Mat_<double> &_dist_coeffs, double size, int thickness)
 {
-  Eigen::Matrix3f R = pose.topLeftCorner<3,3>();
-  Eigen::Vector3f t = pose.block<3, 1>(0,3);
+  Eigen::Matrix3f R = _pose.topLeftCorner<3,3>();
+  Eigen::Vector3f t = _pose.block<3, 1>(0,3);
 
   Eigen::Vector3f pt0 = R * Eigen::Vector3f(0,0,0) + t;
   Eigen::Vector3f pt_x = R * Eigen::Vector3f(size,0,0) + t;
@@ -319,19 +320,19 @@ cv::Point2f drawCoordinateSystem(cv::Mat &im, const Eigen::Matrix4f &pose, const
 
   cv::Point2f im_pt0, im_pt_x, im_pt_y, im_pt_z;
 
-  if (!dist_coeffs.empty())
+  if (!_dist_coeffs.empty())
   {
-    v4r::projectPointToImage(&pt0[0], &intrinsic(0), &dist_coeffs(0), &im_pt0.x);
-    v4r::projectPointToImage(&pt_x[0], &intrinsic(0), &dist_coeffs(0), &im_pt_x.x);
-    v4r::projectPointToImage(&pt_y[0], &intrinsic(0), &dist_coeffs(0), &im_pt_y.x);
-    v4r::projectPointToImage(&pt_z[0], &intrinsic(0), &dist_coeffs(0), &im_pt_z.x);
+    v4r::projectPointToImage(&pt0[0], &_intrinsic(0), &_dist_coeffs(0), &im_pt0.x);
+    v4r::projectPointToImage(&pt_x[0], &_intrinsic(0), &_dist_coeffs(0), &im_pt_x.x);
+    v4r::projectPointToImage(&pt_y[0], &_intrinsic(0), &_dist_coeffs(0), &im_pt_y.x);
+    v4r::projectPointToImage(&pt_z[0], &_intrinsic(0), &_dist_coeffs(0), &im_pt_z.x);
   }
   else
   {
-    v4r::projectPointToImage(&pt0[0], &intrinsic(0), &im_pt0.x);
-    v4r::projectPointToImage(&pt_x[0], &intrinsic(0), &im_pt_x.x);
-    v4r::projectPointToImage(&pt_y[0], &intrinsic(0), &im_pt_y.x);
-    v4r::projectPointToImage(&pt_z[0], &intrinsic(0), &im_pt_z.x);
+    v4r::projectPointToImage(&pt0[0], &_intrinsic(0), &im_pt0.x);
+    v4r::projectPointToImage(&pt_x[0], &_intrinsic(0), &im_pt_x.x);
+    v4r::projectPointToImage(&pt_y[0], &_intrinsic(0), &im_pt_y.x);
+    v4r::projectPointToImage(&pt_z[0], &_intrinsic(0), &im_pt_z.x);
   }
 
   cv::line(im, im_pt0, im_pt_x, CV_RGB(255,0,0), thickness);
@@ -344,16 +345,16 @@ cv::Point2f drawCoordinateSystem(cv::Mat &im, const Eigen::Matrix4f &pose, const
 
 
 
-void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image)
+void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, cv::Mat &_image)
 {
-  image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
+  _image = cv::Mat_<cv::Vec3b>(_cloud.height, _cloud.width);
 
-  for (unsigned v = 0; v < cloud.height; v++)
+  for (unsigned v = 0; v < _cloud.height; v++)
   {
-    for (unsigned u = 0; u < cloud.width; u++)
+    for (unsigned u = 0; u < _cloud.width; u++)
     {
-      cv::Vec3b &cv_pt = image.at<cv::Vec3b> (v, u);
-      const pcl::PointXYZRGB &pt = cloud(u,v);
+      cv::Vec3b &cv_pt = _image.at<cv::Vec3b> (v, u);
+      const pcl::PointXYZRGB &pt = _cloud(u,v);
 
       cv_pt[2] = pt.r;
       cv_pt[1] = pt.g;

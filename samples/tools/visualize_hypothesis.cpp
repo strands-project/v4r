@@ -4,64 +4,86 @@
  *
  */
 
-#include <v4r/common/faat_3d_rec_framework_defines.h>
-#include <v4r/common/miscellaneous.h>
-#include <v4r/io/eigen.h>
-#include <v4r/io/filesystem.h>
-#include <v4r/recognition/model_only_source.h>
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
+#include <pcl/common/transforms.h>
 #include <pcl/console/parse.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <iostream>
 #include <fstream>
 
+namespace po = boost::program_options;
+
+Eigen::Matrix4f readMatrixFromFile(const std::string &file, int padding = 0);
+Eigen::Matrix4f RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans);
+Eigen::Matrix4f RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans);
+
+Eigen::Matrix4f
+readMatrixFromFile(const std::string &file, int padding)
+{
+
+    // check if file exists
+    boost::filesystem::path path = file;
+    if ( ! (boost::filesystem::exists ( path ) && boost::filesystem::is_regular_file(path)) )
+        throw std::runtime_error ("Given file path to read Matrix does not exist!");
+
+    std::ifstream in (file.c_str (), std::ifstream::in);
+
+    char linebuf[1024];
+    in.getline (linebuf, 1024);
+    std::string line (linebuf);
+    std::vector < std::string > strs_2;
+    boost::split (strs_2, line, boost::is_any_of (" "));
+
+    Eigen::Matrix4f matrix;
+    for (int i = 0; i < 16; i++)
+        matrix (i / 4, i % 4) = static_cast<float> (atof (strs_2[padding+i].c_str ()));
+
+    return matrix;
+}
+
+Eigen::Matrix4f
+RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
+{
+    Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+    tf.block<3,3>(0,0) = q.normalized().toRotationMatrix();
+    tf.block<4,1>(0,3) = trans;
+    return tf;
+}
 
 int main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
-    typedef v4r::Model<PointT> ModelT;
-    typedef boost::shared_ptr<ModelT> ModelTPtr;
 
-    std::string path_s, path_p, path_m, model_name;
-    pcl::console::parse_argument (argc, argv, "-scene_path", path_s);
-    pcl::console::parse_argument (argc, argv, "-pose_file", path_p);
-    pcl::console::parse_argument (argc, argv, "-model_path", path_m);
-    pcl::console::parse_argument (argc, argv, "-model_name", model_name);
-
-    std::cout << path_s << " " << path_p << " " << path_m << std::endl;
-
-    boost::shared_ptr < v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB> > source;
-    source.reset (new v4r::ModelOnlySource<pcl::PointXYZRGBNormal, pcl::PointXYZRGB>);
-    source->setPath (path_m);
-    source->setLoadViews (false);
-    source->setLoadIntoMemory(false);
-    source->generate ();
-//    source->createVoxelGridAndDistanceTransform (0.005f);
+    std::string path_s, path_p, path_m;
+    po::options_description desc("Visualize scene with object hypotheses in a given pose\n======================================\n**Required options");
+    desc.add_options()
+            ("help,h", "produce help message")
+            ("scene_path,s", po::value<std::string>(&path_s)->required(), "Filename of the point cloud of the scene")
+            ("model_path,m", po::value<std::string>(&path_m)->required(), "Filename of the point cloud of the model (e.g. 3D_model.pcd)")
+            ("model_pose,p", po::value<std::string>(&path_p)->required(), "Filename of the 4x4 object pose stored in row-major order")
+            ;
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    if (vm.count("help")) { std::cout << desc << std::endl; return false; }
+    try  { po::notify(vm); }
+    catch(std::exception& e)  {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; return false; }
 
     pcl::visualization::PCLVisualizer vis;
-    // Loading file and corresponding indices file (if it exists)
-    pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
-    pcl::io::loadPCDFile (path_s, *cloud);
 
-    Eigen::Matrix4f transform = v4r::io::readMatrixFromFile(path_p);
+    pcl::PointCloud<PointT>::Ptr scene_cloud (new pcl::PointCloud<PointT>);
+    pcl::io::loadPCDFile (path_s, *scene_cloud);
 
-//    std::vector < std::string > parts;
-//    boost::split (parts, path_p, boost::is_any_of ("/"));
-//    std::string filename = parts.back();
-//    boost::replace_all(filename, ".txt", "");
-//    boost::split (parts, filename, boost::is_any_of ("_"));
-//    filename = filename.substr(0, filename.length() - parts.back().length());
-//    const std::string model_name =  parts[1] +  parts[2];
+    pcl::PointCloud<PointT>::Ptr model_cloud (new pcl::PointCloud<PointT>);
+    pcl::io::loadPCDFile (path_m, *model_cloud);
 
+    const Eigen::Matrix4f transform = readMatrixFromFile(path_p);
+    const Eigen::Matrix4f scene_tf = RotTrans2Mat4f(scene_cloud->sensor_orientation_, scene_cloud->sensor_origin_);
+    pcl::transformPointCloud(*model_cloud, *model_cloud,  scene_tf * transform);
 
-    ModelTPtr model;
-    bool found = source->getModelById (model_name, model);
-    pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(3);
-    pcl::PointCloud<PointT>::Ptr model_cloud_transformed(new pcl::PointCloud<PointT>(*model_cloud));
-    pcl::transformPointCloud(*model_cloud, *model_cloud_transformed, v4r::RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_) * transform);
-
-    vis.addPointCloud (cloud, "original_cloud");
-    vis.addPointCloud (model_cloud_transformed, "model_cloud");
+    vis.addPointCloud (scene_cloud, "original_cloud");
+    vis.addPointCloud (model_cloud, "model_cloud");
     vis.spin();
     return true;
 }
