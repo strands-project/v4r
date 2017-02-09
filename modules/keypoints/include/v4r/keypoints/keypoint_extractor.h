@@ -22,12 +22,11 @@
  ******************************************************************************/
 
 
-#ifndef V4R_KEYPOINT_EXTRACTOR___
-#define V4R_KEYPOINT_EXTRACTOR___
+#pragma once
 
 #include <v4r/core/macros.h>
-#include <v4r/keypoints/types.h>
 #include <pcl/common/common.h>
+#include <v4r/keypoints/types.h>
 
 namespace v4r
 {
@@ -36,15 +35,17 @@ template<typename PointT>
 class V4R_EXPORTS KeypointExtractor
 {
 protected:
-    typename pcl::PointCloud<PointT>::ConstPtr input_;
-    std::vector<int> keypoint_indices_;
+    typename pcl::PointCloud<PointT>::ConstPtr input_; ///< input cloud
+    std::vector<int> keypoint_indices_; ///< extracted keypoint indices
     std::vector<int> indices_;  ///< indices of the segmented object (extracted keypoints outside of this will be neglected)
-    int keypoint_extractor_type_;
-    std::string keypoint_extractor_name_;
 
 public:
     virtual ~KeypointExtractor() = 0;
 
+    /**
+     * @brief setInputCloud
+     * @param input input cloud
+     */
     void
     setInputCloud (const typename pcl::PointCloud<PointT>::ConstPtr & input)
     {
@@ -70,24 +71,32 @@ public:
         return keypoint_indices_;
     }
 
+    /**
+     * @brief setIndices
+     * @param indices indices of the segmented object (extracted keypoints outside of this will be neglected)
+     */
     void
     setIndices(const std::vector<int> &indices)
     {
         indices_ = indices;
     }
 
-    int
-    getKeypointExtractorType() const
-    {
-        return keypoint_extractor_type_;
-    }
+    /**
+     * @brief getKeypointExtractorType
+     * @return unique type id of keypoint extractor (as stated in keypoint/types.h)
+     */
+    virtual int getKeypointExtractorType() const = 0;
 
-    std::string
-    getKeypointExtractorName() const
-    {
-        return keypoint_extractor_name_;
-    }
+    /**
+     * @brief getKeypointExtractorName
+     * @return type name of keypoint extractor
+     */
+    virtual std::string getKeypointExtractorName() const = 0;
 
+    /**
+     * @brief compute
+     * @param keypoints
+     */
     virtual void
     compute (pcl::PointCloud<PointT> & keypoints) = 0;
 
@@ -97,4 +106,3 @@ public:
 };
 }
 
-#endif

@@ -20,8 +20,7 @@
 #include <v4r/features/shot_local_estimator.h>
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/keypoints/uniform_sampling_extractor.h>
-#include <v4r/ml/nearestNeighbor.h>
-#include <v4r/ml/svmWrapper.h>
+#include <v4r/ml/all_headers.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/global_recognition_pipeline.h>
 #include <v4r/segmentation/all_headers.h>
@@ -58,10 +57,12 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     bool do_esf = false;
     bool do_alexnet = false;
     int segmentation_method = SegmentationType::DominantPlane;
+    int esf_classification_method = ClassifierType::SVM;
 
     bool visualize_hv_go_cues = false;
     bool visualize_hv_model_cues = false;
     bool visualize_hv_pairwise_cues = false;
+
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
@@ -75,6 +76,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("do_esf", po::value<bool>(&do_esf)->default_value(do_esf), "if true, enables ESF global matching")
             ("do_alexnet", po::value<bool>(&do_alexnet)->default_value(do_alexnet), "if true, enables AlexNet global matching")
             ("segmentation_method", po::value<int>(&segmentation_method)->default_value(segmentation_method), "segmentation method (as stated in the V4R library (modules segmentation/types.h) ")
+            ("esf_classification_method", po::value<int>(&esf_classification_method)->default_value(esf_classification_method), "ESF classification method (as stated in the V4R library (modules ml/types.h) ")
             ("depth_img_mask", po::value<std::string>(&depth_img_mask)->default_value(depth_img_mask), "filename for image registration mask. This mask tells which pixels in the RGB image can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.")
             ("hv_config_xml", po::value<std::string>(&hv_config_xml)->default_value(hv_config_xml), "Filename of Hypotheses Verification XML configuration file.")
             ("sift_config_xml", po::value<std::string>(&sift_config_xml)->default_value(sift_config_xml), "Filename of SIFT XML configuration file.")
@@ -159,17 +161,13 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             if(do_esf)
             {
                 typename ESFEstimation<PointT>::Ptr esf_estimator (new ESFEstimation<PointT>);
-
-                // choose classifier
-//                 NearestNeighborClassifier::Ptr classifier (new NearestNeighborClassifier);
-                svmClassifier::Ptr classifier (new svmClassifier);
-//                classifier->setInFilename(esf_svm_model_fn);
+                Classifier::Ptr classifier = initClassifier( esf_classification_method, to_pass_further);
 
                 GlobalRecognizerParameter esf_param (esf_config_xml);
-                typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>(esf_param));
-                global_r->setFeatureEstimator(esf_estimator);
-                global_r->setClassifier(classifier);
-                global_recognition_pipeline->addRecognizer(global_r);
+                typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>( esf_param ));
+                global_r->setFeatureEstimator( esf_estimator );
+                global_r->setClassifier( classifier );
+                global_recognition_pipeline->addRecognizer( global_r );
             }
 
             if (do_alexnet)

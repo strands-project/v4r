@@ -57,6 +57,8 @@ private:
         pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_; ///< associated scene normals
         Eigen::Matrix4f camera_pose_;   ///< camera pose of the view which aligns cloud in registered cloud when multiplied
 
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
         View(const typename pcl::PointCloud<PointT>::ConstPtr cloud,
              const pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals,
              const Eigen::Matrix4f &camera_pose = Eigen::Matrix4f::Identity() )

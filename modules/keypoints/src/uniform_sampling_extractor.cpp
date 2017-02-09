@@ -9,7 +9,7 @@ void
 UniformSamplingExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
 {
     pcl_1_8::UniformSampling<PointT> us;
-    us.setRadiusSearch (sampling_density_);
+    us.setRadiusSearch ( param_.sampling_density_ );
     us.setInputCloud (input_);
     if(!indices_.empty())
     {

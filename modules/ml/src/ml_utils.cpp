@@ -57,7 +57,6 @@ Eigen::MatrixXi
 computeConfusionMatrix(const Eigen::VectorXi &actual_label, const Eigen::VectorXi &predicted_label, size_t num_classes)
 {
     CHECK (actual_label.rows() == predicted_label.rows() );
-    Eigen::MatrixXi confusion_matrix;
 
     size_t num_falsely_classified=0, num_correctly_classified=0;
 
@@ -69,7 +68,7 @@ computeConfusionMatrix(const Eigen::VectorXi &actual_label, const Eigen::VectorX
             num_falsely_classified++;
     }
 
-    confusion_matrix = Eigen::MatrixXi::Zero(num_classes, num_classes);
+    Eigen::MatrixXi confusion_matrix = Eigen::MatrixXi::Zero(num_classes, num_classes);
 
     for(int i=0; i < actual_label.rows(); i++)
         confusion_matrix( actual_label(i), predicted_label(i) ) ++;

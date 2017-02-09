@@ -11,12 +11,11 @@ template<typename PointT>
 void
 NarfKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
 {
-    Eigen::Affine3f sensorPose = Eigen::Affine3f(Eigen::Translation3f(input_->sensor_origin_[0],
-                                                 input_->sensor_origin_[1], input_->sensor_origin_[2]))
+    Eigen::Affine3f sensorPose = Eigen::Affine3f(Eigen::Translation3f(input_->sensor_origin_[0], input_->sensor_origin_[1], input_->sensor_origin_[2]))
             * Eigen::Affine3f(input_->sensor_orientation_);
     pcl::RangeImagePlanar rangeImage;
-    rangeImage.createFromPointCloudWithFixedSize(*input_, param_.img_width_, param_.img_height_,
-            param_.cx_, param_.cy_, param_.focal_length_, param_.focal_length_,
+    rangeImage.createFromPointCloudWithFixedSize(*input_, param_.cam_->getWidth(), param_.cam_->getHeight(),
+            param_.cam_->getCx(), param_.cam_->getCy(), param_.cam_->getFocalLength(), param_.cam_->getFocalLength(),
             sensorPose, pcl::RangeImage::CAMERA_FRAME, param_.noise_level_, param_.minimum_range_);
 
     pcl::RangeImageBorderExtractor borderExtractor;

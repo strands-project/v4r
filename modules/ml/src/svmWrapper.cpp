@@ -95,8 +95,6 @@ void svmClassifier::dokFoldCrossValidation(
     Eigen::VectorXi target_train_shuffled = target_train;
     shuffleTrainingData(data_train_shuffled, target_train_shuffled);
 
-
-
     for(double C = model_para_C_min; C <= model_para_C_max; C *= step_multiplicator_C)
     {
         for(double gamma = model_para_gamma_min; gamma <= model_para_gamma_max; gamma *= step_multiplicator_gamma)
@@ -132,9 +130,11 @@ void svmClassifier::dokFoldCrossValidation(
                         target_train_sub(num_entries) = target_train_shuffled(i);
                     }
                 }
-                trainSVM(data_train_sub, target_train_sub);
-                Eigen::VectorXi target_pred;
-                computeConfusionMatrix(data_val, target_val, target_pred, confusion_matrices_v[current_val_set_id]);
+                train(data_train_sub, target_train_sub);
+
+                Eigen::MatrixXi target_pred;
+                predict( data_val, target_pred );
+                confusion_matrices_v[current_val_set_id] = computeConfusionMatrix( target_val, target_pred.col(0), num_classes );
                 std::cout << "confusion matrix ( " << current_val_set_id << ")" << std::endl << confusion_matrices_v[current_val_set_id] << std::endl;
             }
 
@@ -189,8 +189,14 @@ void svmClassifier::dokFoldCrossValidation(
                  "Total confusion matrix:" << std::endl << confusion_matrix << std::endl << std::endl;
 }
 
-void svmClassifier::trainSVM(const Eigen::MatrixXf &training_data, const Eigen::VectorXi & training_label)
+
+void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::VectorXi & training_label)
 {
+    CHECK(training_data.rows() == training_label.rows() );
+
+    if(param_.do_cross_validation_)
+        dokFoldCrossValidation(training_data, training_label, 5);
+
     ::svm_problem *svm_prob = new ::svm_problem;
 
     svm_prob->l = training_data.rows(); //number of training examples
@@ -219,17 +225,6 @@ void svmClassifier::trainSVM(const Eigen::MatrixXf &training_data, const Eigen::
 //    delete [] svm_prob->x;
 //    delete [] svm_prob->y;
 //    delete svm_prob;
-}
-
-
-void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::VectorXi & training_label)
-{
-    CHECK(training_data.rows() == training_label.rows() );
-
-    if(param_.do_cross_validation_)
-        dokFoldCrossValidation(training_data, training_label, 5);
-
-    trainSVM(training_data, training_label);
 }
 
 void svmClassifier::saveModel(const std::string &filename) const
