@@ -43,7 +43,7 @@ class V4R_EXPORTS OrganizedMultiplaneSegmenterParameter
 {
 public:
     int min_cluster_size_, num_plane_inliers_;
-    double sensor_noise_max_,
+    double distance_threshold_,
            angular_threshold_deg_;
     OrganizedMultiplaneSegmenterParameter (
                int min_cluster_size=500,
@@ -53,7 +53,7 @@ public:
         :
           min_cluster_size_ (min_cluster_size),
           num_plane_inliers_ (num_plane_inliers),
-          sensor_noise_max_ (sensor_noise_max),
+          distance_threshold_ (sensor_noise_max),
           angular_threshold_deg_ (angular_threshold_deg)
     {}
 
@@ -82,8 +82,8 @@ public:
                 ("help,h", "produce help message")
                 ("org_multi_seg_min_cluster_size", po::value<int>(&min_cluster_size_)->default_value(min_cluster_size_), "")
                 ("org_multi_seg_num_plane_inliers", po::value<int>(&num_plane_inliers_)->default_value(num_plane_inliers_), "")
-                ("org_multi_seg_sensor_noise_max", po::value<double>(&sensor_noise_max_)->default_value(sensor_noise_max_), "")
-                ("org_multi_seg_angular_threshold_deg", po::value<double>(&angular_threshold_deg_)->default_value(angular_threshold_deg_), "")
+                ("org_multi_seg_distance_threshold", po::value<double>(&distance_threshold_)->default_value(distance_threshold_), "tolerance in meters for difference in perpendicular distance (d component of plane equation) to the plane between neighboring points, to be considered part of the same plane")
+                ("org_multi_seg_angular_threshold_deg", po::value<double>(&angular_threshold_deg_)->default_value(angular_threshold_deg_), "tolerance in radians for difference in normal direction between neighboring points, to be considered part of the same plane.")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();

@@ -16,7 +16,7 @@ OrganizedMultiplaneSegmenter<PointT>::segment()
     pcl::OrganizedMultiPlaneSegmentation<PointT, pcl::Normal, pcl::Label> mps;
     mps.setMinInliers (param_.num_plane_inliers_);
     mps.setAngularThreshold (param_.angular_threshold_deg_ * M_PI/180.f);
-    mps.setDistanceThreshold (param_.sensor_noise_max_);
+    mps.setDistanceThreshold (param_.distance_threshold_);
     mps.setInputNormals (normals_);
     mps.setInputCloud (scene_);
 
@@ -29,7 +29,7 @@ OrganizedMultiplaneSegmenter<PointT>::segment()
 
     typename pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label>::Ptr ref_comp (
                 new pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label> ());
-    ref_comp->setDistanceThreshold (param_.sensor_noise_max_, false);
+    ref_comp->setDistanceThreshold (param_.distance_threshold_, false);
     ref_comp->setAngularThreshold (2 * M_PI/180.f);
     mps.setRefinementComparator (ref_comp);
     mps.segmentAndRefine (regions, model_coeff, inlier_indices, labels, label_indices, boundary_indices);
@@ -60,7 +60,7 @@ OrganizedMultiplaneSegmenter<PointT>::segment()
 
             float val = xyz_p[0] * table_plane[0] + xyz_p[1] * table_plane[1] + xyz_p[2] * table_plane[2] + table_plane[3];
 
-            if (std::abs (val) > param_.sensor_noise_max_)
+            if (std::abs (val) > param_.distance_threshold_)
             {
                 plane_points->points[j].x = std::numeric_limits<float>::quiet_NaN ();
                 plane_points->points[j].y = std::numeric_limits<float>::quiet_NaN ();
@@ -130,7 +130,7 @@ OrganizedMultiplaneSegmenter<PointT>::segment()
 
         float val = xyz_p[0] * dominant_plane_[0] + xyz_p[1] * dominant_plane_[1] + xyz_p[2] * dominant_plane_[2] + dominant_plane_[3];
 
-        if (val >= param_.sensor_noise_max_)
+        if (val >= param_.distance_threshold_)
         {
             /*plane_points->points[j].x = std::numeric_limits<float>::quiet_NaN ();
      plane_points->points[j].y = std::numeric_limits<float>::quiet_NaN ();
