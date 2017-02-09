@@ -44,7 +44,6 @@ main (int argc, char ** argv)
     bool filter_planar = true;
     bool filter_boundary_pts = true;
     float chop_z = 3.5f;
-    float planar_support_radius = 0.04f; ///< Radius used to check keypoints for planarity.
     int boundary_width = 5;
     float threshold_planar = 0.02f;
     double vis_pt_size = 7;
@@ -60,7 +59,6 @@ main (int argc, char ** argv)
         ("chop_z,z", po::value<float>(&chop_z)->default_value(chop_z), "cut-off distance in meter")
         ("filter_planar", po::value<bool>(&filter_planar)->default_value(filter_planar), "if true, filters planar keypoints")
         ("filter_boundary_pts", po::value<bool>(&filter_boundary_pts)->default_value(filter_boundary_pts), "if true, filters keypoints on depth discontinuities")
-        ("planar_support_radius", po::value<float>(&planar_support_radius)->default_value(planar_support_radius), "planar support radius in meter  (only used if \"filter_planar\" is enabled)")
         ("threshold_planar", po::value<float>(&threshold_planar)->default_value(threshold_planar), "curvature threshold (only used if \"filter_planar\" is enabled)")
         ("boundary_width", po::value<int>(&boundary_width)->default_value(boundary_width), "boundary width in pixel (only used if \"filter_boundary_pts\" is enabled)")
         ("visualize,v", po::bool_switch(&visualize), "If set, visualizes segmented clusters.")
@@ -73,10 +71,8 @@ main (int argc, char ** argv)
     try { po::notify(vm); }
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
-
     typename v4r::KeypointExtractor<PointT>::Ptr kp_extractor = v4r::initKeypointExtractor<PointT> ( kp_extraction_type, to_pass_further );
-//    typename v4r::SIFTLocalEstimation<PointT>::Ptr sift_estimator (new v4r::SIFTLocalEstimation<PointT>);
-    //    typename v4r::KeypointExtractor<PointT>::Ptr shot = v4r::initKeypointExtractor<PointT>( segmentation_method, to_pass_further);
+    typename v4r::NormalEstimator<PointT>::Ptr normal_estimator = v4r::initNormalEstimator<PointT> ( normal_estimation_type, to_pass_further );
 
     if( !to_pass_further.empty() )
     {
@@ -134,7 +130,12 @@ main (int argc, char ** argv)
                 normalEstimation.setRadiusSearch( planar_support_radius );
                 normalEstimation.setSearchMethod(tree);
                 pcl::PointCloud<pcl::Normal>::Ptr normals_for_planarity_check ( new pcl::PointCloud<pcl::Normal> );
-                normalEstimation.compute(*normals_for_planarity_check);
+                {
+                    pcl::ScopeTime tn("Computing normals");
+                    normal_estimator->setInputCloud( cloud );
+                    normals_for_planarity_check = normal_estimator->compute();
+                    pcl::copyPointCloud(*normals_for_planarity_check, kp_indices, *normals_for_planarity_check);
+                }
 
                 CHECK(kp_indices.size() == normals_for_planarity_check->points.size());
 
@@ -242,8 +243,8 @@ main (int argc, char ** argv)
 
                 pcl::copyPointCloud(*cloud, kp_indices, *kp_cloud);
                 pcl::copyPointCloud(*kp_cloud, kp_is_kept, *kp_cloud_accepted);
-                pcl::copyPointCloud(*kp_cloud, kp_is_kept.flip(), *kp_cloud_rejected);
-//                pcl::copyPointCloud(*cloud, uniform_sampling_kp_indices_filtered, *kp_cloud_filtered);
+                boost::dynamic_bitset<> kp_is_rejected = ~kp_is_kept;
+                pcl::copyPointCloud(*kp_cloud, kp_is_rejected, *kp_cloud_rejected);
 
                 pcl::visualization::PointCloudColorHandlerCustom<PointT> red (kp_cloud, 0, 255, 0);
                 vis->addPointCloud<PointT>( kp_cloud, red, "keypoints_cloud", vp2);
