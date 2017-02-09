@@ -8,22 +8,27 @@
 #include <glog/logging.h>
 
 #include <pcl/common/time.h>
-#include <pcl/impl/instantiate.hpp>
-#include <pcl/recognition/cg/geometric_consistency.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/impl/instantiate.hpp>
+#include <pcl/recognition/cg/geometric_consistency.h>
 
 #include <v4r/common/camera.h>
 #include <v4r/common/normals.h>
-#include <v4r/io/filesystem.h>
 #include <v4r/features/esf_estimator.h>
 #include <v4r/features/shot_local_estimator.h>
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/keypoints/uniform_sampling_extractor.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/ml/all_headers.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/global_recognition_pipeline.h>
 #include <v4r/segmentation/all_headers.h>
+
+
+#include <v4r/common/plane_utils.h>
+#include <v4r/segmentation/segmentation_utils.h>
+
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -63,7 +68,6 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     bool visualize_hv_model_cues = false;
     bool visualize_hv_pairwise_cues = false;
 
-
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
@@ -75,6 +79,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("do_shot", po::value<bool>(&do_shot)->default_value(do_shot), "if true, enables SHOT feature matching")
             ("do_esf", po::value<bool>(&do_esf)->default_value(do_esf), "if true, enables ESF global matching")
             ("do_alexnet", po::value<bool>(&do_alexnet)->default_value(do_alexnet), "if true, enables AlexNet global matching")
+            ("remove_planes", po::value<bool>(&remove_planes_)->default_value(remove_planes_), "if true, removes all planar surfaces with having at least min_plane_points points.")
+            ("min_plane_points", po::value<size_t>(&min_plane_points_)->default_value(min_plane_points_), "Minimum number of plane points for plane to be removed (only if remove_planes is enabled).")
             ("segmentation_method", po::value<int>(&segmentation_method)->default_value(segmentation_method), "segmentation method (as stated in the V4R library (modules segmentation/types.h) ")
             ("esf_classification_method", po::value<int>(&esf_classification_method)->default_value(esf_classification_method), "ESF classification method (as stated in the V4R library (modules ml/types.h) ")
             ("depth_img_mask", po::value<std::string>(&depth_img_mask)->default_value(depth_img_mask), "filename for image registration mask. This mask tells which pixels in the RGB image can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.")
@@ -228,6 +234,26 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
         ne.compute(*normals);
         mrec_->setSceneNormals( normals );
         elapsed_time.push_back( t.getTime() );
+    }
+
+
+    if( remove_planes_ )
+    {
+        pcl::ScopeTime t("Removing plane from input cloud.");
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::copyPointCloud( *cloud, *cloud_filtered );
+
+        boost::dynamic_bitset<> pt_is_accepted ( cloud->points.size() );
+        pt_is_accepted.set();
+
+        pcl::visualization::PCLVisualizer vis;
+        int vp1, vp2;
+        vis.createViewPort(0, 0, 0.5, 1, vp1);
+        vis.createViewPort(0.5, 0, 1, 1, vp2);
+        vis.addPointCloud(cloud, "input", vp1);
+
+        (void)t;
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====
