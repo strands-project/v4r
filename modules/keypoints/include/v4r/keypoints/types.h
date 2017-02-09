@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_KEYPOINT_TYPES__
-#define V4R_KEYPOINT_TYPES__
+#pragma once
 
 namespace v4r
 {
@@ -34,5 +33,3 @@ namespace v4r
             HARRIS3D  = 0x08 // 00000100
         };
 }
-
-#endif
