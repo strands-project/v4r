@@ -150,7 +150,7 @@ PCLOpenCVConverter<PointT>::computeOrganizedCloud()
 {
     CHECK( !cloud_->isOrganized() && cam_ && cam_->getWidth()>0 && cam_->getHeight()>0 );
 
-    typename ZBuffering<PointT>::Parameter zBufParams;
+    ZBufferingParameter zBufParams;
     zBufParams.do_smoothing_ = true;
     zBufParams.smoothing_radius_ = 2;
     ZBuffering<PointT> zbuf (cam_, zBufParams);

@@ -29,7 +29,7 @@ OcclusionReasoner<PointTA, PointTB>::computeVisiblePoints()
 
     if( !cloud_to_be_filtered_->isOrganized() )
     {
-        typename ZBuffering<PointTB>::Parameter zBparam;
+        ZBufferingParameter zBparam;
         zBparam.do_noise_filtering_ = false;
         zBparam.do_smoothing_ = false;
         zBparam.inlier_threshold_ = 0.015f;
