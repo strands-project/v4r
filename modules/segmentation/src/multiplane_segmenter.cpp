@@ -2,6 +2,7 @@
 #include <v4r/segmentation/multiplane_segmenter.h>
 
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/impl/instantiate.hpp>
 #include <pcl/segmentation/euclidean_cluster_comparator.h>
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/segmentation/organized_multi_plane_segmentation.h>
@@ -83,23 +84,6 @@ MultiplaneSegmenter<PointT>::computeTablePlanes()
         prism.segment (cloud_indices);
 
         pcl::copyPointCloud(*scene_, cloud_indices, *above_plane_cloud);
-
-        pcl::visualization::PCLVisualizer::Ptr vis;
-        int vp1, vp2;
-        if(!vis)
-        {
-            vis.reset (new pcl::visualization::PCLVisualizer("plane22 visualization"));
-            vis->createViewPort(0,0,0.5,1,vp1);
-            vis->createViewPort(0.5,0,1,1,vp2);
-        }
-        vis->removeAllPointClouds();
-        vis->removeAllShapes();
-        vis->addPointCloud(scene_, "cloud", vp1);
-
-        vis->addPointCloud(above_plane_cloud, "convex_hull", vp2);
-        vis->spin();
-
-        all_planes_[i]->visualize();
     }
 }
 
@@ -227,5 +211,8 @@ MultiplaneSegmenter<PointT>::segment()
     }
 }
 
-template class V4R_EXPORTS MultiplaneSegmenter<pcl::PointXYZRGB>;
+
+#define PCL_INSTANTIATE_MultiplaneSegmenter(T) template class V4R_EXPORTS MultiplaneSegmenter<T>;
+PCL_INSTANTIATE(MultiplaneSegmenter, PCL_XYZ_POINT_TYPES )
+
 }

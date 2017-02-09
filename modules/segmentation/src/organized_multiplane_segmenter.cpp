@@ -1,4 +1,6 @@
 #include <v4r/segmentation/organized_multiplane_segmenter.h>
+
+#include <pcl/impl/instantiate.hpp>
 #include <pcl/segmentation/organized_multi_plane_segmentation.h>
 #include <pcl/segmentation/euclidean_cluster_comparator.h>
 #include <pcl/segmentation/organized_connected_component_segmentation.h>
@@ -167,5 +169,7 @@ OrganizedMultiplaneSegmenter<PointT>::segment()
     }
 }
 
-template class V4R_EXPORTS OrganizedMultiplaneSegmenter<pcl::PointXYZRGB>;
+#define PCL_INSTANTIATE_OrganizedMultiplaneSegmenter(T) template class V4R_EXPORTS OrganizedMultiplaneSegmenter<T>;
+PCL_INSTANTIATE(OrganizedMultiplaneSegmenter, PCL_XYZ_POINT_TYPES )
+
 }

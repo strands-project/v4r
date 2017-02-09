@@ -41,6 +41,7 @@ visualizeClusters(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const
     vis->addText("segments", 10, 10, 15, 1, 1, 1, "segments", vp2);
     vis->resetCamera();
     vis->spin();
+    vis->close();
 }
 
 template<typename PointT>
@@ -73,6 +74,7 @@ visualizeCluster(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const 
     vis->addText("segments", 10, 10, 15, 1, 1, 1, "segments", vp2);
     vis->resetCamera();
     vis->spin();
+    vis->close();
 }
 
 #define PCL_INSTANTIATE_visualizeClusters(T) template V4R_EXPORTS void visualizeClusters<T>(const pcl::PointCloud<T>::ConstPtr &, const std::vector<std::vector<int> > &, const std::string &);

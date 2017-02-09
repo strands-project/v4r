@@ -1,4 +1,10 @@
 #include <v4r/segmentation/euclidean_segmenter.h>
+#include <pcl/impl/instantiate.hpp>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/extract_clusters.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/kdtree/kdtree.h>
 
 namespace v4r
 {
@@ -102,10 +108,9 @@ EuclideanSegmenter<PointT>::segment()
             cluster.indices[pt_id] = indices2originalMap [ cluster.indices[pt_id] ];
         }
     }
-
-    if(visualize_)
-        this->visualize();
 }
 
-template class V4R_EXPORTS EuclideanSegmenter<pcl::PointXYZRGB>;
+#define PCL_INSTANTIATE_EuclideanSegmenter(T) template class V4R_EXPORTS EuclideanSegmenter<T>;
+PCL_INSTANTIATE(EuclideanSegmenter, PCL_XYZ_POINT_TYPES )
+
 }

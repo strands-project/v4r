@@ -28,8 +28,7 @@
 *      @brief base class for segmentation
 */
 
-#ifndef V4R_SEGMENTER_H__
-#define V4R_SEGMENTER_H__
+#pragma once
 
 #include <v4r/core/macros.h>
 #include <v4r/common/plane_model.h>
@@ -55,9 +54,10 @@ protected:
     std::vector<int> indices_;  ///< region of interest
     Eigen::Vector4f dominant_plane_; ///< extracted dominant table plane (if segmentation algorithm supports it)
     std::vector< typename PlaneModel<PointT>::Ptr > all_planes_; ///< all extracted planes (if segmentation algorithm supports it)
-    bool visualize_;
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     typedef boost::shared_ptr< Segmenter<PointT> > Ptr;
     typedef boost::shared_ptr< Segmenter<PointT> const> ConstPtr;
 
@@ -128,12 +128,6 @@ public:
     }
 
     /**
-     * @brief visualize found clusters
-     */
-    void
-    visualize() const;
-
-    /**
      * @brief segment
      */
     virtual void
@@ -141,5 +135,3 @@ public:
 };
 
 }
-
-#endif
