@@ -87,42 +87,41 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
 
         if( retrain || !io::existsFile( signatures_path.string() ) )
         {
-            std::vector<typename TrainingView<PointT>::ConstPtr > training_views = m->getTrainingViews();
+            const auto training_views = m->getTrainingViews();
 
-            for(size_t v=0; v<training_views.size(); v++)
+            for(const auto &tv : training_views)
             {
-                const TrainingView<PointT> &tv = *training_views[v];
-                std::string txt = "Training " + estimator_->getFeatureDescriptorName() + " on view " + m->class_ + "/" + m->id_ + "/" + tv.filename_;
+                std::string txt = "Training " + estimator_->getFeatureDescriptorName() + " on view " + m->class_ + "/" + m->id_ + "/" + tv->filename_;
                 pcl::ScopeTime t( txt.c_str() );
 
                 Eigen::Matrix4f pose;
                 std::vector<int> indices;
-                if(tv.cloud_)   // point cloud and all relevant information is already in memory (fast but needs a much memory when a lot of training views/objects)
+                if(tv->cloud_)   // point cloud and all relevant information is already in memory (fast but needs a much memory when a lot of training views/objects)
                 {
-                    scene_ = tv.cloud_;
-                    scene_normals_ = tv.normals_;
-                    indices = tv.indices_;
-                    pose = tv.pose_;
+                    scene_ = tv->cloud_;
+                    scene_normals_ = tv->normals_;
+                    indices = tv->indices_;
+                    pose = tv->pose_;
                 }
                 else
                 {
                     typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
-                    pcl::io::loadPCDFile(tv.filename_, *cloud);
+                    pcl::io::loadPCDFile(tv->filename_, *cloud);
                     scene_ = cloud;
 
                     // read pose from file (if exists)
                     try
                     {
-                        pose = io::readMatrixFromFile(tv.pose_filename_);
+                        pose = io::readMatrixFromFile(tv->pose_filename_);
                     }
                     catch (const std::runtime_error &e)
                     {
-                        std::cerr << "Could not read pose from file " << tv.pose_filename_ << "!" << std::endl;
+                        std::cerr << "Could not read pose from file " << tv->pose_filename_ << "!" << std::endl;
                         pose = Eigen::Matrix4f::Identity();
                     }
 
                     // read object mask from file
-                    std::ifstream mi_f ( tv.indices_filename_ );
+                    std::ifstream mi_f ( tv->indices_filename_ );
                     int idx;
                     while ( mi_f >> idx )
                        indices.push_back(idx);
@@ -185,7 +184,7 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
                     gom->model_elongations_.bottomRows(1) = cluster_->elongation_.transpose();
                 }
                 else
-                    std::cout << "Ignoring view " << tv.filename_ << " because a similar camera pose exists." << std::endl;
+                    std::cout << "Ignoring view " << tv->filename_ << " because a similar camera pose exists." << std::endl;
 
 
                 cluster_.reset();
