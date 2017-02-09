@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2015 Thomas Faeulhammer
+ * Copyright (c) 2017 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,13 +23,40 @@
 
 #pragma once
 
+#include <v4r/ml/types.h>
+
+#include <v4r/ml/nearestNeighbor.h>
+#include <v4r/ml/svmWrapper.h>
+
 namespace v4r
 {
-        enum ClassifierType
-        {
-            KNN = 0x01, // 00000001
-            SVM = 0x02, // 00000010
-            CNN  = 0x04 // 00000100
-//            RandomForest  = 0x08 // 00001000
-        };
+
+Classifier::Ptr
+initClassifier(int method, std::vector<std::string> &params )
+{
+    Classifier::Ptr classifier;
+
+    if(method == ClassifierType::KNN )
+    {
+        NearestNeighborClassifierParameter param;
+        params = param.init(params);
+        NearestNeighborClassifier::Ptr nn (new NearestNeighborClassifier (param));
+        classifier = boost::dynamic_pointer_cast<Classifier > (nn);
+    }
+    else if(method == ClassifierType::SVM)
+    {
+        SVMParameter param;
+        params = param.init(params);
+        svmClassifier::Ptr nn (new svmClassifier (param));
+        classifier = boost::dynamic_pointer_cast<Classifier > (nn);
+    }
+    else
+    {
+        std::cerr << "Classifier method " << method << " is not implemented! " << std::endl;
+    }
+
+    return classifier;
+}
+
+
 }
