@@ -52,7 +52,10 @@ private:
     bool visualize_; ///< if true, visualizes objects
 
 public:
-    ObjectRecognizer(){}
+    ObjectRecognizer() :
+        chop_z_ ( 5.f ),
+        visualize_ (false)
+    {}
 
     /**
      * @brief initialize initialize Object recognizer (sets up model database, recognition pipeline and hypotheses verification)
