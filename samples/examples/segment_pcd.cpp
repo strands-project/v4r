@@ -6,6 +6,7 @@
 #include <v4r/common/normals.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/segmentation/all_headers.h>
+#include <v4r/segmentation/segmentation_utils.h>
 
 #include <boost/any.hpp>
 #include <boost/program_options.hpp>
@@ -104,35 +105,7 @@ main (int argc, char ** argv)
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
 
-    typename v4r::Segmenter<PointT>::Ptr cast_segmenter;
-    if(method == v4r::SegmentationType::DominantPlane)
-    {
-        typename v4r::DominantPlaneSegmenter<PointT>::Parameter param;
-        to_pass_further = param.init(to_pass_further);
-        typename v4r::DominantPlaneSegmenter<PointT>::Ptr seg (new v4r::DominantPlaneSegmenter<PointT> (param));
-        cast_segmenter = boost::dynamic_pointer_cast<v4r::Segmenter<PointT> > (seg);
-    }
-    else if(method == v4r::SegmentationType::MultiPlane)
-    {
-        typename v4r::MultiplaneSegmenter<PointT>::Parameter param;
-        to_pass_further = param.init(to_pass_further);
-        typename v4r::MultiplaneSegmenter<PointT>::Ptr seg (new v4r::MultiplaneSegmenter<PointT> (param));
-        cast_segmenter = boost::dynamic_pointer_cast<v4r::Segmenter<PointT> > (seg);
-    }
-    else if(method == v4r::SegmentationType::EuclideanSegmentation)
-    {
-        typename v4r::EuclideanSegmenter<PointT>::Parameter param;
-        to_pass_further = param.init(to_pass_further);
-        typename v4r::EuclideanSegmenter<PointT>::Ptr seg (new v4r::EuclideanSegmenter<PointT> (param));
-        cast_segmenter = boost::dynamic_pointer_cast<v4r::Segmenter<PointT> > (seg);
-    }
-    else if(method == v4r::SegmentationType::SmoothEuclideanClustering)
-    {
-        typename v4r::SmoothEuclideanSegmenter<PointT>::Parameter param;
-        to_pass_further = param.init(to_pass_further);
-        typename v4r::SmoothEuclideanSegmenter<PointT>::Ptr seg (new v4r::SmoothEuclideanSegmenter<PointT> (param));
-        cast_segmenter = boost::dynamic_pointer_cast<v4r::Segmenter<PointT> > (seg);
-    }
+    typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( method, to_pass_further);
 
     if( !to_pass_further.empty() )
     {
@@ -168,21 +141,29 @@ main (int argc, char ** argv)
             typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
             pcl::io::loadPCDFile(fn, *cloud);
 
-            cast_segmenter->setInputCloud(cloud);
-            if(cast_segmenter->getRequiresNormals())
+            segmenter->setInputCloud(cloud);
+            if(segmenter->getRequiresNormals())
             {
                 pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
                 v4r::computeNormals<PointT>(cloud, normals, normal_computation_method);
-                cast_segmenter->setNormalsCloud( normals );
+                segmenter->setNormalsCloud( normals );
             }
 
-            cast_segmenter->segment();
+            segmenter->segment();
 
             std::vector<pcl::PointIndices> indices;
-            cast_segmenter->getSegmentIndices(indices);
+            segmenter->getSegmentIndices(indices);
 
             if(visualize)
-                cast_segmenter->visualize();
+            {
+                std::vector<std::vector<int> > indices_int ( indices.size() );
+
+                for( size_t cluster_id = 0; cluster_id<indices.size(); cluster_id++)
+                    indices_int [cluster_id] = indices[cluster_id].indices;
+
+                    v4r::visualizeClusters<PointT>( cloud, indices_int, "segmented clusters" );
+            }
+
 
             if( save_bounding_boxes )
                 save_bb_image<PointT>(cloud, indices, out_fn_prefix, margin);

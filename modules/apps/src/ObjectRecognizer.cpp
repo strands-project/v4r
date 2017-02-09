@@ -57,6 +57,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     bool do_shot = false;
     bool do_esf = false;
     bool do_alexnet = false;
+    int segmentation_method = SegmentationType::DominantPlane;
 
     bool visualize_hv_go_cues = false;
     bool visualize_hv_model_cues = false;
@@ -73,6 +74,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("do_shot", po::value<bool>(&do_shot)->default_value(do_shot), "if true, enables SHOT feature matching")
             ("do_esf", po::value<bool>(&do_esf)->default_value(do_esf), "if true, enables ESF global matching")
             ("do_alexnet", po::value<bool>(&do_alexnet)->default_value(do_alexnet), "if true, enables AlexNet global matching")
+            ("segmentation_method", po::value<int>(&segmentation_method)->default_value(segmentation_method), "segmentation method (as stated in the V4R library (modules segmentation/types.h) ")
             ("depth_img_mask", po::value<std::string>(&depth_img_mask)->default_value(depth_img_mask), "filename for image registration mask. This mask tells which pixels in the RGB image can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.")
             ("hv_config_xml", po::value<std::string>(&hv_config_xml)->default_value(hv_config_xml), "Filename of Hypotheses Verification XML configuration file.")
             ("sift_config_xml", po::value<std::string>(&sift_config_xml)->default_value(sift_config_xml), "Filename of SIFT XML configuration file.")
@@ -151,12 +153,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         if(do_esf || do_alexnet)
         {
             typename GlobalRecognitionPipeline<PointT>::Ptr global_recognition_pipeline (new GlobalRecognitionPipeline<PointT>);
-            // choose segmentation type
-            typename DominantPlaneSegmenter<PointT>::Parameter param;
-            std::vector<std::string> not_used_params = param.init(to_pass_further);
-            typename DominantPlaneSegmenter<PointT>::Ptr seg (new DominantPlaneSegmenter<PointT> (param));
-    //        typename EuclideanSegmenter<PointT>::Ptr seg (new EuclideanSegmenter<PointT> (argc, argv));
-    //        typename SmoothEuclideanSegmenter<PointT>::Ptr seg (new SmoothEuclideanSegmenter<PointT> (argc, argv));
+            typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( segmentation_method, to_pass_further);
+            global_recognition_pipeline->setSegmentationAlgorithm( segmenter );
 
             if(do_esf)
             {
@@ -172,7 +170,6 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
                 global_r->setFeatureEstimator(esf_estimator);
                 global_r->setClassifier(classifier);
                 global_recognition_pipeline->addRecognizer(global_r);
-                global_recognition_pipeline->setSegmentationAlgorithm(seg);
             }
 
             if (do_alexnet)

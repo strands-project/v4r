@@ -1,4 +1,6 @@
 #include <pcl/common/angles.h>
+#include <pcl/impl/instantiate.hpp>
+
 #include <v4r/common/miscellaneous.h>
 #include <v4r/segmentation/smooth_Euclidean_segmenter.h>
 
@@ -166,10 +168,9 @@ SmoothEuclideanSegmenter<PointT>::segment()
             clusters_.push_back (r); // We could avoid a copy by working directly in the vector
         }
     }
-
-    if (visualize_)
-        this->visualize();
 }
 
-template class V4R_EXPORTS SmoothEuclideanSegmenter<pcl::PointXYZRGB>;
+#define PCL_INSTANTIATE_SmoothEuclideanSegmenter(T) template class V4R_EXPORTS SmoothEuclideanSegmenter<T>;
+PCL_INSTANTIATE(SmoothEuclideanSegmenter, PCL_XYZ_POINT_TYPES )
+
 }

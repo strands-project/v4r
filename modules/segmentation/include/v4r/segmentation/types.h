@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_SEGMENTATION_TYPES__
-#define V4R_SEGMENTATION_TYPES__
+#pragma once
 
 namespace v4r
 {
@@ -31,8 +30,7 @@ namespace v4r
             DominantPlane = 0x01, // 00000001
             MultiPlane = 0x02, // 00000010
             EuclideanSegmentation  = 0x04, // 00000100
-            SmoothEuclideanClustering  = 0x08 // 00001000
+            SmoothEuclideanClustering  = 0x08, // 00001000
+            OrganizedMultiplaneSegmentation  = 0x10 // 00010000
         };
 }
-
-#endif

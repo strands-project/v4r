@@ -69,36 +69,7 @@ int main(int argc, char** argv)
 
 
     // ====== SETUP SEGMENTER ===============
-    typename Segmenter<pcl::PointXYZRGB>::Ptr segmenter;
-    if(segmentation_method == SegmentationType::DominantPlane)
-    {
-        typename DominantPlaneSegmenter<pcl::PointXYZRGB>::Parameter param;
-        to_pass_further = param.init(to_pass_further);
-        typename DominantPlaneSegmenter<pcl::PointXYZRGB>::Ptr seg (new DominantPlaneSegmenter<pcl::PointXYZRGB> (param));
-        segmenter = boost::dynamic_pointer_cast<Segmenter<pcl::PointXYZRGB> > (seg);
-    }
-    else if(segmentation_method == SegmentationType::MultiPlane)
-    {
-        typename MultiplaneSegmenter<pcl::PointXYZRGB>::Parameter param;
-        to_pass_further = param.init(to_pass_further);
-        typename MultiplaneSegmenter<pcl::PointXYZRGB>::Ptr seg (new MultiplaneSegmenter<pcl::PointXYZRGB> (param));
-        segmenter = boost::dynamic_pointer_cast<Segmenter<pcl::PointXYZRGB> > (seg);
-    }
-    else if(segmentation_method == SegmentationType::EuclideanSegmentation)
-    {
-        typename EuclideanSegmenter<pcl::PointXYZRGB>::Parameter param;
-        to_pass_further = param.init(to_pass_further);
-        typename EuclideanSegmenter<pcl::PointXYZRGB>::Ptr seg (new EuclideanSegmenter<pcl::PointXYZRGB> (param));
-        segmenter = boost::dynamic_pointer_cast<Segmenter<pcl::PointXYZRGB> > (seg);
-    }
-    else if(segmentation_method == SegmentationType::SmoothEuclideanClustering)
-    {
-        typename SmoothEuclideanSegmenter<pcl::PointXYZRGB>::Parameter param;
-        to_pass_further = param.init(to_pass_further);
-        typename SmoothEuclideanSegmenter<pcl::PointXYZRGB>::Ptr seg (new SmoothEuclideanSegmenter<pcl::PointXYZRGB> (param));
-        segmenter = boost::dynamic_pointer_cast<Segmenter<pcl::PointXYZRGB> > (seg);
-    }
-
+    Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT> ( segmentation_method, to_pass_further );
 
     // ==== SETUP RECOGNIZER ======
     Source<PointT>::Ptr model_database (new Source<PointT> ( models_dir, true ) );
@@ -136,7 +107,7 @@ int main(int argc, char** argv)
             const std::string fn = sequence_path + "/" + view;
 
             std::cout << "Segmenting file " << fn << std::endl;
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>());
+            pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>());
             pcl::io::loadPCDFile(fn, *cloud);
             segmenter->setInputCloud(cloud);
             segmenter->segment();

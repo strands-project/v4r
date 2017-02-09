@@ -142,4 +142,28 @@ std::vector<int>
 get_largest_connected_inliers(const pcl::PointCloud<PointT> &cloud, const std::vector<int> &indices, float cluster_tolerance = 0.01f, int min_cluster_size = 200);
 
 
+/**
+ * @brief visualizePlane visualize plane inliers for a point cloud
+ * @param cloud
+ * @param plane
+ * @param inlier_threshold
+ * @param window_title
+ */
+template<typename PointT>
+V4R_EXPORTS
+void
+visualizePlane(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const Eigen::Vector4f &plane, float inlier_threshold = 0.01f, const std::string &window_title = "plane inliers" );
+
+/**
+ * @brief visualizePlanes visualize plane inliers for multiple planes for a point cloud
+ * @param cloud
+ * @param planes
+ * @param inlier_threshold
+ * @param window_title
+ */
+template<typename PointT>
+V4R_EXPORTS
+void
+visualizePlanes(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > &planes, float inlier_threshold = 0.01f, const std::string &window_title = "plane inliers" );
+
 }

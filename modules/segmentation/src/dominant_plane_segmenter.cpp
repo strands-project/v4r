@@ -1,5 +1,7 @@
 
 #include <pcl/apps/dominant_plane_segmentation.h>
+#include <pcl/impl/instantiate.hpp>
+
 #include <v4r/segmentation/dominant_plane_segmenter.h>
 #include <boost/pointer_cast.hpp>
 
@@ -32,10 +34,10 @@ DominantPlaneSegmenter<PointT>::segment()
         dps.getIndicesClusters (clusters_);
     }
     dps.getTableCoefficients (dominant_plane_);
-
-    if(visualize_)
-        this->visualize();
 }
 
-template class V4R_EXPORTS DominantPlaneSegmenter<pcl::PointXYZRGB>;
+
+#define PCL_INSTANTIATE_DominantPlaneSegmenter(T) template class V4R_EXPORTS DominantPlaneSegmenter<T>;
+PCL_INSTANTIATE(DominantPlaneSegmenter, PCL_XYZ_POINT_TYPES )
+
 }
