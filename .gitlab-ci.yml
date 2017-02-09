@@ -71,7 +71,7 @@ ubuntu-xenial:
     - tar xfz ceres-solver-1.11.0.tar.gz
     - mkdir ceres-build
     - cd ceres-build
-    - cmake ../ceres-solver-1.11.0
+    - cmake ../ceres-solver-1.11.0 -DBUILD_SHARED_LIBS=ON
     - make -j8
     - make install
     - cd ..
