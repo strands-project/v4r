@@ -34,7 +34,7 @@ ubuntu-trusty-build-package:
 
   stage: build
   script:
-    - bloom-generate debian --os-name ubuntu --os-version $UBUNTU_DISTRO
+    - bloom-generate debian --os-name ubuntu --os-version $UBUNTU_DISTRO --ros-distro $CI_ROS_DISTRO
     - sed -i 's/dh  $@/dh  $@ --parallel/' debian/rules
     - debuild -rfakeroot -us -uc -b -j8
     - mkdir build
@@ -43,6 +43,7 @@ ubuntu-trusty-build-package:
   # This stage is only executed for new tags
   only:
     - tags
+    - release@root/v4r
 
   # The files which are to be made available in GitLab
   artifacts:
