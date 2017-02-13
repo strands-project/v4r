@@ -26,9 +26,11 @@
 #include <v4r/segmentation/all_headers.h>
 
 
-#include <v4r/common/plane_utils.h>
+#include <v4r/segmentation/plane_utils.h>
 #include <v4r/segmentation/segmentation_utils.h>
-
+#include <pcl/segmentation/organized_multi_plane_segmentation.h>
+#include <pcl/segmentation/euclidean_cluster_comparator.h>
+#include <pcl/segmentation/organized_connected_component_segmentation.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -240,21 +242,55 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
 
     if( remove_planes_ )
     {
-        pcl::ScopeTime t("Removing plane from input cloud.");
-
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::copyPointCloud( *cloud, *cloud_filtered );
-
-        boost::dynamic_bitset<> pt_is_accepted ( cloud->points.size() );
-        pt_is_accepted.set();
+        std::vector<pcl::PlanarRegion<PointT>, Eigen::aligned_allocator<pcl::PlanarRegion<PointT> > > regions;
+        {
+            pcl::ScopeTime t("Removing plane from input cloud.");
+            pcl::OrganizedMultiPlaneSegmentation< PointT, pcl::Normal, pcl::Label > mps;
+            mps.setMinInliers (min_plane_points_);
+            mps.setAngularThreshold ( 2 * M_PI/180.f ); // 2 degrees
+            mps.setDistanceThreshold ( 0.02 ); // 2cm
+            mps.setInputNormals (normals);
+            mps.setInputCloud (cloud);
+            typename pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label>::Ptr ref_comp (
+            new pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label> ());
+            ref_comp->setDistanceThreshold ( 0.02, false);
+            ref_comp->setAngularThreshold (2 * M_PI/180.f);
+            mps.setRefinementComparator (ref_comp);
+            mps.segment (regions);
+        }
 
         pcl::visualization::PCLVisualizer vis;
         int vp1, vp2;
         vis.createViewPort(0, 0, 0.5, 1, vp1);
         vis.createViewPort(0.5, 0, 1, 1, vp2);
         vis.addPointCloud(cloud, "input", vp1);
+        for (size_t i = 0; i < regions.size (); i++)
+        {
+          Eigen::Vector3f centroid = regions[i].getCentroid ();
+          Eigen::Vector4f model = regions[i].getCoefficients ();
 
-        (void)t;
+          std::vector<int> plane_inliers = get_all_plane_inliers( *cloud, model, 0.02 );
+
+          typename pcl::PointCloud<PointT>::Ptr plane_cloud (new pcl::PointCloud<PointT>);
+          pcl::copyPointCloud( *cloud, plane_inliers, *plane_cloud );
+
+          vis.removeAllPointClouds(vp2);
+          vis.addPointCloud(plane_cloud, "plane_cloud", vp2);
+          vis.spin();
+
+//          pcl::PointCloud boundary_cloud;
+//          boundary_cloud.points = regions[i].getContour ();
+//          printf ("Centroid: (%f, %f, %f)\n  Coefficients: (%f, %f, %f, %f)\n Inliers: %d\n",
+//                  centroid[0], centroid[1], centroid[2],
+//                  model[0], model[1], model[2], model[3],
+//                  boundary_cloud.points.size ());
+         }
+
+
+
+//        boost::dynamic_bitset<> pt_is_accepted ( cloud->points.size() );
+//        pt_is_accepted.set();
+
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====
