@@ -38,7 +38,7 @@ ubuntu-trusty-build-package:
     - sed -i 's/dh  $@/dh  $@ --parallel/' debian/rules
     - debuild -rfakeroot -us -uc -b -j8
     - mkdir build
-    - mv ../ros-*.deb build
+    - mv ../*.deb build
 
   # This stage is only executed for new tags
   only:
