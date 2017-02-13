@@ -2,6 +2,13 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge branch 'release' into 'release'
+  Release 1.4.4-internal
+  See merge request !152
+* Contributors: Markus Bajones
+
 1.4.4 (2017-02-13)
 ------------------
 * Merge branch 'fixed_missing_parameter_init' into 'master'
