@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.4 (2017-02-13)
+------------------
 * Merge branch 'fixed_missing_parameter_init' into 'master'
   fix initialize parameters
   See merge request !151
