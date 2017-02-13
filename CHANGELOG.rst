@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.5 (2017-02-13)
+------------------
 * Merge branch 'release' into 'release'
   Release 1.4.4-internal
   See merge request !152
