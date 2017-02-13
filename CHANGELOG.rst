@@ -4,6 +4,9 @@ Changelog for package v4r
 
 Forthcoming
 -----------
+* set ros distro
+* update changelog
+* Contributors: bajo
 
 1.4.4 (2017-02-13)
 ------------------
