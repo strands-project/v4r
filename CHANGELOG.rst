@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.6 (2017-02-14)
+------------------
 * Merged branch master into release
 * remove auto keyword as this causes undesired behavior on some machines
 * Contributors: Thomas Fäulhammer, Unknown
