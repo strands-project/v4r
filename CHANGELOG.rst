@@ -2,6 +2,12 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merged branch master into release
+* remove auto keyword as this causes undesired behavior on some machines
+* Contributors: Thomas Fäulhammer, Unknown
+
 1.4.5 (2017-02-13)
 ------------------
 * Merge branch 'release' into 'release'
