@@ -137,9 +137,13 @@ int main(int argc, char *argv[] )
   // init recognizer
   #ifdef USE_SIFT_GPU
   v4r::IMKRecognizer::Parameter param;
-  param.cb_param.nnr = .92;
-  param.cb_param.thr_desc_rnn = 0.3;
-  param.cb_param.max_dist = 0.4;
+  param.cb_param.nnr = 1.000001;
+  param.cb_param.thr_desc_rnn = 0.25;
+  param.cb_param.max_dist = FLT_MAX;
+  param.pnp_param.eta_ransac = 0.01;
+  param.pnp_param.max_rand_trials = 10000;
+  param.pnp_param.inl_dist = 4;
+  param.vc_param.cluster_dist = 40;
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_SIFTGPU());
   #else
   v4r::KeypointObjectRecognizer::Parameter param;
