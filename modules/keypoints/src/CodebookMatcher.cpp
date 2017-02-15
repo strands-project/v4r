@@ -128,7 +128,7 @@ void CodebookMatcher::createCodebook()
 
   // create flann for matching
   { pcl::ScopeTime t("create FLANN");
-  matcher = new cv::FlannBasedMatcher();
+  matcher = new cv::FlannBasedMatcher(new cv::flann::KDTreeIndexParams(16), new cv::flann::SearchParams(150,0,true));
   matcher->add(std::vector<cv::Mat>(1,cb_centers));
   matcher->train();
   }
@@ -175,7 +175,7 @@ void CodebookMatcher::createCodebook(cv::Mat &_cb_centers, std::vector< std::vec
 
   // create flann for matching
   { pcl::ScopeTime t("create FLANN");
-  matcher = new cv::FlannBasedMatcher();
+  matcher = new cv::FlannBasedMatcher(new cv::flann::KDTreeIndexParams(16), new cv::flann::SearchParams(150,0,true));
   matcher->add(std::vector<cv::Mat>(1,cb_centers));
   matcher->train();
   }
@@ -212,7 +212,7 @@ void CodebookMatcher::setCodebook(const cv::Mat &_cb_centers, const std::vector<
 
   // create flann for matching
   { pcl::ScopeTime t("create FLANN");
-  matcher = new cv::FlannBasedMatcher();
+  matcher = new cv::FlannBasedMatcher(new cv::flann::KDTreeIndexParams(16), new cv::flann::SearchParams(150,0,true));
   matcher->add(std::vector<cv::Mat>(1,cb_centers));
   matcher->train();
   }
