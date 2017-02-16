@@ -326,7 +326,16 @@ int Tree::trainRecursivelyParallel(ClassificationData& data, std::vector<unsigne
   std::vector<float> gains(testedSplittingFunctions);
   std::vector<int> features(testedSplittingFunctions);
   std::vector<float> thresholds(testedSplittingFunctions);
-  
+  std::vector<int> randomFeatures(testedSplittingFunctions);
+  std::vector<float> randomThresholds(testedSplittingFunctions);
+
+  // randomly sample feature indices and thresholds
+  for(int i=0; i < testedSplittingFunctions; i++)
+  {
+      randomFeatures[i] = intDist(*randomGenerator);
+      randomThresholds[i] = realDist(*randomGenerator);
+  }
+
 #pragma omp parallel
   {
   #pragma omp for nowait firstprivate(indices)
@@ -340,7 +349,7 @@ int Tree::trainRecursivelyParallel(ClassificationData& data, std::vector<unsigne
 	std::vector<unsigned int>::iterator divider;	
 	
 	// randomly choose one of the offered features
-	int curFeature = intDist(*randomGenerator);
+    int curFeature = randomFeatures[i];
 	
 	// get range of data points for selected feature
 	minmax = data.GetMinMax(start, stop, curFeature);
@@ -353,7 +362,7 @@ int Tree::trainRecursivelyParallel(ClassificationData& data, std::vector<unsigne
 	}
 	
 	// randomly choose a threshold in the range of the datapoints for selected feature
-	float threshold = realDist(*randomGenerator) * (minmax.second-minmax.first) + minmax.first;
+    float threshold = randomThresholds[i] * (minmax.second-minmax.first) + minmax.first;
 	
 	if(threshold == minmax.first || threshold == minmax.second)
 	{
