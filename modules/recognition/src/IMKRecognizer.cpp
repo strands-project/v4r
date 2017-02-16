@@ -69,6 +69,7 @@ IMKRecognizer::IMKRecognizer(const Parameter &p,
                                                        const v4r::FeatureDetector::Ptr &_descEstimator)
  : param(p), detector(_detector), descEstimator(_descEstimator)
 {
+  setCodebookFilename("");
   if (detector.get()==0) detector = descEstimator;
   cbMatcher.reset(new CodebookMatcher(param.cb_param));
   votesClustering.setParameter(p.vc_param);
@@ -648,6 +649,15 @@ void IMKRecognizer::setDataDirectory(const std::string &_base_dir)
 }
 
 /**
+ * @brief IMKRecognizer::setCodebookFilename
+ * @param _base_dir
+ */
+void IMKRecognizer::setCodebookFilename(const std::string &_codebookFilename)
+{
+  codebookFilename = _codebookFilename;
+}
+
+/**
  * @brief IMKRecognizer::addObject
  * @param _object_name
  */
@@ -662,7 +672,7 @@ void IMKRecognizer::addObject(const std::string &_object_name)
 void IMKRecognizer::initModels()
 {
   IMKRecognizerIO io;
-  if ( IMKRecognizerIO::read(base_dir+std::string("/"), object_names, object_models, *cbMatcher) )
+  if ( IMKRecognizerIO::read(base_dir+std::string("/"), object_names, object_models, *cbMatcher, codebookFilename) )
   {
   }
   else
@@ -673,7 +683,7 @@ void IMKRecognizer::initModels()
     }
     cbMatcher->createCodebook();
 
-    IMKRecognizerIO::write(base_dir+std::string("/"), object_names, object_models, *cbMatcher);
+    IMKRecognizerIO::write(base_dir+std::string("/"), object_names, object_models, *cbMatcher, codebookFilename);
   }
 }
 
