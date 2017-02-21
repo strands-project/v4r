@@ -86,15 +86,18 @@ void IMKRecognizerIO::generateName(const std::string &dir, const std::vector<std
 /** 
  * write 
  */
-void IMKRecognizerIO::write(const std::string &dir, const std::vector<std::string> &object_names, const std::vector<IMKView> &object_models, const CodebookMatcher &cb)
+void IMKRecognizerIO::write(const std::string &dir, const std::vector<std::string> &object_names, const std::vector<IMKView> &object_models, const CodebookMatcher &cb, const std::string &codebookFilename)
 {
 //  std::string full_dir;
 //  generateDir(dir, object_names, full_dir);
 //  boost::filesystem::create_directories(full_dir);
 
   std::string full_name;
-  generateName(dir, object_names, full_name);
-
+  if (!codebookFilename.empty()) {
+     full_name = dir + "/" + codebookFilename;
+  } else {
+    generateName(dir, object_names, full_name);
+  }
 
   cv::Mat cb_centers = cb.getDescriptors();
   std::vector< std::vector< std::pair<int,int> > > cb_entries = cb.getEntries();
@@ -111,16 +114,18 @@ void IMKRecognizerIO::write(const std::string &dir, const std::vector<std::strin
 /** 
  * read 
  */
-bool IMKRecognizerIO::read(const std::string &dir, std::vector<std::string> &object_names, std::vector<IMKView> &object_models, CodebookMatcher &cb)
+bool IMKRecognizerIO::read(const std::string &dir, std::vector<std::string> &object_names, std::vector<IMKView> &object_models, CodebookMatcher &cb, const std::string &codebookFilename)
 {
 //  std::string full_dir;
 //  generateDir(dir, object_names, full_dir);
 //  std::ifstream ifs((full_dir+std::string("/imk_recognizer_model.bin")).c_str());
-
   std::string full_name;
-  generateName(dir, object_names, full_name);
+  if (!codebookFilename.empty()) {
+     full_name = dir + "/" + codebookFilename;
+  } else {
+    generateName(dir, object_names, full_name);
+  }
   std::ifstream ifs(full_name.c_str());
-
   if (ifs.is_open())
   {
 //    cout<<(full_dir+std::string("/imk_recognizer_model.bin"))<<endl;

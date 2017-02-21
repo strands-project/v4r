@@ -95,6 +95,7 @@ private:
   std::vector< cv::Point3f > model_pts;
 
   std::string base_dir;
+  std::string codebookFilename;
   std::vector<std::string> object_names;
   std::vector<IMKView> object_models;
 
@@ -136,6 +137,7 @@ public:
 
   void clear();
   void setDataDirectory(const std::string &_base_dir);
+  void setCodebookFilename(const std::string &_codebookFilename);
   void addObject(const std::string &_object_name);
   void initModels();
 
