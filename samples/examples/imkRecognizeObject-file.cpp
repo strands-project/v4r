@@ -104,6 +104,9 @@ std::vector<std::string> object_names;
 std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > objects;
 double thr_conf=0;
 
+int live = -1;
+bool loop = false;
+
 
 
 
@@ -142,7 +145,7 @@ int main(int argc, char *argv[] )
   param.cb_param.max_dist = FLT_MAX;
   param.pnp_param.eta_ransac = 0.01;
   param.pnp_param.max_rand_trials = 10000;
-  param.pnp_param.inl_dist = 4;
+  param.pnp_param.inl_dist = 3;
   param.vc_param.cluster_dist = 40;
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_SIFTGPU());
   #else
@@ -163,27 +166,43 @@ int main(int argc, char *argv[] )
 
   recognizer.initModels();
 
+  cv::VideoCapture cap;
+  if (live!=-1) {
+    cap.open(live);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+    loop = true;
+    if( !cap.isOpened() ) {
+      cout << "Could not initialize capturing...\n";
+      return 0;
+    }
+  }
+
 
 
   // ---------------------- recognize object ---------------------------
 
-  for (int i=start; i<=end_idx; i++)
+  for (int i=start; i<=end_idx || loop; i++)
   {
     cout<<"---------------- FRAME #"<<i<<" -----------------------"<<endl;
-    snprintf(filename,PATH_MAX, filenames.c_str(), i);
-    cout<<filename<<endl;
-    image = cv::Mat_<cv::Vec3b>();
+    if (live!=-1){
+      cap >> image;
+    } else {
+      snprintf(filename,PATH_MAX, filenames.c_str(), i);
+      cout<<filename<<endl;
+      image = cv::Mat_<cv::Vec3b>();
 
-    if (filenames.compare(filenames.size()-3,3,"pcd")==0)
-    {
-      cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
-      if(pcl::io::loadPCDFile(filename, *cloud)==-1)
-        continue;
-      convertImage(*cloud,image);
-    }
-    else
-    {
-      image = cv::imread(filename, 1);
+      if (filenames.compare(filenames.size()-3,3,"pcd")==0)
+      {
+        cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
+        if(pcl::io::loadPCDFile(filename, *cloud)==-1)
+          continue;
+        convertImage(*cloud,image);
+      }
+      else
+      {
+        image = cv::imread(filename, 1);
+      }
     }
 
     image.copyTo(im_draw);
@@ -264,6 +283,7 @@ void setup(int argc, char **argv)
       ("start,s", po::value<int>(&start)->default_value(start), "start index")
       ("end,e", po::value<int>(&end_idx)->default_value(end_idx), "end index")
       ("cam_file,a", po::value<std::string>(&cam_file)->default_value(cam_file), "camera calibration files (opencv format)")
+      ("live,l", po::value<int>(&live)->default_value(live), "use live camera (OpenCV)")
       ("thr_conf,t", po::value<double>(&thr_conf)->default_value(thr_conf), "Confidence value threshold (visualization)")
       ;
 
