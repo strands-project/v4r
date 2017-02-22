@@ -55,6 +55,7 @@
 #include <v4r/keypoints/impl/PoseIO.hpp>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r_config.h>
+#include <v4r/io/filesystem.h>
 #ifdef HAVE_SIFTGPU
 #define USE_SIFT_GPU
 #include <v4r/features/FeatureDetector_KD_SIFTGPU.h>
@@ -99,7 +100,7 @@ int ul_lr=0;
 int start=0, end_idx=10;
 cv::Point track_win[2];
 std::string cam_file;
-string filenames, base_dir;
+string filenames, base_dir, codebook_filename;
 std::vector<std::string> object_names;
 std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > objects;
 double thr_conf=0;
@@ -137,9 +138,13 @@ int main(int argc, char *argv[] )
   // init recognizer
   #ifdef USE_SIFT_GPU
   v4r::IMKRecognizer::Parameter param;
-  param.cb_param.nnr = .92;
-  param.cb_param.thr_desc_rnn = 0.3;
-  param.cb_param.max_dist = 0.4;
+  param.cb_param.nnr = 1.000001;
+  param.cb_param.thr_desc_rnn = 0.25;
+  param.cb_param.max_dist = FLT_MAX;
+  param.pnp_param.eta_ransac = 0.01;
+  param.pnp_param.max_rand_trials = 10000;
+  param.pnp_param.inl_dist = 4;
+  param.vc_param.cluster_dist = 40;
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_SIFTGPU());
   #else
   v4r::KeypointObjectRecognizer::Parameter param;
@@ -153,10 +158,17 @@ int main(int argc, char *argv[] )
 
   recognizer.setCameraParameter(intrinsic, dist_coeffs);
   recognizer.setDataDirectory(base_dir);
+  if (!codebook_filename.empty())
+        recognizer.setCodebookFilename(codebook_filename);
+
+  if (object_names.size() == 0) { //take all direcotry names from the base_dir
+      	object_names = v4r::io::getFoldersInDirectory(base_dir);
+  }
 
   for (unsigned i=0; i<object_names.size(); i++)
     recognizer.addObject(object_names[i]);
 
+  std::cout << "Number of models: " << object_names.size() << std::endl;
   recognizer.initModels();
 
 
@@ -256,6 +268,7 @@ void setup(int argc, char **argv)
       ("help,h", "show help message")
       ("filenames,f", po::value<std::string>(&filenames)->default_value(filenames), "Input filename for recognition (printf-style)")
       ("base_dir,d", po::value<std::string>(&base_dir)->default_value(base_dir), "Object model directory")
+      ("codebook_filename,c", po::value<std::string>(&codebook_filename), "Optional filename for codebook")
       ("object_names,n", po::value< std::vector<std::string> >(&object_names)->multitoken(), "Object names")
       ("start,s", po::value<int>(&start)->default_value(start), "start index")
       ("end,e", po::value<int>(&end_idx)->default_value(end_idx), "end index")

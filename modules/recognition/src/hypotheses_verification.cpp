@@ -330,8 +330,8 @@ HypothesisVerification<ModelT, SceneT>::evaluateSolution (const boost::dynamic_b
         int max_label = scene_pt_smooth_label_id_.maxCoeff();
         for(int i=1; i<max_label; i++) // label "0" is for points not belonging to any smooth region
         {
-            auto s_pt_in_region = (scene_pt_smooth_label_id_.array() == i );
-            auto explained_pt_in_region = (s_pt_in_region.array() && scene_pt_is_explained.array());
+            Eigen::Array<bool, Eigen::Dynamic, 1> s_pt_in_region = (scene_pt_smooth_label_id_.array() == i );
+            Eigen::Array<bool, Eigen::Dynamic, 1> explained_pt_in_region = (s_pt_in_region.array() && scene_pt_is_explained.array());
             size_t num_explained_pts_in_region = explained_pt_in_region.count();
             size_t num_pts_in_smooth_regions = s_pt_in_region.count();
 
