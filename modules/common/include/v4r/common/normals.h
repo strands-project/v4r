@@ -32,13 +32,6 @@
 namespace v4r
 {
 
-enum NormalEstimatorType
-{
-    PCL_DEFAULT = 0x01, // 00000001
-    PCL_INTEGRAL_NORMAL = 0x02, // 00000010
-    Z_ADAPTIVE  = 0x04 // 00000100
-};
-
 
 /**
 *      @author Thomas Faeulhammer (faeulhammer@acin.tuwien.ac.at)

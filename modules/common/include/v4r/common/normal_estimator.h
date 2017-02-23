@@ -22,8 +22,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_NORMAL_ESTIMATOR_H_
-#define V4R_NORMAL_ESTIMATOR_H_
+#pragma once
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -33,15 +32,24 @@
 namespace v4r
 {
 
+enum NormalEstimatorType
+{
+    PCL_DEFAULT = 0x01, // 00000001
+    PCL_INTEGRAL_NORMAL = 0x02, // 00000010
+    Z_ADAPTIVE  = 0x04 // 00000100
+};
+
+
 template<typename PointT>
 class V4R_EXPORTS NormalEstimator
 {
 protected:
     typename pcl::PointCloud<PointT>::ConstPtr input_; ///< input cloud
+    pcl::PointCloud<pcl::Normal>::Ptr normal_; ///< computed surface normals for input cloud
     std::vector<int> indices_;  ///< indices of the segmented object (extracted keypoints outside of this will be neglected)
 
 public:
-    virtual ~NormalEstimator() = 0;
+    virtual ~NormalEstimator(){ }
 
     /**
      * @brief setInputCloud
@@ -71,10 +79,10 @@ public:
 
     /**
      * @brief compute
-     * @param keypoints
      */
-    virtual void
-    compute (pcl::PointCloud<PointT> & keypoints) = 0;
+    virtual
+    pcl::PointCloud<pcl::Normal>::Ptr
+    compute () = 0;
 
     typedef boost::shared_ptr< NormalEstimator<PointT> > Ptr;
     typedef boost::shared_ptr< NormalEstimator<PointT> const> ConstPtr;
@@ -166,5 +174,3 @@ public:
     estimate (const typename pcl::PointCloud<PointT>::ConstPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals);
 };
 }
-
-#endif
