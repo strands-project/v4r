@@ -53,10 +53,10 @@ if(HAVE_BOOST)
   list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
 endif()
 
-if(HAVE_SIFTGPU)
-  v4r_include_directories(${SIFTGPU_INCLUDE_DIRS})
-  list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
-endif()
+#if(HAVE_SIFTGPU)
+#  v4r_include_directories(${SIFTGPU_INCLUDE_DIRS})
+#  list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
+#endif()
 
 
 if(TRUE)#HAVE_PCL_1_8)
