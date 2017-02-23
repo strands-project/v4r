@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.7 (2017-02-23)
+------------------
 * Merge branch 'upstream_master' into release
 * Merge branch 'fix_wrong_sift_init' into 'master'
   fix missing init
