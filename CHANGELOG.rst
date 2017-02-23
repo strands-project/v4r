@@ -2,6 +2,25 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge branch 'upstream_master' into release
+* Merge branch 'fix_wrong_sift_init' into 'master'
+  fix missing init
+  See merge request !157
+* fix missing init
+* Merge branch 'master' into 'master'
+  added additional parameter for imkRecognizer to specify bin filename
+  See merge request !155
+* changed imkRecognizer example to handle user filename
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* added additional parameter to set file name for imk-bin-file
+* Merge branch 'master' into 'master'
+  param change: more accurate flann configuration
+  See merge request !154
+* param change: more accurate flann
+* Contributors: Edith Langer, Johann Prankl, Markus Bajones, Thomas Faeulhammer
+
 1.4.6 (2017-02-14)
 ------------------
 * Merged branch master into release
