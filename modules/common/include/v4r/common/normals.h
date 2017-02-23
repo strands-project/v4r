@@ -21,15 +21,24 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_COMPUTE_NORMALS__
-#define V4R_COMPUTE_NORMALS__
+#pragma once
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+
+#include <v4r/common/normal_estimator.h>
 #include <v4r/core/macros.h>
 
 namespace v4r
 {
+
+enum NormalEstimatorType
+{
+    PCL_DEFAULT = 0x01, // 00000001
+    PCL_INTEGRAL_NORMAL = 0x02, // 00000010
+    Z_ADAPTIVE  = 0x04 // 00000100
+};
+
 
 /**
 *      @author Thomas Faeulhammer (faeulhammer@acin.tuwien.ac.at)
@@ -41,5 +50,9 @@ V4R_EXPORTS
 void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
                     int method=2, float radius=0.02f);
+
+template<typename PointT>
+typename NormalEstimator<PointT>::Ptr
+initNormalEstimator(int method, std::vector<std::string> &params);
+
 }
-#endif

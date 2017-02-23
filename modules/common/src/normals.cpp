@@ -83,6 +83,42 @@ void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
     }
 }
 
+
+template<typename PointT>
+typename NormalEstimator<PointT>::Ptr
+initNormalEstimator(int method, std::vector<std::string> &params)
+{
+    typename NormalEstimator<PointT>::Ptr ne;
+
+//    if(method == NormalEstimatorType::PCL_DEFAULT)
+//    {
+//        UniformSamplingExtractorParameter param;
+//        params = param.init(params);
+//        typename UniformSamplingExtractor<PointT>::Ptr ke (new UniformSamplingExtractor<PointT> (param));
+//        keypoint_extractor = boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke);
+//    }
+//    else if(method == NormalEstimatorType::PCL_INTEGRAL_NORMAL)
+//    {
+//        IssKeypointExtractorParameter param;
+//        params = param.init(params);
+//        typename IssKeypointExtractor<PointT>::Ptr ke (new IssKeypointExtractor<PointT> (param));
+//        keypoint_extractor = boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke);
+//    }
+//    else if(method == NormalEstimatorType::Z_ADAPTIVE)
+//    {
+//        NarfKeypointExtractorParameter param;
+//        params = param.init(params);
+//        typename NarfKeypointExtractor<PointT>::Ptr ke (new NarfKeypointExtractor<PointT> (param));
+//        keypoint_extractor = boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke);
+//    }
+//    else
+    {
+        std::cerr << "Keypoint extractor method " << method << " is not implemented! " << std::endl;
+    }
+
+    return ne;
+}
+
 template V4R_EXPORTS void computeNormals<pcl::PointXYZRGB>(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &, pcl::PointCloud<pcl::Normal>::Ptr &, int, float);
 template V4R_EXPORTS void computeNormals<pcl::PointXYZ>(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &, pcl::PointCloud<pcl::Normal>::Ptr &, int, float);
 }
