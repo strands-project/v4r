@@ -13,11 +13,9 @@ pcl::PointCloud<pcl::Normal>::Ptr
 NormalEstimatorPCL<PointT>::compute()
 {
     normal_.reset(new pcl::PointCloud<pcl::Normal>);
-    normal_->points.resize(input_->height * input_->width);
-    normal_->height = input_->height;
-    normal_->width = input_->width;
 
-    typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT>);
+    typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT> );
+    tree->setInputCloud(input_);
 
     boost::shared_ptr< std::vector<int> > IndicesPtr (new std::vector<int>);
     *IndicesPtr = indices_;
@@ -28,7 +26,8 @@ NormalEstimatorPCL<PointT>::compute()
         ne.setRadiusSearch ( param_.radius_ );
         ne.setInputCloud ( input_ );
         ne.setSearchMethod(tree);
-        ne.setIndices(IndicesPtr);
+        if(!indices_.empty())
+            ne.setIndices(IndicesPtr);
         ne.compute ( *normal_ );
     }
     else
@@ -37,10 +36,12 @@ NormalEstimatorPCL<PointT>::compute()
         ne.setRadiusSearch ( param_.radius_ );
         ne.setInputCloud (input_);
         ne.setSearchMethod(tree);
-        ne.setIndices(IndicesPtr);
+        if(!indices_.empty())
+            ne.setIndices(IndicesPtr);
         ne.compute (*normal_);
     }
 
+    indices_.clear();
     return normal_;
 }
 
