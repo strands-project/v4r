@@ -41,7 +41,7 @@ public:
 
     NormalEstimatorPCLParameter (
             float radius = 0.02f,
-            bool use_omp = false
+            bool use_omp = true
             )
         :
           radius_ ( radius ),
