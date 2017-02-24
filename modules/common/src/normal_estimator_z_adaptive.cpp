@@ -2,6 +2,7 @@
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/common/eigen.h>
 #include <pcl/features/normal_3d.h>
+#include <omp.h>
 
 namespace v4r
 {

@@ -36,7 +36,8 @@ enum NormalEstimatorType
 {
     PCL_DEFAULT = 0x01, // 00000001
     PCL_INTEGRAL_NORMAL = 0x02, // 00000010
-    Z_ADAPTIVE  = 0x04 // 00000100
+    Z_ADAPTIVE  = 0x04, // 00000100
+    PRE_PROCESS = 0x08 // 00001000
 };
 
 
@@ -88,89 +89,4 @@ public:
     typedef boost::shared_ptr< NormalEstimator<PointT> const> ConstPtr;
 };
 
-
-template<typename PointT, typename PointOutT>
-class V4R_EXPORTS PreProcessorAndNormalEstimator
-{
-private:
-    typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
-
-public:
-
-    bool compute_mesh_resolution_;
-    bool do_voxel_grid_;
-    bool remove_outliers_;
-
-    //this values are used when CMR=false
-    float grid_resolution_;
-    float normal_radius_;
-
-    //this are used when CMR=true
-    float factor_normals_;
-    float factor_voxel_grid_;
-    float min_n_radius_;
-    bool force_unorganized_;
-
-    bool only_on_indices_;
-    pcl::PointIndices indices_;
-
-    PreProcessorAndNormalEstimator () : compute_mesh_resolution_(false), do_voxel_grid_ (false), remove_outliers_ (false),
-        grid_resolution_(0.01f), normal_radius_(0.02f),
-        factor_normals_(1), factor_voxel_grid_(1), min_n_radius_ (16), force_unorganized_(false), only_on_indices_ (false)
-    { }
-
-    void
-    setIndices(const std::vector<int> & indices)
-    {
-        only_on_indices_ = true;
-        indices_.indices = indices;
-    }
-
-    void
-    setForceUnorganized(bool set)
-    {
-        force_unorganized_ = set;
-    }
-
-    void
-    setMinNRadius(float r)
-    {
-        min_n_radius_ = r;
-    }
-
-    void
-    setFactorsForCMR (float f1, float f2)
-    {
-        factor_voxel_grid_ = f1;
-        factor_normals_ = f2;
-    }
-
-    void
-    setValuesForCMRFalse (float f1, float f2)
-    {
-        grid_resolution_ = f1;
-        normal_radius_ = f2;
-    }
-
-    void
-    setDoVoxelGrid (bool b)
-    {
-        do_voxel_grid_ = b;
-    }
-
-    void
-    setRemoveOutliers (bool b)
-    {
-        remove_outliers_ = b;
-    }
-
-    void
-    setCMR (bool b)
-    {
-        compute_mesh_resolution_ = b;
-    }
-
-    void
-    estimate (const typename pcl::PointCloud<PointT>::ConstPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals);
-};
 }

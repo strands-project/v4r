@@ -38,11 +38,12 @@ namespace v4r
 *      @date July, 2015
 *      @brief collection of methods for normal computation of point clouds
 */
+DEPRECATED(
 template<typename PointT>
 V4R_EXPORTS
 void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
-                    int method=2, float radius=0.02f);
+                    int method=2, float radius=0.02f) );
 
 template<typename PointT>
 typename NormalEstimator<PointT>::Ptr

@@ -33,20 +33,39 @@ namespace po = boost::program_options;
 namespace v4r
 {
 
-class V4R_EXPORTS NormalEstimatorPCLParameter
+class V4R_EXPORTS NormalEstimatorPreProcessParameter
 {
 public:
-    float radius_; ///< smoothings size.
-    bool use_omp_; ///< use depth depended smoothing
+    bool compute_mesh_resolution_;
+    bool do_voxel_grid_;
+    bool remove_outliers_;
 
-    NormalEstimatorPCLParameter (
-            float radius = 0.02f,
-            bool use_omp = false
-            )
-        :
-          radius_ ( radius ),
-          use_omp_ ( use_omp )
-    {}
+    //this values are used when CMR=false
+    float grid_resolution_;
+    float normal_radius_;
+
+    //this are used when CMR=true
+    float factor_normals_;
+    float factor_voxel_grid_;
+    float min_n_radius_;
+    bool force_unorganized_;
+
+    bool only_on_indices_;
+    pcl::PointIndices indices_;
+
+    NormalEstimatorPreProcessParameter (
+            ) :
+        compute_mesh_resolution_(false),
+        do_voxel_grid_ (false),
+        remove_outliers_ (false),
+        grid_resolution_(0.01f),
+        normal_radius_(0.02f),
+        factor_normals_(1),
+        factor_voxel_grid_(1),
+        min_n_radius_ (16),
+        force_unorganized_(false),
+        only_on_indices_ (false)
+    { }
 
 
     /**
@@ -69,11 +88,10 @@ public:
     std::vector<std::string>
     init(const std::vector<std::string> &command_line_arguments)
     {
+        std::cerr << "parameter init function for pre-process normals not implemented! " << std::endl;
         po::options_description desc("Surface Normal Estimator Parameter\n=====================\n");
         desc.add_options()
                 ("help,h", "produce help message")
-                ("normals_radius", po::value<float>(&radius_)->default_value(radius_), "support radius for computation")
-                ("normals_use_omp", po::value<bool>(&use_omp_)->default_value(use_omp_), "if true, uses openmp.")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -88,7 +106,7 @@ public:
 
 
 template<typename PointT>
-class V4R_EXPORTS NormalEstimatorPCL : public NormalEstimator<PointT>
+class V4R_EXPORTS NormalEstimatorPreProcess : public NormalEstimator<PointT>
 {
 public:
     using NormalEstimator<PointT>::input_;
@@ -96,17 +114,19 @@ public:
     using NormalEstimator<PointT>::normal_;
 
 private:
-    NormalEstimatorPCLParameter param_;
+    NormalEstimatorPreProcessParameter param_;
+
+    typename pcl::PointCloud<PointT>::Ptr processed_;
 
 public:
-    NormalEstimatorPCL(
-            const NormalEstimatorPCLParameter &p = NormalEstimatorPCLParameter()
+    NormalEstimatorPreProcess(
+            const NormalEstimatorPreProcessParameter &p = NormalEstimatorPreProcessParameter()
             )
         : param_(p)
     {
     }
 
-    ~NormalEstimatorPCL(){}
+    ~NormalEstimatorPreProcess(){}
 
     pcl::PointCloud<pcl::Normal>::Ptr
     compute ();
@@ -117,8 +137,8 @@ public:
         return NormalEstimatorType::PCL_INTEGRAL_NORMAL;
     }
 
-    typedef boost::shared_ptr< NormalEstimatorPCL> Ptr;
-    typedef boost::shared_ptr< NormalEstimatorPCL const> ConstPtr;
+    typedef boost::shared_ptr< NormalEstimatorPreProcess> Ptr;
+    typedef boost::shared_ptr< NormalEstimatorPreProcess const> ConstPtr;
 };
 
 }
