@@ -15,6 +15,7 @@
 #include <v4r/common/pcl_utils.h>
 #include <v4r/common/pcl_opencv.h>
 #include <v4r/common/normal_estimator_z_adpative.h>
+#include <v4r/common/normals.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/keypoints/all_headers.h>
 #include <v4r/features/sift_local_estimator.h>
@@ -54,6 +55,7 @@ main (int argc, char ** argv)
     double vis_pt_size = 7;
     int kp_extraction_type = KeypointType::UniformSampling;
     bool use_sift = false;
+    int normal_estimation_type = NormalEstimatorType::PCL_INTEGRAL_NORMAL;
 
     google::InitGoogleLogging(argv[0]);
 
@@ -62,6 +64,7 @@ main (int argc, char ** argv)
         ("help,h", "produce help message")
         ("test_dir,t", po::value<std::string>(&test_dir)->required(), "Directory with test scenes stored as point clouds (.pcd).")
         ("keypoint_extraction_type", po::value<int>(&kp_extraction_type)->default_value(kp_extraction_type), "keypoint extraction type")
+        ("normal_estimation_type", po::value<int>(&normal_estimation_type)->default_value(normal_estimation_type), "surface normal estimation type")
         ("chop_z,z", po::value<float>(&chop_z)->default_value(chop_z), "cut-off distance in meter")
         ("use_sift", po::value<bool>(&use_sift)->default_value(use_sift), "if true, uses DoG as keypoint extraction method (which is implemented in SIFT-GPU). Ignores keypoint extraction type.")
         ("filter_planar", po::value<bool>(&filter_planar)->default_value(filter_planar), "if true, filters planar keypoints")
@@ -83,6 +86,7 @@ main (int argc, char ** argv)
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
     typename v4r::KeypointExtractor<PointT>::Ptr kp_extractor = v4r::initKeypointExtractor<PointT> ( kp_extraction_type, to_pass_further );
+    typename v4r::NormalEstimator<PointT>::Ptr normal_estimator = v4r::initNormalEstimator<PointT> ( normal_estimation_type, to_pass_further );
     //    typename v4r::KeypointExtractor<PointT>::Ptr shot = v4r::initKeypointExtractor<PointT>( segmentation_method, to_pass_further);
 
     if( !to_pass_further.empty() )
@@ -138,8 +142,8 @@ main (int argc, char ** argv)
             }
 
 
-            kp_indices.resize( cloud->points.size() ) ; // vector with 100 ints.
-            std::iota (std::begin(kp_indices), std::end(kp_indices), 0); // Fill with 0, 1, ..., 99.
+//            kp_indices.resize( cloud->points.size() ) ; // vector with 100 ints.
+//            std::iota (std::begin(kp_indices), std::end(kp_indices), 0); // Fill with 0, 1, ..., 99.
 
             boost::dynamic_bitset<> kp_is_kept( kp_indices.size() );
             kp_is_kept.set();
@@ -155,6 +159,8 @@ main (int argc, char ** argv)
                     *IndicesPtr = kp_indices;
 
                     pcl::ScopeTime tn("Computing normals");
+                    normal_estimator->setInputCloud( cloud );
+                    normals_for_planarity_check = normal_estimator->compute();
 
 //                    pcl::NormalEstimationOMP<PointT, pcl::Normal> ne;
 //                    typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT>);
@@ -162,14 +168,14 @@ main (int argc, char ** argv)
 //                    ne.setRadiusSearch( planar_support_radius );
 //                    ne.setIndices(IndicesPtr);
 
-                    ZAdaptiveNormalsParameter n_param;
-                    n_param.adaptive_ = true;
-                    std::vector<int> radius = {5,5,6,6,7,9,11,12};
-                    n_param.kernel_radius_ = radius;
+//                    ZAdaptiveNormalsParameter n_param;
+//                    n_param.adaptive_ = true;
+//                    std::vector<int> radius = {5,5,6,6,7,9,11,12};
+//                    n_param.kernel_radius_ = radius;
 
-                    ZAdaptiveNormalsPCL<PointT> ne(n_param);
-                    ne.setInputCloud( cloud );
-                    normals_for_planarity_check = ne.compute();
+//                    ZAdaptiveNormalsPCL<PointT> ne(n_param);
+//                    ne.setInputCloud( cloud );
+//                    normals_for_planarity_check = ne.compute();
 
 
 //                    pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
@@ -177,18 +183,12 @@ main (int argc, char ** argv)
 //                    ne.setMaxDepthChangeFactor( max_depth_change_factor );//(10.0f);
 //                    ne.setNormalSmoothingSize( normal_smoothing_size );//(10.0f);
 //                    ne.setDepthDependentSmoothing( use_depth_dependent_smoothing );
-////                    ne.setBorderPolicy();
+//////                    ne.setBorderPolicy();
 
 //                    ne.setInputCloud(cloud);
 //                    ne.compute(*normals_for_planarity_check);
-//                    pcl::copyPointCloud(*normals_for_planarity_check, kp_indices, *normals_for_planarity_check);
+                    pcl::copyPointCloud(*normals_for_planarity_check, kp_indices, *normals_for_planarity_check);
                 }
-
-                pcl::visualization::PCLVisualizer viewer("PCL Viewer");
-                viewer.addPointCloud(cloud, "input");
-                viewer.addPointCloudNormals<PointT,pcl::Normal>(cloud, normals_for_planarity_check, 50);
-                viewer.spin();
-
 
                 CHECK(kp_indices.size() == normals_for_planarity_check->points.size());
 
@@ -333,39 +333,41 @@ main (int argc, char ** argv)
             }
 
 
-            v4r::PCLOpenCVConverter<PointT> conv;
-            conv.setInputCloud( cloud );
-            cv::Mat img = conv.getRGBImage();
+//            v4r::PCLOpenCVConverter<PointT> conv;
+//            conv.setInputCloud( cloud );
+//            cv::Mat img = conv.getRGBImage();
 
-            for(size_t i=0; i<cloud->points.size(); i++)
-            {
-                int u = i%cloud->width;
-                int v = i/cloud->width;
+//            for(size_t i=0; i<cloud->points.size(); i++)
+//            {
+//                int u = i%cloud->width;
+//                int v = i/cloud->width;
 
-                if( !pcl::isFinite( cloud->points[i] ) )
-                    img.at<cv::Vec3b>(v,u) = cv::Vec3b(255,255,255);
-            }
+//                if( !pcl::isFinite( cloud->points[i] ) )
+//                    img.at<cv::Vec3b>(v,u) = cv::Vec3b(255,255,255);
+//            }
 
-            for(size_t i=0; i<kp_indices.size(); i++)
-            {
-                int idx = kp_indices[i];
-                int u = idx%cloud->width;
-                int v = idx/cloud->width;
+//            for(size_t i=0; i<kp_indices.size(); i++)
+//            {
+//                int idx = kp_indices[i];
+//                int u = idx%cloud->width;
+//                int v = idx/cloud->width;
 
-                cv::Scalar color;
-                if( kp_is_kept[i] )
-                    color = cv::Scalar( 0, 255, 0 );
-                else
-                {
-                    color = cv::Scalar( 0, 0, 255 );
-                    img.at<cv::Vec3b>(v,u) = cv::Vec3b(0,0,255);
-                }
+//                cv::Scalar color;
+//                if( kp_is_kept[i] )
+//                    color = cv::Scalar( 0, 255, 0 );
+//                else
+//                {
+//                    color = cv::Scalar( 0, 0, 255 );
+//                    img.at<cv::Vec3b>(v,u) = cv::Vec3b(0,0,255);
+//                }
 
+//                if(cloud->points[idx].z > chop_z)
+//                    img.at<cv::Vec3b>(v,u) = cv::Vec3b(0,0,255);
 
-//                    cv::circle( img, cv::Point(u,v), 2, color, -1, cv::LINE_AA, 0 );
-            }
-            cv::imshow("keypoints", img);
-            cv::waitKey();
+//                cv::circle( img, cv::Point(u,v), 1, color, -1, cv::LINE_AA, 0 );
+//            }
+//            cv::imshow("keypoints", img);
+//            cv::waitKey();
         }
     }
 
