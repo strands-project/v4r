@@ -34,7 +34,7 @@ if(BUILD_EXAMPLES)
   SET(V4R_DEPS v4r_tracking v4r_recognition v4r_keypoints v4r_features)
   V4R_DEFINE_CPP_EXAMPLE(imkRecognizeObject-file)
 
-  SET(V4R_DEPS v4r_segmentation)
+  SET(V4R_DEPS v4r_segmentation v4r_apps)
   V4R_DEFINE_CPP_EXAMPLE(segment_pcd)
 
   SET(V4R_DEPS v4r_keypoints)

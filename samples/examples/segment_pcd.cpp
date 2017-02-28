@@ -8,9 +8,7 @@
 
 #include <v4r/common/normals.h>
 #include <v4r/io/filesystem.h>
-#include <v4r/common/miscellaneous.h>
-#include <v4r/segmentation/all_headers.h>
-#include <v4r/segmentation/types.h>
+#include <v4r/apps/CloudSegmenter.h>
 #include <v4r/segmentation/plane_utils.h>
 #include <v4r/segmentation/segmentation_utils.h>
 
@@ -82,9 +80,7 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
     std::string test_dir, out_dir = "/tmp/segmentation/";
-    int segmentation_method = v4r::SegmentationType::EuclideanSegmentation;
-    int plane_extraction_method = v4r::PlaneExtractionType::OrganizedMultiplane;
-    int normal_computation_method = 2;
+
     int margin = 0;
     bool save_bounding_boxes = true;
     bool visualize = false;
@@ -96,9 +92,6 @@ main (int argc, char ** argv)
         ("help,h", "produce help message")
         ("test_dir,t", po::value<std::string>(&test_dir)->required(), "Directory with test scenes stored as point clouds (.pcd).")
         ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory.")
-        ("segmentation_method", po::value<int>(&segmentation_method)->default_value(segmentation_method), "segmentation method")
-        ("plane_extraction_method", po::value<int>(&plane_extraction_method)->default_value(plane_extraction_method), "plane extraction method")
-        ("normal_computation_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "normal computation method (if needed by segmentation approach)")
         ("margin", po::value<int>(&margin)->default_value(margin), "margin when computing bounding box")
         ("save_bb", po::value<bool>(&save_bounding_boxes)->default_value(save_bounding_boxes), "if true, saves bounding boxes")
         ("visualize,v", po::bool_switch(&visualize), "If set, visualizes segmented clusters.")
@@ -111,19 +104,8 @@ main (int argc, char ** argv)
     try { po::notify(vm); }
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
-
-    typename v4r::PlaneExtractor<PointT>::Ptr plane_extractor = v4r::initPlaneExtractor<PointT> ( plane_extraction_method, to_pass_further );
-    typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( segmentation_method, to_pass_further);
-
-    if( !to_pass_further.empty() )
-    {
-        std::cerr << "Unused command line arguments: ";
-        for(size_t c=0; c<to_pass_further.size(); c++)
-            std::cerr << to_pass_further[c] << " ";
-
-        std::cerr << "!" << std::endl;
-    }
-
+    v4r::apps::CloudSegmenter<PointT> cs;
+    cs.initialize(to_pass_further);
 
     std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir );
     if(sub_folder_names.empty())
@@ -147,66 +129,22 @@ main (int argc, char ** argv)
             std::cout << "Segmenting file " << fn << std::endl;
 
             typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
-            pcl::PointCloud<pcl::Normal>::Ptr normals;
 
             pcl::io::loadPCDFile(fn, *cloud);
-
-            if( segmenter->getRequiresNormals() || plane_extractor->getRequiresNormals() )
-            {
-                pcl::ScopeTime t("Normal computation");
-                normals.reset(new pcl::PointCloud<pcl::Normal>);
-                v4r::computeNormals<PointT>(cloud, normals, normal_computation_method);
-                (void)t;
-            }
-
-            std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes;
-            {
-                pcl::ScopeTime t("Plane extraction");
-                plane_extractor->setInputCloud(cloud);
-                plane_extractor->setNormalsCloud( normals );
-                plane_extractor->compute();
-                planes = plane_extractor->getPlanes();
-                (void)t;
-            }
-
-            float plane_inlier_threshold = 0.02f;
-            size_t selected_plane = 0;
-
-            if(visualize)
-            {
-                for(const Eigen::Vector4f &plane : planes )
-                    v4r::visualizePlane<PointT> ( cloud, plane, 0.02f, "plane" );
-            }
-
-            std::vector<int> above_plane_indices = v4r::get_above_plane_inliers( *cloud, planes[ selected_plane], plane_inlier_threshold );
-            boost::dynamic_bitset<> above_plane_mask = v4r::createMaskFromIndices( above_plane_indices, cloud->points.size() );
-
-            pcl::PointCloud<PointT>::Ptr above_plane_cloud (new pcl::PointCloud<PointT> (*cloud));
-            for(size_t i=0; i<above_plane_cloud->points.size(); i++) // keep organized
-            {
-                if( !above_plane_mask[i] )
-                {
-                    PointT &p = above_plane_cloud->points[i];
-                    p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
-                }
-            }
-
-            {
-                pcl::ScopeTime t("Segmentation");
-                segmenter->setInputCloud(above_plane_cloud);
-                segmenter->setNormalsCloud( normals );
-                segmenter->segment();
-                (void)t;
-            }
-
-            std::vector<std::vector<int> > indices;
-            segmenter->getSegmentIndices(indices);
+            cs.segment(cloud);
+            std::vector<std::vector<int> > indices = cs.getClusters();
 
             if(visualize)
             {
                 //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
                 cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
                 cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
+                std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes = cs.getPlanes();
+
+                for(const Eigen::Vector4f &plane : planes )
+                    v4r::visualizePlane<PointT> ( cloud, plane, cs.getPlaneInlierTreshold(), "plane" );
+
                 v4r::visualizeClusters<PointT>( cloud, indices, "segmented clusters" );
             }
 
