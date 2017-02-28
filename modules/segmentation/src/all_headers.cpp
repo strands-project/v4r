@@ -67,14 +67,14 @@ initPlaneExtractor(int method, std::vector<std::string> &params )
         typename OrganizedMultiPlaneExtractor<PointT>::Ptr pe (new OrganizedMultiPlaneExtractor<PointT> (param));
         cast_plane_extractor = boost::dynamic_pointer_cast<PlaneExtractor<PointT> > (pe);
     }
-    if(method == PlaneExtractionType::SAC)
+    else if(method == PlaneExtractionType::SAC)
     {
         PlaneExtractorParameter param;
         params = param.init(params);
         typename SACPlaneExtractor<PointT>::Ptr pe (new SACPlaneExtractor<PointT> (param));
         cast_plane_extractor = boost::dynamic_pointer_cast<PlaneExtractor<PointT> > (pe);
     }
-    if(method == PlaneExtractionType::SACNormals)
+    else if(method == PlaneExtractionType::SACNormals)
     {
         PlaneExtractorParameter param;
         params = param.init(params);
