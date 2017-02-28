@@ -203,7 +203,6 @@ int main(int argc, char *argv[] )
 
       if (filenames.compare(filenames.size()-3,3,"pcd")==0)
       {
-        cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
         if(pcl::io::loadPCDFile(filename, *cloud)==-1)
           continue;
         convertImage(*cloud,image);
@@ -217,10 +216,21 @@ int main(int argc, char *argv[] )
     image.copyTo(im_draw);
     recognizer.dbg = im_draw;
 
+//    cloud->clear();
+
     // track
     { pcl::ScopeTime t("overall time");
 
-    recognizer.recognize(image, objects);
+    if (cloud->width!=(unsigned)image.cols || cloud->height!=(unsigned)image.rows)
+    {
+      recognizer.recognize(image, objects);
+      cout<<"Use image only!"<<endl;
+    }
+    else
+    {
+      recognizer.recognize(*cloud, objects);
+      cout<<"Use image and cloud!"<<endl;
+    }
 
     } //-- overall time --
 

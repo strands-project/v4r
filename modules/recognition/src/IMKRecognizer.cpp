@@ -552,7 +552,7 @@ void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > 
 
     if (_cloud.width == (unsigned)_im_channels[0].cols && _cloud.height == (unsigned)_im_channels[0].rows)
     {
-      depth.resize(_im_points.size());
+      depth.assign(_im_points.size(), std::numeric_limits<float>::quiet_NaN());
       for (unsigned j=0; j<depth.size(); j++)
       {
         const cv::Point2f &im_pt = _im_points[j];

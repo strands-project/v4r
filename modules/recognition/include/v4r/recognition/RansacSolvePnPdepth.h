@@ -34,6 +34,8 @@
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Dense>
 #include <v4r/core/macros.h>
+#include <boost/random.hpp>
+#include "v4r/keypoints/RigidTransformationRANSAC.h"
 
 
 
@@ -58,7 +60,7 @@ public:
     double inl_dist_z;              // depth value inlier dist
     bool use_robust_loss;
     double loss_scale;
-     double depth_error_scale;
+    double depth_error_scale;
     Parameter(double _inl_dist_px=3, double _eta_ransac=0.01, unsigned _max_rand_trials=5000,
       int _pnp_method=INT_MIN, int _nb_ransac_points=4, double _inl_dist_z=0.03)
     : inl_dist_px(_inl_dist_px), eta_ransac(_eta_ransac), max_rand_trials(_max_rand_trials),
@@ -69,6 +71,7 @@ public:
 
 private:
   Parameter param;
+  boost::mt19937 rg;
 
   float sqr_inl_dist_px;
 
@@ -82,7 +85,10 @@ private:
   std::vector<float> inv_depth;
   std::vector<Eigen::Vector3d> points3d;
   Eigen::Matrix<double, 6, 1> pose_Rt;
+  std::vector<Eigen::Vector3f> pts3d0,pts3d1;
+  std::vector<int> ind3d;
 
+  RigidTransformationRANSAC rt;
 
   void getRandIdx(int size, int num, std::vector<int> &idx);
   unsigned countInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const std::vector<float> &_inv_depth, const Eigen::Matrix4f &pose);
@@ -104,6 +110,7 @@ public:
   ~RansacSolvePnPdepth();
 
   int ransac(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, Eigen::Matrix4f &pose, std::vector<int> &inliers, const std::vector<float> &_depth=std::vector<float>());
+  int ransac(const std::vector<cv::Point3f> &_points0, const std::vector<cv::Point2f> &_im_points1, const std::vector<cv::Point3f> &_points3d1, Eigen::Matrix4f &pose, std::vector<int> &inliers);
   void setCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs);
   void setParameter(const Parameter &_p);
 
