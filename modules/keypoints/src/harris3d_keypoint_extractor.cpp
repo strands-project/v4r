@@ -8,6 +8,7 @@ template<typename PointT>
 void
 Harris3DKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
 {
+#if PCL_VERSION >= 100702
     pcl::HarrisKeypoint3D <PointT, pcl::PointXYZI> detector;
     detector.setNonMaxSupression (true);
     detector.setInputCloud (input_);
@@ -21,6 +22,10 @@ Harris3DKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
         keypoint_indices_[i] = keypoints_indices->indices[i];
 
     pcl::copyPointCloud(*input_, keypoint_indices_, keypoints);
+
+#else
+    std::cerr << "HARRIS 3D is not available with keypointindices for this PCL version!" << std::endl;
+#endif
 }
 
 template class V4R_EXPORTS Harris3DKeypointExtractor<pcl::PointXYZ>;
