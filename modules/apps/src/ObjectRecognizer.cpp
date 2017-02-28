@@ -93,6 +93,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("esf_config_xml", po::value<std::string>(&esf_config_xml)->default_value(esf_config_xml), "Filename of ESF XML configuration file.")
             ("camera_xml", po::value<std::string>(&camera_config_xml)->default_value(camera_config_xml), "Filename of camera parameter XML file.")
             ("visualize,v", po::bool_switch(&visualize_), "visualize recognition results")
+            ("skip_verification", po::bool_switch(&skip_verification_), "if true, skips verification (only hypotheses generation)")
             ("hv_vis_cues", po::bool_switch(&visualize_hv_go_cues), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
             ("hv_vis_model_cues", po::bool_switch(&visualize_hv_model_cues), "If set, visualizes the model cues. Useful for debugging")
             ("hv_vis_pairwise_cues", po::bool_switch(&visualize_hv_pairwise_cues), "If set, visualizes the pairwise cues. Useful for debugging")
@@ -192,19 +193,21 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     }
 
 
-    // ====== SETUP HYPOTHESES VERIFICATION =====
-    HV_Parameter paramHV (hv_config_xml);
-    hv_.reset (new HypothesisVerification<PointT, PointT> (xtion, paramHV) );
+    if(!skip_verification_)
+    {
+        // ====== SETUP HYPOTHESES VERIFICATION =====
+        HV_Parameter paramHV (hv_config_xml);
+        hv_.reset (new HypothesisVerification<PointT, PointT> (xtion, paramHV) );
 
-    if( visualize_hv_go_cues )
-        hv_->visualizeCues();
-    if( visualize_hv_model_cues )
-        hv_->visualizeModelCues();
-    if( visualize_hv_pairwise_cues )
-        hv_->visualizePairwiseCues();
+        if( visualize_hv_go_cues )
+            hv_->visualizeCues();
+        if( visualize_hv_model_cues )
+            hv_->visualizeModelCues();
+        if( visualize_hv_pairwise_cues )
+            hv_->visualizePairwiseCues();
 
-    hv_->setModelDatabase(model_database);
-
+        hv_->setModelDatabase(model_database);
+    }
 
     if(visualize_)
     {
@@ -220,6 +223,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
     //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
     cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
     cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+    verified_hypotheses_.clear();
 
     std::vector<double> elapsed_time;
 
@@ -309,6 +313,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
         elapsed_time.push_back( t.getTime() );
     }
 
+    if(!skip_verification_)
     {
         pcl::ScopeTime t("Verification of object hypotheses");
         hv_->setSceneCloud( cloud );
