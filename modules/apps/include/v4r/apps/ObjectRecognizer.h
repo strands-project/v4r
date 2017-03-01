@@ -49,12 +49,18 @@ private:
     std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_;
 
     double chop_z_; ///< Cut-off distance in meter
+    bool remove_planes_ = false;
+    size_t min_plane_points_ = 200;
     bool visualize_; ///< if true, visualizes objects
+    bool skip_verification_; ///< if true, will only generate hypotheses but not verify them
 
 public:
     ObjectRecognizer() :
         chop_z_ ( 5.f ),
-        visualize_ (false)
+        remove_planes_ (false),
+        min_plane_points_ (200),
+        visualize_ (false),
+        skip_verification_(false)
     {}
 
     /**

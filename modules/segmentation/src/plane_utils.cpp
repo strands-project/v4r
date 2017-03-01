@@ -1,4 +1,4 @@
-#include <v4r/common/plane_utils.h>
+#include <v4r/segmentation/plane_utils.h>
 
 #include <pcl/point_cloud.h>
 #include <pcl/filters/project_inliers.h>

@@ -22,8 +22,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_NORMAL_ESTIMATOR_H_
-#define V4R_NORMAL_ESTIMATOR_H_
+#pragma once
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -32,90 +31,62 @@
 
 namespace v4r
 {
-template<typename PointT, typename PointOutT>
-class V4R_EXPORTS PreProcessorAndNormalEstimator
+
+enum NormalEstimatorType
 {
-private:
-    typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
+    PCL_DEFAULT = 0x01, // 00000001
+    PCL_INTEGRAL_NORMAL = 0x02, // 00000010
+    Z_ADAPTIVE  = 0x04, // 00000100
+    PRE_PROCESS = 0x08 // 00001000
+};
+
+
+template<typename PointT>
+class V4R_EXPORTS NormalEstimator
+{
+protected:
+    typename pcl::PointCloud<PointT>::ConstPtr input_; ///< input cloud
+    pcl::PointCloud<pcl::Normal>::Ptr normal_; ///< computed surface normals for input cloud
+    std::vector<int> indices_;  ///< indices of the segmented object (extracted keypoints outside of this will be neglected)
 
 public:
+    virtual ~NormalEstimator(){ }
 
-    bool compute_mesh_resolution_;
-    bool do_voxel_grid_;
-    bool remove_outliers_;
-
-    //this values are used when CMR=false
-    float grid_resolution_;
-    float normal_radius_;
-
-    //this are used when CMR=true
-    float factor_normals_;
-    float factor_voxel_grid_;
-    float min_n_radius_;
-    bool force_unorganized_;
-
-    bool only_on_indices_;
-    pcl::PointIndices indices_;
-
-    PreProcessorAndNormalEstimator () : compute_mesh_resolution_(false), do_voxel_grid_ (false), remove_outliers_ (false),
-        grid_resolution_(0.01f), normal_radius_(0.02f),
-        factor_normals_(1), factor_voxel_grid_(1), min_n_radius_ (16), force_unorganized_(false), only_on_indices_ (false)
-    { }
-
+    /**
+     * @brief setInputCloud
+     * @param input input cloud
+     */
     void
-    setIndices(const std::vector<int> & indices)
+    setInputCloud (const typename pcl::PointCloud<PointT>::ConstPtr & input)
     {
-        only_on_indices_ = true;
-        indices_.indices = indices;
+        input_ = input;
     }
 
-    void
-    setForceUnorganized(bool set)
+    /**
+     * @brief setIndices
+     * @param indices indices of the segmented object (extracted keypoints outside of this will be neglected)
+     */
+    virtual void
+    setIndices(const std::vector<int> &indices)
     {
-        force_unorganized_ = set;
+        indices_ = indices;
     }
 
-    void
-    setMinNRadius(float r)
-    {
-        min_n_radius_ = r;
-    }
+    /**
+     * @brief getNormalEstimatorType
+     * @return unique type id of normal estimator(as stated in keypoint/types.h)
+     */
+    virtual int getNormalEstimatorType() const = 0;
 
-    void
-    setFactorsForCMR (float f1, float f2)
-    {
-        factor_voxel_grid_ = f1;
-        factor_normals_ = f2;
-    }
+    /**
+     * @brief compute
+     */
+    virtual
+    pcl::PointCloud<pcl::Normal>::Ptr
+    compute () = 0;
 
-    void
-    setValuesForCMRFalse (float f1, float f2)
-    {
-        grid_resolution_ = f1;
-        normal_radius_ = f2;
-    }
-
-    void
-    setDoVoxelGrid (bool b)
-    {
-        do_voxel_grid_ = b;
-    }
-
-    void
-    setRemoveOutliers (bool b)
-    {
-        remove_outliers_ = b;
-    }
-
-    void
-    setCMR (bool b)
-    {
-        compute_mesh_resolution_ = b;
-    }
-
-    void
-    estimate (const typename pcl::PointCloud<PointT>::ConstPtr & in, PointInTPtr & out, pcl::PointCloud<pcl::Normal>::Ptr & normals);
+    typedef boost::shared_ptr< NormalEstimator<PointT> > Ptr;
+    typedef boost::shared_ptr< NormalEstimator<PointT> const> ConstPtr;
 };
-}
 
-#endif
+}

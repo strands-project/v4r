@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2016 Thomas Faeulhammer
+ * Copyright (c) 2017 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,21 +22,30 @@
  ******************************************************************************/
 
 #pragma once
+#include <v4r/segmentation/plane_extractor.h>
 
 namespace v4r
 {
-    enum SegmentationType
-    {
-        OrganizedConnectedComponents = 0x01, // 00000001
-        EuclideanSegmentation = 0x02, // 00000010
-        ConnectedComponents2D  = 0x04, // 00000100
-        SmoothEuclideanClustering  = 0x08 // 00001000
-    };
 
-    enum PlaneExtractionType
-    {
-        OrganizedMultiplane = 0x01, // 00000001
-        SAC = 0x02, // 00000010
-        SACNormals = 0x04 // 00000100
-    };
+template<typename PointT>
+class V4R_EXPORTS SACPlaneExtractor : public PlaneExtractor<PointT>
+{
+protected:
+    using PlaneExtractor<PointT>::cloud_;
+    using PlaneExtractor<PointT>::normal_cloud_;
+    using PlaneExtractor<PointT>::all_planes_;
+    using PlaneExtractor<PointT>::param_;
+
+public:
+    SACPlaneExtractor( const PlaneExtractorParameter &p = PlaneExtractorParameter() ) :
+        PlaneExtractor<PointT>(p)
+    {}
+
+    virtual void compute();
+    virtual bool getRequiresNormals() const { return false; }
+
+    typedef boost::shared_ptr< SACPlaneExtractor<PointT> > Ptr;
+    typedef boost::shared_ptr< SACPlaneExtractor<PointT> const> ConstPtr;
+};
+
 }

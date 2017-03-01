@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2016 Thomas Faeulhammer
+ * Copyright (c) 2017 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,21 +22,43 @@
  ******************************************************************************/
 
 #pragma once
+#include <v4r/segmentation/plane_extractor.h>
 
 namespace v4r
 {
-    enum SegmentationType
-    {
-        OrganizedConnectedComponents = 0x01, // 00000001
-        EuclideanSegmentation = 0x02, // 00000010
-        ConnectedComponents2D  = 0x04, // 00000100
-        SmoothEuclideanClustering  = 0x08 // 00001000
-    };
 
-    enum PlaneExtractionType
+template<typename PointT>
+class V4R_EXPORTS SACNormalsPlaneExtractor : public PlaneExtractor<PointT>
+{
+protected:
+    using PlaneExtractor<PointT>::cloud_;
+    using PlaneExtractor<PointT>::normal_cloud_;
+    using PlaneExtractor<PointT>::all_planes_;
+    using PlaneExtractor<PointT>::param_;
+
+    float downsample_leaf_;
+    /** \brief Number of neighbors for normal estimation */
+    size_t k_;
+    /** \brief Keep points closer than max_z_bounds */
+    float max_z_bounds_;
+    /** \brief Threshold for SAC plane segmentation */
+    double sac_distance_threshold_;
+
+public:
+    SACNormalsPlaneExtractor( const PlaneExtractorParameter &p = PlaneExtractorParameter() ) :
+        PlaneExtractor<PointT>(p)
     {
-        OrganizedMultiplane = 0x01, // 00000001
-        SAC = 0x02, // 00000010
-        SACNormals = 0x04 // 00000100
-    };
+        max_z_bounds_ = 1.5;
+        k_ = 50;
+        sac_distance_threshold_ = 0.01;
+        downsample_leaf_ = 0.005f;
+    }
+
+    virtual void compute();
+    virtual bool getRequiresNormals() const { return true; }
+
+    typedef boost::shared_ptr< SACNormalsPlaneExtractor<PointT> > Ptr;
+    typedef boost::shared_ptr< SACNormalsPlaneExtractor<PointT> const> ConstPtr;
+};
+
 }

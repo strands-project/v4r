@@ -31,7 +31,8 @@ GlobalRecognitionPipeline<PointT>::recognize()
     seg_->setNormalsCloud(scene_normals_);
     seg_->segment();
     seg_->getSegmentIndices(clusters_);
-    Eigen::Vector4f table_plane = seg_->getTablePlane();
+    Eigen::Vector4f table_plane;
+//    bool plane_found = seg_->getDominantPlane(table_plane);
 
     obj_hypotheses_.resize(clusters_.size()); // each cluster builds a hypothesis group
     size_t kept=0;
@@ -42,7 +43,7 @@ GlobalRecognitionPipeline<PointT>::recognize()
         ohg.global_hypotheses_ = true;
 
         typename GlobalRecognizer<PointT>::Cluster::Ptr cluster (
-                    new typename GlobalRecognizer<PointT>::Cluster (*scene_, clusters_[i].indices ) );
+                    new typename GlobalRecognizer<PointT>::Cluster (*scene_, clusters_[i] ) );
         cluster->setTablePlane( table_plane );
 
         ///TODO pragma omp parallel with lock

@@ -1,11 +1,15 @@
 #include <iostream>
 
 #include <opencv2/opencv.hpp>
+
+#include <pcl/common/time.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
+
 #include <v4r/common/normals.h>
 #include <v4r/io/filesystem.h>
-#include <v4r/segmentation/all_headers.h>
+#include <v4r/apps/CloudSegmenter.h>
+#include <v4r/segmentation/plane_utils.h>
 #include <v4r/segmentation/segmentation_utils.h>
 
 #include <boost/any.hpp>
@@ -15,22 +19,21 @@
 namespace po = boost::program_options;
 
 template <typename PointT>
-void save_bb_image(const typename pcl::PointCloud<PointT>::Ptr cloud, const std::vector<pcl::PointIndices> &segments, const std::string &filename_prefix, int margin = 0)
+void
+save_bb_image(const pcl::PointCloud<PointT> &cloud, const std::vector<std::vector<int> > &segments, const std::string &filename_prefix, int margin = 0)
 {
     for(size_t i=0; i < segments.size(); i++)
     {
         std::stringstream filename; filename << filename_prefix << "_" << std::setfill('0') << std::setw(5) << i << ".jpg";
         int min_u, min_v, max_u, max_v;
         max_u = max_v = 0;
-        min_u = cloud->width;
-        min_v = cloud->height;
+        min_u = cloud.width;
+        min_v = cloud.height;
 
-        const std::vector<int> &c_tmp = segments[i].indices;
-
-        for(size_t idx=0; idx<c_tmp.size(); idx++)
+        for( int idx : segments[i] )
         {
-            int u = c_tmp[idx] % cloud->width;
-            int v = (int) (c_tmp[idx] / cloud->width);
+            int u = idx % cloud.width;
+            int v = idx / cloud.width;
 
             if (u>max_u)
                 max_u = u;
@@ -47,8 +50,8 @@ void save_bb_image(const typename pcl::PointCloud<PointT>::Ptr cloud, const std:
 
         min_u = std::max (0, min_u - margin);
         min_v = std::max (0, min_v - margin);
-        max_u = std::min ((int)cloud->width, max_u + margin);
-        max_v = std::min ((int)cloud->height, max_v + margin);
+        max_u = std::min ((int)cloud.width, max_u + margin);
+        max_v = std::min ((int)cloud.height, max_v + margin);
 
         int img_width  = max_u - min_u;
         int img_height = max_v - min_v;
@@ -59,8 +62,8 @@ void save_bb_image(const typename pcl::PointCloud<PointT>::Ptr cloud, const std:
           for (int col = 0; col < img_width; col++)
           {
             cv::Vec3b & cvp = image.at<cv::Vec3b> (row, col);
-            int position = (row + min_v) * cloud->width + (col + min_u);
-            const PointT &pt = cloud->points[position];
+            int position = (row + min_v) * cloud.width + (col + min_u);
+            const PointT &pt = cloud.points[position];
 
             cvp[0] = pt.b;
             cvp[1] = pt.g;
@@ -77,8 +80,7 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PointT;
     std::string test_dir, out_dir = "/tmp/segmentation/";
-    int method = v4r::SegmentationType::DominantPlane;
-    int normal_computation_method = 2;
+
     int margin = 0;
     bool save_bounding_boxes = true;
     bool visualize = false;
@@ -90,8 +92,6 @@ main (int argc, char ** argv)
         ("help,h", "produce help message")
         ("test_dir,t", po::value<std::string>(&test_dir)->required(), "Directory with test scenes stored as point clouds (.pcd).")
         ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory.")
-        ("method", po::value<int>(&method)->default_value(method), "segmentation method used")
-        ("normal_computation_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "normal computation method (if needed by segmentation approach)")
         ("margin", po::value<int>(&margin)->default_value(margin), "margin when computing bounding box")
         ("save_bb", po::value<bool>(&save_bounding_boxes)->default_value(save_bounding_boxes), "if true, saves bounding boxes")
         ("visualize,v", po::bool_switch(&visualize), "If set, visualizes segmented clusters.")
@@ -104,18 +104,8 @@ main (int argc, char ** argv)
     try { po::notify(vm); }
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
-
-    typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( method, to_pass_further);
-
-    if( !to_pass_further.empty() )
-    {
-        std::cerr << "Unused command line arguments: ";
-        for(size_t c=0; c<to_pass_further.size(); c++)
-            std::cerr << to_pass_further[c] << " ";
-
-        std::cerr << "!" << std::endl;
-    }
-
+    v4r::apps::CloudSegmenter<PointT> cs;
+    cs.initialize(to_pass_further);
 
     std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir );
     if(sub_folder_names.empty())
@@ -139,34 +129,27 @@ main (int argc, char ** argv)
             std::cout << "Segmenting file " << fn << std::endl;
 
             typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
+
             pcl::io::loadPCDFile(fn, *cloud);
-
-            segmenter->setInputCloud(cloud);
-            if(segmenter->getRequiresNormals())
-            {
-                pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-                v4r::computeNormals<PointT>(cloud, normals, normal_computation_method);
-                segmenter->setNormalsCloud( normals );
-            }
-
-            segmenter->segment();
-
-            std::vector<pcl::PointIndices> indices;
-            segmenter->getSegmentIndices(indices);
+            cs.segment(cloud);
+            std::vector<std::vector<int> > indices = cs.getClusters();
 
             if(visualize)
             {
-                std::vector<std::vector<int> > indices_int ( indices.size() );
+                //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
+                cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+                cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
 
-                for( size_t cluster_id = 0; cluster_id<indices.size(); cluster_id++)
-                    indices_int [cluster_id] = indices[cluster_id].indices;
+                std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes = cs.getPlanes();
 
-                    v4r::visualizeClusters<PointT>( cloud, indices_int, "segmented clusters" );
+                for(const Eigen::Vector4f &plane : planes )
+                    v4r::visualizePlane<PointT> ( cloud, plane, cs.getPlaneInlierTreshold(), "plane" );
+
+                v4r::visualizeClusters<PointT>( cloud, indices, "segmented clusters" );
             }
 
-
             if( save_bounding_boxes )
-                save_bb_image<PointT>(cloud, indices, out_fn_prefix, margin);
+                save_bb_image( *cloud, indices, out_fn_prefix, margin );
         }
     }
 
