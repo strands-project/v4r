@@ -13,40 +13,10 @@ namespace io
 
 /** Returns folder names in a folder </br>
       * @param dir
-      * @param rel_path_so_far
-      * @param relative_paths
-      * @return number of folders in folder
-      */
-DEPRECATED(V4R_EXPORTS int
-           getFoldersInDirectory (const std::string & dir,
-                                  const std::string & rel_path_so_far,
-                                  std::vector<std::string> & relative_paths));
-
-
-/** Returns folder names in a folder </br>
-      * @param dir
       * @return relative_paths
       */
 V4R_EXPORTS std::vector<std::string>
 getFoldersInDirectory (const std::string & dir);
-
-
-/** Returns a the name of files in a folder </br>
-        * '(.*)bmp'
-        * @param dir
-        * @param relative_paths
-        * @param rel_path_so_far
-        * @param regex_pattern examples "(.*)bmp",  "(.*)$"
-        * @param recursive (true if files in subfolders should be returned as well)
-        * @return number of files in folder (-1 in case directory name is not valid)
-        */
-DEPRECATED(
-        V4R_EXPORTS int
-        getFilesInDirectory (   const std::string & dir,
-                                std::vector<std::string> & relative_paths,
-                                const std::string & rel_path_so_far = std::string(""),
-                                const std::string & regex_pattern = std::string(""),
-                                bool recursive = true));
 
 
 /** Returns a the name of files in a folder </br>
