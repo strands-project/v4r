@@ -1,6 +1,5 @@
 #include <v4r/common/miscellaneous.h>  // to extract Pose intrinsically stored in pcd file
 #include <v4r/io/filesystem.h>
-#include <v4r/recognition/source.h>
 
 #include <pcl/common/transforms.h>
 #include <pcl/io/pcd_io.h>
@@ -27,7 +26,6 @@ using namespace v4r;
 
 typedef pcl::PointXYZRGB PointT;
 
-Source<PointT>::Ptr source;
 namespace bf = boost::filesystem;
 
 
@@ -266,6 +264,7 @@ main (int argc, char ** argv)
     translation_error_threshold_m = 0.05f;
     occlusion_threshold = 0.95f;
     bool visualize=false;
+    bool use_generated_hypotheses = false;
 
     std::stringstream description;
     description << "Tool to compute object instance recognition rate." << std::endl <<
@@ -290,6 +289,7 @@ main (int argc, char ** argv)
             ("visualize,v", po::bool_switch(&visualize), "visualize recognition results")
             ("models_dir,m", po::value<std::string>(&models_dir), "Only for visualization. Root directory containing the model files (i.e. filenames 3D_model.pcd).")
             ("test_dir,t", po::value<std::string>(&test_dir), "Only for visualization. Root directory containing the scene files.")
+            ("use_generated_hypotheses", po::bool_switch(&use_generated_hypotheses), "if true, computes recognition rate for all generated hypotheses instead of verified ones.")
             ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -302,35 +302,52 @@ main (int argc, char ** argv)
     v4r::io::createDirForFileIfNotExist(out_path.string());
     std::ofstream of ( out_path.string().c_str() );
 
-    std::vector<std::string> annotation_files = v4r::io::getFilesInDirectory( gt_dir, ".*.anno", true );
 
     pcl::visualization::PCLVisualizer::Ptr vis;
     int vp1, vp2, vp3;
+
+    // load models (only used for visualization)
+    std::vector<std::string> model_filenames = io::getFilesInDirectory( models_dir, "3D_model.pcd", true );
+    std::map<std::string, pcl::PointCloud<PointT>::Ptr> models;
+
     if(visualize)
     {
+        for(const std::string &model_fn : model_filenames)
+        {
+            pcl::PointCloud<PointT>::Ptr model_cloud (new pcl::PointCloud<PointT>);
+            bf::path model_full_path = models_dir;
+            model_full_path /= model_fn;
+            pcl::io::loadPCDFile( model_full_path.string(), *model_cloud );
+
+            // model identity is equal folder name -> remove \"/3D_model.pcd\" from filename
+            bf::path model_path = model_fn;
+            models[ model_path.parent_path().string() ] = model_cloud;
+        }
+
         vis.reset (new pcl::visualization::PCLVisualizer ("results"));
         vis->createViewPort(0, 0, 1, 0.33, vp1);
         vis->createViewPort(0, 0.33, 1, 0.66, vp2);
         vis->createViewPort(0, 0.66, 1, 1, vp3);
-        source.reset( new Source<PointT> (models_dir) );
     }
+
+
+    std::vector<std::string> annotation_files = v4r::io::getFilesInDirectory( gt_dir, ".*.anno", true );
+
 
     for( const std::string anno_file : annotation_files )
     {
         bf::path gt_path = gt_dir;
         gt_path /= anno_file;
 
+        std::string rec_file = anno_file;
+        if(use_generated_hypotheses)
+            boost::replace_last( rec_file, ".anno", ".generated_hyps");
+
         bf::path rec_path = or_dir;
-        rec_path /= anno_file;
+        rec_path /= rec_file;
 
         std::map<std::string, std::vector<Hypothesis> > gt_hyps = readHypothesesFromFile( gt_path.string() );
         std::map<std::string, std::vector<Hypothesis> > rec_hyps = readHypothesesFromFile( rec_path.string() );
-
-        std::set<std::string> model_names;  // all model names either observed from recognition or labelled
-        for( const auto &tmp : gt_hyps )
-            model_names.insert( tmp.first );
-        for( const auto &tmp : rec_hyps)
-            model_names.insert( tmp.first );
 
         size_t tp_view = 0;
         size_t fp_view = 0;
@@ -346,15 +363,15 @@ main (int argc, char ** argv)
 #endif
         }
 
-        for( const auto &model_name : model_names )
+        for( const auto &m : models )
         {
             std::vector<Hypothesis> rec_hyps_tmp, gt_hyps_tmp;
 
-            auto it = rec_hyps.find( model_name );
+            auto it = rec_hyps.find( m.first );
             if ( it != rec_hyps.end() )
                 rec_hyps_tmp = it->second;
 
-            it = gt_hyps.find( model_name );
+            it = gt_hyps.find( m.first );
             if ( it != gt_hyps.end() )
                 gt_hyps_tmp = it->second;
 
@@ -378,16 +395,10 @@ main (int argc, char ** argv)
                     if ( rec_id >= 0 )
                     {
                         const Hypothesis &hyp_vis = rec_hyps_tmp[ rec_id ];
-
-                        bool found;
-                        Model<PointT>::ConstPtr model = source->getModelById("", model_name, found );
-                        if (!found)
-                            std::cerr << "Did not find " << model_name << ". There is something wrong! " << std::endl;
-
-                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(3);
+                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second;
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
-                        std::stringstream unique_id; unique_id << model_name << "_" << counter;
+                        std::stringstream unique_id; unique_id << m.first << "_" << counter;
                         vis->addPointCloud(model_aligned, unique_id.str(), vp3);
 
 #if PCL_VERSION >= 100800
@@ -396,7 +407,7 @@ main (int argc, char ** argv)
                         Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
                         Eigen::Affine3f affine_trans;
                         affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
-                        std::stringstream co_id; co_id << model_name << "_co_" << counter;
+                        std::stringstream co_id; co_id << m.first << "_co_" << counter;
                         vis->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp3);
 #endif
                         counter++;
@@ -405,16 +416,10 @@ main (int argc, char ** argv)
                     if ( gt_id >= 0 )
                     {
                         const Hypothesis &hyp_vis = gt_hyps_tmp[ gt_id ];
-
-                        bool found;
-                        Model<PointT>::ConstPtr model = source->getModelById("", model_name, found );
-                        if (!found)
-                            std::cerr << "Did not find " << model_name << ". There is something wrong! " << std::endl;
-
-                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(3);
+                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second;
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
-                        std::stringstream unique_id; unique_id << model_name << "_" << counter;
+                        std::stringstream unique_id; unique_id << m.first << "_" << counter;
 
                         if(hyp_vis.occlusion > occlusion_threshold)
                         {
@@ -430,7 +435,7 @@ main (int argc, char ** argv)
                         Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
                         Eigen::Affine3f affine_trans;
                         affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
-                        std::stringstream co_id; co_id << model_name << "_co_" << counter;
+                        std::stringstream co_id; co_id << m.first << "_co_" << counter;
                         vis->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp2);
 #endif
                         counter++;
