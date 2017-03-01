@@ -56,6 +56,7 @@
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r_config.h>
 #include <v4r/io/filesystem.h>
+//#include <v4r/features/FeatureDetector_KD_FAST_IMGD.h>
 #ifdef HAVE_SIFTGPU
 #define USE_SIFT_GPU
 #include <v4r/features/FeatureDetector_KD_SIFTGPU.h>
@@ -139,24 +140,33 @@ int main(int argc, char *argv[] )
   cv::namedWindow( "image", CV_WINDOW_AUTOSIZE );
 
   // init recognizer
-  #ifdef USE_SIFT_GPU
   v4r::IMKRecognizer::Parameter param;
+  param.pnp_param.eta_ransac = 0.01;
+  param.pnp_param.max_rand_trials = 10000;
+  param.pnp_param.inl_dist_px = 2;
+  param.pnp_param.inl_dist_z = 0.02;
+  param.vc_param.cluster_dist = 40;
+
+  #ifdef USE_SIFT_GPU
   param.cb_param.nnr = 1.000001;
   param.cb_param.thr_desc_rnn = 0.25;
   param.cb_param.max_dist = FLT_MAX;
-  param.pnp_param.eta_ransac = 0.01;
-  param.pnp_param.max_rand_trials = 10000;
-  param.pnp_param.inl_dist_px = 3;
-  param.pnp_param.inl_dist_z = 0.03;
-  param.vc_param.cluster_dist = 40;
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_SIFTGPU());
   #else
   v4r::KeypointObjectRecognizer::Parameter param;
-  param.cb_param.nnr = .92;
+  param.cb_param.nnr = 1.000001;
   param.cb_param.thr_desc_rnn = 250.;
-  param.cb_param.max_dist = 500;
+  param.cb_param.max_dist = FLT_MAX;
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_CVSIFT());
   #endif
+
+//  // -- test imgd --
+//  param.cb_param.nnr = 1.000001;
+//  param.cb_param.thr_desc_rnn = 0.25;
+//  param.cb_param.max_dist = FLT_MAX;
+//  v4r::FeatureDetector_KD_FAST_IMGD::Parameter imgd_param(1000, 1.3, 4, 15);
+//  v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_FAST_IMGD(imgd_param));
+//  // -- end --
 
   v4r::IMKRecognizer recognizer(param, detector, detector);
 
