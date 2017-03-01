@@ -1,6 +1,7 @@
 #include <v4r/common/miscellaneous.h>  // to extract Pose intrinsically stored in pcd file
 #include <v4r/io/filesystem.h>
 
+#include <pcl/common/centroid.h>
 #include <pcl/common/transforms.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -35,17 +36,24 @@ struct Hypothesis
     float occlusion;
 };
 
+struct Model
+{
+    pcl::PointCloud<PointT>::Ptr cloud;
+    Eigen::Vector4f centroid;
+};
+
 
 // =======  DECLARATIONS ===================
 /**
  * @brief computeError compute translation error for a given pose
  * @param[in] pose_a
  * @param[in] pose_b
+ * @param[in] centroid of object model in model coordinate system
  * @param[out] trans_error translation error
  * @param[out] rot_error rotation error
  * @return boolean indicitating if error is outside given threshold
  */
-bool computeError(const Eigen::Matrix4f &pose_a, const Eigen::Matrix4f &pose_b,
+bool computeError(const Eigen::Matrix4f &pose_a, const Eigen::Matrix4f &pose_b, const Eigen::Vector4f &centroid_model,
                   float &trans_error, float &rot_error);
 
 
@@ -55,6 +63,7 @@ bool computeError(const Eigen::Matrix4f &pose_a, const Eigen::Matrix4f &pose_b,
  * to model id and second index to ground-truth id
  * @param rec_hyps recognition hypotheses
  * @param gt_hyps ground-truth hypotheses
+ * @param centroid of object model in model coordinate system
  * @param sum_translation_error
  * @param tp true positives
  * @param fp flase positives
@@ -63,6 +72,7 @@ bool computeError(const Eigen::Matrix4f &pose_a, const Eigen::Matrix4f &pose_b,
 void checkMatchvector(const std::vector< std::pair<int, int> > &rec2gt,
                       const std::vector<Hypothesis> &rec_hyps,
                       const std::vector<Hypothesis> &gt_hyps,
+                      const Eigen::Vector4f &model_centroid,
                       double &sum_translation_error,
                       size_t &tp, size_t &fp, size_t &fn);
 
@@ -74,6 +84,7 @@ void checkMatchvector(const std::vector< std::pair<int, int> > &rec2gt,
  * best f-score taking into account to be neglected hypotheses due to occlusion.
  * @param rec_hyps recognized hypotheses
  * @param gt_hyps ground-truth hypotheses
+ * @param centroid of object model in model coordinate system
  * @param tp true positives for best match
  * @param fp false positives for best match
  * @param fn false negatives for best match
@@ -83,6 +94,7 @@ void checkMatchvector(const std::vector< std::pair<int, int> > &rec2gt,
  */
 std::vector<std::pair<int, int> > selectBestMatch(const std::vector<Hypothesis> &rec_hyps,
                                                   const std::vector<Hypothesis> &gt_hyps,
+                                                  const Eigen::Vector4f &model_centroid,
                                                   size_t &tp, size_t &fp, size_t &fn,
                                                   double &sum_translation_error);
 
@@ -97,15 +109,12 @@ readHypothesesFromFile( const std::string &filename );
 // ==========================================
 
 
-bool computeError(const Eigen::Matrix4f &pose_a, const Eigen::Matrix4f &pose_b,
+bool computeError(const Eigen::Matrix4f &pose_a, const Eigen::Matrix4f &pose_b, const Eigen::Vector4f& centroid_model,
                   float &trans_error, float &rot_error)
 {
-    const Eigen::Vector3f trans_a = pose_a.block<3,1>(0,3);
-    const Eigen::Vector3f trans_b = pose_b.block<3,1>(0,3);
-    //    const Eigen::Matrix3f rec_r = rec_pose.block<3,3>(0,0);
-    //    const Eigen::Matrix3f gt_r = gt_pose.block<3,3>(0,0);
-
-    trans_error = (trans_a-trans_b).norm();
+    const Eigen::Vector4f centroid_a = pose_a * centroid_model;
+    const Eigen::Vector4f centroid_b = pose_b * centroid_model;
+    trans_error = (centroid_a.head(3)-centroid_b.head(3)).norm();
 
     rot_error = 0.f;  //not implemented yet
 
@@ -118,6 +127,7 @@ bool computeError(const Eigen::Matrix4f &pose_a, const Eigen::Matrix4f &pose_b,
 void checkMatchvector(const std::vector< std::pair<int, int> > &rec2gt,
                       const std::vector<Hypothesis> &rec_hyps,
                       const std::vector<Hypothesis> &gt_hyps,
+                      const Eigen::Vector4f &model_centroid,
                       double &sum_translation_error,
                       size_t &tp, size_t &fp, size_t &fn)
 {
@@ -147,7 +157,7 @@ void checkMatchvector(const std::vector< std::pair<int, int> > &rec2gt,
         const Hypothesis &rec_hyp = rec_hyps [ rec_id ] ;
 
         float trans_error, rot_error;
-        if( computeError( rec_hyp.pose, gt_hyp.pose, trans_error, rot_error))
+        if( computeError( rec_hyp.pose, gt_hyp.pose, model_centroid, trans_error, rot_error))
         {
             fp++;
 
@@ -165,6 +175,7 @@ void checkMatchvector(const std::vector< std::pair<int, int> > &rec2gt,
 std::vector< std::pair<int, int> >
 selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
                  const std::vector<Hypothesis> &gt_hyps,
+                 const Eigen::Vector4f &model_centroid,
                  size_t &tp, size_t &fp, size_t &fn,
                  double &sum_translation_error)
 {
@@ -196,7 +207,7 @@ selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
             }
             double sum_translation_error_tmp;
             size_t tp_tmp, fp_tmp, fn_tmp;
-            checkMatchvector(rec2gt_matches, rec_hyps, gt_hyps, sum_translation_error_tmp, tp_tmp, fp_tmp, fn_tmp);
+            checkMatchvector(rec2gt_matches, rec_hyps, gt_hyps, model_centroid, sum_translation_error_tmp, tp_tmp, fp_tmp, fn_tmp);
 
             float recall = 1.f;
             if (tp_tmp+fn_tmp) // if there are some ground-truth objects
@@ -302,28 +313,30 @@ main (int argc, char ** argv)
     v4r::io::createDirForFileIfNotExist(out_path.string());
     std::ofstream of ( out_path.string().c_str() );
 
+    // load models
+    std::vector<std::string> model_filenames = io::getFilesInDirectory( models_dir, "3D_model.pcd", true );
+    std::map<std::string, Model> models;
+    for(const std::string &model_fn : model_filenames)
+    {
+        pcl::PointCloud<PointT>::Ptr model_cloud (new pcl::PointCloud<PointT>);
+        bf::path model_full_path = models_dir;
+        model_full_path /= model_fn;
+        pcl::io::loadPCDFile( model_full_path.string(), *model_cloud );
+
+        Model m;
+        m.cloud = model_cloud;
+        pcl::compute3DCentroid(*m.cloud, m.centroid);
+
+        // model identity is equal folder name -> remove \"/3D_model.pcd\" from filename
+        bf::path model_path = model_fn;
+        models[ model_path.parent_path().string() ] = m;
+    }
+
 
     pcl::visualization::PCLVisualizer::Ptr vis;
     int vp1, vp2, vp3;
-
-    // load models (only used for visualization)
-    std::vector<std::string> model_filenames = io::getFilesInDirectory( models_dir, "3D_model.pcd", true );
-    std::map<std::string, pcl::PointCloud<PointT>::Ptr> models;
-
     if(visualize)
     {
-        for(const std::string &model_fn : model_filenames)
-        {
-            pcl::PointCloud<PointT>::Ptr model_cloud (new pcl::PointCloud<PointT>);
-            bf::path model_full_path = models_dir;
-            model_full_path /= model_fn;
-            pcl::io::loadPCDFile( model_full_path.string(), *model_cloud );
-
-            // model identity is equal folder name -> remove \"/3D_model.pcd\" from filename
-            bf::path model_path = model_fn;
-            models[ model_path.parent_path().string() ] = model_cloud;
-        }
-
         vis.reset (new pcl::visualization::PCLVisualizer ("results"));
         vis->createViewPort(0, 0, 1, 0.33, vp1);
         vis->createViewPort(0, 0.33, 1, 0.66, vp2);
@@ -375,9 +388,11 @@ main (int argc, char ** argv)
             if ( it != gt_hyps.end() )
                 gt_hyps_tmp = it->second;
 
+            const Eigen::Vector4f &centroid = m.second.centroid;
+
             size_t tp_tmp, fp_tmp, fn_tmp;
             double sum_translation_error_tmp;
-            std::vector< std::pair<int, int> > matches = selectBestMatch(rec_hyps_tmp, gt_hyps_tmp, tp_tmp, fp_tmp, fn_tmp, sum_translation_error_tmp);
+            std::vector< std::pair<int, int> > matches = selectBestMatch(rec_hyps_tmp, gt_hyps_tmp, centroid, tp_tmp, fp_tmp, fn_tmp, sum_translation_error_tmp);
 
             tp_view+=tp_tmp;
             fp_view+=fp_tmp;
@@ -395,7 +410,7 @@ main (int argc, char ** argv)
                     if ( rec_id >= 0 )
                     {
                         const Hypothesis &hyp_vis = rec_hyps_tmp[ rec_id ];
-                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second;
+                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
                         std::stringstream unique_id; unique_id << m.first << "_" << counter;
@@ -416,7 +431,7 @@ main (int argc, char ** argv)
                     if ( gt_id >= 0 )
                     {
                         const Hypothesis &hyp_vis = gt_hyps_tmp[ gt_id ];
-                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second;
+                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
                         std::stringstream unique_id; unique_id << m.first << "_" << counter;
