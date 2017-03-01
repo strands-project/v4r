@@ -54,7 +54,7 @@ private:
 //    omp_lock_t rec_lock_;
 
     typename Segmenter<PointT>::Ptr seg_;
-    std::vector<pcl::PointIndices> clusters_;
+    std::vector<std::vector<int> > clusters_;
 
     std::vector<typename GlobalRecognizer<PointT>::Ptr > global_recognizers_; ///< set of Global recognizer generating keypoint correspondences
     std::vector<ObjectHypothesesGroup<PointT> > obj_hypotheses_wo_elongation_check_; ///< just for visualization (to see effect of elongation check)

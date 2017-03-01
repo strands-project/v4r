@@ -158,19 +158,19 @@ SmoothEuclideanSegmenter<PointT>::segment()
         // If this queue is satisfactory, add to the clusters
         if (seed_queue.size () >= param_.min_points_ && seed_queue.size () <= max_pts_per_cluster)
         {
-            pcl::PointIndices r;
-            r.indices.resize (seed_queue.size ());
+            std::vector<int> r;
+            r.resize ( seed_queue.size () );
             for (size_t j = 0; j < seed_queue.size (); ++j)
-                r.indices[j] = seed_queue[j];
+                r[j] = seed_queue[j];
 
-            std::sort (r.indices.begin (), r.indices.end ());
-            r.indices.erase (std::unique (r.indices.begin (), r.indices.end ()), r.indices.end ());
-            clusters_.push_back (r); // We could avoid a copy by working directly in the vector
+            std::sort (r.begin (), r.end ());
+            r.erase (std::unique (r.begin (), r.end ()), r.end ());
+            clusters_.push_back ( r ); // We could avoid a copy by working directly in the vector
         }
     }
 }
 
-#define PCL_INSTANTIATE_SmoothEuclideanSegmenter(T) template class V4R_EXPORTS SmoothEuclideanSegmenter<T>;
-PCL_INSTANTIATE(SmoothEuclideanSegmenter, PCL_XYZ_POINT_TYPES )
+//#define PCL_INSTANTIATE_SmoothEuclideanSegmenter(T) template class V4R_EXPORTS SmoothEuclideanSegmenter<T>;
+//PCL_INSTANTIATE(SmoothEuclideanSegmenter, PCL_XYZ_POINT_TYPES )
 
 }

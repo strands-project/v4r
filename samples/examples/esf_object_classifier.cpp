@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     bool retrain = false;
 
     knn = 5;
-    int segmentation_method = SegmentationType::DominantPlane;
+    int segmentation_method = SegmentationType::OrganizedConnectedComponents;
 
     google::InitGoogleLogging(argv[0]);
 
@@ -111,7 +111,7 @@ int main(int argc, char** argv)
             pcl::io::loadPCDFile(fn, *cloud);
             segmenter->setInputCloud(cloud);
             segmenter->segment();
-            std::vector<pcl::PointIndices> found_clusters;
+            std::vector<std::vector<int> > found_clusters;
             segmenter->getSegmentIndices(found_clusters);
 
             if (found_clusters.empty())
@@ -146,7 +146,7 @@ int main(int argc, char** argv)
 
                 if (min_id >= 0)
                 {
-                    std::vector<pcl::PointIndices> closest_cluster;
+                    std::vector<std::vector<int> > closest_cluster;
                     closest_cluster.push_back( found_clusters[min_id] );
                     found_clusters = closest_cluster;
                 }
@@ -162,7 +162,7 @@ int main(int argc, char** argv)
             for(size_t i=0; i < found_clusters.size(); i++)
             {
                 GlobalRecognizer<PointT>::Cluster::Ptr cluster (
-                            new GlobalRecognizer<PointT>::Cluster (*cloudXYZ, found_clusters[i].indices, false ) );
+                            new GlobalRecognizer<PointT>::Cluster (*cloudXYZ, found_clusters[i], false ) );
                 rec.setInputCloud( cloudXYZ );
                 rec.setCluster( cluster );
                 rec.recognize();

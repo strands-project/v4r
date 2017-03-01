@@ -8,22 +8,29 @@
 #include <glog/logging.h>
 
 #include <pcl/common/time.h>
-#include <pcl/impl/instantiate.hpp>
-#include <pcl/recognition/cg/geometric_consistency.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/impl/instantiate.hpp>
+#include <pcl/recognition/cg/geometric_consistency.h>
 
 #include <v4r/common/camera.h>
 #include <v4r/common/normals.h>
-#include <v4r/io/filesystem.h>
 #include <v4r/features/esf_estimator.h>
 #include <v4r/features/shot_local_estimator.h>
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/keypoints/uniform_sampling_extractor.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/ml/all_headers.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/global_recognition_pipeline.h>
 #include <v4r/segmentation/all_headers.h>
+
+
+#include <v4r/segmentation/plane_utils.h>
+#include <v4r/segmentation/segmentation_utils.h>
+#include <pcl/segmentation/organized_multi_plane_segmentation.h>
+#include <pcl/segmentation/euclidean_cluster_comparator.h>
+#include <pcl/segmentation/organized_connected_component_segmentation.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -56,13 +63,12 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     bool do_shot = false;
     bool do_esf = false;
     bool do_alexnet = false;
-    int segmentation_method = SegmentationType::DominantPlane;
+    int segmentation_method = SegmentationType::OrganizedConnectedComponents;
     int esf_classification_method = ClassifierType::SVM;
 
     bool visualize_hv_go_cues = false;
     bool visualize_hv_model_cues = false;
     bool visualize_hv_pairwise_cues = false;
-
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
@@ -75,6 +81,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("do_shot", po::value<bool>(&do_shot)->default_value(do_shot), "if true, enables SHOT feature matching")
             ("do_esf", po::value<bool>(&do_esf)->default_value(do_esf), "if true, enables ESF global matching")
             ("do_alexnet", po::value<bool>(&do_alexnet)->default_value(do_alexnet), "if true, enables AlexNet global matching")
+            ("remove_planes", po::value<bool>(&remove_planes_)->default_value(remove_planes_), "if true, removes all planar surfaces with having at least min_plane_points points.")
+            ("min_plane_points", po::value<size_t>(&min_plane_points_)->default_value(min_plane_points_), "Minimum number of plane points for plane to be removed (only if remove_planes is enabled).")
             ("segmentation_method", po::value<int>(&segmentation_method)->default_value(segmentation_method), "segmentation method (as stated in the V4R library (modules segmentation/types.h) ")
             ("esf_classification_method", po::value<int>(&esf_classification_method)->default_value(esf_classification_method), "ESF classification method (as stated in the V4R library (modules ml/types.h) ")
             ("depth_img_mask", po::value<std::string>(&depth_img_mask)->default_value(depth_img_mask), "filename for image registration mask. This mask tells which pixels in the RGB image can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.")
@@ -85,6 +93,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("esf_config_xml", po::value<std::string>(&esf_config_xml)->default_value(esf_config_xml), "Filename of ESF XML configuration file.")
             ("camera_xml", po::value<std::string>(&camera_config_xml)->default_value(camera_config_xml), "Filename of camera parameter XML file.")
             ("visualize,v", po::bool_switch(&visualize_), "visualize recognition results")
+            ("skip_verification", po::bool_switch(&skip_verification_), "if true, skips verification (only hypotheses generation)")
             ("hv_vis_cues", po::bool_switch(&visualize_hv_go_cues), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
             ("hv_vis_model_cues", po::bool_switch(&visualize_hv_model_cues), "If set, visualizes the model cues. Useful for debugging")
             ("hv_vis_pairwise_cues", po::bool_switch(&visualize_hv_pairwise_cues), "If set, visualizes the pairwise cues. Useful for debugging")
@@ -184,19 +193,21 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     }
 
 
-    // ====== SETUP HYPOTHESES VERIFICATION =====
-    HV_Parameter paramHV (hv_config_xml);
-    hv_.reset (new HypothesisVerification<PointT, PointT> (xtion, paramHV) );
+    if(!skip_verification_)
+    {
+        // ====== SETUP HYPOTHESES VERIFICATION =====
+        HV_Parameter paramHV (hv_config_xml);
+        hv_.reset (new HypothesisVerification<PointT, PointT> (xtion, paramHV) );
 
-    if( visualize_hv_go_cues )
-        hv_->visualizeCues();
-    if( visualize_hv_model_cues )
-        hv_->visualizeModelCues();
-    if( visualize_hv_pairwise_cues )
-        hv_->visualizePairwiseCues();
+        if( visualize_hv_go_cues )
+            hv_->visualizeCues();
+        if( visualize_hv_model_cues )
+            hv_->visualizeModelCues();
+        if( visualize_hv_pairwise_cues )
+            hv_->visualizePairwiseCues();
 
-    hv_->setModelDatabase(model_database);
-
+        hv_->setModelDatabase(model_database);
+    }
 
     if(visualize_)
     {
@@ -212,6 +223,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
     //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
     cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
     cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+    verified_hypotheses_.clear();
 
     std::vector<double> elapsed_time;
 
@@ -224,10 +236,65 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
         ne.setNormalEstimationMethod (ne.COVARIANCE_MATRIX);
         ne.setMaxDepthChangeFactor(0.02f);
         ne.setNormalSmoothingSize(10.0f);
+        ne.setDepthDependentSmoothing(true);
         ne.setInputCloud(cloud);
         ne.compute(*normals);
         mrec_->setSceneNormals( normals );
         elapsed_time.push_back( t.getTime() );
+    }
+
+
+    if( remove_planes_ )
+    {
+        std::vector<pcl::PlanarRegion<PointT>, Eigen::aligned_allocator<pcl::PlanarRegion<PointT> > > regions;
+        {
+            pcl::ScopeTime t("Removing plane from input cloud.");
+            pcl::OrganizedMultiPlaneSegmentation< PointT, pcl::Normal, pcl::Label > mps;
+            mps.setMinInliers (min_plane_points_);
+            mps.setAngularThreshold ( 2 * M_PI/180.f ); // 2 degrees
+            mps.setDistanceThreshold ( 0.02 ); // 2cm
+            mps.setInputNormals (normals);
+            mps.setInputCloud (cloud);
+            typename pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label>::Ptr ref_comp (
+            new pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label> ());
+            ref_comp->setDistanceThreshold ( 0.02, false);
+            ref_comp->setAngularThreshold (2 * M_PI/180.f);
+            mps.setRefinementComparator (ref_comp);
+            mps.segment (regions);
+        }
+
+        pcl::visualization::PCLVisualizer vis;
+        int vp1, vp2;
+        vis.createViewPort(0, 0, 0.5, 1, vp1);
+        vis.createViewPort(0.5, 0, 1, 1, vp2);
+        vis.addPointCloud(cloud, "input", vp1);
+        for (size_t i = 0; i < regions.size (); i++)
+        {
+          Eigen::Vector3f centroid = regions[i].getCentroid ();
+          Eigen::Vector4f model = regions[i].getCoefficients ();
+
+          std::vector<int> plane_inliers = get_all_plane_inliers( *cloud, model, 0.02 );
+
+          typename pcl::PointCloud<PointT>::Ptr plane_cloud (new pcl::PointCloud<PointT>);
+          pcl::copyPointCloud( *cloud, plane_inliers, *plane_cloud );
+
+          vis.removeAllPointClouds(vp2);
+          vis.addPointCloud(plane_cloud, "plane_cloud", vp2);
+          vis.spin();
+
+//          pcl::PointCloud boundary_cloud;
+//          boundary_cloud.points = regions[i].getContour ();
+//          printf ("Centroid: (%f, %f, %f)\n  Coefficients: (%f, %f, %f, %f)\n Inliers: %d\n",
+//                  centroid[0], centroid[1], centroid[2],
+//                  model[0], model[1], model[2], model[3],
+//                  boundary_cloud.points.size ());
+         }
+
+
+
+//        boost::dynamic_bitset<> pt_is_accepted ( cloud->points.size() );
+//        pt_is_accepted.set();
+
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====
@@ -246,6 +313,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
         elapsed_time.push_back( t.getTime() );
     }
 
+    if(!skip_verification_)
     {
         pcl::ScopeTime t("Verification of object hypotheses");
         hv_->setSceneCloud( cloud );

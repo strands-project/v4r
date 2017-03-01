@@ -64,7 +64,7 @@ main (int argc, char ** argv)
     std::string esf_config_xml = "cfg/esf_config.xml";
     std::string camera_config_xml = "cfg/camera.xml";
     std::string depth_img_mask = "cfg/xtion_depth_mask.png";
-    int segmentation_method = SegmentationType::DominantPlane;
+    int segmentation_method = SegmentationType::OrganizedConnectedComponents;
 
     // Correspondence grouping parameters for local recognition pipeline
     float cg_size = 0.01f; // Size for correspondence grouping.

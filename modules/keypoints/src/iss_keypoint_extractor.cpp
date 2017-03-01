@@ -28,17 +28,19 @@ IssKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
     iss_detector.setInputCloud (input_);
     iss_detector.compute (keypoints);
 
+#if PCL_VERSION >= 100702
     pcl::PointIndicesConstPtr keypoints_idxes = iss_detector.getKeypointsIndices();
     keypoint_indices_.resize (keypoints_idxes->indices.size ());
     for(size_t i=0; i < keypoint_indices_.size(); i++)
         keypoint_indices_[i] = keypoints_idxes->indices[i];
+#else
+    std::cerr << "Getkeypointsindices is not available for this PCL version!" << std::endl;
+#endif
 
     indices_.clear();
 }
 
-#if PCL_VERSION >= 100702
 template class V4R_EXPORTS IssKeypointExtractor<pcl::PointXYZ>;
 template class V4R_EXPORTS IssKeypointExtractor<pcl::PointXYZRGB>;
-#endif
 
 }

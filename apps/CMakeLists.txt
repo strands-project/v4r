@@ -1,8 +1,8 @@
-add_subdirectory(segmentation)
-add_subdirectory(3D_scene_reconstruction_by_SIFT_and_MST)
-add_subdirectory(RTMT)
+#add_subdirectory(segmentation)
+#add_subdirectory(3D_scene_reconstruction_by_SIFT_and_MST)
+#add_subdirectory(RTMT)
 #add_subdirectory(ObjectGroundTruthAnnotator)
-add_subdirectory(AttentionSegmentation)
+#add_subdirectory(AttentionSegmentation)
 add_subdirectory(ObjectRecognizer)
-add_subdirectory(MultiViewObjectRecognizer)
+#add_subdirectory(MultiViewObjectRecognizer)
 

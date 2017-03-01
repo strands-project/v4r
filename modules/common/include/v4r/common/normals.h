@@ -21,25 +21,32 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_COMPUTE_NORMALS__
-#define V4R_COMPUTE_NORMALS__
+#pragma once
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+
+#include <v4r/common/normal_estimator.h>
 #include <v4r/core/macros.h>
 
 namespace v4r
 {
+
 
 /**
 *      @author Thomas Faeulhammer (faeulhammer@acin.tuwien.ac.at)
 *      @date July, 2015
 *      @brief collection of methods for normal computation of point clouds
 */
+DEPRECATED(
 template<typename PointT>
 V4R_EXPORTS
 void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
                     pcl::PointCloud<pcl::Normal>::Ptr &normals,
-                    int method=2, float radius=0.02f);
+                    int method=2, float radius=0.02f) );
+
+template<typename PointT>
+typename NormalEstimator<PointT>::Ptr
+initNormalEstimator(int method, std::vector<std::string> &params);
+
 }
-#endif
