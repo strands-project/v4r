@@ -405,13 +405,13 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
 
     if(param_.distance_metric_==2)
     {
-        lomdb_->flann_index_l2_.reset( new ::flann::Index<::flann::L2<float> > (*(lomdb_->flann_data_), ::flann::KDTreeIndexParams (4)));
+        lomdb_->flann_index_l2_.reset( new ::flann::Index<::flann::L2<float> > (*(lomdb_->flann_data_), ::flann::KDTreeIndexParams (param_.kdtree_num_trees_)));
 //        lomdb_->flann_index_l2_.reset( new flann::Index<flann::L2<float> > (*(lomdb_->flann_data_), flann::LinearIndexParams()));
         lomdb_->flann_index_l2_->buildIndex();
     }
     else
     {
-        lomdb_->flann_index_l1_.reset( new ::flann::Index<::flann::L1<float> > (*(lomdb_->flann_data_), ::flann::KDTreeIndexParams (4)));
+        lomdb_->flann_index_l1_.reset( new ::flann::Index<::flann::L1<float> > (*(lomdb_->flann_data_), ::flann::KDTreeIndexParams (param_.kdtree_num_trees_)));
 //        lomdb_->flann_index_l1_.reset( new flann::Index<flann::L1<float> > (*(lomdb_->flann_data_), flann::LinearIndexParams()));
         lomdb_->flann_index_l1_->buildIndex();
     }
