@@ -155,13 +155,13 @@ main (int argc, char ** argv)
         std::map<std::string, std::vector<Hypothesis> > gt_hyps = readHypothesesFromFile( gt_path.string() );
         std::map<std::string, std::vector<Hypothesis> > rec_hyps = readHypothesesFromFile( rec_path.string() );
 
-        for(auto const &ent1 : gt_hyps)
+        for(auto const &gt_model_hyps : gt_hyps)
         {
-            const std::string &model_name_gt = ent1.first;
+            const std::string &model_name_gt = gt_model_hyps.first;
             const Eigen::Vector4f &centroid_model = models[ model_name_gt ].centroid;
-            const std::vector<Hypothesis> &gt_model_hyps = ent1.second;
+            const std::vector<Hypothesis> &hyps = gt_model_hyps.second;
 
-            for(const Hypothesis &h_gt : gt_model_hyps)
+            for(const Hypothesis &h_gt : hyps)
             {
                 bool is_recognized = false;
 
@@ -184,7 +184,6 @@ main (int argc, char ** argv)
                             is_recognized = true;
                     }
                 }
-
                 f << occlusion << " " << is_recognized << std::endl;
             }
         }
