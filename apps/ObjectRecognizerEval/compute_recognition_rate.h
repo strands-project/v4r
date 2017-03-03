@@ -52,6 +52,7 @@ public:
         :
           rotation_error_threshold_deg(30.f),
           translation_error_threshold_m(0.05f),
+          occlusion_threshold(0.95f),
           out_dir("/tmp/recognition_rates/"),
           visualize(false),
           use_generated_hypotheses(false)
