@@ -151,7 +151,7 @@ main (int argc, char ** argv)
         e.setOr_dir(out_dir_eval);
         e.setGt_dir(gt_dir);
         e.setUse_generated_hypotheses(true);
-        e.setVisualize(true);
+//        e.setVisualize(true);
         float recognition_rate = e.compute_recognition_rate_over_occlusion();
         size_t tp, fp, fn;
         e.compute_recognition_rate(tp, fp, fn);
