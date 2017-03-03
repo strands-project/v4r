@@ -3,12 +3,7 @@
 #include <iostream>
 
 #include <boost/algorithm/string.hpp>
-#define BOOST_NO_CXX11_SCOPED_ENUMS
-#include <boost/filesystem.hpp>
-#undef BOOST_NO_CXX11_SCOPED_ENUMS
 #include <boost/regex.hpp>
-
-namespace bf = boost::filesystem;
 
 namespace v4r
 {
@@ -122,65 +117,31 @@ createDirForFileIfNotExist(const std::string & filename)
 }
 
 
-bool
-copyDir(const std::string &src, const std::string &dst)
+void
+copyDir(const bf::path& sourceDir, const bf::path& destinationDir)
 {
-    const bf::path source(src);
-    const bf::path destination(dst);
-
-    try
+    if (!bf::exists(sourceDir) || !bf::is_directory(sourceDir))
     {
-        // Check whether the function call is valid
-        if( !bf::exists(source) || !bf::is_directory(source) )
-        {
-            std::cerr << "Source directory " << source.string() << " does not exist or is not a directory." << std::endl;
-            return false;
-        }
-
-        if( bf::exists(destination) )
-        {
-            std::cerr << "Destination directory " << destination.string() << " already exists." << std::endl;
-            return false;
-        }
-
-        // Create the destination directory
-        if( !bf::create_directory(destination) )
-        {
-            std::cerr << "Unable to create destination directory" << destination.string() << std::endl;
-            return false;
-        }
+        throw std::runtime_error("Source directory " + sourceDir.string() + " does not exist or is not a directory");
     }
-    catch(bf::filesystem_error const & e)
+    if (bf::exists(destinationDir))
     {
-        std::cerr << e.what() << '\n';
-        return false;
+        throw std::runtime_error("Destination directory " + destinationDir.string() + " already exists");
+    }
+    if (!bf::create_directory(destinationDir))
+    {
+        throw std::runtime_error("Cannot create destination directory " + destinationDir.string());
     }
 
-    // Iterate through the source directory
-    for( bf::directory_iterator file(source); file != bf::directory_iterator(); ++file )
+    typedef bf::recursive_directory_iterator RDIter;
+    for (auto it = RDIter(sourceDir), end = RDIter(); it != end; ++it)
     {
-        try
-        {
-            bf::path current(file->path());
+        const auto& iteratorPath = it->path();
+        auto relativeIteratorPathString = iteratorPath.string();
+        boost::replace_first(relativeIteratorPathString, sourceDir.string(), "");
 
-            bf::path dest_path = dst;
-            dest_path /= current.filename().string();
-
-            if( bf::is_directory(current) )
-            {
-                // Found directory: Recursion
-                if( !copyDir( current.string(), dest_path.string() ) )
-                    return false;
-            }
-            else // Found file: Copy
-                bf::copy_file( current.string(), dest_path.string() );
-        }
-        catch(bf::filesystem_error const & e)
-        {
-            std::cerr << e.what() << std::endl;
-        }
+        bf::copy(iteratorPath, destinationDir / relativeIteratorPathString);
     }
-    return true;
 }
 
 }

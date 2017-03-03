@@ -1,10 +1,15 @@
-#ifndef V4R_IO_FILESYSTEM__H_
-#define V4R_IO_FILESYSTEM__H_
+#pragma once
 
 #include <v4r/core/macros.h>
 
 #include <string>
 #include <vector>
+
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+#include <boost/filesystem.hpp>
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
+
+namespace bf = boost::filesystem;
 
 namespace v4r
 {
@@ -63,11 +68,10 @@ createDirForFileIfNotExist(const std::string & filename);
           * @param path of source directory
           * @param path of destination directory
           */
-V4R_EXPORTS bool
-copyDir(const std::string &source, const std::string &destination);
+V4R_EXPORTS
+void
+copyDir(const bf::path& sourceDir, const bf::path& destinationDir);
 
 }
 
 }
-
-#endif /* V4R_IO_FILESYSTEM_H_ */
