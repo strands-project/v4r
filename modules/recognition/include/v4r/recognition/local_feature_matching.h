@@ -42,10 +42,11 @@ class V4R_EXPORTS LocalRecognizerParameter
 public:
     // parameters for feature matching
     int kdtree_splits_; ///< kdtree splits
+    int kdtree_num_trees_; ///< number of trees for FLANN approximate nearest neighbor search
     size_t knn_;  ///< nearest neighbors to search for when checking feature descriptions of the scene
     float max_descriptor_distance_; ///< maximum distance of the descriptor in the respective norm (L1 or L2) to create a correspondence
     float correspondence_distance_weight_; ///< weight factor for correspondences distances. This is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
-    int distance_metric_; ///< defines the norm used for feature matching (1... L1 norm, 2... L2 norm)
+    int distance_metric_; ///< defines the norm used for feature matching (1... L1 norm, 2... L2 norm, 3... ChiSquare)
     float max_keypoint_distance_z_; ///< maxiumum distance of an extracted keypoint to be accepted
 
     // parameters for plane filter
@@ -63,6 +64,7 @@ public:
 
     LocalRecognizerParameter(
             int kdtree_splits = 512,
+            int kdtree_num_trees = 4,
             size_t knn = 1,
             float max_descriptor_distance = std::numeric_limits<float>::max(),
             float correspondence_distance_weight = 1.f,
@@ -77,6 +79,7 @@ public:
             float required_viewpoint_change_deg = 15.f
             )
         : kdtree_splits_ (kdtree_splits),
+          kdtree_num_trees_ (kdtree_num_trees),
           knn_ ( knn ),
           max_descriptor_distance_ ( max_descriptor_distance ),
           correspondence_distance_weight_ ( correspondence_distance_weight ),
@@ -115,6 +118,7 @@ private:
     {
         (void) version;
         ar & BOOST_SERIALIZATION_NVP(kdtree_splits_)
+                & BOOST_SERIALIZATION_NVP(kdtree_num_trees_)
                 & BOOST_SERIALIZATION_NVP(knn_)
                 & BOOST_SERIALIZATION_NVP(max_descriptor_distance_)
                 & BOOST_SERIALIZATION_NVP(correspondence_distance_weight_)
@@ -159,6 +163,7 @@ public:
 
     boost::shared_ptr<flann::Index<flann::L1<float> > > flann_index_l1_;
     boost::shared_ptr<flann::Index<flann::L2<float> > > flann_index_l2_;
+    boost::shared_ptr<flann::Index<flann::ChiSquareDistance<float> > > flann_index_chisquare_;
     boost::shared_ptr<flann::Matrix<float> > flann_data_;
 
     /**
