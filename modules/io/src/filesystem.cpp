@@ -88,9 +88,8 @@ existsFile ( const std::string &rFile )
 }
 
 bool
-existsFolder ( const std::string &rFolder )
+existsFolder ( const bf::path &dir )
 {
-    bf::path dir = rFolder;
     return bf::exists (dir);
 }
 
@@ -142,6 +141,20 @@ copyDir(const bf::path& sourceDir, const bf::path& destinationDir)
 
         bf::copy(iteratorPath, destinationDir / relativeIteratorPathString);
     }
+}
+
+void
+removeDir(const bf::path &path)
+{
+    if( v4r::io::existsFolder( path ) )
+    {
+        for (bf::directory_iterator end_dir_it, it(path); it!=end_dir_it; ++it)
+            bf::remove_all(it->path());
+
+        bf::remove(path);
+    }
+    else
+        std::cerr << "Folder " << path.string() << " does not exist." << std::endl;
 }
 
 }

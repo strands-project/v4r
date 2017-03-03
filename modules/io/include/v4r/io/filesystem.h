@@ -48,7 +48,7 @@ existsFile ( const std::string &rFile );
         * @return true if folder exsits
         */
 V4R_EXPORTS bool
-existsFolder ( const std::string &rFolder );
+existsFolder (const boost::filesystem::path &dir );
 
 /** checks if folder already exists and if not, creates one
           * @param folder_name
@@ -71,6 +71,15 @@ createDirForFileIfNotExist(const std::string & filename);
 V4R_EXPORTS
 void
 copyDir(const bf::path& sourceDir, const bf::path& destinationDir);
+
+
+/**
+ * @brief removeDir remove a directory with all its contents (including subdirectories) from disk
+ * @param path folder path
+ */
+V4R_EXPORTS
+void
+removeDir(const bf::path &path);
 
 }
 
