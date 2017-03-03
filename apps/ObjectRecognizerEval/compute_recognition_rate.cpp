@@ -266,6 +266,14 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
 
             if(visualize)
             {
+                if(!vis)
+                {
+                    vis.reset (new pcl::visualization::PCLVisualizer ("results"));
+                    vis->createViewPort(0, 0, 1, 0.33, vp1);
+                    vis->createViewPort(0, 0.33, 1, 0.66, vp2);
+                    vis->createViewPort(0, 0.66, 1, 1, vp3);
+                }
+
                 size_t counter = 0;
                 for ( const auto &match : matches )
                 {
@@ -483,15 +491,6 @@ RecognitionEvaluator::init(const std::vector<std::string> &params)
         // model identity is equal folder name -> remove \"/3D_model.pcd\" from filename
         bf::path model_path = model_fn;
         models[ model_path.parent_path().string() ] = m;
-    }
-
-
-    if(visualize)
-    {
-        vis.reset (new pcl::visualization::PCLVisualizer ("results"));
-        vis->createViewPort(0, 0, 1, 0.33, vp1);
-        vis->createViewPort(0, 0.33, 1, 0.66, vp2);
-        vis->createViewPort(0, 0.66, 1, 1, vp3);
     }
 
     return true;
