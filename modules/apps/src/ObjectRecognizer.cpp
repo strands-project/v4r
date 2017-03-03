@@ -46,26 +46,6 @@ namespace apps
 template<typename PointT>
 void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &command_line_arguments)
 {
-    std::string models_dir;
-    std::string hv_config_xml = "cfg/hv_config.xml";
-    std::string shot_config_xml = "cfg/shot_config.xml";
-    std::string alexnet_config_xml  = "cfg/alexnet_config.xml";
-    std::string esf_config_xml = "cfg/esf_config.xml";
-    std::string camera_config_xml = "cfg/camera.xml";
-    std::string depth_img_mask = "cfg/xtion_depth_mask.png";
-    std::string sift_config_xml = "cfg/sift_config.xml";
-
-    float cg_size = 0.01f; // Size for correspondence grouping.
-    int cg_thresh = 7; // Threshold for correspondence grouping. The lower the more hypotheses are generated, the higher the more confident and accurate. Minimum 3.
-
-    // pipeline setup
-    bool do_sift = true;
-    bool do_shot = false;
-    bool do_esf = false;
-    bool do_alexnet = false;
-    int segmentation_method = SegmentationType::OrganizedConnectedComponents;
-    int esf_classification_method = ClassifierType::SVM;
-
     bool visualize_hv_go_cues = false;
     bool visualize_hv_model_cues = false;
     bool visualize_hv_pairwise_cues = false;
@@ -73,25 +53,25 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
-            ("model_dir,m", po::value<std::string>(&models_dir)->default_value(models_dir), "Models directory")
-            ("chop_z,z", po::value<double>(&chop_z_)->default_value(chop_z_, boost::str(boost::format("%.2e") % chop_z_) ), "points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)")
-            ("cg_thresh,c", po::value<int>(&cg_thresh)->default_value(cg_thresh), "Threshold for correspondence grouping. The lower the more hypotheses are generated, the higher the more confident and accurate. Minimum 3.")
-            ("cg_size,g", po::value<float>(&cg_size)->default_value(cg_size, boost::str(boost::format("%.2e") % cg_size) ), "Size for correspondence grouping.")
-            ("do_sift", po::value<bool>(&do_sift)->default_value(do_sift), "if true, enables SIFT feature matching")
-            ("do_shot", po::value<bool>(&do_shot)->default_value(do_shot), "if true, enables SHOT feature matching")
-            ("do_esf", po::value<bool>(&do_esf)->default_value(do_esf), "if true, enables ESF global matching")
-            ("do_alexnet", po::value<bool>(&do_alexnet)->default_value(do_alexnet), "if true, enables AlexNet global matching")
+            ("model_dir,m", po::value<std::string>(&models_dir_)->required(), "Models directory")
+            ("chop_z,z", po::value<double>(&param_.chop_z_)->default_value(param_.chop_z_, boost::str(boost::format("%.2e") % param_.chop_z_) ), "points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)")
+            ("cg_thresh,c", po::value<int>(&param_.cg_thresh_)->default_value(param_.cg_thresh_), "Threshold for correspondence grouping. The lower the more hypotheses are generated, the higher the more confident and accurate. Minimum 3.")
+            ("cg_size,g", po::value<float>(&param_.cg_size_)->default_value(param_.cg_size_, boost::str(boost::format("%.2e") % param_.cg_size_) ), "Size for correspondence grouping.")
+            ("do_sift", po::value<bool>(&param_.do_sift_)->default_value(param_.do_sift_), "if true, enables SIFT feature matching")
+            ("do_shot", po::value<bool>(&param_.do_shot_)->default_value(param_.do_shot_), "if true, enables SHOT feature matching")
+            ("do_esf", po::value<bool>(&param_.do_esf_)->default_value(param_.do_esf_), "if true, enables ESF global matching")
+            ("do_alexnet", po::value<bool>(&param_.do_alexnet_)->default_value(param_.do_alexnet_), "if true, enables AlexNet global matching")
             ("remove_planes", po::value<bool>(&remove_planes_)->default_value(remove_planes_), "if true, removes all planar surfaces with having at least min_plane_points points.")
             ("min_plane_points", po::value<size_t>(&min_plane_points_)->default_value(min_plane_points_), "Minimum number of plane points for plane to be removed (only if remove_planes is enabled).")
-            ("segmentation_method", po::value<int>(&segmentation_method)->default_value(segmentation_method), "segmentation method (as stated in the V4R library (modules segmentation/types.h) ")
-            ("esf_classification_method", po::value<int>(&esf_classification_method)->default_value(esf_classification_method), "ESF classification method (as stated in the V4R library (modules ml/types.h) ")
-            ("depth_img_mask", po::value<std::string>(&depth_img_mask)->default_value(depth_img_mask), "filename for image registration mask. This mask tells which pixels in the RGB image can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.")
-            ("hv_config_xml", po::value<std::string>(&hv_config_xml)->default_value(hv_config_xml), "Filename of Hypotheses Verification XML configuration file.")
-            ("sift_config_xml", po::value<std::string>(&sift_config_xml)->default_value(sift_config_xml), "Filename of SIFT XML configuration file.")
-            ("shot_config_xml", po::value<std::string>(&shot_config_xml)->default_value(shot_config_xml), "Filename of SHOT XML configuration file.")
-            ("alexnet_config_xml", po::value<std::string>(&alexnet_config_xml)->default_value(alexnet_config_xml), "Filename of Alexnet XML configuration file.")
-            ("esf_config_xml", po::value<std::string>(&esf_config_xml)->default_value(esf_config_xml), "Filename of ESF XML configuration file.")
-            ("camera_xml", po::value<std::string>(&camera_config_xml)->default_value(camera_config_xml), "Filename of camera parameter XML file.")
+            ("segmentation_method", po::value<int>(&param_.segmentation_method_)->default_value(param_.segmentation_method_), "segmentation method (as stated in the V4R library (modules segmentation/types.h) ")
+            ("esf_classification_method", po::value<int>(&param_.esf_classification_method_)->default_value(param_.esf_classification_method_), "ESF classification method (as stated in the V4R library (modules ml/types.h) ")
+            ("depth_img_mask", po::value<std::string>(&param_.depth_img_mask_)->default_value(param_.depth_img_mask_), "filename for image registration mask. This mask tells which pixels in the RGB image can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.")
+            ("hv_config_xml", po::value<std::string>(&param_.hv_config_xml_)->default_value(param_.hv_config_xml_), "Filename of Hypotheses Verification XML configuration file.")
+            ("sift_config_xml", po::value<std::string>(&param_.sift_config_xml_)->default_value(param_.sift_config_xml_), "Filename of SIFT XML configuration file.")
+            ("shot_config_xml", po::value<std::string>(&param_.shot_config_xml_)->default_value(param_.shot_config_xml_), "Filename of SHOT XML configuration file.")
+            ("alexnet_config_xml", po::value<std::string>(&param_.alexnet_config_xml_)->default_value(param_.alexnet_config_xml_), "Filename of Alexnet XML configuration file.")
+            ("esf_config_xml", po::value<std::string>(&param_.esf_config_xml_)->default_value(param_.esf_config_xml_), "Filename of ESF XML configuration file.")
+            ("camera_xml", po::value<std::string>(&param_.camera_config_xml_)->default_value(param_.camera_config_xml_), "Filename of camera parameter XML file.")
             ("visualize,v", po::bool_switch(&visualize_), "visualize recognition results")
             ("skip_verification", po::bool_switch(&skip_verification_), "if true, skips verification (only hypotheses generation)")
             ("hv_vis_cues", po::bool_switch(&visualize_hv_go_cues), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
@@ -107,9 +87,9 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
     // ====== DEFINE CAMERA =======
-    Camera::Ptr xtion (new Camera(camera_config_xml) );
+    Camera::Ptr xtion (new Camera(param_.camera_config_xml_) );
 
-    cv::Mat_<uchar> img_mask = cv::imread(depth_img_mask, CV_LOAD_IMAGE_GRAYSCALE);
+    cv::Mat_<uchar> img_mask = cv::imread(param_.depth_img_mask_, CV_LOAD_IMAGE_GRAYSCALE);
     if( img_mask.data )
         xtion->setCameraDepthRegistrationMask( img_mask );
     else
@@ -117,7 +97,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
 
     // ==== Fill object model database ==== ( assumes each object is in a seperate folder named after the object and contains and "views" folder with the training views of the object)
-    typename Source<PointT>::Ptr model_database (new Source<PointT> (models_dir));
+    typename Source<PointT>::Ptr model_database (new Source<PointT> (models_dir_));
 
 
     // ====== SETUP MULTI PIPELINE RECOGNIZER ======
@@ -125,31 +105,31 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     local_recognition_pipeline_.reset(new LocalRecognitionPipeline<PointT>);
     {
         // ====== SETUP LOCAL RECOGNITION PIPELINE =====
-        if(do_sift || do_shot)
+        if(param_.do_sift_ || param_.do_shot_)
         {
             local_recognition_pipeline_->setModelDatabase( model_database );
             boost::shared_ptr< pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > gc_clusterer
                     (new pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
-            gc_clusterer->setGCSize( cg_size );
-            gc_clusterer->setGCThreshold( cg_thresh );
+            gc_clusterer->setGCSize( param_.cg_size_ );
+            gc_clusterer->setGCThreshold( param_.cg_thresh_ );
             local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
 
-            if(do_sift)
+            if(param_.do_sift_)
             {
-                LocalRecognizerParameter sift_param(sift_config_xml);
+                LocalRecognizerParameter sift_param(param_.sift_config_xml_);
                 typename LocalFeatureMatcher<PointT>::Ptr sift_rec (new LocalFeatureMatcher<PointT>(sift_param));
                 typename SIFTLocalEstimation<PointT>::Ptr sift_est (new SIFTLocalEstimation<PointT>);
                 sift_est->setMaxDistance(std::numeric_limits<float>::max());
                 sift_rec->setFeatureEstimator( sift_est );
                 local_recognition_pipeline_->addLocalFeatureMatcher(sift_rec);
             }
-            if(do_shot)
+            if(param_.do_shot_)
             {
                 typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT>);
                 typename UniformSamplingExtractor<PointT>::Ptr extr (new UniformSamplingExtractor<PointT>(0.02f));
                 typename KeypointExtractor<PointT>::Ptr keypoint_extractor = boost::static_pointer_cast<KeypointExtractor<PointT> > (extr);
 
-                LocalRecognizerParameter shot_param(shot_config_xml);
+                LocalRecognizerParameter shot_param(param_.shot_config_xml_);
                 typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_param));
                 shot_rec->addKeypointExtractor( keypoint_extractor );
                 shot_rec->setFeatureEstimator( shot_est );
@@ -161,25 +141,25 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         }
 
         // ====== SETUP GLOBAL RECOGNITION PIPELINE =====
-        if(do_esf || do_alexnet)
+        if(param_.do_esf_ || param_.do_alexnet_)
         {
             typename GlobalRecognitionPipeline<PointT>::Ptr global_recognition_pipeline (new GlobalRecognitionPipeline<PointT>);
-            typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( segmentation_method, to_pass_further);
+            typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( param_.segmentation_method_, to_pass_further);
             global_recognition_pipeline->setSegmentationAlgorithm( segmenter );
 
-            if(do_esf)
+            if(param_.do_esf_)
             {
                 typename ESFEstimation<PointT>::Ptr esf_estimator (new ESFEstimation<PointT>);
-                Classifier::Ptr classifier = initClassifier( esf_classification_method, to_pass_further);
+                Classifier::Ptr classifier = initClassifier( param_.esf_classification_method_, to_pass_further);
 
-                GlobalRecognizerParameter esf_param (esf_config_xml);
+                GlobalRecognizerParameter esf_param (param_.esf_config_xml_);
                 typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>( esf_param ));
                 global_r->setFeatureEstimator( esf_estimator );
                 global_r->setClassifier( classifier );
                 global_recognition_pipeline->addRecognizer( global_r );
             }
 
-            if (do_alexnet)
+            if (param_.do_alexnet_)
             {
                 std::cerr << "Not implemented right now!" << std::endl;
             }
@@ -189,14 +169,14 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         }
 
         mrec_->setModelDatabase( model_database );
-        mrec_->initialize( models_dir, false );
+        mrec_->initialize( models_dir_, false );
     }
 
 
     if(!skip_verification_)
     {
         // ====== SETUP HYPOTHESES VERIFICATION =====
-        HV_Parameter paramHV (hv_config_xml);
+        HV_Parameter paramHV (param_.hv_config_xml_);
         hv_.reset (new HypothesisVerification<PointT, PointT> (xtion, paramHV) );
 
         if( visualize_hv_go_cues )
@@ -301,7 +281,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
     pcl::PassThrough<PointT> pass;
     pass.setInputCloud (cloud);
     pass.setFilterFieldName ("z");
-    pass.setFilterLimits (0, chop_z_);
+    pass.setFilterLimits (0, param_.chop_z_);
     pass.setKeepOrganized(true);
     pass.filter (*cloud);
 
