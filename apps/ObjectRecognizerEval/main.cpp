@@ -6,6 +6,7 @@
 #include <v4r/apps/ObjectRecognizer.h>
 #include "compute_recognition_rate.h"
 #include "boost_xml_editor.h"
+#include "my_xml_configs.h"
 
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
@@ -44,21 +45,18 @@ main (int argc, char ** argv)
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
 
-    std::vector<XMLChange> changes;
-    changes.push_back( XMLChange("cfg/sift_config.xml", "kdtree_splits_", "512" ) );
-    changes.push_back( XMLChange("cfg/sift_config.xml", "kdtree_splits_", "264" ) );
-    changes.push_back( XMLChange("cfg/sift_config.xml", "kdtree_splits_", "128" ) );
-    changes.push_back( XMLChange("cfg/sift_config.xml", "kdtree_splits_", "64" ) );
+    std::vector<std::vector<XMLChange> > changes = loadChanges();
+
+
+    bf::path out_results_path = out_dir, out_param_path = out_dir;
+    v4r::io::createDirIfNotExist( out_dir );
+    out_results_path /= "results.txt";
+    out_param_path /= "param.txt";
+    std::ofstream of_results ( out_results_path.string() , fstream::app);
+    std::ofstream of_param ( out_param_path.string() , fstream::app);
 
     for(size_t eval_id=0; eval_id < changes.size(); eval_id++)
     {
-        v4r::io::removeDir("./cfg");
-        v4r::io::copyDir("/home/thomas/default_cfg", "./cfg");
-
-        std::cerr << "**********+Evaluating " << eval_id << " of " << changes.size() << " parameter sets." << std::endl;
-        const XMLChange &chg = changes[eval_id];
-        editXML( chg );
-
         // create a directory for evaluation
         size_t counter = 0;
         std::stringstream out_tmp;
@@ -71,6 +69,22 @@ main (int argc, char ** argv)
         std::cout << "Saving results to " << out_dir_eval << std::endl;
         v4r::io::createDirIfNotExist( out_dir_eval );
         v4r::io::copyDir("./cfg", out_dir_eval+"/cfg");
+
+        // update and save config
+        v4r::io::removeDir("./cfg");
+        v4r::io::copyDir("/home/thomas/default_cfg", "./cfg");
+
+        std::cerr << "*************Evaluating " << eval_id << " of " << changes.size() << " parameter sets." << std::endl;
+        const std::vector<XMLChange> &chgs = changes[eval_id];
+
+        of_param << counter-1 << ": " << std::endl;
+        for(const XMLChange &chg : chgs)
+        {
+            editXML( chg );
+            of_param << chg.tmp_xml_filename_ << " " << chg.node_name_ << " " << chg.value_ << std::endl;
+        }
+        of_param << std::endl;
+
 
         v4r::apps::ObjectRecognizerParameter or_param (multipipeline_xml_config_fn);
         v4r::apps::ObjectRecognizer<PT> recognizer(or_param);
@@ -150,6 +164,7 @@ main (int argc, char ** argv)
         e.setTest_dir(test_dir);
         e.setOr_dir(out_dir_eval);
         e.setGt_dir(gt_dir);
+        e.setOut_dir(out_dir_eval);
         e.setUse_generated_hypotheses(true);
 //        e.setVisualize(true);
         float recognition_rate = e.compute_recognition_rate_over_occlusion();
@@ -167,19 +182,9 @@ main (int argc, char ** argv)
                   << ", tp: " << tp << ", fp: " << fp << ", fn: " << fn
                   << ", precision: " << precision << ", recall: " << recall << ", fscore: " << fscore << std::endl;
 
-        std::stringstream counter_str; counter_str << counter;
-        bf::path out_param_path = out_dir;
-        out_param_path /= counter_str.str() + "_param.txt";
-        std::ofstream of ( out_param_path.string() );
-        of << chg.tmp_xml_filename_ << " " << chg.node_name_ << " " << chg.value_;
-        of.close();
-
-
-        bf::path out_results_path = out_dir;
-        out_results_path /= counter_str.str() + "_results.txt";
-        of.open ( out_results_path.string() );
-        of << recognition_rate << " " << median_time << " " << tp << " " << fp << " " << fn << " " << precision << " " << recall << " " << fscore;
-        of.close();
+        of_results << counter-1 << " " << recognition_rate << " " << median_time << " " << fp << " " << tp << " " << fn << " " << precision << " " << recall << " " << fscore << std::endl;
     }
+    of_param.close();
+    of_results.close();
 }
 

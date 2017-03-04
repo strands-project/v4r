@@ -48,6 +48,6 @@ endif()
 add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
 add_definitions(-Dlinux -D__x86_64__)
 
-add_executable(ObjectRecognizerEval main.cpp compute_recognition_rate.cpp compute_recognition_rate.h boost_xml_editor.h)
+add_executable(ObjectRecognizerEval main.cpp compute_recognition_rate.cpp compute_recognition_rate.h boost_xml_editor.h my_xml_configs.h)
 target_link_libraries(ObjectRecognizerEval ${OR_DEPS} ${DEP_LIBS})
 
