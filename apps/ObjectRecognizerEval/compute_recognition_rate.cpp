@@ -224,6 +224,9 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
         bf::path rec_path = or_dir;
         rec_path /= rec_file;
 
+        if(!v4r::io::existsFile(rec_path.string()))
+            continue;
+
         std::map<std::string, std::vector<Hypothesis> > gt_hyps = readHypothesesFromFile( gt_path.string() );
         std::map<std::string, std::vector<Hypothesis> > rec_hyps = readHypothesesFromFile( rec_path.string() );
 
@@ -450,6 +453,16 @@ void RecognitionEvaluator::setVisualize(bool value)
     visualize = value;
 }
 
+std::string RecognitionEvaluator::getOut_dir() const
+{
+    return out_dir;
+}
+
+void RecognitionEvaluator::setOut_dir(const std::string &value)
+{
+    out_dir = value;
+}
+
 int
 RecognitionEvaluator::init(const std::vector<std::string> &params)
 {
@@ -531,6 +544,9 @@ RecognitionEvaluator::compute_recognition_rate_over_occlusion()
 
         bf::path rec_path = or_dir;
         rec_path /= rec_file;
+
+        if(!v4r::io::existsFile(rec_path.string()))
+            continue;
 
         std::map<std::string, std::vector<Hypothesis> > gt_hyps = readHypothesesFromFile( gt_path.string() );
         std::map<std::string, std::vector<Hypothesis> > rec_hyps = readHypothesesFromFile( rec_path.string() );

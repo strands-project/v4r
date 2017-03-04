@@ -134,5 +134,7 @@ public:
     void setUse_generated_hypotheses(bool value = true);
     bool getVisualize() const;
     void setVisualize(bool value);
+    std::string getOut_dir() const;
+    void setOut_dir(const std::string &value);
 };
 
