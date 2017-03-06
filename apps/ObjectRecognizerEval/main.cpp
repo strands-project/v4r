@@ -12,6 +12,9 @@
 #include <pcl/io/pcd_io.h>
 #include <v4r/io/filesystem.h>
 
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+
 namespace po = boost::program_options;
 
 namespace bf=boost::filesystem;
@@ -45,7 +48,7 @@ main (int argc, char ** argv)
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
 
-
+    srand (time(NULL));
 
     bf::path out_results_path = out_dir, out_param_path = out_dir;
     v4r::io::createDirIfNotExist( out_dir );
@@ -54,30 +57,39 @@ main (int argc, char ** argv)
     std::ofstream of_results ( out_results_path.string() , fstream::app);
     std::ofstream of_param ( out_param_path.string() , fstream::app);
 
-    // do grid-search
+    // do random search
     std::vector< std::pair< std::vector<XMLChange>, bool > > changes = loadChanges();
-    std::vector<size_t> selected_parameter_id (changes.size(), 0);  // best parameter settings by default when "0" element is selected in each group
 
     double best_score = std::numeric_limits<double>::min();
 
-    for(size_t group_eval_id=0; group_eval_id < changes.size(); group_eval_id++)
-    {
-        std::vector<XMLChange> best_changes_so_far;
+    std::set<size_t> evaluated_hashes;
 
-        // apply (best) changes from other groups
-        for(size_t group_eval_id_other=0; group_eval_id_other < changes.size(); group_eval_id_other++)
+    do
+    {
+        std::vector<size_t> selected_parameter_id (changes.size());  // best parameter settings by default when "0" element is selected in each group
+
+        size_t hash = 0;
+        for(size_t group_id=0; group_id < changes.size(); group_id++)
         {
-            if( group_eval_id_other != group_eval_id)
-                best_changes_so_far.push_back( changes[group_eval_id_other].first.at(selected_parameter_id[ group_eval_id_other] ) );
+            int element = rand() % changes[group_id].first.size();
+
+            size_t hash_multiplier = 1;
+            for(size_t i=group_id+1; i<changes.size(); i++)
+                hash_multiplier *= changes[i].first.size();
+
+            selected_parameter_id[group_id] = element;
+            hash += element * hash_multiplier;
         }
 
-        // now test which parameters are best for current evaluation group
-        const std::pair< std::vector<XMLChange>, bool > &in_group_changes = changes[group_eval_id];
-        for(size_t in_group_eval_id=0; in_group_eval_id<in_group_changes.first.size(); in_group_eval_id++)
-        {
-            std::vector<XMLChange> eval_changes = best_changes_so_far;
-            eval_changes.push_back( in_group_changes.first.at( in_group_eval_id ) );
+        if( evaluated_hashes.find(hash) != evaluated_hashes.end() ) // configuration already evaluated?
+            continue;
 
+        std::vector<XMLChange> eval_changes;
+
+        for(size_t group_id=0; group_id < changes.size(); group_id++)
+            eval_changes.push_back( changes[group_id].first.at( selected_parameter_id[ group_id] ) );
+
+        {
             // create a directory for evaluation
             size_t counter = 0;
             std::stringstream out_tmp;
@@ -198,21 +210,22 @@ main (int argc, char ** argv)
             float recall = (float)tp / (tp + fn);
             float fscore = 2 * precision * recall / (precision + recall);
 
-            double score = 4*recall + precision - median_time_ms*0.01*0.01;    // we want to get as much hypotheses as possible - precision will be improved with verification
+//            double score = 4*recall + precision - median_time_ms*0.01*0.01;    // we want to get as much hypotheses as possible - precision will be improved with verification
 
             std::cout << "RECOGNITION RATE: " << recognition_rate << ", median time: " << median_time_ms
                       << ", tp: " << tp << ", fp: " << fp << ", fn: " << fn
-                      << ", precision: " << precision << ", recall: " << recall << ", fscore: " << fscore << " *** score: " << score << std::endl;
+                      << ", precision: " << precision << ", recall: " << recall << ", fscore: " << fscore << std::endl;
 
-            of_results << counter-1 << " " << recognition_rate << " " << median_time_ms << " " << fp << " " << tp << " " << fn << " " << precision << " " << recall << " " << fscore << " " << score << std::endl;
+            of_results << counter-1 << " " << recognition_rate << " " << median_time_ms << " " << fp << " " << tp << " " << fn << " " << precision << " " << recall << " " << fscore << std::endl;
 
-            if( score > best_score && precision > 0.05f)
-            {
-                selected_parameter_id[ group_eval_id ] = in_group_eval_id;
-                best_score = score;
-            }
+//            if( score > best_score && precision > 0.05f)
+//            {
+//                selected_parameter_id[ group_eval_id ] = in_group_eval_id;
+//                best_score = score;
+//            }
         }
     }
+    while(1);
     of_param.close();
     of_results.close();
 }
