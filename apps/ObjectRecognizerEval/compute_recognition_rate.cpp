@@ -4,6 +4,7 @@
 #include <v4r/io/filesystem.h>
 
 #include <pcl/common/centroid.h>
+#include <pcl/common/time.h>
 #include <pcl/common/transforms.h>
 #include <pcl/io/pcd_io.h>
 
@@ -101,30 +102,67 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
 {
     // go through all possible permutations and return best match
     size_t elements_to_check = std::max(rec_hyps.size(), gt_hyps.size());
+    size_t min_elements = std::min(rec_hyps.size(), gt_hyps.size());
+    size_t max_offset = elements_to_check - min_elements;
 
     float best_fscore = -1;
     sum_translation_error = std::numeric_limits<float>::max();
     tp=0, fp=0, fn=0;
+
     std::vector< std::pair<int, int> > best_match;
 
-    std::vector<int> rec_ids(rec_hyps.size());
-    std::iota (std::begin(rec_ids), std::end(rec_ids), 0);
-    std::vector<int> gt_ids(gt_hyps.size());
-    std::iota (std::begin(gt_ids), std::end(gt_ids), 0);
+    /*
+     * example:
+     * a = [0 1 2 3 4 5]
+     * b = [0 1 2]
+     *
+     * now we permutate through all possible combinations of b (smaller vector)
+     * and slide the vector through the elements of a for each permuation iteration
+     *
+     * e.g.
+     * b = [-1 -1 0 1 2 -1]
+     * b = [-1 -1 -1 0 1 2]
+     * b = [2 1 0 -1 -1 -1]
+     * b = [-1 2 1 0 -1 -1]
+     */
+    std::vector<int> ids( min_elements );
+    std::iota (std::begin(ids), std::end(ids), 0);
+
+    bool gt_is_smaller = gt_hyps.size() < rec_hyps.size();
 
     do {
-        do{
+        for(size_t offset=0; offset<=max_offset; offset++)
+        {
             std::vector< std::pair<int, int> > rec2gt_matches (elements_to_check);
+
+            // initialize all b's to -1 (b = [-1 -1 -1 -1 -1 -1] )
             for(size_t i=0; i<elements_to_check; i++)
             {
-                int rec_id = -1, gt_id = -1;
-                if( rec_hyps.size()>i )
-                    rec_id = rec_ids[i];
-                if( gt_hyps.size()>i )
-                    gt_id = gt_ids[i];
+                int rec_id, gt_id;
+
+                if(gt_is_smaller)
+                {
+                    rec_id = i;
+                    gt_id = -1;
+                }
+                else
+                {
+                    rec_id = -1;
+                    gt_id = i;
+                }
 
                 rec2gt_matches[i] = std::pair<int, int>(rec_id, gt_id);
             }
+
+            // now set the corresponding b values to their current permutation
+            for(size_t i=0; i<min_elements; i++)
+            {
+                if(gt_is_smaller)
+                    rec2gt_matches[i+offset].second = ids[i];
+                else
+                    rec2gt_matches[i+offset].first = ids[i];
+            }
+
             double sum_translation_error_tmp;
             size_t tp_tmp, fp_tmp, fn_tmp;
             checkMatchvector(rec2gt_matches, rec_hyps, gt_hyps, model_centroid, sum_translation_error_tmp, tp_tmp, fp_tmp, fn_tmp);
@@ -149,8 +187,9 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
                 fn = fn_tmp;
                 best_match = rec2gt_matches;
             }
-        } while ( next_permutation( gt_ids.begin(), gt_ids.end()) );
-    } while ( next_permutation( rec_ids.begin(), rec_ids.end()) );
+        }
+
+    } while ( next_permutation( ids.begin(), ids.end()) );
     return best_match;
 }
 
@@ -256,11 +295,37 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             if ( it != gt_hyps.end() )
                 gt_hyps_tmp = it->second;
 
-            const Eigen::Vector4f &centroid = m.second.centroid;
+            size_t tp_tmp=0, fp_tmp=0, fn_tmp=0;
+            double sum_translation_error_tmp=0;
+            std::vector< std::pair<int, int> > matches;
 
-            size_t tp_tmp, fp_tmp, fn_tmp;
-            double sum_translation_error_tmp;
-            std::vector< std::pair<int, int> > matches = selectBestMatch(rec_hyps_tmp, gt_hyps_tmp, centroid, tp_tmp, fp_tmp, fn_tmp, sum_translation_error_tmp);
+//            if( gt_hyps_tmp.empty() && rec_hyps_tmp.empty() )
+//                continue;
+//            else if( gt_hyps_tmp.empty() )
+//            {
+//                fp_tmp = rec_hyps_tmp.size();
+//                matches = std::vector<std::pair<int,int> > (rec_hyps_tmp.size());
+//                for(size_t r_id=0; r_id<rec_hyps_tmp.size(); r_id++)
+//                    matches[r_id] = std::pair<int,int>(r_id, -1);
+//            }
+//            else if( rec_hyps_tmp.empty() )
+//            {
+//                for(const Hypothesis &gt_hyp : gt_hyps_tmp )
+//                {
+//                    if( gt_hyp.occlusion < occlusion_threshold) // only count if the gt object is not occluded
+//                        fn_tmp++;
+
+//                    matches = std::vector<std::pair<int,int> > (gt_hyps_tmp.size());
+//                    for(size_t gt_id=0; gt_id<gt_hyps_tmp.size(); gt_id++)
+//                        matches[gt_id] = std::pair<int,int>(-1, gt_id);
+//                }
+//            }
+//            else
+            {
+                const Eigen::Vector4f &centroid = m.second.centroid;
+                matches = selectBestMatch(rec_hyps_tmp, gt_hyps_tmp, centroid, tp_tmp, fp_tmp, fn_tmp, sum_translation_error_tmp);
+            }
+
 
             tp_view+=tp_tmp;
             fp_view+=fp_tmp;
