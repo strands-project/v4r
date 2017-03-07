@@ -113,6 +113,7 @@ private:
   double max_dist;
   int max_iterations;
   int diff_type;
+  double max_point_dist;
 
   pcl::PointCloud<pcl::Normal>::Ptr big_normals;
   boost::shared_ptr< Sensor::AlignedPointXYZRGBVector > oc_cloud;
