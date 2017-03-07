@@ -65,6 +65,7 @@ MultiSession::MultiSession()
   use_stable_planes_ = true;
   use_features_ = true;
 
+  ncloud_filt.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
   max_point_dist = 0.03;         // ec clustering threshold
 
   vx_size = 0.005;
@@ -202,42 +203,6 @@ bool MultiSession::savePointClouds(const std::string &_folder, const std::string
 
   char filename[PATH_MAX];
   boost::filesystem::create_directories(_folder + "/models/" + _modelname + "/views" );
-
-  // create model cloud with normals and save it
-  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud_filt(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-  pcl::concatenateFields(*octree_cloud, *big_normals, *ncloud);
-
-  // filter ec
-  pcl::search::KdTree<pcl::PointXYZRGBNormal>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGBNormal>);
-  tree->setInputCloud (ncloud);
-
-  std::vector<pcl::PointIndices> cluster_indices;
-  pcl::EuclideanClusterExtraction<pcl::PointXYZRGBNormal> ec;
-  ec.setClusterTolerance (max_point_dist);
-  ec.setMinClusterSize (50);
-  ec.setSearchMethod (tree);
-  ec.setInputCloud (ncloud);
-  ec.extract (cluster_indices);
-
-  int cnt_max = 0;
-  std::vector<pcl::PointIndices>::const_iterator it_max = cluster_indices.end();
-  for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
-  {
-    if (it->indices.size()>(unsigned)cnt_max)
-    {
-      it_max = it;
-      cnt_max = it->indices.size();
-    }
-  }
-  if (it_max!=cluster_indices.end())
-  {
-    for (std::vector<int>::const_iterator pit = it_max->indices.begin(); pit != it_max->indices.end(); ++pit)
-      ncloud_filt->points.push_back (ncloud->points[*pit]);
-    ncloud_filt->width = ncloud_filt->points.size ();
-    ncloud_filt->height = 1;
-    ncloud_filt->is_dense = true;
-  }
 
   pcl::io::savePCDFileBinary(_folder + "/models/" + _modelname + "/3D_model.pcd", *ncloud_filt);
 
@@ -516,11 +481,52 @@ void MultiSession::createObjectCloudFiltered()
     nmIntegration.compute(octree_cloud);
     nmIntegration.getOutputNormals(big_normals);
 
-    Sensor::AlignedPointXYZRGBVector &ref_oc = *oc_cloud;
-    pcl::PointCloud<pcl::PointXYZRGB> &ref_occ = *octree_cloud;
+    // create model cloud with normals
+    ncloud_filt.reset(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+    pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+    pcl::concatenateFields(*octree_cloud, *big_normals, *ncloud);
 
-    ref_oc.resize(ref_occ.points.size());
-    for (unsigned i=0; i<ref_occ.size(); i++)
-      ref_oc[i] = ref_occ.points[i];
+    // filter ec
+    pcl::search::KdTree<pcl::PointXYZRGBNormal>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGBNormal>);
+    tree->setInputCloud (ncloud);
+
+    std::vector<pcl::PointIndices> cluster_indices;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZRGBNormal> ec;
+    ec.setClusterTolerance (max_point_dist);
+    ec.setMinClusterSize (50);
+    ec.setSearchMethod (tree);
+    ec.setInputCloud (ncloud);
+    ec.extract (cluster_indices);
+
+    int cnt_max = 0;
+    std::vector<pcl::PointIndices>::const_iterator it_max = cluster_indices.end();
+    for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
+    {
+      if (it->indices.size()>(unsigned)cnt_max)
+      {
+        it_max = it;
+        cnt_max = it->indices.size();
+      }
+    }
+    cout<<"found "<<cluster_indices.size()<<" clusters"<<endl;
+    if (it_max!=cluster_indices.end())
+    {
+      cout<<"use "<<it_max->indices.size()<<" of ";
+      for (unsigned i=0;i<cluster_indices.size(); i++)
+        cout<<cluster_indices[i].indices.size()<<" ";
+      cout<<endl;
+      Sensor::AlignedPointXYZRGBVector &ref_oc = *oc_cloud;
+      ref_oc.resize(it_max->indices.size());
+      for (unsigned i=0; i < it_max->indices.size(); i++)
+      {
+        const pcl::PointXYZRGBNormal &pt = ncloud->points[it_max->indices[i]];
+        ncloud_filt->points.push_back (pt);
+        ref_oc[i].getVector4fMap() = pt.getVector4fMap();
+        ref_oc[i].rgb = pt.rgb;
+      }
+      ncloud_filt->width = ncloud_filt->points.size ();
+      ncloud_filt->height = 1;
+      ncloud_filt->is_dense = true;
+    }
   }
 }

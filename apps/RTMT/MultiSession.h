@@ -118,6 +118,7 @@ private:
   pcl::PointCloud<pcl::Normal>::Ptr big_normals;
   boost::shared_ptr< Sensor::AlignedPointXYZRGBVector > oc_cloud;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud;
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud_filt;
 
   void run();
 

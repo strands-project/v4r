@@ -129,6 +129,7 @@ private:
   std::vector< cv::Mat_<int> > labels;
   std::vector< cv::Mat_<unsigned char> > masks;
   std::vector< std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> > planes;
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud_filt;
 
   cv::Mat_<cv::Vec3b> image;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmp_cloud1, tmp_cloud2;
