@@ -121,6 +121,7 @@ private:
 
   int image_idx;
   bool first_click;
+  double max_point_dist;
 
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras;
   boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > clouds;

@@ -48,6 +48,7 @@
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/keypoints/impl/PoseIO.hpp>
 #include <pcl/io/pcd_io.h>
+#include <pcl/segmentation/extract_clusters.h>
 //#include <pcl/visualization/pcl_visualizer.h>
 #endif
 
@@ -63,6 +64,8 @@ MultiSession::MultiSession()
   clouds.reset(new std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> >() );
   use_stable_planes_ = true;
   use_features_ = true;
+
+  max_point_dist = 0.03;         // ec clustering threshold
 
   vx_size = 0.005;
   max_dist = 0.01f;
@@ -201,9 +204,42 @@ bool MultiSession::savePointClouds(const std::string &_folder, const std::string
   boost::filesystem::create_directories(_folder + "/models/" + _modelname + "/views" );
 
   // create model cloud with normals and save it
-  pcl::PointCloud<pcl::PointXYZRGBNormal> ncloud;
-  pcl::concatenateFields(*octree_cloud, *big_normals, ncloud);
-  pcl::io::savePCDFileBinary(_folder + "/models/" + _modelname + "/3D_model.pcd", ncloud);
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud_filt(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+  pcl::concatenateFields(*octree_cloud, *big_normals, *ncloud);
+
+  // filter ec
+  pcl::search::KdTree<pcl::PointXYZRGBNormal>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGBNormal>);
+  tree->setInputCloud (ncloud);
+
+  std::vector<pcl::PointIndices> cluster_indices;
+  pcl::EuclideanClusterExtraction<pcl::PointXYZRGBNormal> ec;
+  ec.setClusterTolerance (max_point_dist);
+  ec.setMinClusterSize (50);
+  ec.setSearchMethod (tree);
+  ec.setInputCloud (ncloud);
+  ec.extract (cluster_indices);
+
+  int cnt_max = 0;
+  std::vector<pcl::PointIndices>::const_iterator it_max = cluster_indices.end();
+  for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
+  {
+    if (it->indices.size()>(unsigned)cnt_max)
+    {
+      it_max = it;
+      cnt_max = it->indices.size();
+    }
+  }
+  if (it_max!=cluster_indices.end())
+  {
+    for (std::vector<int>::const_iterator pit = it_max->indices.begin(); pit != it_max->indices.end(); ++pit)
+      ncloud_filt->points.push_back (ncloud->points[*pit]);
+    ncloud_filt->width = ncloud_filt->points.size ();
+    ncloud_filt->height = 1;
+    ncloud_filt->is_dense = true;
+  }
+
+  pcl::io::savePCDFileBinary(_folder + "/models/" + _modelname + "/3D_model.pcd", *ncloud_filt);
 
   // store data
   cv::Mat image;

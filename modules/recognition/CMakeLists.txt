@@ -24,6 +24,7 @@ v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentat
         ${CMAKE_CURRENT_LIST_DIR}/src/IMKRecognizer.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/IMKRecognizerIO.cpp
         ${CMAKE_CURRENT_LIST_DIR}/src/RansacSolvePnP.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/src/RansacSolvePnPdepth.cpp
     )
 
     list(APPEND rec_headers
@@ -52,6 +53,7 @@ v4r_add_module(recognition v4r_core v4r_common v4r_io v4r_features v4r_segmentat
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/IMKRecognizer_serialization.hpp
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/IMKView.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/RansacSolvePnP.h
+        ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/RansacSolvePnPdepth.h
         ${CMAKE_CURRENT_LIST_DIR}/include/v4r/recognition/source.h
 )
 

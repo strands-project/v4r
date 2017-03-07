@@ -50,6 +50,7 @@
 #include <v4r/common/noise_models.h>
 #include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <v4r/registration/MvLMIcp.h>
+#include <pcl/segmentation/extract_clusters.h>
 
 //#define ER_TEST_MLS
 
@@ -72,6 +73,8 @@ ObjectSegmentation::ObjectSegmentation()
   v4r::ZAdaptiveNormals::Parameter n_param;
   n_param.adaptive = true;
   nest.reset(new v4r::ZAdaptiveNormals(n_param));
+
+  max_point_dist = 0.03;         // ec clustering threshold
 
   v4r::ClusterNormalsToPlanes::Parameter p_param;
   p_param.thrAngle=45;
@@ -301,9 +304,43 @@ bool ObjectSegmentation::savePointClouds(const std::string &_folder, const std::
   boost::filesystem::create_directories(_folder + "/models/" + _modelname + "/views" );
 
   // create model cloud with normals and save it
-  pcl::PointCloud<pcl::PointXYZRGBNormal> ncloud;
-  pcl::concatenateFields(*octree_cloud, *big_normals, ncloud);
-  pcl::io::savePCDFileBinary(_folder + "/models/" + _modelname + "/3D_model.pcd", ncloud);
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud_filt(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
+  pcl::concatenateFields(*octree_cloud, *big_normals, *ncloud);
+
+  // filter ec
+  pcl::search::KdTree<pcl::PointXYZRGBNormal>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGBNormal>);
+  tree->setInputCloud (ncloud);
+
+  std::vector<pcl::PointIndices> cluster_indices;
+  pcl::EuclideanClusterExtraction<pcl::PointXYZRGBNormal> ec;
+  ec.setClusterTolerance (max_point_dist);
+  ec.setMinClusterSize (50);
+  ec.setSearchMethod (tree);
+  ec.setInputCloud (ncloud);
+  ec.extract (cluster_indices);
+
+  int cnt_max = 0;
+  std::vector<pcl::PointIndices>::const_iterator it_max = cluster_indices.end();
+  for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
+  {
+    if (it->indices.size()>(unsigned)cnt_max)
+    {
+      it_max = it;
+      cnt_max = it->indices.size();
+    }
+  }
+  if (it_max!=cluster_indices.end())
+  {
+    for (std::vector<int>::const_iterator pit = it_max->indices.begin(); pit != it_max->indices.end(); ++pit)
+      ncloud_filt->points.push_back (ncloud->points[*pit]);
+    ncloud_filt->width = ncloud_filt->points.size ();
+    ncloud_filt->height = 1;
+    ncloud_filt->is_dense = true;
+  }
+
+  // store global model
+  pcl::io::savePCDFileBinary(_folder + "/models/" + _modelname + "/3D_model.pcd", *ncloud_filt);
 
   std::string cloud_names = _folder + "/models/" + _modelname + "/views/cloud_%08d.pcd";
   std::string image_names = _folder + "/models/" + _modelname + "/views/image_%08d.jpg";

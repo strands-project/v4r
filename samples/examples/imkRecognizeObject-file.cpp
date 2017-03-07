@@ -56,6 +56,7 @@
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r_config.h>
 #include <v4r/io/filesystem.h>
+//#include <v4r/features/FeatureDetector_KD_FAST_IMGD.h>
 #ifdef HAVE_SIFTGPU
 #define USE_SIFT_GPU
 #include <v4r/features/FeatureDetector_KD_SIFTGPU.h>
@@ -105,6 +106,9 @@ std::vector<std::string> object_names;
 std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > objects;
 double thr_conf=0;
 
+int live = -1;
+bool loop = false;
+
 
 
 
@@ -136,23 +140,33 @@ int main(int argc, char *argv[] )
   cv::namedWindow( "image", CV_WINDOW_AUTOSIZE );
 
   // init recognizer
-  #ifdef USE_SIFT_GPU
   v4r::IMKRecognizer::Parameter param;
+  param.pnp_param.eta_ransac = 0.01;
+  param.pnp_param.max_rand_trials = 10000;
+  param.pnp_param.inl_dist_px = 2;
+  param.pnp_param.inl_dist_z = 0.02;
+  param.vc_param.cluster_dist = 40;
+
+  #ifdef USE_SIFT_GPU
   param.cb_param.nnr = 1.000001;
   param.cb_param.thr_desc_rnn = 0.25;
   param.cb_param.max_dist = FLT_MAX;
-  param.pnp_param.eta_ransac = 0.01;
-  param.pnp_param.max_rand_trials = 10000;
-  param.pnp_param.inl_dist = 4;
-  param.vc_param.cluster_dist = 40;
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_SIFTGPU());
   #else
   v4r::KeypointObjectRecognizer::Parameter param;
-  param.cb_param.nnr = .92;
+  param.cb_param.nnr = 1.000001;
   param.cb_param.thr_desc_rnn = 250.;
-  param.cb_param.max_dist = 500;
+  param.cb_param.max_dist = FLT_MAX;
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_CVSIFT());
   #endif
+
+//  // -- test imgd --
+//  param.cb_param.nnr = 1.000001;
+//  param.cb_param.thr_desc_rnn = 0.25;
+//  param.cb_param.max_dist = FLT_MAX;
+//  v4r::FeatureDetector_KD_FAST_IMGD::Parameter imgd_param(1000, 1.3, 4, 15);
+//  v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_FAST_IMGD(imgd_param));
+//  // -- end --
 
   v4r::IMKRecognizer recognizer(param, detector, detector);
 
@@ -171,36 +185,62 @@ int main(int argc, char *argv[] )
   std::cout << "Number of models: " << object_names.size() << std::endl;
   recognizer.initModels();
 
+  cv::VideoCapture cap;
+  if (live!=-1) {
+    cap.open(live);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+    loop = true;
+    if( !cap.isOpened() ) {
+      cout << "Could not initialize capturing...\n";
+      return 0;
+    }
+  }
+
 
 
   // ---------------------- recognize object ---------------------------
 
-  for (int i=start; i<=end_idx; i++)
+  for (int i=start; i<=end_idx || loop; i++)
   {
     cout<<"---------------- FRAME #"<<i<<" -----------------------"<<endl;
-    snprintf(filename,PATH_MAX, filenames.c_str(), i);
-    cout<<filename<<endl;
-    image = cv::Mat_<cv::Vec3b>();
+    if (live!=-1){
+      cap >> image;
+    } else {
+      snprintf(filename,PATH_MAX, filenames.c_str(), i);
+      cout<<filename<<endl;
+      image = cv::Mat_<cv::Vec3b>();
 
-    if (filenames.compare(filenames.size()-3,3,"pcd")==0)
-    {
-      cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
-      if(pcl::io::loadPCDFile(filename, *cloud)==-1)
-        continue;
-      convertImage(*cloud,image);
-    }
-    else
-    {
-      image = cv::imread(filename, 1);
+      if (filenames.compare(filenames.size()-3,3,"pcd")==0)
+      {
+        if(pcl::io::loadPCDFile(filename, *cloud)==-1)
+          continue;
+        convertImage(*cloud,image);
+      }
+      else
+      {
+        image = cv::imread(filename, 1);
+      }
     }
 
     image.copyTo(im_draw);
     recognizer.dbg = im_draw;
 
+//    cloud->clear();
+
     // track
     { pcl::ScopeTime t("overall time");
 
-    recognizer.recognize(image, objects);
+    if (cloud->width!=(unsigned)image.cols || cloud->height!=(unsigned)image.rows)
+    {
+      recognizer.recognize(image, objects);
+      cout<<"Use image only!"<<endl;
+    }
+    else
+    {
+      recognizer.recognize(*cloud, objects);
+      cout<<"Use image and cloud!"<<endl;
+    }
 
     } //-- overall time --
 
@@ -273,6 +313,7 @@ void setup(int argc, char **argv)
       ("start,s", po::value<int>(&start)->default_value(start), "start index")
       ("end,e", po::value<int>(&end_idx)->default_value(end_idx), "end index")
       ("cam_file,a", po::value<std::string>(&cam_file)->default_value(cam_file), "camera calibration files (opencv format)")
+      ("live,l", po::value<int>(&live)->default_value(live), "use live camera (OpenCV)")
       ("thr_conf,t", po::value<double>(&thr_conf)->default_value(thr_conf), "Confidence value threshold (visualization)")
       ;
 
