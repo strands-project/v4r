@@ -230,7 +230,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         }
         else if( planes.size() == plane_inliers.size() )
         {
-            visualizeClusters<PointT>(processed_cloud, plane_inliers);
+//            visualizeClusters<PointT>(processed_cloud, plane_inliers);
             for(const std::vector<int> &plane_inliers_tmp : plane_inliers)
             {
                 if( plane_inliers_tmp.size() > param_.min_plane_inliers_ )
@@ -245,7 +245,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         }
         else
         {
-            visualizePlanes<PointT>(processed_cloud, planes, param_.plane_inlier_threshold_);
+//            visualizePlanes<PointT>(processed_cloud, planes, param_.plane_inlier_threshold_);
             size_t selected_plane = 0;
             if (planes.size() > 1 )
             {
