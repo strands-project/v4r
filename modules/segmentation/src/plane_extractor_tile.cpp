@@ -16,23 +16,26 @@
 
 #include <glm/glm.hpp>
 
-//#define DEBUG_IMAGES
+#define DEBUG_IMAGES
 //#define DEBUG_TEXT
 //#define DEBUG_TIMINGS
 
 namespace v4r
 {
-bool isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest = true);
-bool isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float _planeNorm, float cosThreshold, float distThreshold, bool doNormalTest = true);
+bool isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest = true);
+bool isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float _planeNorm, float cosThreshold, float distThreshold, bool doNormalTest = true);
 bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold);
 bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold);
 
-float distanceToPlane(const Eigen::Vector4f &point, const Eigen::Vector4f &plane, float _planeNorm);
+float distanceToPlane(const Eigen::Vector3f &point, const Eigen::Vector4f &plane);
 
 bool
-isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest)
+isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest)
 {
-    float distance = fabs((point.dot(plane)-1.0f)/plane.norm());
+    Eigen::Vector4f plane_tmp = plane;
+    plane_tmp(3) = -1;
+
+    float distance = fabs(dist2plane(point, plane_tmp));
     if(distance<distThreshold)
     {
         if(doNormalTest)
@@ -48,15 +51,14 @@ isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eige
 }
 
 bool
-isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal,
+isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal,
                                           const Eigen::Vector4f &plane, float _planeNorm,
                                           float cosThreshold, float distThreshold, bool doNormalTest)
 {
     Eigen::Vector4f plane_tmp = plane;
     plane_tmp(3) = -1;
 
-
-    float distance = fabs(dist2plane(point.head(3), plane_tmp));
+    float distance = fabs(dist2plane(point, plane_tmp));
 
     if( distance<distThreshold )
     {
@@ -73,21 +75,18 @@ isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal,
 }
 
 
-float distanceToPlane(const Eigen::Vector4f &point, const Eigen::Vector4f &plane, float _planeNorm)
+float distanceToPlane(const Eigen::Vector3f &point, const Eigen::Vector4f &plane)
 {
     Eigen::Vector4f plane_tmp = plane;
     plane_tmp(3) = -1;
 
-    return fabs(dist2plane(point.head(3), plane_tmp));
+    return fabs(dist2plane(point, plane_tmp));
 }
 
 bool
-isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2,
-                                      const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold)
+isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold)
 {
-    float dot=plane1.dot(plane2);
-    float cosAlpha=dot/(plane1.norm()*plane2.norm());
-    //point in plane 2 = plane2*(plane2/(plane2.norm^2)
+    float cosAlpha=CosAngleBetweenPlanes(plane1, plane2);
     float distance=std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
 
     if(cosAlpha >cosThreshold && distance<distThreshold)
@@ -99,9 +98,7 @@ isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2,
 bool
 isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold)
 {
-    float dot = plane1.dot(plane2);
-    float cosAlpha = dot/(plane1.norm()*plane2.norm());
-    return (cosAlpha >cosThreshold);//maybe use plane angle for this
+    return (CosAngleBetweenPlanes(plane1, plane2) >cosThreshold);//maybe use plane angle for this
 }
 
 template <typename PointT>
@@ -151,7 +148,7 @@ PlaneExtractorTile<PointT>::getDebugImage()
                         for(int l=0;l<param_.patchDim_;l++)
                         {
                             const Eigen::Vector4f &normal = normal_cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getNormalVector4fMap(); //normals.at<Eigen::Vector4f>(i*param_.patchDim_+k, j*param_.patchDim_+l);
-                            const Eigen::Vector4f &point = cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getVector4fMap(); //points.at<Eigen::Vector4f>(i*param_.patchDim_+k+1, j*param_.patchDim_+l+1)
+                            const Eigen::Vector3f &point = cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getVector3fMap(); //points.at<Eigen::Vector4f>(i*param_.patchDim_+k+1, j*param_.patchDim_+l+1)
                             if( isInlier(point, normal, plane, cosThreshold, distThreshold) )
                                 segmentation.at<int>(i*param_.patchDim_+k, j*param_.patchDim_+l)=patchIds.at<int>(i,j);
                         }
@@ -205,7 +202,7 @@ PlaneExtractorTile<PointT>::getDebugImage(bool doNormalTest)
                             //mark the points in debug:
                             //honsetly we should still check if the point is an inlier
                             const Eigen::Vector4f &normal = normal_cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getNormalVector4fMap(); //normals.at<Eigen::Vector4f>(i*param_.patchDim_+k, j*param_.patchDim_+l);
-                            const Eigen::Vector4f &point = cloud_->at(j*param_.patchDim_+l+1, i*param_.patchDim_+k+1).getVector4fMap(); //points.at<Eigen::Vector4f>(i*param_.patchDim_+k+1, j*param_.patchDim_+l+1)
+                            const Eigen::Vector3f &point = cloud_->at(j*param_.patchDim_+l+1, i*param_.patchDim_+k+1).getVector3fMap(); //points.at<Eigen::Vector4f>(i*param_.patchDim_+k+1, j*param_.patchDim_+l+1)
 
                             if( isInlier(point, normal, plane, cosThreshold, distThreshold, doNormalTest) )
                                 segmentation.at<int>(i*param_.patchDim_+k,j*param_.patchDim_+l)=planeId;
@@ -455,7 +452,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                     {
                         int u=l+j*param_.patchDim_;
                         int v=k+i*param_.patchDim_;
-                        const Eigen::Vector4f &p = cloud_->at(u,v).getVector4fMap(); //points.at<Eigen::Vector4f>(v+1,u+1);
+                        const Eigen::Vector3f &p = cloud_->at(u,v).getVector3fMap(); //points.at<Eigen::Vector4f>(v+1,u+1);
                         if(doNormalTest)
                             N = normal_cloud_->at(u,v).getNormalVector4fMap(); //normals.at<Eigen::Vector4f>(v,u);
 
@@ -478,7 +475,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                         {
                             int u=l+j*param_.patchDim_;
                             int v=k+i*param_.patchDim_;
-                            const Eigen::Vector4f &p = cloud_->at(u,v).getVector4fMap(); //points.at<Eigen::Vector4f>(v+1,u+1);
+                            const Eigen::Vector3f &p = cloud_->at(u,v).getVector3fMap(); //points.at<Eigen::Vector4f>(v+1,u+1);
 
                             if(doNormalTest)
                                 N=normal_cloud_->at(u,v).getNormalVector4fMap();// normals.at<Eigen::Vector4f>(v,u);
@@ -494,7 +491,9 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                     }
                 }
 
-            }else{
+            }
+            else
+            {
                 planes.at<PlaneSegment>(i,j).x=NAN;//=Eigen::Vector3f(NAN,NAN,NAN);
                 planes.at<PlaneSegment>(i,j).y=NAN;//
                 planes.at<PlaneSegment>(i,j).z=NAN;//
@@ -848,8 +847,8 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
 
                             if(otherId<=0 || zTest){//only do this if pixel is not yet set
                                 //test if the pixel is inside of oldPlane and set the pixel accordingly
-                                const Eigen::Vector4f &otherPoint = cloud_->at(j,i).getVector4fMap();// points.at<Eigen::Vector4f>(_i+1,_j+1);
-                                float newDist = distanceToPlane(otherPoint, oldPlane, _oldPlaneNorm);
+                                const Eigen::Vector3f &otherPoint = cloud_->at(j,i).getVector3fMap();// points.at<Eigen::Vector4f>(_i+1,_j+1);
+                                float newDist = distanceToPlane(otherPoint, oldPlane);
                                 float oldDist=0;
                                 if(zTest)
                                     oldDist = zBuffer.at<float>(_i,_j);
@@ -1035,8 +1034,8 @@ PlaneExtractorTile<PointT>::compute()
                                 //we already touched these points and found out if they are in there.(they are marked with -1)
                                 //debug.at<glm::u8vec3>(i*blockDim+k,j*blockDim+l)=glm::u8vec3(0,255,0);
                                 segmentation.at<int>(i*param_.patchDim_+k, j*param_.patchDim_+l) = newPlaneId;
-                                const Eigen::Vector4f &point = cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getVector4fMap();
-                                float distance = distanceToPlane(point,plane,_planeNorm);
+                                const Eigen::Vector3f &point = cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getVector3fMap();
+                                float distance = distanceToPlane(point,plane);
                                 if(param_.doZTest_)
                                 {
                                     //setting the zBuffer to zero effectively sets these patches to be fixed
