@@ -132,7 +132,8 @@ private:
     //maybe supply this with a list of additional
     struct Plane
     {
-        Eigen::Vector3f plane;
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+        Eigen::Vector4f plane;
         int nrElements;
     };
 
