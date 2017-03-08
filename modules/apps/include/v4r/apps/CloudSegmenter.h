@@ -33,6 +33,35 @@ namespace v4r
 namespace apps
 {
 
+class V4R_EXPORTS CloudSegmenterParameter
+{
+public:
+    float chop_z_; ///< cut-off distance in meter. Points further away than this threshold will be neglected
+    float plane_inlier_threshold_;
+    size_t min_plane_inliers_;
+    bool skip_segmentation_;    ///< if true, skips segmentation
+    bool skip_plane_extraction_;    ///< if true, skips plane extraction
+    bool only_remove_planes_;   ///< if true, removes plane from input cloud only. If false, removes plane and everything below it (i.e. further away from the camera)
+    bool dominant_plane_only_;  ///< if true, removes only the plane with the largest number of plane inliers
+
+public:
+    CloudSegmenterParameter()
+        :
+          chop_z_ (std::numeric_limits<float>::max()),
+          plane_inlier_threshold_(0.02f),
+          min_plane_inliers_(2000),
+          skip_segmentation_(false),
+          skip_plane_extraction_(false),
+          only_remove_planes_(false),
+          dominant_plane_only_(true)
+    {}
+};
+
+/**
+ * @brief The CloudSegmenter class segments an input cloud by first doing plane removal and then running the segmentation algorithm
+ * @author Thomas Faeulhammer
+ */
+
 template<typename PointT>
 class V4R_EXPORTS CloudSegmenter
 {
@@ -40,15 +69,15 @@ private:
     typename v4r::PlaneExtractor<PointT>::Ptr plane_extractor_;
     typename v4r::Segmenter<PointT>::Ptr segmenter_;
     typename v4r::NormalEstimator<PointT>::Ptr normal_estimator_;
-    float plane_inlier_threshold_;
     std::vector<std::vector<int> > found_clusters_;
     std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes_;
-    float chop_z_;
+    std::vector<std::vector<int> > plane_inliers_;
+
+    CloudSegmenterParameter param_;
 
 public:
-    CloudSegmenter() :
-        plane_inlier_threshold_ (0.02f),
-        chop_z_ (std::numeric_limits<float>::max())
+    CloudSegmenter(const CloudSegmenterParameter &p = CloudSegmenterParameter() ) :
+        param_(p)
     { }
 
     /**
@@ -63,7 +92,7 @@ public:
      * @return
      */
     void
-    segment(typename pcl::PointCloud<PointT>::Ptr &cloud);
+    segment(const typename pcl::PointCloud<PointT>::ConstPtr &cloud);
 
     /**
      * @brief getClusters
@@ -85,14 +114,10 @@ public:
         return planes_;
     }
 
-    /**
-     * @brief getPlaneInlierTreshold
-     * @return plane inlier treshold
-     */
-    float
-    getPlaneInlierTreshold() const
+    std::vector<std::vector<int> >
+    getPlaneInliers() const
     {
-        return plane_inlier_threshold_;
+        return plane_inliers_;
     }
 };
 
