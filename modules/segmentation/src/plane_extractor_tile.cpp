@@ -16,29 +16,25 @@
 
 #include <glm/glm.hpp>
 
-#define DEBUG_IMAGES
+//#define DEBUG_IMAGES
 //#define DEBUG_TEXT
 //#define DEBUG_TIMINGS
 
 namespace v4r
 {
 bool isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest = true);
-bool isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float _planeNorm, float cosThreshold, float distThreshold, bool doNormalTest = true);
-bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold);
+bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &centerPlane2, float distThreshold);
 bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold);
 
 bool
 isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest)
 {
-//    Eigen::Vector4f plane_tmp = plane;
-//    plane_tmp(3) = -1.f;
-
     float distance = fabs(dist2plane(point, plane));
     if(distance<distThreshold)
     {
         if(doNormalTest)
         {
-            float cosAlpha=normal.dot(plane)/plane.norm();
+            float cosAlpha = normal.head(3).dot(plane.head(3))/ (plane.head(3).squaredNorm() * normal.head(3).squaredNorm());
             return (cosAlpha>cosThreshold);
         }
         else
@@ -49,43 +45,10 @@ isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eige
 }
 
 bool
-isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal,
-                                          const Eigen::Vector4f &plane, float _planeNorm,
-                                          float cosThreshold, float distThreshold, bool doNormalTest)
+isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &centerPlane2, float distThreshold)
 {
-//    Eigen::Vector4f plane_tmp = plane;
-//    plane_tmp(3) = -1.f;
-
-    float distance = fabs(dist2plane(point, plane));
-
-    if( distance<distThreshold )
-    {
-        if(doNormalTest)
-        {
-            float cosAlpha=normal.dot(plane)*_planeNorm;
-            return (cosAlpha>cosThreshold);
-        }
-        else
-            return true;
-    }
-
-    return false;
-}
-
-bool
-isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold)
-{
-    float cosAlpha=CosAngleBetweenPlanes(plane1, plane2);
-
-    Eigen::Vector4f plane_tmp = plane1;
-    plane_tmp(3) = -1.f;
-
-    float distance = fabs(dist2plane(centerPlane2.head(3), plane_tmp)); // std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
-
-    if(cosAlpha >cosThreshold && distance<distThreshold)
-        return true;
-
-    return false;
+    float distance = fabs(dist2plane(centerPlane2.head(3), plane1)); // std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
+    return (distance<distThreshold);
 }
 
 bool
@@ -293,7 +256,7 @@ PlaneExtractorTile<PointT>::calcPlaneFromMatrix(const PlaneExtractorTile<PointT>
             m.xz,m.yz,m.zz;
 
     //hopefully this is fast!
-    Eigen::Vector3d plane=mat.ldlt().solve(m.sum);//what do i know?
+    const Eigen::Vector3d plane = mat.ldlt().solve(m.sum);//what do i know?
     return Eigen::Vector4f(plane[0],plane[1],plane[2], -1.f);
 }
 
@@ -405,8 +368,8 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
         for(int j=0;j<colsOfPatches;j++)
         {
             int index=j+i*colsOfPatches;
-            PlaneMatrix m=matrices[index];
-            Eigen::Vector3f msum = m.sum.template cast<float>();
+            const PlaneMatrix &m = matrices[index];
+            const Eigen::Vector3f msum = m.sum.template cast<float>();
             centerPoints.at<Eigen::Vector4f>(i,j).head<3>() = msum / m.nrPoints;
             centerPoints.at<Eigen::Vector4f>(i,j)[3]=0.0f;
             float cosThreshold = minCosAngle;
@@ -428,7 +391,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
 
             if(m.nrPoints > minAbsBlockInlier)
             {
-                Eigen::Vector4f plane=calcPlaneFromMatrix(m);//what do i know?
+                const Eigen::Vector4f plane=calcPlaneFromMatrix(m);//what do i know?
                //invert matrix and create plane estimation
                 planes.at<PlaneSegment>(i,j).x=plane[0];//plane.cast<float>();
                 planes.at<PlaneSegment>(i,j).y=plane[1];
@@ -438,8 +401,6 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                 //Calculate Thresholds here:
                 //TODO!!!!!!
 
-                Eigen::Vector4f plane4(plane[0],plane[1],plane[2],-1.f);
-
                 Eigen::Vector4f N;
                 for(int k=0;k<param_.patchDim_;k++)
                 {
@@ -448,11 +409,12 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                         int u=l+j*param_.patchDim_;
                         int v=k+i*param_.patchDim_;
                         const Eigen::Vector3f &p = cloud_->at(u,v).getVector3fMap(); //points.at<Eigen::Vector4f>(v+1,u+1);
+
                         if(doNormalTest)
                             N = normal_cloud_->at(u,v).getNormalVector4fMap(); //normals.at<Eigen::Vector4f>(v,u);
 
                         //TODO: remove this isInlier.... or at least store the norm for this so it does not have to be recalculated for every pixel
-                        if(isInlier(p,N,plane4, cosThreshold,distThreshold,doNormalTest))
+                        if(isInlier(p, N, plane, cosThreshold,distThreshold,doNormalTest))
                         { //distance < inlierDistance
                             //mark the inlying points somehow
                             debug.at<glm::u8vec3>(v,u)=glm::u8vec3(255,0,0);
@@ -476,7 +438,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                                 N=normal_cloud_->at(u,v).getNormalVector4fMap();// normals.at<Eigen::Vector4f>(v,u);
 
                             //TODO: remove this isInlier.... or at least store the norm for this so it does not have to be recalculated for every pixel
-                            if( isInlier(p, N, plane4, cosThreshold, distThreshold, doNormalTest) )
+                            if( isInlier(p, N, plane, cosThreshold, distThreshold, doNormalTest) )
                             { //distance < inlierDistance
                                 //mark the inlying points somehow
                                 debug.at<glm::u8vec3>(v,u)=glm::u8vec3(0,255,0);
@@ -541,7 +503,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                     //test if the new Plane element fits to the existing one
                     const Eigen::Vector4f &otherPlane = calcPlaneFromMatrix(planeMatrices[currentId]);
 
-                    if(     isInPlane(lastPatch,currentPatch,currentCenter,cosThreshold,distThreshold) &&
+                    if(     isInPlane(lastPatch,currentCenter,distThreshold) &&
                             isParallel(currentPatch,otherPlane,cosThreshold))
                     {
                         gotSet = true;
@@ -575,7 +537,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                             Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
 
                             newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
-                            if(     isInPlane(newPatch,currentPatch,currentCenter,cosThreshold,distThreshold) &&
+                            if(     isInPlane(newPatch,currentCenter,distThreshold) &&
                                     isParallel(currentPatch,newPlane,cosThreshold))
                             {
                                 gotSet=true;
@@ -625,7 +587,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                             const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
 
                             newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
-                            if(     isInPlane(newPatch,currentPatch,currentCenter,cosThreshold,distThreshold) &&
+                            if(     isInPlane(newPatch,currentCenter,distThreshold) &&
                                     isParallel(currentPatch,newPlane,cosThreshold)){
                                 gotSet=true;
                                 //test if this is the right time to connect
@@ -674,7 +636,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                             const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
 
                             newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
-                            if(     isInPlane(newPatch,currentPatch,currentCenter,cosThreshold,distThreshold) &&
+                            if(     isInPlane(newPatch,currentCenter,distThreshold) &&
                                     isParallel(currentPatch,newPlane,cosThreshold))
                             {
                                 gotSet=true;
