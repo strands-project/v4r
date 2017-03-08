@@ -24,7 +24,6 @@
 
 #pragma once
 #include <v4r/segmentation/plane_extractor.h>
-#include <v4r/common/camera.h>
 #include <opencv/cv.h>
 
 namespace v4r
@@ -68,7 +67,6 @@ protected:
     using PlaneExtractor<PointT>::all_planes_;
     using PlaneExtractor<PointT>::plane_inliers_;
 
-    Camera::ConstPtr cam_;
     PlaneExtractorTileParameter param_;
 
 public:
@@ -249,12 +247,6 @@ public:
     }
 
     void compute();
-
-    void
-    setCamera(const Camera::ConstPtr &cam)
-    {
-        cam_ = cam;
-    }
 
 
     typedef boost::shared_ptr< PlaneExtractorTile<PointT> > Ptr;
