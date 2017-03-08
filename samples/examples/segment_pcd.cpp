@@ -114,23 +114,32 @@ main (int argc, char ** argv)
     std::sort(sub_folder_names.begin(), sub_folder_names.end());
     for (size_t sub_folder_id=0; sub_folder_id < sub_folder_names.size(); sub_folder_id++)
     {
-        const std::string sequence_path = test_dir + "/" + sub_folder_names[ sub_folder_id ];
-        const std::string out_path = out_dir + "/" + sub_folder_names[ sub_folder_id ];
+        bf::path sequence_path = test_dir;
+        sequence_path /= sub_folder_names[ sub_folder_id ];
+
+        bf::path out_path = out_dir;
+        out_path /= sub_folder_names[ sub_folder_id ];
+
         v4r::io::createDirIfNotExist(out_path);
 
         std::vector< std::string > views = v4r::io::getFilesInDirectory(sequence_path, ".*.pcd", false);
 
         for (size_t v_id=0; v_id<views.size(); v_id++)
         {
-            const std::string fn = test_dir + "/" + sub_folder_names[sub_folder_id] + "/" + views[ v_id ];
-            std::string out_fn_prefix = out_path + "/" + views[ v_id ];
-            boost::replace_last(out_fn_prefix, ".pcd", "");
+            bf::path fn = sequence_path;
+            fn /= views[v_id];
 
-            std::cout << "Segmenting file " << fn << std::endl;
+            std::string out_basename = views[ v_id ];
+            boost::replace_last(out_basename, ".pcd", "");
+
+            bf::path out_fn = out_dir;
+            out_fn /= out_basename;
+
+            std::cout << "Segmenting file " << fn.string() << std::endl;
 
             typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
 
-            pcl::io::loadPCDFile(fn, *cloud);
+            pcl::io::loadPCDFile(fn.string(), *cloud);
             cs.segment(cloud);
             std::vector<std::vector<int> > indices = cs.getClusters();
 
@@ -139,17 +148,12 @@ main (int argc, char ** argv)
                 //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
                 cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
                 cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
-
-                std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes = cs.getPlanes();
-
-                for(const Eigen::Vector4f &plane : planes )
-                    v4r::visualizePlane<PointT> ( cloud, plane, cs.getPlaneInlierTreshold(), "plane" );
-
+                v4r::visualizeClusters<PointT> ( cloud, cs.getPlaneInliers(), "planes" );
                 v4r::visualizeClusters<PointT>( cloud, indices, "segmented clusters" );
             }
 
             if( save_bounding_boxes )
-                save_bb_image( *cloud, indices, out_fn_prefix, margin );
+                save_bb_image( *cloud, indices, out_fn.string(), margin );
         }
     }
 
