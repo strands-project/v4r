@@ -27,8 +27,6 @@ bool isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const
 bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold);
 bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold);
 
-float distanceToPlane(const Eigen::Vector3f &point, const Eigen::Vector4f &plane);
-
 bool
 isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest)
 {
@@ -74,20 +72,15 @@ isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal,
     return false;
 }
 
-
-float distanceToPlane(const Eigen::Vector3f &point, const Eigen::Vector4f &plane)
-{
-    Eigen::Vector4f plane_tmp = plane;
-    plane_tmp(3) = -1.f;
-
-    return fabs(dist2plane(point, plane_tmp));
-}
-
 bool
 isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold)
 {
     float cosAlpha=CosAngleBetweenPlanes(plane1, plane2);
-    float distance = distanceToPlane(centerPlane2.head(3), plane1); // std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
+
+    Eigen::Vector4f plane_tmp = plane1;
+    plane_tmp(3) = -1.f;
+
+    float distance = fabs(dist2plane(centerPlane2.head(3), plane_tmp)); // std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
 
     if(cosAlpha >cosThreshold && distance<distThreshold)
         return true;
@@ -1017,7 +1010,7 @@ PlaneExtractorTile<PointT>::compute()
             patchIds.at<int>(i,j)=newPlaneId;
 
             const PlaneSegment &p = planes.at<PlaneSegment>(i,j);
-            const Eigen::Vector4f plane = Eigen::Vector4f(p.x,p.y,p.z,0);
+            const Eigen::Vector4f plane = Eigen::Vector4f(p.x,p.y,p.z,-1.f);
             if(newPlaneId)
             {
                 //Mark the pixel in the segmentation map for the already existing patches
@@ -1032,7 +1025,7 @@ PlaneExtractorTile<PointT>::compute()
                                 //debug.at<glm::u8vec3>(i*blockDim+k,j*blockDim+l)=glm::u8vec3(0,255,0);
                                 segmentation.at<int>(i*param_.patchDim_+k, j*param_.patchDim_+l) = newPlaneId;
                                 const Eigen::Vector3f &point = cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getVector3fMap();
-                                float distance = distanceToPlane(point,plane);
+                                float distance = fabs(dist2plane(point,plane));
                                 if(param_.doZTest_)
                                 {
                                     //setting the zBuffer to zero effectively sets these patches to be fixed
