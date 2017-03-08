@@ -14,6 +14,7 @@
 #include <pcl/recognition/cg/geometric_consistency.h>
 
 #include <v4r/common/camera.h>
+#include <v4r/common/miscellaneous.h>
 #include <v4r/common/normals.h>
 #include <v4r/features/esf_estimator.h>
 #include <v4r/features/shot_local_estimator.h>
@@ -54,24 +55,6 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     desc.add_options()
             ("help,h", "produce help message")
             ("model_dir,m", po::value<std::string>(&models_dir_)->required(), "Models directory")
-            ("chop_z,z", po::value<double>(&param_.chop_z_)->default_value(param_.chop_z_, boost::str(boost::format("%.2e") % param_.chop_z_) ), "points with z-component higher than chop_z_ will be ignored (low chop_z reduces computation time and false positives (noise increase with z)")
-            ("cg_thresh,c", po::value<int>(&param_.cg_thresh_)->default_value(param_.cg_thresh_), "Threshold for correspondence grouping. The lower the more hypotheses are generated, the higher the more confident and accurate. Minimum 3.")
-            ("cg_size,g", po::value<float>(&param_.cg_size_)->default_value(param_.cg_size_, boost::str(boost::format("%.2e") % param_.cg_size_) ), "Size for correspondence grouping.")
-            ("do_sift", po::value<bool>(&param_.do_sift_)->default_value(param_.do_sift_), "if true, enables SIFT feature matching")
-            ("do_shot", po::value<bool>(&param_.do_shot_)->default_value(param_.do_shot_), "if true, enables SHOT feature matching")
-            ("do_esf", po::value<bool>(&param_.do_esf_)->default_value(param_.do_esf_), "if true, enables ESF global matching")
-            ("do_alexnet", po::value<bool>(&param_.do_alexnet_)->default_value(param_.do_alexnet_), "if true, enables AlexNet global matching")
-            ("remove_planes", po::value<bool>(&remove_planes_)->default_value(remove_planes_), "if true, removes all planar surfaces with having at least min_plane_points points.")
-            ("min_plane_points", po::value<size_t>(&min_plane_points_)->default_value(min_plane_points_), "Minimum number of plane points for plane to be removed (only if remove_planes is enabled).")
-            ("segmentation_method", po::value<int>(&param_.segmentation_method_)->default_value(param_.segmentation_method_), "segmentation method (as stated in the V4R library (modules segmentation/types.h) ")
-            ("esf_classification_method", po::value<int>(&param_.esf_classification_method_)->default_value(param_.esf_classification_method_), "ESF classification method (as stated in the V4R library (modules ml/types.h) ")
-            ("depth_img_mask", po::value<std::string>(&param_.depth_img_mask_)->default_value(param_.depth_img_mask_), "filename for image registration mask. This mask tells which pixels in the RGB image can have valid depth pixels and which ones are not seen due to the phsysical displacement between RGB and depth sensor.")
-            ("hv_config_xml", po::value<std::string>(&param_.hv_config_xml_)->default_value(param_.hv_config_xml_), "Filename of Hypotheses Verification XML configuration file.")
-            ("sift_config_xml", po::value<std::string>(&param_.sift_config_xml_)->default_value(param_.sift_config_xml_), "Filename of SIFT XML configuration file.")
-            ("shot_config_xml", po::value<std::string>(&param_.shot_config_xml_)->default_value(param_.shot_config_xml_), "Filename of SHOT XML configuration file.")
-            ("alexnet_config_xml", po::value<std::string>(&param_.alexnet_config_xml_)->default_value(param_.alexnet_config_xml_), "Filename of Alexnet XML configuration file.")
-            ("esf_config_xml", po::value<std::string>(&param_.esf_config_xml_)->default_value(param_.esf_config_xml_), "Filename of ESF XML configuration file.")
-            ("camera_xml", po::value<std::string>(&param_.camera_config_xml_)->default_value(param_.camera_config_xml_), "Filename of camera parameter XML file.")
             ("visualize,v", po::bool_switch(&visualize_), "visualize recognition results")
             ("skip_verification", po::bool_switch(&skip_verification_), "if true, skips verification (only hypotheses generation)")
             ("hv_vis_cues", po::bool_switch(&visualize_hv_go_cues), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
@@ -141,11 +124,17 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         }
 
         // ====== SETUP GLOBAL RECOGNITION PIPELINE =====
+
+
+        if(param_.do_esf_ || param_.do_alexnet_ || param_.remove_planes_)
+            plane_extractor_ = v4r::initPlaneExtractor<PointT>(param_.plane_extraction_method_, to_pass_further);
+
         if(param_.do_esf_ || param_.do_alexnet_)
         {
             typename GlobalRecognitionPipeline<PointT>::Ptr global_recognition_pipeline (new GlobalRecognitionPipeline<PointT>);
             typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( param_.segmentation_method_, to_pass_further);
             global_recognition_pipeline->setSegmentationAlgorithm( segmenter );
+            global_recognition_pipeline->setPlaneExtractionAlgorithm(plane_extractor_);
 
             if(param_.do_esf_)
             {
@@ -208,7 +197,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
     std::vector<double> elapsed_time;
 
     pcl::PointCloud<pcl::Normal>::Ptr normals;
-    if( mrec_->needNormals() || hv_)
+    if( mrec_->needNormals() || hv_ || ( plane_extractor_ && plane_extractor_->getRequiresNormals() ))
     {
         pcl::ScopeTime t("Computing normals");
         normals.reset (new pcl::PointCloud<pcl::Normal>);
@@ -224,57 +213,54 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
     }
 
 
-    if( remove_planes_ )
+    if( param_.remove_planes_ )
     {
-        std::vector<pcl::PlanarRegion<PointT>, Eigen::aligned_allocator<pcl::PlanarRegion<PointT> > > regions;
+        pcl::ScopeTime t("Plane Extraction");
+        plane_extractor_->setInputCloud(cloud);
+        plane_extractor_->setNormalsCloud( normals );
+        plane_extractor_->compute();
+        std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes = plane_extractor_->getPlanes();
+
+        if( planes.empty() )
+            std::cerr << " Could not extract any plane with the chosen parameters. Recognizing the whole input cloud!" << std::endl;
+        else
         {
-            pcl::ScopeTime t("Removing plane from input cloud.");
-            pcl::OrganizedMultiPlaneSegmentation< PointT, pcl::Normal, pcl::Label > mps;
-            mps.setMinInliers (min_plane_points_);
-            mps.setAngularThreshold ( 2 * M_PI/180.f ); // 2 degrees
-            mps.setDistanceThreshold ( 0.02 ); // 2cm
-            mps.setInputNormals (normals);
-            mps.setInputCloud (cloud);
-            typename pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label>::Ptr ref_comp (
-            new pcl::PlaneRefinementComparator<PointT, pcl::Normal, pcl::Label> ());
-            ref_comp->setDistanceThreshold ( 0.02, false);
-            ref_comp->setAngularThreshold (2 * M_PI/180.f);
-            mps.setRefinementComparator (ref_comp);
-            mps.segment (regions);
+            visualizePlanes<PointT>(cloud, planes, param_.plane_inlier_threshold_);
+            size_t selected_plane = 0;
+            if (planes.size() > 1 )
+            {
+                std::cout << "Extracted multiple planes from input cloud. Selecting the one with the most inliers with the chosen plane inlier threshold of " << param_.plane_inlier_threshold_ << std::endl;
+
+                size_t max_plane_inliers = 0;
+                for(size_t plane_id=0; plane_id<planes.size(); plane_id++)
+                {
+                    std::vector<int> plane_indices = v4r::get_all_plane_inliers( *cloud, planes[ selected_plane], param_.plane_inlier_threshold_ );
+                    if( plane_indices.size() > max_plane_inliers )
+                    {
+                        selected_plane = plane_id;
+                        max_plane_inliers = plane_indices.size();
+                    }
+                }
+            }
+            std::vector<int> above_plane_indices = v4r::get_above_plane_inliers( *cloud, planes[ selected_plane], param_.plane_inlier_threshold_ );
+
+            if( above_plane_indices.size() >= param_.min_plane_inliers_ )
+            {
+                boost::dynamic_bitset<> above_plane_mask = v4r::createMaskFromIndices( above_plane_indices, cloud->points.size() );
+
+                for(size_t i=0; i<cloud->points.size(); i++) // keep organized
+                {
+                    if( !above_plane_mask[i] )
+                    {
+                        PointT &p = cloud->points[i];
+                        p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+                    }
+                }
+            }
+            else
+                std::cerr << "Dominant plane does not contain enough inliers (" << above_plane_indices.size() << "/" <<
+                             cloud->points.size() << "). Recognizing the whole input cloud!" << std::endl;
         }
-
-        pcl::visualization::PCLVisualizer vis;
-        int vp1, vp2;
-        vis.createViewPort(0, 0, 0.5, 1, vp1);
-        vis.createViewPort(0.5, 0, 1, 1, vp2);
-        vis.addPointCloud(cloud, "input", vp1);
-        for (size_t i = 0; i < regions.size (); i++)
-        {
-          Eigen::Vector3f centroid = regions[i].getCentroid ();
-          Eigen::Vector4f model = regions[i].getCoefficients ();
-
-          std::vector<int> plane_inliers = get_all_plane_inliers( *cloud, model, 0.02 );
-
-          typename pcl::PointCloud<PointT>::Ptr plane_cloud (new pcl::PointCloud<PointT>);
-          pcl::copyPointCloud( *cloud, plane_inliers, *plane_cloud );
-
-          vis.removeAllPointClouds(vp2);
-          vis.addPointCloud(plane_cloud, "plane_cloud", vp2);
-          vis.spin();
-
-//          pcl::PointCloud boundary_cloud;
-//          boundary_cloud.points = regions[i].getContour ();
-//          printf ("Centroid: (%f, %f, %f)\n  Coefficients: (%f, %f, %f, %f)\n Inliers: %d\n",
-//                  centroid[0], centroid[1], centroid[2],
-//                  model[0], model[1], model[2], model[3],
-//                  boundary_cloud.points.size ());
-         }
-
-
-
-//        boost::dynamic_bitset<> pt_is_accepted ( cloud->points.size() );
-//        pt_is_accepted.set();
-
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====

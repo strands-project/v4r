@@ -27,6 +27,7 @@
 #include <v4r/recognition/local_recognition_pipeline.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 #include <v4r/recognition/hypotheses_verification.h>
+#include <v4r/segmentation/all_headers.h>
 #include <v4r/segmentation/types.h>
 
 #pragma once
@@ -57,8 +58,13 @@ public:
     bool do_esf_;
     bool do_alexnet_;
     int segmentation_method_;
+    int plane_extraction_method_;
     int esf_classification_method_;
     double chop_z_; ///< Cut-off distance in meter
+
+    bool remove_planes_;    ///< if enabled, removes the dominant plane in the input cloud (given thera are at least N inliers)
+    float plane_inlier_threshold_; ///< maximum distance for plane inliers
+    size_t min_plane_inliers_; ///< required inliers for plane to be removed
 
     ObjectRecognizerParameter()
         :
@@ -76,8 +82,12 @@ public:
           do_esf_(false),
           do_alexnet_(false),
           segmentation_method_(SegmentationType::OrganizedConnectedComponents),
+          plane_extraction_method_(PlaneExtractionType::OrganizedMultiplane),
           esf_classification_method_(ClassifierType::SVM),
-          chop_z_(3.f)
+          chop_z_(3.f),
+          remove_planes_(false),
+          plane_inlier_threshold_ (0.02f),
+          min_plane_inliers_ (500)
     {}
 
     void
@@ -116,8 +126,12 @@ private:
                 & BOOST_SERIALIZATION_NVP(do_esf_)
                 & BOOST_SERIALIZATION_NVP(do_alexnet_)
                 & BOOST_SERIALIZATION_NVP(segmentation_method_)
+                & BOOST_SERIALIZATION_NVP(plane_extraction_method_)
                 & BOOST_SERIALIZATION_NVP(esf_classification_method_)
                 & BOOST_SERIALIZATION_NVP(chop_z_)
+                & BOOST_SERIALIZATION_NVP(remove_planes_)
+                & BOOST_SERIALIZATION_NVP(plane_inlier_threshold_)
+                & BOOST_SERIALIZATION_NVP(min_plane_inliers_)
                 ;
     }
 };
@@ -132,11 +146,11 @@ private:
 
     typename v4r::ObjectRecognitionVisualizer<PointT>::Ptr rec_vis_; ///< visualization object
 
+    typename v4r::PlaneExtractor<PointT>::Ptr plane_extractor_; ///< plane extractor used for global segmentation as well as plane removal (if corresponding option is enabled)
+
     std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_;
     std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_;
 
-    bool remove_planes_ = false;
-    size_t min_plane_points_ = 200;
     bool visualize_; ///< if true, visualizes objects
     bool skip_verification_; ///< if true, will only generate hypotheses but not verify them
     std::string models_dir_;
@@ -145,8 +159,6 @@ private:
 
 public:
     ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :
-        remove_planes_ (false),
-        min_plane_points_ (200),
         visualize_ (false),
         skip_verification_(false),
         param_(p)
