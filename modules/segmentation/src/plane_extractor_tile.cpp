@@ -86,7 +86,7 @@ PlaneExtractorTile<PointT>::getDebugImage()
             plane[0]=planes.at<PlaneSegment>(i,j).x;
             plane[1]=planes.at<PlaneSegment>(i,j).y;
             plane[2]=planes.at<PlaneSegment>(i,j).z;
-            plane[3]=-1.f;
+            plane[3]=planes.at<PlaneSegment>(i,j).d;
             if(planeId)
             {
                 if(planeId!=lastPlaneId)
@@ -396,6 +396,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                 planes.at<PlaneSegment>(i,j).x=plane[0];//plane.cast<float>();
                 planes.at<PlaneSegment>(i,j).y=plane[1];
                 planes.at<PlaneSegment>(i,j).z=plane[2];
+                planes.at<PlaneSegment>(i,j).d=plane[3];
                 planes.at<PlaneSegment>(i,j).nrInliers=m.nrPoints;
 
                 //Calculate Thresholds here:
@@ -475,7 +476,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
             int index=j+i*colsOfPatches;
             const PlaneMatrix &currentPlaneMatrix = matrices[index];
             const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i,j);//TODO:planes should be renamed to patches
-            const Eigen::Vector4f currentPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
+            const Eigen::Vector4f currentPatch( currentPlaneSeg.x, currentPlaneSeg.y, currentPlaneSeg.z, currentPlaneSeg.d);
             const Eigen::Vector4f &currentCenter=centerPoints.at<Eigen::Vector4f>(i,j);
             //test if plane is valid
             bool gotSet=false;
@@ -534,7 +535,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         if(newId)
                         {
                             PlaneSegment currentPlaneSeg=planes.at<PlaneSegment>(i-1,j-1);
-                            Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
+                            Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
                             newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
@@ -582,9 +583,8 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         int newId = patchIds.at<int>(i-1,j);
                         if(newId)
                         {
-                            newPlane.head<3>() = planeList[newId].plane;
                             const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j);
-                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
+                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
                             newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
@@ -631,9 +631,8 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         int newId=patchIds.at<int>(i-1,j+1);
                         if(newId)
                         {
-                            newPlane.head<3>() = planeList[newId].plane;
                             const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j+1);
-                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
+                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
                             newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
@@ -741,7 +740,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                             {
                                 //read according patch segment
                                 const PlaneSegment &p = planes.at<PlaneSegment>(_i,_j);
-                                oldPlane = Eigen::Vector4f(p.x,p.y,p.z,-1.f);
+                                oldPlane = Eigen::Vector4f(p.x,p.y,p.z,p.d);
                                 found=true;
 
                                 //is this really the best place for reading out the thresholds?
@@ -964,7 +963,7 @@ PlaneExtractorTile<PointT>::compute()
             patchIds.at<int>(i,j)=newPlaneId;
 
             const PlaneSegment &p = planes.at<PlaneSegment>(i,j);
-            const Eigen::Vector4f plane = Eigen::Vector4f(p.x,p.y,p.z,-1.f);
+            const Eigen::Vector4f plane = Eigen::Vector4f(p.x,p.y,p.z,p.d);
             if(newPlaneId)
             {
                 //Mark the pixel in the segmentation map for the already existing patches
