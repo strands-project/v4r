@@ -30,10 +30,10 @@ bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, fl
 bool
 isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest)
 {
-    Eigen::Vector4f plane_tmp = plane;
-    plane_tmp(3) = -1.f;
+//    Eigen::Vector4f plane_tmp = plane;
+//    plane_tmp(3) = -1.f;
 
-    float distance = fabs(dist2plane(point, plane_tmp));
+    float distance = fabs(dist2plane(point, plane));
     if(distance<distThreshold)
     {
         if(doNormalTest)
@@ -53,10 +53,10 @@ isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal,
                                           const Eigen::Vector4f &plane, float _planeNorm,
                                           float cosThreshold, float distThreshold, bool doNormalTest)
 {
-    Eigen::Vector4f plane_tmp = plane;
-    plane_tmp(3) = -1.f;
+//    Eigen::Vector4f plane_tmp = plane;
+//    plane_tmp(3) = -1.f;
 
-    float distance = fabs(dist2plane(point, plane_tmp));
+    float distance = fabs(dist2plane(point, plane));
 
     if( distance<distThreshold )
     {
@@ -123,7 +123,7 @@ PlaneExtractorTile<PointT>::getDebugImage()
             plane[0]=planes.at<PlaneSegment>(i,j).x;
             plane[1]=planes.at<PlaneSegment>(i,j).y;
             plane[2]=planes.at<PlaneSegment>(i,j).z;
-            plane[3]=0;
+            plane[3]=-1.f;
             if(planeId)
             {
                 if(planeId!=lastPlaneId)
@@ -185,6 +185,7 @@ PlaneExtractorTile<PointT>::getDebugImage(bool doNormalTest)
                 if(planeId!=lastPlaneId)
                 {
                     plane.head<3>()=planeList[planeId].plane;
+                    plane(4) = -1.f;
                     lastPlaneId=planeId;
                 }
 
@@ -293,7 +294,7 @@ PlaneExtractorTile<PointT>::calcPlaneFromMatrix(const PlaneExtractorTile<PointT>
 
     //hopefully this is fast!
     Eigen::Vector3d plane=mat.ldlt().solve(m.sum);//what do i know?
-    return Eigen::Vector4f(plane[0],plane[1],plane[2],0.0f);
+    return Eigen::Vector4f(plane[0],plane[1],plane[2], -1.f);
 }
 
 template<typename PointT>
@@ -437,7 +438,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                 //Calculate Thresholds here:
                 //TODO!!!!!!
 
-                Eigen::Vector4f plane4(plane[0],plane[1],plane[2],0);
+                Eigen::Vector4f plane4(plane[0],plane[1],plane[2],-1.f);
 
                 Eigen::Vector4f N;
                 for(int k=0;k<param_.patchDim_;k++)
@@ -504,7 +505,6 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
     //TODO: make this code more compact somehow (and readable)
     for(int i=0;i<rowsOfPatches;i++)
     {
-        Eigen::Vector4f currentPlane(0,0,0,0);
         Eigen::Vector4f lastPatch(0,0,0,0);
         //int lastId=0;
         int currentId=0;
@@ -513,7 +513,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
             int index=j+i*colsOfPatches;
             const PlaneMatrix &currentPlaneMatrix = matrices[index];
             const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i,j);//TODO:planes should be renamed to patches
-            const Eigen::Vector4f currentPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,0);
+            const Eigen::Vector4f currentPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
             const Eigen::Vector4f &currentCenter=centerPoints.at<Eigen::Vector4f>(i,j);
             //test if plane is valid
             bool gotSet=false;
@@ -547,8 +547,6 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         gotSet = true;
                         patchIds.at<int>(i,j) = currentId;
 
-                        currentPlane = otherPlane;
-
                         planeMatrices[currentId] += currentPlaneMatrix;
                         //if this here is the case, it is not necessary to test the top and top left plane segment
                         //except for the first row(column?)... there the top element should be tested
@@ -557,12 +555,9 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                     }
                     else
                     {//debug attempt
-                        currentPlane=currentPatch;
                         currentId=0;//SIMON DEBUG ATTEMPT
                     }
                 }
-                else //debug attempt
-                    currentPlane=currentPatch;
 
                 lastPatch=currentPatch;
                 //test if one of the 3 upper elements is already segmented and connect planes if necessary
@@ -577,7 +572,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         if(newId)
                         {
                             PlaneSegment currentPlaneSeg=planes.at<PlaneSegment>(i-1,j-1);
-                            Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,0);
+                            Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
 
                             newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentPatch,currentCenter,cosThreshold,distThreshold) &&
@@ -615,7 +610,6 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                                         patchIds.at<int>(i,j)=currentId;
                                     }
                                 }
-                                currentPlane.head<3>()=planeList[currentId].plane;
                             }
                         }
                     }
@@ -628,28 +622,31 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         {
                             newPlane.head<3>() = planeList[newId].plane;
                             const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j);
-                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,0);
+                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
 
                             newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentPatch,currentCenter,cosThreshold,distThreshold) &&
                                     isParallel(currentPatch,newPlane,cosThreshold)){
                                 gotSet=true;
                                 //test if this is the right time to connect
-                                if(!currentId){//if the current patch does not have an ID yet just add this one:
+                                if(!currentId)
+                                {//if the current patch does not have an ID yet just add this one:
                                     currentId=newId;
-                                    //currentPlane.head<3>()=planeList[currentId].plane;//maybe not needed anymore
                                     patchIds.at<int>(i,j)=currentId;
                                     planeMatrices[currentId]+=currentPlaneMatrix;
-                                }else{
-                                    if(currentId!=newId){
+                                }
+                                else
+                                {
+                                    if(currentId!=newId)
+                                    {
                                         int nrCurrent=planeMatrices[currentId].nrPoints;
                                         int nrNew=planeMatrices[newId].nrPoints;
 
-                                        if(nrCurrent>nrNew){//replace the one with fewer elements:
-
+                                        if(nrCurrent>nrNew)
+                                        {//replace the one with fewer elements:
                                             replace(newId,currentId,j+i*colsOfPatches);
 
-                                            planeMatrices[currentId]+=planeMatrices[newId];
+                                            planeMatrices[currentId] += planeMatrices[newId];
                                             planeMatrices[newId].nrPoints = 0;
                                         }
                                         else
@@ -661,7 +658,6 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                                         }
                                         patchIds.at<int>(i,j)=currentId;
                                     }
-                                    currentPlane.head<3>()=planeList[currentId].plane;
                                 }
                             }
                         }
@@ -674,19 +670,18 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         if(newId)
                         {
                             newPlane.head<3>() = planeList[newId].plane;
-                            PlaneSegment currentPlaneSeg=planes.at<PlaneSegment>(i-1,j+1);
-                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,0);
+                            const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j+1);
+                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,-1.f);
 
                             newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentPatch,currentCenter,cosThreshold,distThreshold) &&
-                                    isParallel(currentPatch,newPlane,cosThreshold)){
+                                    isParallel(currentPatch,newPlane,cosThreshold))
+                            {
                                 gotSet=true;
                                 //test if this is the right time to connect
                                 if(!currentId)
                                 {//if the current patch does not have an ID yet just add this one:
                                     currentId=newId;
-
-                                    //currentPlane.head<3>()=planeList[currentId].plane;
                                     patchIds.at<int>(i,j)=currentId;
                                     planeMatrices[currentId]+=currentPlaneMatrix;
                                 }
@@ -713,7 +708,6 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                                         patchIds.at<int>(i,j)=currentId;
                                     }
                                 }
-                                currentPlane.head<3>()=planeList[currentId].plane;
                             }
                         }
 
@@ -731,9 +725,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                     //create a new id
                     currentId=++maxId;
                     patchIds.at<int>(i,j)=currentId;
-
                     planeMatrices[currentId]=currentPlaneMatrix;
-                    currentPlane=currentPatch;
                 }
 
             }
