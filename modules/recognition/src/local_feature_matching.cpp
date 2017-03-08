@@ -414,6 +414,11 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
         lomdb_->flann_index_chisquare_.reset( new ::flann::Index<::flann::ChiSquareDistance<float> > (*(lomdb_->flann_data_), ::flann::KDTreeIndexParams (param_.kdtree_num_trees_)));
         lomdb_->flann_index_chisquare_->buildIndex();
     }
+    else if(param_.distance_metric_==4)
+    {
+        lomdb_->flann_index_hellinger_.reset( new ::flann::Index<::flann::HellingerDistance<float> > (*(lomdb_->flann_data_), ::flann::KDTreeIndexParams (param_.kdtree_num_trees_)));
+        lomdb_->flann_index_hellinger_->buildIndex();
+    }
     else
     {
         lomdb_->flann_index_l1_.reset( new ::flann::Index<::flann::L1<float> > (*(lomdb_->flann_data_), ::flann::KDTreeIndexParams (param_.kdtree_num_trees_)));
@@ -446,6 +451,8 @@ LocalFeatureMatcher<PointT>::featureMatching()
             lomdb_->flann_index_l2_->knnSearch (query_desc, indices, distances, param_.knn_, ::flann::SearchParams (param_.kdtree_splits_));
         else if(param_.distance_metric_==3)
             lomdb_->flann_index_chisquare_->knnSearch (query_desc, indices, distances, param_.knn_, ::flann::SearchParams (param_.kdtree_splits_));
+        else if(param_.distance_metric_==4)
+            lomdb_->flann_index_hellinger_->knnSearch (query_desc, indices, distances, param_.knn_, ::flann::SearchParams (param_.kdtree_splits_));
         else
             lomdb_->flann_index_l1_->knnSearch (query_desc, indices, distances, param_.knn_, ::flann::SearchParams (param_.kdtree_splits_));
 

@@ -46,7 +46,7 @@ public:
     size_t knn_;  ///< nearest neighbors to search for when checking feature descriptions of the scene
     float max_descriptor_distance_; ///< maximum distance of the descriptor in the respective norm (L1 or L2) to create a correspondence
     float correspondence_distance_weight_; ///< weight factor for correspondences distances. This is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
-    int distance_metric_; ///< defines the norm used for feature matching (1... L1 norm, 2... L2 norm, 3... ChiSquare)
+    int distance_metric_; ///< defines the norm used for feature matching (1... L1 norm, 2... L2 norm, 3... ChiSquare, 4... Hellinger)
     float max_keypoint_distance_z_; ///< maxiumum distance of an extracted keypoint to be accepted
 
     // parameters for plane filter
@@ -164,6 +164,7 @@ public:
     boost::shared_ptr<flann::Index<flann::L1<float> > > flann_index_l1_;
     boost::shared_ptr<flann::Index<flann::L2<float> > > flann_index_l2_;
     boost::shared_ptr<flann::Index<flann::ChiSquareDistance<float> > > flann_index_chisquare_;
+    boost::shared_ptr<flann::Index<flann::HellingerDistance<float> > > flann_index_hellinger_;
     boost::shared_ptr<flann::Matrix<float> > flann_data_;
 
     /**
