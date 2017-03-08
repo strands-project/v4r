@@ -52,7 +52,11 @@ isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal,
                                           const Eigen::Vector4f &plane, float _planeNorm,
                                           float cosThreshold, float distThreshold, bool doNormalTest)
 {
-    float distance = fabs((point.dot(plane)-1.0f)*_planeNorm);
+    Eigen::Vector4f plane_tmp = plane;
+    plane_tmp(3) = -1;
+
+
+    float distance = fabs(dist2plane(point.head(3), plane_tmp));
 
     if( distance<distThreshold )
     {
@@ -71,7 +75,10 @@ isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal,
 
 float distanceToPlane(const Eigen::Vector4f &point, const Eigen::Vector4f &plane, float _planeNorm)
 {
-    return fabs((point.dot(plane)-1.0f)*_planeNorm);
+    Eigen::Vector4f plane_tmp = plane;
+    plane_tmp(3) = -1;
+
+    return fabs(dist2plane(point.head(3), plane_tmp));
 }
 
 bool
