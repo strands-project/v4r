@@ -167,8 +167,10 @@ PlaneExtractorTile<PointT>::getDebugImage(bool doNormalTest)
     int lastPlaneId=0;
     Eigen::Vector4f plane(0,0,0,0);//=planeList[planeId].plane;
 //    cv::Mat debug2(segmentation.rows,segmentation.cols,CV_32SC1);
-    for(int i=0;i<rowsOfPatches;i++){
-        for(int j=0;j<colsOfPatches;j++){
+    for(int i=0;i<rowsOfPatches;i++)
+    {
+        for(int j=0;j<colsOfPatches;j++)
+        {
             float distThreshold;
             float cosThreshold;
             if(param_.useVariableThresholds_)
@@ -194,7 +196,8 @@ PlaneExtractorTile<PointT>::getDebugImage(bool doNormalTest)
                 }
 
                 //Mark the pixel in the segmentation map for the already existing patches
-                if( planes.at<PlaneSegment>(i,j).nrInliers > minAbsBlockInlier ){
+                if( planes.at<PlaneSegment>(i,j).nrInliers > minAbsBlockInlier )
+                {
                     for(int k=0;k<param_.patchDim_;k++)
                     {
                         for(int l=0;l<param_.patchDim_;l++)
@@ -442,8 +445,6 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                 //TODO!!!!!!
 
                 Eigen::Vector4f plane4(plane[0],plane[1],plane[2],0);
-                float _planeNorm=1.0f/plane4.norm();
-
 
                 Eigen::Vector4f N;
                 for(int k=0;k<param_.patchDim_;k++)
@@ -457,7 +458,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                             N = normal_cloud_->at(u,v).getNormalVector4fMap(); //normals.at<Eigen::Vector4f>(v,u);
 
                         //TODO: remove this isInlier.... or at least store the norm for this so it does not have to be recalculated for every pixel
-                        if(isInlier(p,N,plane4,_planeNorm, cosThreshold,distThreshold,doNormalTest))
+                        if(isInlier(p,N,plane4, cosThreshold,distThreshold,doNormalTest))
                         { //distance < inlierDistance
                             //mark the inlying points somehow
                             debug.at<glm::u8vec3>(v,u)=glm::u8vec3(255,0,0);
@@ -481,7 +482,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                                 N=normal_cloud_->at(u,v).getNormalVector4fMap();// normals.at<Eigen::Vector4f>(v,u);
 
                             //TODO: remove this isInlier.... or at least store the norm for this so it does not have to be recalculated for every pixel
-                            if( isInlier(p, N, plane4,_planeNorm, cosThreshold, distThreshold, doNormalTest) )
+                            if( isInlier(p, N, plane4, cosThreshold, distThreshold, doNormalTest) )
                             { //distance < inlierDistance
                                 //mark the inlying points somehow
                                 debug.at<glm::u8vec3>(v,u)=glm::u8vec3(0,255,0);
@@ -765,7 +766,6 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
     for(int i=reverse ? segmentation.rows-1 : 0 ;reverse ? i>0 : i<segmentation.rows; reverse ? i-- : i++){
         int oldId=0;
         Eigen::Vector4f oldPlane;
-        float _oldPlaneNorm=0;
         int oldPlaneTTL=0;
         float cosThreshold=minCosAngle;
         float distThreshold=param_.maxInlierDist_;
@@ -794,7 +794,6 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                                 //read according patch segment
                                 const PlaneSegment &p = planes.at<PlaneSegment>(_i,_j);
                                 oldPlane = Eigen::Vector4f(p.x,p.y,p.z,0);
-                                _oldPlaneNorm = 1.0f/oldPlane.norm();
                                 found=true;
 
                                 //is this really the best place for reading out the thresholds?
@@ -814,8 +813,6 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                         //if no fitting patch is found. we take the plane with this id
                         const Plane &p = resultingPlanes[oldId-1];
                         oldPlane = Eigen::Vector4f(p.plane[0], p.plane[1], p.plane[2], 0.f);
-                        _oldPlaneNorm = 1.0f/oldPlane.norm();
-
 
                         //the thresholds are used from the fitting patch if no other threshold is found
                         //DON'T KNOW WHY THIS DOES NOT WORK!!!
@@ -823,8 +820,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                         ///BUG:
                         if(param_.useVariableThresholds_)
                         {
-                            const Eigen::Vector4f &thresholds =
-                                    thresholdsBuffer.at<Eigen::Vector4f>(i/param_.patchDim_, j/param_.patchDim_);
+                            const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(i/param_.patchDim_, j/param_.patchDim_);
                             distThreshold=thresholds[2];
                             cosThreshold=thresholds[3];
                         }
@@ -859,7 +855,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                                     if(doNormalTest)
                                         otherNormal = normal_cloud_->at(j,i).getNormalVector4fMap();// normals.at<Eigen::Vector4f>(_i,_j);
 
-                                    if( isInlier(otherPoint, otherNormal, oldPlane, _oldPlaneNorm, cosThreshold, distThreshold, doNormalTest))
+                                    if( isInlier(otherPoint, otherNormal, oldPlane, cosThreshold, distThreshold, doNormalTest))
                                     {
                                         segmentation.at<int>(_i,_j)=oldId;
                                         if(zTest)
@@ -1020,7 +1016,6 @@ PlaneExtractorTile<PointT>::compute()
 
             const PlaneSegment &p = planes.at<PlaneSegment>(i,j);
             const Eigen::Vector4f plane = Eigen::Vector4f(p.x,p.y,p.z,0);
-            float _planeNorm = 1.0f/plane.norm();
             if(newPlaneId)
             {
                 //Mark the pixel in the segmentation map for the already existing patches
