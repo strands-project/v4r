@@ -37,6 +37,7 @@ namespace v4r
     {
         OrganizedMultiplane = 0x01, // 00000001
         SAC = 0x02, // 00000010
-        SACNormals = 0x04 // 00000100
+        SACNormals = 0x04, // 00000100
+        Tile = 0x08 // 00001000
     };
 }
