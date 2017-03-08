@@ -147,8 +147,7 @@ PlaneExtractorTile<PointT>::getDebugImage(bool doNormalTest)
             {
                 if(planeId!=lastPlaneId)
                 {
-                    plane.head<3>()=planeList[planeId].plane;
-                    plane(4) = -1.f;
+                    plane = planeList[planeId].plane;
                     lastPlaneId=planeId;
                 }
 
@@ -759,7 +758,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                     {
                         //if no fitting patch is found. we take the plane with this id
                         const Plane &p = resultingPlanes[oldId-1];
-                        oldPlane = Eigen::Vector4f(p.plane[0], p.plane[1], p.plane[2], -1.f);
+                        oldPlane = p.plane;
 
                         //the thresholds are used from the fitting patch if no other threshold is found
                         //DON'T KNOW WHY THIS DOES NOT WORK!!!
@@ -943,7 +942,7 @@ PlaneExtractorTile<PointT>::compute()
             newPlaneIds[i]=newId++;
             Plane pl;
             const Eigen::Vector4f &p = calcPlaneFromMatrix(pm);
-            pl.plane = Eigen::Vector3f(p[0],p[1],p[2]);
+            pl.plane = p;
             pl.nrElements = planeMatrices[i].nrPoints;
             resultingPlanes.push_back(pl);
             all_planes_.push_back( p );
@@ -967,7 +966,8 @@ PlaneExtractorTile<PointT>::compute()
             if(newPlaneId)
             {
                 //Mark the pixel in the segmentation map for the already existing patches
-                if(planes.at<PlaneSegment>(i,j).nrInliers > minAbsBlockInlier){
+                if(planes.at<PlaneSegment>(i,j).nrInliers > minAbsBlockInlier)
+                {
                     for(int k=0; k<param_.patchDim_; k++)
                     {
                         for(int l=0; l<param_.patchDim_; l++)
