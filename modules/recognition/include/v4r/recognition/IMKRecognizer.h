@@ -41,7 +41,7 @@
 #include <v4r/keypoints/impl/triple.hpp>
 #include "IMKView.h"
 #include "IMKObjectVotesClustering.h"
-#include "RansacSolvePnP.h"
+#include "RansacSolvePnPdepth.h"
 
 
 
@@ -63,10 +63,10 @@ public:
     int image_size_conf_desc;
     CodebookMatcher::Parameter cb_param;
     IMKObjectVotesClustering::Parameter vc_param;
-    RansacSolvePnP::Parameter pnp_param;
+    RansacSolvePnPdepth::Parameter pnp_param;
     Parameter(int _use_n_clusters=10,
       const CodebookMatcher::Parameter &_cb_param=CodebookMatcher::Parameter(0.25, .98, 1.),
-      const RansacSolvePnP::Parameter &_pnp_param=RansacSolvePnP::Parameter())
+      const RansacSolvePnPdepth::Parameter &_pnp_param=RansacSolvePnPdepth::Parameter())
     : use_n_clusters(_use_n_clusters), min_cluster_size(5), image_size_conf_desc(66),
       cb_param(_cb_param), pnp_param(_pnp_param){}
   };
@@ -78,6 +78,7 @@ private:
   cv::Mat_<double> dist_coeffs;
   cv::Mat_<double> intrinsic;
   
+  cv::Mat image;
   cv::Mat_<cv::Vec3b> im_lab;
   std::vector< cv::Mat_<unsigned char> > im_channels;
   cv::Mat_<unsigned char> im_warped_scaled;
@@ -106,16 +107,16 @@ private:
   ImGradientDescriptor cp;
 
   v4r::IMKObjectVotesClustering votesClustering;
-  v4r::RansacSolvePnP pnp;
+  v4r::RansacSolvePnPdepth pnp;
 
   void createObjectModel(const unsigned &idx);
   bool loadObjectIndices(const std::string &_filename, cv::Mat_<unsigned char> &_mask, const cv::Size &_size);
-  void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image);
+  void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &_image);
   void addView(const unsigned &idx, const std::vector<cv::KeyPoint> &keys, const cv::Mat &descs, const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const cv::Mat_<unsigned char> &mask, const Eigen::Matrix4f &pose, Eigen::Vector3d &centroid, unsigned &cnt);
   void poseEstimation(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const std::vector<std::string> &object_names, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &keys, const cv::Mat &descs,
                       const std::vector< std::vector< cv::DMatch > > &matches,
                       const std::vector< boost::shared_ptr<v4r::triple<unsigned, double, std::vector< cv::DMatch > > > > &clusters,
-                      std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects);
+                      std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects, const pcl::PointCloud<pcl::PointXYZRGB> &_cloud);
   int getMaxViewIndex(const std::vector<IMKView> &views, const std::vector<cv::DMatch> &matches, const std::vector<int> &inliers);
   void getNearestNeighbours(const Eigen::Vector2f &pt, const std::vector<cv::KeyPoint> &keys, const float &sqr_inl_radius_conf, std::vector<int> &nn_indices);
   float getMinDescDist32F(const cv::Mat &desc, const cv::Mat &descs, const std::vector<int> &indices);
@@ -133,7 +134,8 @@ public:
                            const v4r::FeatureDetector::Ptr &_descEstimator);
   ~IMKRecognizer();
 
-  void recognize(const cv::Mat &image, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects);
+  void recognize(const cv::Mat &_image, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects);
+  void recognize(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects);
 
   void clear();
   void setDataDirectory(const std::string &_base_dir);

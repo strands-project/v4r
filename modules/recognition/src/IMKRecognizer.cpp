@@ -85,15 +85,15 @@ IMKRecognizer::~IMKRecognizer()
  * @param cloud
  * @param image
  */
-void IMKRecognizer::convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image)
+void IMKRecognizer::convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &_image)
 {
-  image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
+ _image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
 
   for (unsigned v = 0; v < cloud.height; v++)
   {
     for (unsigned u = 0; u < cloud.width; u++)
     {
-      cv::Vec3b &cv_pt = image.at<cv::Vec3b> (v, u);
+      cv::Vec3b &cv_pt = _image.at<cv::Vec3b> (v, u);
       const pcl::PointXYZRGB &pt = cloud(u,v);
 
       cv_pt[2] = pt.r;
@@ -305,7 +305,6 @@ void IMKRecognizer::createObjectModel(const unsigned &idx)
     throw std::runtime_error("[IMKRecognizer::createObjectModel] Intrinsic camera parameter not set!");
 
 
-  cv::Mat_<cv::Vec3b> image;
   cv::Mat_<unsigned char> im_gray;
   cv::Mat_<unsigned char> mask;
   std::string pose_file, mask_file, object_indices_file;
@@ -514,7 +513,7 @@ double IMKRecognizer::computeGradientHistogramConf(const std::vector< cv::Mat_<u
  * @param matches
  * @param clusters
  */
-void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const std::vector<std::string> &_object_names, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &_keys, const cv::Mat &_descs, const std::vector< std::vector< cv::DMatch > > &_matches, const std::vector< boost::shared_ptr<v4r::triple<unsigned, double, std::vector< cv::DMatch > > > > &_clusters, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects)
+void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > &_im_channels, const std::vector<std::string> &_object_names, const std::vector<IMKView> &views, const std::vector<cv::KeyPoint> &_keys, const cv::Mat &_descs, const std::vector< std::vector< cv::DMatch > > &_matches, const std::vector< boost::shared_ptr<v4r::triple<unsigned, double, std::vector< cv::DMatch > > > > &_clusters, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects, const pcl::PointCloud<pcl::PointXYZRGB> &_cloud)
 {
     (void)_descs;
     (void)_matches;
@@ -526,6 +525,7 @@ void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > 
   std::vector<cv::DMatch> tmp_matches;
   Eigen::Matrix4f pose;
   std::vector<int> _inliers;
+  std::vector<float> depth;
 
   for (int i=0; i<(int)_clusters.size() && i<param.use_n_clusters; i++)
   {
@@ -550,7 +550,18 @@ void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > 
       tmp_matches.push_back(m);
     }
 
-    nb_ransac_trials = pnp.ransacSolvePnP(points, _im_points, pose, _inliers);
+    if (_cloud.width == (unsigned)_im_channels[0].cols && _cloud.height == (unsigned)_im_channels[0].rows)
+    {
+      depth.assign(_im_points.size(), std::numeric_limits<float>::quiet_NaN());
+      for (unsigned j=0; j<depth.size(); j++)
+      {
+        const cv::Point2f &im_pt = _im_points[j];
+        if (im_pt.x>=0 && im_pt.y>=0 && im_pt.x<_cloud.width && im_pt.y<_cloud.height)
+          depth[j] = _cloud(im_pt.x, im_pt.y).z;
+      }
+    }
+
+    nb_ransac_trials = pnp.ransac(points, _im_points, pose, _inliers, depth);
 
     if (nb_ransac_trials<(int)param.pnp_param.max_rand_trials)
     {
@@ -584,12 +595,60 @@ void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > 
 /**
  * detect
  */
-void IMKRecognizer::recognize(const cv::Mat &image, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects)
+void IMKRecognizer::recognize(const cv::Mat &_image, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects)
 {
   objects.clear();
 
   if (intrinsic.empty())
     throw std::runtime_error("[IMKRecognizer::detect] Intrinsic camera parameter not set!");
+
+  if( _image.type() != CV_8U )
+  {
+    cv::cvtColor(_image, im_lab, CV_BGR2Lab);
+    cv::split(im_lab, im_channels);
+  }
+  else
+  {
+    im_channels.assign(1, _image);
+  }
+
+  // get matches
+  { //kp::ScopeTime t("IMKRecognizer::recognize - keypoint detection");
+  detector->detect(im_channels[0], keys);
+  descEstimator->extract(im_channels[0], keys, descs);
+  }
+
+#ifdef DEBUG_AR_GUI
+//  _image.copyTo(dbg);
+  votesClustering.dbg = dbg;
+#endif
+
+  { //kp::ScopeTime t("IMKRecognizer::recognize - matching");
+  cbMatcher->queryMatches(descs, matches, false);
+  }
+
+  { //kp::ScopeTime t("IMKRecognizer::recognize - clustering");
+  votesClustering.operate(object_names, object_models, keys, matches, clusters);
+  }
+
+  { //kp::ScopeTime t("IMKRecognizer::recognize - pnp pose estimation");
+  poseEstimation(im_channels, object_names, object_models, keys, descs, matches, clusters, objects, pcl::PointCloud<pcl::PointXYZRGB>() );
+  }
+
+  std::sort(objects.begin(), objects.end(), cmpObjectsDec);
+}
+
+/**
+ * detect
+ */
+void IMKRecognizer::recognize(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, std::vector<v4r::triple<std::string, double, Eigen::Matrix4f> > &objects)
+{
+  objects.clear();
+
+  if (intrinsic.empty())
+    throw std::runtime_error("[IMKRecognizer::detect] Intrinsic camera parameter not set!");
+
+  convertImage(_cloud, image);
 
   if( image.type() != CV_8U )
   {
@@ -621,7 +680,7 @@ void IMKRecognizer::recognize(const cv::Mat &image, std::vector<v4r::triple<std:
   }
 
   { //kp::ScopeTime t("IMKRecognizer::recognize - pnp pose estimation");
-  poseEstimation(im_channels, object_names, object_models, keys, descs, matches, clusters, objects);
+  poseEstimation(im_channels, object_names, object_models, keys, descs, matches, clusters, objects, _cloud);
   }
 
   std::sort(objects.begin(), objects.end(), cmpObjectsDec);
