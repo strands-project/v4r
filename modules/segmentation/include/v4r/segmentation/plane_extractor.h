@@ -113,6 +113,7 @@ protected:
     pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_; ///< surface normals associated to input cloud
     std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > all_planes_; ///< all extracted planes (if segmentation algorithm supports it)
     PlaneExtractorParameter param_;
+    std::vector<std::vector<int> > plane_inliers_;
 
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -160,6 +161,12 @@ public:
     getPlanes() const
     {
         return all_planes_;
+    }
+
+    std::vector<std::vector<int> >
+    getPlaneInliers() const
+    {
+        return plane_inliers_;
     }
 
     typedef boost::shared_ptr< PlaneExtractor<PointT> > Ptr;
