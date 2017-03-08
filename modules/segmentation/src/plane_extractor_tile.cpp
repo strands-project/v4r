@@ -763,7 +763,8 @@ void
 PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], bool doNormalTest,bool reverse,bool zTest)
 {
     //TODO: add a distance buffer to store which patch is the better fit for a segment
-    for(int i=reverse ? segmentation.rows-1 : 0 ;reverse ? i>0 : i<segmentation.rows; reverse ? i-- : i++){
+    for(int i=reverse ? segmentation.rows-1 : 0 ;reverse ? i>0 : i<segmentation.rows; reverse ? i-- : i++)
+    {
         int oldId=0;
         Eigen::Vector4f oldPlane;
         int oldPlaneTTL=0;
@@ -793,7 +794,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                             {
                                 //read according patch segment
                                 const PlaneSegment &p = planes.at<PlaneSegment>(_i,_j);
-                                oldPlane = Eigen::Vector4f(p.x,p.y,p.z,0);
+                                oldPlane = Eigen::Vector4f(p.x,p.y,p.z,-1.f);
                                 found=true;
 
                                 //is this really the best place for reading out the thresholds?
@@ -812,7 +813,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                     {
                         //if no fitting patch is found. we take the plane with this id
                         const Plane &p = resultingPlanes[oldId-1];
-                        oldPlane = Eigen::Vector4f(p.plane[0], p.plane[1], p.plane[2], 0.f);
+                        oldPlane = Eigen::Vector4f(p.plane[0], p.plane[1], p.plane[2], -1.f);
 
                         //the thresholds are used from the fitting patch if no other threshold is found
                         //DON'T KNOW WHY THIS DOES NOT WORK!!!
@@ -841,10 +842,11 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                         if(_i>=0 && _j>=0 && _i<segmentation.rows && _j<segmentation.cols){
                             int otherId=segmentation.at<int>(_i,_j);
 
-                            if(otherId<=0 || zTest){//only do this if pixel is not yet set
+                            if(otherId<=0 || zTest)
+                            {//only do this if pixel is not yet set
                                 //test if the pixel is inside of oldPlane and set the pixel accordingly
                                 const Eigen::Vector3f &otherPoint = cloud_->at(j,i).getVector3fMap();// points.at<Eigen::Vector4f>(_i+1,_j+1);
-                                float newDist = distanceToPlane(otherPoint, oldPlane);
+                                float newDist = fabs(dist2plane(otherPoint, oldPlane));
                                 float oldDist=0;
                                 if(zTest)
                                     oldDist = zBuffer.at<float>(_i,_j);
