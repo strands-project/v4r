@@ -1,3 +1,4 @@
+#include <v4r/segmentation/plane_utils.h>
 #include <v4r/segmentation/plane_extractor_tile.h>
 
 #include <pcl/impl/instantiate.hpp>
@@ -285,7 +286,7 @@ PlaneExtractorTile<PointT>::isParallel(const Eigen::Vector4f &plane1, const Eige
 
 template<typename PointT>
 Eigen::Vector4f
-PlaneExtractorTile<PointT>::calcPlaneFromMatrix(PlaneExtractorTile<PointT>::PlaneMatrix m)
+PlaneExtractorTile<PointT>::calcPlaneFromMatrix(const PlaneExtractorTile<PointT>::PlaneMatrix &m) const
 {
     Eigen::Matrix3d mat;
     mat <<  m.xx,m.xy,m.xz,

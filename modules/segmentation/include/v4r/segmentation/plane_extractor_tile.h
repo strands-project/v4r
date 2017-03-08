@@ -160,7 +160,7 @@ private:
     bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2,
                     float cosThreshold) const;
 
-    Eigen::Vector4f calcPlaneFromMatrix(PlaneMatrix mat);
+    Eigen::Vector4f calcPlaneFromMatrix(const PlaneMatrix &mat) const;
 
     void replace(int from,int to,int maxIndex);
 
