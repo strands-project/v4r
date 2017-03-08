@@ -32,8 +32,8 @@ CloudSegmenter<PointT>::initialize(std::vector<std::string> &command_line_argume
         ("segmentation_method", po::value<int>(&segmentation_method)->default_value(segmentation_method), "segmentation method")
         ("plane_extraction_method", po::value<int>(&plane_extraction_method)->default_value(plane_extraction_method), "plane extraction method")
         ("normal_computation_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "normal computation method (if needed by segmentation approach)")
-        ("plane_inlier_threshold", po::value<float>(&plane_inlier_threshold_)->default_value(plane_inlier_threshold_), "inlier threshold for plane")
-        ("chop_z,z", po::value<float>(&chop_z_)->default_value(chop_z_), "cut-off threshold in meter")
+        ("plane_inlier_threshold", po::value<float>(&param_.plane_inlier_threshold_)->default_value(param_.plane_inlier_threshold_), "inlier threshold for plane")
+        ("chop_z,z", po::value<float>(&param_.chop_z_)->default_value(param_.chop_z_), "cut-off threshold in meter")
 ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -61,9 +61,10 @@ CloudSegmenter<PointT>::initialize(std::vector<std::string> &command_line_argume
 
 template<typename PointT>
 void
-CloudSegmenter<PointT>::segment(typename pcl::PointCloud<PointT>::Ptr &cloud)
+CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
 {
     pcl::PointCloud<pcl::Normal>::Ptr normals;
+    typename pcl::PointCloud<PointT>::Ptr processed_cloud (new pcl::PointCloud<PointT>(*cloud));
 
     if( segmenter_->getRequiresNormals() || plane_extractor_->getRequiresNormals() )
     {
@@ -74,69 +75,106 @@ CloudSegmenter<PointT>::segment(typename pcl::PointCloud<PointT>::Ptr &cloud)
         (void)t;
     }
 
-    for (PointT &p : cloud->points )
+    for (PointT &p : processed_cloud->points )
     {
-        if( pcl::isFinite(p) && p.z > chop_z_ )
+        if( pcl::isFinite(p) && p.z > param_.chop_z_ )
             p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
     }
 
+    if( !param_.skip_plane_extraction_ )
     {
         pcl::ScopeTime t("Plane extraction");
-        plane_extractor_->setInputCloud(cloud);
+        plane_extractor_->setInputCloud(processed_cloud);
         plane_extractor_->setNormalsCloud( normals );
         plane_extractor_->compute();
         planes_ = plane_extractor_->getPlanes();
-        (void)t;
-    }
+        plane_inliers_ = plane_extractor_->getPlaneInliers();
 
-    typename pcl::PointCloud<PointT>::Ptr above_plane_cloud;
-
-    if(planes_.empty())
-    {
-        std::cout << " Could not extract any plane with the chosen parameters. Segmenting the whole input cloud!" << std::endl;
-        above_plane_cloud = cloud;
-    }
-    else
-    {
-        size_t selected_plane = 0;
-        if (planes_.size() > 1 )
+        if(planes_.empty())
         {
-            std::cout << "Extracted multiple planes from input cloud. Selecting the one with the most inliers with the chosen plane inlier threshold of " << plane_inlier_threshold_ << std::endl;
+            std::cout << " Could not extract any plane with the chosen parameters. Segmenting the whole input cloud!" << std::endl;
+        }
+        else // get plane inliers
+        {
+            if( plane_inliers_.size() != planes_.size()) // the plane inliers are not already extracted by the algorithm - do it explicity
+            {
+                plane_inliers_.resize(planes_.size());
+                for(size_t plane_id=0; plane_id<planes_.size(); plane_id++)
+                    plane_inliers_[plane_id] = v4r::get_all_plane_inliers( *processed_cloud, planes_[ plane_id], param_.plane_inlier_threshold_ );
+            }
 
-            size_t max_plane_inliers = 0;
+            // remove planes without sufficient plane inliers
+            size_t kept=0;
             for(size_t plane_id=0; plane_id<planes_.size(); plane_id++)
             {
-                std::vector<int> plane_indices = v4r::get_all_plane_inliers( *cloud, planes_[ selected_plane], plane_inlier_threshold_ );
-                if( plane_indices.size() > max_plane_inliers )
+                if(plane_inliers_[plane_id].size() > param_.min_plane_inliers_)
                 {
-                    selected_plane = plane_id;
-                    max_plane_inliers = plane_indices.size();
+                    plane_inliers_[kept] = plane_inliers_[plane_id];
+                    planes_[kept] = planes_[plane_id];
+                    kept++;
+                }
+            }
+            plane_inliers_.resize(kept);
+            planes_.resize(kept);
+
+            // get dominant plane id
+            size_t dominant_plane_id = 0;
+            size_t max_inliers = 0;
+            for(size_t plane_id=0; plane_id<plane_inliers_.size(); plane_id++)
+            {
+                if( plane_inliers_[plane_id].size() > max_inliers )
+                {
+                    max_inliers = plane_inliers_[plane_id].size();
+                    dominant_plane_id = plane_id;
+                }
+            }
+
+
+            // now filter
+            for(size_t plane_id=0; plane_id<plane_inliers_.size(); plane_id++)
+            {
+                if( param_.dominant_plane_only_ && ( plane_id != dominant_plane_id ) )
+                    continue;
+
+                if( param_.only_remove_planes_ )
+                {
+                    for( int idx : plane_inliers_[plane_id] )
+                    {
+                        PointT &p = processed_cloud->points[idx];
+                        p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+                    }
+                }
+                else    // only points above plane
+                {
+                    std::vector<int> above_plane_indices = v4r::get_above_plane_inliers( *processed_cloud, planes_[ plane_id], param_.plane_inlier_threshold_ );
+                    visualizePlane<PointT>(processed_cloud, planes_[plane_id], 0.02f, "selected plane");
+                    visualizeCluster<PointT>(processed_cloud, above_plane_indices, "above plane");
+                    boost::dynamic_bitset<> above_plane_mask = v4r::createMaskFromIndices( above_plane_indices, processed_cloud->points.size() );
+
+                    for(size_t i=0; i<processed_cloud->points.size(); i++) // keep organized
+                    {
+                        if( !above_plane_mask[i] )
+                        {
+                            PointT &p = processed_cloud->points[i];
+                            p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+                        }
+                    }
                 }
             }
         }
-        std::vector<int> above_plane_indices = v4r::get_above_plane_inliers( *cloud, planes_[ selected_plane], plane_inlier_threshold_ );
-        boost::dynamic_bitset<> above_plane_mask = v4r::createMaskFromIndices( above_plane_indices, cloud->points.size() );
-
-        above_plane_cloud.reset (new pcl::PointCloud<PointT> (*cloud));
-        for(size_t i=0; i<above_plane_cloud->points.size(); i++) // keep organized
-        {
-            if( !above_plane_mask[i] )
-            {
-                PointT &p = above_plane_cloud->points[i];
-                p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
-            }
-        }
-    }
-
-    {
-        pcl::ScopeTime t("Segmentation");
-        segmenter_->setInputCloud(above_plane_cloud);
-        segmenter_->setNormalsCloud( normals ); // since the cloud was kept organized, we can use the original normal cloud
-        segmenter_->segment();
         (void)t;
     }
 
-    segmenter_->getSegmentIndices(found_clusters_);
+
+    if(!param_.skip_segmentation_)
+    {
+        pcl::ScopeTime t("Segmentation");
+        segmenter_->setInputCloud( processed_cloud );
+        segmenter_->setNormalsCloud( normals ); // since the cloud was kept organized, we can use the original normal cloud
+        segmenter_->segment();
+        segmenter_->getSegmentIndices(found_clusters_);
+        (void)t;
+    }
 }
 
 #define PCL_INSTANTIATE_CloudSegmenter(T) template class V4R_EXPORTS CloudSegmenter<T>;
