@@ -47,14 +47,20 @@ inline float dist2plane(const Eigen::Vector3f& point, const Eigen::Vector4f &pla
 
 
 /**
- * @brief DistanceBetweenPlanes
- * @param plane1
+ * @brief DistanceBetweenPlanes (assumes planes are parallel)
+ * @param plane1 [a*x + b*y + c*z + d = 0]
  * @param plane2
  * @return distance between two (parallel) planes
  */
 inline float DistanceBetweenPlanes(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2)
 {
-    return ( fabs(plane1(3) - plane2(3)) / plane1.head(3).squaredNorm() );
+    // a b and c must be equal
+    float norm1 = plane1.head(3).squaredNorm();
+    float norm2 = plane2.head(3).squaredNorm();
+    const Eigen::Vector4f plane1_normalized = plane1/norm1;
+    const Eigen::Vector4f plane2_normalized = plane2/norm2;
+
+    return ( fabs(plane1_normalized(3) - plane2_normalized(3)) );
 }
 
 

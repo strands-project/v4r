@@ -33,7 +33,7 @@ bool
 isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest)
 {
     Eigen::Vector4f plane_tmp = plane;
-    plane_tmp(3) = -1;
+    plane_tmp(3) = -1.f;
 
     float distance = fabs(dist2plane(point, plane_tmp));
     if(distance<distThreshold)
@@ -56,7 +56,7 @@ isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal,
                                           float cosThreshold, float distThreshold, bool doNormalTest)
 {
     Eigen::Vector4f plane_tmp = plane;
-    plane_tmp(3) = -1;
+    plane_tmp(3) = -1.f;
 
     float distance = fabs(dist2plane(point, plane_tmp));
 
@@ -78,7 +78,7 @@ isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal,
 float distanceToPlane(const Eigen::Vector3f &point, const Eigen::Vector4f &plane)
 {
     Eigen::Vector4f plane_tmp = plane;
-    plane_tmp(3) = -1;
+    plane_tmp(3) = -1.f;
 
     return fabs(dist2plane(point, plane_tmp));
 }
@@ -87,7 +87,7 @@ bool
 isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold)
 {
     float cosAlpha=CosAngleBetweenPlanes(plane1, plane2);
-    float distance=std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
+    float distance = distanceToPlane(centerPlane2.head(3), plane1); // std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
 
     if(cosAlpha >cosThreshold && distance<distThreshold)
         return true;
