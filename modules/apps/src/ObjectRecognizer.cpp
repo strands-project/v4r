@@ -302,7 +302,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     if(!skip_verification_)
     {
         pcl::ScopeTime t("Verification of object hypotheses");
-        hv_->setSceneCloud( processed_cloud );
+        hv_->setSceneCloud( cloud );
         hv_->setNormals( normals );
         hv_->setHypotheses( generated_object_hypotheses_ );
         hv_->verify();
@@ -321,7 +321,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     {
         LocalObjectModelDatabase::ConstPtr lomdb = local_recognition_pipeline_->getLocalObjectModelDatabase();
         rec_vis_->setCloud( cloud );
-//        rec_vis_->setProcessedCloud( processed_cloud );
+        rec_vis_->setProcessedCloud( processed_cloud );
         rec_vis_->setGeneratedObjectHypotheses( generated_object_hypotheses_ );
         rec_vis_->setLocalModelDatabase(lomdb);
         rec_vis_->setVerifiedObjectHypotheses( verified_hypotheses_ );
