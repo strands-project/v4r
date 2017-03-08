@@ -26,19 +26,19 @@ main (int argc, char ** argv)
 
     std::string test_dir;
     std::string out_dir = "/tmp/object_recognition_results/";
-    std::string multipipeline_xml_config_fn = "cfg/multipipeline_config.xml";
     std::string debug_dir = "";
     std::string gt_dir;
+    std::string recognizer_config = "cfg/multipipeline_config.xml";
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
             ("test_dir,t", po::value<std::string>(&test_dir)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
-            ("multipipeline_xml_config_fn", po::value<std::string>(&multipipeline_xml_config_fn)->default_value(multipipeline_xml_config_fn), "XML config file setting up the multi-pipeline.")
             ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
             ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
             ("groundtruth_dir,g", po::value<std::string>(&gt_dir)->required(), "Root directory containing annotation files (i.e. 4x4 ground-truth pose of each object with filename viewId_ModelId_ModelInstanceCounter.txt")
-            ;
+            ("recognizer_config", po::value<std::string>(&recognizer_config)->default_value(recognizer_config), "Config XML of the multi-pipeline recognizer")
+           ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
     std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
@@ -115,7 +115,7 @@ main (int argc, char ** argv)
             }
             of_param << std::endl;
 
-            v4r::apps::ObjectRecognizerParameter or_param (multipipeline_xml_config_fn);
+            v4r::apps::ObjectRecognizerParameter or_param (recognizer_config);
             v4r::apps::ObjectRecognizer<PT> recognizer(or_param);
             recognizer.initialize(to_pass_further);
 
