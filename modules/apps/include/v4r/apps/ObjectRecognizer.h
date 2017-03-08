@@ -187,7 +187,7 @@ public:
      * @return
      */
     std::vector<typename ObjectHypothesis<PointT>::Ptr >
-    recognize(typename pcl::PointCloud<PointT>::Ptr &cloud);
+    recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud);
 
     /**
      * @brief getObjectHypothesis

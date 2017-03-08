@@ -187,11 +187,13 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
 template<typename PointT>
 std::vector<typename ObjectHypothesis<PointT>::Ptr >
-ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud)
+ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
 {
+    typename pcl::PointCloud<PointT>::Ptr processed_cloud (new pcl::PointCloud<PointT>(*cloud));
     //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
-    cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
-    cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+    processed_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+    processed_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
     verified_hypotheses_.clear();
 
     std::vector<double> elapsed_time;
@@ -206,7 +208,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
         ne.setMaxDepthChangeFactor(0.02f);
         ne.setNormalSmoothingSize(10.0f);
         ne.setDepthDependentSmoothing(true);
-        ne.setInputCloud(cloud);
+        ne.setInputCloud(processed_cloud);
         ne.compute(*normals);
         mrec_->setSceneNormals( normals );
         elapsed_time.push_back( t.getTime() );
@@ -216,16 +218,34 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
     if( param_.remove_planes_ )
     {
         pcl::ScopeTime t("Plane Extraction");
-        plane_extractor_->setInputCloud(cloud);
+        plane_extractor_->setInputCloud(processed_cloud);
         plane_extractor_->setNormalsCloud( normals );
         plane_extractor_->compute();
-        std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes = plane_extractor_->getPlanes();
+        const std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes = plane_extractor_->getPlanes();
+        const std::vector<std::vector<int> > plane_inliers = plane_extractor_->getPlaneInliers();
 
         if( planes.empty() )
+        {
             std::cerr << " Could not extract any plane with the chosen parameters. Recognizing the whole input cloud!" << std::endl;
+        }
+        else if( planes.size() == plane_inliers.size() )
+        {
+            visualizeClusters<PointT>(processed_cloud, plane_inliers);
+            for(const std::vector<int> &plane_inliers_tmp : plane_inliers)
+            {
+                if( plane_inliers_tmp.size() > param_.min_plane_inliers_ )
+                {
+                    for( int idx : plane_inliers_tmp)
+                    {
+                        PointT &p = processed_cloud->points[idx];
+                        p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+                    }
+                }
+            }
+        }
         else
         {
-            visualizePlanes<PointT>(cloud, planes, param_.plane_inlier_threshold_);
+            visualizePlanes<PointT>(processed_cloud, planes, param_.plane_inlier_threshold_);
             size_t selected_plane = 0;
             if (planes.size() > 1 )
             {
@@ -234,7 +254,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
                 size_t max_plane_inliers = 0;
                 for(size_t plane_id=0; plane_id<planes.size(); plane_id++)
                 {
-                    std::vector<int> plane_indices = v4r::get_all_plane_inliers( *cloud, planes[ selected_plane], param_.plane_inlier_threshold_ );
+                    std::vector<int> plane_indices = v4r::get_all_plane_inliers( *processed_cloud, planes[ selected_plane], param_.plane_inlier_threshold_ );
                     if( plane_indices.size() > max_plane_inliers )
                     {
                         selected_plane = plane_id;
@@ -242,38 +262,38 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
                     }
                 }
             }
-            std::vector<int> above_plane_indices = v4r::get_above_plane_inliers( *cloud, planes[ selected_plane], param_.plane_inlier_threshold_ );
+            std::vector<int> above_plane_indices = v4r::get_above_plane_inliers( *processed_cloud, planes[ selected_plane], param_.plane_inlier_threshold_ );
 
             if( above_plane_indices.size() >= param_.min_plane_inliers_ )
             {
-                boost::dynamic_bitset<> above_plane_mask = v4r::createMaskFromIndices( above_plane_indices, cloud->points.size() );
+                boost::dynamic_bitset<> above_plane_mask = v4r::createMaskFromIndices( above_plane_indices, processed_cloud->points.size() );
 
-                for(size_t i=0; i<cloud->points.size(); i++) // keep organized
+                for(size_t i=0; i<processed_cloud->points.size(); i++) // keep organized
                 {
                     if( !above_plane_mask[i] )
                     {
-                        PointT &p = cloud->points[i];
+                        PointT &p = processed_cloud->points[i];
                         p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
                     }
                 }
             }
             else
                 std::cerr << "Dominant plane does not contain enough inliers (" << above_plane_indices.size() << "/" <<
-                             cloud->points.size() << "). Recognizing the whole input cloud!" << std::endl;
+                             processed_cloud->points.size() << "). Recognizing the whole input cloud!" << std::endl;
         }
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====
     pcl::PassThrough<PointT> pass;
-    pass.setInputCloud (cloud);
+    pass.setInputCloud (processed_cloud);
     pass.setFilterFieldName ("z");
     pass.setFilterLimits (0, param_.chop_z_);
     pass.setKeepOrganized(true);
-    pass.filter (*cloud);
+    pass.filter (*processed_cloud);
 
     {
         pcl::ScopeTime t("Generation of object hypotheses");
-        mrec_->setInputCloud ( cloud );
+        mrec_->setInputCloud ( processed_cloud );
         mrec_->recognize();
         generated_object_hypotheses_ = mrec_->getObjectHypothesis();
         elapsed_time.push_back( t.getTime() );
@@ -282,7 +302,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
     if(!skip_verification_)
     {
         pcl::ScopeTime t("Verification of object hypotheses");
-        hv_->setSceneCloud( cloud );
+        hv_->setSceneCloud( processed_cloud );
         hv_->setNormals( normals );
         hv_->setHypotheses( generated_object_hypotheses_ );
         hv_->verify();
@@ -301,6 +321,7 @@ ObjectRecognizer<PointT>::recognize(typename pcl::PointCloud<PointT>::Ptr &cloud
     {
         LocalObjectModelDatabase::ConstPtr lomdb = local_recognition_pipeline_->getLocalObjectModelDatabase();
         rec_vis_->setCloud( cloud );
+//        rec_vis_->setProcessedCloud( processed_cloud );
         rec_vis_->setGeneratedObjectHypotheses( generated_object_hypotheses_ );
         rec_vis_->setLocalModelDatabase(lomdb);
         rec_vis_->setVerifiedObjectHypotheses( verified_hypotheses_ );
