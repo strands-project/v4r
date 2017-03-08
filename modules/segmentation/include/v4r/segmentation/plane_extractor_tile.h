@@ -1,5 +1,6 @@
 /******************************************************************************
  * Copyright (c) 2017 Simon Schreiberhuber
+ * Copyright (c) 2017 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -41,6 +42,7 @@ public:
     float maxInlierDist_; ///< The maximum distance a point is allowed to be out of his plane
     bool useVariableThresholds_; ///< useVariableThresholds
     float maxInlierBlockDist_; ///< The maximum distance two adjacent patches are allowed to be out of plane
+    bool doZTest_; ///< Only the closest possible points get added to a plane
 
     PlaneExtractorTileParameter()
         :
@@ -52,7 +54,8 @@ public:
           maxStepSize_(0.05f), //0.1f
           maxInlierDist_(0.01f),
           useVariableThresholds_(true),
-          maxInlierBlockDist_(0.005f)
+          maxInlierBlockDist_(0.005f),
+          doZTest_(true)
     {}
 };
 
@@ -63,6 +66,7 @@ protected:
     using PlaneExtractor<PointT>::cloud_;
     using PlaneExtractor<PointT>::normal_cloud_;
     using PlaneExtractor<PointT>::all_planes_;
+    using PlaneExtractor<PointT>::plane_inliers_;
 
     Camera::ConstPtr cam_;
     PlaneExtractorTileParameter param_;
@@ -78,7 +82,8 @@ private:
      * @brief The PlaneMatrix struct
      * structure to store a symmetrical 3 by 3 matrix
      */
-    struct PlaneMatrix{
+    struct PlaneMatrix
+    {
         Eigen::Vector3d sum;
         double xx;
         double xy;
@@ -126,7 +131,8 @@ private:
     };
 
     //maybe supply this with a list of additional
-    struct Plane{
+    struct Plane
+    {
         Eigen::Vector3f plane;
         int nrElements;
     };
@@ -145,30 +151,28 @@ private:
 
     //two versions of is inlier one is also regarding the normal
     bool isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane,
-                  float cosThreshold, float distThreshold, bool doNormalTest = true);
+                  float cosThreshold, float distThreshold, bool doNormalTest = true) const;
 
     bool isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float _planeNorm,
-                  float cosThreshold, float distThreshold, bool doNormalTest = true);
+                  float cosThreshold, float distThreshold, bool doNormalTest = true) const;
 
     bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2,
-                   float cosThreshold, float distThreshold);
+                   float cosThreshold, float distThreshold) const;
 
-    bool isParallel(Eigen::Vector4f plane1, Eigen::Vector4f plane2,
-                    float cosThreshold);
+    bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2,
+                    float cosThreshold) const;
 
     Eigen::Vector4f calcPlaneFromMatrix(PlaneMatrix mat);
 
     void replace(int from,int to,int maxIndex);
 
-
     cv::Mat getDebugImage();
-    cv::Mat getDebugImage(int channel, bool doNormalTest);
+    cv::Mat getDebugImage(bool doNormalTest);
 
     int minAbsBlockInlier;
     int colsOfPatches; ///< The dimensions of the downsampled image of patches
     int rowsOfPatches; ///< The dimensions of the downsampled image of patches
     int maxId; ///< The highest used id of
-
 
     int allocateMemory();
 
@@ -206,22 +210,31 @@ private:
     float (*maxInlierDistFunc)(float depth) = NULL; ///< maxInlierDistFunc
     float (*maxInlierBlockDistFunc)(float depth) = NULL; ///< inlierBlockDistanceFunc
 
-public:
-
-    /**
-     * @brief doZTest
-     * Only the closest possible points get added to a plane
-     */
-    bool doZTest=true;
-
     //Some parameters for maximum
     cv::Mat segmentation;
     std::vector<Plane> resultingPlanes;
 
-    //two structures that are mainly used internally:
-    //maybe combine them to one structure for better memory access)
-    cv::Mat normals;
+    // mainly used internally:
+    // maybe combine them to one structure for better memory access)
     cv::Mat debug;
+
+//    cv::Mat generateDebugTextureForPlane(const Eigen::Vector4f &plane, int index, bool doNormalTest);
+
+    /**
+     * @brief generateColorCodedTexture
+     * @return
+     * a rgb image of the segmentation result
+     */
+    cv::Mat generateColorCodedTexture() const;
+
+    /**
+     * @brief generateColorCodedTextureDebug
+     * @return
+     */
+    cv::Mat generateColorCodedTextureDebug() const;
+
+public:
+
 
     void setMaxAngle(float angle)
     {
@@ -236,21 +249,6 @@ public:
     }
 
     void compute();
-
-    cv::Mat generateDebugTextureForPlane(Eigen::Vector4f plane, int index, bool doNormalTest);
-
-    /**
-     * @brief generateColorCodedTexture
-     * @return
-     * a rgb image of the segmentation result
-     */
-    cv::Mat generateColorCodedTexture();
-
-    /**
-     * @brief generateColorCodedTextureDebug
-     * @return
-     */
-    cv::Mat generateColorCodedTextureDebug();
 
     void
     setCamera(const Camera::ConstPtr &cam)
