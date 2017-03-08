@@ -147,19 +147,6 @@ private:
     //big todo for speed: switch to Vector4f elements
     //http://eigen.tuxfamily.org/index.php?title=FAQ#Vectorization
 
-    //two versions of is inlier one is also regarding the normal
-    bool isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane,
-                  float cosThreshold, float distThreshold, bool doNormalTest = true) const;
-
-    bool isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float _planeNorm,
-                  float cosThreshold, float distThreshold, bool doNormalTest = true) const;
-
-    bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2,
-                   float cosThreshold, float distThreshold) const;
-
-    bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2,
-                    float cosThreshold) const;
-
     Eigen::Vector4f calcPlaneFromMatrix(const PlaneMatrix &mat) const;
 
     void replace(int from,int to,int maxIndex);

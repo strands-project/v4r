@@ -22,8 +22,80 @@
 
 namespace v4r
 {
+bool isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest = true);
+bool isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float _planeNorm, float cosThreshold, float distThreshold, bool doNormalTest = true);
+bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold);
+bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold);
 
 float distanceToPlane(const Eigen::Vector4f &point, const Eigen::Vector4f &plane, float _planeNorm);
+
+bool
+isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest)
+{
+    float distance = fabs((point.dot(plane)-1.0f)/plane.norm());
+    if(distance<distThreshold)
+    {
+        if(doNormalTest)
+        {
+            float cosAlpha=normal.dot(plane)/plane.norm();
+            return (cosAlpha>cosThreshold);
+        }
+        else
+            return true;
+    }
+
+    return false;
+}
+
+bool
+isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal,
+                                          const Eigen::Vector4f &plane, float _planeNorm,
+                                          float cosThreshold, float distThreshold, bool doNormalTest)
+{
+    float distance = fabs((point.dot(plane)-1.0f)*_planeNorm);
+
+    if( distance<distThreshold )
+    {
+        if(doNormalTest)
+        {
+            float cosAlpha=normal.dot(plane)*_planeNorm;
+            return (cosAlpha>cosThreshold);
+        }
+        else
+            return true;
+    }
+
+    return false;
+}
+
+
+float distanceToPlane(const Eigen::Vector4f &point, const Eigen::Vector4f &plane, float _planeNorm)
+{
+    return fabs((point.dot(plane)-1.0f)*_planeNorm);
+}
+
+bool
+isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2,
+                                      const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold)
+{
+    float dot=plane1.dot(plane2);
+    float cosAlpha=dot/(plane1.norm()*plane2.norm());
+    //point in plane 2 = plane2*(plane2/(plane2.norm^2)
+    float distance=std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
+
+    if(cosAlpha >cosThreshold && distance<distThreshold)
+        return true;
+
+    return false;
+}
+
+bool
+isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold)
+{
+    float dot = plane1.dot(plane2);
+    float cosAlpha = dot/(plane1.norm()*plane2.norm());
+    return (cosAlpha >cosThreshold);//maybe use plane angle for this
+}
 
 template <typename PointT>
 cv::Mat
@@ -81,7 +153,6 @@ PlaneExtractorTile<PointT>::getDebugImage()
             }
         }
     }
-
     return generateColorCodedTextureDebug();
 }
 
@@ -164,12 +235,10 @@ PlaneExtractorTile<PointT>::generateColorCodedTexture() const
         colorMap.at<glm::u8vec3>(n)=glm::u8vec3(n/10*50,((n%10)/5)*50,(n%5)*50);
 
     cv::Mat coloredImage (cloud_->height, cloud_->width, CV_8UC3);
-    for(int i=0; i<cloud_->height; i++)
+    for(size_t i=0; i<cloud_->height; i++)
     {
-        for(int j=0; j<cloud_->width; j++)
-        {
+        for(size_t j=0; j<cloud_->width; j++)
             coloredImage.at<glm::u8vec3>(i,j)=colorMap.at<glm::u8vec3>(0,segmentation.at<int>(i,j));
-        }
     }
     return coloredImage;
 }
@@ -212,77 +281,6 @@ PlaneExtractorTile<PointT>::generateColorCodedTextureDebug() const
     return coloredImage;
 }
 
-
-template<typename PointT>
-bool
-PlaneExtractorTile<PointT>::isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest) const
-{
-    float distance = fabs((point.dot(plane)-1.0f)/plane.norm());
-    if(distance<distThreshold)
-    {
-        if(doNormalTest)
-        {
-            float cosAlpha=normal.dot(plane)/plane.norm();
-            return (cosAlpha>cosThreshold);
-        }
-        else
-            return true;
-    }
-
-    return false;
-}
-
-template<typename PointT>
-bool PlaneExtractorTile<PointT>::isInlier(const Eigen::Vector4f &point, const Eigen::Vector4f &normal,
-                                          const Eigen::Vector4f &plane, float _planeNorm,
-                                          float cosThreshold, float distThreshold, bool doNormalTest) const
-{
-    float distance = fabs((point.dot(plane)-1.0f)*_planeNorm);
-
-    if( distance<distThreshold )
-    {
-        if(doNormalTest)
-        {
-            float cosAlpha=normal.dot(plane)*_planeNorm;
-            return (cosAlpha>cosThreshold);
-        }
-        else
-            return true;
-    }
-
-    return false;
-}
-
-
-float distanceToPlane(const Eigen::Vector4f &point, const Eigen::Vector4f &plane, float _planeNorm)
-{
-    return fabs((point.dot(plane)-1.0f)*_planeNorm);
-}
-
-template<typename PointT>
-bool
-PlaneExtractorTile<PointT>::isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2,
-                                      const Eigen::Vector4f &centerPlane2, float cosThreshold, float distThreshold) const
-{
-    float dot=plane1.dot(plane2);
-    float cosAlpha=dot/(plane1.norm()*plane2.norm());
-    //point in plane 2 = plane2*(plane2/(plane2.norm^2)
-    float distance=std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
-
-    if(cosAlpha >cosThreshold && distance<distThreshold)
-        return true;
-
-    return false;
-}
-
-template<typename PointT>
-bool
-PlaneExtractorTile<PointT>::isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold) const
-{
-    float dot = plane1.dot(plane2);
-    float cosAlpha = dot/(plane1.norm()*plane2.norm());
-    return (cosAlpha >cosThreshold);//maybe use plane angle for this
-}
 
 template<typename PointT>
 Eigen::Vector4f
@@ -346,9 +344,7 @@ PlaneExtractorTile<PointT>::allocateMemory()
 
     if(param_.doZTest_)
     {
-        if(zBuffer.cols!=cloud_->width || zBuffer.rows!=cloud_->height || zBuffer.type()!=CV_32SC1)
-            zBuffer.create(cloud_->height,cloud_->width,CV_32FC1);
-
+        zBuffer = cv::Mat(cloud_->height, cloud_->width, CV_32FC1);
         zBuffer.setTo( cv::Scalar( std::numeric_limits<float>::max() ) );
     }
 
