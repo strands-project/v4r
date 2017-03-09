@@ -220,7 +220,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
             std::stringstream model_label;
             model_label << model_id << "_" << ohg_id << "_" << i;
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(5);
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(3);
             pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
             vis_->addPointCloud(model_aligned, model_label.str(), vp2_);
 
@@ -316,7 +316,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
         std::stringstream model_label;
         model_label << model_id << "_verified_" << i;
         typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(5);
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(3);
         pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
         vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
 
