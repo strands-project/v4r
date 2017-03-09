@@ -32,65 +32,12 @@ GlobalRecognitionPipeline<PointT>::recognize()
 
     obj_hypotheses_.clear();
 
-    {
-        pcl::ScopeTime t("Plane extraction");
-        plane_extractor_->setInputCloud(scene_);
-        plane_extractor_->setNormalsCloud( scene_normals_ );
-        plane_extractor_->compute();
-        planes_ = plane_extractor_->getPlanes();
-        (void)t;
-    }
-
-
     Eigen::Vector4f table_plane = Eigen::Vector4f::Zero();
 
-    if(planes_.empty())
-    {
-        std::cout << " Could not extract any plane with the chosen parameters. Segmenting the whole input cloud!" << std::endl;
-        seg_->setInputCloud(scene_);
-    }
-    else
-    {
-        typename pcl::PointCloud<PointT>::Ptr above_plane_cloud;
-
-        size_t selected_plane = 0;
-        if (planes_.size() > 1 )
-        {
-            std::cout << "Extracted multiple planes from input cloud. Selecting the one with the most inliers with the chosen plane inlier threshold of " << param_.plane_inlier_threshold_ << std::endl;
-
-            size_t max_plane_inliers = 0;
-            for(size_t plane_id=0; plane_id<planes_.size(); plane_id++)
-            {
-                std::vector<int> plane_indices = v4r::get_all_plane_inliers( *scene_, planes_[ selected_plane], param_.plane_inlier_threshold_ );
-                if( plane_indices.size() > max_plane_inliers )
-                {
-                    selected_plane = plane_id;
-                    max_plane_inliers = plane_indices.size();
-                }
-            }
-        }
-
-        table_plane = planes_[selected_plane];
-        std::vector<int> above_plane_indices = v4r::get_above_plane_inliers( *scene_, table_plane, param_.plane_inlier_threshold_ );
-        boost::dynamic_bitset<> above_plane_mask = v4r::createMaskFromIndices( above_plane_indices, scene_->points.size() );
-
-        above_plane_cloud.reset (new pcl::PointCloud<PointT> (*scene_));
-        for(size_t i=0; i<above_plane_cloud->points.size(); i++) // keep organized
-        {
-            if( !above_plane_mask[i] )
-            {
-                PointT &p = above_plane_cloud->points[i];
-                p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
-            }
-        }
-
-        seg_->setInputCloud(above_plane_cloud);
-    }
-
+    seg_->setInputCloud(scene_);
     seg_->setNormalsCloud(scene_normals_);
     seg_->segment();
     seg_->getSegmentIndices(clusters_);
-//    bool plane_found = seg_->getDominantPlane(table_plane);
 
     obj_hypotheses_.resize(clusters_.size()); // each cluster builds a hypothesis group
     size_t kept=0;

@@ -116,16 +116,6 @@ public:
     }
 
     /**
-     * @brief setPlaneExtractionAlgorithm
-     * @param pe
-     */
-    void
-    setPlaneExtractionAlgorithm(const typename PlaneExtractor<PointT>::Ptr &pe)
-    {
-        plane_extractor_ = pe;
-    }
-
-    /**
      * @brief setSegmentationAlgorithm
      * @param seg
      */

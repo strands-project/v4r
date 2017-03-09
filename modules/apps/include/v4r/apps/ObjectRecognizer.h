@@ -21,6 +21,7 @@
  *
  ******************************************************************************/
 
+#include <v4r/apps/CloudSegmenter.h>
 #include <v4r/core/macros.h>
 #include <v4r/apps/visualization.h>
 #include <v4r/ml/types.h>
@@ -58,7 +59,6 @@ public:
     bool do_esf_;
     bool do_alexnet_;
     int segmentation_method_;
-    int plane_extraction_method_;
     int esf_classification_method_;
     double chop_z_; ///< Cut-off distance in meter
 
@@ -82,7 +82,6 @@ public:
           do_esf_(false),
           do_alexnet_(false),
           segmentation_method_(SegmentationType::OrganizedConnectedComponents),
-          plane_extraction_method_(PlaneExtractionType::OrganizedMultiplane),
           esf_classification_method_(ClassifierType::SVM),
           chop_z_(3.f),
           remove_planes_(false),
@@ -126,7 +125,6 @@ private:
                 & BOOST_SERIALIZATION_NVP(do_esf_)
                 & BOOST_SERIALIZATION_NVP(do_alexnet_)
                 & BOOST_SERIALIZATION_NVP(segmentation_method_)
-                & BOOST_SERIALIZATION_NVP(plane_extraction_method_)
                 & BOOST_SERIALIZATION_NVP(esf_classification_method_)
                 & BOOST_SERIALIZATION_NVP(chop_z_)
                 & BOOST_SERIALIZATION_NVP(remove_planes_)
@@ -146,10 +144,10 @@ private:
 
     typename v4r::ObjectRecognitionVisualizer<PointT>::Ptr rec_vis_; ///< visualization object
 
-    typename v4r::PlaneExtractor<PointT>::Ptr plane_extractor_; ///< plane extractor used for global segmentation as well as plane removal (if corresponding option is enabled)
-
     std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_;
     std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_;
+
+    typename v4r::apps::CloudSegmenter<PointT>::Ptr cloud_segmenter_; ///< cloud segmenter for plane removal (if enabled)
 
     bool visualize_; ///< if true, visualizes objects
     bool skip_verification_; ///< if true, will only generate hypotheses but not verify them

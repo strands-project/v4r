@@ -125,16 +125,11 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
         // ====== SETUP GLOBAL RECOGNITION PIPELINE =====
 
-
-        if(param_.do_esf_ || param_.do_alexnet_ || param_.remove_planes_)
-            plane_extractor_ = v4r::initPlaneExtractor<PointT>(param_.plane_extraction_method_, to_pass_further);
-
         if(param_.do_esf_ || param_.do_alexnet_)
         {
             typename GlobalRecognitionPipeline<PointT>::Ptr global_recognition_pipeline (new GlobalRecognitionPipeline<PointT>);
             typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( param_.segmentation_method_, to_pass_further);
             global_recognition_pipeline->setSegmentationAlgorithm( segmenter );
-            global_recognition_pipeline->setPlaneExtractionAlgorithm(plane_extractor_);
 
             if(param_.do_esf_)
             {
@@ -178,6 +173,20 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         hv_->setModelDatabase(model_database);
     }
 
+    if (param_.remove_planes_)
+    {
+        // --plane_extraction_method 8 -z 2 --remove_points_below_selected_plane 1 --remove_planes 0 --plane_extractor_maxStepSize 0.1 --use_highest_plane 1 --min_plane_inliers 10000
+        std::vector<std::string> additional_cs_arguments = {"--skip_segmentation", "1",
+                                                            "--remove_selected_plane", "1",
+                                                            "--remove_points_below_selected_plane", "1",
+                                                            "--use_highest_plane", "1"};
+        to_pass_further.insert(to_pass_further.end(), additional_cs_arguments.begin(), additional_cs_arguments.end());
+        v4r::apps::CloudSegmenterParameter cs_param;
+        to_pass_further = cs_param.init( to_pass_further );
+        cloud_segmenter_.reset( new v4r::apps::CloudSegmenter<PointT> (cs_param) );
+        cloud_segmenter_->initialize(to_pass_further);
+    }
+
     if(visualize_)
     {
         rec_vis_.reset( new v4r::ObjectRecognitionVisualizer<PointT>);
@@ -199,7 +208,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     std::vector<double> elapsed_time;
 
     pcl::PointCloud<pcl::Normal>::Ptr normals;
-    if( mrec_->needNormals() || hv_ || ( plane_extractor_ && plane_extractor_->getRequiresNormals() ))
+    if( mrec_->needNormals() || hv_ )
     {
         pcl::ScopeTime t("Computing normals");
         normals.reset (new pcl::PointCloud<pcl::Normal>);
@@ -214,73 +223,11 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         elapsed_time.push_back( t.getTime() );
     }
 
-
-    if( param_.remove_planes_ )
+    if(param_.remove_planes_)
     {
-        pcl::ScopeTime t("Plane Extraction");
-        plane_extractor_->setInputCloud(processed_cloud);
-        plane_extractor_->setNormalsCloud( normals );
-        plane_extractor_->compute();
-        const std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes = plane_extractor_->getPlanes();
-        const std::vector<std::vector<int> > plane_inliers = plane_extractor_->getPlaneInliers();
-
-        if( planes.empty() )
-        {
-            std::cerr << " Could not extract any plane with the chosen parameters. Recognizing the whole input cloud!" << std::endl;
-        }
-        else if( planes.size() == plane_inliers.size() )
-        {
-//            visualizeClusters<PointT>(processed_cloud, plane_inliers);
-            for(const std::vector<int> &plane_inliers_tmp : plane_inliers)
-            {
-                if( plane_inliers_tmp.size() > param_.min_plane_inliers_ )
-                {
-                    for( int idx : plane_inliers_tmp)
-                    {
-                        PointT &p = processed_cloud->points[idx];
-                        p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
-                    }
-                }
-            }
-        }
-        else
-        {
-//            visualizePlanes<PointT>(processed_cloud, planes, param_.plane_inlier_threshold_);
-            size_t selected_plane = 0;
-            if (planes.size() > 1 )
-            {
-                std::cout << "Extracted multiple planes from input cloud. Selecting the one with the most inliers with the chosen plane inlier threshold of " << param_.plane_inlier_threshold_ << std::endl;
-
-                size_t max_plane_inliers = 0;
-                for(size_t plane_id=0; plane_id<planes.size(); plane_id++)
-                {
-                    std::vector<int> plane_indices = v4r::get_all_plane_inliers( *processed_cloud, planes[ selected_plane], param_.plane_inlier_threshold_ );
-                    if( plane_indices.size() > max_plane_inliers )
-                    {
-                        selected_plane = plane_id;
-                        max_plane_inliers = plane_indices.size();
-                    }
-                }
-            }
-            std::vector<int> above_plane_indices = v4r::get_above_plane_inliers( *processed_cloud, planes[ selected_plane], param_.plane_inlier_threshold_ );
-
-            if( above_plane_indices.size() >= param_.min_plane_inliers_ )
-            {
-                boost::dynamic_bitset<> above_plane_mask = v4r::createMaskFromIndices( above_plane_indices, processed_cloud->points.size() );
-
-                for(size_t i=0; i<processed_cloud->points.size(); i++) // keep organized
-                {
-                    if( !above_plane_mask[i] )
-                    {
-                        PointT &p = processed_cloud->points[i];
-                        p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
-                    }
-                }
-            }
-            else
-                std::cerr << "Dominant plane does not contain enough inliers (" << above_plane_indices.size() << "/" <<
-                             processed_cloud->points.size() << "). Recognizing the whole input cloud!" << std::endl;
-        }
+        cloud_segmenter_->setNormals( normals );
+        cloud_segmenter_->segment( processed_cloud );
+        processed_cloud = cloud_segmenter_->getProcessedCloud();
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====
