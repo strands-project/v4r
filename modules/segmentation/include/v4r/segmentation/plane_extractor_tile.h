@@ -117,7 +117,7 @@ protected:
 public:
     PlaneExtractorTile( const PlaneExtractorTileParameter &p = PlaneExtractorTileParameter() );
 
-    virtual bool getRequiresNormals() const { return true; }
+    virtual bool getRequiresNormals() const { return param_.pointwiseNormalCheck_; }
 
 private:
 
