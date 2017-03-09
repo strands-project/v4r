@@ -143,8 +143,6 @@ private:
     cv::Mat planes;
     cv::Mat centerPoints;
     cv::Mat patchIds;
-    //cv::Mat planeList;
-    //Eigen::Vector3f* planes;
 
     //big todo for speed: switch to Vector4f elements
     //http://eigen.tuxfamily.org/index.php?title=FAQ#Vectorization
@@ -153,7 +151,6 @@ private:
 
     void replace(int from,int to,int maxIndex);
 
-    cv::Mat getDebugImage();
     cv::Mat getDebugImage(bool doNormalTest);
 
     int minAbsBlockInlier;
@@ -201,11 +198,7 @@ private:
     cv::Mat segmentation;
     std::vector<Plane> resultingPlanes;
 
-    // mainly used internally:
-    // maybe combine them to one structure for better memory access)
     cv::Mat debug;
-
-//    cv::Mat generateDebugTextureForPlane(const Eigen::Vector4f &plane, int index, bool doNormalTest);
 
     /**
      * @brief generateColorCodedTexture
@@ -221,7 +214,6 @@ private:
     cv::Mat generateColorCodedTextureDebug() const;
 
 public:
-
 
     void setMaxAngle(float angle)
     {

@@ -3,12 +3,7 @@
 
 #include <pcl/impl/instantiate.hpp>
 #include <glog/logging.h>
-
 #include <iostream>
-#include <mutex>
-
-#include <vector>
-#include <memory>
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -55,62 +50,6 @@ bool
 isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold)
 {
     return (CosAngleBetweenPlanes(plane1, plane2) >cosThreshold);//maybe use plane angle for this
-}
-
-template <typename PointT>
-cv::Mat
-PlaneExtractorTile<PointT>::getDebugImage()
-{
-    int lastPlaneId=0;
-    Eigen::Vector4f plane(0,0,0,0);
-//    float _planeNorm;
-    for(int i=0;i<rowsOfPatches;i++)
-    {
-        for(int j=0;j<colsOfPatches;j++)
-        {
-            float distThreshold;
-            float cosThreshold;
-            if(param_.useVariableThresholds_)
-            {
-                //read it from the buffer
-                const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(i,j);
-                distThreshold=thresholds[0];
-                cosThreshold=thresholds[1];
-            }
-            else
-            {
-                distThreshold=param_.maxInlierBlockDist_;
-                cosThreshold=minCosBlockAngle;
-            }
-            int planeId=patchIds.at<int>(i,j);
-            plane[0]=planes.at<PlaneSegment>(i,j).x;
-            plane[1]=planes.at<PlaneSegment>(i,j).y;
-            plane[2]=planes.at<PlaneSegment>(i,j).z;
-            plane[3]=planes.at<PlaneSegment>(i,j).d;
-
-            if(planeId)
-            {
-                if(planeId!=lastPlaneId)
-                    lastPlaneId=planeId;
-
-                //Mark the pixel in the segmentation map for the already existing patches
-                if(planes.at<PlaneSegment>(i,j).nrInliers > minAbsBlockInlier)
-                {
-                    for(int k=0; k < param_.patchDim_;k++)
-                    {
-                        for(int l=0;l<param_.patchDim_;l++)
-                        {
-                            const Eigen::Vector4f &normal = normal_cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getNormalVector4fMap(); //normals.at<Eigen::Vector4f>(i*param_.patchDim_+k, j*param_.patchDim_+l);
-                            const Eigen::Vector3f &point = cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getVector3fMap(); //points.at<Eigen::Vector4f>(i*param_.patchDim_+k+1, j*param_.patchDim_+l+1)
-                            if( isInlier(point, normal, plane, cosThreshold, distThreshold) )
-                                segmentation.at<int>(i*param_.patchDim_+k, j*param_.patchDim_+l)=patchIds.at<int>(i,j);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return generateColorCodedTextureDebug();
 }
 
 template <typename PointT>
@@ -700,7 +639,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
             if(false)
             {
                 std::cout << "DEBUG: currentId " << currentId << std::endl;
-                cv::imshow("current", getDebugImage());
+                cv::imshow("current", getDebugImage( param_.pointwiseNormalCheck_) );
                 cv::waitKey(1);
             }
         }
