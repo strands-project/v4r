@@ -184,7 +184,7 @@ private:
     std::vector<Plane> planeList;
     std::vector<PlaneMatrix> planeMatrices;
     std::vector<std::vector<PlaneSegment> > planes;
-    cv::Mat centerPoints;
+    std::vector<std::vector<Eigen::Vector3f > > centerPoints;
     cv::Mat patchIds;
 
     //big todo for speed: switch to Vector4f elements

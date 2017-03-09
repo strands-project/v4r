@@ -18,7 +18,7 @@
 namespace v4r
 {
 bool isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest = true);
-bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &centerPlane2, float distThreshold);
+bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector3f &centerPlane2, float distThreshold);
 bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold);
 
 bool
@@ -40,9 +40,9 @@ isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eige
 }
 
 bool
-isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &centerPlane2, float distThreshold)
+isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector3f &centerPlane2, float distThreshold)
 {
-    float distance = fabs(dist2plane(centerPlane2.head(3), plane1)); // std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
+    float distance = fabs(dist2plane(centerPlane2, plane1)); // std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
     return (distance<distThreshold);
 }
 
@@ -261,7 +261,8 @@ PlaneExtractorTile<PointT>::allocateMemory()
 //    if(normals.cols!=cloud_->width || normals.rows!=cloud_->height)
     {
         planes = std::vector<std::vector<PlaneSegment> >(rowsOfPatches, std::vector<PlaneSegment>(colsOfPatches) );
-        centerPoints.create(rowsOfPatches,colsOfPatches, CV_32FC4);//3 floats 1 integer
+        centerPoints = std::vector<std::vector<Eigen::Vector3f> >
+                (rowsOfPatches, std::vector<Eigen::Vector3f >(colsOfPatches) );
         debug.create(cloud_->height, cloud_->width, CV_8UC3);
         debug.setTo(cv::Scalar(0,0,0));
         patchIds.create(rowsOfPatches,colsOfPatches,CV_32SC1);
@@ -312,13 +313,12 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
             int index=j+i*colsOfPatches;
             const PlaneMatrix &m = matrices[index];
             const Eigen::Vector3f msum = m.sum.template cast<float>();
-            centerPoints.at<Eigen::Vector4f>(i,j).head<3>() = msum / m.nrPoints;
-            centerPoints.at<Eigen::Vector4f>(i,j)[3]=0.0f;
+            centerPoints[i][j] = msum / m.nrPoints;
             float cosThreshold = minCosAngle;
             float distThreshold = param_.maxInlierDist_;
             if ( param_.useVariableThresholds_ && m.nrPoints>0 )
             {
-                float z = centerPoints.at<Eigen::Vector4f>(i,j)[2];
+                float z = centerPoints[i][j][2];
                 Eigen::Vector4f thresholds;
                 thresholds[0] = maxInlierBlockDistFunc(z);
                 thresholds[1] = minCosBlockAngleFunc(z);
@@ -414,7 +414,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
             const PlaneMatrix &currentPlaneMatrix = matrices[index];
             const PlaneSegment &currentPlaneSeg = planes[i][j];//TODO:planes should be renamed to patches
             const Eigen::Vector4f &currentPatch = currentPlaneSeg.plane;//( currentPlaneSeg.x, currentPlaneSeg.y, currentPlaneSeg.z, currentPlaneSeg.d);
-            const Eigen::Vector4f &currentCenter=centerPoints.at<Eigen::Vector4f>(i,j);
+            const Eigen::Vector3f &currentCenter = centerPoints[i][j];
             //test if plane is valid
             bool gotSet=false;
 
@@ -471,8 +471,8 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         int newId=patchIds.at<int>(i-1,j-1);// it is only testing for blocks from the past(so the threshold is already checked
                         if(newId)
                         {
-                            const PlaneSegment &currentPlaneSeg = planes[i-1][j-1];
-                            const Eigen::Vector4f &newPatch = currentPlaneSeg.plane;
+                            const PlaneSegment &testPlaneSeg = planes[i-1][j-1];
+                            const Eigen::Vector4f &newPatch = testPlaneSeg.plane;
 
                             newPlane = calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
@@ -520,8 +520,8 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         int newId = patchIds.at<int>(i-1,j);
                         if(newId)
                         {
-                            const PlaneSegment &currentPlaneSeg = planes[i-1][j];
-                            const Eigen::Vector4f &newPatch = currentPlaneSeg.plane; //(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
+                            const PlaneSegment &testPlaneSeg = planes[i-1][j];
+                            const Eigen::Vector4f &newPatch = testPlaneSeg.plane; //(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
                             newPlane = calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
@@ -569,8 +569,8 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         int newId=patchIds.at<int>(i-1,j+1);
                         if(newId)
                         {
-                            const PlaneSegment &currentPlaneSeg = planes[i-1][j+1];
-                            const Eigen::Vector4f &newPatch = currentPlaneSeg.plane; //(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
+                            const PlaneSegment &testtPlaneSeg = planes[i-1][j+1];
+                            const Eigen::Vector4f &newPatch = testtPlaneSeg.plane; //(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
                             newPlane = calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
@@ -801,7 +801,7 @@ PlaneExtractorTile<PointT>::PlaneExtractorTile(const PlaneExtractorTileParameter
 
     minCosBlockAngleFunc=[] (float z) -> float
     {
-        float maxBlockAngle_local=M_PI/180.0f*10.0f;
+//        float maxBlockAngle_local=M_PI/180.0f*10.0f;
         //return cos(maxBlockAngle_local);
         float zmin=0.2f;//distance measurement starts at 0.4m
         float zmax=5.0f;
