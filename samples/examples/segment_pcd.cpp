@@ -104,7 +104,9 @@ main (int argc, char ** argv)
     try { po::notify(vm); }
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
-    v4r::apps::CloudSegmenter<PointT> cs;
+    v4r::apps::CloudSegmenterParameter param;
+    to_pass_further = param.init(to_pass_further);
+    v4r::apps::CloudSegmenter<PointT> cs(param);
     cs.initialize(to_pass_further);
 
     std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir );
