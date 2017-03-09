@@ -87,15 +87,12 @@ PlaneExtractorTile<PointT>::getDebugImage()
             plane[1]=planes.at<PlaneSegment>(i,j).y;
             plane[2]=planes.at<PlaneSegment>(i,j).z;
             plane[3]=planes.at<PlaneSegment>(i,j).d;
+
             if(planeId)
             {
                 if(planeId!=lastPlaneId)
-                {
-                    //plane.head<3>()=planeList[planeId].plane;
                     lastPlaneId=planeId;
-//                    _planeNorm=1.0f/plane.norm();
-                }
-                //cout << "planeId " << planeId << endl;
+
                 //Mark the pixel in the segmentation map for the already existing patches
                 if(planes.at<PlaneSegment>(i,j).nrInliers > minAbsBlockInlier)
                 {
@@ -159,7 +156,7 @@ PlaneExtractorTile<PointT>::getDebugImage(bool doNormalTest)
                         for(int l=0;l<param_.patchDim_;l++)
                         {
                             //mark the points in debug:
-                            //honsetly we should still check if the point is an inlier
+                            //honestly we should still check if the point is an inlier
                             const Eigen::Vector4f &normal = normal_cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getNormalVector4fMap(); //normals.at<Eigen::Vector4f>(i*param_.patchDim_+k, j*param_.patchDim_+l);
                             const Eigen::Vector3f &point = cloud_->at(j*param_.patchDim_+l+1, i*param_.patchDim_+k+1).getVector3fMap(); //points.at<Eigen::Vector4f>(i*param_.patchDim_+k+1, j*param_.patchDim_+l+1)
 
@@ -798,6 +795,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                             {//only do this if pixel is not yet set
                                 //test if the pixel is inside of oldPlane and set the pixel accordingly
                                 const Eigen::Vector3f &otherPoint = cloud_->at(j,i).getVector3fMap();// points.at<Eigen::Vector4f>(_i+1,_j+1);
+                                const Eigen::Vector3f &otherPoint = cloud_->at(_j+1,_i+1).getVector3fMap();// points.at<Eigen::Vector4f>(_i+1,_j+1);
                                 float newDist = fabs(dist2plane(otherPoint, oldPlane));
                                 float oldDist=0;
                                 if(zTest)
@@ -807,7 +805,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                                 {
                                     Eigen::Vector4f otherNormal;
                                     if(doNormalTest)
-                                        otherNormal = normal_cloud_->at(j,i).getNormalVector4fMap();// normals.at<Eigen::Vector4f>(_i,_j);
+                                        otherNormal = normal_cloud_->at(_j,_i).getNormalVector4fMap();// normals.at<Eigen::Vector4f>(_i,_j);
 
                                     if( isInlier(otherPoint, otherNormal, oldPlane, cosThreshold, distThreshold, doNormalTest))
                                     {
