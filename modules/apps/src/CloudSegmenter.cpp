@@ -32,9 +32,7 @@ CloudSegmenter<PointT>::initialize(std::vector<std::string> &command_line_argume
         ("segmentation_method", po::value<int>(&segmentation_method)->default_value(segmentation_method), "segmentation method")
         ("plane_extraction_method", po::value<int>(&plane_extraction_method)->default_value(plane_extraction_method), "plane extraction method")
         ("normal_computation_method,n", po::value<int>(&normal_computation_method)->default_value(normal_computation_method), "normal computation method (if needed by segmentation approach)")
-        ("plane_inlier_threshold", po::value<float>(&param_.plane_inlier_threshold_)->default_value(param_.plane_inlier_threshold_), "inlier threshold for plane")
-        ("chop_z,z", po::value<float>(&param_.chop_z_)->default_value(param_.chop_z_), "cut-off threshold in meter")
-;
+    ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
     command_line_arguments = po::collect_unrecognized(parsed.options, po::include_positional);
