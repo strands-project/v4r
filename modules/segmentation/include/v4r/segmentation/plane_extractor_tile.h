@@ -167,10 +167,8 @@ private:
      */
     struct PlaneSegment
     {
-        float x;
-        float y;
-        float z;
-        float d;
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+        Eigen::Vector4f plane;
         int nrInliers;
     };
 
@@ -185,7 +183,7 @@ private:
     std::vector<PlaneMatrix> matrices;
     std::vector<Plane> planeList;
     std::vector<PlaneMatrix> planeMatrices;
-    cv::Mat planes;
+    std::vector<std::vector<PlaneSegment> > planes;
     cv::Mat centerPoints;
     cv::Mat patchIds;
 
