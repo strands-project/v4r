@@ -733,8 +733,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                             if(otherId<=0 || zTest)
                             {//only do this if pixel is not yet set
                                 //test if the pixel is inside of oldPlane and set the pixel accordingly
-                                const Eigen::Vector3f &otherPoint = cloud_->at(j,i).getVector3fMap();// points.at<Eigen::Vector4f>(_i+1,_j+1);
-                                const Eigen::Vector3f &otherPoint = cloud_->at(_j+1,_i+1).getVector3fMap();// points.at<Eigen::Vector4f>(_i+1,_j+1);
+                                const Eigen::Vector3f &otherPoint = cloud_->at(_j,_i).getVector3fMap();// points.at<Eigen::Vector4f>(_i+1,_j+1);
                                 float newDist = fabs(dist2plane(otherPoint, oldPlane));
                                 float oldDist=0;
                                 if(zTest)
