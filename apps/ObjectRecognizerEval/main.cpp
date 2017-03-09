@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 
 #include <v4r/apps/ObjectRecognizer.h>
-#include "compute_recognition_rate.h"
+#include <v4r/apps/compute_recognition_rate.h>
 #include "boost_xml_editor.h"
 #include "my_xml_configs.h"
 
@@ -189,7 +189,7 @@ main (int argc, char ** argv)
                 }
             }
 
-            RecognitionEvaluator e;
+            v4r::apps::RecognitionEvaluator e;
             e.setModels_dir(recognizer.getModelsDir());
             e.setTest_dir(test_dir);
             e.setOr_dir(out_dir_eval);

@@ -20,8 +20,8 @@ std::vector< std::pair< std::vector<XMLChange>, bool > > loadChanges()
         grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "knn_", "2" ) );
         grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "knn_", "3" ) );
         grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "knn_", "5" ) );
-        grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "knn_", "7" ) );
-        grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "knn_", "9" ) );
+//        grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "knn_", "7" ) );
+//        grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "knn_", "9" ) );
         grouped_change.second = local_search_is_okay;
         grouped_changes.push_back( grouped_change );
     }
@@ -59,8 +59,9 @@ std::vector< std::pair< std::vector<XMLChange>, bool > > loadChanges()
         bool local_search_is_okay = true;
         std::pair< std::vector<XMLChange>, bool > grouped_change;
         grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "distance_metric_", "1" ) );
-        grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "distance_metric_", "2" ) );
+//        grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "distance_metric_", "2" ) );
         grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "distance_metric_", "3" ) );
+        grouped_change.first.push_back( XMLChange("cfg/sift_config.xml", "distance_metric_", "4" ) );
         grouped_change.second = local_search_is_okay;
         grouped_changes.push_back( grouped_change );
     }
