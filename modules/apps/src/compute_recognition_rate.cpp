@@ -1,4 +1,4 @@
-#include "compute_recognition_rate.h"
+#include <v4r/apps/compute_recognition_rate.h>
 
 #include <v4r/common/miscellaneous.h>  // to extract Pose intrinsically stored in pcd file
 #include <v4r/io/filesystem.h>
@@ -16,7 +16,11 @@
 namespace po = boost::program_options;
 
 
-using namespace v4r;
+namespace v4r
+{
+namespace apps
+{
+
 
 /**
  * @brief readHypothesesFromFile reads annotations from a text file
@@ -449,23 +453,7 @@ std::string RecognitionEvaluator::getModels_dir() const
 void RecognitionEvaluator::setModels_dir(const std::string &value)
 {
     models_dir = value;
-
-    std::vector<std::string> model_filenames = io::getFilesInDirectory( models_dir, "3D_model.pcd", true );
-    for(const std::string &model_fn : model_filenames)
-    {
-        pcl::PointCloud<PointT>::Ptr model_cloud (new pcl::PointCloud<PointT>);
-        bf::path model_full_path = models_dir;
-        model_full_path /= model_fn;
-        pcl::io::loadPCDFile( model_full_path.string(), *model_cloud );
-
-        Model m;
-        m.cloud = model_cloud;
-        pcl::compute3DCentroid(*m.cloud, m.centroid);
-
-        // model identity is equal folder name -> remove \"/3D_model.pcd\" from filename
-        bf::path model_path = model_fn;
-        models[ model_path.parent_path().string() ] = m;
-    }
+    loadModels();
 }
 
 std::string RecognitionEvaluator::getTest_dir() const
@@ -528,7 +516,27 @@ void RecognitionEvaluator::setOut_dir(const std::string &value)
     out_dir = value;
 }
 
-int
+void RecognitionEvaluator::loadModels()
+{
+    std::vector<std::string> model_filenames = v4r::io::getFilesInDirectory( models_dir, "3D_model.pcd", true );
+    for(const std::string &model_fn : model_filenames)
+    {
+        pcl::PointCloud<PointT>::Ptr model_cloud (new pcl::PointCloud<PointT>);
+        bf::path model_full_path = models_dir;
+        model_full_path /= model_fn;
+        pcl::io::loadPCDFile( model_full_path.string(), *model_cloud );
+
+        Model m;
+        m.cloud = model_cloud;
+        pcl::compute3DCentroid(*m.cloud, m.centroid);
+
+        // model identity is equal folder name -> remove \"/3D_model.pcd\" from filename
+        bf::path model_path = model_fn;
+        models[ model_path.parent_path().string() ] = m;
+    }
+}
+
+std::vector<std::string>
 RecognitionEvaluator::init(const std::vector<std::string> &params)
 {
     po::options_description desc("Evaluation of object recognition\n==========================================\nAllowed options:\n");
@@ -546,32 +554,15 @@ RecognitionEvaluator::init(const std::vector<std::string> &params)
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(params).options(desc).allow_unregistered().run();
-    std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
+    std::vector<std::string> unused_params = po::collect_unrecognized(parsed.options, po::include_positional);
     po::store(parsed, vm);
-    if (vm.count("help")) { std::cout << desc << std::endl; return false;}
+    if (vm.count("help")) { std::cout << desc << std::endl;}
     try  {  po::notify(vm); }
-    catch( std::exception& e)  { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; return false; }
+    catch( std::exception& e)  { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
 
+    loadModels();
 
-    // load models
-    std::vector<std::string> model_filenames = io::getFilesInDirectory( models_dir, "3D_model.pcd", true );
-    for(const std::string &model_fn : model_filenames)
-    {
-        pcl::PointCloud<PointT>::Ptr model_cloud (new pcl::PointCloud<PointT>);
-        bf::path model_full_path = models_dir;
-        model_full_path /= model_fn;
-        pcl::io::loadPCDFile( model_full_path.string(), *model_cloud );
-
-        Model m;
-        m.cloud = model_cloud;
-        pcl::compute3DCentroid(*m.cloud, m.centroid);
-
-        // model identity is equal folder name -> remove \"/3D_model.pcd\" from filename
-        bf::path model_path = model_fn;
-        models[ model_path.parent_path().string() ] = m;
-    }
-
-    return true;
+    return unused_params;
 }
 
 float
@@ -658,4 +649,7 @@ RecognitionEvaluator::compute_recognition_rate_over_occlusion()
     std::cout << "Done!" << std::endl;
 
     return (float)num_recognized/num_total;
+}
+
+}
 }

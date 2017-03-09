@@ -1,5 +1,6 @@
 #pragma once
 
+#include <v4r/core/macros.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <iostream>
@@ -9,13 +10,12 @@
 
 // -m /media/Data/datasets/TUW/models/ -t /media/Data/datasets/TUW/validation_set/ -g /media/Data/datasets/TUW/annotations/ -r /home/thomas/recognition_results_eval/
 
-typedef pcl::PointXYZRGB PointT;
 
-struct Model
+namespace v4r
 {
-    pcl::PointCloud<PointT>::Ptr cloud;
-    Eigen::Vector4f centroid;
-};
+namespace apps
+{
+
 
 struct Hypothesis
 {
@@ -24,9 +24,17 @@ struct Hypothesis
 };
 
 
-class RecognitionEvaluator
+class V4R_EXPORTS RecognitionEvaluator
 {
 private:
+    typedef pcl::PointXYZRGB PointT;
+
+    struct Model
+    {
+        pcl::PointCloud<PointT>::Ptr cloud;
+        Eigen::Vector4f centroid;
+    };
+
     float rotation_error_threshold_deg;
     float translation_error_threshold_m;
     float occlusion_threshold;
@@ -44,11 +52,11 @@ private:
 
     std::map<std::string, Model> models;
 
-    int init(const std::vector<std::string> &params);
+    void loadModels();
 
 
 public:
-    RecognitionEvaluator(const std::vector<std::string> &params = std::vector<std::string>())
+    RecognitionEvaluator()
         :
           rotation_error_threshold_deg(30.f),
           translation_error_threshold_m(0.05f),
@@ -56,9 +64,15 @@ public:
           out_dir("/tmp/recognition_rates/"),
           visualize(false),
           use_generated_hypotheses(false)
-    {
-        init(params);
-    }
+    { }
+
+    /**
+     * @brief init set directories and stuff from (boost) console arguments
+     * @param params parameters (boost program options)
+     * @param unused parameters
+     */
+    std::vector<std::string>
+    init(const std::vector<std::string> &params);
 
     // =======  DECLARATIONS ===================
     /**
@@ -138,3 +152,6 @@ public:
     void setOut_dir(const std::string &value);
 };
 
+
+}
+}
