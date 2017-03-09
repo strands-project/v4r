@@ -226,7 +226,7 @@ private:
      * channel3 maxInlierDistance
      * channel4 minCosAngle
      */
-    cv::Mat thresholdsBuffer;
+    std::vector<std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > > thresholdsBuffer;
 
     float maxBlockAngle; ///< The maximum angle that is allowed between two adjacent blocks to be able to connect them
     float minCosBlockAngle; ///< The cos of this block angle

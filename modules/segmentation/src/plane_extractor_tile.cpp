@@ -68,7 +68,7 @@ PlaneExtractorTile<PointT>::getDebugImage(bool doNormalTest)
             if(param_.useVariableThresholds_)
             {
                 //read it from the buffer
-                const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(i,j);
+                const Eigen::Vector4f &thresholds = thresholdsBuffer[i][j];
                 distThreshold = thresholds[0];
                 cosThreshold = thresholds[1];
             }
@@ -115,7 +115,7 @@ template<typename PointT>
 cv::Mat
 PlaneExtractorTile<PointT>::generateColorCodedTexture() const
 {
-    cv::Mat colorMap(1,64*48,CV_8UC3);
+    cv::Mat colorMap(1,64*48,CV_8UC3); ///TODO Is this is a bug (why fixed???)
     colorMap.at<glm::u8vec3>(0)=glm::u8vec3(0,0,0);
     colorMap.at<glm::u8vec3>(1)=glm::u8vec3(0,0,200);
     colorMap.at<glm::u8vec3>(2)=glm::u8vec3(0,200,0);
@@ -255,7 +255,8 @@ PlaneExtractorTile<PointT>::allocateMemory()
     }
 
     if(param_.useVariableThresholds_)
-        thresholdsBuffer.create(rowsOfPatches,colsOfPatches,CV_32FC4);
+        thresholdsBuffer = std::vector<std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > >
+                (rowsOfPatches, std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >(colsOfPatches) );
 
 
 //    if(normals.cols!=cloud_->width || normals.rows!=cloud_->height)
@@ -326,10 +327,10 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                 thresholds[2] = distThreshold;
                 cosThreshold = minCosAngleFunc(z);
                 thresholds[3] = cosThreshold;
-                thresholdsBuffer.at<Eigen::Vector4f>(i,j)=thresholds;
+                thresholdsBuffer[i][j] = thresholds;
             }
             else
-                thresholdsBuffer.at<Eigen::Vector4f>(i,j) = Eigen::Vector4f(-1,-1,-1,-1);
+                thresholdsBuffer[i][j] = Eigen::Vector4f(-1.f,-1.f,-1.f,-1.f);
 
             if(m.nrPoints > minAbsBlockInlier)
             {
@@ -425,7 +426,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                 if(param_.useVariableThresholds_)
                 {
                     //read it from the buffer
-                    const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(i,j);
+                    const Eigen::Vector4f &thresholds = thresholdsBuffer[i][j];
                     distThreshold=thresholds[0];
                     cosThreshold=thresholds[1];
                 }
@@ -684,7 +685,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                                 //is this really the best place for reading out the thresholds?
                                 if(param_.useVariableThresholds_)
                                 {
-                                    const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(_i,_j);
+                                    const Eigen::Vector4f &thresholds = thresholdsBuffer[_i][_j];
                                     distThreshold = thresholds[2];
                                     cosThreshold = thresholds[3];
                                 }
@@ -705,9 +706,9 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                         ///BUG:
                         if(param_.useVariableThresholds_)
                         {
-                            const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(i/param_.patchDim_, j/param_.patchDim_);
-                            distThreshold=thresholds[2];
-                            cosThreshold=thresholds[3];
+                            const Eigen::Vector4f &thresholds = thresholdsBuffer[i/param_.patchDim_][j/param_.patchDim_];
+                            distThreshold = thresholds[2];
+                            cosThreshold = thresholds[3];
                         }
 
                     }
