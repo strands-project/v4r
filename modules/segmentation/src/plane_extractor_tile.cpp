@@ -476,10 +476,10 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         int newId=patchIds.at<int>(i-1,j-1);// it is only testing for blocks from the past(so the threshold is already checked
                         if(newId)
                         {
-                            PlaneSegment currentPlaneSeg=planes.at<PlaneSegment>(i-1,j-1);
+                            const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j-1);
                             Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
-                            newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
+                            newPlane = calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
                                     isParallel(currentPatch,newPlane,cosThreshold))
                             {
@@ -493,10 +493,10 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                                 }
                                 else
                                 {
-                                    if(currentId!=newId){
+                                    if(currentId!=newId)
+                                    {
                                         int nrCurrent=planeMatrices[currentId].nrPoints;
                                         int nrNew=planeMatrices[newId].nrPoints;
-
 
                                         if(nrCurrent>nrNew)
                                         {//replace the one with fewer elements:
@@ -528,9 +528,10 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                             const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j);
                             const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
-                            newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
+                            newPlane = calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
-                                    isParallel(currentPatch,newPlane,cosThreshold)){
+                                    isParallel(currentPatch,newPlane,cosThreshold))
+                            {
                                 gotSet=true;
                                 //test if this is the right time to connect
                                 if(!currentId)
@@ -576,7 +577,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                             const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j+1);
                             const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
-                            newPlane=calcPlaneFromMatrix(planeMatrices[newId]);
+                            newPlane = calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
                                     isParallel(currentPatch,newPlane,cosThreshold))
                             {
