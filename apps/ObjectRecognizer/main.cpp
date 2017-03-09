@@ -39,7 +39,7 @@ main (int argc, char ** argv)
 
     v4r::apps::ObjectRecognizerParameter param(recognizer_config);
     v4r::apps::ObjectRecognizer<PT> recognizer (param);
-    recognizer.initialize(argc,argv);
+    recognizer.initialize(to_pass_further);
 
     std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir );
     if(sub_folder_names.empty()) sub_folder_names.push_back("");
