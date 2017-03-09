@@ -256,7 +256,14 @@ PlaneExtractorTile<PointT>::calcPlaneFromMatrix(const PlaneExtractorTile<PointT>
 
     //hopefully this is fast!
     const Eigen::Vector3d plane = mat.ldlt().solve(m.sum);//what do i know?
-    return Eigen::Vector4f(plane[0],plane[1],plane[2], -1.f);
+
+    Eigen::Vector4f plane4 (plane[0], plane[1], plane[2], -1.f);
+
+    // flip normals always towards viewpoint
+    if( Eigen::Vector3f::UnitZ().dot(plane4.head(3)) > 0 )
+        plane4 = -plane4;
+
+    return plane4;
 }
 
 template<typename PointT>
