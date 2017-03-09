@@ -117,6 +117,7 @@ V4R_OPTION(BUILD_OPENNURBS          "Build OPENNURBS from source" 	 ON)
 V4R_OPTION(BUILD_ON_NURBS           "Build ON_NURBS from source" 	 ON)
 V4R_OPTION(BUILD_TBB                "Download and build TBB from source" ANDROID )
 V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
+V4R_OPTION(BUILD_GTEST              "Download and build Google Test from source" ON)
 V4R_OPTION(BUILD_METSLIB            "Download and build METSlib from source" ON)
 V4R_OPTION(BUILD_LIBSVM             "Download and build LIBSVM from source" OFF)
 
@@ -306,6 +307,10 @@ include(cmake/V4RFindPCL_1_8.cmake)
 include(cmake/V4RFindSiftGPU.cmake)
 include(cmake/V4RFindMETSlib.cmake)
 include(cmake/V4RFindLIBSVM.cmake)
+
+if(BUILD_TESTS)
+  include(cmake/V4RFindGTest.cmake)
+endif()
 
 # --- Doxygen for documentation ---
 unset(DOXYGEN_FOUND CACHE)
@@ -662,9 +667,9 @@ endif()
 # ========================== samples and tests ==========================
 status("")
 status("  Tests and samples:")
-status("    Tests:"             BUILD_TESTS AND HAVE_v4r_ts       THEN YES ELSE NO)
-status("    Performance tests:" BUILD_PERF_TESTS AND HAVE_v4r_ts  THEN YES ELSE NO)
-status("    C/C++ Examples:"    BUILD_EXAMPLES                       THEN YES ELSE NO)
+status("    Tests:"             BUILD_TESTS AND HAVE_v4r_ts   THEN YES ELSE NO)
+status("    GTest:"             HAVE_GTEST                    THEN "YES (ver ${GTEST_VERSION})" ELSE NO)
+status("    C/C++ Examples:"    BUILD_EXAMPLES                THEN YES ELSE NO)
 
 # ========================== auxiliary ==========================
 status("")
