@@ -50,6 +50,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     bool visualize_hv_go_cues = false;
     bool visualize_hv_model_cues = false;
     bool visualize_hv_pairwise_cues = false;
+    bool retrain = false;
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
@@ -60,6 +61,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("hv_vis_cues", po::bool_switch(&visualize_hv_go_cues), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
             ("hv_vis_model_cues", po::bool_switch(&visualize_hv_model_cues), "If set, visualizes the model cues. Useful for debugging")
             ("hv_vis_pairwise_cues", po::bool_switch(&visualize_hv_pairwise_cues), "If set, visualizes the pairwise cues. Useful for debugging")
+            ("retrain", po::bool_switch(&retrain), "If set, retrains the object models no matter if they already exists.")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -153,7 +155,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         }
 
         mrec_->setModelDatabase( model_database );
-        mrec_->initialize( models_dir_, false );
+        mrec_->initialize( models_dir_, retrain );
     }
 
 
