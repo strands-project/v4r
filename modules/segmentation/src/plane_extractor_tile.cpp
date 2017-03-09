@@ -116,28 +116,28 @@ cv::Mat
 PlaneExtractorTile<PointT>::generateColorCodedTexture() const
 {
     cv::Mat colorMap(1,64*48,CV_8UC3); ///TODO Is this is a bug (why fixed???)
-    colorMap.at<glm::u8vec3>(0)=glm::u8vec3(0,0,0);
-    colorMap.at<glm::u8vec3>(1)=glm::u8vec3(0,0,200);
-    colorMap.at<glm::u8vec3>(2)=glm::u8vec3(0,200,0);
-    colorMap.at<glm::u8vec3>(3)=glm::u8vec3(200,0,0);
-    colorMap.at<glm::u8vec3>(4)=glm::u8vec3(0,200,200);
-    colorMap.at<glm::u8vec3>(5)=glm::u8vec3(250,0,0);
-    colorMap.at<glm::u8vec3>(6)=glm::u8vec3(200,200,200);
-    colorMap.at<glm::u8vec3>(7)=glm::u8vec3(0,0,100);
-    colorMap.at<glm::u8vec3>(8)=glm::u8vec3(0,100,0);
-    colorMap.at<glm::u8vec3>(9)=glm::u8vec3(100,0,0);
-    colorMap.at<glm::u8vec3>(10)=glm::u8vec3(0,100,100);
-    colorMap.at<glm::u8vec3>(11)=glm::u8vec3(100,100,0);
-    colorMap.at<glm::u8vec3>(12)=glm::u8vec3(100,100,100);
+    colorMap.at<cv::Vec3b>(0)=cv::Vec3b(0,0,0);
+    colorMap.at<cv::Vec3b>(1)=cv::Vec3b(0,0,200);
+    colorMap.at<cv::Vec3b>(2)=cv::Vec3b(0,200,0);
+    colorMap.at<cv::Vec3b>(3)=cv::Vec3b(200,0,0);
+    colorMap.at<cv::Vec3b>(4)=cv::Vec3b(0,200,200);
+    colorMap.at<cv::Vec3b>(5)=cv::Vec3b(250,0,0);
+    colorMap.at<cv::Vec3b>(6)=cv::Vec3b(200,200,200);
+    colorMap.at<cv::Vec3b>(7)=cv::Vec3b(0,0,100);
+    colorMap.at<cv::Vec3b>(8)=cv::Vec3b(0,100,0);
+    colorMap.at<cv::Vec3b>(9)=cv::Vec3b(100,0,0);
+    colorMap.at<cv::Vec3b>(10)=cv::Vec3b(0,100,100);
+    colorMap.at<cv::Vec3b>(11)=cv::Vec3b(100,100,0);
+    colorMap.at<cv::Vec3b>(12)=cv::Vec3b(100,100,100);
 
     for (int n=13;n<colorMap.cols;n++)
-        colorMap.at<glm::u8vec3>(n)=glm::u8vec3(n/10*50,((n%10)/5)*50,(n%5)*50);
+        colorMap.at<cv::Vec3b>(n)=cv::Vec3b(n/10*50,((n%10)/5)*50,(n%5)*50);
 
     cv::Mat coloredImage (cloud_->height, cloud_->width, CV_8UC3);
     for(size_t i=0; i<cloud_->height; i++)
     {
         for(size_t j=0; j<cloud_->width; j++)
-            coloredImage.at<glm::u8vec3>(i,j)=colorMap.at<glm::u8vec3>(0,segmentation.at<int>(i,j));
+            coloredImage.at<cv::Vec3b>(i,j)=colorMap.at<cv::Vec3b>(0,segmentation.at<int>(i,j));
     }
     return coloredImage;
 }
@@ -146,23 +146,23 @@ template<typename PointT>
 cv::Mat
 PlaneExtractorTile<PointT>::generateColorCodedTextureDebug() const
 {
-    cv::Mat colorMap(1, 64*48, CV_8UC3);
-    colorMap.at<glm::u8vec3>(0)=glm::u8vec3(0,0,0);
-    colorMap.at<glm::u8vec3>(1)=glm::u8vec3(0,0,200);
-    colorMap.at<glm::u8vec3>(2)=glm::u8vec3(0,200,0);
-    colorMap.at<glm::u8vec3>(3)=glm::u8vec3(200,0,0);
-    colorMap.at<glm::u8vec3>(4)=glm::u8vec3(0,200,200);
-    colorMap.at<glm::u8vec3>(5)=glm::u8vec3(250,0,0);
-    colorMap.at<glm::u8vec3>(6)=glm::u8vec3(200,200,200);
-    colorMap.at<glm::u8vec3>(7)=glm::u8vec3(0,0,100);
-    colorMap.at<glm::u8vec3>(8)=glm::u8vec3(0,100,0);
-    colorMap.at<glm::u8vec3>(9)=glm::u8vec3(100,0,0);
-    colorMap.at<glm::u8vec3>(10)=glm::u8vec3(0,100,100);
-    colorMap.at<glm::u8vec3>(11)=glm::u8vec3(100,100,0);
-    colorMap.at<glm::u8vec3>(12)=glm::u8vec3(100,100,100);
+    cv::Mat colorMap(1, 64*48, CV_8UC3); ///TODO Is this is a bug (why fixed???)
+    colorMap.at<cv::Vec3b>(0)=cv::Vec3b(0,0,0);
+    colorMap.at<cv::Vec3b>(1)=cv::Vec3b(0,0,200);
+    colorMap.at<cv::Vec3b>(2)=cv::Vec3b(0,200,0);
+    colorMap.at<cv::Vec3b>(3)=cv::Vec3b(200,0,0);
+    colorMap.at<cv::Vec3b>(4)=cv::Vec3b(0,200,200);
+    colorMap.at<cv::Vec3b>(5)=cv::Vec3b(250,0,0);
+    colorMap.at<cv::Vec3b>(6)=cv::Vec3b(200,200,200);
+    colorMap.at<cv::Vec3b>(7)=cv::Vec3b(0,0,100);
+    colorMap.at<cv::Vec3b>(8)=cv::Vec3b(0,100,0);
+    colorMap.at<cv::Vec3b>(9)=cv::Vec3b(100,0,0);
+    colorMap.at<cv::Vec3b>(10)=cv::Vec3b(0,100,100);
+    colorMap.at<cv::Vec3b>(11)=cv::Vec3b(100,100,0);
+    colorMap.at<cv::Vec3b>(12)=cv::Vec3b(100,100,100);
 
     for (int n=13;n<colorMap.cols;n++)
-        colorMap.at<glm::u8vec3>(n)=glm::u8vec3(n/10*50,((n%10)/5)*50,(n%5)*50);
+        colorMap.at<cv::Vec3b>(n)=cv::Vec3b(n/10*50,((n%10)/5)*50,(n%5)*50);
 
     //TODO: take cols and rows from the segmentation Mat
 
@@ -172,9 +172,9 @@ PlaneExtractorTile<PointT>::generateColorCodedTextureDebug() const
         for(size_t j=0; j<cloud_->width; j++)
         {
             if( segmentation.at<int>(i,j)>0 )
-                coloredImage.at<glm::u8vec3>(i,j)=colorMap.at<glm::u8vec3>(0, segmentation.at<int>(i,j) );
+                coloredImage.at<cv::Vec3b>(i,j)=colorMap.at<cv::Vec3b>(0, segmentation.at<int>(i,j) );
             else
-                coloredImage.at<glm::u8vec3>(i,j)=debug.at<glm::u8vec3>(i,j);
+                coloredImage.at<cv::Vec3b>(i,j)=debug.at<cv::Vec3b>(i,j);
         }
     }
     return coloredImage;
@@ -251,7 +251,7 @@ PlaneExtractorTile<PointT>::allocateMemory()
     if(param_.doZTest_)
     {
         zBuffer = cv::Mat(cloud_->height, cloud_->width, CV_32FC1);
-        zBuffer.setTo( cv::Scalar( std::numeric_limits<float>::max() ) );
+        zBuffer.setTo( std::numeric_limits<float>::max() );
     }
 
     if(param_.useVariableThresholds_)
@@ -265,7 +265,7 @@ PlaneExtractorTile<PointT>::allocateMemory()
         centerPoints = std::vector<std::vector<Eigen::Vector3f> >
                 (rowsOfPatches, std::vector<Eigen::Vector3f >(colsOfPatches) );
         debug.create(cloud_->height, cloud_->width, CV_8UC3);
-        debug.setTo(cv::Scalar(0,0,0));
+        debug.setTo( cv::Vec3b(0,0,0) );
         patchIds.create(rowsOfPatches,colsOfPatches,CV_32SC1);
     }
 
@@ -358,7 +358,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                         if(isInlier(p, N, plane, cosThreshold,distThreshold,doNormalTest))
                         { //distance < inlierDistance
                             //mark the inlying points somehow
-                            debug.at<glm::u8vec3>(v,u)=glm::u8vec3(255,0,0);
+                            debug.at<cv::Vec3b>(v,u)=cv::Vec3b(255,0,0);
                             segmentation.at<int>(v,u)=-1;//mark every valid element in the segmentation
                         }
                         else
@@ -382,7 +382,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                             if( isInlier(p, N, plane, cosThreshold, distThreshold, doNormalTest) )
                             { //distance < inlierDistance
                                 //mark the inlying points somehow
-                                debug.at<glm::u8vec3>(v,u)=glm::u8vec3(0,255,0);
+                                debug.at<cv::Vec3b>(v,u)=cv::Vec3b(0,255,0);
                             }
 
                         }
@@ -915,7 +915,7 @@ PlaneExtractorTile<PointT>::compute()
                             if(segmentation.at<int>(i*param_.patchDim_+k, j*param_.patchDim_+l)==-1)
                             {
                                 //we already touched these points and found out if they are in there.(they are marked with -1)
-                                //debug.at<glm::u8vec3>(i*blockDim+k,j*blockDim+l)=glm::u8vec3(0,255,0);
+                                //debug.at<cv::Vec3b>(i*blockDim+k,j*blockDim+l)=cv::Vec3b(0,255,0);
                                 segmentation.at<int>(i*param_.patchDim_+k, j*param_.patchDim_+l) = newPlaneId;
                                 const Eigen::Vector3f &point = cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getVector3fMap();
                                 float distance = fabs(dist2plane(point,plane));
