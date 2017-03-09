@@ -127,7 +127,6 @@ V4R_OPTION(INSTALL_C_EXAMPLES       "Install C examples"        ON )
 V4R_OPTION(INSTALL_C_UTILITY_TOOLS        "Install C utility tools"        ON )
 V4R_OPTION(INSTALL_C_EVALUATION_TOOLS       "Install C evaluation tools"        OFF )
 V4R_OPTION(INSTALL_TO_MANGLED_PATHS "Enables mangled install paths, that help with side by side installs." OFF IF (UNIX AND NOT ANDROID AND NOT IOS AND BUILD_SHARED_LIBS) )
-V4R_OPTION(INSTALL_TESTS            "Install accuracy and performance test binaries and test data" OFF)
 
 # V4R build options
 # ===================================================
@@ -172,18 +171,6 @@ set(V4R_DOC_INSTALL_PATH share/V4R/doc)
 set(V4R_SAMPLES_BIN_INSTALL_PATH "samples")
 set(V4R_BIN_INSTALL_PATH "bin")
 
-if(NOT V4R_TEST_INSTALL_PATH)
-  set(V4R_TEST_INSTALL_PATH "${V4R_BIN_INSTALL_PATH}")
-endif()
-
-if (V4R_TEST_DATA_PATH)
-  get_filename_component(V4R_TEST_DATA_PATH ${V4R_TEST_DATA_PATH} ABSOLUTE)
-endif()
-
-if(V4R_TEST_DATA_PATH AND NOT V4R_TEST_DATA_INSTALL_PATH)
-  set(V4R_TEST_DATA_INSTALL_PATH "share/V4R/testdata")
-endif()
-
 set(LIBRARY_OUTPUT_PATH         "${V4R_BINARY_DIR}/lib")
 set(3P_LIBRARY_OUTPUT_PATH      "${V4R_BINARY_DIR}/3rdparty/lib${LIB_SUFFIX}")
 
@@ -211,7 +198,6 @@ if(INSTALL_TO_MANGLED_PATHS)
   string(REPLACE "V4R" "V4R-${V4R_VERSION}" V4R_CONFIG_INSTALL_PATH "${V4R_CONFIG_INSTALL_PATH}")
   string(REPLACE "V4R" "V4R-${V4R_VERSION}" V4R_DOC_INSTALL_PATH "${V4R_DOC_INSTALL_PATH}")
   string(REPLACE "V4R" "V4R-${V4R_VERSION}" V4R_JAR_INSTALL_PATH "${V4R_JAR_INSTALL_PATH}")
-  string(REPLACE "V4R" "V4R-${V4R_VERSION}" V4R_TEST_DATA_INSTALL_PATH "${V4R_TEST_DATA_INSTALL_PATH}")
   string(REPLACE "V4R" "V4R-${V4R_VERSION}" V4R_OTHER_INSTALL_PATH "${V4R_OTHER_INSTALL_PATH}")
 endif()
 
@@ -399,13 +385,6 @@ include(cmake/V4RGenConfig.cmake)
 # Generate ABI descriptor
 #include(cmake/V4RGenABI.cmake)
 
-# Generate environment setup file
-if(INSTALL_TESTS AND V4R_TEST_DATA_PATH)
-  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/v4r_run_all_tests_unix.sh.in"
-                 "${CMAKE_BINARY_DIR}/unix-install/v4r_run_all_tests.sh" @ONLY)
-  install(PROGRAMS "${CMAKE_BINARY_DIR}/unix-install/v4r_run_all_tests.sh"
-          DESTINATION ${V4R_TEST_INSTALL_PATH} COMPONENT tests)
-endif()
 
 if(NOT V4R_LICENSE_FILE)
   set(V4R_LICENSE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE)

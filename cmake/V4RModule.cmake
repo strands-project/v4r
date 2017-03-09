@@ -888,10 +888,6 @@ function(v4r_add_accuracy_tests)
 
     else(V4R_DEPENDENCIES_FOUND)
       # TODO: warn about unsatisfied dependencies
-    endif(V4R_DEPENDENCIES_FOUND)
-
-    if(INSTALL_TESTS)
-      install(TARGETS ${the_target} RUNTIME DESTINATION ${V4R_TEST_INSTALL_PATH} COMPONENT tests)
     endif()
   endif()
 endfunction()
