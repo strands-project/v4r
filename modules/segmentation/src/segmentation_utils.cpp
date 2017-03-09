@@ -11,7 +11,11 @@ void
 visualizeClusters(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const std::vector< std::vector<int> > &cluster_indices, const std::string &window_title )
 {
     int vp1, vp2;
-    pcl::visualization::PCLVisualizer::Ptr vis ( new pcl::visualization::PCLVisualizer(window_title) );
+    static pcl::visualization::PCLVisualizer::Ptr vis;
+
+    if(!vis)
+        vis.reset ( new pcl::visualization::PCLVisualizer(window_title) );
+
     vis->createViewPort(0,0,0.5,1,vp1);
     vis->createViewPort(0.5,0,1,1,vp2);
     vis->removeAllPointClouds();
@@ -34,6 +38,10 @@ visualizeClusters(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const
             cluster.points[pt_id].b = b;
         }
         *colored_cloud += cluster;
+
+        std::stringstream txt; txt << std::setfill(' ') << std::setw(7) << cluster_indices[i].size() << " pts";
+        std::stringstream label; label << "cluster_" << i;
+        vis->addText(txt.str(), 10, 15+14*i, 15, r/255.f, g/255.f, b/255.f, label.str(), vp2);
     }
     vis->addPointCloud(colored_cloud,"segments", vp2);
 
@@ -41,7 +49,6 @@ visualizeClusters(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const
     vis->addText("segments", 10, 10, 15, 1, 1, 1, "segments", vp2);
     vis->resetCamera();
     vis->spin();
-    vis->close();
 }
 
 template<typename PointT>
@@ -49,7 +56,12 @@ void
 visualizeCluster(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const std::vector<int> &cluster_indices, const std::string &window_title )
 {
     int vp1, vp2;
-    pcl::visualization::PCLVisualizer::Ptr vis ( new pcl::visualization::PCLVisualizer(window_title) );
+
+    static pcl::visualization::PCLVisualizer::Ptr vis;
+
+    if(!vis)
+        vis.reset ( new pcl::visualization::PCLVisualizer(window_title) );
+
     vis->createViewPort(0,0,0.5,1,vp1);
     vis->createViewPort(0.5,0,1,1,vp2);
     vis->removeAllPointClouds();
