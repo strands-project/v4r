@@ -213,7 +213,7 @@ namespace v4r
       bool
       recognize (std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations, std::vector<pcl::Correspondences> &clustered_corrs);
 
-      void setInputAndSceneNormals(const pcl::PointCloud<pcl::Normal>::Ptr & input_n, const pcl::PointCloud<pcl::Normal>::Ptr & scene_n)
+      void setInputAndSceneNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr & input_n, const pcl::PointCloud<pcl::Normal>::ConstPtr & scene_n)
       {
         input_normals_ = input_n;
         scene_normals_ = scene_n;
@@ -230,8 +230,8 @@ namespace v4r
       using pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
       using pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
 
-      pcl::PointCloud<pcl::Normal>::Ptr scene_normals_;
-      pcl::PointCloud<pcl::Normal>::Ptr input_normals_;
+      pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_;
+      pcl::PointCloud<pcl::Normal>::ConstPtr input_normals_;
 
       bool visualize_graph_;
 
