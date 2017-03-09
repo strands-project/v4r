@@ -56,6 +56,51 @@ public:
           maxInlierBlockDist_(0.005f),
           doZTest_(true)
     {}
+
+
+    /**
+     * @brief init parameters
+     * @param command_line_arguments (according to Boost program options library)
+     * @return unused parameters (given parameters that were not used in this initialization call)
+     */
+    std::vector<std::string>
+    init(int argc, char **argv)
+    {
+            std::vector<std::string> arguments(argv + 1, argv + argc);
+            return init(arguments);
+    }
+
+    /**
+     * @brief init parameters
+     * @param command_line_arguments (according to Boost program options library)
+     * @return unused parameters (given parameters that were not used in this initialization call)
+     */
+    std::vector<std::string>
+    init(const std::vector<std::string> &command_line_arguments)
+    {
+        po::options_description desc("Plane Extractor Tile-based Parameter\n=====================\n");
+        desc.add_options()
+                ("help,h", "produce help message")
+                ("plane_extractor_minNrPatches", po::value<int>(&minNrPatches_)->default_value(minNrPatches_), "The minimum number of blocks that are allowed to spawn a plane")
+                ("plane_extractor_patchDim", po::value<int>(&patchDim_)->default_value(patchDim_), "The minimum number of blocks that are allowed to spawn a plane")
+                ("plane_extractor_minBlockInlierRatio", po::value<float>(&minBlockInlierRatio_)->default_value(minBlockInlierRatio_), "The minimum ratio of points that have to be in a patch before it would get discarded")
+                ("plane_extractor_pointwiseNormalCheck", po::value<bool>(&pointwiseNormalCheck_)->default_value(pointwiseNormalCheck_), "Activating this allows to reduce a lot of calculations and improves speed.")
+                ("plane_extractor_maxDistance", po::value<float>(&maxDistance_)->default_value(maxDistance_), "A maximum distance at which no plane segmentation is possible anymore.")
+                ("plane_extractor_maxStepSize", po::value<float>(&maxStepSize_)->default_value(maxStepSize_), " maxStepSize to calculate normals there is a maximum step size which allowes to correctly distinguish between 2 adjacent plane segments.")
+                ("plane_extractor_maxInlierDist", po::value<float>(&maxInlierDist_)->default_value(maxInlierDist_), "The maximum distance a point is allowed to be out of his plane")
+                ("plane_extractor_useVariableThresholds", po::value<bool>(&useVariableThresholds_)->default_value(useVariableThresholds_), " useVariableThresholds")
+                ("plane_extractor_maxInlierBlockDist", po::value<float>(&maxInlierBlockDist_)->default_value(maxInlierBlockDist_), "The maximum distance two adjacent patches are allowed to be out of plane")
+                ("plane_extractor_doZTest", po::value<bool>(&doZTest_)->default_value(doZTest_), "Only the closest possible points get added to a plane")
+                ;
+        po::variables_map vm;
+        po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
+        std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
+        po::store(parsed, vm);
+        if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
+        try { po::notify(vm); }
+        catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
+        return to_pass_further;
+    }
 };
 
 template<typename PointT>
