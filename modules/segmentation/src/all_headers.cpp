@@ -85,7 +85,7 @@ initPlaneExtractor(int method, std::vector<std::string> &params )
     else if(method == PlaneExtractionType::Tile)
     {
         PlaneExtractorTileParameter param;
-//        params = param.init(params);
+        params = param.init(params);
         typename PlaneExtractorTile<PointT>::Ptr pe (new PlaneExtractorTile<PointT> (param));
         cast_plane_extractor = boost::dynamic_pointer_cast<PlaneExtractor<PointT> > (pe);
     }
