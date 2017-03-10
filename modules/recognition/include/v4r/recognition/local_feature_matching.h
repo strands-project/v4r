@@ -143,10 +143,12 @@ class V4R_EXPORTS LocalObjectModel
 {
 public:
     pcl::PointCloud<pcl::PointXYZ>::Ptr keypoints_; ///< all extracted keypoints of the object model
+    pcl::PointCloud<pcl::Normal>::Ptr kp_normals_; ///< normals associated to each extracted keypoints of the object model
 
     LocalObjectModel()
     {
         keypoints_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+        kp_normals_.reset(new pcl::PointCloud<pcl::Normal>);
     }
 
     typedef boost::shared_ptr< LocalObjectModel > Ptr;
