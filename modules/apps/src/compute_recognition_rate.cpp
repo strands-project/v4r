@@ -4,6 +4,7 @@
 #include <v4r/io/filesystem.h>
 
 #include <pcl/common/centroid.h>
+#include <pcl/common/angles.h>
 #include <pcl/common/time.h>
 #include <pcl/common/transforms.h>
 #include <pcl/io/pcd_io.h>
@@ -34,15 +35,46 @@ readHypothesesFromFile( const std::string &filename );
 
 bool
 RecognitionEvaluator::computeError(const Eigen::Matrix4f &pose_a, const Eigen::Matrix4f &pose_b, const Eigen::Vector4f& centroid_model,
-                  float &trans_error, float &rot_error)
+                  float &trans_error, float &rot_error, bool is_rotation_invariant, bool is_rotational_symmetric)
 {
     const Eigen::Vector4f centroid_a = pose_a * centroid_model;
     const Eigen::Vector4f centroid_b = pose_b * centroid_model;
+
+    ///TODO: Check orientation also!
+    const Eigen::Matrix3f rot_a = pose_a.block<3,3>(0,0);
+    const Eigen::Matrix3f rot_b = pose_b.block<3,3>(0,0);
+
+    const Eigen::Vector3f rotX_a = rot_a * Eigen::Vector3f::UnitX();
+    const Eigen::Vector3f rotX_b = rot_b * Eigen::Vector3f::UnitX();
+//    const Eigen::Vector3f rotY_a = rot_a * Eigen::Vector3f::UnitY();
+//    const Eigen::Vector3f rotY_b = rot_b * Eigen::Vector3f::UnitY();
+    const Eigen::Vector3f rotZ_a = rot_a * Eigen::Vector3f::UnitZ();
+    const Eigen::Vector3f rotZ_b = rot_b * Eigen::Vector3f::UnitZ();
+
+
+//    float angleX = pcl::rad2deg( acos( rotX_a.dot(rotX_b) ) );
+//    float angleY = pcl::rad2deg( acos( rotY_a.dot(rotY_b) ) );
+    float angleZ = pcl::rad2deg( acos( rotZ_a.dot(rotZ_b) ) );
+
+    float angleXY = 0.f;
+    if( !is_rotation_invariant )
+    {
+        Eigen::Vector2f rotXY_a = rotX_a.head(2);
+        rotXY_a.normalize();
+        Eigen::Vector2f rotXY_b = rotX_b.head(2);
+        rotXY_b.normalize();
+        angleXY = pcl::rad2deg ( acos (rotXY_a.dot(rotXY_b ) ) );
+
+        if( is_rotational_symmetric )
+            angleXY = std::min<float>(angleXY, fabs( 180.f - angleXY) );
+    }
+
+//    std::cout << " error_rotxy: " << angleXY << " error_rotx: " << angleX << " error_roty: " << angleY << " error_rotz: " << angleZ << std::endl;
+
     trans_error = (centroid_a.head(3)-centroid_b.head(3)).norm();
+    rot_error = std::max<float>(angleXY, angleZ);
 
-    rot_error = 0.f;  //not implemented yet
-
-    if(trans_error > translation_error_threshold_m)
+    if(trans_error > translation_error_threshold_m || rot_error > rotation_error_threshold_deg)
         return true;
 
     return false;
@@ -53,10 +85,11 @@ RecognitionEvaluator::checkMatchvector(const std::vector< std::pair<int, int> > 
                       const std::vector<Hypothesis> &rec_hyps,
                       const std::vector<Hypothesis> &gt_hyps,
                       const Eigen::Vector4f &model_centroid,
-                      double &sum_translation_error,
-                      size_t &tp, size_t &fp, size_t &fn)
+                      double &sum_translation_error, double &sum_rotational_error,
+                      size_t &tp, size_t &fp, size_t &fn, bool is_rotation_invariant, bool is_rotational_symmetric)
 {
-    sum_translation_error = 0.f;
+    sum_translation_error = 0.;
+    sum_rotational_error = 0.;
     tp = fp = fn = 0;
     for(size_t i=0; i<rec2gt.size(); i++)
     {
@@ -82,7 +115,7 @@ RecognitionEvaluator::checkMatchvector(const std::vector< std::pair<int, int> > 
         const Hypothesis &rec_hyp = rec_hyps [ rec_id ] ;
 
         float trans_error, rot_error;
-        if( computeError( rec_hyp.pose, gt_hyp.pose, model_centroid, trans_error, rot_error))
+        if( computeError( rec_hyp.pose, gt_hyp.pose, model_centroid, trans_error, rot_error, is_rotation_invariant, is_rotational_symmetric))
         {
             fp++;
 
@@ -102,7 +135,7 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
                  const std::vector<Hypothesis> &gt_hyps,
                  const Eigen::Vector4f &model_centroid,
                  size_t &tp, size_t &fp, size_t &fn,
-                 double &sum_translation_error)
+                 double &sum_translation_error, double &sum_rotational_error, bool is_rotation_invariant, bool is_rotational_symmetric)
 {
     // go through all possible permutations and return best match
     size_t elements_to_check = std::max(rec_hyps.size(), gt_hyps.size());
@@ -111,6 +144,7 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
 
     float best_fscore = -1;
     sum_translation_error = std::numeric_limits<float>::max();
+    sum_rotational_error = std::numeric_limits<float>::max();
     tp=0, fp=0, fn=0;
 
     std::vector< std::pair<int, int> > best_match;
@@ -168,8 +202,10 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
             }
 
             double sum_translation_error_tmp;
+            double sum_rotational_error_tmp;
             size_t tp_tmp, fp_tmp, fn_tmp;
-            checkMatchvector(rec2gt_matches, rec_hyps, gt_hyps, model_centroid, sum_translation_error_tmp, tp_tmp, fp_tmp, fn_tmp);
+            checkMatchvector(rec2gt_matches, rec_hyps, gt_hyps, model_centroid, sum_translation_error_tmp, sum_rotational_error_tmp,
+                             tp_tmp, fp_tmp, fn_tmp, is_rotation_invariant, is_rotational_symmetric);
 
             float recall = 1.f;
             if (tp_tmp+fn_tmp) // if there are some ground-truth objects
@@ -186,6 +222,7 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
             if ( (fscore > best_fscore) || (fscore==best_fscore && sum_translation_error_tmp/tp_tmp < sum_translation_error/tp)) {
                 best_fscore = fscore;
                 sum_translation_error = sum_translation_error_tmp;
+                sum_rotational_error = sum_rotational_error_tmp;
                 tp = tp_tmp;
                 fp = fp_tmp;
                 fn = fn_tmp;
@@ -277,6 +314,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
         size_t fp_view = 0;
         size_t fn_view = 0;
         double sum_translation_error_view = 0.;
+        double sum_rotational_error_view = 0.;
 
         if(vis)
         {
@@ -300,7 +338,8 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                 gt_hyps_tmp = it->second;
 
             size_t tp_tmp=0, fp_tmp=0, fn_tmp=0;
-            double sum_translation_error_tmp=0;
+            double sum_translation_error_tmp=0.;
+            double sum_rotational_error_tmp=0.;
             std::vector< std::pair<int, int> > matches;
 
 //            if( gt_hyps_tmp.empty() && rec_hyps_tmp.empty() )
@@ -327,7 +366,9 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
 //            else
             {
                 const Eigen::Vector4f &centroid = m.second.centroid;
-                matches = selectBestMatch(rec_hyps_tmp, gt_hyps_tmp, centroid, tp_tmp, fp_tmp, fn_tmp, sum_translation_error_tmp);
+                matches = selectBestMatch(rec_hyps_tmp, gt_hyps_tmp, centroid, tp_tmp, fp_tmp, fn_tmp,
+                                          sum_translation_error_tmp, sum_rotational_error_tmp,
+                                          m.second.is_rotation_invariant_, m.second.is_rotational_symmetric_);
             }
 
 
@@ -335,6 +376,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             fp_view+=fp_tmp;
             fn_view+=fn_tmp;
             sum_translation_error_view += sum_translation_error_tmp;
+            sum_rotational_error_view += sum_rotational_error_tmp;
 
             if(visualize)
             {
@@ -404,8 +446,8 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             }
         }
 
-        std::cout << anno_file << ": " << tp_view << " " << fp_view << " " << fn_view << " " << sum_translation_error_view << std::endl;
-        of << anno_file << " " << tp_view << " " << fp_view << " " << fn_view << " " << sum_translation_error_view << std::endl;
+        std::cout << anno_file << ": " << tp_view << " " << fp_view << " " << fn_view << " " << sum_translation_error_view << " " << sum_rotational_error_view << std::endl;
+        of << anno_file << " " << tp_view << " " << fp_view << " " << fn_view << " " << sum_translation_error_view << " " << sum_rotational_error_view << std::endl;
 
         total_tp += tp_view;
         total_fp += fp_view;
@@ -435,7 +477,10 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             std::stringstream rec_text;
             rec_text << "recognized objects (tp: " << tp_view << ", fp: " << fp_view << ", fn: " << fn_view;
             if(tp_view)
+            {
                 rec_text << " trans_error: " << sum_translation_error_view/tp_view;
+                rec_text << " rot_error: " << sum_rotational_error_view/tp_view;
+            }
             rec_text << ")";
             vis->addText(rec_text.str(), 10, 10, 15, 1.f, 1.f, 1.f, "rec_text", vp3);
             vis->resetCamera();
@@ -526,13 +571,16 @@ void RecognitionEvaluator::loadModels()
         model_full_path /= model_fn;
         pcl::io::loadPCDFile( model_full_path.string(), *model_cloud );
 
+        bf::path model_path = model_fn;
+        const std::string model_name = model_path.parent_path().string();
         Model m;
         m.cloud = model_cloud;
+        m.is_rotational_symmetric_ = std::find(rotational_symmetric_objects_.begin(), rotational_symmetric_objects_.end(), model_name) != rotational_symmetric_objects_.end();
+        m.is_rotation_invariant_ = std::find(rotational_invariant_objects_.begin(), rotational_invariant_objects_.end(), model_name) != rotational_invariant_objects_.end();
         pcl::compute3DCentroid(*m.cloud, m.centroid);
 
         // model identity is equal folder name -> remove \"/3D_model.pcd\" from filename
-        bf::path model_path = model_fn;
-        models[ model_path.parent_path().string() ] = m;
+        models[ model_name ] = m;
     }
 }
 
