@@ -41,6 +41,7 @@
 #define FAAT_PCL_RECOGNITION_GRAPH_GEOMETRIC_CONSISTENCY_H_
 
 #include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 #include <pcl/common/angles.h>
 #include <pcl/common/centroid.h>
 #include <pcl/recognition/cg/correspondence_grouping.h>
