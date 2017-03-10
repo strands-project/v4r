@@ -1,6 +1,4 @@
 #include <v4r/apps/compute_recognition_rate.h>
-
-#include <v4r/common/miscellaneous.h>  // to extract Pose intrinsically stored in pcd file
 #include <v4r/io/filesystem.h>
 
 #include <pcl/common/centroid.h>
@@ -40,7 +38,6 @@ RecognitionEvaluator::computeError(const Eigen::Matrix4f &pose_a, const Eigen::M
     const Eigen::Vector4f centroid_a = pose_a * centroid_model;
     const Eigen::Vector4f centroid_b = pose_b * centroid_model;
 
-    ///TODO: Check orientation also!
     const Eigen::Matrix3f rot_a = pose_a.block<3,3>(0,0);
     const Eigen::Matrix3f rot_b = pose_b.block<3,3>(0,0);
 
@@ -125,7 +122,8 @@ RecognitionEvaluator::checkMatchvector(const std::vector< std::pair<int, int> > 
         else
         {
             tp++;
-            sum_translation_error+=trans_error;
+            sum_translation_error += trans_error;
+            sum_rotational_error += rot_error;
         }
     }
 }
@@ -168,7 +166,8 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
 
     bool gt_is_smaller = gt_hyps.size() < rec_hyps.size();
 
-    do {
+    do
+    {
         for(size_t offset=0; offset<=max_offset; offset++)
         {
             std::vector< std::pair<int, int> > rec2gt_matches (elements_to_check);
@@ -219,7 +218,8 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
             if ( precision+recall>std::numeric_limits<float>::epsilon() )
                 fscore = 2 * precision * recall / (precision + recall);
 
-            if ( (fscore > best_fscore) || (fscore==best_fscore && sum_translation_error_tmp/tp_tmp < sum_translation_error/tp)) {
+            if ( (fscore > best_fscore) || (fscore==best_fscore && sum_translation_error_tmp/tp_tmp < sum_translation_error/tp))
+            {
                 best_fscore = fscore;
                 sum_translation_error = sum_translation_error_tmp;
                 sum_rotational_error = sum_rotational_error_tmp;
@@ -316,10 +316,10 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
         double sum_translation_error_view = 0.;
         double sum_rotational_error_view = 0.;
 
-        if(vis)
+        if(vis_)
         {
-            vis->removeAllPointClouds();
-            vis->removeAllShapes();
+            vis_->removeAllPointClouds();
+            vis_->removeAllShapes();
 #if PCL_VERSION >= 100800
             vis->removeAllCoordinateSystems();
 #endif
@@ -380,12 +380,12 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
 
             if(visualize)
             {
-                if(!vis)
+                if(!vis_)
                 {
-                    vis.reset (new pcl::visualization::PCLVisualizer ("results"));
-                    vis->createViewPort(0, 0, 1, 0.33, vp1);
-                    vis->createViewPort(0, 0.33, 1, 0.66, vp2);
-                    vis->createViewPort(0, 0.66, 1, 1, vp3);
+                    vis_.reset (new pcl::visualization::PCLVisualizer ("results"));
+                    vis_->createViewPort(0, 0, 1, 0.33, vp1_);
+                    vis_->createViewPort(0, 0.33, 1, 0.66, vp2_);
+                    vis_->createViewPort(0, 0.66, 1, 1, vp3_);
                 }
 
                 size_t counter = 0;
@@ -401,7 +401,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
                         std::stringstream unique_id; unique_id << m.first << "_" << counter;
-                        vis->addPointCloud(model_aligned, unique_id.str(), vp3);
+                        vis_->addPointCloud(model_aligned, unique_id.str(), vp3_);
 
 #if PCL_VERSION >= 100800
                         Eigen::Matrix4f tf_tmp = hyp_vis.pose;
@@ -426,10 +426,10 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         if(hyp_vis.occlusion > occlusion_threshold)
                         {
                             pcl::visualization::PointCloudColorHandlerCustom<PointT> green (model_aligned, 0, 0, 255);
-                            vis->addPointCloud(model_aligned, green, unique_id.str(), vp2);
+                            vis_->addPointCloud(model_aligned, green, unique_id.str(), vp2_);
                         }
                         else
-                            vis->addPointCloud(model_aligned, unique_id.str(), vp2);
+                            vis_->addPointCloud(model_aligned, unique_id.str(), vp2_);
 
 #if PCL_VERSION >= 100800
                         Eigen::Matrix4f tf_tmp = hyp_vis.pose;
@@ -464,16 +464,16 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
             scene_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
             scene_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
-            vis->addPointCloud(scene_cloud, "scene", vp1);
+            vis_->addPointCloud(scene_cloud, "scene", vp1_);
 
             pcl::visualization::PointCloudColorHandlerCustom<PointT> gray (scene_cloud, 255, 255, 255);
-            vis->addPointCloud(scene_cloud, gray, "input_vp2", vp2);
-            vis->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp2");
-            vis->addPointCloud(scene_cloud, gray, "input_vp3", vp3);
-            vis->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp3");
+            vis_->addPointCloud(scene_cloud, gray, "input_vp2", vp2_);
+            vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp2");
+            vis_->addPointCloud(scene_cloud, gray, "input_vp3", vp3_);
+            vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp3");
 
-            vis->addText( scene_name, 10, 10, 15, 1.f, 1.f, 1.f, "scene_text", vp1);
-            vis->addText("ground-truth objects (occluded objects in blue)", 10, 10, 15, 1.f, 1.f, 1.f, "gt_text", vp2);
+            vis_->addText( scene_name, 10, 10, 15, 1.f, 1.f, 1.f, "scene_text", vp1_);
+            vis_->addText("ground-truth objects (occluded objects in blue)", 10, 10, 15, 1.f, 1.f, 1.f, "gt_text", vp2_);
             std::stringstream rec_text;
             rec_text << "recognized objects (tp: " << tp_view << ", fp: " << fp_view << ", fn: " << fn_view;
             if(tp_view)
@@ -482,9 +482,9 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                 rec_text << " rot_error: " << sum_rotational_error_view/tp_view;
             }
             rec_text << ")";
-            vis->addText(rec_text.str(), 10, 10, 15, 1.f, 1.f, 1.f, "rec_text", vp3);
-            vis->resetCamera();
-            vis->spin();
+            vis_->addText(rec_text.str(), 10, 10, 15, 1.f, 1.f, 1.f, "rec_text", vp3_);
+//            vis->resetCamera();
+            vis_->spin();
         }
     }
     of.close();
@@ -658,7 +658,7 @@ RecognitionEvaluator::compute_recognition_rate_over_occlusion()
         for(auto const &gt_model_hyps : gt_hyps)
         {
             const std::string &model_name_gt = gt_model_hyps.first;
-            const Eigen::Vector4f &centroid_model = models[ model_name_gt ].centroid;
+            const Model &m = models[ model_name_gt ];
             const std::vector<Hypothesis> &hyps = gt_model_hyps.second;
 
             for(const Hypothesis &h_gt : hyps)
@@ -666,7 +666,6 @@ RecognitionEvaluator::compute_recognition_rate_over_occlusion()
                 bool is_recognized = false;
 
                 const Eigen::Matrix4f &gt_pose = h_gt.pose;
-                const Eigen::Vector4f centroid_gt = gt_pose * centroid_model;
 
                 float occlusion = h_gt.occlusion;
 
@@ -677,10 +676,8 @@ RecognitionEvaluator::compute_recognition_rate_over_occlusion()
                     for(const Hypothesis &h_rec: rec_model_hyps)
                     {
                         const Eigen::Matrix4f &rec_pose = h_rec.pose;
-                        const Eigen::Vector4f centroid_rec = rec_pose * centroid_model;
-                        float trans_error = (centroid_rec.head(3)-centroid_gt.head(3)).norm();
-
-                        if( trans_error < translation_error_threshold_m)
+                        float trans_error, rot_error;
+                        if(! computeError( gt_pose, rec_pose, m.centroid, trans_error, rot_error, m.is_rotation_invariant_, m.is_rotational_symmetric_ ) )
                             is_recognized = true;
                     }
                 }
@@ -697,6 +694,154 @@ RecognitionEvaluator::compute_recognition_rate_over_occlusion()
     std::cout << "Done!" << std::endl;
 
     return (float)num_recognized/num_total;
+}
+
+
+void
+RecognitionEvaluator::checkIndividualHypotheses()
+{
+
+    std::vector<std::string> annotation_files = io::getFilesInDirectory( gt_dir, ".*.anno", true );
+
+    pcl::visualization::PCLVisualizer::Ptr vis;
+    int vp1, vp2;
+    if(visualize)
+    {
+        vis.reset (new pcl::visualization::PCLVisualizer ("results"));
+        vis->createViewPort(0, 0, 1, 0.5, vp1);
+        vis->createViewPort(0, 0.5, 1, 1, vp2);
+    }
+
+    for( const std::string anno_file : annotation_files )
+    {
+        bf::path gt_path = gt_dir;
+        gt_path /= anno_file;
+
+        std::string rec_file = anno_file;
+        if(use_generated_hypotheses)
+            boost::replace_last( rec_file, ".anno", ".generated_hyps");
+
+        bf::path rec_path = or_dir;
+        rec_path /= rec_file;
+
+        std::map<std::string, std::vector<Hypothesis> > gt_hyps = readHypothesesFromFile( gt_path.string() );
+        std::map<std::string, std::vector<Hypothesis> > rec_hyps = readHypothesesFromFile( rec_path.string() );
+
+
+        if(visualize)
+        {
+            vis->removeAllPointClouds();
+            vis->removeAllShapes(vp1);
+#if PCL_VERSION >= 100800
+            vis->removeAllCoordinateSystems(vp1);
+#endif
+            std::string scene_name (anno_file);
+            boost::replace_last( scene_name, ".anno", ".pcd");
+
+            bf::path scene_path = test_dir;
+            scene_path /= scene_name;
+            pcl::PointCloud<PointT>::Ptr scene_cloud (new pcl::PointCloud<PointT>);
+            pcl::io::loadPCDFile( scene_path.string(), *scene_cloud);
+
+            //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
+            scene_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+            scene_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
+            vis->addPointCloud(scene_cloud, "scene", vp1);
+
+            pcl::visualization::PointCloudColorHandlerCustom<PointT> gray (scene_cloud, 255, 255, 255);
+            vis->addPointCloud(scene_cloud, gray, "input_vp2", vp2);
+            vis->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp2");
+            vis->addText( scene_name, 10, 10, 15, 1.f, 1.f, 1.f, "scene_text", vp1);
+        }
+
+        for( const auto &m : models )
+        {
+            std::vector<Hypothesis> rec_hyps_tmp, gt_hyps_tmp;
+
+            auto it = rec_hyps.find( m.first );
+            if ( it != rec_hyps.end() )
+                rec_hyps_tmp = it->second;
+
+            it = gt_hyps.find( m.first );
+            if ( it != gt_hyps.end() )
+                gt_hyps_tmp = it->second;
+
+            for( const Hypothesis &h : rec_hyps_tmp )
+            {
+                bool is_correct = false;
+                float translation_error = std::numeric_limits<double>::max();
+                float rotational_error = std::numeric_limits<double>::max();
+                int best_matching_gt_id = -1;
+
+                if( !gt_hyps_tmp.empty() )
+                {
+                    best_matching_gt_id = -1;
+                    translation_error = std::numeric_limits<float>::max();
+                    rotational_error = std::numeric_limits<float>::max();
+
+                    for(size_t gt_id = 0; gt_id<gt_hyps_tmp.size(); gt_id++)
+                    {
+                        const Hypothesis &gt_hyp = gt_hyps_tmp[gt_id];
+                        float trans_error_tmp, rot_error_tmp;
+                        if( !computeError( h.pose, gt_hyp.pose, m.second.centroid, trans_error_tmp, rot_error_tmp, m.second.is_rotation_invariant_, m.second.is_rotational_symmetric_))
+                            is_correct = true;
+
+                        if(trans_error_tmp < translation_error)
+                        {
+                            translation_error = trans_error_tmp;
+                            rotational_error = rot_error_tmp;
+                            best_matching_gt_id = gt_id;
+                        }
+                    }
+                }
+
+                if(visualize)
+                {
+                    vis->removePointCloud("model_cloud", vp2);
+                    vis->removeAllShapes(vp2);
+        #if PCL_VERSION >= 100800
+                    vis->removeAllCoordinateSystems(vp2);
+        #endif
+                    pcl::PointCloud<PointT>::Ptr model_cloud = m.second.cloud;
+                    pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
+                    pcl::transformPointCloud(*model_cloud, *model_aligned, h.pose);
+
+                    vis->addPointCloud(model_aligned, "model_cloud", vp2);
+
+                    if(is_correct)
+                        vis->setBackgroundColor( 0, 255, 0, vp2);
+                    else
+                        vis->setBackgroundColor( 255, 0, 0, vp2);
+
+#if PCL_VERSION >= 100800
+                    Eigen::Matrix4f tf_tmp = hyp_vis.pose;
+                    Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
+                    Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
+                    Eigen::Affine3f affine_trans;
+                    affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+                    vis->addCoordinateSystem(0.1f, affine_trans, "model_co", vp2);
+#endif
+                    if(best_matching_gt_id>=0)
+                    {
+                        const Hypothesis &gt_hyp = gt_hyps_tmp[best_matching_gt_id];
+                        pcl::PointXYZ center_rec, center_gt;
+                        center_rec.getVector4fMap() = h.pose * m.second.centroid;
+                        vis->addSphere(center_rec, 0.01, 0,0,255, "center_rec", vp2);
+                        center_gt.getVector4fMap() = gt_hyp.pose * m.second.centroid;
+                        vis->addSphere(center_gt, 0.01, 125,125,255, "center_gt", vp2);
+                        vis->addLine(center_rec, center_gt, 0, 0, 255, "distance", vp2);
+                        std::stringstream model_txt;
+                        model_txt.precision(2);
+                        model_txt << "Transl. error: " << translation_error*100.f << "cm; rotational error: " <<  rotational_error << "deg; occlusion: " << gt_hyp.occlusion;
+                        vis->addText( model_txt.str(), 10, 10, 15, 1.f, 1.f, 1.f, "model_text", vp2);
+                    }
+//                    vis->resetCamera();
+                    vis->spin();
+                }
+            }
+        }
+    }
 }
 
 }

@@ -8,9 +8,6 @@
 #include <fstream>
 
 
-// -m /media/Data/datasets/TUW/models/ -t /media/Data/datasets/TUW/validation_set/ -g /media/Data/datasets/TUW/annotations/ -r /home/thomas/recognition_results_eval/
-
-
 namespace v4r
 {
 namespace apps
@@ -49,8 +46,8 @@ private:
     bool visualize;
     bool use_generated_hypotheses;
 
-    pcl::visualization::PCLVisualizer::Ptr vis;
-    int vp1, vp2, vp3;
+    pcl::visualization::PCLVisualizer::Ptr vis_;
+    int vp1_, vp2_, vp3_;
 
     std::map<std::string, Model> models;
 
@@ -104,7 +101,7 @@ public:
      * @return boolean indicitating if error is outside given threshold
      */
     bool computeError(const Eigen::Matrix4f &pose_a, const Eigen::Matrix4f &pose_b, const Eigen::Vector4f &centroid_model,
-                      float &trans_error, float &rot_error, bool is_rotation_invariant = false, bool is_rotational_symmetric = false);
+                      float &trans_error, float &rot_error, bool is_rotation_invariant , bool is_rotational_symmetric );
 
 
 
@@ -130,7 +127,7 @@ public:
                           double &sum_translation_error,
                           double &sum_rotational_error,
                           size_t &tp, size_t &fp, size_t &fn,
-                          bool is_rotation_invariant = false, bool is_rotational_symmetric = false);
+                          bool is_rotation_invariant , bool is_rotational_symmetric );
 
     /**
      * @brief selectBestMatch computes the best matches for a set of hypotheses. This
@@ -157,7 +154,7 @@ public:
                                                       size_t &tp, size_t &fp, size_t &fn,
                                                       double &sum_translation_error,
                                                       double &sum_rotational_error,
-                                                      bool is_rotation_invariant = false, bool is_rotational_symmetric = false);
+                                                      bool is_rotation_invariant , bool is_rotational_symmetric );
 
     std::map<std::string, std::vector<Hypothesis> >
     readHypothesesFromFile( const std::string &filename );
@@ -186,6 +183,7 @@ public:
 
     void compute_recognition_rate (size_t &total_tp, size_t &total_fp, size_t &total_fn);
     float compute_recognition_rate_over_occlusion (); ///< basically checks for each ground-truth object if there exists a corresponding recognized object
+    void checkIndividualHypotheses(); ///< check for each recognized object if there is a corresponding ground-truth object<w
 
     std::string getModels_dir() const;
     void setModels_dir(const std::string &value);
