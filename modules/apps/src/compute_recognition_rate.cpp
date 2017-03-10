@@ -321,7 +321,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             vis_->removeAllPointClouds();
             vis_->removeAllShapes();
 #if PCL_VERSION >= 100800
-            vis->removeAllCoordinateSystems();
+            vis_->removeAllCoordinateSystems();
 #endif
         }
 
@@ -410,7 +410,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         Eigen::Affine3f affine_trans;
                         affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
                         std::stringstream co_id; co_id << m.first << "_co_" << counter;
-                        vis->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp3);
+                        vis_->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp3_);
 #endif
                         counter++;
                     }
@@ -438,7 +438,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         Eigen::Affine3f affine_trans;
                         affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
                         std::stringstream co_id; co_id << m.first << "_co_" << counter;
-                        vis->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp2);
+                        vis_->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp2_);
 #endif
                         counter++;
                     }
