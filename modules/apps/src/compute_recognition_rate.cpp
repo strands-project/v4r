@@ -815,7 +815,7 @@ RecognitionEvaluator::checkIndividualHypotheses()
                         vis->setBackgroundColor( 255, 0, 0, vp2);
 
 #if PCL_VERSION >= 100800
-                    Eigen::Matrix4f tf_tmp = hyp_vis.pose;
+                    Eigen::Matrix4f tf_tmp = h.pose;
                     Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
                     Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
                     Eigen::Affine3f affine_trans;
