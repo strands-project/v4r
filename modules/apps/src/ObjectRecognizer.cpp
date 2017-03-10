@@ -16,6 +16,7 @@
 #include <v4r/common/camera.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/normals.h>
+#include <v4r/common/graph_geometric_consistency.h>
 #include <v4r/features/esf_estimator.h>
 #include <v4r/features/shot_local_estimator.h>
 #include <v4r/features/sift_local_estimator.h>
@@ -93,11 +94,25 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         if(param_.do_sift_ || param_.do_shot_)
         {
             local_recognition_pipeline_->setModelDatabase( model_database );
-            boost::shared_ptr< pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > gc_clusterer
-                    (new pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
-            gc_clusterer->setGCSize( param_.cg_size_ );
-            gc_clusterer->setGCThreshold( param_.cg_thresh_ );
-            local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
+
+            if(param_.use_graph_based_gc_grouping_)
+            {
+                v4r::GraphGeometricConsistencyGroupingParameter gcparam;
+                gcparam.gc_size_ = param_.cg_size_;
+                gcparam.gc_threshold_ = param_.cg_thresh_;
+                to_pass_further = gcparam.init(to_pass_further);
+                v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gc_clusterer
+                        (new v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
+                local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
+            }
+            else
+            {
+                boost::shared_ptr< pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > gc_clusterer
+                        (new pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
+                gc_clusterer->setGCSize( param_.cg_size_ );
+                gc_clusterer->setGCThreshold( param_.cg_thresh_ );
+                local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
+            }
 
             if(param_.do_sift_)
             {

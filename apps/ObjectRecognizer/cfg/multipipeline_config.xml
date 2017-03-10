@@ -11,6 +11,7 @@
 	<sift_config_xml_>cfg/sift_config.xml</sift_config_xml_>
 	<cg_size_>9.999999776e-03</cg_size_>
 	<cg_thresh_>3</cg_thresh_>
+	<use_graph_based_gc_grouping_>1</use_graph_based_gc_grouping_>
 	<do_sift_>1</do_sift_>
 	<do_shot_>0</do_shot_>
 	<do_esf_>0</do_esf_>
