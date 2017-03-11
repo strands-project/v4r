@@ -133,19 +133,16 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
 
                 if( obj_mask[idx] ) // keypoint does not belong to given object mask
                 {
-                    double norm = 0.;
+                    if( param_.use_rootSIFT_ )
+                    {
+                        double norm_L1 = cv::norm(descriptors.row(i), cv::NORM_L1);
 
-                    for (size_t k = 0; k < 128; k++)
-                        norm += descriptors.at<float>(i,k);
+                        for (size_t k = 0; k < 128; k++)
+                            descriptors.at<float>(i,k) = sqrt( descriptors.at<float>(i,k) / norm_L1 );
 
-                    float norm_f = static_cast<float>(norm);
-
-                    for (size_t k = 0; k < 128; k++)
-                        descriptors.at<float>(i,k) = sqrt( descriptors.at<float>(i,k) / norm_f );
-
-                    double norm_L2 = cv::norm( descriptors.row(i) );
-
-                    descriptors.row(i) /= norm_L2;
+                        double norm_L2 = cv::norm( descriptors.row(i) );
+                        descriptors.row(i) /= norm_L2;
+                    }
 
                     for (size_t k = 0; k < 128; k++)
                         signatures[kept][k] = descriptors.at<float>(i,k);
