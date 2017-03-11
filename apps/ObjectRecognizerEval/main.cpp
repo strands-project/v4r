@@ -59,6 +59,9 @@ main (int argc, char ** argv)
 
     // do random search
     std::vector< std::pair< std::vector<XMLChange>, bool > > changes = loadChanges();
+    size_t total_possibilities = 1;
+    for(size_t group_id=0; group_id < changes.size(); group_id++)
+        total_possibilities *= changes[group_id].size();
 
     double best_score = std::numeric_limits<double>::min();
 
@@ -69,6 +72,7 @@ main (int argc, char ** argv)
         std::vector<size_t> selected_parameter_id (changes.size());  // best parameter settings by default when "0" element is selected in each group
 
         size_t hash = 0;
+        size_t total_possibilities;
         for(size_t group_id=0; group_id < changes.size(); group_id++)
         {
             int element = rand() % changes[group_id].first.size();
@@ -224,6 +228,13 @@ main (int argc, char ** argv)
 //                selected_parameter_id[ group_eval_id ] = in_group_eval_id;
 //                best_score = score;
 //            }
+        }
+        evaluated_hashes.push_back(hash);
+
+        if(evaluated_hashes.size() >= total_possibilities)
+        {
+            std::cout << "All changes evaluated!" << std::endl;
+            break;
         }
     }
     while(1);
