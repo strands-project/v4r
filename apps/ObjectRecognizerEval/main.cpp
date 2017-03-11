@@ -61,7 +61,7 @@ main (int argc, char ** argv)
     std::vector< std::pair< std::vector<XMLChange>, bool > > changes = loadChanges();
     size_t total_possibilities = 1;
     for(size_t group_id=0; group_id < changes.size(); group_id++)
-        total_possibilities *= changes[group_id].size();
+        total_possibilities *= changes[group_id].first.size();
 
     double best_score = std::numeric_limits<double>::min();
 
@@ -229,7 +229,7 @@ main (int argc, char ** argv)
 //                best_score = score;
 //            }
         }
-        evaluated_hashes.push_back(hash);
+        evaluated_hashes.insert(hash);
 
         if(evaluated_hashes.size() >= total_possibilities)
         {
