@@ -68,14 +68,12 @@ public:
     {
     public:
         bool dense_extraction_;
+        bool use_rootSIFT_; ///< enables RootSIFT as described in Arandjelovic and Zisserman, Three things everyone should know to improve object retrieval (CVPR, 2012)
         int stride_;    ///< is dense_extraction, this will define the stride in pixel for extracting SIFT keypoints
-        Parameter
-        (
-                bool dense_extraction = false,
-                int stride  = 20
-        ):
-            dense_extraction_ ( dense_extraction ),
-            stride_ ( stride )
+        Parameter ( ):
+            dense_extraction_ ( false ),
+            use_rootSIFT_( false ),
+            stride_ ( 20 )
         {}
     }param_;
 
