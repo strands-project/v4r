@@ -72,7 +72,7 @@ public:
         int stride_;    ///< is dense_extraction, this will define the stride in pixel for extracting SIFT keypoints
         Parameter ( ):
             dense_extraction_ ( false ),
-            use_rootSIFT_( false ),
+            use_rootSIFT_( true ),
             stride_ ( 20 )
         {}
     }param_;

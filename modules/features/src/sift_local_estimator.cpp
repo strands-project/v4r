@@ -140,8 +140,8 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
                         for (size_t k = 0; k < 128; k++)
                             descriptors.at<float>(i,k) = sqrt( descriptors.at<float>(i,k) / norm_L1 );
 
-                        double norm_L2 = cv::norm( descriptors.row(i) );
-                        descriptors.row(i) /= norm_L2;
+//                        double norm_L2 = cv::norm( descriptors.row(i) );
+//                        descriptors.row(i) /= norm_L2;
                     }
 
                     for (size_t k = 0; k < 128; k++)
