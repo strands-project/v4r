@@ -72,7 +72,6 @@ main (int argc, char ** argv)
         std::vector<size_t> selected_parameter_id (changes.size());  // best parameter settings by default when "0" element is selected in each group
 
         size_t hash = 0;
-        size_t total_possibilities;
         for(size_t group_id=0; group_id < changes.size(); group_id++)
         {
             int element = rand() % changes[group_id].first.size();
