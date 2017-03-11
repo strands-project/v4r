@@ -426,7 +426,7 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
     }
     else if(param_.distance_metric_==4)
     {
-        lomdb_->flann_index_hellinger_.reset( new ::flann::Index<::flann::HellingerDistance<float> > (*(lomdb_->flann_data_), flann::LinearIndexParams()));
+        lomdb_->flann_index_hellinger_.reset( new ::flann::Index<::flann::HellingerDistance<float> > (*(lomdb_->flann_data_), ::flann::KDTreeIndexParams (param_.kdtree_num_trees_)));
         lomdb_->flann_index_hellinger_->buildIndex();
     }
     else
