@@ -72,7 +72,7 @@ CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr
     {
         pcl::ScopeTime t("Normal computation");
         normal_estimator_->setInputCloud( cloud );
-        typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+        pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
         normals = normal_estimator_->compute();
         normals_ = normals;
         (void)t;

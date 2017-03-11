@@ -20,6 +20,7 @@ LocalRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, boo
     for(size_t i=0; i<local_feature_matchers_.size(); i++)
     {
         auto r = local_feature_matchers_[i];
+        r->setNormalEstimator(normal_estimator_);
         r->setModelDatabase(m_db_);
         r->initialize(trained_dir, force_retrain);
         LocalObjectModelDatabase::ConstPtr lomdb_tmp = r->getLocalObjectModelDatabase();

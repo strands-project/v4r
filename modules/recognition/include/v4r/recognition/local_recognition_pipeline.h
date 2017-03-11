@@ -90,10 +90,11 @@ template<typename PointT>
 class V4R_EXPORTS LocalRecognitionPipeline : public RecognitionPipeline<PointT>
 {
 private:
+    using RecognitionPipeline<PointT>::m_db_;
+    using RecognitionPipeline<PointT>::normal_estimator_;
+    using RecognitionPipeline<PointT>::obj_hypotheses_;
     using RecognitionPipeline<PointT>::scene_;
     using RecognitionPipeline<PointT>::scene_normals_;
-    using RecognitionPipeline<PointT>::obj_hypotheses_;
-    using RecognitionPipeline<PointT>::m_db_;
 
     std::vector<typename LocalFeatureMatcher<PointT>::Ptr > local_feature_matchers_; ///< set of local recognizer generating keypoint correspondences
 

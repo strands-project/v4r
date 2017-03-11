@@ -22,6 +22,7 @@
  ******************************************************************************/
 
 #include <v4r/apps/CloudSegmenter.h>
+#include <v4r/common/normals.h>
 #include <v4r/core/macros.h>
 #include <v4r/apps/visualization.h>
 #include <v4r/ml/types.h>
@@ -61,6 +62,7 @@ public:
     bool do_alexnet_;
     int segmentation_method_;
     int esf_classification_method_;
+    int normal_computation_method_; ///< normal computation method
     double chop_z_; ///< Cut-off distance in meter
 
     bool remove_planes_;    ///< if enabled, removes the dominant plane in the input cloud (given thera are at least N inliers)
@@ -85,6 +87,7 @@ public:
           do_alexnet_(false),
           segmentation_method_(SegmentationType::OrganizedConnectedComponents),
           esf_classification_method_(ClassifierType::SVM),
+          normal_computation_method_(NormalEstimatorType::PCL_INTEGRAL_NORMAL),
           chop_z_(3.f),
           remove_planes_(false),
           plane_inlier_threshold_ (0.02f),
@@ -129,6 +132,7 @@ private:
                 & BOOST_SERIALIZATION_NVP(do_alexnet_)
                 & BOOST_SERIALIZATION_NVP(segmentation_method_)
                 & BOOST_SERIALIZATION_NVP(esf_classification_method_)
+                & BOOST_SERIALIZATION_NVP(normal_computation_method_)
                 & BOOST_SERIALIZATION_NVP(chop_z_)
                 & BOOST_SERIALIZATION_NVP(remove_planes_)
                 & BOOST_SERIALIZATION_NVP(plane_inlier_threshold_)
@@ -144,6 +148,7 @@ private:
     typename v4r::MultiRecognitionPipeline<PointT>::Ptr mrec_; ///< multi-pipeline recognizer
     typename v4r::LocalRecognitionPipeline<PointT>::Ptr local_recognition_pipeline_; ///< local recognition pipeline (member variable just because of visualization of keypoints)
     typename v4r::HypothesisVerification<PointT, PointT>::Ptr hv_; ///< hypothesis verification object
+    typename v4r::NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
 
     typename v4r::ObjectRecognitionVisualizer<PointT>::Ptr rec_vis_; ///< visualization object
 

@@ -30,6 +30,7 @@
 #include <flann/flann.h>
 #include <pcl/common/common.h>
 
+#include <v4r/common/normals.h>
 #include <v4r/features/local_estimator.h>
 #include <v4r/keypoints/keypoint_extractor.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
@@ -201,6 +202,8 @@ private:
     std::vector<int> indices_; ///< segmented cloud to be recognized (if empty, all points will be processed)
     pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< Point cloud to be classified
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
+    typename NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
+
 
     bool visualize_keypoints_; ///< if true, visualizes the extracted keypoints
     void extractKeypoints (); ///< extracts keypoints from the scene
@@ -372,6 +375,16 @@ public:
     setModelDatabase(const typename Source<PointT>::ConstPtr &m_db)
     {
         m_db_ = m_db;
+    }
+
+    /**
+     * @brief setNormalEstimator sets the normal estimator used for computing surface normals (currently only used at training)
+     * @param normal_estimator
+     */
+    void
+    setNormalEstimator(const typename NormalEstimator<PointT>::Ptr &normal_estimator)
+    {
+        normal_estimator_ = normal_estimator;
     }
 
     typedef boost::shared_ptr< LocalFeatureMatcher<PointT> > Ptr;

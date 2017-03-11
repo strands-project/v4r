@@ -309,14 +309,19 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
                     if ( 1 ) // always needs normals since we never know if correspondence grouping does! ..... this->needNormals() )
                     {
                         scene_normals_.reset( new pcl::PointCloud<pcl::Normal> );
-                        pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
-                        ne.setNormalEstimationMethod (ne.COVARIANCE_MATRIX);
-                        ne.setMaxDepthChangeFactor(0.02f);
-                        ne.setNormalSmoothingSize(10.0f);
-                        ne.setInputCloud(scene_);
-                        pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-                        ne.compute(*normals);
+                        normal_estimator_->setInputCloud( cloud );
+                        pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+                        normals = normal_estimator_->compute();
                         scene_normals_ = normals;
+
+//                        pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
+//                        ne.setNormalEstimationMethod (ne.COVARIANCE_MATRIX);
+//                        ne.setMaxDepthChangeFactor(0.02f);
+//                        ne.setNormalSmoothingSize(10.0f);
+//                        ne.setInputCloud(scene_);
+//                        pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
+//                        ne.compute(*normals);
+//                        scene_normals_ = normals;
                     }
 
                     // read object mask from file

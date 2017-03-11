@@ -85,6 +85,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     // ==== Fill object model database ==== ( assumes each object is in a seperate folder named after the object and contains and "views" folder with the training views of the object)
     typename Source<PointT>::Ptr model_database (new Source<PointT> (models_dir_));
 
+    normal_estimator_ = v4r::initNormalEstimator<PointT> ( param_.normal_computation_method_, to_pass_further );
+
 
     // ====== SETUP MULTI PIPELINE RECOGNIZER ======
     mrec_.reset( new v4r::MultiRecognitionPipeline<PointT> );
@@ -170,6 +172,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         }
 
         mrec_->setModelDatabase( model_database );
+        mrec_->setNormalEstimator( normal_estimator_ );
         mrec_->initialize( models_dir_, retrain );
     }
 
@@ -228,14 +231,9 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     if( mrec_->needNormals() || hv_ )
     {
         pcl::ScopeTime t("Computing normals");
-        normals.reset (new pcl::PointCloud<pcl::Normal>);
-        pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
-        ne.setNormalEstimationMethod (ne.COVARIANCE_MATRIX);
-        ne.setMaxDepthChangeFactor(0.02f);
-        ne.setNormalSmoothingSize(10.0f);
-        ne.setDepthDependentSmoothing(true);
-        ne.setInputCloud(processed_cloud);
-        ne.compute(*normals);
+        normal_estimator_->setInputCloud( cloud );
+        normals.reset(new pcl::PointCloud<pcl::Normal>);
+        normals = normal_estimator_->compute();
         mrec_->setSceneNormals( normals );
         elapsed_time.push_back( t.getTime() );
     }
