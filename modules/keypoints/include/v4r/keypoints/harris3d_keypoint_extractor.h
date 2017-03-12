@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <pcl/common/io.h>
 #include <v4r/keypoints/keypoint_extractor.h>
 #include <boost/program_options.hpp>
 
@@ -37,10 +38,8 @@ class V4R_EXPORTS Harris3DKeypointExtractorParameter
     public:
     float threshold_;
 
-    Harris3DKeypointExtractorParameter(
-            float threshold = 1e-6
-            ) :
-        threshold_ (threshold)
+    Harris3DKeypointExtractorParameter() :
+        threshold_ (1e-4)
     {}
 
 
@@ -86,7 +85,9 @@ class V4R_EXPORTS Harris3DKeypointExtractor : public KeypointExtractor<PointT>
 private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     using KeypointExtractor<PointT>::input_;
+    using KeypointExtractor<PointT>::normals_;
     using KeypointExtractor<PointT>::indices_;
+    using KeypointExtractor<PointT>::keypoints_;
     using KeypointExtractor<PointT>::keypoint_indices_;
 
     Harris3DKeypointExtractorParameter param_;
@@ -94,14 +95,26 @@ private:
 public:
     Harris3DKeypointExtractor(const Harris3DKeypointExtractorParameter &p = Harris3DKeypointExtractorParameter()) :
         param_ (p)
-    {
-    }
+    { }
 
-    void compute (pcl::PointCloud<PointT> & keypoints);
+    void compute ();
+
+    bool needNormals() const
+    {
+        return true;
+    }
 
     int getKeypointExtractorType() const { return KeypointType::HARRIS3D; }
 
     std::string getKeypointExtractorName() const { return "harris3d"; }
+
+    typename pcl::PointCloud<PointT>::Ptr
+    getKeypoints()
+    {
+        keypoints_.reset(new pcl::PointCloud<PointT>);
+        pcl::copyPointCloud(*input_, keypoint_indices_, *keypoints_);
+        return keypoints_;
+    }
 
     typedef boost::shared_ptr< Harris3DKeypointExtractor<PointT> > Ptr;
     typedef boost::shared_ptr< Harris3DKeypointExtractor<PointT> const> ConstPtr;

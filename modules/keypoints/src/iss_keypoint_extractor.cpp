@@ -6,7 +6,7 @@ namespace v4r
 
 template<typename PointT>
 void
-IssKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
+IssKeypointExtractor<PointT>::compute ()
 {
     typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT> ());
     pcl::ISSKeypoint3D<PointT, PointT> iss_detector;
@@ -26,7 +26,8 @@ IssKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
     iss_detector.setNumberOfThreads (param_.threads_);
     iss_detector.setAngleThreshold (static_cast<float> (M_PI) / 3.0f);
     iss_detector.setInputCloud (input_);
-    iss_detector.compute (keypoints);
+    keypoints_.reset(new pcl::PointCloud<PointT>);
+    iss_detector.compute (*keypoints_);
 
 #if PCL_VERSION >= 100702
     pcl::PointIndicesConstPtr keypoints_idxes = iss_detector.getKeypointsIndices();

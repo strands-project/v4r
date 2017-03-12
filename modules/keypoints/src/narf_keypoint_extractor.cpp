@@ -9,7 +9,7 @@ namespace v4r
 
 template<typename PointT>
 void
-NarfKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
+NarfKeypointExtractor<PointT>::compute ()
 {
     Eigen::Affine3f sensorPose =
             Eigen::Affine3f(Eigen::Translation3f(input_->sensor_origin_[0], input_->sensor_origin_[1], input_->sensor_origin_[2]))
@@ -37,8 +37,6 @@ NarfKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
     keypoint_indices_.resize(sampled_indices.points.size());
     for(size_t i=0; i < sampled_indices.points.size(); i++)
         keypoint_indices_[i] = sampled_indices.points[i];
-
-    pcl::copyPointCloud(*input_, keypoint_indices_, keypoints);
 }
 
 

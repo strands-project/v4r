@@ -119,6 +119,7 @@ private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     using KeypointExtractor<PointT>::input_;
     using KeypointExtractor<PointT>::indices_;
+    using KeypointExtractor<PointT>::keypoints_;
     using KeypointExtractor<PointT>::keypoint_indices_;
 
     IssKeypointExtractorParameter param_;
@@ -130,12 +131,11 @@ public:
     {}
 
     void
-    compute (pcl::PointCloud<PointT> & keypoints);
+    compute ();
 
     int getKeypointExtractorType() const { return KeypointType::ISS; }
 
     std::string getKeypointExtractorName() const { return "iss"; }
-
 
     typedef boost::shared_ptr< IssKeypointExtractor<PointT> > Ptr;
     typedef boost::shared_ptr< IssKeypointExtractor<PointT> const> ConstPtr;

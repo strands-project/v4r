@@ -44,7 +44,7 @@ main (int argc, char ** argv)
     std::string test_dir;
     bool visualize = false;
     bool filter_planar = true;
-    bool filter_boundary_pts = true;
+    int filter_boundary_pts = 7; //  according to the edge types defined in pcl::OrganizedEdgeBase (EDGELABEL_OCCLUDING  | EDGELABEL_OCCLUDED | EDGELABEL_NAN_BOUNDARY)
     float chop_z = 3.5f;
     float planar_support_radius = 0.04f; ///< Radius used to check keypoints for planarity.
     float max_depth_change_factor =  0.02f; //10.0f;
@@ -68,7 +68,7 @@ main (int argc, char ** argv)
         ("chop_z,z", po::value<float>(&chop_z)->default_value(chop_z), "cut-off distance in meter")
         ("use_sift", po::value<bool>(&use_sift)->default_value(use_sift), "if true, uses DoG as keypoint extraction method (which is implemented in SIFT-GPU). Ignores keypoint extraction type.")
         ("filter_planar", po::value<bool>(&filter_planar)->default_value(filter_planar), "if true, filters planar keypoints")
-        ("filter_boundary_pts", po::value<bool>(&filter_boundary_pts)->default_value(filter_boundary_pts), "if true, filters keypoints on depth discontinuities")
+        ("filter_boundary_pts", po::value<int>(&filter_boundary_pts)->default_value(filter_boundary_pts), "if true, filters keypoints on depth discontinuities")
         ("planar_support_radius", po::value<float>(&planar_support_radius)->default_value(planar_support_radius), "planar support radius in meter  (only used if \"filter_planar\" is enabled)")
         ("max_depth_change_factor", po::value<float>(&max_depth_change_factor)->default_value(max_depth_change_factor), "max_depth_change_factor  (only used if \"filter_planar\" is enabled)")
         ("normal_smoothing_size", po::value<float>(&normal_smoothing_size)->default_value(normal_smoothing_size), "normal_smoothing_size  (only used if \"filter_planar\" is enabled)")
@@ -122,45 +122,13 @@ main (int argc, char ** argv)
             std::vector<int> kp_indices;
 
             pcl::io::loadPCDFile(in_path.string(), *cloud);
+
+            pcl::PointCloud<pcl::Normal>::Ptr normals ( new pcl::PointCloud<pcl::Normal> );
+            if( kp_extractor->needNormals() || filter_planar )
             {
-                pcl::ScopeTime t("Keypoint extraction");
-                if(use_sift)
-                {
-                    typename v4r::SIFTLocalEstimation<PointT>::Ptr sift_estimator (new v4r::SIFTLocalEstimation<PointT>);
-                    sift_estimator->setInputCloud( cloud );
-                    std::vector<std::vector<float> > signatures_foo;
-                    sift_estimator->compute( signatures_foo );
-                    kp_indices = sift_estimator->getKeypointIndices();
-                }
-                else
-                {
-                    kp_extractor->setInputCloud( cloud );
-                    pcl::PointCloud<PointT>::Ptr kp_cloud (new pcl::PointCloud<PointT>);
-                    kp_extractor->compute( *kp_cloud );
-                    kp_indices = kp_extractor->getKeypointIndices();
-                }
-            }
-
-
-//            kp_indices.resize( cloud->points.size() ) ; // vector with 100 ints.
-//            std::iota (std::begin(kp_indices), std::end(kp_indices), 0); // Fill with 0, 1, ..., 99.
-
-            boost::dynamic_bitset<> kp_is_kept( kp_indices.size() );
-            kp_is_kept.set();
-
-
-            if(filter_planar)
-            {
-                pcl::ScopeTime t("Filtering planar keypoints");
-
-                pcl::PointCloud<pcl::Normal>::Ptr normals_for_planarity_check ( new pcl::PointCloud<pcl::Normal> );
-                {
-                    boost::shared_ptr< std::vector<int> > IndicesPtr (new std::vector<int>);
-                    *IndicesPtr = kp_indices;
-
-                    pcl::ScopeTime tn("Computing normals");
-                    normal_estimator->setInputCloud( cloud );
-                    normals_for_planarity_check = normal_estimator->compute();
+                pcl::ScopeTime tn("Computing normals");
+                normal_estimator->setInputCloud( cloud );
+                normals = normal_estimator->compute();
 
 //                    pcl::NormalEstimationOMP<PointT, pcl::Normal> ne;
 //                    typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT>);
@@ -186,18 +154,49 @@ main (int argc, char ** argv)
 //////                    ne.setBorderPolicy();
 
 //                    ne.setInputCloud(cloud);
-//                    ne.compute(*normals_for_planarity_check);
-                    pcl::copyPointCloud(*normals_for_planarity_check, kp_indices, *normals_for_planarity_check);
-                }
+//                    ne.compute(*normals);
+            }
 
-                CHECK(kp_indices.size() == normals_for_planarity_check->points.size());
+            {
+                pcl::ScopeTime t("Keypoint extraction");
+                if(use_sift)
+                {
+                    typename v4r::SIFTLocalEstimation<PointT>::Ptr sift_estimator (new v4r::SIFTLocalEstimation<PointT>);
+                    sift_estimator->setInputCloud( cloud );
+                    std::vector<std::vector<float> > signatures_foo;
+                    sift_estimator->compute( signatures_foo );
+                    kp_indices = sift_estimator->getKeypointIndices();
+                }
+                else
+                {
+                    kp_extractor->setInputCloud( cloud );
+                    kp_extractor->setNormals(normals);
+                    kp_extractor->compute( );
+                    kp_indices = kp_extractor->getKeypointIndices();
+                }
+            }
+
+
+//            kp_indices.resize( cloud->points.size() ) ; // vector with 100 ints.
+//            std::iota (std::begin(kp_indices), std::end(kp_indices), 0); // Fill with 0, 1, ..., 99.
+
+            boost::dynamic_bitset<> kp_is_kept( kp_indices.size() );
+            kp_is_kept.set();
+
+
+            if(filter_planar)
+            {
+                pcl::ScopeTime t("Filtering planar keypoints");
+                boost::shared_ptr< std::vector<int> > IndicesPtr (new std::vector<int>);
+                *IndicesPtr = kp_indices;
+                pcl::copyPointCloud(*normals, kp_indices, *normals);
 
 
                 float min_curv = std::numeric_limits<float>::max();
                 float max_curv = std::numeric_limits<float>::min();
                 for(size_t i=0; i<kp_indices.size(); i++)
                 {
-                    float curv = normals_for_planarity_check->points[i].curvature;
+                    float curv = normals->points[i].curvature;
 
                     if( curv < threshold_planar )
                         kp_is_kept.reset(i);
@@ -220,7 +219,7 @@ main (int argc, char ** argv)
                     int u = i%cloud->width;
                     int v = i/cloud->width;
 
-                    float curv = normals_for_planarity_check->points[i].curvature;
+                    float curv = normals->points[i].curvature;
 
                     if( pcl_isfinite(curv) )
                         img.at<cv::Vec3b>(v,u) = cv::Vec3b(0, 255 - 255* (curv-min_curv)/(max_curv-min_curv) , 0);
@@ -239,10 +238,7 @@ main (int argc, char ** argv)
                 pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label> oed;
                 oed.setDepthDisconThreshold (0.05f); //at 1m, adapted linearly with depth
                 oed.setMaxSearchNeighbors(100);
-                oed.setEdgeType (  pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDING
-                                 | pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDED
-                                 | pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_NAN_BOUNDARY
-                                 );
+                oed.setEdgeType ( filter_boundary_pts  );
                 oed.setInputCloud ( cloud );
 
                 pcl::PointCloud<pcl::Label> labels;

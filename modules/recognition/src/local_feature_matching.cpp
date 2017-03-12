@@ -214,8 +214,7 @@ LocalFeatureMatcher<PointT>::extractKeypoints ()
         if (ke->needNormals ())
             ke->setNormals (scene_normals_);
 
-        pcl::PointCloud<PointT> detected_keypoints;
-        ke->compute (detected_keypoints);
+        ke->compute ();
 
         std::vector<int> kp_indices = ke->getKeypointIndices();
 
