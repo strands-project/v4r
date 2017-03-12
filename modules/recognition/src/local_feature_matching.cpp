@@ -307,9 +307,8 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
 
                     if ( 1 ) // always needs normals since we never know if correspondence grouping does! ..... this->needNormals() )
                     {
-                        scene_normals_.reset( new pcl::PointCloud<pcl::Normal> );
                         normal_estimator_->setInputCloud( cloud );
-                        pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+                        pcl::PointCloud<pcl::Normal>::Ptr normals;
                         normals = normal_estimator_->compute();
                         scene_normals_ = normals;
 

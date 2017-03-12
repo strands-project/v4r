@@ -13,6 +13,7 @@ MultiRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, boo
     for(auto &r:recognition_pipelines_)
     {
         r->setModelDatabase(m_db_);
+        r->setNormalEstimator(normal_estimator_);
         r->initialize(trained_dir, force_retrain);
     }
 }
