@@ -223,7 +223,7 @@ LocalFeatureMatcher<PointT>::extractKeypoints ()
         for(int idx : kp_indices)
         {
             if(     obj_mask[idx] && pcl::isFinite( scene_->points[idx] ) &&
-                    (!ke->needNormals() || pcl::isFinite(scene_normals_->points[idx]))
+                    ( !estimator_->needNormals() || pcl::isFinite(scene_normals_->points[idx]))
                     && scene_->points[idx].z < param_.max_keypoint_distance_z_ )
             {
                 kp_mask.set( idx );
