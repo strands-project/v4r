@@ -20,7 +20,7 @@
 #include <v4r/features/esf_estimator.h>
 #include <v4r/features/shot_local_estimator.h>
 #include <v4r/features/sift_local_estimator.h>
-#include <v4r/keypoints/uniform_sampling_extractor.h>
+#include <v4r/keypoints/all_headers.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/ml/all_headers.h>
 #include <v4r/recognition/hypotheses_verification.h>
@@ -99,12 +99,12 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
             if(param_.use_graph_based_gc_grouping_)
             {
-                v4r::GraphGeometricConsistencyGroupingParameter gcparam;
+                GraphGeometricConsistencyGroupingParameter gcparam;
                 gcparam.gc_size_ = param_.cg_size_;
                 gcparam.gc_threshold_ = param_.cg_thresh_;
                 to_pass_further = gcparam.init(to_pass_further);
-                v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gc_clusterer
-                        (new v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
+                GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gc_clusterer
+                        (new GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
                 local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
             }
             else
@@ -128,8 +128,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             if(param_.do_shot_)
             {
                 typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT>);
-                typename UniformSamplingExtractor<PointT>::Ptr extr (new UniformSamplingExtractor<PointT>(0.02f));
-                typename KeypointExtractor<PointT>::Ptr keypoint_extractor = boost::static_pointer_cast<KeypointExtractor<PointT> > (extr);
+                typename KeypointExtractor<PointT>::Ptr keypoint_extractor = initKeypointExtractor<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
 
                 LocalRecognizerParameter shot_param(param_.shot_config_xml_);
                 typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_param));
@@ -231,8 +230,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     if( mrec_->needNormals() || hv_ )
     {
         pcl::ScopeTime t("Computing normals");
-        normal_estimator_->setInputCloud( cloud );
-        normals.reset(new pcl::PointCloud<pcl::Normal>);
+        normal_estimator_->setInputCloud( processed_cloud );
         normals = normal_estimator_->compute();
         mrec_->setSceneNormals( normals );
         elapsed_time.push_back( t.getTime() );
@@ -284,6 +282,8 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         LocalObjectModelDatabase::ConstPtr lomdb = local_recognition_pipeline_->getLocalObjectModelDatabase();
         rec_vis_->setCloud( cloud );
         rec_vis_->setProcessedCloud( processed_cloud );
+        rec_vis_->setNormals(normals);
+
         rec_vis_->setGeneratedObjectHypotheses( generated_object_hypotheses_ );
         rec_vis_->setLocalModelDatabase(lomdb);
         rec_vis_->setVerifiedObjectHypotheses( verified_hypotheses_ );

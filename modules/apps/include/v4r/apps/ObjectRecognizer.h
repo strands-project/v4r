@@ -26,6 +26,7 @@
 #include <v4r/common/normals.h>
 #include <v4r/core/macros.h>
 #include <v4r/io/filesystem.h>
+#include <v4r/keypoints/types.h>
 #include <v4r/ml/types.h>
 #include <v4r/recognition/local_recognition_pipeline.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
@@ -63,6 +64,7 @@ public:
     bool do_alexnet_;
     int segmentation_method_;
     int esf_classification_method_;
+    int shot_keypoint_extractor_method_;
     int normal_computation_method_; ///< normal computation method
     double chop_z_; ///< Cut-off distance in meter
 
@@ -88,6 +90,7 @@ public:
           do_alexnet_(false),
           segmentation_method_(SegmentationType::OrganizedConnectedComponents),
           esf_classification_method_(ClassifierType::SVM),
+          shot_keypoint_extractor_method_( KeypointType::UniformSampling ),
           normal_computation_method_(NormalEstimatorType::PCL_INTEGRAL_NORMAL),
           chop_z_(3.f),
           remove_planes_(false),

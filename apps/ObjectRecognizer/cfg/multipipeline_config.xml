@@ -18,6 +18,8 @@
 	<do_alexnet_>0</do_alexnet_>
 	<segmentation_method_>1</segmentation_method_>
 	<esf_classification_method_>2</esf_classification_method_>
+	<shot_keypoint_extractor_method_>1</shot_keypoint_extractor_method_>
+	<normal_computation_method_>8</normal_computation_method_>
 	<chop_z_>2.80000000000000000e+00</chop_z_>
 	<remove_planes_>1</remove_planes_>
 	<plane_inlier_threshold_>1.999999955e-02</plane_inlier_threshold_>
