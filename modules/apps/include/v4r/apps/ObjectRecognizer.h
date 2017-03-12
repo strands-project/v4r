@@ -139,6 +139,7 @@ private:
                 & BOOST_SERIALIZATION_NVP(do_alexnet_)
                 & BOOST_SERIALIZATION_NVP(segmentation_method_)
                 & BOOST_SERIALIZATION_NVP(esf_classification_method_)
+                & BOOST_SERIALIZATION_NVP(shot_keypoint_extractor_method_)
                 & BOOST_SERIALIZATION_NVP(normal_computation_method_)
                 & BOOST_SERIALIZATION_NVP(chop_z_)
                 & BOOST_SERIALIZATION_NVP(remove_planes_)
