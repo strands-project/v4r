@@ -127,11 +127,13 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             }
             if(param_.do_shot_)
             {
-                typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT>);
+                SHOTLocalEstimationParameter shot_param;
+                shot_param.init( to_pass_further );
+                typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT> (shot_param) );
                 typename KeypointExtractor<PointT>::Ptr keypoint_extractor = initKeypointExtractor<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
 
-                LocalRecognizerParameter shot_param(param_.shot_config_xml_);
-                typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_param));
+                LocalRecognizerParameter shot_pipeline_param(param_.shot_config_xml_);
+                typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_pipeline_param));
                 shot_rec->addKeypointExtractor( keypoint_extractor );
                 shot_rec->setFeatureEstimator( shot_est );
                 local_recognition_pipeline_->addLocalFeatureMatcher(shot_rec);
