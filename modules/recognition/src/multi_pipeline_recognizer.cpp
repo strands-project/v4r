@@ -27,7 +27,7 @@ MultiRecognitionPipeline<PointT>::recognize()
     obj_hypotheses_.clear();
     omp_init_lock(&rec_lock_);
 
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
     for(size_t r_id=0; r_id < recognition_pipelines_.size(); r_id++)
     {
         typename RecognitionPipeline<PointT>::Ptr r = recognition_pipelines_[r_id];
