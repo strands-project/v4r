@@ -14,7 +14,7 @@
 
 struct V4R_EXPORTS ExtendedClique
 {
-    std::vector<size_t> * correspondences_;
+    std::vector<size_t> correspondences_;
     float avg_descriptor_distance_;
     float avg_pair_3D_distance_;
     float normalized_clique_size_;
@@ -116,7 +116,7 @@ class V4R_EXPORTS Tomita
 {
     typedef std::set<typename boost::graph_traits<Graph>::vertex_descriptor> SetType;
     typedef std::vector<typename boost::graph_traits<Graph>::vertex_descriptor> VectorType;
-    std::vector<VectorType *> cliques_found_;
+    std::vector<VectorType> cliques_found_;
     size_t min_clique_size_;
     typedef boost::unordered_map<typename boost::graph_traits<Graph>::vertex_descriptor, size_t> MapType;
     MapType used_ntimes_in_cliques_;
@@ -128,14 +128,13 @@ class V4R_EXPORTS Tomita
     void
     addClique (const VectorType & clique)
     {
-        if (clique.size () >= min_clique_size_)
+        if ( clique.size () >= min_clique_size_ )
         {
-            VectorType * vt = new VectorType (clique);
+            VectorType vt (clique);
             cliques_found_.push_back (vt);
+
             for (size_t i = 0; i < clique.size (); i++)
-            {
-                used_ntimes_in_cliques_[clique[i]]++;
-            }
+                used_ntimes_in_cliques_[ clique[i] ]++;
 
         }
     }
@@ -303,7 +302,7 @@ public:
         return cliques_found_.size ();
     }
 
-    std::vector<VectorType *>
+    std::vector<VectorType>
     getCliques () const
     {
         return cliques_found_;
@@ -535,57 +534,51 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
 
             if (cliques_computation_possible[c] && arboricity < 25 /*&& (num_v_in_cc < 400) && (num_edges (connected_graph) < 8000) && arboricity < 10*/)
             {
-                std::vector<std::vector<size_t> *> cliques;
+                std::vector< std::vector<size_t> > cliques;
+
+                Tomita<GraphGGCG> tom (param_.gc_threshold_);
+                tom.setMaxTimeAllowed(param_.max_time_allowed_cliques_comptutation_);
+                tom.find_cliques (connected_graph, model_scene_corrs_->size ());
+
+                if( tom.getMaxTimeReached( ))
                 {
-                    Tomita<GraphGGCG> tom (param_.gc_threshold_);
-                    tom.setMaxTimeAllowed(param_.max_time_allowed_cliques_comptutation_);
-                    tom.find_cliques (connected_graph, model_scene_corrs_->size ());
-                    if( tom.getMaxTimeReached( ))
-                    {
-                        std::cout << "Max time ( " << std::setprecision(2) << param_.max_time_allowed_cliques_comptutation_ << " ms) reached during clique computation" << std::endl;
-                        cliques_computation_possible[c] = false;
-                        c--;
-                        analyzed_ccs--;
-
-                        //free memory for cliques
-                        cliques = tom.getCliques ();
-                        for (size_t p = 0; p < cliques.size (); p++)
-                            delete cliques[p];
-
-                        continue;
-                    }
-                    cliques = tom.getCliques ();
+                    std::cout << "Max time ( " << std::setprecision(2) << param_.max_time_allowed_cliques_comptutation_ << " ms) reached during clique computation" << std::endl;
+                    cliques_computation_possible[c] = false;
+                    c--;
+                    analyzed_ccs--;
+                    continue;
                 }
+                cliques = tom.getCliques ();
 
-                std::vector< ExtendedClique > extended_cliques;
-                std::vector< std::pair<float, std::vector<size_t> * > > cliques_with_average_weight;
+                std::vector< ExtendedClique > extended_cliques ( cliques.size() );
+                std::vector< std::pair<float, std::vector<size_t> > > cliques_with_average_weight;
                 for(size_t k = 0; k < cliques.size(); k++)
                 {
                     double avg_dist = 0.;
                     float max_dist_ = 0.03f; //3 centimeters
                     double far_away_average_weight_ = 0.;
 
-                    for(size_t jj=0; jj < cliques[k]->size(); jj++)
-                        avg_dist += model_scene_corrs_->at( cliques[k]->at(jj) ).distance;
+                    for(size_t jj=0; jj < cliques[k].size(); jj++)
+                        avg_dist += model_scene_corrs_->at( cliques[k][jj] ).distance;
 
-                    avg_dist /= cliques[k]->size();
+                    avg_dist /= cliques[k].size();
                     cliques_with_average_weight.push_back( std::make_pair(avg_dist, cliques[k]) );
 
                     double avg_3D_dist = 0.;
 
-                    for(size_t jj=0; jj < cliques[k]->size(); jj++)
+                    for(size_t jj=0; jj < cliques[k].size(); jj++)
                     {
-                        int scene_index_j = model_scene_corrs_->at( cliques[k]->at(jj) ).index_match;
-                        int model_index_j = model_scene_corrs_->at( cliques[k]->at(jj) ).index_query;
+                        int scene_index_j = model_scene_corrs_->at( cliques[k][jj] ).index_match;
+                        int model_index_j = model_scene_corrs_->at( cliques[k][jj] ).index_query;
                         const Eigen::Vector3f& scene_point_j = scene_->at (scene_index_j).getVector3fMap ();
                         const Eigen::Vector3f& model_point_j = input_->at (model_index_j).getVector3fMap ();
 
-                        for(size_t kk=(jj+1); kk < cliques[k]->size(); kk++)
+                        for(size_t kk=(jj+1); kk < cliques[k].size(); kk++)
                         {
                             //for each pair, average 3D distance
 
-                            int scene_index_k = model_scene_corrs_->at( cliques[k]->at(kk) ).index_match;
-                            int model_index_k = model_scene_corrs_->at( cliques[k]->at(kk) ).index_query;
+                            int scene_index_k = model_scene_corrs_->at( cliques[k][kk] ).index_match;
+                            int model_index_k = model_scene_corrs_->at( cliques[k][kk] ).index_query;
 
                             const Eigen::Vector3f& scene_point_k = scene_->at (scene_index_k).getVector3fMap ();
                             const Eigen::Vector3f& model_point_k = input_->at (model_index_k).getVector3fMap ();
@@ -601,8 +594,8 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                         }
                     }
 
-                    avg_3D_dist /= ( cliques[k]->size() * (cliques[k]->size() - 1) ) / 2.;
-                    far_away_average_weight_ /= ( cliques[k]->size() * (cliques[k]->size() - 1) ) / 2.;
+                    avg_3D_dist /= ( cliques[k].size() * (cliques[k].size() - 1) ) / 2.;
+                    far_away_average_weight_ /= ( cliques[k].size() * (cliques[k].size() - 1) ) / 2.;
 
                     ExtendedClique ec;
                     ec.correspondences_ = cliques[k];
@@ -610,7 +603,7 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                     ec.avg_descriptor_distance_ = avg_dist;
                     ec.avg_pair_3D_distance_unnormalized_ = avg_3D_dist;
                     ec.far_away_correspondences_weight_ = far_away_average_weight_;
-                    extended_cliques.push_back(ec);
+                    extended_cliques[k] = ec;
                 }
 
                 float max_avg_3D_dist = 0;
@@ -622,8 +615,8 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                     if(extended_cliques[k].avg_pair_3D_distance_ > max_avg_3D_dist)
                         max_avg_3D_dist = extended_cliques[k].avg_pair_3D_distance_;
 
-                    if(extended_cliques[k].correspondences_->size() > max_clique_size)
-                        max_clique_size = extended_cliques[k].correspondences_->size();
+                    if(extended_cliques[k].correspondences_.size() > max_clique_size)
+                        max_clique_size = extended_cliques[k].correspondences_.size();
 
                     if(extended_cliques[k].avg_descriptor_distance_ > max_avg_descriptor_dist)
                         max_avg_descriptor_dist = extended_cliques[k].avg_descriptor_distance_;
@@ -633,7 +626,7 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                 {
                     extended_cliques[k].avg_pair_3D_distance_ = 1.f - (extended_cliques[k].avg_pair_3D_distance_ / max_avg_3D_dist);
                     extended_cliques[k].avg_descriptor_distance_ = 1.f - (extended_cliques[k].avg_descriptor_distance_ / max_avg_descriptor_dist);
-                    extended_cliques[k].normalized_clique_size_ = static_cast<float>(extended_cliques[k].correspondences_->size()) / static_cast<float>(max_clique_size);
+                    extended_cliques[k].normalized_clique_size_ = extended_cliques[k].correspondences_.size() / static_cast<float>(max_clique_size);
                 }
 
                 //process cliques to remove similar ones...
@@ -647,26 +640,24 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
 
                 sort (extended_cliques.begin (), extended_cliques.end (), best_extended_cliques);
 
-                std::vector<std::vector<size_t> *>::iterator it;
                 std::vector<size_t> taken_corresps (model_scene_corrs_->size (), 0);
                 size_t max_taken = param_.max_taken_correspondence_;
 
                 if(!param_.cliques_big_to_small_)
                     std::reverse (cliques.begin (), cliques.end ());
 
-                for (it = cliques.begin (); it != cliques.end (); it++)
+                for ( const std::vector<size_t> clique : cliques )
                 {
-                    //std::cout << "clique size:" << (*it)->size () << std::endl;
                     //create a new clique based on how many time the correspondences in *it clique were used
                     std::vector<size_t> new_clique;
-                    new_clique.reserve( (*it)->size () );
+                    new_clique.reserve( clique.size () );
 
                     size_t used = 0;
-                    for (size_t i = 0; i < (*it)->size (); i++)
+                    for ( size_t cc : clique )
                     {
-                        if (taken_corresps[(**it)[i]] < max_taken)
+                        if (taken_corresps[ cc ] < max_taken)
                         {
-                            new_clique.push_back ((**it)[i]); //(**it)
+                            new_clique.push_back (cc); //(*it)
                             used++;
                         }
                     }
@@ -739,9 +730,6 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                         }
                     }
                 }
-
-                for (size_t p = 0; p < cliques.size (); p++)
-                    delete cliques[p];
             }
             else
             {
@@ -749,9 +737,8 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                 std::cout << "Correspondence grouping is too hard to solve it using cliques..." << std::endl;
                 //            std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
 
-                std::vector<size_t> consensus_set;
-                consensus_set.resize(model_scene_corrs_->size ());
-                std::vector<bool> taken_corresps (model_scene_corrs_->size (), false);
+                std::vector<size_t> consensus_set ( model_scene_corrs_->size () );
+                std::vector<bool> taken_corresps ( model_scene_corrs_->size (), false );
 
                 GraphGGCG connected_graph2(correspondence_graph);
                 //iterate over edges and remove those not belonging to this biconnected component
@@ -759,9 +746,7 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                 for (; edgeIt != edgeEnd; ++edgeIt)
                 {
                     if (components[*edgeIt] != c)
-                    {
                         boost::remove_edge(*edgeIt, connected_graph2);
-                    }
                 }
 
                 typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
@@ -858,18 +843,18 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                                     model_instances.push_back (filtered_corrs);
 
                                     //mark all inliers
-                                    for (size_t j = 0; j < inlier_indices.size (); j++)
+                                    for (int idx : inlier_indices )
                                     {
-                                        taken_corresps[consensus_set[inlier_indices[j]]] = true;
+                                        taken_corresps[ consensus_set[idx] ] = true;
 
                                         if(param_.prune_by_CC_)
-                                            correspondence_to_instance[consensus_set[inlier_indices[j]]].push_back(model_instances.size() - 1);
+                                            correspondence_to_instance[ consensus_set[idx] ].push_back(model_instances.size() - 1);
                                     }
 
                                     if(param_.prune_by_CC_)
                                     {
-                                        for (size_t j = 0; j < inlier_indices.size (); j++)
-                                            correspondences_used.insert(consensus_set[inlier_indices[j]]);
+                                        for (int idx : inlier_indices )
+                                            correspondences_used.insert( consensus_set[idx] );
                                     }
                                 }
                             }
