@@ -11,7 +11,8 @@ template<typename PointT>
 void
 NarfKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
 {
-    Eigen::Affine3f sensorPose = Eigen::Affine3f(Eigen::Translation3f(input_->sensor_origin_[0], input_->sensor_origin_[1], input_->sensor_origin_[2]))
+    Eigen::Affine3f sensorPose =
+            Eigen::Affine3f(Eigen::Translation3f(input_->sensor_origin_[0], input_->sensor_origin_[1], input_->sensor_origin_[2]))
             * Eigen::Affine3f(input_->sensor_orientation_);
     pcl::RangeImagePlanar rangeImage;
     rangeImage.createFromPointCloudWithFixedSize(*input_, param_.cam_->getWidth(), param_.cam_->getHeight(),
@@ -24,7 +25,12 @@ NarfKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
     detector.setRangeImage(&rangeImage);
     // The support size influences how big the surface of interest will be,
     // when finding keypoints from the border information.
-    detector.getParameters().support_size = 0.2f;
+    detector.getParameters().support_size = param_.support_size_;
+    detector.getParameters().min_distance_between_interest_points = param_.min_distance_between_interest_points_;
+    detector.getParameters().optimal_distance_to_high_surface_change = param_.optimal_distance_to_high_surface_change_;
+    detector.getParameters().min_interest_value = param_.min_interest_value_;
+    detector.getParameters().min_surface_change_score = param_.min_surface_change_score_;
+    detector.getParameters().optimal_range_image_patch_size = param_.optimal_range_image_patch_size_;
     pcl::PointCloud<int> sampled_indices;
     detector.compute(sampled_indices);
 
