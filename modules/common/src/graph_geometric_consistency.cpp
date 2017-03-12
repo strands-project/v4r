@@ -357,7 +357,7 @@ namespace v4r
 
 template<typename PointModelT, typename PointSceneT>
 void
-GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph2(GraphGGCG & g, size_t gc_thres)
+GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::cleanGraph(GraphGGCG & g, size_t gc_thres)
 {
     typename boost::graph_traits<GraphGGCG>::vertex_iterator vertexIt, vertexEnd;
     std::vector<typename boost::graph_traits<GraphGGCG>::vertex_descriptor> to_be_removed;

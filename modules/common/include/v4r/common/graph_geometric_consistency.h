@@ -139,6 +139,13 @@ public:
 template<typename PointModelT, typename PointSceneT>
 class V4R_EXPORTS GraphGeometricConsistencyGrouping : public pcl::CorrespondenceGrouping<PointModelT, PointSceneT>
 {
+private:
+    using pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
+    using pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
+    using pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
+
+    pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_;
+    pcl::PointCloud<pcl::Normal>::ConstPtr input_normals_;
 
     struct edge_component_t
     {
@@ -149,7 +156,25 @@ class V4R_EXPORTS GraphGeometricConsistencyGrouping : public pcl::Correspondence
     edge_component;
 
     typedef boost::adjacency_matrix<boost::undirectedS, size_t, boost::property<edge_component_t, std::size_t> > GraphGGCG;
-    void cleanGraph2(GraphGGCG & g, size_t gc_thres);
+    void cleanGraph(GraphGGCG & g, size_t gc_thres);
+
+    /** \brief Transformations found by clusterCorrespondences method. */
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > found_transformations_;
+
+    //    bool visualize_graph_;
+
+
+    /** \brief Cluster the input correspondences in order to distinguish between different instances of the model into the scene.
+        *
+        * \param[out] model_instances a vector containing the clustered correspondences for each model found on the scene.
+        * \return true if the clustering had been successful or false if errors have occurred.
+        */
+    void
+    clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances);
+
+    /*void visualizeCorrespondences(const pcl::Correspondences & correspondences);
+
+      void visualizeGraph(GraphGGCG & g, std::string title="Correspondence Graph");*/
 
 public:
     GraphGeometricConsistencyGroupingParameter param_;
@@ -162,7 +187,7 @@ public:
     GraphGeometricConsistencyGrouping (const GraphGeometricConsistencyGroupingParameter &p = GraphGeometricConsistencyGroupingParameter()) : pcl::CorrespondenceGrouping<PointModelT, PointSceneT>()
     {
         param_ = p;
-        visualize_graph_ = false;
+//        visualize_graph_ = false;
     }
 
     inline
@@ -203,43 +228,23 @@ public:
     bool
     recognize (std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &transformations, std::vector<pcl::Correspondences> &clustered_corrs);
 
-    void setInputAndSceneNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr & input_n, const pcl::PointCloud<pcl::Normal>::ConstPtr & scene_n)
+    /**
+     * @brief setInputAndSceneNormals
+     * @param input_n input normals
+     * @param scene_n scene normals
+     */
+    void
+    setInputAndSceneNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr & input_n, const pcl::PointCloud<pcl::Normal>::ConstPtr & scene_n)
     {
         input_normals_ = input_n;
         scene_normals_ = scene_n;
     }
 
-    void
-    setVisualizeGraph(bool vis)
-    {
-        visualize_graph_ = vis;
-    }
-
-protected:
-    using pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::input_;
-    using pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::scene_;
-    using pcl::CorrespondenceGrouping<PointModelT, PointSceneT>::model_scene_corrs_;
-
-    pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_;
-    pcl::PointCloud<pcl::Normal>::ConstPtr input_normals_;
-
-    bool visualize_graph_;
-
-
-    /** \brief Transformations found by clusterCorrespondences method. */
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > found_transformations_;
-
-    /** \brief Cluster the input correspondences in order to distinguish between different instances of the model into the scene.
-        *
-        * \param[out] model_instances a vector containing the clustered correspondences for each model found on the scene.
-        * \return true if the clustering had been successful or false if errors have occurred.
-        */
-    void
-    clusterCorrespondences (std::vector<pcl::Correspondences> &model_instances);
-
-    /*void visualizeCorrespondences(const pcl::Correspondences & correspondences);
-
-      void visualizeGraph(GraphGGCG & g, std::string title="Correspondence Graph");*/
+//    void
+//    setVisualizeGraph(bool vis)
+//    {
+//        visualize_graph_ = vis;
+//    }
 
 public:
     typedef boost::shared_ptr<GraphGeometricConsistencyGrouping<PointModelT, PointSceneT> > Ptr;
