@@ -243,6 +243,9 @@ void svmClassifier::saveModel(const std::string &filename) const
 
 void svmClassifier::loadModel(const std::string &filename)
 {
+    if( !v4r::io::existsFile(filename) )
+        throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
     svm_mod_ = ::svm_load_model(filename.c_str());
 }
 

@@ -35,6 +35,7 @@
 #include <v4r/core/macros.h>
 #include <v4r/common/pcl_serialization.h>
 #include <v4r/features/global_estimator.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/ml/classifier.h>
 #include <v4r/recognition/object_hypothesis.h>
 #include <v4r/recognition/source.h>
@@ -100,6 +101,9 @@ public:
 
     GlobalRecognizerParameter(const std::string &filename)
     {
+        if( !v4r::io::existsFile(filename) )
+            throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
         ia >> boost::serialization::make_nvp("GlobalRecognizerParameter", *this );

@@ -23,9 +23,10 @@
 
 #pragma once
 
+#include <v4r/common/graph_geometric_consistency.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/recognition/local_feature_matching.h>
 #include <v4r/recognition/recognition_pipeline.h>
-#include <v4r/common/graph_geometric_consistency.h>
 
 #include <pcl/recognition/cg/correspondence_grouping.h>
 #include <omp.h>
@@ -63,6 +64,9 @@ public:
 
     LocalRecognitionPipelineParameter(const std::string &filename)
     {
+        if( !v4r::io::existsFile(filename) )
+            throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
         ia >> BOOST_SERIALIZATION_NVP( *this );

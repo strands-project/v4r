@@ -33,6 +33,7 @@
 #include <v4r/common/normals.h>
 #include <v4r/features/local_estimator.h>
 #include <v4r/keypoints/keypoint_extractor.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
 #include <v4r/recognition/source.h>
 
@@ -106,6 +107,9 @@ public:
 
     LocalRecognizerParameter(const std::string &filename)
     {
+        if( !v4r::io::existsFile(filename) )
+            throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
         ia >> boost::serialization::make_nvp("LocalRecognizerParameter", *this );
