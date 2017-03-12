@@ -59,41 +59,26 @@ public:
     float threshold_planar_; ///< threshold ratio used for deciding if patch is planar. Ratio defined as largest eigenvalue to all others.
 
     // parameters for depth-discontinuity filter
-    bool filter_border_pts_; ///< Filter keypoints at the boundary
+    int filter_border_pts_; ///< Filter keypoints at the boundary (value according to the edge types defined in pcl::OrganizedEdgeBase (EDGELABEL_OCCLUDING  | EDGELABEL_OCCLUDED | EDGELABEL_NAN_BOUNDARY))
     int boundary_width_; ///< Width in pixel of the depth discontinuity
 
     float required_viewpoint_change_deg_; ///< required viewpoint change in degree for a new training view to be used for feature extraction. Training views will be sorted incrementally by their filename and if the camera pose of a training view is close to the camera pose of an already existing training view, it will be discarded for training.
 
-    LocalRecognizerParameter(
-            int kdtree_splits = 512,
-            int kdtree_num_trees = 4,
-            size_t knn = 1,
-            float max_descriptor_distance = std::numeric_limits<float>::max(),
-            float correspondence_distance_weight = 1.f,
-            int distance_metric = 1,
-            float max_keypoint_distance_z = std::numeric_limits<float>::max(),
-            bool filter_planar = false,
-            int min_plane_size = 1000,
-            float planar_support_radius = 0.04f,
-            float threshold_planar = 0.02f,
-            bool filter_border_pts = false,
-            int boundary_width = 5,
-            float required_viewpoint_change_deg = 15.f
-            )
-        : kdtree_splits_ (kdtree_splits),
-          kdtree_num_trees_ (kdtree_num_trees),
-          knn_ ( knn ),
-          max_descriptor_distance_ ( max_descriptor_distance ),
-          correspondence_distance_weight_ ( correspondence_distance_weight ),
-          distance_metric_ (distance_metric),
-          max_keypoint_distance_z_ ( max_keypoint_distance_z ),
-          filter_planar_ (filter_planar),
-          min_plane_size_ (min_plane_size),
-          planar_support_radius_ (planar_support_radius),
-          threshold_planar_ (threshold_planar),
-          filter_border_pts_ (filter_border_pts),
-          boundary_width_ (boundary_width),
-          required_viewpoint_change_deg_ (required_viewpoint_change_deg)
+    LocalRecognizerParameter( ) :
+          kdtree_splits_ (512),
+          kdtree_num_trees_ (4),
+          knn_ ( 1 ),
+          max_descriptor_distance_ ( std::numeric_limits<float>::max() ),
+          correspondence_distance_weight_ ( 1.f ),
+          distance_metric_ (1),
+          max_keypoint_distance_z_ ( std::numeric_limits<float>::max() ),
+          filter_planar_ (false),
+          min_plane_size_ (1000),
+          planar_support_radius_ (0.04f),
+          threshold_planar_ (0.02f),
+          filter_border_pts_ (7),
+          boundary_width_ (5),
+          required_viewpoint_change_deg_ (10.f)
     {}
 
     void
