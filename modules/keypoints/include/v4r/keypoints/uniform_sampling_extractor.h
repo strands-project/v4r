@@ -36,11 +36,10 @@ class V4R_EXPORTS UniformSamplingExtractorParameter
 public:
     float sampling_density_; ///< sampling distance in meter
     UniformSamplingExtractorParameter(
-            float sampling_density = 0.01f
+            float sampling_density = 0.02f
             ) :
     sampling_density_ (sampling_density)
-    {
-    }
+    { }
 
     /**
      * @brief init parameters
@@ -91,8 +90,7 @@ private:
 public:
     UniformSamplingExtractor( const UniformSamplingExtractorParameter &p = UniformSamplingExtractorParameter() ) :
         param_ (p)
-    {
-    }
+    { }
 
     void compute (pcl::PointCloud<PointT> & keypoints);
 
