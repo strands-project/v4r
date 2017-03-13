@@ -21,6 +21,7 @@
  *
  ******************************************************************************/
 
+#include <boost/serialization/vector.hpp>
 #include <v4r/apps/CloudSegmenter.h>
 #include <v4r/apps/visualization.h>
 #include <v4r/common/normals.h>
@@ -66,6 +67,7 @@ public:
     int esf_classification_method_;
     int shot_keypoint_extractor_method_;
     int normal_computation_method_; ///< normal computation method
+    std::vector<float> keypoint_support_radii_;
     double chop_z_; ///< Cut-off distance in meter
 
     bool remove_planes_;    ///< if enabled, removes the dominant plane in the input cloud (given thera are at least N inliers)
@@ -92,6 +94,7 @@ public:
           esf_classification_method_(ClassifierType::SVM),
           shot_keypoint_extractor_method_( KeypointType::UniformSampling ),
           normal_computation_method_(NormalEstimatorType::PCL_INTEGRAL_NORMAL),
+          keypoint_support_radii_({0.03, 0.05, 0.08}),
           chop_z_(3.f),
           remove_planes_(false),
           plane_inlier_threshold_ (0.02f),
@@ -141,6 +144,7 @@ private:
                 & BOOST_SERIALIZATION_NVP(esf_classification_method_)
                 & BOOST_SERIALIZATION_NVP(shot_keypoint_extractor_method_)
                 & BOOST_SERIALIZATION_NVP(normal_computation_method_)
+                & BOOST_SERIALIZATION_NVP(keypoint_support_radii_)
                 & BOOST_SERIALIZATION_NVP(chop_z_)
                 & BOOST_SERIALIZATION_NVP(remove_planes_)
                 & BOOST_SERIALIZATION_NVP(plane_inlier_threshold_)

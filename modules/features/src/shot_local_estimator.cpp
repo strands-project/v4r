@@ -11,31 +11,6 @@ template<typename PointT>
 void
 SHOTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatures)
 {
-//    if (param_.adaptative_MLS_)
-//    {
-//        throw std::runtime_error("Adaptive MLS is not implemented yet!");
-//        std::cerr << "Using parameter adaptive MLS will break the keypoint indices!" << std::endl; //TODO: Fix this!
-//        pcl::MovingLeastSquares<PointT, PointT> mls;
-//        typename pcl::search::KdTree<PointT>::Ptr tree;
-//        Eigen::Vector4f centroid_cluster;
-//        pcl::compute3DCentroid (*in_, centroid_cluster);
-//        float dist_to_sensor = centroid_cluster.norm ();
-//        float sigma = dist_to_sensor * 0.01f;
-//        mls.setSearchMethod (tree);
-//        mls.setSearchRadius (sigma);
-//        mls.setUpsamplingMethod (mls.SAMPLE_LOCAL_PLANE);
-//        mls.setUpsamplingRadius (0.002);
-//        mls.setUpsamplingStepSize (0.001);
-//        mls.setInputCloud (in_);
-
-//        pcl::PointCloud<PointT> filtered;
-//        mls.process (filtered);
-//        filtered.is_dense = false;
-//        *processed_ = filtered;
-
-//        computeNormals<PointT>(processed_, processed_normals, param_.normal_computation_method_);
-//    }
-
     CHECK( cloud_->points.size() == normals_->points.size() );
 
     typename pcl::PointCloud<PointT>::Ptr cloud_wo_nan (new pcl::PointCloud<PointT>);
@@ -79,19 +54,28 @@ SHOTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatu
         IndicesPtr->at(i) = originalIndices2new[ indices_[i] ];
 
     shot_estimate.setIndices(IndicesPtr);
-    shot_estimate.setRadiusSearch (param_.support_radius_);
-    shot_estimate.compute (shots);
 
-    CHECK( shots.points.size() == indices_.size() );
+    signatures.clear();
     keypoint_indices_.clear();
 
-    int size_feat = 352;
-        signatures.resize (shots.points.size (), std::vector<float>(size_feat));
+    for (float support_radius : param_.support_radii_ )
+    {
+        shot_estimate.setRadiusSearch ( support_radius );
+        shot_estimate.compute (shots);
+
         keypoint_indices_.insert(keypoint_indices_.end(), indices_.begin(), indices_.end() );
 
-    for (size_t k = 0; k < shots.points.size (); k++)
-        for (int i = 0; i < size_feat; i++)
-            signatures[k][i] = shots.points[k].descriptor[i];
+        CHECK( shots.points.size() == indices_.size() );
+
+        std::vector<std::vector<float> > signatures_tmp (shots.points.size(), std::vector<float>(352));
+
+        for (size_t k = 0; k < shots.points.size (); k++)
+            for (size_t i = 0; i < 352; i++)
+                signatures_tmp[k][i] = shots.points[k].descriptor[i];
+
+        signatures.insert( signatures.end(), signatures_tmp.begin(), signatures_tmp.end() );
+    }
+
 }
 
 template class V4R_EXPORTS SHOTLocalEstimation<pcl::PointXYZ>;

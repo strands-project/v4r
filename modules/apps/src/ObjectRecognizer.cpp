@@ -129,6 +129,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             if(param_.do_shot_)
             {
                 SHOTLocalEstimationParameter shot_param;
+                shot_param.support_radii_ = param_.keypoint_support_radii_;
                 shot_param.init( to_pass_further );
                 typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT> (shot_param) );
 

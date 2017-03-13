@@ -38,10 +38,10 @@ namespace v4r
     class V4R_EXPORTS SHOTLocalEstimationParameter
     {
         public:
-        float support_radius_;
+        std::vector<float> support_radii_;
 
         SHOTLocalEstimationParameter() :
-            support_radius_ (0.04f)
+            support_radii_ ( { 0.05f, 0.03f, 0.08f} )
         {}
 
         /**
@@ -67,7 +67,7 @@ namespace v4r
             po::options_description desc("SHOT Parameter\n=====================\n");
             desc.add_options()
                     ("help,h", "produce help message")
-                    ("shot_support_radius", po::value<float>(&support_radius_)->default_value(support_radius_), "shot support radius")
+                    ("shot_support_radius", po::value<std::vector<float> >(&support_radii_)->multitoken(), "shot support radii")
                     ;
             po::variables_map vm;
             po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -101,12 +101,6 @@ namespace v4r
             descr_name_ = "shot";
             descr_type_ = FeatureType::SHOT;
             descr_dims_ = 352;
-        }
-
-        void
-        setSupportRadius(float radius)
-        {
-            param_.support_radius_ = radius;
         }
 
         bool

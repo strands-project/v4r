@@ -12,16 +12,23 @@
 	<cg_size_>0.01</cg_size_>
 	<cg_thresh_>4</cg_thresh_>
 	<use_graph_based_gc_grouping_>1</use_graph_based_gc_grouping_>
-	<do_sift_>0</do_sift_>
-	<do_shot_>1</do_shot_>
+	<do_sift_>1</do_sift_>
+	<do_shot_>0</do_shot_>
 	<do_esf_>0</do_esf_>
 	<do_alexnet_>0</do_alexnet_>
 	<segmentation_method_>1</segmentation_method_>
 	<esf_classification_method_>2</esf_classification_method_>
 	<shot_keypoint_extractor_method_>8</shot_keypoint_extractor_method_>
-	<normal_computation_method_>8</normal_computation_method_>
-	<chop_z_>2.80000000000000000e+00</chop_z_>
+	<normal_computation_method_>1</normal_computation_method_>
+	<keypoint_support_radii_>
+		<count>3</count>
+		<item_version>0</item_version>
+		<item>0.03</item>
+		<item>0.05</item>
+		<item>0.07</item>
+	</keypoint_support_radii_>
+	<chop_z_>1.4</chop_z_>
 	<remove_planes_>1</remove_planes_>
-	<plane_inlier_threshold_>1.999999955e-02</plane_inlier_threshold_>
+	<plane_inlier_threshold_>0.02</plane_inlier_threshold_>
 	<min_plane_inliers_>20000</min_plane_inliers_>
 </ObjectRecognizerParameter>
