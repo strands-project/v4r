@@ -183,7 +183,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
     vis_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
 
     if(normals_)
-        vis_->addPointCloudNormals<PointT,pcl::Normal>( cloud_, normals_, 100, 0.02f, "normals", vp1a_);
+        vis_->addPointCloudNormals<PointT,pcl::Normal>( processed_cloud_, normals_, 50, 0.02f, "normals", vp1b_);
 
 #if PCL_VERSION >= 100800
     vis_->removeAllCoordinateSystems(vp2_);
