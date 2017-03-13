@@ -540,9 +540,7 @@ LocalFeatureMatcher<PointT>::featureEncoding()
             estimator_->setIndices(keypoint_indices_);
 
         estimator_->compute (scene_signatures_);
-
-        if(keypoint_indices_.empty())
-            keypoint_indices_ = estimator_->getKeypointIndices();
+        keypoint_indices_ = estimator_->getKeypointIndices();
     }
 
     CHECK ( keypoint_indices_.size() == scene_signatures_.size() );

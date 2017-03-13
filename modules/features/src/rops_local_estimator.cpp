@@ -86,6 +86,7 @@ ROPSLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatu
     rops.compute(descriptors);
 
     CHECK( descriptors.points.size() == indices_.size() );
+    keypoint_indices_ = indices_;
 
     int size_feat = 352;
         signatures.resize (descriptors.points.size (), std::vector<float>(size_feat));

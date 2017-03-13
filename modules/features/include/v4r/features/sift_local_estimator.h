@@ -47,10 +47,8 @@ template<typename PointT>
 class V4R_EXPORTS SIFTLocalEstimation : public LocalEstimator<PointT>
 {
     using LocalEstimator<PointT>::keypoint_indices_;
-    using LocalEstimator<PointT>::keypoints_;
     using LocalEstimator<PointT>::cloud_;
     using LocalEstimator<PointT>::indices_;
-    using LocalEstimator<PointT>::processed_;
     using LocalEstimator<PointT>::descr_name_;
     using LocalEstimator<PointT>::descr_type_;
     using LocalEstimator<PointT>::descr_dims_;

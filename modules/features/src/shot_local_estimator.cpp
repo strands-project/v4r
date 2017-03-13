@@ -83,9 +83,11 @@ SHOTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatu
     shot_estimate.compute (shots);
 
     CHECK( shots.points.size() == indices_.size() );
+    keypoint_indices_.clear();
 
     int size_feat = 352;
         signatures.resize (shots.points.size (), std::vector<float>(size_feat));
+        keypoint_indices_.insert(keypoint_indices_.end(), indices_.begin(), indices_.end() );
 
     for (size_t k = 0; k < shots.points.size (); k++)
         for (int i = 0; i < size_feat; i++)
