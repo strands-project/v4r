@@ -18,7 +18,7 @@
 namespace v4r
 {
 bool isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eigen::Vector4f &plane, float cosThreshold, float distThreshold, bool doNormalTest = true);
-bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &centerPlane2, float distThreshold);
+bool isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector3f &centerPlane2, float distThreshold);
 bool isParallel(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2, float cosThreshold);
 
 bool
@@ -40,9 +40,9 @@ isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eige
 }
 
 bool
-isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector4f &centerPlane2, float distThreshold)
+isInPlane(const Eigen::Vector4f &plane1, const Eigen::Vector3f &centerPlane2, float distThreshold)
 {
-    float distance = fabs(dist2plane(centerPlane2.head(3), plane1)); // std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
+    float distance = fabs(dist2plane(centerPlane2, plane1)); // std::abs(1.0f-plane1.dot(centerPlane2))/plane1.norm();//DEBUG!!!!!!!!why does this get zero??????
     return (distance<distThreshold);
 }
 
@@ -68,7 +68,7 @@ PlaneExtractorTile<PointT>::getDebugImage(bool doNormalTest)
             if(param_.useVariableThresholds_)
             {
                 //read it from the buffer
-                const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(i,j);
+                const Eigen::Vector4f &thresholds = thresholdsBuffer[i][j];
                 distThreshold = thresholds[0];
                 cosThreshold = thresholds[1];
             }
@@ -88,7 +88,7 @@ PlaneExtractorTile<PointT>::getDebugImage(bool doNormalTest)
                 }
 
                 //Mark the pixel in the segmentation map for the already existing patches
-                if( planes.at<PlaneSegment>(i,j).nrInliers > minAbsBlockInlier )
+                if( planes[i][j].nrInliers > minAbsBlockInlier )
                 {
                     for(int k=0;k<param_.patchDim_;k++)
                     {
@@ -115,29 +115,29 @@ template<typename PointT>
 cv::Mat
 PlaneExtractorTile<PointT>::generateColorCodedTexture() const
 {
-    cv::Mat colorMap(1,64*48,CV_8UC3);
-    colorMap.at<glm::u8vec3>(0)=glm::u8vec3(0,0,0);
-    colorMap.at<glm::u8vec3>(1)=glm::u8vec3(0,0,200);
-    colorMap.at<glm::u8vec3>(2)=glm::u8vec3(0,200,0);
-    colorMap.at<glm::u8vec3>(3)=glm::u8vec3(200,0,0);
-    colorMap.at<glm::u8vec3>(4)=glm::u8vec3(0,200,200);
-    colorMap.at<glm::u8vec3>(5)=glm::u8vec3(250,0,0);
-    colorMap.at<glm::u8vec3>(6)=glm::u8vec3(200,200,200);
-    colorMap.at<glm::u8vec3>(7)=glm::u8vec3(0,0,100);
-    colorMap.at<glm::u8vec3>(8)=glm::u8vec3(0,100,0);
-    colorMap.at<glm::u8vec3>(9)=glm::u8vec3(100,0,0);
-    colorMap.at<glm::u8vec3>(10)=glm::u8vec3(0,100,100);
-    colorMap.at<glm::u8vec3>(11)=glm::u8vec3(100,100,0);
-    colorMap.at<glm::u8vec3>(12)=glm::u8vec3(100,100,100);
+    cv::Mat colorMap(1,64*48,CV_8UC3); ///TODO Is this is a bug (why fixed???)
+    colorMap.at<cv::Vec3b>(0)=cv::Vec3b(0,0,0);
+    colorMap.at<cv::Vec3b>(1)=cv::Vec3b(0,0,200);
+    colorMap.at<cv::Vec3b>(2)=cv::Vec3b(0,200,0);
+    colorMap.at<cv::Vec3b>(3)=cv::Vec3b(200,0,0);
+    colorMap.at<cv::Vec3b>(4)=cv::Vec3b(0,200,200);
+    colorMap.at<cv::Vec3b>(5)=cv::Vec3b(250,0,0);
+    colorMap.at<cv::Vec3b>(6)=cv::Vec3b(200,200,200);
+    colorMap.at<cv::Vec3b>(7)=cv::Vec3b(0,0,100);
+    colorMap.at<cv::Vec3b>(8)=cv::Vec3b(0,100,0);
+    colorMap.at<cv::Vec3b>(9)=cv::Vec3b(100,0,0);
+    colorMap.at<cv::Vec3b>(10)=cv::Vec3b(0,100,100);
+    colorMap.at<cv::Vec3b>(11)=cv::Vec3b(100,100,0);
+    colorMap.at<cv::Vec3b>(12)=cv::Vec3b(100,100,100);
 
     for (int n=13;n<colorMap.cols;n++)
-        colorMap.at<glm::u8vec3>(n)=glm::u8vec3(n/10*50,((n%10)/5)*50,(n%5)*50);
+        colorMap.at<cv::Vec3b>(n)=cv::Vec3b(n/10*50,((n%10)/5)*50,(n%5)*50);
 
     cv::Mat coloredImage (cloud_->height, cloud_->width, CV_8UC3);
     for(size_t i=0; i<cloud_->height; i++)
     {
         for(size_t j=0; j<cloud_->width; j++)
-            coloredImage.at<glm::u8vec3>(i,j)=colorMap.at<glm::u8vec3>(0,segmentation.at<int>(i,j));
+            coloredImage.at<cv::Vec3b>(i,j)=colorMap.at<cv::Vec3b>(0,segmentation.at<int>(i,j));
     }
     return coloredImage;
 }
@@ -146,23 +146,23 @@ template<typename PointT>
 cv::Mat
 PlaneExtractorTile<PointT>::generateColorCodedTextureDebug() const
 {
-    cv::Mat colorMap(1, 64*48, CV_8UC3);
-    colorMap.at<glm::u8vec3>(0)=glm::u8vec3(0,0,0);
-    colorMap.at<glm::u8vec3>(1)=glm::u8vec3(0,0,200);
-    colorMap.at<glm::u8vec3>(2)=glm::u8vec3(0,200,0);
-    colorMap.at<glm::u8vec3>(3)=glm::u8vec3(200,0,0);
-    colorMap.at<glm::u8vec3>(4)=glm::u8vec3(0,200,200);
-    colorMap.at<glm::u8vec3>(5)=glm::u8vec3(250,0,0);
-    colorMap.at<glm::u8vec3>(6)=glm::u8vec3(200,200,200);
-    colorMap.at<glm::u8vec3>(7)=glm::u8vec3(0,0,100);
-    colorMap.at<glm::u8vec3>(8)=glm::u8vec3(0,100,0);
-    colorMap.at<glm::u8vec3>(9)=glm::u8vec3(100,0,0);
-    colorMap.at<glm::u8vec3>(10)=glm::u8vec3(0,100,100);
-    colorMap.at<glm::u8vec3>(11)=glm::u8vec3(100,100,0);
-    colorMap.at<glm::u8vec3>(12)=glm::u8vec3(100,100,100);
+    cv::Mat colorMap(1, 64*48, CV_8UC3); ///TODO Is this is a bug (why fixed???)
+    colorMap.at<cv::Vec3b>(0)=cv::Vec3b(0,0,0);
+    colorMap.at<cv::Vec3b>(1)=cv::Vec3b(0,0,200);
+    colorMap.at<cv::Vec3b>(2)=cv::Vec3b(0,200,0);
+    colorMap.at<cv::Vec3b>(3)=cv::Vec3b(200,0,0);
+    colorMap.at<cv::Vec3b>(4)=cv::Vec3b(0,200,200);
+    colorMap.at<cv::Vec3b>(5)=cv::Vec3b(250,0,0);
+    colorMap.at<cv::Vec3b>(6)=cv::Vec3b(200,200,200);
+    colorMap.at<cv::Vec3b>(7)=cv::Vec3b(0,0,100);
+    colorMap.at<cv::Vec3b>(8)=cv::Vec3b(0,100,0);
+    colorMap.at<cv::Vec3b>(9)=cv::Vec3b(100,0,0);
+    colorMap.at<cv::Vec3b>(10)=cv::Vec3b(0,100,100);
+    colorMap.at<cv::Vec3b>(11)=cv::Vec3b(100,100,0);
+    colorMap.at<cv::Vec3b>(12)=cv::Vec3b(100,100,100);
 
     for (int n=13;n<colorMap.cols;n++)
-        colorMap.at<glm::u8vec3>(n)=glm::u8vec3(n/10*50,((n%10)/5)*50,(n%5)*50);
+        colorMap.at<cv::Vec3b>(n)=cv::Vec3b(n/10*50,((n%10)/5)*50,(n%5)*50);
 
     //TODO: take cols and rows from the segmentation Mat
 
@@ -172,9 +172,9 @@ PlaneExtractorTile<PointT>::generateColorCodedTextureDebug() const
         for(size_t j=0; j<cloud_->width; j++)
         {
             if( segmentation.at<int>(i,j)>0 )
-                coloredImage.at<glm::u8vec3>(i,j)=colorMap.at<glm::u8vec3>(0, segmentation.at<int>(i,j) );
+                coloredImage.at<cv::Vec3b>(i,j)=colorMap.at<cv::Vec3b>(0, segmentation.at<int>(i,j) );
             else
-                coloredImage.at<glm::u8vec3>(i,j)=debug.at<glm::u8vec3>(i,j);
+                coloredImage.at<cv::Vec3b>(i,j)=debug.at<cv::Vec3b>(i,j);
         }
     }
     return coloredImage;
@@ -251,19 +251,21 @@ PlaneExtractorTile<PointT>::allocateMemory()
     if(param_.doZTest_)
     {
         zBuffer = cv::Mat(cloud_->height, cloud_->width, CV_32FC1);
-        zBuffer.setTo( cv::Scalar( std::numeric_limits<float>::max() ) );
+        zBuffer.setTo( std::numeric_limits<float>::max() );
     }
 
     if(param_.useVariableThresholds_)
-        thresholdsBuffer.create(rowsOfPatches,colsOfPatches,CV_32FC4);
+        thresholdsBuffer = std::vector<std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > >
+                (rowsOfPatches, std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> >(colsOfPatches) );
 
 
 //    if(normals.cols!=cloud_->width || normals.rows!=cloud_->height)
     {
-        planes.create(rowsOfPatches, colsOfPatches, CV_32FC4);//3 floats 1 integer
-        centerPoints.create(rowsOfPatches,colsOfPatches, CV_32FC4);//3 floats 1 integer
+        planes = std::vector<std::vector<PlaneSegment> >(rowsOfPatches, std::vector<PlaneSegment>(colsOfPatches) );
+        centerPoints = std::vector<std::vector<Eigen::Vector3f> >
+                (rowsOfPatches, std::vector<Eigen::Vector3f >(colsOfPatches) );
         debug.create(cloud_->height, cloud_->width, CV_8UC3);
-        debug.setTo(cv::Scalar(0,0,0));
+        debug.setTo( cv::Vec3b(0,0,0) );
         patchIds.create(rowsOfPatches,colsOfPatches,CV_32SC1);
     }
 
@@ -312,13 +314,12 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
             int index=j+i*colsOfPatches;
             const PlaneMatrix &m = matrices[index];
             const Eigen::Vector3f msum = m.sum.template cast<float>();
-            centerPoints.at<Eigen::Vector4f>(i,j).head<3>() = msum / m.nrPoints;
-            centerPoints.at<Eigen::Vector4f>(i,j)[3]=0.0f;
+            centerPoints[i][j] = msum / m.nrPoints;
             float cosThreshold = minCosAngle;
             float distThreshold = param_.maxInlierDist_;
             if ( param_.useVariableThresholds_ && m.nrPoints>0 )
             {
-                float z = centerPoints.at<Eigen::Vector4f>(i,j)[2];
+                float z = centerPoints[i][j][2];
                 Eigen::Vector4f thresholds;
                 thresholds[0] = maxInlierBlockDistFunc(z);
                 thresholds[1] = minCosBlockAngleFunc(z);
@@ -326,20 +327,17 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                 thresholds[2] = distThreshold;
                 cosThreshold = minCosAngleFunc(z);
                 thresholds[3] = cosThreshold;
-                thresholdsBuffer.at<Eigen::Vector4f>(i,j)=thresholds;
+                thresholdsBuffer[i][j] = thresholds;
             }
             else
-                thresholdsBuffer.at<Eigen::Vector4f>(i,j) = Eigen::Vector4f(-1,-1,-1,-1);
+                thresholdsBuffer[i][j] = Eigen::Vector4f(-1.f,-1.f,-1.f,-1.f);
 
             if(m.nrPoints > minAbsBlockInlier)
             {
                 const Eigen::Vector4f plane=calcPlaneFromMatrix(m);//what do i know?
                //invert matrix and create plane estimation
-                planes.at<PlaneSegment>(i,j).x=plane[0];//plane.cast<float>();
-                planes.at<PlaneSegment>(i,j).y=plane[1];
-                planes.at<PlaneSegment>(i,j).z=plane[2];
-                planes.at<PlaneSegment>(i,j).d=plane[3];
-                planes.at<PlaneSegment>(i,j).nrInliers=m.nrPoints;
+                planes[i][j].plane = plane;
+                planes[i][j].nrInliers=m.nrPoints;
 
                 //Calculate Thresholds here:
                 //TODO!!!!!!
@@ -360,14 +358,14 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                         if(isInlier(p, N, plane, cosThreshold,distThreshold,doNormalTest))
                         { //distance < inlierDistance
                             //mark the inlying points somehow
-                            debug.at<glm::u8vec3>(v,u)=glm::u8vec3(255,0,0);
+                            debug.at<cv::Vec3b>(v,u)=cv::Vec3b(255,0,0);
                             segmentation.at<int>(v,u)=-1;//mark every valid element in the segmentation
                         }
                         else
-                            planes.at<PlaneSegment>(i,j).nrInliers--;
+                            planes[i][j].nrInliers--;
                     }
                 }
-                if(planes.at<PlaneSegment>(i,j).nrInliers>minAbsBlockInlier)
+                if(planes[i][j].nrInliers>minAbsBlockInlier)
                 {
                     for(int k=0;k<param_.patchDim_;k++)
                     {
@@ -384,7 +382,7 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
                             if( isInlier(p, N, plane, cosThreshold, distThreshold, doNormalTest) )
                             { //distance < inlierDistance
                                 //mark the inlying points somehow
-                                debug.at<glm::u8vec3>(v,u)=glm::u8vec3(0,255,0);
+                                debug.at<cv::Vec3b>(v,u)=cv::Vec3b(0,255,0);
                             }
 
                         }
@@ -394,10 +392,8 @@ PlaneExtractorTile<PointT>::calculatePlaneSegments(bool doNormalTest)
             }
             else
             {
-                planes.at<PlaneSegment>(i,j).x=NAN;//=Eigen::Vector3f(NAN,NAN,NAN);
-                planes.at<PlaneSegment>(i,j).y=NAN;//
-                planes.at<PlaneSegment>(i,j).z=NAN;//
-                planes.at<PlaneSegment>(i,j).nrInliers=0;//
+                planes[i][j].plane = NAN * Eigen::Vector4f::Ones();
+                planes[i][j].nrInliers=0;
             }
         }
     }
@@ -417,9 +413,9 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
         {
             int index=j+i*colsOfPatches;
             const PlaneMatrix &currentPlaneMatrix = matrices[index];
-            const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i,j);//TODO:planes should be renamed to patches
-            const Eigen::Vector4f currentPatch( currentPlaneSeg.x, currentPlaneSeg.y, currentPlaneSeg.z, currentPlaneSeg.d);
-            const Eigen::Vector4f &currentCenter=centerPoints.at<Eigen::Vector4f>(i,j);
+            const PlaneSegment &currentPlaneSeg = planes[i][j];//TODO:planes should be renamed to patches
+            const Eigen::Vector4f &currentPatch = currentPlaneSeg.plane;//( currentPlaneSeg.x, currentPlaneSeg.y, currentPlaneSeg.z, currentPlaneSeg.d);
+            const Eigen::Vector3f &currentCenter = centerPoints[i][j];
             //test if plane is valid
             bool gotSet=false;
 
@@ -430,7 +426,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                 if(param_.useVariableThresholds_)
                 {
                     //read it from the buffer
-                    const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(i,j);
+                    const Eigen::Vector4f &thresholds = thresholdsBuffer[i][j];
                     distThreshold=thresholds[0];
                     cosThreshold=thresholds[1];
                 }
@@ -476,8 +472,8 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         int newId=patchIds.at<int>(i-1,j-1);// it is only testing for blocks from the past(so the threshold is already checked
                         if(newId)
                         {
-                            const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j-1);
-                            Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
+                            const PlaneSegment &testPlaneSeg = planes[i-1][j-1];
+                            const Eigen::Vector4f &newPatch = testPlaneSeg.plane;
 
                             newPlane = calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
@@ -525,8 +521,8 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         int newId = patchIds.at<int>(i-1,j);
                         if(newId)
                         {
-                            const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j);
-                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
+                            const PlaneSegment &testPlaneSeg = planes[i-1][j];
+                            const Eigen::Vector4f &newPatch = testPlaneSeg.plane; //(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
                             newPlane = calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
@@ -574,8 +570,8 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
                         int newId=patchIds.at<int>(i-1,j+1);
                         if(newId)
                         {
-                            const PlaneSegment &currentPlaneSeg = planes.at<PlaneSegment>(i-1,j+1);
-                            const Eigen::Vector4f newPatch(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
+                            const PlaneSegment &testtPlaneSeg = planes[i-1][j+1];
+                            const Eigen::Vector4f &newPatch = testtPlaneSeg.plane; //(currentPlaneSeg.x,currentPlaneSeg.y,currentPlaneSeg.z,currentPlaneSeg.d);
 
                             newPlane = calcPlaneFromMatrix(planeMatrices[newId]);
                             if(     isInPlane(newPatch,currentCenter,distThreshold) &&
@@ -682,14 +678,14 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                             if(oldId==patchIds.at<int>(_i,_j))
                             {
                                 //read according patch segment
-                                const PlaneSegment &p = planes.at<PlaneSegment>(_i,_j);
-                                oldPlane = Eigen::Vector4f(p.x,p.y,p.z,p.d);
+                                const PlaneSegment &p = planes[_i][_j];
+                                oldPlane = p.plane; //Eigen::Vector4f(p.x,p.y,p.z,p.d);
                                 found=true;
 
                                 //is this really the best place for reading out the thresholds?
                                 if(param_.useVariableThresholds_)
                                 {
-                                    const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(_i,_j);
+                                    const Eigen::Vector4f &thresholds = thresholdsBuffer[_i][_j];
                                     distThreshold = thresholds[2];
                                     cosThreshold = thresholds[3];
                                 }
@@ -710,9 +706,9 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                         ///BUG:
                         if(param_.useVariableThresholds_)
                         {
-                            const Eigen::Vector4f &thresholds = thresholdsBuffer.at<Eigen::Vector4f>(i/param_.patchDim_, j/param_.patchDim_);
-                            distThreshold=thresholds[2];
-                            cosThreshold=thresholds[3];
+                            const Eigen::Vector4f &thresholds = thresholdsBuffer[i/param_.patchDim_][j/param_.patchDim_];
+                            distThreshold = thresholds[2];
+                            cosThreshold = thresholds[3];
                         }
 
                     }
@@ -806,7 +802,7 @@ PlaneExtractorTile<PointT>::PlaneExtractorTile(const PlaneExtractorTileParameter
 
     minCosBlockAngleFunc=[] (float z) -> float
     {
-        float maxBlockAngle_local=M_PI/180.0f*10.0f;
+//        float maxBlockAngle_local=M_PI/180.0f*10.0f;
         //return cos(maxBlockAngle_local);
         float zmin=0.2f;//distance measurement starts at 0.4m
         float zmax=5.0f;
@@ -905,12 +901,12 @@ PlaneExtractorTile<PointT>::compute()
             int newPlaneId=newPlaneIds[planeId];
             patchIds.at<int>(i,j)=newPlaneId;
 
-            const PlaneSegment &p = planes.at<PlaneSegment>(i,j);
-            const Eigen::Vector4f plane = Eigen::Vector4f(p.x,p.y,p.z,p.d);
+            const PlaneSegment &p = planes[i][j];
+            const Eigen::Vector4f &plane = p.plane; //Eigen::Vector4f(p.x,p.y,p.z,p.d);
             if(newPlaneId)
             {
                 //Mark the pixel in the segmentation map for the already existing patches
-                if(planes.at<PlaneSegment>(i,j).nrInliers > minAbsBlockInlier)
+                if(planes[i][j].nrInliers > minAbsBlockInlier)
                 {
                     for(int k=0; k<param_.patchDim_; k++)
                     {
@@ -919,7 +915,7 @@ PlaneExtractorTile<PointT>::compute()
                             if(segmentation.at<int>(i*param_.patchDim_+k, j*param_.patchDim_+l)==-1)
                             {
                                 //we already touched these points and found out if they are in there.(they are marked with -1)
-                                //debug.at<glm::u8vec3>(i*blockDim+k,j*blockDim+l)=glm::u8vec3(0,255,0);
+                                //debug.at<cv::Vec3b>(i*blockDim+k,j*blockDim+l)=cv::Vec3b(0,255,0);
                                 segmentation.at<int>(i*param_.patchDim_+k, j*param_.patchDim_+l) = newPlaneId;
                                 const Eigen::Vector3f &point = cloud_->at(j*param_.patchDim_+l, i*param_.patchDim_+k).getVector3fMap();
                                 float distance = fabs(dist2plane(point,plane));
@@ -967,7 +963,7 @@ PlaneExtractorTile<PointT>::compute()
     {
         for(size_t u=0; u<cloud_->width; u++)
         {
-            int label = segmentation.at<int>(v,u);
+            volatile int label = segmentation.at<int>(v,u);
 
             if(label > 0)
                 plane_inliers_[label-1].push_back( v*cloud_->width + u);

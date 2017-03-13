@@ -1,6 +1,6 @@
-#include <v4r/apps/compute_recognition_rate.h>
+// -g /media/Data/datasets/TUW/annotations/ -r /media/Data/datasets/TUW/object_recognition_results_xyz -t /media/Data/datasets/TUW/test_set -m /media/Data/datasets/TUW/models --use_generated_hypotheses -v
 
-// -m /media/Data/datasets/TUW/models/ -t /media/Data/datasets/TUW/validation_set/ -g /media/Data/datasets/TUW/annotations/ -r /home/thomas/recognition_results_eval/
+#include <v4r/apps/compute_recognition_rate.h>
 
 int
 main (int argc, char ** argv)
@@ -16,8 +16,6 @@ main (int argc, char ** argv)
             std::cout << p << " ";
         std::cout << std::endl;
     }
-
-    size_t tp, fp, fn;
-    e.compute_recognition_rate(tp,fp,fn);
+    e.checkIndividualHypotheses();
     return 0;
 }

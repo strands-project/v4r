@@ -21,11 +21,15 @@
  *
  ******************************************************************************/
 
+#include <v4r/apps/CloudSegmenter.h>
 #include <v4r/core/macros.h>
+#include <v4r/apps/visualization.h>
+#include <v4r/ml/types.h>
 #include <v4r/recognition/local_recognition_pipeline.h>
 #include <v4r/recognition/multi_pipeline_recognizer.h>
 #include <v4r/recognition/hypotheses_verification.h>
-#include <v4r/apps/visualization.h>
+#include <v4r/segmentation/all_headers.h>
+#include <v4r/segmentation/types.h>
 
 #pragma once
 
@@ -34,6 +38,104 @@ namespace v4r
 
 namespace apps
 {
+
+class V4R_EXPORTS ObjectRecognizerParameter
+{
+public:
+    std::string hv_config_xml_;
+    std::string shot_config_xml_;
+    std::string alexnet_config_xml_;
+    std::string esf_config_xml_;
+    std::string camera_config_xml_;
+    std::string depth_img_mask_;
+    std::string sift_config_xml_;
+
+    float cg_size_; ///< Size for correspondence grouping.
+    int cg_thresh_; ///< Threshold for correspondence grouping. The lower the more hypotheses are generated, the higher the more confident and accurate. Minimum 3.
+    bool use_graph_based_gc_grouping_; ///< if true, uses graph-based geometric consistency grouping
+
+    // pipeline setup
+    bool do_sift_;
+    bool do_shot_;
+    bool do_esf_;
+    bool do_alexnet_;
+    int segmentation_method_;
+    int esf_classification_method_;
+    double chop_z_; ///< Cut-off distance in meter
+
+    bool remove_planes_;    ///< if enabled, removes the dominant plane in the input cloud (given thera are at least N inliers)
+    float plane_inlier_threshold_; ///< maximum distance for plane inliers
+    size_t min_plane_inliers_; ///< required inliers for plane to be removed
+
+    ObjectRecognizerParameter()
+        :
+          hv_config_xml_("cfg/hv_config.xml"),
+          shot_config_xml_("cfg/shot_config.xml"),
+          alexnet_config_xml_("cfg/alexnet_config.xml"),
+          esf_config_xml_("cfg/esf_config.xml"),
+          camera_config_xml_("cfg/camera.xml"),
+          depth_img_mask_("cfg/xtion_depth_mask.png"),
+          sift_config_xml_("cfg/sift_config.xml"),
+          cg_size_(0.01f),
+          cg_thresh_(7),
+          use_graph_based_gc_grouping_(true),
+          do_sift_(true),
+          do_shot_(false),
+          do_esf_(false),
+          do_alexnet_(false),
+          segmentation_method_(SegmentationType::OrganizedConnectedComponents),
+          esf_classification_method_(ClassifierType::SVM),
+          chop_z_(3.f),
+          remove_planes_(false),
+          plane_inlier_threshold_ (0.02f),
+          min_plane_inliers_ (500)
+    {}
+
+    void
+    save(const std::string &filename) const
+    {
+        std::ofstream ofs(filename);
+        boost::archive::xml_oarchive oa(ofs);
+        oa << boost::serialization::make_nvp("ObjectRecognizerParameter", *this );
+        ofs.close();
+    }
+
+    ObjectRecognizerParameter(const std::string &filename)
+    {
+        std::ifstream ifs(filename);
+        boost::archive::xml_iarchive ia(ifs);
+        ia >> boost::serialization::make_nvp("ObjectRecognizerParameter", *this );
+        ifs.close();
+    }
+
+private:
+    friend class boost::serialization::access;
+    template<class Archive> V4R_EXPORTS void serialize(Archive & ar, const unsigned int version)
+    {
+        (void) version;
+        ar & BOOST_SERIALIZATION_NVP(hv_config_xml_)
+                & BOOST_SERIALIZATION_NVP(shot_config_xml_)
+                & BOOST_SERIALIZATION_NVP(alexnet_config_xml_)
+                & BOOST_SERIALIZATION_NVP(esf_config_xml_)
+                & BOOST_SERIALIZATION_NVP(camera_config_xml_)
+                & BOOST_SERIALIZATION_NVP(depth_img_mask_)
+                & BOOST_SERIALIZATION_NVP(sift_config_xml_)
+                & BOOST_SERIALIZATION_NVP(cg_size_)
+                & BOOST_SERIALIZATION_NVP(cg_thresh_)
+                & BOOST_SERIALIZATION_NVP(use_graph_based_gc_grouping_)
+                & BOOST_SERIALIZATION_NVP(do_sift_)
+                & BOOST_SERIALIZATION_NVP(do_shot_)
+                & BOOST_SERIALIZATION_NVP(do_esf_)
+                & BOOST_SERIALIZATION_NVP(do_alexnet_)
+                & BOOST_SERIALIZATION_NVP(segmentation_method_)
+                & BOOST_SERIALIZATION_NVP(esf_classification_method_)
+                & BOOST_SERIALIZATION_NVP(chop_z_)
+                & BOOST_SERIALIZATION_NVP(remove_planes_)
+                & BOOST_SERIALIZATION_NVP(plane_inlier_threshold_)
+                & BOOST_SERIALIZATION_NVP(min_plane_inliers_)
+                ;
+    }
+};
 
 template<typename PointT>
 class V4R_EXPORTS ObjectRecognizer
@@ -48,19 +150,19 @@ private:
     std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_;
     std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_;
 
-    double chop_z_; ///< Cut-off distance in meter
-    bool remove_planes_ = false;
-    size_t min_plane_points_ = 200;
+    typename v4r::apps::CloudSegmenter<PointT>::Ptr cloud_segmenter_; ///< cloud segmenter for plane removal (if enabled)
+
     bool visualize_; ///< if true, visualizes objects
     bool skip_verification_; ///< if true, will only generate hypotheses but not verify them
+    std::string models_dir_;
+
+    ObjectRecognizerParameter param_;
 
 public:
-    ObjectRecognizer() :
-        chop_z_ ( 5.f ),
-        remove_planes_ (false),
-        min_plane_points_ (200),
+    ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :
         visualize_ (false),
-        skip_verification_(false)
+        skip_verification_(false),
+        param_(p)
     {}
 
     /**
@@ -86,7 +188,7 @@ public:
      * @return
      */
     std::vector<typename ObjectHypothesis<PointT>::Ptr >
-    recognize(typename pcl::PointCloud<PointT>::Ptr &cloud);
+    recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud);
 
     /**
      * @brief getObjectHypothesis
@@ -112,6 +214,16 @@ public:
         }
 
         return model->getAssembled( resolution_mm );
+    }
+
+    std::string getModelsDir() const
+    {
+        return models_dir_;
+    }
+
+    void setModelsDir(const std::string &dir)
+    {
+        models_dir_ = dir;
     }
 };
 

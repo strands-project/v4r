@@ -106,8 +106,9 @@ visualizePlane(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const Ei
     static pcl::visualization::PCLVisualizer::Ptr vis;
 
     if(!vis)
-        vis.reset ( new pcl::visualization::PCLVisualizer(window_title) );
+        vis.reset ( new pcl::visualization::PCLVisualizer );
 
+    vis->setWindowName(window_title);
     vis->removeAllPointClouds();
     vis->removeAllShapes();
     vis->createViewPort(0,0,0.5,1,vp1);
@@ -153,8 +154,9 @@ visualizePlanes(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const s
     static pcl::visualization::PCLVisualizer::Ptr vis;
 
     if(!vis)
-        vis.reset ( new pcl::visualization::PCLVisualizer(window_title) );
+        vis.reset ( new pcl::visualization::PCLVisualizer );
 
+    vis->setWindowName(window_title);
     vis->removeAllPointClouds();
     vis->removeAllShapes();
     vis->createViewPort(0,0,0.5,1,vp1);

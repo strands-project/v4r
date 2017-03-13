@@ -1,4 +1,6 @@
+#include <v4r/common/miscellaneous.h>
 #include <v4r/recognition/global_recognition_pipeline.h>
+#include <v4r/segmentation/plane_utils.h>
 #include <v4r/features/types.h>
 
 #include <pcl/common/time.h>
@@ -25,14 +27,17 @@ void
 GlobalRecognitionPipeline<PointT>::recognize()
 {
     CHECK(seg_);
+    planes_.clear();
+    clusters_.clear();
+
     obj_hypotheses_.clear();
+
+    Eigen::Vector4f table_plane = Eigen::Vector4f::Zero();
 
     seg_->setInputCloud(scene_);
     seg_->setNormalsCloud(scene_normals_);
     seg_->segment();
     seg_->getSegmentIndices(clusters_);
-    Eigen::Vector4f table_plane;
-//    bool plane_found = seg_->getDominantPlane(table_plane);
 
     obj_hypotheses_.resize(clusters_.size()); // each cluster builds a hypothesis group
     size_t kept=0;
@@ -44,6 +49,7 @@ GlobalRecognitionPipeline<PointT>::recognize()
 
         typename GlobalRecognizer<PointT>::Cluster::Ptr cluster (
                     new typename GlobalRecognizer<PointT>::Cluster (*scene_, clusters_[i] ) );
+
         cluster->setTablePlane( table_plane );
 
         ///TODO pragma omp parallel with lock
@@ -181,7 +187,6 @@ GlobalRecognitionPipeline<PointT>::visualize()
             model_label << model_id.str() << "_" << i << "_" << k << "_vp4";
             model_label_refined << model_id.str() << "_" << i << "_" << k << "_vp5";
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-            typename pcl::PointCloud<PointT>::Ptr model_aligned_refined ( new pcl::PointCloud<PointT>() );
             typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled( 10 );
             pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
             vis_->addPointCloud(model_aligned, model_label.str(), vp4_);

@@ -117,7 +117,7 @@ protected:
 public:
     PlaneExtractorTile( const PlaneExtractorTileParameter &p = PlaneExtractorTileParameter() );
 
-    virtual bool getRequiresNormals() const { return true; }
+    virtual bool getRequiresNormals() const { return param_.pointwiseNormalCheck_; }
 
 private:
 
@@ -167,10 +167,8 @@ private:
      */
     struct PlaneSegment
     {
-        float x;
-        float y;
-        float z;
-        float d;
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+        Eigen::Vector4f plane;
         int nrInliers;
     };
 
@@ -185,8 +183,8 @@ private:
     std::vector<PlaneMatrix> matrices;
     std::vector<Plane> planeList;
     std::vector<PlaneMatrix> planeMatrices;
-    cv::Mat planes;
-    cv::Mat centerPoints;
+    std::vector<std::vector<PlaneSegment> > planes;
+    std::vector<std::vector<Eigen::Vector3f > > centerPoints;
     cv::Mat patchIds;
 
     //big todo for speed: switch to Vector4f elements
@@ -228,7 +226,7 @@ private:
      * channel3 maxInlierDistance
      * channel4 minCosAngle
      */
-    cv::Mat thresholdsBuffer;
+    std::vector<std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > > thresholdsBuffer;
 
     float maxBlockAngle; ///< The maximum angle that is allowed between two adjacent blocks to be able to connect them
     float minCosBlockAngle; ///< The cos of this block angle

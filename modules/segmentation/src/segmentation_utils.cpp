@@ -14,8 +14,9 @@ visualizeClusters(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const
     static pcl::visualization::PCLVisualizer::Ptr vis;
 
     if(!vis)
-        vis.reset ( new pcl::visualization::PCLVisualizer(window_title) );
+        vis.reset ( new pcl::visualization::PCLVisualizer );
 
+    vis->setWindowName(window_title);
     vis->createViewPort(0,0,0.5,1,vp1);
     vis->createViewPort(0.5,0,1,1,vp2);
     vis->removeAllPointClouds();
@@ -60,8 +61,9 @@ visualizeCluster(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const 
     static pcl::visualization::PCLVisualizer::Ptr vis;
 
     if(!vis)
-        vis.reset ( new pcl::visualization::PCLVisualizer(window_title) );
+        vis.reset ( new pcl::visualization::PCLVisualizer );
 
+    vis->setWindowName(window_title);
     vis->createViewPort(0,0,0.5,1,vp1);
     vis->createViewPort(0.5,0,1,1,vp2);
     vis->removeAllPointClouds();

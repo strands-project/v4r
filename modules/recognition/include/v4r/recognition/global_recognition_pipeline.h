@@ -25,12 +25,22 @@
 
 #include <v4r/recognition/global_recognizer.h>
 #include <v4r/recognition/recognition_pipeline.h>
-#include <v4r/segmentation/segmenter.h>
+#include <v4r/segmentation/all_headers.h>
 #include <omp.h>
 
 
 namespace v4r
 {
+class
+GlobalRecognitionPipelineParameter
+{
+public:
+    float plane_inlier_threshold_;
+    GlobalRecognitionPipelineParameter() :
+        plane_inlier_threshold_(0.02f)
+    {}
+};
+
 
 /**
  * @brief This class merges the results of various global descriptors into a set of hypotheses.
@@ -54,15 +64,20 @@ private:
 //    omp_lock_t rec_lock_;
 
     typename Segmenter<PointT>::Ptr seg_;
+    typename PlaneExtractor<PointT>::Ptr plane_extractor_;
     std::vector<std::vector<int> > clusters_;
+    std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes_;  ///< extracted planes
 
     std::vector<typename GlobalRecognizer<PointT>::Ptr > global_recognizers_; ///< set of Global recognizer generating keypoint correspondences
     std::vector<ObjectHypothesesGroup<PointT> > obj_hypotheses_wo_elongation_check_; ///< just for visualization (to see effect of elongation check)
 
     void visualize();
 
+    GlobalRecognitionPipelineParameter param_;
+
 public:
-    GlobalRecognitionPipeline ( )
+    GlobalRecognitionPipeline ( const GlobalRecognitionPipelineParameter &p = GlobalRecognitionPipelineParameter() ):
+        param_(p)
     { }
 
     void initialize(const std::string &trained_dir, bool force_retrain = false);
@@ -100,6 +115,10 @@ public:
         return false;
     }
 
+    /**
+     * @brief setSegmentationAlgorithm
+     * @param seg
+     */
     void
     setSegmentationAlgorithm(const typename Segmenter<PointT>::Ptr &seg)
     {
@@ -120,6 +139,10 @@ public:
         return feat_type;
     }
 
+    /**
+     * @brief requiresSegmentation
+     * @return
+     */
     bool
     requiresSegmentation() const
     {

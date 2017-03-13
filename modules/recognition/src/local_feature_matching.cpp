@@ -253,15 +253,19 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
 
         std::vector<std::vector<float> > model_signatures;
         pcl::PointCloud<pcl::PointXYZ>::Ptr model_keypoints (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals (new pcl::PointCloud<pcl::Normal>);
 
         bf::path kp_path = trained_path_feat;
         kp_path /= "keypoints.pcd";
+        bf::path kp_normals_path = trained_path_feat;
+        kp_normals_path /= "keypoint_normals.pcd";
         bf::path signatures_path = trained_path_feat;
         signatures_path /= "signatures.dat";
 
-        if( !retrain && io::existsFile( kp_path.string() ) && io::existsFile( signatures_path.string() ) )
+        if( !retrain && io::existsFile( kp_path) && io::existsFile( kp_normals_path ) && io::existsFile( signatures_path ) )
         {
             pcl::io::loadPCDFile( kp_path.string(), *model_keypoints );
+            pcl::io::loadPCDFile( kp_normals_path.string(), *model_kp_normals );
             ifstream is(signatures_path.string(), ios::binary);
             boost::archive::binary_iarchive iar(is);
             iar >> model_signatures;
@@ -302,11 +306,11 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
 
                     scene_ = cloud;
 
-                    if ( this->needNormals() )
+                    if ( 1 ) // always needs normals since we never know if correspondence grouping does! ..... this->needNormals() )
                     {
                         scene_normals_.reset( new pcl::PointCloud<pcl::Normal> );
                         pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
-                        ne.setNormalEstimationMethod (ne.AVERAGE_3D_GRADIENT);
+                        ne.setNormalEstimationMethod (ne.COVARIANCE_MATRIX);
                         ne.setMaxDepthChangeFactor(0.02f);
                         ne.setNormalSmoothingSize(10.0f);
                         ne.setInputCloud(scene_);
@@ -357,9 +361,13 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
                     assert(scene_signatures_.size() == keypoint_indices_.size());
 
                     pcl::PointCloud<pcl::PointXYZ> model_keypoints_tmp;
+                    pcl::PointCloud<pcl::Normal> model_keypoint_normals_tmp;
                     pcl::copyPointCloud( *scene_, keypoint_indices_, model_keypoints_tmp );
+                    pcl::copyPointCloud( *scene_normals_, keypoint_indices_, model_keypoint_normals_tmp );
                     pcl::transformPointCloud(model_keypoints_tmp, model_keypoints_tmp, pose);
+                    v4r::transformNormals(model_keypoint_normals_tmp, model_keypoint_normals_tmp, pose);
                     *model_keypoints += model_keypoints_tmp;
+                    *model_kp_normals += model_keypoint_normals_tmp;
                     model_signatures.insert(model_signatures.end(), scene_signatures_.begin(), scene_signatures_.end());
 
                     indices_.clear();
@@ -370,6 +378,7 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
 
             io::createDirForFileIfNotExist( kp_path.string() );
             pcl::io::savePCDFileBinaryCompressed ( kp_path.string(), *model_keypoints);
+            pcl::io::savePCDFileBinaryCompressed ( kp_normals_path.string(), *model_kp_normals);
             ofstream os( signatures_path.string() , ios::binary);
             boost::archive::binary_oarchive oar(os);
             oar << model_signatures;
@@ -390,6 +399,7 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
 
         LocalObjectModel::Ptr lom (new LocalObjectModel );
         lom->keypoints_ = model_keypoints;
+        lom->kp_normals_ = model_kp_normals;
         lomdb_->l_obj_models_[m->id_] = lom;
     }
 

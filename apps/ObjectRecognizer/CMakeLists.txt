@@ -52,6 +52,8 @@ add_executable(ObjectRecognizer main.cpp)
 target_link_libraries(ObjectRecognizer ${OR_DEPS} ${DEP_LIBS})
 add_executable(compute_recognition_rate_over_occlusion compute_recognition_rate_over_occlusion.cpp)
 target_link_libraries(compute_recognition_rate_over_occlusion ${OR_DEPS} ${DEP_LIBS})
+add_executable(check_hypotheses check_hypotheses.cpp)
+target_link_libraries(check_hypotheses ${OR_DEPS} ${DEP_LIBS})
 add_executable(compute_recognition_rate compute_recognition_rate.cpp)
 target_link_libraries(compute_recognition_rate ${OR_DEPS} ${DEP_LIBS})
 
