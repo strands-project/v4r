@@ -303,6 +303,32 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
                         pose = Eigen::Matrix4f::Identity();
                     }
 
+                    // read object mask from file
+                    indices_.clear();
+                    if ( !io::existsFile( tv->indices_filename_ ) )
+                    {
+                        std::cerr << "No object indices " << tv->indices_filename_ << " found for object " << m->class_ <<
+                                     "/" << m->id_ << " / " << tv->filename_ << "! Taking whole cloud as object of interest!" << std::endl;
+                    }
+                    else
+                    {
+                        std::ifstream mi_f ( tv->indices_filename_ );
+                        int idx;
+                        while ( mi_f >> idx )
+                           indices_.push_back(idx);
+                        mi_f.close();
+
+                        boost::dynamic_bitset<> obj_mask = createMaskFromIndices( indices_, cloud->points.size() );
+                        for(size_t px=0; px<cloud->points.size(); px++)
+                        {
+                            if( !obj_mask[px] )
+                            {
+                                PointT &p = cloud->points[px];
+                                p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+                            }
+                        }
+                    }
+
                     scene_ = cloud;
 
                     if ( 1 ) // always needs normals since we never know if correspondence grouping does! ..... this->needNormals() )
