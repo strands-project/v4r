@@ -76,8 +76,9 @@ public:
     }param_;
 
 #ifdef HAVE_SIFTGPU
-    SIFTLocalEstimation (const boost::shared_ptr<SiftGPU> &sift) : sift_(sift)
-      , max_distance_ (std::numeric_limits<float>::max())
+    SIFTLocalEstimation (const boost::shared_ptr<SiftGPU> &sift) :
+      max_distance_ (std::numeric_limits<float>::max()),
+      sift_(sift)
     {
         descr_name_ = "sift";
         descr_type_ = FeatureType::SIFT_GPU;
