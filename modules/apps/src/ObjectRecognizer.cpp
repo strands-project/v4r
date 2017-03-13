@@ -20,6 +20,7 @@
 #include <v4r/features/esf_estimator.h>
 #include <v4r/features/shot_local_estimator.h>
 #include <v4r/features/sift_local_estimator.h>
+#include <v4r/features/rops_local_estimator.h>
 #include <v4r/keypoints/all_headers.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/ml/all_headers.h>
@@ -130,6 +131,11 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
                 SHOTLocalEstimationParameter shot_param;
                 shot_param.init( to_pass_further );
                 typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT> (shot_param) );
+
+//                ROPSLocalEstimationParameter rops_param;
+//                rops_param.init( to_pass_further );
+//                typename ROPSLocalEstimation<PointT>::Ptr rops_est (new ROPSLocalEstimation<PointT> (rops_param) );
+
                 typename KeypointExtractor<PointT>::Ptr keypoint_extractor = initKeypointExtractor<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
 
                 LocalRecognizerParameter shot_pipeline_param(param_.shot_config_xml_);

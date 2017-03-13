@@ -12,6 +12,7 @@ ${CMAKE_CURRENT_LIST_DIR}/src/esf_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/ImGradientDescriptor.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_FAST_IMGD.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_K_HARRIS.cpp
+${CMAKE_CURRENT_LIST_DIR}/src/rops_local_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/shot_local_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureSelection.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/ComputeImGDescOrientations.cpp
@@ -29,6 +30,7 @@ ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ourcvfh_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ComputeImGDescOrientations.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureSelection.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/shot_local_estimator.h
+${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/rops_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/esf_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ImGDescOrientation.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/color_ourcvfh_estimator.h

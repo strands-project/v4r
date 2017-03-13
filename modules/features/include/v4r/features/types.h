@@ -35,7 +35,8 @@ namespace v4r
             FPFH = 0x10,  // 00010000
             ESF = 0x20,  // 00100000
             SHOT_COLOR = 0x40,  // 01000000
-            ALEXNET = 0x80  // 10000000
+            ALEXNET = 0x80,  // 10000000
+            ROPS = 0x200  // 10000000
         };
 }
 
