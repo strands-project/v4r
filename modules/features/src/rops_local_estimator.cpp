@@ -89,7 +89,7 @@ ROPSLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatu
     keypoint_indices_ = indices_;
 
     int size_feat = 352;
-        signatures.resize (descriptors.points.size (), std::vector<float>(size_feat));
+    signatures = std::vector<std::vector<float> > (descriptors.points.size (), std::vector<float>(size_feat) );
 
     for (size_t k = 0; k < descriptors.points.size (); k++)
         for (int i = 0; i < size_feat; i++)
