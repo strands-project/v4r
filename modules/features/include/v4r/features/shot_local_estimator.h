@@ -38,10 +38,10 @@ namespace v4r
     class V4R_EXPORTS SHOTLocalEstimationParameter
     {
         public:
-        std::vector<float> support_radii_;
+        float support_radius_;
 
         SHOTLocalEstimationParameter() :
-            support_radii_ ( { 0.05f, 0.03f, 0.08f} )
+            support_radius_ ( 0.05f)
         {}
 
         /**
@@ -67,7 +67,7 @@ namespace v4r
             po::options_description desc("SHOT Parameter\n=====================\n");
             desc.add_options()
                     ("help,h", "produce help message")
-                    ("shot_support_radius", po::value<std::vector<float> >(&support_radii_)->multitoken(), "shot support radii")
+                    ("shot_support_radius", po::value<float>(&support_radius_)->default_value(support_radius_), "shot support radius")
                     ;
             po::variables_map vm;
             po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -116,6 +116,14 @@ namespace v4r
         needNormals () const
         {
             return true;
+        }
+
+        std::string
+                getUniqueId() const
+        {
+            std::stringstream id;
+            id << static_cast<int>( param_.support_radius_ * 1000.f );
+            return id.str();
         }
 
         typedef boost::shared_ptr< SHOTLocalEstimation<PointT> > Ptr;

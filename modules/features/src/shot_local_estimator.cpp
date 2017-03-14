@@ -12,6 +12,7 @@ void
 SHOTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatures)
 {
     CHECK( cloud_->points.size() == normals_->points.size() );
+    signatures.clear();
 
     typename pcl::PointCloud<PointT>::Ptr cloud_wo_nan (new pcl::PointCloud<PointT>);
     pcl::PointCloud<pcl::Normal>::Ptr normals_wo_nan (new pcl::PointCloud<pcl::Normal>);
@@ -49,33 +50,22 @@ SHOTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatu
     shot_estimate.setSearchMethod (tree);
     shot_estimate.setInputCloud (cloud_wo_nan);
     shot_estimate.setInputNormals (normals_wo_nan);
-    boost::shared_ptr<std::vector<int> > IndicesPtr (new std::vector<int> (indices_.size() ));
+    boost::shared_ptr<std::vector<int> > indices_p (new std::vector<int> (indices_.size() ));
     for(size_t i=0; i<indices_.size(); i++)
-        IndicesPtr->at(i) = originalIndices2new[ indices_[i] ];
+        indices_p->at(i) = originalIndices2new[ indices_[i] ];
+    shot_estimate.setIndices(indices_p);
+    shot_estimate.setRadiusSearch ( param_.support_radius_ );
+    shot_estimate.compute (shots);
 
-    shot_estimate.setIndices(IndicesPtr);
+    CHECK( shots.points.size() == indices_.size() );
 
-    signatures.clear();
-    keypoint_indices_.clear();
+    keypoint_indices_ = indices_;
 
-    for (float support_radius : param_.support_radii_ )
-    {
-        shot_estimate.setRadiusSearch ( support_radius );
-        shot_estimate.compute (shots);
+    signatures = std::vector<std::vector<float> > (shots.points.size(), std::vector<float>(352));
 
-        keypoint_indices_.insert(keypoint_indices_.end(), indices_.begin(), indices_.end() );
-
-        CHECK( shots.points.size() == indices_.size() );
-
-        std::vector<std::vector<float> > signatures_tmp (shots.points.size(), std::vector<float>(352));
-
-        for (size_t k = 0; k < shots.points.size (); k++)
-            for (size_t i = 0; i < 352; i++)
-                signatures_tmp[k][i] = shots.points[k].descriptor[i];
-
-        signatures.insert( signatures.end(), signatures_tmp.begin(), signatures_tmp.end() );
-    }
-
+    for (size_t k = 0; k < shots.points.size (); k++)
+        for (size_t i = 0; i < 352; i++)
+            signatures[k][i] = shots.points[k].descriptor[i];
 }
 
 template class V4R_EXPORTS SHOTLocalEstimation<pcl::PointXYZ>;

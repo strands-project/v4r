@@ -123,26 +123,31 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
                 typename LocalFeatureMatcher<PointT>::Ptr sift_rec (new LocalFeatureMatcher<PointT>(sift_param));
                 typename SIFTLocalEstimation<PointT>::Ptr sift_est (new SIFTLocalEstimation<PointT>);
                 sift_est->setMaxDistance(std::numeric_limits<float>::max());
-                sift_rec->setFeatureEstimator( sift_est );
+                sift_rec->addFeatureEstimator( sift_est );
                 local_recognition_pipeline_->addLocalFeatureMatcher(sift_rec);
             }
             if(param_.do_shot_)
             {
-                SHOTLocalEstimationParameter shot_param;
-                shot_param.support_radii_ = param_.keypoint_support_radii_;
-                shot_param.init( to_pass_further );
-                typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT> (shot_param) );
-
-//                ROPSLocalEstimationParameter rops_param;
-//                rops_param.init( to_pass_further );
-//                typename ROPSLocalEstimation<PointT>::Ptr rops_est (new ROPSLocalEstimation<PointT> (rops_param) );
-
-                typename KeypointExtractor<PointT>::Ptr keypoint_extractor = initKeypointExtractor<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
 
                 LocalRecognizerParameter shot_pipeline_param(param_.shot_config_xml_);
                 typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_pipeline_param));
+                typename KeypointExtractor<PointT>::Ptr keypoint_extractor = initKeypointExtractor<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
                 shot_rec->addKeypointExtractor( keypoint_extractor );
-                shot_rec->setFeatureEstimator( shot_est );
+
+                for(float support_radius : param_.keypoint_support_radii_)
+                {
+                    SHOTLocalEstimationParameter shot_param;
+                    shot_param.support_radius_ = support_radius;
+//                    shot_param.init( to_pass_further );
+                    typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT> (shot_param) );
+
+    //                ROPSLocalEstimationParameter rops_param;
+    //                rops_param.init( to_pass_further );
+    //                typename ROPSLocalEstimation<PointT>::Ptr rops_est (new ROPSLocalEstimation<PointT> (rops_param) );
+
+
+                    shot_rec->addFeatureEstimator( shot_est );
+                }
                 local_recognition_pipeline_->addLocalFeatureMatcher(shot_rec);
             }
 

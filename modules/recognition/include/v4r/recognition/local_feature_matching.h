@@ -28,10 +28,12 @@
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <flann/flann.h>
+#include <glog/logging.h>
 #include <pcl/common/common.h>
 
 #include <v4r/common/normals.h>
 #include <v4r/features/local_estimator.h>
+#include <v4r/features/types.h>
 #include <v4r/keypoints/keypoint_extractor.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
@@ -187,40 +189,107 @@ public:
     LocalRecognizerParameter param_; ///< parameters
 
 private:
+    typedef std::vector<float> FeatureDescriptor;
+    typedef int KeypointIndex;
+
     typename pcl::PointCloud<PointT>::ConstPtr scene_; ///< Point cloud to be classified
     std::vector<int> indices_; ///< segmented cloud to be recognized (if empty, all points will be processed)
     pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< Point cloud to be classified
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
     typename NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
 
+    bool have_sift_estimator_; ///< indicates if one of the feature estimator contains SIFT. This is required as this is a special case. For SIFT, keypoint detection and feature description happens at the same time. Therefore it is not allowed to mix with other.
+
+    void
+    validate()
+    {
+        for (const auto &est : estimators_)
+        {
+            if(est->getFeatureType() == FeatureType::SIFT_GPU || est->getFeatureType() == FeatureType::SIFT_OPENCV) // for SIFT we do not need to extract keypoints explicitly
+            {
+                have_sift_estimator_ = true;
+                break;
+            }
+        }
+        CHECK( estimators_.size() <= 1 || !have_sift_estimator_) << "SIFT is not allowed to be mixed with other feature descriptors.";
+    }
 
     bool visualize_keypoints_; ///< if true, visualizes the extracted keypoints
-    void extractKeypoints (); ///< extracts keypoints from the scene
-    void featureMatching (); ///< matches all scene keypoints with model signatures
-    void featureEncoding (); ///< describes each keypoint with corresponding feature descriptor
-    void filterKeypoints (bool filter_signatures = false); ///< filters keypoints based on planarity and closeness to depth discontinuity (if according parameters are set)
-    bool computeFeatures(); ///< compute features
-    void visualizeKeypoints() const;
+
+    /**
+     * @brief extractKeypoints extracts keypoints from the scene
+     * @param[in] region_of_interest object indices (if empty, keypoints will be extracted over whole cloud)
+     * @return keypoint indices
+     */
+    std::vector<KeypointIndex>
+    extractKeypoints(const std::vector<int> &region_of_interest = std::vector<int>());
+
+    /**
+     * @brief featureMatching matches all scene keypoints with model signatures
+     * @param kp_indices query keypoint indices
+     * @param signatures query feature descriptors
+     * @param lomdb search space
+     */
+    void
+    featureMatching (const std::vector<KeypointIndex> &kp_indices,
+                     const std::vector<FeatureDescriptor> &signatures,
+                     const LocalObjectModelDatabase::ConstPtr &lomdb);
+
+    /**
+     * @brief featureEncoding describes each keypoint with corresponding feature descriptor
+     * @param est feature estimator
+     * @param keypoint_indices given keypoint indices
+     * @param filtered_keypoint_indices extracted keypoint indices after removing nan points for instance
+     * @param signatures feature descriptors
+     */
+    void
+    featureEncoding (LocalEstimator<PointT> &est,
+                     const std::vector<KeypointIndex> &keypoint_indices,
+                     std::vector<KeypointIndex> &filtered_keypoint_indices,
+                     std::vector<FeatureDescriptor > &signatures);
+
+
+    /**
+     * @brief filterKeypoints filters keypoints based on planarity and closeness to depth discontinuity (if according parameters are set)
+     * @param[in] input_keypoints keypoints to be filtered
+     * @param[inout] input_signatures optional can also filter associated signatures (e.g. for SIFT, keypoint detection and feature description happens in one step - therefore we can only filter after feature description), this variable will update the signatures
+     * @return filtered keypoints
+     */
+    std::vector<int>
+    getInlier(const std::vector<KeypointIndex> &input_keypoints) const;
+
+    /**
+     * @brief computeFeatures
+     * @param est local feature descriptor
+     * @return
+     */
+    bool
+    computeFeatures(LocalEstimator<PointT> &est);
+
+
+    void
+    visualizeKeypoints() const;
 
 private:
     std::string descr_name_; ///< descriptor name
 
-    std::vector<std::vector<float> > scene_signatures_;   ///< signatures extracted from the scene
-    std::vector<int> keypoint_indices_;   ///< scene point indices extracted as keypoints
-    std::vector<int> keypoint_indices_unfiltered_;    ///< only for visualization
+    std::vector<FeatureDescriptor > scene_signatures_;   ///< signatures extracted from the scene
+    std::vector<KeypointIndex> keypoint_indices_;   ///< scene point indices extracted as keypoints
+    std::vector<KeypointIndex> keypoint_indices_unfiltered_;    ///< only for visualization
 
-    LocalObjectModelDatabase::Ptr lomdb_; ///< object model database used for local recognition
+    std::vector<LocalObjectModelDatabase::Ptr > lomdbs_; ///< object model database used for local recognition for each feature estiamtor
     std::map<std::string, LocalObjectHypothesis<PointT> > corrs_; ///< correspondences for each object model (model id, correspondences)
 
     mutable pcl::visualization::PCLVisualizer::Ptr vis_;
 
-    typename LocalEstimator<PointT>::Ptr estimator_; ///< estimators to compute features/signatures
+    std::vector<typename LocalEstimator<PointT>::Ptr > estimators_; ///< estimators to compute features/signatures
     std::vector<typename KeypointExtractor<PointT>::Ptr > keypoint_extractor_; ///< set of keypoint extractors
 
 public:
 
     LocalFeatureMatcher (const LocalRecognizerParameter &p = LocalRecognizerParameter()) :
         param_(p),
+        have_sift_estimator_ (false),
         visualize_keypoints_(false)
     { }
 
@@ -231,25 +300,29 @@ public:
     size_t
     getFeatureType() const
     {
-        return estimator_->getFeatureType();
+        size_t type=0;
+        for( const auto &est : estimators_ )
+            type |= est->getFeatureType();
+
+        return type;
     }
 
-    /**
-    * @brief getFeatureName
-    * @return feature name of estimator
-    */
-    std::string
-    getFeatureName() const
-    {
-        return estimator_->getFeatureDescriptorName();
-    }
+//    /**
+//    * @brief getFeatureName
+//    * @return feature name of estimator
+//    */
+//    std::string
+//    getFeatureName() const
+//    {
+//        return estimator_->getFeatureDescriptorName();
+//    }
 
     /**
      * @brief getKeypointIndices
      * @param indices of the point clouds that are keypoints
      */
     void
-    getKeypointIndices(std::vector<int> &indices) const
+    getKeypointIndices(std::vector<KeypointIndex> &indices) const
     {
         indices = keypoint_indices_;
     }
@@ -259,9 +332,9 @@ public:
     * \param estimator feature estimator
     */
     void
-    setFeatureEstimator (const typename LocalEstimator<PointT>::Ptr & feat)
+    addFeatureEstimator (const typename LocalEstimator<PointT>::Ptr & feat)
     {
-        estimator_ = feat;
+        estimators_.push_back(feat);
     }
 
     /**
@@ -290,8 +363,12 @@ public:
     virtual bool
     needNormals() const
     {
-        if (estimator_ && estimator_->needNormals())
-            return true;
+        for( const auto &est : estimators_ )
+        {
+            if (est && est->needNormals())
+                return true;
+        }
+
 
         if (!keypoint_extractor_.empty())
         {
@@ -310,10 +387,7 @@ public:
     void
     recognize ();
 
-    virtual bool requiresSegmentation() const
-    {
-        return false;
-    }
+    virtual bool requiresSegmentation() const { return false; }
 
     /**
     * @brief getLocalObjectModelDatabase
@@ -322,7 +396,7 @@ public:
     typename LocalObjectModelDatabase::ConstPtr
     getLocalObjectModelDatabase() const
     {
-        return lomdb_;
+        return lomdbs_[0];
     }
 
     /**

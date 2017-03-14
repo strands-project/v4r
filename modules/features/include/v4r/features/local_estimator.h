@@ -108,6 +108,17 @@ public:
     }
 
     /**
+     * @brief getUniqueId in case several local feature estimators of the same type are used (e.g. shot with different support radii), we need to find unique ids
+     * @return a unique identity for the local estimator that takes into account its parameters.
+     */
+    virtual
+    std::string
+    getUniqueId() const
+    {
+        return "";
+    }
+
+    /**
      * @brief compute features from given input cloud
      * @param signatures
      */
