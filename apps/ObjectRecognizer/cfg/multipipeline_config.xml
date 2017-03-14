@@ -19,7 +19,7 @@
 	<segmentation_method_>1</segmentation_method_>
 	<esf_classification_method_>2</esf_classification_method_>
 	<shot_keypoint_extractor_method_>8</shot_keypoint_extractor_method_>
-	<normal_computation_method_>1</normal_computation_method_>
+	<normal_computation_method_>2</normal_computation_method_>
 	<keypoint_support_radii_>
 		<count>3</count>
 		<item_version>0</item_version>
