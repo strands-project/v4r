@@ -16,4 +16,5 @@
 	<filter_border_pts_>0</filter_border_pts_>
 	<boundary_width_>5</boundary_width_>
 	<required_viewpoint_change_deg_>2.0</required_viewpoint_change_deg_>
+	<train_on_individual_views_>1</train_on_individual_views_>
 </LocalRecognizerParameter>

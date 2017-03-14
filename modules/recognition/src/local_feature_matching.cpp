@@ -13,6 +13,7 @@
 #include <pcl/features/boundary.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 #include <opencv2/opencv.hpp>
 
@@ -24,52 +25,59 @@ namespace v4r
 
 template<typename PointT>
 void
-LocalFeatureMatcher<PointT>::visualizeKeypoints() const
+LocalFeatureMatcher<PointT>::visualizeKeypoints(const std::vector<KeypointIndex> &kp_indices,
+                                                const std::vector<KeypointIndex> &unfiltered_kp_indices) const
 {
-//    if(!vis_)
-//        vis_.reset( new pcl::visualization::PCLVisualizer("keypoints"));
+    static pcl::visualization::PCLVisualizer::Ptr vis;
 
-//    std::stringstream title; title << keypoint_indices_.size() << " " << estimator_->getFeatureDescriptorName() << " keypoints";
-//    vis_->setWindowName(title.str());
-//    vis_->removeAllPointClouds();
-//    vis_->removeAllShapes();
-//    vis_->addPointCloud(scene_, "scene");
+    if(!vis)
+        vis.reset( new pcl::visualization::PCLVisualizer("keypoints"));
 
-//    if(!keypoint_indices_.empty())
-//    {
-//        pcl::PointCloud<PointT> colored_kps;
-//        pcl::PointCloud<pcl::Normal> kp_normals;
-//        pcl::PointCloud<PointT> colored_kps_unfiltered;
-//        pcl::PointCloud<pcl::Normal> kp_unfiltered_normals;
-//        pcl::copyPointCloud(*scene_, keypoint_indices_, colored_kps);
-//        pcl::copyPointCloud(*scene_normals_, keypoint_indices_, kp_normals);
-//        pcl::copyPointCloud(*scene_, keypoint_indices_unfiltered_, colored_kps_unfiltered);
-//        pcl::copyPointCloud(*scene_normals_, keypoint_indices_unfiltered_, kp_unfiltered_normals);
-//        for(PointT &p : colored_kps.points)
-//        {
-//            p.r=255.f;
-//            p.g=0.f;
-//            p.b=0.f;
-//        }
-//        for(PointT &p : colored_kps_unfiltered.points)
-//        {
-//            p.r=0.f;
-//            p.g=255.f;
-//            p.b=0.f;
-//        }
+    std::stringstream title; title << kp_indices.size() << " keypoints";
+    vis->setWindowName(title.str());
+    vis->removeAllPointClouds();
+    vis->removeAllShapes();
+    vis->addPointCloud(scene_, "scene");
 
-//    //        vis_->addPointCloudNormals<PointT, pcl::Normal>(colored_kps_unfiltered.makeShared(), kp_unfiltered_normals.makeShared(), 10, 0.05, "kp_normals_unfiltered");
-//        vis_->addPointCloud(colored_kps_unfiltered.makeShared(), "kps_unfiltered");
-//        vis_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "kps_unfiltered");
+    if(!kp_indices.empty())
+    {
+        pcl::PointCloud<PointT> colored_kps;
+        pcl::PointCloud<pcl::Normal> kp_normals;
+        pcl::PointCloud<PointT> colored_kps_unfiltered;
+        pcl::PointCloud<pcl::Normal> kp_unfiltered_normals;
+        pcl::copyPointCloud(*scene_, kp_indices, colored_kps);
+        pcl::copyPointCloud(*scene_normals_, kp_indices, kp_normals);
+        pcl::copyPointCloud(*scene_, unfiltered_kp_indices, colored_kps_unfiltered);
+        pcl::copyPointCloud(*scene_normals_, unfiltered_kp_indices, kp_unfiltered_normals);
+        for(PointT &p : colored_kps.points)
+        {
+            p.r=255.f;
+            p.g=0.f;
+            p.b=0.f;
+        }
+        for(PointT &p : colored_kps_unfiltered.points)
+        {
+            p.r=0.f;
+            p.g=255.f;
+            p.b=0.f;
+        }
 
-//    //        vis_->addPointCloudNormals<PointT, pcl::Normal>(colored_kps.makeShared(), kp_normals.makeShared(), 10, 0.05, "normals_model");
-//        vis_->addPointCloud(colored_kps.makeShared(), "kps");
-//        vis_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "kps");
+    //        vis_->addPointCloudNormals<PointT, pcl::Normal>(colored_kps_unfiltered.makeShared(), kp_unfiltered_normals.makeShared(), 10, 0.05, "kp_normals_unfiltered");
+        vis->addPointCloud(colored_kps_unfiltered.makeShared(), "kps_unfiltered");
+        vis->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "kps_unfiltered");
 
-//    }
-//    vis_->setBackgroundColor(1,1,1);
-//    vis_->resetCamera();
-//    vis_->spin();
+    //        vis_->addPointCloudNormals<PointT, pcl::Normal>(colored_kps.makeShared(), kp_normals.makeShared(), 10, 0.05, "normals_model");
+        vis->addPointCloud(colored_kps.makeShared(), "kps");
+        vis->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 10, "kps");
+
+    }
+    std::stringstream txt_kp; txt_kp << "Filtered keypoints (" << kp_indices.size() << ")";
+    vis->addText(txt_kp.str(), 10, 10, 12, 1., 0, 0, "filtered keypoints");
+    std::stringstream txt_kp_rejected; txt_kp_rejected << "Rejected keypoints (" << kp_indices.size() << ")";
+    vis->addText(txt_kp_rejected.str(), 10, 20, 12, 0, 1., 0, "rejected keypoints");
+    vis->setBackgroundColor(1,1,1);
+    vis->resetCamera();
+    vis->spin();
 }
 
 template<typename PointT>
@@ -109,61 +117,67 @@ LocalFeatureMatcher<PointT>::getInlier (const std::vector<KeypointIndex> &input_
     if (param_.filter_border_pts_)
     {
         pcl::ScopeTime t("Computing boundary points");
-        CHECK(scene_->isOrganized());
-        //compute depth discontinuity edges
-        pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label> oed;
-        oed.setDepthDisconThreshold (0.05f); //at 1m, adapted linearly with depth
-        oed.setMaxSearchNeighbors(100);
-        oed.setEdgeType (  pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDING
-                         | pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDED
-                         | pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_NAN_BOUNDARY
-                         );
-        oed.setInputCloud (scene_);
-
-        pcl::PointCloud<pcl::Label> labels;
-        std::vector<pcl::PointIndices> edge_indices;
-        oed.compute (labels, edge_indices);
-
-        // count indices to allocate memory beforehand
-        size_t kept=0;
-        for (size_t j = 0; j < edge_indices.size (); j++)
-            kept += edge_indices[j].indices.size ();
-
-        std::vector<int> discontinuity_edges (kept);
-
-        kept=0;
-        for (size_t j = 0; j < edge_indices.size (); j++)
+        if(scene_->isOrganized())
         {
-            for (size_t i = 0; i < edge_indices[j].indices.size (); i++)
-                discontinuity_edges[kept++] = edge_indices[j].indices[i];
+            //compute depth discontinuity edges
+            pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label> oed;
+            oed.setDepthDisconThreshold (0.05f); //at 1m, adapted linearly with depth
+            oed.setMaxSearchNeighbors(100);
+            oed.setEdgeType (  pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDING
+                             | pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_OCCLUDED
+                             | pcl_1_8::OrganizedEdgeBase<PointT, pcl::Label>::EDGELABEL_NAN_BOUNDARY
+                             );
+            oed.setInputCloud (scene_);
+
+            pcl::PointCloud<pcl::Label> labels;
+            std::vector<pcl::PointIndices> edge_indices;
+            oed.compute (labels, edge_indices);
+
+            // count indices to allocate memory beforehand
+            size_t kept=0;
+            for (size_t j = 0; j < edge_indices.size (); j++)
+                kept += edge_indices[j].indices.size ();
+
+            std::vector<int> discontinuity_edges (kept);
+
+            kept=0;
+            for (size_t j = 0; j < edge_indices.size (); j++)
+            {
+                for (size_t i = 0; i < edge_indices[j].indices.size (); i++)
+                    discontinuity_edges[kept++] = edge_indices[j].indices[i];
+            }
+
+            cv::Mat boundary_mask = cv::Mat_<unsigned char>::zeros(scene_->height, scene_->width);
+            for(size_t i=0; i<discontinuity_edges.size(); i++)
+            {
+                int idx = discontinuity_edges[i];
+                int u = idx%scene_->width;
+                int v = idx/scene_->width;
+
+                boundary_mask.at<unsigned char>(v,u) = 255;
+            }
+
+
+            cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE,
+                                                         cv::Size( 2*param_.boundary_width_ + 1, 2*param_.boundary_width_+1 ),
+                                                         cv::Point( param_.boundary_width_, param_.boundary_width_ ) );
+            cv::Mat boundary_mask_dilated;
+            cv::dilate( boundary_mask, boundary_mask_dilated, element );
+
+            kept=0;
+            for(size_t i=0; i<input_keypoints.size(); i++)
+            {
+                int idx = input_keypoints[i];
+                int u = idx%scene_->width;
+                int v = idx/scene_->width;
+
+                if ( boundary_mask_dilated.at<unsigned char>(v,u) )
+                    kp_is_kept.reset(i);
+            }
         }
-
-        cv::Mat boundary_mask = cv::Mat_<unsigned char>::zeros(scene_->height, scene_->width);
-        for(size_t i=0; i<discontinuity_edges.size(); i++)
+        else
         {
-            int idx = discontinuity_edges[i];
-            int u = idx%scene_->width;
-            int v = idx/scene_->width;
-
-            boundary_mask.at<unsigned char>(v,u) = 255;
-        }
-
-
-        cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE,
-                                                     cv::Size( 2*param_.boundary_width_ + 1, 2*param_.boundary_width_+1 ),
-                                                     cv::Point( param_.boundary_width_, param_.boundary_width_ ) );
-        cv::Mat boundary_mask_dilated;
-        cv::dilate( boundary_mask, boundary_mask_dilated, element );
-
-        kept=0;
-        for(size_t i=0; i<input_keypoints.size(); i++)
-        {
-            int idx = input_keypoints[i];
-            int u = idx%scene_->width;
-            int v = idx/scene_->width;
-
-            if ( boundary_mask_dilated.at<unsigned char>(v,u) )
-                kp_is_kept.reset(i);
+            std::cout << "Input scene is not organized so cannot extract edge points." << std::endl;
         }
     }
 
@@ -192,6 +206,16 @@ LocalFeatureMatcher<PointT>::extractKeypoints (const std::vector<int> &region_of
     else
         obj_mask = createMaskFromIndices(region_of_interest, scene_->points.size());
 
+    bool estimator_need_normals = false;
+    for(const typename LocalEstimator<PointT>::ConstPtr &est : estimators_)
+    {
+        if(est->needNormals())
+        {
+            estimator_need_normals = true;
+            break;
+        }
+    }
+
     for (typename KeypointExtractor<PointT>::Ptr ke : keypoint_extractor_)
     {
         ke->setInputCloud (scene_);
@@ -208,7 +232,7 @@ LocalFeatureMatcher<PointT>::extractKeypoints (const std::vector<int> &region_of
         for(int idx : kp_indices)
         {
             if(     obj_mask[idx] && pcl::isFinite( scene_->points[idx] ) &&
-                    ( !needNormals() || pcl::isFinite(scene_normals_->points[idx]))
+                    ( !estimator_need_normals || pcl::isFinite(scene_normals_->points[idx]))
                     && scene_->points[idx].z < param_.max_keypoint_distance_z_ )
             {
                 kp_mask.set( idx );
@@ -266,141 +290,178 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
                 const auto training_views = m->getTrainingViews();
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > existing_poses;
 
-                for(const auto &tv : training_views)
+                if(param_.train_on_individual_views_)
                 {
-                    std::string txt = "Training " + est->getFeatureDescriptorName() + " (with id \"" + est->getUniqueId() + "\") on view " + m->class_ + "/" + m->id_ + "/" + tv->filename_;
-                    pcl::ScopeTime t( txt.c_str() );
-
-                    std::vector<int> obj_indices;
-
-                    Eigen::Matrix4f pose;
-                    if(tv->cloud_)   // point cloud and all relevant information is already in memory (fast but needs a much memory when a lot of training views/objects)
+                    for(const auto &tv : training_views)
                     {
-                        scene_ = tv->cloud_;
-                        scene_normals_ = tv->normals_;
-                        obj_indices = tv->indices_;
-                        pose = tv->pose_;
-                    }
-                    else
-                    {
-                        typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
-                        pcl::io::loadPCDFile(tv->filename_, *cloud);
+                        std::string txt = "Training " + est->getFeatureDescriptorName() + " (with id \"" + est->getUniqueId() + "\") on view " + m->class_ + "/" + m->id_ + "/" + tv->filename_;
+                        pcl::ScopeTime t( txt.c_str() );
 
-                        try
-                        {
-                            pose = io::readMatrixFromFile(tv->pose_filename_);
-                        }
-                        catch (const std::runtime_error &e)
-                        {
-                            std::cerr << "Could not read pose from file " << tv->pose_filename_ << "!" << std::endl;
-                            pose = Eigen::Matrix4f::Identity();
-                        }
+                        std::vector<int> obj_indices;
 
-                        // read object mask from file
-                        obj_indices.clear();
-                        if ( !io::existsFile( tv->indices_filename_ ) )
+                        Eigen::Matrix4f pose;
+                        if(tv->cloud_)   // point cloud and all relevant information is already in memory (fast but needs a much memory when a lot of training views/objects)
                         {
-                            std::cerr << "No object indices " << tv->indices_filename_ << " found for object " << m->class_ <<
-                                         "/" << m->id_ << " / " << tv->filename_ << "! Taking whole cloud as object of interest!" << std::endl;
+                            scene_ = tv->cloud_;
+                            scene_normals_ = tv->normals_;
+                            obj_indices = tv->indices_;
+                            pose = tv->pose_;
                         }
                         else
                         {
-                            std::ifstream mi_f ( tv->indices_filename_ );
-                            int idx;
-                            while ( mi_f >> idx )
-                               obj_indices.push_back(idx);
-                            mi_f.close();
+                            typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
+                            pcl::io::loadPCDFile(tv->filename_, *cloud);
 
-                            boost::dynamic_bitset<> obj_mask = createMaskFromIndices( obj_indices, cloud->points.size() );
-                            for(size_t px=0; px<cloud->points.size(); px++)
+                            try
                             {
-                                if( !obj_mask[px] )
+                                pose = io::readMatrixFromFile(tv->pose_filename_);
+                            }
+                            catch (const std::runtime_error &e)
+                            {
+                                std::cerr << "Could not read pose from file " << tv->pose_filename_ << "!" << std::endl;
+                                pose = Eigen::Matrix4f::Identity();
+                            }
+
+                            // read object mask from file
+                            obj_indices.clear();
+                            if ( !io::existsFile( tv->indices_filename_ ) )
+                            {
+                                std::cerr << "No object indices " << tv->indices_filename_ << " found for object " << m->class_ <<
+                                             "/" << m->id_ << " / " << tv->filename_ << "! Taking whole cloud as object of interest!" << std::endl;
+                            }
+                            else
+                            {
+                                std::ifstream mi_f ( tv->indices_filename_ );
+                                int idx;
+                                while ( mi_f >> idx )
+                                   obj_indices.push_back(idx);
+                                mi_f.close();
+
+                                boost::dynamic_bitset<> obj_mask = createMaskFromIndices( obj_indices, cloud->points.size() );
+                                for(size_t px=0; px<cloud->points.size(); px++)
                                 {
-                                    PointT &p = cloud->points[px];
-                                    p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+                                    if( !obj_mask[px] )
+                                    {
+                                        PointT &p = cloud->points[px];
+                                        p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+                                    }
                                 }
+                            }
+
+                            scene_ = cloud;
+
+                            if ( 1 ) // always needs normals since we never know if correspondence grouping does! ..... this->needNormals() )
+                            {
+                                normal_estimator_->setInputCloud( cloud );
+                                pcl::PointCloud<pcl::Normal>::Ptr normals;
+                                normals = normal_estimator_->compute();
+                                scene_normals_ = normals;
                             }
                         }
 
-                        scene_ = cloud;
 
-                        if ( 1 ) // always needs normals since we never know if correspondence grouping does! ..... this->needNormals() )
+                        bool similar_pose_exists = false;
+                        for(const Eigen::Matrix4f &ep : existing_poses)
                         {
-                            normal_estimator_->setInputCloud( cloud );
-                            pcl::PointCloud<pcl::Normal>::Ptr normals;
-                            normals = normal_estimator_->compute();
-                            scene_normals_ = normals;
+                            Eigen::Vector3f v1 = pose.block<3,1>(0,0);
+                            Eigen::Vector3f v2 = ep.block<3,1>(0,0);
+                            v1.normalize();
+                            v2.normalize();
+                            float dotp = v1.dot(v2);
+                            const Eigen::Vector3f crossp = v1.cross(v2);
+
+                            float rel_angle_deg = acos(dotp) * 180.f / M_PI;
+                            if (crossp(2) < 0)
+                                rel_angle_deg = 360.f - rel_angle_deg;
+
+
+                            if (rel_angle_deg < param_.required_viewpoint_change_deg_)
+                            {
+                                similar_pose_exists = true;
+                                break;
+                            }
                         }
-                    }
-
-
-                    bool similar_pose_exists = false;
-                    for(const Eigen::Matrix4f &ep : existing_poses)
-                    {
-                        Eigen::Vector3f v1 = pose.block<3,1>(0,0);
-                        Eigen::Vector3f v2 = ep.block<3,1>(0,0);
-                        v1.normalize();
-                        v2.normalize();
-                        float dotp = v1.dot(v2);
-                        const Eigen::Vector3f crossp = v1.cross(v2);
-
-                        float rel_angle_deg = acos(dotp) * 180.f / M_PI;
-                        if (crossp(2) < 0)
-                            rel_angle_deg = 360.f - rel_angle_deg;
-
-
-                        if (rel_angle_deg < param_.required_viewpoint_change_deg_)
+                        if(!similar_pose_exists)
                         {
-                            similar_pose_exists = true;
-                            break;
-                        }
-                    }
-                    if(!similar_pose_exists)
-                    {
-                        std::vector<int> filtered_kp_indices;
+                            std::vector<int> filtered_kp_indices;
 
-                        if( have_sift_estimator_ ) // for SIFT we do not need to extract keypoints explicitly
-                            filtered_kp_indices = obj_indices;
+                            if( have_sift_estimator_ ) // for SIFT we do not need to extract keypoints explicitly
+                                filtered_kp_indices = obj_indices;
+                            else
+                            {
+                                const std::vector<KeypointIndex> keypoint_indices = extractKeypoints( obj_indices );
+                                std::vector<int> inlier = getInlier(keypoint_indices);
+                                filtered_kp_indices = filterVector<KeypointIndex> (keypoint_indices, inlier);
+
+                                if( visualize_keypoints_)
+                                    visualizeKeypoints(filtered_kp_indices, keypoint_indices);
+                            }
+
+                            std::vector<FeatureDescriptor> signatures_view;
+                            featureEncoding( *est, filtered_kp_indices, filtered_kp_indices, signatures_view);
+
+                            if( have_sift_estimator_ ) // for SIFT we do not need to extract keypoints explicitly
+                            {
+                                std::vector<int> inlier = getInlier(filtered_kp_indices);
+                                filtered_kp_indices = filterVector<KeypointIndex> (filtered_kp_indices, inlier);
+                                signatures_view = filterVector<FeatureDescriptor> (signatures_view, inlier);
+                            }
+
+                            if( filtered_kp_indices.empty() )
+                                continue;
+
+                            existing_poses.push_back(pose);
+                            std::cout << "Adding " << signatures_view.size() << " " << est->getFeatureDescriptorName() <<
+                                         "with id \"" << est->getUniqueId() << "\" descriptors to the model database. " << std::endl;
+
+                            CHECK(signatures_view.size() == filtered_kp_indices.size());
+
+                            pcl::PointCloud<pcl::PointXYZ> model_keypoints_tmp;
+                            pcl::PointCloud<pcl::Normal> model_keypoint_normals_tmp;
+                            pcl::copyPointCloud( *scene_, filtered_kp_indices, model_keypoints_tmp );
+                            pcl::copyPointCloud( *scene_normals_, filtered_kp_indices, model_keypoint_normals_tmp );
+                            pcl::transformPointCloud(model_keypoints_tmp, model_keypoints_tmp, pose);
+                            v4r::transformNormals(model_keypoint_normals_tmp, model_keypoint_normals_tmp, pose);
+                            *model_keypoints += model_keypoints_tmp;
+                            *model_kp_normals += model_keypoint_normals_tmp;
+                            model_signatures.insert(model_signatures.end(), signatures_view.begin(), signatures_view.end());
+
+                            indices_.clear();
+                        }
                         else
-                        {
-                            const std::vector<KeypointIndex> keypoint_indices = extractKeypoints( obj_indices );
-                            std::vector<int> inlier = getInlier(keypoint_indices);
-                            filtered_kp_indices = filterVector<KeypointIndex> (keypoint_indices, inlier);
-                        }
-
-                        std::vector<FeatureDescriptor> signatures_view;
-                        featureEncoding( *est, filtered_kp_indices, filtered_kp_indices, signatures_view);
-
-                        if( have_sift_estimator_ ) // for SIFT we do not need to extract keypoints explicitly
-                        {
-                            std::vector<int> inlier = getInlier(filtered_kp_indices);
-                            filtered_kp_indices = filterVector<KeypointIndex> (filtered_kp_indices, inlier);
-                            signatures_view = filterVector<FeatureDescriptor> (signatures_view, inlier);
-                        }
-
-                        if( filtered_kp_indices.empty() )
-                            continue;
-
-                        existing_poses.push_back(pose);
-                        std::cout << "Adding " << signatures_view.size() << " " << est->getFeatureDescriptorName() <<
-                                     "with id \"" << est->getUniqueId() << "\" descriptors to the model database. " << std::endl;
-
-                        CHECK(signatures_view.size() == filtered_kp_indices.size());
-
-                        pcl::PointCloud<pcl::PointXYZ> model_keypoints_tmp;
-                        pcl::PointCloud<pcl::Normal> model_keypoint_normals_tmp;
-                        pcl::copyPointCloud( *scene_, filtered_kp_indices, model_keypoints_tmp );
-                        pcl::copyPointCloud( *scene_normals_, filtered_kp_indices, model_keypoint_normals_tmp );
-                        pcl::transformPointCloud(model_keypoints_tmp, model_keypoints_tmp, pose);
-                        v4r::transformNormals(model_keypoint_normals_tmp, model_keypoint_normals_tmp, pose);
-                        *model_keypoints += model_keypoints_tmp;
-                        *model_kp_normals += model_keypoint_normals_tmp;
-                        model_signatures.insert(model_signatures.end(), signatures_view.begin(), signatures_view.end());
-
-                        indices_.clear();
+                            std::cout << "Ignoring view " << tv->filename_ << " because a similar camera pose exists." << std::endl;
                     }
-                    else
-                        std::cout << "Ignoring view " << tv->filename_ << " because a similar camera pose exists." << std::endl;
+                }
+                else
+                {
+                    scene_ = m->getAssembled(1);
+                    scene_normals_ = m->getNormalsAssembled(1);
+
+                    const std::vector<KeypointIndex> keypoint_indices = extractKeypoints( );
+                    std::vector<int> inlier = getInlier(keypoint_indices);
+                    std::vector<KeypointIndex> filtered_kp_indices = filterVector<KeypointIndex> (keypoint_indices, inlier);
+
+                    if( visualize_keypoints_ )
+                        visualizeKeypoints(filtered_kp_indices, keypoint_indices);
+
+                    std::vector<FeatureDescriptor> signatures;
+                    featureEncoding( *est, filtered_kp_indices, filtered_kp_indices, signatures);
+
+                    if( filtered_kp_indices.empty() )
+                        continue;
+
+                    std::cout << "Adding " << signatures.size() << " " << est->getFeatureDescriptorName() <<
+                                 " (with id \"" << est->getUniqueId() << "\") descriptors to the model database. " << std::endl;
+
+                    CHECK(signatures.size() == filtered_kp_indices.size());
+
+                    pcl::PointCloud<pcl::PointXYZ> model_keypoints_tmp;
+                    pcl::PointCloud<pcl::Normal> model_keypoint_normals_tmp;
+                    pcl::copyPointCloud( *scene_, filtered_kp_indices, model_keypoints_tmp );
+                    pcl::copyPointCloud( *scene_normals_, filtered_kp_indices, model_keypoint_normals_tmp );
+                    *model_keypoints += model_keypoints_tmp;
+                    *model_kp_normals += model_keypoint_normals_tmp;
+                    model_signatures.insert(model_signatures.end(), signatures.begin(), signatures.end());
                 }
 
                 io::createDirForFileIfNotExist( kp_path.string() );
@@ -467,14 +528,54 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
         lomdbs_[est_id] = lomdb;
     }
 
+    mergeKeypointsFromMultipleEstimators();
     indices_.clear();
 }
 
 template<typename PointT>
 void
+LocalFeatureMatcher<PointT>::mergeKeypointsFromMultipleEstimators()
+{
+    model_keypoints_.clear();
+    model_kp_idx_range_start_.resize( estimators_.size() );
+
+    for(size_t est_id=0; est_id<estimators_.size(); est_id++)
+    {
+        LocalObjectModelDatabase::ConstPtr lomdb_tmp = lomdbs_[est_id];
+
+        for ( const auto & lo : lomdb_tmp->l_obj_models_ )
+        {
+            const std::string &model_id = lo.first;
+            const LocalObjectModel &lom = *(lo.second);
+
+            std::map<std::string, typename LocalObjectModel::ConstPtr>::const_iterator
+                    it_loh = model_keypoints_.find(model_id);
+
+            if ( it_loh != model_keypoints_.end () ) // append keypoints to existing ones
+            {
+                model_kp_idx_range_start_[est_id][model_id] = it_loh->second->keypoints_->points.size();
+                *(it_loh->second->keypoints_) += *(lom.keypoints_);
+                *(it_loh->second->kp_normals_) += *(lom.kp_normals_);
+            }
+            else    // keypoints do not exist yet for this model
+            {
+                model_kp_idx_range_start_[est_id][model_id] = 0;
+                LocalObjectModel::Ptr lom_copy (new LocalObjectModel);
+                *(lom_copy->keypoints_) = *(lom.keypoints_);
+                *(lom_copy->kp_normals_) = *(lom.kp_normals_);
+                model_keypoints_[model_id] = lom_copy;
+            }
+        }
+    }
+}
+
+
+template<typename PointT>
+void
 LocalFeatureMatcher<PointT>::featureMatching(const std::vector<KeypointIndex> &kp_indices,
                                              const std::vector<FeatureDescriptor> &signatures,
-                                             const LocalObjectModelDatabase::ConstPtr &lomdb)
+                                             const LocalObjectModelDatabase::ConstPtr &lomdb,
+                                             size_t model_keypoint_offset)
 {
     CHECK (signatures.size () == kp_indices.size() );
 
@@ -507,17 +608,25 @@ LocalFeatureMatcher<PointT>::featureMatching(const std::vector<KeypointIndex> &k
             const typename LocalObjectModelDatabase::flann_model &f = lomdb->flann_models_[ indices[0][i] ];
             float m_dist = param_.correspondence_distance_weight_ * distances[0][i];
 
+            typename std::map<std::string, LocalObjectModel::ConstPtr >::const_iterator it = model_keypoints_.find( f.model_id_);
+//            const LocalObjectModel &m_kps = *(it->second);
+
+            KeypointIndex m_idx = f.keypoint_id_ + model_keypoint_offset;
+            KeypointIndex s_idx = kp_indices[idx];
+//            CHECK ( m_idx < m_kps.keypoints_->points.size() );
+//            CHECK ( kp_indices[idx] < scene_->points.size() );
+
             typename std::map<std::string, LocalObjectHypothesis<PointT> >::iterator it_c = corrs_.find ( f.model_id_ );
             if ( it_c != corrs_.end () )
             { // append correspondences to existing ones
                 pcl::CorrespondencesPtr &corrs = it_c->second.model_scene_corresp_;
-                corrs->push_back( pcl::Correspondence ( (int)f.keypoint_id_, kp_indices[idx], m_dist ) );
+                corrs->push_back( pcl::Correspondence ( m_idx, s_idx, m_dist ) );
             }
             else //create object hypothesis
             {
                 LocalObjectHypothesis<PointT> new_loh;
                 new_loh.model_scene_corresp_.reset (new pcl::Correspondences);
-                new_loh.model_scene_corresp_->push_back( pcl::Correspondence ( (int)f.keypoint_id_, kp_indices[idx], m_dist ) );
+                new_loh.model_scene_corresp_->push_back( pcl::Correspondence ( m_idx, s_idx, m_dist ) );
                 new_loh.model_id_ = f.model_id_;
                 corrs_[ f.model_id_ ] = new_loh;
             }
@@ -610,7 +719,7 @@ LocalFeatureMatcher<PointT>::recognize ()
         std::cout << "Number of " << est->getFeatureDescriptorName() << " features: " << filtered_kp_indices_tmp.size() << std::endl;
 
         if(visualize_keypoints_)
-            visualizeKeypoints();
+            visualizeKeypoints(filtered_kp_indices_tmp, keypoint_indices);
 
         featureMatching(filtered_kp_indices_tmp, signatures_tmp, lomdbs_[est_id]);
         indices_.clear();

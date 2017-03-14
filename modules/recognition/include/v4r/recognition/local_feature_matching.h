@@ -66,6 +66,8 @@ public:
 
     float required_viewpoint_change_deg_; ///< required viewpoint change in degree for a new training view to be used for feature extraction. Training views will be sorted incrementally by their filename and if the camera pose of a training view is close to the camera pose of an already existing training view, it will be discarded for training.
 
+    bool train_on_individual_views_; ///< if true, extracts features from each view of the object model. Otherwise will use the full 3d cloud
+
     LocalRecognizerParameter( ) :
           kdtree_splits_ (512),
           kdtree_num_trees_ (4),
@@ -80,7 +82,8 @@ public:
           threshold_planar_ (0.02f),
           filter_border_pts_ (7),
           boundary_width_ (5),
-          required_viewpoint_change_deg_ (10.f)
+          required_viewpoint_change_deg_ (10.f),
+          train_on_individual_views_(true)
     {}
 
     void
@@ -123,6 +126,7 @@ private:
                 & BOOST_SERIALIZATION_NVP(filter_border_pts_)
                 & BOOST_SERIALIZATION_NVP(boundary_width_)
                 & BOOST_SERIALIZATION_NVP(required_viewpoint_change_deg_)
+                & BOOST_SERIALIZATION_NVP(train_on_individual_views_)
                 ;
     }
 };
@@ -200,6 +204,22 @@ private:
 
     bool have_sift_estimator_; ///< indicates if one of the feature estimator contains SIFT. This is required as this is a special case. For SIFT, keypoint detection and feature description happens at the same time. Therefore it is not allowed to mix with other.
 
+    std::string descr_name_; ///< descriptor name
+
+    std::vector<FeatureDescriptor > scene_signatures_;   ///< signatures extracted from the scene
+    std::vector<KeypointIndex> keypoint_indices_;   ///< scene point indices extracted as keypoints
+    std::vector<KeypointIndex> keypoint_indices_unfiltered_;    ///< only for visualization
+
+    std::vector<LocalObjectModelDatabase::Ptr > lomdbs_; ///< object model database used for local recognition for each feature estiamtor
+    std::map<std::string, LocalObjectHypothesis<PointT> > corrs_; ///< correspondences for each object model (model id, correspondences)
+
+    std::vector<typename LocalEstimator<PointT>::Ptr > estimators_; ///< estimators to compute features/signatures
+    std::vector<typename KeypointExtractor<PointT>::Ptr > keypoint_extractor_; ///< set of keypoint extractors
+
+    void mergeKeypointsFromMultipleEstimators(); ///< this puts the model keypoints extracted from multiple feature estimators into a common database
+
+    std::map<std::string, typename LocalObjectModel::ConstPtr> model_keypoints_;
+
     void
     validate()
     {
@@ -212,6 +232,8 @@ private:
             }
         }
         CHECK( estimators_.size() <= 1 || !have_sift_estimator_) << "SIFT is not allowed to be mixed with other feature descriptors.";
+
+        CHECK( !have_sift_estimator_ || param_.train_on_individual_views_ ) << "SIFT needs organized point clouds. Therefore training from a full model is not supported! " << std::endl;
     }
 
     bool visualize_keypoints_; ///< if true, visualizes the extracted keypoints
@@ -233,7 +255,8 @@ private:
     void
     featureMatching (const std::vector<KeypointIndex> &kp_indices,
                      const std::vector<FeatureDescriptor> &signatures,
-                     const LocalObjectModelDatabase::ConstPtr &lomdb);
+                     const LocalObjectModelDatabase::ConstPtr &model_keypoints_,
+                     size_t model_keypoint_offset = 0);
 
     /**
      * @brief featureEncoding describes each keypoint with corresponding feature descriptor
@@ -266,24 +289,10 @@ private:
     bool
     computeFeatures(LocalEstimator<PointT> &est);
 
-
     void
-    visualizeKeypoints() const;
+    visualizeKeypoints(const std::vector<KeypointIndex> &kp_indices, const std::vector<KeypointIndex> &unfiltered_kp_indices = std::vector<KeypointIndex>()) const;
 
-private:
-    std::string descr_name_; ///< descriptor name
-
-    std::vector<FeatureDescriptor > scene_signatures_;   ///< signatures extracted from the scene
-    std::vector<KeypointIndex> keypoint_indices_;   ///< scene point indices extracted as keypoints
-    std::vector<KeypointIndex> keypoint_indices_unfiltered_;    ///< only for visualization
-
-    std::vector<LocalObjectModelDatabase::Ptr > lomdbs_; ///< object model database used for local recognition for each feature estiamtor
-    std::map<std::string, LocalObjectHypothesis<PointT> > corrs_; ///< correspondences for each object model (model id, correspondences)
-
-    mutable pcl::visualization::PCLVisualizer::Ptr vis_;
-
-    std::vector<typename LocalEstimator<PointT>::Ptr > estimators_; ///< estimators to compute features/signatures
-    std::vector<typename KeypointExtractor<PointT>::Ptr > keypoint_extractor_; ///< set of keypoint extractors
+    std::vector< std::map<std::string, size_t > > model_kp_idx_range_start_; ///< since keypoints are coming from multiple local recognizer, we need to store which range belongs to which recognizer. This variable is the starting parting t
 
 public:
 
@@ -393,10 +402,11 @@ public:
     * @brief getLocalObjectModelDatabase
     * @return local object model database
     */
-    typename LocalObjectModelDatabase::ConstPtr
-    getLocalObjectModelDatabase() const
+    typename
+    std::map<std::string, typename LocalObjectModel::ConstPtr>
+    getModelKeypoints() const
     {
-        return lomdbs_[0];
+        return model_keypoints_;
     }
 
     /**

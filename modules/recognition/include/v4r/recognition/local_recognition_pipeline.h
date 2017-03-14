@@ -104,7 +104,7 @@ private:
 
     typename boost::shared_ptr< pcl::CorrespondenceGrouping<pcl::PointXYZ, pcl::PointXYZ> > cg_algorithm_;  ///< algorithm for correspondence grouping
     std::map<std::string, LocalObjectHypothesis<PointT> > local_obj_hypotheses_;   ///< stores feature correspondences
-    LocalObjectModelDatabase::Ptr lomdb_; ///< object model database used for local recognition
+    std::map<std::string, typename LocalObjectModel::ConstPtr> model_keypoints_; ///< object model database used for local recognition
     std::vector< std::map<std::string, size_t > > model_kp_idx_range_start_; ///< since keypoints are coming from multiple local recognizer, we need to store which range belongs to which recognizer. This variable is the starting parting t
 
     LocalRecognitionPipelineParameter param_;
@@ -197,10 +197,10 @@ public:
      * @brief getLocalObjectModelDatabase
      * @return local object model database
      */
-    typename LocalObjectModelDatabase::ConstPtr
+    std::map<std::string, typename LocalObjectModel::ConstPtr>
     getLocalObjectModelDatabase() const
     {
-        return lomdb_;
+        return model_keypoints_;
     }
 
     typedef boost::shared_ptr< LocalRecognitionPipeline<PointT> > Ptr;

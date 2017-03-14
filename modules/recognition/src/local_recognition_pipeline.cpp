@@ -14,35 +14,37 @@ LocalRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, boo
 {
     CHECK ( !local_feature_matchers_.empty() ) << "No local recognizers provided!";
 
-    lomdb_.reset( new LocalObjectModelDatabase );   // need to merge model keypoints from all local recognizers ( like SIFT + SHOT + ...)
+    model_keypoints_.clear();   // need to merge model keypoints from all local recognizers ( like SIFT + SHOT + ...)
     model_kp_idx_range_start_.resize( local_feature_matchers_.size() );
 
     for(size_t i=0; i<local_feature_matchers_.size(); i++)
     {
-        auto r = local_feature_matchers_[i];
-        r->setNormalEstimator(normal_estimator_);
-        r->setModelDatabase(m_db_);
-        r->initialize(trained_dir, force_retrain);
-        LocalObjectModelDatabase::ConstPtr lomdb_tmp = r->getLocalObjectModelDatabase();
+        LocalFeatureMatcher<PointT> &r = *local_feature_matchers_[i];
+        r.setNormalEstimator(normal_estimator_);
+        r.setModelDatabase(m_db_);
+        r.initialize(trained_dir, force_retrain);
+        const std::map<std::string, typename LocalObjectModel::ConstPtr> lomdb_tmp = r.getModelKeypoints();
 
-        for ( auto lo : lomdb_tmp->l_obj_models_ )
+        for ( auto lo : lomdb_tmp )
         {
             const std::string &model_id = lo.first;
+            const LocalObjectModel &lom = *(lo.second);
 
-            auto it_loh = lomdb_->l_obj_models_.find(model_id);
-            if ( it_loh != lomdb_->l_obj_models_.end () )
-            { // append correspondences to existing ones
+            std::map<std::string, typename LocalObjectModel::ConstPtr>::const_iterator
+                    it_loh = model_keypoints_.find(model_id);
+            if ( it_loh != model_keypoints_.end () ) // append correspondences to existing ones
+            {
                 model_kp_idx_range_start_[i][model_id] = it_loh->second->keypoints_->points.size();
-                *(it_loh->second->keypoints_) += *(lo.second->keypoints_);
-                *(it_loh->second->kp_normals_) += *(lo.second->kp_normals_);
+                *(it_loh->second->keypoints_) += *(lom.keypoints_);
+                *(it_loh->second->kp_normals_) += *(lom.kp_normals_);
             }
             else
             {
                 model_kp_idx_range_start_[i][model_id] = 0;
-                LocalObjectModel::Ptr lom (new LocalObjectModel);
-                *(lom->keypoints_) = *(lo.second->keypoints_);
-                *(lom->kp_normals_) = *(lo.second->kp_normals_);
-                lomdb_->l_obj_models_ [model_id] = lom;
+                LocalObjectModel::Ptr lom_copy (new LocalObjectModel);
+                *(lom_copy->keypoints_) = *(lom.keypoints_);
+                *(lom_copy->kp_normals_) = *(lom.kp_normals_);
+                model_keypoints_ [model_id] = lom_copy;
             }
         }
     }
@@ -64,8 +66,8 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
         const std::string &model_id = it->first;
         const LocalObjectHypothesis<PointT> &loh = it->second;
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr model_keypoints = lomdb_->l_obj_models_[model_id]->keypoints_;
-        pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals = lomdb_->l_obj_models_[model_id]->kp_normals_;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr model_keypoints = model_keypoints_[model_id]->keypoints_;
+        pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals = model_keypoints_[model_id]->kp_normals_;
 
         if( loh.model_scene_corresp_->size() < 3 )
             continue;
@@ -203,8 +205,8 @@ LocalRecognitionPipeline<PointT>::recognize()
         rec->recognize();
         std::map<std::string, LocalObjectHypothesis<PointT> > local_hypotheses = rec->getCorrespondences( );
 
-        std::vector<int> kp_indices;
-        rec->getKeypointIndices(kp_indices);
+//        std::vector<int> kp_indices;
+//        rec->getKeypointIndices(kp_indices);
 
         for (auto &oh : local_hypotheses)
         {

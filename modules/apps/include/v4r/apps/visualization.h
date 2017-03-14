@@ -33,7 +33,7 @@ private:
     mutable std::vector<std::string> coordinate_axis_ids_;
 
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
-    LocalObjectModelDatabase::ConstPtr lomdb_; ///< pointer to local model database (optional: required if visualization of feature matching is desired)
+    std::map<std::string, typename LocalObjectModel::ConstPtr> model_keypoints_; ///< pointer to local model database (optional: required if visualization of feature matching is desired)
 
     PCLVisualizationParams::ConstPtr vis_param_; ///< visualization parameters
     void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event) const;
@@ -164,9 +164,9 @@ public:
      * @param lomdb Local ModelDatabase
      */
     void
-    setLocalModelDatabase(LocalObjectModelDatabase::ConstPtr &lomdb)
+    setLocalModelDatabase(const std::map<std::string, typename LocalObjectModel::ConstPtr> &model_keypoints)
     {
-        lomdb_ = lomdb;
+        model_keypoints_ = model_keypoints;
     }
 
 
