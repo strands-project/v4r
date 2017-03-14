@@ -27,15 +27,6 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
     compute(colorImage, keypoints2d, signatures);
     keypoint_indices_.resize(keypoints2d.cols());
 
-    boost::dynamic_bitset<> obj_mask;
-    if(indices_.empty())
-    {
-        obj_mask.resize(cloud_->width * cloud_->height);
-        obj_mask.set();
-    }
-    else
-        obj_mask = createMaskFromIndices(indices_, cloud_->width * cloud_->height);
-
     size_t kept = 0;
     for(int i=0; i < keypoints2d.cols(); i++)
     {
@@ -43,9 +34,6 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
         int v = std::max<int>(0, std::min<int>((int)cloud_->height -1, keypoints2d(1,i) ) );
 
         int idx = v * cloud_->width + u;
-
-        if(!obj_mask[idx]) // keypoint does not belong to given object mask
-            continue;
 
         if( pcl::isFinite(cloud_->points[idx]) && cloud_->points[idx].z < max_distance_)
         {
