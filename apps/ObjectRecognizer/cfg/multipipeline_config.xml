@@ -21,13 +21,12 @@
 	<shot_keypoint_extractor_method_>8</shot_keypoint_extractor_method_>
 	<normal_computation_method_>2</normal_computation_method_>
 	<keypoint_support_radii_>
-		<count>3</count>
+		<count>2</count>
 		<item_version>0</item_version>
-		<item>0.03</item>
-		<item>0.05</item>
-		<item>0.07</item>
+		<item>0.04</item>
+		<item>0.08</item>
 	</keypoint_support_radii_>
-	<chop_z_>1.4</chop_z_>
+	<chop_z_>2.8</chop_z_>
 	<remove_planes_>1</remove_planes_>
 	<plane_inlier_threshold_>0.02</plane_inlier_threshold_>
 	<min_plane_inliers_>20000</min_plane_inliers_>
