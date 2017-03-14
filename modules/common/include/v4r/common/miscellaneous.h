@@ -287,12 +287,10 @@ template<typename T>
 inline V4R_EXPORTS typename std::vector<T>
 filterVector(const std::vector<T> &in, const std::vector<int> &indices)
 {
-    typename std::vector<T> out(in.size());
-    size_t kept=0;
+    std::vector<T> out;
+    out.reserve ( indices.size() );
     for(size_t i = 0; i < indices.size(); i++)
-        out[kept++] = in[ indices[i] ];
-
-    out.resize(kept);
+        out.push_back( in[ indices[i] ] );
     return out;
 }
 
