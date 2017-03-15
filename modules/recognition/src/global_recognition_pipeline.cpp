@@ -57,8 +57,15 @@ GlobalRecognitionPipeline<PointT>::recognize()
             r->setInputCloud( scene_ );
             r->setCluster( cluster );
             r->recognize();
-            std::vector<typename ObjectHypothesis<PointT>::Ptr > ohs = r->getHypotheses();
+            std::vector<typename ObjectHypothesis<PointT>::Ptr > ohs = r->getFilteredHypotheses();
             ohg.ohs_.insert( ohg.ohs_.end(), ohs.begin(), ohs.end() );
+
+            if(visualize_clusters_)
+            {
+                std::vector<typename ObjectHypothesis<PointT>::Ptr > ohs_unfiltered = r->getAllHypotheses();
+                obj_hypotheses_wo_elongation_check_[kept].ohs_.insert( obj_hypotheses_wo_elongation_check_[kept].ohs_.end(), ohs_unfiltered.begin(), ohs_unfiltered.end() );
+                obj_hypotheses_wo_elongation_check_[kept].global_hypotheses_ = true;
+            }
         }
 
         if(!ohg.ohs_.empty())

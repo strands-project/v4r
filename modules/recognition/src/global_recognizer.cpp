@@ -251,7 +251,7 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
 
     if( !param_.estimate_pose_ )
     {
-        obj_hyps_.resize( predicted_label.rows() * predicted_label.cols() );
+        obj_hyps_filtered_.resize( predicted_label.rows() * predicted_label.cols() );
         for(int query_id=0; query_id<predicted_label.rows(); query_id++)
         {
             for (int k = 0; k < predicted_label.cols(); k++)
@@ -260,9 +260,9 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                 const std::string &model_name = id_to_model_name_[lbl];
                 const std::string &class_name = "";
 
-                obj_hyps_[query_id*predicted_label.cols()+k].reset( new ObjectHypothesis<PointT>);
-                obj_hyps_[query_id*predicted_label.cols()+k]->model_id_ = model_name;
-                obj_hyps_[query_id*predicted_label.cols()+k]->class_id_ = class_name;
+                obj_hyps_filtered_[query_id*predicted_label.cols()+k].reset( new ObjectHypothesis<PointT>);
+                obj_hyps_filtered_[query_id*predicted_label.cols()+k]->model_id_ = model_name;
+                obj_hyps_filtered_[query_id*predicted_label.cols()+k]->class_id_ = class_name;
             }
         }
     }
@@ -312,10 +312,10 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
         else
             max_hypotheses *= 4;
 
-        obj_hyps_.resize( max_hypotheses );
+        obj_hyps_filtered_.resize( max_hypotheses );
 
-        for(size_t i=0; i<obj_hyps_.size(); i++)
-            obj_hyps_[i].reset( new ObjectHypothesis<PointT>);
+        for(size_t i=0; i<obj_hyps_filtered_.size(); i++)
+            obj_hyps_filtered_[i].reset( new ObjectHypothesis<PointT> );
 
         size_t kept=0;
         for(int query_id=0; query_id<predicted_label.rows(); query_id++)
@@ -340,7 +340,29 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                          cluster_->elongation_(2)/elongations_model(2) > param_.max_elongation_ratio_||
                          cluster_->elongation_(1)/elongations_model(1) < param_.min_elongation_ratio_||
                          cluster_->elongation_(1)/elongations_model(1) > param_.max_elongation_ratio_) )
-                        continue;
+                    {
+                        if(!keep_all_hypotheses_)
+                            continue;
+                        else
+                        {
+                            for(double rot_i=0.f; rot_i<360.f; rot_i+=param_.z_angle_sampling_density_degree_)
+                            {
+                                double rot_rad = pcl::deg2rad(rot_i);
+                                Eigen::Matrix4f rot_tmp = Eigen::Matrix4f::Identity();
+                                rot_tmp(0,0) =  cos(rot_rad);
+                                rot_tmp(0,1) = -sin(rot_rad);
+                                rot_tmp(1,0) =  sin(rot_rad);
+                                rot_tmp(1,1) =  cos(rot_rad);
+
+                                typename ObjectHypothesis<PointT>::Ptr h( new ObjectHypothesis<PointT>);
+                                h->transform_ = tf_trans * tf_rot  * rot_tmp;
+                                h->confidence_ =  0.f;
+                                h->model_id_ = model_name;
+                                h->class_id_ = class_name;
+                                all_obj_hyps_.push_back(h);
+                            }
+                        }
+                    }
 
                     for(double rot_i=0.f; rot_i<360.f; rot_i+=param_.z_angle_sampling_density_degree_)
                     {
@@ -351,10 +373,10 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                         rot_tmp(1,0) =  sin(rot_rad);
                         rot_tmp(1,1) =  cos(rot_rad);
 
-                        obj_hyps_[kept]->transform_ = tf_trans * tf_rot  * rot_tmp;
-                        obj_hyps_[kept]->confidence_ =  0.f;
-                        obj_hyps_[kept]->model_id_ = model_name;
-                        obj_hyps_[kept]->class_id_ = class_name;
+                        obj_hyps_filtered_[kept]->transform_ = tf_trans * tf_rot  * rot_tmp;
+                        obj_hyps_filtered_[kept]->confidence_ =  0.f;
+                        obj_hyps_filtered_[kept]->model_id_ = model_name;
+                        obj_hyps_filtered_[kept]->class_id_ = class_name;
                         kept++;
                     }
                 }
@@ -388,10 +410,10 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                     tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
                     tf_rot = tf_rot_inv.inverse();
                     Eigen::Matrix4f tf_m_inv = gom->model_poses_[ view_id ].inverse();
-                    obj_hyps_[kept]->transform_ = tf_trans * tf_rot * gom->eigen_based_pose_[ view_id ] * tf_m_inv;
-                    obj_hyps_[kept]->confidence_ = knn_distances( query_id, k );
-                    obj_hyps_[kept]->model_id_ = model_name;
-                    obj_hyps_[kept]->class_id_ = class_name;
+                    obj_hyps_filtered_[kept]->transform_ = tf_trans * tf_rot * gom->eigen_based_pose_[ view_id ] * tf_m_inv;
+                    obj_hyps_filtered_[kept]->confidence_ = knn_distances( query_id, k );
+                    obj_hyps_filtered_[kept]->model_id_ = model_name;
+                    obj_hyps_filtered_[kept]->class_id_ = class_name;
                     kept++;
 
                     // now take the first one negative
@@ -402,10 +424,10 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                     tf_rot_inv = Eigen::Matrix4f::Identity();
                     tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
                     tf_rot = tf_rot_inv.inverse();
-                    obj_hyps_[kept]->transform_ = tf_trans * tf_rot * gom->eigen_based_pose_[ view_id ] * tf_m_inv;
-                    obj_hyps_[kept]->confidence_ = knn_distances( query_id, k );
-                    obj_hyps_[kept]->model_id_ = model_name;
-                    obj_hyps_[kept]->class_id_ = class_name;
+                    obj_hyps_filtered_[kept]->transform_ = tf_trans * tf_rot * gom->eigen_based_pose_[ view_id ] * tf_m_inv;
+                    obj_hyps_filtered_[kept]->confidence_ = knn_distances( query_id, k );
+                    obj_hyps_filtered_[kept]->model_id_ = model_name;
+                    obj_hyps_filtered_[kept]->class_id_ = class_name;
                     kept++;
 
 
@@ -417,10 +439,10 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                     tf_rot_inv = Eigen::Matrix4f::Identity();
                     tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
                     tf_rot = tf_rot_inv.inverse();
-                    obj_hyps_[kept]->transform_ = tf_trans * tf_rot * gom->eigen_based_pose_[ view_id ] * tf_m_inv;
-                    obj_hyps_[kept]->confidence_ = knn_distances( query_id, k );
-                    obj_hyps_[kept]->model_id_ = model_name;
-                    obj_hyps_[kept]->class_id_ = class_name;
+                    obj_hyps_filtered_[kept]->transform_ = tf_trans * tf_rot * gom->eigen_based_pose_[ view_id ] * tf_m_inv;
+                    obj_hyps_filtered_[kept]->confidence_ = knn_distances( query_id, k );
+                    obj_hyps_filtered_[kept]->model_id_ = model_name;
+                    obj_hyps_filtered_[kept]->class_id_ = class_name;
                     kept++;
 
 
@@ -432,16 +454,16 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                     tf_rot_inv = Eigen::Matrix4f::Identity();
                     tf_rot_inv.block<3,3>(0,0) = eigenBasis.transpose();
                     tf_rot = tf_rot_inv.inverse();
-                    obj_hyps_[kept]->transform_ = tf_trans * tf_rot * gom->eigen_based_pose_[ view_id ] * tf_m_inv;
-                    obj_hyps_[kept]->confidence_ = knn_distances( query_id, k );
-                    obj_hyps_[kept]->model_id_ = model_name;
-                    obj_hyps_[kept]->class_id_ = class_name;
+                    obj_hyps_filtered_[kept]->transform_ = tf_trans * tf_rot * gom->eigen_based_pose_[ view_id ] * tf_m_inv;
+                    obj_hyps_filtered_[kept]->confidence_ = knn_distances( query_id, k );
+                    obj_hyps_filtered_[kept]->model_id_ = model_name;
+                    obj_hyps_filtered_[kept]->class_id_ = class_name;
                     kept++;
                 }
             }
         }
 
-        obj_hyps_.resize( kept );
+        obj_hyps_filtered_.resize( kept );
     }
 }
 
@@ -451,7 +473,8 @@ GlobalRecognizer<PointT>::recognize()
 {
     CHECK( !param_.estimate_pose_ || (param_.estimate_pose_ && cluster_) ) << "Cluster that needs to be classified is not set!";
 
-    obj_hyps_.clear();
+    obj_hyps_filtered_.clear();
+    all_obj_hyps_.clear();
     Eigen::MatrixXf signature_tmp;
     featureEncoding( signature_tmp );
     featureMatching( signature_tmp );
