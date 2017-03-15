@@ -204,8 +204,6 @@ CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr
         segmenter_->getSegmentIndices(found_clusters_);
         (void)t;
     }
-
-    normals_.reset();
 }
 
 #define PCL_INSTANTIATE_CloudSegmenter(T) template class V4R_EXPORTS CloudSegmenter<T>;
