@@ -60,8 +60,6 @@ private:
     using RecognitionPipeline<PointT>::table_plane_set_;
 
     bool visualize_clusters_; ///< If set, visualizes the cluster and displays recognition information for each
-    mutable pcl::visualization::PCLVisualizer::Ptr vis_;
-    mutable int vp1_, vp2_, vp3_, vp4_, vp5_;
     mutable std::vector<std::string> coordinate_axis_ids_global_;
 
 //    omp_lock_t rec_lock_;

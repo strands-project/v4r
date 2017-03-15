@@ -1,9 +1,10 @@
 #include <v4r/common/miscellaneous.h>
-#include <v4r/recognition/global_recognition_pipeline.h>
-#include <v4r/segmentation/plane_utils.h>
 #include <v4r/features/types.h>
+#include <v4r/segmentation/plane_utils.h>
+#include <v4r/recognition/global_recognition_pipeline.h>
 
 #include <pcl/common/time.h>
+#include <pcl/visualization/pcl_visualizer.h>
 #include <glog/logging.h>
 
 namespace v4r
@@ -38,6 +39,13 @@ GlobalRecognitionPipeline<PointT>::recognize()
     seg_->getSegmentIndices(clusters_);
 
     obj_hypotheses_.resize(clusters_.size()); // each cluster builds a hypothesis group
+
+    if(visualize_clusters_)
+    {
+        obj_hypotheses_wo_elongation_check_.clear();
+        obj_hypotheses_wo_elongation_check_.resize(clusters_.size() );
+    }
+
     size_t kept=0;
     for(size_t i=0; i<clusters_.size(); i++)
     {
@@ -85,6 +93,9 @@ template<typename PointT>
 void
 GlobalRecognitionPipeline<PointT>::visualize()
 {
+    static pcl::visualization::PCLVisualizer::Ptr vis_;
+    static int vp1_, vp2_, vp3_, vp4_, vp5_;
+
     if(!vis_)
     {
         vis_.reset ( new pcl::visualization::PCLVisualizer("Global recognition results") );
