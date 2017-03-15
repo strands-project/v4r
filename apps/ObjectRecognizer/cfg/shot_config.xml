@@ -9,12 +9,12 @@
 	<correspondence_distance_weight_>1</correspondence_distance_weight_>
 	<distance_metric_>1</distance_metric_>
 	<max_keypoint_distance_z_>1.8</max_keypoint_distance_z_>
-	<filter_planar_>1</filter_planar_>
+	<filter_planar_>0</filter_planar_>
 	<min_plane_size_>1000</min_plane_size_>
 	<planar_support_radius_>0.04</planar_support_radius_>
 	<threshold_planar_>0.02</threshold_planar_>
-	<filter_border_pts_>1</filter_border_pts_>
-	<boundary_width_>5</boundary_width_>
+	<filter_border_pts_>0</filter_border_pts_>
+	<boundary_width_>3</boundary_width_>
 	<required_viewpoint_change_deg_>2</required_viewpoint_change_deg_>
 	<train_on_individual_views_>1</train_on_individual_views_>
 </LocalRecognizerParameter>
