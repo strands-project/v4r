@@ -131,8 +131,10 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
                 LocalRecognizerParameter shot_pipeline_param(param_.shot_config_xml_);
                 typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_pipeline_param));
-                typename KeypointExtractor<PointT>::Ptr keypoint_extractor = initKeypointExtractor<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
-                shot_rec->addKeypointExtractor( keypoint_extractor );
+                std::vector<typename v4r::KeypointExtractor<PointT>::Ptr > keypoint_extractor = initKeypointExtractors<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
+
+                for( typename v4r::KeypointExtractor<PointT>::Ptr ke : keypoint_extractor)
+                    shot_rec->addKeypointExtractor( ke );
 
                 for(float support_radius : param_.keypoint_support_radii_)
                 {

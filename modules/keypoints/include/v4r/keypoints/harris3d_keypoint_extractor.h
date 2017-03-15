@@ -37,9 +37,13 @@ class V4R_EXPORTS Harris3DKeypointExtractorParameter
 {
     public:
     float threshold_;
+    float search_radius_; ///< radius the sphere radius used as the maximum distance to consider a point a neighbor
+    bool refine_;
 
     Harris3DKeypointExtractorParameter() :
-        threshold_ (1e-4)
+        threshold_ (1e-4),
+        search_radius_ (0.02f),
+        refine_ (true)
     {}
 
 
@@ -66,7 +70,9 @@ class V4R_EXPORTS Harris3DKeypointExtractorParameter
         po::options_description desc("Harris 3D Keypoint Extractor Parameter\n=====================\n");
         desc.add_options()
                 ("help,h", "produce help message")
-                ("kp_threshold", po::value<float>(&threshold_)->default_value(threshold_), "threshold")
+                ("harris3d_kp_threshold", po::value<float>(&threshold_)->default_value(threshold_), "threshold")
+                ("harris3d_search_radius", po::value<float>(&search_radius_)->default_value(search_radius_), "radius the sphere radius used as the maximum distance to consider a point a neighbor")
+                ("harris3d_refine", po::value<bool>(&refine_)->default_value(refine_), "refine")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();

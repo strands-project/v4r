@@ -1,4 +1,5 @@
 #include <v4r/keypoints/iss_keypoint_extractor.h>
+#include <pcl/common/angles.h>
 #include <pcl/keypoints/iss_3d.h>
 
 namespace v4r
@@ -8,9 +9,9 @@ template<typename PointT>
 void
 IssKeypointExtractor<PointT>::compute ()
 {
-    typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT> ());
+    typename pcl::search::OrganizedNeighbor<PointT>::Ptr search_method (new pcl::search::OrganizedNeighbor<PointT> ());
     pcl::ISSKeypoint3D<PointT, PointT> iss_detector;
-    iss_detector.setSearchMethod (tree);
+    iss_detector.setSearchMethod (search_method);
     iss_detector.setSalientRadius (param_.salient_radius_);
     iss_detector.setNonMaxRadius (param_.non_max_radius_);
 
@@ -24,8 +25,9 @@ IssKeypointExtractor<PointT>::compute ()
     iss_detector.setThreshold32 (param_.gamma_32_);
     iss_detector.setMinNeighbors (param_.min_neighbors_);
     iss_detector.setNumberOfThreads (param_.threads_);
-    iss_detector.setAngleThreshold (static_cast<float> (M_PI) / 3.0f);
+    iss_detector.setAngleThreshold ( pcl::deg2rad(param_.angle_thresh_deg_) );
     iss_detector.setInputCloud (input_);
+    iss_detector.setNormals(normals_);
     keypoints_.reset(new pcl::PointCloud<PointT>);
     iss_detector.compute (*keypoints_);
 

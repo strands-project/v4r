@@ -6,12 +6,14 @@
 #include <pcl/features/boundary.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/features/normal_3d_omp.h>
+#include <pcl/filters/passthrough.h>
 #include <pcl_1_8/features/organized_edge_detection.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
+#include <v4r/common/miscellaneous.h>
 #include <v4r/common/pcl_utils.h>
 #include <v4r/common/pcl_opencv.h>
 #include <v4r/common/normal_estimator_z_adpative.h>
@@ -85,7 +87,7 @@ main (int argc, char ** argv)
     try { po::notify(vm); }
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
-    typename v4r::KeypointExtractor<PointT>::Ptr kp_extractor = v4r::initKeypointExtractor<PointT> ( kp_extraction_type, to_pass_further );
+    std::vector<typename v4r::KeypointExtractor<PointT>::Ptr > kp_extractors = v4r::initKeypointExtractors<PointT> ( kp_extraction_type, to_pass_further );
     typename v4r::NormalEstimator<PointT>::Ptr normal_estimator = v4r::initNormalEstimator<PointT> ( normal_estimation_type, to_pass_further );
     //    typename v4r::KeypointExtractor<PointT>::Ptr shot = v4r::initKeypointExtractor<PointT>( segmentation_method, to_pass_further);
 
@@ -122,9 +124,29 @@ main (int argc, char ** argv)
             std::vector<int> kp_indices;
 
             pcl::io::loadPCDFile(in_path.string(), *cloud);
+            cloud->sensor_origin_ = Eigen::Vector4f::Zero();
+            cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+
+            pcl::PassThrough<PointT> pass;
+            pass.setInputCloud (cloud);
+            pass.setFilterFieldName ("z");
+            pass.setFilterLimits (0, chop_z);
+            pass.setKeepOrganized(true);
+            pass.filter (*cloud);
 
             pcl::PointCloud<pcl::Normal>::Ptr normals ( new pcl::PointCloud<pcl::Normal> );
-            if( kp_extractor->needNormals() || filter_planar )
+
+            bool need_normals = false;
+            for(const auto kp : kp_extractors)
+            {
+                if( kp->needNormals())
+                {
+                    need_normals = true;
+                    break;
+                }
+            }
+
+            if( need_normals || filter_planar )
             {
                 pcl::ScopeTime tn("Computing normals");
                 normal_estimator->setInputCloud( cloud );
@@ -158,9 +180,9 @@ main (int argc, char ** argv)
             }
 
             {
-                pcl::ScopeTime t("Keypoint extraction");
                 if(use_sift)
                 {
+                    pcl::ScopeTime t("SIFT Keypoint extraction");
                     typename v4r::SIFTLocalEstimation<PointT>::Ptr sift_estimator (new v4r::SIFTLocalEstimation<PointT>);
                     sift_estimator->setInputCloud( cloud );
                     std::vector<std::vector<float> > signatures_foo;
@@ -169,10 +191,22 @@ main (int argc, char ** argv)
                 }
                 else
                 {
-                    kp_extractor->setInputCloud( cloud );
-                    kp_extractor->setNormals(normals);
-                    kp_extractor->compute( );
-                    kp_indices = kp_extractor->getKeypointIndices();
+                    boost::dynamic_bitset<> scene_pt_is_keypoint ( cloud->points.size(), 0);
+
+                    for ( typename v4r::KeypointExtractor<PointT>::Ptr ke : kp_extractors)
+                    {
+                        std::stringstream info_txt; info_txt << ke->getKeypointExtractorName() << " keypoint extraction";
+                        pcl::ScopeTime t(info_txt.str().c_str());
+
+                        ke->setInputCloud( cloud );
+                        ke->setNormals(normals);
+                        ke->compute( );
+                        const std::vector<int> kp_indices_tmp = ke->getKeypointIndices();
+
+                        for (int idx : kp_indices_tmp)
+                            scene_pt_is_keypoint.set(idx);
+                    }
+                    kp_indices = v4r::createIndicesFromMask<int>( scene_pt_is_keypoint );
                 }
             }
 

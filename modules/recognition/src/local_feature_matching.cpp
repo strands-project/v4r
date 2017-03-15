@@ -219,13 +219,10 @@ LocalFeatureMatcher<PointT>::extractKeypoints (const std::vector<int> &region_of
     for (typename KeypointExtractor<PointT>::Ptr ke : keypoint_extractor_)
     {
         ke->setInputCloud (scene_);
-
-        if (ke->needNormals ())
-            ke->setNormals (scene_normals_);
-
+        ke->setNormals (scene_normals_);
         ke->compute ();
 
-        std::vector<int> kp_indices = ke->getKeypointIndices();
+        const std::vector<int> kp_indices = ke->getKeypointIndices();
 
         // only keep keypoints which are finite (with finite normals), are closer than the maximum allowed distance,
         // belong to the Region of Interest and are not planar (if planarity filter is on)
