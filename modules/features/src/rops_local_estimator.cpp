@@ -1,4 +1,8 @@
 #include <v4r/features/rops_local_estimator.h>
+
+#if PCL_VERSION >= 100702
+
+
 #include <pcl/point_types_conversion.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/surface/gp3.h>
@@ -98,5 +102,7 @@ ROPSLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatu
 
 template class V4R_EXPORTS ROPSLocalEstimation<pcl::PointXYZ>;
 template class V4R_EXPORTS ROPSLocalEstimation<pcl::PointXYZRGB>;
+
+#endif
 }
 
