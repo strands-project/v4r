@@ -103,6 +103,6 @@ ROPSLocalEstimation<PointT>::compute (std::vector<std::vector<float> > & signatu
 template class V4R_EXPORTS ROPSLocalEstimation<pcl::PointXYZ>;
 template class V4R_EXPORTS ROPSLocalEstimation<pcl::PointXYZRGB>;
 
-#endif
 }
 
+#endif
