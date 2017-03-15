@@ -112,8 +112,8 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
             for(size_t i=0; i < ks.size(); i++)
             {
                 const SiftGPU::SiftKeypoint &kp = ks[i];
-                int u = std::max<int>(0, std::min<int>((int)colorImage.cols -1, kp.x+0.5f ) );
-                int v = std::max<int>(0, std::min<int>((int)colorImage.rows -1, kp.y+0.5f ) );
+                int u = std::min<int>( colorImage.cols -1, kp.x+0.5f );
+                int v = std::min<int>( colorImage.rows -1, kp.y+0.5f );
                 int idx = v * colorImage.cols + u;
 
                 if( obj_mask[idx] ) // keypoint does not belong to given object mask
