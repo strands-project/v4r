@@ -126,10 +126,12 @@ private:
     std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes_;
     std::vector<std::vector<int> > plane_inliers_;
     typename pcl::PointCloud<PointT>::Ptr processed_cloud_;
+    Eigen::Vector4f selected_plane_;
 
     CloudSegmenterParameter param_;
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     CloudSegmenter(const CloudSegmenterParameter &p = CloudSegmenterParameter() ) :
         param_(p)
     { }
@@ -202,6 +204,16 @@ public:
     getNormals() const
     {
         return normals_;
+    }
+
+    /**
+     * @brief getPlane
+     * @return dominant plane or highest plane parallel to dominant plane (depending on chosen parameter)
+     */
+    Eigen::Vector4f
+    getSelectedPlane() const
+    {
+        return selected_plane_;
     }
 
 

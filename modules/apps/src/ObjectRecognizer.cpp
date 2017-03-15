@@ -260,6 +260,8 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         cloud_segmenter_->setNormals( normals );
         cloud_segmenter_->segment( processed_cloud );
         processed_cloud = cloud_segmenter_->getProcessedCloud();
+        const Eigen::Vector4f chosen_plane = cloud_segmenter_->getSelectedPlane();
+        mrec_->setTablePlane( chosen_plane );
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====

@@ -33,6 +33,10 @@ MultiRecognitionPipeline<PointT>::recognize()
         typename RecognitionPipeline<PointT>::Ptr r = recognition_pipelines_[r_id];
         r->setInputCloud( scene_ );
         r->setSceneNormals( scene_normals_ );
+
+        if( table_plane_set_ )
+            r->setTablePlane( table_plane_ );
+
         r->recognize();
 
         std::vector<ObjectHypothesesGroup<PointT> > oh_tmp = r->getObjectHypothesis();
@@ -42,6 +46,8 @@ MultiRecognitionPipeline<PointT>::recognize()
     }
 
     omp_destroy_lock(&rec_lock_);
+
+    table_plane_set_ = false;
 }
 
 template class V4R_EXPORTS MultiRecognitionPipeline<pcl::PointXYZRGB>;

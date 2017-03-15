@@ -37,6 +37,8 @@ private:
     using RecognitionPipeline<PointT>::m_db_;
     using RecognitionPipeline<PointT>::normal_estimator_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
+    using RecognitionPipeline<PointT>::table_plane_;
+    using RecognitionPipeline<PointT>::table_plane_set_;
 
     std::vector<typename RecognitionPipeline<PointT>::Ptr > recognition_pipelines_;
 

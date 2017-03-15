@@ -1,6 +1,7 @@
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/global_recognizer.h>
+#include <v4r/segmentation/plane_utils.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -273,8 +274,8 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
 
         if( param_.use_table_plane_for_alignment_ )   // we do not need to know the closest training view
         {
-            float dist = cluster_->centroid_.dot( cluster_->table_plane_ );
-            centroid = cluster_->centroid_ - dist * cluster_->table_plane_;
+            float dist = dist2plane(cluster_->centroid_.head(3), cluster_->table_plane_);
+            centroid = cluster_->centroid_.head(3) - dist * cluster_->table_plane_.head(3);
 
             // create some arbitrary coordinate system on table plane (s.t. normal corresponds to z axis, and others are orthonormal)
             Eigen::Vector3f vec_z = cluster_->table_plane_.topRows(3);

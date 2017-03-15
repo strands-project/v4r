@@ -32,8 +32,6 @@ GlobalRecognitionPipeline<PointT>::recognize()
 
     obj_hypotheses_.clear();
 
-    Eigen::Vector4f table_plane = Eigen::Vector4f::Zero();
-
     seg_->setInputCloud(scene_);
     seg_->setNormalsCloud(scene_normals_);
     seg_->segment();
@@ -50,7 +48,7 @@ GlobalRecognitionPipeline<PointT>::recognize()
         typename GlobalRecognizer<PointT>::Cluster::Ptr cluster (
                     new typename GlobalRecognizer<PointT>::Cluster (*scene_, clusters_[i] ) );
 
-        cluster->setTablePlane( table_plane );
+        cluster->setTablePlane( table_plane_ );
 
         ///TODO pragma omp parallel with lock
         for (size_t g_id=0; g_id<global_recognizers_.size(); g_id++)
@@ -90,21 +88,30 @@ GlobalRecognitionPipeline<PointT>::visualize()
         vis_->createViewPort(0.33, 0.5, 0.66  ,  1, vp5_);
 //        vis_->createViewPort(0.66, 0.5, 1  ,  1, vp6_);
 
-        vis_->setBackgroundColor(1,1,1,vp1_);
-        vis_->setBackgroundColor(1,1,1,vp2_);
-        vis_->setBackgroundColor(1,1,1,vp3_);
-        vis_->setBackgroundColor(1,1,1,vp4_);
-        vis_->setBackgroundColor(1,1,1,vp5_);
+        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp1_);
+        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp2_);
+        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp3_);
+        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp4_);
+        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp5_);
 //        vis_->setBackgroundColor(1,1,1,vp6_);
     }
     vis_->removeAllPointClouds();
     vis_->removeAllShapes();
+
+#if PCL_VERSION >= 100800
+    vis_->removeAllCoordinateSystem(vp3_);
+    vis_->removeAllCoordinateSystem(vp4_);
+#endif
+
 #if PCL_VERSION >= 100702
         for(size_t co_id=0; co_id<coordinate_axis_ids_global_.size(); co_id++)
             vis_->removeCoordinateSystem( coordinate_axis_ids_global_[co_id] );
         coordinate_axis_ids_global_.clear();
 #endif
     vis_->addPointCloud(scene_, "cloud", vp1_);
+
+    if(!vis_param_.no_text_)
+        vis_->addText("input cloud", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "input", vp1_);
 
 
     typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr colored_cloud (new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -130,7 +137,28 @@ GlobalRecognitionPipeline<PointT>::visualize()
         *colored_cloud += cluster;
     }
     vis_->addPointCloud(colored_cloud,"segments", vp2_);
+    if(!vis_param_.no_text_)
+        vis_->addText("segments", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "segments", vp2_);
 
+    // VISUALIZE PLANE
+    if (table_plane_set_)
+    {
+        pcl::visualization::PointCloudColorHandlerCustom<PointT> gray (scene_, 128, 128, 128);
+        vis_->addPointCloud(scene_, gray, "input_vp3", vp3_);
+        vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp3");
+        typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_cloud (new pcl::PointCloud<pcl::PointXYZRGB>());
+        const std::vector<int> plane_inliers = get_all_plane_inliers(*scene_, table_plane_, 0.015f);
+        pcl::copyPointCloud(*scene_, plane_inliers, *plane_cloud);
+        for(PointT &p : plane_cloud->points)
+        {
+            p.r = p.b = 0.f;
+            p.g = 255.f;
+        }
+
+        vis_->addPointCloud(plane_cloud, "plane", vp3_);
+        if(!vis_param_.no_text_)
+            vis_->addText("table plane", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "table plane", vp3_);
+    }
 
     for(size_t i=0; i < obj_hypotheses_wo_elongation_check_.size(); i++)
     {
@@ -148,7 +176,7 @@ GlobalRecognitionPipeline<PointT>::visualize()
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
             typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled( 10 );
             pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
-            vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
+            vis_->addPointCloud(model_aligned, model_label.str(), vp5_);
 
     #if PCL_VERSION >= 100702
             Eigen::Matrix3f rot_tmp  = tf.block<3,3>(0,0);
@@ -156,11 +184,14 @@ GlobalRecognitionPipeline<PointT>::visualize()
             Eigen::Affine3f affine_trans;
             affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
             std::stringstream co_id; co_id << i << "vp3";
-            vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp3_);
+            vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp5_);
             coordinate_axis_ids_global_.push_back(co_id.str());
     #endif
         }
     }
+    if(!vis_param_.no_text_)
+        vis_->addText("all hypotheses", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "all_hypotheses", vp5_);
+
 
     size_t disp_id=0;
     for(size_t i=0; i < obj_hypotheses_.size(); i++)
@@ -202,6 +233,10 @@ GlobalRecognitionPipeline<PointT>::visualize()
     #endif
         }
     }
+
+    if(!vis_param_.no_text_)
+        vis_->addText("filtered hypotheses", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "filtered_hypotheses", vp4_);
+
     vis_->spin();
 }
 

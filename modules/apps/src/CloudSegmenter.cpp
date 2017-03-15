@@ -155,6 +155,8 @@ CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr
             }
 
 
+            selected_plane_ = planes_[selected_plane_id];
+
             // now filter
             {
                 if( param_.remove_planes_ || param_.remove_selected_plane_)

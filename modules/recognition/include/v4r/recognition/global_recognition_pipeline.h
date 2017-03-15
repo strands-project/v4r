@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/recognition/global_recognizer.h>
 #include <v4r/recognition/recognition_pipeline.h>
 #include <v4r/segmentation/all_headers.h>
@@ -55,6 +56,8 @@ private:
     using RecognitionPipeline<PointT>::scene_normals_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
     using RecognitionPipeline<PointT>::m_db_;
+    using RecognitionPipeline<PointT>::table_plane_;
+    using RecognitionPipeline<PointT>::table_plane_set_;
 
     bool visualize_clusters_; ///< If set, visualizes the cluster and displays recognition information for each
     mutable pcl::visualization::PCLVisualizer::Ptr vis_;
@@ -74,6 +77,7 @@ private:
     void visualize();
 
     GlobalRecognitionPipelineParameter param_;
+    PCLVisualizationParams vis_param_;
 
 public:
     GlobalRecognitionPipeline ( const GlobalRecognitionPipelineParameter &p = GlobalRecognitionPipelineParameter() ):
