@@ -84,7 +84,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     if( img_mask.data )
         xtion->setCameraDepthRegistrationMask( img_mask );
     else
-        std::cout << "No camera depth registration mask provided. Assuming all pixels have valid depth." << std::endl;
+        LOG(WARNING) << "No camera depth registration mask provided. Assuming all pixels have valid depth.";
 
 
     // ==== Fill object model database ==== ( assumes each object is in a seperate folder named after the object and contains and "views" folder with the training views of the object)

@@ -176,9 +176,7 @@ LocalFeatureMatcher<PointT>::getInlier (const std::vector<KeypointIndex> &input_
             }
         }
         else
-        {
-            std::cout << "Input scene is not organized so cannot extract edge points." << std::endl;
-        }
+           LOG(ERROR) << "Input scene is not organized so cannot extract edge points.";
     }
 
     return createIndicesFromMask<int>( kp_is_kept);
@@ -190,7 +188,7 @@ LocalFeatureMatcher<PointT>::extractKeypoints (const std::vector<int> &region_of
 {
     if(keypoint_extractor_.empty())
     {
-        std::cout << "No keypoint extractor given. Using all points as point of interest." << std::endl;
+        LOG(INFO) << "No keypoint extractor given. Using all points as point of interest.";
         return std::vector<int>();
     }
 
@@ -315,7 +313,7 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
                             }
                             catch (const std::runtime_error &e)
                             {
-                                std::cerr << "Could not read pose from file " << tv->pose_filename_ << "!" << std::endl;
+                                LOG(ERROR) << "Could not read pose from file " << tv->pose_filename_ << "! Setting it to identity" << std::endl;
                                 pose = Eigen::Matrix4f::Identity();
                             }
 
@@ -323,7 +321,7 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
                             obj_indices.clear();
                             if ( !io::existsFile( tv->indices_filename_ ) )
                             {
-                                std::cerr << "No object indices " << tv->indices_filename_ << " found for object " << m->class_ <<
+                                LOG(WARNING) << "No object indices " << tv->indices_filename_ << " found for object " << m->class_ <<
                                              "/" << m->id_ << " / " << tv->filename_ << "! Taking whole cloud as object of interest!" << std::endl;
                             }
                             else
@@ -408,7 +406,7 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
                                 continue;
 
                             existing_poses.push_back(pose);
-                            std::cout << "Adding " << signatures_view.size() << " " << est->getFeatureDescriptorName() <<
+                            LOG(INFO) << "Adding " << signatures_view.size() << " " << est->getFeatureDescriptorName() <<
                                          "with id \"" << est->getUniqueId() << "\" descriptors to the model database. " << std::endl;
 
                             CHECK(signatures_view.size() == filtered_kp_indices.size());
@@ -426,7 +424,7 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
                             indices_.clear();
                         }
                         else
-                            std::cout << "Ignoring view " << tv->filename_ << " because a similar camera pose exists." << std::endl;
+                            LOG(INFO) << "Ignoring view " << tv->filename_ << " because a similar camera pose exists.";
                     }
                 }
                 else
@@ -447,8 +445,8 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
                     if( filtered_kp_indices.empty() )
                         continue;
 
-                    std::cout << "Adding " << signatures.size() << " " << est->getFeatureDescriptorName() <<
-                                 " (with id \"" << est->getUniqueId() << "\") descriptors to the model database. " << std::endl;
+                    LOG(INFO) << "Adding " << signatures.size() << " " << est->getFeatureDescriptorName() <<
+                                 " (with id \"" << est->getUniqueId() << "\") descriptors to the model database. ";
 
                     CHECK(signatures.size() == filtered_kp_indices.size());
 
@@ -498,7 +496,7 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
             for (size_t j = 0; j < lomdb->flann_data_->cols; j++)
                 lomdb->flann_data_->ptr()[i * lomdb->flann_data_->cols + j] = all_signatures[i][j];
 
-        std::cout << "Building the kdtree index for " << lomdb->flann_data_->rows << " elements." << std::endl;
+        LOG(INFO) << "Building the kdtree index for " << lomdb->flann_data_->rows << " elements.";
 
         if(param_.distance_metric_==2)
         {
@@ -576,7 +574,7 @@ LocalFeatureMatcher<PointT>::featureMatching(const std::vector<KeypointIndex> &k
 {
     CHECK (signatures.size () == kp_indices.size() );
 
-    std::cout << "computing " << signatures.size () << " matches." << std::endl;
+    LOG(INFO) << "computing " << signatures.size () << " matches.";
 
     int size_feat = signatures[0].size();
 
@@ -663,7 +661,7 @@ LocalFeatureMatcher<PointT>::featureEncoding(LocalEstimator<PointT> &est,
             if( std::isnan(signatures[sig_id][dim]) || !std::isfinite(signatures[sig_id][dim]) )
             {
                 keep_this = false;
-                std::cerr << "DOES THIS REALLY HAPPEN?" << std::endl;
+                LOG(ERROR) << "DOES THIS REALLY HAPPEN?";
                 break;
             }
         }
@@ -713,7 +711,7 @@ LocalFeatureMatcher<PointT>::recognize ()
         if( filtered_kp_indices_tmp.empty() )
             continue;
 
-        std::cout << "Number of " << est->getFeatureDescriptorName() << " features: " << filtered_kp_indices_tmp.size() << std::endl;
+        LOG(INFO) << "Number of " << est->getFeatureDescriptorName() << " features: " << filtered_kp_indices_tmp.size();
 
         if(visualize_keypoints_)
             visualizeKeypoints(filtered_kp_indices_tmp, keypoint_indices);

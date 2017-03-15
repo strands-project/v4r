@@ -542,7 +542,7 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
 
                 if( tom.getMaxTimeReached( ))
                 {
-                    std::cout << "Max time ( " << std::setprecision(2) << param_.max_time_allowed_cliques_comptutation_ << " ms) reached during clique computation" << std::endl;
+                    LOG(WARNING) << "Max time ( " << std::setprecision(2) << param_.max_time_allowed_cliques_comptutation_ << " ms) reached during clique computation. ";
                     cliques_computation_possible[c] = false;
                     c--;
                     analyzed_ccs--;
@@ -734,7 +734,7 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
             else
             {
                 //use iterative gc for simple cases with lots of correspondences...
-                std::cout << "Correspondence grouping is too hard to solve it using cliques..." << std::endl;
+                LOG(WARNING) << "Correspondence grouping is too hard to solve it using cliques...";
                 //            std::cout << "N edges: " << num_edges (connected_graph) << " vertices:" << num_v_in_cc << " arboricity:" << arboricity <<  std::endl;
 
                 std::vector<size_t> consensus_set ( model_scene_corrs_->size () );

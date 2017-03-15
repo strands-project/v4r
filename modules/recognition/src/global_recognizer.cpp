@@ -45,7 +45,7 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
 
     std::vector<typename Model<PointT>::ConstPtr> models = m_db_->getModels ();
 
-    std::cout << "Models size:" << models.size () << std::endl;
+    LOG(INFO) << "Models size:" << models.size ();
 
     for ( const typename Model<PointT>::ConstPtr m : models )
     {
@@ -185,7 +185,7 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
                     gom->model_elongations_.bottomRows(1) = cluster_->elongation_.transpose();
                 }
                 else
-                    std::cout << "Ignoring view " << tv->filename_ << " because a similar camera pose exists." << std::endl;
+                    LOG(INFO) << "Ignoring view " << tv->filename_ << " because a similar camera pose exists.";
 
 
                 cluster_.reset();

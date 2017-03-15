@@ -95,7 +95,7 @@ CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr
 
         if(planes_.empty())
         {
-            std::cout << " Could not extract any plane with the chosen parameters. Segmenting the whole input cloud!" << std::endl;
+            LOG(WARNING) << " Could not extract any plane with the chosen parameters. Segmenting the whole input cloud!";
         }
         else // get plane inliers
         {

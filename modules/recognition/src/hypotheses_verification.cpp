@@ -181,7 +181,7 @@ HypothesisVerification<ModelT, SceneT>::refinePose(HVRecognitionModel<ModelT> &r
     if(icp.hasConverged())
         refined_tf = icp.getFinalTransformation();
     else
-        std::cout << "ICP did not converge" << std::endl;
+        LOG(WARNING) << "ICP did not converge" << std::endl;
 
 //    pcl::visualization::PCLVisualizer vis_tmp;
 //    int vp2, vp3,vp1;
@@ -407,7 +407,7 @@ HypothesisVerification<ModelT, SceneT>::removeModelsWithLowVisibility()
             {
                 rm->rejected_due_to_low_visibility_ = true;
 
-                std::cout << "Removed " << rm->model_id_ << " due to low visibility!" << std::endl;
+                VLOG(1) << "Removed " << rm->model_id_ << " due to low visibility!";
 
                 if( !vis_model_ )
                     rm->freeSpace();

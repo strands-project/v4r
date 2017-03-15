@@ -139,7 +139,7 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
         }
         else
         {
-            std::cout << "No SIFT features found!" << std::endl;
+            LOG(WARNING) << "No SIFT features found!";
             keypoint_indices_.clear();
         }
     }

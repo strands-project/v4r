@@ -15,6 +15,7 @@ int
 main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PT;
+    google::InitGoogleLogging(argv[0]);
 
     std::string test_dir;
     std::string out_dir = "/tmp/object_recognition_results/";

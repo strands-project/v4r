@@ -157,7 +157,7 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
                     new_ohg.ohs_.push_back( new_oh );
                     obj_hypotheses_.push_back( new_ohg );
                 }
-                std::cout << "Merged " << corresp_clusters.size() << " clusters into " << kept << " clusters. Total correspondences: " << loh.model_scene_corresp_->size () << " " << loh.model_id_ << std::endl;
+                LOG(INFO) << "Merged " << corresp_clusters.size() << " clusters into " << kept << " clusters. Total correspondences: " << loh.model_scene_corresp_->size () << " " << loh.model_id_;
             }
         }
         else {

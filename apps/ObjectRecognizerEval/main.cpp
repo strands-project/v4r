@@ -24,6 +24,8 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PT;
 
+    google::InitGoogleLogging(argv[0]);
+
     std::string test_dir;
     std::string out_dir = "/tmp/object_recognition_results/";
     std::string debug_dir = "";
@@ -216,9 +218,9 @@ main (int argc, char ** argv)
 
 //            double score = 4*recall + precision - median_time_ms*0.01*0.01;    // we want to get as much hypotheses as possible - precision will be improved with verification
 
-            std::cout << "RECOGNITION RATE: " << recognition_rate << ", median time: " << median_time_ms
+            LOG(WARNING) << "RECOGNITION RATE: " << recognition_rate << ", median time: " << median_time_ms
                       << ", tp: " << tp << ", fp: " << fp << ", fn: " << fn
-                      << ", precision: " << precision << ", recall: " << recall << ", fscore: " << fscore << std::endl;
+                      << ", precision: " << precision << ", recall: " << recall << ", fscore: " << fscore;
 
             of_results << counter-1 << " " << recognition_rate << " " << median_time_ms << " " << fp << " " << tp << " " << fn << " " << precision << " " << recall << " " << fscore << std::endl;
 
