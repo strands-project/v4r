@@ -65,7 +65,7 @@ main (int argc, char ** argv)
     for(size_t group_id=0; group_id < changes.size(); group_id++)
         total_possibilities *= changes[group_id].first.size();
 
-    double best_score = std::numeric_limits<double>::min();
+//    double best_score = std::numeric_limits<double>::min();
 
     std::set<size_t> evaluated_hashes;
 
@@ -95,6 +95,7 @@ main (int argc, char ** argv)
             eval_changes.push_back( changes[group_id].first.at( selected_parameter_id[ group_id] ) );
 
         {
+            std::vector<std::string> to_pass_further_tmp = to_pass_further;
             // create a directory for evaluation
             size_t counter = 0;
             std::stringstream out_tmp;
@@ -121,9 +122,28 @@ main (int argc, char ** argv)
             of_param << std::endl;
             v4r::io::copyDir("cfg", out_dir_eval+"/cfg");
 
+            if( getValue("cfg/multipipeline_config.xml", "do_shot_") == "1"
+                    && getValue("cfg/multipipeline_config.xml", "shot_keypoint_extractor_method_") == "1"
+                    && getValue("cfg/shot_config.xml", "filter_planar_") == "0"
+                    )
+            {
+                std::cerr << "This is not a feasable solution" << std::endl;
+                continue;
+            }
+
+//            if( getValue("cfg/multipipeline_config.xml", "do_shot_") == "0"
+//                    &&  getValue("cfg/multipipeline_config.xml", "do_esf_") == "0"
+//                    &&  getValue("cfg/multipipeline_config.xml", "do_alexnet_") == "0"
+//                    )
+//            {
+//                std::cerr << "we do not need to retrain sift" << std::endl;
+//                to_pass_further_tmp.erase( remove(to_pass_further_tmp.begin(), to_pass_further_tmp.end(), "--retrain"), to_pass_further_tmp.end());
+//                continue;
+//            }
+
             v4r::apps::ObjectRecognizerParameter or_param (recognizer_config);
             v4r::apps::ObjectRecognizer<PT> recognizer(or_param);
-            recognizer.initialize(to_pass_further);
+            recognizer.initialize(to_pass_further_tmp);
 
             std::vector<double> elapsed_time;
 
