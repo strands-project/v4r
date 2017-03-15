@@ -963,7 +963,7 @@ PlaneExtractorTile<PointT>::compute()
     {
         for(size_t u=0; u<cloud_->width; u++)
         {
-            volatile int label = segmentation.at<int>(v,u);
+            int label = segmentation.at<int>(v,u);
 
             if(label > 0)
                 plane_inliers_[label-1].push_back( v*cloud_->width + u);
