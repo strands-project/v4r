@@ -52,6 +52,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     bool visualize_hv_go_cues = false;
     bool visualize_hv_model_cues = false;
     bool visualize_hv_pairwise_cues = false;
+    bool visualize_keypoints = false;
     bool retrain = false;
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
@@ -63,6 +64,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("hv_vis_cues", po::bool_switch(&visualize_hv_go_cues), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
             ("hv_vis_model_cues", po::bool_switch(&visualize_hv_model_cues), "If set, visualizes the model cues. Useful for debugging")
             ("hv_vis_pairwise_cues", po::bool_switch(&visualize_hv_pairwise_cues), "If set, visualizes the pairwise cues. Useful for debugging")
+            ("rec_visualize_keypoints", po::bool_switch(&visualize_keypoints), "If set, visualizes detected keypoints.")
             ("retrain", po::bool_switch(&retrain), "If set, retrains the object models no matter if they already exists.")
             ;
     po::variables_map vm;
@@ -150,6 +152,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
                     shot_rec->addFeatureEstimator( shot_est );
                 }
+                shot_rec->setVisualizeKeypoints(visualize_keypoints);
                 local_recognition_pipeline_->addLocalFeatureMatcher(shot_rec);
             }
 

@@ -460,6 +460,12 @@ public:
         normal_estimator_ = normal_estimator;
     }
 
+    void
+    setVisualizeKeypoints(bool vis=true)
+    {
+        visualize_keypoints_ = vis;
+    }
+
     typedef boost::shared_ptr< LocalFeatureMatcher<PointT> > Ptr;
     typedef boost::shared_ptr< LocalFeatureMatcher<PointT> const> ConstPtr;
 };
