@@ -43,12 +43,10 @@ public:
     int knn_;   ///< return the knn most probably classes when parameter probability is set to true
     ::svm_parameter svm_;
     SVMParameter(
-            bool do_cross_validation = false,
-            int knn = 3,
             int svm_type = ::C_SVC,
             int kernel_type = ::LINEAR, //::RBF,
             //                    int degree = 2,	/* for poly */
-            double gamma = 0.01,	/* for poly/rbf/sigmoid */
+            double gamma = -1,	/* for poly/rbf/sigmoid */
             //                    double coef0 = 1,	/* for poly/sigmoid */
 
             /* these are for training only */
@@ -64,8 +62,8 @@ public:
             int probability = 0 /* do probability estimates */
             )
         :
-          do_cross_validation_ ( do_cross_validation ),
-          knn_ (knn)
+          do_cross_validation_ ( false ),
+          knn_ (3)
     {
         svm_.svm_type = svm_type;
         svm_.kernel_type = kernel_type;

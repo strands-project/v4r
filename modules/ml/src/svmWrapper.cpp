@@ -194,6 +194,9 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
 {
     CHECK(training_data.rows() == training_label.rows() );
 
+    if (param_.svm_.gamma < 0)
+        param_.svm_.gamma = 1. / training_data.cols();
+
     if(param_.do_cross_validation_)
         dokFoldCrossValidation(training_data, training_label, 5);
 
@@ -211,7 +214,7 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
     {
         for(int kk=0; kk < training_data.cols(); kk++)
         {
-            svm_prob->x[i][kk].value = training_data(i,kk);
+            svm_prob->x[i][kk].value = (double)training_data(i,kk);
             svm_prob->x[i][kk].index = kk+1;
         }
         svm_prob->x[i][ training_data.cols() ].index = -1;
