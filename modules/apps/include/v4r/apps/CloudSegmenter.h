@@ -198,6 +198,12 @@ public:
         return processed_cloud_;
     }
 
+    pcl::PointCloud<pcl::Normal>::ConstPtr
+    getNormals() const
+    {
+        return normals_;
+    }
+
 
     typedef boost::shared_ptr< CloudSegmenter> Ptr;
     typedef boost::shared_ptr< CloudSegmenter const> ConstPtr;
