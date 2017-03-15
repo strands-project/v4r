@@ -99,11 +99,8 @@ GlobalRecognitionPipeline<PointT>::visualize()
     vis_->removeAllShapes();
 
 #if PCL_VERSION >= 100800
-    vis_->removeAllCoordinateSystem(vp3_);
-    vis_->removeAllCoordinateSystem(vp4_);
-#endif
-
-#if PCL_VERSION >= 100702
+    vis_->removeAllCoordinateSystems(vp3_);
+    vis_->removeAllCoordinateSystems(vp4_);
         for(size_t co_id=0; co_id<coordinate_axis_ids_global_.size(); co_id++)
             vis_->removeCoordinateSystem( coordinate_axis_ids_global_[co_id] );
         coordinate_axis_ids_global_.clear();
@@ -178,7 +175,7 @@ GlobalRecognitionPipeline<PointT>::visualize()
             pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
             vis_->addPointCloud(model_aligned, model_label.str(), vp5_);
 
-    #if PCL_VERSION >= 100702
+#if PCL_VERSION >= 100800
             Eigen::Matrix3f rot_tmp  = tf.block<3,3>(0,0);
             Eigen::Vector3f trans_tmp = tf.block<3,1>(0,3);
             Eigen::Affine3f affine_trans;
@@ -186,7 +183,7 @@ GlobalRecognitionPipeline<PointT>::visualize()
             std::stringstream co_id; co_id << i << "vp3";
             vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp5_);
             coordinate_axis_ids_global_.push_back(co_id.str());
-    #endif
+#endif
         }
     }
     if(!vis_param_.no_text_)
@@ -222,7 +219,7 @@ GlobalRecognitionPipeline<PointT>::visualize()
             pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
             vis_->addPointCloud(model_aligned, model_label.str(), vp4_);
 
-    #if PCL_VERSION >= 100702
+#if PCL_VERSION >= 100800
             Eigen::Matrix3f rot_tmp  = tf.block<3,3>(0,0);
             Eigen::Vector3f trans_tmp = tf.block<3,1>(0,3);
             Eigen::Affine3f affine_trans;
@@ -230,7 +227,7 @@ GlobalRecognitionPipeline<PointT>::visualize()
             std::stringstream co_id; co_id << i << "vp4";
             vis_->addCoordinateSystem(0.15f, affine_trans, co_id.str(), vp4_);
             coordinate_axis_ids_global_.push_back(co_id.str());
-    #endif
+#endif
         }
     }
 
