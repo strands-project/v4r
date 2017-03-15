@@ -81,6 +81,7 @@ private:
 
 public:
     GlobalRecognitionPipeline ( const GlobalRecognitionPipelineParameter &p = GlobalRecognitionPipelineParameter() ):
+        visualize_clusters_(false),
         param_(p)
     { }
 
@@ -153,6 +154,15 @@ public:
         return true;
     }
 
+    /**
+     * @brief setVisualizeClusters
+     * @param visualize if true, will visualize segmented clusters and the object classified for each of them
+     */
+    void
+    setVisualizeClusters(bool visualize = true)
+    {
+        visualize_clusters_ = visualize;
+    }
 
     typedef boost::shared_ptr< GlobalRecognitionPipeline<PointT> > Ptr;
     typedef boost::shared_ptr< GlobalRecognitionPipeline<PointT> const> ConstPtr;
