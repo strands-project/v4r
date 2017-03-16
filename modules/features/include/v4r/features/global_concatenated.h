@@ -32,12 +32,13 @@
 namespace v4r
 {
 /**
- * @brief The SimpleShapeEstimator class implements a simple global description
- * in terms of elongation of the point cloud along the principal components
+ *@brief The GlobalConcatEstimator class implements a global descriptor
+ * that combines the description of multiple global descriptor by
+ * simple concatenation.
  * @author Thomas Faeulhammer
  */
 template<typename PointT>
-class V4R_EXPORTS SimpleShapeEstimator : public GlobalEstimator<PointT>
+class V4R_EXPORTS GlobalConcatEstimator : public GlobalEstimator<PointT>
 {
 private:
     using GlobalEstimator<PointT>::indices_;
@@ -47,15 +48,15 @@ private:
     using GlobalEstimator<PointT>::feature_dimensions_;
 
 public:
-    SimpleShapeEstimator()
-        : GlobalEstimator<PointT>("simple_shape", FeatureType::SIMPLE_SHAPE, 3)
+    GlobalConcatEstimator()
+        : GlobalEstimator<PointT>("global_concat_estimator", FeatureType::SIMPLE_SHAPE)
     {}
 
     bool compute (Eigen::MatrixXf &signature);
 
     bool needNormals() const { return false; }
 
-    typedef boost::shared_ptr< SimpleShapeEstimator<PointT> > Ptr;
-    typedef boost::shared_ptr< SimpleShapeEstimator<PointT> const> ConstPtr;
+    typedef boost::shared_ptr< GlobalConcatEstimator<PointT> > Ptr;
+    typedef boost::shared_ptr< GlobalConcatEstimator<PointT> const> ConstPtr;
 };
 }

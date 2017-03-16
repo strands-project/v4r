@@ -18,6 +18,8 @@
 #include <v4r/common/normals.h>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <v4r/features/esf_estimator.h>
+#include <v4r/features/global_simple_shape_estimator.h>
+#include <v4r/features/global_concatenated.h>
 #include <v4r/features/shot_local_estimator.h>
 #include <v4r/features/sift_local_estimator.h>
 #include <v4r/features/rops_local_estimator.h>

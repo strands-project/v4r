@@ -40,6 +40,7 @@ namespace v4r
 #else
             ALEXNET = 0x80,
 #endif
-            SIMPLE_SHAPE = 0x400
+            SIMPLE_SHAPE = 0x400,
+            GLOBAL_CONCAT = 0x800
         };
 }
