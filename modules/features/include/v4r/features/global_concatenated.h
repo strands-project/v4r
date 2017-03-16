@@ -49,7 +49,7 @@ private:
 
 public:
     GlobalConcatEstimator()
-        : GlobalEstimator<PointT>("global_concat_estimator", FeatureType::SIMPLE_SHAPE)
+        : GlobalEstimator<PointT>("global_concat_estimator", FeatureType::GLOBAL_CONCAT)
     {}
 
     bool compute (Eigen::MatrixXf &signature);
