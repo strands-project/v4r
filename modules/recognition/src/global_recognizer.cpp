@@ -335,38 +335,38 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                     GlobalObjectModel::ConstPtr gom = gomdb_.global_models_[model_name];
                     const Eigen::Vector3f &elongations_model = gom->model_elongations_.colwise().maxCoeff();    // as we don't know the view, we just take the maximum extent of each axis over all training views
 
+                    if(keep_all_hypotheses_)
+                    {
+                        for(float rot_i=0.f; rot_i<360.f; rot_i+=param_.z_angle_sampling_density_degree_)
+                        {
+                            float rot_rad = pcl::deg2rad(rot_i);
+                            Eigen::Matrix4f rot_tmp = Eigen::Matrix4f::Identity();
+                            rot_tmp(0,0) =  cos(rot_rad);
+                            rot_tmp(0,1) = -sin(rot_rad);
+                            rot_tmp(1,0) =  sin(rot_rad);
+                            rot_tmp(1,1) =  cos(rot_rad);
+
+                            typename ObjectHypothesis<PointT>::Ptr h( new ObjectHypothesis<PointT>);
+                            h->transform_ = tf_trans * tf_rot  * rot_tmp;
+                            h->confidence_ =  0.f;
+                            h->model_id_ = model_name;
+                            h->class_id_ = class_name;
+                            all_obj_hyps_.push_back(h);
+                        }
+                    }
+
                     if( param_.check_elongations_ &&
                        ( cluster_->elongation_(2)/elongations_model(2) < param_.min_elongation_ratio_||
                          cluster_->elongation_(2)/elongations_model(2) > param_.max_elongation_ratio_||
                          cluster_->elongation_(1)/elongations_model(1) < param_.min_elongation_ratio_||
                          cluster_->elongation_(1)/elongations_model(1) > param_.max_elongation_ratio_) )
                     {
-                        if(!keep_all_hypotheses_)
-                            continue;
-                        else
-                        {
-                            for(double rot_i=0.f; rot_i<360.f; rot_i+=param_.z_angle_sampling_density_degree_)
-                            {
-                                double rot_rad = pcl::deg2rad(rot_i);
-                                Eigen::Matrix4f rot_tmp = Eigen::Matrix4f::Identity();
-                                rot_tmp(0,0) =  cos(rot_rad);
-                                rot_tmp(0,1) = -sin(rot_rad);
-                                rot_tmp(1,0) =  sin(rot_rad);
-                                rot_tmp(1,1) =  cos(rot_rad);
-
-                                typename ObjectHypothesis<PointT>::Ptr h( new ObjectHypothesis<PointT>);
-                                h->transform_ = tf_trans * tf_rot  * rot_tmp;
-                                h->confidence_ =  0.f;
-                                h->model_id_ = model_name;
-                                h->class_id_ = class_name;
-                                all_obj_hyps_.push_back(h);
-                            }
-                        }
+                        continue;
                     }
 
-                    for(double rot_i=0.f; rot_i<360.f; rot_i+=param_.z_angle_sampling_density_degree_)
+                    for(float rot_i=0.f; rot_i<360.f; rot_i+=param_.z_angle_sampling_density_degree_)
                     {
-                        double rot_rad = pcl::deg2rad(rot_i);
+                        float rot_rad = pcl::deg2rad(rot_i);
                         Eigen::Matrix4f rot_tmp = Eigen::Matrix4f::Identity();
                         rot_tmp(0,0) =  cos(rot_rad);
                         rot_tmp(0,1) = -sin(rot_rad);

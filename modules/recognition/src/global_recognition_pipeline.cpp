@@ -71,8 +71,8 @@ GlobalRecognitionPipeline<PointT>::recognize()
             if(visualize_clusters_)
             {
                 std::vector<typename ObjectHypothesis<PointT>::Ptr > ohs_unfiltered = r->getAllHypotheses();
-                obj_hypotheses_wo_elongation_check_[kept].ohs_.insert( obj_hypotheses_wo_elongation_check_[kept].ohs_.end(), ohs_unfiltered.begin(), ohs_unfiltered.end() );
-                obj_hypotheses_wo_elongation_check_[kept].global_hypotheses_ = true;
+                obj_hypotheses_wo_elongation_check_[i].ohs_.insert( obj_hypotheses_wo_elongation_check_[i].ohs_.end(), ohs_unfiltered.begin(), ohs_unfiltered.end() );
+                obj_hypotheses_wo_elongation_check_[i].global_hypotheses_ = true;
             }
         }
 
@@ -189,7 +189,7 @@ GlobalRecognitionPipeline<PointT>::visualize()
             std::stringstream model_label;
             model_label << model_id << "_" << i << "_" << k << "_vp3";
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled( 10 );
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled( 7 );
             pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
             vis_->addPointCloud(model_aligned, model_label.str(), vp5_);
 
@@ -233,7 +233,7 @@ GlobalRecognitionPipeline<PointT>::visualize()
             model_label << model_id.str() << "_" << i << "_" << k << "_vp4";
             model_label_refined << model_id.str() << "_" << i << "_" << k << "_vp5";
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled( 10 );
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled( 7 );
             pcl::transformPointCloud( *model_cloud, *model_aligned, tf);
             vis_->addPointCloud(model_aligned, model_label.str(), vp4_);
 
