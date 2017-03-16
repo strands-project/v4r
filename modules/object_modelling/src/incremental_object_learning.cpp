@@ -577,13 +577,11 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                     typename pcl::PointCloud<PointT>::Ptr view_trans (new pcl::PointCloud<PointT>);
                     Eigen::Matrix4f tf_inv = tf.inverse();
                     pcl::transformPointCloud(*view.cloud_, *view_trans, tf_inv);
-                    OcclusionReasoner<PointT,PointT> occ_reasoner;
+                    OcclusionReasoner<PointT, PointT> occ_reasoner;
                     occ_reasoner.setCamera(cam_);
-                    occ_reasoner.setOcclusionCloud( grph_[view_id].cloud_ );
                     occ_reasoner.setInputCloud( view_trans );
-                    occ_reasoner.setOcclusionThreshold(0.01f);
-//                    occ_reasoner.setIsOccluedOutFOV(false);
-                    throw std::runtime_error("Is occluded out of field of view of view is not implemented right now!"); ///TODO: FIX THIS!!
+                    occ_reasoner.setOcclusionCloud( grph_[view_id].cloud_ );
+                    occ_reasoner.setOcclusionThreshold( 0.01f );
                     boost::dynamic_bitset<> is_occluded_tmp = occ_reasoner.computeVisiblePoints();
 
                     if( is_occluded.size() == is_occluded_tmp.size())
