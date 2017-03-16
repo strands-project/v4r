@@ -23,7 +23,12 @@ int
 main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PT;
+//    const std::string tmp_log_dir = "/tmp/ObjectRecognizerEvalLogFiles/";
+//    if( v4r::io::existsFolder(tmp_log_dir) )
+//        v4r::io::removeDir(tmp_log_dir);
 
+//    v4r::io::createDirIfNotExist( tmp_log_dir );
+//    FLAGS_log_dir = tmp_log_dir;
     google::InitGoogleLogging(argv[0]);
 
     std::string test_dir;
@@ -107,7 +112,6 @@ main (int argc, char ** argv)
             const std::string out_dir_eval = out_tmp.str();
             std::cout << "Saving results to " << out_dir_eval << std::endl;
             v4r::io::createDirIfNotExist( out_dir_eval );
-
 
             // update and save config
             v4r::io::removeDir("./cfg");
@@ -248,6 +252,20 @@ main (int argc, char ** argv)
 //            {
 //                selected_parameter_id[ group_eval_id ] = in_group_eval_id;
 //                best_score = score;
+//            }
+
+//            v4r::io::copyDir(tmp_log_dir, out_dir_eval + "/log");
+
+//            // now clear content (NOTE: if we delete the files completely, GLOG won't write anything to it anymore)
+//            bf::directory_iterator end_itr;
+//            for (bf::directory_iterator itr ( tmp_log_dir ); itr != end_itr; ++itr)
+//            {
+//                if(! bf::is_symlink(itr->path()) )
+//                {
+//                    std::ofstream ofs;
+//                    ofs.open(itr->path().string(), std::ofstream::out | std::ofstream::trunc);
+//                    ofs.close();
+//                }
 //            }
         }
         evaluated_hashes.insert(hash);
