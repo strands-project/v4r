@@ -22,6 +22,9 @@ if(BUILD_EXAMPLES)
   SET(V4R_DEPS v4r_tracking v4r_recognition v4r_keypoints v4r_features)
   V4R_DEFINE_CPP_EXAMPLE(imkRecognizeObject-file)
 
+  SET(V4R_DEPS v4r_tracking v4r_recognition v4r_keypoints v4r_features)
+  V4R_DEFINE_CPP_EXAMPLE(imkOptimizeModel)
+
   SET(V4R_DEPS v4r_object_modelling)
   V4R_DEFINE_CPP_EXAMPLE(incremental_object_learning)
 
