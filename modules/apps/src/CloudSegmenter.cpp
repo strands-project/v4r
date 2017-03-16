@@ -72,7 +72,7 @@ CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr
     {
         pcl::ScopeTime t("Normal computation");
         normal_estimator_->setInputCloud( cloud );
-        typename pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+        pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
         normals = normal_estimator_->compute();
         normals_ = normals;
         (void)t;
@@ -95,7 +95,7 @@ CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr
 
         if(planes_.empty())
         {
-            std::cout << " Could not extract any plane with the chosen parameters. Segmenting the whole input cloud!" << std::endl;
+            LOG(WARNING) << " Could not extract any plane with the chosen parameters. Segmenting the whole input cloud!";
         }
         else // get plane inliers
         {
@@ -155,6 +155,8 @@ CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr
             }
 
 
+            selected_plane_ = planes_[selected_plane_id];
+
             // now filter
             {
                 if( param_.remove_planes_ || param_.remove_selected_plane_)
@@ -202,8 +204,6 @@ CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr
         segmenter_->getSegmentIndices(found_clusters_);
         (void)t;
     }
-
-    normals_.reset();
 }
 
 #define PCL_INSTANTIATE_CloudSegmenter(T) template class V4R_EXPORTS CloudSegmenter<T>;

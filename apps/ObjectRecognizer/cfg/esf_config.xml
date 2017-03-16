@@ -2,7 +2,7 @@
 <!DOCTYPE boost_serialization>
 <boost_serialization signature="serialization::archive" version="12">
 <GlobalRecognizerParameter class_id="0" tracking_level="0" version="0">
-	<check_elongations_>1</check_elongations_>
+	<check_elongations_>0</check_elongations_>
 	<max_elongation_ratio_>1.200000048e+00</max_elongation_ratio_>
 	<min_elongation_ratio_>5.000000000e-01</min_elongation_ratio_>
 	<use_table_plane_for_alignment_>1</use_table_plane_for_alignment_>

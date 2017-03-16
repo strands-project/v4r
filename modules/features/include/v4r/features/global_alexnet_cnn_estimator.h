@@ -61,19 +61,12 @@ public:
         std::string device_name_;
         std::string output_layer_name_; ///@brief name of the layer of the CNN that is used for feature extraction
         std::string feature_extraction_proto_, pretrained_binary_proto_, input_mean_file_;
-        Parameter(
-                size_t image_height = 256,
-                size_t image_width = 256,
-                int device_id = 0,
-                std::string device_name = "CPU",
-                std::string output_layer_name = "fc7"
-                )
-            :
-                image_height_ (image_height),
-                image_width_ (image_width),
-                device_id_ (device_id),
-                device_name_ (device_name),
-                output_layer_name_ (output_layer_name)
+        Parameter() :
+                image_height_ (256),
+                image_width_ (256),
+                device_id_ (0),
+                device_name_ ("CPU"),
+                output_layer_name_ ("fc7")
         {}
 
 

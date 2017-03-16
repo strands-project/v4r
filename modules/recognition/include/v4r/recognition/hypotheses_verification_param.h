@@ -30,6 +30,7 @@
 #include <boost/program_options.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <v4r/core/macros.h>
+#include <v4r/io/filesystem.h>
 namespace po = boost::program_options;
 
 namespace v4r
@@ -272,6 +273,9 @@ public:
 
     HV_Parameter(const std::string &filename)
     {
+        if( !v4r::io::existsFile(filename) )
+            throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
         ia >> BOOST_SERIALIZATION_NVP( *this );

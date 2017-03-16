@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/recognition/global_recognizer.h>
 #include <v4r/recognition/recognition_pipeline.h>
 #include <v4r/segmentation/all_headers.h>
@@ -31,17 +32,6 @@
 
 namespace v4r
 {
-class
-GlobalRecognitionPipelineParameter
-{
-public:
-    float plane_inlier_threshold_;
-    GlobalRecognitionPipelineParameter() :
-        plane_inlier_threshold_(0.02f)
-    {}
-};
-
-
 /**
  * @brief This class merges the results of various global descriptors into a set of hypotheses.
  * @author Thomas Faeulhammer
@@ -55,10 +45,10 @@ private:
     using RecognitionPipeline<PointT>::scene_normals_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
     using RecognitionPipeline<PointT>::m_db_;
+    using RecognitionPipeline<PointT>::table_plane_;
+    using RecognitionPipeline<PointT>::table_plane_set_;
 
     bool visualize_clusters_; ///< If set, visualizes the cluster and displays recognition information for each
-    mutable pcl::visualization::PCLVisualizer::Ptr vis_;
-    mutable int vp1_, vp2_, vp3_, vp4_, vp5_;
     mutable std::vector<std::string> coordinate_axis_ids_global_;
 
 //    omp_lock_t rec_lock_;
@@ -73,11 +63,11 @@ private:
 
     void visualize();
 
-    GlobalRecognitionPipelineParameter param_;
+    PCLVisualizationParams vis_param_;
 
 public:
-    GlobalRecognitionPipeline ( const GlobalRecognitionPipelineParameter &p = GlobalRecognitionPipelineParameter() ):
-        param_(p)
+    GlobalRecognitionPipeline ( ):
+        visualize_clusters_(false)
     { }
 
     void initialize(const std::string &trained_dir, bool force_retrain = false);
@@ -149,6 +139,15 @@ public:
         return true;
     }
 
+    /**
+     * @brief setVisualizeClusters
+     * @param visualize if true, will visualize segmented clusters and the object classified for each of them
+     */
+    void
+    setVisualizeClusters(bool visualize = true)
+    {
+        visualize_clusters_ = visualize;
+    }
 
     typedef boost::shared_ptr< GlobalRecognitionPipeline<PointT> > Ptr;
     typedef boost::shared_ptr< GlobalRecognitionPipeline<PointT> const> ConstPtr;

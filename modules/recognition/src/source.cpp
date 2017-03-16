@@ -2,6 +2,7 @@
 #include <pcl/impl/instantiate.hpp>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/source.h>
+#include <glog/logging.h>
 
 namespace v4r
 {
@@ -29,7 +30,7 @@ Source<PointT>::Source(const std::string &model_database_path, bool has_categori
         class_path /= cat;
         std::vector<std::string> instance_names = io::getFoldersInDirectory( class_path.string() );
 
-        std::cout << "Loading " << instance_names.size() << " object models from folder " << class_path.string() << ". " << std::endl;
+        LOG(INFO) << "Loading " << instance_names.size() << " object models from folder " << class_path.string() << ". ";
         for(const std::string instance_name : instance_names)
         {
             typename Model<PointT>::Ptr obj (new Model<PointT>);
@@ -42,7 +43,7 @@ Source<PointT>::Source(const std::string &model_database_path, bool has_categori
             const std::string view_pattern = ".*" + view_prefix_ + ".*.pcd";
             std::vector<std::string> training_view_filenames = io::getFilesInDirectory(object_dir.string(), view_pattern, false);
 
-            std::cout << " ** loading model (class: " << cat << ", instance: " << instance_name << ") with " << training_view_filenames.size() << " views. " << std::endl;
+            LOG(INFO) << " ** loading model (class: " << cat << ", instance: " << instance_name << ") with " << training_view_filenames.size() << " views. ";
 
             for(size_t v_id=0; v_id<training_view_filenames.size(); v_id++)
             {

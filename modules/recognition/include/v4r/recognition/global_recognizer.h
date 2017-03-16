@@ -35,6 +35,7 @@
 #include <v4r/core/macros.h>
 #include <v4r/common/pcl_serialization.h>
 #include <v4r/features/global_estimator.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/ml/classifier.h>
 #include <v4r/recognition/object_hypothesis.h>
 #include <v4r/recognition/source.h>
@@ -100,6 +101,9 @@ public:
 
     GlobalRecognizerParameter(const std::string &filename)
     {
+        if( !v4r::io::existsFile(filename) )
+            throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
         ia >> boost::serialization::make_nvp("GlobalRecognizerParameter", *this );
@@ -285,7 +289,6 @@ private:
     typename pcl::PointCloud<PointT>::ConstPtr scene_; ///< Point cloud to be classified
     pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< Point cloud to be classified
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
-    std::vector<typename ObjectHypothesis<PointT>::Ptr > object_hypotheses_;    ///< generated object hypotheses
 
     typename Cluster::Ptr cluster_;  ///< cluster to be classified
 
@@ -293,7 +296,8 @@ private:
 
     std::vector<std::string> id_to_model_name_; ///< which target label (target id = vector element id) of the classifier corresponds to which object model
 
-    std::vector<typename ObjectHypothesis<PointT>::Ptr> obj_hyps_; ///< all extracted object hypotheses
+    std::vector<typename ObjectHypothesis<PointT>::Ptr> obj_hyps_filtered_; ///<  extracted object hypotheses after running through (potential) filter
+    std::vector<typename ObjectHypothesis<PointT>::Ptr> all_obj_hyps_; ///< all extracted object hypotheses
 
     std::vector<std::string> categories_;   ///< classification results
     std::vector<float> confidences_;   ///< confidences associated to the classification results (normalized to 0...1)
@@ -303,9 +307,12 @@ private:
     bool featureEncoding(Eigen::MatrixXf &signatures);
     void featureMatching(const Eigen::MatrixXf &query_sig);
 
+    bool keep_all_hypotheses_;
+
 public:
     GlobalRecognizer(const GlobalRecognizerParameter &p = GlobalRecognizerParameter()) :
-        param_(p)
+        param_(p),
+        keep_all_hypotheses_(true)
     {}
 
     void
@@ -349,7 +356,7 @@ public:
     std::vector<typename ObjectHypothesis<PointT>::Ptr >
     getHypotheses()
     {
-        return obj_hyps_;
+        return obj_hyps_filtered_;
     }
 
 
@@ -389,12 +396,22 @@ public:
 
     /**
      * @brief getObjectHypothesis
+     * @return generated (potentiallly filtered) object hypothesis
+     */
+    std::vector<typename ObjectHypothesis<PointT>::Ptr >
+    getFilteredHypotheses() const
+    {
+        return obj_hyps_filtered_;
+    }
+
+    /**
+     * @brief getObjectHypothesis
      * @return generated object hypothesis
      */
     std::vector<typename ObjectHypothesis<PointT>::Ptr >
-    getObjectHypothesis() const
+    getAllHypotheses() const
     {
-        return object_hypotheses_;
+        return all_obj_hyps_;
     }
 
     /**

@@ -18,9 +18,12 @@
 #include <v4r/common/normals.h>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <v4r/features/esf_estimator.h>
+#include <v4r/features/global_simple_shape_estimator.h>
+#include <v4r/features/global_concatenated.h>
 #include <v4r/features/shot_local_estimator.h>
 #include <v4r/features/sift_local_estimator.h>
-#include <v4r/keypoints/uniform_sampling_extractor.h>
+#include <v4r/features/rops_local_estimator.h>
+#include <v4r/keypoints/all_headers.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/ml/all_headers.h>
 #include <v4r/recognition/hypotheses_verification.h>
@@ -51,6 +54,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     bool visualize_hv_go_cues = false;
     bool visualize_hv_model_cues = false;
     bool visualize_hv_pairwise_cues = false;
+    bool visualize_keypoints = false;
+    bool visualize_global_results = false;
     bool retrain = false;
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
@@ -62,6 +67,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("hv_vis_cues", po::bool_switch(&visualize_hv_go_cues), "If set, visualizes cues computated at the hypothesis verification stage such as inlier, outlier points. Mainly used for debugging.")
             ("hv_vis_model_cues", po::bool_switch(&visualize_hv_model_cues), "If set, visualizes the model cues. Useful for debugging")
             ("hv_vis_pairwise_cues", po::bool_switch(&visualize_hv_pairwise_cues), "If set, visualizes the pairwise cues. Useful for debugging")
+            ("rec_visualize_keypoints", po::bool_switch(&visualize_keypoints), "If set, visualizes detected keypoints.")
+            ("rec_visualize_global_pipeline", po::bool_switch(&visualize_global_results), "If set, visualizes segments and results from global pipeline.")
             ("retrain", po::bool_switch(&retrain), "If set, retrains the object models no matter if they already exists.")
             ;
     po::variables_map vm;
@@ -79,11 +86,13 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     if( img_mask.data )
         xtion->setCameraDepthRegistrationMask( img_mask );
     else
-        std::cout << "No camera depth registration mask provided. Assuming all pixels have valid depth." << std::endl;
+        LOG(WARNING) << "No camera depth registration mask provided. Assuming all pixels have valid depth.";
 
 
     // ==== Fill object model database ==== ( assumes each object is in a seperate folder named after the object and contains and "views" folder with the training views of the object)
     typename Source<PointT>::Ptr model_database (new Source<PointT> (models_dir_));
+
+    normal_estimator_ = v4r::initNormalEstimator<PointT> ( param_.normal_computation_method_, to_pass_further );
 
 
     // ====== SETUP MULTI PIPELINE RECOGNIZER ======
@@ -97,12 +106,12 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
             if(param_.use_graph_based_gc_grouping_)
             {
-                v4r::GraphGeometricConsistencyGroupingParameter gcparam;
+                GraphGeometricConsistencyGroupingParameter gcparam;
                 gcparam.gc_size_ = param_.cg_size_;
                 gcparam.gc_threshold_ = param_.cg_thresh_;
                 to_pass_further = gcparam.init(to_pass_further);
-                v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gc_clusterer
-                        (new v4r::GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
+                GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gc_clusterer
+                        (new GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
                 local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
             }
             else
@@ -120,19 +129,34 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
                 typename LocalFeatureMatcher<PointT>::Ptr sift_rec (new LocalFeatureMatcher<PointT>(sift_param));
                 typename SIFTLocalEstimation<PointT>::Ptr sift_est (new SIFTLocalEstimation<PointT>);
                 sift_est->setMaxDistance(std::numeric_limits<float>::max());
-                sift_rec->setFeatureEstimator( sift_est );
+                sift_rec->addFeatureEstimator( sift_est );
                 local_recognition_pipeline_->addLocalFeatureMatcher(sift_rec);
             }
             if(param_.do_shot_)
             {
-                typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT>);
-                typename UniformSamplingExtractor<PointT>::Ptr extr (new UniformSamplingExtractor<PointT>(0.02f));
-                typename KeypointExtractor<PointT>::Ptr keypoint_extractor = boost::static_pointer_cast<KeypointExtractor<PointT> > (extr);
 
-                LocalRecognizerParameter shot_param(param_.shot_config_xml_);
-                typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_param));
-                shot_rec->addKeypointExtractor( keypoint_extractor );
-                shot_rec->setFeatureEstimator( shot_est );
+                LocalRecognizerParameter shot_pipeline_param(param_.shot_config_xml_);
+                typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_pipeline_param));
+                std::vector<typename v4r::KeypointExtractor<PointT>::Ptr > keypoint_extractor = initKeypointExtractors<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
+
+                for( typename v4r::KeypointExtractor<PointT>::Ptr ke : keypoint_extractor)
+                    shot_rec->addKeypointExtractor( ke );
+
+                for(float support_radius : param_.keypoint_support_radii_)
+                {
+                    SHOTLocalEstimationParameter shot_param;
+                    shot_param.support_radius_ = support_radius;
+//                    shot_param.init( to_pass_further );
+                    typename SHOTLocalEstimation<PointT>::Ptr shot_est (new SHOTLocalEstimation<PointT> (shot_param) );
+
+    //                ROPSLocalEstimationParameter rops_param;
+    //                rops_param.init( to_pass_further );
+    //                typename ROPSLocalEstimation<PointT>::Ptr rops_est (new ROPSLocalEstimation<PointT> (rops_param) );
+
+
+                    shot_rec->addFeatureEstimator( shot_est );
+                }
+                shot_rec->setVisualizeKeypoints(visualize_keypoints);
                 local_recognition_pipeline_->addLocalFeatureMatcher(shot_rec);
             }
 
@@ -142,34 +166,34 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
         // ====== SETUP GLOBAL RECOGNITION PIPELINE =====
 
-        if(param_.do_esf_ || param_.do_alexnet_)
+        if( !param_.global_feature_types_.empty() )
         {
             typename GlobalRecognitionPipeline<PointT>::Ptr global_recognition_pipeline (new GlobalRecognitionPipeline<PointT>);
             typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( param_.segmentation_method_, to_pass_further);
             global_recognition_pipeline->setSegmentationAlgorithm( segmenter );
 
-            if(param_.do_esf_)
+            for(size_t global_pipeline_id = 0; global_pipeline_id < param_.global_feature_types_.size(); global_pipeline_id++)
             {
-                typename ESFEstimation<PointT>::Ptr esf_estimator (new ESFEstimation<PointT>);
-                Classifier::Ptr classifier = initClassifier( param_.esf_classification_method_, to_pass_further);
+                    GlobalConcatEstimatorParameter p;
+                    p.feature_type = param_.global_feature_types_[global_pipeline_id];
+                    typename GlobalConcatEstimator<PointT>::Ptr global_concat_estimator (new GlobalConcatEstimator<PointT>(p));
+                    Classifier::Ptr classifier = initClassifier( param_.classification_methods_[global_pipeline_id], to_pass_further);
 
-                GlobalRecognizerParameter esf_param (param_.esf_config_xml_);
-                typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>( esf_param ));
-                global_r->setFeatureEstimator( esf_estimator );
-                global_r->setClassifier( classifier );
-                global_recognition_pipeline->addRecognizer( global_r );
+                    GlobalRecognizerParameter global_rec_param ( param_.global_recognition_pipeline_config_[global_pipeline_id] );
+                    typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>( global_rec_param ));
+                    global_r->setFeatureEstimator( global_concat_estimator );
+                    global_r->setClassifier( classifier );
+                    global_recognition_pipeline->addRecognizer( global_r );
             }
 
-            if (param_.do_alexnet_)
-            {
-                std::cerr << "Not implemented right now!" << std::endl;
-            }
+            global_recognition_pipeline->setVisualizeClusters( visualize_global_results );
 
             typename RecognitionPipeline<PointT>::Ptr rec_pipeline_tmp = boost::static_pointer_cast<RecognitionPipeline<PointT> > (global_recognition_pipeline);
             mrec_->addRecognitionPipeline( rec_pipeline_tmp );
         }
 
         mrec_->setModelDatabase( model_database );
+        mrec_->setNormalEstimator( normal_estimator_ );
         mrec_->initialize( models_dir_, retrain );
     }
 
@@ -228,14 +252,8 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     if( mrec_->needNormals() || hv_ )
     {
         pcl::ScopeTime t("Computing normals");
-        normals.reset (new pcl::PointCloud<pcl::Normal>);
-        pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
-        ne.setNormalEstimationMethod (ne.COVARIANCE_MATRIX);
-        ne.setMaxDepthChangeFactor(0.02f);
-        ne.setNormalSmoothingSize(10.0f);
-        ne.setDepthDependentSmoothing(true);
-        ne.setInputCloud(processed_cloud);
-        ne.compute(*normals);
+        normal_estimator_->setInputCloud( processed_cloud );
+        normals = normal_estimator_->compute();
         mrec_->setSceneNormals( normals );
         elapsed_time.push_back( t.getTime() );
     }
@@ -245,6 +263,8 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         cloud_segmenter_->setNormals( normals );
         cloud_segmenter_->segment( processed_cloud );
         processed_cloud = cloud_segmenter_->getProcessedCloud();
+        const Eigen::Vector4f chosen_plane = cloud_segmenter_->getSelectedPlane();
+        mrec_->setTablePlane( chosen_plane );
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====
@@ -283,9 +303,11 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
     if ( visualize_ )
     {
-        LocalObjectModelDatabase::ConstPtr lomdb = local_recognition_pipeline_->getLocalObjectModelDatabase();
+        const std::map<std::string, typename LocalObjectModel::ConstPtr> lomdb = local_recognition_pipeline_->getLocalObjectModelDatabase();
         rec_vis_->setCloud( cloud );
         rec_vis_->setProcessedCloud( processed_cloud );
+        rec_vis_->setNormals(normals);
+
         rec_vis_->setGeneratedObjectHypotheses( generated_object_hypotheses_ );
         rec_vis_->setLocalModelDatabase(lomdb);
         rec_vis_->setVerifiedObjectHypotheses( verified_hypotheses_ );

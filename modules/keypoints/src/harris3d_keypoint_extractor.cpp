@@ -6,13 +6,18 @@ namespace v4r
 
 template<typename PointT>
 void
-Harris3DKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
+Harris3DKeypointExtractor<PointT>::compute ()
 {
 #if PCL_VERSION >= 100702
+    typename pcl::search::OrganizedNeighbor<PointT>::Ptr search_method (new pcl::search::OrganizedNeighbor<PointT> ());
     pcl::HarrisKeypoint3D <PointT, pcl::PointXYZI> detector;
     detector.setNonMaxSupression (true);
-    detector.setInputCloud (input_);
+    detector.setRadiusSearch(param_.search_radius_);
     detector.setThreshold (param_.threshold_);
+    detector.setRefine(param_.refine_);
+    detector.setSearchMethod(search_method);
+    detector.setNormals(normals_);
+    detector.setInputCloud (input_);
     pcl::PointCloud<pcl::PointXYZI>::Ptr keypoint_idx (new pcl::PointCloud<pcl::PointXYZI>);
     detector.compute (*keypoint_idx);
     pcl::PointIndicesConstPtr keypoints_indices = detector.getKeypointsIndices ();
@@ -20,8 +25,6 @@ Harris3DKeypointExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
     keypoint_indices_.resize( keypoints_indices->indices.size() );
     for(size_t i=0; i < keypoints_indices->indices.size(); i++)
         keypoint_indices_[i] = keypoints_indices->indices[i];
-
-    pcl::copyPointCloud(*input_, keypoint_indices_, keypoints);
 
 #else
     std::cerr << "HARRIS 3D is not available with keypointindices for this PCL version!" << std::endl;

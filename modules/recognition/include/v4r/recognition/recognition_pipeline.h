@@ -27,6 +27,7 @@
 #include <pcl/common/common.h>
 
 #include <v4r_config.h>
+#include <v4r/common/normals.h>
 #include <v4r/core/macros.h>
 #include <v4r/recognition/object_hypothesis.h>
 #include <v4r/recognition/source.h>
@@ -56,9 +57,14 @@ protected:
     pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< associated normals
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
     std::vector< ObjectHypothesesGroup<PointT> > obj_hypotheses_;   ///< generated object hypotheses
+    typename NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
+    Eigen::Vector4f table_plane_;
+    bool table_plane_set_;
 
 public:
-    RecognitionPipeline()
+    RecognitionPipeline() :
+        table_plane_(Eigen::Vector4f::Identity()),
+        table_plane_set_(false)
     {}
 
     virtual ~RecognitionPipeline(){}
@@ -130,6 +136,24 @@ public:
     getModelDatabase() const
     {
         return m_db_;
+    }
+
+    void
+    setTablePlane( const Eigen::Vector4f &table_plane)
+    {
+        table_plane_ = table_plane;
+        table_plane_set_ = true;
+    }
+
+
+    /**
+     * @brief setNormalEstimator sets the normal estimator used for computing surface normals (currently only used at training)
+     * @param normal_estimator
+     */
+    void
+    setNormalEstimator(const typename NormalEstimator<PointT>::Ptr &normal_estimator)
+    {
+        normal_estimator_ = normal_estimator;
     }
 
     virtual bool requiresSegmentation() const = 0;

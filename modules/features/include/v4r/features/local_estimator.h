@@ -36,8 +36,6 @@ class V4R_EXPORTS LocalEstimator
 protected:
     typename pcl::PointCloud<PointT>::ConstPtr cloud_;  ///< input cloud
     pcl::PointCloud<pcl::Normal>::ConstPtr normals_;    ///< input normals
-    typename pcl::PointCloud<PointT>::Ptr processed_;   ///< processesed point cloud (empty if equal to input cloud)
-    typename pcl::PointCloud<PointT>::Ptr keypoints_;   ///< extracted keypoints
     std::vector<int> keypoint_indices_; ///< extracted keypoint indices
 
     std::vector<int> indices_;
@@ -97,28 +95,27 @@ public:
         return keypoint_indices_;
     }
 
-    typename pcl::PointCloud<PointT>::Ptr
-    getKeypointCloud() const
-    {
-        return keypoints_;
-    }
-
     std::string
     getFeatureDescriptorName() const
     {
         return descr_name_;
     }
 
-    typename pcl::PointCloud<PointT>::Ptr
-    getProcessedCloud()
-    {
-        return processed_;
-    }
-
     size_t
     getFeatureDimensions() const
     {
         return descr_dims_;
+    }
+
+    /**
+     * @brief getUniqueId in case several local feature estimators of the same type are used (e.g. shot with different support radii), we need to find unique ids
+     * @return a unique identity for the local estimator that takes into account its parameters.
+     */
+    virtual
+    std::string
+    getUniqueId() const
+    {
+        return "";
     }
 
     /**

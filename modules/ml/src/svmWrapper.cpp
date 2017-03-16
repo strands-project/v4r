@@ -102,7 +102,7 @@ void svmClassifier::dokFoldCrossValidation(
             double avg_performance;
             param_.svm_.C = C;
             param_.svm_.gamma = gamma;
-            std::cout << "Computing svm for C=" << C << " and gamma=" << gamma << std::endl;
+            VLOG(1) << "Computing svm for C=" << C << " and gamma=" << gamma;
 
             for(size_t current_val_set_id = 0; current_val_set_id < k; current_val_set_id++)
             {
@@ -135,14 +135,14 @@ void svmClassifier::dokFoldCrossValidation(
                 Eigen::MatrixXi target_pred;
                 predict( data_val, target_pred );
                 confusion_matrices_v[current_val_set_id] = computeConfusionMatrix( target_val, target_pred.col(0), num_classes );
-                std::cout << "confusion matrix ( " << current_val_set_id << ")" << std::endl << confusion_matrices_v[current_val_set_id] << std::endl;
+                LOG(INFO) << "confusion matrix ( " << current_val_set_id << ")" << std::endl << confusion_matrices_v[current_val_set_id];
             }
 
             Eigen::MatrixXi total_confusion_matrix = Eigen::MatrixXi::Zero(num_classes, num_classes);
             for(size_t i=0; i< k; i++)
                 total_confusion_matrix += confusion_matrices_v[i];
 
-            std::cout << "Total confusion matrix:" << std::endl << total_confusion_matrix << std::endl << std::endl;
+            LOG(INFO) << "Total confusion matrix:" << std::endl << total_confusion_matrix << std::endl;
 
             size_t sum=0;
             size_t trace=0;
@@ -194,6 +194,9 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
 {
     CHECK(training_data.rows() == training_label.rows() );
 
+    if (param_.svm_.gamma < 0)
+        param_.svm_.gamma = 1. / training_data.cols();
+
     if(param_.do_cross_validation_)
         dokFoldCrossValidation(training_data, training_label, 5);
 
@@ -211,7 +214,7 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
     {
         for(int kk=0; kk < training_data.cols(); kk++)
         {
-            svm_prob->x[i][kk].value = training_data(i,kk);
+            svm_prob->x[i][kk].value = (double)training_data(i,kk);
             svm_prob->x[i][kk].index = kk+1;
         }
         svm_prob->x[i][ training_data.cols() ].index = -1;
@@ -243,6 +246,9 @@ void svmClassifier::saveModel(const std::string &filename) const
 
 void svmClassifier::loadModel(const std::string &filename)
 {
+    if( !v4r::io::existsFile(filename) )
+        throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
     svm_mod_ = ::svm_load_model(filename.c_str());
 }
 

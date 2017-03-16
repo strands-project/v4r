@@ -182,8 +182,8 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
     vis_cloud->sensor_origin_ = Eigen::Vector4f::Zero();
     vis_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
 
-    if(normals_)
-        vis_->addPointCloudNormals<PointT,pcl::Normal>( cloud_, normals_, 300, 0.02f, "normals", vp1a_);
+//    if(normals_)
+//        vis_->addPointCloudNormals<PointT,pcl::Normal>( processed_cloud_, normals_, 50, 0.02f, "normals", vp1b_);
 
 #if PCL_VERSION >= 100800
     vis_->removeAllCoordinateSystems(vp2_);
@@ -202,7 +202,8 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_scene (new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_scene2 (new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_model, kp_cloud_model2;
-    if(lomdb_)
+
+    if( !model_keypoints_.empty() )
     {
         kp_cloud_model.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
         kp_cloud_model2.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -234,7 +235,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_scene_tmp2 (new pcl::PointCloud<pcl::PointXYZRGB>);
 
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_model_tmp, kp_cloud_model_tmp2;
-            if(lomdb_)
+            if( !model_keypoints_.empty() )
             {
                 kp_cloud_model_tmp.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
                 kp_cloud_model_tmp2.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -248,9 +249,9 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
                 p.b = b;
                 kp_cloud_scene_tmp->points.push_back(p);
 
-                if(lomdb_)
+                if( !model_keypoints_.empty() )
                 {
-                    pcl::PointXYZ m_kp = lomdb_->l_obj_models_.at(m->id_)->keypoints_->points[c.index_query];
+                    pcl::PointXYZ m_kp = model_keypoints_.at(m->id_)->keypoints_->points[c.index_query];
                     pcl::PointXYZRGB m_kp_color;
                     m_kp_color.getVector3fMap() = m_kp.getVector3fMap();
                     m_kp_color.r = r;
@@ -271,9 +272,9 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
                 p.b = bb;
                 kp_cloud_scene_tmp2->points.push_back(p);
 
-                if(lomdb_)
+                if( !model_keypoints_.empty() )
                 {
-                    pcl::PointXYZ m_kp = lomdb_->l_obj_models_.at(m->id_)->keypoints_->points[c.index_query];
+                    pcl::PointXYZ m_kp = model_keypoints_.at(m->id_)->keypoints_->points[c.index_query];
                     pcl::PointXYZRGB m_kp_color;
                     m_kp_color.getVector3fMap() = m_kp.getVector3fMap();
                     m_kp_color.r = rr;
@@ -283,7 +284,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
                 }
             }
 
-            if(lomdb_)
+            if( !model_keypoints_.empty() )
             {
                 pcl::transformPointCloud(*kp_cloud_model_tmp, *kp_cloud_model_tmp, oh.transform_);
                 pcl::transformPointCloud(*kp_cloud_model_tmp2, *kp_cloud_model_tmp2, oh.transform_);
@@ -356,7 +357,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
     vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0, "kp_cloud_scene2");
     vis_->setBackgroundColor(1.f, 1.f, 1.f, vp3_);
 
-    if(lomdb_)
+    if( !model_keypoints_.empty() )
     {
         vis_->addPointCloud(kp_cloud_model, "kp_cloud_model", vp2_);
         vis_->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 15, "kp_cloud_model");

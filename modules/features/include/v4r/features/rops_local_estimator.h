@@ -31,17 +31,21 @@
 namespace po = boost::program_options;
 
 //This stuff is needed to be able to make the SHOT histograms persistent
-POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<352>, (float[352], histogram, histogram352) )
+POINT_CLOUD_REGISTER_POINT_STRUCT (pcl::Histogram<135>, (float[135], histogram, histogram135) )
 
 namespace v4r
 {
-    class V4R_EXPORTS SHOTLocalEstimationParameter
+    class V4R_EXPORTS ROPSLocalEstimationParameter
     {
         public:
         float support_radius_;
+        int number_of_partition_bin_;
+        int number_of_rotations_;
 
-        SHOTLocalEstimationParameter() :
-            support_radius_ ( 0.05f)
+        ROPSLocalEstimationParameter() :
+            support_radius_ (0.0285f),
+            number_of_partition_bin_(5),
+            number_of_rotations_(3)
         {}
 
         /**
@@ -64,7 +68,7 @@ namespace v4r
         std::vector<std::string>
         init(const std::vector<std::string> &command_line_arguments)
         {
-            po::options_description desc("SHOT Parameter\n=====================\n");
+            po::options_description desc("RoPS Parameter\n=====================\n");
             desc.add_options()
                     ("help,h", "produce help message")
                     ("shot_support_radius", po::value<float>(&support_radius_)->default_value(support_radius_), "shot support radius")
@@ -81,7 +85,7 @@ namespace v4r
     };
 
     template<typename PointT>
-      class V4R_EXPORTS SHOTLocalEstimation : public LocalEstimator<PointT>
+      class V4R_EXPORTS ROPSLocalEstimation : public LocalEstimator<PointT>
       {
       private:
           using LocalEstimator<PointT>::indices_;
@@ -92,15 +96,21 @@ namespace v4r
           using LocalEstimator<PointT>::descr_type_;
           using LocalEstimator<PointT>::descr_dims_;
 
-          SHOTLocalEstimationParameter param_;
+          ROPSLocalEstimationParameter param_;
 
       public:
-        SHOTLocalEstimation ( const SHOTLocalEstimationParameter &p = SHOTLocalEstimationParameter() ):
+        ROPSLocalEstimation ( const ROPSLocalEstimationParameter &p = ROPSLocalEstimationParameter() ):
             param_( p )
         {
-            descr_name_ = "shot";
+            descr_name_ = "rops";
             descr_type_ = FeatureType::SHOT;
-            descr_dims_ = 352;
+            descr_dims_ = 135;
+        }
+
+        void
+        setSupportRadius(float radius)
+        {
+            param_.support_radius_ = radius;
         }
 
         bool
@@ -118,15 +128,7 @@ namespace v4r
             return true;
         }
 
-        std::string
-                getUniqueId() const
-        {
-            std::stringstream id;
-            id << static_cast<int>( param_.support_radius_ * 1000.f );
-            return id.str();
-        }
-
-        typedef boost::shared_ptr< SHOTLocalEstimation<PointT> > Ptr;
-        typedef boost::shared_ptr< SHOTLocalEstimation<PointT> const> ConstPtr;
+        typedef boost::shared_ptr< ROPSLocalEstimation<PointT> > Ptr;
+        typedef boost::shared_ptr< ROPSLocalEstimation<PointT> const> ConstPtr;
       };
 }

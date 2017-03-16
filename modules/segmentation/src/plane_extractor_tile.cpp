@@ -635,7 +635,7 @@ PlaneExtractorTile<PointT>::rawPatchClustering()
             //do some debug output
             if(false)
             {
-                std::cout << "DEBUG: currentId " << currentId << std::endl;
+                VLOG(1) << "DEBUG: currentId " << currentId;
                 cv::imshow("current", getDebugImage( param_.pointwiseNormalCheck_) );
                 cv::waitKey(1);
             }
@@ -754,7 +754,7 @@ PlaneExtractorTile<PointT>::postProcessing1Direction(const int offsets[][2], boo
                     }
                     if(false)
                     {
-                        std::cout << "DEBUG: currentId " << currentId << std::endl;
+                        VLOG(1) << "DEBUG: currentId " << currentId;
                         cv::imshow("current",generateColorCodedTexture());
                         cv::waitKey(1);
                     }
@@ -963,7 +963,7 @@ PlaneExtractorTile<PointT>::compute()
     {
         for(size_t u=0; u<cloud_->width; u++)
         {
-            volatile int label = segmentation.at<int>(v,u);
+            int label = segmentation.at<int>(v,u);
 
             if(label > 0)
                 plane_inliers_[label-1].push_back( v*cloud_->width + u);
