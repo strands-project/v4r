@@ -1,4 +1,5 @@
 #include <v4r/features/esf_estimator.h>
+#include <pcl/features/esf.h>
 
 namespace v4r
 {
@@ -17,9 +18,7 @@ ESFEstimation<PointT>::compute (Eigen::MatrixXf &signature)
         esf.setInputCloud(cloud_roi);
     }
     else
-    {
         esf.setInputCloud (cloud_);
-    }
 
     esf.compute (ESF_signature);
     signature.resize(ESF_signature.points.size(), feature_dimensions_);
