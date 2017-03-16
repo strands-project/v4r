@@ -24,13 +24,98 @@
 #pragma once
 
 #include <v4r/core/macros.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/features/global_estimator.h>
 #include <v4r/features/types.h>
 
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/archive/xml_oarchive.hpp>
+#include <boost/program_options.hpp>
+#include <boost/serialization/serialization.hpp>
+
+#include <fstream>
+
 #include <glog/logging.h>
+
+namespace po = boost::program_options;
 
 namespace v4r
 {
+class V4R_EXPORTS GlobalConcatEstimatorParameter
+{
+public:
+    int feature_type; ///< Concatenate all feature descriptors which corresponding feature type bit id (v4r/features/types.h) is set in this variable.
+
+    GlobalConcatEstimatorParameter() :
+        feature_type ( FeatureType::ESF | FeatureType::SIMPLE_SHAPE | FeatureType::GLOBAL_COLOR )
+    { }
+
+
+    friend class boost::serialization::access;
+    template<class Archive> V4R_EXPORTS void serialize(Archive & ar, const unsigned int version)
+    {
+      ar & BOOST_SERIALIZATION_NVP(feature_type)
+        ;
+        (void) version;
+    }
+
+    void
+    save(const std::string &filename) const
+    {
+        std::ofstream ofs(filename);
+        boost::archive::xml_oarchive oa(ofs);
+        oa << boost::serialization::make_nvp("GlobalConcatEstimatorParameter", *this );
+        ofs.close();
+    }
+
+    GlobalConcatEstimatorParameter(const std::string &filename)
+    {
+        if( !v4r::io::existsFile(filename) )
+            throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
+        std::ifstream ifs(filename);
+        boost::archive::xml_iarchive ia(ifs);
+        ia >> boost::serialization::make_nvp("GlobalConcatEstimatorParameter", *this );
+        ifs.close();
+    }
+
+
+    /**
+     * @brief init parameters
+     * @param command_line_arguments (according to Boost program options library)
+     * @return unused parameters (given parameters that were not used in this initialization call)
+     */
+    std::vector<std::string>
+    init(int argc, char **argv)
+    {
+            std::vector<std::string> arguments(argv + 1, argv + argc);
+            return init(arguments);
+    }
+
+    /**
+     * @brief init parameters
+     * @param command_line_arguments (according to Boost program options library)
+     * @return unused parameters (given parameters that were not used in this initialization call)
+     */
+    std::vector<std::string>
+    init(const std::vector<std::string> &command_line_arguments)
+    {
+        po::options_description desc("Global Concatenate Feature Estimator Parameter\n=====================\n");
+        desc.add_options()
+                ("help,h", "produce help message")
+                ("global_concat_feature_types", po::value<int>(&feature_type)->default_value(feature_type), "Concatenate all feature descriptors which corresponding feature type bit id (v4r/features/types.h) is set in this variable.")
+                ;
+        po::variables_map vm;
+        po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
+        std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
+        po::store(parsed, vm);
+        if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
+        try { po::notify(vm); }
+        catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
+        return to_pass_further;
+    }
+};
+
 /**
  *@brief The GlobalConcatEstimator class implements a global descriptor
  * that combines the description of multiple global descriptor by
@@ -47,10 +132,26 @@ private:
     using GlobalEstimator<PointT>::descr_type_;
     using GlobalEstimator<PointT>::feature_dimensions_;
 
+    GlobalConcatEstimatorParameter param_;
+
 public:
-    GlobalConcatEstimator()
-        : GlobalEstimator<PointT>("global_concat_estimator", FeatureType::GLOBAL_CONCAT)
-    {}
+    GlobalConcatEstimator( const GlobalConcatEstimatorParameter &p = GlobalConcatEstimatorParameter() ):
+        param_(p)
+    {
+        descr_name_ = "global";
+        feature_dimensions_ = 0;
+
+        if(param_.feature_type & FeatureType::ESF)
+            descr_name_ += "_esf";
+        if(param_.feature_type & FeatureType::SIMPLE_SHAPE)
+            descr_name_ += "_simple_shape";
+        if(param_.feature_type & FeatureType::GLOBAL_COLOR)
+            descr_name_ += "_color";
+
+        VLOG(1) << "Initialized global concatenated pipeline with " << descr_name_;
+
+        descr_type_ = param_.feature_type;
+    }
 
     bool compute (Eigen::MatrixXf &signature);
 

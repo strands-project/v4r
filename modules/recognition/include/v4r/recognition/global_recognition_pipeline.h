@@ -32,7 +32,6 @@
 
 namespace v4r
 {
-
 /**
  * @brief This class merges the results of various global descriptors into a set of hypotheses.
  * @author Thomas Faeulhammer
@@ -64,13 +63,11 @@ private:
 
     void visualize();
 
-    GlobalRecognitionPipelineParameter param_;
     PCLVisualizationParams vis_param_;
 
 public:
-    GlobalRecognitionPipeline ( const GlobalRecognitionPipelineParameter &p = GlobalRecognitionPipelineParameter() ):
-        visualize_clusters_(false),
-        param_(p)
+    GlobalRecognitionPipeline ( ):
+        visualize_clusters_(false)
     { }
 
     void initialize(const std::string &trained_dir, bool force_retrain = false);

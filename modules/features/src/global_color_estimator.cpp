@@ -4,6 +4,15 @@
 
 namespace v4r
 {
+
+template<>
+bool
+GlobalColorEstimator<pcl::PointXYZ>::compute (Eigen::MatrixXf &signature)
+{
+    LOG(FATAL) << "Given point type does not contain color information. Therefore cannot describe color features. Will return nothing.";
+    signature = Eigen::MatrixXf();
+}
+
 template<typename PointT>
 bool
 GlobalColorEstimator<PointT>::compute (Eigen::MatrixXf &signature)
@@ -50,6 +59,7 @@ GlobalColorEstimator<PointT>::compute (Eigen::MatrixXf &signature)
     return true;
 }
 
+template class V4R_EXPORTS GlobalColorEstimator<pcl::PointXYZ>;
 template class V4R_EXPORTS GlobalColorEstimator<pcl::PointXYZRGB>;
 }
 

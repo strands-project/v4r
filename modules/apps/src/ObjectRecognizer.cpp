@@ -166,27 +166,24 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
         // ====== SETUP GLOBAL RECOGNITION PIPELINE =====
 
-        if(param_.do_esf_ || param_.do_alexnet_)
+        if( !param_.global_feature_types_.empty() )
         {
             typename GlobalRecognitionPipeline<PointT>::Ptr global_recognition_pipeline (new GlobalRecognitionPipeline<PointT>);
             typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( param_.segmentation_method_, to_pass_further);
             global_recognition_pipeline->setSegmentationAlgorithm( segmenter );
 
-            if(param_.do_esf_)
+            for(size_t global_pipeline_id = 0; global_pipeline_id < param_.global_feature_types_.size(); global_pipeline_id++)
             {
-                typename ESFEstimation<PointT>::Ptr esf_estimator (new ESFEstimation<PointT>);
-                Classifier::Ptr classifier = initClassifier( param_.esf_classification_method_, to_pass_further);
+                    GlobalConcatEstimatorParameter p;
+                    p.feature_type = param_.global_feature_types_[global_pipeline_id];
+                    typename GlobalConcatEstimator<PointT>::Ptr global_concat_estimator (new GlobalConcatEstimator<PointT>(p));
+                    Classifier::Ptr classifier = initClassifier( param_.classification_methods_[global_pipeline_id], to_pass_further);
 
-                GlobalRecognizerParameter esf_param (param_.esf_config_xml_);
-                typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>( esf_param ));
-                global_r->setFeatureEstimator( esf_estimator );
-                global_r->setClassifier( classifier );
-                global_recognition_pipeline->addRecognizer( global_r );
-            }
-
-            if (param_.do_alexnet_)
-            {
-                std::cerr << "Not implemented right now!" << std::endl;
+                    GlobalRecognizerParameter global_rec_param ( param_.global_recognition_pipeline_config_[global_pipeline_id] );
+                    typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>( global_rec_param ));
+                    global_r->setFeatureEstimator( global_concat_estimator );
+                    global_r->setClassifier( classifier );
+                    global_recognition_pipeline->addRecognizer( global_r );
             }
 
             global_recognition_pipeline->setVisualizeClusters( visualize_global_results );

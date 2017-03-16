@@ -41,7 +41,6 @@ namespace v4r
             ALEXNET = 0x80,
 #endif
             SIMPLE_SHAPE = 0x400,
-            GLOBAL_CONCAT = 0x800,
-            GLOBAL_COLOR = 0x1000,
+            GLOBAL_COLOR = 0x800
         };
 }
