@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2015 Thomas Faeulhammer
+ * Copyright (c) 2012 Aitor Aldoma, Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,23 +23,34 @@
 
 #pragma once
 
+#include <v4r/core/macros.h>
+#include <v4r/features/global_estimator.h>
+#include <v4r/features/types.h>
+
+#include <glog/logging.h>
+
 namespace v4r
 {
-        enum FeatureType
-        {
-            SIFT_GPU = 0x01, // 00000001
-            SIFT_OPENCV = 0x02, // 00000010
-            SHOT  = 0x04, // 00000100
-            OURCVFH  = 0x08,  // 00001000
-            FPFH = 0x10,  // 00010000
-            ESF = 0x20,  // 00100000
-            SHOT_COLOR = 0x40,  // 01000000
-#if PCL_VERSION >= 100702
-            ALEXNET = 0x80,  // 10000000
-            ROPS = 0x200,  // 10000000
-#else
-            ALEXNET = 0x80,
-#endif
-            SIMPLE_SHAPE = 0x400
-        };
+template<typename PointT>
+class V4R_EXPORTS SimpleShapeEstimator : public GlobalEstimator<PointT>
+{
+private:
+    using GlobalEstimator<PointT>::indices_;
+    using GlobalEstimator<PointT>::cloud_;
+    using GlobalEstimator<PointT>::descr_name_;
+    using GlobalEstimator<PointT>::descr_type_;
+    using GlobalEstimator<PointT>::feature_dimensions_;
+
+public:
+    SimpleShapeEstimator()
+        : GlobalEstimator<PointT>("simple_shape", FeatureType::SIMPLE_SHAPE, 3)
+    {}
+
+    bool compute (Eigen::MatrixXf &signature);
+
+    bool needNormals() const { return false; }
+
+    typedef boost::shared_ptr< SimpleShapeEstimator<PointT> > Ptr;
+    typedef boost::shared_ptr< SimpleShapeEstimator<PointT> const> ConstPtr;
+};
 }
