@@ -1,6 +1,7 @@
 #include <v4r/features/global_concatenated.h>
 #include <v4r/features/esf_estimator.h>
 #include <v4r/features/global_simple_shape_estimator.h>
+#include <v4r/features/global_color_estimator.h>
 
 namespace v4r
 {
@@ -9,7 +10,7 @@ template<typename PointT>
 bool
 GlobalConcatEstimator<PointT>::compute (Eigen::MatrixXf &signature)
 {
-    Eigen::MatrixXf signature_esf, signature_simple_shape;
+    Eigen::MatrixXf signature_esf, signature_simple_shape, signature_color;
 
     ESFEstimation<PointT> esf;
     esf.setInputCloud(cloud_);
@@ -21,16 +22,21 @@ GlobalConcatEstimator<PointT>::compute (Eigen::MatrixXf &signature)
     sse.setIndices(indices_);
     sse.compute(signature_simple_shape);
 
-    CHECK(signature_esf.rows() == signature_simple_shape.rows() );
+    GlobalColorEstimator<PointT> color_e;
+    color_e.setInputCloud(cloud_);
+    color_e.setIndices(indices_);
+    color_e.compute(signature_color);
 
-    signature = Eigen::MatrixXf ( signature_esf.rows(), signature_esf.cols()+signature_simple_shape.cols());
-    signature << signature_esf, signature_simple_shape;
+    CHECK(signature_esf.rows() == signature_simple_shape.rows()  && signature_simple_shape.rows() == signature_color.rows() );
+
+    signature = Eigen::MatrixXf ( signature_esf.rows(), signature_esf.cols()+signature_simple_shape.cols()+signature_color.cols());
+    signature << signature_esf, signature_simple_shape, signature_color;
+
     indices_.clear();
 
     return true;
 }
 
-template class V4R_EXPORTS GlobalConcatEstimator<pcl::PointXYZ>;
 template class V4R_EXPORTS GlobalConcatEstimator<pcl::PointXYZRGB>;
 }
 
