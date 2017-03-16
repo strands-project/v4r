@@ -32,16 +32,6 @@
 
 namespace v4r
 {
-class
-GlobalRecognitionPipelineParameter
-{
-public:
-    float plane_inlier_threshold_;
-    GlobalRecognitionPipelineParameter() :
-        plane_inlier_threshold_(0.02f)
-    {}
-};
-
 
 /**
  * @brief This class merges the results of various global descriptors into a set of hypotheses.
