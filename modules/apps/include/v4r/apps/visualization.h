@@ -27,9 +27,10 @@ private:
     typename pcl::PointCloud<pcl::Normal>::ConstPtr normals_; ///< input normals
 
     std::vector< ObjectHypothesesGroup<PointT> > generated_object_hypotheses_;   ///< generated object hypotheses
+    std::vector< ObjectHypothesesGroup<PointT> > generated_object_hypotheses_refined_;   ///< (ICP refined) generated object hypotheses
     std::vector< typename ObjectHypothesis<PointT>::Ptr > verified_object_hypotheses_; ///< verified object hypotheses
     mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-    mutable int vp1a_, vp2_, vp3_, vp1b_;
+    mutable int vp1a_, vp2_, vp3_, vp1b_, vp2b_;
     mutable std::vector<std::string> coordinate_axis_ids_;
 
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
@@ -147,6 +148,16 @@ public:
     setGeneratedObjectHypotheses ( const std::vector< ObjectHypothesesGroup<PointT> > &goh )
     {
         generated_object_hypotheses_ = goh;
+    }
+
+    /**
+     * @brief setRefinedGeneratedObjectHypotheses
+     * @param[in] goh (ICP refined) generated hypotheses
+     */
+    void
+    setRefinedGeneratedObjectHypotheses ( const std::vector< ObjectHypothesesGroup<PointT> > &goh )
+    {
+        generated_object_hypotheses_refined_ = goh;
     }
 
     /**

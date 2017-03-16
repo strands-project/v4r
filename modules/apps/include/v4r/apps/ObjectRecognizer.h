@@ -73,6 +73,8 @@ public:
     float plane_inlier_threshold_; ///< maximum distance for plane inliers
     size_t min_plane_inliers_; ///< required inliers for plane to be removed
 
+    int icp_iterations_;
+
     ObjectRecognizerParameter()
         :
           hv_config_xml_("cfg/hv_config.xml"),
@@ -95,7 +97,8 @@ public:
           chop_z_(3.f),
           remove_planes_(true),
           plane_inlier_threshold_ (0.02f),
-          min_plane_inliers_ (20000)
+          min_plane_inliers_ (20000),
+          icp_iterations_(30)
     {
         validate();
     }
@@ -172,6 +175,7 @@ private:
     typename v4r::ObjectRecognitionVisualizer<PointT>::Ptr rec_vis_; ///< visualization object
 
     std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_;
+    std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_refined_;
     std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_;
 
     typename v4r::apps::CloudSegmenter<PointT>::Ptr cloud_segmenter_; ///< cloud segmenter for plane removal (if enabled)
@@ -181,6 +185,10 @@ private:
     std::string models_dir_;
 
     ObjectRecognizerParameter param_;
+
+    typename Source<PointT>::Ptr model_database_;
+
+    void refinePose(const typename pcl::PointCloud<PointT>::ConstPtr &scene);   ///< does ICP on the generated object hypotheses to refine their pose
 
 public:
     ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :
