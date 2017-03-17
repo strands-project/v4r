@@ -32,6 +32,7 @@
 #include <pcl/common/common.h>
 
 #include <v4r/common/normals.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/features/local_estimator.h>
 #include <v4r/features/types.h>
 #include <v4r/keypoints/keypoint_extractor.h>
@@ -219,6 +220,8 @@ private:
     void mergeKeypointsFromMultipleEstimators(); ///< this puts the model keypoints extracted from multiple feature estimators into a common database
 
     std::map<std::string, typename LocalObjectModel::ConstPtr> model_keypoints_;
+
+    PCLVisualizationParams::ConstPtr vis_param_;
 
     void
     validate()
@@ -465,6 +468,17 @@ public:
     {
         visualize_keypoints_ = vis;
     }
+
+    /**
+     * @brief setVisualizationParameter sets the PCL visualization parameter (only used if some visualization is enabled)
+     * @param vis_param
+     */
+    void
+    setVisualizationParameter(const PCLVisualizationParams::ConstPtr &vis_param)
+    {
+        vis_param_ = vis_param;
+    }
+
 
     typedef boost::shared_ptr< LocalFeatureMatcher<PointT> > Ptr;
     typedef boost::shared_ptr< LocalFeatureMatcher<PointT> const> ConstPtr;

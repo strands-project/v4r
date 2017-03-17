@@ -34,6 +34,7 @@
 
 #include <v4r/core/macros.h>
 #include <v4r/common/pcl_serialization.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/features/global_estimator.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/ml/classifier.h>
@@ -309,6 +310,8 @@ private:
 
     bool keep_all_hypotheses_;
 
+    PCLVisualizationParams::ConstPtr vis_param_;
+
 public:
     GlobalRecognizer(const GlobalRecognizerParameter &p = GlobalRecognizerParameter()) :
         param_(p),
@@ -449,6 +452,16 @@ public:
      */
     void
     recognize ();
+
+    /**
+     * @brief setVisualizationParameter
+     * @param vis_param
+     */
+    void
+    setVisualizationParameter(const PCLVisualizationParams::ConstPtr &vis_param)
+    {
+        vis_param_ = vis_param;
+    }
 
     typedef boost::shared_ptr< GlobalRecognizer<PointT> > Ptr;
     typedef boost::shared_ptr< GlobalRecognizer<PointT> const> ConstPtr;

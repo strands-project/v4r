@@ -22,7 +22,9 @@ LocalRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, boo
         LocalFeatureMatcher<PointT> &r = *local_feature_matchers_[i];
         r.setNormalEstimator(normal_estimator_);
         r.setModelDatabase(m_db_);
+        r.setVisualizationParameter(vis_param_);
         r.initialize(trained_dir, force_retrain);
+
         const std::map<std::string, typename LocalObjectModel::ConstPtr> lomdb_tmp = r.getModelKeypoints();
 
         for ( auto lo : lomdb_tmp )

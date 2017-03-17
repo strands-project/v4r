@@ -14,6 +14,7 @@ MultiRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, boo
     {
         r->setModelDatabase(m_db_);
         r->setNormalEstimator(normal_estimator_);
+        r->setVisualizationParameter(vis_param_);
         r->initialize(trained_dir, force_retrain);
     }
 }

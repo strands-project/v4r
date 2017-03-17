@@ -72,9 +72,14 @@ LocalFeatureMatcher<PointT>::visualizeKeypoints(const std::vector<KeypointIndex>
 
     }
     std::stringstream txt_kp; txt_kp << "Filtered keypoints (" << kp_indices.size() << ")";
-    vis->addText(txt_kp.str(), 10, 10, 12, 1., 0, 0, "filtered keypoints");
     std::stringstream txt_kp_rejected; txt_kp_rejected << "Rejected keypoints (" << kp_indices.size() << ")";
-    vis->addText(txt_kp_rejected.str(), 10, 20, 12, 0, 1., 0, "rejected keypoints");
+
+    if( !vis_param_->no_text_ )
+    {
+        vis->addText(txt_kp.str(), 10, 10, 12, 1., 0, 0, "filtered keypoints");
+        vis->addText(txt_kp_rejected.str(), 10, 20, 12, 0, 1., 0, "rejected keypoints");
+    }
+
     vis->setBackgroundColor(1,1,1);
     vis->resetCamera();
     vis->spin();

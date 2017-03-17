@@ -28,6 +28,7 @@
 
 #include <v4r_config.h>
 #include <v4r/common/normals.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/core/macros.h>
 #include <v4r/recognition/object_hypothesis.h>
 #include <v4r/recognition/source.h>
@@ -60,6 +61,8 @@ protected:
     typename NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
     Eigen::Vector4f table_plane_;
     bool table_plane_set_;
+
+    PCLVisualizationParams::ConstPtr vis_param_;
 
 public:
     RecognitionPipeline() :
@@ -154,6 +157,17 @@ public:
     setNormalEstimator(const typename NormalEstimator<PointT>::Ptr &normal_estimator)
     {
         normal_estimator_ = normal_estimator;
+    }
+
+
+    /**
+     * @brief setVisualizationParameter sets the PCL visualization parameter (only used if some visualization is enabled)
+     * @param vis_param
+     */
+    void
+    setVisualizationParameter(const PCLVisualizationParams::ConstPtr &vis_param)
+    {
+        vis_param_ = vis_param;
     }
 
     virtual bool requiresSegmentation() const = 0;

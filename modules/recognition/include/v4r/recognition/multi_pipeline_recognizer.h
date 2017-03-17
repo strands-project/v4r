@@ -39,6 +39,7 @@ private:
     using RecognitionPipeline<PointT>::obj_hypotheses_;
     using RecognitionPipeline<PointT>::table_plane_;
     using RecognitionPipeline<PointT>::table_plane_set_;
+    using RecognitionPipeline<PointT>::vis_param_;
 
     std::vector<typename RecognitionPipeline<PointT>::Ptr > recognition_pipelines_;
 

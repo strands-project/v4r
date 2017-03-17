@@ -18,6 +18,7 @@
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/graph_geometric_consistency.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/features/esf_estimator.h>
 #include <v4r/features/global_simple_shape_estimator.h>
 #include <v4r/features/global_concatenated.h>
@@ -138,6 +139,15 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         LOG(WARNING) << "No camera depth registration mask provided. Assuming all pixels have valid depth.";
 
 
+    // ====== DEFINE VISUALIZATION PARAMETER =======
+    PCLVisualizationParams::Ptr vis_param (new PCLVisualizationParams);
+    vis_param->no_text_ = false;
+    vis_param->bg_color_ = Eigen::Vector3i(255, 255, 255);
+    vis_param->text_color_ = Eigen::Vector3f(0.f, 0.f, 0.f);
+    vis_param->fontsize_ = 12;
+    vis_param->coordinate_axis_scale_ = 0.2f;
+
+
     // ==== Fill object model database ==== ( assumes each object is in a seperate folder named after the object and contains and "views" folder with the training views of the object)
     model_database_.reset ( new Source<PointT> (models_dir_) );
 
@@ -243,6 +253,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
         mrec_->setModelDatabase( model_database_ );
         mrec_->setNormalEstimator( normal_estimator_ );
+        mrec_->setVisualizationParameter(vis_param);
         mrec_->initialize( models_dir_, retrain );
     }
 
@@ -254,11 +265,11 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         hv_.reset (new HypothesisVerification<PointT, PointT> (xtion, paramHV) );
 
         if( visualize_hv_go_cues )
-            hv_->visualizeCues();
+            hv_->visualizeCues(vis_param);
         if( visualize_hv_model_cues )
-            hv_->visualizeModelCues();
+            hv_->visualizeModelCues(vis_param);
         if( visualize_hv_pairwise_cues )
-            hv_->visualizePairwiseCues();
+            hv_->visualizePairwiseCues(vis_param);
 
         hv_->setModelDatabase(model_database_);
     }

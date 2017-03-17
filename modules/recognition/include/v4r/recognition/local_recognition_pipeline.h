@@ -99,6 +99,7 @@ private:
     using RecognitionPipeline<PointT>::obj_hypotheses_;
     using RecognitionPipeline<PointT>::scene_;
     using RecognitionPipeline<PointT>::scene_normals_;
+    using RecognitionPipeline<PointT>::vis_param_;
 
     std::vector<typename LocalFeatureMatcher<PointT>::Ptr > local_feature_matchers_; ///< set of local recognizer generating keypoint correspondences
 
@@ -118,8 +119,7 @@ private:
 public:
     LocalRecognitionPipeline (const LocalRecognitionPipelineParameter &p = LocalRecognitionPipelineParameter() )
      : param_(p)
-    {
-    }
+    { }
 
     /**
      * @brief setCGAlgorithm
