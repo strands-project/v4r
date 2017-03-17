@@ -196,6 +196,16 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
             CHECK( (gom->model_elongations_.rows() == gom->model_centroids_.rows()) &&
                    (gom->model_elongations_.rows() == gom->model_signatures_.rows())     );
 
+            Eigen::VectorXf view_centroid_to_3d_model_centroid (gom->model_centroids_.rows());
+            for(int view_id=0; view_id < gom->model_centroids_.rows(); view_id++)
+            {
+                const Eigen::Vector4f view_centroid = gom->model_centroids_.row(view_id).transpose();
+                const Eigen::Vector4f view_centroid_aligned = gom->model_poses_[view_id] * view_centroid;
+
+                view_centroid_to_3d_model_centroid(view_id) = (view_centroid_aligned - m->centroid_).head(3).norm();
+            }
+            gom->mean_distance_view_centroid_to_3d_model_centroid_ = view_centroid_to_3d_model_centroid.mean();
+
             io::createDirForFileIfNotExist( signatures_path.string() );
             ofstream os( signatures_path.string() , ios::binary);
             boost::archive::binary_oarchive oar(os);

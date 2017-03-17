@@ -122,10 +122,13 @@ public:
     Eigen::MatrixXf model_signatures_; ///< signatures (from all views) of the object model
     Eigen::MatrixX3f model_elongations_; ///< spatial elongations in X,Y and Z direction (from all views)
     Eigen::MatrixX4f model_centroids_;  ///< model centroids (from all views)
+    float mean_distance_view_centroid_to_3d_model_centroid_; ///< average distance of the centroids computed on the training views to the centroid computed on the whole 3D object
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > model_poses_; ///< model poses (from all views)
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > eigen_based_pose_; ///< poses (from all views) that transform view such that principial axis correspond to x,y and z axis
 
-    GlobalObjectModel() {}
+    GlobalObjectModel() :
+        mean_distance_view_centroid_to_3d_model_centroid_(0.f)
+    {}
 
     friend class boost::serialization::access;
     template<class Archive> V4R_EXPORTS void serialize(Archive & ar, const unsigned int version)
@@ -135,6 +138,7 @@ public:
            & model_centroids_
            & model_poses_
            & eigen_based_pose_
+           & mean_distance_view_centroid_to_3d_model_centroid_
          ;
         (void) version;
     }
