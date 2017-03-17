@@ -1,3 +1,4 @@
+#include <v4r/common/miscellaneous.h>
 #include <v4r/io/eigen.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/global_recognizer.h>
@@ -15,6 +16,8 @@
 #include <glog/logging.h>
 #include <sstream>
 #include <omp.h>
+
+//#define _VISUALIZE_
 
 namespace v4r
 {
@@ -255,10 +258,6 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
     Eigen::MatrixXi predicted_label;
     classifier_->predict(query_sig, predicted_label);
 
-    Eigen::Matrix4f tf_trans = Eigen::Matrix4f::Identity();
-    Eigen::Matrix4f tf_rot = Eigen::Matrix4f::Identity();
-    Eigen::Vector4f centroid;
-
     if( !param_.estimate_pose_ )
     {
         obj_hyps_filtered_.resize( predicted_label.rows() * predicted_label.cols() );
@@ -276,17 +275,16 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
             }
         }
     }
-    else
+    else    // estimate pose
     {
         CHECK( classifier_->getType() == ClassifierType::KNN || param_.use_table_plane_for_alignment_);
         CHECK( !param_.use_table_plane_for_alignment_ ||
                (param_.use_table_plane_for_alignment_ && cluster_->isTablePlaneSet() ) ) << "Selected to use table plane for pose alignment but table plane has not been set! " << std::endl;
 
+        Eigen::Matrix4f tf_rot = Eigen::Matrix4f::Identity();
+
         if( param_.use_table_plane_for_alignment_ )   // we do not need to know the closest training view
         {
-            float dist = dist2plane(cluster_->centroid_.head(3), cluster_->table_plane_);
-            centroid = cluster_->centroid_.head(3) - dist * cluster_->table_plane_.head(3);
-
             // create some arbitrary coordinate system on table plane (s.t. normal corresponds to z axis, and others are orthonormal)
             Eigen::Vector3f vec_z = cluster_->table_plane_.topRows(3);
             vec_z.normalize();
@@ -308,11 +306,7 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
             tf_rot_inv.block<3,3>(0,0) = rotation_basis.transpose();
             tf_rot = tf_rot_inv.inverse();
         }
-        else    // use eigenvectors for alignment
-        {
-            centroid = cluster_->centroid_;
-        }
-        tf_trans.block<3,1>(0,3) = centroid.topRows(3);
+
 
         // pre-allocate memory
         size_t max_hypotheses = predicted_label.rows()*predicted_label.cols();
@@ -340,10 +334,130 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                 else
                     class_name = id_to_model_name_[lbl];
 
+                GlobalObjectModel::ConstPtr gom = gomdb_.global_models_[model_name];
+                const Eigen::Vector3f &elongations_model = gom->model_elongations_.colwise().maxCoeff();    // as we don't know the view, we just take the maximum extent of each axis over all training views
+//                const Eigen::Vector3f &elongations_model = gom->model_elongations_.row( view_id );
+
+                if( param_.check_elongations_ &&
+                   ( cluster_->elongation_(2)/elongations_model(2) < param_.min_elongation_ratio_||
+                     cluster_->elongation_(2)/elongations_model(2) > param_.max_elongation_ratio_||
+                     cluster_->elongation_(1)/elongations_model(1) < param_.min_elongation_ratio_||
+                     cluster_->elongation_(1)/elongations_model(1) > param_.max_elongation_ratio_) )
+                {
+                    continue;
+                }
+
                 if(param_.use_table_plane_for_alignment_ || classifier_->getType() != ClassifierType::KNN)
                 {   // do brute force sampling along azimuth angle
-                    GlobalObjectModel::ConstPtr gom = gomdb_.global_models_[model_name];
-                    const Eigen::Vector3f &elongations_model = gom->model_elongations_.colwise().maxCoeff();    // as we don't know the view, we just take the maximum extent of each axis over all training views
+
+                    bool found_model;
+                    typename Model<PointT>::ConstPtr m = m_db_->getModelById (class_name, model_name, found_model);
+
+                    // align model centroid with origin
+                    Eigen::Matrix4f tf_om_shift2origin = Eigen::Matrix4f::Identity();
+                    tf_om_shift2origin.block<3,1>(0,3) = -m->centroid_.head(3);
+
+                    // move model such that no point is below z=0
+                    Eigen::Vector4f min3d, max3d;
+                    typename pcl::PointCloud<PointT>::Ptr model_shifted (new pcl::PointCloud<PointT>);
+                    typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(5);
+                    pcl::transformPointCloud(*model_cloud, *model_shifted, tf_om_shift2origin);
+                    pcl::getMinMax3D(*model_shifted, min3d, max3d); ///TODO: Do this computation during initialization
+                    Eigen::Matrix4f tf_om_shift2origin2 = Eigen::Matrix4f::Identity();
+                    tf_om_shift2origin2(2,3) = -min3d(2);
+
+                    // align origin with downprojected cluster centroid
+                    float centroid_correction = gom->mean_distance_view_centroid_to_3d_model_centroid_;
+
+                    Eigen::Vector3f centroid_normalized = cluster_->centroid_.head(3).normalized();
+                    Eigen::Vector3f centroid_corrected = cluster_->centroid_.head(3) + centroid_correction * centroid_normalized;
+
+                    Eigen::Vector3f closest_pt_to_cluster_center = getClosestPointOnPlane(centroid_corrected, cluster_->table_plane_);
+                    Eigen::Matrix4f tf_cluster_shift = Eigen::Matrix4f::Identity();
+//                    tf11.block<3,1>(0,3) = -cluster_->centroid_.head(3);
+                    tf_cluster_shift.block<3,1>(0,3) = -closest_pt_to_cluster_center;
+
+                    // align table plane surface normal with model coordinate's z-axis
+                    Eigen::Matrix4f tf_cluster_rot = Eigen::Matrix4f::Identity();
+                    tf_cluster_rot.block<3,3>(0,0) = computeRotationMatrixToAlignVectors(cluster_->table_plane_.head(3), Eigen::Vector3f::UnitZ()); //Finv * G * F;
+
+                    Eigen::Matrix4f align_cluster = tf_cluster_rot * tf_cluster_shift;
+
+#ifdef _VISUALIZE_
+                    pcl::visualization::PCLVisualizer vis;
+                    int vp1, vp2, vp3, vp4, vp5, vp6, vp7, vp8;
+                    vis.createViewPort( 0, 0, 0.25, 0.5, vp1);
+                    vis.createViewPort(0.25, 0, 0.5, 0.5, vp2);
+                    vis.createViewPort(0.5, 0, 0.75, 0.5, vp3);
+                    vis.createViewPort(0.75, 0, 1, 0.5, vp4);
+                    vis.createViewPort( 0, 0.5, 0.25, 1, vp5);
+                    vis.createViewPort(0.25, 0.5, 0.5, 1, vp6);
+                    vis.createViewPort(0.5, 0.5, 0.75, 1, vp7);
+                    vis.createViewPort(0.75, 0.5, 1, 1, vp8);
+                    vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp1);
+                    vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp2);
+                    vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp3);
+                    vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp4);
+                    vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp5);
+                    vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp6);
+                    vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp7);
+                    vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp8);
+
+                    typename pcl::PointCloud<PointT>::Ptr model_shifted2 (new pcl::PointCloud<PointT>);
+                    vis.addPointCloud(model_cloud, "original", vp1);
+                    vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "original2", vp1);
+                    if( !vis_param_->no_text_)
+                    {
+                        vis.addText("object in model coordinate system", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "object in model coordinate system", vp1);
+                        vis.addText("model coordinate system aligned with centroid", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "model coordinate system aligned with centroid", vp2);
+                        vis.addText("model coordinate system aligned with downprojected centroid", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "model downprojected", vp3);
+                        vis.addText("sampled rotation angles", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "sampled rotation angles", vp4);
+                        vis.addText("original cluster", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "original cluster", vp5);
+                        vis.addText("origin aligned with cluster centroid", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "cluster centroid aligned with origin", vp6);
+                        vis.addText("origin aligned with downprojected cluster centroid", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "origin aligned with downprojected cluster centroid", vp7);
+                        std::stringstream correction_txt;
+                        correction_txt << "origin aligned with downprojected cluster centroid corrected by " << (int)(1000.f*centroid_correction) << " mm.";
+                        vis.addText(correction_txt.str(), 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "origin aligned with shifted downprojected cluster centroid", vp8);
+                    }
+                    vis.addPointCloud(model_shifted, "shifted", vp2);
+                    vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "shifted_co", vp2);
+
+                    pcl::transformPointCloud(*model_shifted, *model_shifted2, tf_om_shift2origin2);
+                    vis.addPointCloud(model_shifted2, "shifted2", vp3);
+                    vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "shifted2_co", vp3);
+
+                    typename pcl::PointCloud<PointT>::Ptr cluster (new pcl::PointCloud<PointT>);
+                    typename pcl::PointCloud<PointT>::Ptr cluster_shifted_and_aligned (new pcl::PointCloud<PointT>);
+                    typename pcl::PointCloud<PointT>::Ptr cluster_shifted_and_aligned_wo_correction (new pcl::PointCloud<PointT>);
+                    typename pcl::PointCloud<PointT>::Ptr cluster_shifter_and_aligned_not_downprojected_not_corrected (new pcl::PointCloud<PointT>);
+
+                    pcl::copyPointCloud(*scene_, cluster_->indices_, *cluster);
+                    vis.addPointCloud(cluster, "cluster", vp5);
+                    vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "cluster2", vp5);
+
+                    Eigen::Matrix4f tf_cluster_wo_downprojection = Eigen::Matrix4f::Identity();
+                    tf_cluster_wo_downprojection.block<3,1>(0,3) = -cluster_->centroid_.head(3);
+                    pcl::transformPointCloud(*cluster, *cluster_shifter_and_aligned_not_downprojected_not_corrected, tf_cluster_rot * tf_cluster_wo_downprojection);
+                    Eigen::Vector4f min3d_tmp, max3d_tmp;
+                    pcl::getMinMax3D(*cluster_shifter_and_aligned_not_downprojected_not_corrected, min3d_tmp, max3d_tmp); ///TODO: Do this computation during initialization
+                    Eigen::Matrix4f tf_cluster_shift_wo_down_wo_correction = Eigen::Matrix4f::Identity();
+                    tf_cluster_shift_wo_down_wo_correction(2,3) = -min3d_tmp(2);
+                    pcl::transformPointCloud(*cluster_shifter_and_aligned_not_downprojected_not_corrected, *cluster_shifter_and_aligned_not_downprojected_not_corrected, tf_cluster_shift_wo_down_wo_correction);
+                    vis.addPointCloud(cluster_shifter_and_aligned_not_downprojected_not_corrected, "cluster_shifter_and_aligned_not_downprojected_not_corrected", vp6);
+                    vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "cluster_shifter_and_aligned_not_downprojected_not_corrected_co", vp6);
+
+                    Eigen::Vector3f closest_pt_to_cluster_center_wo_correction = getClosestPointOnPlane(cluster_->centroid_.head(3), cluster_->table_plane_);
+                    Eigen::Matrix4f tf_cluster_shift_wo_correction = Eigen::Matrix4f::Identity();
+//                    tf11.block<3,1>(0,3) = -cluster_->centroid_.head(3);
+                    tf_cluster_shift_wo_correction.block<3,1>(0,3) = -closest_pt_to_cluster_center_wo_correction;
+                    pcl::transformPointCloud(*cluster, *cluster_shifted_and_aligned_wo_correction, tf_cluster_rot * tf_cluster_shift_wo_correction);
+                    vis.addPointCloud(cluster_shifted_and_aligned_wo_correction, "cluster_shifted_and_aligned_wo_correction", vp7);
+                    vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "cluster_shifted_and_aligned_wo_correction_co", vp7);
+
+                    pcl::transformPointCloud(*cluster, *cluster_shifted_and_aligned, tf_cluster_rot * tf_cluster_shift);
+                    vis.addPointCloud(cluster_shifted_and_aligned, "cluster_shifted_and_aligned", vp8);
+                    vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "cluster_shifted_and_aligned_co", vp8);
+#endif
 
                     if(keep_all_hypotheses_)
                     {
@@ -356,23 +470,26 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                             rot_tmp(1,0) =  sin(rot_rad);
                             rot_tmp(1,1) =  cos(rot_rad);
 
+#ifdef _VISUALIZE_
+                            typename pcl::PointCloud<PointT>::Ptr model_shifted_and_rotated (new pcl::PointCloud<PointT>);
+                            pcl::transformPointCloud(*model_shifted2, *model_shifted_and_rotated, rot_tmp);
+                            std::stringstream tmp; tmp << "cluster_shifted_and_rotated_" << rot_i;
+                            vis.addPointCloud(model_shifted_and_rotated, tmp.str(), vp4);
+                            vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, tmp.str()+ "2", vp4);
+#endif
+                            Eigen::Matrix4f alignment_tf = align_cluster.inverse() * rot_tmp * tf_om_shift2origin2 * tf_om_shift2origin;
+
                             typename ObjectHypothesis<PointT>::Ptr h( new ObjectHypothesis<PointT>);
-                            h->transform_ = tf_trans * tf_rot  * rot_tmp;
+                            h->transform_ = alignment_tf; //tf_trans * tf_rot  * rot_tmp;
                             h->confidence_ =  0.f;
                             h->model_id_ = model_name;
                             h->class_id_ = class_name;
                             all_obj_hyps_.push_back(h);
                         }
                     }
-
-                    if( param_.check_elongations_ &&
-                       ( cluster_->elongation_(2)/elongations_model(2) < param_.min_elongation_ratio_||
-                         cluster_->elongation_(2)/elongations_model(2) > param_.max_elongation_ratio_||
-                         cluster_->elongation_(1)/elongations_model(1) < param_.min_elongation_ratio_||
-                         cluster_->elongation_(1)/elongations_model(1) > param_.max_elongation_ratio_) )
-                    {
-                        continue;
-                    }
+#ifdef _VISUALIZE_
+                    vis.spin();
+#endif
 
                     for(float rot_i=0.f; rot_i<360.f; rot_i+=param_.z_angle_sampling_density_degree_)
                     {
@@ -383,7 +500,9 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                         rot_tmp(1,0) =  sin(rot_rad);
                         rot_tmp(1,1) =  cos(rot_rad);
 
-                        obj_hyps_filtered_[kept]->transform_ = tf_trans * tf_rot  * rot_tmp;
+                        Eigen::Matrix4f alignment_tf = align_cluster.inverse() * rot_tmp * tf_om_shift2origin2 * tf_om_shift2origin;
+
+                        obj_hyps_filtered_[kept]->transform_ = alignment_tf;//tf_trans * tf_rot  * rot_tmp;
                         obj_hyps_filtered_[kept]->confidence_ =  0.f;
                         obj_hyps_filtered_[kept]->model_id_ = model_name;
                         obj_hyps_filtered_[kept]->class_id_ = class_name;
@@ -401,13 +520,8 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                     CHECK( it != gomdb_.global_models_.end() ) << "could not find model " << f.instance_name_ << ". There was something wrong with the model initialiazation. Maybe retraining the database helps.";
                     GlobalObjectModel::ConstPtr gom = it->second;
 
-                    const Eigen::Vector3f &model_elongations = gom->model_elongations_.row( view_id );
-                    if( param_.check_elongations_ &&
-                       ( cluster_->elongation_(2)/model_elongations(2) < param_.min_elongation_ratio_||
-                         cluster_->elongation_(2)/model_elongations(2) > param_.max_elongation_ratio_||
-                         cluster_->elongation_(1)/model_elongations(1) < param_.min_elongation_ratio_||
-                         cluster_->elongation_(1)/model_elongations(1) > param_.max_elongation_ratio_) )
-                        continue;
+                    Eigen::Matrix4f tf_trans = Eigen::Matrix4f::Identity();
+                    tf_trans.block<3,1>(0,3) = cluster_->centroid_.topRows(3);
 
                     // there are four possibilites (due to sign ambiguity of eigenvector)
                     Eigen::Matrix3f eigenBasis, sign_operator;
