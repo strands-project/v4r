@@ -29,7 +29,7 @@ isInlier(const Eigen::Vector3f &point, const Eigen::Vector4f &normal, const Eige
     {
         if(doNormalTest)
         {
-            float cosAlpha = normal.head(3).dot(plane.head(3))/ (plane.head(3).squaredNorm() * normal.head(3).squaredNorm());
+            float cosAlpha = normal.head(3).dot(plane.head(3))/ (plane.head(3).norm() * normal.head(3).norm());
             return (cosAlpha>cosThreshold);
         }
         else

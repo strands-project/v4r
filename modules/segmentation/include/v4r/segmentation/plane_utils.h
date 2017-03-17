@@ -41,8 +41,25 @@ namespace v4r
  */
 inline float dist2plane(const Eigen::Vector3f& point, const Eigen::Vector4f &plane)
 {
-    float squaredNorm = plane.head(3).squaredNorm();
-    return (point.dot(plane.head(3)) + plane(3)) / squaredNorm;
+    return (point.dot(plane.head(3)) + plane(3)) / plane.head(3).norm();
+}
+
+/**
+ * @brief getClosestPointOnPlane
+ * @param query_pt the point for which the closest point on the plane should be found
+ * @param plane plane equation \f$|a*x + b*y + c*z + d|
+ * @return closest point on the plane
+ */
+inline
+Eigen::Vector3f
+getClosestPointOnPlane(const Eigen::Vector3f &query_pt, const Eigen::Vector4f &plane)
+{
+    float dist = dist2plane(query_pt, plane);
+    Eigen::Vector3f plane_normal = plane.head(3);
+    plane_normal.normalize();
+
+    Eigen::Vector3f closest_pt = query_pt - plane_normal * dist;
+    return closest_pt;
 }
 
 
@@ -55,8 +72,8 @@ inline float dist2plane(const Eigen::Vector3f& point, const Eigen::Vector4f &pla
 inline float DistanceBetweenPlanes(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2)
 {
     // a b and c must be equal
-    float norm1 = plane1.head(3).squaredNorm();
-    float norm2 = plane2.head(3).squaredNorm();
+    float norm1 = plane1.head(3).norm();
+    float norm2 = plane2.head(3).norm();
     const Eigen::Vector4f plane1_normalized = plane1/norm1;
     const Eigen::Vector4f plane2_normalized = plane2/norm2;
 

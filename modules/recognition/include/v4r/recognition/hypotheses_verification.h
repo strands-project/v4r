@@ -319,7 +319,7 @@ protected:
         float L_dist  = ( color_a(0) - color_b(0) )*( color_a(0) - color_b(0) );
         CHECK(L_dist >= 0.f && L_dist <= 1.f);
         L_dist /= param_.color_sigma_l_ ;
-        float AB_dist = ( color_a.tail(2) - color_b.tail(2) ).squaredNorm(); // ( param_.color_sigma_ab_ * param_.color_sigma_ab_ );
+        float AB_dist = ( color_a.tail(2) - color_b.tail(2) ).norm(); // ( param_.color_sigma_ab_ * param_.color_sigma_ab_ );
         CHECK(AB_dist >= 0.f && AB_dist <= 1.f);
         return L_dist + AB_dist ;
     }
