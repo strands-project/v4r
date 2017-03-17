@@ -26,9 +26,14 @@ public:
     Eigen::Vector3f text_color_;
     Eigen::Vector3i bg_color_;
     int fontsize_;
+    float coordinate_axis_scale_;
     PCLVisualizationParams() :
-        no_text_(false), vis_pt_size_ (10), text_color_ (Eigen::Vector3f(0.f,0.f,0.f)),
-        bg_color_ ( Eigen::Vector3i(255,255,255)), fontsize_ (12)
+        no_text_(false),
+        vis_pt_size_ (10),
+        text_color_ (Eigen::Vector3f(0.f,0.f,0.f)),
+        bg_color_ ( Eigen::Vector3i(255,255,255)),
+        fontsize_ (12),
+        coordinate_axis_scale_(0.4f)
     { }
 };
 }
