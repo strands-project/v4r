@@ -152,6 +152,8 @@ public:
             descr_name_ += "_simple_shape";
         if(param_.feature_type & FeatureType::GLOBAL_COLOR)
             descr_name_ += "_color";
+        if(param_.feature_type & FeatureType::OURCVFH)
+            descr_name_ += "_ourcvfh";
 
         VLOG(1) << "Initialized global concatenated pipeline with " << descr_name_;
 
@@ -160,7 +162,7 @@ public:
 
     bool compute (Eigen::MatrixXf &signature);
 
-    bool needNormals() const { return false; }
+    bool needNormals() const;
 
     typedef boost::shared_ptr< GlobalConcatEstimator<PointT> > Ptr;
     typedef boost::shared_ptr< GlobalConcatEstimator<PointT> const> ConstPtr;
