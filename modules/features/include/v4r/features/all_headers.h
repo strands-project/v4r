@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_FEATURES_ALL_HEADERS__
-#define V4R_FEATURES_ALL_HEADERS__
+#pragma once
 
 #include <v4r_config.h>
 #include <v4r/features/types.h>
@@ -34,6 +33,4 @@
 //#include <v4r/features/shot_color_local_estimator.h>
 #ifdef HAVE_CAFFE
 #include <v4r/features/global_alexnet_cnn_estimator.h>
-#endif
-
 #endif

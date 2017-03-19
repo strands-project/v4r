@@ -44,6 +44,12 @@ if(HAVE_BOOST)
   list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
 endif()
 
+if(HAVE_CAFFE)
+    v4r_include_directories(${CAFFE_INCLUDE_DIRS})
+    list(APPEND DEP LIBS ${CAFFE_LIBRARIES})
+endif()
+
+
 #add_definitions(-std=c++0x)
 add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
 add_definitions(-Dlinux -D__x86_64__)
