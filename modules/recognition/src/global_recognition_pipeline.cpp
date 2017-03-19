@@ -19,6 +19,7 @@ GlobalRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, bo
     for(typename GlobalRecognizer<PointT>::Ptr &r : global_recognizers_)
     {
         r->setModelDatabase( m_db_ );
+        r->setNormalEstimator( normal_estimator_ );
         r->setVisualizationParameter(vis_param_);
         r->initialize(trained_dir, force_retrain);
     }
@@ -64,6 +65,7 @@ GlobalRecognitionPipeline<PointT>::recognize()
         {
             typename GlobalRecognizer<PointT>::Ptr r = global_recognizers_[g_id];
             r->setInputCloud( scene_ );
+            r->setSceneNormals( scene_normals_ );
             r->setCluster( cluster );
             r->recognize();
             std::vector<typename ObjectHypothesis<PointT>::Ptr > ohs = r->getFilteredHypotheses();

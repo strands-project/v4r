@@ -44,6 +44,7 @@ private:
     using RecognitionPipeline<PointT>::scene_;
     using RecognitionPipeline<PointT>::scene_normals_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
+    using RecognitionPipeline<PointT>::normal_estimator_;
     using RecognitionPipeline<PointT>::m_db_;
     using RecognitionPipeline<PointT>::table_plane_;
     using RecognitionPipeline<PointT>::table_plane_set_;

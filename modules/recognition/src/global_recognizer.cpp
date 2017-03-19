@@ -134,14 +134,9 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
 
                 if ( !scene_normals_ && this->needNormals() )
                 {
-                    scene_normals_.reset( new pcl::PointCloud<pcl::Normal> );
-                    pcl::IntegralImageNormalEstimation<PointT, pcl::Normal> ne;
-                    ne.setNormalEstimationMethod ( ne.COVARIANCE_MATRIX );
-                    ne.setMaxDepthChangeFactor(0.02f);
-                    ne.setNormalSmoothingSize(10.0f);
-                    ne.setInputCloud(scene_);
-                    pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
-                    ne.compute(*normals);
+                    normal_estimator_->setInputCloud( scene_ );
+                    pcl::PointCloud<pcl::Normal>::Ptr normals;
+                    normals = normal_estimator_->compute();
                     scene_normals_ = normals;
                 }
 

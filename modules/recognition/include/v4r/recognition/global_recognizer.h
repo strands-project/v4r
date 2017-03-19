@@ -33,6 +33,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <v4r/core/macros.h>
+#include <v4r/common/normal_estimator.h>
 #include <v4r/common/pcl_serialization.h>
 #include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/features/global_estimator.h>
@@ -299,6 +300,8 @@ private:
 
     GlobalObjectModelDatabase gomdb_;   ///< database used for global recognition
 
+    typename NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
+
     std::vector<std::string> id_to_model_name_; ///< which target label (target id = vector element id) of the classifier corresponds to which object model
 
     std::vector<typename ObjectHypothesis<PointT>::Ptr> obj_hyps_filtered_; ///<  extracted object hypotheses after running through (potential) filter
@@ -466,6 +469,18 @@ public:
     {
         vis_param_ = vis_param;
     }
+
+
+    /**
+     * @brief setNormalEstimator sets the normal estimator used for computing surface normals (currently only used at training)
+     * @param normal_estimator
+     */
+    void
+    setNormalEstimator(const typename NormalEstimator<PointT>::Ptr &normal_estimator)
+    {
+        normal_estimator_ = normal_estimator;
+    }
+
 
     typedef boost::shared_ptr< GlobalRecognizer<PointT> > Ptr;
     typedef boost::shared_ptr< GlobalRecognizer<PointT> const> ConstPtr;
