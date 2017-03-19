@@ -127,6 +127,9 @@ public:
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > model_poses_; ///< model poses (from all views)
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > eigen_based_pose_; ///< poses (from all views) that transform view such that principial axis correspond to x,y and z axis
 
+    // for OURCVFH
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > descriptor_transforms_;
+
     GlobalObjectModel() :
         mean_distance_view_centroid_to_3d_model_centroid_(0.f)
     {}
@@ -140,6 +143,7 @@ public:
            & model_poses_
            & eigen_based_pose_
            & mean_distance_view_centroid_to_3d_model_centroid_
+           & descriptor_transforms_
          ;
         (void) version;
     }
@@ -312,12 +316,15 @@ private:
     typename GlobalEstimator<PointT>::Ptr estimator_; ///< estimator used for describing the object
     Classifier::Ptr classifier_; ///< classifier object
 
-    bool featureEncoding(Eigen::MatrixXf &signatures);
-    void featureMatching(const Eigen::MatrixXf &query_sig);
+    void featureEncodingAndMatching();
 
     bool keep_all_hypotheses_;
 
     PCLVisualizationParams::ConstPtr vis_param_;
+
+    void
+    validate() const;
+
 
 public:
     GlobalRecognizer(const GlobalRecognizerParameter &p = GlobalRecognizerParameter()) :

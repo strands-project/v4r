@@ -22,11 +22,21 @@
 namespace v4r
 {
 
+
+template<typename PointT>
+void
+GlobalRecognizer<PointT>::validate() const
+{
+    CHECK ( m_db_ );
+    CHECK ( estimator_ );
+    CHECK (  estimator_->getFeatureType() != FeatureType::OURCVFH || classifier_->getType() == ClassifierType::KNN ) << "OurCVFH needs to obtain best training view - therefore only available in combination with nearest neighbor search";
+
+}
+
 template<typename PointT>
 bool
 GlobalRecognizer<PointT>::featureEncoding(Eigen::MatrixXf &signature)
 {
-    CHECK(estimator_);
     estimator_->setInputCloud(scene_);
     estimator_->setNormals(scene_normals_);
 
@@ -40,8 +50,7 @@ template<typename PointT>
 void
 GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrain)
 {
-    CHECK(estimator_);
-    CHECK(m_db_);
+    validate();
 
     Eigen::MatrixXf all_model_signatures; ///< all signatures extracted from all objects in the model database
     Eigen::VectorXi all_trained_model_labels; ///< target label for each model signature
@@ -167,20 +176,35 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
                     cluster_.reset ( new Cluster(*scene_, indices) );
 
                     Eigen::MatrixXf signature_tmp;
-                    if (!featureEncoding(signature_tmp))
-                        continue;
+                    estimator_->setInputCloud(scene_);
+                    estimator_->setNormals(scene_normals_);
 
-                    CHECK (signature_tmp.rows() == 1);
+                    if( !cluster_->indices_.empty() )
+                        estimator_->setIndices(cluster_->indices_);
 
-                    gom->model_poses_.push_back(pose);
-                    gom->model_signatures_.conservativeResize( gom->model_elongations_.rows() + signature_tmp.rows(), signature_tmp.cols());
+                    estimator_->compute(signature_tmp);
+
+                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > model_poses_tmp (signature_tmp.rows(), pose);
+                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > eigen_based_pose_tmp (signature_tmp.rows(), cluster_->eigen_pose_alignment_);
+
+                    gom->model_poses_.insert( gom->model_poses_.end(), model_poses_tmp.begin(), model_poses_tmp.end() );
+                    gom->eigen_based_pose_.insert( gom->eigen_based_pose_.end(), eigen_based_pose_tmp.begin(), eigen_based_pose_tmp.end() );
+
+                    gom->model_elongations_.conservativeResize( gom->model_elongations_.rows() + signature_tmp.rows(), 3);
+                    gom->model_elongations_.bottomRows( signature_tmp.rows() ) = cluster_->elongation_.transpose().replicate(signature_tmp.rows(), 1);
+
+                    gom->model_centroids_.conservativeResize( gom->model_centroids_.rows() + signature_tmp.rows(), 4);
+                    gom->model_centroids_.bottomRows( signature_tmp.rows() ) = cluster_->centroid_.transpose().replicate(signature_tmp.rows(), 1);
+
+                    gom->model_signatures_.conservativeResize( gom->model_signatures_.rows() + signature_tmp.rows(), signature_tmp.cols());
                     gom->model_signatures_.bottomRows( signature_tmp.rows() ) = signature_tmp;
-                    gom->model_elongations_.conservativeResize( gom->model_elongations_.rows() + 1, 3);
-                    gom->model_centroids_.conservativeResize( gom->model_centroids_.rows() + 1, 4);
 
-                    gom->eigen_based_pose_.push_back( cluster_->eigen_pose_alignment_ );
-                    gom->model_centroids_.bottomRows(1) = cluster_->centroid_.transpose();
-                    gom->model_elongations_.bottomRows(1) = cluster_->elongation_.transpose();
+
+                    // for OUR-CVFH
+                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > descriptor_transforms = estimator_->getTransforms( );
+
+                    if(!descriptor_transforms.empty() )
+                        gom->descriptor_transforms_.insert(gom->descriptor_transforms_.end(), descriptor_transforms.begin(), descriptor_transforms.end() );
                 }
                 else
                     LOG(INFO) << "Ignoring view " << tv->filename_ << " because a similar camera pose exists.";
@@ -245,13 +269,98 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
 
 template<typename PointT>
 void
-GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
+GlobalRecognizer<PointT>::featureMatching(  )
 {
+    Eigen::MatrixXf query_sig;
+
+    estimator_->setInputCloud(scene_);
+    estimator_->setNormals(scene_normals_);
+
+    if( !cluster_->indices_.empty() )
+        estimator_->setIndices(cluster_->indices_);
+
+    estimator_->compute(query_sig);
+
     if(query_sig.cols() == 0 || query_sig.rows() == 0)
         return;
 
+
     Eigen::MatrixXi predicted_label;
     classifier_->predict(query_sig, predicted_label);
+
+
+    // check if OURCVFH
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > descriptor_transforms = estimator_->getTransforms( );
+
+    if( !descriptor_transforms.empty() ) // this will be true for OURCVFH - we can compute the object pose using SGURF
+    {
+        Eigen::MatrixXi knn_indices;
+        Eigen::MatrixXf knn_distances;
+        classifier_->getTrainingSampleIDSforPredictions(knn_indices, knn_distances);
+
+        obj_hyps_filtered_.resize( predicted_label.rows() * predicted_label.cols() );
+        for(int query_id=0; query_id<predicted_label.rows(); query_id++)
+        {
+            for (int k = 0; k < predicted_label.cols(); k++)
+            {
+                const GlobalObjectModelDatabase::flann_model &f = gomdb_.flann_models_ [ knn_indices( query_id, k ) ];
+                const size_t view_id = f.view_id_;
+                auto it = gomdb_.global_models_.find( f.instance_name_ );
+                CHECK( it != gomdb_.global_models_.end() ) << "could not find model " << f.instance_name_ << ". There was something wrong with the model initialiazation. Maybe retraining the database helps.";
+                GlobalObjectModel::ConstPtr gom = it->second;
+//                gom->descriptor_centroids_[view_id];
+
+                typename ObjectHypothesis<PointT>::Ptr oh( new ObjectHypothesis<PointT>);
+                oh->model_id_ = f.instance_name_;
+                oh->class_id_ = f.class_name_;
+                oh->transform_ = 1.f * descriptor_transforms[query_id].inverse() * gom->descriptor_transforms_[view_id] * gom->model_poses_[view_id].inverse();
+                obj_hyps_filtered_[query_id*predicted_label.cols()+k] = oh;
+
+#ifdef _VISUALIZE_
+                pcl::visualization::PCLVisualizer vis;
+                int vp1, vp2, vp3, vp4, vp5, vp6;
+                vis.createViewPort(0,0,0.33,0.5,vp1);
+                vis.createViewPort(0.33,0,0.66,0.5,vp2);
+                vis.createViewPort(0.66,0,1,0.5,vp3);
+                vis.createViewPort(0,0.5,0.33,1,vp4);
+                vis.createViewPort(0.33,0.5,0.66,1,vp5);
+                vis.createViewPort(0.66,0.5,1,1,vp6);
+                vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp1);
+                vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp2);
+                vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp3);
+                vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp4);
+                vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp5);
+                vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp6);
+                typename pcl::PointCloud<PointT>::Ptr cluster (new pcl::PointCloud<PointT>);
+                typename pcl::PointCloud<PointT>::Ptr cluster_aligned (new pcl::PointCloud<PointT>);
+
+                typename pcl::PointCloud<PointT>::Ptr model_view (new pcl::PointCloud<PointT>);
+                typename pcl::PointCloud<PointT>::Ptr model_aligned (new pcl::PointCloud<PointT>);
+                pcl::copyPointCloud(*scene_, cluster_->indices_, *cluster);
+                vis.addPointCloud(cluster, "cluster", vp1);
+                vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "cluster_co", vp1);
+                pcl::transformPointCloud(*cluster, *cluster_aligned, descriptor_transforms[query_id]);
+                vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "cluster_aligned_co", vp2);
+                vis.addPointCloud(cluster_aligned, "cluster_aligned", vp2);
+
+                bool found_model;
+                typename Model<PointT>::ConstPtr m = m_db_->getModelById(f.class_name_, f.instance_name_, found_model);
+                typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(3);
+                vis.addPointCloud(model_cloud, "model", vp4);
+                vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "model", vp4);
+                vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "model_view", vp5);
+                vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "model_aligned", vp6);
+                pcl::transformPointCloud(*model_cloud, *model_view, gom->model_poses_[view_id].inverse());
+                vis.addPointCloud(model_view, "model_view", vp5);
+                pcl::transformPointCloud(*model_view, *model_aligned, gom->descriptor_transforms_[view_id]);
+                vis.addPointCloud(model_aligned, "model_aligned", vp6);
+                vis.spin();
+#endif
+            }
+        }
+        return;
+    }
+
 
     if( !param_.estimate_pose_ )
     {
@@ -264,9 +373,10 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                 const std::string &model_name = id_to_model_name_[lbl];
                 const std::string &class_name = "";
 
-                obj_hyps_filtered_[query_id*predicted_label.cols()+k].reset( new ObjectHypothesis<PointT>);
-                obj_hyps_filtered_[query_id*predicted_label.cols()+k]->model_id_ = model_name;
-                obj_hyps_filtered_[query_id*predicted_label.cols()+k]->class_id_ = class_name;
+                typename ObjectHypothesis<PointT>::Ptr oh( new ObjectHypothesis<PointT>);
+                oh->model_id_ = model_name;
+                oh->class_id_ = class_name;
+                obj_hyps_filtered_[query_id*predicted_label.cols()+k] = oh;
             }
         }
     }
@@ -353,13 +463,8 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                     tf_om_shift2origin.block<3,1>(0,3) = -m->centroid_.head(3);
 
                     // move model such that no point is below z=0
-                    Eigen::Vector4f min3d, max3d;
-                    typename pcl::PointCloud<PointT>::Ptr model_shifted (new pcl::PointCloud<PointT>);
-                    typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(5);
-                    pcl::transformPointCloud(*model_cloud, *model_shifted, tf_om_shift2origin);
-                    pcl::getMinMax3D(*model_shifted, min3d, max3d); ///TODO: Do this computation during initialization
                     Eigen::Matrix4f tf_om_shift2origin2 = Eigen::Matrix4f::Identity();
-                    tf_om_shift2origin2(2,3) = -min3d(2);
+                    tf_om_shift2origin2(2,3) = -(m->minPoint_(2)-m->centroid_(2));
 
                     // align origin with downprojected cluster centroid
                     float centroid_correction = gom->mean_distance_view_centroid_to_3d_model_centroid_;
@@ -398,6 +503,10 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                     vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp7);
                     vis.setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp8);
 
+
+                    typename pcl::PointCloud<PointT>::Ptr model_shifted (new pcl::PointCloud<PointT>);
+                    typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(5);
+
                     typename pcl::PointCloud<PointT>::Ptr model_shifted2 (new pcl::PointCloud<PointT>);
                     vis.addPointCloud(model_cloud, "original", vp1);
                     vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "original2", vp1);
@@ -414,6 +523,8 @@ GlobalRecognizer<PointT>::featureMatching( const Eigen::MatrixXf &query_sig )
                         correction_txt << "origin aligned with downprojected cluster centroid corrected by " << (int)(1000.f*centroid_correction) << " mm.";
                         vis.addText(correction_txt.str(), 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "origin aligned with shifted downprojected cluster centroid", vp8);
                     }
+
+                    pcl::transformPointCloud(*model_cloud, *model_shifted, tf_om_shift2origin);
                     vis.addPointCloud(model_shifted, "shifted", vp2);
                     vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, "shifted_co", vp2);
 
@@ -594,9 +705,7 @@ GlobalRecognizer<PointT>::recognize()
 
     obj_hyps_filtered_.clear();
     all_obj_hyps_.clear();
-    Eigen::MatrixXf signature_tmp;
-    featureEncoding( signature_tmp );
-    featureMatching( signature_tmp );
+    featureMatching(  );
     cluster_.reset();
 }
 
