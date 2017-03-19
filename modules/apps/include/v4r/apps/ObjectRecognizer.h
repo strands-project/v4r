@@ -186,6 +186,8 @@ private:
 
     ObjectRecognizerParameter param_;
 
+    Camera::Ptr camera_;
+
     typename Source<PointT>::Ptr model_database_;
 
     void refinePose(const typename pcl::PointCloud<PointT>::ConstPtr &scene);   ///< does ICP on the generated object hypotheses to refine their pose

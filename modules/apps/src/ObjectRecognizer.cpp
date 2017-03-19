@@ -130,11 +130,11 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
     // ====== DEFINE CAMERA =======
-    Camera::Ptr xtion (new Camera(param_.camera_config_xml_) );
+    camera_.reset (new Camera(param_.camera_config_xml_) );
 
     cv::Mat_<uchar> img_mask = cv::imread(param_.depth_img_mask_, CV_LOAD_IMAGE_GRAYSCALE);
     if( img_mask.data )
-        xtion->setCameraDepthRegistrationMask( img_mask );
+        camera_->setCameraDepthRegistrationMask( img_mask );
     else
         LOG(WARNING) << "No camera depth registration mask provided. Assuming all pixels have valid depth.";
 
@@ -262,7 +262,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     {
         // ====== SETUP HYPOTHESES VERIFICATION =====
         HV_Parameter paramHV (param_.hv_config_xml_);
-        hv_.reset (new HypothesisVerification<PointT, PointT> (xtion, paramHV) );
+        hv_.reset (new HypothesisVerification<PointT, PointT> (camera_, paramHV) );
 
         if( visualize_hv_go_cues )
             hv_->visualizeCues(vis_param);
