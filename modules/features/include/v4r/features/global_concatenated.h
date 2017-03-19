@@ -128,14 +128,19 @@ class V4R_EXPORTS GlobalConcatEstimator : public GlobalEstimator<PointT>
 private:
     using GlobalEstimator<PointT>::indices_;
     using GlobalEstimator<PointT>::cloud_;
+    using GlobalEstimator<PointT>::normals_;
     using GlobalEstimator<PointT>::descr_name_;
     using GlobalEstimator<PointT>::descr_type_;
     using GlobalEstimator<PointT>::feature_dimensions_;
+    using GlobalEstimator<PointT>::transforms_;
+
+    bool need_normals_;
 
     GlobalConcatEstimatorParameter param_;
 
 public:
     GlobalConcatEstimator( const GlobalConcatEstimatorParameter &p = GlobalConcatEstimatorParameter() ):
+        need_normals_ (false),
         param_(p)
     {
         descr_name_ = "global";
