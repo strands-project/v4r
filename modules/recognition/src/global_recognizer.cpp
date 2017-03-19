@@ -29,21 +29,8 @@ GlobalRecognizer<PointT>::validate() const
 {
     CHECK ( m_db_ );
     CHECK ( estimator_ );
-    CHECK (  estimator_->getFeatureType() != FeatureType::OURCVFH || classifier_->getType() == ClassifierType::KNN ) << "OurCVFH needs to obtain best training view - therefore only available in combination with nearest neighbor search";
-
-}
-
-template<typename PointT>
-bool
-GlobalRecognizer<PointT>::featureEncoding(Eigen::MatrixXf &signature)
-{
-    estimator_->setInputCloud(scene_);
-    estimator_->setNormals(scene_normals_);
-
-    if( !cluster_->indices_.empty() )
-        estimator_->setIndices(cluster_->indices_);
-
-    return estimator_->compute(signature);
+    CHECK ( estimator_->getFeatureType() != FeatureType::OURCVFH || classifier_->getType() == ClassifierType::KNN ) << "OurCVFH needs to obtain best training view - therefore only available in combination with nearest neighbor search";
+    CHECK ( classifier_->getType() == ClassifierType::KNN || param_.use_table_plane_for_alignment_ || !param_.estimate_pose_);
 }
 
 template<typename PointT>
@@ -86,6 +73,15 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
             target_id = id_to_model_name_.size();
             id_to_model_name_.push_back( label_name );
         }
+
+#ifdef _VISUALIZE_
+        pcl::visualization::PCLVisualizer vis;
+        int vp1, vp2;
+        vis.createViewPort(0,0,.5,1,vp1);
+        vis.createViewPort(0.5,0,1,1,vp2);
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(3);
+        vis.addPointCloud(model_cloud, "model", vp1);
+#endif
 
 
         GlobalObjectModel::Ptr gom (new GlobalObjectModel );
@@ -144,8 +140,7 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
                 if ( !scene_normals_ && this->needNormals() )
                 {
                     normal_estimator_->setInputCloud( scene_ );
-                    pcl::PointCloud<pcl::Normal>::Ptr normals;
-                    normals = normal_estimator_->compute();
+                    pcl::PointCloud<pcl::Normal>::Ptr normals = normal_estimator_->compute();
                     scene_normals_ = normals;
                 }
 
@@ -175,13 +170,13 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
                 {
                     cluster_.reset ( new Cluster(*scene_, indices) );
 
-                    Eigen::MatrixXf signature_tmp;
                     estimator_->setInputCloud(scene_);
                     estimator_->setNormals(scene_normals_);
 
                     if( !cluster_->indices_.empty() )
                         estimator_->setIndices(cluster_->indices_);
 
+                    Eigen::MatrixXf signature_tmp;
                     estimator_->compute(signature_tmp);
 
                     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > model_poses_tmp (signature_tmp.rows(), pose);
@@ -201,10 +196,32 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
 
 
                     // for OUR-CVFH
-                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > descriptor_transforms = estimator_->getTransforms( );
-
-                    if(!descriptor_transforms.empty() )
-                        gom->descriptor_transforms_.insert(gom->descriptor_transforms_.end(), descriptor_transforms.begin(), descriptor_transforms.end() );
+                    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > descriptor_transforms = estimator_->getTransforms( );gom->descriptor_transforms_.insert(gom->descriptor_transforms_.end(), descriptor_transforms.begin(), descriptor_transforms.end() );
+#ifdef _VISUALIZE_
+                    for(const Eigen::Matrix4f &tf : descriptor_transforms)
+                    {
+                        Eigen::Matrix4f tf_inv = tf.inverse();
+                        {
+                        Eigen::Matrix4f transf = pose * tf_inv;
+                        Eigen::Matrix3f rot_tmp  = transf.block<3,3>(0,0);
+                        Eigen::Vector3f trans_tmp = transf.block<3,1>(0,3);
+                        Eigen::Affine3f affine_trans;
+                        affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+                        std::stringstream co_id; co_id << tf;
+                        vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, affine_trans, co_id.str(), vp1);
+                        }
+                        {
+                        Eigen::Matrix4f transf = tf_inv;
+                        Eigen::Matrix3f rot_tmp  = transf.block<3,3>(0,0);
+                        Eigen::Vector3f trans_tmp = transf.block<3,1>(0,3);
+                        Eigen::Affine3f affine_trans;
+                        affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+                        std::stringstream co_id; co_id << tf<<"vp2";
+                        vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, affine_trans, co_id.str(), vp2);
+                        }
+                        vis.spin();
+                    }
+#endif
                 }
                 else
                     LOG(INFO) << "Ignoring view " << tv->filename_ << " because a similar camera pose exists.";
@@ -215,14 +232,24 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
                 scene_normals_.reset();
             }
 
+
+#ifdef _VISUALIZE_
+                    vis.removeAllPointClouds(vp2);
+                    vis.addPointCloud(scene_, "training_view", vp2);
+            vis.spin();
+#endif
+
             CHECK( (gom->model_elongations_.rows() == gom->model_centroids_.rows()) &&
                    (gom->model_elongations_.rows() == gom->model_signatures_.rows())     );
 
+
+            // compute the average discrepancy between the centroid computed on the whole 3D model to the centroid computed on individual 2.5D training views.
+            // Can be used later to compensate object's pose translation component.
             Eigen::VectorXf view_centroid_to_3d_model_centroid (gom->model_centroids_.rows());
             for(int view_id=0; view_id < gom->model_centroids_.rows(); view_id++)
             {
-                const Eigen::Vector4f view_centroid = gom->model_centroids_.row(view_id).transpose();
-                const Eigen::Vector4f view_centroid_aligned = gom->model_poses_[view_id] * view_centroid;
+                const Eigen::Vector4f &view_centroid = gom->model_centroids_.row(view_id).transpose();
+                const Eigen::Vector4f &view_centroid_aligned = gom->model_poses_[view_id] * view_centroid;
 
                 view_centroid_to_3d_model_centroid(view_id) = (view_centroid_aligned - m->centroid_).head(3).norm();
             }
@@ -242,7 +269,7 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
 
         gomdb_.global_models_[ m->id_ ] = gom;
 
-        if( gom->model_signatures_.rows() > 0 )
+        if( gom->model_signatures_.rows() )
         {
             all_model_signatures.conservativeResize(all_model_signatures.rows() + gom->model_signatures_.rows(), gom->model_signatures_.cols());
             all_model_signatures.bottomRows( gom->model_signatures_.rows() ) = gom->model_signatures_;
@@ -269,7 +296,7 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
 
 template<typename PointT>
 void
-GlobalRecognizer<PointT>::featureMatching(  )
+GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
 {
     Eigen::MatrixXf query_sig;
 
@@ -280,19 +307,37 @@ GlobalRecognizer<PointT>::featureMatching(  )
         estimator_->setIndices(cluster_->indices_);
 
     estimator_->compute(query_sig);
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > descriptor_transforms = estimator_->getTransforms( );
 
-    if(query_sig.cols() == 0 || query_sig.rows() == 0)
+    if( query_sig.cols() == 0 || query_sig.rows() == 0)
+    {
+        LOG(ERROR) << "No signature computed for input cluster!";
         return;
-
+    }
 
     Eigen::MatrixXi predicted_label;
     classifier_->predict(query_sig, predicted_label);
 
+    if( !param_.estimate_pose_ )
+    {
+        obj_hyps_filtered_.resize( predicted_label.rows() * predicted_label.cols() );
+        for(int query_id=0; query_id<predicted_label.rows(); query_id++)
+        {
+            for (int k = 0; k < predicted_label.cols(); k++)
+            {
+                int lbl = predicted_label(query_id, k);
+                const std::string &model_name = id_to_model_name_[lbl];
+                const std::string &class_name = "";
 
-    // check if OURCVFH
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > descriptor_transforms = estimator_->getTransforms( );
-
-    if( !descriptor_transforms.empty() ) // this will be true for OURCVFH - we can compute the object pose using SGURF
+                typename ObjectHypothesis<PointT>::Ptr oh( new ObjectHypothesis<PointT>);
+                oh->model_id_ = model_name;
+                oh->class_id_ = class_name;
+                obj_hyps_filtered_[query_id*predicted_label.cols()+k] = oh;
+            }
+        }
+        return;
+    }
+    else if( !descriptor_transforms.empty() ) // this will be true for OURCVFH - we can estimate the object pose from the computed SGURF (semi-global unique reference frame)
     {
         Eigen::MatrixXi knn_indices;
         Eigen::MatrixXf knn_distances;
@@ -307,8 +352,8 @@ GlobalRecognizer<PointT>::featureMatching(  )
                 const size_t view_id = f.view_id_;
                 auto it = gomdb_.global_models_.find( f.instance_name_ );
                 CHECK( it != gomdb_.global_models_.end() ) << "could not find model " << f.instance_name_ << ". There was something wrong with the model initialiazation. Maybe retraining the database helps.";
-                GlobalObjectModel::ConstPtr gom = it->second;
-//                gom->descriptor_centroids_[view_id];
+
+                const GlobalObjectModel::ConstPtr &gom = it->second;
 
                 typename ObjectHypothesis<PointT>::Ptr oh( new ObjectHypothesis<PointT>);
                 oh->model_id_ = f.instance_name_;
@@ -360,35 +405,14 @@ GlobalRecognizer<PointT>::featureMatching(  )
         }
         return;
     }
-
-
-    if( !param_.estimate_pose_ )
+    else    // estimate pose using some prior assumptions
     {
-        obj_hyps_filtered_.resize( predicted_label.rows() * predicted_label.cols() );
-        for(int query_id=0; query_id<predicted_label.rows(); query_id++)
-        {
-            for (int k = 0; k < predicted_label.cols(); k++)
-            {
-                int lbl = predicted_label(query_id, k);
-                const std::string &model_name = id_to_model_name_[lbl];
-                const std::string &class_name = "";
-
-                typename ObjectHypothesis<PointT>::Ptr oh( new ObjectHypothesis<PointT>);
-                oh->model_id_ = model_name;
-                oh->class_id_ = class_name;
-                obj_hyps_filtered_[query_id*predicted_label.cols()+k] = oh;
-            }
-        }
-    }
-    else    // estimate pose
-    {
-        CHECK( classifier_->getType() == ClassifierType::KNN || param_.use_table_plane_for_alignment_);
         CHECK( !param_.use_table_plane_for_alignment_ ||
                (param_.use_table_plane_for_alignment_ && cluster_->isTablePlaneSet() ) ) << "Selected to use table plane for pose alignment but table plane has not been set! " << std::endl;
 
         Eigen::Matrix4f tf_rot = Eigen::Matrix4f::Identity();
 
-        if( param_.use_table_plane_for_alignment_ )   // we do not need to know the closest training view
+        if( param_.use_table_plane_for_alignment_ )   // rotate cluster such that the surface normal of the planar support is aligned with the z-axis. We do not need to know the closest training view.
         {
             // create some arbitrary coordinate system on table plane (s.t. normal corresponds to z axis, and others are orthonormal)
             Eigen::Vector3f vec_z = cluster_->table_plane_.topRows(3);
@@ -705,7 +729,7 @@ GlobalRecognizer<PointT>::recognize()
 
     obj_hyps_filtered_.clear();
     all_obj_hyps_.clear();
-    featureMatching(  );
+    featureEncodingAndMatching(  );
     cluster_.reset();
 }
 
