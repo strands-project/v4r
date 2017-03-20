@@ -30,7 +30,9 @@ GlobalConcatEstimator<PointT>::GlobalConcatEstimator(
     }
     if(param_.feature_type & FeatureType::GLOBAL_COLOR)
     {
-        color_estimator_.reset( new GlobalColorEstimator<PointT> );
+        GlobalColorEstimatorParameter color_param;
+        color_param.init(boost_command_line_arguments);
+        color_estimator_.reset( new GlobalColorEstimator<PointT>(color_param) );
         descr_name_ += "_" + color_estimator_->getFeatureDescriptorName();
         feature_dimensions_ += color_estimator_->getFeatureDimensions();
         need_normals_ |= color_estimator_->needNormals();
