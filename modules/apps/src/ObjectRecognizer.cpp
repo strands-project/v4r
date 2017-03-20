@@ -235,7 +235,9 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             {
                     GlobalConcatEstimatorParameter p;
                     p.feature_type = param_.global_feature_types_[global_pipeline_id];
-                    typename GlobalConcatEstimator<PointT>::Ptr global_concat_estimator (new GlobalConcatEstimator<PointT>(p));
+                    typename GlobalConcatEstimator<PointT>::Ptr global_concat_estimator (new GlobalConcatEstimator<PointT>(to_pass_further, p));
+
+//                    typename OURCVFHEstimator<PointT>::Ptr ourcvfh_estimator (new OURCVFHEstimator<PointT>);
                     Classifier::Ptr classifier = initClassifier( param_.classification_methods_[global_pipeline_id], to_pass_further);
 
                     GlobalRecognizerParameter global_rec_param ( param_.global_recognition_pipeline_config_[global_pipeline_id] );
