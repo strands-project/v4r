@@ -31,7 +31,7 @@ computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXi &histogram, size_
 {
     float bin_size = (max-min) / bins;
     int num_dim = data.cols();
-    histogram = Eigen::MatrixXi::Zero (bins, num_dim);
+    histogram = Eigen::MatrixXi::Zero (num_dim, bins);
 
     for (int dim = 0; dim < num_dim; dim++)
     {
@@ -44,14 +44,8 @@ computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXi &histogram, size_
         {
             int pos = std::max<int>(0, std::min<int>( bins-1, std::floor( (data(j,dim) - min) / bin_size) ) );
 
-            if(pos < 0)
-                pos = 0;
-
-            if(pos > (int)bins)
-                pos = bins - 1;
-
             omp_set_lock(&bin_lock[pos]);
-            histogram(pos,dim)++;
+            histogram(dim, pos)++;
             omp_unset_lock(&bin_lock[pos]);
         }
 
