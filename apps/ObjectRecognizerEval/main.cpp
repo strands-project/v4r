@@ -126,6 +126,12 @@ main (int argc, char ** argv)
             of_param << std::endl;
             v4r::io::copyDir("cfg", out_dir_eval+"/cfg");
 
+            // save other parameters
+            std::ofstream param_f(out_dir_eval + "/param.txt");
+            for(const std::string &s : to_pass_further_tmp)
+                param_f << s << " ";
+            param_f.close();
+
             if( getValue("cfg/multipipeline_config.xml", "do_shot_") == "1"
                     && getValue("cfg/multipipeline_config.xml", "shot_keypoint_extractor_method_") == "1"
                     && getValue("cfg/shot_config.xml", "filter_planar_") == "0"
