@@ -121,7 +121,10 @@ main (int argc, char ** argv)
             for(const XMLChange &chg : eval_changes)
             {
                 editXML( chg );
-                of_param << chg.xml_filename_ << " " << chg.node_name_ << " " << chg.value_ << std::endl;
+                of_param << chg.xml_filename_ << " " << chg.node_name_ << " ";
+                for(const std::string &val : chg.values_)
+                    of_param << val << " ";
+                of_param << std::endl;
             }
             of_param << std::endl;
             v4r::io::copyDir("cfg", out_dir_eval+"/cfg");
