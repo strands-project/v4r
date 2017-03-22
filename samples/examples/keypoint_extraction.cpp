@@ -127,12 +127,12 @@ main (int argc, char ** argv)
             cloud->sensor_origin_ = Eigen::Vector4f::Zero();
             cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
 
-            pcl::PassThrough<PointT> pass;
-            pass.setInputCloud (cloud);
-            pass.setFilterFieldName ("z");
-            pass.setFilterLimits (0, chop_z);
-            pass.setKeepOrganized(true);
-            pass.filter (*cloud);
+            // ==== FILTER POINTS BASED ON DISTANCE =====
+            for(PointT &p : cloud->points)
+            {
+                if (pcl::isFinite(p) && p.getVector3fMap().norm() > chop_z)
+                    p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+            }
 
             pcl::PointCloud<pcl::Normal>::Ptr normals ( new pcl::PointCloud<pcl::Normal> );
 
