@@ -60,7 +60,6 @@ editXML(const std::string &xml_filename, const std::string &node_name, const std
                 std::getline(xml_f, line);
                 int delimiter = line.find('>');
                 count = std::stoi( line.substr( delimiter + 1, line.find('</') - delimiter - 2));
-                std::cout << count << std::endl;
                 xml_tmp << "<count>" << values.size() << "</count>" << std::endl;
 
                 // ignore next (version) line
