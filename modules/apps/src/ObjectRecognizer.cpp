@@ -330,12 +330,11 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====
-    pcl::PassThrough<PointT> pass;
-    pass.setInputCloud (processed_cloud);
-    pass.setFilterFieldName ("z");
-    pass.setFilterLimits (0, param_.chop_z_);
-    pass.setKeepOrganized(true);
-    pass.filter (*processed_cloud);
+    for(PointT &p : processed_cloud->points)
+    {
+        if (pcl::isFinite(p) && p.getVector3fMap().norm() > param_.chop_z_)
+            p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+    }
 
     {
         pcl::ScopeTime t("Generation of object hypotheses");

@@ -233,7 +233,7 @@ LocalFeatureMatcher<PointT>::extractKeypoints (const std::vector<int> &region_of
         {
             if(     obj_mask[idx] && pcl::isFinite( scene_->points[idx] ) &&
                     ( !estimator_need_normals || pcl::isFinite(scene_normals_->points[idx]))
-                    && scene_->points[idx].z < param_.max_keypoint_distance_z_ )
+                    && scene_->points[idx].getVector3fMap().norm() < param_.max_keypoint_distance_z_ )
             {
                 kp_mask.set( idx );
             }
