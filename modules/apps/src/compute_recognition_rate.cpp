@@ -10,7 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 #include <algorithm>    // std::next_permutation, std::sort
-
+#include <glog/logging.h>
 
 namespace po = boost::program_options;
 
@@ -265,6 +265,77 @@ RecognitionEvaluator::readHypothesesFromFile( const std::string &filename )
     return hypotheses;
 }
 
+void
+RecognitionEvaluator::visualizeResults(const typename pcl::PointCloud<PointT>::Ptr &input_cloud, const bf::path & gt_path, const bf::path &recognition_results_path)
+{
+    std::map<std::string, std::vector<Hypothesis> > gt_hyps = readHypothesesFromFile( gt_path.string() );
+    std::map<std::string, std::vector<Hypothesis> > rec_hyps = readHypothesesFromFile( recognition_results_path.string() );
+
+    static pcl::visualization::PCLVisualizer::Ptr vis;
+    static int vp1, vp2, vp3;
+    if(!vis)
+    {
+        vis.reset (new pcl::visualization::PCLVisualizer ("results"));
+        vis->createViewPort(0, 0, 1, 0.33, vp1);
+        vis->createViewPort(0, 0.33, 1, 0.66, vp2);
+        vis->createViewPort(0, 0.66, 1, 1, vp3);
+    }
+
+    vis->removeAllPointClouds();
+    vis->removeAllShapes();
+#if PCL_VERSION >= 100800
+    vis->removeAllCoordinateSystems();
+#endif
+
+    input_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+    input_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+    vis->addPointCloud(input_cloud, "scene", vp1);
+    vis->addText("scene", 10, 10, 14, 1., 1., 1., "scene", vp1);
+    vis->addText("ground-truth", 10, 10, 14, 1., 1., 1., "gt", vp2);
+    vis->addText("recognition results", 10, 10, 14, 1., 1., 1., "rec", vp3);
+
+    pcl::visualization::PointCloudColorHandlerCustom<PointT> gray (input_cloud, 255, 255, 255);
+    vis->addPointCloud(input_cloud, gray, "input_vp2", vp2);
+    vis->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp2");
+    vis->addPointCloud(input_cloud, gray, "input_vp3", vp3);
+    vis->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp3");
+
+
+    for( const auto &m : models )
+    {
+
+        auto it = rec_hyps.find( m.first );
+        if ( it != rec_hyps.end() )
+        {
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
+            size_t counter = 0;
+            for( const Hypothesis &hyp_vis : it->second )
+            {
+                typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
+                pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
+                std::stringstream unique_id; unique_id << "rec_" << m.first << "_" << counter++;
+                vis->addPointCloud(model_aligned, unique_id.str(), vp3);
+            }
+        }
+
+        it = gt_hyps.find( m.first );
+        if ( it != gt_hyps.end() )
+        {
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
+            size_t counter = 0;
+            for( const Hypothesis &hyp_vis : it->second )
+            {
+                typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
+                pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
+                std::stringstream unique_id; unique_id << "gt_" << m.first << "_" << counter++;
+                vis->addPointCloud(model_aligned, unique_id.str(), vp2);
+            }
+        }
+    }
+
+    vis->spin();
+
+}
 
 void
 RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_fp, size_t &total_fn)
@@ -378,7 +449,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             sum_translation_error_view += sum_translation_error_tmp;
             sum_rotational_error_view += sum_rotational_error_tmp;
 
-            if(visualize)
+            if(visualize_)
             {
                 if(!vis_)
                 {
@@ -453,7 +524,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
         total_fp += fp_view;
         total_fn += fn_view;
 
-        if(visualize)
+        if(visualize_)
         {
             std::string scene_name (anno_file);
             boost::replace_last( scene_name, ".anno", ".pcd");
@@ -543,12 +614,12 @@ void RecognitionEvaluator::setUse_generated_hypotheses(bool value)
 
 bool RecognitionEvaluator::getVisualize() const
 {
-    return visualize;
+    return visualize_;
 }
 
 void RecognitionEvaluator::setVisualize(bool value)
 {
-    visualize = value;
+    visualize_ = value;
 }
 
 std::string RecognitionEvaluator::getOut_dir() const
@@ -595,7 +666,7 @@ RecognitionEvaluator::init(const std::vector<std::string> &params)
             ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored")
             ("trans_thresh", po::value<float>(&translation_error_threshold_m)->default_value(translation_error_threshold_m), "Maximal allowed translational error in metres")
             ("rot_thresh", po::value<float>(&rotation_error_threshold_deg)->default_value(rotation_error_threshold_deg), "Maximal allowed rotational error in degrees (NOT IMPLEMENTED)")
-            ("visualize,v", po::bool_switch(&visualize), "visualize recognition results")
+            ("visualize,v", po::bool_switch(&visualize_), "visualize recognition results")
             ("models_dir,m", po::value<std::string>(&models_dir), "Only for visualization. Root directory containing the model files (i.e. filenames 3D_model.pcd).")
             ("test_dir,t", po::value<std::string>(&test_dir), "Only for visualization. Root directory containing the scene files.")
             ("use_generated_hypotheses", po::bool_switch(&use_generated_hypotheses), "if true, computes recognition rate for all generated hypotheses instead of verified ones.")
@@ -705,7 +776,7 @@ RecognitionEvaluator::checkIndividualHypotheses()
 
     pcl::visualization::PCLVisualizer::Ptr vis;
     int vp1, vp2;
-    if(visualize)
+    if(visualize_)
     {
         vis.reset (new pcl::visualization::PCLVisualizer ("results"));
         vis->createViewPort(0, 0, 1, 0.5, vp1);
@@ -728,7 +799,7 @@ RecognitionEvaluator::checkIndividualHypotheses()
         std::map<std::string, std::vector<Hypothesis> > rec_hyps = readHypothesesFromFile( rec_path.string() );
 
 
-        if(visualize)
+        if(visualize_)
         {
             vis->removeAllPointClouds();
             vis->removeAllShapes(vp1);
@@ -796,7 +867,7 @@ RecognitionEvaluator::checkIndividualHypotheses()
                     }
                 }
 
-                if(visualize)
+                if(visualize_)
                 {
                     vis->removePointCloud("model_cloud", vp2);
                     vis->removeAllShapes(vp2);
@@ -842,6 +913,134 @@ RecognitionEvaluator::checkIndividualHypotheses()
             }
         }
     }
+}
+
+
+Eigen::MatrixXi
+RecognitionEvaluator::compute_confusion_matrix()
+{
+//    std::stringstream description;
+//    description << "Tool to compute object instance recognition rate." << std::endl <<
+//                   "==================================================" << std::endl <<
+//                   "This will generate a text file containing:" << std::endl <<
+//                   "Column 1: occlusion" << std::endl <<
+//                   "Column 2: is recognized" << std::endl <<
+//                   "==================================================" << std::endl <<
+//                   "** Allowed options";
+
+
+    bf::path out_path = out_dir;
+    out_path /= "confusion_matrix.txt";
+
+    v4r::io::createDirForFileIfNotExist( out_path.string() );
+    std::ofstream f( out_path.string() );
+    std::cout << "Writing results to " << out_path.string() << "..." << std::endl;
+
+    std::vector<std::string> annotation_files = v4r::io::getFilesInDirectory( gt_dir, ".*.anno", true );
+
+    Eigen::MatrixXi confusion_matrix = Eigen::MatrixXi::Zero( models.size(), models.size());
+
+    std::map<std::string, int> modelname2modelid;
+    size_t id=0;
+    for(const auto &m:models)
+    {
+        modelname2modelid[m.first] = id;
+//        f << id << ": " << m.first << std::endl;
+        id++;
+    }
+
+    for( const std::string anno_file : annotation_files )
+    {
+        bf::path gt_path = gt_dir;
+        gt_path /= anno_file;
+
+        std::string rec_file = anno_file;
+        if( use_generated_hypotheses )
+            boost::replace_last( rec_file, ".anno", ".generated_hyps");
+
+        bf::path rec_path = or_dir;
+        rec_path /= rec_file;
+
+        if(!v4r::io::existsFile(rec_path.string()))
+        {
+            LOG(WARNING) << "Recognition path " << rec_path.string() << " does not exist!";
+            continue;
+        }
+
+        Eigen::MatrixXi tmp_confusion_matrix = Eigen::MatrixXi::Zero( models.size(), models.size());
+
+        std::map<std::string, std::vector<Hypothesis> > gt_hyps_all_models = readHypothesesFromFile( gt_path.string() );
+        std::map<std::string, std::vector<Hypothesis> > rec_hyps = readHypothesesFromFile( rec_path.string() );
+
+        for(auto const &gt_model_hyps : gt_hyps_all_models)
+        {
+            const std::string &model_name_gt = gt_model_hyps.first;
+            const Model &m = models[ model_name_gt ];
+
+            for(const Hypothesis &h_gt : gt_model_hyps.second)
+            {
+                float occlusion = h_gt.occlusion;
+                float lowest_trans_error = std::numeric_limits<float>::max();
+                std::string best_match = "";
+
+                for(auto const &rec_model_hyps : rec_hyps)
+                {
+                    const std::string &rec_model_name = rec_model_hyps.first;
+                    for (const Hypothesis &h_rec : rec_model_hyps.second)
+                    {
+                        const Eigen::Vector4f centroid_a = h_gt.pose * m.centroid;
+                        const Eigen::Vector4f centroid_b = h_rec.pose * m.centroid;
+
+                        //ignore z
+
+                        float trans_error = (h_gt.pose.block<2,1>(0,3)-h_rec.pose.block<2,1>(0,3)).norm();
+
+                        if(trans_error < lowest_trans_error)
+                        {
+                            best_match = rec_model_name;
+                            lowest_trans_error = trans_error;
+                        }
+                    }
+                }
+
+                if( !best_match.empty() && lowest_trans_error < translation_error_threshold_m)
+                {
+                    tmp_confusion_matrix( modelname2modelid[model_name_gt], modelname2modelid[best_match] ) ++;
+                }
+            }
+        }
+
+        std::cout << tmp_confusion_matrix << std::endl << std::endl
+                  << "view accuracy: " << tmp_confusion_matrix.trace() << " / " <<
+                     tmp_confusion_matrix.sum() << " (" <<
+                     (float)tmp_confusion_matrix.trace() / tmp_confusion_matrix.sum() << ")" << std::endl;
+
+        if(visualize_)
+        {
+            std::string scene_name (anno_file);
+            boost::replace_last( scene_name, ".anno", ".pcd");
+
+            bf::path scene_path = test_dir;
+            scene_path /= scene_name;
+            pcl::PointCloud<PointT>::Ptr scene_cloud (new pcl::PointCloud<PointT>);
+            pcl::io::loadPCDFile( scene_path.string(), *scene_cloud);
+
+            visualizeResults( scene_cloud, gt_path, rec_path);
+        }
+
+        confusion_matrix += tmp_confusion_matrix;
+    }
+
+    std::cout << confusion_matrix << std::endl << std::endl
+              << "view accuracy: " << confusion_matrix.trace() << " / " <<
+                 confusion_matrix.sum() << " (" <<
+                 (float)confusion_matrix.trace() / confusion_matrix.sum() << ")" << std::endl;
+
+    f << confusion_matrix;
+    f.close();
+    std::cout << "Done!" << std::endl;
+
+    return confusion_matrix;
 }
 
 }
