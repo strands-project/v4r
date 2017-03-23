@@ -7,6 +7,11 @@
 #include <sstream>
 #include <fstream>
 
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+#include <boost/filesystem.hpp>
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
+
+namespace bf = boost::filesystem;
 
 namespace v4r
 {
