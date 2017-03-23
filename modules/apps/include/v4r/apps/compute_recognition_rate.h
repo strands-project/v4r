@@ -43,7 +43,7 @@ private:
     std::string or_dir;
     std::string models_dir;
     std::string test_dir;
-    bool visualize;
+    bool visualize_;
     bool use_generated_hypotheses;
 
     pcl::visualization::PCLVisualizer::Ptr vis_;
@@ -63,7 +63,7 @@ public:
           translation_error_threshold_m(0.05f),
           occlusion_threshold(0.95f),
           out_dir("/tmp/recognition_rates/"),
-          visualize(false),
+          visualize_(false),
           use_generated_hypotheses(false)
     {
         rotational_invariant_objects_ = {
@@ -199,6 +199,17 @@ public:
     void setVisualize(bool value);
     std::string getOut_dir() const;
     void setOut_dir(const std::string &value);
+
+    /**
+     * @brief visualize results for an input cloud with ground-truth and recognized object models
+     * @param input_cloud cloud of the input scene
+     * @param gt_path file path to the ground-truth annotation file
+     * @param recognition_results_path file path to the results stored in the format of the annotation file
+     */
+    void
+    visualizeResults(const typename pcl::PointCloud<PointT>::Ptr &input_cloud, const bf::path & gt_path, const bf::path &recognition_results_path);
+
+    Eigen::MatrixXi compute_confusion_matrix();
 };
 
 
