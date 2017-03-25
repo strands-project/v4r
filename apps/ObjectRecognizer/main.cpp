@@ -15,12 +15,12 @@ int
 main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PT;
-    google::InitGoogleLogging(argv[0]);
 
     std::string test_dir;
     std::string out_dir = "/tmp/object_recognition_results/";
     std::string debug_dir = "";
     std::string recognizer_config = "cfg/multipipeline_config.xml";
+    bool verbose = false;
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
@@ -29,6 +29,7 @@ main (int argc, char ** argv)
             ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
             ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
             ("recognizer_config", po::value<std::string>(&recognizer_config)->default_value(recognizer_config), "Config XML of the multi-pipeline recognizer")
+            ("verbose", po::bool_switch(&verbose), "enable verbose logging")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
@@ -37,6 +38,14 @@ main (int argc, char ** argv)
     if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
     try { po::notify(vm); }
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
+
+    if(verbose)
+    {
+        FLAGS_logtostderr = 1;
+        FLAGS_v = 1;
+        std::cout << "Enabling verbose logging." << std::endl;
+    }
+    google::InitGoogleLogging(argv[0]);
 
     v4r::apps::ObjectRecognizerParameter param(recognizer_config);
     v4r::apps::ObjectRecognizer<PT> recognizer (param);
