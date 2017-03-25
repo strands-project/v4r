@@ -14,6 +14,13 @@ template<typename PointT>
 void
 ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<PointT> & rendered_view)
 {
+    if ( param_.use_normals_ && (!cloud_normals_ || cloud_normals_->points.size() != cloud.points.size()) )
+    {
+        LOG(WARNING) << "Parameters set to use normals but normals are not set or do not correspond with "
+                        "input cloud! Will ignore normals!!";
+        param_.use_normals_ = false;
+    }
+
     float cx = cam_->getCx();
     float cy = cam_->getCy();
     float f = cam_->getFocalLength();
@@ -51,6 +58,13 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
             continue;
 
         int idx = v * width + u;
+
+        if(param_.use_normals_)
+        {
+            const Eigen::Vector3f &normal = cloud_normals_->points[i].getNormalVector3fMap();
+            if( normal.dot(pt.getVector3fMap()) > 0.f ) ///NOTE: We do not need to normalize here
+                continue;
+        }
 
         omp_set_lock(&pt_locks[idx]);
         PointT &r_pt = rendered_view.points[idx];
