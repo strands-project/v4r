@@ -92,6 +92,9 @@ public:
     }
 
     void getKeptIndices(std::vector<int> &indices) const
+    void
+    renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view);
+
     {
         indices = kept_indices_;
     }
