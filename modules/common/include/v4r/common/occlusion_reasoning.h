@@ -42,7 +42,7 @@ template<typename PointTA, typename PointTB>
 class V4R_EXPORTS OcclusionReasoner
 {
 private:
-    typename pcl::PointCloud<PointTA>::ConstPtr occlusion_cloud_; ///< organized_cloud point cloud that potentially causes occlusion
+    typename pcl::PointCloud<PointTA>::ConstPtr occluder_cloud_; ///< organized_cloud point cloud that potentially causes occlusion
     typename pcl::PointCloud<PointTB>::ConstPtr cloud_to_be_filtered_; ///< to_be_filtered point cloud to be checked for occlusion
     float occlusion_threshold_m_;   ///< occlusion threshold in meter
     Camera::ConstPtr cam_; ///@brief camera parameters for re-projection to image plane by depth buffering (only used if point clouds are not organized)
@@ -80,7 +80,7 @@ public:
     void
     setOcclusionCloud( const typename pcl::PointCloud<PointTA>::ConstPtr occlusion_cloud )
     {
-        occlusion_cloud_ = occlusion_cloud;
+        occluder_cloud_ = occlusion_cloud;
     }
 
     /**
