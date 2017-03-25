@@ -264,7 +264,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     if(!skip_verification_)
     {
         // ====== SETUP HYPOTHESES VERIFICATION =====
-        HV_Parameter paramHV (param_.hv_config_xml_);
+        HV_Parameter paramHV;
+        paramHV.load (param_.hv_config_xml_);
         hv_.reset (new HypothesisVerification<PointT, PointT> (camera_, paramHV) );
 
         if( visualize_hv_go_cues )

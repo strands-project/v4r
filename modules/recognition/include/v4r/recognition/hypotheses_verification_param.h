@@ -87,78 +87,49 @@ public:
     bool z_adaptive_;   ///< if true, scales the smooth segmentation parameters linear with distance (constant till 1m at the given parameters)
     size_t min_pts_smooth_cluster_to_be_epxlained_; ///< minimum number of points a cluster need to be explained by model points to be considered for a check (avoids the fact that boundary points of a smooth region can be close to an object)
 
-    HV_Parameter (
-            int resolution_mm = 5,
-            float inliers_threshold = 0.01f, // 0.005f
-            float inliers_surface_angle_thres = M_PI / 16,
-            float occlusion_thres = 0.01f, // 0.005f
-            int smoothing_radius = 2,
-            bool do_smoothing = true,
-            bool do_erosion = true,
-            int erosion_radius = 4,
-            int icp_iterations = 10,
-            float w_normals = .33f,
-            float w_color = .33f,
-            float w_3D = .33f,
-            float color_sigma_l = 100.f,
-            float color_sigma_ab = 20.f,
-            float sigma_normals_deg = 30.f,
-            float regularizer = 1.f,
-            int normal_method = 2,
-            bool ignore_color_even_if_exists = false,
-            int max_iterations = 5000,
-            float clutter_regularizer =  10000.f,
-            bool use_replace_moves = true,
-            int opt_type = HV_OptimizationType::LocalSearch,
-            bool use_histogram_specification = false,
-            bool initial_status = false,
-//                int color_space = ColorTransformOMP::LAB,
-            int color_comparison = ColorComparisonMethod::ciede2000,
-            float min_visible_ratio = 0.15f,
-            bool check_smooth_clusters = true,
-            float eps_angle_threshold_deg = 5.f, //0.25rad
-            float curvature_threshold = 0.04f,
-            float cluster_tolerance = 0.01f, //0.015f;
-            int min_points = 100, // 20
-            float min_ratio_cluster_explained = 0.5,
-            bool z_adaptive = true,
-            size_t min_pts_smooth_cluster_to_be_epxlained = 50
-            )
-        : resolution_mm_ (resolution_mm),
-          inliers_threshold_(inliers_threshold),
-          inliers_surface_angle_thres_ (inliers_surface_angle_thres),
-          occlusion_thres_ (occlusion_thres),
-          smoothing_radius_ (smoothing_radius),
-          do_smoothing_ (do_smoothing),
-          do_erosion_ (do_erosion),
-          erosion_radius_ (erosion_radius),
-          icp_iterations_ (icp_iterations),
-          w_normals_ (w_normals),
-          w_color_ (w_color),
-          w_3D_  (w_3D),
-          color_sigma_l_ (color_sigma_l),
-          color_sigma_ab_ (color_sigma_ab),
-          sigma_normals_deg_ (sigma_normals_deg),
-          regularizer_ (regularizer),
-          normal_method_ (normal_method),
-          ignore_color_even_if_exists_ (ignore_color_even_if_exists),
-          max_iterations_ (max_iterations),
-          clutter_regularizer_ (clutter_regularizer),
-          use_replace_moves_ (use_replace_moves),
-          opt_type_ (opt_type),
-          use_histogram_specification_ (use_histogram_specification),
-          initial_status_ (initial_status),
+    float min_pt_fitness_; ///<points which have a lower fitness score will be defined as \"outlier\"
+    float min_dotproduct_model_normal_to_viewray_; ///< surfaces which point are oriented away from the viewray will be discarded if the absolute dotproduct between the surface normal and the viewray is smaller than this threshold. This should ignore points for further fitness check which are very sensitive to small rotation changes.
+    float min_px_distance_to_image_boundary_; ///< minimum distance in pixel a re-projected point needs to have to the image boundary
+
+    HV_Parameter () :
+          resolution_mm_ (5),
+          inliers_threshold_(0.01), // 0.005f
+          inliers_surface_angle_thres_ (M_PI / 16),
+          occlusion_thres_ (0.01f),  // 0.005f
+          smoothing_radius_ (2),
+          do_smoothing_ (true),
+          do_erosion_ (true),
+          erosion_radius_ (4),
+          icp_iterations_ (10),
+          w_normals_ (1.f/3.f),
+          w_color_ (1.f/3.f),
+          w_3D_  (1.f/3.f),
+          color_sigma_l_ (100.f),
+          color_sigma_ab_ (20.f),
+          sigma_normals_deg_ (30.f),
+          regularizer_ (1.f),
+          normal_method_ (2),
+          ignore_color_even_if_exists_ (false),
+          max_iterations_ (5000),
+          clutter_regularizer_ (10000.f),
+          use_replace_moves_ (true),
+          opt_type_ (HV_OptimizationType::LocalSearch),
+          use_histogram_specification_ (false),
+          initial_status_ (false),
 //              color_space_ (color_space),
-          color_comparison_method_ (color_comparison),
-          min_visible_ratio_ (min_visible_ratio),
-          check_smooth_clusters_ ( check_smooth_clusters ),
-          eps_angle_threshold_deg_ (eps_angle_threshold_deg),
-          curvature_threshold_ (curvature_threshold),
-          cluster_tolerance_ (cluster_tolerance),
-          min_points_ (min_points),
-          min_ratio_cluster_explained_ ( min_ratio_cluster_explained ),
-          z_adaptive_ ( z_adaptive ),
-          min_pts_smooth_cluster_to_be_epxlained_ (min_pts_smooth_cluster_to_be_epxlained)
+          color_comparison_method_ (ColorComparisonMethod::ciede2000),
+          min_visible_ratio_ (0.15f),
+          check_smooth_clusters_ ( true ),
+          eps_angle_threshold_deg_ (5.f),
+          curvature_threshold_ (0.04f),
+          cluster_tolerance_ (0.01f),
+          min_points_ (100),
+          min_ratio_cluster_explained_ ( 0.5 ),
+          z_adaptive_ ( true ),
+          min_pts_smooth_cluster_to_be_epxlained_ (50),
+          min_pt_fitness_ (0.2f),
+          min_dotproduct_model_normal_to_viewray_ (0.2f),
+          min_px_distance_to_image_boundary_ (3.f)
     {}
 
 
@@ -263,7 +234,7 @@ public:
     }
 
     void
-    save(const std::string &filename) const
+    save (const std::string &filename) const
     {
         std::ofstream ofs(filename);
         boost::archive::xml_oarchive oa(ofs);
@@ -271,7 +242,8 @@ public:
         ofs.close();
     }
 
-    HV_Parameter(const std::string &filename)
+    void
+    load (const std::string &filename)
     {
         if( !v4r::io::existsFile(filename) )
             throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
