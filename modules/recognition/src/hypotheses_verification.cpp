@@ -497,6 +497,23 @@ HypothesisVerification<ModelT, SceneT>::initialize()
     global_hypotheses_.clear();
     downsampleSceneCloud();
 
+    if( img_boundary_distance_.empty() )
+    {
+        const cv::Mat depth_registration_mask = cam_->getCameraDepthRegistrationMask();
+
+        if(depth_registration_mask.empty())
+        {
+            LOG(WARNING) << "Depth registration mask not set. Using the whole image!";
+            img_boundary_distance_ = cv::Mat (cam_->getHeight(), cam_->getWidth(), CV_32FC1);
+        }
+        else
+        {
+            VLOG(1) << "Computing distance transform to image boundary.";
+            cv::distanceTransform(depth_registration_mask, img_boundary_distance_, cv::DIST_L2, 5);
+        }
+    }
+
+
 #pragma omp parallel sections
     {
 #pragma omp section

@@ -163,6 +163,8 @@ protected:
 
     Eigen::Matrix4f refinePose(HVRecognitionModel<ModelT> &rm) const;
 
+    cv::Mat img_boundary_distance_; ///< saves for each pixel how far it is away from the boundary (taking into account extrinsics of the camera)
+
     /**
      * @brief computeVisiblePoints first renders the model cloud in the given pose onto the image plane and checks via z-buffering
      * for each model point if it is visible or self-occluded. The visible model cloud is then compared to the scene cloud for occlusion
