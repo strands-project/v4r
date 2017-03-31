@@ -111,9 +111,23 @@ public:
     void
     validate()
     {
-        CHECK( global_feature_types_.size() == classification_methods_.size()
-               && global_recognition_pipeline_config_.size()  == classification_methods_.size()
-               );
+        if( global_feature_types_.size() != classification_methods_.size()
+               || global_recognition_pipeline_config_.size()  != classification_methods_.size() )
+        {
+            size_t minn = std::min<size_t> ( global_feature_types_.size(), classification_methods_.size() ) ;
+            minn = std::min<size_t> ( minn, global_recognition_pipeline_config_.size() );
+
+            LOG(ERROR) << "The given parameter for feature types, classification methods " <<
+                          "and configuration files for global recognition are not the same size!";
+            if(minn)
+                LOG(ERROR) << " Will only use the first " << minn << " global recognizers for which all three elements are set! ";
+            else
+                LOG(ERROR) << "Global recognition is disabled!";
+
+            global_feature_types_.resize(minn);
+            classification_methods_.resize(minn);
+            global_recognition_pipeline_config_.resize(minn);
+        }
     }
 
     void
