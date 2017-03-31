@@ -9,7 +9,7 @@
 	<correspondence_distance_weight_>1</correspondence_distance_weight_>
 	<distance_metric_>1</distance_metric_>
 	<max_keypoint_distance_z_>1.8</max_keypoint_distance_z_>
-	<filter_planar_>0</filter_planar_>
+	<filter_planar_>1</filter_planar_>
 	<min_plane_size_>1000</min_plane_size_>
 	<planar_support_radius_>0.04</planar_support_radius_>
 	<threshold_planar_>0.02</threshold_planar_>
