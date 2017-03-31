@@ -52,7 +52,7 @@ main (int argc, char ** argv)
     po::store(parsed, vm);
     if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
     try { po::notify(vm); }
-    catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
+    catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; return -1; }
 
 
     srand (time(NULL));
