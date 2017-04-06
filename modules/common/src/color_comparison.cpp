@@ -7,10 +7,16 @@
 namespace v4r
 {
 
-float CIE76(const Eigen::VectorXf &a, const Eigen::VectorXf &b)
+float CIE76(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
 {
     return (a-b).norm();
 }
+
+float CIE94_DEFAULT(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
+{
+    return CIE94( a, b, 1.f, .045f, .015f);
+}
+
 
 float CIE94(const Eigen::Vector3f &a, const Eigen::Vector3f &b, float K1, float K2, float Kl)
 {
