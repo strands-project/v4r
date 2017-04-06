@@ -91,12 +91,14 @@ public:
         cloud_normals_ = normals;
     }
 
-    void getKeptIndices(std::vector<int> &indices) const
+
     void
     renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view);
 
+    std::vector<int>
+    getKeptIndices() const
     {
-        indices = kept_indices_;
+        return kept_indices_;
     }
 
     /**
