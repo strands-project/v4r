@@ -64,12 +64,13 @@ public:
 
     pcl::Correspondences corr_; ///< local feature matches / keypoint correspondences between model and scene (only for visualization purposes)
 
-    ObjectHypothesis() : class_id_(""), model_id_ ("") {}
+    ObjectHypothesis() : class_id_(""), model_id_ (""), is_verified_(false) {}
 
     std::string class_id_;  ///< category
     std::string model_id_;  ///< instance
     Eigen::Matrix4f transform_; ///< 4x4 homogenous transformation to project model into camera coordinate system.
     float confidence_; ///< confidence score (coming from feature matching stage)
+    bool is_verified_;
 
     virtual ~ObjectHypothesis(){}
 };
