@@ -156,7 +156,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
 
     // ====== SETUP MULTI PIPELINE RECOGNIZER ======
-    mrec_.reset( new v4r::MultiRecognitionPipeline<PointT> );
+    typename v4r::MultiRecognitionPipeline<PointT>::Ptr multipipeline (new v4r::MultiRecognitionPipeline<PointT> );
     local_recognition_pipeline_.reset(new LocalRecognitionPipeline<PointT>);
     {
         // ====== SETUP LOCAL RECOGNITION PIPELINE =====
@@ -221,7 +221,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             }
 
             typename RecognitionPipeline<PointT>::Ptr rec_pipeline_tmp = boost::static_pointer_cast<RecognitionPipeline<PointT> > (local_recognition_pipeline_);
-            mrec_->addRecognitionPipeline(rec_pipeline_tmp);
+            multipipeline->addRecognitionPipeline(rec_pipeline_tmp);
         }
 
         // ====== SETUP GLOBAL RECOGNITION PIPELINE =====
@@ -251,14 +251,26 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             global_recognition_pipeline->setVisualizeClusters( visualize_global_results );
 
             typename RecognitionPipeline<PointT>::Ptr rec_pipeline_tmp = boost::static_pointer_cast<RecognitionPipeline<PointT> > (global_recognition_pipeline);
-            mrec_->addRecognitionPipeline( rec_pipeline_tmp );
+            multipipeline->addRecognitionPipeline( rec_pipeline_tmp );
         }
 
-        mrec_->setModelDatabase( model_database_ );
-        mrec_->setNormalEstimator( normal_estimator_ );
-        mrec_->setVisualizationParameter(vis_param);
-        mrec_->initialize( models_dir_, retrain );
+        multipipeline->setModelDatabase( model_database_ );
+        multipipeline->setNormalEstimator( normal_estimator_ );
+        multipipeline->setVisualizationParameter(vis_param);
+        multipipeline->initialize( models_dir_, retrain );
     }
+
+
+
+    if( param_.use_multiview_ )
+    {
+        typename RecognitionPipeline<PointT>::Ptr rec_pipeline = boost::static_pointer_cast<RecognitionPipeline<PointT> > (multipipeline);
+        typename v4r::MultiviewRecognizer<PointT>::Ptr mv_rec ( new v4r::MultiviewRecognizer<PointT> );
+        mv_rec->setSingleViewRecognitionPipeline( rec_pipeline );
+        mrec_ = mv_rec;
+    }
+    else
+        mrec_ = multipipeline;
 
 
     if(!skip_verification_)
@@ -301,12 +313,13 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
 template<typename PointT>
 std::vector<typename ObjectHypothesis<PointT>::Ptr >
-ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
+ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Ptr &cloud)
 {
-    typename pcl::PointCloud<PointT>::Ptr processed_cloud (new pcl::PointCloud<PointT>(*cloud));
     //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
-    processed_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
-    processed_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+//    cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+//    cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
+    typename pcl::PointCloud<PointT>::Ptr processed_cloud (new pcl::PointCloud<PointT>(*cloud));
 
     verified_hypotheses_.clear();
 
