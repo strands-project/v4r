@@ -489,11 +489,7 @@ HypothesisVerification<ModelT, SceneT>::removeModelsWithLowVisibility()
             if( (float)rm->visible_indices_by_octree_.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
             {
                 rm->rejected_due_to_low_visibility_ = true;
-
                 VLOG(1) << "Removed " << rm->model_id_ << " due to low visibility!";
-
-                if( !vis_model_ )
-                    rm->freeSpace();
             }
         }
     }
@@ -1093,11 +1089,11 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
     for (size_t midx = 0; midx < rm.visible_cloud_->points.size (); midx++)
     {
         std::vector<int> nn_indices;
-        std::vector<float> nn_sqr_distances;
+        std::vector<float> nn_sqrd_distances;
 
         bool is_outlier = true;
         double radius = 2. * param_.resolution_mm_ / 1000.;
-        octree_scene_downsampled_->radiusSearch(rm.visible_cloud_->points[midx], radius, nn_indices, nn_sqr_distances);
+        octree_scene_downsampled_->radiusSearch(rm.visible_cloud_->points[midx], radius, nn_indices, nn_sqrd_distances);
 
 //        vis.addSphere(rm.visible_cloud_->points[midx], 0.005, 0., 1., 0., "queryPoint", vp1 );
 
@@ -1107,7 +1103,7 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
         for (size_t k = 0; k < nn_indices.size(); k++)
         {
             int sidx = nn_indices[ k ];
-            float sqr_3D_dist = nn_sqr_distances[k];
+            float sqrd_3D_dist = nn_sqrd_distances[k];
 
 //            std::stringstream pt_id; pt_id << "searched_pt_" << k;
 //            vis.addSphere(scene_cloud_downsampled_->points[sidx], 0.005, 1., 0., 0., pt_id.str(), vp2 );
@@ -1121,7 +1117,7 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
             ModelSceneCorrespondence c;
             c.model_id_ = midx;
             c.scene_id_ = sidx;
-            c.dist_3D_ = sqrt(sqr_3D_dist);
+            c.dist_3D_ = sqrt(sqrd_3D_dist);
 
             Eigen::Vector3f normal_s = scene_normals_downsampled_->points[sidx].getNormalVector3fMap();
             normal_s.normalize();
