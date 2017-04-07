@@ -90,7 +90,7 @@ main (int argc, char ** argv)
                 std::ofstream f ( out_path.string().c_str() );
                 for ( const v4r::ObjectHypothesis<PT>::Ptr &voh : verified_hypotheses )
                 {
-                    f << voh->model_id_ << " (-1.): ";
+                    f << voh->model_id_ << " (" << voh->confidence_ << "): ";
                     for (size_t row=0; row <4; row++)
                         for(size_t col=0; col<4; col++)
                             f << voh->transform_(row, col) << " ";

@@ -87,7 +87,7 @@ public:
     bool z_adaptive_;   ///< if true, scales the smooth segmentation parameters linear with distance (constant till 1m at the given parameters)
     size_t min_pts_smooth_cluster_to_be_epxlained_; ///< minimum number of points a cluster need to be explained by model points to be considered for a check (avoids the fact that boundary points of a smooth region can be close to an object)
 
-    float min_pt_fitness_; ///<points which have a lower fitness score will be defined as \"outlier\"
+    float min_fitness_; ///<points which have a lower fitness score will be defined as \"outlier\"
     float min_dotproduct_model_normal_to_viewray_; ///< surfaces which point are oriented away from the viewray will be discarded if the absolute dotproduct between the surface normal and the viewray is smaller than this threshold. This should ignore points for further fitness check which are very sensitive to small rotation changes.
     float min_px_distance_to_image_boundary_; ///< minimum distance in pixel a re-projected point needs to have to the image boundary
 
@@ -127,7 +127,7 @@ public:
           min_ratio_cluster_explained_ ( 0.5 ),
           z_adaptive_ ( true ),
           min_pts_smooth_cluster_to_be_epxlained_ (50),
-          min_pt_fitness_ (0.2f),
+          min_fitness_ (0.2f),
           min_dotproduct_model_normal_to_viewray_ (0.2f),
           min_px_distance_to_image_boundary_ (3.f)
     {}
@@ -230,6 +230,7 @@ public:
                 & BOOST_SERIALIZATION_NVP(min_ratio_cluster_explained_)
                 & BOOST_SERIALIZATION_NVP(z_adaptive_)
                 & BOOST_SERIALIZATION_NVP(min_pts_smooth_cluster_to_be_epxlained_)
+                & BOOST_SERIALIZATION_NVP(min_fitness_)
                 ;
     }
 

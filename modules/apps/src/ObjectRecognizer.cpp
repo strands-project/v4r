@@ -368,7 +368,8 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     {
         const std::string &model_id = voh->model_id_;
         const Eigen::Matrix4f &tf = voh->transform_;
-        LOG(INFO) << "********************" << model_id << std::endl << tf << std::endl << std::endl;
+        float confidence = voh->confidence_;
+        LOG(INFO) << "********************" << model_id << " (confidence: " << confidence << ") " << std::endl << tf << std::endl << std::endl;
     }
 
     if ( visualize_ )

@@ -219,7 +219,7 @@ protected:
      */
     bool isOutlier(HVRecognitionModel<ModelT> &rm) const
     {
-        return ( param_.regularizer_ * rm.visible_pt_is_outlier_.count() > rm.scene_explained_weight_.sum() );
+        return ( rm.confidence_ < param_.min_fitness_ );
     }
 
 

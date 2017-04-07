@@ -883,7 +883,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         rm->is_outlier_ = isOutlier(*rm);
 
         if (rm->is_outlier_)
-            VLOG(1) << rm->class_id_ << " " << rm->model_id_ << " is rejected due to too many outliers.";
+            VLOG(1) << rm->class_id_ << " " << rm->model_id_ << " is rejected due to low model fitness score.";
 
 
         if ( !rm->isRejected() )
@@ -1139,7 +1139,7 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
             c.fitness_ = getFitness( c );
             rm.model_scene_c_.push_back( c );
 
-            if(c.fitness_ > param_.min_pt_fitness_)
+            if(c.fitness_ > param_.min_fitness_)
                 is_outlier=false;
         }
 //        vis.removeAllShapes(vp1);
@@ -1177,6 +1177,7 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
     }
 
     rm.model_fit_ = modelFit.sum();
+    rm.confidence_ = rm.model_fit_/rm.visible_cloud_->points.size();
 
     VLOG(1) << "model fit of " << rm.model_id_ << ": " << rm.model_fit_ << " (normalized: " << rm.model_fit_/rm.visible_cloud_->points.size() << ").";
 }

@@ -36,4 +36,5 @@
 	<min_ratio_cluster_explained_>0.5</min_ratio_cluster_explained_>
 	<z_adaptive_>1</z_adaptive_>
 	<min_pts_smooth_cluster_to_be_epxlained_>50</min_pts_smooth_cluster_to_be_epxlained_>
+	<min_fitness_>0.1</min_fitness_>
 </paramHV>

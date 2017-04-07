@@ -46,7 +46,7 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
     for(size_t i=0; i<pt_locks.size(); i++)
         omp_init_lock(&pt_locks[i]);
 
-#pragma omp parallel for schedule (dynamic)
+//#pragma omp parallel for schedule (dynamic)
     for (int i=0; i< static_cast<int>(cloud.points.size()); i++)
     {
         const PointT &pt = cloud.points[i];
@@ -59,8 +59,6 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
         if (u >= (int)width || v >= (int)height  || u < 0 || v < 0)
             continue;
 
-        int idx = v * width + u;
-
         if(param_.use_normals_)
         {
             const Eigen::Vector3f &normal = cloud_normals_->points[i].getNormalVector3fMap();
@@ -68,6 +66,7 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
                 continue;
         }
 
+        int idx = v * width + u;
         omp_set_lock(&pt_locks[idx]);
         PointT &r_pt = rendered_view.points[idx];
 
