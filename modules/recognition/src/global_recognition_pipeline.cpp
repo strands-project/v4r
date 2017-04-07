@@ -16,9 +16,11 @@ GlobalRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, bo
 {
     CHECK ( !global_recognizers_.empty() ) << "No local recognizers provided!";
 
-    for(auto &r : global_recognizers_)
+    for(typename GlobalRecognizer<PointT>::Ptr &r : global_recognizers_)
     {
         r->setModelDatabase( m_db_ );
+        r->setNormalEstimator( normal_estimator_ );
+        r->setVisualizationParameter(vis_param_);
         r->initialize(trained_dir, force_retrain);
     }
 }
@@ -63,6 +65,7 @@ GlobalRecognitionPipeline<PointT>::recognize()
         {
             typename GlobalRecognizer<PointT>::Ptr r = global_recognizers_[g_id];
             r->setInputCloud( scene_ );
+            r->setSceneNormals( scene_normals_ );
             r->setCluster( cluster );
             r->recognize();
             std::vector<typename ObjectHypothesis<PointT>::Ptr > ohs = r->getFilteredHypotheses();
@@ -106,11 +109,11 @@ GlobalRecognitionPipeline<PointT>::visualize()
         vis_->createViewPort(0.33, 0.5, 0.66  ,  1, vp5_);
 //        vis_->createViewPort(0.66, 0.5, 1  ,  1, vp6_);
 
-        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp1_);
-        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp2_);
-        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp3_);
-        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp4_);
-        vis_->setBackgroundColor(vis_param_.bg_color_[0], vis_param_.bg_color_[1], vis_param_.bg_color_[2], vp5_);
+        vis_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp1_);
+        vis_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp2_);
+        vis_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp3_);
+        vis_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp4_);
+        vis_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2], vp5_);
 //        vis_->setBackgroundColor(1,1,1,vp6_);
     }
     vis_->removeAllPointClouds();
@@ -125,8 +128,8 @@ GlobalRecognitionPipeline<PointT>::visualize()
 #endif
     vis_->addPointCloud(scene_, "cloud", vp1_);
 
-    if(!vis_param_.no_text_)
-        vis_->addText("input cloud", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "input", vp1_);
+    if(!vis_param_->no_text_)
+        vis_->addText("input cloud", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "input", vp1_);
 
 
     typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr colored_cloud (new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -152,8 +155,8 @@ GlobalRecognitionPipeline<PointT>::visualize()
         *colored_cloud += cluster;
     }
     vis_->addPointCloud(colored_cloud,"segments", vp2_);
-    if(!vis_param_.no_text_)
-        vis_->addText("segments", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "segments", vp2_);
+    if(!vis_param_->no_text_)
+        vis_->addText("segments", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "segments", vp2_);
 
     // VISUALIZE PLANE
     if (table_plane_set_)
@@ -171,8 +174,8 @@ GlobalRecognitionPipeline<PointT>::visualize()
         }
 
         vis_->addPointCloud(plane_cloud, "plane", vp3_);
-        if(!vis_param_.no_text_)
-            vis_->addText("table plane", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "table plane", vp3_);
+        if(!vis_param_->no_text_)
+            vis_->addText("table plane", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "table plane", vp3_);
     }
 
     for(size_t i=0; i < obj_hypotheses_wo_elongation_check_.size(); i++)
@@ -204,8 +207,8 @@ GlobalRecognitionPipeline<PointT>::visualize()
 #endif
         }
     }
-    if(!vis_param_.no_text_)
-        vis_->addText("all hypotheses", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "all_hypotheses", vp5_);
+    if(!vis_param_->no_text_)
+        vis_->addText("all hypotheses", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "all_hypotheses", vp5_);
 
 
     size_t disp_id=0;
@@ -249,8 +252,8 @@ GlobalRecognitionPipeline<PointT>::visualize()
         }
     }
 
-    if(!vis_param_.no_text_)
-        vis_->addText("filtered hypotheses", 10, 10, vis_param_.fontsize_, vis_param_.text_color_[0], vis_param_.text_color_[1], vis_param_.text_color_[2], "filtered_hypotheses", vp4_);
+    if(!vis_param_->no_text_)
+        vis_->addText("filtered hypotheses", 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "filtered_hypotheses", vp4_);
 
     vis_->spin();
 }

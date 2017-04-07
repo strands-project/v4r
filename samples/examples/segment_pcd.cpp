@@ -142,6 +142,9 @@ main (int argc, char ** argv)
             typename pcl::PointCloud<PointT>::Ptr cloud (new pcl::PointCloud<PointT>);
 
             pcl::io::loadPCDFile(fn.string(), *cloud);
+            //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
+            cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+            cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
             cs.segment(cloud);
             std::vector<std::vector<int> > indices = cs.getClusters();
 

@@ -52,7 +52,7 @@ main (int argc, char ** argv)
     po::store(parsed, vm);
     if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
     try { po::notify(vm); }
-    catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
+    catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; return -1; }
 
 
     srand (time(NULL));
@@ -121,10 +121,19 @@ main (int argc, char ** argv)
             for(const XMLChange &chg : eval_changes)
             {
                 editXML( chg );
-                of_param << chg.xml_filename_ << " " << chg.node_name_ << " " << chg.value_ << std::endl;
+                of_param << chg.xml_filename_ << " " << chg.node_name_ << " ";
+                for(const std::string &val : chg.values_)
+                    of_param << val << " ";
+                of_param << std::endl;
             }
             of_param << std::endl;
             v4r::io::copyDir("cfg", out_dir_eval+"/cfg");
+
+            // save other parameters
+            std::ofstream param_f(out_dir_eval + "/param.txt");
+            for(const std::string &s : to_pass_further_tmp)
+                param_f << s << " ";
+            param_f.close();
 
             if( getValue("cfg/multipipeline_config.xml", "do_shot_") == "1"
                     && getValue("cfg/multipipeline_config.xml", "shot_keypoint_extractor_method_") == "1"

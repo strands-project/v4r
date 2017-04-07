@@ -400,6 +400,16 @@ V4R_EXPORTS runningAverage (const Eigen::VectorXf &old_average, size_t old_size,
     return newAvg;
 }
 
+/**
+ * @brief computeRotationMatrixTwoAlignVectors Calculate Rotation Matrix to align Vector src to Vector target in 3d
+ * @param src
+ * @param target
+ * @return 3x3 rotation matrix
+ */
+Eigen::Matrix3f
+V4R_EXPORTS
+computeRotationMatrixToAlignVectors(const Eigen::Vector3f &src, const Eigen::Vector3f &target);
+
 template<typename PointT>
 V4R_EXPORTS float computeMeshResolution (const typename pcl::PointCloud<PointT>::ConstPtr & input);
 

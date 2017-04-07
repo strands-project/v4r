@@ -66,7 +66,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(const std::vector<std
             ("sift_min_plane_size", po::value<int>(&paramSIFT.min_plane_size_)->default_value(paramSIFT.min_plane_size_), "This is the minimum number of points required to estimate a plane for filtering.")
             ("sift_filter_border_pts", po::value<bool>(&paramSIFT.filter_border_pts_)->default_value(paramSIFT.filter_border_pts_), "If true, filters keypoints at the boundary.")
             ("sift_border_width", po::value<int>(&paramSIFT.boundary_width_)->default_value(paramSIFT.boundary_width_), "Width in pixel of the depth discontinuity.")
-            ("sift_z,z", po::value<float>(&sift_z)->default_value(3.0f), "points with z-component higher than chop_z_ will be ignored for SIFT (low chop_z reduces computation time and false positives (noise increase with z)")
+            ("sift_z,z", po::value<float>(&sift_z)->default_value(3.0f), "points further away than this value will be ignored for SIFT (low chop_z reduces computation time and false positives (noise increase with z)")
             ("sift_make_dense", po::value<bool>(&sift_make_dense)->default_value(sift_make_dense), "if true, uses dense SIFT feature extraction")
             ("sift_stride", po::value<int>(&sift_kp_stride)->default_value(sift_kp_stride), "if dense SIFT is on, uses this stride for extracting SIFT keypoints")
 
@@ -80,7 +80,7 @@ MultiRecognitionPipeline<PointT>::MultiRecognitionPipeline(const std::vector<std
             ("shot_keypoint_type", po::value<int>(&keypoint_type)->default_value(keypoint_type), "Define keypoint extraction type (0... Uniform Sampling, 1... Intrinsic Shape Signature(ISS), 2... Narf, 3... Harris3D. To enable multiple keypoint extraction, just enter the sum of the desired combinations.")
             ("shot_filter_border_pts", po::value<bool>(&paramSHOT.filter_border_pts_)->default_value(paramSHOT.filter_border_pts_), "If true, filters keypoints at the boundary.")
             ("shot_border_width", po::value<int>(&paramSHOT.boundary_width_)->default_value(paramSHOT.boundary_width_), "Width in pixel of the depth discontinuity.")
-            ("shot_z", po::value<double>(&paramSHOT.max_distance_)->default_value(1.5f), "points with z-component higher than chop_z_ will be ignored for SHOT (low chop_z reduces computation time and false positives (noise increase with z)")
+            ("shot_z", po::value<double>(&paramSHOT.max_distance_)->default_value(1.5f), "points further away than this value will be ignored for SHOT (low chop_z reduces computation time and false positives (noise increase with z)")
             ("shot_knn", po::value<size_t>(&paramSHOT.knn_)->default_value(3), "sets the number k of matches for each extracted SHOT feature to its k nearest neighbors")
             ("shot_support_radius", po::value<float>(&shot_support_radius)->default_value(shot_support_radius), "Support radius for SHOT feature description")
             ("shot_codebook_size", po::value<size_t>(&paramSHOT.codebook_size_)->default_value(paramSHOT.codebook_size_), "number of clusters being computed for the codebook (K-Means)")

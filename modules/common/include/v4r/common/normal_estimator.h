@@ -66,7 +66,7 @@ public:
      * @brief setIndices
      * @param indices indices of the segmented object (extracted keypoints outside of this will be neglected)
      */
-    virtual void
+    void
     setIndices(const std::vector<int> &indices)
     {
         indices_ = indices;

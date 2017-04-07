@@ -15,12 +15,12 @@ int
 main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PT;
-    google::InitGoogleLogging(argv[0]);
 
     std::string test_dir;
     std::string out_dir = "/tmp/object_recognition_results/";
     std::string debug_dir = "";
     std::string recognizer_config = "cfg/multipipeline_config.xml";
+    int verbosity = -1;
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
@@ -29,6 +29,7 @@ main (int argc, char ** argv)
             ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
             ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
             ("recognizer_config", po::value<std::string>(&recognizer_config)->default_value(recognizer_config), "Config XML of the multi-pipeline recognizer")
+            ("verbosity", po::value<int>(&verbosity)->default_value(verbosity), "set verbosity level for output (<0 minimal output)")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
@@ -37,6 +38,14 @@ main (int argc, char ** argv)
     if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
     try { po::notify(vm); }
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
+
+    if(verbosity>=0)
+    {
+        FLAGS_logtostderr = 1;
+        FLAGS_v = verbosity;
+        std::cout << "Enabling verbose logging." << std::endl;
+    }
+    google::InitGoogleLogging(argv[0]);
 
     v4r::apps::ObjectRecognizerParameter param(recognizer_config);
     v4r::apps::ObjectRecognizer<PT> recognizer (param);
@@ -60,6 +69,10 @@ main (int argc, char ** argv)
             pcl::PointCloud<PT>::Ptr cloud(new pcl::PointCloud<PT>());
             pcl::io::loadPCDFile( test_path.string(), *cloud);
 
+            //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
+            cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+            cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
             std::vector<typename v4r::ObjectHypothesis<PT>::Ptr > verified_hypotheses = recognizer.recognize(cloud);
             std::vector<v4r::ObjectHypothesesGroup<PT> > generated_object_hypotheses = recognizer.getGeneratedObjectHypothesis();
 
@@ -77,7 +90,7 @@ main (int argc, char ** argv)
                 std::ofstream f ( out_path.string().c_str() );
                 for ( const v4r::ObjectHypothesis<PT>::Ptr &voh : verified_hypotheses )
                 {
-                    f << voh->model_id_ << " (-1.): ";
+                    f << voh->model_id_ << " (" << voh->confidence_ << "): ";
                     for (size_t row=0; row <4; row++)
                         for(size_t col=0; col<4; col++)
                             f << voh->transform_(row, col) << " ";

@@ -44,10 +44,19 @@ if(HAVE_BOOST)
   list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
 endif()
 
+if(HAVE_CAFFE)
+    v4r_include_directories(${CAFFE_INCLUDE_DIRS})
+    list(APPEND DEP LIBS ${CAFFE_LIBRARIES})
+endif()
+
+
 #add_definitions(-std=c++0x)
 add_definitions(-DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET)
 add_definitions(-Dlinux -D__x86_64__)
 
 add_executable(ObjectRecognizerEval main.cpp boost_xml_editor.h my_xml_configs.h)
 target_link_libraries(ObjectRecognizerEval ${OR_DEPS} ${DEP_LIBS})
+
+add_executable(compute_confusion_matrix compute_confusion_matrix.cpp )
+target_link_libraries(compute_confusion_matrix ${OR_DEPS} ${DEP_LIBS})
 

@@ -44,9 +44,11 @@ private:
     using RecognitionPipeline<PointT>::scene_;
     using RecognitionPipeline<PointT>::scene_normals_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
+    using RecognitionPipeline<PointT>::normal_estimator_;
     using RecognitionPipeline<PointT>::m_db_;
     using RecognitionPipeline<PointT>::table_plane_;
     using RecognitionPipeline<PointT>::table_plane_set_;
+    using RecognitionPipeline<PointT>::vis_param_;
 
     bool visualize_clusters_; ///< If set, visualizes the cluster and displays recognition information for each
     mutable std::vector<std::string> coordinate_axis_ids_global_;
@@ -62,8 +64,6 @@ private:
     std::vector<ObjectHypothesesGroup<PointT> > obj_hypotheses_wo_elongation_check_; ///< just for visualization (to see effect of elongation check)
 
     void visualize();
-
-    PCLVisualizationParams vis_param_;
 
 public:
     GlobalRecognitionPipeline ( ):

@@ -6,6 +6,7 @@
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <glog/logging.h>
 
 namespace v4r
 {
@@ -271,6 +272,37 @@ computeMaskFromIndexMap( const Eigen::MatrixXi &image_map, size_t nr_points )
 
     return mask;
 }
+
+Eigen::Matrix3f
+computeRotationMatrixToAlignVectors(const Eigen::Vector3f &src, const Eigen::Vector3f &target)
+{
+    Eigen::Vector3f A = src;
+    Eigen::Vector3f B = target;
+
+    A.normalize();
+    B.normalize();
+
+    float c = A.dot(B);
+
+    if( c > 1.f-std::numeric_limits<float>::epsilon() )
+        return Eigen::Matrix3f::Identity();
+
+    if ( c < -1.f+std::numeric_limits<float>::epsilon() )
+    {
+        LOG(ERROR) << "Computing a rotation matrix of two opposite vectors is not supported by this equation. The returned rotation matrix won't be a proper rotation matrix!";
+        return -Eigen::Matrix3f::Identity(); //flip
+    }
+
+    const Eigen::Vector3f v = A.cross(B);
+
+    Eigen::Matrix3f vx;
+    vx << 0, -v(2), v(1),
+          v(2), 0, -v(0),
+         -v(1), v(0), 0;
+
+    return Eigen::Matrix3f::Identity() + vx + vx * vx / ( 1.f + c );
+}
+
 
 template<typename PointT>
 V4R_EXPORTS

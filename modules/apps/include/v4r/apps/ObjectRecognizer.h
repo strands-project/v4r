@@ -46,6 +46,33 @@ namespace apps
 
 class V4R_EXPORTS ObjectRecognizerParameter
 {
+private:
+    void initialize()
+    {
+        hv_config_xml_ = "cfg/hv_config.xml";
+        shot_config_xml_ = "cfg/shot_config.xml";
+        global_recognition_pipeline_config_ =  {};//{"cfg/esf_config.xml", "cfg/alexnet_config.xml"};
+        camera_config_xml_ = "cfg/camera.xml";
+        depth_img_mask_ = "cfg/xtion_depth_mask.png";
+        sift_config_xml_ = "cfg/sift_config.xml";
+        cg_size_ = 0.01f;
+        cg_thresh_ = 4;
+        use_graph_based_gc_grouping_ = true;
+        do_sift_ = true;
+        do_shot_ = false;
+        segmentation_method_ = SegmentationType::OrganizedConnectedComponents;
+        global_feature_types_ = { FeatureType::ESF | FeatureType::SIMPLE_SHAPE | FeatureType::GLOBAL_COLOR, FeatureType::ALEXNET } ;
+        classification_methods_ =  { ClassifierType::SVM, 0 } ;
+        shot_keypoint_extractor_method_ =  KeypointType::HARRIS3D ;
+        normal_computation_method_ = NormalEstimatorType::PCL_INTEGRAL_NORMAL;
+        keypoint_support_radii_ = {0.04, 0.08};
+        chop_z_ = 3.f;
+        remove_planes_ = true;
+        plane_inlier_threshold_ = 0.02f;
+        min_plane_inliers_ = 20000;
+        icp_iterations_ = 0;
+    }
+
 public:
     std::string hv_config_xml_;
     std::string shot_config_xml_;
@@ -73,39 +100,34 @@ public:
     float plane_inlier_threshold_; ///< maximum distance for plane inliers
     size_t min_plane_inliers_; ///< required inliers for plane to be removed
 
+    int icp_iterations_;
+
     ObjectRecognizerParameter()
-        :
-          hv_config_xml_("cfg/hv_config.xml"),
-          shot_config_xml_("cfg/shot_config.xml"),
-          global_recognition_pipeline_config_( {"cfg/esf_config.xml", "cfg/alexnet_config.xml"}),
-          camera_config_xml_("cfg/camera.xml"),
-          depth_img_mask_("cfg/xtion_depth_mask.png"),
-          sift_config_xml_("cfg/sift_config.xml"),
-          cg_size_(0.01f),
-          cg_thresh_(4),
-          use_graph_based_gc_grouping_(true),
-          do_sift_(true),
-          do_shot_(false),
-          segmentation_method_(SegmentationType::OrganizedConnectedComponents),
-          global_feature_types_ ( { FeatureType::ESF | FeatureType::SIMPLE_SHAPE | FeatureType::GLOBAL_COLOR, FeatureType::ALEXNET } ),
-          classification_methods_( { ClassifierType::SVM, 0 } ),
-          shot_keypoint_extractor_method_( KeypointType::HARRIS3D ),
-          normal_computation_method_(NormalEstimatorType::PCL_INTEGRAL_NORMAL),
-          keypoint_support_radii_({0.04, 0.08}),
-          chop_z_(3.f),
-          remove_planes_(true),
-          plane_inlier_threshold_ (0.02f),
-          min_plane_inliers_ (20000)
     {
+        initialize();
         validate();
     }
 
     void
     validate()
     {
-        CHECK( global_feature_types_.size() == classification_methods_.size()
-               && global_recognition_pipeline_config_.size()  == classification_methods_.size()
-               );
+        if( global_feature_types_.size() != classification_methods_.size()
+               || global_recognition_pipeline_config_.size()  != classification_methods_.size() )
+        {
+            size_t minn = std::min<size_t> ( global_feature_types_.size(), classification_methods_.size() ) ;
+            minn = std::min<size_t> ( minn, global_recognition_pipeline_config_.size() );
+
+            LOG(ERROR) << "The given parameter for feature types, classification methods " <<
+                          "and configuration files for global recognition are not the same size!";
+            if(minn)
+                LOG(ERROR) << " Will only use the first " << minn << " global recognizers for which all three elements are set! ";
+            else
+                LOG(ERROR) << "Global recognition is disabled!";
+
+            global_feature_types_.resize(minn);
+            classification_methods_.resize(minn);
+            global_recognition_pipeline_config_.resize(minn);
+        }
     }
 
     void
@@ -121,6 +143,8 @@ public:
     {
         if( !v4r::io::existsFile(filename) )
             throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
+        initialize();
 
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
@@ -172,6 +196,7 @@ private:
     typename v4r::ObjectRecognitionVisualizer<PointT>::Ptr rec_vis_; ///< visualization object
 
     std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_;
+    std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_refined_;
     std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_;
 
     typename v4r::apps::CloudSegmenter<PointT>::Ptr cloud_segmenter_; ///< cloud segmenter for plane removal (if enabled)
@@ -181,6 +206,12 @@ private:
     std::string models_dir_;
 
     ObjectRecognizerParameter param_;
+
+    Camera::Ptr camera_;
+
+    typename Source<PointT>::Ptr model_database_;
+
+    void refinePose(const typename pcl::PointCloud<PointT>::ConstPtr &scene);   ///< does ICP on the generated object hypotheses to refine their pose
 
 public:
     ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :

@@ -12,11 +12,13 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/recognition/cg/geometric_consistency.h>
+#include <pcl/registration/icp.h>
 
 #include <v4r/common/camera.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/graph_geometric_consistency.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/features/esf_estimator.h>
 #include <v4r/features/global_simple_shape_estimator.h>
 #include <v4r/features/global_concatenated.h>
@@ -49,6 +51,54 @@ namespace apps
 {
 
 template<typename PointT>
+void
+ObjectRecognizer<PointT>::refinePose( const typename pcl::PointCloud<PointT>::ConstPtr &scene)
+{
+    pcl::IterativeClosestPoint<PointT, PointT> icp;
+    icp.setInputTarget(scene);
+    icp.setMaximumIterations(param_.icp_iterations_);
+    icp.setMaxCorrespondenceDistance( 0.05f );
+//    icp.setSearchMethodTarget(kdtree_scene_, true);
+
+    generated_object_hypotheses_refined_.clear();
+    generated_object_hypotheses_refined_.resize( generated_object_hypotheses_.size() );
+
+//    static pcl::visualization::PCLVisualizer vis;
+
+    for(size_t ohg_id=0; ohg_id<generated_object_hypotheses_.size(); ohg_id++)
+    {
+        ObjectHypothesesGroup<PointT> &ohg_refined = generated_object_hypotheses_refined_[ohg_id];
+        ohg_refined.global_hypotheses_ = generated_object_hypotheses_[ohg_id].global_hypotheses_;
+        ohg_refined.ohs_.reserve( generated_object_hypotheses_[ohg_id].ohs_.size() );
+
+        for(size_t i=0; i<generated_object_hypotheses_[ohg_id].ohs_.size(); i++)
+        {
+            pcl::ScopeTime t("ICP");
+            typename ObjectHypothesis<PointT>::Ptr oh (new ObjectHypothesis<PointT>(*(generated_object_hypotheses_[ohg_id].ohs_[i])));
+            bool found;
+            typename Model<PointT>::ConstPtr m = model_database_->getModelById(oh->class_id_, oh->model_id_, found);
+            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(3);
+            pcl::transformPointCloud( *model_cloud, *model_aligned, oh->transform_);
+
+            icp.setInputSource( model_aligned );
+            pcl::PointCloud<PointT> aligned_visible_model;
+            icp.align(aligned_visible_model);
+
+            Eigen::Matrix4f refined_tf = Eigen::Matrix4f::Identity();
+            if(icp.hasConverged())
+                refined_tf = icp.getFinalTransformation();
+            else
+               std::cout << "ICP did not converge." << std::endl;
+
+            oh->transform_ = refined_tf * oh->transform_;
+
+            ohg_refined.ohs_.push_back(oh);
+        }
+    }
+}
+
+template<typename PointT>
 void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &command_line_arguments)
 {
     bool visualize_hv_go_cues = false;
@@ -70,6 +120,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             ("rec_visualize_keypoints", po::bool_switch(&visualize_keypoints), "If set, visualizes detected keypoints.")
             ("rec_visualize_global_pipeline", po::bool_switch(&visualize_global_results), "If set, visualizes segments and results from global pipeline.")
             ("retrain", po::bool_switch(&retrain), "If set, retrains the object models no matter if they already exists.")
+            ("recognizer_remove_planes", po::value<bool>(&param_.remove_planes_)->default_value(param_.remove_planes_), "if enabled, removes the dominant plane in the input cloud (given thera are at least N inliers)")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -80,17 +131,26 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
     // ====== DEFINE CAMERA =======
-    Camera::Ptr xtion (new Camera(param_.camera_config_xml_) );
+    camera_.reset (new Camera(param_.camera_config_xml_) );
 
     cv::Mat_<uchar> img_mask = cv::imread(param_.depth_img_mask_, CV_LOAD_IMAGE_GRAYSCALE);
     if( img_mask.data )
-        xtion->setCameraDepthRegistrationMask( img_mask );
+        camera_->setCameraDepthRegistrationMask( img_mask );
     else
         LOG(WARNING) << "No camera depth registration mask provided. Assuming all pixels have valid depth.";
 
 
+    // ====== DEFINE VISUALIZATION PARAMETER =======
+    PCLVisualizationParams::Ptr vis_param (new PCLVisualizationParams);
+    vis_param->no_text_ = false;
+    vis_param->bg_color_ = Eigen::Vector3i(255, 255, 255);
+    vis_param->text_color_ = Eigen::Vector3f(0.f, 0.f, 0.f);
+    vis_param->fontsize_ = 12;
+    vis_param->coordinate_axis_scale_ = 0.2f;
+
+
     // ==== Fill object model database ==== ( assumes each object is in a seperate folder named after the object and contains and "views" folder with the training views of the object)
-    typename Source<PointT>::Ptr model_database (new Source<PointT> (models_dir_));
+    model_database_.reset ( new Source<PointT> (models_dir_) );
 
     normal_estimator_ = v4r::initNormalEstimator<PointT> ( param_.normal_computation_method_, to_pass_further );
 
@@ -102,7 +162,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         // ====== SETUP LOCAL RECOGNITION PIPELINE =====
         if(param_.do_sift_ || param_.do_shot_)
         {
-            local_recognition_pipeline_->setModelDatabase( model_database );
+            local_recognition_pipeline_->setModelDatabase( model_database_ );
 
             if(param_.use_graph_based_gc_grouping_)
             {
@@ -176,7 +236,9 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             {
                     GlobalConcatEstimatorParameter p;
                     p.feature_type = param_.global_feature_types_[global_pipeline_id];
-                    typename GlobalConcatEstimator<PointT>::Ptr global_concat_estimator (new GlobalConcatEstimator<PointT>(p));
+                    typename GlobalConcatEstimator<PointT>::Ptr global_concat_estimator (new GlobalConcatEstimator<PointT>(to_pass_further, p));
+
+//                    typename OURCVFHEstimator<PointT>::Ptr ourcvfh_estimator (new OURCVFHEstimator<PointT>);
                     Classifier::Ptr classifier = initClassifier( param_.classification_methods_[global_pipeline_id], to_pass_further);
 
                     GlobalRecognizerParameter global_rec_param ( param_.global_recognition_pipeline_config_[global_pipeline_id] );
@@ -192,8 +254,9 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             mrec_->addRecognitionPipeline( rec_pipeline_tmp );
         }
 
-        mrec_->setModelDatabase( model_database );
+        mrec_->setModelDatabase( model_database_ );
         mrec_->setNormalEstimator( normal_estimator_ );
+        mrec_->setVisualizationParameter(vis_param);
         mrec_->initialize( models_dir_, retrain );
     }
 
@@ -201,17 +264,18 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     if(!skip_verification_)
     {
         // ====== SETUP HYPOTHESES VERIFICATION =====
-        HV_Parameter paramHV (param_.hv_config_xml_);
-        hv_.reset (new HypothesisVerification<PointT, PointT> (xtion, paramHV) );
+        HV_Parameter paramHV;
+        paramHV.load (param_.hv_config_xml_);
+        hv_.reset (new HypothesisVerification<PointT, PointT> (camera_, paramHV) );
 
         if( visualize_hv_go_cues )
-            hv_->visualizeCues();
+            hv_->visualizeCues(vis_param);
         if( visualize_hv_model_cues )
-            hv_->visualizeModelCues();
+            hv_->visualizeModelCues(vis_param);
         if( visualize_hv_pairwise_cues )
-            hv_->visualizePairwiseCues();
+            hv_->visualizePairwiseCues(vis_param);
 
-        hv_->setModelDatabase(model_database);
+        hv_->setModelDatabase(model_database_);
     }
 
     if (param_.remove_planes_)
@@ -231,7 +295,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     if(visualize_)
     {
         rec_vis_.reset( new v4r::ObjectRecognitionVisualizer<PointT>);
-        rec_vis_->setModelDatabase(model_database);
+        rec_vis_->setModelDatabase(model_database_);
     }
 }
 
@@ -268,12 +332,11 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====
-    pcl::PassThrough<PointT> pass;
-    pass.setInputCloud (processed_cloud);
-    pass.setFilterFieldName ("z");
-    pass.setFilterLimits (0, param_.chop_z_);
-    pass.setKeepOrganized(true);
-    pass.filter (*processed_cloud);
+    for(PointT &p : processed_cloud->points)
+    {
+        if (pcl::isFinite(p) && p.getVector3fMap().norm() > param_.chop_z_)
+            p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+    }
 
     {
         pcl::ScopeTime t("Generation of object hypotheses");
@@ -282,6 +345,13 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         generated_object_hypotheses_ = mrec_->getObjectHypothesis();
         elapsed_time.push_back( t.getTime() );
     }
+
+
+    if(param_.icp_iterations_)
+    {
+        refinePose(processed_cloud);
+    }
+
 
     if(!skip_verification_)
     {
@@ -298,7 +368,8 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     {
         const std::string &model_id = voh->model_id_;
         const Eigen::Matrix4f &tf = voh->transform_;
-        LOG(INFO) << "********************" << model_id << std::endl << tf << std::endl << std::endl;
+        float confidence = voh->confidence_;
+        LOG(INFO) << "********************" << model_id << " (confidence: " << confidence << ") " << std::endl << tf << std::endl << std::endl;
     }
 
     if ( visualize_ )
@@ -309,6 +380,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         rec_vis_->setNormals(normals);
 
         rec_vis_->setGeneratedObjectHypotheses( generated_object_hypotheses_ );
+        rec_vis_->setRefinedGeneratedObjectHypotheses( generated_object_hypotheses_refined_ );
         rec_vis_->setLocalModelDatabase(lomdb);
         rec_vis_->setVerifiedObjectHypotheses( verified_hypotheses_ );
         rec_vis_->visualize();

@@ -33,7 +33,7 @@ namespace v4r
 
 /**
  * @brief compute histogram of the row entries of a matrix
- * @param[in] data (row are the elements, columns are the different dimensions
+ * @param[in] data (columns are the elements, rows are the different dimensions
  * @param[out] histogram
  * @param[in] number of bins
  * @param[in] range minimum

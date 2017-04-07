@@ -39,9 +39,13 @@ namespace v4r
 class V4R_EXPORTS SVMParameter
 {
 public:
-    bool do_cross_validation_; /// if true, runs cross validation
+    int do_cross_validation_; /// if greater 1, performs k-fold cross validation with k equal set by this variable
     int knn_;   ///< return the knn most probably classes when parameter probability is set to true
     ::svm_parameter svm_;
+
+    std::vector<double> cross_validation_range_C_; ///< cross validation range for parameter C (first element minimum, second element maximum, third element step size as a multiplier)
+    std::vector<double> cross_validation_range_gamma_; ///< cross validation range for parameter gamma (first element minimum, second element maximum, third element step size as a multiplier)
+
     SVMParameter(
             int svm_type = ::C_SVC,
             int kernel_type = ::LINEAR, //::RBF,
@@ -62,8 +66,10 @@ public:
             int probability = 0 /* do probability estimates */
             )
         :
-          do_cross_validation_ ( false ),
-          knn_ (3)
+          do_cross_validation_ ( 0 ),
+          knn_ (3),
+          cross_validation_range_C_( {exp2(-6), exp2(6), 2} ),
+          cross_validation_range_gamma_( {exp2(-5), exp2(5), 2} )
     {
         svm_.svm_type = svm_type;
         svm_.kernel_type = kernel_type;
@@ -82,7 +88,6 @@ public:
         svm_.shrinking = shrinking;
         svm_.probability = probability;
     }
-
 
     /**
          * @brief init parameters
@@ -107,7 +112,7 @@ public:
         po::options_description desc("SVM Classification Parameter\n=====================\n");
         desc.add_options()
                 ("help,h", "produce help message")
-                ("svm_do_cross_validation", po::value<bool>(&do_cross_validation_)->default_value(do_cross_validation_), "if true, runs cross validation")
+                ("svm_do_cross_validation", po::value<int>(&do_cross_validation_)->default_value(do_cross_validation_), "if greater 1, performs k-fold cross validation with k equal set by this variable")
                 ("svm_knn", po::value<int>(&knn_)->default_value(knn_), "return the knn most probably classes when parameter probability is set to true")
                 ("svm_type", po::value<int>(&svm_.svm_type)->default_value(svm_.svm_type), "according to LIBSVM")
                 ("svm_kernel_type", po::value<int>(&svm_.kernel_type)->default_value(svm_.kernel_type), "according to LIBSVM")
@@ -118,6 +123,8 @@ public:
                 ("svm_nr_weight", po::value<int>(&svm_.nr_weight)->default_value(svm_.nr_weight), "")
                 ("svm_shrinking", po::value<int>(&svm_.shrinking)->default_value(svm_.shrinking), "use the shrinking heuristics")
                 ("svm_probability", po::value<int>(&svm_.probability)->default_value(svm_.probability), "do probability estimates")
+                ("svm_cross_validation_range_C", po::value<std::vector<double> >(&cross_validation_range_C_)->multitoken(), "cross validation range for parameter C (first element minimum, second element maximum, third element step size as a multiplier)")
+                ("svm_cross_validation_range_gamma", po::value<std::vector<double> >(&cross_validation_range_gamma_)->multitoken(), "cross validation range for parameter gamma (first element minimum, second element maximum, third element step size as a multiplier)")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();

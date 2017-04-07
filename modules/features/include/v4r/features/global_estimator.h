@@ -40,6 +40,8 @@ namespace v4r
         size_t descr_type_;
         size_t feature_dimensions_;
 
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;   ///< transforms (e.g. from OUR-CVFH) aligning the input cloud with the descriptors's local referance frame
+
       public:
         GlobalEstimator(const std::string &descr_name = "", size_t descr_type = 0, size_t feature_dimensions = 0)
             : descr_name_ (descr_name),
@@ -95,6 +97,12 @@ namespace v4r
         getFeatureDimensions() const
         {
             return feature_dimensions_;
+        }
+
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
+        getTransforms() const
+        {
+            return transforms_;
         }
 
         virtual bool

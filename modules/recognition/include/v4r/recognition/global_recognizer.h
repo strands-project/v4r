@@ -33,7 +33,9 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <v4r/core/macros.h>
+#include <v4r/common/normal_estimator.h>
 #include <v4r/common/pcl_serialization.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/features/global_estimator.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/ml/classifier.h>
@@ -49,7 +51,7 @@ public:
     bool check_elongations_; ///< if true, checks if the elongation of the segmented cluster fits approximately the elongation of the matched object hypothesis
     float max_elongation_ratio_; ///< if the elongation of the segment w.r.t. to the matched hypotheses is above this threshold, it will be rejected (used only if check_elongations_ is true.
     float min_elongation_ratio_; ///< if the elongation of the segment w.r.t. to the matched hypotheses is below this threshold, it will be rejected (used only if check_elongations_ is true).
-    bool use_table_plane_for_alignment_; ///< if true, aligns the matched object model such that the centroid corresponds to the centroid of the segmented cluster downprojected onto the found table plane. The z-axis corresponds to the normal axis of the table plane and the remaining axis build a orthornmal system. Rotation is then sampled in equidistant angles around the z-axis.
+    bool use_table_plane_for_alignment_; ///< if true, aligns the matched object model such that the centroid corresponds to the centroid of the segmented cluster downprojected onto the found table plane. The z-axis corresponds to the normal axis of the table plane and the remaining axis build a orthornmal system. Rotation is then sampled in equidistant angles around the z-axis. ATTENTION: This assumes the models are in a coordinate system with the z-axis alinging with the typical upright position of the object.
     float z_angle_sampling_density_degree_; ///< if use_table_plane_for_alignment_, this value will generate object hypotheses at each multiple of this value.
     float required_viewpoint_change_deg_; ///< required viewpoint change in degree for a new training view to be used for feature extraction. Training views will be sorted incrementally by their filename and if the camera pose of a training view is close to the camera pose of an already existing training view, it will be discarded for training.
     bool estimate_pose_; ///< if true, tries to estimate a coarse pose of the object based on the other parameters
@@ -121,10 +123,16 @@ public:
     Eigen::MatrixXf model_signatures_; ///< signatures (from all views) of the object model
     Eigen::MatrixX3f model_elongations_; ///< spatial elongations in X,Y and Z direction (from all views)
     Eigen::MatrixX4f model_centroids_;  ///< model centroids (from all views)
+    float mean_distance_view_centroid_to_3d_model_centroid_; ///< average distance of the centroids computed on the training views to the centroid computed on the whole 3D object
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > model_poses_; ///< model poses (from all views)
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > eigen_based_pose_; ///< poses (from all views) that transform view such that principial axis correspond to x,y and z axis
 
-    GlobalObjectModel() {}
+    // for OURCVFH
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > descriptor_transforms_;
+
+    GlobalObjectModel() :
+        mean_distance_view_centroid_to_3d_model_centroid_(0.f)
+    {}
 
     friend class boost::serialization::access;
     template<class Archive> V4R_EXPORTS void serialize(Archive & ar, const unsigned int version)
@@ -134,6 +142,8 @@ public:
            & model_centroids_
            & model_poses_
            & eigen_based_pose_
+           & mean_distance_view_centroid_to_3d_model_centroid_
+           & descriptor_transforms_
          ;
         (void) version;
     }
@@ -294,6 +304,8 @@ private:
 
     GlobalObjectModelDatabase gomdb_;   ///< database used for global recognition
 
+    typename NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
+
     std::vector<std::string> id_to_model_name_; ///< which target label (target id = vector element id) of the classifier corresponds to which object model
 
     std::vector<typename ObjectHypothesis<PointT>::Ptr> obj_hyps_filtered_; ///<  extracted object hypotheses after running through (potential) filter
@@ -304,10 +316,15 @@ private:
     typename GlobalEstimator<PointT>::Ptr estimator_; ///< estimator used for describing the object
     Classifier::Ptr classifier_; ///< classifier object
 
-    bool featureEncoding(Eigen::MatrixXf &signatures);
-    void featureMatching(const Eigen::MatrixXf &query_sig);
+    void featureEncodingAndMatching();
 
     bool keep_all_hypotheses_;
+
+    PCLVisualizationParams::ConstPtr vis_param_;
+
+    void
+    validate() const;
+
 
 public:
     GlobalRecognizer(const GlobalRecognizerParameter &p = GlobalRecognizerParameter()) :
@@ -449,6 +466,28 @@ public:
      */
     void
     recognize ();
+
+    /**
+     * @brief setVisualizationParameter
+     * @param vis_param
+     */
+    void
+    setVisualizationParameter(const PCLVisualizationParams::ConstPtr &vis_param)
+    {
+        vis_param_ = vis_param;
+    }
+
+
+    /**
+     * @brief setNormalEstimator sets the normal estimator used for computing surface normals (currently only used at training)
+     * @param normal_estimator
+     */
+    void
+    setNormalEstimator(const typename NormalEstimator<PointT>::Ptr &normal_estimator)
+    {
+        normal_estimator_ = normal_estimator;
+    }
+
 
     typedef boost::shared_ptr< GlobalRecognizer<PointT> > Ptr;
     typedef boost::shared_ptr< GlobalRecognizer<PointT> const> ConstPtr;

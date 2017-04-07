@@ -1,12 +1,18 @@
 #pragma once
 
 #include <v4r/core/macros.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <iostream>
 #include <sstream>
 #include <fstream>
 
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+#include <boost/filesystem.hpp>
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
+
+namespace bf = boost::filesystem;
 
 namespace v4r
 {
@@ -43,13 +49,15 @@ private:
     std::string or_dir;
     std::string models_dir;
     std::string test_dir;
-    bool visualize;
+    bool visualize_;
     bool use_generated_hypotheses;
 
     pcl::visualization::PCLVisualizer::Ptr vis_;
     int vp1_, vp2_, vp3_;
 
     std::map<std::string, Model> models;
+
+    PCLVisualizationParams::Ptr vis_params_;
 
     void loadModels();
 
@@ -63,7 +71,7 @@ public:
           translation_error_threshold_m(0.05f),
           occlusion_threshold(0.95f),
           out_dir("/tmp/recognition_rates/"),
-          visualize(false),
+          visualize_(false),
           use_generated_hypotheses(false)
     {
         rotational_invariant_objects_ = {
@@ -78,6 +86,10 @@ public:
             "object_01", "object_02", "object_03", "object_09", "object_08", "object_30", "object_31", "object_33" //last row are debatable objects - not 100% symmetric but very hard to distinguish
 
         };
+
+        vis_params_.reset(new PCLVisualizationParams());
+        vis_params_->bg_color_ = Eigen::Vector3i(255,255,255);
+        vis_params_->coordinate_axis_scale_ = 0.04f;
     }
 
     /**
@@ -199,6 +211,17 @@ public:
     void setVisualize(bool value);
     std::string getOut_dir() const;
     void setOut_dir(const std::string &value);
+
+    /**
+     * @brief visualize results for an input cloud with ground-truth and recognized object models
+     * @param input_cloud cloud of the input scene
+     * @param gt_path file path to the ground-truth annotation file
+     * @param recognition_results_path file path to the results stored in the format of the annotation file
+     */
+    void
+    visualizeResults(const typename pcl::PointCloud<PointT>::Ptr &input_cloud, const bf::path & gt_path, const bf::path &recognition_results_path);
+
+    Eigen::MatrixXi compute_confusion_matrix();
 };
 
 

@@ -146,7 +146,7 @@ CloudSegmenter<PointT>::segment(const typename pcl::PointCloud<PointT>::ConstPtr
                     if( CosAngleBetweenPlanes(plane_tmp, current_highest_plane) > param_.cosinus_angle_for_planes_to_be_parallel_ ) // check if parallel
                     {
                         //check if higher
-                        if ( plane_tmp(3) / plane_tmp.head(3).squaredNorm() < current_highest_plane(3) / current_highest_plane.head(3).squaredNorm())
+                        if ( plane_tmp(3) / plane_tmp.head(3).norm() < current_highest_plane(3) / current_highest_plane.head(3).norm())
                         {
                             selected_plane_id = plane_id;
                         }

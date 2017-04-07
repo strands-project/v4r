@@ -15,20 +15,19 @@
 	<cg_size_>0.01</cg_size_>
 	<cg_thresh_>4</cg_thresh_>
 	<use_graph_based_gc_grouping_>1</use_graph_based_gc_grouping_>
-	<do_sift_>0</do_sift_>
-	<do_shot_>0</do_shot_>
+	<do_sift_>1</do_sift_>
+	<do_shot_>1</do_shot_>
 	<segmentation_method_>1</segmentation_method_>
 	<global_feature_types_>
 		<count>1</count>
 		<item_version>0</item_version>
-		<item>3104</item>
+		<item>2208</item>
 	</global_feature_types_>
 	<classification_methods_>
-		<count>1</count>
+		<count>0</count>
 		<item_version>0</item_version>
-		<item>2</item>
 	</classification_methods_>
-	<shot_keypoint_extractor_method_>8</shot_keypoint_extractor_method_>
+	<shot_keypoint_extractor_method_>1</shot_keypoint_extractor_method_>
 	<normal_computation_method_>2</normal_computation_method_>
 	<keypoint_support_radii_>
 		<count>2</count>

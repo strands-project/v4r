@@ -23,9 +23,17 @@
 
 #pragma once
 
+#include <v4r_config.h>
 #include <v4r/core/macros.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/features/global_estimator.h>
+#ifdef HAVE_CAFFE
+#include <v4r/features/global_alexnet_cnn_estimator.h>
+#endif
+#include <v4r/features/esf_estimator.h>
+#include <v4r/features/global_simple_shape_estimator.h>
+#include <v4r/features/global_color_estimator.h>
+#include <v4r/features/ourcvfh_estimator.h>
 #include <v4r/features/types.h>
 
 #include <boost/archive/xml_iarchive.hpp>
@@ -128,34 +136,31 @@ class V4R_EXPORTS GlobalConcatEstimator : public GlobalEstimator<PointT>
 private:
     using GlobalEstimator<PointT>::indices_;
     using GlobalEstimator<PointT>::cloud_;
+    using GlobalEstimator<PointT>::normals_;
     using GlobalEstimator<PointT>::descr_name_;
     using GlobalEstimator<PointT>::descr_type_;
     using GlobalEstimator<PointT>::feature_dimensions_;
+    using GlobalEstimator<PointT>::transforms_;
+
+    bool need_normals_;
+
+    typename ESFEstimation<PointT>::Ptr esf_estimator_;
+    typename SimpleShapeEstimator<PointT>::Ptr simple_shape_estimator_;
+    typename GlobalColorEstimator<PointT>::Ptr color_estimator_;
+    typename OURCVFHEstimator<PointT>::Ptr ourcvfh_estimator_;
+#ifdef HAVE_CAFFE
+    typename CNN_Feat_Extractor<PointT>::Ptr cnn_feat_estimator_;
+#endif
 
     GlobalConcatEstimatorParameter param_;
 
 public:
-    GlobalConcatEstimator( const GlobalConcatEstimatorParameter &p = GlobalConcatEstimatorParameter() ):
-        param_(p)
-    {
-        descr_name_ = "global";
-        feature_dimensions_ = 0;
-
-        if(param_.feature_type & FeatureType::ESF)
-            descr_name_ += "_esf";
-        if(param_.feature_type & FeatureType::SIMPLE_SHAPE)
-            descr_name_ += "_simple_shape";
-        if(param_.feature_type & FeatureType::GLOBAL_COLOR)
-            descr_name_ += "_color";
-
-        VLOG(1) << "Initialized global concatenated pipeline with " << descr_name_;
-
-        descr_type_ = param_.feature_type;
-    }
+    GlobalConcatEstimator( std::vector<std::string> &boost_command_line_arguments,
+                           const GlobalConcatEstimatorParameter &p = GlobalConcatEstimatorParameter() );
 
     bool compute (Eigen::MatrixXf &signature);
 
-    bool needNormals() const { return false; }
+    bool needNormals() const { return need_normals_; }
 
     typedef boost::shared_ptr< GlobalConcatEstimator<PointT> > Ptr;
     typedef boost::shared_ptr< GlobalConcatEstimator<PointT> const> ConstPtr;
