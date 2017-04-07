@@ -1140,7 +1140,7 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
             c.fitness_ = getFitness( c );
             rm.model_scene_c_.push_back( c );
 
-            if(c.fitness_ > 0.3f)
+            if(c.fitness_ > param_.min_pt_fitness_)
                 is_outlier=false;
         }
 //        vis.removeAllShapes(vp1);
