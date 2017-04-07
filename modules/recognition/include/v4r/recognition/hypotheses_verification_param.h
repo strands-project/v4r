@@ -49,7 +49,7 @@ class V4R_EXPORTS HV_Parameter
 public:
     int resolution_mm_; ///< The resolution of models and scene used to verify hypotheses (in milli meters)
     float inliers_threshold_; ///< inlier distance in meters between model and scene point
-    float inliers_surface_angle_thres_; ///< inlier distance in radians between model and scene surface normals
+    float inliers_surface_angle_thres_dotp_; ///< inner product for which the fit of model and scene surface normals is exactly half
     float occlusion_thres_;    ///< Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)
     int smoothing_radius_; ///< radius in pixel used for smoothing the visible image mask of an object hypotheses (used for computing pairwise intersection)
     bool do_smoothing_;   ///< if true, smoothes the silhouette of the reproject object hypotheses (used for computing pairwise intersection)
@@ -94,7 +94,7 @@ public:
     HV_Parameter () :
           resolution_mm_ (5),
           inliers_threshold_(0.01), // 0.005f
-          inliers_surface_angle_thres_ (M_PI / 16),
+          inliers_surface_angle_thres_dotp_ ( 0.8 ),
           occlusion_thres_ (0.01f),  // 0.005f
           smoothing_radius_ (2),
           do_smoothing_ (true),
@@ -197,7 +197,7 @@ public:
         (void) version;
         ar & BOOST_SERIALIZATION_NVP(resolution_mm_)
                 & BOOST_SERIALIZATION_NVP(inliers_threshold_)
-                & BOOST_SERIALIZATION_NVP(inliers_surface_angle_thres_)
+                & BOOST_SERIALIZATION_NVP(inliers_surface_angle_thres_dotp_)
                 & BOOST_SERIALIZATION_NVP(occlusion_thres_)
                 & BOOST_SERIALIZATION_NVP(smoothing_radius_)
                 & BOOST_SERIALIZATION_NVP(do_smoothing_)

@@ -4,7 +4,7 @@
 <paramHV class_id="0" tracking_level="0" version="0">
 	<resolution_mm_>5</resolution_mm_>
 	<inliers_threshold_>0.0099999998</inliers_threshold_>
-	<inliers_surface_angle_thres_>0.8</inliers_surface_angle_thres_>
+	<inliers_surface_angle_thres_dotp_>0.8</inliers_surface_angle_thres_dotp_>
 	<occlusion_thres_>0.0099999998</occlusion_thres_>
 	<smoothing_radius_>2</smoothing_radius_>
 	<do_smoothing_>1</do_smoothing_>
