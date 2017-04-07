@@ -428,7 +428,7 @@ HypothesisVerification<ModelT, SceneT>::evaluateSolution (const boost::dynamic_b
     }
 
     if( !violates_smooth_region_check )
-        cost = -( scene_fit - param_.clutter_regularizer_ * duplicity );
+        cost = -( log( scene_fit ) - param_.clutter_regularizer_ * duplicity );
 
     if(cost_logger_)
     {
