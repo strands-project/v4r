@@ -480,7 +480,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         std::stringstream unique_id; unique_id << m.first << "_" << counter;
                         vis_->addPointCloud(model_aligned, unique_id.str(), vp3_);
 
-//#if PCL_VERSION >= 100800
+#if PCL_VERSION >= 100800
                         Eigen::Matrix4f tf_tmp = hyp_vis.pose;
                         Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
                         Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
