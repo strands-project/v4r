@@ -55,10 +55,10 @@ HypothesisVerification<ModelT, SceneT>::customRegionGrowing (const SceneTWithNor
     if (fabs (dotp) < cos(eps_angle_threshold_rad))
         return false;
 
-    float intensity_a = .2126 * seed_pt.r + .7152 * seed_pt.g + .0722 * seed_pt.b;
-    float intensity_b = .2126 * candidate_pt.r + .7152 * candidate_pt.g + .0722 * candidate_pt.b;
+    float intensity_a = .2126f * seed_pt.r + .7152f * seed_pt.g + .0722f * seed_pt.b;
+    float intensity_b = .2126f * candidate_pt.r + .7152f * candidate_pt.g + .0722f * candidate_pt.b;
 
-    if( fabs(intensity_a - intensity_b) > 5.)
+    if( fabs(intensity_a - intensity_b) > 5.f)
         return false;
 
     return true;
@@ -735,7 +735,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                         rm.processSilhouette(param_.do_smoothing_, param_.smoothing_radius_, param_.do_erosion_, param_.erosion_radius_, cam_->getWidth());
                     }
                 }
-                VLOG(1) << "Computing 2D silhouette of visible object model took" << t.getTime() << "ms.";
+                VLOG(1) << "Computing 2D silhouette of visible object model took " << t.getTime() << "ms.";
             }
 
             {
@@ -1125,8 +1125,8 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
             float dotp = std::min( 0.99999f, std::max(-0.99999f, normal_m.dot(normal_s) ) );
             c.angle_surface_normals_rad_ = dotp;
 
-            CHECK (c.angle_surface_normals_rad_ <= M_PI);
-            CHECK (c.angle_surface_normals_rad_ >= 0.f );
+//            CHECK (c.angle_surface_normals_rad_ <= M_PI) << "invalid normals: " << std::endl << normal_m << std::endl << std::endl << normal_s << std::endl << std::endl << "dotp: " << dotp << std::endl << "acos: " << c.angle_surface_normals_rad_ << std::endl;
+//            CHECK (c.angle_surface_normals_rad_ >= 0.f ) << "invalid normals: " << std::endl << normal_m << std::endl << std::endl << normal_s << std::endl << std::endl << "dotp: " << dotp << std::endl << "acos: " << c.angle_surface_normals_rad_ << std::endl;
 
             const Eigen::VectorXf &color_m = rm.pt_color_.row( midx );
             const Eigen::VectorXf &color_s = scene_color_channels_.row( sidx );
