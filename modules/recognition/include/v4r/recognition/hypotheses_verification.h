@@ -279,7 +279,10 @@ protected:
     float
     modelSceneColorCostTerm( const ModelSceneCorrespondence& c ) const
     {
-        return exp (- c.color_distance_/param_.color_sigma_ab_ );
+//        return exp (- c.color_distance_/param_.color_sigma_ab_ );
+//        std::cout << c.color_distance_ << std::endl;
+//        return std::min(1.f, std::max(0.f, 1.f - c.color_distance_/param_.color_sigma_ab_));
+        return 0.5f * (1.f-tanh( (c.color_distance_ - param_.color_sigma_ab_) / param_.color_sigma_l_ ) );
     }
 
     /**
