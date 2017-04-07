@@ -74,16 +74,86 @@ HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecogniti
     {
         // project into respective view
         typename pcl::PointCloud<ModelT>::Ptr aligned_cloud (new pcl::PointCloud<ModelT>);
+        pcl::PointCloud<pcl::Normal>::Ptr aligned_normals (new pcl::PointCloud<pcl::Normal>);
         const Eigen::Matrix4f tf = absolute_camera_poses_[view].inverse();
         pcl::transformPointCloud(*rm.complete_cloud_, *aligned_cloud, tf);
+        v4r::transformNormals(*rm.complete_cloud_normals_, *aligned_normals, tf);
+
+        ZBufferingParameter zBparam;
+        zBparam.do_noise_filtering_ = false;
+        zBparam.do_smoothing_ = true;
+        zBparam.inlier_threshold_ = 0.015f;
+        zBparam.use_normals_ = true;
+        ZBuffering<ModelT> zbuf (cam_, zBparam);
+        zbuf.setCloudNormals( rm.complete_cloud_normals_ );
+        typename pcl::PointCloud<ModelT>::Ptr organized_cloud_to_be_filtered (new pcl::PointCloud<ModelT>);
+        zbuf.renderPointCloud( *aligned_cloud, *organized_cloud_to_be_filtered );
+//        std::vector<int> kept_indices = zbuf.getKeptIndices();
+        Eigen::MatrixXi index_map = zbuf.getIndexMap();
+
+//        static pcl::visualization::PCLVisualizer vis;
+//        int vp1, vp2;
+//        vis.removeAllPointClouds();
+//        vis.createViewPort(0,0,0.5,1,vp1);
+//        vis.createViewPort(0.5,0,1,1,vp2);
+//        vis.addPointCloud(aligned_cloud, "input", vp1);
+//        vis.addCoordinateSystem(0.04,"co",vp1);
+//        vis.addCoordinateSystem(0.04,"co2",vp2);
+//        vis.addPointCloud(organized_cloud_to_be_filtered, "organized", vp2);
+
+//        pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_downsampled_, 128, 128, 128);
+//        vis.addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_", vp1);
+
+//        vis.spin();
 
         OcclusionReasoner<SceneT, ModelT> occ_reasoner;
         occ_reasoner.setCamera(cam_);
-        occ_reasoner.setInputCloud( aligned_cloud );
+        occ_reasoner.setInputCloud( organized_cloud_to_be_filtered );
         occ_reasoner.setOcclusionCloud( occlusion_clouds_[view] );
         occ_reasoner.setOcclusionThreshold( param_.occlusion_thres_ );
-        image_mask_mv |=  occ_reasoner.computeVisiblePoints();
+        boost::dynamic_bitset<> pt_is_visible =  occ_reasoner.computeVisiblePoints();
         rm.image_mask_[view] = occ_reasoner.getPixelMask();
+
+        for (size_t u=0; u<organized_cloud_to_be_filtered->width; u++)
+        {
+            for (size_t v=0; v<organized_cloud_to_be_filtered->height; v++)
+            {
+                int idx = v*organized_cloud_to_be_filtered->width + u;
+
+                if( img_boundary_distance_.at<float>(v,u) < param_.min_px_distance_to_image_boundary_ )
+                    continue;
+
+                if ( pt_is_visible[idx] )
+                {
+                    int original_idx = index_map(v,u);
+
+                    Eigen::Vector3f viewray = aligned_cloud->points[original_idx].getVector3fMap();
+                    viewray.normalize();
+                    Eigen::Vector3f normal = aligned_normals->points[original_idx].getNormalVector3fMap();
+                    normal.normalize();
+
+                    float dotp = viewray.dot(normal);
+
+                    if ( fabs(dotp) < param_.min_dotproduct_model_normal_to_viewray_ )
+                        continue;
+
+
+                    image_mask_mv.set( original_idx );
+                }
+            }
+        }
+
+//        static pcl::visualization::PCLVisualizer vis;
+//        vis.removeAllPointClouds();
+//        vis.addPointCloud(occlusion_clouds_[view], "scene");
+//        vis.addPointCloud(aligned_cloud, "model");
+//        vis.spin();
+
+
+//        cv::Mat registration_depth_mask = cam_->getCameraDepthRegistrationMask();
+
+//        cv::imshow("reg_mask", registration_depth_mask);
+//        cv::waitKey();
     }
 
     rm.visible_indices_ = createIndicesFromMask<int>(image_mask_mv);
@@ -174,6 +244,7 @@ HypothesisVerification<ModelT, SceneT>::refinePose(HVRecognitionModel<ModelT> &r
     pcl::IterativeClosestPoint<ModelT, SceneT> icp;
     icp.setInputSource(rm.visible_cloud_);
     icp.setInputTarget(scene_cloud_downsampled_);
+    icp.setTransformationEpsilon (1e-6);
     icp.setMaximumIterations(param_.icp_iterations_);
     icp.setMaxCorrespondenceDistance(param_.inliers_threshold_);
     icp.setSearchMethodTarget(kdtree_scene_, true);
@@ -186,20 +257,26 @@ HypothesisVerification<ModelT, SceneT>::refinePose(HVRecognitionModel<ModelT> &r
     else
         LOG(WARNING) << "ICP did not converge" << std::endl;
 
-//    pcl::visualization::PCLVisualizer vis_tmp;
-//    int vp2, vp3,vp1;
+    VLOG(2) << refined_tf;
+
+//    static pcl::visualization::PCLVisualizer vis_tmp;
+//    static int vp2, vp3,vp1;
+//    vis_tmp.removeAllPointClouds();
 //    vis_tmp.createViewPort(0,0,0.33,1, vp1);
 //    vis_tmp.createViewPort(0.33,0,0.66,1, vp2);
 //    vis_tmp.createViewPort(0.66,0,1,1, vp3);
 
-//    vis_tmp.addPointCloud(rm.model_->getAssembled(-1), "model1", vp1);
+//    scene_cloud_downsampled_->sensor_orientation_ = Eigen::Quaternionf::Identity();
+//    scene_cloud_downsampled_->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
+//    vis_tmp.addPointCloud(rm.visible_cloud_, "model1", vp1);
 //     pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_downsampled_, 128, 128, 128);
 //     vis_tmp.addPointCloud(scene_cloud_downsampled_, gray, "scene1", vp1);
-//     vis_tmp.addPointCloud(rm.complete_cloud_, "model1", vp1);
+////     vis_tmp.addPointCloud(rm.complete_cloud_, "model1", vp1);
 
 //     vis_tmp.addPointCloud(scene_cloud_downsampled_, gray, "scene2", vp2);
 //     typename pcl::PointCloud<SceneT>::Ptr model_refined (new pcl::PointCloud<SceneT>);
-//     pcl::transformPointCloud(*rm.complete_cloud_, *model_refined, refined_tf);
+//     pcl::transformPointCloud(*rm.visible_cloud_, *model_refined, refined_tf);
 //     vis_tmp.addPointCloud(model_refined, "model2", vp2);
 //     vis_tmp.spin();
 
