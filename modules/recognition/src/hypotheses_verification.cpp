@@ -127,6 +127,9 @@ HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecogniti
                 {
                     int original_idx = index_map(v,u);
 
+                    if(original_idx < 0)
+                        continue;
+
                     Eigen::Vector3f viewray = aligned_cloud->points[original_idx].getVector3fMap();
                     viewray.normalize();
                     Eigen::Vector3f normal = aligned_normals->points[original_idx].getNormalVector3fMap();
