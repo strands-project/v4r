@@ -1,6 +1,7 @@
 #pragma once
 
 #include <v4r/core/macros.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <iostream>
@@ -56,6 +57,8 @@ private:
 
     std::map<std::string, Model> models;
 
+    PCLVisualizationParams::Ptr vis_params_;
+
     void loadModels();
 
     std::vector<std::string> rotational_symmetric_objects_; ///< name of objects which are rotational symmetric with respect to xy plane
@@ -83,6 +86,10 @@ public:
             "object_01", "object_02", "object_03", "object_09", "object_08", "object_30", "object_31", "object_33" //last row are debatable objects - not 100% symmetric but very hard to distinguish
 
         };
+
+        vis_params_.reset(new PCLVisualizationParams());
+        vis_params_->bg_color_ = Eigen::Vector3i(255,255,255);
+        vis_params_->coordinate_axis_scale_ = 0.04f;
     }
 
     /**

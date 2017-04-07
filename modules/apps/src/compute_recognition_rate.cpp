@@ -276,6 +276,7 @@ RecognitionEvaluator::visualizeResults(const typename pcl::PointCloud<PointT>::P
     if(!vis)
     {
         vis.reset (new pcl::visualization::PCLVisualizer ("results"));
+        vis->setBackgroundColor(vis_params_->bg_color_(0), vis_params_->bg_color_(1), vis_params_->bg_color_(2));
         vis->createViewPort(0, 0, 1, 0.33, vp1);
         vis->createViewPort(0, 0.33, 1, 0.66, vp2);
         vis->createViewPort(0, 0.66, 1, 1, vp3);
@@ -457,6 +458,11 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                     vis_->createViewPort(0, 0, 1, 0.33, vp1_);
                     vis_->createViewPort(0, 0.33, 1, 0.66, vp2_);
                     vis_->createViewPort(0, 0.66, 1, 1, vp3_);
+                    vis_->setBackgroundColor(vis_params_->bg_color_(0), vis_params_->bg_color_(1), vis_params_->bg_color_(2));
+                    vis_->setBackgroundColor(vis_params_->bg_color_(0), vis_params_->bg_color_(1), vis_params_->bg_color_(2), vp1_);
+                    vis_->setBackgroundColor(vis_params_->bg_color_(0), vis_params_->bg_color_(1), vis_params_->bg_color_(2), vp2_);
+                    vis_->setBackgroundColor(vis_params_->bg_color_(0), vis_params_->bg_color_(1), vis_params_->bg_color_(2), vp3_);
+
                 }
 
                 size_t counter = 0;
@@ -474,7 +480,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         std::stringstream unique_id; unique_id << m.first << "_" << counter;
                         vis_->addPointCloud(model_aligned, unique_id.str(), vp3_);
 
-#if PCL_VERSION >= 100800
+//#if PCL_VERSION >= 100800
                         Eigen::Matrix4f tf_tmp = hyp_vis.pose;
                         Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
                         Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
@@ -482,7 +488,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
                         std::stringstream co_id; co_id << m.first << "_co_" << counter;
                         vis_->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp3_);
-#endif
+//#endif
                         counter++;
                     }
 
@@ -502,7 +508,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         else
                             vis_->addPointCloud(model_aligned, unique_id.str(), vp2_);
 
-#if PCL_VERSION >= 100800
+//#if PCL_VERSION >= 100800
                         Eigen::Matrix4f tf_tmp = hyp_vis.pose;
                         Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
                         Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
@@ -510,7 +516,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
                         std::stringstream co_id; co_id << m.first << "_co_" << counter;
                         vis_->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp2_);
-#endif
+//#endif
                         counter++;
                     }
                 }
@@ -537,11 +543,11 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             scene_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
             vis_->addPointCloud(scene_cloud, "scene", vp1_);
 
-            pcl::visualization::PointCloudColorHandlerCustom<PointT> gray (scene_cloud, 255, 255, 255);
-            vis_->addPointCloud(scene_cloud, gray, "input_vp2", vp2_);
-            vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp2");
-            vis_->addPointCloud(scene_cloud, gray, "input_vp3", vp3_);
-            vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp3");
+//            pcl::visualization::PointCloudColorHandlerCustom<PointT> gray (scene_cloud, 255, 255, 255);
+//            vis_->addPointCloud(scene_cloud, gray, "input_vp2", vp2_);
+//            vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp2");
+//            vis_->addPointCloud(scene_cloud, gray, "input_vp3", vp3_);
+//            vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp3");
 
             vis_->addText( scene_name, 10, 10, 15, 1.f, 1.f, 1.f, "scene_text", vp1_);
             vis_->addText("ground-truth objects (occluded objects in blue)", 10, 10, 15, 1.f, 1.f, 1.f, "gt_text", vp2_);
@@ -556,6 +562,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             vis_->addText(rec_text.str(), 10, 10, 15, 1.f, 1.f, 1.f, "rec_text", vp3_);
 //            vis->resetCamera();
             vis_->spin();
+            vis_.reset();
         }
     }
     of.close();
@@ -665,7 +672,8 @@ RecognitionEvaluator::init(const std::vector<std::string> &params)
             ("rec_results_dir,r", po::value<std::string>(&or_dir), "Root directory containing the recognition results (same format as annotation files).")
             ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored")
             ("trans_thresh", po::value<float>(&translation_error_threshold_m)->default_value(translation_error_threshold_m), "Maximal allowed translational error in metres")
-            ("rot_thresh", po::value<float>(&rotation_error_threshold_deg)->default_value(rotation_error_threshold_deg), "Maximal allowed rotational error in degrees (NOT IMPLEMENTED)")
+            ("rot_thresh", po::value<float>(&rotation_error_threshold_deg)->default_value(rotation_error_threshold_deg), "Maximal allowed rotational error in degrees")
+            ("occlusion_thresh", po::value<float>(&occlusion_threshold)->default_value(occlusion_threshold), "Occlusion threshold. Object with higher occlusion will be ignored in the evaluation")
             ("visualize,v", po::bool_switch(&visualize_), "visualize recognition results")
             ("models_dir,m", po::value<std::string>(&models_dir), "Only for visualization. Root directory containing the model files (i.e. filenames 3D_model.pcd).")
             ("test_dir,t", po::value<std::string>(&test_dir), "Only for visualization. Root directory containing the scene files.")
@@ -779,6 +787,7 @@ RecognitionEvaluator::checkIndividualHypotheses()
     if(visualize_)
     {
         vis.reset (new pcl::visualization::PCLVisualizer ("results"));
+        vis->setBackgroundColor(vis_params_->bg_color_(0), vis_params_->bg_color_(1), vis_params_->bg_color_(2));
         vis->createViewPort(0, 0, 1, 0.5, vp1);
         vis->createViewPort(0, 0.5, 1, 1, vp2);
     }
