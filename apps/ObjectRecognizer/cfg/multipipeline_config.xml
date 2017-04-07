@@ -39,4 +39,5 @@
 	<remove_planes_>1</remove_planes_>
 	<plane_inlier_threshold_>0.02</plane_inlier_threshold_>
 	<min_plane_inliers_>20000</min_plane_inliers_>
+	<use_multiview_>1</use_multiview_>
 </ObjectRecognizerParameter>

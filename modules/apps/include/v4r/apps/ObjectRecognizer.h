@@ -196,7 +196,6 @@ private:
     typename v4r::ObjectRecognitionVisualizer<PointT>::Ptr rec_vis_; ///< visualization object
 
     std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_;
-    std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_refined_;
     std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_;
 
     typename v4r::apps::CloudSegmenter<PointT>::Ptr cloud_segmenter_; ///< cloud segmenter for plane removal (if enabled)
@@ -210,8 +209,6 @@ private:
     Camera::Ptr camera_;
 
     typename Source<PointT>::Ptr model_database_;
-
-    void refinePose(const typename pcl::PointCloud<PointT>::ConstPtr &scene);   ///< does ICP on the generated object hypotheses to refine their pose
 
 public:
     ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :

@@ -219,7 +219,7 @@ protected:
      */
     bool isOutlier(HVRecognitionModel<ModelT> &rm) const
     {
-        return ( rm.confidence_ < param_.min_fitness_ );
+        return ( rm.oh_->confidence_ < param_.min_fitness_ );
     }
 
 
@@ -375,27 +375,26 @@ public:
         }
     }
 
-    /**
-     * @brief returns the vector of verified object hypotheses
-     * @return
-     */
-    std::vector<typename ObjectHypothesis<ModelT>::Ptr >
-    getVerifiedHypotheses() const
-    {
-        std::vector<typename ObjectHypothesis<ModelT>::Ptr > verified_hypotheses  (global_hypotheses_.size());
-
-        size_t kept=0;
-        for(size_t i=0; i<global_hypotheses_.size(); i++)
-        {
-            if(solution_[i])
-            {
-                verified_hypotheses[kept] = global_hypotheses_[i];
-                kept++;
-            }
-        }
-        verified_hypotheses.resize(kept);
-        return verified_hypotheses;
-    }
+//    /**
+//     * @brief returns the vector of verified object hypotheses
+//     * @return
+//     */
+//    std::vector<typename ObjectHypothesis<ModelT>::Ptr >
+//    getVerifiedHypotheses() const
+//    {
+//        std::vector<typename ObjectHypothesis<ModelT>::Ptr > verified_hypotheses  (global_hypotheses_.size());
+//        size_t kept=0;
+//        for(size_t i=0; i<global_hypotheses_.size(); i++)
+//        {
+//            if(solution_[i])
+//            {
+//                verified_hypotheses[kept] = global_hypotheses_[i];
+//                kept++;
+//            }
+//        }
+//        verified_hypotheses.resize(kept);
+//        return verified_hypotheses;
+//    }
 
     /**
      * @brief Sets the models (recognition hypotheses)
@@ -459,7 +458,7 @@ public:
      * @param ohs
      */
     void
-    setHypotheses(const std::vector<ObjectHypothesesGroup<ModelT> > &ohs);
+    setHypotheses(std::vector<ObjectHypothesesGroup<ModelT> > &ohs);
 
     /**
      * @brief writeToLog

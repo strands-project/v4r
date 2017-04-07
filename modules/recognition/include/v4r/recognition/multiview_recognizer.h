@@ -40,6 +40,16 @@
 namespace v4r
 {
 
+class V4R_EXPORTS MultiviewRecognizerParameter
+{
+public:
+    bool transfer_only_verified_hypotheses_;
+
+    MultiviewRecognizerParameter() :
+        transfer_only_verified_hypotheses_ (true)
+    {}
+};
+
 template<typename PointT>
 class V4R_EXPORTS MultiviewRecognizer : public RecognitionPipeline<PointT>
 {
@@ -52,29 +62,26 @@ private:
     using RecognitionPipeline<PointT>::table_plane_set_;
 
     typename RecognitionPipeline<PointT>::Ptr recognition_pipeline_;
+    MultiviewRecognizerParameter param_;
 
     struct View
     {
-        typename pcl::PointCloud<PointT>::ConstPtr cloud_; ///< Point cloud of the scene
-        pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_; ///< associated scene normals
         Eigen::Matrix4f camera_pose_;   ///< camera pose of the view which aligns cloud in registered cloud when multiplied
+        std::vector< ObjectHypothesesGroup<PointT> > obj_hypotheses_;   ///< generated object hypotheses
 
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-        View(const typename pcl::PointCloud<PointT>::ConstPtr cloud,
-             const pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals,
-             const Eigen::Matrix4f &camera_pose = Eigen::Matrix4f::Identity() )
-            :
-              cloud_ (cloud),
-              cloud_normals_ (cloud_normals),
-              camera_pose_ (camera_pose)
+        View() :
+              camera_pose_ (Eigen::Matrix4f::Identity())
         {}
     };
 
     std::vector<View> views_;
 
 public:
-    MultiviewRecognizer() { }
+    MultiviewRecognizer(const MultiviewRecognizerParameter &p = MultiviewRecognizerParameter() )
+        : param_ (p)
+    { }
 
     void
     initialize(const std::string &trained_dir = "", bool retrain = false)
@@ -131,7 +138,7 @@ public:
     void
     clear()
     {
-        obj_hypotheses_.clear();
+        views_.clear();
     }
 
     typedef boost::shared_ptr< MultiviewRecognizer<PointT> > Ptr;

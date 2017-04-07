@@ -159,7 +159,6 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
 
     vis_->removeAllShapes();
     std::stringstream generated_hyp_ss; generated_hyp_ss << "genereated hypotheses (" << gen_hyps << ")";
-    std::stringstream verified_hyp_ss; verified_hyp_ss << "verified hypotheses (" << verified_object_hypotheses_.size() << ")";
     vis_->addText("input cloud", 10, 10, 20, 1, 1, 1, "input_test", vp1a_);
 
     if(processed_cloud_)
@@ -170,8 +169,6 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
     vis_->addText("k...toggle keypoints", 10, 70, 12, 0, 0, 0, "toggle_keypoints", vp2_);
     vis_->addText("d...toggle input cloud", 10, 90, 12, 0, 0, 0, "toggle_input", vp2_);
     vis_->addText("(refined) generated hypotheses_text", 10, 10, 20, 0, 0, 0, "(refined) generated hypotheses_text", vp2b_);
-    vis_->addText(verified_hyp_ss.str(), 10, 10, 20, 0, 0, 0, "verified hypotheses_text", vp3_);
-
 
     vis_->removeAllPointClouds();
     vis_->removeAllPointClouds(vp1a_);
@@ -314,11 +311,116 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
 
 
 
-    for(size_t ohg_id=0; ohg_id<generated_object_hypotheses_refined_.size(); ohg_id++)
+//    for(size_t ohg_id=0; ohg_id<generated_object_hypotheses_refined_.size(); ohg_id++)
+//    {
+//        for(size_t i=0; i<generated_object_hypotheses_refined_[ohg_id].ohs_.size(); i++)
+//        {
+//            const ObjectHypothesis<PointT> &oh = *(generated_object_hypotheses_refined_[ohg_id].ohs_[i]);
+//            bool found;
+//            typename Model<PointT>::ConstPtr m = m_db_->getModelById(oh.class_id_, oh.model_id_, found);
+//            const std::string model_id = oh.model_id_.substr(0, oh.model_id_.length() - 4);
+//            std::stringstream model_label;
+//            model_label << model_id << "_" << ohg_id << "_" << i << "_refined";
+//            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
+//            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(3);
+//            pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
+//            vis_->addPointCloud(model_aligned, model_label.str(), vp2b_);
+
+
+//            // assign unique color for each object hypothesis
+//            const uint8_t r = rand()%255;
+//            const uint8_t g = rand()%255;
+//            const uint8_t b = rand()%255;
+
+//            pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_scene_tmp (new pcl::PointCloud<pcl::PointXYZRGB>);
+//            pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_scene_tmp2 (new pcl::PointCloud<pcl::PointXYZRGB>);
+
+//            pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_model_tmp, kp_cloud_model_tmp2;
+//            if( !model_keypoints_.empty() )
+//            {
+//                kp_cloud_model_tmp.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+//                kp_cloud_model_tmp2.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
+//            }
+
+//            for( const pcl::Correspondence &c : oh.corr_ )
+//            {
+//                pcl::PointXYZRGB p = vis_cloud->points [c.index_match];
+//                p.r = r;
+//                p.g = g;
+//                p.b = b;
+//                kp_cloud_scene_tmp->points.push_back(p);
+
+//                if( !model_keypoints_.empty() )
+//                {
+//                    pcl::PointXYZ m_kp = model_keypoints_.at(m->id_)->keypoints_->points[c.index_query];
+//                    pcl::PointXYZRGB m_kp_color;
+//                    m_kp_color.getVector3fMap() = m_kp.getVector3fMap();
+//                    m_kp_color.r = r;
+//                    m_kp_color.g = g;
+//                    m_kp_color.b = b;
+//                    kp_cloud_model_tmp->points.push_back(m_kp_color);
+//                }
+
+
+//                // also show unique color for each correspondence
+//                const uint8_t rr = rand()%255;
+//                const uint8_t gg = rand()%255;
+//                const uint8_t bb = rand()%255;
+
+//                p = vis_cloud->points [c.index_match];
+//                p.r = rr;
+//                p.g = gg;
+//                p.b = bb;
+//                kp_cloud_scene_tmp2->points.push_back(p);
+
+//                if( !model_keypoints_.empty() )
+//                {
+//                    pcl::PointXYZ m_kp = model_keypoints_.at(m->id_)->keypoints_->points[c.index_query];
+//                    pcl::PointXYZRGB m_kp_color;
+//                    m_kp_color.getVector3fMap() = m_kp.getVector3fMap();
+//                    m_kp_color.r = rr;
+//                    m_kp_color.g = gg;
+//                    m_kp_color.b = bb;
+//                    kp_cloud_model_tmp2->points.push_back(m_kp_color);
+//                }
+//            }
+
+//            if( !model_keypoints_.empty() )
+//            {
+//                pcl::transformPointCloud(*kp_cloud_model_tmp, *kp_cloud_model_tmp, oh.transform_);
+//                pcl::transformPointCloud(*kp_cloud_model_tmp2, *kp_cloud_model_tmp2, oh.transform_);
+//                *kp_cloud_model += *kp_cloud_model_tmp;
+//                *kp_cloud_model2 += *kp_cloud_model_tmp2;
+//            }
+//            *kp_cloud_scene += *kp_cloud_scene_tmp;
+//            *kp_cloud_scene2 += *kp_cloud_scene_tmp2;
+
+
+//    #if PCL_VERSION >= 100800
+//            Eigen::Matrix4f tf_tmp = oh.transform_;
+//            Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
+//            Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
+//            Eigen::Affine3f affine_trans;
+//            affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+//            std::stringstream co_id; co_id << ohg_id << i << "refined_vp2";
+//            vis_->addCoordinateSystem(0.2f, affine_trans, co_id.str(), vp2b_);
+//            coordinate_axis_ids_.push_back(co_id.str());
+//    #endif
+//        }
+//    }
+
+    size_t num_verified_hypotheses = 0;
+    for(size_t ohg_id=0; ohg_id<generated_object_hypotheses_.size(); ohg_id++)
     {
-        for(size_t i=0; i<generated_object_hypotheses_refined_[ohg_id].ohs_.size(); i++)
+        for(size_t i=0; i<generated_object_hypotheses_[ohg_id].ohs_.size(); i++)
         {
-            const ObjectHypothesis<PointT> &oh = *(generated_object_hypotheses_refined_[ohg_id].ohs_[i]);
+            const ObjectHypothesis<PointT> &oh = *(generated_object_hypotheses_[ohg_id].ohs_[i]);
+
+            if( !oh.is_verified_ )
+                continue;
+
+            num_verified_hypotheses++;
+
             bool found;
             typename Model<PointT>::ConstPtr m = m_db_->getModelById(oh.class_id_, oh.model_id_, found);
             const std::string model_id = oh.model_id_.substr(0, oh.model_id_.length() - 4);
@@ -327,77 +429,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
             typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
             typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(3);
             pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
-            vis_->addPointCloud(model_aligned, model_label.str(), vp2b_);
-
-
-            // assign unique color for each object hypothesis
-            const uint8_t r = rand()%255;
-            const uint8_t g = rand()%255;
-            const uint8_t b = rand()%255;
-
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_scene_tmp (new pcl::PointCloud<pcl::PointXYZRGB>);
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_scene_tmp2 (new pcl::PointCloud<pcl::PointXYZRGB>);
-
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr kp_cloud_model_tmp, kp_cloud_model_tmp2;
-            if( !model_keypoints_.empty() )
-            {
-                kp_cloud_model_tmp.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-                kp_cloud_model_tmp2.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
-            }
-
-            for( const pcl::Correspondence &c : oh.corr_ )
-            {
-                pcl::PointXYZRGB p = vis_cloud->points [c.index_match];
-                p.r = r;
-                p.g = g;
-                p.b = b;
-                kp_cloud_scene_tmp->points.push_back(p);
-
-                if( !model_keypoints_.empty() )
-                {
-                    pcl::PointXYZ m_kp = model_keypoints_.at(m->id_)->keypoints_->points[c.index_query];
-                    pcl::PointXYZRGB m_kp_color;
-                    m_kp_color.getVector3fMap() = m_kp.getVector3fMap();
-                    m_kp_color.r = r;
-                    m_kp_color.g = g;
-                    m_kp_color.b = b;
-                    kp_cloud_model_tmp->points.push_back(m_kp_color);
-                }
-
-
-                // also show unique color for each correspondence
-                const uint8_t rr = rand()%255;
-                const uint8_t gg = rand()%255;
-                const uint8_t bb = rand()%255;
-
-                p = vis_cloud->points [c.index_match];
-                p.r = rr;
-                p.g = gg;
-                p.b = bb;
-                kp_cloud_scene_tmp2->points.push_back(p);
-
-                if( !model_keypoints_.empty() )
-                {
-                    pcl::PointXYZ m_kp = model_keypoints_.at(m->id_)->keypoints_->points[c.index_query];
-                    pcl::PointXYZRGB m_kp_color;
-                    m_kp_color.getVector3fMap() = m_kp.getVector3fMap();
-                    m_kp_color.r = rr;
-                    m_kp_color.g = gg;
-                    m_kp_color.b = bb;
-                    kp_cloud_model_tmp2->points.push_back(m_kp_color);
-                }
-            }
-
-            if( !model_keypoints_.empty() )
-            {
-                pcl::transformPointCloud(*kp_cloud_model_tmp, *kp_cloud_model_tmp, oh.transform_);
-                pcl::transformPointCloud(*kp_cloud_model_tmp2, *kp_cloud_model_tmp2, oh.transform_);
-                *kp_cloud_model += *kp_cloud_model_tmp;
-                *kp_cloud_model2 += *kp_cloud_model_tmp2;
-            }
-            *kp_cloud_scene += *kp_cloud_scene_tmp;
-            *kp_cloud_scene2 += *kp_cloud_scene_tmp2;
-
+            vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
 
     #if PCL_VERSION >= 100800
             Eigen::Matrix4f tf_tmp = oh.transform_;
@@ -405,37 +437,15 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
             Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
             Eigen::Affine3f affine_trans;
             affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
-            std::stringstream co_id; co_id << ohg_id << i << "refined_vp2";
-            vis_->addCoordinateSystem(0.2f, affine_trans, co_id.str(), vp2b_);
+            std::stringstream co_id; co_id << i << "vp3";
+            vis_->addCoordinateSystem(0.2f, affine_trans, co_id.str(), vp3_);
             coordinate_axis_ids_.push_back(co_id.str());
     #endif
         }
     }
+    std::stringstream verified_hyp_ss; verified_hyp_ss << "verified hypotheses (" << num_verified_hypotheses << ")";
+    vis_->addText(verified_hyp_ss.str(), 10, 10, 20, 0, 0, 0, "verified hypotheses_text", vp3_);
 
-    for(size_t i=0; i<verified_object_hypotheses_.size(); i++)
-    {
-        const ObjectHypothesis<PointT> &oh = *verified_object_hypotheses_[i];
-        bool found_model;
-        typename Model<PointT>::ConstPtr m = m_db_->getModelById(oh.class_id_, oh.model_id_, found_model);
-        const std::string model_id = m->id_.substr(0, m->id_.length() - 4);
-        std::stringstream model_label;
-        model_label << model_id << "_verified_" << i;
-        typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(3);
-        pcl::transformPointCloud( *model_cloud, *model_aligned, oh.transform_);
-        vis_->addPointCloud(model_aligned, model_label.str(), vp3_);
-
-#if PCL_VERSION >= 100800
-        Eigen::Matrix4f tf_tmp = oh.transform_;
-        Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
-        Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
-        Eigen::Affine3f affine_trans;
-        affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
-        std::stringstream co_id; co_id << i << "vp3";
-        vis_->addCoordinateSystem(0.2f, affine_trans, co_id.str(), vp3_);
-        coordinate_axis_ids_.push_back(co_id.str());
-#endif
-    }
 
     if(vis_param_->no_text_)
         vis_->setBackgroundColor(1,1,1,vp2_);

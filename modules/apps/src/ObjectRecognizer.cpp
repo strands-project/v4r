@@ -30,6 +30,7 @@
 #include <v4r/ml/all_headers.h>
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/global_recognition_pipeline.h>
+#include <v4r/recognition/multiview_recognizer.h>
 #include <v4r/segmentation/all_headers.h>
 
 
@@ -49,54 +50,6 @@ namespace v4r
 
 namespace apps
 {
-
-template<typename PointT>
-void
-ObjectRecognizer<PointT>::refinePose( const typename pcl::PointCloud<PointT>::ConstPtr &scene)
-{
-    pcl::IterativeClosestPoint<PointT, PointT> icp;
-    icp.setInputTarget(scene);
-    icp.setMaximumIterations(param_.icp_iterations_);
-    icp.setMaxCorrespondenceDistance( 0.05f );
-//    icp.setSearchMethodTarget(kdtree_scene_, true);
-
-    generated_object_hypotheses_refined_.clear();
-    generated_object_hypotheses_refined_.resize( generated_object_hypotheses_.size() );
-
-//    static pcl::visualization::PCLVisualizer vis;
-
-    for(size_t ohg_id=0; ohg_id<generated_object_hypotheses_.size(); ohg_id++)
-    {
-        ObjectHypothesesGroup<PointT> &ohg_refined = generated_object_hypotheses_refined_[ohg_id];
-        ohg_refined.global_hypotheses_ = generated_object_hypotheses_[ohg_id].global_hypotheses_;
-        ohg_refined.ohs_.reserve( generated_object_hypotheses_[ohg_id].ohs_.size() );
-
-        for(size_t i=0; i<generated_object_hypotheses_[ohg_id].ohs_.size(); i++)
-        {
-            pcl::ScopeTime t("ICP");
-            typename ObjectHypothesis<PointT>::Ptr oh (new ObjectHypothesis<PointT>(*(generated_object_hypotheses_[ohg_id].ohs_[i])));
-            bool found;
-            typename Model<PointT>::ConstPtr m = model_database_->getModelById(oh->class_id_, oh->model_id_, found);
-            typename pcl::PointCloud<PointT>::Ptr model_aligned ( new pcl::PointCloud<PointT>() );
-            typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m->getAssembled(3);
-            pcl::transformPointCloud( *model_cloud, *model_aligned, oh->transform_);
-
-            icp.setInputSource( model_aligned );
-            pcl::PointCloud<PointT> aligned_visible_model;
-            icp.align(aligned_visible_model);
-
-            Eigen::Matrix4f refined_tf = Eigen::Matrix4f::Identity();
-            if(icp.hasConverged())
-                refined_tf = icp.getFinalTransformation();
-            else
-               std::cout << "ICP did not converge." << std::endl;
-
-            oh->transform_ = refined_tf * oh->transform_;
-
-            ohg_refined.ohs_.push_back(oh);
-        }
-    }
-}
 
 template<typename PointT>
 void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &command_line_arguments)
@@ -360,10 +313,10 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Ptr 
     }
 
 
-    if(param_.icp_iterations_)
-    {
-        refinePose(processed_cloud);
-    }
+//    if(param_.icp_iterations_)
+//    {
+//        refinePose(processed_cloud);
+//    }
 
 
     if(!skip_verification_)
@@ -373,7 +326,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Ptr 
         hv_->setNormals( normals );
         hv_->setHypotheses( generated_object_hypotheses_ );
         hv_->verify();
-        verified_hypotheses_ = hv_->getVerifiedHypotheses();
+//        verified_hypotheses_ = hv_->getVerifiedHypotheses();
         elapsed_time.push_back( t.getTime() );
     }
 
@@ -393,9 +346,9 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Ptr 
         rec_vis_->setNormals(normals);
 
         rec_vis_->setGeneratedObjectHypotheses( generated_object_hypotheses_ );
-        rec_vis_->setRefinedGeneratedObjectHypotheses( generated_object_hypotheses_refined_ );
+//        rec_vis_->setRefinedGeneratedObjectHypotheses( generated_object_hypotheses_refined_ );
         rec_vis_->setLocalModelDatabase(lomdb);
-        rec_vis_->setVerifiedObjectHypotheses( verified_hypotheses_ );
+//        rec_vis_->setVerifiedObjectHypotheses( verified_hypotheses_ );
         rec_vis_->visualize();
     }
 

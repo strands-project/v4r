@@ -168,7 +168,7 @@ void
 HypothesisVerification<ModelT, SceneT>::computeVisibleOctreeNodes(HVRecognitionModel<ModelT> &rm)
 {
     boost::dynamic_bitset<> visible_mask = v4r::createMaskFromIndices( rm.visible_indices_, rm.complete_cloud_->points.size() );
-    auto octree_it = octree_model_representation_.find( rm.model_id_ );
+    auto octree_it = octree_model_representation_.find( rm.oh_->model_id_ );
 
     if(octree_it == octree_model_representation_.end())
         std::cerr << "Did not find octree representation! This should not happen!" << std::endl;
@@ -492,7 +492,7 @@ HypothesisVerification<ModelT, SceneT>::removeModelsWithLowVisibility()
             if( (float)rm->visible_indices_by_octree_.size() / (float)rm->complete_cloud_->points.size() < param_.min_visible_ratio_)
             {
                 rm->rejected_due_to_low_visibility_ = true;
-                VLOG(1) << "Removed " << rm->model_id_ << " due to low visibility!";
+                VLOG(1) << "Removed " << rm->oh_->model_id_ << " due to low visibility!";
             }
         }
     }
@@ -500,7 +500,7 @@ HypothesisVerification<ModelT, SceneT>::removeModelsWithLowVisibility()
 
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::setHypotheses(const std::vector<ObjectHypothesesGroup<ModelT> > &ohs)
+HypothesisVerification<ModelT, SceneT>::setHypotheses(std::vector<ObjectHypothesesGroup<ModelT> > &ohs)
 {
     obj_hypotheses_groups_.clear();
     obj_hypotheses_groups_.resize(ohs.size());
@@ -511,7 +511,7 @@ HypothesisVerification<ModelT, SceneT>::setHypotheses(const std::vector<ObjectHy
         obj_hypotheses_groups_[i].resize(ohg.ohs_.size());
         for(size_t jj=0; jj<ohg.ohs_.size(); jj++)
         {
-            const ObjectHypothesis<ModelT> &oh = *ohg.ohs_[jj];
+            typename ObjectHypothesis<ModelT>::Ptr oh = ohg.ohs_[jj];
             obj_hypotheses_groups_[i][jj].reset ( new HVRecognitionModel<ModelT>(oh) );
             HVRecognitionModel<ModelT> &hv_oh = *obj_hypotheses_groups_[i][jj];
 
@@ -519,11 +519,11 @@ HypothesisVerification<ModelT, SceneT>::setHypotheses(const std::vector<ObjectHy
             hv_oh.complete_cloud_normals_.reset (new pcl::PointCloud<pcl::Normal>);
 
             bool found_model;
-            typename Model<ModelT>::ConstPtr m = m_db_->getModelById("", oh.model_id_, found_model);
+            typename Model<ModelT>::ConstPtr m = m_db_->getModelById("", oh->model_id_, found_model);
             typename pcl::PointCloud<ModelT>::ConstPtr model_cloud = m->getAssembled ( param_.resolution_mm_ );
             pcl::PointCloud<pcl::Normal>::ConstPtr normal_cloud_const = m->getNormalsAssembled ( param_.resolution_mm_ );
-            pcl::transformPointCloud (*model_cloud, *hv_oh.complete_cloud_, oh.transform_);
-            transformNormals(*normal_cloud_const, *hv_oh.complete_cloud_normals_, oh.transform_);
+            pcl::transformPointCloud (*model_cloud, *hv_oh.complete_cloud_, oh->transform_);
+            transformNormals(*normal_cloud_const, *hv_oh.complete_cloud_normals_, oh->transform_);
         }
     }
 }
@@ -624,14 +624,14 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                 {
                     HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
 
-                    auto model_octree_it = octree_model_representation_.find( rm.model_id_ );
+                    auto model_octree_it = octree_model_representation_.find( rm.oh_->model_id_ );
 
                     if( model_octree_it == octree_model_representation_.end() )
                     {
                         boost::shared_ptr< pcl::octree::OctreePointCloudPointVector<ModelT> > octree(new pcl::octree::OctreePointCloudPointVector<ModelT>(0.015f) );
                         octree->setInputCloud( rm.complete_cloud_ );
                         octree->addPointsFromInputCloud();
-                        octree_model_representation_ [ rm.model_id_ ] = octree;
+                        octree_model_representation_ [ rm.oh_->model_id_ ] = octree;
                     }
                 }
             }
@@ -856,7 +856,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         for(size_t jj=1; jj<ohg.size(); jj++)
         {
             ohg[jj]->rejected_due_to_better_hypothesis_in_group_ = true;
-            VLOG(1) << ohg[jj]->class_id_ << " " << ohg[jj]->model_id_ << " is rejected due to better hypotheses in global hypotheses group.";
+            VLOG(1) << ohg[jj]->oh_->class_id_ << " " << ohg[jj]->oh_->model_id_ << " is rejected due to better hypotheses in global hypotheses group.";
         }
     }
     obj_hypotheses_groups_.clear(); // free space
@@ -876,20 +876,20 @@ HypothesisVerification<ModelT, SceneT>::initialize()
     {
         typename HVRecognitionModel<ModelT>::Ptr rm = global_hypotheses_[i];
 
-        VLOG(1) << rm->class_id_ << " " << rm->model_id_ << " with hypothesis id " << i <<
+        VLOG(1) << rm->oh_->class_id_ << " " << rm->oh_->model_id_ << " with hypothesis id " << i <<
                    " has number of outliers: " << rm->visible_pt_is_outlier_.count() << ", scene explained weights " <<
                    rm->scene_explained_weight_.sum() << ".";
 
         rm->is_outlier_ = isOutlier(*rm);
 
         if (rm->is_outlier_)
-            VLOG(1) << rm->class_id_ << " " << rm->model_id_ << " is rejected due to low model fitness score.";
+            VLOG(1) << rm->oh_->class_id_ << " " << rm->oh_->model_id_ << " is rejected due to low model fitness score.";
 
 
         if ( !rm->isRejected() )
             global_hypotheses_[kept_hypotheses++] = global_hypotheses_[i];
         else
-            VLOG(1) << rm->class_id_ << " " << rm->model_id_ << " with hypothesis id " << i << " is rejected.";
+            VLOG(1) << rm->oh_->class_id_ << " " << rm->oh_->model_id_ << " with hypothesis id " << i << " is rejected.";
     }
 
     global_hypotheses_.resize( kept_hypotheses );
@@ -915,7 +915,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     {
         VLOG(1) << global_hypotheses_.size() << " hypotheses are left for global verification after individual hypotheses rejection. These are the left hypotheses: ";
         for (size_t i=0; i<global_hypotheses_.size(); i++)
-            VLOG(1) << global_hypotheses_[i]->class_id_ << " " << global_hypotheses_[i]->model_id_;
+            VLOG(1) << global_hypotheses_[i]->oh_->class_id_ << " " << global_hypotheses_[i]->oh_->model_id_;
     }
 
     solution_ = boost::dynamic_bitset<>(global_hypotheses_.size(), 0);
@@ -1002,6 +1002,15 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     }
     default:
         throw std::runtime_error("Specified optimization type not implememted!");
+    }
+
+    for(size_t i=0; i<global_hypotheses_.size(); i++)
+    {
+        if( solution_[i] )
+        {
+            global_hypotheses_[i]->oh_->is_verified_ = true;
+        }
+
     }
 
 
@@ -1177,9 +1186,9 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
     }
 
     rm.model_fit_ = modelFit.sum();
-    rm.confidence_ = rm.model_fit_/rm.visible_cloud_->points.size();
+    rm.oh_->confidence_ = rm.model_fit_/rm.visible_cloud_->points.size();
 
-    VLOG(1) << "model fit of " << rm.model_id_ << ": " << rm.model_fit_ << " (normalized: " << rm.model_fit_/rm.visible_cloud_->points.size() << ").";
+    VLOG(1) << "model fit of " << rm.oh_->model_id_ << ": " << rm.model_fit_ << " (normalized: " << rm.model_fit_/rm.visible_cloud_->points.size() << ").";
 }
 
 #define PCL_INSTANTIATE_HypothesisVerification(ModelT, SceneT) template class V4R_EXPORTS HypothesisVerification<ModelT, SceneT>;

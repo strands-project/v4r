@@ -9,7 +9,12 @@ template<typename PointT>
 void
 MultiviewRecognizer<PointT>::recognize()
 {
-    const Eigen::Matrix4f camera_pose = v4r::RotTrans2Mat4f( scene_->sensor_orientation_, scene_->sensor_origin_ );
+    obj_hypotheses_.clear();
+
+    View v;
+    v.camera_pose_ = v4r::RotTrans2Mat4f( scene_->sensor_orientation_, scene_->sensor_origin_ );
+//    v.cloud_ = scene_;
+//    v.cloud_normals_ = scene_normals_;
 
     recognition_pipeline_->setInputCloud( scene_ );
     recognition_pipeline_->setSceneNormals( scene_normals_ );
@@ -18,20 +23,54 @@ MultiviewRecognizer<PointT>::recognize()
         recognition_pipeline_->setTablePlane( table_plane_ );
 
     recognition_pipeline_->recognize();
+    v.obj_hypotheses_ = recognition_pipeline_->getObjectHypothesis();
 
     table_plane_set_ = false;
 
-    std::vector<ObjectHypothesesGroup<PointT> > ohg_view = recognition_pipeline_->getObjectHypothesis();
+    obj_hypotheses_ = v.obj_hypotheses_;
 
-    for(ObjectHypothesesGroup<PointT> &ohg_tmp : ohg_view)
+
+    // now add the old hypotheses
+
+    for(const View v_old : views_)
     {
-        for( typename ObjectHypothesis<PointT>::Ptr &oh_tmp : ohg_tmp.ohs_)
+        for(const ObjectHypothesesGroup<PointT> &ohg_tmp : v_old.obj_hypotheses_)
         {
-            oh_tmp->transform_ = camera_pose * oh_tmp->transform_;
+            bool hyp_exists = false;
+            for( const typename ObjectHypothesis<PointT>::Ptr &oh_tmp : ohg_tmp.ohs_)
+            {
+                if( !param_.transfer_only_verified_hypotheses_ || oh_tmp->is_verified_ )
+                {
+                    hyp_exists = true;
+                    break;
+                }
+            }
+
+            if( hyp_exists || !param_.transfer_only_verified_hypotheses_ )
+            {
+                ObjectHypothesesGroup<PointT> ohg;
+                ohg.global_hypotheses_ = ohg_tmp.global_hypotheses_;
+
+                for( const typename ObjectHypothesis<PointT>::Ptr &oh_tmp : ohg_tmp.ohs_)
+                {
+                    if( param_.transfer_only_verified_hypotheses_ && !oh_tmp->is_verified_ )
+                        continue;
+
+                    // create a copy (since we want to reset verification status and update transform but keep the status for old view)
+                    typename ObjectHypothesis<PointT>::Ptr oh_copy ( new ObjectHypothesis<PointT>);
+                    *oh_copy = *oh_tmp;
+
+                    oh_copy->is_verified_ = false;
+                    oh_copy->transform_ = v.camera_pose_.inverse() * v_old.camera_pose_ * oh_copy->transform_;
+                    ohg.ohs_.push_back( oh_copy );
+                }
+
+                obj_hypotheses_.push_back(ohg);
+            }
         }
     }
 
-    obj_hypotheses_.insert( obj_hypotheses_.end(), ohg_view.begin(), ohg_view.end() );
+    views_.push_back(v);
 }
 
 template class V4R_EXPORTS MultiviewRecognizer<pcl::PointXYZRGB>;

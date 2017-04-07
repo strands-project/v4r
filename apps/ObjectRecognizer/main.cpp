@@ -47,7 +47,8 @@ main (int argc, char ** argv)
     }
     google::InitGoogleLogging(argv[0]);
 
-    v4r::apps::ObjectRecognizerParameter param(recognizer_config);
+    v4r::apps::ObjectRecognizerParameter param;
+    param.load( recognizer_config );
     v4r::apps::ObjectRecognizer<PT> recognizer (param);
     recognizer.initialize(to_pass_further);
 
@@ -70,8 +71,8 @@ main (int argc, char ** argv)
             pcl::io::loadPCDFile( test_path.string(), *cloud);
 
             //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
-            cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
-            cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+//            cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+//            cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
 
             std::vector<typename v4r::ObjectHypothesis<PT>::Ptr > verified_hypotheses = recognizer.recognize(cloud);
             std::vector<v4r::ObjectHypothesesGroup<PT> > generated_object_hypotheses = recognizer.getGeneratedObjectHypothesis();

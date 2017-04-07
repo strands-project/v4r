@@ -108,7 +108,7 @@ public:
 
 
 template<typename PointT>
-class V4R_EXPORTS HVRecognitionModel : public ObjectHypothesis<PointT>
+class V4R_EXPORTS HVRecognitionModel
 {
 private:
     friend class boost::serialization::access;
@@ -123,6 +123,7 @@ public:
     typedef boost::shared_ptr< HVRecognitionModel> Ptr;
     typedef boost::shared_ptr< HVRecognitionModel const> ConstPtr;
 
+    typename ObjectHypothesis<PointT>::Ptr oh_;  ///< object hypothesis
     typename pcl::PointCloud<PointT>::Ptr complete_cloud_;
     typename pcl::PointCloud<PointT>::Ptr visible_cloud_;
     std::vector<boost::dynamic_bitset<> > image_mask_; ///< image mask per view (in single-view case, there will be only one element in outer vector). Used to compute pairwise intersection
@@ -148,24 +149,25 @@ public:
     bool rejected_due_to_better_hypothesis_in_group_; ///< true if there is any other object model in the same hypotheses group which explains the scene better
     bool rejected_globally_;
 
-    HVRecognitionModel() :
-        L_value_offset_ (0.f),
-        refined_pose_ ( Eigen::Matrix4f::Identity() ),
-        rejected_due_to_low_visibility_ (false),
-        is_outlier_ (false),
-        rejected_due_to_better_hypothesis_in_group_ (false),
-        rejected_globally_ (false)
-    {}
+//    HVRecognitionModel() :
+//        L_value_offset_ (0.f),
+//        refined_pose_ ( Eigen::Matrix4f::Identity() ),
+//        rejected_due_to_low_visibility_ (false),
+//        is_outlier_ (false),
+//        rejected_due_to_better_hypothesis_in_group_ (false),
+//        rejected_globally_ (false)
+//    {}
 
-    HVRecognitionModel(const ObjectHypothesis<PointT> &oh) :
-        ObjectHypothesis<PointT>(oh),
+    HVRecognitionModel(typename ObjectHypothesis<PointT>::Ptr &oh) :
         L_value_offset_ (0.f),
         refined_pose_ ( Eigen::Matrix4f::Identity() ),
         rejected_due_to_low_visibility_ (false),
         is_outlier_ (false),
         rejected_due_to_better_hypothesis_in_group_ (false),
         rejected_globally_ (false)
-    {}
+    {
+        oh_ = oh;
+    }
 
     void
     freeSpace()
