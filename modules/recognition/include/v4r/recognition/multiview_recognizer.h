@@ -48,6 +48,8 @@ private:
     using RecognitionPipeline<PointT>::scene_normals_;
     using RecognitionPipeline<PointT>::m_db_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
+    using RecognitionPipeline<PointT>::table_plane_;
+    using RecognitionPipeline<PointT>::table_plane_set_;
 
     typename RecognitionPipeline<PointT>::Ptr recognition_pipeline_;
 
@@ -96,7 +98,6 @@ public:
         recognition_pipeline_ = rec;
     }
 
-
     /**
     * @brief needNormals
     * @return true if normals are needed, false otherwise
@@ -127,19 +128,10 @@ public:
         return recognition_pipeline_->requiresSegmentation();
     }
 
-    /**
-     * @brief addView add a view to the recognizer
-     * @param cloud
-     * @param cloud_normals
-     * @param camera_pose
-     */
     void
-    addView(const typename pcl::PointCloud<PointT>::ConstPtr cloud,
-            const pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals = pcl::PointCloud<pcl::Normal>::ConstPtr(),
-            const Eigen::Matrix4f &camera_pose = Eigen::Matrix4f::Identity() )
+    clear()
     {
-        View v(cloud, cloud_normals, camera_pose);
-        views_.push_back(v);
+        obj_hypotheses_.clear();
     }
 
     typedef boost::shared_ptr< MultiviewRecognizer<PointT> > Ptr;
