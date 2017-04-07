@@ -723,9 +723,9 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                     if(!param_.ignore_color_even_if_exists_)
                     {
                         colorTransf_->convert (*rm.visible_cloud_, rm.pt_color_);
-                        rm.pt_color_.col(0) = (rm.pt_color_.col(0) - Eigen::VectorXf::Ones(rm.pt_color_.rows())*50.f) / 100.f;
-                        rm.pt_color_.col(1) = rm.pt_color_.col(0) / 120.f;
-                        rm.pt_color_.col(2) = rm.pt_color_.col(0) / 120.f;
+//                        rm.pt_color_.col(0) = (rm.pt_color_.col(0) - Eigen::VectorXf::Ones(rm.pt_color_.rows())*50.f) / 50.f;
+//                        rm.pt_color_.col(1) = rm.pt_color_.col(1) / 150.f;
+//                        rm.pt_color_.col(2) = rm.pt_color_.col(1) / 150.f;
                     }
 
                 }
