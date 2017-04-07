@@ -488,7 +488,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
                         std::stringstream co_id; co_id << m.first << "_co_" << counter;
                         vis_->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp3_);
-//#endif
+#endif
                         counter++;
                     }
 
@@ -508,7 +508,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         else
                             vis_->addPointCloud(model_aligned, unique_id.str(), vp2_);
 
-//#if PCL_VERSION >= 100800
+#if PCL_VERSION >= 100800
                         Eigen::Matrix4f tf_tmp = hyp_vis.pose;
                         Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
                         Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
@@ -516,7 +516,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
                         std::stringstream co_id; co_id << m.first << "_co_" << counter;
                         vis_->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp2_);
-//#endif
+#endif
                         counter++;
                     }
                 }
