@@ -19,6 +19,9 @@
 #include <omp.h>
 #include <numeric>
 
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+
 namespace v4r
 {
 
