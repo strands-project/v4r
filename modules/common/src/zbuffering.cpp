@@ -34,7 +34,11 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
 
     index_map_ = -1 * Eigen::MatrixXi::Ones( height, width );
 
-#pragma omp parallel for
+//    Eigen::MatrixXf smoothing_px_dist1st = -1.f * Eigen::MatrixXf::Ones(height, width);
+//    Eigen::MatrixXf smoothing_px_dist2nd (height, width);
+//    smoothing_px_dist2nd.setTo( -1.f );
+//    index_2nd_map =  -1 * Eigen::MatrixXi::Ones( height, width );;
+
     for (size_t i=0; i< width * height ; i++)    // initialize points to infinity
         rendered_view.points[i].x = rendered_view.points[i].y = rendered_view.points[i].z = std::numeric_limits<float>::quiet_NaN();
 
@@ -42,19 +46,17 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
     for(size_t i=0; i<pt_locks.size(); i++)
         omp_init_lock(&pt_locks[i]);
 
-    cv::Mat registration_depth_mask = cam_->getCameraDepthRegistrationMask();
-
 #pragma omp parallel for schedule (dynamic)
     for (int i=0; i< static_cast<int>(cloud.points.size()); i++)
     {
         const PointT &pt = cloud.points[i];
-        int u = f * pt.x / pt.z + cx;
-        int v = f * pt.y / pt.z + cy;
+        float uf = f * pt.x / pt.z + cx;
+        float vf = f * pt.y / pt.z + cy;
+
+        int u = (int) uf;
+        int v = (int) vf;
 
         if (u >= (int)width || v >= (int)height  || u < 0 || v < 0)
-            continue;
-
-        if( !registration_depth_mask.at<uchar>(v,u) )
             continue;
 
         int idx = v * width + u;
@@ -69,13 +71,36 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
         omp_set_lock(&pt_locks[idx]);
         PointT &r_pt = rendered_view.points[idx];
 
-        if ( !pcl_isfinite( r_pt.z ) || (pt.z < r_pt.z) )
+//        Eigen::Vector2f dist (uf - (u + 0.5f), vf - (v + 0.5f));
+//        float dist_norm = dist.norm();
+
+//        if ( smoothing_px_dist1st(v,u)<0.f || (dist_norm < smoothing_px_dist1st(v,u)) || (pt.z < (r_pt.z-param_.inlier_threshold_) ) )
+        if ( !pcl_isfinite(r_pt.z) || (pt.z < r_pt.z ) )
         {
+//            smoothing_px_dist1st(v,u) = dist_norm;
             r_pt = pt;
             index_map_(v,u) = i;
         }
-
         omp_unset_lock(&pt_locks[idx]);
+/*
+        for (int uu = (u - param_.smoothing_radius_); uu <= (u + param_.smoothing_radius_); uu++)
+        {
+            for (int vv = (v - param_.smoothing_radius_); vv <= (v + param_.smoothing_radius_); vv++)
+            {
+                if( uu<0 || vv<0 || uu>=(int)width || vv>=(int)height)
+                    continue;
+
+                Eigen::Vector2f dist (uf - (uu + 0.5f), vf - (vv + 0.5f));
+                float dist_norm = dist.norm();
+
+                if(smoothing_px_dist2nd>0.f && dist_norm < smoothing_px_dist2nd)
+                {
+                    smoothing_px_dist2nd = dist_norm;
+                    index_2nd_map = i;
+                }
+            }
+        }
+        */
     }
 
     for(size_t i=0; i<pt_locks.size(); i++)
@@ -149,6 +174,21 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
         }
         rendered_view = rendered_view_filtered;
     }
+
+    boost::dynamic_bitset<> pt_is_kept ( cloud.points.size(), 0);
+
+    for(int v=0; v<index_map_.rows(); v++)
+    {
+        for(int u=0; u<index_map_.cols(); u++)
+        {
+            if(index_map_(v,u)>=0)
+            {
+                pt_is_kept.set(index_map_(v,u));
+            }
+        }
+    }
+
+    kept_indices_ = createIndicesFromMask<int>( pt_is_kept );
 }
 
 
