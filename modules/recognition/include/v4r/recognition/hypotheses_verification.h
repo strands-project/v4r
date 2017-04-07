@@ -360,7 +360,7 @@ public:
             color_dist_f_ = CIE76; break;
 
         case ColorComparisonMethod::cie94 :
-            color_dist_f_ = CIE76; break;
+            color_dist_f_ = CIE94_DEFAULT; break;
 
         case ColorComparisonMethod::ciede2000 :
             color_dist_f_ = CIEDE2000; break;
