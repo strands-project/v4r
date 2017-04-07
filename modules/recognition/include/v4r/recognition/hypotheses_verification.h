@@ -306,13 +306,12 @@ protected:
      */
     float modelSceneNormalsCostTerm( const ModelSceneCorrespondence& c ) const
     {
-        if ( c.angle_surface_normals_rad_ < param_.inliers_surface_angle_thres_)
-            return 1.f;
-
-        if ( c.angle_surface_normals_rad_ > M_PI/2)
+        if ( c.angle_surface_normals_rad_ < 0.f)
             return 0.f;
 
-        return 1 - (c.angle_surface_normals_rad_ - param_.inliers_surface_angle_thres_) / (M_PI/2 - param_.inliers_surface_angle_thres_);
+        return std::max(0.f, std::min<float>(1.f, 0.5f + 0.5f*tanh( (c.angle_surface_normals_rad_ - param_.inliers_surface_angle_thres_) / 0.1f ) ) );   ///TODO: Speed up with LUT
+
+//        return 1 - (c.angle_surface_normals_rad_ - param_.inliers_surface_angle_thres_) / (M_PI/2 - param_.inliers_surface_angle_thres_);
     }
 
     void

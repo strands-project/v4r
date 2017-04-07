@@ -1123,7 +1123,7 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
             normal_s.normalize();
 
             float dotp = std::min( 0.99999f, std::max(-0.99999f, normal_m.dot(normal_s) ) );
-            c.angle_surface_normals_rad_ = acos (dotp);
+            c.angle_surface_normals_rad_ = dotp;
 
             CHECK (c.angle_surface_normals_rad_ <= M_PI);
             CHECK (c.angle_surface_normals_rad_ >= 0.f );
