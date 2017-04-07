@@ -47,31 +47,6 @@ namespace apps
 class V4R_EXPORTS ObjectRecognizerParameter
 {
 private:
-    void initialize()
-    {
-        hv_config_xml_ = "cfg/hv_config.xml";
-        shot_config_xml_ = "cfg/shot_config.xml";
-        global_recognition_pipeline_config_ =  {};//{"cfg/esf_config.xml", "cfg/alexnet_config.xml"};
-        camera_config_xml_ = "cfg/camera.xml";
-        depth_img_mask_ = "cfg/xtion_depth_mask.png";
-        sift_config_xml_ = "cfg/sift_config.xml";
-        cg_size_ = 0.01f;
-        cg_thresh_ = 4;
-        use_graph_based_gc_grouping_ = true;
-        do_sift_ = true;
-        do_shot_ = false;
-        segmentation_method_ = SegmentationType::OrganizedConnectedComponents;
-        global_feature_types_ = { FeatureType::ESF | FeatureType::SIMPLE_SHAPE | FeatureType::GLOBAL_COLOR, FeatureType::ALEXNET } ;
-        classification_methods_ =  { ClassifierType::SVM, 0 } ;
-        shot_keypoint_extractor_method_ =  KeypointType::HARRIS3D ;
-        normal_computation_method_ = NormalEstimatorType::PCL_INTEGRAL_NORMAL;
-        keypoint_support_radii_ = {0.04, 0.08};
-        chop_z_ = 3.f;
-        remove_planes_ = true;
-        plane_inlier_threshold_ = 0.02f;
-        min_plane_inliers_ = 20000;
-        icp_iterations_ = 0;
-    }
 
 public:
     std::string hv_config_xml_;
@@ -102,9 +77,34 @@ public:
 
     int icp_iterations_;
 
+    bool use_multiview_;
+
     ObjectRecognizerParameter()
+        :
+          hv_config_xml_ ("cfg/hv_config.xml" ),
+          shot_config_xml_ ( "cfg/shot_config.xml" ),
+          global_recognition_pipeline_config_ (  {} ),//{"cfg/esf_config.xml", "cfg/alexnet_config.xml"} ),
+          camera_config_xml_ ( "cfg/camera.xml" ),
+          depth_img_mask_ ( "cfg/xtion_depth_mask.png" ),
+          sift_config_xml_ ( "cfg/sift_config.xml" ),
+          cg_size_ ( 0.01f ),
+          cg_thresh_ ( 4 ),
+          use_graph_based_gc_grouping_ ( true ),
+          do_sift_ ( true ),
+          do_shot_ ( false ),
+          segmentation_method_ ( SegmentationType::OrganizedConnectedComponents ),
+          global_feature_types_ ( { FeatureType::ESF | FeatureType::SIMPLE_SHAPE | FeatureType::GLOBAL_COLOR, FeatureType::ALEXNET }  ),
+          classification_methods_ (  { ClassifierType::SVM, 0 }  ),
+          shot_keypoint_extractor_method_ (  KeypointType::HARRIS3D  ),
+          normal_computation_method_ ( NormalEstimatorType::PCL_INTEGRAL_NORMAL ),
+          keypoint_support_radii_ ( {0.04, 0.08} ),
+          chop_z_ ( 3.f ),
+          remove_planes_ ( true ),
+          plane_inlier_threshold_ ( 0.02f ),
+          min_plane_inliers_ ( 20000 ),
+          icp_iterations_ ( 0 ),
+          use_multiview_ (false)
     {
-        initialize();
         validate();
     }
 
@@ -139,12 +139,11 @@ public:
         ofs.close();
     }
 
-    ObjectRecognizerParameter(const std::string &filename)
+    void
+    load (const std::string &filename)
     {
         if( !v4r::io::existsFile(filename) )
             throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
-
-        initialize();
 
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
@@ -180,6 +179,7 @@ private:
                 & BOOST_SERIALIZATION_NVP(remove_planes_)
                 & BOOST_SERIALIZATION_NVP(plane_inlier_threshold_)
                 & BOOST_SERIALIZATION_NVP(min_plane_inliers_)
+                & BOOST_SERIALIZATION_NVP(use_multiview_)
                 ;
     }
 };
@@ -188,7 +188,7 @@ template<typename PointT>
 class V4R_EXPORTS ObjectRecognizer
 {
 private:
-    typename v4r::MultiRecognitionPipeline<PointT>::Ptr mrec_; ///< multi-pipeline recognizer
+    typename v4r::RecognitionPipeline<PointT>::Ptr mrec_; ///< multi-pipeline recognizer
     typename v4r::LocalRecognitionPipeline<PointT>::Ptr local_recognition_pipeline_; ///< local recognition pipeline (member variable just because of visualization of keypoints)
     typename v4r::HypothesisVerification<PointT, PointT>::Ptr hv_; ///< hypothesis verification object
     typename v4r::NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
@@ -243,7 +243,7 @@ public:
      * @return
      */
     std::vector<typename ObjectHypothesis<PointT>::Ptr >
-    recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud);
+    recognize(const typename pcl::PointCloud<PointT>::Ptr &cloud);
 
     /**
      * @brief getObjectHypothesis

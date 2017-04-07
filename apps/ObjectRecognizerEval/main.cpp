@@ -154,7 +154,8 @@ main (int argc, char ** argv)
 //                continue;
 //            }
 
-            v4r::apps::ObjectRecognizerParameter or_param (recognizer_config);
+            v4r::apps::ObjectRecognizerParameter or_param;
+            or_param.load(recognizer_config);
             v4r::apps::ObjectRecognizer<PT> recognizer(or_param);
             recognizer.initialize(to_pass_further_tmp);
 
