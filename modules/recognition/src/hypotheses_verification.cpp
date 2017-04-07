@@ -588,7 +588,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         else
         {
             VLOG(1) << "Computing distance transform to image boundary.";
-            cv::distanceTransform(depth_registration_mask, img_boundary_distance_, cv::DIST_L2, 5);
+            cv::distanceTransform(depth_registration_mask, img_boundary_distance_, CV_DIST_L2, 5);
         }
     }
 
