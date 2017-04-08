@@ -135,7 +135,7 @@ public:
     }sor_params_;
 
     v4r::ClusterNormalsToPlanes::Parameter p_param_;
-    v4r::NMBasedCloudIntegration<PointT>::Parameter nm_int_param_;
+    v4r::NMBasedCloudIntegrationParameter nm_int_param_;
 
 protected:
 
@@ -146,7 +146,7 @@ protected:
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
     typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
 
-    std::vector< pcl::PointCloud<PointT>::Ptr > keyframes_used_;  ///< all keyframes containing the object with sufficient number of points
+    std::vector< pcl::PointCloud<PointT>::ConstPtr > keyframes_used_;  ///< all keyframes containing the object with sufficient number of points
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used_;  ///< camera pose belonging to the keyframes containing the object with sufficient number of points
     std::vector<std::vector<size_t> > object_indices_clouds_used_;  ///< indices of the object in all keyframes containing the object with sufficient number of points
 

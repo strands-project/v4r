@@ -325,26 +325,25 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     if(!skip_verification_)
     {
         pcl::ScopeTime t("Verification of object hypotheses");
-        hv_->setNormals( normals );
         hv_->setHypotheses( generated_object_hypotheses_ );
 
         if( param_.use_multiview_ )
         {
-            typename NMBasedCloudIntegration<PointT>::Parameter nm_int_param;
+            NMBasedCloudIntegrationParameter nm_int_param;
             nm_int_param.min_points_per_voxel_ = 1;
             nm_int_param.octree_resolution_ = 0.002f;
 
-            typename NguyenNoiseModel<PointT>::Parameter nm_param;
+            NguyenNoiseModelParameter nm_param;
 
             std::vector<std::vector<float> > pt_properties;
             {
-                pcl::StopWatch t;
+                pcl::StopWatch tt;
                 NguyenNoiseModel<PointT> nm (nm_param);
                 nm.setInputCloud( processed_cloud );
                 nm.setInputNormals( normals );
                 nm.compute();
                 pt_properties = nm.getPointProperties();
-                VLOG(1) << "Computing noise model parameter for cloud took " << t.getTime() << " ms.";
+                VLOG(1) << "Computing noise model parameter for cloud took " << tt.getTime() << " ms.";
             }
 
             views_.push_back( cloud );
@@ -363,6 +362,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
             nmIntegration.compute(octree_cloud);
             std::vector< typename pcl::PointCloud<PointT>::Ptr > clouds_used;
             nmIntegration.getInputCloudsUsed(clouds_used);
+            nmIntegration.getOutputNormals( normals );
 
             hv_->setSceneCloud( octree_cloud );
             hv_->setOcclusionCloudsAndAbsoluteCameraPoses(views_, camera_poses_);

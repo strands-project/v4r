@@ -6,13 +6,8 @@
 
 #include <omp.h>
 
-namespace v4r {
-
-template<typename PointT>
-NguyenNoiseModel<PointT>::NguyenNoiseModel (const Parameter &param)
+namespace v4r
 {
-    param_ = param;
-}
 
 template<typename PointT>
 void

@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef NOISE_MODELS_H_
-#define NOISE_MODELS_H_
+#pragma once
 
 #include <pcl/common/common.h>
 #include <pcl/common/io.h>
@@ -32,6 +31,19 @@
 
 namespace v4r
 {
+class NguyenNoiseModelParameter
+{
+public:
+    bool use_depth_edges_; ///< if true, uses PCL's organized edge detection algorithm to compute distance of each pixel to these discontinuites.
+    float focal_length_; ///< Focal length of the camera
+    int edge_radius_;   ///< radius in pixel. Only pixels within this radius with respect to an edge point will compute the distance to the edge. Remaining points will have infinite distance to edge
+    NguyenNoiseModelParameter() :
+          use_depth_edges_( true ),
+          focal_length_ ( 525.f ),
+          edge_radius_ ( 5 )
+    {}
+};
+
 /**
         * @brief computes Kinect axial and lateral noise parameters for an organized point cloud
         * according to Nguyen et al., 3DIMPVT 2012.
@@ -43,32 +55,18 @@ namespace v4r
 template<class PointT>
 class V4R_EXPORTS NguyenNoiseModel
 {
-public:
-    class Parameter
-    {
-    public:
-        bool use_depth_edges_; ///< if true, uses PCL's organized edge detection algorithm to compute distance of each pixel to these discontinuites.
-        float focal_length_; ///< Focal length of the camera
-        int edge_radius_;   ///< radius in pixel. Only pixels within this radius with respect to an edge point will compute the distance to the edge. Remaining points will have infinite distance to edge
-        Parameter(
-                bool use_depth_edges = true,
-                float focal_length = 525.f,
-                int edge_radius = 5)
-            :
-              use_depth_edges_( use_depth_edges ),
-              focal_length_ (focal_length),
-              edge_radius_ (edge_radius)
-        {}
-    }param_;
 
 private:
     typename pcl::PointCloud<PointT>::ConstPtr input_; ///< input cloud
     pcl::PointCloud<pcl::Normal>::ConstPtr normals_; ///< input normal
     std::vector<std::vector<float> > pt_properties_; ///< for each pixel save lateral [idx=0] and axial sigma [idx=1] as well as Euclidean distance to depth discontinuity [idx=2]
     pcl::PointIndices discontinuity_edges_; ///< indices of the point cloud which represent edges
+    NguyenNoiseModelParameter param_;
 
 public:
-    NguyenNoiseModel (const Parameter &param=Parameter());
+    NguyenNoiseModel (const NguyenNoiseModelParameter &param=NguyenNoiseModelParameter())
+        : param_(param)
+    {}
 
     /**
      * @brief setInputCloud
@@ -154,6 +152,3 @@ public:
 
 };
 }
-
-#endif /* NOISE_MODELS_H_ */
-

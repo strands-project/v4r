@@ -252,7 +252,7 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
 
         typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
         pcl::PointCloud<pcl::Normal>::Ptr big_normals(new pcl::PointCloud<pcl::Normal>);
-        NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nmparam;
+        NMBasedCloudIntegrationParameter nmparam;
         nmparam.octree_resolution_ = 0.005f;
         nmparam.min_points_per_voxel_ = 1;
         NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nmparam);

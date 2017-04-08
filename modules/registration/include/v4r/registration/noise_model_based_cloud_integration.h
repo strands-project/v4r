@@ -35,6 +35,28 @@
 namespace v4r
 {
 
+class V4R_EXPORTS NMBasedCloudIntegrationParameter
+{
+public:
+    size_t min_points_per_voxel_;  ///< the minimum number of points in a leaf of the octree of the big cloud.
+    float octree_resolution_;   ///< resolution of the octree of the big point cloud
+    float focal_length_;   ///< focal length of the cameras; used for reprojection of the points into each image plane
+    bool average_;  ///< if true, takes the average color (for each color componenent) and normal within all the points in the leaf of the octree. Otherwise, it takes the point within the octree with the best noise weight
+    float threshold_explained_; ///< Euclidean distance for a nearby point to explain a query point. Only used if reason_about_points = true
+    bool reason_about_points_; ///< if true, projects each point into each viewpoint and checks for occlusion or if it can be explained by the points in the other viewpoints (this should filter lonely points but is computational expensive) --> FILTER NOT IMPLEMENTED SO FAR!!
+    float edge_radius_px_; ///< points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed
+    NMBasedCloudIntegrationParameter() :
+        min_points_per_voxel_(1),
+        octree_resolution_(0.003f),
+        focal_length_ (525.f),
+        average_ (false),
+        threshold_explained_ (0.02f),
+        reason_about_points_ (false),
+        edge_radius_px_ (3.f)
+    { }
+};
+
+
 /**
  * @brief reconstructs a point cloud from several input clouds. Each point of the input cloud is associated with a weight
  * which states the measurement confidence ( 0... max noise level, 1... very confident). Each point is accumulated into a
@@ -46,38 +68,9 @@ namespace v4r
 template<class PointT>
 class V4R_EXPORTS NMBasedCloudIntegration
 {
-public:
-    class V4R_EXPORTS Parameter
-    {
-    public:
-        int min_points_per_voxel_;  ///< the minimum number of points in a leaf of the octree of the big cloud.
-        float octree_resolution_;   ///< resolution of the octree of the big point cloud
-        float focal_length_;   ///< focal length of the cameras; used for reprojection of the points into each image plane
-        bool average_;  ///< if true, takes the average color (for each color componenent) and normal within all the points in the leaf of the octree. Otherwise, it takes the point within the octree with the best noise weight
-        float threshold_explained_; ///< Euclidean distance for a nearby point to explain a query point. Only used if reason_about_points = true
-        bool reason_about_points_; ///< if true, projects each point into each viewpoint and checks for occlusion or if it can be explained by the points in the other viewpoints (this should filter lonely points but is computational expensive) --> FILTER NOT IMPLEMENTED SO FAR!!
-        float edge_radius_px_; ///< points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed
-        Parameter(
-                int min_points_per_voxel = 1,
-                float octree_resolution =  0.003f,
-                float focal_length = 525.f,
-                bool average = false,
-                float threshold_explained = 0.02f,
-                bool reason_about_points = false,
-                float edge_radius_px = 3.f) :
-            min_points_per_voxel_(min_points_per_voxel),
-            octree_resolution_(octree_resolution),
-            focal_length_ (focal_length),
-            average_ (average),
-            threshold_explained_ (threshold_explained),
-            reason_about_points_ (reason_about_points),
-            edge_radius_px_ (edge_radius_px)
-        {
-        }
-    }param_;
-
 private:
     typedef typename pcl::PointCloud<PointT>::ConstPtr PointTPtr;
+    NMBasedCloudIntegrationParameter param_;
 
     class PointInfo{
     private:
@@ -158,9 +151,9 @@ private:
     void reasonAboutPts();
 
 public:
-    NMBasedCloudIntegration (const Parameter &p=Parameter()) : param_(p)
-    {
-    }
+    NMBasedCloudIntegration (const NMBasedCloudIntegrationParameter &p=NMBasedCloudIntegrationParameter()) :
+        param_(p)
+    { }
 
     /**
      * @brief getOutputNormals

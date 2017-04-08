@@ -297,6 +297,7 @@ NMBasedCloudIntegration<PointT>::compute (typename pcl::PointCloud<PointT>::Ptr 
     PointT na;
     na.x = na.y = na.z = std::numeric_limits<float>::quiet_NaN();
 
+
     input_clouds_used_.resize( input_clouds_.size() );
     for(size_t i=0; i<input_clouds_used_.size(); i++) {
         input_clouds_used_[i].reset( new pcl::PointCloud<PointT> );
@@ -305,7 +306,8 @@ NMBasedCloudIntegration<PointT>::compute (typename pcl::PointCloud<PointT>::Ptr 
         input_clouds_used_[i]->height =  input_clouds_[i]->height;
     }
 
-    for(size_t i=0; i<kept; i++) {
+    for(size_t i=0; i<filtered_cloud_info.size(); i++)
+    {
         output->points[i] = filtered_cloud_info[i].pt;
         output_normals_->points[i] = filtered_cloud_info[i].normal;
         int origin = filtered_cloud_info[i].origin;
