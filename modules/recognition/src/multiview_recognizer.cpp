@@ -13,8 +13,6 @@ MultiviewRecognizer<PointT>::recognize()
 
     View v;
     v.camera_pose_ = v4r::RotTrans2Mat4f( scene_->sensor_orientation_, scene_->sensor_origin_ );
-//    v.cloud_ = scene_;
-//    v.cloud_normals_ = scene_normals_;
 
     recognition_pipeline_->setInputCloud( scene_ );
     recognition_pipeline_->setSceneNormals( scene_normals_ );
@@ -31,7 +29,6 @@ MultiviewRecognizer<PointT>::recognize()
 
 
     // now add the old hypotheses
-
     for(const View v_old : views_)
     {
         for(const ObjectHypothesesGroup<PointT> &ohg_tmp : v_old.obj_hypotheses_)
