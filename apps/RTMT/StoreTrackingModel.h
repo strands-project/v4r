@@ -79,7 +79,7 @@ public:
   void storeTrackingModel(const std::string &_folder,
                           const std::string &_objectname,
                           const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras,
-                          const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &_clouds,
+                          const boost::shared_ptr<std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &_clouds,
                           const std::vector< cv::Mat_<unsigned char> > &_masks,
                           const Eigen::Matrix4f &_object_base_transform=Eigen::Matrix4f::Identity());
 
@@ -113,7 +113,7 @@ private:
   std::string folder;
   std::string objectname;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras;
-  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > clouds;
+  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > clouds;
   std::vector< cv::Mat_<unsigned char> > masks;
 
   Eigen::Matrix4f object_base_transform;

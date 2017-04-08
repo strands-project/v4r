@@ -191,7 +191,7 @@ NMBasedCloudIntegration<PointT>::reasonAboutPts ()
 
 template<typename PointT>
 void
-NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
+NMBasedCloudIntegration<PointT>::compute (typename pcl::PointCloud<PointT>::Ptr & output)
 {
     if(input_clouds_.empty()) {
         std::cerr << "No input clouds set for cloud integration!" << std::endl;
@@ -206,7 +206,7 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         reasonAboutPts();
 
     pcl::octree::OctreePointCloudPointVector<PointT> octree( param_.octree_resolution_ );
-    PointTPtr big_cloud ( new pcl::PointCloud<PointT>());
+    typename pcl::PointCloud<PointT>::Ptr big_cloud ( new pcl::PointCloud<PointT>());
     big_cloud->width = big_cloud_info_.size();
     big_cloud->height = 1;
     big_cloud->points.resize( big_cloud_info_.size() );

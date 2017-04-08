@@ -72,8 +72,8 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
 
     for(size_t i=0; i < total_views; i++)
     {
-        typename pcl::PointCloud<PointT>::Ptr cloud = this->getCloud(i);
-        pcl::PointCloud<pcl::Normal>::Ptr normals = this->getNormal(i);
+        typename pcl::PointCloud<PointT>::ConstPtr cloud = this->getCloud(i);
+        pcl::PointCloud<pcl::Normal>::ConstPtr normals = this->getNormal(i);
         std::vector<int> & indices = this->getIndices(i);
         Eigen::Matrix4f pose = this->getPose(i);
 

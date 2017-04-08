@@ -61,7 +61,7 @@ MultiSession::MultiSession()
  : cmd(UNDEF), m_run(false)
 {
   oc_cloud.reset(new Sensor::AlignedPointXYZRGBVector());
-  clouds.reset(new std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> >() );
+  clouds.reset(new std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> >() );
   use_stable_planes_ = true;
   use_features_ = true;
 
@@ -122,7 +122,7 @@ bool MultiSession::isRunning()
  * _clouds point cloud and an index to the corresponding camera
  * _object_indices
  */
-void MultiSession::addSequences(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras, const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &_clouds, const std::vector<std::vector<int> > &_object_indices, const Eigen::Matrix4f &_object_base_transform)
+void MultiSession::addSequences(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras, const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &_clouds, const std::vector<std::vector<int> > &_object_indices, const Eigen::Matrix4f &_object_base_transform)
 {
   if (_clouds.get()==0 || _clouds->size()==0)
   {
@@ -277,11 +277,12 @@ void MultiSession::run()
 
       for(size_t i=0; i < sessions_clouds_.size(); i++)
       {
-        normals[i].reset(new pcl::PointCloud<pcl::Normal>);
+          pcl::PointCloud<pcl::Normal>::Ptr normal (new pcl::PointCloud<pcl::Normal>);
         pcl::NormalEstimationOMP<pcl::PointXYZRGB, pcl::Normal> ne;
         ne.setRadiusSearch(0.01f);
         ne.setInputCloud (sessions_clouds_[i]);
-        ne.compute (*normals[i]);
+        ne.compute (*normal);
+        normals[i] = normal;
       }
 
       //instantiate stuff

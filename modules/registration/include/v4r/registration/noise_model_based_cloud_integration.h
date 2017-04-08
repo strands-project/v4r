@@ -22,8 +22,7 @@
  ******************************************************************************/
 
 
-#ifndef NMBasedCloudIntegration_H
-#define NMBasedCloudIntegration_H
+#pragma once
 
 #include <pcl/common/common.h>
 #include <pcl/common/io.h>
@@ -78,8 +77,7 @@ public:
     }param_;
 
 private:
-    typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
-    typedef typename pcl::PointCloud<pcl::Normal>::Ptr PointNormalTPtr;
+    typedef typename pcl::PointCloud<PointT>::ConstPtr PointTPtr;
 
     class PointInfo{
     private:
@@ -138,13 +136,13 @@ private:
     };
 
     std::vector<PointInfo> big_cloud_info_;
-    std::vector<PointTPtr> input_clouds_;
-    std::vector<PointTPtr> input_clouds_used_;
-    std::vector<PointNormalTPtr> input_normals_;
+    std::vector<typename pcl::PointCloud<PointT>::ConstPtr> input_clouds_;
+    std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> input_normals_;
+    std::vector<typename pcl::PointCloud<PointT>::Ptr> input_clouds_used_;
     std::vector<std::vector<int> > indices_; ///< Indices of the object in each cloud (remaining points will be ignored)
     std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transformations_to_global_; ///< transform aligning the input point clouds when multiplied
     std::vector<std::vector<std::vector<float> > > pt_properties_; ///< for each cloud, for each pixel represent lateral [idx=0] and axial [idx=1] as well as distance to closest depth discontinuity [idx=2]
-    PointNormalTPtr output_normals_;
+    pcl::PointCloud<pcl::Normal>::Ptr output_normals_;
 
     void cleanUp()
     {
@@ -168,7 +166,7 @@ public:
      * @brief getOutputNormals
      * @param Normals of the registered cloud
      */
-    void getOutputNormals(PointNormalTPtr & output) const
+    void getOutputNormals(pcl::PointCloud<pcl::Normal>::Ptr & output) const
     {
         output = output_normals_;
     }
@@ -178,7 +176,7 @@ public:
      * @param organized input clouds
      */
     void
-    setInputClouds (const std::vector<PointTPtr> & input)
+    setInputClouds (const std::vector<typename pcl::PointCloud<PointT>::ConstPtr> & input)
     {
         input_clouds_ = input;
     }
@@ -188,7 +186,7 @@ public:
      * @param normal clouds corresponding to the input clouds
      */
     void
-    setInputNormals (const std::vector<PointNormalTPtr> & input)
+    setInputNormals (const std::vector<pcl::PointCloud<pcl::Normal>::ConstPtr> & input)
     {
         input_normals_ = input;
     }
@@ -217,7 +215,7 @@ public:
      * @param registered cloud
      */
     void
-    compute (PointTPtr &output);
+    compute (typename pcl::PointCloud<PointT>::Ptr &output);
 
     /**
      * @brief setPointProperties
@@ -245,11 +243,9 @@ public:
      * @param filtered clouds
      */
     void
-    getInputCloudsUsed(std::vector<PointTPtr> &clouds) const
+    getInputCloudsUsed(std::vector<typename pcl::PointCloud<PointT>::Ptr> &clouds) const
     {
         clouds = input_clouds_used_;
     }
 };
 }
-
-#endif /* NOISE_MODELS_H_ */

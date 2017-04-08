@@ -135,7 +135,7 @@ void StoreTrackingModel::cam_params_changed(const RGBDCameraParameter &_cam_para
  * @param _clouds
  * @param _masks
  */
-void StoreTrackingModel::storeTrackingModel(const std::string &_folder, const std::string &_objectname, const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras, const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &_clouds, const std::vector< cv::Mat_<unsigned char> > &_masks, const Eigen::Matrix4f &_object_base_transform)
+void StoreTrackingModel::storeTrackingModel(const std::string &_folder, const std::string &_objectname, const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras, const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &_clouds, const std::vector< cv::Mat_<unsigned char> > &_masks, const Eigen::Matrix4f &_object_base_transform)
 {
   object_base_transform = _object_base_transform;
 
@@ -371,7 +371,7 @@ void StoreTrackingModel::detectCoordinateSystem(Eigen::Matrix4f &pose)
 
   for (unsigned i=0; i<clouds->size(); i++)
   {
-    pcl::PointCloud<pcl::PointXYZRGB> &cloud = *clouds->at(i).second;
+    const pcl::PointCloud<pcl::PointXYZRGB> &cloud = *clouds->at(i).second;
     cv::Mat_<unsigned char> &mask = masks[i];
     Eigen::Matrix4f &_pose = cameras[clouds->at(i).first];
     Eigen::Matrix4f inv_pose;

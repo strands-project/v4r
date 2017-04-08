@@ -50,10 +50,10 @@ namespace v4r
                     poses = poses_;
                 }
 
-                PointCloudTPtr getCloud(size_t i);
-                std::vector<int> & getIndices(size_t i);
-                Eigen::Matrix4f getPose(size_t i);
-                pcl::PointCloud<pcl::Normal>::Ptr getNormal(size_t i);
+                typename pcl::PointCloud<PointT>::ConstPtr getCloud(size_t i) const;
+                std::vector<int> & getIndices(size_t i) const;
+                Eigen::Matrix4f getPose(size_t i) const;
+                pcl::PointCloud<pcl::Normal>::ConstPtr getNormal(size_t i) const;
 
         };
     }

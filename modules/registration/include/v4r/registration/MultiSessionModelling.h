@@ -89,7 +89,7 @@ namespace v4r
 
                 typedef typename pcl::PointCloud<PointT>::Ptr PointCloudTPtr;
 
-                std::vector<PointCloudTPtr> clouds_;
+                std::vector<typename pcl::PointCloud<PointT>::ConstPtr> clouds_;
 
                 //initial poses bringing clouds_ into alignment
                 std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses_;
@@ -98,7 +98,7 @@ namespace v4r
                 std::vector<std::vector<int> > object_indices_;
 
                 //normal clouds...
-                std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_;
+                std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > normals_;
 
                 //first and final cloud for each session
                 std::vector<std::pair<int,int> > session_ranges_;
@@ -114,11 +114,11 @@ namespace v4r
 
                 void computeCost(EdgeBetweenPartialModels & edge);
 
-                float computeFSV (PointCloudTPtr & cloud,
-                                  pcl::PointCloud<pcl::Normal>::Ptr & normals,
-                                  std::vector<int> & indices,
-                                  Eigen::Matrix4f & pose,
-                                  PointCloudTPtr & range_image);
+                float computeFSV (const typename pcl::PointCloud<PointT>::ConstPtr & cloud,
+                                  pcl::PointCloud<pcl::Normal>::ConstPtr & normals,
+                                  const std::vector<int> & indices,
+                                  const Eigen::Matrix4f & pose,
+                                  const typename pcl::PointCloud<PointT>::ConstPtr & range_image);
 
 
                 //MST stuff...
@@ -201,7 +201,7 @@ namespace v4r
 
                 MultiSessionModelling();
 
-                void setInputData(std::vector<PointCloudTPtr> & clouds,
+                void setInputData(std::vector<typename pcl::PointCloud<PointT>::ConstPtr> & clouds,
                                   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,
                                   std::vector<std::vector<int> > & object_indices,
                                   std::vector<std::pair<int,int> > & session_ranges)
@@ -212,7 +212,7 @@ namespace v4r
                     session_ranges_ = session_ranges;
                 }
 
-                void setInputNormals(std::vector< pcl::PointCloud<pcl::Normal>::Ptr > & normals)
+                void setInputNormals(std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > & normals)
                 {
                     normals_ = normals;
                 }
@@ -223,17 +223,17 @@ namespace v4r
                 }
 
                 //access functions...
-                size_t getTotalNumberOfClouds()
+                size_t getTotalNumberOfClouds() const
                 {
                     return clouds_.size();
                 }
 
-                PointCloudTPtr getCloud(size_t i)
+                typename pcl::PointCloud<PointT>::ConstPtr getCloud(size_t i) const
                 {
                     return clouds_[i];
                 }
 
-                pcl::PointCloud<pcl::Normal>::Ptr getNormal(size_t i)
+                pcl::PointCloud<pcl::Normal>::ConstPtr getNormal(size_t i) const
                 {
                     return normals_[i];
                 }
@@ -243,12 +243,12 @@ namespace v4r
                     return object_indices_[i];
                 }
 
-                Eigen::Matrix4f getPose(size_t i)
+                Eigen::Matrix4f getPose(size_t i) const
                 {
                     return poses_[i];
                 }
 
-                void getOutputPoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & out)
+                void getOutputPoses(std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & out) const
                 {
                     out = output_cloud_poses_;
                 }

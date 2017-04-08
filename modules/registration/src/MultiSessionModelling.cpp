@@ -16,16 +16,16 @@ v4r::Registration::MultiSessionModelling<PointT>::MultiSessionModelling()
 
 template<class PointT>
 float
-v4r::Registration::MultiSessionModelling<PointT>::computeFSV (PointCloudTPtr & cloud,
-                                                              pcl::PointCloud<pcl::Normal>::Ptr & normals,
-                                                              std::vector<int> & indices,
-                                                              Eigen::Matrix4f & pose,
-                                                              PointCloudTPtr & range_image)
+v4r::Registration::MultiSessionModelling<PointT>::computeFSV (const typename pcl::PointCloud<PointT>::ConstPtr & cloud,
+                                                              pcl::PointCloud<pcl::Normal>::ConstPtr & normals,
+                                                              const std::vector<int> & indices,
+                                                              const Eigen::Matrix4f & pose,
+                                                              const typename pcl::PointCloud<PointT>::ConstPtr & range_image)
 {
     v4r::VisibilityReasoning<PointT> vr (525.f, 640, 480);
     vr.setThresholdTSS (0.01f);
 
-    PointCloudTPtr model(new pcl::PointCloud<PointT>());
+    typename pcl::PointCloud<PointT>::Ptr model(new pcl::PointCloud<PointT>());
     pcl::transformPointCloud(*cloud, indices, *model, pose);
 
     pcl::PointCloud<pcl::Normal>::Ptr model_normals (new pcl::PointCloud<pcl::Normal>);
@@ -73,7 +73,7 @@ v4r::Registration::MultiSessionModelling<PointT>::computeCost(EdgeBetweenPartial
     int total = 0;
     for(size_t ii=session_ranges_[edge.i_].first; ii <= session_ranges_[edge.i_].second; ii++)
     {
-        PointCloudTPtr cloud = clouds_[ii];
+        typename pcl::PointCloud<PointT>::ConstPtr cloud = clouds_[ii];
         std::vector<int> & indices = getIndices(ii);
         Eigen::Matrix4f pose = edge.transformation_.inverse() * getPose(ii);
 
@@ -185,7 +185,7 @@ v4r::Registration::MultiSessionModelling<PointT>::compute()
     case 0:
     {
 
-        std::vector<PointCloudTPtr> partial_model_clouds(session_ranges_.size());
+        std::vector<typename pcl::PointCloud<PointT>::Ptr> partial_model_clouds(session_ranges_.size());
 
         for(size_t i=0; i < session_ranges_.size(); i++)
         {

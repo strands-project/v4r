@@ -62,10 +62,8 @@ public:
     }param_;
 
 private:
-    typedef typename pcl::PointCloud<PointT>::Ptr PointTPtr;
-    typedef typename pcl::PointCloud<pcl::Normal>::Ptr PointNormalTPtr;
-    PointTPtr input_; ///< input cloud
-    PointNormalTPtr normals_; ///< input normal
+    typename pcl::PointCloud<PointT>::ConstPtr input_; ///< input cloud
+    pcl::PointCloud<pcl::Normal>::ConstPtr normals_; ///< input normal
     std::vector<std::vector<float> > pt_properties_; ///< for each pixel save lateral [idx=0] and axial sigma [idx=1] as well as Euclidean distance to depth discontinuity [idx=2]
     pcl::PointIndices discontinuity_edges_; ///< indices of the point cloud which represent edges
 
@@ -77,7 +75,7 @@ public:
      * @param[in] input cloud
      */
     void
-    setInputCloud (const PointTPtr & input)
+    setInputCloud (const typename pcl::PointCloud<PointT>::ConstPtr & input)
     {
         input_ = input;
     }
@@ -87,7 +85,7 @@ public:
      * @param[in] input normals
      */
     void
-    setInputNormals (const PointNormalTPtr & normals)
+    setInputNormals (const pcl::PointCloud<pcl::Normal>::ConstPtr & normals)
     {
         normals_ = normals;
     }
