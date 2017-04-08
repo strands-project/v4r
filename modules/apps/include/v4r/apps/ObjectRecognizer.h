@@ -210,6 +210,12 @@ private:
 
     typename Source<PointT>::Ptr model_database_;
 
+    std::vector<typename pcl::PointCloud<PointT>::ConstPtr> views_;  ///< all views in multi-view sequence
+    std::vector<typename pcl::PointCloud<PointT>::ConstPtr> processed_views_;  ///< all processed views in multi-view sequence
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > camera_poses_;   ///< all absolute camera poses in multi-view sequence
+    std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > views_normals_;  ///< all view normals in multi-view sequence
+    std::vector< std::vector<std::vector<float> > > views_pt_properties_;  ///< all Nguyens noise model point properties in multi-view sequence
+
 public:
     ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :
         visualize_ (false),
@@ -240,7 +246,7 @@ public:
      * @return
      */
     std::vector<typename ObjectHypothesis<PointT>::Ptr >
-    recognize(const typename pcl::PointCloud<PointT>::Ptr &cloud);
+    recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud);
 
     /**
      * @brief getObjectHypothesis
@@ -268,15 +274,23 @@ public:
         return model->getAssembled( resolution_mm );
     }
 
-    std::string getModelsDir() const
+    std::string
+    getModelsDir() const
     {
         return models_dir_;
     }
 
-    void setModelsDir(const std::string &dir)
+    void
+    setModelsDir(const std::string &dir)
     {
         models_dir_ = dir;
     }
+
+    /**
+     * @brief resetMultiView resets all state variables of the multi-view and initializes a new multi-view sequence
+     */
+    void
+    resetMultiView();
 };
 
 }

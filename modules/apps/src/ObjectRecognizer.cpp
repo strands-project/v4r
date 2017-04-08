@@ -16,6 +16,7 @@
 
 #include <v4r/common/camera.h>
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/noise_models.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <v4r/common/pcl_visualization_utils.h>
@@ -31,6 +32,7 @@
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/global_recognition_pipeline.h>
 #include <v4r/recognition/multiview_recognizer.h>
+#include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <v4r/segmentation/all_headers.h>
 
 
@@ -266,11 +268,13 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
 template<typename PointT>
 std::vector<typename ObjectHypothesis<PointT>::Ptr >
-ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Ptr &cloud)
+ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
 {
     //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
 //    cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
 //    cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
+    const Eigen::Matrix4f camera_pose = v4r::RotTrans2Mat4f( cloud->sensor_orientation_, cloud->sensor_origin_ );
 
     typename pcl::PointCloud<PointT>::Ptr processed_cloud (new pcl::PointCloud<PointT>(*cloud));
 
@@ -318,13 +322,54 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Ptr 
 //        refinePose(processed_cloud);
 //    }
 
-
     if(!skip_verification_)
     {
         pcl::ScopeTime t("Verification of object hypotheses");
-        hv_->setSceneCloud( cloud );
         hv_->setNormals( normals );
         hv_->setHypotheses( generated_object_hypotheses_ );
+
+        if( param_.use_multiview_ )
+        {
+            typename NMBasedCloudIntegration<PointT>::Parameter nm_int_param;
+            nm_int_param.min_points_per_voxel_ = 1;
+            nm_int_param.octree_resolution_ = 0.002f;
+
+            typename NguyenNoiseModel<PointT>::Parameter nm_param;
+
+            std::vector<std::vector<float> > pt_properties;
+            {
+                pcl::StopWatch t;
+                NguyenNoiseModel<PointT> nm (nm_param);
+                nm.setInputCloud( processed_cloud );
+                nm.setInputNormals( normals );
+                nm.compute();
+                pt_properties = nm.getPointProperties();
+                VLOG(1) << "Computing noise model parameter for cloud took " << t.getTime() << " ms.";
+            }
+
+            views_.push_back( cloud );
+            processed_views_.push_back( processed_cloud );
+            camera_poses_.push_back( camera_pose );
+            views_normals_.push_back( normals );
+            views_pt_properties_.push_back( pt_properties );
+
+            typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
+            NMBasedCloudIntegration<PointT> nmIntegration (nm_int_param);
+            nmIntegration.setInputClouds(views_);
+            nmIntegration.setPointProperties(views_pt_properties_);
+            nmIntegration.setTransformations(camera_poses_);
+            nmIntegration.setInputNormals(views_normals_);
+//            nmIntegration.setIndices(obj_indices);
+            nmIntegration.compute(octree_cloud);
+            std::vector< typename pcl::PointCloud<PointT>::Ptr > clouds_used;
+            nmIntegration.getInputCloudsUsed(clouds_used);
+
+            hv_->setSceneCloud( octree_cloud );
+            hv_->setOcclusionCloudsAndAbsoluteCameraPoses(views_, camera_poses_);
+        }
+        else
+            hv_->setSceneCloud( cloud );
+
         hv_->verify();
 //        verified_hypotheses_ = hv_->getVerifiedHypotheses();
         elapsed_time.push_back( t.getTime() );
@@ -353,6 +398,28 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Ptr 
     }
 
     return verified_hypotheses_;
+}
+
+template <typename PointT>
+void
+ObjectRecognizer<PointT>::resetMultiView()
+{
+    if(param_.use_multiview_)
+    {
+        views_.clear();
+        processed_views_.clear();
+        camera_poses_.clear();
+        views_normals_.clear();
+        views_pt_properties_.clear();
+
+        typename v4r::MultiviewRecognizer<PointT>::Ptr mv_rec =
+                boost::dynamic_pointer_cast<  v4r::MultiviewRecognizer<PointT> > (mrec_);
+        if( mrec_ )
+            mv_rec->clear();
+        else
+            LOG(ERROR) << "Cannot reset multi-view recognizer because given recognizer is not a multi-view recognizer!";
+    }
+
 }
 
 template class V4R_EXPORTS ObjectRecognizer<pcl::PointXYZRGB>;
