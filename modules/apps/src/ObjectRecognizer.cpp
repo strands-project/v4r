@@ -321,13 +321,13 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 //    {
 //        refinePose(processed_cloud);
 //    }
-
+    typename pcl::PointCloud<PointT>::Ptr octree_cloud;
     if(!skip_verification_)
     {
         pcl::ScopeTime t("Verification of object hypotheses");
         hv_->setHypotheses( generated_object_hypotheses_ );
 
-        if( param_.use_multiview_ )
+        if( param_.use_multiview_ && param_.use_multiview_hv_ )
         {
             NMBasedCloudIntegrationParameter nm_int_param;
             nm_int_param.min_points_per_voxel_ = 1;
@@ -352,7 +352,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
             views_normals_.push_back( normals );
             views_pt_properties_.push_back( pt_properties );
 
-            typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
+            octree_cloud.reset(new pcl::PointCloud<PointT>);
             NMBasedCloudIntegration<PointT> nmIntegration (nm_int_param);
             nmIntegration.setInputClouds(views_);
             nmIntegration.setPointProperties(views_pt_properties_);
@@ -364,11 +364,17 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
             nmIntegration.getInputCloudsUsed(clouds_used);
             nmIntegration.getOutputNormals( normals );
 
+            const Eigen::Matrix4f tf_global2camera = camera_pose.inverse();
+            pcl::transformPointCloud(*octree_cloud, *octree_cloud, tf_global2camera );
+            v4r::transformNormals(*normals, *normals, tf_global2camera );
+
             hv_->setSceneCloud( octree_cloud );
             hv_->setOcclusionCloudsAndAbsoluteCameraPoses(views_, camera_poses_);
         }
         else
             hv_->setSceneCloud( cloud );
+
+        hv_->setNormals( normals );
 
         hv_->verify();
 //        verified_hypotheses_ = hv_->getVerifiedHypotheses();
@@ -387,7 +393,12 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     {
         const std::map<std::string, typename LocalObjectModel::ConstPtr> lomdb = local_recognition_pipeline_->getLocalObjectModelDatabase();
         rec_vis_->setCloud( cloud );
-        rec_vis_->setProcessedCloud( processed_cloud );
+
+        if( param_.use_multiview_ && param_.use_multiview_hv_ )
+            rec_vis_->setProcessedCloud( octree_cloud );
+        else
+            rec_vis_->setProcessedCloud( processed_cloud );
+
         rec_vis_->setNormals(normals);
 
         rec_vis_->setGeneratedObjectHypotheses( generated_object_hypotheses_ );

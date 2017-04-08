@@ -77,7 +77,8 @@ public:
 
     int icp_iterations_;
 
-    bool use_multiview_;
+    bool use_multiview_; ///< if true, transfers verified hypotheses across views
+    bool use_multiview_hv_; ///< if true, verifies hypotheses against the registered scene cloud from all input views
 
     ObjectRecognizerParameter()
         :
@@ -103,7 +104,8 @@ public:
           plane_inlier_threshold_ ( 0.02f ),
           min_plane_inliers_ ( 20000 ),
           icp_iterations_ ( 0 ),
-          use_multiview_ (false)
+          use_multiview_ (false),
+          use_multiview_hv_ (true)
     {
         validate();
     }
