@@ -14,6 +14,8 @@
 #include <pcl/recognition/cg/geometric_consistency.h>
 #include <pcl/registration/icp.h>
 
+#include <v4r/change_detection/miscellaneous.h>
+#include <v4r/change_detection/change_detection.h>
 #include <v4r/common/camera.h>
 #include <v4r/common/miscellaneous.h>
 #include <v4r/common/noise_models.h>
@@ -267,6 +269,34 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 }
 
 template<typename PointT>
+void
+ObjectRecognizer<PointT>::detectChanges(View &v)
+{
+    v.removed_points_.reset( new pcl::PointCloud<PointT>);
+
+    typename pcl::PointCloud<PointT>::Ptr new_observation_aligned(new pcl::PointCloud<PointT>);
+    pcl::transformPointCloud(*v.processed_cloud_, *new_observation_aligned, v.camera_pose_);
+
+    // downsample
+    float resolution = 0.005f;
+    pcl::VoxelGrid<PointT> vg;
+    vg.setInputCloud (new_observation_aligned);
+    vg.setLeafSize (resolution, resolution, resolution);
+    typename pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>);
+    vg.filter (*cloud_filtered);
+    new_observation_aligned = cloud_filtered;
+
+    if( registered_scene_cloud_ && !registered_scene_cloud_->points.empty() )
+    {
+        v4r::ChangeDetector<PointT> detector;
+        detector.detect(registered_scene_cloud_, new_observation_aligned, Eigen::Affine3f(v.camera_pose_), param_.tolerance_for_cloud_diff_);
+//        v4r::ChangeDetector<PointT>::removePointsFrom(registered_scene_cloud_, detector.getRemoved());
+        *v.removed_points_ += *(detector.getRemoved());
+//        *changing_scene += *(detector.getAdded());
+    }
+}
+
+template<typename PointT>
 std::vector<typename ObjectHypothesis<PointT>::Ptr >
 ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
 {
@@ -321,7 +351,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 //    {
 //        refinePose(processed_cloud);
 //    }
-    typename pcl::PointCloud<PointT>::Ptr octree_cloud;
+
     if(!skip_verification_)
     {
         pcl::ScopeTime t("Verification of object hypotheses");
@@ -335,41 +365,149 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
             NguyenNoiseModelParameter nm_param;
 
-            std::vector<std::vector<float> > pt_properties;
+            View v;
+            v.cloud_ = cloud;
+            v.processed_cloud_ = processed_cloud;
+            v.camera_pose_ = camera_pose;
+            v.cloud_normals_ = normals;
+
             {
                 pcl::StopWatch tt;
                 NguyenNoiseModel<PointT> nm (nm_param);
                 nm.setInputCloud( processed_cloud );
                 nm.setInputNormals( normals );
                 nm.compute();
-                pt_properties = nm.getPointProperties();
+                v.pt_properties_ = nm.getPointProperties();
                 VLOG(1) << "Computing noise model parameter for cloud took " << tt.getTime() << " ms.";
             }
 
-            views_.push_back( cloud );
-            processed_views_.push_back( processed_cloud );
-            camera_poses_.push_back( camera_pose );
-            views_normals_.push_back( normals );
-            views_pt_properties_.push_back( pt_properties );
 
-            octree_cloud.reset(new pcl::PointCloud<PointT>);
+            if (param_.use_change_detection_ )
+            {
+                pcl::StopWatch tt;
+                detectChanges(v);
+
+                typename pcl::PointCloud<PointT>::Ptr removed_points_cumulative(new pcl::PointCloud<PointT>(*v.removed_points_));
+
+                for(int v_id=views_.size()-1; v_id>=0; v_id--)
+                {
+                    View &vv = views_[v_id];
+
+                    typename pcl::PointCloud<PointT>::Ptr view_aligned(new pcl::PointCloud<PointT>);
+                    pcl::transformPointCloud(*vv.processed_cloud_, *view_aligned, vv.camera_pose_);
+
+                    typename pcl::PointCloud<PointT>::Ptr cloud_tmp(new pcl::PointCloud<PointT>);
+
+                    if(vv.removed_points_)
+                        *removed_points_cumulative += *vv.removed_points_;
+
+                    if( !removed_points_cumulative->points.empty() )
+                    {
+                        std::vector<int> preserved_indices;
+                        v4r::ChangeDetector<PointT>::difference(
+                                    *view_aligned,
+                                    removed_points_cumulative,
+                                    *cloud_tmp,
+                                    preserved_indices,
+                                    param_.tolerance_for_cloud_diff_);
+
+                        /* Visualization of changes removal for reconstruction:
+                        Cloud rec_changes;
+                        rec_changes += *cloud_transformed;
+                        v4r::VisualResultsStorage::copyCloudColored(*removed_points_cumulated_history_[view_id], rec_changes, 255, 0, 0);
+                        v4r::VisualResultsStorage::copyCloudColored(*cloud_tmp, rec_changes, 200, 0, 200);
+                        stringstream ss;
+                        ss << view_id;
+                        visResStore.savePcd("reconstruction_changes_" + ss.str(), rec_changes);*/
+
+                        boost::dynamic_bitset<> preserved_mask( view_aligned->points.size(), 0 );
+                        for (int idx : preserved_indices)
+                            preserved_mask.set(idx);
+
+                        for (size_t j = 0; j < preserved_mask.size(); j++)
+                        {
+                            if ( !preserved_mask[j] )
+                            {
+                                PointT &p = vv.processed_cloud_->points[j];
+                                p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+                            }
+                        }
+                        LOG(INFO) << "Points by change detection removed: " << vv.processed_cloud_->points.size() - preserved_indices.size() << ".";
+
+//                        NguyenNoiseModel<PointT> nm_again (nm_param);
+//                        nm_again.setInputCloud( vv.processed_cloud_after_removal_ );
+//                        nm_again.setInputNormals( vv.cloud_normals_ );
+//                        nm_again.compute();
+//                        vv.pt_properties_ = nm_again.getPointProperties();
+                    }
+                }
+
+                VLOG(1) << "Change detection took " << tt.getTime() << " ms.";
+            }
+
+
+            views_.push_back(v);
+
+            std::vector<typename pcl::PointCloud<PointT>::ConstPtr> views (views_.size());  ///< all views in multi-view sequence
+            std::vector<typename pcl::PointCloud<PointT>::ConstPtr> processed_views (views_.size());  ///< all processed views in multi-view sequence
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > camera_poses (views_.size());   ///< all absolute camera poses in multi-view sequence
+            std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > views_normals (views_.size());  ///< all view normals in multi-view sequence
+            std::vector< std::vector<std::vector<float> > > views_pt_properties (views_.size());  ///< all Nguyens noise model point properties in multi-view sequence
+
+            for(size_t v_id=0; v_id<views_.size(); v_id++)
+            {
+                const View &vv = views_[v_id];
+                views[v_id] = vv.cloud_;
+                processed_views[v_id] = vv.processed_cloud_;
+                camera_poses[v_id] = vv.camera_pose_;
+                views_normals[v_id] = vv.cloud_normals_;
+                views_pt_properties[v_id] = vv.pt_properties_;
+            }
+
+            registered_scene_cloud_.reset(new pcl::PointCloud<PointT>);
             NMBasedCloudIntegration<PointT> nmIntegration (nm_int_param);
-            nmIntegration.setInputClouds(views_);
-            nmIntegration.setPointProperties(views_pt_properties_);
-            nmIntegration.setTransformations(camera_poses_);
-            nmIntegration.setInputNormals(views_normals_);
+            nmIntegration.setInputClouds( processed_views );
+            nmIntegration.setPointProperties( views_pt_properties );
+            nmIntegration.setTransformations( camera_poses );
+            nmIntegration.setInputNormals( views_normals );
 //            nmIntegration.setIndices(obj_indices);
-            nmIntegration.compute(octree_cloud);
+            nmIntegration.compute(registered_scene_cloud_);
             std::vector< typename pcl::PointCloud<PointT>::Ptr > clouds_used;
             nmIntegration.getInputCloudsUsed(clouds_used);
             nmIntegration.getOutputNormals( normals );
 
             const Eigen::Matrix4f tf_global2camera = camera_pose.inverse();
-            pcl::transformPointCloud(*octree_cloud, *octree_cloud, tf_global2camera );
+
+            typename pcl::PointCloud<PointT>::Ptr registered_scene_cloud_aligned (new pcl::PointCloud<PointT>);
+            pcl::transformPointCloud(*registered_scene_cloud_, *registered_scene_cloud_aligned, tf_global2camera );
             v4r::transformNormals(*normals, *normals, tf_global2camera );
 
-            hv_->setSceneCloud( octree_cloud );
-            hv_->setOcclusionCloudsAndAbsoluteCameraPoses(views_, camera_poses_);
+//            static pcl::visualization::PCLVisualizer vis ("final registration");
+//            int vp1, vp2, vp3;
+//            vis.createViewPort(0,0,0.33,1,vp1);
+//            vis.createViewPort(0.33,0,0.66,1,vp2);
+//            vis.createViewPort(0.66,0,1,1,vp3);
+//            vis.removeAllPointClouds();
+
+//            typename pcl::PointCloud<PointT>::Ptr registered_scene_cloud_aligned_vis(new pcl::PointCloud<PointT> (*registered_scene_cloud_aligned));
+//            typename pcl::PointCloud<PointT>::Ptr registered_scene_cloud_vis(new pcl::PointCloud<PointT> (*registered_scene_cloud_));
+//            typename pcl::PointCloud<PointT>::Ptr removed_points_vis(new pcl::PointCloud<PointT> (*v.processed_cloud_));
+
+
+//            registered_scene_cloud_aligned_vis->sensor_origin_ = Eigen::Vector4f::Zero();
+//            registered_scene_cloud_aligned_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+//            registered_scene_cloud_vis->sensor_origin_ = Eigen::Vector4f::Zero();
+//            registered_scene_cloud_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+//            removed_points_vis->sensor_origin_ = Eigen::Vector4f::Zero();
+//            removed_points_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+
+//            vis.addPointCloud(registered_scene_cloud_aligned_vis, "registered_clouda",vp1);
+//            vis.addPointCloud(registered_scene_cloud_vis, "registered_cloudb",vp2);
+//            vis.addPointCloud(removed_points_vis, "registered_cloudc",vp3);
+//            vis.spin();
+
+            hv_->setSceneCloud( registered_scene_cloud_aligned );
+            hv_->setOcclusionCloudsAndAbsoluteCameraPoses(views, camera_poses);
         }
         else
             hv_->setSceneCloud( cloud );
@@ -395,7 +533,12 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         rec_vis_->setCloud( cloud );
 
         if( param_.use_multiview_ && param_.use_multiview_hv_ )
-            rec_vis_->setProcessedCloud( octree_cloud );
+        {
+            const Eigen::Matrix4f tf_global2camera = camera_pose.inverse();
+            typename pcl::PointCloud<PointT>::Ptr registered_scene_cloud_aligned (new pcl::PointCloud<PointT>);
+            pcl::transformPointCloud(*registered_scene_cloud_, *registered_scene_cloud_aligned, tf_global2camera );
+            rec_vis_->setProcessedCloud( registered_scene_cloud_aligned );
+        }
         else
             rec_vis_->setProcessedCloud( processed_cloud );
 
@@ -418,10 +561,6 @@ ObjectRecognizer<PointT>::resetMultiView()
     if(param_.use_multiview_)
     {
         views_.clear();
-        processed_views_.clear();
-        camera_poses_.clear();
-        views_normals_.clear();
-        views_pt_properties_.clear();
 
         typename v4r::MultiviewRecognizer<PointT>::Ptr mv_rec =
                 boost::dynamic_pointer_cast<  v4r::MultiviewRecognizer<PointT> > (mrec_);

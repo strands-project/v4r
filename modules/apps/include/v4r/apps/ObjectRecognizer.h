@@ -77,8 +77,12 @@ public:
 
     int icp_iterations_;
 
+    // multi-view parameters
     bool use_multiview_; ///< if true, transfers verified hypotheses across views
     bool use_multiview_hv_; ///< if true, verifies hypotheses against the registered scene cloud from all input views
+    bool use_change_detection_; ///< if true, uses change detection to find dynamic elements within observation period (only for multi-view recognition)
+    float tolerance_for_cloud_diff_; ///< tolerance in meter for change detection's cloud differencing
+    size_t min_points_for_hyp_removal_; ///< how many removed points must overlap hypothesis to be also considered removed
 
     ObjectRecognizerParameter()
         :
@@ -105,7 +109,10 @@ public:
           min_plane_inliers_ ( 20000 ),
           icp_iterations_ ( 0 ),
           use_multiview_ (false),
-          use_multiview_hv_ (true)
+          use_multiview_hv_ (true),
+          use_change_detection_ (true),
+          tolerance_for_cloud_diff_ (0.02f),
+          min_points_for_hyp_removal_ (50)
     {
         validate();
     }
@@ -182,6 +189,8 @@ private:
                 & BOOST_SERIALIZATION_NVP(plane_inlier_threshold_)
                 & BOOST_SERIALIZATION_NVP(min_plane_inliers_)
                 & BOOST_SERIALIZATION_NVP(use_multiview_)
+                & BOOST_SERIALIZATION_NVP(use_multiview_hv_)
+                & BOOST_SERIALIZATION_NVP(use_change_detection_)
                 ;
     }
 };
@@ -212,11 +221,29 @@ private:
 
     typename Source<PointT>::Ptr model_database_;
 
-    std::vector<typename pcl::PointCloud<PointT>::ConstPtr> views_;  ///< all views in multi-view sequence
-    std::vector<typename pcl::PointCloud<PointT>::ConstPtr> processed_views_;  ///< all processed views in multi-view sequence
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > camera_poses_;   ///< all absolute camera poses in multi-view sequence
-    std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > views_normals_;  ///< all view normals in multi-view sequence
-    std::vector< std::vector<std::vector<float> > > views_pt_properties_;  ///< all Nguyens noise model point properties in multi-view sequence
+    // MULTI-VIEW STUFF
+    class View
+    {
+    public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+        typename pcl::PointCloud<PointT>::ConstPtr cloud_;
+        typename pcl::PointCloud<PointT>::Ptr processed_cloud_;
+        typename pcl::PointCloud<PointT>::Ptr removed_points_;
+        pcl::PointCloud<pcl::Normal>::Ptr cloud_normals_;
+        std::vector<std::vector<float> > pt_properties_;
+        Eigen::Matrix4f camera_pose_;
+    };
+    std::vector<View> views_; ///< all views in sequence
+
+    /**
+     * @brief detectChanges detect changes in multi-view sequence (e.g. objects removed or added to the scene within observation period)
+     * @param v current view
+     */
+    void
+    detectChanges(View &v);
+
+    typename pcl::PointCloud<PointT>::Ptr registered_scene_cloud_;  ///< registered point cloud of all processed input clouds in common camera reference frame
 
 public:
     ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :

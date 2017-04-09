@@ -80,7 +80,7 @@ NMBasedCloudIntegration<PointT>::collectInfo ()
     }
     else
     {
-      for(const auto idx : indices_[i])
+      for(int idx : indices_[i])
       {
         if ( !pcl::isFinite(cloud_aligned.points[idx]) || !pcl::isFinite(normals_aligned.points[idx]) )
            continue;

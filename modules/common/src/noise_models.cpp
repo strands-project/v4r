@@ -1,9 +1,9 @@
 #include <pcl_1_8/features/organized_edge_detection.h>
-#include "v4r/common/noise_models.h"
-
-#include <opencv2/opencv.hpp>
+#include <v4r/common/noise_models.h>
 #include <v4r/common/pcl_opencv.h>
 
+#include <opencv2/opencv.hpp>
+#include <glog/logging.h>
 #include <omp.h>
 
 namespace v4r
@@ -13,6 +13,8 @@ template<typename PointT>
 void
 NguyenNoiseModel<PointT>::compute ()
 {
+    CHECK( input_->isOrganized() );
+
     pt_properties_.resize(input_->points.size());
 
     //compute depth discontinuity edges
@@ -64,9 +66,9 @@ NguyenNoiseModel<PointT>::compute ()
         if (angle > 85.f)
             angle = 85.f;
 
-        float sigma_lateral_px = (0.8 + 0.034 * angle / (90.f - angle)) * pt.z / param_.focal_length_; // in pixel
-        float sigma_lateral = sigma_lateral_px * pt.z * 1; // in metres
-        float sigma_axial = 0.0012 + 0.0019 * ( pt.z - 0.4 ) * ( pt.z - 0.4 ) + 0.0001 * angle * angle / ( sqrt(pt.z) * (90 - angle) * (90 - angle));  // in metres
+        float sigma_lateral_px = (0.8f + 0.034f * angle / (90.f - angle)) * pt.z / param_.focal_length_; // in pixel
+        float sigma_lateral = sigma_lateral_px * pt.z * 1.f; // in metres
+        float sigma_axial = 0.0012f + 0.0019f * ( pt.z - 0.4f ) * ( pt.z - 0.4f ) + 0.0001f * angle * angle / ( sqrt(pt.z) * (90.f - angle) * (90.f - angle));  // in metres
 
         pt_properties_[i][0] = sigma_lateral;
         pt_properties_[i][1] = sigma_axial;
