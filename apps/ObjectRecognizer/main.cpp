@@ -49,6 +49,8 @@ main (int argc, char ** argv)
 
     v4r::apps::ObjectRecognizerParameter param;
     param.load( recognizer_config );
+    to_pass_further = param.init(to_pass_further);
+    param.output();
     v4r::apps::ObjectRecognizer<PT> recognizer (param);
     recognizer.initialize(to_pass_further);
 
