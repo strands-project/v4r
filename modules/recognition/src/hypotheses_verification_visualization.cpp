@@ -8,6 +8,10 @@ template<typename ModelT, typename SceneT>
 void
 HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT, SceneT> *hv, const boost::dynamic_bitset<> & active_solution, float cost, int times_evaluated)
 {
+    typename pcl::PointCloud<SceneT>::Ptr scene_cloud_vis (new pcl::PointCloud<SceneT>(*hv->scene_cloud_downsampled_));
+    scene_cloud_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+    scene_cloud_vis->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
     if(!vis_go_cues_)
     {
         vis_go_cues_.reset(new pcl::visualization::PCLVisualizer("visualizeGOCues"));
@@ -59,10 +63,10 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
     vis_go_cues_->addText ("Scene", 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "inliers_outliers", vp_scene_scene_);
     vis_go_cues_->addText (out.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "active_hypotheses", vp_scene_active_hypotheses_);
     vis_go_cues_->addText (model_fitness_txt.str(), 1, 30, 16, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "model fitness", vp_model_fitness_);
-    vis_go_cues_->addPointCloud (hv->scene_cloud_downsampled_, "scene_cloud", vp_scene_scene_);
+    vis_go_cues_->addPointCloud (scene_cloud_vis, "scene_cloud", vp_scene_scene_);
 
-    pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (hv->scene_cloud_downsampled_, 128, 128, 128);
-    vis_go_cues_->addPointCloud(hv->scene_cloud_downsampled_, gray, "input_active_hypotheses", vp_scene_active_hypotheses_);
+    pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_vis, 128, 128, 128);
+    vis_go_cues_->addPointCloud(scene_cloud_vis, gray, "input_active_hypotheses", vp_scene_active_hypotheses_);
     vis_go_cues_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_active_hypotheses");
 
 
@@ -110,12 +114,12 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
         }
     }
 
-    Eigen::Array<bool, Eigen::Dynamic, 1> scene_pt_is_explained( hv->scene_cloud_downsampled_->points.size() ); // needed for smooth region visualization
-    scene_pt_is_explained.setConstant(hv->scene_cloud_downsampled_->points.size(), false);
+    Eigen::Array<bool, Eigen::Dynamic, 1> scene_pt_is_explained( scene_cloud_vis->points.size() ); // needed for smooth region visualization
+    scene_pt_is_explained.setConstant(scene_cloud_vis->points.size(), false);
 
     // ==== VISUALIZE SCENE FITNESS =======
     {
-        typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*hv->scene_cloud_downsampled_));
+        typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*scene_cloud_vis));
         for( SceneT &p : scene_fit_cloud->points)
             p.r = p.g = p.b = 0.f;
 
@@ -144,7 +148,7 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
     // ==== VISUALIZE DUPLICATED POINTS FITNESS =======
     {
         double duplicity =0.;
-        typename pcl::PointCloud<SceneT>::Ptr duplicity_cloud (new pcl::PointCloud<SceneT> (*hv->scene_cloud_downsampled_));
+        typename pcl::PointCloud<SceneT>::Ptr duplicity_cloud (new pcl::PointCloud<SceneT> (*scene_cloud_vis));
         for( SceneT &p : duplicity_cloud->points)
             p.r = p.g = p.b = 0.f;
 
@@ -175,7 +179,7 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
         int max_label = hv->scene_pt_smooth_label_id_.maxCoeff() + 1;
         if( max_label >= 1 )
         {
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_smooth_labels_rgb (new pcl::PointCloud<pcl::PointXYZRGB>(*hv->scene_cloud_downsampled_));
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_smooth_labels_rgb (new pcl::PointCloud<pcl::PointXYZRGB>(*scene_cloud_vis));
 
             if(!vis_param_->no_text_)
                 vis_go_cues_->addText( "smooth regions", 1, 30, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "smooth seg text", vp_scene_smooth_regions_);
@@ -238,6 +242,10 @@ template<typename ModelT, typename SceneT>
 void
 HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT, SceneT> *hv, const HVRecognitionModel<ModelT> &rm)
 {
+    typename pcl::PointCloud<SceneT>::Ptr scene_cloud_vis (new pcl::PointCloud<SceneT>(*hv->scene_cloud_downsampled_));
+    scene_cloud_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+    scene_cloud_vis->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
     if(!vis_model_)
     {
         vis_model_.reset (new pcl::visualization::PCLVisualizer ("model cues"));
@@ -259,13 +267,13 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
     vis_model_->removeAllPointClouds();
     vis_model_->removeAllShapes();
 
-    vis_model_->addPointCloud(hv->scene_cloud_downsampled_, "scene1", vp_model_scene_);
+    vis_model_->addPointCloud(scene_cloud_vis, "scene1", vp_model_scene_);
     vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene1", vp_model_scene_);
 
-    pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (hv->scene_cloud_downsampled_, 128, 128, 128);
+    pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_vis, 128, 128, 128);
     vis_model_->addPointCloud(rm.visible_cloud_, "model", vp_model_);
     vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "model", vp_model_);
-    vis_model_->addPointCloud(hv->scene_cloud_downsampled_, gray, "input_rm_vp_model_", vp_model_);
+    vis_model_->addPointCloud(scene_cloud_vis, gray, "input_rm_vp_model_", vp_model_);
     vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_");
 
 
@@ -366,22 +374,22 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
 
         vis_model_->addPointCloud(model_3D_fit_cloud, "3D_distance", vp_model_3d_fit_);
         vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "3D_distance", vp_model_3d_fit_);
-        vis_model_->addPointCloud(hv->scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_3d_dist_", vp_model_3d_fit_);
+        vis_model_->addPointCloud(scene_cloud_vis, gray, "input_rm_vp_model_scene_3d_dist_", vp_model_3d_fit_);
         vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_3d_dist_");
 
         vis_model_->addPointCloud(model_color_fit_cloud, "color_distance", vp_model_color_fit_);
         vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "color_distance", vp_model_color_fit_);
-        vis_model_->addPointCloud(hv->scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_color_dist_", vp_model_color_fit_);
+        vis_model_->addPointCloud(scene_cloud_vis, gray, "input_rm_vp_model_scene_color_dist_", vp_model_color_fit_);
         vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_color_dist_");
 
         vis_model_->addPointCloud(model_normals_fit_cloud, "normals_distance", vp_model_normals_fit_);
         vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "normals_distance", vp_model_normals_fit_);
-        vis_model_->addPointCloud(hv->scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_normals_dist_", vp_model_normals_fit_);
+        vis_model_->addPointCloud(scene_cloud_vis, gray, "input_rm_vp_model_scene_normals_dist_", vp_model_normals_fit_);
         vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_normals_dist_");
 
         vis_model_->addPointCloud(model_fit_cloud, "model_fitness", vp_model_total_fit_);
         vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "model_fitness", vp_model_total_fit_);
-        vis_model_->addPointCloud(hv->scene_cloud_downsampled_, gray, "input_rm_vp_model_scene_model_fit_", vp_model_total_fit_);
+        vis_model_->addPointCloud(scene_cloud_vis, gray, "input_rm_vp_model_scene_model_fit_", vp_model_total_fit_);
         vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_scene_model_fit_");
     }
 
@@ -400,7 +408,7 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
 
         vis_model_->addPointCloud(outlier_cloud, "outlier_cloud", vp_model_outliers_);
         vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "outlier_cloud", vp_model_outliers_);
-        vis_model_->addPointCloud(hv->scene_cloud_downsampled_, gray, "input_rm_vp_model_outliers_", vp_model_outliers_);
+        vis_model_->addPointCloud(scene_cloud_vis, gray, "input_rm_vp_model_outliers_", vp_model_outliers_);
         vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_outliers_");
         if(!vis_param_->no_text_)
         {
@@ -412,7 +420,7 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
 
     // ==== VISUALIZE SCENE FITNESS CLOUD =====
     {
-        typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*hv->scene_cloud_downsampled_));
+        typename pcl::PointCloud<SceneT>::Ptr scene_fit_cloud (new pcl::PointCloud<SceneT> (*scene_cloud_vis));
         for(int p=0; p < rm.scene_explained_weight_.rows(); p++)
         {
             SceneT &sp = scene_fit_cloud->points[p];
@@ -423,10 +431,10 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
         if(!vis_param_->no_text_)
         {
             std::stringstream txt;
-            txt.str(""); txt << "scene pts explained (fitness: " << rm.scene_explained_weight_.sum() << "; normalized: " << rm.scene_explained_weight_.sum()/hv->scene_cloud_downsampled_->points.size() << ")";
+            txt.str(""); txt << "scene pts explained (fitness: " << rm.scene_explained_weight_.sum() << "; normalized: " << rm.scene_explained_weight_.sum()/scene_cloud_vis->points.size() << ")";
             vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_,0,0,0,"scene fitness",vp_model_scene_fit_);
             vis_model_->addText("scene and visible model",10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene_and_model",vp_model_scene_overlay_);
-            vis_model_->addPointCloud(hv->scene_cloud_downsampled_, "scene_model_1", vp_model_scene_overlay_);
+            vis_model_->addPointCloud(scene_cloud_vis, "scene_model_1", vp_model_scene_overlay_);
         }
 
         vis_model_->addPointCloud(scene_fit_cloud, "scene_fitness", vp_model_scene_fit_);
@@ -444,6 +452,10 @@ template<typename ModelT, typename SceneT>
 void
 HV_PairwiseVisualizer<ModelT, SceneT>::visualize( const HypothesisVerification<ModelT, SceneT> *hv )
 {
+    typename pcl::PointCloud<SceneT>::Ptr scene_cloud_vis (new pcl::PointCloud<SceneT>(*hv->scene_cloud_downsampled_));
+    scene_cloud_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+    scene_cloud_vis->sensor_origin_ = Eigen::Vector4f::Zero(4);
+
     if(!vis_pairwise_)
     {
         vis_pairwise_.reset( new pcl::visualization::PCLVisualizer("intersection") );
