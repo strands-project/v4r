@@ -167,6 +167,7 @@ main (int argc, char ** argv)
 
             for (const std::string &sub_folder_name : sub_folder_names)
             {
+                recognizer.resetMultiView();
                 std::vector< std::string > views = v4r::io::getFilesInDirectory( test_dir+"/"+sub_folder_name, ".*.pcd", false );
                 for (size_t v_id=0; v_id<views.size(); v_id++)
                 {
