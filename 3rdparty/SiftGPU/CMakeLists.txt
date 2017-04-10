@@ -13,7 +13,8 @@ endif()
 set(_external_target "${SIFTGPU_LIBRARY}_external")
 ExternalProject_Add(${_external_target}
   PREFIX "${CMAKE_CURRENT_LIST_DIR}"
-  URL "http://wwwx.cs.unc.edu/~ccwu/cgi-bin/siftgpu.cgi?SiftGPU-V400.zip"
+  #URL "http://wwwx.cs.unc.edu/~ccwu/cgi-bin/siftgpu.cgi?SiftGPU-V400.zip"
+  URL "https://repo.acin.tuwien.ac.at/tmp/permanent/SiftGPU-V400.zip"
   URL_HASH SHA1=eac08305f14cb35d12a22d493f84f9c21f6b7fdb
   TIMEOUT 30
   CONFIGURE_COMMAND ""
