@@ -441,13 +441,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
                                 p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
                             }
                         }
-                        LOG(INFO) << "Points by change detection removed: " << vv.processed_cloud_->points.size() - preserved_indices.size() << ".";
-
-//                        NguyenNoiseModel<PointT> nm_again (nm_param);
-//                        nm_again.setInputCloud( vv.processed_cloud_after_removal_ );
-//                        nm_again.setInputNormals( vv.cloud_normals_ );
-//                        nm_again.compute();
-//                        vv.pt_properties_ = nm_again.getPointProperties();
+                        LOG(INFO) << "Points removed in view " << v_id << " by change detection: " << vv.processed_cloud_->points.size() - preserved_indices.size() << ".";
                     }
                 }
 
@@ -483,10 +477,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
                 nmIntegration.setPointProperties( views_pt_properties );
                 nmIntegration.setTransformations( camera_poses );
                 nmIntegration.setInputNormals( views_normals );
-    //            nmIntegration.setIndices(obj_indices);
                 nmIntegration.compute(registered_scene_cloud_);
-//                std::vector< typename pcl::PointCloud<PointT>::Ptr > clouds_used;
-//                nmIntegration.getInputCloudsUsed(clouds_used);
                 nmIntegration.getOutputNormals( normals );
 
                 float time = t.getTime();
@@ -534,10 +525,12 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
         pcl::StopWatch t; const std::string time_desc ("Verification of object hypotheses");
         hv_->verify();
-//        verified_hypotheses_ = hv_->getVerifiedHypotheses();
         float time = t.getTime();
         VLOG(1) << time_desc << " took " << time << " ms.";
         elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
+
+        std::vector<std::pair<std::string, float> > hv_elapsed_times = hv_->getElapsedTimes();
+        elapsed_time_.insert(elapsed_time_.end(), hv_elapsed_times.begin(), hv_elapsed_times.end());
     }
 
 

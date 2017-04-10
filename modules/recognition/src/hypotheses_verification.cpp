@@ -577,7 +577,11 @@ void
 HypothesisVerification<ModelT, SceneT>::initialize()
 {
     global_hypotheses_.clear();
-    downsampleSceneCloud();
+
+    {
+        StopWatch t("Downsampling scene cloud");
+        downsampleSceneCloud();
+    }
 
     if( img_boundary_distance_.empty() )
     {
@@ -726,7 +730,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                     for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
                     {
                         HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
-
                         rm.processSilhouette(param_.do_smoothing_, param_.smoothing_radius_, param_.do_erosion_, param_.erosion_radius_, cam_->getWidth());
                     }
                 }
@@ -761,10 +764,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         if(!param_.ignore_color_even_if_exists_)
         {
             StopWatch t("Converting scene color values");
-
             colorTransf_->convert(*scene_cloud_downsampled_, scene_color_channels_);
-
-
 //            scene_color_channels_.col(0) = (scene_color_channels_.col(0) - Eigen::VectorXf::Ones(scene_color_channels_.rows())*50.f) / 50.f;
 //            scene_color_channels_.col(1) = scene_color_channels_.col(1) / 150.f;
 //            scene_color_channels_.col(2) = scene_color_channels_.col(2) / 150.f;
@@ -1126,7 +1126,6 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
             const Eigen::VectorXf &color_m = rm.pt_color_.row( midx );
             const Eigen::VectorXf &color_s = scene_color_channels_.row( sidx );
             c.color_distance_ = color_dist_f_(color_s, color_m);
-            CHECK (c.color_distance_ >= 0.f);
 
             c.fitness_ = getFitness( c );
             rm.model_scene_c_.push_back( c );
