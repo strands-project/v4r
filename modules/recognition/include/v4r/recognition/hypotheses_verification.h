@@ -146,6 +146,8 @@ protected:
 
     std::vector<std::vector<PtFitness> > scene_pts_explained_solution_;
 
+    static std::vector<std::pair<std::string, float> > elapsed_time_; ///< measurements of computation times for various components
+
     float initial_temp_;
     boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
     Eigen::MatrixXf scene_color_channels_; ///< converted color values where each point corresponds to a row entry
@@ -348,6 +350,25 @@ protected:
         return solution_;
     }
 
+    class StopWatch
+    {
+        std::string desc_;
+        boost::posix_time::ptime start_time_;
+
+    public:
+        StopWatch(const std::string &desc)
+            :desc_ (desc), start_time_ (boost::posix_time::microsec_clock::local_time ())
+        {}
+
+        ~StopWatch()
+        {
+            boost::posix_time::ptime end_time = boost::posix_time::microsec_clock::local_time ();
+            float elapsed_time = static_cast<float> (((end_time - start_time_).total_milliseconds ()));
+            VLOG(1) << desc_ << " took " << elapsed_time << " ms.";
+            elapsed_time_.push_back( std::pair<std::string,float>(desc_, elapsed_time) );
+        }
+    };
+
 public:
 
     HypothesisVerification (const Camera::ConstPtr &cam,
@@ -520,6 +541,16 @@ public:
      */
     void
     verify();
+
+    /**
+     * @brief getElapsedTimes
+     * @return compuation time measurements for various components
+     */
+    std::vector<std::pair<std::string, float> >
+    getElapsedTimes() const
+    {
+        return elapsed_time_;
+    }
 };
 
 }

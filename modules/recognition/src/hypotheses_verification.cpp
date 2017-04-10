@@ -600,24 +600,22 @@ HypothesisVerification<ModelT, SceneT>::initialize()
     {
 #pragma omp section
         {
-            pcl::StopWatch t;
+            StopWatch t("Computing octree");
             octree_scene_downsampled_.reset(new pcl::octree::OctreePointCloudSearch<SceneT>( param_.resolution_mm_ / 1000.0));
             octree_scene_downsampled_->setInputCloud(scene_cloud_downsampled_);
             octree_scene_downsampled_->addPointsFromInputCloud();
-            VLOG(1) << "Computing octree took " << t.getTime() << "ms.";
         }
 
 #pragma omp section
         {
-            pcl::StopWatch t;
+            StopWatch t("Computing kd-tree");
             kdtree_scene_.reset( new pcl::search::KdTree<SceneT>);
             kdtree_scene_->setInputCloud (scene_cloud_downsampled_);
-            VLOG(1) << "Computing kd-tree took " << t.getTime() << "ms.";
         }
 
 #pragma omp section
         {
-            pcl::StopWatch t;
+            StopWatch t("Computing octrees for model visibility computation");
             for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
             {
                 for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
@@ -635,7 +633,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                     }
                 }
             }
-            VLOG(1) << "Computing octrees for model visibility computation took" << t.getTime() << "ms.";
         }
     }
 
@@ -645,12 +642,11 @@ HypothesisVerification<ModelT, SceneT>::initialize()
             occlusion_clouds_.push_back(scene_cloud_);
         else
         {
-            pcl::StopWatch t;
+            StopWatch t("Input point cloud of scene is not organized. Doing depth-buffering to get organized point cloud");
             ZBuffering<SceneT> zbuf (cam_);
             typename pcl::PointCloud<SceneT>::Ptr organized_cloud (new pcl::PointCloud<SceneT>);
             zbuf.renderPointCloud( *scene_cloud_, *organized_cloud );
             occlusion_clouds_.push_back( organized_cloud );
-            VLOG(1) << "Input point cloud of scene is not organized. Doing depth-buffering to get organized point cloud took" << t.getTime() << "ms.";
         }
 
         absolute_camera_poses_.push_back( Eigen::Matrix4f::Identity() );
@@ -662,7 +658,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
 #pragma omp section
         {
             {
-                pcl::StopWatch t;
+                StopWatch t("Computing visible model points (1st run)");
 #pragma omp parallel for schedule(dynamic)
                 for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
                 {
@@ -676,13 +672,13 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                         computeModelOcclusionByScene(rm);  //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
                     }
                 }
-                VLOG(1) << "Computing visible model points (1st run) took " << t.getTime() << "ms.";
             }
 
             if( param_.icp_iterations_ )
             {
                 {
-                    pcl::StopWatch t;
+                    std::stringstream desc; desc << "Pose refinement with " << param_.icp_iterations_ << " ICP iterations";
+                    StopWatch t(desc.str());
 #pragma omp parallel for schedule(dynamic)
                     for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
                     {
@@ -692,13 +688,10 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                             rm.refined_pose_ = refinePose(rm);
                         }
                     }
-                    (void)t;
-
-                    VLOG(1) << "Pose refinement with " << param_.icp_iterations_ << " ICP iterations took " << t.getTime() << "ms.";
                 }
 
                 {
-                    pcl::StopWatch t;
+                    StopWatch t("Computing visible model points (2nd run)");
 #pragma omp parallel for schedule(dynamic)
                     for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
                     {
@@ -710,7 +703,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                             computeModelOcclusionByScene(rm);  //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
                         }
                     }
-                    VLOG(1) << "Computing visible model points (2nd run) took " << t.getTime() << "ms.";
                 }
             }
             {
@@ -727,7 +719,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
             }
 
             { //used for checking pairwise intersection of objects (relate amount of overlapping pixel of their 2D silhouette)
-                pcl::StopWatch t;
+                StopWatch t("Computing 2D silhouette of visible object model");
 #pragma omp parallel for schedule(dynamic)
                 for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
                 {
@@ -738,11 +730,10 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                         rm.processSilhouette(param_.do_smoothing_, param_.smoothing_radius_, param_.do_erosion_, param_.erosion_radius_, cam_->getWidth());
                     }
                 }
-                VLOG(1) << "Computing 2D silhouette of visible object model took " << t.getTime() << "ms.";
             }
 
             {
-                pcl::StopWatch t;
+                StopWatch t("Computing visible octree nodes");
 #pragma omp parallel for schedule(dynamic)
                 for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
                 {
@@ -752,7 +743,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                         computeVisibleOctreeNodes(rm);
                     }
                 }
-                VLOG(1) << "Computing visible octree nodes took" << t.getTime() << "ms.";
             }
 
             removeModelsWithLowVisibility();
@@ -762,16 +752,15 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         {
             if(param_.check_smooth_clusters_)
             {
-                pcl::StopWatch t;
+                StopWatch t("Extracting smooth clusters");
                 extractEuclideanClustersSmooth();
-                VLOG(1) << "Extracting smooth clusters took " << t.getTime() << "ms.";
             }
         }
 
 #pragma omp section
         if(!param_.ignore_color_even_if_exists_)
         {
-            pcl::StopWatch t;
+            StopWatch t("Converting scene color values");
 
             colorTransf_->convert(*scene_cloud_downsampled_, scene_color_channels_);
 
@@ -779,13 +768,12 @@ HypothesisVerification<ModelT, SceneT>::initialize()
 //            scene_color_channels_.col(0) = (scene_color_channels_.col(0) - Eigen::VectorXf::Ones(scene_color_channels_.rows())*50.f) / 50.f;
 //            scene_color_channels_.col(1) = scene_color_channels_.col(1) / 150.f;
 //            scene_color_channels_.col(2) = scene_color_channels_.col(2) / 150.f;
-            VLOG(1) << "Converting scene color values took " << t.getTime() << "ms.";
         }
     }
 
 
     {
-        pcl::StopWatch t;
+        StopWatch t("Converting model color values");
         for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
         {
             for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
@@ -807,11 +795,10 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                 }
             }
         }
-        VLOG(1) << "Converting model color values took " << t.getTime() << "ms.";
     }
 
     {
-        pcl::StopWatch t;
+        StopWatch t("Computing model to scene fitness");
 #pragma omp parallel for schedule(dynamic)
         for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
         {
@@ -823,7 +810,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                     computeModelFitness(rm);
             }
         }
-        VLOG(1) << "Computing model to scene fitness took " << t.getTime() << "ms.";
     }
 
     if(param_.use_histogram_specification_)
@@ -898,9 +884,8 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         return;
 
     {
-        pcl::StopWatch t;
+        StopWatch t("Computing pairwise intersection");
         computePairwiseIntersection();
-        VLOG(1) << "Computing pairwise intersection " << t.getTime() << "ms.";
     }
 
     if( vis_pairwise_ )
@@ -944,7 +929,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     {
     case HV_OptimizationType::LocalSearch:
     {
-        pcl::ScopeTime t ("local search...");
+        StopWatch t ("local search");
         neigh.UseReplaceMoves(false);
         mets::local_search<GHVmove_manager<ModelT, SceneT> > local ( model, *(cost_logger_.get()), neigh, 0, false);
         local.search ();
@@ -953,7 +938,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     }
     case HV_OptimizationType::TabuSearch:
     {
-        pcl::ScopeTime t ("TABU search...");
+        StopWatch t ("TABU search");
         mets::simple_tabu_list tabu_list ( 5 * global_hypotheses_.size()) ;  // ( initial_solution.size() * sqrt ( 1.0*initial_solution.size() ) ) ;
         mets::best_ever_criteria aspiration_criteria ;
 
@@ -967,7 +952,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     }
     case HV_OptimizationType::TabuSearchWithLSRM:
     {
-        pcl::ScopeTime t("TABU search + LS (RM)...");
+        StopWatch t("TABU search + LS (RM)");
         GHVmove_manager<ModelT, SceneT> neigh4 ( false);
         neigh4.setIntersectionCost(intersection_cost_);
 
@@ -990,7 +975,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     }
     case HV_OptimizationType::SimulatedAnnealing:
     {
-        pcl::ScopeTime t ("SA search...");
+        StopWatch t ("SA search");
         //Simulated Annealing
         //mets::linear_cooling linear_cooling;
         mets::exponential_cooling linear_cooling;
@@ -1007,9 +992,7 @@ HypothesisVerification<ModelT, SceneT>::optimize ()
     for(size_t i=0; i<global_hypotheses_.size(); i++)
     {
         if( solution_[i] )
-        {
             global_hypotheses_[i]->oh_->is_verified_ = true;
-        }
 
     }
 
@@ -1030,19 +1013,19 @@ template<typename ModelT, typename SceneT>
 void
 HypothesisVerification<ModelT, SceneT>::verify()
 {
+    elapsed_time_.clear();
+
     {
-        pcl::StopWatch t;
+        StopWatch t("Verification of object hypotheses");
         initialize();
-        VLOG(1) << "initialization took " << t.getTime() << "ms.";
     }
 
     if( vis_cues_ )
         visualize_cues_during_logger_ = boost::bind(&HypothesisVerification<ModelT, SceneT>::visualizeGOcues, this, _1, _2, _3);
 
     {
-        pcl::StopWatch t;
+        StopWatch t("Optimizing object hypotheses verification cost function");
         optimize ();
-        VLOG(1) << "Optimizing object hypotheses verification cost function took " << t.getTime() << "ms.";
     }
 
     cleanUp();
@@ -1190,6 +1173,9 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
 
     VLOG(1) << "model fit of " << rm.oh_->model_id_ << ": " << rm.model_fit_ << " (normalized: " << rm.model_fit_/rm.visible_cloud_->points.size() << ").";
 }
+
+template<typename ModelT, typename SceneT>
+std::vector<std::pair<std::string,float> > HypothesisVerification<ModelT, SceneT>::elapsed_time_;
 
 #define PCL_INSTANTIATE_HypothesisVerification(ModelT, SceneT) template class V4R_EXPORTS HypothesisVerification<ModelT, SceneT>;
 PCL_INSTANTIATE_PRODUCT(HypothesisVerification, ((pcl::PointXYZRGB))((pcl::PointXYZRGB)) )
