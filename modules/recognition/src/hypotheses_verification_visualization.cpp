@@ -431,7 +431,7 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
         if(!vis_param_->no_text_)
         {
             std::stringstream txt;
-            txt.str(""); txt << "scene pts explained (fitness: " << rm.scene_explained_weight_.sum() << "; normalized: " << rm.scene_explained_weight_.sum()/scene_cloud_vis->points.size() << ")";
+            txt.str(""); txt << "scene pts explained (fitness: " << rm.scene_explained_weight_.sum() << "; normalized: " << std::fixed << std::setprecision(4)  << rm.scene_explained_weight_.sum()/scene_cloud_vis->points.size() << ")";
             vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_,0,0,0,"scene fitness",vp_model_scene_fit_);
             vis_model_->addText("scene and visible model",10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene_and_model",vp_model_scene_overlay_);
             vis_model_->addPointCloud(scene_cloud_vis, "scene_model_1", vp_model_scene_overlay_);
@@ -442,6 +442,34 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
     }
 
     vis_model_->addPointCloud(rm.visible_cloud_, "scene_model_2", vp_model_scene_overlay_);
+
+//    pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_pt_noise (new pcl::PointCloud<pcl::PointXYZRGB>);
+//    model_pt_noise->points.resize( rm.visible_cloud_->points.size() );
+
+//    for(int i=0; i<rm.visible_cloud_->points.size(); i++)
+//    {
+//        pcl::PointXYZRGB &p = model_pt_noise->points[i];
+//        const SceneT &s = rm.visible_cloud_->points[i];
+//        Eigen::Vector3f n = rm.visible_cloud_normals_->points[i].getNormalVector3fMap();
+//        p.x = s.x;
+//        p.y = s.y;
+//        p.z = s.z;
+
+//        p.r = p.g = p.b = 0.f;
+
+//        Eigen::Vector3f viewray = s.getVector3fMap();
+//        viewray.normalize();
+//        n.normalize();
+
+//        float dotp = viewray.dot(n);
+
+//        if(dotp>0.f)
+//            p.r = 255.f;
+
+//        if ( fabs(dotp) < 0.25f )
+//            p.g = 255 * ( 1.f- fabs(dotp) );
+//    }
+//    vis_model_->addPointCloud(model_pt_noise, "model_pt_noise", vp_model_angle_to_vp_);
 
     vis_model_->resetCamera();
     vis_model_->spin();
