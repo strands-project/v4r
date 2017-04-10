@@ -199,7 +199,8 @@ namespace v4r
 
             public:
 
-                MultiSessionModelling();
+                MultiSessionModelling()
+                {}
 
                 void setInputData(std::vector<typename pcl::PointCloud<PointT>::ConstPtr> & clouds,
                                   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > & poses,

@@ -8,11 +8,6 @@
 #include <boost/graph/biconnected_components.hpp>
 #include <boost/graph/prim_minimum_spanning_tree.hpp>
 
-template<class PointT>
-v4r::Registration::MultiSessionModelling<PointT>::MultiSessionModelling()
-{
-
-}
 
 template<class PointT>
 float
