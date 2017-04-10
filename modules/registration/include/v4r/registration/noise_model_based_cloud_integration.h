@@ -44,7 +44,7 @@ public:
     bool average_;  ///< if true, takes the average color (for each color componenent) and normal within all the points in the leaf of the octree. Otherwise, it takes the point within the octree with the best noise weight
     float threshold_explained_; ///< Euclidean distance for a nearby point to explain a query point. Only used if reason_about_points = true
     bool reason_about_points_; ///< if true, projects each point into each viewpoint and checks for occlusion or if it can be explained by the points in the other viewpoints (this should filter lonely points but is computational expensive) --> FILTER NOT IMPLEMENTED SO FAR!!
-    float edge_radius_px_; ///< points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed
+    float min_px_distance_to_depth_discontinuity_; ///< points of the input cloud within this distance (in pixel) to its closest depth discontinuity pixel will be removed
     NMBasedCloudIntegrationParameter() :
         min_points_per_voxel_(1),
         octree_resolution_(0.003f),
@@ -52,7 +52,7 @@ public:
         average_ (false),
         threshold_explained_ (0.02f),
         reason_about_points_ (false),
-        edge_radius_px_ (3.f)
+        min_px_distance_to_depth_discontinuity_ (3.f)
     { }
 };
 

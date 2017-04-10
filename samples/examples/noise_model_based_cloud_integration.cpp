@@ -58,7 +58,6 @@ int main(int argc, const char * argv[]) {
             ("min_points_per_voxel", po::value<size_t>(&nm_int_param.min_points_per_voxel_)->default_value(nm_int_param.min_points_per_voxel_), "")
 //            ("threshold_explained", po::value<float>(&nm_int_param.threshold_explained_)->default_value(nm_int_param.threshold_explained_), "")
             ("use_depth_edges", po::value<bool>(&nm_param.use_depth_edges_)->default_value(nm_param.use_depth_edges_), "")
-            ("edge_radius", po::value<int>(&nm_param.edge_radius_)->default_value(nm_param.edge_radius_), "")
             ("focal_length,f", po::value<float>(&nm_param.focal_length_)->default_value(nm_param.focal_length_), "")
             ("normal_method,n", po::value<int>(&normal_method)->default_value(normal_method), "method used for normal computation")
             ("chop_z,z", po::value<float>(&chop_z)->default_value(chop_z), "cut of distance in m ")
@@ -83,7 +82,6 @@ int main(int argc, const char * argv[]) {
         return false;
     }
 
-    nm_int_param.edge_radius_px_ = nm_param.edge_radius_;
     std::vector< std::string> folder_names  = io::getFoldersInDirectory( test_dir );
 
     if( folder_names.empty() )

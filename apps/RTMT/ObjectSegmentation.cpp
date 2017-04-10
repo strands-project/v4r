@@ -784,7 +784,6 @@ void ObjectSegmentation::createObjectCloudFiltered()
     return;
 
   v4r::NguyenNoiseModelParameter nmparam;
-  nmparam.edge_radius_ = om_params.edge_radius_px;
   v4r::NguyenNoiseModel<pcl::PointXYZRGB> nm(nmparam);
   std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > &ref_clouds = *clouds;
   std::vector< std::vector<std::vector<float> > > pt_properties (ref_clouds.size());
@@ -815,7 +814,7 @@ void ObjectSegmentation::createObjectCloudFiltered()
 
     v4r::NMBasedCloudIntegrationParameter _nmparam;
     _nmparam.octree_resolution_ = om_params.vx_size_object;
-    _nmparam.edge_radius_px_ = om_params.edge_radius_px;
+    _nmparam.min_px_distance_to_depth_discontinuity_ = om_params.edge_radius_px;
     _nmparam.min_points_per_voxel_ = 1;
     octree_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
     v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration(_nmparam);
