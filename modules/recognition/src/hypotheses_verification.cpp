@@ -812,22 +812,6 @@ HypothesisVerification<ModelT, SceneT>::initialize()
         }
     }
 
-    if(param_.use_histogram_specification_)
-    {
-        pcl::StopWatch t;
-        for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
-        {
-            for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
-            {
-                HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
-
-                if(!rm.isRejected())
-                    computeLOffset(rm);
-            }
-        }
-        VLOG(1) << "Computing histogramm specification took " << t.getTime() << "ms.";
-    }
-
 
     global_hypotheses_.resize( obj_hypotheses_groups_.size() );
 
@@ -1142,12 +1126,48 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
 
     std::sort( rm.model_scene_c_.begin(), rm.model_scene_c_.end() );
 
-    rm.scene_explained_weight_ = Eigen::SparseVector<float> (scene_cloud_downsampled_->points.size());
-    rm.scene_explained_weight_.reserve( rm.model_scene_c_.size() );
-    Eigen::VectorXf modelFit   = Eigen::VectorXf::Zero (rm.visible_cloud_->points.size());
+    if(param_.use_histogram_specification_)
+    {
+        boost::dynamic_bitset<> scene_pt_is_taken(scene_cloud_downsampled_->points.size(), 0);
+        Eigen::VectorXf scene_color_for_model ( scene_cloud_downsampled_->points.size() );
+
+        size_t kept=0;
+        for( const ModelSceneCorrespondence &c : rm.model_scene_c_ )
+        {
+            int sidx = c.scene_id_;
+            if( !scene_pt_is_taken[sidx] )
+            {
+                scene_pt_is_taken.set(sidx);
+                scene_color_for_model(kept++) = scene_color_channels_(sidx,0);
+            }
+        }
+        scene_color_for_model.conservativeResize(kept);
+
+        float mean_l_value_scene = scene_color_for_model.mean();
+        float mean_l_value_model = rm.pt_color_.col( 0 ).mean();
+
+        float max_l_offset = 15.f;
+        float l_compensation = std::max<float>(-max_l_offset, std::min<float>(max_l_offset, (mean_l_value_scene - mean_l_value_model)));
+//        Eigen::VectorXf color_new = specifyHistogram( rm.pt_color_.col( 0 ), scene_color_for_model, 50, min_l_value, max_l_value );
+        rm.pt_color_.col( 0 ).array() = rm.pt_color_.col( 0 ).array() + l_compensation;
+
+        for( ModelSceneCorrespondence &c : rm.model_scene_c_ )
+        {
+            int sidx = c.scene_id_;
+            int midx = c.model_id_;
+
+            const Eigen::VectorXf &color_m = rm.pt_color_.row( midx );
+            const Eigen::VectorXf &color_s = scene_color_channels_.row( sidx );
+            c.color_distance_ = color_dist_f_(color_s, color_m);
+            c.fitness_ = getFitness( c );
+        }
+    }
 
     boost::dynamic_bitset<> scene_explained_pts ( scene_cloud_downsampled_->points.size(), 0);
     boost::dynamic_bitset<> model_explained_pts ( rm.visible_cloud_->points.size(), 0);
+    Eigen::VectorXf modelFit   = Eigen::VectorXf::Zero (rm.visible_cloud_->points.size());
+    rm.scene_explained_weight_ = Eigen::SparseVector<float> (scene_cloud_downsampled_->points.size());
+    rm.scene_explained_weight_.reserve( rm.model_scene_c_.size() );
 
     for( const ModelSceneCorrespondence &c : rm.model_scene_c_ )
     {
