@@ -51,14 +51,14 @@ HypothesisVerification<ModelT, SceneT>::customRegionGrowing (const SceneTWithNor
     if (squared_distance > radius * radius)
         return false;
 
-    float dotp = seed_pt.getNormalVector3fMap().dot (candidate_pt.getNormalVector3fMap() );
-    if (fabs (dotp) < cos(eps_angle_threshold_rad))
-        return false;
-
     float intensity_a = .2126f * seed_pt.r + .7152f * seed_pt.g + .0722f * seed_pt.b;
     float intensity_b = .2126f * candidate_pt.r + .7152f * candidate_pt.g + .0722f * candidate_pt.b;
 
     if( fabs(intensity_a - intensity_b) > 5.f)
+        return false;
+
+    float dotp = seed_pt.getNormalVector3fMap().dot (candidate_pt.getNormalVector3fMap() );
+    if ( dotp < cos(eps_angle_threshold_rad))
         return false;
 
     return true;
