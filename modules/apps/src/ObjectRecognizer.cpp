@@ -297,7 +297,7 @@ ObjectRecognizer<PointT>::detectChanges(View &v)
 }
 
 template<typename PointT>
-std::vector<typename ObjectHypothesis<PointT>::Ptr >
+std::vector<ObjectHypothesesGroup<PointT> >
 ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
 {
     //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
@@ -308,27 +308,33 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
     typename pcl::PointCloud<PointT>::Ptr processed_cloud (new pcl::PointCloud<PointT>(*cloud));
 
-    verified_hypotheses_.clear();
+    std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses;
 
-    std::vector<double> elapsed_time;
+    elapsed_time_.clear();
 
     pcl::PointCloud<pcl::Normal>::Ptr normals;
     if( mrec_->needNormals() || hv_ )
     {
-        pcl::ScopeTime t("Computing normals");
+        pcl::StopWatch t; const std::string time_desc ("Computing normals");
         normal_estimator_->setInputCloud( processed_cloud );
         normals = normal_estimator_->compute();
         mrec_->setSceneNormals( normals );
-        elapsed_time.push_back( t.getTime() );
+        float time = t.getTime();
+        VLOG(1) << time_desc << " took " << time << " ms.";
+        elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
     }
 
     if(param_.remove_planes_)
     {
+        pcl::StopWatch t; const std::string time_desc ("Removing planes");
         cloud_segmenter_->setNormals( normals );
         cloud_segmenter_->segment( processed_cloud );
         processed_cloud = cloud_segmenter_->getProcessedCloud();
         const Eigen::Vector4f chosen_plane = cloud_segmenter_->getSelectedPlane();
         mrec_->setTablePlane( chosen_plane );
+        float time = t.getTime();
+        VLOG(1) << time_desc << " took " << time << " ms.";
+        elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
     }
 
     // ==== FILTER POINTS BASED ON DISTANCE =====
@@ -339,11 +345,13 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
     }
 
     {
-        pcl::ScopeTime t("Generation of object hypotheses");
+        pcl::StopWatch t; const std::string time_desc ("Generation of object hypotheses");
         mrec_->setInputCloud ( processed_cloud );
         mrec_->recognize();
-        generated_object_hypotheses_ = mrec_->getObjectHypothesis();
-        elapsed_time.push_back( t.getTime() );
+        generated_object_hypotheses = mrec_->getObjectHypothesis();
+        float time = t.getTime();
+        VLOG(1) << time_desc << " took " << time << " ms.";
+        elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
     }
 
 
@@ -354,8 +362,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
     if(!skip_verification_)
     {
-        pcl::ScopeTime t("Verification of object hypotheses");
-        hv_->setHypotheses( generated_object_hypotheses_ );
+        hv_->setHypotheses( generated_object_hypotheses );
 
         if( param_.use_multiview_ && param_.use_multiview_hv_ )
         {
@@ -372,19 +379,21 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
             v.cloud_normals_ = normals;
 
             {
-                pcl::StopWatch tt;
+                pcl::StopWatch t; const std::string time_desc ("Computing noise model");
                 NguyenNoiseModel<PointT> nm (nm_param);
                 nm.setInputCloud( processed_cloud );
                 nm.setInputNormals( normals );
                 nm.compute();
                 v.pt_properties_ = nm.getPointProperties();
-                VLOG(1) << "Computing noise model parameter for cloud took " << tt.getTime() << " ms.";
+                float time = t.getTime();
+                VLOG(1) << time_desc << " took " << time << " ms.";
+                elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
             }
 
 
             if (param_.use_change_detection_ )
             {
-                pcl::StopWatch tt;
+                pcl::StopWatch t; const std::string time_desc ("Change detection");
                 detectChanges(v);
 
                 typename pcl::PointCloud<PointT>::Ptr removed_points_cumulative(new pcl::PointCloud<PointT>(*v.removed_points_));
@@ -442,7 +451,9 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
                     }
                 }
 
-                VLOG(1) << "Change detection took " << tt.getTime() << " ms.";
+                float time = t.getTime();
+                VLOG(1) << time_desc << " took " << time << " ms.";
+                elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
             }
 
 
@@ -464,17 +475,24 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
                 views_pt_properties[v_id] = vv.pt_properties_;
             }
 
-            registered_scene_cloud_.reset(new pcl::PointCloud<PointT>);
-            NMBasedCloudIntegration<PointT> nmIntegration (nm_int_param);
-            nmIntegration.setInputClouds( processed_views );
-            nmIntegration.setPointProperties( views_pt_properties );
-            nmIntegration.setTransformations( camera_poses );
-            nmIntegration.setInputNormals( views_normals );
-//            nmIntegration.setIndices(obj_indices);
-            nmIntegration.compute(registered_scene_cloud_);
-            std::vector< typename pcl::PointCloud<PointT>::Ptr > clouds_used;
-            nmIntegration.getInputCloudsUsed(clouds_used);
-            nmIntegration.getOutputNormals( normals );
+            {
+                pcl::StopWatch t; const std::string time_desc ("Noise model based cloud integration");
+                registered_scene_cloud_.reset(new pcl::PointCloud<PointT>);
+                NMBasedCloudIntegration<PointT> nmIntegration (nm_int_param);
+                nmIntegration.setInputClouds( processed_views );
+                nmIntegration.setPointProperties( views_pt_properties );
+                nmIntegration.setTransformations( camera_poses );
+                nmIntegration.setInputNormals( views_normals );
+    //            nmIntegration.setIndices(obj_indices);
+                nmIntegration.compute(registered_scene_cloud_);
+//                std::vector< typename pcl::PointCloud<PointT>::Ptr > clouds_used;
+//                nmIntegration.getInputCloudsUsed(clouds_used);
+                nmIntegration.getOutputNormals( normals );
+
+                float time = t.getTime();
+                VLOG(1) << time_desc << " took " << time << " ms.";
+                elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
+            }
 
             const Eigen::Matrix4f tf_global2camera = camera_pose.inverse();
 
@@ -514,17 +532,28 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
         hv_->setNormals( normals );
 
+        pcl::StopWatch t; const std::string time_desc ("Verification of object hypotheses");
         hv_->verify();
 //        verified_hypotheses_ = hv_->getVerifiedHypotheses();
-        elapsed_time.push_back( t.getTime() );
+        float time = t.getTime();
+        VLOG(1) << time_desc << " took " << time << " ms.";
+        elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
     }
 
-    for ( const typename ObjectHypothesis<PointT>::Ptr &voh : verified_hypotheses_ )
+
+    for(size_t ohg_id=0; ohg_id<generated_object_hypotheses.size(); ohg_id++)
     {
-        const std::string &model_id = voh->model_id_;
-        const Eigen::Matrix4f &tf = voh->transform_;
-        float confidence = voh->confidence_;
-        LOG(INFO) << "********************" << model_id << " (confidence: " << confidence << ") " << std::endl << tf << std::endl << std::endl;
+        for( const typename ObjectHypothesis<PointT>::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
+        {
+            if( oh->is_verified_ )
+            {
+                const std::string &model_id = oh->model_id_;
+                const Eigen::Matrix4f &tf = oh->transform_;
+                float confidence = oh->confidence_;
+                LOG(INFO) << "********************" << model_id << " (confidence: " << confidence << ") " << std::endl << tf << std::endl << std::endl;
+
+            }
+        }
     }
 
     if ( visualize_ )
@@ -544,14 +573,14 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
         rec_vis_->setNormals(normals);
 
-        rec_vis_->setGeneratedObjectHypotheses( generated_object_hypotheses_ );
+        rec_vis_->setGeneratedObjectHypotheses( generated_object_hypotheses );
 //        rec_vis_->setRefinedGeneratedObjectHypotheses( generated_object_hypotheses_refined_ );
         rec_vis_->setLocalModelDatabase(lomdb);
 //        rec_vis_->setVerifiedObjectHypotheses( verified_hypotheses_ );
         rec_vis_->visualize();
     }
 
-    return verified_hypotheses_;
+    return generated_object_hypotheses;
 }
 
 template <typename PointT>

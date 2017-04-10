@@ -206,9 +206,6 @@ private:
 
     typename v4r::ObjectRecognitionVisualizer<PointT>::Ptr rec_vis_; ///< visualization object
 
-    std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses_;
-    std::vector<typename ObjectHypothesis<PointT>::Ptr > verified_hypotheses_;
-
     typename v4r::apps::CloudSegmenter<PointT>::Ptr cloud_segmenter_; ///< cloud segmenter for plane removal (if enabled)
 
     bool visualize_; ///< if true, visualizes objects
@@ -245,6 +242,9 @@ private:
 
     typename pcl::PointCloud<PointT>::Ptr registered_scene_cloud_;  ///< registered point cloud of all processed input clouds in common camera reference frame
 
+    std::vector<std::pair<std::string, float> > elapsed_time_; ///< measurements of computation times for various components
+
+
 public:
     ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :
         visualize_ (false),
@@ -274,18 +274,7 @@ public:
      * @param cloud (organized) point cloud
      * @return
      */
-    std::vector<typename ObjectHypothesis<PointT>::Ptr >
-    recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud);
-
-    /**
-     * @brief getObjectHypothesis
-     * @return generated object hypothesis
-     */
-    std::vector<ObjectHypothesesGroup<PointT> >
-    getGeneratedObjectHypothesis() const
-    {
-        return generated_object_hypotheses_;
-    }
+    std::vector<ObjectHypothesesGroup<PointT> > recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud);
 
     typename pcl::PointCloud<PointT>::ConstPtr
     getModel( const std::string &model_name, int resolution_mm ) const
@@ -313,6 +302,12 @@ public:
     setModelsDir(const std::string &dir)
     {
         models_dir_ = dir;
+    }
+
+    std::vector<std::pair<std::string, float> >
+    getElapsedTimes() const
+    {
+        return elapsed_time_;
     }
 
     /**

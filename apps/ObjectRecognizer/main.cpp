@@ -65,7 +65,6 @@ main (int argc, char ** argv)
             test_path /= sub_folder_name;
             test_path /= views[v_id];
 
-            std::vector<double> elapsed_time;
 
             LOG(INFO) << "Recognizing file " << test_path.string();
             pcl::PointCloud<PT>::Ptr cloud(new pcl::PointCloud<PT>());
@@ -75,8 +74,8 @@ main (int argc, char ** argv)
 //            cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
 //            cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
 
-            std::vector<typename v4r::ObjectHypothesis<PT>::Ptr > verified_hypotheses = recognizer.recognize(cloud);
-            std::vector<v4r::ObjectHypothesesGroup<PT> > generated_object_hypotheses = recognizer.getGeneratedObjectHypothesis();
+            std::vector<v4r::ObjectHypothesesGroup<PT> > generated_object_hypotheses = recognizer.recognize(cloud);
+            std::vector<std::pair<std::string, float> > elapsed_time = recognizer.getElapsedTimes();
 
             if ( !out_dir.empty() )  // write results to disk (for each verified hypothesis add a row in the text file with object name, dummy confidence value and object pose in row-major order)
             {
@@ -86,45 +85,44 @@ main (int argc, char ** argv)
                 out_path /= sub_folder_name;
                 out_path /= out_basename;
 
-                v4r::io::createDirForFileIfNotExist(out_path.string());
-
-                // save verified hypotheses
-                std::ofstream f ( out_path.string().c_str() );
-                for ( const v4r::ObjectHypothesis<PT>::Ptr &voh : verified_hypotheses )
-                {
-                    f << voh->model_id_ << " (" << voh->confidence_ << "): ";
-                    for (size_t row=0; row <4; row++)
-                        for(size_t col=0; col<4; col++)
-                            f << voh->transform_(row, col) << " ";
-                    f << std::endl;
-                }
-                f.close();
-
-                // save generated hypotheses
                 std::string out_path_generated_hypotheses = out_path.string();
                 boost::replace_last(out_path_generated_hypotheses, ".anno", ".generated_hyps");
-                f.open ( out_path_generated_hypotheses.c_str() );
-                for ( const v4r::ObjectHypothesesGroup<PT> &gohg : generated_object_hypotheses )
+
+                v4r::io::createDirForFileIfNotExist(out_path.string());
+
+                // save hypotheses
+                std::ofstream f_generated ( out_path_generated_hypotheses.c_str() );
+                std::ofstream f_verified ( out_path.string().c_str() );
+                for(size_t ohg_id=0; ohg_id<generated_object_hypotheses.size(); ohg_id++)
                 {
-                    for ( const v4r::ObjectHypothesis<PT>::Ptr &goh : gohg.ohs_ )
+                    for(const v4r::ObjectHypothesis<PT>::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
                     {
-                        f << goh->model_id_ << " (-1.): ";
+                        f_generated << oh->model_id_ << " (" << oh->confidence_ << "): ";
                         for (size_t row=0; row <4; row++)
                             for(size_t col=0; col<4; col++)
-                                f << goh->transform_(row, col) << " ";
-                        f << std::endl;
+                                f_generated << oh->transform_(row, col) << " ";
+                        f_generated << std::endl;
 
+                        if( oh->is_verified_ )
+                        {
+                            f_verified << oh->model_id_ << " (" << oh->confidence_ << "): ";
+                            for (size_t row=0; row <4; row++)
+                                for(size_t col=0; col<4; col++)
+                                    f_verified << oh->transform_(row, col) << " ";
+                            f_verified << std::endl;
+                        }
                     }
                 }
-                f.close();
+                f_generated.close();
+                f_verified.close();
 
                 // save elapsed time(s)
                 std::string out_path_times = out_path.string();
                 boost::replace_last(out_path_times, ".anno", ".times");
-                f.open( out_path_times.c_str() );
-                for( const auto &t : elapsed_time)
-                    f << t << " ";
-                f.close();
+                f_verified.open( out_path_times.c_str() );
+                for( const std::pair<std::string,float> &t : elapsed_time)
+                    f_verified << t.second << " " << t.first << std::endl;
+                f_verified.close();
             }
         }
     }

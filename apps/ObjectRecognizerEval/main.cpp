@@ -182,8 +182,8 @@ main (int argc, char ** argv)
 
                     pcl::StopWatch t;
 
-                    std::vector<typename v4r::ObjectHypothesis<PT>::Ptr > verified_hypotheses = recognizer.recognize(cloud);
-                    std::vector<v4r::ObjectHypothesesGroup<PT> > generated_object_hypotheses = recognizer.getGeneratedObjectHypothesis();
+                    std::vector<v4r::ObjectHypothesesGroup<PT> > generated_object_hypotheses = recognizer.recognize(cloud);
+//                    std::vector<std::pair<std::string, float> > elapsed_time = recognizer.getElapsedTimes();
 
                     elapsed_time.push_back( t.getTime() );
 
@@ -191,41 +191,40 @@ main (int argc, char ** argv)
                     {
                         std::string out_basename = views[v_id];
                         boost::replace_last(out_basename, ".pcd", ".anno");
-                        bf::path out_path = out_dir_eval;
+                        bf::path out_path = out_dir;
                         out_path /= sub_folder_name;
                         out_path /= out_basename;
 
-                        v4r::io::createDirForFileIfNotExist(out_path.string());
-
-                        // save verified hypotheses
-                        std::ofstream f ( out_path.string().c_str() );
-                        for ( const v4r::ObjectHypothesis<PT>::Ptr &voh : verified_hypotheses )
-                        {
-                            f << voh->model_id_ << " (-1.): ";
-                            for (size_t row=0; row <4; row++)
-                                for(size_t col=0; col<4; col++)
-                                    f << voh->transform_(row, col) << " ";
-                            f << std::endl;
-                        }
-                        f.close();
-
-                        // save generated hypotheses
                         std::string out_path_generated_hypotheses = out_path.string();
                         boost::replace_last(out_path_generated_hypotheses, ".anno", ".generated_hyps");
-                        f.open ( out_path_generated_hypotheses.c_str() );
-                        for ( const v4r::ObjectHypothesesGroup<PT> &gohg : generated_object_hypotheses )
+
+                        v4r::io::createDirForFileIfNotExist(out_path.string());
+
+                        // save hypotheses
+                        std::ofstream f_generated ( out_path_generated_hypotheses.c_str() );
+                        std::ofstream f_verified ( out_path.string().c_str() );
+                        for(size_t ohg_id=0; ohg_id<generated_object_hypotheses.size(); ohg_id++)
                         {
-                            for ( const v4r::ObjectHypothesis<PT>::Ptr &goh : gohg.ohs_ )
+                            for(const v4r::ObjectHypothesis<PT>::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
                             {
-                                f << goh->model_id_ << " (-1.): ";
+                                f_generated << oh->model_id_ << " (" << oh->confidence_ << "): ";
                                 for (size_t row=0; row <4; row++)
                                     for(size_t col=0; col<4; col++)
-                                        f << goh->transform_(row, col) << " ";
-                                f << std::endl;
+                                        f_generated << oh->transform_(row, col) << " ";
+                                f_generated << std::endl;
 
+                                if( oh->is_verified_ )
+                                {
+                                    f_verified << oh->model_id_ << " (" << oh->confidence_ << "): ";
+                                    for (size_t row=0; row <4; row++)
+                                        for(size_t col=0; col<4; col++)
+                                            f_verified << oh->transform_(row, col) << " ";
+                                    f_verified << std::endl;
+                                }
                             }
                         }
-                        f.close();
+                        f_generated.close();
+                        f_verified.close();
                     }
                 }
             }
