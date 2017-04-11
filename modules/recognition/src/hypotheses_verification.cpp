@@ -396,7 +396,6 @@ HypothesisVerification<ModelT, SceneT>::evaluateSolution (const boost::dynamic_b
     Eigen::Array<bool, Eigen::Dynamic, 1> scene_pt_is_explained( scene_cloud_downsampled_->points.size() );
     scene_pt_is_explained.setConstant( scene_cloud_downsampled_->points.size(), false);
 
-    CHECK( scene_cloud_downsampled_->points.size() == scene_pts_explained_solution_.size());
     for(size_t s_id=0; s_id < scene_cloud_downsampled_->points.size(); s_id++)
     {
         const std::vector<PtFitness> &s_pt = scene_pts_explained_solution_[s_id];
@@ -1143,23 +1142,26 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
         }
         scene_color_for_model.conservativeResize(kept);
 
-        float mean_l_value_scene = scene_color_for_model.mean();
-        float mean_l_value_model = rm.pt_color_.col( 0 ).mean();
-
-        float max_l_offset = 15.f;
-        float l_compensation = std::max<float>(-max_l_offset, std::min<float>(max_l_offset, (mean_l_value_scene - mean_l_value_model)));
-//        Eigen::VectorXf color_new = specifyHistogram( rm.pt_color_.col( 0 ), scene_color_for_model, 50, min_l_value, max_l_value );
-        rm.pt_color_.col( 0 ).array() = rm.pt_color_.col( 0 ).array() + l_compensation;
-
-        for( ModelSceneCorrespondence &c : rm.model_scene_c_ )
+        if( kept )
         {
-            int sidx = c.scene_id_;
-            int midx = c.model_id_;
+            float mean_l_value_scene = scene_color_for_model.mean();
+            float mean_l_value_model = rm.pt_color_.col( 0 ).mean();
 
-            const Eigen::VectorXf &color_m = rm.pt_color_.row( midx );
-            const Eigen::VectorXf &color_s = scene_color_channels_.row( sidx );
-            c.color_distance_ = color_dist_f_(color_s, color_m);
-            c.fitness_ = getFitness( c );
+            float max_l_offset = 15.f;
+            float l_compensation = std::max<float>(-max_l_offset, std::min<float>(max_l_offset, (mean_l_value_scene - mean_l_value_model)));
+    //        Eigen::VectorXf color_new = specifyHistogram( rm.pt_color_.col( 0 ), scene_color_for_model, 50, min_l_value, max_l_value );
+            rm.pt_color_.col( 0 ).array() = rm.pt_color_.col( 0 ).array() + l_compensation;
+
+            for( ModelSceneCorrespondence &c : rm.model_scene_c_ )
+            {
+                int sidx = c.scene_id_;
+                int midx = c.model_id_;
+
+                const Eigen::VectorXf &color_m = rm.pt_color_.row( midx );
+                const Eigen::VectorXf &color_s = scene_color_channels_.row( sidx );
+                c.color_distance_ = color_dist_f_(color_s, color_m);
+                c.fitness_ = getFitness( c );
+            }
         }
     }
 
