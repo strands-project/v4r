@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.8 (2017-04-11)
+------------------
 * Merge remote-tracking branch 'upstream/master' into release
 * Merge branch 'update_siftgpu_url' into 'master'
   update url for siftgpu
