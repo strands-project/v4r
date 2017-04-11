@@ -37,6 +37,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/point_cloud.h>
 #include <pcl/common/distances.h>
+#include <glog/logging.h>
 
 #include <v4r/core/macros.h>
 
@@ -62,13 +63,16 @@ public:
 		pcl::transformPointCloud(*input, input_transformed, sensor_pose.inverse());
 
 		int visible_count = 0;
-		assert(input->size() == mask.size());
-		for(int i = 0; i < input_transformed.size(); i++) {
+        CHECK(input->size() == mask.size());
+        for(size_t i = 0; i < input_transformed.size(); i++)
+        {
 			bool isIn = in(input_transformed[i]);
-			if(isIn) {
+            if(isIn)
+            {
 				visible_count++;
 			}
-			if(!mask[i]) {
+            if(!mask[i])
+            {
 				mask[i] = isIn;
 			}
 		}
@@ -134,12 +138,11 @@ public:
 				vol < volumes.end(); vol++) {
 			vol->computeVisible(input, mask);
 		}
-		for(int i = 0; i < mask.size(); i++) {
-			if(mask[i]) {
+        for(size_t i = 0; i < mask.size(); i++) {
+            if(mask[i])
 				visible->push_back(input->at(i));
-			} else {
-				nonVisible->push_back(input->at(i));
-			}
+            else
+                nonVisible->push_back(input->at(i));
 		}
 	}
 
