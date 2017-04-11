@@ -45,19 +45,17 @@ public:
     float inlier_threshold_;
     int smoothing_radius_;
     bool force_unorganized_; ///< re-projects points by given camera intrinsics even if point cloud is already organized
-    ZBufferingParameter(
-            int u_margin = 0,
-            int v_margin = 0,
-            bool compute_focal_length = false,
-            bool do_smoothing = true,
-            bool do_noise_filtering = false,
-            float inlier_threshold = 0.01f,
-            int smoothing_radius = 1,
-            bool force_unorganized = false) :
-        u_margin_(u_margin), v_margin_(v_margin),
-        compute_focal_length_(compute_focal_length), do_smoothing_(do_smoothing),
-        do_noise_filtering_ (do_noise_filtering), inlier_threshold_(inlier_threshold),
-        smoothing_radius_(smoothing_radius), force_unorganized_ (force_unorganized)
+    bool use_normals_; ///< if true, rejects points that do not point towards view point.
+    ZBufferingParameter() :
+        u_margin_(0),
+        v_margin_(0),
+        compute_focal_length_(false),
+        do_smoothing_(true),
+        do_noise_filtering_ (false),
+        inlier_threshold_(0.01f),
+        smoothing_radius_(1),
+        force_unorganized_ (false),
+        use_normals_ (false)
     {}
 };
 
@@ -75,21 +73,32 @@ private:
     std::vector<int> kept_indices_;
     Camera::ConstPtr cam_;   ///< camera parameters
     Eigen::MatrixXi index_map_; ///< saves for each pixel which indices of the input cloud it represents. Non-occupied pixels are labelled with index -1.
+    pcl::PointCloud<pcl::Normal>::ConstPtr cloud_normals_;
 
 public:
     ZBuffering (const Camera::ConstPtr cam, const ZBufferingParameter &p=ZBufferingParameter()) :
         param_(p), cam_ (cam) { }
 
-    void setCamera(const Camera::ConstPtr cam)
+    void
+    setCamera(const Camera::ConstPtr cam)
     {
         cam_ = cam;
     }
 
-    void renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view);
-
-    void getKeptIndices(std::vector<int> &indices) const
+    void
+    setCloudNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr &normals)
     {
-        indices = kept_indices_;
+        cloud_normals_ = normals;
+    }
+
+
+    void
+    renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view);
+
+    std::vector<int>
+    getKeptIndices() const
+    {
+        return kept_indices_;
     }
 
     /**

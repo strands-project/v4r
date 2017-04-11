@@ -14,14 +14,15 @@ template<typename PointTA, typename PointTB>
 boost::dynamic_bitset<>
 OcclusionReasoner<PointTA, PointTB>::computeVisiblePoints()
 {
-    CHECK( occlusion_cloud_ && cloud_to_be_filtered_ && ( (occlusion_cloud_->isOrganized() && cloud_to_be_filtered_->isOrganized() ) || cam_));
+    CHECK( occluder_cloud_ && cloud_to_be_filtered_ && ( (occluder_cloud_->isOrganized() && cloud_to_be_filtered_->isOrganized() ) || cam_));
 
-    if( !occlusion_cloud_->isOrganized() )
+    if( !occluder_cloud_->isOrganized() )
     {
+        VLOG(1) << "Occluder not organized. Doing z-buffering";
         ZBuffering<PointTA> zbuf (cam_);
         typename pcl::PointCloud<PointTA>::Ptr organized_occlusion_cloud (new pcl::PointCloud<PointTA>);
-        zbuf.renderPointCloud( *occlusion_cloud_, *organized_occlusion_cloud);
-        occlusion_cloud_ = organized_occlusion_cloud;
+        zbuf.renderPointCloud( *occluder_cloud_, *organized_occlusion_cloud);
+        occluder_cloud_ = organized_occlusion_cloud;
     }
 
     Eigen::MatrixXi index_map;
@@ -29,6 +30,7 @@ OcclusionReasoner<PointTA, PointTB>::computeVisiblePoints()
 
     if( !cloud_to_be_filtered_->isOrganized() )
     {
+        VLOG(1) << "Cloud to be filtered is not organized. Doing z-buffering";
         ZBufferingParameter zBparam;
         zBparam.do_noise_filtering_ = false;
         zBparam.do_smoothing_ = false;
@@ -55,10 +57,10 @@ OcclusionReasoner<PointTA, PointTB>::computeVisiblePoints()
 //        std::cout << "check " << check1 << " " << check2;
     }
 
-    CHECK (occlusion_cloud_->width == cloud_to_be_filtered_->width && occlusion_cloud_->height == cloud_to_be_filtered_->height)
+    CHECK (occluder_cloud_->width == cloud_to_be_filtered_->width && occluder_cloud_->height == cloud_to_be_filtered_->height)
             << "Occlusion cloud and the cloud that is filtered need to have the same image size!";
 
-    px_is_visible_ = boost::dynamic_bitset<> (occlusion_cloud_->points.size(), 0);
+    px_is_visible_ = boost::dynamic_bitset<> (occluder_cloud_->points.size(), 0);
 
     for (size_t u=0; u<cloud_to_be_filtered_->width; u++)
     {
@@ -69,7 +71,7 @@ OcclusionReasoner<PointTA, PointTB>::computeVisiblePoints()
             if ( !pcl::isFinite(pt) )
                 continue;
 
-            const PointTA &pt_occ = occlusion_cloud_->at(u,v);
+            const PointTA &pt_occ = occluder_cloud_->at(u,v);
 
             if( !pcl::isFinite(pt_occ) || ( pt.z - pt_occ.z ) < occlusion_threshold_m_ )
             {

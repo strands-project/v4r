@@ -28,8 +28,7 @@
 *      @brief smooth Euclidean segmentation
 */
 
-#ifndef V4R_SMOOTH_EUCLIDEAN_SEGMENTER_H__
-#define V4R_SMOOTH_EUCLIDEAN_SEGMENTER_H__
+#pragma once
 
 #include <v4r/core/macros.h>
 #include <v4r/segmentation/segmenter.h>
@@ -43,7 +42,7 @@ namespace po = boost::program_options;
 namespace v4r
 {
 
-class SmoothEuclideanSegmenterParameter
+class SmoothEuclideanSegmenterParameter : public SegmenterParameter
 {
 public:
     float eps_angle_threshold_deg_;
@@ -123,11 +122,9 @@ public:
 template <typename PointT>
 class V4R_EXPORTS SmoothEuclideanSegmenter : public Segmenter<PointT>
 {
-    using Segmenter<PointT>::indices_;
     using Segmenter<PointT>::normals_;
     using Segmenter<PointT>::clusters_;
     using Segmenter<PointT>::scene_;
-    using Segmenter<PointT>::dominant_plane_;
 
     typename pcl::octree::OctreePointCloudSearch<PointT>::Ptr octree_;
     SmoothEuclideanSegmenterParameter param_;
@@ -153,5 +150,3 @@ public:
 };
 
 }
-
-#endif

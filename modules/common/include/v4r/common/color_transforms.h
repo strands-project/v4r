@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_COLOR_TRANSFORMS___
-#define V4R_COLOR_TRANSFORMS___
+#pragma once
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <v4r/core/macros.h>
@@ -92,4 +91,3 @@ public:
 };
 
 }
-#endif

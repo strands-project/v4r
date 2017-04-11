@@ -34,6 +34,71 @@ namespace v4r
 
 
 /**
+ * @brief dist2plane checks the minimum distance of a point to a plane \f$|a*x + b*y + c*z + d| \le threshold \f$
+ * @param point (x,y,z) in 3D space
+ * @param plane defined as Vector (a,b,c,d)
+ * @return distance to plane (positive if above plane, negative below)
+ */
+inline float dist2plane(const Eigen::Vector3f& point, const Eigen::Vector4f &plane)
+{
+    return (point.dot(plane.head(3)) + plane(3)) / plane.head(3).norm();
+}
+
+/**
+ * @brief getClosestPointOnPlane
+ * @param query_pt the point for which the closest point on the plane should be found
+ * @param plane plane equation \f$|a*x + b*y + c*z + d|
+ * @return closest point on the plane
+ */
+inline
+Eigen::Vector3f
+getClosestPointOnPlane(const Eigen::Vector3f &query_pt, const Eigen::Vector4f &plane)
+{
+    float dist = dist2plane(query_pt, plane);
+    Eigen::Vector3f plane_normal = plane.head(3);
+    plane_normal.normalize();
+
+    Eigen::Vector3f closest_pt = query_pt - plane_normal * dist;
+    return closest_pt;
+}
+
+
+/**
+ * @brief DistanceBetweenPlanes (assumes planes are parallel)
+ * @param plane1 [a*x + b*y + c*z + d = 0]
+ * @param plane2
+ * @return distance between two (parallel) planes
+ */
+inline float DistanceBetweenPlanes(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2)
+{
+    // a b and c must be equal
+    float norm1 = plane1.head(3).norm();
+    float norm2 = plane2.head(3).norm();
+    const Eigen::Vector4f plane1_normalized = plane1/norm1;
+    const Eigen::Vector4f plane2_normalized = plane2/norm2;
+
+    return ( fabs(plane1_normalized(3) - plane2_normalized(3)) );
+}
+
+
+/**
+ * @brief CosAngleBetweenPlanes
+ * @param plane1
+ * @param plane2
+ * @return cosinus between two planes
+ */
+inline float CosAngleBetweenPlanes(const Eigen::Vector4f &plane1, const Eigen::Vector4f &plane2)
+{
+    Eigen::Vector3f normal1 = plane1.head(3);
+    Eigen::Vector3f normal2 = plane2.head(3);
+    normal1.normalize();
+    normal2.normalize();
+
+    return normal1.dot(normal2);
+}
+
+
+/**
  * @brief is_inlier checks if a point (x,y,z) in 3D space if it lies on a plane within a certain threshold \f$|a*x + b*y + c*z + d| \le threshold \f$
  * @param point (x,y,z) in 3D space
  * @param plane defined as Vector (a,b,c,d)
@@ -42,9 +107,11 @@ namespace v4r
  */
 inline bool is_inlier(const Eigen::Vector3f& point, const Eigen::Vector4f &plane, float threshold)
 {
-    return fabs(point.dot(plane.segment<3>(0)) + plane(3)) < threshold;
-}
+    Eigen::Vector3f normalized_normal = plane.head(3);
+    normalized_normal.normalize();
 
+    return fabs( dist2plane(point,plane) ) < threshold;
+}
 
 /**
  * @brief is_above_plane checks if a point (x,y,z) in 3D space lies above a plane \f$a*x + b*y + c*z + d > threshold \f$
@@ -55,7 +122,7 @@ inline bool is_inlier(const Eigen::Vector3f& point, const Eigen::Vector4f &plane
  */
 inline bool is_above_plane(const Eigen::Vector3f& point, const Eigen::Vector4f &plane, float threshold)
 {
-    return point.dot(plane.segment<3>(0)) + plane(3) > threshold;
+    return dist2plane(point,plane) > threshold;
 }
 
 

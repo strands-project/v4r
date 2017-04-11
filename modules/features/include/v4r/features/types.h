@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_FEATURE_TYPES__
-#define V4R_FEATURE_TYPES__
+#pragma once
 
 namespace v4r
 {
@@ -35,8 +34,13 @@ namespace v4r
             FPFH = 0x10,  // 00010000
             ESF = 0x20,  // 00100000
             SHOT_COLOR = 0x40,  // 01000000
-            ALEXNET = 0x80  // 10000000
+#if PCL_VERSION >= 100702
+            ALEXNET = 0x80,  // 10000000
+            ROPS = 0x200,  // 10000000
+#else
+            ALEXNET = 0x80,
+#endif
+            SIMPLE_SHAPE = 0x400,
+            GLOBAL_COLOR = 0x800
         };
 }
-
-#endif

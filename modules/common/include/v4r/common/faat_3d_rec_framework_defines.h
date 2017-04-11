@@ -1,5 +1,4 @@
-#ifndef FAAT_3D_REC_FRAMEWORK_DEFINES_H
-#define FAAT_3D_REC_FRAMEWORK_DEFINES_H
+#pragma once
 
 #include <pcl/common/common.h>
 
@@ -16,4 +15,3 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (IndexPoint,
     (int, idx, idx)
 )
 
-#endif

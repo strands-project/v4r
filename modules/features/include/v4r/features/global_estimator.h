@@ -22,12 +22,10 @@
  ******************************************************************************/
 
 
-#ifndef V4R_GLOBAL_ESTIMATOR_H_
-#define V4R_GLOBAL_ESTIMATOR_H_
+#pragma once
 
 #include <v4r/core/macros.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
-#include <v4r/common/normal_estimator.h>
 #include <v4r/features/types.h>
 
 namespace v4r
@@ -37,21 +35,19 @@ namespace v4r
       protected:
         pcl::PointCloud<pcl::Normal>::ConstPtr normals_;
         typename pcl::PointCloud<PointT>::ConstPtr cloud_; ///< point cloud containing the object
-        typename pcl::PointCloud<PointT>::Ptr processed_;
         std::vector<int> indices_; ///< indices of the point cloud belonging to the object
         std::string descr_name_;
         size_t descr_type_;
         size_t feature_dimensions_;
 
-        typename boost::shared_ptr<PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator_;
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > transforms_;   ///< transforms (e.g. from OUR-CVFH) aligning the input cloud with the descriptors's local referance frame
+
       public:
         GlobalEstimator(const std::string &descr_name = "", size_t descr_type = 0, size_t feature_dimensions = 0)
             : descr_name_ (descr_name),
               descr_type_ (descr_type),
               feature_dimensions_ (feature_dimensions)
-        {
-
-        }
+        { }
 
         virtual ~GlobalEstimator() { }
 
@@ -97,28 +93,23 @@ namespace v4r
             return descr_type_;
         }
 
-        typename pcl::PointCloud<PointT>::Ptr
-        getProcessedCloud()
-        {
-            return processed_;
-        }
-
         size_t
         getFeatureDimensions() const
         {
             return feature_dimensions_;
         }
 
-        virtual bool
-        needNormals() const
+        std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> >
+        getTransforms() const
         {
-            return false;
+            return transforms_;
         }
+
+        virtual bool
+        needNormals() const = 0;
 
         typedef boost::shared_ptr< GlobalEstimator<PointT> > Ptr;
         typedef boost::shared_ptr< GlobalEstimator<PointT> const> ConstPtr;
     };
 }
 
-
-#endif /* REC_FRAMEWORK_ESTIMATOR_H_ */

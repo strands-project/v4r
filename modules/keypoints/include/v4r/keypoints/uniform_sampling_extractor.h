@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <pcl/common/io.h>
 #include <v4r/keypoints/keypoint_extractor.h>
 #include <boost/program_options.hpp>
 
@@ -36,11 +37,10 @@ class V4R_EXPORTS UniformSamplingExtractorParameter
 public:
     float sampling_density_; ///< sampling distance in meter
     UniformSamplingExtractorParameter(
-            float sampling_density = 0.01f
+            float sampling_density = 0.02f
             ) :
     sampling_density_ (sampling_density)
-    {
-    }
+    { }
 
     /**
      * @brief init parameters
@@ -85,19 +85,27 @@ private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     using KeypointExtractor<PointT>::input_;
     using KeypointExtractor<PointT>::indices_;
+    using KeypointExtractor<PointT>::keypoints_;
     using KeypointExtractor<PointT>::keypoint_indices_;
 
    UniformSamplingExtractorParameter param_;
 public:
     UniformSamplingExtractor( const UniformSamplingExtractorParameter &p = UniformSamplingExtractorParameter() ) :
         param_ (p)
-    {
-    }
+    { }
 
-    void compute (pcl::PointCloud<PointT> & keypoints);
+    void compute ();
 
     int getKeypointExtractorType() const { return KeypointType::UniformSampling; }
     std::string getKeypointExtractorName() const { return "uniform_sampling"; }
+
+    typename pcl::PointCloud<PointT>::Ptr
+    getKeypoints()
+    {
+        keypoints_.reset(new pcl::PointCloud<PointT>);
+        pcl::copyPointCloud(*input_, keypoint_indices_, *keypoints_);
+        return keypoints_;
+    }
 
     typedef boost::shared_ptr< UniformSamplingExtractor<PointT> > Ptr;
     typedef boost::shared_ptr< UniformSamplingExtractor<PointT> const> ConstPtr;

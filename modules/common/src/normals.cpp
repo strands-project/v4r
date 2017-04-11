@@ -5,6 +5,12 @@
 #include <v4r/common/convertNormals.h>
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/features/integral_image_normal.h>
+
+#include <pcl/impl/instantiate.hpp>
+#include <v4r/common/normal_estimator_integral_image.h>
+#include <v4r/common/normal_estimator_pcl.h>
+#include <v4r/common/normal_estimator_pre-process.h>
+#include <v4r/common/normal_estimator_z_adpative.h>
 #include <glog/logging.h>
 
 namespace v4r
@@ -54,19 +60,6 @@ void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
         nest.compute(*kp_cloud, *kp_normals_tmp);
         convertNormals(*kp_normals_tmp, *normals);
     }
-    else if(method==4)
-    {
-        boost::shared_ptr<PreProcessorAndNormalEstimator<PointT, pcl::Normal> > normal_estimator;
-        normal_estimator.reset (new PreProcessorAndNormalEstimator<PointT, pcl::Normal>);
-        normal_estimator->setCMR (false);
-        normal_estimator->setDoVoxelGrid (false);
-        normal_estimator->setRemoveOutliers (false);
-        normal_estimator->setValuesForCMRFalse (0.003f, 0.02f);
-        normal_estimator->setForceUnorganized(true);
-
-        typename pcl::PointCloud<PointT>::Ptr processed (new pcl::PointCloud<PointT>);
-        normal_estimator->estimate (cloud, processed, normals);
-    }
     else
     {
         throw std::runtime_error("Chosen normal computation method not implemented!");
@@ -83,6 +76,53 @@ void computeNormals(const typename pcl::PointCloud<PointT>::ConstPtr &cloud,
     }
 }
 
+
+template<typename PointT>
+typename NormalEstimator<PointT>::Ptr
+initNormalEstimator(int method, std::vector<std::string> &params)
+{
+    typename NormalEstimator<PointT>::Ptr ne;
+
+    if(method == NormalEstimatorType::PCL_DEFAULT)
+    {
+        NormalEstimatorPCLParameter param;
+        params = param.init(params);
+        typename NormalEstimatorPCL<PointT>::Ptr ke (new NormalEstimatorPCL<PointT> (param));
+        ne = boost::dynamic_pointer_cast<NormalEstimator<PointT> > (ke);
+    }
+    else if(method == NormalEstimatorType::PCL_INTEGRAL_NORMAL)
+    {
+        NormalEstimatorIntegralImageParameter param;
+        params = param.init(params);
+        typename NormalEstimatorIntegralImage<PointT>::Ptr ne_tmp (new NormalEstimatorIntegralImage<PointT> (param));
+        ne = boost::dynamic_pointer_cast<NormalEstimator<PointT> > (ne_tmp);
+    }
+    else if(method == NormalEstimatorType::Z_ADAPTIVE)
+    {
+        ZAdaptiveNormalsParameter param;
+        params = param.init(params);
+        typename ZAdaptiveNormalsPCL<PointT>::Ptr ne_tmp (new ZAdaptiveNormalsPCL<PointT> (param));
+        ne = boost::dynamic_pointer_cast<NormalEstimator<PointT> > (ne_tmp);
+    }
+    else if(method == NormalEstimatorType::PRE_PROCESS)
+    {
+        NormalEstimatorPreProcessParameter param;
+        params = param.init(params);
+        typename NormalEstimatorPreProcess<PointT>::Ptr ne_tmp (new NormalEstimatorPreProcess<PointT> (param));
+        ne = boost::dynamic_pointer_cast<NormalEstimator<PointT> > (ne_tmp);
+    }
+    else
+    {
+        std::cerr << "Keypoint extractor method " << method << " is not implemented! " << std::endl;
+    }
+
+    return ne;
+}
+
 template V4R_EXPORTS void computeNormals<pcl::PointXYZRGB>(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &, pcl::PointCloud<pcl::Normal>::Ptr &, int, float);
 template V4R_EXPORTS void computeNormals<pcl::PointXYZ>(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &, pcl::PointCloud<pcl::Normal>::Ptr &, int, float);
+
+#define PCL_INSTANTIATE_initNormalEstimator(T) template V4R_EXPORTS typename NormalEstimator<T>::Ptr initNormalEstimator<T>(int, std::vector<std::string> &);
+PCL_INSTANTIATE(initNormalEstimator, PCL_XYZ_POINT_TYPES )
+
 }

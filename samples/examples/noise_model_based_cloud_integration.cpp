@@ -21,11 +21,13 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
 
 namespace po = boost::program_options;
+namespace bf = boost::filesystem;
 using namespace v4r;
 
 int main(int argc, const char * argv[]) {
@@ -116,21 +118,30 @@ int main(int argc, const char * argv[]) {
             boost::replace_first (obj_fn, view_prefix, obj_indices_prefix);
             boost::replace_last (obj_fn, ".pcd", ".txt");
 
-            if(io::existsFile(test_seq + "/" + obj_fn) && use_object_mask) {
-                ifstream f((test_seq+"/"+obj_fn).c_str());
-                int idx;
-                while (f >> idx)
-                    obj_indices[v_id].push_back(idx);
-                f.close();
+            if(use_object_mask)
+            {
+                bf::path object_indices_fn = test_seq;
+                object_indices_fn /= obj_fn;
+                if( io::existsFile( object_indices_fn.string() ) )
+                {
+                    ifstream f((test_seq+"/"+obj_fn).c_str());
+                    int idx;
+                    while (f >> idx)
+                        obj_indices[v_id].push_back(idx);
+                    f.close();
+                }
+                else
+                    std::cerr << "Parameter use_object_mask is set but object indices file " <<
+                                 object_indices_fn.string() << " not found! " << std::endl;
             }
+
 
             std::string pose_fn (views[v_id]);
             boost::replace_first (pose_fn, view_prefix, pose_prefix);
             boost::replace_last (pose_fn, ".pcd", ".txt");
 
-            if(io::existsFile(test_seq + "/" + pose_fn) && use_pose_file) {
+            if(io::existsFile(test_seq + "/" + pose_fn) && use_pose_file)
                 camera_transforms[v_id] = io::readMatrixFromFile(test_seq + "/" + pose_fn);
-            }
             else
                 camera_transforms[v_id] = RotTrans2Mat4f(clouds[v_id]->sensor_orientation_, clouds[v_id]->sensor_origin_);
 
@@ -163,7 +174,11 @@ int main(int argc, const char * argv[]) {
 
 
             pcl::PointCloud<PointT> object_cloud, object_aligned;
-            pcl::copyPointCloud(*clouds[v_id], obj_indices[v_id], object_cloud);
+            if( use_object_mask )
+                pcl::copyPointCloud(*clouds[v_id], obj_indices[v_id], object_cloud);
+            else
+                pcl::copyPointCloud(*clouds[v_id], object_cloud);
+
             pcl::transformPointCloud( object_cloud, object_aligned, camera_transforms[v_id]);
             *big_cloud_unfiltered += object_aligned;
         }

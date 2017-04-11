@@ -23,9 +23,10 @@
 
 #pragma once
 
+#include <v4r/common/graph_geometric_consistency.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/recognition/local_feature_matching.h>
 #include <v4r/recognition/recognition_pipeline.h>
-#include <v4r/common/graph_geometric_consistency.h>
 
 #include <pcl/recognition/cg/correspondence_grouping.h>
 #include <omp.h>
@@ -63,6 +64,9 @@ public:
 
     LocalRecognitionPipelineParameter(const std::string &filename)
     {
+        if( !v4r::io::existsFile(filename) )
+            throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
         ia >> BOOST_SERIALIZATION_NVP( *this );
@@ -90,16 +94,18 @@ template<typename PointT>
 class V4R_EXPORTS LocalRecognitionPipeline : public RecognitionPipeline<PointT>
 {
 private:
+    using RecognitionPipeline<PointT>::m_db_;
+    using RecognitionPipeline<PointT>::normal_estimator_;
+    using RecognitionPipeline<PointT>::obj_hypotheses_;
     using RecognitionPipeline<PointT>::scene_;
     using RecognitionPipeline<PointT>::scene_normals_;
-    using RecognitionPipeline<PointT>::obj_hypotheses_;
-    using RecognitionPipeline<PointT>::m_db_;
+    using RecognitionPipeline<PointT>::vis_param_;
 
     std::vector<typename LocalFeatureMatcher<PointT>::Ptr > local_feature_matchers_; ///< set of local recognizer generating keypoint correspondences
 
     typename boost::shared_ptr< pcl::CorrespondenceGrouping<pcl::PointXYZ, pcl::PointXYZ> > cg_algorithm_;  ///< algorithm for correspondence grouping
     std::map<std::string, LocalObjectHypothesis<PointT> > local_obj_hypotheses_;   ///< stores feature correspondences
-    LocalObjectModelDatabase::Ptr lomdb_; ///< object model database used for local recognition
+    std::map<std::string, typename LocalObjectModel::ConstPtr> model_keypoints_; ///< object model database used for local recognition
     std::vector< std::map<std::string, size_t > > model_kp_idx_range_start_; ///< since keypoints are coming from multiple local recognizer, we need to store which range belongs to which recognizer. This variable is the starting parting t
 
     LocalRecognitionPipelineParameter param_;
@@ -113,8 +119,7 @@ private:
 public:
     LocalRecognitionPipeline (const LocalRecognitionPipelineParameter &p = LocalRecognitionPipelineParameter() )
      : param_(p)
-    {
-    }
+    { }
 
     /**
      * @brief setCGAlgorithm
@@ -192,10 +197,10 @@ public:
      * @brief getLocalObjectModelDatabase
      * @return local object model database
      */
-    typename LocalObjectModelDatabase::ConstPtr
+    std::map<std::string, typename LocalObjectModel::ConstPtr>
     getLocalObjectModelDatabase() const
     {
-        return lomdb_;
+        return model_keypoints_;
     }
 
     typedef boost::shared_ptr< LocalRecognitionPipeline<PointT> > Ptr;

@@ -314,6 +314,8 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
         Eigen::VectorXf color_fitness = Eigen::VectorXf::Zero (rm.visible_cloud_->points.size());
         Eigen::VectorXf fitness_3d = Eigen::VectorXf::Zero (rm.visible_cloud_->points.size());
 
+        boost::dynamic_bitset<> model_explained_pts ( rm.visible_cloud_->points.size(), 0);
+
         for(size_t cidx=0; cidx < rm.model_scene_c_.size(); cidx++)
         {
             const ModelSceneCorrespondence &c = rm.model_scene_c_[cidx];
@@ -323,25 +325,30 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
             if(sidx<0)
                 continue;
 
-            normals_fitness(midx) = hv->modelSceneNormalsCostTerm(c);
-            color_fitness(midx) = hv->modelSceneColorCostTerm(c);
-            fitness_3d(midx) =  hv->modelScene3DDistCostTerm(c);
+            if( !model_explained_pts[midx] )
+            {
+                model_explained_pts.set(midx);
 
-            CHECK ( normals_fitness(midx) <= 1 );
-            CHECK ( color_fitness(midx) <= 1 );
-            CHECK ( fitness_3d(midx) <= 1 );
-            CHECK ( hv->getFitness(c) <= 1 );
+                normals_fitness(midx) = hv->modelSceneNormalsCostTerm(c);
+                color_fitness(midx) = hv->modelSceneColorCostTerm(c);
+                fitness_3d(midx) =  hv->modelScene3DDistCostTerm(c);
 
-            ModelT &mp3d = model_3D_fit_cloud->points[midx];
-            ModelT &mpC = model_color_fit_cloud->points[midx];
-            ModelT &mpN = model_normals_fit_cloud->points[midx];
-            ModelT &mp = model_fit_cloud->points[midx];
+                CHECK ( normals_fitness(midx) <= 1 );
+                CHECK ( color_fitness(midx) <= 1 );
+                CHECK ( fitness_3d(midx) <= 1 );
+                CHECK ( hv->getFitness(c) <= 1 );
 
-            // scale green color channels with fitness terms
-            mp3d.g = 255.f * fitness_3d(midx);
-            mpC.g  = 255.f * color_fitness(midx);
-            mpN.g  = 255.f * normals_fitness(midx);
-            mp.g   = 255.f * hv->getFitness(c);
+                ModelT &mp3d = model_3D_fit_cloud->points[midx];
+                ModelT &mpC = model_color_fit_cloud->points[midx];
+                ModelT &mpN = model_normals_fit_cloud->points[midx];
+                ModelT &mp = model_fit_cloud->points[midx];
+
+                // scale green color channels with fitness terms
+                mp3d.g = 255.f * fitness_3d(midx);
+                mpC.g  = 255.f * color_fitness(midx);
+                mpN.g  = 255.f * normals_fitness(midx);
+                mp.g   = 255.f * hv->getFitness(c);
+            }
         }
 
         if(!vis_param_->no_text_)

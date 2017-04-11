@@ -25,12 +25,19 @@
 
 namespace v4r
 {
-        enum SegmentationType
-        {
-            DominantPlane = 0x01, // 00000001
-            MultiPlane = 0x02, // 00000010
-            EuclideanSegmentation  = 0x04, // 00000100
-            SmoothEuclideanClustering  = 0x08, // 00001000
-            OrganizedMultiplaneSegmentation  = 0x10 // 00010000
-        };
+    enum SegmentationType
+    {
+        OrganizedConnectedComponents = 0x01, // 00000001
+        EuclideanSegmentation = 0x02, // 00000010
+        ConnectedComponents2D  = 0x04, // 00000100
+        SmoothEuclideanClustering  = 0x08 // 00001000
+    };
+
+    enum PlaneExtractionType
+    {
+        OrganizedMultiplane = 0x01, // 00000001
+        SAC = 0x02, // 00000010
+        SACNormals = 0x04, // 00000100
+        Tile = 0x08 // 00001000
+    };
 }

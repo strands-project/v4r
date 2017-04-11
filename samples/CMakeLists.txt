@@ -53,6 +53,17 @@ if(HAVE_BOOST)
   list(APPEND DEP_LIBS ${BOOST_LIBRARIES})
 endif()
 
+#if(HAVE_SIFTGPU)
+#  v4r_include_directories(${SIFTGPU_INCLUDE_DIRS})
+#  list(APPEND DEP_LIBS ${SIFTGPU_LIBRARIES})
+#endif()
+
+
+if(TRUE)#HAVE_PCL_1_8)
+  v4r_include_directories(${PCL_1_8_INCLUDE_DIRS})
+  list(APPEND DEP_LIBS ${PCL_1_8_LIBRARY})
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX AND NOT ENABLE_NOISY_WARNINGS)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-function")
 endif()

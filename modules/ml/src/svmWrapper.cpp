@@ -63,142 +63,22 @@ void svmClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &
     }
 }
 
-void svmClassifier::dokFoldCrossValidation(
-        const Eigen::MatrixXf &data_train,
-        const Eigen::VectorXi &target_train,
-        size_t k,
-        double model_para_C_min,
-        double model_para_C_max,
-        double step_multiplicator_C,
-        double model_para_gamma_min,
-        double model_para_gamma_max,
-        double step_multiplicator_gamma)
-{
-    CHECK(data_train.rows() == target_train.rows() );
-
-    double bestC = model_para_C_min, bestGamma = model_para_gamma_min, bestTestPerformanceValue=0;
-    std::vector<Eigen::MatrixXi> best_confusion_matrices_v(k);
-    std::vector<Eigen::MatrixXi> confusion_matrices_v(k);
-
-    std::set<int> labels; // to know how many different labels there are
-    for(int i=0; i<target_train.rows(); i++)
-    {
-        int label = target_train(i);
-        if( label > (int)labels.size()+1 )
-            std::cerr << "Training labels are not sorted. Take care with unsorted training labels when using probabilities. The order will then correspond to the time of occurence in the training labels." << std::endl;
-        labels.insert(label);
-    }
-
-    size_t num_classes = labels.size();
-
-    Eigen::MatrixXf data_train_shuffled = data_train;
-    Eigen::VectorXi target_train_shuffled = target_train;
-    shuffleTrainingData(data_train_shuffled, target_train_shuffled);
-
-    for(double C = model_para_C_min; C <= model_para_C_max; C *= step_multiplicator_C)
-    {
-        for(double gamma = model_para_gamma_min; gamma <= model_para_gamma_max; gamma *= step_multiplicator_gamma)
-        {
-            double avg_performance;
-            param_.svm_.C = C;
-            param_.svm_.gamma = gamma;
-            std::cout << "Computing svm for C=" << C << " and gamma=" << gamma << std::endl;
-
-            for(size_t current_val_set_id = 0; current_val_set_id < k; current_val_set_id++)
-            {
-                Eigen::MatrixXf data_train_sub;
-                Eigen::MatrixXf data_val;
-                Eigen::VectorXi target_train_sub;
-                Eigen::VectorXi target_val;
-
-                for(int i=0; i < target_train.rows(); i++)
-                {
-                    if(i%k == current_val_set_id)
-                    {
-                        int num_entries = target_val.rows();
-                        data_val.conservativeResize(num_entries + 1, data_train_shuffled.cols());
-                        data_val.row(num_entries) = data_train_shuffled.row(i);
-                        target_val.conservativeResize(num_entries+1);
-                        target_val(num_entries) = target_train_shuffled(i);
-                    }
-                    else
-                    {
-                        int num_entries = data_train_sub.rows();
-                        data_train_sub.conservativeResize(num_entries + 1, data_train_shuffled.cols());
-                        data_train_sub.row(num_entries) = data_train_shuffled.row(i);
-                        target_train_sub.conservativeResize(num_entries+1);
-                        target_train_sub(num_entries) = target_train_shuffled(i);
-                    }
-                }
-                train(data_train_sub, target_train_sub);
-
-                Eigen::MatrixXi target_pred;
-                predict( data_val, target_pred );
-                confusion_matrices_v[current_val_set_id] = computeConfusionMatrix( target_val, target_pred.col(0), num_classes );
-                std::cout << "confusion matrix ( " << current_val_set_id << ")" << std::endl << confusion_matrices_v[current_val_set_id] << std::endl;
-            }
-
-            Eigen::MatrixXi total_confusion_matrix = Eigen::MatrixXi::Zero(num_classes, num_classes);
-            for(size_t i=0; i< k; i++)
-                total_confusion_matrix += confusion_matrices_v[i];
-
-            std::cout << "Total confusion matrix:" << std::endl << total_confusion_matrix << std::endl << std::endl;
-
-            size_t sum=0;
-            size_t trace=0;
-            for(int i=0; i<total_confusion_matrix.rows(); i++)
-            {
-                for(int jj=0; jj<total_confusion_matrix.cols(); jj++)
-                {
-                    sum += total_confusion_matrix(i,jj);
-                    if (i == jj)
-                        trace += total_confusion_matrix(i,jj);
-                }
-            }
-            avg_performance = static_cast<double>(trace) / sum;
-
-            std::cout << "My average performance is " << avg_performance << std::endl;
-
-            if(avg_performance > bestTestPerformanceValue)
-            {
-                bestTestPerformanceValue = avg_performance;
-                bestC = C;
-                bestGamma = gamma;
-                for(size_t i=0; i<k; i++)
-                {
-                    best_confusion_matrices_v[i] = confusion_matrices_v[i];
-                    std::cout << "best confusion matrix ( " << i << ")" << std::endl << best_confusion_matrices_v[i] << std::endl;
-                }
-            }
-
-            if( param_.svm_.kernel_type != ::RBF && param_.svm_.kernel_type != ::POLY && param_.svm_.kernel_type != ::SIGMOID)
-                break;  // for these kernel types the gamma value should not matter
-        }
-    }
-    param_.svm_.C = bestC;
-    param_.svm_.gamma = bestGamma;
-
-    Eigen::MatrixXi confusion_matrix = Eigen::MatrixXi::Zero(num_classes, num_classes);
-    for(size_t i=0; i< k; i++)
-    {
-        confusion_matrix += best_confusion_matrices_v[i];
-        std::cout << "Confusion matrix (part " << i << "/" << k << "): " << std::endl << best_confusion_matrices_v[i] << std::endl << std::endl;
-    }
-    std::cout << "SVM cross-validation achieved the best performance(" << bestTestPerformanceValue<< ") for C=" << bestC <<
-                 " and gamma=" << bestGamma << ". " << std::endl <<
-                 "Total confusion matrix:" << std::endl << confusion_matrix << std::endl << std::endl;
-}
-
-
 void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::VectorXi & training_label)
 {
     CHECK(training_data.rows() == training_label.rows() );
 
-    if(param_.do_cross_validation_)
-        dokFoldCrossValidation(training_data, training_label, 5);
+    if (param_.svm_.gamma < 0)
+        param_.svm_.gamma = 1. / training_data.cols();
 
+    if( !param_.svm_.probability && param_.knn_ > 1)
+    {
+        LOG(WARNING) << "KNN set with k>1 but probability estimate is turned off. Will turn on SVM probability to estimate not only winner.";
+        param_.svm_.probability = 1;
+    }
+
+
+    // fill tarining data into an SVM problem
     ::svm_problem *svm_prob = new ::svm_problem;
-
     svm_prob->l = training_data.rows(); //number of training examples
     svm_prob->x = new ::svm_node *[svm_prob->l];
 
@@ -211,12 +91,71 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
     {
         for(int kk=0; kk < training_data.cols(); kk++)
         {
-            svm_prob->x[i][kk].value = training_data(i,kk);
+            svm_prob->x[i][kk].value = (double)training_data(i,kk);
             svm_prob->x[i][kk].index = kk+1;
         }
         svm_prob->x[i][ training_data.cols() ].index = -1;
         svm_prob->y[i] = training_label(i);
     }
+
+    if( param_.do_cross_validation_ > 1 )
+    {
+        LOG(INFO) << "Performing " << param_.do_cross_validation_ << "-fold cross validation.";
+        std::set<int> labels; // to know how many different labels there are
+        for(int i=0; i<training_label.rows(); i++)
+        {
+            int label = training_label(i);
+            if( label > (int)labels.size()+1 )
+                std::cerr << "Training labels are not sorted. Take care with unsorted training labels when using probabilities. The order will then correspond to the time of occurence in the training labels." << std::endl;
+            labels.insert(label);
+        }
+
+        size_t num_classes = labels.size();
+        float best_performance = std::numeric_limits<float>::min();
+        ::svm_parameter best_parameter = param_.svm_;
+
+        for(double C = param_.cross_validation_range_C_[0]; C <= param_.cross_validation_range_C_[1]; C *= param_.cross_validation_range_C_[2])
+        {
+            for(double gamma = param_.cross_validation_range_gamma_[0]; gamma <= param_.cross_validation_range_gamma_[1]; gamma *= param_.cross_validation_range_gamma_[2])
+            {
+                param_.svm_.C = C;
+                param_.svm_.gamma = gamma;
+
+                if( (param_.svm_.kernel_type == ::LINEAR) && (gamma>param_.cross_validation_range_gamma_[0]) )
+                {
+                    VLOG(1) << "skipping remaing gamma values as linear kernel does not use gamma.";
+                    break;
+                }
+
+                LOG(INFO) << "Cross-validate parameters C=" << param_.svm_.C << " and gamma=" << param_.svm_.gamma;
+
+                double* target = (double*)malloc( svm_prob->l  * sizeof(double) );
+                ::svm_cross_validation( svm_prob, &param_.svm_, param_.do_cross_validation_, target);
+
+                Eigen::VectorXi predicted_label( svm_prob->l);
+
+                for(int i=0; i <svm_prob->l; i++)
+                    predicted_label(i) = target[i ];
+
+                Eigen::MatrixXi conf_matrix = computeConfusionMatrix( training_label, predicted_label.col(0), num_classes );
+                float performance = (float)conf_matrix.trace() / conf_matrix.sum();
+
+                LOG(INFO) << "Accuracy for parameters C=" << param_.svm_.C << " and gamma=" << param_.svm_.gamma << ": " << performance << " with confusion matrix: " << std::endl << conf_matrix << std::endl;
+
+                if (performance > best_performance)
+                {
+                    best_performance = performance;
+                    best_parameter = param_.svm_;
+                }
+
+                delete[] target;
+            }
+        }
+
+        param_.svm_ = best_parameter;
+        LOG(INFO) << "Best parameters achieved from cross-validation: C=" << param_.svm_.C << " and gamma=" << param_.svm_.gamma;
+    }
+
     svm_mod_ = ::svm_train(svm_prob, &param_.svm_);
 
     // free memory
@@ -243,6 +182,9 @@ void svmClassifier::saveModel(const std::string &filename) const
 
 void svmClassifier::loadModel(const std::string &filename)
 {
+    if( !v4r::io::existsFile(filename) )
+        throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
     svm_mod_ = ::svm_load_model(filename.c_str());
 }
 

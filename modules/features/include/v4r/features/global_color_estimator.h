@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2015 Thomas Faeulhammer
+ * Copyright (c) 2017 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,47 +21,37 @@
  *
  ******************************************************************************/
 
-/**
-*
-*      @author Thomas Faeulhammer (faeulhammer@acin.tuwien.ac.at)
-*      @date April, 2016
-*      @brief multiplane segmentation (taken from PCL)
-*/
+#pragma once
 
-#ifndef V4R_MULTIPLANE_SEGMENTER_H__
-#define V4R_MULTIPLANE_SEGMENTER_H__
-
+#include <v4r/common/color_transforms.h>
+//#include <v4r/common/rgb2cielab.h>
 #include <v4r/core/macros.h>
-#include <v4r/segmentation/segmenter.h>
-#include <boost/program_options.hpp>
+#include <v4r/features/global_estimator.h>
+#include <v4r/features/types.h>
+
 #include <glog/logging.h>
 
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/archive/xml_oarchive.hpp>
+#include <boost/program_options.hpp>
+#include <boost/serialization/serialization.hpp>
+
+#include <fstream>
+
 namespace po = boost::program_options;
+
 namespace v4r
 {
 
-class MultiplaneSegmenterParameter
+class V4R_EXPORTS GlobalColorEstimatorParameter
 {
-public:
-    size_t min_cluster_size_;
-    int num_plane_inliers_;
-    float sensor_noise_max_;
-    float angular_threshold_deg_;
-    float min_distance_between_clusters_;
-    MultiplaneSegmenterParameter (size_t min_cluster_size=500,
-               int num_plane_inliers=1000,
-               float sensor_noise_max = 0.01f,
-               float angular_threshold_deg = 10.f,
-               float min_distance_between_clusters = 0.03f)
-        :
-          min_cluster_size_ (min_cluster_size),
-          num_plane_inliers_ (num_plane_inliers),
-          sensor_noise_max_ (sensor_noise_max),
-          angular_threshold_deg_ (angular_threshold_deg),
-          min_distance_between_clusters_ ( min_distance_between_clusters )
-    {
-    }
-
+ public:
+    size_t num_bins; ///< number of bins for each color chanel to create color histogram
+    float std_dev_multiplier_; ///< multiplication factor of the standard deviation of the color channel for minimum and maximum range of color histogram
+    GlobalColorEstimatorParameter() :
+        num_bins (15),
+        std_dev_multiplier_(3.f)
+    { }
 
     /**
      * @brief init parameters
@@ -83,14 +73,11 @@ public:
     std::vector<std::string>
     init(const std::vector<std::string> &command_line_arguments)
     {
-        po::options_description desc("Multi-Plane Segmentation\n=====================");
+        po::options_description desc("Global Color Feature Estimator Parameter\n=====================\n");
         desc.add_options()
                 ("help,h", "produce help message")
-                ("seg_min_cluster_size", po::value<size_t>(&min_cluster_size_)->default_value(min_cluster_size_), "")
-                ("seg_num_plane_inliers", po::value<int>(&num_plane_inliers_)->default_value(num_plane_inliers_), "")
-                ("seg_sensor_noise_max", po::value<float>(&sensor_noise_max_)->default_value(sensor_noise_max_), "")
-                ("seg_angular_threshold_deg", po::value<float>(&angular_threshold_deg_)->default_value(angular_threshold_deg_), "")
-                ("seg_min_distance_between_clusters", po::value<float>(&min_distance_between_clusters_)->default_value(min_distance_between_clusters_), "")
+                ("global_color_num_bins", po::value<size_t>(&num_bins)->default_value(num_bins), "number of bins for each color chanel to create color histogram.")
+                ("global_color_std_dev_multiplier", po::value<float>(&std_dev_multiplier_)->default_value(std_dev_multiplier_), "multiplication factor of the standard deviation of the color channel for minimum and maximum range of color histogram.")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -103,37 +90,37 @@ public:
     }
 };
 
-template <typename PointT>
-class V4R_EXPORTS MultiplaneSegmenter: public Segmenter<PointT>
+/**
+ * @brief The GlobalColorEstimator class implements a simple global description
+ * in terms of the color of the input cloud
+ */
+template<typename PointT>
+class V4R_EXPORTS GlobalColorEstimator : public GlobalEstimator<PointT>
 {
 private:
-    using Segmenter<PointT>::indices_;
-    using Segmenter<PointT>::normals_;
-    using Segmenter<PointT>::clusters_;
-    using Segmenter<PointT>::scene_;
-    using Segmenter<PointT>::dominant_plane_;
-    using Segmenter<PointT>::all_planes_;
+    using GlobalEstimator<PointT>::indices_;
+    using GlobalEstimator<PointT>::cloud_;
+    using GlobalEstimator<PointT>::descr_name_;
+    using GlobalEstimator<PointT>::descr_type_;
+    using GlobalEstimator<PointT>::feature_dimensions_;
 
-    MultiplaneSegmenterParameter param_;
+    GlobalColorEstimatorParameter param_;
+
+//    RGB2CIELAB::Ptr color_transf_;
 
 public:
-    MultiplaneSegmenter(const MultiplaneSegmenterParameter &p = MultiplaneSegmenterParameter() ) : param_(p) {  }
+    GlobalColorEstimator(const GlobalColorEstimatorParameter &p = GlobalColorEstimatorParameter())
+        : GlobalEstimator<PointT>("global_color", FeatureType::GLOBAL_COLOR),
+          param_(p)
+    {
+        feature_dimensions_ = 3 * param_.num_bins;
+    }
 
-    void
-    segment();
+    bool compute (Eigen::MatrixXf &signature);
 
-    bool getRequiresNormals() { return true; }
+    bool needNormals() const { return false; }
 
-    /**
-     * @brief computes all Planes
-     */
-    void
-    computeTablePlanes();
-
-    typedef boost::shared_ptr< MultiplaneSegmenter<PointT> > Ptr;
-    typedef boost::shared_ptr< MultiplaneSegmenter<PointT> const> ConstPtr;
+    typedef boost::shared_ptr< GlobalColorEstimator<PointT> > Ptr;
+    typedef boost::shared_ptr< GlobalColorEstimator<PointT> const> ConstPtr;
 };
-
 }
-
-#endif

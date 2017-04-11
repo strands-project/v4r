@@ -287,12 +287,10 @@ template<typename T>
 inline V4R_EXPORTS typename std::vector<T>
 filterVector(const std::vector<T> &in, const std::vector<int> &indices)
 {
-    typename std::vector<T> out(in.size());
-    size_t kept=0;
+    std::vector<T> out;
+    out.reserve ( indices.size() );
     for(size_t i = 0; i < indices.size(); i++)
-        out[kept++] = in[ indices[i] ];
-
-    out.resize(kept);
+        out.push_back( in[ indices[i] ] );
     return out;
 }
 
@@ -401,6 +399,16 @@ V4R_EXPORTS runningAverage (const Eigen::VectorXf &old_average, size_t old_size,
     Eigen::VectorXf newAvg = old_average  * w + increment / double(old_size + 1);
     return newAvg;
 }
+
+/**
+ * @brief computeRotationMatrixTwoAlignVectors Calculate Rotation Matrix to align Vector src to Vector target in 3d
+ * @param src
+ * @param target
+ * @return 3x3 rotation matrix
+ */
+Eigen::Matrix3f
+V4R_EXPORTS
+computeRotationMatrixToAlignVectors(const Eigen::Vector3f &src, const Eigen::Vector3f &target);
 
 template<typename PointT>
 V4R_EXPORTS float computeMeshResolution (const typename pcl::PointCloud<PointT>::ConstPtr & input);

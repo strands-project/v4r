@@ -7,10 +7,16 @@
 namespace v4r
 {
 
-float CIE76(const Eigen::VectorXf &a, const Eigen::VectorXf &b)
+float CIE76(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
 {
     return (a-b).norm();
 }
+
+float CIE94_DEFAULT(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
+{
+    return CIE94( a, b, 1.f, .045f, .015f);
+}
+
 
 float CIE94(const Eigen::Vector3f &a, const Eigen::Vector3f &b, float K1, float K2, float Kl)
 {
@@ -42,9 +48,9 @@ float CIE94(const Eigen::Vector3f &a, const Eigen::Vector3f &b, float K1, float 
 float CIEDE2000(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
 {
     //Set weighting factors to 1
-    double k_L = 1.0d;
-    double k_C = 1.0d;
-    double k_H = 1.0d;
+    double k_L = 1.0;
+    double k_C = 1.0;
+    double k_H = 1.0;
 
     //Calculate Cprime1, Cprime2, Cabbar
     double c_star_1_ab = sqrt(a(1) * a(1) + a(2) * a(2));
@@ -54,15 +60,15 @@ float CIEDE2000(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
     double c_star_average_ab_pot7 = c_star_average_ab * c_star_average_ab * c_star_average_ab;
     c_star_average_ab_pot7 *= c_star_average_ab_pot7 * c_star_average_ab;
 
-    double G = 0.5d * (1 - sqrt(c_star_average_ab_pot7 / (c_star_average_ab_pot7 + 6103515625))); //25^7
-    double a1_prime = (1 + G) * a(1);
-    double a2_prime = (1 + G) * b(1);
+    double G = 0.5 * (1 - sqrt(c_star_average_ab_pot7 / (c_star_average_ab_pot7 + 6103515625))); //25^7
+    double a1_prime = (1. + G) * a(1);
+    double a2_prime = (1. + G) * b(1);
 
     double C_prime_1 = sqrt(a1_prime * a1_prime + a(2) * a(2));
     double C_prime_2 = sqrt(a2_prime * a2_prime + b(2) * b(2));
     //Angles in Degree.
-    double h_prime_1 = fmod(((atan2(a(2), a1_prime) * 180 / M_PI) + 360), 360.f);
-    double h_prime_2 = fmod(((atan2(b(2), a2_prime) * 180 / M_PI) + 360), 360.f);
+    double h_prime_1 = fmod(((atan2(a(2), a1_prime) * 180. / M_PI) + 360.), 360.);
+    double h_prime_2 = fmod(((atan2(b(2), a2_prime) * 180. / M_PI) + 360.), 360.);
 
     double delta_L_prime = b(0) - a(0);
     double delta_C_prime = C_prime_2 - C_prime_1;
@@ -72,20 +78,20 @@ float CIEDE2000(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
     if (C_prime_1 * C_prime_2 == 0) delta_h_prime = 0;
     else
     {
-        if (h_bar <= 180)
+        if (h_bar <= 180.)
         {
             delta_h_prime = h_prime_2 - h_prime_1;
         }
-        else if (h_bar > 180 && h_prime_2 <= h_prime_1)
+        else if (h_bar > 180. && h_prime_2 <= h_prime_1)
         {
-            delta_h_prime = h_prime_2 - h_prime_1 + 360.0;
+            delta_h_prime = h_prime_2 - h_prime_1 + 360.;
         }
         else
         {
-            delta_h_prime = h_prime_2 - h_prime_1 - 360.0;
+            delta_h_prime = h_prime_2 - h_prime_1 - 360.;
         }
     }
-    double delta_H_prime = 2 * sqrt(C_prime_1 * C_prime_2) * sin(delta_h_prime * M_PI / 360);
+    double delta_H_prime = 2 * sqrt(C_prime_1 * C_prime_2) * sin(delta_h_prime * M_PI / 360.);
 
     // Calculate CIEDE2000
     double L_prime_average = (a(0) + b(0)) / 2.0;
@@ -102,7 +108,7 @@ float CIEDE2000(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
         {
             h_prime_average = (h_prime_1 + h_prime_2) / 2;
         }
-        else if (h_bar > 180 && (h_prime_1 + h_prime_2) < 360)
+        else if (h_bar > 180. && (h_prime_1 + h_prime_2) < 360)
         {
             h_prime_average = (h_prime_1 + h_prime_2 + 360) / 2;
         }
@@ -114,8 +120,8 @@ float CIEDE2000(const Eigen::Vector3f &a, const Eigen::Vector3f &b)
     double L_prime_average_minus_50_square = (L_prime_average - 50);
     L_prime_average_minus_50_square *= L_prime_average_minus_50_square;
 
-    double S_L = 1 + ((.015d * L_prime_average_minus_50_square) / sqrt(20 + L_prime_average_minus_50_square));
-    double S_C = 1 + .045d * C_prime_average;
+    double S_L = 1 + ((.015 * L_prime_average_minus_50_square) / sqrt(20. + L_prime_average_minus_50_square));
+    double S_C = 1 + .045 * C_prime_average;
     double T = 1
         - .17 * cos(pcl::deg2rad(h_prime_average - 30))
         + .24 * cos(pcl::deg2rad(h_prime_average * 2))

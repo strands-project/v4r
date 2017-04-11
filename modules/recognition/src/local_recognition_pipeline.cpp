@@ -1,3 +1,4 @@
+#include <v4r/common/graph_geometric_consistency.h>
 #include <v4r/recognition/local_recognition_pipeline.h>
 #include <v4r/features/types.h>
 
@@ -13,32 +14,39 @@ LocalRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, boo
 {
     CHECK ( !local_feature_matchers_.empty() ) << "No local recognizers provided!";
 
-    lomdb_.reset( new LocalObjectModelDatabase );   // need to merge model keypoints from all local recognizers ( like SIFT + SHOT + ...)
+    model_keypoints_.clear();   // need to merge model keypoints from all local recognizers ( like SIFT + SHOT + ...)
     model_kp_idx_range_start_.resize( local_feature_matchers_.size() );
 
     for(size_t i=0; i<local_feature_matchers_.size(); i++)
     {
-        auto r = local_feature_matchers_[i];
-        r->setModelDatabase(m_db_);
-        r->initialize(trained_dir, force_retrain);
-        LocalObjectModelDatabase::ConstPtr lomdb_tmp = r->getLocalObjectModelDatabase();
+        LocalFeatureMatcher<PointT> &r = *local_feature_matchers_[i];
+        r.setNormalEstimator(normal_estimator_);
+        r.setModelDatabase(m_db_);
+        r.setVisualizationParameter(vis_param_);
+        r.initialize(trained_dir, force_retrain);
 
-        for ( auto lo : lomdb_tmp->l_obj_models_ )
+        const std::map<std::string, typename LocalObjectModel::ConstPtr> lomdb_tmp = r.getModelKeypoints();
+
+        for ( auto lo : lomdb_tmp )
         {
             const std::string &model_id = lo.first;
+            const LocalObjectModel &lom = *(lo.second);
 
-            auto it_loh = lomdb_->l_obj_models_.find(model_id);
-            if ( it_loh != lomdb_->l_obj_models_.end () )
-            { // append correspondences to existing ones
+            std::map<std::string, typename LocalObjectModel::ConstPtr>::const_iterator
+                    it_loh = model_keypoints_.find(model_id);
+            if ( it_loh != model_keypoints_.end () ) // append correspondences to existing ones
+            {
                 model_kp_idx_range_start_[i][model_id] = it_loh->second->keypoints_->points.size();
-                *(it_loh->second->keypoints_) += *(lo.second->keypoints_);
+                *(it_loh->second->keypoints_) += *(lom.keypoints_);
+                *(it_loh->second->kp_normals_) += *(lom.kp_normals_);
             }
             else
             {
                 model_kp_idx_range_start_[i][model_id] = 0;
-                LocalObjectModel::Ptr lom (new LocalObjectModel);
-                *(lom->keypoints_) = *(lo.second->keypoints_);
-                lomdb_->l_obj_models_ [model_id] = lom;
+                LocalObjectModel::Ptr lom_copy (new LocalObjectModel);
+                *(lom_copy->keypoints_) = *(lom.keypoints_);
+                *(lom_copy->kp_normals_) = *(lom.kp_normals_);
+                model_keypoints_ [model_id] = lom_copy;
             }
         }
     }
@@ -60,7 +68,8 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
         const std::string &model_id = it->first;
         const LocalObjectHypothesis<PointT> &loh = it->second;
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr model_keypoints = lomdb_->l_obj_models_[model_id]->keypoints_;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr model_keypoints = model_keypoints_[model_id]->keypoints_;
+        pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals = model_keypoints_[model_id]->kp_normals_;
 
         if( loh.model_scene_corresp_->size() < 3 )
             continue;
@@ -73,29 +82,18 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
 //        oh.visualize(*scene_, *scene_keypoints_);
 
         // Graph-based correspondence grouping requires normals but interface does not exist in base class - so need to try pointer casting
-//        typename GraphGeometricConsistencyGrouping<PointT, PointT>::Ptr gcg_algorithm = boost::dynamic_pointer_cast<  GraphGeometricConsistencyGrouping<PointT, PointT> > (cg_algorithm_);
-//        if( gcg_algorithm )
+        typename GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gcg_algorithm =
+                boost::dynamic_pointer_cast<  GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > (cg_algorithm_);
+        if( gcg_algorithm )
+            gcg_algorithm->setInputAndSceneNormals(model_kp_normals, scene_normals_);
+
+//        for ( const auto c : *(loh.model_scene_corresp_) )
 //        {
-//            CHECK( model_keypoints->points.size() == loh.model_->kp_normals_->points.size() );
-//            CHECK( scene_keypoints_->points.size() == scene_kp_normals_->points.size() );
-//            gcg_algorithm->setInputAndSceneNormals(loh.model_->kp_normals_, scene_kp_normals_);
+//            CHECK( c.index_match < (int) scene_cloud_xyz->points.size() && c.index_match >= 0 );
+//            CHECK( c.index_match < (int) scene_normals_->points.size() && c.index_match >= 0 );
+//            CHECK( c.index_query < (int) model_keypoints->points.size() && c.index_query >= 0 );
+//            CHECK( c.index_query < (int) model_kp_normals->points.size() && c.index_query >= 0 );
 //        }
-
-//        std::stringstream fn;
-//        fn << "/tmp/sift_corrs_pipe_" << model_id << ".txt";
-
-//        std::ofstream f (fn.str().c_str());
-//        for (const auto &c_tmp : *loh.model_scene_corresp_)
-//        {
-//            f << c_tmp.index_match << " " << c_tmp.index_query << std::endl;
-//        }
-//        f.close();
-
-        for ( const auto c : *(loh.model_scene_corresp_) )
-        {
-            CHECK( c.index_match < (int)scene_cloud_xyz->points.size() && c.index_match >= 0 );
-            CHECK( c.index_query < (int) model_keypoints->points.size() && c.index_query >= 0 );
-        }
 
         //we need to pass the keypoints_pointcloud and the specific object hypothesis
         cg_algorithm_->setModelSceneCorrespondences ( loh.model_scene_corresp_ );
@@ -161,7 +159,7 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
                     new_ohg.ohs_.push_back( new_oh );
                     obj_hypotheses_.push_back( new_ohg );
                 }
-                std::cout << "Merged " << corresp_clusters.size() << " clusters into " << kept << " clusters. Total correspondences: " << loh.model_scene_corresp_->size () << " " << loh.model_id_ << std::endl;
+                LOG(INFO) << "Merged " << corresp_clusters.size() << " clusters into " << kept << " clusters. Total correspondences: " << loh.model_scene_corresp_->size () << " " << loh.model_id_;
             }
         }
         else {
@@ -209,8 +207,8 @@ LocalRecognitionPipeline<PointT>::recognize()
         rec->recognize();
         std::map<std::string, LocalObjectHypothesis<PointT> > local_hypotheses = rec->getCorrespondences( );
 
-        std::vector<int> kp_indices;
-        rec->getKeypointIndices(kp_indices);
+//        std::vector<int> kp_indices;
+//        rec->getKeypointIndices(kp_indices);
 
         for (auto &oh : local_hypotheses)
         {
