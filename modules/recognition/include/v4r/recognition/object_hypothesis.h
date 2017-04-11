@@ -82,7 +82,7 @@ private:
     template<class Archive>
     void serialize( Archive & ar, const unsigned int file_version)
     {
-        ar & scene_id_ & model_id_ & dist_3D_ & color_distance_ & angle_surface_normals_rad_ & fitness_;
+        ar & scene_id_ & model_id_ & dist_3D_ & color_distance_ & normals_dotp_ & fitness_;
     }
 
 public:
@@ -90,7 +90,7 @@ public:
     int model_id_; /// Index of matching model point.
     float dist_3D_; /// Squared distance between the corresponding points in Euclidean 3D space
     float color_distance_; /// Distance between the corresponding points in color
-    float angle_surface_normals_rad_; /// Angle in degree between surface normals
+    float normals_dotp_; /// Angle in degree between surface normals
     float fitness_; /// model fitness score
 
     bool operator < (const ModelSceneCorrespondence& other) const
@@ -101,7 +101,7 @@ public:
     /** \brief Constructor. */
     ModelSceneCorrespondence () :
         scene_id_ (-1), model_id_ (-1), dist_3D_ (std::numeric_limits<float>::quiet_NaN()),
-        color_distance_ (std::numeric_limits<float>::quiet_NaN()), angle_surface_normals_rad_(M_PI/2),
+        color_distance_ (std::numeric_limits<float>::quiet_NaN()), normals_dotp_(M_PI/2),
         fitness_ (0.f)
     {}
 };
