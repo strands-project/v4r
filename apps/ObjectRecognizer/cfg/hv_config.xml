@@ -24,7 +24,7 @@
 	<clutter_regularizer_>10</clutter_regularizer_>
 	<use_replace_moves_>1</use_replace_moves_>
 	<opt_type_>0</opt_type_>
-	<use_histogram_specification_>0</use_histogram_specification_>
+	<use_histogram_specification_>1</use_histogram_specification_>
 	<initial_status_>0</initial_status_>
 	<color_comparison_method_>0</color_comparison_method_>
 	<min_visible_ratio_>0.05</min_visible_ratio_>
@@ -35,6 +35,6 @@
 	<min_points_>50</min_points_>
 	<min_ratio_cluster_explained_>0.5</min_ratio_cluster_explained_>
 	<z_adaptive_>1</z_adaptive_>
-	<min_pts_smooth_cluster_to_be_epxlained_>50</min_pts_smooth_cluster_to_be_epxlained_>
+	<min_pts_smooth_cluster_to_be_epxlained_>100</min_pts_smooth_cluster_to_be_epxlained_>
 	<min_fitness_>0.1</min_fitness_>
 </paramHV>
