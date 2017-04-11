@@ -1,4 +1,4 @@
-SET(OR_DEPS v4r_core v4r_common v4r_io v4r_features v4r_keypoints v4r_segmentation v4r_recognition v4r_ml v4r_apps)
+SET(OR_DEPS v4r_core v4r_common v4r_io v4r_features v4r_keypoints v4r_segmentation v4r_recognition v4r_registration v4r_change_detection v4r_ml v4r_apps)
 v4r_check_dependencies(${OR_DEPS})
 
 if(NOT V4R_DEPENDENCIES_FOUND)
