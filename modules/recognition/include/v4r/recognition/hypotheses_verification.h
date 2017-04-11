@@ -89,11 +89,11 @@ class V4R_EXPORTS HypothesisVerification
     friend class HV_CuesVisualizer<ModelT, SceneT>;
     friend class HV_PairwiseVisualizer<ModelT, SceneT>;
 
+    HV_Parameter param_;
+
 public:
     typedef boost::shared_ptr< HypothesisVerification<ModelT, SceneT> > Ptr;
     typedef boost::shared_ptr< HypothesisVerification<ModelT, SceneT> const> ConstPtr;
-
-    HV_Parameter param_;
 
 protected:
 
