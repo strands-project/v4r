@@ -61,9 +61,9 @@ public:
     float w_color_;   ///< weighting factor for color fitness
     float w_3D_;   ///< weighting factor for 3D fitness
 
-    float color_sigma_l_; ///< allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
-    float color_sigma_ab_; ///< allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
-    float sigma_normals_deg_; ///< variance for normals between model and scene
+    float sigma_color_; ///< allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
+    float color_inlier_treshold_; ///< allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
+    float sigma_normals_; ///< variance for normals between model and scene
     float regularizer_; ///< represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.
     int normal_method_; ///< method used for computing the normals of the downsampled scene point cloud (defined by the V4R Library)
     bool ignore_color_even_if_exists_; ///< if true, only checks 3D Eucliden distance of neighboring points
@@ -95,7 +95,7 @@ public:
     HV_Parameter () :
           resolution_mm_ (5),
           inliers_threshold_(0.01), // 0.005f
-          inliers_surface_angle_thres_dotp_ ( 0.8 ),
+          inliers_surface_angle_thres_dotp_ ( 0.99 ),
           occlusion_thres_ (0.01f),  // 0.005f
           smoothing_radius_ (2),
           do_smoothing_ (true),
@@ -105,9 +105,9 @@ public:
           w_normals_ (1.f/3.f),
           w_color_ (1.f/3.f),
           w_3D_  (1.f/3.f),
-          color_sigma_l_ (100.f),
-          color_sigma_ab_ (20.f),
-          sigma_normals_deg_ (30.f),
+          sigma_color_ (100.f),
+          color_inlier_treshold_ (20.f),
+          sigma_normals_ (0.05f),
           regularizer_ (1.f),
           normal_method_ (2),
           ignore_color_even_if_exists_ (false),
@@ -161,9 +161,9 @@ public:
                 ("help,h", "produce help message")
                 ("hv_icp_iterations", po::value<int>(&icp_iterations_)->default_value(icp_iterations_), "number of icp iterations. If 0, no pose refinement will be done")
                 ("hv_clutter_regularizer", po::value<float>(&clutter_regularizer_)->default_value(clutter_regularizer_, boost::str(boost::format("%.2e") % clutter_regularizer_) ), "The penalty multiplier used to penalize unexplained scene points within the clutter influence radius <i>radius_neighborhood_clutter_</i> of an explained scene point when they belong to the same smooth segment.")
-                ("hv_color_sigma_ab", po::value<float>(&color_sigma_ab_)->default_value(color_sigma_ab_, boost::str(boost::format("%.2e") % color_sigma_ab_) ), "allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)")
-                ("hv_color_sigma_l", po::value<float>(&color_sigma_l_)->default_value(color_sigma_l_, boost::str(boost::format("%.2e") % color_sigma_l_) ), "allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)")
-                ("hv_sigma_normals_deg", po::value<float>(&sigma_normals_deg_)->default_value(sigma_normals_deg_, boost::str(boost::format("%.2e") % sigma_normals_deg_) ), "variance for surface normals")
+                ("hv_color_inlier_treshold", po::value<float>(&color_inlier_treshold_)->default_value(color_inlier_treshold_, boost::str(boost::format("%.2e") % color_inlier_treshold_) ), "allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)")
+                ("hv_sigma_color", po::value<float>(&sigma_color_)->default_value(sigma_color_, boost::str(boost::format("%.2e") % sigma_color_) ), "allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)")
+                ("hv_sigma_normals_", po::value<float>(&sigma_normals_)->default_value(sigma_normals_, boost::str(boost::format("%.2e") % sigma_normals_) ), "variance for surface normals")
                 ("hv_histogram_specification", po::value<bool>(&use_histogram_specification_)->default_value(use_histogram_specification_), " ")
                 ("hv_ignore_color", po::value<bool>(&ignore_color_even_if_exists_)->default_value(ignore_color_even_if_exists_), " ")
                 ("hv_initial_status", po::value<bool>(&initial_status_)->default_value(initial_status_), "sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.")
@@ -210,9 +210,9 @@ public:
                 & BOOST_SERIALIZATION_NVP(w_normals_)
                 & BOOST_SERIALIZATION_NVP(w_color_)
                 & BOOST_SERIALIZATION_NVP(w_3D_)
-                & BOOST_SERIALIZATION_NVP(color_sigma_l_)
-                & BOOST_SERIALIZATION_NVP(color_sigma_ab_)
-                & BOOST_SERIALIZATION_NVP(sigma_normals_deg_)
+                & BOOST_SERIALIZATION_NVP(sigma_color_)
+                & BOOST_SERIALIZATION_NVP(color_inlier_treshold_)
+                & BOOST_SERIALIZATION_NVP(sigma_normals_)
                 & BOOST_SERIALIZATION_NVP(regularizer_)
                 & BOOST_SERIALIZATION_NVP(normal_method_)
                 & BOOST_SERIALIZATION_NVP(ignore_color_even_if_exists_)

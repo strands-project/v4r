@@ -4,7 +4,7 @@
 <paramHV class_id="0" tracking_level="0" version="0">
 	<resolution_mm_>5</resolution_mm_>
 	<inliers_threshold_>0.0099999998</inliers_threshold_>
-	<inliers_surface_angle_thres_dotp_>0.8</inliers_surface_angle_thres_dotp_>
+	<inliers_surface_angle_thres_dotp_>0.99</inliers_surface_angle_thres_dotp_>
 	<occlusion_thres_>0.0099999998</occlusion_thres_>
 	<smoothing_radius_>2</smoothing_radius_>
 	<do_smoothing_>1</do_smoothing_>
@@ -14,9 +14,9 @@
 	<w_normals_>0.33000001</w_normals_>
 	<w_color_>0.33000001</w_color_>
 	<w_3D_>0.33000001</w_3D_>
-	<color_sigma_l_>5</color_sigma_l_>
-	<color_sigma_ab_>20</color_sigma_ab_>
-	<sigma_normals_deg_>30</sigma_normals_deg_>
+	<sigma_color_>20</sigma_color_>
+	<color_inlier_treshold_>30</color_inlier_treshold_>
+	<sigma_normals_>0.05</sigma_normals_>
 	<regularizer_>3</regularizer_>
 	<normal_method_>2</normal_method_>
 	<ignore_color_even_if_exists_>0</ignore_color_even_if_exists_>
@@ -35,6 +35,6 @@
 	<min_points_>50</min_points_>
 	<min_ratio_cluster_explained_>0.5</min_ratio_cluster_explained_>
 	<z_adaptive_>1</z_adaptive_>
-	<min_pts_smooth_cluster_to_be_epxlained_>100</min_pts_smooth_cluster_to_be_epxlained_>
+	<min_pts_smooth_cluster_to_be_epxlained_>200</min_pts_smooth_cluster_to_be_epxlained_>
 	<min_fitness_>0.1</min_fitness_>
 </paramHV>

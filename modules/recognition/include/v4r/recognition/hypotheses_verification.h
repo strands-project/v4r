@@ -280,6 +280,12 @@ protected:
         return weighted_geometric_mean;
     }
 
+    inline float
+    distColor(float color_dist_in) const
+    {
+        return (1.f-tanh( (color_dist_in - param_.color_inlier_treshold_) / param_.sigma_color_ ) );
+    }
+
     /**
      * @brief modelSceneColorCostTerm
      * @param model scene correspondence
@@ -291,7 +297,7 @@ protected:
 //        return exp (- c.color_distance_/param_.color_sigma_ab_ );
 //        std::cout << c.color_distance_ << std::endl;
 //        return std::min(1.f, std::max(0.f, 1.f - c.color_distance_/param_.color_sigma_ab_));
-        return 0.5f * (1.f-tanh( (c.color_distance_ - param_.color_sigma_ab_) / param_.color_sigma_l_ ) );
+        return distColor(c.color_distance_) * OneOver_distColor0_;
     }
 
     /**
@@ -305,7 +311,13 @@ protected:
         if ( c.dist_3D_ < param_.inliers_threshold_ )
             return 1.f;
         else
-            return exp( -(c.dist_3D_ - param_.inliers_threshold_) * (c.dist_3D_ - param_.inliers_threshold_) / (param_.inliers_threshold_ * param_.inliers_threshold_) );
+            return exp( -(c.dist_3D_ - param_.inliers_threshold_) * (c.dist_3D_ - param_.inliers_threshold_) * OneOver_inlier_treshold_squared_ );
+    }
+
+    inline float
+    distNormals(float dotp) const
+    {
+        return (1.f + tanh( (dotp - param_.inliers_surface_angle_thres_dotp_) / param_.sigma_normals_ ) );   ///TODO: Speed up with LUT
     }
 
     /**
@@ -313,25 +325,21 @@ protected:
      * @param model scene correspondence
      * @return angle between corresponding surface normals (fliped such that they are pointing into the same direction)
      */
-    float modelSceneNormalsCostTerm( const ModelSceneCorrespondence& c ) const
+    float
+    modelSceneNormalsCostTerm( const ModelSceneCorrespondence& c ) const
     {
-        if ( c.angle_surface_normals_rad_ < 0.f)
-            return 0.f;
-
-        return std::max(0.f, std::min<float>(1.f, 0.5f + 0.5f*tanh( (c.angle_surface_normals_rad_ - param_.inliers_surface_angle_thres_dotp_) / 0.1f ) ) );   ///TODO: Speed up with LUT
-
-//        return 1 - (c.angle_surface_normals_rad_ - param_.inliers_surface_angle_thres_) / (M_PI/2 - param_.inliers_surface_angle_thres_);
+        return distNormals(c.normals_dotp_) * OneOver_distNorm0_;
     }
 
-    void
-    computeLOffset( HVRecognitionModel<ModelT> &rm ) const;
+//    void
+//    computeLOffset( HVRecognitionModel<ModelT> &rm ) const;
 
     float
     customColorDistance(const Eigen::VectorXf &color_a, const Eigen::VectorXf &color_b)
     {
         float L_dist  = ( color_a(0) - color_b(0) )*( color_a(0) - color_b(0) );
         CHECK(L_dist >= 0.f && L_dist <= 1.f);
-        L_dist /= param_.color_sigma_l_ ;
+        L_dist /= param_.sigma_color_ ;
         float AB_dist = ( color_a.tail(2) - color_b.tail(2) ).norm(); // ( param_.color_sigma_ab_ * param_.color_sigma_ab_ );
         CHECK(AB_dist >= 0.f && AB_dist <= 1.f);
         return L_dist + AB_dist ;
@@ -376,11 +384,22 @@ protected:
         }
     };
 
+    // pre-computed variables for speed-up
+    float OneOver_distNorm0_;
+    float OneOver_distColor0_;
+    float OneOver_inlier_treshold_squared_;
+
+
 public:
 
-    HypothesisVerification (const Camera::ConstPtr &cam,
-                            const HV_Parameter &p = HV_Parameter())
-        : param_(p), cam_(cam), initial_temp_(1000)
+    HypothesisVerification (const Camera::ConstPtr &cam, const HV_Parameter &p = HV_Parameter())
+        :
+          param_(p),
+          cam_(cam),
+          initial_temp_(1000),
+          OneOver_distNorm0_ ( 1.f / distNormals(1.f) ),
+          OneOver_distColor0_ (1.f / distColor(0.f) ),
+          OneOver_inlier_treshold_squared_ ( 1.f / (param_.inliers_threshold_ * param_.inliers_threshold_) )
     {
         colorTransf_.reset(new RGB2CIELAB);
 

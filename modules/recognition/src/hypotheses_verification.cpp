@@ -392,7 +392,7 @@ HypothesisVerification<ModelT, SceneT>::evaluateSolution (const boost::dynamic_b
     for(auto spt_it = scene_pts_explained_solution_.begin(); spt_it!=scene_pts_explained_solution_.end(); ++spt_it)
         std::sort(spt_it->begin(), spt_it->end());
 
-    double scene_fit =0., duplicity=0.;
+    double scene_fit = 0., duplicity = 0.;
     Eigen::Array<bool, Eigen::Dynamic, 1> scene_pt_is_explained( scene_cloud_downsampled_->points.size() );
     scene_pt_is_explained.setConstant( scene_cloud_downsampled_->points.size(), false);
 
@@ -554,22 +554,22 @@ HypothesisVerification<ModelT, SceneT>::extractEuclideanClustersSmooth()
     }
 }
 
-template<typename ModelT, typename SceneT>
-void
-HypothesisVerification<ModelT, SceneT>::computeLOffset(HVRecognitionModel<ModelT> &rm)const
-{
-    Eigen::VectorXf color_s ( rm.scene_explained_weight_.nonZeros() );
+//template<typename ModelT, typename SceneT>
+//void
+//HypothesisVerification<ModelT, SceneT>::computeLOffset(HVRecognitionModel<ModelT> &rm)const
+//{
+//    Eigen::VectorXf color_s ( rm.scene_explained_weight_.nonZeros() );
 
-    size_t kept=0;
-    for (Eigen::SparseVector<float>::InnerIterator it(rm.scene_explained_weight_); it; ++it)
-    {
-        int sidx = it.index();
-        color_s(kept++) = scene_color_channels_(sidx,0);
-    }
+//    size_t kept=0;
+//    for (Eigen::SparseVector<float>::InnerIterator it(rm.scene_explained_weight_); it; ++it)
+//    {
+//        int sidx = it.index();
+//        color_s(kept++) = scene_color_channels_(sidx,0);
+//    }
 
-    Eigen::VectorXf color_new = specifyHistogram( rm.pt_color_.col( 0 ), color_s, 100, 0.f, 100.f );
-    rm.pt_color_.col( 0 ) = color_new;
-}
+//    Eigen::VectorXf color_new = specifyHistogram( rm.pt_color_.col( 0 ), color_s, 100, 0.f, 100.f );
+//    rm.pt_color_.col( 0 ) = color_new;
+//}
 
 template<typename ModelT, typename SceneT>
 void
@@ -1101,7 +1101,7 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
             normal_s.normalize();
 
             float dotp = std::min( 0.99999f, std::max(-0.99999f, normal_m.dot(normal_s) ) );
-            c.angle_surface_normals_rad_ = dotp;
+            c.normals_dotp_ = dotp;
 
 //            CHECK (c.angle_surface_normals_rad_ <= M_PI) << "invalid normals: " << std::endl << normal_m << std::endl << std::endl << normal_s << std::endl << std::endl << "dotp: " << dotp << std::endl << "acos: " << c.angle_surface_normals_rad_ << std::endl;
 //            CHECK (c.angle_surface_normals_rad_ >= 0.f ) << "invalid normals: " << std::endl << normal_m << std::endl << std::endl << normal_s << std::endl << std::endl << "dotp: " << dotp << std::endl << "acos: " << c.angle_surface_normals_rad_ << std::endl;
