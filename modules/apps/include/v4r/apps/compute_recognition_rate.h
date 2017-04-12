@@ -51,7 +51,8 @@ private:
     std::string test_dir;
     bool visualize_;
     bool visualize_errors_only_;
-    bool use_generated_hypotheses;
+    bool highlight_errors_;
+    bool use_generated_hypotheses_;
 
     pcl::visualization::PCLVisualizer::Ptr vis_;
     int vp1_, vp2_, vp3_;
@@ -74,7 +75,8 @@ public:
           out_dir("/tmp/recognition_rates/"),
           visualize_(false),
           visualize_errors_only_(false),
-          use_generated_hypotheses(false)
+          highlight_errors_ (false),
+          use_generated_hypotheses_(false)
     {
         rotational_invariant_objects_ = {
             "toilet_paper", "red_mug_white_spots", "muller_milch_shoko", "muller_milch_banana", "coffee_container",
@@ -126,8 +128,8 @@ public:
      * @param[in] rec_hyps recognition hypotheses
      * @param[in] gt_hyps ground-truth hypotheses
      * @param[in] centroid of object model in model coordinate system
-     * @param[out] sum_translation_error
-     * @param[out] sum_rotational_error
+     * @param[out] translation_errors
+     * @param[out] rotational_errors
      * @param[out] tp true positives
      * @param[out] fp flase positives
      * @param[out] fn false negatives
@@ -138,8 +140,8 @@ public:
                           const std::vector<Hypothesis> &rec_hyps,
                           const std::vector<Hypothesis> &gt_hyps,
                           const Eigen::Vector4f &model_centroid,
-                          double &sum_translation_error,
-                          double &sum_rotational_error,
+                          std::vector<float> &translation_error,
+                          std::vector<float> &rotational_error,
                           size_t &tp, size_t &fp, size_t &fn,
                           bool is_rotation_invariant , bool is_rotational_symmetric );
 
@@ -155,8 +157,8 @@ public:
      * @param tp true positives for best match
      * @param fp false positives for best match
      * @param fn false negatives for best match
-     * @param sum_translation_error accumulated translation error for best match
-     * @param sum_rotational_error accumulated rotational error for best match
+     * @param translation_errors accumulated translation error for best match
+     * @param rotational_errors accumulated rotational error for best match
      * @param[in] true if model is invariant for rotation around z
      * @param[in] true if model is symmetric for rotation around z (180deg periodic)
      * @return best match for the given hypotheses. First index corresponds to element in
@@ -166,8 +168,8 @@ public:
                                                       const std::vector<Hypothesis> &gt_hyps,
                                                       const Eigen::Vector4f &model_centroid,
                                                       size_t &tp, size_t &fp, size_t &fn,
-                                                      double &sum_translation_error,
-                                                      double &sum_rotational_error,
+                                                      std::vector<float> &translation_errors,
+                                                      std::vector<float> &rotational_errors,
                                                       bool is_rotation_invariant , bool is_rotational_symmetric );
 
     std::map<std::string, std::vector<Hypothesis> >

@@ -56,11 +56,7 @@ RecognitionEvaluator::computeError(const Eigen::Matrix4f &pose_a, const Eigen::M
     float angleXY = 0.f;
     if( !is_rotation_invariant )
     {
-        Eigen::Vector2f rotXY_a = rotX_a.head(2);
-        rotXY_a.normalize();
-        Eigen::Vector2f rotXY_b = rotX_b.head(2);
-        rotXY_b.normalize();
-        angleXY = pcl::rad2deg ( acos (rotXY_a.dot(rotXY_b ) ) );
+        angleXY = pcl::rad2deg ( acos (rotX_a.dot(rotX_b ) ) );
 
         if( is_rotational_symmetric )
             angleXY = std::min<float>(angleXY, fabs( 180.f - angleXY) );
@@ -71,6 +67,8 @@ RecognitionEvaluator::computeError(const Eigen::Matrix4f &pose_a, const Eigen::M
     trans_error = (centroid_a.head(3)-centroid_b.head(3)).norm();
     rot_error = std::max<float>(angleXY, angleZ);
 
+    VLOG(1) << "translation error: " << trans_error << ", rotational error: " << angleXY << "(xy), " << angleZ << "(z), is rotational invariant? " << is_rotation_invariant << ", is rotational symmetric? " << is_rotational_symmetric;
+
     if(trans_error > translation_error_threshold_m || rot_error > rotation_error_threshold_deg)
         return true;
 
@@ -79,22 +77,29 @@ RecognitionEvaluator::computeError(const Eigen::Matrix4f &pose_a, const Eigen::M
 
 void
 RecognitionEvaluator::checkMatchvector(const std::vector< std::pair<int, int> > &rec2gt,
-                      const std::vector<Hypothesis> &rec_hyps,
-                      const std::vector<Hypothesis> &gt_hyps,
-                      const Eigen::Vector4f &model_centroid,
-                      double &sum_translation_error, double &sum_rotational_error,
-                      size_t &tp, size_t &fp, size_t &fn, bool is_rotation_invariant, bool is_rotational_symmetric)
+                                       const std::vector<Hypothesis> &rec_hyps,
+                                       const std::vector<Hypothesis> &gt_hyps,
+                                       const Eigen::Vector4f &model_centroid,
+                                       std::vector<float> &translation_error,
+                                       std::vector<float> &rotational_error,
+                                       size_t &tp, size_t &fp, size_t &fn,
+                                       bool is_rotation_invariant,
+                                       bool is_rotational_symmetric)
 {
-    sum_translation_error = 0.;
-    sum_rotational_error = 0.;
+    translation_error = std::vector<float>(rec2gt.size(), -1000.f);
+    rotational_error = std::vector<float>(rec2gt.size(), -1000.f);
     tp = fp = fn = 0;
+
     for(size_t i=0; i<rec2gt.size(); i++)
     {
         int rec_id = rec2gt[i].first;
         int gt_id = rec2gt[i].second;
 
+        VLOG(1) << "Checking rec_id " << rec_id << " and gt_id " << gt_id;
+
         if(gt_id < 0)
         {
+            VLOG(1) << "Adding false positve because there is not a single ground-truth object with the same instance name";
             fp++;
             continue;
         }
@@ -104,40 +109,47 @@ RecognitionEvaluator::checkMatchvector(const std::vector< std::pair<int, int> > 
         if( rec_id < 0 )
         {
             if( gt_hyp.occlusion < occlusion_threshold) // only count if the gt object is not occluded
+            {
                 fn++;
+                VLOG(1) << "Adding false negative because there is not a single detected object with the same instance name";
+            }
 
             continue;
         }
 
         const Hypothesis &rec_hyp = rec_hyps [ rec_id ] ;
 
-        float trans_error, rot_error;
-        if( computeError( rec_hyp.pose, gt_hyp.pose, model_centroid, trans_error, rot_error, is_rotation_invariant, is_rotational_symmetric))
+        if( computeError( rec_hyp.pose, gt_hyp.pose, model_centroid, translation_error[i], rotational_error[i], is_rotation_invariant, is_rotational_symmetric))
         {
             fp++;
 
             if( gt_hyp.occlusion < occlusion_threshold)
+            {
                 fn++;
+                VLOG(1) << "Adding false negative";
+            }
+            else
+                VLOG(1) << "Adding false positve";
         }
         else
         {
+            VLOG(1) << "Adding true positve";
             tp++;
-            sum_translation_error += trans_error;
-            sum_rotational_error += rot_error;
         }
     }
 }
 
 std::vector< std::pair<int, int> >
 RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
-                 const std::vector<Hypothesis> &gt_hyps,
-                 const Eigen::Vector4f &model_centroid,
-                 size_t &tp, size_t &fp, size_t &fn,
-                 double &sum_translation_error, double &sum_rotational_error, bool is_rotation_invariant, bool is_rotational_symmetric)
+                                       const std::vector<Hypothesis> &gt_hyps,
+                                       const Eigen::Vector4f &model_centroid,
+                                       size_t &tp, size_t &fp, size_t &fn,
+                                       std::vector<float> &translation_errors,
+                                       std::vector<float> &rotational_errors,
+                                       bool is_rotation_invariant,
+                                       bool is_rotational_symmetric)
 {
     float best_fscore = -1;
-    sum_translation_error = std::numeric_limits<float>::max();
-    sum_rotational_error = std::numeric_limits<float>::max();
     tp=0, fp=0, fn=0;
 
     std::vector< std::pair<int, int> > best_match;
@@ -169,10 +181,10 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
                 rec2gt_matches.push_back( std::pair<int, int>(rec_id, gt_id) );
             }
 
-            double sum_translation_error_tmp;
-            double sum_rotational_error_tmp;
+            std::vector<float> translation_errors_tmp;
+            std::vector<float> rotational_errors_tmp;
             size_t tp_tmp, fp_tmp, fn_tmp;
-            checkMatchvector(rec2gt_matches, rec_hyps, gt_hyps, model_centroid, sum_translation_error_tmp, sum_rotational_error_tmp,
+            checkMatchvector(rec2gt_matches, rec_hyps, gt_hyps, model_centroid, translation_errors_tmp, rotational_errors_tmp,
                              tp_tmp, fp_tmp, fn_tmp, is_rotation_invariant, is_rotational_symmetric);
 
             float recall = 1.f;
@@ -187,12 +199,11 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
             if ( precision+recall>std::numeric_limits<float>::epsilon() )
                 fscore = 2.f * precision * recall / (precision + recall);
 
-
-            if ( (fscore > best_fscore) || (fscore==best_fscore && sum_translation_error_tmp/tp_tmp < sum_translation_error/tp))
+            if ( (fscore > best_fscore) ) // || (fscore==best_fscore && translation_errors_tmp/tp_tmp < translation_errors/tp))
             {
                 best_fscore = fscore;
-                sum_translation_error = sum_translation_error_tmp;
-                sum_rotational_error = sum_rotational_error_tmp;
+                translation_errors = translation_errors_tmp;
+                rotational_errors = rotational_errors_tmp;
                 tp = tp_tmp;
                 fp = fp_tmp;
                 fn = fn_tmp;
@@ -200,7 +211,6 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
             }
         } while ( next_permutation( ids_rec.begin(), ids_rec.end()) );
     } while ( next_permutation( ids_get.begin(), ids_get.end()) );
-
 
     return best_match;
 }
@@ -341,7 +351,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
         gt_path /= anno_file;
 
         std::string rec_file = anno_file;
-        if(use_generated_hypotheses)
+        if(use_generated_hypotheses_)
             boost::replace_last( rec_file, ".anno", ".generated_hyps");
 
         bf::path rec_path = or_dir;
@@ -381,8 +391,8 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                 gt_hyps_tmp = it->second;
 
             size_t tp_tmp=0, fp_tmp=0, fn_tmp=0;
-            double sum_translation_error_tmp=0.;
-            double sum_rotational_error_tmp=0.;
+            std::vector<float> translation_errors_tmp;
+            std::vector<float> rotational_errors_tmp;
             std::vector< std::pair<int, int> > matches;
 
 //            if( gt_hyps_tmp.empty() && rec_hyps_tmp.empty() )
@@ -410,7 +420,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             {
                 const Eigen::Vector4f &centroid = m.second.centroid;
                 matches = selectBestMatch(rec_hyps_tmp, gt_hyps_tmp, centroid, tp_tmp, fp_tmp, fn_tmp,
-                                          sum_translation_error_tmp, sum_rotational_error_tmp,
+                                          translation_errors_tmp, rotational_errors_tmp,
                                           m.second.is_rotation_invariant_, m.second.is_rotational_symmetric_);
             }
 
@@ -418,6 +428,18 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             tp_view+=tp_tmp;
             fp_view+=fp_tmp;
             fn_view+=fn_tmp;
+
+            float sum_translation_error_tmp = 0.f;
+            float sum_rotational_error_tmp = 0.f;
+
+            for(size_t t_id=0; t_id<translation_errors_tmp.size(); t_id++)
+            {
+                if( translation_errors_tmp[t_id]>0.f )
+                {
+                    sum_translation_error_tmp += translation_errors_tmp[t_id];
+                    sum_rotational_error_tmp += rotational_errors_tmp[t_id];
+                }
+            }
             sum_translation_error_view += sum_translation_error_tmp;
             sum_rotational_error_view += sum_rotational_error_tmp;
 
@@ -436,8 +458,10 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                 }
 
                 size_t counter = 0;
-                for ( const auto &match : matches )
+
+                for (size_t m_id=0; m_id<matches.size(); m_id++)
                 {
+                    const auto &match = matches[m_id];
                     int rec_id = match.first;
                     int gt_id = match.second;
 
@@ -447,6 +471,32 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
+
+                        if(gt_id<0)
+                        {
+                            for(PointT &p : model_aligned->points)
+                                p.r = 255;
+                        }
+                        else if( highlight_errors_ && ( (rotational_errors_tmp[m_id] > rotation_error_threshold_deg) || (translation_errors_tmp[m_id] > translation_error_threshold_m) ) )
+                        {
+                            for(PointT &p : model_aligned->points)
+                                p.g = 255;
+
+                            Eigen::Vector4f centroid = m.second.centroid;
+                            centroid = hyp_vis.pose * centroid;
+                            pcl::PointXYZ centroid_p;
+                            centroid_p.getVector4fMap() = centroid;
+                            vis_->addSphere(centroid_p, 0.01, 0, 0, 255, "center_rec", vp3_);
+
+                            pcl::PointXYZ arrow_end;
+                            arrow_end.getVector3fMap() = centroid.head(3) + 0.1f * hyp_vis.pose.block<3,3>(0,0) * Eigen::Vector3f::UnitX();
+                            vis_->addArrow(centroid_p, arrow_end, 0.f, 0.f, 0.f, "arrow_rec", vp3_);
+
+                            std::cout << gt_hyps_tmp[ gt_id ].pose.block<3,3>(0,0) * Eigen::Vector3f::UnitX() <<std::endl <<std::endl << hyp_vis.pose.block<3,3>(0,0) * Eigen::Vector3f::UnitX() << std::endl;
+
+                            VLOG(1) << "POSE ERROR WITH trans_error: " << translation_errors_tmp[m_id] << " and rot error: " << rotational_errors_tmp[m_id];
+                        }
+
                         std::stringstream unique_id; unique_id << m.first << "_" << counter;
                         vis_->addPointCloud(model_aligned, unique_id.str(), vp3_);
 
@@ -468,7 +518,28 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
+
                         std::stringstream unique_id; unique_id << m.first << "_" << counter;
+                        if( rec_id<0 )
+                        {
+                            for(PointT &p : model_aligned->points)
+                                p.r = 255;
+                        }
+                        else if(highlight_errors_ && ( (rotational_errors_tmp[m_id] > rotation_error_threshold_deg) || (translation_errors_tmp[m_id] > translation_error_threshold_m) ) )
+                        {
+                            for(PointT &p : model_aligned->points)
+                                p.g = 255;
+
+                            Eigen::Vector4f centroid = m.second.centroid;
+                            centroid = hyp_vis.pose * centroid;
+                            pcl::PointXYZ centroid_p;
+                            centroid_p.getVector4fMap() = centroid;
+                            vis_->addSphere(centroid_p, 0.01, 0, 0, 255, "center_gt", vp3_);
+                            pcl::PointXYZ arrow_end;
+                            arrow_end.getVector3fMap() = centroid.head(3) + 0.1f * hyp_vis.pose.block<3,3>(0,0) * Eigen::Vector3f::UnitX();
+                            vis_->addArrow(centroid_p, arrow_end, 0.f, 0.f, 0.f, "arrow_gt", vp3_);
+
+                        }
 
                         if(hyp_vis.occlusion > occlusion_threshold)
                         {
@@ -523,7 +594,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
 //            vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp3");
 
             vis_->addText( scene_name, 10, 10, 15, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "scene_text", vp1_);
-            vis_->addText("ground-truth objects (occluded objects in blue)", 10, 10, 15, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "gt_text", vp2_);
+            vis_->addText("ground-truth objects (occluded objects in blue, false ones in red, pose errors green)", 10, 10, 15, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "gt_text", vp2_);
             std::stringstream rec_text;
             rec_text << "recognized objects (tp: " << tp_view << ", fp: " << fp_view << ", fn: " << fn_view;
             if(tp_view)
@@ -535,7 +606,6 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             vis_->addText(rec_text.str(), 10, 10, 15, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "rec_text", vp3_);
 //            vis->resetCamera();
             vis_->spin();
-            vis_.reset();
         }
     }
     of.close();
@@ -584,12 +654,12 @@ void RecognitionEvaluator::setGt_dir(const std::string &value)
 
 bool RecognitionEvaluator::getUse_generated_hypotheses() const
 {
-    return use_generated_hypotheses;
+    return use_generated_hypotheses_;
 }
 
 void RecognitionEvaluator::setUse_generated_hypotheses(bool value)
 {
-    use_generated_hypotheses = value;
+    use_generated_hypotheses_ = value;
 }
 
 bool RecognitionEvaluator::getVisualize() const
@@ -651,10 +721,11 @@ RecognitionEvaluator::init(const std::vector<std::string> &params)
             ("occlusion_thresh", po::value<float>(&occlusion_threshold)->default_value(occlusion_threshold), "Occlusion threshold. Object with higher occlusion will be ignored in the evaluation")
             ("visualize,v", po::bool_switch(&visualize_), "visualize recognition results")
             ("visualize_errors_only", po::bool_switch(&visualize_errors_only_), "visualize only if there are errors (visualization must be on)")
+            ("highlight_errors", po::bool_switch(&highlight_errors_), "if true, highlights errors in the visualization")
             ("verbosity", po::value<int>(&verbosity)->default_value(verbosity), "verbosity level")
             ("models_dir,m", po::value<std::string>(&models_dir), "Only for visualization. Root directory containing the model files (i.e. filenames 3D_model.pcd).")
             ("test_dir,t", po::value<std::string>(&test_dir), "Only for visualization. Root directory containing the scene files.")
-            ("use_generated_hypotheses", po::bool_switch(&use_generated_hypotheses), "if true, computes recognition rate for all generated hypotheses instead of verified ones.")
+            ("use_generated_hypotheses", po::bool_switch(&use_generated_hypotheses_), "if true, computes recognition rate for all generated hypotheses instead of verified ones.")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(params).options(desc).allow_unregistered().run();
@@ -706,7 +777,7 @@ RecognitionEvaluator::compute_recognition_rate_over_occlusion()
         gt_path /= anno_file;
 
         std::string rec_file = anno_file;
-        if( use_generated_hypotheses )
+        if( use_generated_hypotheses_ )
             boost::replace_last( rec_file, ".anno", ".generated_hyps");
 
         bf::path rec_path = or_dir;
@@ -782,7 +853,7 @@ RecognitionEvaluator::checkIndividualHypotheses()
         gt_path /= anno_file;
 
         std::string rec_file = anno_file;
-        if(use_generated_hypotheses)
+        if(use_generated_hypotheses_)
             boost::replace_last( rec_file, ".anno", ".generated_hyps");
 
         bf::path rec_path = or_dir;
@@ -948,7 +1019,7 @@ RecognitionEvaluator::compute_confusion_matrix()
         gt_path /= anno_file;
 
         std::string rec_file = anno_file;
-        if( use_generated_hypotheses )
+        if( use_generated_hypotheses_ )
             boost::replace_last( rec_file, ".anno", ".generated_hyps");
 
         bf::path rec_path = or_dir;
