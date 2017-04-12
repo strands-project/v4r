@@ -208,7 +208,7 @@ HV_CuesVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<ModelT
                 size_t num_explained_pts_in_region = explained_pt_in_region.count();
                 size_t num_pts_in_smooth_regions = s_pt_in_region.count();
 
-                if(!vis_param_->no_text_ && num_explained_pts_in_region)
+                if(!vis_param_->no_text_ && num_explained_pts_in_region && i>0) // do not show label "0" as they are not associated to any cluster
                 {
                     std::stringstream lbl_txt; lbl_txt << std::fixed << std::setprecision(2) << num_explained_pts_in_region << " /" << " " << num_pts_in_smooth_regions;
 
