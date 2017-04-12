@@ -29,6 +29,7 @@
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <boost/serialization/serialization.hpp>
+#include <glog/logging.h>
 #include <v4r/core/macros.h>
 #include <v4r/io/filesystem.h>
 namespace po = boost::program_options;
@@ -252,6 +253,7 @@ public:
         if( !v4r::io::existsFile(filename) )
             throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
 
+        VLOG(1) << "Loading parameters from file " << filename;
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
         ia >> BOOST_SERIALIZATION_NVP( *this );
