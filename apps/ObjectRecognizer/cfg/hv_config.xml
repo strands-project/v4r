@@ -3,19 +3,19 @@
 <boost_serialization signature="serialization::archive" version="10">
 <paramHV class_id="0" tracking_level="0" version="0">
 	<resolution_mm_>5</resolution_mm_>
-	<inliers_threshold_>0.0099999998</inliers_threshold_>
+	<inliers_threshold_>0.01</inliers_threshold_>
 	<inliers_surface_angle_thres_dotp_>0.99</inliers_surface_angle_thres_dotp_>
-	<occlusion_thres_>0.0099999998</occlusion_thres_>
+	<occlusion_thres_>0.01</occlusion_thres_>
 	<smoothing_radius_>2</smoothing_radius_>
 	<do_smoothing_>1</do_smoothing_>
 	<do_erosion_>1</do_erosion_>
 	<erosion_radius_>4</erosion_radius_>
 	<icp_iterations_>10</icp_iterations_>
-	<w_normals_>0.33000001</w_normals_>
-	<w_color_>0.33000001</w_color_>
-	<w_3D_>0.33000001</w_3D_>
-	<sigma_color_>20</sigma_color_>
-	<color_inlier_treshold_>30</color_inlier_treshold_>
+	<w_normals_>0.3333</w_normals_>
+	<w_color_>0.3333</w_color_>
+	<w_3D_>0.3333</w_3D_>
+	<sigma_color_>15</sigma_color_>
+	<color_inlier_treshold_>25</color_inlier_treshold_>
 	<sigma_normals_>0.05</sigma_normals_>
 	<regularizer_>3</regularizer_>
 	<normal_method_>2</normal_method_>
@@ -30,8 +30,8 @@
 	<min_visible_ratio_>0.05</min_visible_ratio_>
 	<check_smooth_clusters_>1</check_smooth_clusters_>
 	<eps_angle_threshold_deg_>5</eps_angle_threshold_deg_>
-	<curvature_threshold_>0.039999999</curvature_threshold_>
-	<cluster_tolerance_>0.0099999998</cluster_tolerance_>
+	<curvature_threshold_>0.04</curvature_threshold_>
+	<cluster_tolerance_>0.01</cluster_tolerance_>
 	<min_points_>50</min_points_>
 	<min_ratio_cluster_explained_>0.5</min_ratio_cluster_explained_>
 	<z_adaptive_>1</z_adaptive_>
