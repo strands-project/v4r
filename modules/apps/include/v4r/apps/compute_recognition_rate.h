@@ -50,6 +50,7 @@ private:
     std::string models_dir;
     std::string test_dir;
     bool visualize_;
+    bool visualize_errors_only_;
     bool use_generated_hypotheses;
 
     pcl::visualization::PCLVisualizer::Ptr vis_;
@@ -72,6 +73,7 @@ public:
           occlusion_threshold(0.95f),
           out_dir("/tmp/recognition_rates/"),
           visualize_(false),
+          visualize_errors_only_(false),
           use_generated_hypotheses(false)
     {
         rotational_invariant_objects_ = {

@@ -135,11 +135,6 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
                  size_t &tp, size_t &fp, size_t &fn,
                  double &sum_translation_error, double &sum_rotational_error, bool is_rotation_invariant, bool is_rotational_symmetric)
 {
-    // go through all possible permutations and return best match
-    size_t elements_to_check = std::max(rec_hyps.size(), gt_hyps.size());
-    size_t min_elements = std::min(rec_hyps.size(), gt_hyps.size());
-    size_t max_offset = elements_to_check - min_elements;
-
     float best_fscore = -1;
     sum_translation_error = std::numeric_limits<float>::max();
     sum_rotational_error = std::numeric_limits<float>::max();
@@ -147,57 +142,31 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
 
     std::vector< std::pair<int, int> > best_match;
 
-    /*
-     * example:
-     * a = [0 1 2 3 4 5]
-     * b = [0 1 2]
-     *
-     * now we permutate through all possible combinations of b (smaller vector)
-     * and slide the vector through the elements of a for each permuation iteration
-     *
-     * e.g.
-     * b = [-1 -1 0 1 2 -1]
-     * b = [-1 -1 -1 0 1 2]
-     * b = [2 1 0 -1 -1 -1]
-     * b = [-1 2 1 0 -1 -1]
-     */
-    std::vector<int> ids( min_elements );
-    std::iota (std::begin(ids), std::end(ids), 0);
-
-    bool gt_is_smaller = gt_hyps.size() < rec_hyps.size();
-
+    std::vector<int> ids_get( gt_hyps.size() );
+    std::iota (std::begin(ids_get), std::end(ids_get), 0);
     do
     {
-        for(size_t offset=0; offset<=max_offset; offset++)
+        std::vector<int> ids_rec( rec_hyps.size() );
+        std::iota (std::begin(ids_rec), std::end(ids_rec), 0);
+        do
         {
-            std::vector< std::pair<int, int> > rec2gt_matches (elements_to_check);
+            std::vector< std::pair<int, int> > rec2gt_matches;
 
-            // initialize all b's to -1 (b = [-1 -1 -1 -1 -1 -1] )
-            for(size_t i=0; i<elements_to_check; i++)
+            for(size_t i=0; i< std::max(rec_hyps.size(), gt_hyps.size()); i++)
             {
                 int rec_id, gt_id;
 
-                if(gt_is_smaller)
-                {
-                    rec_id = i;
+                if( i>=gt_hyps.size() )
                     gt_id = -1;
-                }
                 else
-                {
+                    gt_id = ids_get[i];
+
+                if( i>= rec_hyps.size() )
                     rec_id = -1;
-                    gt_id = i;
-                }
-
-                rec2gt_matches[i] = std::pair<int, int>(rec_id, gt_id);
-            }
-
-            // now set the corresponding b values to their current permutation
-            for(size_t i=0; i<min_elements; i++)
-            {
-                if(gt_is_smaller)
-                    rec2gt_matches[i+offset].second = ids[i];
                 else
-                    rec2gt_matches[i+offset].first = ids[i];
+                    rec_id = ids_rec[i];
+
+                rec2gt_matches.push_back( std::pair<int, int>(rec_id, gt_id) );
             }
 
             double sum_translation_error_tmp;
@@ -216,7 +185,8 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
 
             float fscore = 0.f;
             if ( precision+recall>std::numeric_limits<float>::epsilon() )
-                fscore = 2 * precision * recall / (precision + recall);
+                fscore = 2.f * precision * recall / (precision + recall);
+
 
             if ( (fscore > best_fscore) || (fscore==best_fscore && sum_translation_error_tmp/tp_tmp < sum_translation_error/tp))
             {
@@ -228,9 +198,10 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
                 fn = fn_tmp;
                 best_match = rec2gt_matches;
             }
-        }
+        } while ( next_permutation( ids_rec.begin(), ids_rec.end()) );
+    } while ( next_permutation( ids_get.begin(), ids_get.end()) );
 
-    } while ( next_permutation( ids.begin(), ids.end()) );
+
     return best_match;
 }
 
@@ -532,6 +503,9 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
 
         if(visualize_)
         {
+            if( visualize_errors_only_ && fp_view == 0)
+                continue;
+
             std::string scene_name (anno_file);
             boost::replace_last( scene_name, ".anno", ".pcd");
             bf::path scene_path = test_dir;
@@ -665,6 +639,8 @@ void RecognitionEvaluator::loadModels()
 std::vector<std::string>
 RecognitionEvaluator::init(const std::vector<std::string> &params)
 {
+    int verbosity = 0;
+
     po::options_description desc("Evaluation of object recognition\n==========================================\nAllowed options:\n");
     desc.add_options()
             ("help,h", "produce help message")
@@ -675,6 +651,8 @@ RecognitionEvaluator::init(const std::vector<std::string> &params)
             ("rot_thresh", po::value<float>(&rotation_error_threshold_deg)->default_value(rotation_error_threshold_deg), "Maximal allowed rotational error in degrees")
             ("occlusion_thresh", po::value<float>(&occlusion_threshold)->default_value(occlusion_threshold), "Occlusion threshold. Object with higher occlusion will be ignored in the evaluation")
             ("visualize,v", po::bool_switch(&visualize_), "visualize recognition results")
+            ("visualize_errors_only", po::bool_switch(&visualize_errors_only_), "visualize only if there are errors (visualization must be on)")
+            ("verbosity", po::value<int>(&verbosity)->default_value(verbosity), "verbosity level")
             ("models_dir,m", po::value<std::string>(&models_dir), "Only for visualization. Root directory containing the model files (i.e. filenames 3D_model.pcd).")
             ("test_dir,t", po::value<std::string>(&test_dir), "Only for visualization. Root directory containing the scene files.")
             ("use_generated_hypotheses", po::bool_switch(&use_generated_hypotheses), "if true, computes recognition rate for all generated hypotheses instead of verified ones.")
@@ -686,6 +664,13 @@ RecognitionEvaluator::init(const std::vector<std::string> &params)
     if (vm.count("help")) { std::cout << desc << std::endl;}
     try  {  po::notify(vm); }
     catch( std::exception& e)  { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
+
+    if(verbosity>=0)
+    {
+        FLAGS_logtostderr = 1;
+        FLAGS_v = verbosity;
+        std::cout << "Enabling verbose logging." << std::endl;
+    }
 
     loadModels();
 
