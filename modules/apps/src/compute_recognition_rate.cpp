@@ -262,9 +262,9 @@ RecognitionEvaluator::visualizeResults(const typename pcl::PointCloud<PointT>::P
     input_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
     input_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
     vis->addPointCloud(input_cloud, "scene", vp1);
-    vis->addText("scene", 10, 10, 14, 1., 1., 1., "scene", vp1);
-    vis->addText("ground-truth", 10, 10, 14, 1., 1., 1., "gt", vp2);
-    vis->addText("recognition results", 10, 10, 14, 1., 1., 1., "rec", vp3);
+    vis->addText("scene", 10, 10, 14, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "scene", vp1);
+    vis->addText("ground-truth", 10, 10, 14, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "gt", vp2);
+    vis->addText("recognition results", 10, 10, 14, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "rec", vp3);
 
     pcl::visualization::PointCloudColorHandlerCustom<PointT> gray (input_cloud, 255, 255, 255);
     vis->addPointCloud(input_cloud, gray, "input_vp2", vp2);
@@ -433,7 +433,6 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                     vis_->setBackgroundColor(vis_params_->bg_color_(0), vis_params_->bg_color_(1), vis_params_->bg_color_(2), vp1_);
                     vis_->setBackgroundColor(vis_params_->bg_color_(0), vis_params_->bg_color_(1), vis_params_->bg_color_(2), vp2_);
                     vis_->setBackgroundColor(vis_params_->bg_color_(0), vis_params_->bg_color_(1), vis_params_->bg_color_(2), vp3_);
-
                 }
 
                 size_t counter = 0;
@@ -523,8 +522,8 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
 //            vis_->addPointCloud(scene_cloud, gray, "input_vp3", vp3_);
 //            vis_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp3");
 
-            vis_->addText( scene_name, 10, 10, 15, 1.f, 1.f, 1.f, "scene_text", vp1_);
-            vis_->addText("ground-truth objects (occluded objects in blue)", 10, 10, 15, 1.f, 1.f, 1.f, "gt_text", vp2_);
+            vis_->addText( scene_name, 10, 10, 15, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "scene_text", vp1_);
+            vis_->addText("ground-truth objects (occluded objects in blue)", 10, 10, 15, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "gt_text", vp2_);
             std::stringstream rec_text;
             rec_text << "recognized objects (tp: " << tp_view << ", fp: " << fp_view << ", fn: " << fn_view;
             if(tp_view)
@@ -533,7 +532,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                 rec_text << " rot_error: " << sum_rotational_error_view/tp_view;
             }
             rec_text << ")";
-            vis_->addText(rec_text.str(), 10, 10, 15, 1.f, 1.f, 1.f, "rec_text", vp3_);
+            vis_->addText(rec_text.str(), 10, 10, 15, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "rec_text", vp3_);
 //            vis->resetCamera();
             vis_->spin();
             vis_.reset();
@@ -817,7 +816,7 @@ RecognitionEvaluator::checkIndividualHypotheses()
             pcl::visualization::PointCloudColorHandlerCustom<PointT> gray (scene_cloud, 255, 255, 255);
             vis->addPointCloud(scene_cloud, gray, "input_vp2", vp2);
             vis->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_vp2");
-            vis->addText( scene_name, 10, 10, 15, 1.f, 1.f, 1.f, "scene_text", vp1);
+            vis->addText( scene_name, 10, 10, 15, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "scene_text", vp1);
         }
 
         for( const auto &m : models )
@@ -899,7 +898,7 @@ RecognitionEvaluator::checkIndividualHypotheses()
                         std::stringstream model_txt;
                         model_txt.precision(2);
                         model_txt << "Transl. error: " << translation_error*100.f << "cm; rotational error: " <<  rotational_error << "deg; occlusion: " << gt_hyp.occlusion;
-                        vis->addText( model_txt.str(), 10, 10, 15, 1.f, 1.f, 1.f, "model_text", vp2);
+                        vis->addText( model_txt.str(), 10, 10, 15, vis_params_->text_color_(0), vis_params_->text_color_(1), vis_params_->text_color_(2), "model_text", vp2);
                     }
 //                    vis->resetCamera();
                     vis->spin();
