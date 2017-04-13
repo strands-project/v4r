@@ -329,7 +329,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
                 const std::string &model_name = id_to_model_name_[lbl];
                 const std::string &class_name = "";
 
-                typename ObjectHypothesis<PointT>::Ptr oh( new ObjectHypothesis<PointT>);
+                typename ObjectHypothesis::Ptr oh( new ObjectHypothesis);
                 oh->model_id_ = model_name;
                 oh->class_id_ = class_name;
                 obj_hyps_filtered_[query_id*predicted_label.cols()+k] = oh;
@@ -355,7 +355,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
 
                 const GlobalObjectModel::ConstPtr &gom = it->second;
 
-                typename ObjectHypothesis<PointT>::Ptr oh( new ObjectHypothesis<PointT>);
+                typename ObjectHypothesis::Ptr oh( new ObjectHypothesis);
                 oh->model_id_ = f.instance_name_;
                 oh->class_id_ = f.class_name_;
                 oh->transform_ = 1.f * descriptor_transforms[query_id].inverse() * gom->descriptor_transforms_[view_id] * gom->model_poses_[view_id].inverse();
@@ -448,7 +448,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
         obj_hyps_filtered_.resize( max_hypotheses );
 
         for(size_t i=0; i<obj_hyps_filtered_.size(); i++)
-            obj_hyps_filtered_[i].reset( new ObjectHypothesis<PointT> );
+            obj_hyps_filtered_[i].reset( new ObjectHypothesis );
 
         size_t kept=0;
         for(int query_id=0; query_id<predicted_label.rows(); query_id++)
@@ -609,7 +609,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
 #endif
                             Eigen::Matrix4f alignment_tf = align_cluster.inverse() * rot_tmp * tf_om_shift2origin2 * tf_om_shift2origin;
 
-                            typename ObjectHypothesis<PointT>::Ptr h( new ObjectHypothesis<PointT>);
+                            typename ObjectHypothesis::Ptr h( new ObjectHypothesis);
                             h->transform_ = alignment_tf; //tf_trans * tf_rot  * rot_tmp;
                             h->confidence_ =  0.f;
                             h->model_id_ = model_name;

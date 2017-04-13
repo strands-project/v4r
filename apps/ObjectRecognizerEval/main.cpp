@@ -182,7 +182,7 @@ main (int argc, char ** argv)
 
                     pcl::StopWatch t;
 
-                    std::vector<v4r::ObjectHypothesesGroup<PT> > generated_object_hypotheses = recognizer.recognize(cloud);
+                    std::vector<v4r::ObjectHypothesesGroup > generated_object_hypotheses = recognizer.recognize(cloud);
 //                    std::vector<std::pair<std::string, float> > elapsed_time = recognizer.getElapsedTimes();
 
                     elapsed_time.push_back( t.getTime() );
@@ -205,7 +205,7 @@ main (int argc, char ** argv)
                         std::ofstream f_verified ( out_path.string().c_str() );
                         for(size_t ohg_id=0; ohg_id<generated_object_hypotheses.size(); ohg_id++)
                         {
-                            for(const v4r::ObjectHypothesis<PT>::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
+                            for(const v4r::ObjectHypothesis::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
                             {
                                 f_generated << oh->model_id_ << " (" << oh->confidence_ << "): ";
                                 for (size_t row=0; row <4; row++)

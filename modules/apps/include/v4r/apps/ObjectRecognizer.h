@@ -118,7 +118,7 @@ public:
      * @param cloud (organized) point cloud
      * @return
      */
-    std::vector<ObjectHypothesesGroup<PointT> > recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud);
+    std::vector<ObjectHypothesesGroup > recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud);
 
     typename pcl::PointCloud<PointT>::ConstPtr
     getModel( const std::string &model_name, int resolution_mm ) const

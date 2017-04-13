@@ -57,7 +57,7 @@ protected:
     typename pcl::PointCloud<PointT>::ConstPtr scene_; ///< Point cloud to be recognized
     pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< associated normals
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
-    std::vector< ObjectHypothesesGroup<PointT> > obj_hypotheses_;   ///< generated object hypotheses
+    std::vector< ObjectHypothesesGroup > obj_hypotheses_;   ///< generated object hypotheses
     typename NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
     Eigen::Vector4f table_plane_;
     bool table_plane_set_;
@@ -105,7 +105,7 @@ public:
      * @brief getObjectHypothesis
      * @return generated object hypothesis
      */
-    std::vector<ObjectHypothesesGroup<PointT> >
+    std::vector<ObjectHypothesesGroup>
     getObjectHypothesis() const
     {
         return obj_hypotheses_;

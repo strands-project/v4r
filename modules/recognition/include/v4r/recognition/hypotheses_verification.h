@@ -505,7 +505,7 @@ public:
      * @param ohs
      */
     void
-    setHypotheses(std::vector<ObjectHypothesesGroup<ModelT> > &ohs);
+    setHypotheses(std::vector<ObjectHypothesesGroup> &ohs);
 
     /**
      * @brief writeToLog

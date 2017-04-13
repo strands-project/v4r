@@ -297,7 +297,7 @@ ObjectRecognizer<PointT>::detectChanges(View &v)
 }
 
 template<typename PointT>
-std::vector<ObjectHypothesesGroup<PointT> >
+std::vector<ObjectHypothesesGroup>
 ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
 {
     //reset view point - otherwise this messes up PCL's visualization (this does not affect recognition results)
@@ -308,7 +308,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
     typename pcl::PointCloud<PointT>::Ptr processed_cloud (new pcl::PointCloud<PointT>(*cloud));
 
-    std::vector<ObjectHypothesesGroup<PointT> > generated_object_hypotheses;
+    std::vector<ObjectHypothesesGroup> generated_object_hypotheses;
 
     elapsed_time_.clear();
 
@@ -536,7 +536,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
     for(size_t ohg_id=0; ohg_id<generated_object_hypotheses.size(); ohg_id++)
     {
-        for( const typename ObjectHypothesis<PointT>::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
+        for( const typename ObjectHypothesis::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
         {
             if( oh->is_verified_ )
             {

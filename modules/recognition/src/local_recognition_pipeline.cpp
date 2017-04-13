@@ -147,14 +147,14 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
             {
                 for(size_t jj=0; jj<merged_transforms.size(); jj++)
                 {
-                    typename ObjectHypothesis<PointT>::Ptr new_oh (new ObjectHypothesis<PointT>);
+                    typename ObjectHypothesis::Ptr new_oh (new ObjectHypothesis);
                     new_oh->model_id_ = loh.model_id_;
                     new_oh->class_id_ = "";
                     new_oh->transform_ = merged_transforms[jj];
                     new_oh->confidence_ = corresp_clusters.size();
                     new_oh->corr_ = corresp_clusters[jj];
 
-                    ObjectHypothesesGroup<PointT> new_ohg;
+                    ObjectHypothesesGroup new_ohg;
                     new_ohg.global_hypotheses_ = false;
                     new_ohg.ohs_.push_back( new_oh );
                     obj_hypotheses_.push_back( new_ohg );
@@ -167,14 +167,14 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
             {
                 for(size_t jj=0; jj<new_transforms.size(); jj++)
                 {
-                    typename ObjectHypothesis<PointT>::Ptr new_oh (new ObjectHypothesis<PointT>);
+                    typename ObjectHypothesis::Ptr new_oh (new ObjectHypothesis);
                     new_oh->model_id_ = loh.model_id_;
                     new_oh->class_id_ = "";
                     new_oh->transform_ = new_transforms[jj];
                     new_oh->confidence_ = corresp_clusters.size();
                     new_oh->corr_ = corresp_clusters[jj];
 
-                    ObjectHypothesesGroup<PointT> new_ohg;
+                    ObjectHypothesesGroup new_ohg;
                     new_ohg.global_hypotheses_ = false;
                     new_ohg.ohs_.push_back( new_oh );
                     obj_hypotheses_.push_back( new_ohg );

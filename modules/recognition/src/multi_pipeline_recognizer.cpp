@@ -40,7 +40,7 @@ MultiRecognitionPipeline<PointT>::recognize()
 
         r->recognize();
 
-        std::vector<ObjectHypothesesGroup<PointT> > oh_tmp = r->getObjectHypothesis();
+        std::vector<ObjectHypothesesGroup> oh_tmp = r->getObjectHypothesis();
         omp_set_lock(&rec_lock_);
         obj_hypotheses_.insert( obj_hypotheses_.end(), oh_tmp.begin(), oh_tmp.end() );
         omp_unset_lock(&rec_lock_);

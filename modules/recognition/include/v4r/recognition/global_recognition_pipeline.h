@@ -61,7 +61,7 @@ private:
     std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes_;  ///< extracted planes
 
     std::vector<typename GlobalRecognizer<PointT>::Ptr > global_recognizers_; ///< set of Global recognizer generating keypoint correspondences
-    std::vector<ObjectHypothesesGroup<PointT> > obj_hypotheses_wo_elongation_check_; ///< just for visualization (to see effect of elongation check)
+    std::vector<ObjectHypothesesGroup > obj_hypotheses_wo_elongation_check_; ///< just for visualization (to see effect of elongation check)
 
     void visualize();
 

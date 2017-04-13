@@ -43,11 +43,11 @@ ObjectRecognitionVisualizer<PointT>::pointPickingEventOccured (const pcl::visual
           bool found = false;
           for(size_t ohg_id=0; ohg_id<generated_object_hypotheses_.size(); ohg_id++)
           {
-              const ObjectHypothesesGroup<PointT> &ohg = generated_object_hypotheses_[ohg_id];
+              const ObjectHypothesesGroup &ohg = generated_object_hypotheses_[ohg_id];
 
               for(size_t oh_id=0; oh_id<ohg.ohs_.size(); oh_id++)
               {
-                  const ObjectHypothesis<PointT> &oh = *ohg.ohs_[oh_id];
+                  const ObjectHypothesis &oh = *ohg.ohs_[oh_id];
 
                   for( const pcl::Correspondence &c : oh.corr_ )
                   {
@@ -215,7 +215,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
     {
         for(size_t i=0; i<generated_object_hypotheses_[ohg_id].ohs_.size(); i++)
         {
-            const ObjectHypothesis<PointT> &oh = *(generated_object_hypotheses_[ohg_id].ohs_[i]);
+            const ObjectHypothesis &oh = *(generated_object_hypotheses_[ohg_id].ohs_[i]);
             bool found;
             typename Model<PointT>::ConstPtr m = m_db_->getModelById(oh.class_id_, oh.model_id_, found);
             const std::string model_id = oh.model_id_.substr(0, oh.model_id_.length() - 4);
@@ -414,7 +414,7 @@ ObjectRecognitionVisualizer<PointT>::visualize() const
     {
         for(size_t i=0; i<generated_object_hypotheses_[ohg_id].ohs_.size(); i++)
         {
-            const ObjectHypothesis<PointT> &oh = *(generated_object_hypotheses_[ohg_id].ohs_[i]);
+            const ObjectHypothesis &oh = *(generated_object_hypotheses_[ohg_id].ohs_[i]);
 
             if( !oh.is_verified_ )
                 continue;

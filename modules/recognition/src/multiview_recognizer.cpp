@@ -31,10 +31,10 @@ MultiviewRecognizer<PointT>::recognize()
     // now add the old hypotheses
     for(const View v_old : views_)
     {
-        for(const ObjectHypothesesGroup<PointT> &ohg_tmp : v_old.obj_hypotheses_)
+        for(const ObjectHypothesesGroup &ohg_tmp : v_old.obj_hypotheses_)
         {
             bool hyp_exists = false;
-            for( const typename ObjectHypothesis<PointT>::Ptr &oh_tmp : ohg_tmp.ohs_)
+            for( const typename ObjectHypothesis::Ptr &oh_tmp : ohg_tmp.ohs_)
             {
                 if( !param_.transfer_only_verified_hypotheses_ || oh_tmp->is_verified_ )
                 {
@@ -45,16 +45,16 @@ MultiviewRecognizer<PointT>::recognize()
 
             if( hyp_exists || !param_.transfer_only_verified_hypotheses_ )
             {
-                ObjectHypothesesGroup<PointT> ohg;
+                ObjectHypothesesGroup ohg;
                 ohg.global_hypotheses_ = ohg_tmp.global_hypotheses_;
 
-                for( const typename ObjectHypothesis<PointT>::Ptr &oh_tmp : ohg_tmp.ohs_)
+                for( const typename ObjectHypothesis::Ptr &oh_tmp : ohg_tmp.ohs_)
                 {
                     if( param_.transfer_only_verified_hypotheses_ && !oh_tmp->is_verified_ )
                         continue;
 
                     // create a copy (since we want to reset verification status and update transform but keep the status for old view)
-                    typename ObjectHypothesis<PointT>::Ptr oh_copy ( new ObjectHypothesis<PointT>);
+                    typename ObjectHypothesis::Ptr oh_copy ( new ObjectHypothesis);
                     *oh_copy = *oh_tmp;
 
                     oh_copy->is_verified_ = false;

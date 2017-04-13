@@ -499,18 +499,18 @@ HypothesisVerification<ModelT, SceneT>::removeModelsWithLowVisibility()
 
 template<typename ModelT, typename SceneT>
 void
-HypothesisVerification<ModelT, SceneT>::setHypotheses(std::vector<ObjectHypothesesGroup<ModelT> > &ohs)
+HypothesisVerification<ModelT, SceneT>::setHypotheses(std::vector<ObjectHypothesesGroup> &ohs)
 {
     obj_hypotheses_groups_.clear();
     obj_hypotheses_groups_.resize(ohs.size());
     for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
     {
-        const ObjectHypothesesGroup<ModelT> &ohg = ohs[i];
+        const ObjectHypothesesGroup &ohg = ohs[i];
 
         obj_hypotheses_groups_[i].resize(ohg.ohs_.size());
         for(size_t jj=0; jj<ohg.ohs_.size(); jj++)
         {
-            typename ObjectHypothesis<ModelT>::Ptr oh = ohg.ohs_[jj];
+            typename ObjectHypothesis::Ptr oh = ohg.ohs_[jj];
             obj_hypotheses_groups_[i][jj].reset ( new HVRecognitionModel<ModelT>(oh) );
             HVRecognitionModel<ModelT> &hv_oh = *obj_hypotheses_groups_[i][jj];
 

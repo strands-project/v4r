@@ -67,8 +67,7 @@ private:
     struct View
     {
         Eigen::Matrix4f camera_pose_;   ///< camera pose of the view which aligns cloud in registered cloud when multiplied
-        std::vector< ObjectHypothesesGroup<PointT> > obj_hypotheses_;   ///< generated object hypotheses
-
+        std::vector< ObjectHypothesesGroup > obj_hypotheses_;   ///< generated object hypotheses
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
         View() :
