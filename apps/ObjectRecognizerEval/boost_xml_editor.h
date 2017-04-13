@@ -144,3 +144,54 @@ getValue(const std::string &xml_filename, const std::string &node_name)
     return value;
 }
 
+//void
+//loadXMLChangesFromFile(const std::stringstream &filename)
+//{
+//    std::ifstream changes_f(filename);
+
+//    std::vector< std::vector<XMLChange> > > grouped_changes;
+
+//    bool found = false;
+
+//    std::string line;
+//    while (std::getline(xml_f, line))
+//    {
+//        std::string first_word; //we only need to check first word
+//        line >> first_word;
+
+//        if(first_word==":")
+//        {
+//            std::pair< std::vector<XMLChange> > new_pair;
+
+//            XMLChange common_values;
+
+//            std::getline(xml_f, line);
+//            line >> common_values.xml_filename_;
+
+//            std::getline(xml_f, line);
+//            line >> common_values.node_name_;
+
+//            std::getline(xml_f, line);
+//            line >> first_word;
+//            std::istringstream(first_word) >> common_values.is_multitoken_;
+
+
+//            while (std::getline(xml_f, line))
+//            {
+//                line >> first_word;
+//                if(first_word=="-")
+//                {
+//                    std::vector<std::string> values;
+//                    while(1)
+//                    {
+//                        std::getline(xml_f, line);
+
+//                        line >> first_word;
+//                    }
+//                }
+
+//            }
+//        }
+//    }
+//}
+
