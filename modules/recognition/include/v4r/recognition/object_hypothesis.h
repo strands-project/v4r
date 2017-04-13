@@ -110,14 +110,6 @@ public:
 template<typename PointT>
 class V4R_EXPORTS HVRecognitionModel
 {
-private:
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
-    {
-//        ar & boost::serialization::base_object<ObjectHypothesis>(*this);
-    }
-
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     typedef boost::shared_ptr< HVRecognitionModel> Ptr;
@@ -148,15 +140,6 @@ public:
     bool is_outlier_;    ///< true if the object model is not able to explain the scene well enough
     bool rejected_due_to_better_hypothesis_in_group_; ///< true if there is any other object model in the same hypotheses group which explains the scene better
     bool rejected_globally_;
-
-//    HVRecognitionModel() :
-//        L_value_offset_ (0.f),
-//        refined_pose_ ( Eigen::Matrix4f::Identity() ),
-//        rejected_due_to_low_visibility_ (false),
-//        is_outlier_ (false),
-//        rejected_due_to_better_hypothesis_in_group_ (false),
-//        rejected_globally_ (false)
-//    {}
 
     HVRecognitionModel(typename ObjectHypothesis::Ptr &oh) :
         L_value_offset_ (0.f),
