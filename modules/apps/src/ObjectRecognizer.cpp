@@ -464,7 +464,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
                 const View &vv = views_[v_id];
                 views[v_id] = vv.cloud_;
                 processed_views[v_id] = vv.processed_cloud_;
-                camera_poses[v_id] = vv.camera_pose_;
+                camera_poses[v_id] = camera_pose.inverse() * vv.camera_pose_;
                 views_normals[v_id] = vv.cloud_normals_;
                 views_pt_properties[v_id] = vv.pt_properties_;
             }
@@ -484,12 +484,6 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
                 VLOG(1) << time_desc << " took " << time << " ms.";
                 elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
             }
-
-            const Eigen::Matrix4f tf_global2camera = camera_pose.inverse();
-
-            typename pcl::PointCloud<PointT>::Ptr registered_scene_cloud_aligned (new pcl::PointCloud<PointT>);
-            pcl::transformPointCloud(*registered_scene_cloud_, *registered_scene_cloud_aligned, tf_global2camera );
-            v4r::transformNormals(*normals, *normals, tf_global2camera );
 
 //            static pcl::visualization::PCLVisualizer vis ("final registration");
 //            int vp1, vp2, vp3;
@@ -515,7 +509,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 //            vis.addPointCloud(removed_points_vis, "registered_cloudc",vp3);
 //            vis.spin();
 
-            hv_->setSceneCloud( registered_scene_cloud_aligned );
+            hv_->setSceneCloud( registered_scene_cloud_ );
             hv_->setOcclusionCloudsAndAbsoluteCameraPoses(views, camera_poses);
         }
         else

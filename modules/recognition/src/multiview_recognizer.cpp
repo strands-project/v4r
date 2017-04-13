@@ -59,6 +59,7 @@ MultiviewRecognizer<PointT>::recognize()
 
                     oh_copy->is_verified_ = false;
                     oh_copy->transform_ = v.camera_pose_.inverse() * v_old.camera_pose_ * oh_copy->transform_;
+//                    oh_copy->transform_ = v_old.camera_pose_ * oh_copy->transform_; ///< ATTENTION: This depends on the input cloud (i.e. in this case the input cloud is in the global reference frame)
                     ohg.ohs_.push_back( oh_copy );
                 }
 
