@@ -261,6 +261,9 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
         vis_model_->createViewPort(0.6, 0.33 , 0.8 ,0.66 , vp_model_color_fit_);
         vis_model_->createViewPort(0.8, 0.33 , 1   ,0.66 , vp_model_normals_fit_);
 
+        vis_model_->createViewPort(0. , 0.66 , 0.2 ,1.00 , vp_scene_normals_);
+        vis_model_->createViewPort(0.2, 0.66 , 0.4 ,1.00 , vp_model_normals_);
+
         vis_model_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2]);
     }
 
@@ -268,6 +271,16 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
     vis_model_->removeAllShapes();
 
     vis_model_->addPointCloud(scene_cloud_vis, "scene1", vp_model_scene_);
+
+    //visualize Normals
+    vis_model_->setBackgroundColor(0., 0., 0., vp_scene_normals_); // normals can only be visualized in white
+    vis_model_->setBackgroundColor(0., 0., 0., vp_model_normals_); // normals can only be visualized in white
+    vis_model_->addPointCloud(scene_cloud_vis, "scene_normals", vp_scene_normals_);
+    vis_model_->addPointCloudNormals<SceneT,pcl::Normal>(scene_cloud_vis, hv->scene_normals_downsampled_, 2, 0.03f, "scene_normalss", vp_scene_normals_);
+    vis_model_->addPointCloud(rm.visible_cloud_, "model_normals", vp_model_normals_);
+    vis_model_->addPointCloudNormals<ModelT,pcl::Normal>(rm.visible_cloud_, rm.visible_cloud_normals_, 2, 0.03f, "model_normalss", vp_model_normals_);
+
+
     vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene1", vp_model_scene_);
 
     pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_vis, 128, 128, 128);
