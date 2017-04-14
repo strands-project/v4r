@@ -10,7 +10,8 @@
 	<do_smoothing_>1</do_smoothing_>
 	<do_erosion_>1</do_erosion_>
 	<erosion_radius_>4</erosion_radius_>
-	<icp_iterations_>10</icp_iterations_>
+	<icp_iterations_>100</icp_iterations_>
+	<icp_max_correspondence_>0.02</icp_max_correspondence_>
 	<w_normals_>0.3333</w_normals_>
 	<w_color_>0.3333</w_color_>
 	<w_3D_>0.3333</w_3D_>

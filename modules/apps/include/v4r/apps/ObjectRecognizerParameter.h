@@ -92,6 +92,7 @@ public:
     bool use_change_detection_; ///< if true, uses change detection to find dynamic elements within observation period (only for multi-view recognition)
     float tolerance_for_cloud_diff_; ///< tolerance in meter for change detection's cloud differencing
     size_t min_points_for_hyp_removal_; ///< how many removed points must overlap hypothesis to be also considered removed
+    size_t max_views_; ///< maximum number of views used for multi-view recognition (if more views are available, information from oldest views will be ignored)
 
     ObjectRecognizerParameter()
         :
@@ -121,7 +122,8 @@ public:
           use_multiview_hv_ (true),
           use_change_detection_ (true),
           tolerance_for_cloud_diff_ (0.02f),
-          min_points_for_hyp_removal_ (50)
+          min_points_for_hyp_removal_ (50),
+          max_views_ (3)
     {
         validate();
     }
@@ -205,6 +207,7 @@ public:
                 ("or_use_multiview", po::value<bool>(&use_multiview_)->default_value(use_multiview_), "")
                 ("or_use_multiview_hv", po::value<bool>(&use_multiview_hv_)->default_value(use_multiview_hv_), "")
                 ("or_use_change_detection", po::value<bool>(&use_change_detection_)->default_value(use_change_detection_), "")
+                ("or_multivew_max_views", po::value<size_t>(&max_views_)->default_value(max_views_), "maximum number of views used for multi-view recognition (if more views are available, information from oldest views will be ignored)")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -245,6 +248,7 @@ private:
                 & BOOST_SERIALIZATION_NVP(use_multiview_)
                 & BOOST_SERIALIZATION_NVP(use_multiview_hv_)
                 & BOOST_SERIALIZATION_NVP(use_change_detection_)
+                & BOOST_SERIALIZATION_NVP(max_views_)
                 ;
     }
 };

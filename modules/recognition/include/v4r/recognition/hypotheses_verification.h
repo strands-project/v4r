@@ -163,7 +163,7 @@ protected:
 
     boost::function<float (const Eigen::VectorXf&, const Eigen::VectorXf&)> color_dist_f_;
 
-    Eigen::Matrix4f refinePose(HVRecognitionModel<ModelT> &rm) const;
+    void refinePose(HVRecognitionModel<ModelT> &rm) const;
 
     cv::Mat img_boundary_distance_; ///< saves for each pixel how far it is away from the boundary (taking into account extrinsics of the camera)
 

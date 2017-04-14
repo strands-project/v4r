@@ -5,9 +5,7 @@
 
 namespace v4r
 {
-
-
-
+size_t ObjectHypothesis::s_counter_ = 0;
 }
 
 

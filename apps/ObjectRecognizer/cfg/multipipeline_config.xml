@@ -43,4 +43,5 @@
 	<use_multiview_>0</use_multiview_>
 	<use_multiview_hv_>1</use_multiview_hv_>
 	<use_change_detection_>1</use_change_detection_>
+	<max_views_>3</max_views_>
 </ObjectRecognizerParameter>

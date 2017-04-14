@@ -221,8 +221,10 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
     if( param_.use_multiview_ )
     {
+        MultiviewRecognizerParameter mv_param;
+        mv_param.max_views_ = param_.max_views_;
         typename RecognitionPipeline<PointT>::Ptr rec_pipeline = boost::static_pointer_cast<RecognitionPipeline<PointT> > (multipipeline);
-        typename v4r::MultiviewRecognizer<PointT>::Ptr mv_rec ( new v4r::MultiviewRecognizer<PointT> );
+        typename MultiviewRecognizer<PointT>::Ptr mv_rec ( new v4r::MultiviewRecognizer<PointT> (mv_param) );
         mv_rec->setSingleViewRecognitionPipeline( rec_pipeline );
         mrec_ = mv_rec;
     }
@@ -391,14 +393,17 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
             }
 
 
-            if (param_.use_change_detection_ )
+            int num_views = std::min<int>(param_.max_views_, views_.size() + 1);
+            LOG(INFO) << "Running multi-view recognition over " << num_views;
+
+            if ( param_.use_change_detection_ )
             {
                 pcl::StopWatch t; const std::string time_desc ("Change detection");
                 detectChanges(v);
 
                 typename pcl::PointCloud<PointT>::Ptr removed_points_cumulative(new pcl::PointCloud<PointT>(*v.removed_points_));
 
-                for(int v_id=views_.size()-1; v_id>=0; v_id--)
+                for(int v_id=(int)views_.size()-1; v_id>=(int)views_.size()-num_views; v_id--)
                 {
                     View &vv = views_[v_id];
 
@@ -453,20 +458,22 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
             views_.push_back(v);
 
-            std::vector<typename pcl::PointCloud<PointT>::ConstPtr> views (views_.size());  ///< all views in multi-view sequence
-            std::vector<typename pcl::PointCloud<PointT>::ConstPtr> processed_views (views_.size());  ///< all processed views in multi-view sequence
-            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > camera_poses (views_.size());   ///< all absolute camera poses in multi-view sequence
-            std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > views_normals (views_.size());  ///< all view normals in multi-view sequence
-            std::vector< std::vector<std::vector<float> > > views_pt_properties (views_.size());  ///< all Nguyens noise model point properties in multi-view sequence
+            std::vector<typename pcl::PointCloud<PointT>::ConstPtr> views (num_views);  ///< all views in multi-view sequence
+            std::vector<typename pcl::PointCloud<PointT>::ConstPtr> processed_views (num_views);  ///< all processed views in multi-view sequence
+            std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > camera_poses (num_views);   ///< all absolute camera poses in multi-view sequence
+            std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > views_normals (num_views);  ///< all view normals in multi-view sequence
+            std::vector< std::vector<std::vector<float> > > views_pt_properties (num_views);  ///< all Nguyens noise model point properties in multi-view sequence
 
-            for(size_t v_id=0; v_id<views_.size(); v_id++)
+            size_t tmp_id=0;
+            for(size_t v_id=views_.size()-num_views; v_id<views_.size(); v_id++)
             {
                 const View &vv = views_[v_id];
-                views[v_id] = vv.cloud_;
-                processed_views[v_id] = vv.processed_cloud_;
-                camera_poses[v_id] = camera_pose.inverse() * vv.camera_pose_;
-                views_normals[v_id] = vv.cloud_normals_;
-                views_pt_properties[v_id] = vv.pt_properties_;
+                views[tmp_id] = vv.cloud_;
+                processed_views[tmp_id] = vv.processed_cloud_;
+                camera_poses[tmp_id] = vv.camera_pose_; //take the current view as the new common referenc frame
+                views_normals[tmp_id] = vv.cloud_normals_;
+                views_pt_properties[tmp_id] = vv.pt_properties_;
+                tmp_id++;
             }
 
             {
@@ -477,7 +484,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
                 nmIntegration.setPointProperties( views_pt_properties );
                 nmIntegration.setTransformations( camera_poses );
                 nmIntegration.setInputNormals( views_normals );
-                nmIntegration.compute(registered_scene_cloud_);
+                nmIntegration.compute(registered_scene_cloud_); // is in global reference frame
                 nmIntegration.getOutputNormals( normals );
 
                 float time = t.getTime();
@@ -509,13 +516,26 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 //            vis.addPointCloud(removed_points_vis, "registered_cloudc",vp3);
 //            vis.spin();
 
-            hv_->setSceneCloud( registered_scene_cloud_ );
+            const Eigen::Matrix4f tf_global2cam = camera_pose.inverse();
+
+            typename pcl::PointCloud<PointT>::Ptr registerd_scene_cloud_latest_camera_frame (new pcl::PointCloud<PointT>);
+            pcl::transformPointCloud(*registered_scene_cloud_, *registerd_scene_cloud_latest_camera_frame, tf_global2cam);
+            pcl::PointCloud<pcl::Normal>::Ptr normals_aligned ( new pcl::PointCloud<pcl::Normal>);
+            v4r::transformNormals( *normals, *normals_aligned, tf_global2cam );
+
+            hv_->setSceneCloud( registerd_scene_cloud_latest_camera_frame);
+            hv_->setNormals(normals_aligned);
+
+            for(Eigen::Matrix4f &tf : camera_poses) // describe the clouds with respect to the most current view
+                tf = camera_pose.inverse() * tf;
+
             hv_->setOcclusionCloudsAndAbsoluteCameraPoses(views, camera_poses);
         }
         else
+        {
             hv_->setSceneCloud( cloud );
-
-        hv_->setNormals( normals );
+            hv_->setNormals( normals );
+        }
 
         pcl::StopWatch t; const std::string time_desc ("Verification of object hypotheses");
         hv_->verify();

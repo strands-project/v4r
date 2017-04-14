@@ -92,17 +92,28 @@ HypothesisVerification<ModelT, SceneT>::computeModelOcclusionByScene(HVRecogniti
         Eigen::MatrixXi index_map = zbuf.getIndexMap();
 
 //        static pcl::visualization::PCLVisualizer vis;
-//        int vp1, vp2;
+//        int vp1, vp2, vp3;
 //        vis.removeAllPointClouds();
-//        vis.createViewPort(0,0,0.5,1,vp1);
-//        vis.createViewPort(0.5,0,1,1,vp2);
+//        vis.createViewPort(0,0,0.33,1,vp1);
+//        vis.createViewPort(0.33,0,0.66,1,vp2);
+//        vis.createViewPort(0.66,0,1,1,vp3);
 //        vis.addPointCloud(aligned_cloud, "input", vp1);
+//        vis.addPointCloud(aligned_cloud, "input3", vp3);
 //        vis.addCoordinateSystem(0.04,"co",vp1);
 //        vis.addCoordinateSystem(0.04,"co2",vp2);
+//        vis.addCoordinateSystem(0.04,"co2",vp3);
 //        vis.addPointCloud(organized_cloud_to_be_filtered, "organized", vp2);
 
-//        pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_downsampled_, 128, 128, 128);
-//        vis.addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp_model_", vp1);
+//        typename pcl::PointCloud<SceneT>::Ptr scene_cloud_vis (new pcl::PointCloud<SceneT>(*scene_cloud_downsampled_));
+//        scene_cloud_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+//        scene_cloud_vis->sensor_origin_ = Eigen::Vector4f::Zero(4);
+//        pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_vis, 128, 128, 128);
+//        vis.addPointCloud(scene_cloud_vis, gray, "input_rm_vp_model_", vp1);
+
+//        typename pcl::PointCloud<SceneT>::Ptr occlusion_cloud_view_vis (new pcl::PointCloud<SceneT>(*occlusion_clouds_[view]));
+//        occlusion_cloud_view_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+//        occlusion_cloud_view_vis->sensor_origin_ = Eigen::Vector4f::Zero(4);
+//        vis.addPointCloud(occlusion_cloud_view_vis, "occlusion_cloud_view_vis", vp3);
 
 //        vis.spin();
 
@@ -212,7 +223,7 @@ HypothesisVerification<ModelT, SceneT>::computeVisibleOctreeNodes(HVRecognitionM
 
 
 template<typename ModelT, typename SceneT>
-Eigen::Matrix4f
+void
 HypothesisVerification<ModelT, SceneT>::refinePose(HVRecognitionModel<ModelT> &rm) const
 {
 //    ModelT minPoint, maxPoint;
@@ -249,39 +260,42 @@ HypothesisVerification<ModelT, SceneT>::refinePose(HVRecognitionModel<ModelT> &r
     icp.setInputTarget(scene_cloud_downsampled_);
     icp.setTransformationEpsilon (1e-6);
     icp.setMaximumIterations(param_.icp_iterations_);
-    icp.setMaxCorrespondenceDistance(param_.inliers_threshold_);
+    icp.setMaxCorrespondenceDistance(param_.icp_max_correspondence_);
     icp.setSearchMethodTarget(kdtree_scene_, true);
     pcl::PointCloud<ModelT> aligned_visible_model;
     icp.align(aligned_visible_model);
 
-    Eigen::Matrix4f refined_tf = Eigen::Matrix4f::Identity();
     if(icp.hasConverged())
-        refined_tf = icp.getFinalTransformation();
+        rm.oh_->pose_refinement_ = icp.getFinalTransformation();
     else
         LOG(WARNING) << "ICP did not converge" << std::endl;
 
-    VLOG(2) << refined_tf;
+    VLOG(2) << "Pose refinement: " << std::endl << rm.oh_->pose_refinement_;
 
 //    static pcl::visualization::PCLVisualizer vis_tmp;
 //    static int vp2, vp3,vp1;
 //    vis_tmp.removeAllPointClouds();
+//    vis_tmp.removeAllShapes();
 //    vis_tmp.createViewPort(0,0,0.33,1, vp1);
 //    vis_tmp.createViewPort(0.33,0,0.66,1, vp2);
 //    vis_tmp.createViewPort(0.66,0,1,1, vp3);
 
-//    scene_cloud_downsampled_->sensor_orientation_ = Eigen::Quaternionf::Identity();
-//    scene_cloud_downsampled_->sensor_origin_ = Eigen::Vector4f::Zero(4);
+//    typename pcl::PointCloud<SceneT>::Ptr scene_cloud_vis (new pcl::PointCloud<SceneT>(*scene_cloud_downsampled_));
+//    scene_cloud_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+//    scene_cloud_vis->sensor_origin_ = Eigen::Vector4f::Zero(4);
 
 //    vis_tmp.addPointCloud(rm.visible_cloud_, "model1", vp1);
-//     pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_downsampled_, 128, 128, 128);
-//     vis_tmp.addPointCloud(scene_cloud_downsampled_, gray, "scene1", vp1);
+//    pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_vis, 128, 128, 128);
+//    vis_tmp.addPointCloud(scene_cloud_vis, gray, "scene1", vp1);
+//    vis_tmp.addText("before ICP", 10,10, 20, 1,1,1,"before_ICP",vp1);
 ////     vis_tmp.addPointCloud(rm.complete_cloud_, "model1", vp1);
 
-//     vis_tmp.addPointCloud(scene_cloud_downsampled_, gray, "scene2", vp2);
-//     typename pcl::PointCloud<SceneT>::Ptr model_refined (new pcl::PointCloud<SceneT>);
-//     pcl::transformPointCloud(*rm.visible_cloud_, *model_refined, refined_tf);
-//     vis_tmp.addPointCloud(model_refined, "model2", vp2);
-//     vis_tmp.spin();
+//    vis_tmp.addPointCloud(scene_cloud_vis, gray, "scene2", vp2);
+//    typename pcl::PointCloud<SceneT>::Ptr model_refined (new pcl::PointCloud<SceneT>);
+//    pcl::transformPointCloud(*rm.visible_cloud_, *model_refined, rm.oh_->pose_refinement_);
+//    vis_tmp.addText("after ICP", 10,10, 20, 1,1,1,"after_ICP",vp2);
+//    vis_tmp.addPointCloud(model_refined, "model2", vp2);
+//    vis_tmp.spin();
 
 
 //    vis_tmp.addPointCloud(rm.model_->getAssembled(-1), "model2", vp2);
@@ -295,13 +309,11 @@ HypothesisVerification<ModelT, SceneT>::refinePose(HVRecognitionModel<ModelT> &r
 //    typename pcl::PointCloud<SceneT>::Ptr model_refined (new pcl::PointCloud<SceneT>);
 //    pcl::transformPointCloud(*rm.complete_cloud_, *model_refined, refined_tf);
 //    vis_tmp.addPointCloud(model_refined, "model2", vp3);
-//    pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_downsampled_, 128, 128, 128);
-//    vis_tmp.addPointCloud(scene_cloud_downsampled_, gray, "input_rm_vp2_model_", vp3);
+//    pcl::visualization::PointCloudColorHandlerCustom<SceneT> gray (scene_cloud_vis, 128, 128, 128);
+//    vis_tmp.addPointCloud(scene_cloud_vis, gray, "input_rm_vp2_model_", vp3);
 //    vis_tmp.setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp2_model_", vp3);
 //    vis_tmp.addCube( minPoint.x, maxPoint.x, minPoint.y, maxPoint.y, minPoint.z, maxPoint.z, 0, 1., 0, "bb", vp3);
 //    vis_tmp.spin();
-
-    return refined_tf;
 }
 
 template<typename ModelT, typename SceneT>
@@ -688,7 +700,7 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                         for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
                         {
                             HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
-                            rm.refined_pose_ = refinePose(rm);
+                            refinePose(rm);
                         }
                     }
                 }
@@ -701,8 +713,8 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                         for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
                         {
                             HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
-                            pcl::transformPointCloud(*rm.complete_cloud_, *rm.complete_cloud_, rm.refined_pose_);
-                            transformNormals(*rm.complete_cloud_normals_, *rm.complete_cloud_normals_, rm.refined_pose_);
+                            pcl::transformPointCloud(*rm.complete_cloud_, *rm.complete_cloud_, rm.oh_->pose_refinement_);
+                            transformNormals(*rm.complete_cloud_normals_, *rm.complete_cloud_normals_, rm.oh_->pose_refinement_);
                             computeModelOcclusionByScene(rm);  //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
                         }
                     }

@@ -44,9 +44,11 @@ class V4R_EXPORTS MultiviewRecognizerParameter
 {
 public:
     bool transfer_only_verified_hypotheses_;
+    size_t max_views_;  ///<
 
     MultiviewRecognizerParameter() :
-        transfer_only_verified_hypotheses_ (true)
+        transfer_only_verified_hypotheses_ (true),
+        max_views_(3)
     {}
 };
 

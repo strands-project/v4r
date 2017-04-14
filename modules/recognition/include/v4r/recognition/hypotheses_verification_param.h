@@ -56,7 +56,10 @@ public:
     bool do_smoothing_;   ///< if true, smoothes the silhouette of the reproject object hypotheses (used for computing pairwise intersection)
     bool do_erosion_; ///< if true, performs erosion on the silhouette of the reproject object hypotheses. This should avoid a pairwise cost for touching objects (used for computing pairwise intersection)
     int erosion_radius_;  ///< erosion radius in px (used for computing pairwise intersection)
+
+    //ICP stuff
     int icp_iterations_; ///< number of icp iterations for pose refinement
+    float icp_max_correspondence_; ///< the maximum distance threshold between a point and its nearest neighbor correspondent in order to be considered in the ICP alignment process
 
     float w_normals_;   ///< weighting factor for normal fitness
     float w_color_;   ///< weighting factor for color fitness
@@ -103,6 +106,7 @@ public:
           do_erosion_ (true),
           erosion_radius_ (4),
           icp_iterations_ (10),
+          icp_max_correspondence_ (0.02f),
           w_normals_ (1.f/3.f),
           w_color_ (1.f/3.f),
           w_3D_  (1.f/3.f),
@@ -161,6 +165,7 @@ public:
         desc.add_options()
                 ("help,h", "produce help message")
                 ("hv_icp_iterations", po::value<int>(&icp_iterations_)->default_value(icp_iterations_), "number of icp iterations. If 0, no pose refinement will be done")
+                ("hv_icp_max_correspondence", po::value<float>(&icp_max_correspondence_)->default_value(icp_max_correspondence_), "")
                 ("hv_clutter_regularizer", po::value<float>(&clutter_regularizer_)->default_value(clutter_regularizer_, boost::str(boost::format("%.2e") % clutter_regularizer_) ), "The penalty multiplier used to penalize unexplained scene points within the clutter influence radius <i>radius_neighborhood_clutter_</i> of an explained scene point when they belong to the same smooth segment.")
                 ("hv_color_inlier_treshold", po::value<float>(&color_inlier_treshold_)->default_value(color_inlier_treshold_, boost::str(boost::format("%.2e") % color_inlier_treshold_) ), "allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)")
                 ("hv_sigma_color", po::value<float>(&sigma_color_)->default_value(sigma_color_, boost::str(boost::format("%.2e") % sigma_color_) ), "allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)")
@@ -208,6 +213,7 @@ public:
                 & BOOST_SERIALIZATION_NVP(do_erosion_)
                 & BOOST_SERIALIZATION_NVP(erosion_radius_)
                 & BOOST_SERIALIZATION_NVP(icp_iterations_)
+                & BOOST_SERIALIZATION_NVP(icp_max_correspondence_)
                 & BOOST_SERIALIZATION_NVP(w_normals_)
                 & BOOST_SERIALIZATION_NVP(w_color_)
                 & BOOST_SERIALIZATION_NVP(w_3D_)

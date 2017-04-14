@@ -53,9 +53,12 @@ private:
         ar & BOOST_SERIALIZATION_NVP(class_id_)
            & BOOST_SERIALIZATION_NVP(model_id_)
            & BOOST_SERIALIZATION_NVP(transform_)
+           & BOOST_SERIALIZATION_NVP(pose_refinement_)
            & BOOST_SERIALIZATION_NVP(confidence_)
          ;
     }
+
+    static size_t s_counter_; /// unique identifier to avoid transfering hypotheses multiple times when using multi-view recognition
 
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -64,13 +67,31 @@ public:
 
     pcl::Correspondences corr_; ///< local feature matches / keypoint correspondences between model and scene (only for visualization purposes)
 
-    ObjectHypothesis() : class_id_(""), model_id_ (""), is_verified_(false) {}
+    ObjectHypothesis() :
+        class_id_(""),
+        model_id_ (""),
+        pose_refinement_ (Eigen::Matrix4f::Identity()),
+        is_verified_(false),
+        unique_id_ (s_counter_++)
+    {}
+
+     ObjectHypothesis( const ObjectHypothesis& other )
+         :
+           class_id_( other.class_id_ ),
+           model_id_ ( other.model_id_ ),
+           transform_ ( other.transform_ ),
+           pose_refinement_ ( other.pose_refinement_ ),
+           is_verified_( other.is_verified_ ),
+           unique_id_ ( other.unique_id_ )
+     { }
 
     std::string class_id_;  ///< category
     std::string model_id_;  ///< instance
     Eigen::Matrix4f transform_; ///< 4x4 homogenous transformation to project model into camera coordinate system.
+    Eigen::Matrix4f pose_refinement_; ///< pose refinement (to be multiplied by transform to get refined pose)
     float confidence_; ///< confidence score (coming from feature matching stage)
     bool is_verified_;
+    size_t unique_id_;
 
     virtual ~ObjectHypothesis(){}
 };
@@ -133,7 +154,6 @@ public:
     std::vector<int> scene_indices_in_crop_box_; ///< indices of the scene that are occupied from the bounding box of the (complete) hypothesis
     float L_value_offset_; ///< the offset being added to the computed L color values to compensate for different lighting conditions
 
-    Eigen::Matrix4f refined_pose_;  ///< refined pose after ICP (do be multiplied by the initial transform)
     Eigen::SparseVector<float> scene_explained_weight_;   ///< stores for each scene point how well it is explained by the visible model points
 
     bool rejected_due_to_low_visibility_;   ///< true if the object model rendered in the view is not visible enough
@@ -143,7 +163,6 @@ public:
 
     HVRecognitionModel(typename ObjectHypothesis::Ptr &oh) :
         L_value_offset_ (0.f),
-        refined_pose_ ( Eigen::Matrix4f::Identity() ),
         rejected_due_to_low_visibility_ (false),
         is_outlier_ (false),
         rejected_due_to_better_hypothesis_in_group_ (false),
