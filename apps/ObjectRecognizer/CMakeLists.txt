@@ -55,6 +55,8 @@ add_definitions(-Dlinux -D__x86_64__)
 
 add_executable(ObjectRecognizer main.cpp)
 target_link_libraries(ObjectRecognizer ${OR_DEPS} ${DEP_LIBS})
+add_executable(MVObjectRecognizerEval mv_eval.cpp)
+target_link_libraries(MVObjectRecognizerEval ${OR_DEPS} ${DEP_LIBS})
 add_executable(compute_recognition_rate_over_occlusion compute_recognition_rate_over_occlusion.cpp)
 target_link_libraries(compute_recognition_rate_over_occlusion ${OR_DEPS} ${DEP_LIBS})
 add_executable(check_hypotheses check_hypotheses.cpp)
@@ -62,7 +64,7 @@ target_link_libraries(check_hypotheses ${OR_DEPS} ${DEP_LIBS})
 add_executable(compute_recognition_rate compute_recognition_rate.cpp)
 target_link_libraries(compute_recognition_rate ${OR_DEPS} ${DEP_LIBS})
 
-INSTALL(TARGETS ObjectRecognizer compute_recognition_rate_over_occlusion compute_recognition_rate
+INSTALL(TARGETS ObjectRecognizer MVObjectRecognizerEval compute_recognition_rate_over_occlusion compute_recognition_rate
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
