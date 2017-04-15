@@ -589,10 +589,18 @@ HypothesisVerification<ModelT, SceneT>::initialize()
 {
     global_hypotheses_.clear();
 
+    size_t num_hypotheses=0;
+    for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
+        num_hypotheses += obj_hypotheses_groups_[i].size();
+
+    elapsed_time_.push_back( std::pair<std::string, float>( "number of hypotheses",  num_hypotheses)) ;
+
     {
         StopWatch t("Downsampling scene cloud");
         downsampleSceneCloud();
     }
+
+    elapsed_time_.push_back( std::pair<std::string, float>( "number of downsampled scene points (HV)",  scene_cloud_downsampled_->points.size()));
 
     if( img_boundary_distance_.empty() )
     {
@@ -718,6 +726,17 @@ HypothesisVerification<ModelT, SceneT>::initialize()
                             computeModelOcclusionByScene(rm);  //occlusion reasoning based on self-occlusion and occlusion from scene cloud(s)
                         }
                     }
+
+                    size_t num_visible_object_points=0;
+                    for(size_t i=0; i<obj_hypotheses_groups_.size(); i++)
+                    {
+                        for(size_t jj=0; jj<obj_hypotheses_groups_[i].size(); jj++)
+                        {
+                            HVRecognitionModel<ModelT> &rm = *obj_hypotheses_groups_[i][jj];
+                            num_visible_object_points+=rm.visible_cloud_->points.size();
+                        }
+                    }
+                    elapsed_time_.push_back( std::pair<std::string, float>( "visible object points",  num_visible_object_points));
                 }
             }
             {
@@ -874,6 +893,9 @@ HypothesisVerification<ModelT, SceneT>::initialize()
     }
 
     global_hypotheses_.resize( kept_hypotheses );
+
+    elapsed_time_.push_back( std::pair<std::string, float>( "hypotheses left for global optimization",  kept_hypotheses));
+
 
     if( !kept_hypotheses )
         return;
