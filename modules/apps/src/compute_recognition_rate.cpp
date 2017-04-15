@@ -335,6 +335,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                    "Column 3: false positives" << std::endl <<
                    "Column 4: false negatives" << std::endl <<
                    "Column 5: accumulated translation error of all true positive objects" << std::endl <<
+                   "Column 6: accumulated rotational error of all true positive objects" << std::endl <<
                    "==================================================" << std::endl <<
                    "** Allowed options";
 
