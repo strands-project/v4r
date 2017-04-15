@@ -24,6 +24,7 @@ main (int argc, char ** argv)
     std::string debug_dir = "";
     std::string recognizer_config = "cfg/multipipeline_config.xml";
     int verbosity = -1;
+    bool shuffle_views = true;
 
     /* initialize random seed: */
     srand (time(NULL));
@@ -36,6 +37,7 @@ main (int argc, char ** argv)
             ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
             ("recognizer_config", po::value<std::string>(&recognizer_config)->default_value(recognizer_config), "Config XML of the multi-pipeline recognizer")
             ("verbosity", po::value<int>(&verbosity)->default_value(verbosity), "set verbosity level for output (<0 minimal output)")
+            ("shuffle_views", po::value<bool>(&shuffle_views)->default_value(shuffle_views), "if true, randomly selects viewpoints. Otherwise in the sequence given by the filenames.")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
@@ -77,7 +79,10 @@ main (int argc, char ** argv)
         // randomly walk through views
         std::vector<int> ivec (views.size() );
         std::iota(ivec.begin(), ivec.end(), 0);
-        std::random_shuffle(ivec.begin(), ivec.end());
+
+        if(shuffle_views)
+            std::random_shuffle(ivec.begin(), ivec.end());
+
         ivec.insert(ivec.end(), ivec.begin(), ivec.end());
 
         std::cout << "Evaluation order for " << sub_folder_name << ":" << std::endl;
