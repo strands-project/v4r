@@ -51,12 +51,16 @@ RecognitionEvaluator::computeError(const Eigen::Matrix4f &pose_a, const Eigen::M
 
 //    float angleX = pcl::rad2deg( acos( rotX_a.dot(rotX_b) ) );
 //    float angleY = pcl::rad2deg( acos( rotY_a.dot(rotY_b) ) );
-    float angleZ = pcl::rad2deg( acos( rotZ_a.dot(rotZ_b) ) );
+    float dotpz = rotZ_a.dot(rotZ_b);
+    dotpz = std::min( 0.9999999f, std::max( -0.999999999f, dotpz) );
+    float angleZ = pcl::rad2deg( acos( dotpz ) );
 
     float angleXY = 0.f;
     if( !is_rotation_invariant )
     {
-        angleXY = pcl::rad2deg ( acos (rotX_a.dot(rotX_b ) ) );
+        float dotpxy = rotX_a.dot(rotX_b );
+        dotpxy = std::min( 0.9999999f, std::max( -0.999999999f, dotpxy) );
+        angleXY = pcl::rad2deg ( acos ( dotpxy ) );
 
         if( is_rotational_symmetric )
             angleXY = std::min<float>(angleXY, fabs( 180.f - angleXY) );
