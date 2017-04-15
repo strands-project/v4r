@@ -336,6 +336,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                    "Column 4: false negatives" << std::endl <<
                    "Column 5: accumulated translation error of all true positive objects" << std::endl <<
                    "Column 6: accumulated rotational error of all true positive objects" << std::endl <<
+                   "Column 7: elapsed time in ms" << std::endl <<
                    "==================================================" << std::endl <<
                    "** Allowed options";
 
@@ -349,6 +350,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
     total_tp = 0;
     total_fp = 0;
     total_fn = 0;
+    size_t total_time = 0;
 
     for( const std::string anno_file : annotation_files )
     {
@@ -373,6 +375,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
         size_t fn_view = 0;
         double sum_translation_error_view = 0.;
         double sum_rotational_error_view = 0.;
+        size_t time_view = 0;
 
         if(vis_)
         {
@@ -569,12 +572,54 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             }
         }
 
-        std::cout << anno_file << ": " << tp_view << " " << fp_view << " " << fn_view << " " << sum_translation_error_view << " " << sum_rotational_error_view << std::endl;
-        of << anno_file << " " << tp_view << " " << fp_view << " " << fn_view << " " << sum_translation_error_view << " " << sum_rotational_error_view << std::endl;
+
+        // get time measurements
+        {
+            std::map<std::string, size_t> time_measurements;
+            std::string time_file = anno_file;
+            boost::replace_last(time_file, ".anno", ".times");
+            bf::path time_path = or_dir;
+            time_path /= time_file;
+
+            std::ifstream time_f ( time_path.string() );
+            std::string line;
+            while (std::getline(time_f, line))
+            {
+                size_t elapsed_time;
+                std::istringstream iss(line);
+                iss >> elapsed_time;
+                std::stringstream elapsed_time_ss; elapsed_time_ss << elapsed_time;
+
+                const std::string time_description = line.substr( elapsed_time_ss.str().length() + 1 );
+                auto it = time_measurements.find( time_description );
+                if( it != time_measurements.end() )
+                    it->second += it->second + elapsed_time;
+                else
+                    time_measurements[time_description] = elapsed_time;
+            }
+            time_f.close();
+
+            for(const auto &t_map:time_measurements)
+            {
+                if ( (t_map.first == "Computing normals" ) ||
+                     (t_map.first == "Removing planes" ) ||
+                     (t_map.first == "Generation of object hypotheses" ) ||
+                     (t_map.first == "Computing noise model" ) ||
+                     (t_map.first == "Noise model based cloud integration" ) ||
+                     (t_map.first == "Verification of object hypotheses" ) )
+                {
+                    time_view += t_map.second;
+                }
+            }
+        }
+
+        std::cout << anno_file << ": " << tp_view << " " << fp_view << " " << fn_view << " " << sum_translation_error_view << " " << sum_rotational_error_view << " " << time_view <<std::endl;
+        of << anno_file << " " << tp_view << " " << fp_view << " " << fn_view << " " << sum_translation_error_view << " " << sum_rotational_error_view << " " << time_view << std::endl;
 
         total_tp += tp_view;
         total_fp += fp_view;
         total_fn += fn_view;
+        total_time += time_view;
 
         if(visualize_)
         {
