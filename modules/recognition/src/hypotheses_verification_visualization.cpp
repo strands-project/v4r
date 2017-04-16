@@ -415,6 +415,12 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
             ModelT &mp = outlier_cloud->points[p];
             mp.r = mp.g = mp.b = 0.f;
 
+            if ( p>=rm.visible_pt_is_outlier_.size() )
+            {
+                LOG(ERROR) << "Something is wrong with the outlier cloud";
+                continue;
+            }
+
             if( rm.visible_pt_is_outlier_[p] )
                 mp.r = 255.f;
         }
