@@ -226,6 +226,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     if( param_.use_multiview_ )
     {
         MultiviewRecognizerParameter mv_param;
+        mv_param.transfer_keypoint_correspondences_ = param_.use_multiview_with_kp_correspondence_transfer_;
         to_pass_further = mv_param.init(to_pass_further);
         mv_param.max_views_ = param_.max_views_;
         typename RecognitionPipeline<PointT>::Ptr rec_pipeline = boost::static_pointer_cast<RecognitionPipeline<PointT> > (multipipeline);

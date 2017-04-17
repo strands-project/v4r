@@ -89,6 +89,7 @@ public:
     // multi-view parameters
     bool use_multiview_; ///< if true, transfers verified hypotheses across views
     bool use_multiview_hv_; ///< if true, verifies hypotheses against the registered scene cloud from all input views
+    bool use_multiview_with_kp_correspondence_transfer_; ///< if true, transfers keypoints instead of full hypotheses (see Faeulhammer et al, ICRA 2015)
     bool use_change_detection_; ///< if true, uses change detection to find dynamic elements within observation period (only for multi-view recognition)
     float tolerance_for_cloud_diff_; ///< tolerance in meter for change detection's cloud differencing
     size_t min_points_for_hyp_removal_; ///< how many removed points must overlap hypothesis to be also considered removed
@@ -120,6 +121,7 @@ public:
           icp_iterations_ ( 0 ),
           use_multiview_ (false),
           use_multiview_hv_ (true),
+          use_multiview_with_kp_correspondence_transfer_ (false),
           use_change_detection_ (true),
           tolerance_for_cloud_diff_ (0.02f),
           min_points_for_hyp_removal_ (50),
@@ -255,6 +257,7 @@ private:
                 & BOOST_SERIALIZATION_NVP(min_plane_inliers_)
                 & BOOST_SERIALIZATION_NVP(use_multiview_)
                 & BOOST_SERIALIZATION_NVP(use_multiview_hv_)
+                & BOOST_SERIALIZATION_NVP(use_multiview_with_kp_correspondence_transfer_)
                 & BOOST_SERIALIZATION_NVP(use_change_detection_)
                 & BOOST_SERIALIZATION_NVP(max_views_)
                 ;
