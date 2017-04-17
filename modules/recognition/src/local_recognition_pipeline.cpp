@@ -312,7 +312,8 @@ LocalRecognitionPipeline<PointT>::recognize()
         }
     }
 
-    correspondenceGrouping();
+    if(generate_hypotheses_)
+        correspondenceGrouping();
 }
 
 template class V4R_EXPORTS LocalRecognitionPipeline<pcl::PointXYZRGB>;
