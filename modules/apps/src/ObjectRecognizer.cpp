@@ -114,7 +114,9 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
     // ====== SETUP MULTI PIPELINE RECOGNIZER ======
     typename v4r::MultiRecognitionPipeline<PointT>::Ptr multipipeline (new v4r::MultiRecognitionPipeline<PointT> );
-    local_recognition_pipeline_.reset(new LocalRecognitionPipeline<PointT>);
+    LocalRecognitionPipelineParameter local_rec_pipeline_param ;
+    to_pass_further = local_rec_pipeline_param.init(to_pass_further);
+    local_recognition_pipeline_.reset(new LocalRecognitionPipeline<PointT>(local_rec_pipeline_param));
     {
         // ====== SETUP LOCAL RECOGNITION PIPELINE =====
         if(param_.do_sift_ || param_.do_shot_)
@@ -142,7 +144,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
             if(param_.do_sift_)
             {
-                LocalRecognizerParameter sift_param(param_.sift_config_xml_);
+                LocalRecognizerParameter sift_param;
+                sift_param.load(param_.sift_config_xml_);
                 typename LocalFeatureMatcher<PointT>::Ptr sift_rec (new LocalFeatureMatcher<PointT>(sift_param));
                 typename SIFTLocalEstimation<PointT>::Ptr sift_est (new SIFTLocalEstimation<PointT>);
                 sift_est->setMaxDistance(std::numeric_limits<float>::max());
@@ -152,7 +155,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             if(param_.do_shot_)
             {
 
-                LocalRecognizerParameter shot_pipeline_param(param_.shot_config_xml_);
+                LocalRecognizerParameter shot_pipeline_param;
+                shot_pipeline_param.load(param_.shot_config_xml_);
                 typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_pipeline_param));
                 std::vector<typename v4r::KeypointExtractor<PointT>::Ptr > keypoint_extractor = initKeypointExtractors<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
 

@@ -96,7 +96,8 @@ public:
         ofs.close();
     }
 
-    LocalRecognizerParameter(const std::string &filename)
+    void
+    load(const std::string &filename)
     {
         if( !v4r::io::existsFile(filename) )
             throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
@@ -478,6 +479,12 @@ public:
     setVisualizationParameter(const PCLVisualizationParams::ConstPtr &vis_param)
     {
         vis_param_ = vis_param;
+    }
+
+    size_t
+    getNumEstimators() const
+    {
+        return estimators_.size();
     }
 
 
