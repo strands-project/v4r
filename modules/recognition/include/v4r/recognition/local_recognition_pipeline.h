@@ -161,9 +161,12 @@ private:
     void
     correspondenceGrouping();
 
+    bool generate_hypotheses_; ///< if true, cluster correspondences with respect to geometeric consistency and estimates pose by SVD
+
 public:
     LocalRecognitionPipeline (const LocalRecognitionPipelineParameter &p = LocalRecognitionPipelineParameter() )
-     : param_(p)
+     : param_(p),
+       generate_hypotheses_ (true)
     { }
 
     /**
@@ -246,6 +249,25 @@ public:
     getLocalObjectModelDatabase() const
     {
         return model_keypoints_;
+    }
+
+    /**
+     * @brief disableHypothesesGeneration does not run geometric consistency grouping and only finds keypoint correspondences (e.g. when correspondence grouping is done outsided)
+     */
+    void
+    disableHypothesesGeneration()
+    {
+        generate_hypotheses_ = false;
+    }
+
+    /**
+     * @brief getKeypointCorrespondences get feature matches for all objects in the model database
+     * @return
+     */
+    std::map<std::string, LocalObjectHypothesis<PointT> >
+    getKeypointCorrespondences() const
+    {
+        return local_obj_hypotheses_;
     }
 
     typedef boost::shared_ptr< LocalRecognitionPipeline<PointT> > Ptr;
