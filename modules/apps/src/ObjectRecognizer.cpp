@@ -400,14 +400,14 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
             int num_views = std::min<int>(param_.max_views_, views_.size() + 1);
             LOG(INFO) << "Running multi-view recognition over " << num_views;
 
-            if ( param_.use_change_detection_ )
+            if ( param_.use_change_detection_ && !views_.empty())
             {
                 pcl::StopWatch t; const std::string time_desc ("Change detection");
                 detectChanges(v);
 
                 typename pcl::PointCloud<PointT>::Ptr removed_points_cumulative(new pcl::PointCloud<PointT>(*v.removed_points_));
 
-                for(int v_id=(int)views_.size()-1; v_id>=(int)views_.size()-num_views; v_id--)
+                for(int v_id=(int)views_.size()-1; v_id>=std::max<int>(0,(int)views_.size()-num_views); v_id--)
                 {
                     View &vv = views_[v_id];
 
