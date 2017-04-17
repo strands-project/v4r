@@ -375,7 +375,7 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
         if(!vis_param_->no_text_)
         {
             std::stringstream txt;
-            txt.str(""); txt << std::fixed << std::setprecision(2)  << "3D fitness (" << (int)(hv->param_.w_3D_*100) << "\%): " << (float)fitness_3d.sum() / rm.visible_indices_.size();
+            txt.str(""); txt << std::fixed << std::setprecision(2)  << "3D fitness (" << (int)(hv->param_.w_xyz_*100) << "\%): " << (float)fitness_3d.sum() / rm.visible_indices_.size();
             vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "3D distance",vp_model_3d_fit_);
             txt.str(""); txt << "color fitness(" << (int)(hv->param_.w_color_ *100) << "\%): " << std::fixed << std::setprecision(2) << (float)color_fitness.sum() / rm.visible_indices_.size();
             vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "color distance",vp_model_color_fit_);
