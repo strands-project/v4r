@@ -117,6 +117,12 @@ public:
         return ret_value;
     }
 
+    std::vector<typename RecognitionPipeline<PointT>::Ptr >
+    getRecognitionPipelines() const
+    {
+        return recognition_pipelines_;
+    }
+
     typedef boost::shared_ptr< MultiRecognitionPipeline<PointT> > Ptr;
     typedef boost::shared_ptr< MultiRecognitionPipeline<PointT> const> ConstPtr;
 };
