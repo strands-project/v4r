@@ -226,10 +226,31 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     if( param_.use_multiview_ )
     {
         MultiviewRecognizerParameter mv_param;
+        to_pass_further = mv_param.init(to_pass_further);
         mv_param.max_views_ = param_.max_views_;
         typename RecognitionPipeline<PointT>::Ptr rec_pipeline = boost::static_pointer_cast<RecognitionPipeline<PointT> > (multipipeline);
         typename MultiviewRecognizer<PointT>::Ptr mv_rec ( new v4r::MultiviewRecognizer<PointT> (mv_param) );
         mv_rec->setSingleViewRecognitionPipeline( rec_pipeline );
+
+        if ( param_.use_graph_based_gc_grouping_ && mv_param.transfer_keypoint_correspondences_ )
+        {
+            GraphGeometricConsistencyGroupingParameter gcparam;
+            gcparam.gc_size_ = param_.cg_size_;
+            gcparam.gc_threshold_ = param_.cg_thresh_;
+            to_pass_further = gcparam.init(to_pass_further);
+            GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gc_clusterer
+                    (new GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
+            mv_rec->setCGAlgorithm( gc_clusterer );
+        }
+        else
+        {
+            boost::shared_ptr< pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > gc_clusterer
+                    (new pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
+            gc_clusterer->setGCSize( param_.cg_size_ );
+            gc_clusterer->setGCThreshold( param_.cg_thresh_ );
+            mv_rec->setCGAlgorithm( gc_clusterer );
+        }
+
         mrec_ = mv_rec;
     }
     else
