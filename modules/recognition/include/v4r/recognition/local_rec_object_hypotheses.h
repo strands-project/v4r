@@ -47,6 +47,21 @@ class V4R_EXPORTS LocalObjectHypothesis
 
     LocalObjectHypothesis() { }
 
+    LocalObjectHypothesis( const LocalObjectHypothesis& other )
+        :model_id_(other.model_id_)
+    {
+        model_scene_corresp_.reset( new pcl::Correspondences);
+        *model_scene_corresp_ = * other.model_scene_corresp_;
+    }
+
+    LocalObjectHypothesis& operator=(LocalObjectHypothesis other)
+    {
+        model_id_ = other.model_id_;
+        model_scene_corresp_.reset( new pcl::Correspondences);
+        *model_scene_corresp_ = * other.model_scene_corresp_;
+        return *this;
+    }
+
     void visualize(const pcl::PointCloud<pcl::PointXYZRGB> &scene, const pcl::PointCloud<pcl::PointXYZRGB> &scene_kp) const;
 
     static bool
