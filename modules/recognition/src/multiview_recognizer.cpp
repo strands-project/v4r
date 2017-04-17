@@ -247,11 +247,6 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
 {
     pcl::StopWatch t;
 
-    static pcl::visualization::PCLVisualizer vis;
-    vis.removeAllPointClouds();
-    vis.addPointCloud(scene_cloud_xyz_merged_, "cloud_in");
-    vis.spin();
-
 //#pragma omp parallel for schedule(dynamic)
     typename std::map<std::string, LocalObjectHypothesis<PointT> >::const_iterator it;
     for ( it = local_obj_hypotheses_.begin (); it != local_obj_hypotheses_.end (); ++it )
