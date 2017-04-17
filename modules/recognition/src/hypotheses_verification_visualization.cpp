@@ -272,7 +272,7 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
 
     vis_model_->addPointCloud(scene_cloud_vis, "scene1", vp_model_scene_);
 
-    //visualize Normals
+    // ===== VISUALIZE VISIBLE PART =================
     vis_model_->setBackgroundColor(0., 0., 0., vp_scene_normals_); // normals can only be visualized in white
     vis_model_->setBackgroundColor(0., 0., 0., vp_model_normals_); // normals can only be visualized in white
     vis_model_->addPointCloud(scene_cloud_vis, "scene_normals", vp_scene_normals_);
@@ -351,8 +351,8 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
                 model_explained_pts.set(midx);
 
                 normals_fitness(midx) = hv->modelSceneNormalsCostTerm(c);
-                color_fitness(midx) = hv->modelSceneColorCostTerm(c);
-                fitness_3d(midx) =  hv->modelScene3DDistCostTerm(c);
+                color_fitness(midx) = hv->scoreColorNormalized(c);
+                fitness_3d(midx) =  hv->scoreXYZNormalized(c);
 
                 CHECK ( normals_fitness(midx) <= 1 );
                 CHECK ( color_fitness(midx) <= 1 );

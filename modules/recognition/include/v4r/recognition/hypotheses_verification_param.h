@@ -49,8 +49,6 @@ class V4R_EXPORTS HV_Parameter
 {
 public:
     int resolution_mm_; ///< The resolution of models and scene used to verify hypotheses (in milli meters)
-    float inliers_threshold_; ///< inlier distance in meters between model and scene point
-    float inliers_surface_angle_thres_dotp_; ///< inner product for which the fit of model and scene surface normals is exactly half
     float occlusion_thres_;    ///< Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)
     int smoothing_radius_; ///< radius in pixel used for smoothing the visible image mask of an object hypotheses (used for computing pairwise intersection)
     bool do_smoothing_;   ///< if true, smoothes the silhouette of the reproject object hypotheses (used for computing pairwise intersection)
@@ -61,14 +59,18 @@ public:
     int icp_iterations_; ///< number of icp iterations for pose refinement
     float icp_max_correspondence_; ///< the maximum distance threshold between a point and its nearest neighbor correspondent in order to be considered in the ICP alignment process
 
+    float inlier_threshold_xyz_; ///< inlier distance in meters between model and scene point
+    float inlier_threshold_normals_dotp_; ///< inner product for which the fit of model and scene surface normals is exactly half
+    float inlier_threshold_color_; ///< allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
+
+    float sigma_xyz_; ///< variance for normals between model and scene
+    float sigma_normals_; ///< variance for normals between model and scene
+    float sigma_color_; ///< allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
+
+    float w_xyz_;   ///< weighting factor for 3D fitness
     float w_normals_;   ///< weighting factor for normal fitness
     float w_color_;   ///< weighting factor for color fitness
-    float w_3D_;   ///< weighting factor for 3D fitness
 
-    float sigma_color_; ///< allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
-    float color_inlier_treshold_; ///< allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)
-    float sigma_normals_; ///< variance for normals between model and scene
-    float regularizer_; ///< represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.
     int normal_method_; ///< method used for computing the normals of the downsampled scene point cloud (defined by the V4R Library)
     bool ignore_color_even_if_exists_; ///< if true, only checks 3D Eucliden distance of neighboring points
     int max_iterations_; ///< max iterations the optimization strategy explores local neighborhoods before stopping because the cost does not decrease.
@@ -98,8 +100,6 @@ public:
 
     HV_Parameter () :
           resolution_mm_ (5),
-          inliers_threshold_(0.01), // 0.005f
-          inliers_surface_angle_thres_dotp_ ( 0.99 ),
           occlusion_thres_ (0.01f),  // 0.005f
           smoothing_radius_ (2),
           do_smoothing_ (true),
@@ -107,13 +107,15 @@ public:
           erosion_radius_ (4),
           icp_iterations_ (10),
           icp_max_correspondence_ (0.02f),
+          inlier_threshold_xyz_(0.01), // 0.005f
+          inlier_threshold_normals_dotp_ ( 0.99 ),
+          inlier_threshold_color_ (30.f),
+          sigma_xyz_ (0.01f),
+          sigma_normals_ (0.05f),
+          sigma_color_ (20.f),
+          w_xyz_  (1.f/3.f),
           w_normals_ (1.f/3.f),
           w_color_ (1.f/3.f),
-          w_3D_  (1.f/3.f),
-          sigma_color_ (100.f),
-          color_inlier_treshold_ (20.f),
-          sigma_normals_ (0.05f),
-          regularizer_ (1.f),
           normal_method_ (2),
           ignore_color_even_if_exists_ (false),
           max_iterations_ (5000),
@@ -167,7 +169,7 @@ public:
                 ("hv_icp_iterations", po::value<int>(&icp_iterations_)->default_value(icp_iterations_), "number of icp iterations. If 0, no pose refinement will be done")
                 ("hv_icp_max_correspondence", po::value<float>(&icp_max_correspondence_)->default_value(icp_max_correspondence_), "")
                 ("hv_clutter_regularizer", po::value<float>(&clutter_regularizer_)->default_value(clutter_regularizer_, boost::str(boost::format("%.2e") % clutter_regularizer_) ), "The penalty multiplier used to penalize unexplained scene points within the clutter influence radius <i>radius_neighborhood_clutter_</i> of an explained scene point when they belong to the same smooth segment.")
-                ("hv_color_inlier_treshold", po::value<float>(&color_inlier_treshold_)->default_value(color_inlier_treshold_, boost::str(boost::format("%.2e") % color_inlier_treshold_) ), "allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)")
+                ("hv_color_inlier_treshold", po::value<float>(&inlier_threshold_color_)->default_value(inlier_threshold_color_, boost::str(boost::format("%.2e") % inlier_threshold_color_) ), "allowed chrominance (AB channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)")
                 ("hv_sigma_color", po::value<float>(&sigma_color_)->default_value(sigma_color_, boost::str(boost::format("%.2e") % sigma_color_) ), "allowed illumination (L channel of LAB color space) variance for a point of an object hypotheses to be considered explained by a corresponding scene point (between 0 and 1, the higher the fewer objects get rejected)")
                 ("hv_sigma_normals_", po::value<float>(&sigma_normals_)->default_value(sigma_normals_, boost::str(boost::format("%.2e") % sigma_normals_) ), "variance for surface normals")
                 ("hv_histogram_specification", po::value<bool>(&use_histogram_specification_)->default_value(use_histogram_specification_), " ")
@@ -175,10 +177,9 @@ public:
                 ("hv_initial_status", po::value<bool>(&initial_status_)->default_value(initial_status_), "sets the initial activation status of each hypothesis to this value before starting optimization. E.g. If true, all hypotheses will be active and the cost will be optimized from that initial status.")
 //                    ("hv_color_space", po::value<int>(&color_space_)->default_value(color_space_), "specifies the color space being used for verification (0... LAB, 1... RGB, 2... Grayscale,  3,4,5,6... ?)")
                 ("hv_color_comparison_method", po::value<int>(&color_comparison_method_)->default_value(color_comparison_method_), "method used for color comparison (0... CIE76, 1... CIE94, 2... CIEDE2000)")
-                ("hv_inlier_threshold", po::value<float>(&inliers_threshold_)->default_value(inliers_threshold_, boost::str(boost::format("%.2e") % inliers_threshold_) ), "Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers")
+                ("hv_inlier_threshold", po::value<float>(&inlier_threshold_xyz_)->default_value(inlier_threshold_xyz_, boost::str(boost::format("%.2e") % inlier_threshold_xyz_) ), "Represents the maximum distance between model and scene points in order to state that a scene point is explained by a model point. Valid model points that do not have any corresponding scene point within this threshold are considered model outliers")
                 ("hv_occlusion_threshold", po::value<float>(&occlusion_thres_)->default_value(occlusion_thres_, boost::str(boost::format("%.2e") % occlusion_thres_) ), "Threshold for a point to be considered occluded when model points are back-projected to the scene ( depends e.g. on sensor noise)")
                 ("hv_optimizer_type", po::value<int>(&opt_type_)->default_value(opt_type_), "defines the optimization methdod. 0: Local search (converges quickly, but can easily get trapped in local minima), 1: Tabu Search, 4; Tabu Search + Local Search (Replace active hypotheses moves), else: Simulated Annealing")
-                ("hv_regularizer,r", po::value<float>(&regularizer_)->default_value(regularizer_, boost::str(boost::format("%.2e") % regularizer_) ), "represents a penalty multiplier for model outliers. In particular, each model outlier associated with an active hypothesis increases the global cost function.")
                 ("hv_resolution_mm", po::value<int>(&resolution_mm_)->default_value(resolution_mm_), "The resolution of models and scene used to verify hypotheses (in milli meters)")
                 ("hv_min_visible_ratio", po::value<float>(&min_visible_ratio_)->default_value(min_visible_ratio_, boost::str(boost::format("%.2e") % min_visible_ratio_) ), "defines how much of the object has to be visible in order to be included in the verification stage")
                 ("hv_min_ratio_smooth_cluster_explained", po::value<float>(&min_ratio_cluster_explained_)->default_value(min_ratio_cluster_explained_, boost::str(boost::format("%.2e") % min_ratio_cluster_explained_) ), " defines the minimum ratio a smooth cluster has to be explained by the visible points (given there are at least 100 points)")
@@ -204,9 +205,7 @@ public:
     template<class Archive> V4R_EXPORTS void serialize(Archive & ar, const unsigned int version)
     {
         (void) version;
-        ar & BOOST_SERIALIZATION_NVP(resolution_mm_)
-                & BOOST_SERIALIZATION_NVP(inliers_threshold_)
-                & BOOST_SERIALIZATION_NVP(inliers_surface_angle_thres_dotp_)
+        ar &      BOOST_SERIALIZATION_NVP(resolution_mm_)
                 & BOOST_SERIALIZATION_NVP(occlusion_thres_)
                 & BOOST_SERIALIZATION_NVP(smoothing_radius_)
                 & BOOST_SERIALIZATION_NVP(do_smoothing_)
@@ -214,13 +213,15 @@ public:
                 & BOOST_SERIALIZATION_NVP(erosion_radius_)
                 & BOOST_SERIALIZATION_NVP(icp_iterations_)
                 & BOOST_SERIALIZATION_NVP(icp_max_correspondence_)
+                & BOOST_SERIALIZATION_NVP(inlier_threshold_xyz_)
+                & BOOST_SERIALIZATION_NVP(inlier_threshold_normals_dotp_)
+                & BOOST_SERIALIZATION_NVP(inlier_threshold_color_)
+                & BOOST_SERIALIZATION_NVP(sigma_xyz_)
+                & BOOST_SERIALIZATION_NVP(sigma_normals_)
+                & BOOST_SERIALIZATION_NVP(sigma_color_)
+                & BOOST_SERIALIZATION_NVP(w_xyz_)
                 & BOOST_SERIALIZATION_NVP(w_normals_)
                 & BOOST_SERIALIZATION_NVP(w_color_)
-                & BOOST_SERIALIZATION_NVP(w_3D_)
-                & BOOST_SERIALIZATION_NVP(sigma_color_)
-                & BOOST_SERIALIZATION_NVP(color_inlier_treshold_)
-                & BOOST_SERIALIZATION_NVP(sigma_normals_)
-                & BOOST_SERIALIZATION_NVP(regularizer_)
                 & BOOST_SERIALIZATION_NVP(normal_method_)
                 & BOOST_SERIALIZATION_NVP(ignore_color_even_if_exists_)
                 & BOOST_SERIALIZATION_NVP(max_iterations_)

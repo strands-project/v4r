@@ -263,8 +263,8 @@ protected:
     float
     getFitness( const ModelSceneCorrespondence& c ) const
     {
-        float fit_3d = modelScene3DDistCostTerm (c);
-        float fit_color = modelSceneColorCostTerm (c);
+        float fit_3d = scoreXYZNormalized (c);
+        float fit_color = scoreColorNormalized (c);
         float fit_normal = modelSceneNormalsCostTerm(c);
 
         if ( fit_3d < std::numeric_limits<float>::epsilon() ||
@@ -272,8 +272,8 @@ protected:
              fit_normal < std::numeric_limits<float>::epsilon()  )
             return 0.f;
 
-        float sum_weights = param_.w_3D_ + param_.w_color_ + param_.w_normals_;
-        float weighted_geometric_mean = exp( ( param_.w_3D_      * log(fit_3d) +
+        float sum_weights = param_.w_xyz_ + param_.w_color_ + param_.w_normals_;
+        float weighted_geometric_mean = exp( ( param_.w_xyz_      * log(fit_3d) +
                                                param_.w_color_   * log(fit_color ) +
                                                param_.w_normals_ * log(fit_normal)  )
                                              / sum_weights );
@@ -281,9 +281,16 @@ protected:
     }
 
     inline float
-    distColor(float color_dist_in) const
+    scoreColor(float dist_color) const
     {
-        return (1.f-tanh( (color_dist_in - param_.color_inlier_treshold_) / param_.sigma_color_ ) );
+        return (1.f-tanh( (dist_color - param_.inlier_threshold_color_) / param_.sigma_color_ ) );
+    }
+
+
+    inline float
+    scoreXYZ(float dist_xyz) const
+    {
+        return (1.f-tanh( (dist_xyz - param_.inlier_threshold_xyz_) / param_.sigma_xyz_ ) );
     }
 
     /**
@@ -292,12 +299,12 @@ protected:
      * @return
      */
     float
-    modelSceneColorCostTerm( const ModelSceneCorrespondence& c ) const
+    scoreColorNormalized( const ModelSceneCorrespondence& c ) const
     {
 //        return exp (- c.color_distance_/param_.color_sigma_ab_ );
 //        std::cout << c.color_distance_ << std::endl;
 //        return std::min(1.f, std::max(0.f, 1.f - c.color_distance_/param_.color_sigma_ab_));
-        return distColor(c.color_distance_) * OneOver_distColor0_;
+        return scoreColor(c.color_distance_) * OneOver_distColor0_;
     }
 
     /**
@@ -306,18 +313,18 @@ protected:
      * @return distance in centimeter
      */
     float
-    modelScene3DDistCostTerm( const ModelSceneCorrespondence& c ) const
+    scoreXYZNormalized( const ModelSceneCorrespondence& c ) const
     {
-        if ( c.dist_3D_ < param_.inliers_threshold_ )
-            return 1.f;
-        else
-            return exp( -(c.dist_3D_ - param_.inliers_threshold_) * (c.dist_3D_ - param_.inliers_threshold_) * OneOver_inlier_treshold_squared_ );
+//        if ( c.dist_3D_ < param_.inliers_threshold_ )
+//            return 1.f;
+//        else
+        return scoreXYZ(c.dist_3D_) * OneOver_distXYZ0_;
     }
 
     inline float
-    distNormals(float dotp) const
+    scoreNormals(float dotp) const
     {
-        return (1.f + tanh( (dotp - param_.inliers_surface_angle_thres_dotp_) / param_.sigma_normals_ ) );   ///TODO: Speed up with LUT
+        return (1.f + tanh( (dotp - param_.inlier_threshold_normals_dotp_) / param_.sigma_normals_ ) );   ///TODO: Speed up with LUT
     }
 
     /**
@@ -328,7 +335,8 @@ protected:
     float
     modelSceneNormalsCostTerm( const ModelSceneCorrespondence& c ) const
     {
-        return distNormals(c.normals_dotp_) * OneOver_distNorm0_;
+
+        return scoreNormals(c.normals_dotp_) * OneOver_distNorm0_;
     }
 
 //    void
@@ -387,7 +395,7 @@ protected:
     // pre-computed variables for speed-up
     float OneOver_distNorm0_;
     float OneOver_distColor0_;
-    float OneOver_inlier_treshold_squared_;
+    float OneOver_distXYZ0_;
 
 
 public:
@@ -397,9 +405,9 @@ public:
           param_(p),
           cam_(cam),
           initial_temp_(1000),
-          OneOver_distNorm0_ ( 1.f / distNormals(1.f) ),
-          OneOver_distColor0_ (1.f / distColor(0.f) ),
-          OneOver_inlier_treshold_squared_ ( 1.f / (param_.inliers_threshold_ * param_.inliers_threshold_) )
+          OneOver_distNorm0_ ( 1.f / scoreNormals(1.f) ),
+          OneOver_distColor0_ (1.f / scoreColor(0.f) ),
+          OneOver_distXYZ0_ ( 1.f / scoreXYZ(0.f) )
     {
         colorTransf_.reset(new RGB2CIELAB);
 
