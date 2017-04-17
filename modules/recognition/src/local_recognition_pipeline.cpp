@@ -215,7 +215,7 @@ LocalRecognitionPipeline<PointT>::recognize()
             const std::string &model_id = oh.first;
             LocalObjectHypothesis<PointT> &loh = oh.second;
 
-            pcl::Correspondences &new_corrs = *loh.model_scene_corresp_;
+            pcl::Correspondences new_corrs = *loh.model_scene_corresp_;
 
             const pcl::PointCloud<pcl::PointXYZ>::ConstPtr model_keypoints = model_keypoints_[model_id]->keypoints_;
             const pcl::PointCloud<pcl::Normal>::ConstPtr model_kp_normals = model_keypoints_[model_id]->kp_normals_;
