@@ -4,9 +4,9 @@
 <LocalRecognizerParameter class_id="0" tracking_level="0" version="0">
 	<kdtree_splits_>512</kdtree_splits_>
 	<kdtree_num_trees_>4</kdtree_num_trees_>
-	<knn_>2</knn_>
-	<max_descriptor_distance_>7</max_descriptor_distance_>
-	<correspondence_distance_weight_>1</correspondence_distance_weight_>
+	<knn_>1</knn_>
+	<max_descriptor_distance_>5</max_descriptor_distance_>
+	<correspondence_distance_weight_>10</correspondence_distance_weight_>
 	<distance_metric_>1</distance_metric_>
 	<max_keypoint_distance_z_>1.8</max_keypoint_distance_z_>
 	<filter_planar_>1</filter_planar_>
