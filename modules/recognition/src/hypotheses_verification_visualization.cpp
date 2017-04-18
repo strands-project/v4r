@@ -263,6 +263,8 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
 
         vis_model_->createViewPort(0. , 0.66 , 0.2 ,1.00 , vp_scene_normals_);
         vis_model_->createViewPort(0.2, 0.66 , 0.4 ,1.00 , vp_model_normals_);
+        vis_model_->createViewPort(0.4 , 0.66 , 0.6 ,1.00 , vp_scene_curvature_);
+        vis_model_->createViewPort(0.6, 0.66 , 0.8 ,1.00 , vp_model_curvature_);
 
         vis_model_->setBackgroundColor(vis_param_->bg_color_[0], vis_param_->bg_color_[1], vis_param_->bg_color_[2]);
     }
@@ -275,10 +277,53 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
     // ===== VISUALIZE VISIBLE PART =================
     vis_model_->setBackgroundColor(0., 0., 0., vp_scene_normals_); // normals can only be visualized in white
     vis_model_->setBackgroundColor(0., 0., 0., vp_model_normals_); // normals can only be visualized in white
+
+    // ==== VISUALIZE SURFACE NORMAL INFORMATION ===========
     vis_model_->addPointCloud(scene_cloud_vis, "scene_normals", vp_scene_normals_);
     vis_model_->addPointCloudNormals<SceneT,pcl::Normal>(scene_cloud_vis, hv->scene_normals_downsampled_, 2, 0.03f, "scene_normalss", vp_scene_normals_);
     vis_model_->addPointCloud(rm.visible_cloud_, "model_normals", vp_model_normals_);
     vis_model_->addPointCloudNormals<ModelT,pcl::Normal>(rm.visible_cloud_, rm.visible_cloud_normals_, 2, 0.03f, "model_normalss", vp_model_normals_);
+
+    // ==== VISUALIZE SURFACE CURVATURE INFORMATION ======
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_curvature (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::copyPointCloud(*scene_cloud_vis, *scene_curvature);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_curvature (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::copyPointCloud(*rm.visible_cloud_, *model_curvature);
+
+    float max_scene_curvature = 0.f, max_model_curvature = 0.f;
+    for(const pcl::Normal &n : hv->scene_normals_downsampled_->points)
+    {
+        if(n.curvature>max_scene_curvature)
+            max_scene_curvature = n.curvature;
+    }
+
+    for(const pcl::Normal &n : rm.visible_cloud_normals_->points)
+    {
+        if(n.curvature>max_model_curvature)
+            max_model_curvature = n.curvature;
+    }
+
+    for( size_t i=0; i<scene_curvature->points.size(); i++)
+    {
+        pcl::PointXYZRGB &p = scene_curvature->points[i];
+        const pcl::Normal &n = hv->scene_normals_downsampled_->points[i];
+
+        p.r = p.b = 0.f;
+        p.g = 255 * n.curvature / max_scene_curvature;
+    }
+
+    for( size_t i=0; i<model_curvature->points.size(); i++)
+    {
+        pcl::PointXYZRGB &p = model_curvature->points[i];
+        const pcl::Normal &n = rm.visible_cloud_normals_->points[i];
+
+        p.r = p.b = 0.f;
+        p.g = 255 * n.curvature / max_model_curvature;
+    }
+
+    LOG(INFO) << "max scene curvature: " << max_scene_curvature << ", max model curvature: " << max_model_curvature;
+    vis_model_->addPointCloud(scene_curvature, "scene_curvature", vp_scene_curvature_);
+    vis_model_->addPointCloud(model_curvature, "model_curvature", vp_model_curvature_);
 
 
     vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene1", vp_model_scene_);
