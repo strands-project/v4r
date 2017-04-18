@@ -44,7 +44,7 @@ private:
     int
     vp_model_scene_, vp_model_, vp_model_scene_overlay_, vp_model_outliers_, vp_model_scene_fit_,
     vp_model_visible_, vp_model_total_fit_, vp_model_3d_fit_, vp_model_color_fit_, vp_model_normals_fit_,
-    vp_scene_normals_, vp_model_normals_;
+    vp_scene_normals_, vp_model_normals_, vp_scene_curvature_, vp_model_curvature_;
 
     pcl::visualization::PCLVisualizer::Ptr vis_model_;
 
