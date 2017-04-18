@@ -1,4 +1,5 @@
 #include <v4r/apps/compute_recognition_rate.h>
+#include <v4r/common/pcl_opencv.h>
 #include <v4r/io/filesystem.h>
 
 #include <pcl/common/centroid.h>
@@ -384,6 +385,16 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
 #endif
         }
 
+        pcl::PointCloud<PointT>::Ptr all_hypotheses;
+        pcl::PointCloud<PointT>::Ptr all_groundtruth_objects;
+
+        if (save_images_to_disk_)
+        {
+            all_hypotheses.reset (new pcl::PointCloud<PointT>);
+            all_groundtruth_objects.reset(new pcl::PointCloud<PointT>);
+        }
+
+
         for( const auto &m : models )
         {
             std::vector<Hypothesis> rec_hyps_tmp, gt_hyps_tmp;
@@ -478,6 +489,9 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
 
+                        if (save_images_to_disk_)
+                            *all_hypotheses += *model_aligned;
+
                         if(gt_id<0)
                         {
                             for(PointT &p : model_aligned->points)
@@ -525,6 +539,9 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
                         pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
 
+                        if (save_images_to_disk_)
+                            *all_groundtruth_objects += *model_aligned;
+
                         std::stringstream unique_id; unique_id << m.first << "_" << counter;
                         if( rec_id<0 )
                         {
@@ -568,6 +585,40 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                     }
                 }
             }
+        }
+
+        if(save_images_to_disk_)
+        {
+            if( visualize_errors_only_ && fp_view == 0)
+                continue;
+
+            const std::string img_output_dir = "/tmp/recognition_output_images/";
+            v4r::Camera::Ptr kinect (new v4r::Camera(525.f, 640, 480, 319.5, 239.5));
+
+            std::string scene_name (anno_file);
+            boost::replace_last( scene_name, ".anno", ".pcd");
+            bf::path scene_path = test_dir;
+            scene_path /= scene_name;
+            pcl::PointCloud<PointT>::Ptr scene_cloud (new pcl::PointCloud<PointT>);
+            pcl::io::loadPCDFile( scene_path.string(), *scene_cloud);
+            boost::replace_last( scene_name, ".pcd", "");
+
+            v4r::PCLOpenCVConverter<PointT> ocv;
+            ocv.setCamera(kinect);
+            ocv.setInputCloud( all_hypotheses );
+            ocv.setBackgroundColor(255, 255, 255);
+            ocv.setRemoveBackground(false);
+            cv::Mat all_hypotheses_img = ocv.getRGBImage();
+            bf::path img_path = img_output_dir; img_path /= scene_name; img_path /= "all_hypotheses.jpg";
+            v4r::io::createDirForFileIfNotExist(img_path.string());
+            cv::imwrite( img_path.string(), all_hypotheses_img);
+            ocv.setInputCloud( all_groundtruth_objects );
+            cv::Mat all_groundtruth_objects_img = ocv.getRGBImage();
+            cv::imwrite( img_output_dir + "/" + scene_name + "/all_groundtruth_objects.jpg", all_groundtruth_objects_img);
+
+            ocv.setInputCloud( scene_cloud );
+            cv::Mat scene_cloud_img = ocv.getRGBImage();
+            cv::imwrite( img_output_dir + "/" + scene_name + "/scene.jpg", scene_cloud_img);
         }
 
 
@@ -767,6 +818,7 @@ RecognitionEvaluator::init(const std::vector<std::string> &params)
             ("occlusion_thresh", po::value<float>(&occlusion_threshold)->default_value(occlusion_threshold), "Occlusion threshold. Object with higher occlusion will be ignored in the evaluation")
             ("visualize,v", po::bool_switch(&visualize_), "visualize recognition results")
             ("visualize_errors_only", po::bool_switch(&visualize_errors_only_), "visualize only if there are errors (visualization must be on)")
+            ("save_images_to_disk", po::bool_switch(&save_images_to_disk_), "if true, saves images to disk (visualization must be on)")
             ("highlight_errors", po::bool_switch(&highlight_errors_), "if true, highlights errors in the visualization")
             ("verbosity", po::value<int>(&verbosity)->default_value(verbosity), "verbosity level")
             ("models_dir,m", po::value<std::string>(&models_dir), "Only for visualization. Root directory containing the model files (i.e. filenames 3D_model.pcd).")

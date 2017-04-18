@@ -51,6 +51,7 @@ private:
     std::string test_dir;
     bool visualize_;
     bool visualize_errors_only_;
+    bool save_images_to_disk_;
     bool highlight_errors_;
     bool use_generated_hypotheses_;
 
@@ -75,6 +76,7 @@ public:
           out_dir("/tmp/recognition_rates/"),
           visualize_(false),
           visualize_errors_only_(false),
+          save_images_to_disk_(false),
           highlight_errors_ (false),
           use_generated_hypotheses_(false)
     {
