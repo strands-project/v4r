@@ -232,6 +232,7 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         typename RecognitionPipeline<PointT>::Ptr rec_pipeline = boost::static_pointer_cast<RecognitionPipeline<PointT> > (multipipeline);
         typename MultiviewRecognizer<PointT>::Ptr mv_rec ( new v4r::MultiviewRecognizer<PointT> (mv_param) );
         mv_rec->setSingleViewRecognitionPipeline( rec_pipeline );
+        mv_rec->setModelDatabase( model_database_ );
 
         if ( param_.use_graph_based_gc_grouping_ && mv_param.transfer_keypoint_correspondences_ )
         {
@@ -594,7 +595,7 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         const std::map<std::string, typename LocalObjectModel::ConstPtr> lomdb = local_recognition_pipeline_->getLocalObjectModelDatabase();
         rec_vis_->setCloud( cloud );
 
-        if( param_.use_multiview_ && param_.use_multiview_hv_ )
+        if( param_.use_multiview_ && param_.use_multiview_hv_ && !skip_verification_)
         {
             const Eigen::Matrix4f tf_global2camera = camera_pose.inverse();
             typename pcl::PointCloud<PointT>::Ptr registered_scene_cloud_aligned (new pcl::PointCloud<PointT>);
