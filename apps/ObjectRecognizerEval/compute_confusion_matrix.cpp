@@ -18,7 +18,7 @@ main (int argc, char ** argv)
     }
 
     e.setOut_dir( e.getOr_dir() );
-    std::cout << e.compute_confusion_matrix() << std::endl;;
+    const Eigen::MatrixXi conf_matrix = e.compute_confusion_matrix();
 
     return 0;
 }
