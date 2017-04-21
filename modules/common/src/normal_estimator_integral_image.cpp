@@ -29,13 +29,11 @@ NormalEstimatorIntegralImage<PointT>::compute()
 
     for(pcl::Normal &n : normal_->points)
     {
-        Eigen::Vector3f normal = n.getNormalVector3fMap();
+        auto normal = n.getNormalVector3fMap();
         if ( normal.dot(Eigen::Vector3f::UnitZ()) > 0 ) //flip normal towards viewpoint
             normal = -normal;
 
         normal.normalize();
-
-        n.getNormalVector3fMap() = normal;
     }
 
     return normal_;
