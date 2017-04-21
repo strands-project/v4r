@@ -92,8 +92,14 @@ public:
     }
 
 
+    /**
+     * @brief renderPointCloud renders a point cloud using the given camera parameters
+     * @param cloud input point cloud
+     * @param rendered_view[out] rendered point cloud
+     * @param subsample subsampling step size n. If greater 1, will only use every n-th point for rendering
+     */
     void
-    renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view);
+    renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view, int subsample = 1);
 
     std::vector<int>
     getKeptIndices() const

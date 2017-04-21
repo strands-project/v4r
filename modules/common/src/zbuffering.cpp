@@ -12,7 +12,7 @@ namespace v4r
 
 template<typename PointT>
 void
-ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<PointT> & rendered_view)
+ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<PointT> & rendered_view, int subsample)
 {
     if ( param_.use_normals_ && (!cloud_normals_ || cloud_normals_->points.size() != cloud.points.size()) )
     {
@@ -47,7 +47,7 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
         omp_init_lock(&pt_locks[i]);
 
 //#pragma omp parallel for schedule (dynamic)
-    for (int i=0; i< static_cast<int>(cloud.points.size()); i++)
+    for (int i=0; i< static_cast<int>(cloud.points.size()); i = i + subsample)
     {
         const PointT &pt = cloud.points[i];
         float uf = f * pt.x / pt.z + cx;
