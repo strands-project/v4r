@@ -33,7 +33,7 @@ namespace v4r{
 
 /**
  * @brief This class represents object hypotheses coming from local feature correspondences
- * @author Aitor Aldoma, Thomas Faeulhammer
+ * @author Thomas Faeulhammer, Aitor Aldoma
  */
 template<typename PointT>
 class V4R_EXPORTS LocalObjectHypothesis
