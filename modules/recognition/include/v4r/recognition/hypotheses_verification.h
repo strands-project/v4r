@@ -221,7 +221,7 @@ protected:
      */
     bool isOutlier(HVRecognitionModel<ModelT> &rm) const
     {
-        float visible_ratio = rm.visible_indices_by_octree_.size() / (float)rm.complete_cloud_->points.size();
+        float visible_ratio = rm.visible_indices_by_octree_.size() / (float)rm.num_pts_full_model_;
         float thresh = param_.min_fitness_ + ( param_.min_fitness_ - param_.min_fitness_high_) * ( visible_ratio - 0.5f ) / (0.5f - param_.min_visible_ratio_);
         float min_fitness_threshold = std::max<float>( param_.min_fitness_, std::min<float>(param_.min_fitness_high_, thresh) );
 

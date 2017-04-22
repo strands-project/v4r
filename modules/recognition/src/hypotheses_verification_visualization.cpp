@@ -343,13 +343,18 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
 
     if(!vis_param_->no_text_)
     {
-        std::stringstream txt; txt << "visible ratio: " << std::fixed << std::setprecision(2) << rm.visible_indices_by_octree_.size() / (float)rm.complete_cloud_->points.size();
+        std::stringstream txt; txt << "visible ratio: " << std::fixed << std::setprecision(2) << rm.visible_indices_by_octree_.size() / (float)rm.num_pts_full_model_;
         vis_model_->addText(txt.str(), 10, 10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1] ,vis_param_->text_color_[2], "visible model cloud", vp_model_visible_);
     }
 
     // ===== VISUALIZE VISIBLE PART =================
     {
-        typename pcl::PointCloud<ModelT>::Ptr visible_cloud_colored (new pcl::PointCloud<ModelT> (*rm.complete_cloud_));
+        bool found_model_foo;
+        typename Model<ModelT>::ConstPtr m = hv->m_db_->getModelById("", rm.oh_->model_id_, found_model_foo);
+        typename pcl::PointCloud<ModelT>::ConstPtr model_cloud  = m->getAssembled ( -1 );  // use full resolution for rendering
+
+        typename pcl::PointCloud<ModelT>::Ptr visible_cloud_colored (new pcl::PointCloud<ModelT> );
+        pcl::transformPointCloud( *model_cloud, *visible_cloud_colored, rm.oh_->pose_refinement_ * rm.oh_->transform_ );
         for(ModelT &mp : visible_cloud_colored->points)
             mp.r = mp.g = mp.b = 0.f;
 
@@ -453,34 +458,34 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
 
 
     // ===== VISUALIZE MODEL OUTLIERS =================
-    {
-        typename pcl::PointCloud<ModelT>::Ptr outlier_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
-        for(size_t p=0; p < outlier_cloud->points.size(); p++)
-        {
-            ModelT &mp = outlier_cloud->points[p];
-            mp.r = mp.g = mp.b = 0.f;
+//    {
+//        typename pcl::PointCloud<ModelT>::Ptr outlier_cloud (new pcl::PointCloud<ModelT> (*rm.visible_cloud_));
+//        for(size_t p=0; p < outlier_cloud->points.size(); p++)
+//        {
+//            ModelT &mp = outlier_cloud->points[p];
+//            mp.r = mp.g = mp.b = 0.f;
 
-            if ( p>=rm.visible_pt_is_outlier_.size() )
-            {
-                LOG(ERROR) << "Something is wrong with the outlier cloud";
-                continue;
-            }
+//            if ( p>=rm.visible_pt_is_outlier_.size() )
+//            {
+//                LOG(ERROR) << "Something is wrong with the outlier cloud";
+//                continue;
+//            }
 
-            if( rm.visible_pt_is_outlier_[p] )
-                mp.r = 255.f;
-        }
+//            if( rm.visible_pt_is_outlier_[p] )
+//                mp.r = 255.f;
+//        }
 
-        vis_model_->addPointCloud(outlier_cloud, "outlier_cloud", vp_model_outliers_);
-        vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "outlier_cloud", vp_model_outliers_);
-        vis_model_->addPointCloud(scene_cloud_vis, gray, "input_rm_vp_model_outliers_", vp_model_outliers_);
-        vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_outliers_");
-        if(!vis_param_->no_text_)
-        {
-            std::stringstream txt;
-            txt.str(""); txt << "model outliers (" << rm.visible_pt_is_outlier_.count() << " / " << rm.visible_cloud_->points.size() << " ( " << std::fixed << std::setprecision(2)  << 100.f * (float)rm.visible_pt_is_outlier_.count() / rm.visible_cloud_->points.size() << " % )";
-            vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "model outliers txt", vp_model_outliers_);
-        }
-    }
+//        vis_model_->addPointCloud(outlier_cloud, "outlier_cloud", vp_model_outliers_);
+//        vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "outlier_cloud", vp_model_outliers_);
+//        vis_model_->addPointCloud(scene_cloud_vis, gray, "input_rm_vp_model_outliers_", vp_model_outliers_);
+//        vis_model_->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_OPACITY, 0.2, "input_rm_vp_model_outliers_");
+//        if(!vis_param_->no_text_)
+//        {
+//            std::stringstream txt;
+//            txt.str(""); txt << "model outliers (" << rm.visible_pt_is_outlier_.count() << " / " << rm.visible_cloud_->points.size() << " ( " << std::fixed << std::setprecision(2)  << 100.f * (float)rm.visible_pt_is_outlier_.count() / rm.visible_cloud_->points.size() << " % )";
+//            vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "model outliers txt", vp_model_outliers_);
+//        }
+//    }
 
     // ==== VISUALIZE SCENE FITNESS CLOUD =====
     {

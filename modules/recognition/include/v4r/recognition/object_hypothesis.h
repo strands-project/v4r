@@ -50,11 +50,13 @@ private:
     template<class Archive> V4R_EXPORTS void serialize(Archive & ar, const unsigned int version)
     {
         (void) version;
-        ar & BOOST_SERIALIZATION_NVP(class_id_)
-           & BOOST_SERIALIZATION_NVP(model_id_)
-           & BOOST_SERIALIZATION_NVP(transform_)
-           & BOOST_SERIALIZATION_NVP(pose_refinement_)
-           & BOOST_SERIALIZATION_NVP(confidence_)
+        ar & class_id_
+           & model_id_
+           & transform_
+           & pose_refinement_
+           & confidence_
+           & is_verified_
+           & unique_id_
          ;
     }
 
@@ -137,11 +139,12 @@ public:
     typedef boost::shared_ptr< HVRecognitionModel const> ConstPtr;
 
     typename ObjectHypothesis::Ptr oh_;  ///< object hypothesis
-    typename pcl::PointCloud<PointT>::Ptr complete_cloud_;
+//    typename pcl::PointCloud<PointT>::Ptr complete_cloud_;
+    size_t num_pts_full_model_;
     typename pcl::PointCloud<PointT>::Ptr visible_cloud_;
-    std::vector<boost::dynamic_bitset<> > image_mask_; ///< image mask per view (in single-view case, there will be only one element in outer vector). Used to compute pairwise intersection
     pcl::PointCloud<pcl::Normal>::Ptr visible_cloud_normals_;
-    pcl::PointCloud<pcl::Normal>::Ptr complete_cloud_normals_;
+    std::vector<boost::dynamic_bitset<> > image_mask_; ///< image mask per view (in single-view case, there will be only one element in outer vector). Used to compute pairwise intersection
+//    pcl::PointCloud<pcl::Normal>::Ptr complete_cloud_normals_;
     std::vector<int> visible_indices_;  ///< visible indices computed by z-Buffering (for model self-occlusion) and occlusion reasoning with scene cloud
     std::vector<int> visible_indices_by_octree_; ///< visible indices computed by creating an octree for the model and checking which leaf nodes are occupied by a visible point computed from the z-buffering approach
     std::vector<ModelSceneCorrespondence> model_scene_c_; ///< correspondences between visible model points and scene
@@ -162,6 +165,7 @@ public:
     bool rejected_globally_;
 
     HVRecognitionModel(typename ObjectHypothesis::Ptr &oh) :
+        num_pts_full_model_(0),
         L_value_offset_ (0.f),
         rejected_due_to_low_visibility_ (false),
         is_outlier_ (false),
@@ -174,10 +178,8 @@ public:
     void
     freeSpace()
     {
-        complete_cloud_.reset();
         visible_cloud_.reset();
         visible_cloud_normals_.reset();
-        complete_cloud_normals_.reset();
         visible_indices_.clear();
         image_mask_.clear();
         model_scene_c_.clear();
