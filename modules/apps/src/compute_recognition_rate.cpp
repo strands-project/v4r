@@ -144,6 +144,26 @@ RecognitionEvaluator::checkMatchvector(const std::vector< std::pair<int, int> > 
     }
 }
 
+std::vector<std::vector<int> >
+PermGenerator(int n, int k)
+{
+    std::vector<std::vector<int> > possible_permutations;
+
+    std::vector<int> d(n);
+    std::iota(d.begin(),d.end(),0);
+    do
+    {
+        std::vector<int> p (k);
+        for (int i = 0; i < k; i++)
+            p[i] = d[i];
+
+        possible_permutations.push_back(p);
+        std::reverse(d.begin()+k,d.end());
+    } while (next_permutation(d.begin(),d.end()));
+
+    return possible_permutations;
+}
+
 std::vector< std::pair<int, int> >
 RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
                                        const std::vector<Hypothesis> &gt_hyps,
@@ -159,63 +179,153 @@ RecognitionEvaluator::selectBestMatch (const std::vector<Hypothesis> &rec_hyps,
 
     std::vector< std::pair<int, int> > best_match;
 
-    std::vector<int> ids_get( gt_hyps.size() );
-    std::iota (std::begin(ids_get), std::end(ids_get), 0);
-    do
+    size_t k = std::min(rec_hyps.size(), gt_hyps.size());
+    size_t n = std::max(rec_hyps.size(), gt_hyps.size());
+
+    std::vector<std::vector<int> > perms = PermGenerator( n, k );
+
+    for(const std::vector<int> &perm : perms)
     {
-        std::vector<int> ids_rec( rec_hyps.size() );
-        std::iota (std::begin(ids_rec), std::end(ids_rec), 0);
-        do
+        std::vector< std::pair<int, int> > rec2gt_matches ( k );
+
+
+        size_t tp_tmp=0, fp_tmp=0, fn_tmp=0;
+
+        if( rec_hyps.size() < n)
         {
-            std::vector< std::pair<int, int> > rec2gt_matches;
+            boost::dynamic_bitset<> taken_gts(n,0);
 
-            for(size_t i=0; i< std::max(rec_hyps.size(), gt_hyps.size()); i++)
+            for( size_t i=0; i< k; i++)
             {
-                int rec_id, gt_id;
-
-                if( i>=gt_hyps.size() )
-                    gt_id = -1;
-                else
-                    gt_id = ids_get[i];
-
-                if( i>= rec_hyps.size() )
-                    rec_id = -1;
-                else
-                    rec_id = ids_rec[i];
-
-                rec2gt_matches.push_back( std::pair<int, int>(rec_id, gt_id) );
+                std::pair<int, int> &p = rec2gt_matches[i];
+                p.first = i;
+                p.second = perm[i];
+                taken_gts.set(perm[i]);
             }
 
-            std::vector<float> translation_errors_tmp;
-            std::vector<float> rotational_errors_tmp;
-            size_t tp_tmp, fp_tmp, fn_tmp;
-            checkMatchvector(rec2gt_matches, rec_hyps, gt_hyps, model_centroid, translation_errors_tmp, rotational_errors_tmp,
-                             tp_tmp, fp_tmp, fn_tmp, is_rotation_invariant, is_rotational_symmetric);
-
-            float recall = 1.f;
-            if (tp_tmp+fn_tmp) // if there are some ground-truth objects
-                recall = (float)tp_tmp / (tp_tmp + fn_tmp);
-
-            float precision = 1.f;
-            if(tp_tmp+fp_tmp)   // if there are some recognized objects
-                precision = (float)tp_tmp / (tp_tmp + fp_tmp);
-
-            float fscore = 0.f;
-            if ( precision+recall>std::numeric_limits<float>::epsilon() )
-                fscore = 2.f * precision * recall / (precision + recall);
-
-            if ( (fscore > best_fscore) ) // || (fscore==best_fscore && translation_errors_tmp/tp_tmp < translation_errors/tp))
+            for(size_t i=0; i<n; i++)
             {
-                best_fscore = fscore;
-                translation_errors = translation_errors_tmp;
-                rotational_errors = rotational_errors_tmp;
-                tp = tp_tmp;
-                fp = fp_tmp;
-                fn = fn_tmp;
-                best_match = rec2gt_matches;
+                if(!taken_gts[i] && gt_hyps [i].occlusion < occlusion_threshold)
+                    fn_tmp++;
             }
-        } while ( next_permutation( ids_rec.begin(), ids_rec.end()) );
-    } while ( next_permutation( ids_get.begin(), ids_get.end()) );
+        }
+        else
+        {
+            boost::dynamic_bitset<> taken_recs(n,0);
+            for( size_t i=0; i< k; i++)
+            {
+                std::pair<int, int> &p = rec2gt_matches[i];
+                p.first = perm[i];
+                p.second = i;
+                taken_recs.set(perm[i]);
+            }
+            for(size_t i=0; i<n; i++)
+            {
+                if(!taken_recs[i])
+                    fp_tmp++;
+            }
+        }
+
+        std::vector<float> translation_errors_tmp(k);
+        std::vector<float> rotational_errors_tmp(k);
+        for( size_t i=0; i< k; i++)
+        {
+            const std::pair<int,int> &x = rec2gt_matches[i];
+            VLOG(1) <<x.first<<"/"<<x.second<< " " << std::endl;
+
+          const Hypothesis &rec_hyp = rec_hyps [ x.first ] ;
+          const Hypothesis &gt_hyp = gt_hyps [ x.second ] ;
+
+          if( computeError( rec_hyp.pose, gt_hyp.pose, model_centroid, translation_errors_tmp[i], rotational_errors_tmp[i], is_rotation_invariant, is_rotational_symmetric))
+          {
+
+              if( gt_hyp.occlusion < occlusion_threshold)
+              {
+                  fn_tmp++;
+                  fp_tmp++;
+                  VLOG(1) << "Adding false negative and false positive";
+              }
+              else
+              {
+                  if(translation_errors_tmp[i] > translation_error_threshold_m )    //ignore rotation erros for occluded objects
+                  {
+                      fp_tmp++;
+                      VLOG(1) << "Adding false positve but ignoring false negative due to occlusion";
+                  }
+                  else
+                      VLOG(1) << "Ignoring due to occlusion";
+              }
+          }
+          else
+          {
+              VLOG(1) << "Adding true positve";
+              tp_tmp++;
+          }
+
+        }
+
+
+        float recall = 1.f;
+        if (tp_tmp+fn_tmp) // if there are some ground-truth objects
+            recall = (float)tp_tmp / (tp_tmp + fn_tmp);
+
+        float precision = 1.f;
+        if(tp_tmp+fp_tmp)   // if there are some recognized objects
+            precision = (float)tp_tmp / (tp_tmp + fp_tmp);
+
+        float fscore = 0.f;
+        if ( precision+recall>std::numeric_limits<float>::epsilon() )
+            fscore = 2.f * precision * recall / (precision + recall);
+
+        if ( (fscore > best_fscore) ) // || (fscore==best_fscore && translation_errors_tmp/tp_tmp < translation_errors/tp))
+        {
+            best_fscore = fscore;
+            translation_errors = translation_errors_tmp;
+            rotational_errors = rotational_errors_tmp;
+            tp = tp_tmp;
+            fp = fp_tmp;
+            fn = fn_tmp;
+            best_match = rec2gt_matches;
+        }
+
+
+//        std::vector<float> translation_errors_tmp;
+//        std::vector<float> rotational_errors_tmp;
+//        size_t tp_tmp, fp_tmp, fn_tmp;
+//        checkMatchvector(rec2gt_matches, rec_hyps, gt_hyps, model_centroid, translation_errors_tmp, rotational_errors_tmp,
+//                         tp_tmp, fp_tmp, fn_tmp, is_rotation_invariant, is_rotational_symmetric);
+
+//        float recall = 1.f;
+//        if (tp_tmp+fn_tmp) // if there are some ground-truth objects
+//            recall = (float)tp_tmp / (tp_tmp + fn_tmp);
+
+//        float precision = 1.f;
+//        if(tp_tmp+fp_tmp)   // if there are some recognized objects
+//            precision = (float)tp_tmp / (tp_tmp + fp_tmp);
+
+//        float fscore = 0.f;
+//        if ( precision+recall>std::numeric_limits<float>::epsilon() )
+//            fscore = 2.f * precision * recall / (precision + recall);
+
+//        if ( (fscore > best_fscore) ) // || (fscore==best_fscore && translation_errors_tmp/tp_tmp < translation_errors/tp))
+//        {
+//            best_fscore = fscore;
+//            translation_errors = translation_errors_tmp;
+//            rotational_errors = rotational_errors_tmp;
+//            tp = tp_tmp;
+//            fp = fp_tmp;
+//            fn = fn_tmp;
+//            best_match = rec2gt_matches;
+//        }
+    }
+
+
+    VLOG(1) << "BEST MATCH: ";
+    for(auto &x:best_match)
+    {
+      VLOG(1)<<x.first<<"/"<<x.second<< " ";
+    }
+    VLOG(1) << std::endl;
 
     return best_match;
 }
@@ -412,8 +522,8 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
             std::vector<float> rotational_errors_tmp;
             std::vector< std::pair<int, int> > matches;
 
-//            if( gt_hyps_tmp.empty() && rec_hyps_tmp.empty() )
-//                continue;
+            if( gt_hyps_tmp.empty() && rec_hyps_tmp.empty() )
+                continue;
 //            else if( gt_hyps_tmp.empty() )
 //            {
 //                fp_tmp = rec_hyps_tmp.size();
@@ -475,51 +585,13 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                 }
 
                 size_t counter = 0;
-
-                for (size_t m_id=0; m_id<matches.size(); m_id++)
+                for( const Hypothesis &rec_hyp : rec_hyps_tmp )
                 {
-                    const auto &match = matches[m_id];
-                    int rec_id = match.first;
-                    int gt_id = match.second;
+                    typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
+                    typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
+                    pcl::transformPointCloud(*model_cloud, *model_aligned, rec_hyp.pose);
 
-                    if ( rec_id >= 0 )
-                    {
-                        const Hypothesis &hyp_vis = rec_hyps_tmp[ rec_id ];
-                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
-                        typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
-                        pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
-
-                        if (save_images_to_disk_)
-                            *all_hypotheses += *model_aligned;
-
-                        if(gt_id<0)
-                        {
-                            for(PointT &p : model_aligned->points)
-                                p.r = 255;
-                        }
-                        else if( highlight_errors_ && ( (rotational_errors_tmp[m_id] > rotation_error_threshold_deg) || (translation_errors_tmp[m_id] > translation_error_threshold_m) ) )
-                        {
-                            for(PointT &p : model_aligned->points)
-                                p.g = 255;
-
-                            Eigen::Vector4f centroid = m.second.centroid;
-                            centroid = hyp_vis.pose * centroid;
-                            pcl::PointXYZ centroid_p;
-                            centroid_p.getVector4fMap() = centroid;
-                            vis_->addSphere(centroid_p, 0.01, 0, 0, 255, "center_rec", vp3_);
-
-                            pcl::PointXYZ arrow_end;
-                            arrow_end.getVector3fMap() = centroid.head(3) + 0.1f * hyp_vis.pose.block<3,3>(0,0) * Eigen::Vector3f::UnitX();
-                            vis_->addArrow(centroid_p, arrow_end, 0.f, 0.f, 0.f, "arrow_rec", vp3_);
-
-                            std::cout << gt_hyps_tmp[ gt_id ].pose.block<3,3>(0,0) * Eigen::Vector3f::UnitX() <<std::endl <<std::endl << hyp_vis.pose.block<3,3>(0,0) * Eigen::Vector3f::UnitX() << std::endl;
-
-                            VLOG(1) << "POSE ERROR WITH trans_error: " << translation_errors_tmp[m_id] << " and rot error: " << rotational_errors_tmp[m_id];
-                        }
-
-                        std::stringstream unique_id; unique_id << m.first << "_" << counter;
-                        vis_->addPointCloud(model_aligned, unique_id.str(), vp3_);
-
+                    std::stringstream unique_id; unique_id << m.first << "_" << counter++;
 #if PCL_VERSION >= 100800
                         Eigen::Matrix4f tf_tmp = hyp_vis.pose;
                         Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
@@ -529,49 +601,16 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         std::stringstream co_id; co_id << m.first << "_co_" << counter;
                         vis_->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp3_);
 #endif
-                        counter++;
-                    }
+                    vis_->addPointCloud(model_aligned, unique_id.str(), vp3_);
+                }
 
-                    if ( gt_id >= 0 )
-                    {
-                        const Hypothesis &hyp_vis = gt_hyps_tmp[ gt_id ];
-                        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
-                        typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
-                        pcl::transformPointCloud(*model_cloud, *model_aligned, hyp_vis.pose);
+                for( const Hypothesis &gt_hyp : gt_hyps_tmp )
+                {
+                    typename pcl::PointCloud<PointT>::ConstPtr model_cloud = m.second.cloud;
+                    typename pcl::PointCloud<PointT>::Ptr model_aligned(new pcl::PointCloud<PointT>());
+                    pcl::transformPointCloud(*model_cloud, *model_aligned, gt_hyp.pose);
 
-                        if (save_images_to_disk_)
-                            *all_groundtruth_objects += *model_aligned;
-
-                        std::stringstream unique_id; unique_id << m.first << "_" << counter;
-                        if( rec_id<0 )
-                        {
-                            for(PointT &p : model_aligned->points)
-                                p.r = 255;
-                        }
-                        else if(highlight_errors_ && ( (rotational_errors_tmp[m_id] > rotation_error_threshold_deg) || (translation_errors_tmp[m_id] > translation_error_threshold_m) ) )
-                        {
-                            for(PointT &p : model_aligned->points)
-                                p.g = 255;
-
-                            Eigen::Vector4f centroid = m.second.centroid;
-                            centroid = hyp_vis.pose * centroid;
-                            pcl::PointXYZ centroid_p;
-                            centroid_p.getVector4fMap() = centroid;
-                            vis_->addSphere(centroid_p, 0.01, 0, 0, 255, "center_gt", vp3_);
-                            pcl::PointXYZ arrow_end;
-                            arrow_end.getVector3fMap() = centroid.head(3) + 0.1f * hyp_vis.pose.block<3,3>(0,0) * Eigen::Vector3f::UnitX();
-                            vis_->addArrow(centroid_p, arrow_end, 0.f, 0.f, 0.f, "arrow_gt", vp3_);
-
-                        }
-
-                        if(hyp_vis.occlusion > occlusion_threshold)
-                        {
-                            pcl::visualization::PointCloudColorHandlerCustom<PointT> green (model_aligned, 0, 0, 255);
-                            vis_->addPointCloud(model_aligned, green, unique_id.str(), vp2_);
-                        }
-                        else
-                            vis_->addPointCloud(model_aligned, unique_id.str(), vp2_);
-
+                    std::stringstream unique_id; unique_id << m.first << "_" << counter++;
 #if PCL_VERSION >= 100800
                         Eigen::Matrix4f tf_tmp = hyp_vis.pose;
                         Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
@@ -579,10 +618,9 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                         Eigen::Affine3f affine_trans;
                         affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
                         std::stringstream co_id; co_id << m.first << "_co_" << counter;
-                        vis_->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp2_);
+                        vis_->addCoordinateSystem(0.1f, affine_trans, co_id.str(), vp3_);
 #endif
-                        counter++;
-                    }
+                    vis_->addPointCloud(model_aligned, unique_id.str(), vp2_);
                 }
             }
         }
@@ -882,7 +920,10 @@ RecognitionEvaluator::compute_recognition_rate_over_occlusion()
         rec_path /= rec_file;
 
         if(!v4r::io::existsFile(rec_path.string()))
+        {
+            LOG(INFO) << "File " << rec_path.string() << " not found.";
             continue;
+        }
 
         std::map<std::string, std::vector<Hypothesis> > gt_hyps = readHypothesesFromFile( gt_path.string() );
         std::map<std::string, std::vector<Hypothesis> > rec_hyps = readHypothesesFromFile( rec_path.string() );
@@ -1153,9 +1194,13 @@ RecognitionEvaluator::compute_confusion_matrix()
                         const Eigen::Vector4f centroid_a = h_gt.pose * m.centroid;
                         const Eigen::Vector4f centroid_b = h_rec.pose * m.centroid;
 
+
                         //ignore z
 
                         float trans_error = (h_gt.pose.block<2,1>(0,3)-h_rec.pose.block<2,1>(0,3)).norm();
+                        VLOG(1) << h_gt.pose;
+                        VLOG(1) << h_rec.pose;
+                        VLOG(1) << trans_error;
 
                         if(trans_error < lowest_trans_error)
                         {
@@ -1172,7 +1217,7 @@ RecognitionEvaluator::compute_confusion_matrix()
             }
         }
 
-        std::cout << tmp_confusion_matrix << std::endl << std::endl
+        VLOG(1) << tmp_confusion_matrix << std::endl << std::endl
                   << "view accuracy: " << tmp_confusion_matrix.trace() << " / " <<
                      tmp_confusion_matrix.sum() << " (" <<
                      (float)tmp_confusion_matrix.trace() / tmp_confusion_matrix.sum() << ")" << std::endl;
