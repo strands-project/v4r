@@ -353,14 +353,17 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
         elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
     }
 
+    Eigen::Vector4f support_plane;
     if(param_.remove_planes_)
     {
         pcl::StopWatch t; const std::string time_desc ("Removing planes");
+
         cloud_segmenter_->setNormals( normals );
         cloud_segmenter_->segment( processed_cloud );
         processed_cloud = cloud_segmenter_->getProcessedCloud();
-        const Eigen::Vector4f chosen_plane = cloud_segmenter_->getSelectedPlane();
-        mrec_->setTablePlane( chosen_plane );
+        support_plane = cloud_segmenter_->getSelectedPlane();
+        mrec_->setTablePlane( support_plane );
+
         float time = t.getTime();
         VLOG(1) << time_desc << " took " << time << " ms.";
         elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
@@ -572,6 +575,40 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
         std::vector<std::pair<std::string, float> > hv_elapsed_times = hv_->getElapsedTimes();
         elapsed_time_.insert(elapsed_time_.end(), hv_elapsed_times.begin(), hv_elapsed_times.end());
+    }
+
+
+    if( param_.remove_planes_ && param_.remove_non_upright_objects_ )
+    {
+        for(size_t ohg_id=0; ohg_id<generated_object_hypotheses.size(); ohg_id++)
+        {
+            for(size_t oh_id = 0; oh_id<  generated_object_hypotheses[ohg_id].ohs_.size(); oh_id++)
+            {
+                typename ObjectHypothesis::Ptr &oh = generated_object_hypotheses[ohg_id].ohs_[oh_id];
+
+                if( !oh->is_verified_ )
+                    continue;
+
+                const Eigen::Matrix4f tf = oh->pose_refinement_ * oh->transform_;
+                const Eigen::Vector3f translation = tf.block<3,1>(0,3);
+                float dist2supportPlane = fabs( v4r::dist2plane(translation, support_plane) );
+                const Eigen::Vector3f z_orientation = tf.block<3,3>(0,0) * Eigen::Vector3f::UnitZ();
+                float dotp = z_orientation.dot( support_plane.head(3) )  / ( support_plane.head(3).norm() * z_orientation.norm() );
+                VLOG(1) << "dotp for model " << oh->model_id_ << ": " << dotp;
+
+                if( dotp < 0.8f )
+                {
+                    oh->is_verified_ = false;
+                    VLOG(1) << "Rejected " << oh->model_id_ << " because it is not standing upgright (dot-product = " << dotp << ")!";
+                }
+                if ( dist2supportPlane > 0.03f)
+                {
+                    oh->is_verified_ = false;
+                    VLOG(1) << "Rejected " << oh->model_id_ << " because object origin is too far away from support plane = " << dist2supportPlane << ")!";
+
+                }
+            }
+        }
     }
 
 

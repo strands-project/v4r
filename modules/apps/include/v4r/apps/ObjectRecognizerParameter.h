@@ -78,11 +78,13 @@ public:
     int shot_keypoint_extractor_method_;
     int normal_computation_method_; ///< normal computation method
     std::vector<float> keypoint_support_radii_;
-    double chop_z_; ///< Cut-off distance in meter
 
+    // filter parameter
+    double chop_z_; ///< Cut-off distance in meter
     bool remove_planes_;    ///< if enabled, removes the dominant plane in the input cloud (given thera are at least N inliers)
     float plane_inlier_threshold_; ///< maximum distance for plane inliers
     size_t min_plane_inliers_; ///< required inliers for plane to be removed
+    bool remove_non_upright_objects_; ///< removes all objects that are not upright (requires to extract support plane)
 
     int icp_iterations_;
 
