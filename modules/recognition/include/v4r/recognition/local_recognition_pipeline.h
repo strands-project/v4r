@@ -139,6 +139,7 @@ template<typename PointT>
 class V4R_EXPORTS LocalRecognitionPipeline : public RecognitionPipeline<PointT>
 {
 private:
+    using RecognitionPipeline<PointT>::elapsed_time_;
     using RecognitionPipeline<PointT>::m_db_;
     using RecognitionPipeline<PointT>::normal_estimator_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
@@ -161,6 +162,12 @@ private:
     void
     correspondenceGrouping();
 
+    /**
+     * @brief recognize
+     */
+    void
+    do_recognize();
+
     bool generate_hypotheses_; ///< if true, cluster correspondences with respect to geometeric consistency and estimates pose by SVD
 
 public:
@@ -181,11 +188,6 @@ public:
 
     void initialize(const std::string &trained_dir, bool force_retrain = false);
 
-    /**
-     * @brief recognize
-     */
-    void
-    recognize();
 
     /**
      * @brief addRecognizer

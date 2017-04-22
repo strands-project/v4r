@@ -27,18 +27,19 @@ GlobalRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, bo
 
 template<typename PointT>
 void
-GlobalRecognitionPipeline<PointT>::recognize()
+GlobalRecognitionPipeline<PointT>::do_recognize()
 {
     CHECK(seg_);
     planes_.clear();
     clusters_.clear();
 
-    obj_hypotheses_.clear();
-
-    seg_->setInputCloud(scene_);
-    seg_->setNormalsCloud(scene_normals_);
-    seg_->segment();
-    seg_->getSegmentIndices(clusters_);
+    {
+        typename RecognitionPipeline<PointT>::StopWatch t("Segmentation");
+        seg_->setInputCloud(scene_);
+        seg_->setNormalsCloud(scene_normals_);
+        seg_->segment();
+        seg_->getSegmentIndices(clusters_);
+    }
 
     obj_hypotheses_.resize(clusters_.size()); // each cluster builds a hypothesis group
 
@@ -48,6 +49,7 @@ GlobalRecognitionPipeline<PointT>::recognize()
         obj_hypotheses_wo_elongation_check_.resize(clusters_.size() );
     }
 
+    typename RecognitionPipeline<PointT>::StopWatch t("Global recognition");
     size_t kept=0;
     for(size_t i=0; i<clusters_.size(); i++)
     {

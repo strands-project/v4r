@@ -378,14 +378,17 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 
     {
         pcl::StopWatch t; const std::string time_desc ("Generation of object hypotheses");
+
         mrec_->setInputCloud ( processed_cloud );
         mrec_->recognize();
         generated_object_hypotheses = mrec_->getObjectHypothesis();
+
         float time = t.getTime();
         VLOG(1) << time_desc << " took " << time << " ms.";
         elapsed_time_.push_back( std::pair<std::string,float>(time_desc, time) );
+        std::vector<std::pair<std::string,float> > elapsed_times_rec = mrec_->getElapsedTimes();
+        elapsed_time_.insert( elapsed_time_.end(), elapsed_times_rec.begin(), elapsed_times_rec.end() );
     }
-
 
 //    if(param_.icp_iterations_)
 //    {

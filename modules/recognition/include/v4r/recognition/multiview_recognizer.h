@@ -197,7 +197,7 @@ public:
     * @brief recognize
     */
     void
-    recognize();
+    do_recognize();
 
     /**
     * @brief oh_tmp

@@ -17,9 +17,8 @@ namespace v4r
 
 template<typename PointT>
 void
-MultiviewRecognizer<PointT>::recognize()
+MultiviewRecognizer<PointT>::do_recognize()
 {
-    obj_hypotheses_.clear();
     local_obj_hypotheses_.clear();
 
     View v;
@@ -253,6 +252,9 @@ MultiviewRecognizer<PointT>::correspondenceGrouping ()
     {
         const std::string &model_id = it->first;
         const LocalObjectHypothesis<PointT> &loh = it->second;
+
+        std::stringstream desc; desc << "Correspondence grouping for " << model_id << " ( " << loh.model_scene_corresp_->size() << ")" ;
+        typename RecognitionPipeline<PointT>::StopWatch t(desc.str());
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr model_keypoints = model_keypoints_[model_id]->keypoints_;
         pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals = model_keypoints_[model_id]->kp_normals_;

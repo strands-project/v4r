@@ -56,8 +56,6 @@ template<typename PointT>
 void
 LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
 {
-    pcl::ScopeTime t("Correspondence Grouping");
-
     pcl::PointCloud<pcl::PointXYZ>::Ptr scene_cloud_xyz (new pcl::PointCloud<pcl::PointXYZ>);
     pcl::copyPointCloud( *scene_, *scene_cloud_xyz );
 
@@ -67,6 +65,9 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
     {
         const std::string &model_id = it->first;
         const LocalObjectHypothesis<PointT> &loh = it->second;
+
+        std::stringstream desc; desc << "Correspondence grouping for " << model_id << " ( " << loh.model_scene_corresp_->size() << ")" ;
+        typename RecognitionPipeline<PointT>::StopWatch t(desc.str());
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr model_keypoints = model_keypoints_[model_id]->keypoints_;
         pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals = model_keypoints_[model_id]->kp_normals_;
@@ -186,16 +187,10 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
 
 template<typename PointT>
 void
-LocalRecognitionPipeline<PointT>::recognize()
+LocalRecognitionPipeline<PointT>::do_recognize()
 {
     CHECK (cg_algorithm_) << "Correspondence grouping algorithm not defined!";
-    CHECK ( scene_ ) << "Input scene is not set!";
-
-    if( needNormals() )
-        CHECK ( scene_normals_ && scene_->points.size() == scene_normals_->points.size()) << "Recognizer needs normals but they are not set!";
-
     local_obj_hypotheses_.clear();
-    obj_hypotheses_.clear();
 
     // get feature correspondences from all recognizers
     for(size_t r_id=0; r_id < local_feature_matchers_.size(); r_id++)

@@ -41,6 +41,7 @@ template<typename PointT>
 class V4R_EXPORTS GlobalRecognitionPipeline : public RecognitionPipeline<PointT>
 {
 private:
+    using RecognitionPipeline<PointT>::elapsed_time_;
     using RecognitionPipeline<PointT>::scene_;
     using RecognitionPipeline<PointT>::scene_normals_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
@@ -65,6 +66,12 @@ private:
 
     void visualize();
 
+    /**
+     * @brief recognize
+     */
+    void
+    do_recognize();
+
 public:
     GlobalRecognitionPipeline ( ):
         visualize_clusters_(false)
@@ -72,11 +79,6 @@ public:
 
     void initialize(const std::string &trained_dir, bool force_retrain = false);
 
-    /**
-     * @brief recognize
-     */
-    void
-    recognize();
 
     /**
      * @brief addRecognizer
