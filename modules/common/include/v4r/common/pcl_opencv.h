@@ -91,7 +91,7 @@ private:
 
 public:
     PCLOpenCVConverter(const typename pcl::PointCloud<PointT>::ConstPtr cloud = nullptr) :
-        cloud_(cloud), remove_background_ ( true ), background_color_ ( cv::Vec3b(0,0,0) ), min_depth_m_ (0.f), max_depth_m_ (5.f)
+        cloud_(cloud), remove_background_ ( true ), background_color_ ( cv::Vec3b(255,255,255) ), min_depth_m_ (0.f), max_depth_m_ (5.f)
     { }
 
     ///
