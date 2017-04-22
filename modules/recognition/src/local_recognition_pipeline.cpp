@@ -148,7 +148,7 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
                 for(size_t jj=0; jj<merged_transforms.size(); jj++)
                 {
                     typename ObjectHypothesis::Ptr new_oh (new ObjectHypothesis);
-                    new_oh->model_id_ = loh.model_id_;
+                    new_oh->model_id_ = model_id;
                     new_oh->class_id_ = "";
                     new_oh->transform_ = merged_transforms[jj];
                     new_oh->confidence_ = corresp_clusters.size();
@@ -168,7 +168,7 @@ LocalRecognitionPipeline<PointT>::correspondenceGrouping ()
                 for(size_t jj=0; jj<new_transforms.size(); jj++)
                 {
                     typename ObjectHypothesis::Ptr new_oh (new ObjectHypothesis);
-                    new_oh->model_id_ = loh.model_id_;
+                    new_oh->model_id_ = model_id;
                     new_oh->class_id_ = "";
                     new_oh->transform_ = new_transforms[jj];
                     new_oh->confidence_ = corresp_clusters.size();
