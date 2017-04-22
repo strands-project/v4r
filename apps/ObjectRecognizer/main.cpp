@@ -1,6 +1,7 @@
 
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
+#include <boost/serialization/vector.hpp>
 #include <glog/logging.h>
 
 #include <v4r/apps/ObjectRecognizer.h>
@@ -90,11 +91,18 @@ main (int argc, char ** argv)
                 std::string out_path_generated_hypotheses = out_path.string();
                 boost::replace_last(out_path_generated_hypotheses, ".anno", ".generated_hyps");
 
+                std::string out_path_generated_hypotheses_serialized = out_path.string();
+                boost::replace_last(out_path_generated_hypotheses_serialized, ".anno", ".generated_hyps_serialized");
+
                 v4r::io::createDirForFileIfNotExist(out_path.string());
 
                 // save hypotheses
                 std::ofstream f_generated ( out_path_generated_hypotheses.c_str() );
                 std::ofstream f_verified ( out_path.string().c_str() );
+                std::ofstream f_generated_serialized ( out_path_generated_hypotheses_serialized.c_str() );
+                boost::archive::text_oarchive oa(f_generated_serialized);
+                oa << generated_object_hypotheses;
+                f_generated_serialized.close();
                 for(size_t ohg_id=0; ohg_id<generated_object_hypotheses.size(); ohg_id++)
                 {
                     for(const v4r::ObjectHypothesis::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
