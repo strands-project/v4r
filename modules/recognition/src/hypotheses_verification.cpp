@@ -1104,7 +1104,7 @@ HypothesisVerification<ModelT, SceneT>::computeModelFitness(HVRecognitionModel<M
         std::vector<float> nn_sqrd_distances;
 
         bool is_outlier = true;
-        double radius = 2. * param_.resolution_mm_ / 1000.;
+        double radius = search_radius_;
         octree_scene_downsampled_->radiusSearch(rm.visible_cloud_->points[midx], radius, nn_indices, nn_sqrd_distances);
 
 //        vis.addSphere(rm.visible_cloud_->points[midx], 0.005, 0., 1., 0., "queryPoint", vp1 );

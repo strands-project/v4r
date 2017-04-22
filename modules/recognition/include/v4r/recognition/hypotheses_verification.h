@@ -396,6 +396,7 @@ protected:
     float OneOver_distNorm0_;
     float OneOver_distColor0_;
     float OneOver_distXYZ0_;
+    float search_radius_;
 
 
 public:
@@ -407,7 +408,8 @@ public:
           initial_temp_(1000),
           OneOver_distNorm0_ ( 1.f / scoreNormals(1.f) ),
           OneOver_distColor0_ (1.f / scoreColor(0.f) ),
-          OneOver_distXYZ0_ ( 1.f / scoreXYZ(0.f) )
+          OneOver_distXYZ0_ ( 1.f / scoreXYZ(0.f) ),
+          search_radius_ ( 2. * param_.resolution_mm_ / 1000. )
     {
         colorTransf_.reset(new RGB2CIELAB);
 
