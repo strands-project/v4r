@@ -593,7 +593,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
 
                     std::stringstream unique_id; unique_id << m.first << "_" << counter++;
 #if PCL_VERSION >= 100800
-                        Eigen::Matrix4f tf_tmp = hyp_vis.pose;
+                        Eigen::Matrix4f tf_tmp = rec_hyp.pose;
                         Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
                         Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
                         Eigen::Affine3f affine_trans;
@@ -612,7 +612,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
 
                     std::stringstream unique_id; unique_id << m.first << "_" << counter++;
 #if PCL_VERSION >= 100800
-                        Eigen::Matrix4f tf_tmp = hyp_vis.pose;
+                        Eigen::Matrix4f tf_tmp = gt_hyp.pose;
                         Eigen::Matrix3f rot_tmp  = tf_tmp.block<3,3>(0,0);
                         Eigen::Vector3f trans_tmp = tf_tmp.block<3,1>(0,3);
                         Eigen::Affine3f affine_trans;
