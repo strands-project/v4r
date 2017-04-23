@@ -4,7 +4,7 @@
 <ObjectRecognizerParameter class_id="0" tracking_level="0" version="0">
 	<hv_config_xml_>cfg/hv_config.xml</hv_config_xml_>
 	<shot_config_xml_>cfg/shot_config.xml</shot_config_xml_>
-	<global_recognition_pipeline_config_ class_id="1" tracking_level="0" version="0">
+	<global_recognition_pipeline_config>
 		<count>1</count>
 		<item_version>0</item_version>
 		<item>cfg/global_config.xml</item>
