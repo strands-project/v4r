@@ -503,14 +503,18 @@ HV_ModelVisualizer<ModelT, SceneT>::visualize(const HypothesisVerification<Model
             txt.str(""); txt << "scene pts explained (fitness: " << rm.scene_explained_weight_.sum() << "; normalized: " << std::fixed << std::setprecision(4)  << rm.scene_explained_weight_.sum()/scene_cloud_vis->points.size() << ")";
             vis_model_->addText(txt.str(),10,10, vis_param_->fontsize_,0,0,0,"scene fitness",vp_model_scene_fit_);
             vis_model_->addText("scene and visible model",10,10, vis_param_->fontsize_, vis_param_->text_color_[0], vis_param_->text_color_[1], vis_param_->text_color_[2], "scene_and_model",vp_model_scene_overlay_);
-            vis_model_->addPointCloud(scene_cloud_vis, "scene_model_1", vp_model_scene_overlay_);
+
         }
+
+        vis_model_->addPointCloud(scene_cloud_vis, "scene_model_1", vp_model_scene_overlay_);
+        vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene_model_1", vp_model_scene_overlay_);
 
         vis_model_->addPointCloud(scene_fit_cloud, "scene_fitness", vp_model_scene_fit_);
         vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene_fitness", vp_model_scene_fit_);
     }
 
     vis_model_->addPointCloud(rm.visible_cloud_, "scene_model_2", vp_model_scene_overlay_);
+    vis_model_->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, vis_param_->vis_pt_size_, "scene_model_2", vp_model_scene_overlay_);
 
 //    pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_pt_noise (new pcl::PointCloud<pcl::PointXYZRGB>);
 //    model_pt_noise->points.resize( rm.visible_cloud_->points.size() );
