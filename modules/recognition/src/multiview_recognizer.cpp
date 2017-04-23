@@ -11,6 +11,8 @@
 #include <pcl/common/time.h>
 #include <pcl/recognition/cg/correspondence_grouping.h>
 #include <pcl/registration/transformation_estimation_svd.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/visualization/point_cloud_color_handlers.h>
 
 namespace v4r
 {
@@ -232,11 +234,174 @@ MultiviewRecognizer<PointT>::do_recognize()
             }
         }
 
+//        visualize();
         correspondenceGrouping();
     }
 
     v.obj_hypotheses_ = obj_hypotheses_;
     views_.push_back(v);
+
+}
+
+
+template<typename PointT>
+void
+MultiviewRecognizer<PointT>::visualize()
+{
+    static pcl::visualization::PCLVisualizer::Ptr vis(new pcl::visualization::PCLVisualizer);
+    int vp1, vp2, vp3;
+    vis->createViewPort(0,0,0.5,1,vp1);
+    vis->createViewPort(0.5,0,1.,1,vp2);
+//    vis->createViewPort(0.8,0,1,1,vp3);
+
+    vis->removeAllPointClouds();
+
+    size_t counter = 0;
+    typename std::map<std::string, LocalObjectHypothesis<PointT> >::const_iterator it;
+    for ( it = local_obj_hypotheses_.begin (); it != local_obj_hypotheses_.end (); ++it )
+    {
+        if( counter++ > 1000 ) // only show first three
+            break;
+
+        const std::string &model_id = it->first;
+        const LocalObjectHypothesis<PointT> &loh = it->second;
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr model_keypoints = model_keypoints_[model_id]->keypoints_;
+        pcl::PointCloud<pcl::Normal>::Ptr model_kp_normals = model_keypoints_[model_id]->kp_normals_;
+
+
+        bool found;
+        typename Model<PointT>::ConstPtr model = m_db_->getModelById("", model_id, found);
+        typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(3);
+        vis->removeAllPointClouds(vp1);
+        vis->removeAllPointClouds(vp2);
+        vis->setBackgroundColor(1., 1., 1. );
+        vis->addPointCloud(model_cloud, "model_cloud", vp1);
+        LOG(INFO) << "Visualizing keypoints for " << model_id;
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr scene_cloud_xyz_merged_vis (new pcl::PointCloud<pcl::PointXYZ>(*scene_cloud_xyz_merged_));
+        scene_cloud_xyz_merged_vis->sensor_origin_ = Eigen::Vector4f::Zero();
+        scene_cloud_xyz_merged_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> black (scene_cloud_xyz_merged_vis, 0, 0, 0);
+//        vis->addPointCloud(scene_cloud_xyz_merged_vis, black, "scene", vp2);
+
+        typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr model_kps_colored (new pcl::PointCloud<pcl::PointXYZRGB>);
+        model_kps_colored->points.resize( loh.model_scene_corresp_->size() );
+        typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr scene_kps_colored (new pcl::PointCloud<pcl::PointXYZRGB>);
+        scene_kps_colored->points.resize( loh.model_scene_corresp_->size() );
+
+        typename pcl::PointCloud<pcl::Normal>::Ptr model_kps_normals (new pcl::PointCloud<pcl::Normal>);
+        model_kps_normals->points.resize( loh.model_scene_corresp_->size() );
+        typename pcl::PointCloud<pcl::Normal>::Ptr scene_kps_normals (new pcl::PointCloud<pcl::Normal>);
+        scene_kps_normals->points.resize( loh.model_scene_corresp_->size() );
+
+        for ( size_t c_id=0; c_id<loh.model_scene_corresp_->size(); c_id++ )
+        {
+            const pcl::Correspondence &c = loh.model_scene_corresp_->at(c_id);
+            pcl::PointXYZRGB &m = model_kps_colored->points[c_id];
+            pcl::PointXYZRGB &s = scene_kps_colored->points[c_id];
+            float r = 255;//rand() % 255;
+            float g = 0;//rand() % 255;
+            float b = 0;//rand() % 255;
+            m.r = r; m.g = g; m.b = b;
+            s.r = r; s.g = g; s.b = b;
+
+            m.getVector3fMap() = model_keypoints_[model_id]->keypoints_->points.at(c.index_query).getVector3fMap();
+            s.getVector3fMap() = scene_cloud_xyz_merged_->points.at(c.index_match).getVector3fMap();
+
+            pcl::Normal &mn = model_kps_normals->points[c_id];
+            pcl::Normal &sn = scene_kps_normals->points[c_id];
+            mn.getNormalVector3fMap() = model_keypoints_[model_id]->kp_normals_->points.at(c.index_query).getNormalVector3fMap();
+            sn.getNormalVector3fMap() = scene_cloud_normals_merged_->points.at(c.index_match).getNormalVector3fMap();
+
+        }
+
+
+        if( loh.model_scene_corresp_->size() < 3 )
+            continue;
+
+        // CHECK CORRESPONDENCE GROUPING ==========
+
+        typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr clustered_model_kps (new pcl::PointCloud<pcl::PointXYZRGB>);
+        typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr clustered_scene_kps (new pcl::PointCloud<pcl::PointXYZRGB>);
+        std::vector < pcl::Correspondences > corresp_clusters;
+        {
+            std::sort( loh.model_scene_corresp_->begin(), loh.model_scene_corresp_->end(), LocalObjectHypothesis<PointT>::gcGraphCorrespSorter);
+            cg_algorithm_->setSceneCloud ( scene_cloud_xyz_merged_ );
+            cg_algorithm_->setInputCloud ( model_keypoints );
+
+            // Graph-based correspondence grouping requires normals but interface does not exist in base class - so need to try pointer casting
+            typename GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gcg_algorithm =
+                    boost::dynamic_pointer_cast<  GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > (cg_algorithm_);
+            if( gcg_algorithm )
+                gcg_algorithm->setInputAndSceneNormals(model_kp_normals, scene_cloud_normals_merged_);
+
+            cg_algorithm_->setModelSceneCorrespondences ( loh.model_scene_corresp_ );
+            cg_algorithm_->cluster (corresp_clusters);
+
+            for( const pcl::Correspondences &cs : corresp_clusters )
+            {
+
+                float r = rand() % 255;
+                float g = rand() % 255;
+                float b = rand() % 255;
+
+                for(const pcl::Correspondence &c : cs)
+                {
+                    pcl::PointXYZRGB m;
+                    m.getVector3fMap() = model_keypoints->points[c.index_query].getVector3fMap();
+                    pcl::PointXYZRGB s;
+                    s.getVector3fMap() = scene_cloud_xyz_merged_->points[c.index_match].getVector3fMap();
+
+                    m.r = r; m.g = g; m.b = b;
+                    s.r = r; s.g = g; s.b = b;
+                    clustered_model_kps->points.push_back(m);
+                    clustered_scene_kps->points.push_back(s);
+                }
+            }
+        }
+
+//        Eigen::Vector4f model_centroid;
+//        pcl::compute3DCentroid(*model_kps_colored, model_centroid);
+//        for( pcl::PointXYZRGB &m : model_kps_colored->points)
+//            m.getVector4fMap() -= model_centroid;
+
+//        for( pcl::PointXYZRGB &m : clustered_model_kps->points)
+//            m.getVector4fMap() -= model_centroid;
+
+        Eigen::Vector4f scene_centroid;
+        pcl::compute3DCentroid(*scene_, scene_centroid);
+        for( pcl::PointXYZRGB &s : clustered_scene_kps->points)
+            s.getVector4fMap() -= scene_centroid;
+
+        for( pcl::PointXYZRGB &s : scene_kps_colored->points)
+            s.getVector4fMap() -= scene_centroid;
+
+        LOG(INFO) << "visualizing " << model_kps_colored->points.size() << " and " << scene_kps_colored->points.size() << " for " << model_id;
+        vis->addPointCloud(model_kps_colored, "model_kps", vp1);
+        vis->addPointCloud(scene_kps_colored, "scene_kps", vp2);
+        vis->addPointCloudNormals<PointT,pcl::Normal>(model_kps_colored, model_kps_normals, 1, 0.02f, "model_kp_normals", vp1);
+        vis->addPointCloudNormals<PointT,pcl::Normal>(scene_kps_colored, scene_kps_normals, 1, 0.02f, "scene_kp_normals", vp2);
+        vis->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 15, "model_kps");
+        vis->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 15, "scene_kps");
+
+
+        vis->addPointCloud(clustered_model_kps, "model_kps_clustered", vp1);
+        vis->addPointCloud(clustered_scene_kps, "scene_kps_clustered", vp2);
+        vis->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 15, "model_kps_clustered");
+        vis->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 15, "scene_kps_clustered");
+
+
+        typename pcl::PointCloud<PointT>::Ptr scene_vis (new pcl::PointCloud<PointT>(*scene_));
+        scene_vis->sensor_origin_ = Eigen::Vector4f::Zero();
+        scene_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
+
+        for( pcl::PointXYZRGB &s : scene_vis->points)
+            s.getVector4fMap() -= scene_centroid;
+
+        vis->addPointCloud(scene_vis, "scene_current_view", vp2);
+        vis->spin();
+    }
 }
 
 
@@ -395,9 +560,7 @@ MultiviewRecognizer<PointT>::initialize(const std::string &trained_dir, bool ret
                     boost::dynamic_pointer_cast<  LocalRecognitionPipeline<PointT> > (rec_pipeline);
 
             if(local_rec_pipeline)
-            {
                 local_rec_pipeline->disableHypothesesGeneration();
-            }
         }
     }
 }

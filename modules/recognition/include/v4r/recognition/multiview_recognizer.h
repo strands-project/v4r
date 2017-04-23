@@ -185,6 +185,8 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr scene_cloud_xyz_merged_;
     pcl::PointCloud<pcl::Normal>::Ptr scene_cloud_normals_merged_;
 
+    void visualize();
+
 public:
     MultiviewRecognizer(const MultiviewRecognizerParameter &p = MultiviewRecognizerParameter() )
         : param_ (p)
