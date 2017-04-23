@@ -22,7 +22,7 @@
 	<normal_method_>2</normal_method_>
 	<ignore_color_even_if_exists_>0</ignore_color_even_if_exists_>
 	<max_iterations_>5000</max_iterations_>
-	<clutter_regularizer_>10</clutter_regularizer_>
+	<clutter_regularizer_>1000</clutter_regularizer_>
 	<use_replace_moves_>1</use_replace_moves_>
 	<opt_type_>0</opt_type_>
 	<use_histogram_specification_>0</use_histogram_specification_>

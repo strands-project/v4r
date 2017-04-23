@@ -20,8 +20,9 @@
 	<do_shot_>1</do_shot_>
 	<segmentation_method_>1</segmentation_method_>
 	<global_feature_types_>
-		<count>0</count>
+		<count>1</count>
 		<item_version>0</item_version>
+		<item>2208</item>
 	</global_feature_types_>
 	<classification_methods_>
 		<count>0</count>
