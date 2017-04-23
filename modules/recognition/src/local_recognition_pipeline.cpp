@@ -189,7 +189,7 @@ template<typename PointT>
 void
 LocalRecognitionPipeline<PointT>::do_recognize()
 {
-    CHECK (cg_algorithm_) << "Correspondence grouping algorithm not defined!";
+    CHECK ( !generate_hypotheses_ || cg_algorithm_ ) << "Correspondence grouping algorithm not defined!";
     local_obj_hypotheses_.clear();
 
     // get feature correspondences from all recognizers
@@ -226,6 +226,12 @@ LocalRecognitionPipeline<PointT>::do_recognize()
                 for(size_t new_corr_id=0; new_corr_id<new_corrs.size(); new_corr_id++) // add appropriate offset to correspondence index of the model keypoints
                 {
                     pcl::Correspondence &new_c = new_corrs[new_corr_id];
+
+//                    CHECK( new_c.index_match < (int) scene_->points.size() && new_c.index_match >= 0 );
+//                    CHECK( new_c.index_match < (int) scene_normals_->points.size() && new_c.index_match >= 0 );
+//                    CHECK( new_c.index_query < (int) model_keypoints->points.size() && new_c.index_query >= 0 );
+//                    CHECK( new_c.index_query < (int) model_kp_normals->points.size() && new_c.index_query >= 0 );
+
                     const Eigen::Vector3f &new_scene_xyz = scene_->points[new_c.index_match].getVector3fMap();
                     const Eigen::Vector3f &new_scene_normal = scene_normals_->points[new_c.index_match].getNormalVector3fMap();
                     const Eigen::Vector3f &new_model_xyz = model_keypoints->points[new_c.index_query].getVector3fMap();
@@ -235,6 +241,13 @@ LocalRecognitionPipeline<PointT>::do_recognize()
                     for(size_t old_corr_id=0; old_corr_id<kept; old_corr_id++)
                     {
                         pcl::Correspondence &exist_c = new_corrs[old_corr_id];
+
+
+//                        CHECK( exist_c.index_match < (int) scene_->points.size() && exist_c.index_match >= 0 );
+//                        CHECK( exist_c.index_match < (int) scene_normals_->points.size() && exist_c.index_match >= 0 );
+//                        CHECK( exist_c.index_query < (int) model_keypoints->points.size() && exist_c.index_query >= 0 );
+//                        CHECK( exist_c.index_query < (int) model_kp_normals->points.size() && exist_c.index_query >= 0 );
+
                         const Eigen::Vector3f &exist_scene_xyz = scene_->points[exist_c.index_match].getVector3fMap();
                         const Eigen::Vector3f &exist_scene_normal = scene_normals_->points[exist_c.index_match].getNormalVector3fMap();
                         const Eigen::Vector3f &exist_model_xyz = model_keypoints->points[exist_c.index_query].getVector3fMap();

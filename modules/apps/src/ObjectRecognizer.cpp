@@ -123,23 +123,27 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         {
             local_recognition_pipeline_->setModelDatabase( model_database_ );
 
-            if(param_.use_graph_based_gc_grouping_)
+            if( !param_.use_multiview_ || ! param_.use_multiview_with_kp_correspondence_transfer_ )
             {
-                GraphGeometricConsistencyGroupingParameter gcparam;
-                gcparam.gc_size_ = param_.cg_size_;
-                gcparam.gc_threshold_ = param_.cg_thresh_;
-                to_pass_further = gcparam.init(to_pass_further);
-                GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gc_clusterer
-                        (new GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
-                local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
-            }
-            else
-            {
-                boost::shared_ptr< pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > gc_clusterer
-                        (new pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
-                gc_clusterer->setGCSize( param_.cg_size_ );
-                gc_clusterer->setGCThreshold( param_.cg_thresh_ );
-                local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
+                if(param_.use_graph_based_gc_grouping_)
+                {
+                    GraphGeometricConsistencyGroupingParameter gcparam;
+                    gcparam.gc_size_ = param_.cg_size_;
+                    gcparam.gc_threshold_ = param_.cg_thresh_;
+                    gcparam.dist_for_cluster_factor_ = param_.cg_min_dist_for_cluster_factor_;
+                    to_pass_further = gcparam.init(to_pass_further);
+                    GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gc_clusterer
+                            (new GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> (gcparam));
+                    local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
+                }
+                else
+                {
+                    boost::shared_ptr< pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> > gc_clusterer
+                            (new pcl::GeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
+                    gc_clusterer->setGCSize( param_.cg_size_ );
+                    gc_clusterer->setGCThreshold( param_.cg_thresh_ );
+                    local_recognition_pipeline_->setCGAlgorithm( gc_clusterer );
+                }
             }
 
             if(param_.do_sift_)
@@ -218,7 +222,6 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         multipipeline->setModelDatabase( model_database_ );
         multipipeline->setNormalEstimator( normal_estimator_ );
         multipipeline->setVisualizationParameter(vis_param);
-        multipipeline->initialize( models_dir_, retrain );
     }
 
 
@@ -239,9 +242,10 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             GraphGeometricConsistencyGroupingParameter gcparam;
             gcparam.gc_size_ = param_.cg_size_;
             gcparam.gc_threshold_ = param_.cg_thresh_;
+            gcparam.dist_for_cluster_factor_ = param_.cg_min_dist_for_cluster_factor_;
             to_pass_further = gcparam.init(to_pass_further);
             GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>::Ptr gc_clusterer
-                    (new GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ>);
+                    (new GraphGeometricConsistencyGrouping<pcl::PointXYZ, pcl::PointXYZ> (gcparam));
             mv_rec->setCGAlgorithm( gc_clusterer );
         }
         else
@@ -257,6 +261,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     }
     else
         mrec_ = multipipeline;
+
+    mrec_->initialize( models_dir_, retrain );
 
 
     if(!skip_verification_)

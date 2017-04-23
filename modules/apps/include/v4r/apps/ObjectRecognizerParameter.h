@@ -68,6 +68,7 @@ public:
     // correspondence grouping parameter
     float cg_size_; ///< Size for correspondence grouping.
     int cg_thresh_; ///< Threshold for correspondence grouping. The lower the more hypotheses are generated, the higher the more confident and accurate. Minimum 3.
+    float cg_min_dist_for_cluster_factor_; ///< factor cg_size is multiplied with to define the minimuim distance between two keypoints within clustering
     bool use_graph_based_gc_grouping_; ///< if true, uses graph-based geometric consistency grouping
 
     // pipeline setup
@@ -108,6 +109,7 @@ public:
           sift_config_xml_ ( "cfg/sift_config.xml" ),
           cg_size_ ( 0.01f ),
           cg_thresh_ ( 4 ),
+          cg_min_dist_for_cluster_factor_ (1.f),
           use_graph_based_gc_grouping_ ( true ),
           do_sift_ ( true ),
           do_shot_ ( false ),
@@ -245,6 +247,7 @@ private:
                 & BOOST_SERIALIZATION_NVP(sift_config_xml_)
                 & BOOST_SERIALIZATION_NVP(cg_size_)
                 & BOOST_SERIALIZATION_NVP(cg_thresh_)
+                & BOOST_SERIALIZATION_NVP(cg_min_dist_for_cluster_factor_)
                 & BOOST_SERIALIZATION_NVP(use_graph_based_gc_grouping_)
                 & BOOST_SERIALIZATION_NVP(do_sift_)
                 & BOOST_SERIALIZATION_NVP(do_shot_)
