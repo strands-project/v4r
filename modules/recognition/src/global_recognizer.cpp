@@ -508,6 +508,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
                     const Eigen::Matrix4f align_cluster = tf_cluster_rot * tf_cluster_shift;
 
                     VLOG(1) << std::endl <<
+                               "model_name: " << model_name << std::endl <<
                                "align cluster: " << std::endl << align_cluster << std::endl <<
                                "centroid_normalized: " << std::endl << centroid_normalized << std::endl <<
                                "centroid corrected: " << std::endl << centroid_corrected << std::endl <<
