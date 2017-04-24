@@ -14,12 +14,16 @@ GlobalConcatEstimator<PointT>::GlobalConcatEstimator(
     descr_name_ = "global";
     feature_dimensions_ = 0;
 
+    VLOG(1) <<  "Feature type set to " << param_.feature_type;
+
     if(param_.feature_type & FeatureType::ESF)
     {
         esf_estimator_.reset( new ESFEstimation<PointT> );
         descr_name_ += "_" + esf_estimator_->getFeatureDescriptorName();
         feature_dimensions_ += esf_estimator_->getFeatureDimensions();
         need_normals_ |= esf_estimator_->needNormals();
+
+        VLOG(1) <<  "Adding ESF descriptor";
     }
     if(param_.feature_type & FeatureType::SIMPLE_SHAPE)
     {
@@ -27,6 +31,7 @@ GlobalConcatEstimator<PointT>::GlobalConcatEstimator(
         descr_name_ += "_" + simple_shape_estimator_->getFeatureDescriptorName();
         feature_dimensions_ += simple_shape_estimator_->getFeatureDimensions();
         need_normals_ |= simple_shape_estimator_->needNormals();
+        VLOG(1) <<  "Adding SIMPLE_SHAPE descriptor";
     }
     if(param_.feature_type & FeatureType::GLOBAL_COLOR)
     {
@@ -36,6 +41,7 @@ GlobalConcatEstimator<PointT>::GlobalConcatEstimator(
         descr_name_ += "_" + color_estimator_->getFeatureDescriptorName();
         feature_dimensions_ += color_estimator_->getFeatureDimensions();
         need_normals_ |= color_estimator_->needNormals();
+        VLOG(1) <<  "Adding GLOBAL_COLOR descriptor";
     }
     if(param_.feature_type & FeatureType::OURCVFH)
     {
@@ -43,6 +49,7 @@ GlobalConcatEstimator<PointT>::GlobalConcatEstimator(
         descr_name_ += "_" + ourcvfh_estimator_->getFeatureDescriptorName();
         feature_dimensions_ += ourcvfh_estimator_->getFeatureDimensions();
         need_normals_ |= ourcvfh_estimator_->needNormals();
+        VLOG(1) <<  "Adding OURCVFH descriptor";
     }
 #ifdef HAVE_CAFFE
     if(param_.feature_type & FeatureType::ALEXNET)
@@ -53,12 +60,15 @@ GlobalConcatEstimator<PointT>::GlobalConcatEstimator(
         descr_name_ += "_" + cnn_feat_estimator_->getFeatureDescriptorName();
         feature_dimensions_ += cnn_feat_estimator_->getFeatureDimensions();
         need_normals_ |= cnn_feat_estimator_->needNormals();
+        VLOG(1) <<  "Adding ALEXNET descriptor";
     }
 #endif
 
     VLOG(1) << "Initialized global concatenated pipeline with " << descr_name_ << " resulting in " << feature_dimensions_ << " feature dimensions.";
 
     descr_type_ = param_.feature_type;
+
+    exit(0);
 }
 
 template<typename PointT>
