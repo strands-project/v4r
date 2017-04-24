@@ -115,7 +115,7 @@ public:
           do_shot_ ( false ),
           segmentation_method_ ( SegmentationType::OrganizedConnectedComponents ),
           global_feature_types_ ( { FeatureType::ESF | FeatureType::SIMPLE_SHAPE | FeatureType::GLOBAL_COLOR, FeatureType::ALEXNET }  ),
-          classification_methods_ (  { ClassifierType::SVM, 0 }  ),
+          classification_methods_ (  { ClassifierType::SVM }  ),
           shot_keypoint_extractor_method_ (  KeypointType::HARRIS3D  ),
           normal_computation_method_ ( NormalEstimatorType::PCL_INTEGRAL_NORMAL ),
           keypoint_support_radii_ ( {0.04, 0.08} ),
@@ -214,8 +214,9 @@ public:
                 ("or_hv_config_xml", po::value<std::string>(&hv_config_xml_)->default_value(hv_config_xml_), "")
                 ("or_shot_config_xml", po::value<std::string>(&shot_config_xml_)->default_value(shot_config_xml_), "")
                 ("or_sift_config_xml", po::value<std::string>(&sift_config_xml_)->default_value(sift_config_xml_), "")
-                ("or_cg_size_", po::value<float>(&cg_size_)->default_value(cg_size_), "")
-                ("or_cg_thresh_", po::value<int>(&cg_thresh_)->default_value(cg_thresh_), "")
+                ("or_cg_size", po::value<float>(&cg_size_)->default_value(cg_size_), "")
+                ("or_cg_thresh", po::value<int>(&cg_thresh_)->default_value(cg_thresh_), "")
+                ("or_global_feature_types", po::value<std::vector<int> >(&global_feature_types_)->multitoken(), "")
                 ("or_remove_planes", po::value<bool>(&remove_planes_)->default_value(remove_planes_), "")
                 ("or_use_graph_based_gc_grouping", po::value<bool>(&use_graph_based_gc_grouping_)->default_value(use_graph_based_gc_grouping_), "")
                 ("or_use_multiview", po::value<bool>(&use_multiview_)->default_value(use_multiview_), "")
