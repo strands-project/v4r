@@ -248,8 +248,8 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
             Eigen::VectorXf view_centroid_to_3d_model_centroid (gom->model_centroids_.rows());
             for(int view_id=0; view_id < gom->model_centroids_.rows(); view_id++)
             {
-                const Eigen::Vector4f &view_centroid = gom->model_centroids_.row(view_id).transpose();
-                const Eigen::Vector4f &view_centroid_aligned = gom->model_poses_[view_id] * view_centroid;
+                const Eigen::Vector4f view_centroid = gom->model_centroids_.row(view_id).transpose();
+                const Eigen::Vector4f view_centroid_aligned = gom->model_poses_[view_id] * view_centroid;
 
                 VLOG(1) << "centroid: " << std::endl << gom->model_centroids_.row(view_id) << std::endl << std::endl <<
                         "view_centroid: " << std::endl <<view_centroid << std::endl << std::endl<< " pose: " << std::endl <<
