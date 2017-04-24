@@ -505,7 +505,12 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
                     Eigen::Matrix4f tf_cluster_rot = Eigen::Matrix4f::Identity();
                     tf_cluster_rot.block<3,3>(0,0) = computeRotationMatrixToAlignVectors(cluster_->table_plane_.head(3), Eigen::Vector3f::UnitZ()); //Finv * G * F;
 
-                    Eigen::Matrix4f align_cluster = tf_cluster_rot * tf_cluster_shift;
+                    const Eigen::Matrix4f align_cluster = tf_cluster_rot * tf_cluster_shift;
+
+                    VLOG(1) << "align cluster: " << align_cluster << ", centroid_normalized: " << centroid_normalized <<
+                               ", centroid corrected: " << centroid_corrected << ", tf_om_shift2origin: " << tf_om_shift2origin
+                            << ", tf_om_shift2origin2: " << tf_om_shift2origin2 << ", closest_pt_to_cluster_center: " <<
+                               closest_pt_to_cluster_center;
 
 #ifdef _VISUALIZE_
                     pcl::visualization::PCLVisualizer vis;
