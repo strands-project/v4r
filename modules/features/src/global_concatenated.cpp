@@ -14,8 +14,6 @@ GlobalConcatEstimator<PointT>::GlobalConcatEstimator(
     descr_name_ = "global";
     feature_dimensions_ = 0;
 
-    VLOG(1) <<  "Feature type set to " << param_.feature_type;
-
     if(param_.feature_type & FeatureType::ESF)
     {
         esf_estimator_.reset( new ESFEstimation<PointT> );
@@ -67,8 +65,6 @@ GlobalConcatEstimator<PointT>::GlobalConcatEstimator(
     VLOG(1) << "Initialized global concatenated pipeline with " << descr_name_ << " resulting in " << feature_dimensions_ << " feature dimensions.";
 
     descr_type_ = param_.feature_type;
-
-    exit(0);
 }
 
 template<typename PointT>
