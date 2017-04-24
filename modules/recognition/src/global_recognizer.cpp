@@ -251,6 +251,10 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
                 const Eigen::Vector4f &view_centroid = gom->model_centroids_.row(view_id).transpose();
                 const Eigen::Vector4f &view_centroid_aligned = gom->model_poses_[view_id] * view_centroid;
 
+                VLOG(1) << "centroid: " << std::endl << gom->model_centroids_.row(view_id) << std::endl << std::endl <<
+                        "view_centroid: " << std::endl <<view_centroid << std::endl << std::endl<< " pose: " << std::endl <<
+                           gom->model_poses_[view_id] << std::endl << std::endl;
+
                 view_centroid_to_3d_model_centroid(view_id) = (view_centroid_aligned - m->centroid_).head(3).norm();
             }
             gom->mean_distance_view_centroid_to_3d_model_centroid_ = view_centroid_to_3d_model_centroid.mean();
