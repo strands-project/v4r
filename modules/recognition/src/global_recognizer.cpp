@@ -509,7 +509,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
 
                     VLOG(1) << std::endl <<
                                "align cluster: " << align_cluster << std::endl <<
-                               "centroid_normalized: " << centroid_normalized << std::endl << "
+                               "centroid_normalized: " << centroid_normalized << std::endl <<
                                ", centroid corrected: " << centroid_corrected << std::endl <<
                                ", tf_om_shift2origin: " << tf_om_shift2origin << std::endl <<
                                ", tf_om_shift2origin2: " << tf_om_shift2origin2 << std::endl <<
