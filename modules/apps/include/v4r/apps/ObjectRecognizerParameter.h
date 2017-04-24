@@ -88,8 +88,6 @@ public:
     size_t min_plane_inliers_; ///< required inliers for plane to be removed
     bool remove_non_upright_objects_; ///< removes all objects that are not upright (requires to extract support plane)
 
-    int icp_iterations_;
-
     // multi-view parameters
     bool use_multiview_; ///< if true, transfers verified hypotheses across views
     bool use_multiview_hv_; ///< if true, verifies hypotheses against the registered scene cloud from all input views
@@ -124,7 +122,6 @@ public:
           plane_inlier_threshold_ ( 0.02f ),
           min_plane_inliers_ ( 20000 ),
           remove_non_upright_objects_ ( false ),
-          icp_iterations_ ( 0 ),
           use_multiview_ (false),
           use_multiview_hv_ (true),
           use_multiview_with_kp_correspondence_transfer_ (false),
