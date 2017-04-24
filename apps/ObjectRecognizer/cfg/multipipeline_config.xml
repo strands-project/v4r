@@ -14,7 +14,7 @@
 	<sift_config_xml_>cfg/sift_config.xml</sift_config_xml_>
 	<cg_size_>0.01</cg_size_>
 	<cg_thresh_>5</cg_thresh_>
-	<cg_min_dist_for_cluster_factor_>3.</cg_min_dist_for_cluster_factor_>
+	<cg_min_dist_for_cluster_factor_>0.5</cg_min_dist_for_cluster_factor_>
 	<use_graph_based_gc_grouping_>1</use_graph_based_gc_grouping_>
 	<do_sift_>1</do_sift_>
 	<do_shot_>1</do_shot_>
