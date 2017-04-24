@@ -250,19 +250,9 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
             {
                 const Eigen::Vector4f view_centroid = gom->model_centroids_.row(view_id).transpose();
                 const Eigen::Vector4f view_centroid_aligned = gom->model_poses_[view_id] * view_centroid;
-
-                VLOG(1) << "centroid: " << std::endl << gom->model_centroids_.row(view_id) << std::endl << std::endl <<
-                        "view_centroid: " << std::endl <<view_centroid << std::endl << std::endl<< " pose: " << std::endl <<
-                           gom->model_poses_[view_id] << std::endl << std::endl;
-
                 view_centroid_to_3d_model_centroid(view_id) = (view_centroid_aligned - m->centroid_).head(3).norm();
             }
             gom->mean_distance_view_centroid_to_3d_model_centroid_ = view_centroid_to_3d_model_centroid.mean();
-
-            VLOG(1) << "mean distance view to centroid for model " << m->id_ << ": " << std::endl
-                    << view_centroid_to_3d_model_centroid << std::endl << std::endl
-                    << m->centroid_ << std::endl
-                    << gom->mean_distance_view_centroid_to_3d_model_centroid_;
 
             io::createDirForFileIfNotExist( signatures_path.string() );
             ofstream os( signatures_path.string() , ios::binary);
@@ -516,19 +506,6 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
 
                     const Eigen::Matrix4f align_cluster = tf_cluster_rot * tf_cluster_shift;
 
-                    VLOG(1) << std::endl <<
-                               "model_name: " << model_name << std::endl <<
-                               "align cluster: " << std::endl << align_cluster << std::endl <<
-                               "centroid_normalized: " << std::endl << centroid_normalized << std::endl <<
-                               "centroid_correction: " << std::endl << centroid_correction << std::endl <<
-                               "centroid corrected: " << std::endl << centroid_corrected << std::endl <<
-                               "tf_om_shift2origin: " << std::endl << tf_om_shift2origin << std::endl <<
-                               "tf_om_shift2origin2: " << std::endl << tf_om_shift2origin2 << std::endl <<
-                               "closest_pt_to_cluster_center: " << std::endl << closest_pt_to_cluster_center << std::endl <<
-                               "cluster_->table_plane_: " << std::endl << cluster_->table_plane_ << std::endl <<
-                               "cluster_->centroid_: " << std::endl << cluster_->centroid_ << std::endl <<
-                               "m->minPoint_(2): " << std::endl << m->minPoint_(2) << " - m->centroid_(2): " << m->centroid_(2) << std::endl << std::endl;
-
 #ifdef _VISUALIZE_
                     pcl::visualization::PCLVisualizer vis;
                     int vp1, vp2, vp3, vp4, vp5, vp6, vp7, vp8;
@@ -629,7 +606,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
                             vis.addPointCloud(model_shifted_and_rotated, tmp.str(), vp4);
                             vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, tmp.str()+ "2", vp4);
 #endif
-                            Eigen::Matrix4f alignment_tf = align_cluster.inverse() * rot_tmp * tf_om_shift2origin2 * tf_om_shift2origin;
+                            const Eigen::Matrix4f alignment_tf = align_cluster.inverse() * rot_tmp * tf_om_shift2origin2 * tf_om_shift2origin;
 
                             typename ObjectHypothesis::Ptr h( new ObjectHypothesis);
                             h->transform_ = alignment_tf; //tf_trans * tf_rot  * rot_tmp;
