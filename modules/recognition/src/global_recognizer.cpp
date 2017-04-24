@@ -263,7 +263,6 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
                     << view_centroid_to_3d_model_centroid << std::endl << std::endl
                     << m->centroid_ << std::endl
                     << gom->mean_distance_view_centroid_to_3d_model_centroid_;
-            exit(0);
 
             io::createDirForFileIfNotExist( signatures_path.string() );
             ofstream os( signatures_path.string() , ios::binary);
