@@ -488,7 +488,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
 
                     // move model such that no point is below z=0
                     Eigen::Matrix4f tf_om_shift2origin2 = Eigen::Matrix4f::Identity();
-                    tf_om_shift2origin2(2,3) = -(m->minPoint_(2)-m->centroid_(2));
+                    tf_om_shift2origin2(2,3) = -(m->minPoint_(2) - m->centroid_(2));
 
                     // align origin with downprojected cluster centroid
                     float centroid_correction = gom->mean_distance_view_centroid_to_3d_model_centroid_;
@@ -507,10 +507,15 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
 
                     const Eigen::Matrix4f align_cluster = tf_cluster_rot * tf_cluster_shift;
 
-                    VLOG(1) << "align cluster: " << align_cluster << ", centroid_normalized: " << centroid_normalized <<
-                               ", centroid corrected: " << centroid_corrected << ", tf_om_shift2origin: " << tf_om_shift2origin
-                            << ", tf_om_shift2origin2: " << tf_om_shift2origin2 << ", closest_pt_to_cluster_center: " <<
-                               closest_pt_to_cluster_center;
+                    VLOG(1) << std::endl <<
+                               "align cluster: " << align_cluster << std::endl <<
+                               "centroid_normalized: " << centroid_normalized << std::endl << "
+                               ", centroid corrected: " << centroid_corrected << std::endl <<
+                               ", tf_om_shift2origin: " << tf_om_shift2origin << std::endl <<
+                               ", tf_om_shift2origin2: " << tf_om_shift2origin2 << std::endl <<
+                               ", closest_pt_to_cluster_center: " << closest_pt_to_cluster_center << std::endl <<
+                               ", cluster_->table_plane_: " << cluster_->table_plane_ << std::endl <<
+                               "m->minPoint_(2): " << m->minPoint_(2) << " - m->centroid_(2): " << m->centroid_(2) << std::endl << std::endl;
 
 #ifdef _VISUALIZE_
                     pcl::visualization::PCLVisualizer vis;
