@@ -16,11 +16,7 @@
 #include <pcl/octree/impl/octree_base.hpp>
 #include <v4r/common/miscellaneous.h>
 
-#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
-#endif
 
 namespace v4r
 {
