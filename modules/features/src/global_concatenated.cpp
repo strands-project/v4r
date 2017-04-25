@@ -143,7 +143,7 @@ GlobalConcatEstimator<PointT>::compute (Eigen::MatrixXf &signature)
 
     signature = Eigen::MatrixXf ( num_signatures,
                                   signature_esf.cols()+signature_simple_shape.cols()+signature_color.cols()+signature_ourcvfh.cols()+signature_cnn.cols());
-    signature << signature_esf, signature_simple_shape, signature_color, signature_ourcvfh, signature_cnn;
+    signature << signature_esf*32.f, signature_simple_shape/0.2f, signature_color*5.f, signature_ourcvfh, signature_cnn/5.f;
 
     indices_.clear();
 
