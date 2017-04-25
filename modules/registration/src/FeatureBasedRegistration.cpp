@@ -37,11 +37,7 @@ template<class PointT> void
 FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > & session_ranges)
 {
 
-#ifdef HAVE_SIFTGPU
     typename v4r::SIFTLocalEstimation<PointT> estimator;
-#else
-    typename v4r::OpenCVSIFTLocalEstimation<PointT> estimator;
-#endif
 
     //computes features and keypoints for the views of all sessions using appropiate object indices
     size_t total_views = this->getTotalNumberOfClouds();
