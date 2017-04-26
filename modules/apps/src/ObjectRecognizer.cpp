@@ -401,6 +401,48 @@ ObjectRecognizer<PointT>::recognize(const typename pcl::PointCloud<PointT>::Cons
 //        refinePose(processed_cloud);
 //    }
 
+    if(skip_verification_ && param_.icp_iterations_)
+    {
+        for(size_t ohg_id=0; ohg_id<generated_object_hypotheses.size(); ohg_id++)
+        {
+            for(size_t oh_id = 0; oh_id<  generated_object_hypotheses[ohg_id].ohs_.size(); oh_id++)
+            {
+                typename ObjectHypothesis::Ptr &oh = generated_object_hypotheses[ohg_id].ohs_[oh_id];
+
+                bool found_model_foo;
+                typename Model<PointT>::ConstPtr m = model_database_->getModelById("", oh->model_id_, found_model_foo);
+                typename pcl::PointCloud<PointT>::ConstPtr model_cloud  = m->getAssembled ( 5 );  // use full resolution for rendering
+
+                const Eigen::Matrix4f hyp_tf_2_global = oh->pose_refinement_ * oh->transform_;
+                typename pcl::PointCloud<PointT>::Ptr model_cloud_aligned (new pcl::PointCloud<PointT>);
+                pcl::transformPointCloud(*model_cloud, *model_cloud_aligned, hyp_tf_2_global);
+
+                typename pcl::search::KdTree<PointT>::Ptr kdtree_scene ( new pcl::search::KdTree<PointT>);
+                kdtree_scene->setInputCloud (processed_cloud);
+                pcl::IterativeClosestPoint<PointT, PointT> icp;
+                icp.setInputSource( model_cloud_aligned );
+                icp.setInputTarget(processed_cloud);
+                icp.setTransformationEpsilon (1e-6);
+                icp.setMaximumIterations(param_.icp_iterations_);
+                icp.setMaxCorrespondenceDistance(0.02);
+                icp.setSearchMethodTarget(kdtree_scene, true);
+                pcl::PointCloud<PointT> aligned_visible_model;
+                icp.align(aligned_visible_model);
+
+                Eigen::Matrix4f pose_refinement;
+                if(icp.hasConverged())
+                {
+                    pose_refinement = icp.getFinalTransformation();
+                    oh->pose_refinement_ = pose_refinement * oh->pose_refinement_;
+                }
+                else
+                    LOG(WARNING) << "ICP did not converge" << std::endl;
+            }
+        }
+
+
+    }
+
     if(!skip_verification_)
     {
         hv_->setHypotheses( generated_object_hypotheses );

@@ -97,6 +97,8 @@ public:
     size_t min_points_for_hyp_removal_; ///< how many removed points must overlap hypothesis to be also considered removed
     size_t max_views_; ///< maximum number of views used for multi-view recognition (if more views are available, information from oldest views will be ignored)
 
+    size_t icp_iterations_; ///< ICP iterations. Only used if hypotheses are not verified. Otherwise ICP is done inside HV
+
     ObjectRecognizerParameter()
         :
           hv_config_xml_ ("cfg/hv_config.xml" ),
@@ -128,7 +130,8 @@ public:
           use_change_detection_ (true),
           tolerance_for_cloud_diff_ (0.02f),
           min_points_for_hyp_removal_ (50),
-          max_views_ (3)
+          max_views_ (3),
+          icp_iterations_(0)
     {}
 
     void
@@ -225,6 +228,7 @@ public:
                 ("or_use_change_detection", po::value<bool>(&use_change_detection_)->default_value(use_change_detection_), "")
                 ("or_multivew_max_views", po::value<size_t>(&max_views_)->default_value(max_views_), "maximum number of views used for multi-view recognition (if more views are available, information from oldest views will be ignored)")
                 ("or_remove_non_upright_objects", po::value<bool>(&remove_non_upright_objects_)->default_value(remove_non_upright_objects_), "remove all hypotheses that are not standing upright on a support plane (support plane extraction must be enabled)")
+                ("or_icp_iterations", po::value<size_t>(&icp_iterations_)->default_value(icp_iterations_), "ICP iterations. Only used if hypotheses are not verified. Otherwise ICP is done inside HV")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
