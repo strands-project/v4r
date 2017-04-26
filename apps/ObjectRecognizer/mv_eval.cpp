@@ -25,6 +25,7 @@ main (int argc, char ** argv)
     std::string recognizer_config = "cfg/multipipeline_config.xml";
     int verbosity = -1;
     bool shuffle_views = true;
+    size_t view_sample_size = 1;
 
     /* initialize random seed: */
     srand (time(NULL));
@@ -38,6 +39,7 @@ main (int argc, char ** argv)
             ("recognizer_config", po::value<std::string>(&recognizer_config)->default_value(recognizer_config), "Config XML of the multi-pipeline recognizer")
             ("verbosity", po::value<int>(&verbosity)->default_value(verbosity), "set verbosity level for output (<0 minimal output)")
             ("shuffle_views", po::value<bool>(&shuffle_views)->default_value(shuffle_views), "if true, randomly selects viewpoints. Otherwise in the sequence given by the filenames.")
+            ("view_sample_size", po::value<size_t>(&view_sample_size)->default_value(view_sample_size), "view sample size. Only every n-th view will be recognized to speed up evaluation.")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
@@ -69,6 +71,12 @@ main (int argc, char ** argv)
     {
         recognizer.resetMultiView();
         std::vector< std::string > views = v4r::io::getFilesInDirectory( test_dir+"/"+sub_folder_name, ".*.pcd", false );
+        size_t kept=0;
+        for(size_t i=0; i<views.size(); i = i+view_sample_size)
+            views[kept++] = views[i];
+
+        views.resize(kept);
+
 
         if( views.size() < param.max_views_)
         {
