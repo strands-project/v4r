@@ -150,6 +150,10 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             {
                 LocalRecognizerParameter sift_param;
                 sift_param.load(param_.sift_config_xml_);
+
+                if(param_.sift_knn_)
+                    sift_param.knn_ = param_.sift_knn_;
+
                 typename LocalFeatureMatcher<PointT>::Ptr sift_rec (new LocalFeatureMatcher<PointT>(sift_param));
                 typename SIFTLocalEstimation<PointT>::Ptr sift_est (new SIFTLocalEstimation<PointT>);
                 sift_est->setMaxDistance(std::numeric_limits<float>::max());
@@ -161,6 +165,10 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
                 LocalRecognizerParameter shot_pipeline_param;
                 shot_pipeline_param.load(param_.shot_config_xml_);
+
+                if(param_.shot_knn_)
+                    shot_pipeline_param.knn_ = param_.sift_knn_;
+
                 typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_pipeline_param));
                 std::vector<typename v4r::KeypointExtractor<PointT>::Ptr > keypoint_extractor = initKeypointExtractors<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
 

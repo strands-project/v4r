@@ -98,6 +98,8 @@ public:
     size_t max_views_; ///< maximum number of views used for multi-view recognition (if more views are available, information from oldest views will be ignored)
 
     size_t icp_iterations_; ///< ICP iterations. Only used if hypotheses are not verified. Otherwise ICP is done inside HV
+    size_t sift_knn_; ///< only used if greater 0. Otherwise value from xml file will be used
+    size_t shot_knn_; ///< only used if greater 0. Otherwise value from xml file will be used
 
     ObjectRecognizerParameter()
         :
@@ -131,7 +133,9 @@ public:
           tolerance_for_cloud_diff_ (0.02f),
           min_points_for_hyp_removal_ (50),
           max_views_ (3),
-          icp_iterations_(0)
+          icp_iterations_(0),
+          sift_knn_ (0),
+          shot_knn_ (0)
     {}
 
     void
@@ -229,6 +233,8 @@ public:
                 ("or_multivew_max_views", po::value<size_t>(&max_views_)->default_value(max_views_), "maximum number of views used for multi-view recognition (if more views are available, information from oldest views will be ignored)")
                 ("or_remove_non_upright_objects", po::value<bool>(&remove_non_upright_objects_)->default_value(remove_non_upright_objects_), "remove all hypotheses that are not standing upright on a support plane (support plane extraction must be enabled)")
                 ("or_icp_iterations", po::value<size_t>(&icp_iterations_)->default_value(icp_iterations_), "ICP iterations. Only used if hypotheses are not verified. Otherwise ICP is done inside HV")
+                ("or_sift_knn", po::value<size_t>(&sift_knn_)->default_value(sift_knn_), "knn for SIFT. only used if greater 0. Otherwise value from xml file will be used")
+                ("or_shot_knn", po::value<size_t>(&shot_knn_)->default_value(shot_knn_), "knn for SHOT. only used if greater 0. Otherwise value from xml file will be used")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
