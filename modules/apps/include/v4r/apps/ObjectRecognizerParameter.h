@@ -229,6 +229,7 @@ public:
                 ("or_use_graph_based_gc_grouping", po::value<bool>(&use_graph_based_gc_grouping_)->default_value(use_graph_based_gc_grouping_), "")
                 ("or_use_multiview", po::value<bool>(&use_multiview_)->default_value(use_multiview_), "")
                 ("or_use_multiview_hv", po::value<bool>(&use_multiview_hv_)->default_value(use_multiview_hv_), "")
+                ("or_use_multiview_with_kp_correspondence_transfer", po::value<bool>(&use_multiview_with_kp_correspondence_transfer_)->default_value(use_multiview_with_kp_correspondence_transfer_), "")
                 ("or_use_change_detection", po::value<bool>(&use_change_detection_)->default_value(use_change_detection_), "")
                 ("or_multivew_max_views", po::value<size_t>(&max_views_)->default_value(max_views_), "maximum number of views used for multi-view recognition (if more views are available, information from oldest views will be ignored)")
                 ("or_remove_non_upright_objects", po::value<bool>(&remove_non_upright_objects_)->default_value(remove_non_upright_objects_), "remove all hypotheses that are not standing upright on a support plane (support plane extraction must be enabled)")
