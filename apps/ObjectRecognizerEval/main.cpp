@@ -208,9 +208,12 @@ main (int argc, char ** argv)
                             for(const v4r::ObjectHypothesis::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
                             {
                                 f_generated << oh->model_id_ << " (" << oh->confidence_ << "): ";
+
+                                const Eigen::Matrix4f tf = oh->pose_refinement_ * oh->transform_;
+
                                 for (size_t row=0; row <4; row++)
                                     for(size_t col=0; col<4; col++)
-                                        f_generated << oh->transform_(row, col) << " ";
+                                        f_generated << tf(row, col) << " ";
                                 f_generated << std::endl;
 
                                 if( oh->is_verified_ )
@@ -218,7 +221,7 @@ main (int argc, char ** argv)
                                     f_verified << oh->model_id_ << " (" << oh->confidence_ << "): ";
                                     for (size_t row=0; row <4; row++)
                                         for(size_t col=0; col<4; col++)
-                                            f_verified << oh->transform_(row, col) << " ";
+                                            f_verified << tf(row, col) << " ";
                                     f_verified << std::endl;
                                 }
                             }
