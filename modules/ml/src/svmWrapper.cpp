@@ -93,14 +93,11 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
         param_.svm_.probability = 1;
     }
 
-//    std::ofstream of1("/tmp/unscaled.txt");
-//    std::ofstream of2("/tmp/scaled.txt");
-
     Eigen::MatrixXf training_data_scaled = training_data;
     if(param_.do_scaling_)
     {
         scale_ = Eigen::VectorXf::Ones( num_attributes );
-        offset_ = Eigen::VectorXf::Zero( num_attributes );
+//        offset_ = Eigen::VectorXf::Zero( num_attributes );
 
         const Eigen::VectorXf maxa = training_data.colwise().maxCoeff();
         const Eigen::VectorXf mina = Eigen::VectorXf::Zero( num_attributes );//training_data.colwise().minCoeff();
@@ -118,15 +115,10 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
         {
             training_data_scaled.row(row).array() *= scale_.array();
         }
-
-//        of1 << training_data;
-//        of2 << training_data_scaled;
     }
-//    of1.close();
-//    of2.close();
 
 
-    // fill tarining data into an SVM problem
+    // fill training data into an SVM problem
     ::svm_problem *svm_prob = new ::svm_problem;
     svm_prob->l = num_examples; //number of training examples
     svm_prob->x = new ::svm_node *[svm_prob->l];

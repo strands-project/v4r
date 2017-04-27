@@ -164,7 +164,7 @@ private:
             double step_multiplicator_gamma = 2);
 
     Eigen::VectorXf scale_; ///< scale for each attribute (only if scaling is enabled)
-    Eigen::VectorXf offset_; ///< scale offset for each attribute (only if scaling is enabled)
+//    Eigen::VectorXf offset_; ///< scale offset for each attribute (only if scaling is enabled)
 public:
     svmClassifier(const SVMParameter &p = SVMParameter()) : param_(p)
     { }
