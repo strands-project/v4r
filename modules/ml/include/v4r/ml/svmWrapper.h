@@ -71,7 +71,7 @@ public:
           knn_ (3),
           do_scaling_ (false),
           cross_validation_range_C_( {exp2(-5), exp2(15), 2} ),
-          cross_validation_range_gamma_( {exp2(-5), exp2(5), 2} )
+          cross_validation_range_gamma_( {exp2(-15), exp2(3), 4} )
     {
         svm_.svm_type = svm_type;
         svm_.kernel_type = kernel_type;
