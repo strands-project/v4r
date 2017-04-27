@@ -90,6 +90,7 @@ private:
 
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :
         visualize_ (false),
         skip_verification_(false),
