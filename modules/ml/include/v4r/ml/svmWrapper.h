@@ -69,8 +69,8 @@ public:
         :
           do_cross_validation_ ( 0 ),
           knn_ (3),
-          cross_validation_range_C_( {exp2(-6), exp2(6), 2} ),
           do_scaling_ (false),
+          cross_validation_range_C_( {exp2(-5), exp2(15), 2} ),
           cross_validation_range_gamma_( {exp2(-5), exp2(5), 2} )
     {
         svm_.svm_type = svm_type;
