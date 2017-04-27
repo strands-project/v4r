@@ -151,18 +151,6 @@ private:
     SVMParameter param_;
     ::svm_model *svm_mod_;
 
-    void
-    dokFoldCrossValidation(
-            const Eigen::MatrixXf &data_train,
-            const Eigen::VectorXi &target_train,
-            size_t k = 5,
-            double model_para_C_min = exp2(-6),
-            double model_para_C_max = exp2(6),
-            double step_multiplicator_C = 2,
-            double model_para_gamma_min = exp(-5),
-            double model_para_gamma_max = exp(5),
-            double step_multiplicator_gamma = 2);
-
     Eigen::VectorXf scale_; ///< scale for each attribute (only if scaling is enabled)
 //    Eigen::VectorXf offset_; ///< scale offset for each attribute (only if scaling is enabled)
 public:
