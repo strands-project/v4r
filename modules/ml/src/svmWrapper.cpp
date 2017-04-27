@@ -193,6 +193,11 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
         param_.svm_ = best_parameter;
         LOG(INFO) << "Best parameters achieved from cross-validation: C=" << param_.svm_.C << " and gamma=" << param_.svm_.gamma;
     }
+    std::ofstream ofparam("svm_param.txt");
+    ofparam << "C: " << param_.svm_.C << ", gamma: " << param_.svm_.gamma;
+    ofparam.close();
+
+    this->saveModel( "model.svm");
 
     svm_mod_ = ::svm_train(svm_prob, &param_.svm_);
 
