@@ -127,6 +127,7 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
 
     if(v4r::io::existsFile(param_.filename_))
     {
+        VLOG(1) << "Loading SVM model from file " << param_.filename_ << ".............";
         loadModel( param_.filename_ );
         LOG(INFO) << "Loaded SVM model from file " << param_.filename_;
     }
