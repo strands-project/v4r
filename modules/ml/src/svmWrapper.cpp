@@ -12,21 +12,35 @@ namespace v4r
 
 void svmClassifier::predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label) const
 {
+    int num_examples = query_data.rows();
+    int num_attributes = query_data.cols();
+
     if(param_.svm_.probability)
-        predicted_label.resize(query_data.rows(), param_.knn_);
+        predicted_label.resize(num_examples, param_.knn_);
     else
-        predicted_label.resize(query_data.rows(), 1);
+        predicted_label.resize(num_examples, 1);
 
-    for(int i=0; i<query_data.rows(); i++)
+    Eigen::MatrixXf query_data_scaled = query_data;
+
+    if(param_.do_scaling_)
     {
-        ::svm_node *svm_n_test = new ::svm_node[ query_data.cols()+1 ];
-
-        for(int kk=0; kk<query_data.cols(); kk++)
+        for(int row = 0 ; row < num_examples; row++)
         {
-            svm_n_test[kk].value = query_data(i, kk);
+            query_data_scaled.row(row).array() *= scale_.array();
+        }
+    }
+
+
+    for(int i=0; i<num_examples; i++)
+    {
+        ::svm_node *svm_n_test = new ::svm_node[ num_attributes+1 ];
+
+        for(int kk=0; kk<num_attributes; kk++)
+        {
+            svm_n_test[kk].value = query_data_scaled(i, kk);
             svm_n_test[kk].index = kk+1;
         }
-        svm_n_test[ query_data.cols() ].index = -1;
+        svm_n_test[ num_attributes ].index = -1;
 
         if(param_.svm_.probability)
         {
@@ -67,8 +81,11 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
 {
     CHECK(training_data.rows() == training_label.rows() );
 
+    int num_examples = training_data.rows();
+    int num_attributes = training_data.cols();
+
     if (param_.svm_.gamma < 0)
-        param_.svm_.gamma = 1. / training_data.cols();
+        param_.svm_.gamma = 1. / num_attributes;
 
     if( !param_.svm_.probability && param_.knn_ > 1)
     {
@@ -76,25 +93,46 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
         param_.svm_.probability = 1;
     }
 
+    Eigen::MatrixXf training_data_scaled = training_data;
+    if(param_.do_scaling_)
+    {
+        scale_ = Eigen::VectorXf::Ones( num_attributes );
+        const Eigen::VectorXf maxa = training_data.colwise().maxCoeff();
+        const Eigen::VectorXf mina = Eigen::VectorXf::Zero( num_attributes );//training_data.colwise().minCoeff();
+        const Eigen::VectorXf range = maxa - mina;
+
+        for(int attr_id = 0 ; attr_id < num_attributes; attr_id++)
+        {
+            if (range(attr_id) > std::numeric_limits<float>::epsilon())
+            {
+                scale_(attr_id) = 1.f/range(attr_id);
+            }
+        }
+
+        for(int row = 0 ; row < num_examples; row++)
+        {
+            training_data_scaled.row(row).array() *= scale_.array();
+        }
+    }
 
     // fill tarining data into an SVM problem
     ::svm_problem *svm_prob = new ::svm_problem;
-    svm_prob->l = training_data.rows(); //number of training examples
+    svm_prob->l = num_examples; //number of training examples
     svm_prob->x = new ::svm_node *[svm_prob->l];
 
     for(int i = 0; i<svm_prob->l; i++)
-        svm_prob->x[i] = new ::svm_node[ training_data.cols()+1 ];  // add one additional dimension and set that index to -1 (libsvm requirement)
+        svm_prob->x[i] = new ::svm_node[ num_attributes+1 ];  // add one additional dimension and set that index to -1 (libsvm requirement)
 
     svm_prob->y = new double[svm_prob->l];
 
     for(int i=0; i<svm_prob->l; i++)
     {
-        for(int kk=0; kk < training_data.cols(); kk++)
+        for(int kk=0; kk < num_attributes; kk++)
         {
-            svm_prob->x[i][kk].value = (double)training_data(i,kk);
+            svm_prob->x[i][kk].value = (double)training_data_scaled(i,kk);
             svm_prob->x[i][kk].index = kk+1;
         }
-        svm_prob->x[i][ training_data.cols() ].index = -1;
+        svm_prob->x[i][ num_attributes ].index = -1;
         svm_prob->y[i] = training_label(i);
     }
 
