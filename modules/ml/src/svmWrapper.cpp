@@ -197,9 +197,10 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
     ofparam << "C: " << param_.svm_.C << ", gamma: " << param_.svm_.gamma;
     ofparam.close();
 
-    this->saveModel( "model.svm");
-
     svm_mod_ = ::svm_train(svm_prob, &param_.svm_);
+
+//    v4r::io::createDirForFileIfNotExist( filename );
+    this->saveModel( "model.svm");
 
     // free memory
 //    for(int i = 0; i<svm_prob->l; i++)
@@ -211,15 +212,13 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
 
 void svmClassifier::saveModel(const std::string &filename) const
 {
-    v4r::io::createDirForFileIfNotExist( filename );
-
     try
     {
         ::svm_save_model(filename.c_str(), svm_mod_);
     }
     catch (std::exception& e)
     {
-        std::cerr << "Could not save svm model to file " << filename << ". " << std::endl;
+        LOG(ERROR) << "Could not save svm model to file " << filename << ". ";
     }
 }
 
