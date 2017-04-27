@@ -47,6 +47,8 @@ public:
     std::vector<double> cross_validation_range_C_; ///< cross validation range for parameter C (first element minimum, second element maximum, third element step size as a multiplier)
     std::vector<double> cross_validation_range_gamma_; ///< cross validation range for parameter gamma (first element minimum, second element maximum, third element step size as a multiplier)
 
+    std::string filename_; ///< filename from where to load svm file (if path exists, will skip training and use this model instead)
+
     SVMParameter(
             int svm_type = ::C_SVC,
             int kernel_type = ::LINEAR, //::RBF,
@@ -71,7 +73,8 @@ public:
           knn_ (3),
           do_scaling_ (false),
           cross_validation_range_C_( {exp2(-5), exp2(15), 2} ),
-          cross_validation_range_gamma_( {exp2(-15), exp2(3), 4} )
+          cross_validation_range_gamma_( {exp2(-15), exp2(3), 4} ),
+          filename_("")
     {
         svm_.svm_type = svm_type;
         svm_.kernel_type = kernel_type;
@@ -128,6 +131,7 @@ public:
                 ("svm_probability", po::value<int>(&svm_.probability)->default_value(svm_.probability), "do probability estimates")
                 ("svm_cross_validation_range_C", po::value<std::vector<double> >(&cross_validation_range_C_)->multitoken(), "cross validation range for parameter C (first element minimum, second element maximum, third element step size as a multiplier)")
                 ("svm_cross_validation_range_gamma", po::value<std::vector<double> >(&cross_validation_range_gamma_)->multitoken(), "cross validation range for parameter gamma (first element minimum, second element maximum, third element step size as a multiplier)")
+                ("svm_filename", po::value< std::string >(&filename_)->default_value(filename_), "filename from where to load svm file (if path exists, will skip training and use this model instead)")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -160,6 +164,7 @@ private:
             double step_multiplicator_gamma = 2);
 
     Eigen::VectorXf scale_; ///< scale for each attribute (only if scaling is enabled)
+    Eigen::VectorXf offset_; ///< scale offset for each attribute (only if scaling is enabled)
 public:
     svmClassifier(const SVMParameter &p = SVMParameter()) : param_(p)
     { }
