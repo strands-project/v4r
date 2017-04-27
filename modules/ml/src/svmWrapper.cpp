@@ -125,6 +125,28 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
 //    of1.close();
 //    of2.close();
 
+
+    // fill tarining data into an SVM problem
+    ::svm_problem *svm_prob = new ::svm_problem;
+    svm_prob->l = num_examples; //number of training examples
+    svm_prob->x = new ::svm_node *[svm_prob->l];
+
+    for(int i = 0; i<svm_prob->l; i++)
+        svm_prob->x[i] = new ::svm_node[ num_attributes+1 ];  // add one additional dimension and set that index to -1 (libsvm requirement)
+
+    svm_prob->y = new double[svm_prob->l];
+
+    for(int i=0; i<svm_prob->l; i++)
+    {
+        for(int kk=0; kk < num_attributes; kk++)
+        {
+            svm_prob->x[i][kk].value = (double)training_data_scaled(i,kk);
+            svm_prob->x[i][kk].index = kk+1;
+        }
+        svm_prob->x[i][ num_attributes ].index = -1;
+        svm_prob->y[i] = training_label(i);
+    }
+
     if(v4r::io::existsFile(param_.filename_))
     {
         VLOG(1) << "Loading SVM model from file " << param_.filename_ << ".............";
@@ -133,26 +155,6 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
     }
     else
     {
-        // fill tarining data into an SVM problem
-        ::svm_problem *svm_prob = new ::svm_problem;
-        svm_prob->l = num_examples; //number of training examples
-        svm_prob->x = new ::svm_node *[svm_prob->l];
-
-        for(int i = 0; i<svm_prob->l; i++)
-            svm_prob->x[i] = new ::svm_node[ num_attributes+1 ];  // add one additional dimension and set that index to -1 (libsvm requirement)
-
-        svm_prob->y = new double[svm_prob->l];
-
-        for(int i=0; i<svm_prob->l; i++)
-        {
-            for(int kk=0; kk < num_attributes; kk++)
-            {
-                svm_prob->x[i][kk].value = (double)training_data_scaled(i,kk);
-                svm_prob->x[i][kk].index = kk+1;
-            }
-            svm_prob->x[i][ num_attributes ].index = -1;
-            svm_prob->y[i] = training_label(i);
-        }
 
         if( param_.do_cross_validation_ > 1 )
         {
@@ -220,13 +222,13 @@ void svmClassifier::train(const Eigen::MatrixXf &training_data, const Eigen::Vec
     //    v4r::io::createDirForFileIfNotExist( filename );
         this->saveModel( "model.svm");
 
-        // free memory
-    //    for(int i = 0; i<svm_prob->l; i++)
-    //        delete [] svm_prob->x[i];
-    //    delete [] svm_prob->x;
-    //    delete [] svm_prob->y;
-    //    delete svm_prob;
     }
+    // free memory
+//    for(int i = 0; i<svm_prob->l; i++)
+//        delete [] svm_prob->x[i];
+//    delete [] svm_prob->x;
+//    delete [] svm_prob->y;
+//    delete svm_prob;
 }
 
 void svmClassifier::saveModel(const std::string &filename) const
