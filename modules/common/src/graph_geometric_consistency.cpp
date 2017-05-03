@@ -487,13 +487,6 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
         for(size_t i=0; i < unique_vertices_per_cc.size(); i++)
             cc_sizes[i] = unique_vertices_per_cc[i].size();
 
-        pcl::registration::CorrespondenceRejectorSampleConsensus<PointModelT> corr_rejector;
-        corr_rejector.setMaximumIterations (10000);
-        corr_rejector.setInlierThreshold (param_.ransac_threshold_);
-        corr_rejector.setInputSource (input_);
-        corr_rejector.setInputTarget (temp_scene_cloud_ptr);
-        corr_rejector.setSaveInliers(true);
-
         //Go through the connected components and decide whether to use CliqueGC or usualGC or ignore (cc_sizes[i] < gc_threshold_)
         //Decision based on the number of vertices in the connected component and graph arbocity...
 
@@ -675,8 +668,13 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                             temp_corrs.push_back ( model_scene_corrs_->at( new_clique[j] ) );
                         }
 
+                        pcl::registration::CorrespondenceRejectorSampleConsensus<PointModelT> corr_rejector;
+                        corr_rejector.setMaximumIterations (10000);
+                        corr_rejector.setInlierThreshold (param_.ransac_threshold_);
+                        corr_rejector.setInputSource (input_);
+                        corr_rejector.setInputTarget (temp_scene_cloud_ptr);
+                        corr_rejector.setSaveInliers(true);
                         corr_rejector.getRemainingCorrespondences (temp_corrs, filtered_corrs);
-
                         std::vector<int> inlier_indices;
                         corr_rejector.getInliersIndices (inlier_indices);
 
@@ -799,6 +797,13 @@ GraphGeometricConsistencyGrouping<PointModelT, PointSceneT>::clusterCorresponden
                         {
                             //pcl::ScopeTime tt("ransac filtering");
                             //ransac filtering
+
+                            pcl::registration::CorrespondenceRejectorSampleConsensus<PointModelT> corr_rejector;
+                            corr_rejector.setMaximumIterations (10000);
+                            corr_rejector.setInlierThreshold (param_.ransac_threshold_);
+                            corr_rejector.setInputSource (input_);
+                            corr_rejector.setInputTarget (temp_scene_cloud_ptr);
+                            corr_rejector.setSaveInliers(true);
                             corr_rejector.getRemainingCorrespondences (temp_corrs, filtered_corrs);
                             //check if corr_rejector.getBestTransformation () was not found already
                             bool found = poseExists (corr_rejector.getBestTransformation ());
