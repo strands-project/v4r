@@ -1,7 +1,6 @@
 
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
-#include <boost/serialization/vector.hpp>
 #include <glog/logging.h>
 
 #include <v4r/apps/ObjectRecognizer.h>
@@ -9,6 +8,9 @@
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <v4r/io/filesystem.h>
+
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
 
 namespace po = boost::program_options;
 
@@ -22,6 +24,11 @@ main (int argc, char ** argv)
     std::string debug_dir = "";
     std::string recognizer_config = "cfg/multipipeline_config.xml";
     int verbosity = -1;
+    bool shuffle_views = true;
+    size_t view_sample_size = 1;
+
+    /* initialize random seed: */
+    srand (time(NULL));
 
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
@@ -31,6 +38,8 @@ main (int argc, char ** argv)
             ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
             ("recognizer_config", po::value<std::string>(&recognizer_config)->default_value(recognizer_config), "Config XML of the multi-pipeline recognizer")
             ("verbosity", po::value<int>(&verbosity)->default_value(verbosity), "set verbosity level for output (<0 minimal output)")
+            ("shuffle_views", po::value<bool>(&shuffle_views)->default_value(shuffle_views), "if true, randomly selects viewpoints. Otherwise in the sequence given by the filenames.")
+            ("view_sample_size", po::value<size_t>(&view_sample_size)->default_value(view_sample_size), "view sample size. Only every n-th view will be recognized to speed up evaluation.")
             ;
     po::variables_map vm;
     po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
@@ -62,12 +71,45 @@ main (int argc, char ** argv)
     {
         recognizer.resetMultiView();
         std::vector< std::string > views = v4r::io::getFilesInDirectory( test_dir+"/"+sub_folder_name, ".*.pcd", false );
-        for (size_t v_id=0; v_id<views.size(); v_id++)
+        size_t kept=0;
+        for(size_t i=0; i<views.size(); i = i+view_sample_size)
+            views[kept++] = views[i];
+
+        views.resize(kept);
+
+
+        if( views.size() < param.max_views_)
         {
+            LOG(WARNING) << "There are not enough views (" << views.size() << ") within this sequence to evaluate on " << param.max_views_ << " views! Skipping sequence.";
+            continue;
+        }
+
+        // randomly walk through views
+        std::vector<int> ivec (views.size() );
+        std::iota(ivec.begin(), ivec.end(), 0);
+
+        if(shuffle_views)
+            std::random_shuffle(ivec.begin(), ivec.end());
+
+        ivec.insert(ivec.end(), ivec.begin(), ivec.end());
+
+        std::cout << "Evaluation order for " << sub_folder_name << ":" << std::endl;
+        std::for_each(ivec.begin(), ivec.end(), [](int elem){std::cout << elem << " ";});
+        std::cout << std::endl;
+
+        boost::dynamic_bitset<> view_is_evaluated ( views.size(), 0 );
+
+        size_t counter=0;
+        while(1)
+        {
+            int v_id = ivec[counter++];
+
+            if( view_is_evaluated[v_id] ) //everything evaluated
+                break;
+
             bf::path test_path = test_dir;
             test_path /= sub_folder_name;
             test_path /= views[v_id];
-
 
             LOG(INFO) << "Recognizing file " << test_path.string();
             pcl::PointCloud<PT>::Ptr cloud(new pcl::PointCloud<PT>());
@@ -80,8 +122,9 @@ main (int argc, char ** argv)
             std::vector<v4r::ObjectHypothesesGroup > generated_object_hypotheses = recognizer.recognize(cloud);
             std::vector<std::pair<std::string, float> > elapsed_time = recognizer.getElapsedTimes();
 
-            if ( !out_dir.empty() )  // write results to disk (for each verified hypothesis add a row in the text file with object name, dummy confidence value and object pose in row-major order)
+            if ( counter >= param.max_views_  && !out_dir.empty() )  // write results to disk (for each verified hypothesis add a row in the text file with object name, dummy confidence value and object pose in row-major order)
             {
+                view_is_evaluated.set(v_id);
                 std::string out_basename = views[v_id];
                 boost::replace_last(out_basename, ".pcd", ".anno");
                 bf::path out_path = out_dir;
@@ -91,28 +134,19 @@ main (int argc, char ** argv)
                 std::string out_path_generated_hypotheses = out_path.string();
                 boost::replace_last(out_path_generated_hypotheses, ".anno", ".generated_hyps");
 
-                std::string out_path_generated_hypotheses_serialized = out_path.string();
-                boost::replace_last(out_path_generated_hypotheses_serialized, ".anno", ".generated_hyps_serialized");
-
                 v4r::io::createDirForFileIfNotExist(out_path.string());
 
                 // save hypotheses
                 std::ofstream f_generated ( out_path_generated_hypotheses.c_str() );
                 std::ofstream f_verified ( out_path.string().c_str() );
-                std::ofstream f_generated_serialized ( out_path_generated_hypotheses_serialized.c_str() );
-                boost::archive::text_oarchive oa(f_generated_serialized);
-                oa << generated_object_hypotheses;
-                f_generated_serialized.close();
                 for(size_t ohg_id=0; ohg_id<generated_object_hypotheses.size(); ohg_id++)
                 {
                     for(const v4r::ObjectHypothesis::Ptr &oh : generated_object_hypotheses[ohg_id].ohs_)
                     {
                         f_generated << oh->model_id_ << " (" << oh->confidence_ << "): ";
-                        const Eigen::Matrix4f tf = oh->pose_refinement_ * oh->transform_;
-
                         for (size_t row=0; row <4; row++)
                             for(size_t col=0; col<4; col++)
-                                f_generated << tf(row, col) << " ";
+                                f_generated << oh->transform_(row, col) << " ";
                         f_generated << std::endl;
 
                         if( oh->is_verified_ )
@@ -120,7 +154,7 @@ main (int argc, char ** argv)
                             f_verified << oh->model_id_ << " (" << oh->confidence_ << "): ";
                             for (size_t row=0; row <4; row++)
                                 for(size_t col=0; col<4; col++)
-                                    f_verified << tf(row, col) << " ";
+                                    f_verified << oh->transform_(row, col) << " ";
                             f_verified << std::endl;
                         }
                     }

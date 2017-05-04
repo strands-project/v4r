@@ -121,7 +121,7 @@ public:
 
   v4r::Object::Ptr &getModel() {return camtracker->getModelPtr(); }
   boost::shared_ptr< std::vector<CameraLocation> > &getTrajectory() {return cam_trajectory;}
-  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &getClouds() { return log_clouds; }
+  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &getClouds() { return log_clouds; }
   boost::shared_ptr< AlignedPointXYZRGBVector > &getAlignedCloud() {return oc_cloud;}
 
 
@@ -191,7 +191,7 @@ private:
   // data logging
   double cos_min_delta_angle, sqr_min_cam_distance;
   boost::shared_ptr< std::vector<CameraLocation> > cam_trajectory;
-  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > log_clouds;
+  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > log_clouds;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras;
 
   // preview

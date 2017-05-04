@@ -33,7 +33,7 @@ namespace v4r{
 
 /**
  * @brief This class represents object hypotheses coming from local feature correspondences
- * @author Aitor Aldoma, Thomas Faeulhammer
+ * @author Thomas Faeulhammer, Aitor Aldoma
  */
 template<typename PointT>
 class V4R_EXPORTS LocalObjectHypothesis
@@ -46,6 +46,21 @@ class V4R_EXPORTS LocalObjectHypothesis
     pcl::CorrespondencesPtr model_scene_corresp_; ///< indices between model keypoints (index query) and scene cloud (index match)
 
     LocalObjectHypothesis() { }
+
+    LocalObjectHypothesis( const LocalObjectHypothesis& other )
+        :model_id_(other.model_id_)
+    {
+        model_scene_corresp_.reset( new pcl::Correspondences);
+        *model_scene_corresp_ = * other.model_scene_corresp_;
+    }
+
+    LocalObjectHypothesis& operator=(LocalObjectHypothesis other)
+    {
+        model_id_ = other.model_id_;
+        model_scene_corresp_.reset( new pcl::Correspondences);
+        *model_scene_corresp_ = * other.model_scene_corresp_;
+        return *this;
+    }
 
     void visualize(const pcl::PointCloud<pcl::PointXYZRGB> &scene, const pcl::PointCloud<pcl::PointXYZRGB> &scene_kp) const;
 

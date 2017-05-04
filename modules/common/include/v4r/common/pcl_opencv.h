@@ -43,15 +43,15 @@ class V4R_EXPORTS PCLOpenCVConverter
 private:
     typedef std::vector<uchar> (PCLOpenCVConverter<PointT>::*pf)(int v, int u) const;
 
-    typename pcl::PointCloud<PointT>::ConstPtr cloud_;   ///@brief cloud to be converted
-    std::vector<int> indices_; ///@brief pixel indices to be extracted (if empty, all pixel will be extracted)
-    Camera::ConstPtr cam_; ///@brief camera parameters (used for re-projection if point cloud is not organized)
-    bool remove_background_;  ///@brief if true, will set pixel not specified by the indices to the background color defined by its member variable background_color_
-    cv::Vec3b background_color_; ///@brief background color (only used if indices are not empty and remove_background is set to true)
-    float min_depth_m_;   ///@brief minimum depth in meter for normalization
-    float max_depth_m_;   ///@brief maximum depth in meter for normalization
-    cv::Rect roi_;  ///@brief region of interest with all given indices taken into account
-    cv::Mat output_matrix_; /// @brief
+    typename pcl::PointCloud<PointT>::ConstPtr cloud_;   ///< cloud to be converted
+    std::vector<int> indices_; ///< pixel indices to be extracted (if empty, all pixel will be extracted)
+    Camera::ConstPtr cam_; ///< camera parameters (used for re-projection if point cloud is not organized)
+    bool remove_background_;  ///< if true, will set pixel not specified by the indices to the background color defined by its member variable background_color_
+    cv::Vec3b background_color_; ///< background color (only used if indices are not empty and remove_background is set to true)
+    float min_depth_m_;   ///< minimum depth in meter for normalization
+    float max_depth_m_;   ///< maximum depth in meter for normalization
+    cv::Rect roi_;  ///< region of interest with all given indices taken into account
+    cv::Mat output_matrix_; /// <
     Eigen::MatrixXi index_map_; ///< index map showing which point of the unorganized(!) point cloud maps to which pixel in the image plane (pixel not occupied by any point have value -1)
 
     cv::Rect computeROIfromIndices();
@@ -91,7 +91,7 @@ private:
 
 public:
     PCLOpenCVConverter(const typename pcl::PointCloud<PointT>::ConstPtr cloud = nullptr) :
-        cloud_(cloud), remove_background_ ( true ), background_color_ ( cv::Vec3b(0,0,0) ), min_depth_m_ (0.f), max_depth_m_ (5.f)
+        cloud_(cloud), remove_background_ ( true ), background_color_ ( cv::Vec3b(255,255,255) ), min_depth_m_ (0.f), max_depth_m_ (5.f)
     { }
 
     ///

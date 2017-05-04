@@ -101,7 +101,7 @@ void BundleAdjustment::cam_tracker_params_changed(const CamaraTrackerParameter &
  * @brief BundleAdjustment::optimizeCamStructProj
  * @param _model
  */
-void BundleAdjustment::optimizeCamStructProj(v4r::Object::Ptr &_model, boost::shared_ptr< std::vector<Sensor::CameraLocation> > &_cam_trajectory, boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &_log_clouds, boost::shared_ptr< Sensor::AlignedPointXYZRGBVector > &_oc_cloud)
+void BundleAdjustment::optimizeCamStructProj(v4r::Object::Ptr &_model, boost::shared_ptr< std::vector<Sensor::CameraLocation> > &_cam_trajectory, boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &_log_clouds, boost::shared_ptr< Sensor::AlignedPointXYZRGBVector > &_oc_cloud)
 {
   model = _model;
   cam_trajectory = _cam_trajectory;
@@ -236,7 +236,7 @@ void BundleAdjustment::optimizeCamStructProj()
  * @param poses
  * @param clouds
  */
-void BundleAdjustment::renewPrevCloud(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &poses, const std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > &clouds)
+void BundleAdjustment::renewPrevCloud(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &poses, const std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > &clouds)
 {
   if (clouds.size()>0)
   {

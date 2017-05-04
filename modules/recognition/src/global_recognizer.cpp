@@ -248,9 +248,8 @@ GlobalRecognizer<PointT>::initialize(const std::string &trained_dir, bool retrai
             Eigen::VectorXf view_centroid_to_3d_model_centroid (gom->model_centroids_.rows());
             for(int view_id=0; view_id < gom->model_centroids_.rows(); view_id++)
             {
-                const Eigen::Vector4f &view_centroid = gom->model_centroids_.row(view_id).transpose();
-                const Eigen::Vector4f &view_centroid_aligned = gom->model_poses_[view_id] * view_centroid;
-
+                const Eigen::Vector4f view_centroid = gom->model_centroids_.row(view_id).transpose();
+                const Eigen::Vector4f view_centroid_aligned = gom->model_poses_[view_id] * view_centroid;
                 view_centroid_to_3d_model_centroid(view_id) = (view_centroid_aligned - m->centroid_).head(3).norm();
             }
             gom->mean_distance_view_centroid_to_3d_model_centroid_ = view_centroid_to_3d_model_centroid.mean();
@@ -329,7 +328,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
                 const std::string &model_name = id_to_model_name_[lbl];
                 const std::string &class_name = "";
 
-                typename ObjectHypothesis<PointT>::Ptr oh( new ObjectHypothesis<PointT>);
+                typename ObjectHypothesis::Ptr oh( new ObjectHypothesis);
                 oh->model_id_ = model_name;
                 oh->class_id_ = class_name;
                 obj_hyps_filtered_[query_id*predicted_label.cols()+k] = oh;
@@ -355,7 +354,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
 
                 const GlobalObjectModel::ConstPtr &gom = it->second;
 
-                typename ObjectHypothesis<PointT>::Ptr oh( new ObjectHypothesis<PointT>);
+                typename ObjectHypothesis::Ptr oh( new ObjectHypothesis);
                 oh->model_id_ = f.instance_name_;
                 oh->class_id_ = f.class_name_;
                 oh->transform_ = 1.f * descriptor_transforms[query_id].inverse() * gom->descriptor_transforms_[view_id] * gom->model_poses_[view_id].inverse();
@@ -448,7 +447,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
         obj_hyps_filtered_.resize( max_hypotheses );
 
         for(size_t i=0; i<obj_hyps_filtered_.size(); i++)
-            obj_hyps_filtered_[i].reset( new ObjectHypothesis<PointT> );
+            obj_hyps_filtered_[i].reset( new ObjectHypothesis );
 
         size_t kept=0;
         for(int query_id=0; query_id<predicted_label.rows(); query_id++)
@@ -488,7 +487,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
 
                     // move model such that no point is below z=0
                     Eigen::Matrix4f tf_om_shift2origin2 = Eigen::Matrix4f::Identity();
-                    tf_om_shift2origin2(2,3) = -(m->minPoint_(2)-m->centroid_(2));
+                    tf_om_shift2origin2(2,3) = -(m->minPoint_(2) - m->centroid_(2));
 
                     // align origin with downprojected cluster centroid
                     float centroid_correction = gom->mean_distance_view_centroid_to_3d_model_centroid_;
@@ -505,7 +504,7 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
                     Eigen::Matrix4f tf_cluster_rot = Eigen::Matrix4f::Identity();
                     tf_cluster_rot.block<3,3>(0,0) = computeRotationMatrixToAlignVectors(cluster_->table_plane_.head(3), Eigen::Vector3f::UnitZ()); //Finv * G * F;
 
-                    Eigen::Matrix4f align_cluster = tf_cluster_rot * tf_cluster_shift;
+                    const Eigen::Matrix4f align_cluster = tf_cluster_rot * tf_cluster_shift;
 
 #ifdef _VISUALIZE_
                     pcl::visualization::PCLVisualizer vis;
@@ -607,9 +606,9 @@ GlobalRecognizer<PointT>::featureEncodingAndMatching(  )
                             vis.addPointCloud(model_shifted_and_rotated, tmp.str(), vp4);
                             vis.addCoordinateSystem(vis_param_->coordinate_axis_scale_, tmp.str()+ "2", vp4);
 #endif
-                            Eigen::Matrix4f alignment_tf = align_cluster.inverse() * rot_tmp * tf_om_shift2origin2 * tf_om_shift2origin;
+                            const Eigen::Matrix4f alignment_tf = align_cluster.inverse() * rot_tmp * tf_om_shift2origin2 * tf_om_shift2origin;
 
-                            typename ObjectHypothesis<PointT>::Ptr h( new ObjectHypothesis<PointT>);
+                            typename ObjectHypothesis::Ptr h( new ObjectHypothesis);
                             h->transform_ = alignment_tf; //tf_trans * tf_rot  * rot_tmp;
                             h->confidence_ =  0.f;
                             h->model_id_ = model_name;

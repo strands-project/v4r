@@ -32,6 +32,7 @@
 #include <v4r/core/macros.h>
 #include <v4r/recognition/object_hypothesis.h>
 #include <v4r/recognition/source.h>
+#include <glog/logging.h>
 
 namespace v4r
 {
@@ -57,10 +58,32 @@ protected:
     typename pcl::PointCloud<PointT>::ConstPtr scene_; ///< Point cloud to be recognized
     pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< associated normals
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
-    std::vector< ObjectHypothesesGroup<PointT> > obj_hypotheses_;   ///< generated object hypotheses
+    std::vector< ObjectHypothesesGroup > obj_hypotheses_;   ///< generated object hypotheses
     typename NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
     Eigen::Vector4f table_plane_;
     bool table_plane_set_;
+
+    static std::vector< std::pair<std::string,float> > elapsed_time_;  ///< to measure performance
+
+    class StopWatch
+    {
+        std::string desc_;
+        boost::posix_time::ptime start_time_;
+
+    public:
+        StopWatch(const std::string &desc)
+            :desc_ (desc), start_time_ (boost::posix_time::microsec_clock::local_time ())
+        {}
+
+        ~StopWatch()
+        {
+            boost::posix_time::ptime end_time = boost::posix_time::microsec_clock::local_time ();
+            float elapsed_time = static_cast<float> (((end_time - start_time_).total_milliseconds ()));
+            VLOG(1) << desc_ << " took " << elapsed_time << " ms.";
+            elapsed_time_.push_back( std::pair<std::string,float>(desc_, elapsed_time) );
+        }
+    };
+
 
     PCLVisualizationParams::ConstPtr vis_param_;
 
@@ -105,7 +128,7 @@ public:
      * @brief getObjectHypothesis
      * @return generated object hypothesis
      */
-    std::vector<ObjectHypothesesGroup<PointT> >
+    std::vector<ObjectHypothesesGroup>
     getObjectHypothesis() const
     {
         return obj_hypotheses_;
@@ -170,7 +193,30 @@ public:
         vis_param_ = vis_param;
     }
 
+    /**
+     * @brief getElapsedTimes
+     * @return compuation time measurements for various components
+     */
+    std::vector<std::pair<std::string, float> >
+    getElapsedTimes() const
+    {
+        return elapsed_time_;
+    }
+
     virtual bool requiresSegmentation() const = 0;
-    virtual void recognize () = 0;
+    virtual void do_recognize () = 0;
+
+    void
+    recognize ()
+    {
+        elapsed_time_.clear();
+        obj_hypotheses_.clear();
+        CHECK ( scene_ ) << "Input scene is not set!";
+
+        if( needNormals() )
+            CHECK ( scene_normals_ && scene_->points.size() == scene_normals_->points.size()) << "Recognizer needs normals but they are not set!";
+
+        do_recognize();
+    }
 };
 }

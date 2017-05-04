@@ -23,8 +23,8 @@ void
 IOL::createBigCloud()
 {
      size_t num_frames = grph_.size();
-     std::vector< pcl::PointCloud<PointT>::Ptr > keyframes_used (num_frames);
-     std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used (num_frames);
+     std::vector< pcl::PointCloud<PointT>::ConstPtr > keyframes_used (num_frames);
+     std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > normals_used (num_frames);
      std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used (num_frames);
      std::vector<std::vector<size_t> > indices_used (num_frames);
 
@@ -63,7 +63,7 @@ IOL::createBigCloud()
          //compute noise weights
          for(size_t i=0; i < kept_keyframes; i++)
          {
-             NguyenNoiseModel<PointT>::Parameter nm_param;
+             NguyenNoiseModelParameter nm_param;
              nm_param.use_depth_edges_ = true;
              NguyenNoiseModel<PointT> nm (nm_param);
              nm.setInputCloud(keyframes_used[i]);

@@ -77,7 +77,7 @@ public:
   void stop();
   bool isRunning();
 
-  void setData(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras, const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &_clouds);
+  void setData(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras, const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &_clouds);
   const std::vector< cv::Mat_<unsigned char> > &getMasks() {return masks; }
   void drawObjectCloud();
   void storeMasks(const std::string &_folder);
@@ -100,7 +100,7 @@ public slots:
   void set_segmentation_params(bool use_roi_segm, const double &offs, bool _use_dense_mv, const double &_edge_radius_px);
 
 signals:
-  void new_image(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &_cloud, const cv::Mat_<cv::Vec3b> &image);
+  void new_image(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &_cloud, const cv::Mat_<cv::Vec3b> &image);
   void update_model_cloud(const boost::shared_ptr< Sensor::AlignedPointXYZRGBVector > &_oc_cloud);
   void printStatus(const std::string &_txt);
   void update_visualization();
@@ -124,8 +124,8 @@ private:
   double max_point_dist;
 
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras;
-  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > clouds;
-  std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals;
+  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > clouds;
+  std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > normals;
   std::vector< cv::Mat_<int> > labels;
   std::vector< cv::Mat_<unsigned char> > masks;
   std::vector< std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> > planes;
