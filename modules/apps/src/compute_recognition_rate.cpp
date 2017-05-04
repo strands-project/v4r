@@ -346,7 +346,10 @@ RecognitionEvaluator::readHypothesesFromFile( const std::string &filename )
         Hypothesis h;
         iss >> model_name >> occlusion_tmp;
         occlusion_tmp = occlusion_tmp.substr( 1, occlusion_tmp.length() - 3 );
-        h.occlusion = 1.f-std::stof( occlusion_tmp );
+        std::istringstream os(occlusion_tmp);
+        float visible;
+        os >> visible;
+        h.occlusion = 1.f-visible;
 
         for(size_t i=0; i<16; i++)
             iss >> h.pose(i / 4, i % 4);
