@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_LOCAL_ESTIMATOR_H__
-#define V4R_LOCAL_ESTIMATOR_H__
+#pragma once
 
 #include <v4r/common/normal_estimator.h>
 #include <v4r/core/macros.h>
@@ -35,11 +34,9 @@ template<typename PointT>
 class V4R_EXPORTS LocalEstimator
 {
 protected:
-    typename pcl::PointCloud<PointT>::Ptr cloud_;
-    pcl::PointCloud<pcl::Normal>::Ptr normals_;
-    typename pcl::PointCloud<PointT>::Ptr processed_;
-    typename pcl::PointCloud<PointT>::Ptr keypoints_;
-    std::vector<int> keypoint_indices_;
+    typename pcl::PointCloud<PointT>::ConstPtr cloud_;  ///< input cloud
+    pcl::PointCloud<pcl::Normal>::ConstPtr normals_;    ///< input normals
+    std::vector<int> keypoint_indices_; ///< extracted keypoint indices
 
     std::vector<int> indices_;
     std::string descr_name_;
@@ -77,7 +74,7 @@ public:
      * @param normals
      */
     void
-    setNormals(const pcl::PointCloud<pcl::Normal>::Ptr & normals)
+    setNormals(const pcl::PointCloud<pcl::Normal>::ConstPtr & normals)
     {
         normals_ = normals;
     }
@@ -87,7 +84,7 @@ public:
      * @param normals
      */
     void
-    setInputCloud(const typename pcl::PointCloud<PointT>::Ptr &cloud)
+    setInputCloud(const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
     {
         cloud_ = cloud;
     }
@@ -98,22 +95,10 @@ public:
         return keypoint_indices_;
     }
 
-    typename pcl::PointCloud<PointT>::Ptr
-    getKeypointCloud() const
-    {
-        return keypoints_;
-    }
-
     std::string
     getFeatureDescriptorName() const
     {
         return descr_name_;
-    }
-
-    typename pcl::PointCloud<PointT>::Ptr
-    getProcessedCloud()
-    {
-        return processed_;
     }
 
     size_t
@@ -122,6 +107,21 @@ public:
         return descr_dims_;
     }
 
+    /**
+     * @brief getUniqueId in case several local feature estimators of the same type are used (e.g. shot with different support radii), we need to find unique ids
+     * @return a unique identity for the local estimator that takes into account its parameters.
+     */
+    virtual
+    std::string
+    getUniqueId() const
+    {
+        return "";
+    }
+
+    /**
+     * @brief compute features from given input cloud
+     * @param signatures
+     */
     virtual void
     compute (std::vector<std::vector<float> > & signatures)=0;
 
@@ -129,5 +129,3 @@ public:
     typedef boost::shared_ptr< LocalEstimator<PointT> const> ConstPtr;
 };
 }
-
-#endif

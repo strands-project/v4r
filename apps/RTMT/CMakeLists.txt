@@ -68,6 +68,7 @@ set(SOURCES
         mainwindow.cpp
         MultiSession.cpp
         ObjectSegmentation.cpp
+        OcclusionClustering.cc
         params.cpp
         sensor.cpp
         StoreTrackingModel.cpp
@@ -80,6 +81,7 @@ set(HEADERS
         mainwindow.h
         MultiSession.h
         ObjectSegmentation.h
+        OcclusionClustering.hh
         OctreeVoxelCentroidContainerXYZRGB.hpp
         params.h
         sensor.h

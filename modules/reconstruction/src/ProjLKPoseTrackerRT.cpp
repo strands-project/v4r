@@ -34,6 +34,13 @@
 #include "opencv2/video/tracking.hpp"
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 
+#if CV_MAJOR_VERSION < 3
+#define HAVE_OCV_2
+#else
+#include <opencv2/core/ocl.hpp>
+#endif
+
+
 namespace v4r
 {
 
@@ -70,6 +77,9 @@ double ProjLKPoseTrackerRT::detect(const cv::Mat &image, const DataMatrix2D<Eige
   if (src_intrinsic.empty()||tgt_intrinsic.empty())
     throw std::runtime_error("[ProjLKPoseTrackerRT::detect] Intrinsic camera parameter not set!");
 
+  #ifndef HAVE_OCV_2
+  cv::ocl::setUseOpenCL(false);
+  #endif
 
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
   else im_gray = image;
@@ -91,9 +101,9 @@ double ProjLKPoseTrackerRT::detect(const cv::Mat &image, const DataMatrix2D<Eige
   {
     points = m.cam_points;
     m.getNormals(normals);
-    Eigen::Matrix3f R = model->getCamera().topLeftCorner<3,3>();
+    Eigen::Matrix3f _R = model->getCamera().topLeftCorner<3,3>();
     for (unsigned i=0; i<normals.size(); i++)
-      normals[i] = R*normals[i];
+      normals[i] = _R*normals[i];
   }
 
   inliers.clear();

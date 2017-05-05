@@ -33,6 +33,10 @@
 #ifndef V4R_WARP_PATCH_HOMOGRAPHY_HPP
 #define V4R_WARP_PATCH_HOMOGRAPHY_HPP
 
+//A makro to get rid of the unused warning
+#ifndef UNUSED
+#define UNUSED(expr) do { (void)(expr); } while (0)
+#endif
 
 namespace v4r
 {
@@ -62,6 +66,7 @@ inline T getInterpolated(const cv::Mat_<unsigned char> &im, const Eigen::Matrix<
 template <typename T>
 inline T getInterpolated(const unsigned char *im, int rows, int cols, const T pt[2])
 {
+  UNUSED(rows);
   int xt = (int) pt[0];
   int yt = (int) pt[1];
   T ax = pt[0] - xt;

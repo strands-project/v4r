@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_CLASSIFIER_TYPES__
-#define V4R_CLASSIFIER_TYPES__
+#pragma once
 
 namespace v4r
 {
@@ -31,7 +30,6 @@ namespace v4r
             KNN = 0x01, // 00000001
             SVM = 0x02, // 00000010
             CNN  = 0x04 // 00000100
+//            RandomForest  = 0x08 // 00001000
         };
 }
-
-#endif

@@ -7,7 +7,7 @@
 
 #include <v4r/recognition/hypotheses_verification.h>
 #include <v4r/recognition/registered_views_source.h>
-#include <v4r/recognition/local_recognizer.h>
+#include <v4r/recognition/local_feature_matching.h>
 #include <v4r/recognition/global_recognizer.h>
 #include <v4r/features/shot_local_estimator.h>
 //#include <v4r/features/shot_color_local_estimator.h>

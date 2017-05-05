@@ -68,10 +68,10 @@ public:
   void alignSequences();
   void optimizeSequences();
   void addSequences(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras,
-                    const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &_clouds, 
+                    const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &_clouds,
                     const std::vector<std::vector<int> > &_object_indices, const Eigen::Matrix4f &_object_base_transform=Eigen::Matrix4f::Identity());
   const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &getCameras() {return cameras;}
-  const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &getClouds() {return clouds; }
+  const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &getClouds() const {return clouds; }
   const std::vector< cv::Mat_<unsigned char> > &getMasks(){ return masks; }
   void clear();
   bool savePointClouds(const std::string &_folder, const std::string &_modelname);
@@ -96,13 +96,13 @@ private:
   ObjectModelling om_params;
 
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras;
-  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > clouds;
+  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > clouds;
   std::vector< cv::Mat_<unsigned char> > masks;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > output_poses;
   
-  std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals;
+  std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > normals;
   std::vector<std::pair<int,int> > session_ranges_;
-  std::vector< pcl::PointCloud<pcl::PointXYZRGB>::Ptr > sessions_clouds_;
+  std::vector< pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr > sessions_clouds_;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > sessions_cloud_poses_;
   std::vector<std::vector<int> > sessions_cloud_indices_;
 
@@ -113,10 +113,12 @@ private:
   double max_dist;
   int max_iterations;
   int diff_type;
+  double max_point_dist;
 
   pcl::PointCloud<pcl::Normal>::Ptr big_normals;
   boost::shared_ptr< Sensor::AlignedPointXYZRGBVector > oc_cloud;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr octree_cloud;
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr ncloud_filt;
 
   void run();
 

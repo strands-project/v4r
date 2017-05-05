@@ -21,14 +21,12 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_ESF_ESTIMATOR_H_
-#define V4R_ESF_ESTIMATOR_H_
+#pragma once
 
 #include <v4r/core/macros.h>
 #include <v4r/features/global_estimator.h>
 #include <v4r/features/types.h>
 
-#include <pcl/features/esf.h>
 #include <glog/logging.h>
 
 namespace v4r
@@ -44,52 +42,16 @@ private:
     using GlobalEstimator<PointT>::feature_dimensions_;
 
 public:
-    ESFEstimation(const std::string &descr_name = "esf",
-                  size_t descr_type = FeatureType::ESF,
-                  size_t feature_dimensions = 640)
-        : GlobalEstimator<PointT>(descr_name, descr_type, feature_dimensions)
+    ESFEstimation()
+        : GlobalEstimator<PointT>("esf", FeatureType::ESF, 640)
     {}
 
-    bool
-    compute (Eigen::MatrixXf &signature)
-    {
-        CHECK(cloud_ && !cloud_->points.empty());
-        typename pcl::ESFEstimation<PointT, pcl::ESFSignature640> esf;
-        pcl::PointCloud<pcl::ESFSignature640> ESF_signature;
+    bool compute (Eigen::MatrixXf &signature);
 
-        if(!indices_.empty())   /// NOTE: setIndices does not seem to work for ESF
-        {
-            typename pcl::PointCloud<PointT>::Ptr cloud_roi (new pcl::PointCloud<PointT>);
-            pcl::copyPointCloud(*cloud_, indices_, *cloud_roi);
-            esf.setInputCloud(cloud_roi);
-        }
-        else
-        {
-            esf.setInputCloud (cloud_);
-        }
-
-        esf.compute (ESF_signature);
-        signature.resize(ESF_signature.points.size(), feature_dimensions_);
-
-        for(size_t pt=0; pt<ESF_signature.points.size(); pt++)
-        {
-            for(size_t i=0; i<feature_dimensions_; i++)
-                signature(pt, i) = ESF_signature.points[pt].histogram[i];
-        }
-
-        indices_.clear();
-
-        return true;
-    }
-
-    bool needNormals() const
-    {
-        return false;
-    }
+    bool needNormals() const { return false; }
 
     typedef boost::shared_ptr< ESFEstimation<PointT> > Ptr;
     typedef boost::shared_ptr< ESFEstimation<PointT> const> ConstPtr;
 };
 }
 
-#endif

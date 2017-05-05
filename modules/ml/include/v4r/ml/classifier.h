@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_CLASSIFER_H__
-#define V4R_CLASSIFER_H__
+#pragma once
 
 #include <v4r/core/macros.h>
 #include <v4r/ml/types.h>
@@ -53,20 +52,7 @@ public:
      * @param predicted_label (each query produces a row of predicted labels, the columns of the predicted labels correspond to the most probable predictions. Predictions are sorted - most likely one is on the left)
      */
     virtual void
-    predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label) = 0;
-
-    virtual void
-    computeConfusionMatrix(const Eigen::MatrixXf &test_data,
-                           const Eigen::VectorXi &actual_label,
-                           Eigen::VectorXi &predicted_label,
-                           Eigen::MatrixXi &confusion_matrix)
-    {
-        (void)test_data;
-        (void)actual_label;
-        (void)predicted_label;
-        (void)confusion_matrix;
-        std::cerr << "Computing confusion matrix is not implemented right now." << std::endl;
-    }
+    predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label) const = 0;
 
     virtual void
     getTrainingSampleIDSforPredictions(Eigen::MatrixXi &predicted_training_sample_indices, Eigen::MatrixXf &distances)
@@ -82,6 +68,5 @@ public:
     typedef boost::shared_ptr< Classifier > Ptr;
     typedef boost::shared_ptr< Classifier const> ConstPtr;
 };
-}
 
-#endif
+}

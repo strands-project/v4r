@@ -5,11 +5,11 @@ bin
 cfg/*
 data/
 lib
-doc
 *~
 
 # git backups
 *.orig
+*.autosave
 
 # CMake
 CMakeCache.txt

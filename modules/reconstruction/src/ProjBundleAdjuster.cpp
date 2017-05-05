@@ -166,7 +166,7 @@ void ProjBundleAdjuster::bundle(Object &data, std::vector<Camera> &cameras)
                (poseR*eig_pt3.cast<float>()+poset - p.third).squaredNorm() < sqr_depth_inl_dist ) {
             problem.AddResidualBlock(
               new ceres::AutoDiffCostFunction< NoDistortionReprojectionAndDepthError, 3, 4, 6, 3 >(
-              new NoDistortionReprojectionAndDepthError(p.second.x,p.second.y,p.third[2],param.depth_error_weight)), 0/*new ceres::CauchyLoss(0.1)*/,intrinsics,pose_Rt,pt3);
+              new NoDistortionReprojectionAndDepthError(p.second.x,p.second.y,1./p.third[2],param.depth_error_weight)), 0/*new ceres::CauchyLoss(0.1)*/,intrinsics,pose_Rt,pt3);
           } else {
             problem.AddResidualBlock(
               new ceres::AutoDiffCostFunction< NoDistortionReprojectionError, 2, 4, 6, 3 >(
@@ -177,7 +177,7 @@ void ProjBundleAdjuster::bundle(Object &data, std::vector<Camera> &cameras)
                (poseR*eig_pt3.cast<float>()+poset - p.third).squaredNorm() < sqr_depth_inl_dist )           {
             problem.AddResidualBlock(
               new ceres::AutoDiffCostFunction< RadialDistortionReprojectionAndDepthError, 3, 9, 6, 3 >(
-              new RadialDistortionReprojectionAndDepthError(p.second.x, p.second.y, p.third[2],param.depth_error_weight)), 0/*new ceres::CauchyLoss(0.1)*/, intrinsics, pose_Rt, pt3);
+              new RadialDistortionReprojectionAndDepthError(p.second.x, p.second.y, 1./p.third[2],param.depth_error_weight)), 0/*new ceres::CauchyLoss(0.1)*/, intrinsics, pose_Rt, pt3);
           } else {
             problem.AddResidualBlock(
               new ceres::AutoDiffCostFunction< RadialDistortionReprojectionError, 2, 9, 6, 3 >(

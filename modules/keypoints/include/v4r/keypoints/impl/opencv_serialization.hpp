@@ -38,6 +38,10 @@
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/vector.hpp>
 
+//A makro to get rid of the unused warning
+#ifndef UNUSED
+#define UNUSED(expr) do { (void)(expr); } while (0)
+#endif
 namespace boost {
   namespace serialization {
 
@@ -45,6 +49,7 @@ namespace boost {
     template<class Archive, typename T>
     void serialize(Archive & ar, ::cv::Mat_<T>& m, const unsigned int version)
     {
+        (void)version;
       if(Archive::is_loading::value == true)
       {
         int cols, rows;
@@ -86,6 +91,7 @@ namespace boost {
     template<class Archive>
     void save(Archive & ar, const ::cv::Mat& m, const unsigned int version)
     {
+      UNUSED(version);
       size_t elem_size = m.elemSize();
       size_t elem_type = m.type();
 
@@ -102,6 +108,7 @@ namespace boost {
     template <class Archive>
     void load(Archive & ar, ::cv::Mat& m, const unsigned int version)
     {
+      UNUSED(version);
       int cols, rows;
       size_t elem_size, elem_type;
 
@@ -156,6 +163,7 @@ namespace boost {
       template<class Archive>
         void serialize(Archive & ar, cv::Point2f &pt, const unsigned int version)
         {
+            (void)version;
           ar & pt.x;
           ar & pt.y;
         }

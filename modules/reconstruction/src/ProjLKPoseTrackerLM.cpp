@@ -74,7 +74,7 @@ void ProjLKPoseTrackerLM::getRandIdx(int size, int num, std::vector<int> &idx)
 /**
  * countInliers
  */
-unsigned ProjLKPoseTrackerLM::countInliers(const std::vector<Eigen::Vector3d> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4d &pose)
+unsigned ProjLKPoseTrackerLM::countInliers(const std::vector<Eigen::Vector3d> &points, const std::vector<cv::Point2f> &_im_points, const Eigen::Matrix4d &pose)
 {
   unsigned cnt=0;
 
@@ -93,7 +93,7 @@ unsigned ProjLKPoseTrackerLM::countInliers(const std::vector<Eigen::Vector3d> &p
       projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), tgt_dist_coeffs.ptr<double>(), &im_pt[0]);
     else projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), &im_pt[0]);
 
-    if ((im_pt - Eigen::Map<const Eigen::Vector2f>(&im_points[i].x)).squaredNorm() < sqr_inl_dist)
+    if ((im_pt - Eigen::Map<const Eigen::Vector2f>(&_im_points[i].x)).squaredNorm() < sqr_inl_dist)
     {
       cnt++;
     }
@@ -105,7 +105,7 @@ unsigned ProjLKPoseTrackerLM::countInliers(const std::vector<Eigen::Vector3d> &p
 /**
  * getInliers
  */
-void ProjLKPoseTrackerLM::getInliers(const std::vector<Eigen::Vector3d> &points, const std::vector<cv::Point2f> &im_points, const Eigen::Matrix4d &pose, std::vector<int> &inliers)
+void ProjLKPoseTrackerLM::getInliers(const std::vector<Eigen::Vector3d> &points, const std::vector<cv::Point2f> &_im_points, const Eigen::Matrix4d &pose, std::vector<int> &_inliers)
 {
   Eigen::Vector2f im_pt;
   Eigen::Vector3d pt3;
@@ -114,7 +114,7 @@ void ProjLKPoseTrackerLM::getInliers(const std::vector<Eigen::Vector3d> &points,
   Eigen::Matrix3d R = pose.topLeftCorner<3, 3>();
   Eigen::Vector3d t = pose.block<3,1>(0, 3);
 
-  inliers.clear();
+  _inliers.clear();
 
   for (unsigned i=0; i<points.size(); i++)
   {
@@ -124,9 +124,9 @@ void ProjLKPoseTrackerLM::getInliers(const std::vector<Eigen::Vector3d> &points,
       projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), tgt_dist_coeffs.ptr<double>(), &im_pt[0]);
     else projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), &im_pt[0]);
 
-    if ((im_pt - Eigen::Map<const Eigen::Vector2f>(&im_points[i].x)).squaredNorm() < sqr_inl_dist)
+    if ((im_pt - Eigen::Map<const Eigen::Vector2f>(&_im_points[i].x)).squaredNorm() < sqr_inl_dist)
     {
-      inliers.push_back(i);
+      _inliers.push_back(i);
     }
   }
 }
@@ -135,7 +135,7 @@ void ProjLKPoseTrackerLM::getInliers(const std::vector<Eigen::Vector3d> &points,
 /**
  * optimizePoseLM
  */
-void ProjLKPoseTrackerLM::optimizePoseLM(const std::vector<Eigen::Vector3d> &points, const std::vector<int> &pt_indices, const std::vector<cv::Point2f> &im_points, const std::vector<int> &im_indices, Eigen::Matrix4d &pose)
+void ProjLKPoseTrackerLM::optimizePoseLM(const std::vector<Eigen::Vector3d> &points, const std::vector<int> &pt_indices, const std::vector<cv::Point2f> &_im_points, const std::vector<int> &im_indices, Eigen::Matrix4d &pose)
 {
   Eigen::Matrix3d R = pose.topLeftCorner<3, 3>();
   Eigen::Vector3d t = pose.block<3,1>(0, 3);
@@ -149,7 +149,7 @@ void ProjLKPoseTrackerLM::optimizePoseLM(const std::vector<Eigen::Vector3d> &poi
   if (lm_intrinsics.size()==4) // no distortions
   {
     for (unsigned i=0; i<pt_indices.size(); i++) {
-      const cv::Point2f &im_pt = im_points[im_indices[i]];
+      const cv::Point2f &im_pt = _im_points[im_indices[i]];
       double *pt3 = (double*)&points[pt_indices[i]][0];
       problem.AddResidualBlock(
           new ceres::AutoDiffCostFunction< NoDistortionReprojectionError, 2, 4, 6, 3 >(
@@ -160,7 +160,7 @@ void ProjLKPoseTrackerLM::optimizePoseLM(const std::vector<Eigen::Vector3d> &poi
   else if (lm_intrinsics.size()==9) // radial distortions
   {
     for (unsigned i=0; i<pt_indices.size(); i++) {
-      const cv::Point2f &im_pt = im_points[im_indices[i]];
+      const cv::Point2f &im_pt = _im_points[im_indices[i]];
       double *pt3 = (double*)&points[pt_indices[i]][0];
       problem.AddResidualBlock(
           new ceres::AutoDiffCostFunction< RadialDistortionReprojectionError, 2, 9, 6, 3 >(
@@ -200,7 +200,7 @@ void ProjLKPoseTrackerLM::optimizePoseLM(const std::vector<Eigen::Vector3d> &poi
 /**
  * optimizePoseRobustLossLM
  */
-void ProjLKPoseTrackerLM::optimizePoseRobustLossLM(const std::vector<Eigen::Vector3d> &points, const std::vector<int> &pt_indices, const std::vector<cv::Point2f> &im_points, const std::vector<int> &im_indices, Eigen::Matrix4d &pose)
+void ProjLKPoseTrackerLM::optimizePoseRobustLossLM(const std::vector<Eigen::Vector3d> &points, const std::vector<int> &pt_indices, const std::vector<cv::Point2f> &_im_points, const std::vector<int> &im_indices, Eigen::Matrix4d &pose)
 {
   Eigen::Matrix3d R = pose.topLeftCorner<3, 3>();
   Eigen::Vector3d t = pose.block<3,1>(0, 3);
@@ -214,7 +214,7 @@ void ProjLKPoseTrackerLM::optimizePoseRobustLossLM(const std::vector<Eigen::Vect
   if (lm_intrinsics.size()==4) // no distortions
   {
     for (unsigned i=0; i<pt_indices.size(); i++) {
-      const cv::Point2f &im_pt = im_points[im_indices[i]];
+      const cv::Point2f &im_pt = _im_points[im_indices[i]];
       double *pt3 = (double*)&points[pt_indices[i]][0];
       problem.AddResidualBlock(
           new ceres::AutoDiffCostFunction< NoDistortionReprojectionError, 2, 4, 6, 3 >(
@@ -225,7 +225,7 @@ void ProjLKPoseTrackerLM::optimizePoseRobustLossLM(const std::vector<Eigen::Vect
   else if (lm_intrinsics.size()==9) // radial distortions
   {
     for (unsigned i=0; i<pt_indices.size(); i++) {
-      const cv::Point2f &im_pt = im_points[im_indices[i]];
+      const cv::Point2f &im_pt = _im_points[im_indices[i]];
       double *pt3 = (double*)&points[pt_indices[i]][0];
       problem.AddResidualBlock(
           new ceres::AutoDiffCostFunction< RadialDistortionReprojectionError, 2, 9, 6, 3 >(
@@ -266,7 +266,7 @@ void ProjLKPoseTrackerLM::optimizePoseRobustLossLM(const std::vector<Eigen::Vect
 /**
  * ransacPoseLM
  */
-void ProjLKPoseTrackerLM::ransacPoseLM(const std::vector<Eigen::Vector3d> &points, const std::vector<cv::Point2f> &im_points, Eigen::Matrix4d &pose, std::vector<int> &inliers)
+void ProjLKPoseTrackerLM::ransacPoseLM(const std::vector<Eigen::Vector3d> &points, const std::vector<cv::Point2f> &_im_points, Eigen::Matrix4d &pose, std::vector<int> &_inliers)
 {
   int k=0;
   float sig=4, sv_sig=0.;
@@ -278,9 +278,9 @@ void ProjLKPoseTrackerLM::ransacPoseLM(const std::vector<Eigen::Vector3d> &point
   {
     getRandIdx(points.size(), 4, indices);
 
-    optimizePoseLM(points, indices, im_points, indices, tmp_pose); 
+    optimizePoseLM(points, indices, _im_points, indices, tmp_pose);
 
-    sig = countInliers(points, im_points, tmp_pose);
+    sig = countInliers(points, _im_points, tmp_pose);
 
     if (sig > sv_sig)
     {
@@ -296,11 +296,11 @@ void ProjLKPoseTrackerLM::ransacPoseLM(const std::vector<Eigen::Vector3d> &point
 
   if (sv_sig<4) return;
 
-  getInliers(points, im_points, pose, inliers);
+  getInliers(points, _im_points, pose, _inliers);
   if (param.use_robust_loss)
-    optimizePoseRobustLossLM(points, inliers, im_points, inliers, pose);
-  else optimizePoseLM(points, inliers, im_points, inliers, pose);
-  getInliers(points, im_points, pose, inliers);
+    optimizePoseRobustLossLM(points, _inliers, _im_points, _inliers, pose);
+  else optimizePoseLM(points, _inliers, _im_points, _inliers, pose);
+  getInliers(points, _im_points, pose, _inliers);
 }
 
 

@@ -31,6 +31,7 @@
 #include <pcl/search/octree.h>
 
 #include <v4r/core/macros.h>
+#include <v4r/common/camera.h>
 #include <v4r/keypoints/ClusterNormalsToPlanes.h>
 #include <v4r/common/PointTypes.h>
 #include <v4r/registration/noise_model_based_cloud_integration.h>
@@ -83,7 +84,7 @@ public:
         double voxel_resolution_;
         double seed_resolution_;
         double ratio_supervoxel_;
-        double chop_z_; /// @brief cut-off distance in meters
+        double chop_z_; ///< cut-off distance in meters
         bool do_erosion_;
         bool transfer_indices_from_latest_frame_only_;
         size_t min_points_for_transferring_;
@@ -134,7 +135,7 @@ public:
     }sor_params_;
 
     v4r::ClusterNormalsToPlanes::Parameter p_param_;
-    v4r::NMBasedCloudIntegration<PointT>::Parameter nm_int_param_;
+    v4r::NMBasedCloudIntegrationParameter nm_int_param_;
 
 protected:
 
@@ -145,13 +146,14 @@ protected:
     typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
     typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
 
-    std::vector< pcl::PointCloud<PointT>::Ptr > keyframes_used_;  /// @brief all keyframes containing the object with sufficient number of points
-    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used_;  /// @brief camera pose belonging to the keyframes containing the object with sufficient number of points
-    std::vector<std::vector<size_t> > object_indices_clouds_used_;  /// @brief indices of the object in all keyframes containing the object with sufficient number of points
+    std::vector< pcl::PointCloud<PointT>::ConstPtr > keyframes_used_;  ///< all keyframes containing the object with sufficient number of points
+    std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used_;  ///< camera pose belonging to the keyframes containing the object with sufficient number of points
+    std::vector<std::vector<size_t> > object_indices_clouds_used_;  ///< indices of the object in all keyframes containing the object with sufficient number of points
 
     pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_normals_oriented_;
 
     Graph gs_;
+    Camera::Ptr cam_;
 
     pcl::PointCloud<PointT>::Ptr big_cloud_;
     pcl::PointCloud<PointT>::Ptr big_cloud_segmented_;
@@ -221,13 +223,13 @@ protected:
      * @param mask
      */
     void
-    remove_nan_points(const pcl::PointCloud<PointT> &cloud, std::vector<bool> &mask)
+    remove_nan_points(const pcl::PointCloud<PointT> &cloud, boost::dynamic_bitset<> &mask)
     {
         assert(mask.size()==cloud.size());
         for (size_t i=0; i<mask.size(); i++)
         {
             if(mask[i] && !pcl::isFinite(cloud.points[i]))
-                mask[i] = false;
+                mask.reset(i);
         }
     }
 
@@ -254,8 +256,8 @@ protected:
      * @param ratio_occ - threshold percentage when a cluster is considered as being occluded
      */
     void computePlaneProperties(const std::vector<v4r::ClusterNormalsToPlanes::Plane::Ptr> &planes,
-                                           const std::vector< bool > &object_mask,
-                                           const std::vector< bool > &occlusion_mask,
+                                           const boost::dynamic_bitset<> &object_mask,
+                                           const boost::dynamic_bitset<> &occlusion_mask,
                                            const pcl::PointCloud<PointT>::ConstPtr &cloud,
                                            std::vector<modelView::SuperPlane> &super_planes) const;
 
@@ -265,7 +267,7 @@ protected:
      * @param[in] octree search space for transferred points
      * @param[out] obj_mask nearest neighbors points within a specified radius highlighted (true) in object mask
      */
-    void nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreePointCloudSearch<PointT> &octree,  std::vector<bool> &obj_mask);
+    void nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreePointCloudSearch<PointT> &octree, boost::dynamic_bitset<> &obj_mask);
 
     /**
      * @brief Nearest Neighbor Search for points transferred into search cloud
@@ -273,7 +275,7 @@ protected:
      * @param[in] point cloud to be checked for proximity to transferred points
      * @param[out] mask with nearest neighbors points within a specified radius highlighted (true) in object mask
      */
-    void nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointCloud<PointT>::ConstPtr &search_cloud,  std::vector<bool> &obj_mask);
+    void nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointCloud<PointT>::ConstPtr &search_cloud, boost::dynamic_bitset<> &obj_mask);
 
     /**
      * @brief extracts smooth Euclidean clusters of a given point cloud
@@ -283,21 +285,19 @@ protected:
      * @param bg_mask
      * @return
      */
-    std::vector<bool>
-    extractEuclideanClustersSmooth (const pcl::PointCloud<PointT>::ConstPtr &cloud,
+    boost::dynamic_bitset<> extractEuclideanClustersSmooth(const pcl::PointCloud<PointT>::ConstPtr &cloud,
                                     const pcl::PointCloud<pcl::Normal> &normals_,
-                                    const std::vector<bool> &initial_mask,
-                                    const std::vector<bool> &bg_mask) const;
+                                    const boost::dynamic_bitset<> &initial_mask,
+                                    const boost::dynamic_bitset<> &bg_mask) const;
 
     void updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
                                            pcl::PointCloud<pcl::Normal>::Ptr & normals_,
-                                           const std::vector<bool> &obj_mask,
-                                           std::vector<bool> &obj_mask_out,
+                                           const boost::dynamic_bitset<> &obj_mask,
+                                           boost::dynamic_bitset<> &obj_mask_out,
                                            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud,
                                            pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud_organized);
 
-    std::vector<bool>
-    erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<PointT> & cloud);
+    boost::dynamic_bitset<> erodeIndices(const boost::dynamic_bitset<> &obj_mask, const pcl::PointCloud<PointT> & cloud);
 
 public:
 
@@ -317,6 +317,8 @@ public:
         nm_int_param_.min_points_per_voxel_ = 1;
         nm_int_param_.octree_resolution_ = 0.002f;
         nm_int_param_.average_ = false;
+
+        cam_.reset(new Camera);
 
         big_cloud_.reset(new pcl::PointCloud<PointT>);
         big_cloud_segmented_.reset(new pcl::PointCloud<PointT>);
@@ -373,7 +375,7 @@ public:
      * @brief This creates images of all intermediate steps of the object learning and writes them to disk
      * @param[in] path - folder where to write the files to
      */
-    void writeImagesToDisk(const std::string &path = std::string("/tmp/dol_images/"), bool crop=false);
+    void writeImagesToDisk(const std::string &path = std::string("/tmp/dol_images/"));
 
     /**
      * @brief transforms each keyframe to global coordinate system using given camera

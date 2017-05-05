@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE boost_serialization>
+<boost_serialization signature="serialization::archive" version="12">
+<ObjectRecognizerParameter class_id="0" tracking_level="0" version="0">
+	<hv_config_xml_>cfg/hv_config.xml</hv_config_xml_>
+	<shot_config_xml_>cfg/shot_config.xml</shot_config_xml_>
+	<global_recognition_pipeline_config>
+		<count>1</count>
+		<item_version>0</item_version>
+		<item>cfg/global_config.xml</item>
+	</global_recognition_pipeline_config_>
+	<camera_config_xml_>cfg/camera.xml</camera_config_xml_>
+	<depth_img_mask_>cfg/xtion_depth_mask.png</depth_img_mask_>
+	<sift_config_xml_>cfg/sift_config.xml</sift_config_xml_>
+	<cg_size_>0.01</cg_size_>
+	<cg_thresh_>5</cg_thresh_>
+	<cg_min_dist_for_cluster_factor_>0.5</cg_min_dist_for_cluster_factor_>
+	<use_graph_based_gc_grouping_>1</use_graph_based_gc_grouping_>
+	<do_sift_>1</do_sift_>
+	<do_shot_>1</do_shot_>
+	<segmentation_method_>1</segmentation_method_>
+	<global_feature_types_>
+		<count>1</count>
+		<item_version>0</item_version>
+		<item>2208</item>
+	</global_feature_types_>
+	<classification_methods_>
+		<count>0</count>
+		<item_version>0</item_version>
+	</classification_methods_>
+	<shot_keypoint_extractor_method_>1</shot_keypoint_extractor_method_>
+	<normal_computation_method_>2</normal_computation_method_>
+	<keypoint_support_radii_>
+		<count>2</count>
+		<item_version>0</item_version>
+		<item>0.04</item>
+		<item>0.08</item>
+	</keypoint_support_radii_>
+	<chop_z_>2.8</chop_z_>
+	<remove_planes_>0</remove_planes_>
+	<plane_inlier_threshold_>0.02</plane_inlier_threshold_>
+	<min_plane_inliers_>20000</min_plane_inliers_>
+	<use_multiview_>0</use_multiview_>
+	<use_multiview_hv_>1</use_multiview_hv_>
+	<use_multiview_with_kp_correspondence_transfer_>0</use_multiview_with_kp_correspondence_transfer_>
+	<use_change_detection_>0</use_change_detection_>
+	<max_views_>3</max_views_>
+</ObjectRecognizerParameter>

@@ -1,5 +1,6 @@
 #include <v4r_config.h>
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/pcl_utils.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
 #include <v4r/registration/FeatureBasedRegistration.h>
@@ -18,11 +19,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
-#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
-#endif
 
 struct CamConnect
 {

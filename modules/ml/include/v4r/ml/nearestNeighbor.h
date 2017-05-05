@@ -21,51 +21,91 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_NEAREST_NEIGHBOR_CLASSIFIER_H__
-#define V4R_NEAREST_NEIGHBOR_CLASSIFIER_H__
+#pragma once
 
 #include <v4r/ml/classifier.h>
 #include <v4r/core/macros.h>
 #include <v4r/common/flann.h>
+#include <boost/program_options.hpp>
+
+namespace po = boost::program_options;
 
 namespace v4r
 {
-    class V4R_EXPORTS NearestNeighborClassifier : public Classifier
+    class V4R_EXPORTS NearestNeighborClassifierParameter
     {
     public:
+        int kdtree_splits_;
+        size_t knn_;  ///< nearest neighbors to search for when checking feature descriptions of the scene
+        int distance_metric_; ///< defines the norm used for feature matching (1... L1 norm, 2... L2 norm)
 
-        class V4R_EXPORTS Parameter
+        NearestNeighborClassifierParameter(
+                int kdtree_splits = 512,
+                size_t knn = 1,
+                int distance_metric = 2
+                )
+            : kdtree_splits_ (kdtree_splits),
+              knn_ ( knn ),
+              distance_metric_ (distance_metric)
+        {}
+
+
+        /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+        std::vector<std::string>
+        init(int argc, char **argv)
         {
-        public:
-            int kdtree_splits_;
-            size_t knn_;  /// @brief nearest neighbors to search for when checking feature descriptions of the scene
-            int distance_metric_; /// @brief defines the norm used for feature matching (1... L1 norm, 2... L2 norm)
+                std::vector<std::string> arguments(argv + 1, argv + argc);
+                return init(arguments);
+        }
 
-            Parameter(
-                    int kdtree_splits = 512,
-                    size_t knn = 1,
-                    int distance_metric = 2
-                    )
-                : kdtree_splits_ (kdtree_splits),
-                  knn_ ( knn ),
-                  distance_metric_ (distance_metric)
-            {}
-        }param_;
+        /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+        std::vector<std::string>
+        init(const std::vector<std::string> &command_line_arguments)
+        {
+            po::options_description desc("Nearest Neighbor Classifier Parameter\n=====================\n");
+            desc.add_options()
+                    ("help,h", "produce help message")
+                    ("nn_kdtree_splits", po::value<int>(&kdtree_splits_)->default_value(kdtree_splits_), "")
+                    ("nn_knn", po::value<size_t>(&knn_)->default_value(knn_), "nearest neighbors to search for when checking feature descriptions of the scene")
+                    ("nn_distance_metric", po::value<int>(&distance_metric_)->default_value(distance_metric_), "defines the norm used for feature matching (1... L1 norm, 2... L2 norm)")
+                    ;
+            po::variables_map vm;
+            po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
+            std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
+            po::store(parsed, vm);
+            if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
+            try { po::notify(vm); }
+            catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
+            return to_pass_further;
+        }
+    };
 
+    class V4R_EXPORTS NearestNeighborClassifier : public Classifier
+    {
     private:
         EigenFLANN::Ptr flann_;
         boost::shared_ptr<flann::Index<flann::L1<float> > > flann_index_l1_;
         boost::shared_ptr<flann::Index<flann::L2<float> > > flann_index_l2_;
-        Eigen::MatrixXi knn_indices_;
-        Eigen::MatrixXf knn_distances_;
+        mutable Eigen::MatrixXi knn_indices_;
+        mutable Eigen::MatrixXf knn_distances_;
         Eigen::VectorXi training_label_;
+        NearestNeighborClassifierParameter param_;
 
     public:
-        NearestNeighborClassifier(const Parameter &p = Parameter() ) : param_(p)
+        NearestNeighborClassifier(const NearestNeighborClassifierParameter &p = NearestNeighborClassifierParameter() )
+            : param_(p)
         {}
 
         void
-        predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label);
+        predict(const Eigen::MatrixXf &query_data, Eigen::MatrixXi &predicted_label) const;
 
         void
         train(const Eigen::MatrixXf &training_data, const Eigen::VectorXi & training_label);
@@ -88,5 +128,3 @@ namespace v4r
         typedef boost::shared_ptr< NearestNeighborClassifier const> ConstPtr;
     };
 }
-
-#endif

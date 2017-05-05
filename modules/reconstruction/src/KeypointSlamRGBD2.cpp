@@ -33,7 +33,6 @@
 #include <v4r/reconstruction/KeypointSlamRGBD2.h>
 #include <boost/thread.hpp>
 #include <v4r/features/FeatureDetector_K_HARRIS.h>
-#include <v4r/common/impl/ScopeTime.hpp>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 
@@ -86,11 +85,11 @@ double KeypointSlamRGBD2::viewPointChange(const Eigen::Vector3f &pt, const Eigen
 /**
  * addKeyframe
  */
-bool KeypointSlamRGBD2::addKeyframe(const ObjectView &view, const Eigen::Matrix4f &delta_pose, const Eigen::Matrix4f &view_pose, const Eigen::Matrix4f &pose, int width, int height, double conf)
+bool KeypointSlamRGBD2::addKeyframe(const ObjectView &_view, const Eigen::Matrix4f &_delta_pose, const Eigen::Matrix4f &_view_pose, const Eigen::Matrix4f &_pose, int width, int height, double _conf)
 {
   bool add_kf = false;
 
-  if (view.cam_points.size()<4) 
+  if (_view.cam_points.size()<4)
   {
     //cout<<"[KeypointSlamRGBD2::addKeyframe] add keyframes no points!"<<endl;
     return true;
@@ -102,16 +101,16 @@ bool KeypointSlamRGBD2::addKeyframe(const ObjectView &view, const Eigen::Matrix4
     return false;
   }
 
-  if (conf < param.add_keyframe_conf)
+  if (_conf < param.add_keyframe_conf)
     return true;
 
   // check angle deviation
   Eigen::Matrix4f inv1, inv2;
 
-  invPose(view_pose,inv1);
-  invPose(pose, inv2);
+  invPose(_view_pose,inv1);
+  invPose(_pose, inv2);
 
-  double angle = viewPointChange(view.center, inv1, inv2);
+  double angle = viewPointChange(_view.center, inv1, inv2);
   //cout<<"[KeypointSlamRGBD2::addKeyframe] angle="<<angle*180./M_PI<<endl;
 
   if (angle > rad_add_keyframe_angle)
@@ -123,12 +122,12 @@ bool KeypointSlamRGBD2::addKeyframe(const ObjectView &view, const Eigen::Matrix4
   bool have_dist = !dist_coeffs.empty();
   int cnt = 0.;
 
-  Eigen::Matrix3f R = delta_pose.topLeftCorner<3, 3>();
-  Eigen::Vector3f t = delta_pose.block<3,1>(0, 3);
+  Eigen::Matrix3f R = _delta_pose.topLeftCorner<3, 3>();
+  Eigen::Vector3f t = _delta_pose.block<3,1>(0, 3);
 
-  for (unsigned i=0; i<view.cam_points.size(); i++)
+  for (unsigned i=0; i<_view.cam_points.size(); i++)
   {
-    pt3 = R*view.cam_points[i] + t;
+    pt3 = R*_view.cam_points[i] + t;
 
     if (have_dist)
       projectPointToImage(&pt3[0], intrinsic.ptr<double>(), dist_coeffs.ptr<double>(), &im_pt[0]);
@@ -141,7 +140,7 @@ bool KeypointSlamRGBD2::addKeyframe(const ObjectView &view, const Eigen::Matrix4
   }
   
   //cout<<"[KeypointSlamRGBD2::addKeyframe] overlap="<<double(cnt) / double(view.cam_points.size())<<endl;
-  if (double(cnt) / double(view.cam_points.size()) < param.add_keyframe_view_overlap)
+  if (double(cnt) / double(_view.cam_points.size()) < param.add_keyframe_view_overlap)
     return true;
 
   //cout<<"[KeypointSlamRGBD2::addKeyframe] add keyframe: "<<add_kf<<endl;
@@ -248,8 +247,10 @@ bool KeypointSlamRGBD2::track(const cv::Mat &image, const DataMatrix2D<Eigen::Ve
 /**
  * setKeyframe
  */
-void KeypointSlamRGBD2::setKeyframe(int idx, Eigen::Matrix4f &pose)
+void KeypointSlamRGBD2::setKeyframe(int idx, Eigen::Matrix4f &_pose)
 {
+    (void)idx;
+    (void)_pose;
   cout<<"[KeypointSlamRGBD2::setKeyframe] TODO"<<endl;
 }
 

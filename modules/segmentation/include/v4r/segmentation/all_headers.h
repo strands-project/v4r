@@ -21,13 +21,32 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_SEGMENTATION_ALL_HEADERS__
-#define V4R_SEGMENTATION_ALL_HEADERS__
+#pragma once
 
+#include <v4r/segmentation/plane_extractor.h>
+#include <v4r/segmentation/segmenter.h>
 #include <v4r/segmentation/types.h>
-#include <v4r/segmentation/dominant_plane_segmenter.h>
-#include <v4r/segmentation/multiplane_segmenter.h>
-#include <v4r/segmentation/euclidean_segmenter.h>
-#include <v4r/segmentation/smooth_Euclidean_segmenter.h>
 
-#endif
+namespace v4r
+{
+/**
+ * @brief initSegmenter set up a segmentation object
+ * @param method segmentation method as stated in segmentation/types.h
+ * @param params boost parameters for segmentation object
+ * @return segmenter
+ */
+template<typename PointT>
+typename Segmenter<PointT>::Ptr
+initSegmenter(int method, std::vector<std::string> &params );
+
+/**
+ * @brief initPlaneExtractor set up a plane extraction object
+ * @param method plane extraction method as stated in segmentation/types.h
+ * @param params boost parameters for segmentation object
+ * @return plane_extractor
+ */
+template<typename PointT>
+typename PlaneExtractor<PointT>::Ptr
+initPlaneExtractor(int method, std::vector<std::string> &params );
+
+}

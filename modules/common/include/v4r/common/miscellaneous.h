@@ -31,6 +31,7 @@
 #ifndef V4R_COMMON_MISCELLANEOUS_H_
 #define V4R_COMMON_MISCELLANEOUS_H_
 
+#include <boost/dynamic_bitset.hpp>
 #include <pcl/common/common.h>
 #include <pcl/kdtree/flann.h>
 #include <pcl/octree/octree.h>
@@ -71,7 +72,7 @@ V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector4f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();;
-    tf.block<3,3>(0,0) = q.toRotationMatrix();
+    tf.block<3,3>(0,0) = q.normalized().toRotationMatrix();
     tf.block<4,1>(0,3) = trans;
     tf(3,3) = 1.f;
     return tf;
@@ -89,7 +90,7 @@ V4R_EXPORTS inline Eigen::Matrix4f
 RotTrans2Mat4f(const Eigen::Quaternionf &q, const Eigen::Vector3f &trans)
 {
     Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
-    tf.block<3,3>(0,0) = q.toRotationMatrix();
+    tf.block<3,3>(0,0) = q.normalized().toRotationMatrix();
     tf.block<3,1>(0,3) = trans;
     return tf;
 }
@@ -142,17 +143,12 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointT>::ConstPtr & full_inpu
                     typename std::vector<Type> & indices,
                     float resolution = 0.005f);
 
-template<typename DistType>
-V4R_EXPORTS void convertToFLANN ( const std::vector<std::vector<float> > &data, boost::shared_ptr< typename flann::Index<DistType> > &flann_index);
+DEPRECATED(template<typename DistType>
+V4R_EXPORTS void convertToFLANN ( const std::vector<std::vector<float> > &data, boost::shared_ptr< typename flann::Index<DistType> > &flann_index));
 
-template<typename DistType>
+DEPRECATED(template<typename DistType>
 V4R_EXPORTS void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
-                                                  flann::Matrix<float> &distances );
-
-/**
- * @brief sets the sensor origin and sensor orientation fields of the PCL pointcloud header by the given transform
- */
-template<typename PointType> V4R_EXPORTS void setCloudPose(const Eigen::Matrix4f &trans, typename pcl::PointCloud<PointType> &cloud);
+                                                  flann::Matrix<float> &distances ));
 
 V4R_EXPORTS inline std::vector<size_t>
 convertVecInt2VecSizet(const std::vector<int> &input)
@@ -214,25 +210,30 @@ convertPCLIndices2VecSizet(const pcl::PointIndices &input)
     return v_size_t;
 }
 
-V4R_EXPORTS inline std::vector<bool>
-createMaskFromIndices(const std::vector<size_t> &indices,size_t image_size)
+V4R_EXPORTS inline boost::dynamic_bitset<>
+createMaskFromIndices(const std::vector<size_t> &indices, size_t image_size)
 {
-    std::vector<bool> mask (image_size, false);
+    boost::dynamic_bitset<> mask (image_size, 0);
 
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-        mask [ indices[obj_pt_id] ] = true;
+        mask.set(indices[obj_pt_id]);
 
     return mask;
 }
 
-
-V4R_EXPORTS inline std::vector<bool>
+/**
+ * @brief createMaskFromIndices creates a boolean mask of all indices set
+ * @param indices
+ * @param image_size
+ * @return
+ */
+V4R_EXPORTS inline boost::dynamic_bitset<>
 createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 {
-    std::vector<bool> mask (image_size, false);
+    boost::dynamic_bitset<> mask (image_size, 0);
 
     for (size_t obj_pt_id = 0; obj_pt_id < indices.size(); obj_pt_id++)
-        mask [ indices[obj_pt_id] ] = true;
+        mask.set(indices[obj_pt_id]);
 
     return mask;
 }
@@ -240,10 +241,9 @@ createMaskFromIndices(const std::vector<int> &indices, size_t image_size)
 
 template<typename T>
 V4R_EXPORTS std::vector<T>
-createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
+createIndicesFromMask(const boost::dynamic_bitset<> &mask, bool invert=false)
 {
-    std::vector<T> out;
-    out.resize(mask.size());
+    std::vector<T> out (mask.size());
 
     size_t kept=0;
     for(size_t i=0; i<mask.size(); i++)
@@ -257,6 +257,15 @@ createIndicesFromMask(const std::vector<bool> &mask, bool invert=false)
     out.resize(kept);
     return out;
 }
+
+/**
+ * @brief computeMaskFromImageMap
+ * @param image_map map indicating which pixel belong to which point of the point cloud.
+ * @param nr_points number of points
+ * @return bitmask indicating which points are represented in the image map
+ */
+V4R_EXPORTS boost::dynamic_bitset<>
+computeMaskFromIndexMap( const Eigen::MatrixXi &image_map, size_t nr_points );
 
 /**
   * @brief: Increments a boolean vector by 1 (LSB at the end)
@@ -278,12 +287,10 @@ template<typename T>
 inline V4R_EXPORTS typename std::vector<T>
 filterVector(const std::vector<T> &in, const std::vector<int> &indices)
 {
-    typename std::vector<T> out(in.size());
-    size_t kept=0;
+    std::vector<T> out;
+    out.reserve ( indices.size() );
     for(size_t i = 0; i < indices.size(); i++)
-        out[kept++] = in[ indices[i] ];
-
-    out.resize(kept);
+        out.push_back( in[ indices[i] ] );
     return out;
 }
 
@@ -316,6 +323,19 @@ std::vector<size_t> sort_indexes(const std::vector<T> &v) {
 
   return idx;
 }
+
+/**
+ * @brief computePointCloudProperties computes centroid and elongations along principal compenents for a point cloud
+ * @param[in] cloud input cloud
+ * @param centroid computed centroid of cloud
+ * @param elongationsXYZ computes elongations along first, second and third principal component
+ * @param eigenBasis matrix that aligns point cloud with eigenvectors
+ * @param indices region of interest (if empty, whole point cloud will be processed)
+ */
+template<typename PointT>
+V4R_EXPORTS
+void
+computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4f &centroid, Eigen::Vector3f &elongationsXYZ,  Eigen::Matrix4f &eigenBasis, const std::vector<int> &indices = std::vector<int>());
 
 
 V4R_EXPORTS inline void
@@ -367,36 +387,6 @@ removeColumn(Eigen::MatrixXf& matrix, int colToRemove)
 }
 
 /**
- * @brief compute histogram of the row entries of a matrix
- * @param[in] data (row are the elements, columns are the different dimensions
- * @param[out] histogram
- * @param[in] number of bins
- * @param[in] range minimum
- * @param[in] range maximum
- */
-void
-V4R_EXPORTS computeHistogram (const Eigen::MatrixXf &data, Eigen::MatrixXf &histogram, size_t bins=100, float min=0.f, float max=1.f);
-
-
-/**
- * @brief computes histogram intersection (does not normalize histograms!)
- * @param[in] histA
- * @param[in] histB
- * @return intersection value
- */
-float
-V4R_EXPORTS computeHistogramIntersection (const Eigen::VectorXf &histA, const Eigen::VectorXf &histB);
-
-/**
- * @brief shift histogram values by one bin
- * @param[in] hist
- * @param[out] hist_shifted
- * @param[in] direction_is_right (if true, shift histogram to the right. Otherwise to the left)
- */
-void
-V4R_EXPORTS shiftHistogram (const Eigen::VectorXf &hist, Eigen::VectorXf &hist_shifted, bool direction_is_right=true);
-
-/**
  * @brief runningAverage computes incrementally the average of a vector
  * @param old_average
  * @param old_size the number of contributing vectors before updating
@@ -410,39 +400,20 @@ V4R_EXPORTS runningAverage (const Eigen::VectorXf &old_average, size_t old_size,
     return newAvg;
 }
 
+/**
+ * @brief computeRotationMatrixTwoAlignVectors Calculate Rotation Matrix to align Vector src to Vector target in 3d
+ * @param src
+ * @param target
+ * @return 3x3 rotation matrix
+ */
+Eigen::Matrix3f
+V4R_EXPORTS
+computeRotationMatrixToAlignVectors(const Eigen::Vector3f &src, const Eigen::Vector3f &target);
+
+template<typename PointT>
+V4R_EXPORTS float computeMeshResolution (const typename pcl::PointCloud<PointT>::ConstPtr & input);
+
 }
 
-
-namespace pcl
-{
-/** \brief Extract the indices of a given point cloud as a new point cloud (instead of int types, this function uses a size_t vector)
-  * \param[in] cloud_in the input point cloud dataset
-  * \param[in] indices the vector of indices representing the points to be copied from \a cloud_in
-  * \param[out] cloud_out the resultant output point cloud dataset
-  * \note Assumes unique indices.
-  * \ingroup common
-  */
-template <typename PointT> V4R_EXPORTS void
-copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
-                const std::vector<size_t> &indices,
-                pcl::PointCloud<PointT> &cloud_out);
-
-/** \brief Extract the indices of a given point cloud as a new point cloud (instead of int types, this function uses a size_t vector)
-  * \param[in] cloud_in the input point cloud dataset
-  * \param[in] indices the vector of indices representing the points to be copied from \a cloud_in
-  * \param[out] cloud_out the resultant output point cloud dataset
-  * \note Assumes unique indices.
-  * \ingroup common
-  */
-template <typename PointT> V4R_EXPORTS void
-copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
-                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
-                pcl::PointCloud<PointT> &cloud_out);
-
-template <typename PointT> V4R_EXPORTS void
-copyPointCloud (const pcl::PointCloud<PointT> &cloud_in,
-                     const std::vector<bool> &mask,
-                     pcl::PointCloud<PointT> &cloud_out);
-}
 
 #endif

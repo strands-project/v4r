@@ -1,11 +1,13 @@
 #include <v4r/object_modelling/incremental_object_learning.h>
 #include <pcl/common/transforms.h>
 #include <v4r/common/miscellaneous.h>
+#include <v4r/common/pcl_utils.h>
 #include <v4r/common/pcl_visualization_utils.h>
 
 #include <opencv2/opencv.hpp>
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <v4r/common/faat_3d_rec_framework_defines.h>
+#include <v4r/common/img_utils.h>
 #include <v4r/common/noise_models.h>
 #include <v4r/common/pcl_opencv.h>
 #include <v4r/io/filesystem.h>
@@ -21,8 +23,8 @@ void
 IOL::createBigCloud()
 {
      size_t num_frames = grph_.size();
-     std::vector< pcl::PointCloud<PointT>::Ptr > keyframes_used (num_frames);
-     std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used (num_frames);
+     std::vector< pcl::PointCloud<PointT>::ConstPtr > keyframes_used (num_frames);
+     std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > normals_used (num_frames);
      std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras_used (num_frames);
      std::vector<std::vector<size_t> > indices_used (num_frames);
 
@@ -61,7 +63,7 @@ IOL::createBigCloud()
          //compute noise weights
          for(size_t i=0; i < kept_keyframes; i++)
          {
-             NguyenNoiseModel<PointT>::Parameter nm_param;
+             NguyenNoiseModelParameter nm_param;
              nm_param.use_depth_edges_ = true;
              NguyenNoiseModel<PointT> nm (nm_param);
              nm.setInputCloud(keyframes_used[i]);
@@ -264,25 +266,30 @@ IOL::visualize()
 
 
 void
-IOL::writeImagesToDisk(const std::string &path, bool crop)
+IOL::writeImagesToDisk(const std::string &path)
 {
     v4r::io::createDirIfNotExist(path);
+    PCLOpenCVConverter<pcl::PointXYZRGB> pcl_opencv_converter;
+    PCLOpenCVConverter<pcl::PointXYZRGBA> pcl_opencv_converter2;
 
     for (size_t view_id = 0; view_id < grph_.size(); view_id++)
     {
         std::stringstream filename;
         filename << path << "/" << view_id << ".jpg";
-        cv::imwrite( filename.str(), ConvertPCLCloud2Image(*grph_[view_id].cloud_));
+        pcl_opencv_converter.setInputCloud(grph_[view_id].cloud_);
+        cv::imwrite( filename.str(), pcl_opencv_converter.getRGBImage());
 
         std::stringstream filename_sv;
         filename_sv << path << "/" << view_id << "_sv.jpg";
-        cv::imwrite( filename_sv.str(), ConvertPCLCloud2Image (*grph_[view_id].supervoxel_cloud_organized_));
+        pcl_opencv_converter2.setInputCloud( grph_[view_id].supervoxel_cloud_organized_ );
+        cv::imwrite( filename_sv.str(), pcl_opencv_converter2.getRGBImage());
 
         std::stringstream filename_filtered;
         filename_filtered << path << "/" << view_id << "_filtered.jpg";
         pcl::PointCloud<PointT>::Ptr cloud_filtered (new pcl::PointCloud<PointT>());
         pcl::copyPointCloud(*grph_[view_id].cloud_, grph_[view_id].scene_points_, *cloud_filtered);
-        cv::imwrite( filename_filtered.str(), ConvertUnorganizedPCLCloud2Image (*cloud_filtered) );
+        pcl_opencv_converter.setInputCloud( cloud_filtered );
+        cv::imwrite( filename_filtered.str(), pcl_opencv_converter.getRGBImage() );
 
         std::stringstream filename_search_points;
         filename_search_points << path << "/" << view_id << "_search_pts.jpg";
@@ -314,7 +321,8 @@ IOL::writeImagesToDisk(const std::string &path, bool crop)
         }
 
         *cloud_with_search_pts += *search_pts;
-        cv::imwrite( filename_search_points.str(), ConvertUnorganizedPCLCloud2Image (*cloud_with_search_pts) );
+        pcl_opencv_converter.setInputCloud( cloud_with_search_pts );
+        cv::imwrite( filename_search_points.str(), pcl_opencv_converter.getRGBImage() );
 
 
         for(size_t step_id=0; step_id<grph_[view_id].obj_mask_step_.size(); step_id++)
@@ -327,7 +335,8 @@ IOL::writeImagesToDisk(const std::string &path, bool crop)
 
             std::stringstream filename_step;
             filename_step << path << "/" << view_id << "_step_" << step_id << ".jpg";
-            cv::imwrite( filename_step.str(), ConvertUnorganizedPCLCloud2Image (*segmented, crop) );
+            pcl_opencv_converter.setInputCloud( segmented );
+            cv::imwrite( filename_step.str(),  cropImage( pcl_opencv_converter.getRGBImage(), pcl_opencv_converter.getROI(), 0, false));
         }
     }
 }

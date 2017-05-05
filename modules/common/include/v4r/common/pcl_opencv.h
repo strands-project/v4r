@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2013 Aitor Aldoma, Thomas Faeulhammer
+ * Copyright (c) 2016 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,166 +21,172 @@
  *
  ******************************************************************************/
 
-
-#include <pcl/common/common.h>
+#include <boost/dynamic_bitset.hpp>
 #include <opencv2/opencv.hpp>
+#include <pcl/common/common.h>
 #include <v4r/core/macros.h>
-#ifndef V4R_PCL_OPENCV_H_
-#define V4R_PCL_OPENCV_H_
+#include <v4r/common/camera.h>
+
+#pragma once
 
 namespace v4r
 {
-  template<typename PointT>
-  V4R_EXPORTS
-  cv::Mat
-  ConvertPCLCloud2Image (const typename pcl::PointCloud<PointT> &pcl_cloud, bool crop = false);
 
-  /**
-   *@brief converts a point cloud to an image and crops it to a fixed size
-   * @param[in] cloud
-   * @param[in] cluster_idx object indices
-   * @param[in] desired output height of the image
-   * @param[in] desired output width of the image
-   * @param[in] desired margin for the bounding box
-   */
-  template<typename PointT>
-  V4R_EXPORTS
-  cv::Mat
-  ConvertPCLCloud2FixedSizeImage(const typename pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx,
-                                 size_t out_height = 256, size_t out_width = 256, size_t margin = 10,
-                                 cv::Scalar bg_color = cv::Scalar(255,255,255), bool do_closing_operation = false);
+///
+/// \brief The PCLOpenCVConverter class converts PCL point clouds into RGB, depth or occupancy images.
+/// \author Thomas Faeulhammer
+/// \date August 2016
+///
+template<typename PointT>
+class V4R_EXPORTS PCLOpenCVConverter
+{
+private:
+    typedef std::vector<uchar> (PCLOpenCVConverter<PointT>::*pf)(int v, int u) const;
 
+    typename pcl::PointCloud<PointT>::ConstPtr cloud_;   ///< cloud to be converted
+    std::vector<int> indices_; ///< pixel indices to be extracted (if empty, all pixel will be extracted)
+    Camera::ConstPtr cam_; ///< camera parameters (used for re-projection if point cloud is not organized)
+    bool remove_background_;  ///< if true, will set pixel not specified by the indices to the background color defined by its member variable background_color_
+    cv::Vec3b background_color_; ///< background color (only used if indices are not empty and remove_background is set to true)
+    float min_depth_m_;   ///< minimum depth in meter for normalization
+    float max_depth_m_;   ///< maximum depth in meter for normalization
+    cv::Rect roi_;  ///< region of interest with all given indices taken into account
+    cv::Mat output_matrix_; /// <
+    Eigen::MatrixXi index_map_; ///< index map showing which point of the unorganized(!) point cloud maps to which pixel in the image plane (pixel not occupied by any point have value -1)
 
+    cv::Rect computeROIfromIndices();
+    void computeOrganizedCloud();
 
-  /**
-   *@brief converts a point cloud to an image and crops it to a fixed size
-   * @param[in] cloud
-   * @param[in] cluster_idx object indices
-   * @param[in] desired output height of the image
-   * @param[in] desired output width of the image
-   */
-  template<typename PointT>
-  V4R_EXPORTS
-  cv::Mat
-  ConvertPCLCloud2Image(const typename pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx, size_t out_height, size_t out_width);
+    std::vector<uchar> getRGB(int v, int u)
+    {
+        const PointT &pt = cloud_->at(u,v);
+        std::vector<uchar> rgb = {pt.b, pt.g, pt.r};
+        return rgb;
+    }
 
+    std::vector<uchar> getZNormalized(int v, int u)
+    {
+        const PointT &pt = cloud_->at(u,v);
+        std::vector<uchar> rgb = {std::min<uchar>(255, std::max<uchar>(0, 255.f*(pt.z-min_depth_m_)/(max_depth_m_-min_depth_m_)) )};
+        return rgb;
+    }
 
-  /**
-   * @brief computes a binary image from a point cloud which pixels are true for pixel occupied when raytracing the point cloud
-   *
-   */
-  template<class PointT>
-  V4R_EXPORTS
-  std::vector<bool>
-  ConvertPCLCloud2OccupancyImage (const typename pcl::PointCloud<PointT> &cloud,
-                                  int width = 640,
-                                  int height = 480,
-                                  float f = 525.5f,
-                                  float cx = 319.5f,
-                                  float cy = 239.5f);
+    std::vector<float> getZ(int v, int u)
+    {
+        const PointT &pt = cloud_->at(u,v);
+        float depth;
+        pcl_isfinite(pt.z) ? depth=pt.z : depth=0.f;
+        std::vector<float> z = {depth};
+        return z;
+    }
 
+    std::vector<uchar> getOccupied(int v, int u)
+    {
+        const PointT &pt = cloud_->at(u,v);
+        if (std::isfinite(pt.z) )
+            return std::vector<uchar>(1, 255);
+        else
+            return std::vector<uchar>(1, 0);
+    }
 
-  template<class PointT>
-  V4R_EXPORTS
-  cv::Mat
-  ConvertPCLCloud2DepthImage (const typename pcl::PointCloud<PointT> &pcl_cloud);
+public:
+    PCLOpenCVConverter(const typename pcl::PointCloud<PointT>::ConstPtr cloud = nullptr) :
+        cloud_(cloud), remove_background_ ( true ), background_color_ ( cv::Vec3b(255,255,255) ), min_depth_m_ (0.f), max_depth_m_ (5.f)
+    { }
 
+    ///
+    /// \brief setInputCloud
+    /// \param cloud point cloud to be converted
+    ///
+    void setInputCloud (const typename pcl::PointCloud<PointT>::ConstPtr cloud)
+    {
+        cloud_ = cloud;
+        index_map_.resize(0,0);
+    }
 
-  template<class PointT>
-  V4R_EXPORTS
-  cv::Mat
-  ConvertUnorganizedPCLCloud2Image (const typename pcl::PointCloud<PointT> &pcl_cloud,
-                                    bool crop = false,
-                                    float bg_r = 255.0f,
-                                    float bg_g = 255.0f,
-                                    float bg_b = 255.0f,
-                                    int width = 640,
-                                    int height = 480,
-                                    float f = 525.5f,
-                                    float cx = 319.5f,
-                                    float cy = 239.5f);
+    ///
+    /// \brief setIndices
+    /// \param indices indices to be extracted (if empty, all pixel will be extracted)
+    ///
+    void setIndices (const std::vector<int> &indices)
+    {
+        indices_ = indices;
+    }
 
-   /**
-     * @brief computes the depth map of a point cloud with fixed size output
-     * @param RGB-D cloud
-     * @param indices of the points belonging to the object
-     * @param out_height
-     * @param out_width
-     * @return depth image (float)
-     */
-    template<typename PointT>
-    V4R_EXPORTS
-    cv::Mat
-    ConvertPCLCloud2DepthImageFixedSize(const pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx, size_t out_height, size_t out_width);
+    ///
+    /// \brief setCamera
+    /// \param cam camera parameters (used for re-projection if point cloud is not organized)
+    ///
+    void setCamera (const Camera::ConstPtr cam)
+    {
+        cam_ = cam;
+    }
+
+    ///
+    /// \brief setRemoveBackground
+    /// \param remove_background if true, will set pixel not specified by the indices to the background color defined by its member variable background_color_
+    ///
+    void setRemoveBackground(bool remove_background = true)
+    {
+        remove_background_ = remove_background;
+    }
+
+    ///
+    /// \brief setBackgroundColor
+    /// \param background color (only used if indices are not empty and remove_background is set to true)
+    ///
+    void setBackgroundColor (uchar r, uchar g, uchar b)
+    {
+        background_color_ = cv::Vec3b(r,g,b);
+    }
+
+    ///
+    /// \brief setMinMaxDepth (used for extracting normalized depth values)
+    /// \param min_depth in meter
+    /// \param max_depth in meter
+    ///
+    void setMinMaxDepth (float min_depth_m, float max_depth_m)
+    {
+        min_depth_m_ = min_depth_m;
+        max_depth_m_ = max_depth_m;
+    }
+
+    cv::Mat extractDepth(); /// extracts depth image from pointcloud whereby depth values correspond to distance in meter
+    cv::Mat getNormalizedDepth();  /// extracts depth image from pointcloud whereby depth values in meter are normalized uniformly from 0 (<=min_depth_m_) to 255 (>=max_depth_m_)
+    cv::Mat getRGBImage();  /// returns the RGB image of the point cloud
+    cv::Mat getOccupiedPixel(); /// computes a binary iamge from a point cloud which elements indicate if the corresponding pixel (sorted in row-major order) is hit by a finite point in the point cloud.
 
     /**
-      * @brief computes the depth map of a point cloud with fixed size output
-      * @param RGB-D cloud
-      * @param indices of the points belonging to the object
-      * @param crop if true, image will be cropped to object specified by the indices
-      * @param remove background... if true, will set pixel not specified by the indices to a specific background color (e.g. black)
-      * @return margin in pixel from the image boundaries to the maximal extent of the object (only if crop is set to true)
-      */
-    template<typename PointT>
-    V4R_EXPORTS
-    cv::Mat
-    pcl2cvMat (const typename pcl::PointCloud<PointT> &pcl_cloud,
-               const std::vector<int> &indices = std::vector<int>(), bool crop = false, bool remove_background = true, int margin = 10);
+     * @brief getROI
+     * @return region of interest (bounding box defined by the given indices). If no indices are given, ROI will be whole image.
+     */
+    cv::Rect
+    getROI() const
+    {
+        return roi_;
+    }
+
+
+    /**
+     * @brief getIndexMap
+     * @return returns the map of indices, i.e. which pixel represents which point of the unorganized(!) point cloud.
+     */
+    Eigen::MatrixXi
+    getIndexMap() const
+    {
+        return index_map_;
+    }
+
+    template<typename MatType=uchar> cv::Mat fillMatrix( std::vector<MatType> (PCLOpenCVConverter<PointT>::*pf)(int v, int u) );
+};
 
     /**
       * @brief computes the depth map of a point cloud with fixed size output
       * @param indices of the points belonging to the object (assumes row major indices)
       * @param width of the image/point cloud
       * @param height of the image/point cloud
-      * @return margin in pixel from the image boundaries to the maximal extent of the object (only if crop is set to true)
       */
     V4R_EXPORTS
     cv::Rect
-    computeBoundingBox (const std::vector<int> &indices, size_t width, size_t height, int margin = 0);
-
-
-    /**
-      * @brief computes the depth map of a point cloud with fixed size output
-      * @param RGB-D cloud
-      * @param indices of the points belonging to the object
-      * @param out_height
-      * @param out_width
-      * @return depth image (unsigned int)
-      */
-     template<typename PointT>
-     V4R_EXPORTS
-     cv::Mat
-     ConvertPCLCloud2UnsignedDepthImageFixedSize(const pcl::PointCloud<PointT> &cloud, const std::vector<int> &cluster_idx, size_t out_height, size_t out_width);
-
-
-     /**
-      * @brief pcl2depthMatDouble extracts depth image from pointcloud whereby depth values correspond to distance in meter
-      * @param[in] cloud
-      * @return depth image in meter
-      */
-     template<typename PointT>
-     V4R_EXPORTS
-     cv::Mat
-     pcl2depthMatDouble (const typename pcl::PointCloud<PointT> &cloud);
-
-     /**
-      * @brief pcl2depthMat extracts depth image from pointcloud whereby depth values are scaled linearly to 0 (=min_depth)...255(=max depth))
-      * @param[in] cloud
-      * @param[in] min_depth in meter
-      * @param[in] max_depth in meter
-      * @return scaled depth image
-      */
-     template<typename PointT>
-     V4R_EXPORTS
-     cv::Mat
-     pcl2depthMat (const typename pcl::PointCloud<PointT> &cloud, float min_depth=0.f, float max_depth=5.f);
-
-
-     template<typename PointT>
-     V4R_EXPORTS
-     cv::Mat
-     pcl2depthMat (const typename pcl::PointCloud<PointT> &pcl_cloud,
-                const std::vector<int> &indices, bool crop = false, bool remove_background = true, int margin = 10);
+    computeBoundingBox (const std::vector<int> &indices, size_t width, size_t height);
 }
-
-#endif /* PCL_OPENCV_H_ */

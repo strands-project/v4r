@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE boost_serialization>
+<boost_serialization signature="serialization::archive" version="12">
+<LocalRecognizerParameter class_id="0" tracking_level="0" version="0">
+	<kdtree_splits_>512</kdtree_splits_>
+	<knn_>1</knn_>
+	<max_descriptor_distance_>3.402823466e+38</max_descriptor_distance_>
+	<correspondence_distance_weight_>1.000000000e+00</correspondence_distance_weight_>
+	<distance_metric_>1</distance_metric_>
+	<max_keypoint_distance_z_>3.402823466e+38</max_keypoint_distance_z_>
+	<filter_planar_>1</filter_planar_>
+	<min_plane_size_>1000</min_plane_size_>
+	<planar_support_radius_>3.999999911e-02</planar_support_radius_>
+	<threshold_planar_>1.999999955e-02</threshold_planar_>
+	<filter_border_pts_>0</filter_border_pts_>
+	<boundary_width_>5</boundary_width_>
+	<required_viewpoint_change_deg_>1.500000000e+01</required_viewpoint_change_deg_>
+</LocalRecognizerParameter>

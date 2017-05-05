@@ -41,7 +41,7 @@
 #include <v4r/common/impl/SmartPtr.hpp>
 
 
-namespace v4r
+namespace v4r 
 {
 
 /**
@@ -75,7 +75,7 @@ private:
         const std::vector<int> &indices,
         Eigen::Vector3f &centroid);
 
-  void Ransac(
+  int Ransac(
         const std::vector<Eigen::Vector3f > &srcPts,
         const std::vector<Eigen::Vector3f > &tgtPts,
         Eigen::Matrix4f &transform,
@@ -110,7 +110,7 @@ public:
         const std::vector<int> &tgtIndices,
         Eigen::Matrix4f &transform);
 
-  void compute(
+  int compute(
         const std::vector<Eigen::Vector3f > &srcPts,
         const std::vector<Eigen::Vector3f > &tgtPts,
         Eigen::Matrix4f &transform,
@@ -132,11 +132,11 @@ inline bool RigidTransformationRANSAC::Contains(const std::vector<int> &idx, int
   return false;
 }
 
-inline void RigidTransformationRANSAC::InvPose(const Eigen::Matrix4f &pose, Eigen::Matrix4f &invPose)
+inline void RigidTransformationRANSAC::InvPose(const Eigen::Matrix4f &pose, Eigen::Matrix4f &invPose_)
 { 
-  invPose.setIdentity();
-  invPose.block<3, 3> (0, 0) = pose.block<3, 3> (0, 0).transpose();
-  invPose.block<3, 1> (0, 3) = -1*(invPose.block<3, 3> (0, 0)*pose.block<3, 1> (0, 3));
+  invPose_.setIdentity();
+  invPose_.block<3, 3> (0, 0) = pose.block<3, 3> (0, 0).transpose();
+  invPose_.block<3, 1> (0, 3) = -1*(invPose_.block<3, 3> (0, 0)*pose.block<3, 1> (0, 3));
 }
 
 

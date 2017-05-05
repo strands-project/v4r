@@ -90,11 +90,11 @@ public:
   void createCodebook(cv::Mat &_cb_centers, std::vector< std::vector< std::pair<int,int> > > &_cb_entries);
   void setCodebook(const cv::Mat &_cb_centers, const std::vector< std::vector< std::pair<int,int> > > &_cb_entries);
   void queryViewRank(const cv::Mat &descriptors, std::vector< std::pair<int, int> > &view_rank);
-  void queryMatches(const cv::Mat &descriptors, std::vector< std::vector< cv::DMatch > > &matches);
+  void queryMatches(const cv::Mat &descriptors, std::vector< std::vector< cv::DMatch > > &matches, bool sort_view_rank=true);
 
-  inline const std::vector< std::vector< std::pair<int,int> > > &getEntries() { return cb_entries; }
-  inline const cv::Mat &getDescriptors() { return cb_centers; }
-  inline const std::vector< std::pair<int, int> > &getViewRank() {return view_rank;}
+  inline const std::vector< std::vector< std::pair<int,int> > > &getEntries() const { return cb_entries; }
+  inline const cv::Mat &getDescriptors() const { return cb_centers; }
+  inline const std::vector< std::pair<int, int> > &getViewRank() const {return view_rank;}
 
   typedef SmartPtr< ::v4r::CodebookMatcher> Ptr;
   typedef SmartPtr< ::v4r::CodebookMatcher const> ConstPtr;

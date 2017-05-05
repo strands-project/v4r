@@ -49,7 +49,7 @@ public:
     /** @brief vector defining from which view the object hypothesis comes from */
     std::vector<size_t> origin_view_id_;
 
-    std::vector<std::vector<float> >  pt_properties_; /// @brief noise properties for each point
+    std::vector<std::vector<float> >  pt_properties_; ///< noise properties for each point
 };
 
 struct V4R_EXPORTS CamConnect

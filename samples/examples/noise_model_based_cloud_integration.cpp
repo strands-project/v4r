@@ -21,11 +21,13 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
 
 namespace po = boost::program_options;
+namespace bf = boost::filesystem;
 using namespace v4r;
 
 int main(int argc, const char * argv[]) {
@@ -36,11 +38,11 @@ int main(int argc, const char * argv[]) {
 
     google::InitGoogleLogging(argv[0]);
 
-    NMBasedCloudIntegration<PointT>::Parameter nm_int_param;
+    NMBasedCloudIntegrationParameter nm_int_param;
     nm_int_param.min_points_per_voxel_ = 1;
     nm_int_param.octree_resolution_ = 0.002f;
 
-    NguyenNoiseModel<PointT>::Parameter nm_param;
+    NguyenNoiseModelParameter nm_param;
 
     int normal_method = 2;
 
@@ -53,10 +55,10 @@ int main(int argc, const char * argv[]) {
             ("obj_indices_prefix", po::value<std::string>(&obj_indices_prefix)->default_value(obj_indices_prefix), "filename prefix for each object mask file(used when using object mask)")
             ("pose_prefix", po::value<std::string>(&pose_prefix)->default_value(pose_prefix), "filename prefix for each camera pose (used when using use_pose_file)")
             ("resolution,r", po::value<float>(&nm_int_param.octree_resolution_)->default_value(nm_int_param.octree_resolution_), "")
-            ("min_points_per_voxel", po::value<int>(&nm_int_param.min_points_per_voxel_)->default_value(nm_int_param.min_points_per_voxel_), "")
+            ("min_points_per_voxel", po::value<size_t>(&nm_int_param.min_points_per_voxel_)->default_value(nm_int_param.min_points_per_voxel_), "")
 //            ("threshold_explained", po::value<float>(&nm_int_param.threshold_explained_)->default_value(nm_int_param.threshold_explained_), "")
             ("use_depth_edges", po::value<bool>(&nm_param.use_depth_edges_)->default_value(nm_param.use_depth_edges_), "")
-            ("edge_radius", po::value<int>(&nm_param.edge_radius_)->default_value(nm_param.edge_radius_), "")
+            ("focal_length,f", po::value<float>(&nm_param.focal_length_)->default_value(nm_param.focal_length_), "")
             ("normal_method,n", po::value<int>(&normal_method)->default_value(normal_method), "method used for normal computation")
             ("chop_z,z", po::value<float>(&chop_z)->default_value(chop_z), "cut of distance in m ")
             ("visualize,v", po::bool_switch(&visualize), "turn visualization on")
@@ -80,7 +82,6 @@ int main(int argc, const char * argv[]) {
         return false;
     }
 
-    nm_int_param.edge_radius_px_ = nm_param.edge_radius_;
     std::vector< std::string> folder_names  = io::getFoldersInDirectory( test_dir );
 
     if( folder_names.empty() )
@@ -95,8 +96,8 @@ int main(int argc, const char * argv[]) {
         std::vector< std::string > views = io::getFilesInDirectory(test_seq, ".*.pcd", false);
 
         pcl::PointCloud<PointT>::Ptr big_cloud_unfiltered (new pcl::PointCloud<PointT>);
-        std::vector< pcl::PointCloud<PointT>::Ptr > clouds (views.size());
-        std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals (views.size());
+        std::vector< pcl::PointCloud<PointT>::ConstPtr > clouds (views.size());
+        std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > normals (views.size());
         std::vector<std::vector<std::vector<float> > > pt_properties (views.size());
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > camera_transforms (views.size());
         std::vector<std::vector<int> > obj_indices (views.size());
@@ -106,65 +107,79 @@ int main(int argc, const char * argv[]) {
             std::stringstream txt;
             txt << "processing view " << v_id;
             pcl::ScopeTime t(txt.str().c_str());
-            clouds[v_id].reset ( new pcl::PointCloud<PointT>);
-            normals[v_id].reset ( new pcl::PointCloud<pcl::Normal>);
+            pcl::PointCloud<PointT>::Ptr cloud( new pcl::PointCloud<PointT>);
+            pcl::PointCloud<pcl::Normal>::Ptr normal ( new pcl::PointCloud<pcl::Normal>);
 
-            pcl::io::loadPCDFile(test_seq + "/" + views[ v_id ], *clouds[v_id]);
+            pcl::io::loadPCDFile(test_seq + "/" + views[ v_id ], *cloud);
 
             std::string obj_fn (views[v_id]);
             boost::replace_first (obj_fn, view_prefix, obj_indices_prefix);
             boost::replace_last (obj_fn, ".pcd", ".txt");
 
-            if(io::existsFile(test_seq + "/" + obj_fn) && use_object_mask) {
-                ifstream f((test_seq+"/"+obj_fn).c_str());
-                int idx;
-                while (f >> idx)
-                    obj_indices[v_id].push_back(idx);
-                f.close();
+            if(use_object_mask)
+            {
+                bf::path object_indices_fn = test_seq;
+                object_indices_fn /= obj_fn;
+                if( io::existsFile( object_indices_fn.string() ) )
+                {
+                    ifstream f((test_seq+"/"+obj_fn).c_str());
+                    int idx;
+                    while (f >> idx)
+                        obj_indices[v_id].push_back(idx);
+                    f.close();
+                }
+                else
+                    std::cerr << "Parameter use_object_mask is set but object indices file " <<
+                                 object_indices_fn.string() << " not found! " << std::endl;
             }
+
 
             std::string pose_fn (views[v_id]);
             boost::replace_first (pose_fn, view_prefix, pose_prefix);
             boost::replace_last (pose_fn, ".pcd", ".txt");
 
-            if(io::existsFile(test_seq + "/" + pose_fn) && use_pose_file) {
+            if(io::existsFile(test_seq + "/" + pose_fn) && use_pose_file)
                 camera_transforms[v_id] = io::readMatrixFromFile(test_seq + "/" + pose_fn);
-            }
             else
-                camera_transforms[v_id] = RotTrans2Mat4f(clouds[v_id]->sensor_orientation_, clouds[v_id]->sensor_origin_);
+                camera_transforms[v_id] = RotTrans2Mat4f(cloud->sensor_orientation_, cloud->sensor_origin_);
 
             // reset view point otherwise pcl visualization is potentially messed up
-            clouds[v_id]->sensor_orientation_ = Eigen::Quaternionf::Identity();
-            clouds[v_id]->sensor_origin_ = Eigen::Vector4f::Zero();
+            cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+            cloud->sensor_origin_ = Eigen::Vector4f::Zero();
 
             pcl::PassThrough<PointT> pass;
-            pass.setInputCloud (clouds[v_id]);
+            pass.setInputCloud (cloud);
             pass.setFilterFieldName ("z");
             pass.setFilterLimits (0.f, chop_z);
             pass.setKeepOrganized(true);
-            pass.filter (*clouds[v_id]);
+            pass.filter (*cloud);
 
             {
                 pcl::ScopeTime tt("Computing normals");
-                computeNormals<PointT>( clouds[v_id], normals[v_id], normal_method);
+                computeNormals<PointT>( cloud, normal, normal_method);
             }
 
             {
                 pcl::ScopeTime tt("Computing noise model parameter for cloud");
                 NguyenNoiseModel<PointT> nm (nm_param);
-                nm.setInputCloud(clouds[v_id]);
-                nm.setInputNormals(normals[v_id]);
+                nm.setInputCloud(cloud);
+                nm.setInputNormals(normal);
                 nm.compute();
                 pt_properties[v_id] = nm.getPointProperties();
-
             }
 
 
-
             pcl::PointCloud<PointT> object_cloud, object_aligned;
-            pcl::copyPointCloud(*clouds[v_id], obj_indices[v_id], object_cloud);
+            if( use_object_mask )
+                pcl::copyPointCloud(*cloud, obj_indices[v_id], object_cloud);
+            else
+                pcl::copyPointCloud(*cloud, object_cloud);
+
             pcl::transformPointCloud( object_cloud, object_aligned, camera_transforms[v_id]);
             *big_cloud_unfiltered += object_aligned;
+
+            clouds[v_id] = cloud;
+            normals[v_id] = normal;
         }
 
         pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
@@ -207,7 +222,9 @@ int main(int argc, const char * argv[]) {
                     f.close();
 
                     fn.str(""); fn << out_path << "/filter_input_image" << setfill('0') << setw(5) << v_id << ".png";
-                    cv::imwrite(fn.str(), ConvertPCLCloud2Image(*clouds_used[v_id]));
+                    PCLOpenCVConverter<PointT> pcl_opencv_converter;
+                    pcl_opencv_converter.setInputCloud( clouds_used[v_id] );
+                    cv::imwrite(fn.str(), pcl_opencv_converter.getRGBImage() );
                 }
             }
         }

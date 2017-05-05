@@ -7,12 +7,15 @@ ${CMAKE_CURRENT_LIST_DIR}/src/ourcvfh_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/ImGDescOrientation.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_ORB.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/pcl_ourcvfh.cpp
-${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_K_HARRIS.cpp
+${CMAKE_CURRENT_LIST_DIR}/src/global_color_estimator.cpp
+${CMAKE_CURRENT_LIST_DIR}/src/global_simple_shape_estimator.cpp
+${CMAKE_CURRENT_LIST_DIR}/src/global_concatenated.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/sift_local_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/esf_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/ImGradientDescriptor.cpp
-${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_D_FREAK.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_FAST_IMGD.cpp
+${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_K_HARRIS.cpp
+${CMAKE_CURRENT_LIST_DIR}/src/rops_local_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/shot_local_estimator.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/FeatureSelection.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/ComputeImGDescOrientations.cpp
@@ -30,21 +33,24 @@ ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ourcvfh_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ComputeImGDescOrientations.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureSelection.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/shot_local_estimator.h
+${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/rops_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/esf_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ImGDescOrientation.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/color_ourcvfh_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/image_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_KD_FAST_IMGD.h
-${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/vedaldi_sift_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_K_HARRIS.h
+${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/vedaldi_sift_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/pcl_ourcvfh.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/sift_local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector.h
-${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_D_FREAK.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/ImGradientDescriptor.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetectorHeaders.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/local_estimator.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/global_estimator.h
+${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/global_simple_shape_estimator.h
+${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/global_color_estimator.h
+${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/global_concatenated.h
 ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/colorshot_local_estimator.h
 )
 
@@ -57,6 +63,24 @@ if(HAVE_CAFFE)
     list(APPEND feat_headers
             ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/global_alexnet_cnn_estimator.h
         )
+endif()
+
+if(HAVE_SIFTGPU)
+    list(APPEND feat_srcs
+            ${CMAKE_CURRENT_LIST_DIR}/src/PSiftGPU.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_SIFTGPU.cpp
+         )
+    list(APPEND feat_headers
+            ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/PSiftGPU.h
+            ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_KD_SIFTGPU.h
+         )
+ else()
+    list(APPEND feat_srcs
+            ${CMAKE_CURRENT_LIST_DIR}/src/FeatureDetector_KD_CVSIFT.cpp
+         )
+    list(APPEND feat_headers
+            ${CMAKE_CURRENT_LIST_DIR}/include/v4r/features/FeatureDetector_KD_CVSIFT.h
+         )
 endif()
 
 v4r_set_module_sources(HEADERS ${feat_headers} SOURCES ${feat_srcs} ${feat_headers})

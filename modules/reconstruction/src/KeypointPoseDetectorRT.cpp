@@ -31,8 +31,14 @@
  */
 
 #include <v4r/reconstruction/KeypointPoseDetectorRT.h>
-#include <v4r/common/impl/ScopeTime.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+
+#if CV_MAJOR_VERSION < 3
+#define HAVE_OCV_2
+#else
+#include <opencv2/core/ocl.hpp>
+#endif
+
 
 namespace v4r
 {
@@ -77,6 +83,9 @@ double KeypointPoseDetectorRT::detect(const cv::Mat &image, const DataMatrix2D<E
   if (cloud.rows != image.rows || cloud.cols != image.cols)
     throw std::runtime_error("[KeypointPoseDetectorRT::detect] Invalid image/ cloud!");
 
+  #ifndef HAVE_OCV_2
+  cv::ocl::setUseOpenCL(false);
+  #endif
 
   if( image.type() != CV_8U ) cv::cvtColor( image, im_gray, CV_RGB2GRAY );
   else im_gray = image;
@@ -86,7 +95,7 @@ double KeypointPoseDetectorRT::detect(const cv::Mat &image, const DataMatrix2D<E
   detector->detect(im_gray, keys);
   descEstimator->extract(im_gray, keys, descs);
   //}
-  
+
   //matcher->knnMatch( descs, model->descs, matches, 2 );
   matcher->knnMatch( descs, matches, 2 );
 
@@ -106,10 +115,14 @@ double KeypointPoseDetectorRT::detect(const cv::Mat &image, const DataMatrix2D<E
         const Eigen::Vector3f &pt = cloud(int(im_pt.y+.5),int(im_pt.x+.5));
         if (!isnan(pt[0]))
         {
-          query_pts.push_back(pt);      
-          if (param.compute_global_pose)
+          query_pts.push_back(pt);
+          if (param.compute_global_pose) {
+            if (ma0.trainIdx>=(int)model->points.size()) { query_pts.pop_back(); continue; }
             model_pts.push_back(model->getPt(ma0.trainIdx).pt.cast<float>());
-          else model_pts.push_back(model->cam_points[ma0.trainIdx]);
+          } else {
+            if (ma0.trainIdx>=(int)model->cam_points.size()) { query_pts.pop_back(); continue; }
+            model_pts.push_back(model->cam_points[ma0.trainIdx]);
+          }
           ma_inliers.push_back(ma0.trainIdx);
         }
       }

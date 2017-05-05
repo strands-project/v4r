@@ -1,10 +1,16 @@
 #include <v4r/common/miscellaneous.h>
-#include <v4r/common/impl/miscellaneous.hpp>
+
+#include <pcl/common/centroid.h>
+#include <pcl/common/eigen.h>
+#include <pcl/common/transforms.h>
+#include <pcl/impl/instantiate.hpp>
+#include <pcl/point_types.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <glog/logging.h>
 
 namespace v4r
 {
 
-V4R_EXPORTS
 void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
                              pcl::PointCloud<pcl::Normal> & normals_aligned,
                              const Eigen::Matrix4f & transform)
@@ -29,7 +35,7 @@ void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
 }
 
 
-V4R_EXPORTS void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
+void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_cloud,
                              pcl::PointCloud<pcl::Normal> & normals_aligned,
                              const std::vector<int> & indices,
                              const Eigen::Matrix4f & transform)
@@ -56,7 +62,6 @@ V4R_EXPORTS void transformNormals(const pcl::PointCloud<pcl::Normal> & normals_c
 }
 
 
-V4R_EXPORTS
 void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
                                 pcl::PointCloud<pcl::PointXYZRGB> & voxel_grided,
                                 float resolution)
@@ -108,7 +113,7 @@ void voxelGridWithOctree(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & cloud,
 }
 
 template<typename PointInT>
-V4R_EXPORTS void
+void
 getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_input_cloud,
                     const typename pcl::PointCloud<PointInT>::ConstPtr & search_points,
                     std::vector<int> & indices,
@@ -136,7 +141,7 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointInT>::ConstPtr & full_in
 }
 
 template<typename PointT, typename Type>
-V4R_EXPORTS void
+void
 getIndicesFromCloud(const typename pcl::PointCloud<PointT>::ConstPtr & full_input_cloud,
                     const typename pcl::PointCloud<PointT> & search_pts,
                     typename std::vector<Type> & indices,
@@ -163,7 +168,7 @@ getIndicesFromCloud(const typename pcl::PointCloud<PointT>::ConstPtr & full_inpu
     indices.resize(kept);
 }
 
-V4R_EXPORTS bool
+bool
 incrementVector(const std::vector<bool> &v, std::vector<bool> &inc_v)
 {
     inc_v = v;
@@ -188,17 +193,190 @@ incrementVector(const std::vector<bool> &v, std::vector<bool> &inc_v)
     return overflow;
 }
 
-template V4R_EXPORTS void convertToFLANN<flann::L1<float> > (const std::vector<std::vector<float> > &, boost::shared_ptr< flann::Index<flann::L1<float> > > &flann_index); // explicit instantiation.
-template V4R_EXPORTS void convertToFLANN<flann::L2<float> > (const std::vector<std::vector<float> > &, boost::shared_ptr< flann::Index<flann::L2<float> > > &flann_index); // explicit instantiation.
-template V4R_EXPORTS void nearestKSearch<flann::L1<float> > ( boost::shared_ptr< flann::Index< flann::L1<float> > > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
-flann::Matrix<float> &distances );
-template void V4R_EXPORTS nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
-flann::Matrix<float> &distances );
+template<typename PointT>
+float computeMeshResolution (const typename pcl::PointCloud<PointT>::ConstPtr & input)
+{
+    typedef typename pcl::KdTree<PointT>::Ptr KdTreeInPtr;
+    KdTreeInPtr tree (new pcl::KdTreeFLANN<PointT>);
+    tree->setInputCloud (input);
 
-template V4R_EXPORTS void setCloudPose<pcl::PointXYZ>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZ> &cloud);
-template V4R_EXPORTS void setCloudPose<pcl::PointXYZRGB>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGB> &cloud);
-template V4R_EXPORTS void setCloudPose<pcl::PointXYZRGBNormal>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud);
-template V4R_EXPORTS void setCloudPose<pcl::PointXYZRGBA>(const Eigen::Matrix4f &tf, pcl::PointCloud<pcl::PointXYZRGBA> &cloud);
+    std::vector<int> nn_indices (9);
+    std::vector<float> nn_distances (9);
+
+    float sum_distances = 0.0;
+    std::vector<float> avg_distances (input->points.size ());
+    // Iterate through the source data set
+    for (size_t i = 0; i < input->points.size (); ++i)
+    {
+        tree->nearestKSearch (input->points[i], 9, nn_indices, nn_distances);
+
+        float avg_dist_neighbours = 0.0;
+        for (size_t j = 1; j < nn_indices.size (); j++)
+            avg_dist_neighbours += sqrtf (nn_distances[j]);
+
+        avg_dist_neighbours /= static_cast<float> (nn_indices.size ());
+
+        avg_distances[i] = avg_dist_neighbours;
+        sum_distances += avg_dist_neighbours;
+    }
+
+    std::sort (avg_distances.begin (), avg_distances.end ());
+    float avg = avg_distances[static_cast<int> (avg_distances.size ()) / 2 + 1];
+    return avg;
+}
+
+
+template<typename DistType>
+void
+convertToFLANN ( const std::vector<std::vector<float> > &data, boost::shared_ptr< typename flann::Index<DistType> > &flann_index)
+{
+    if(data.empty()) {
+        std::cerr << "No data provided for building Flann index!" << std::endl;
+        return;
+    }
+
+    size_t rows = data.size ();
+    size_t cols = data[0].size(); // number of histogram bins
+
+    flann::Matrix<float> flann_data ( new float[rows * cols], rows, cols );
+
+    for ( size_t i = 0; i < rows; ++i )
+    {
+        for ( size_t j = 0; j < cols; ++j )
+            flann_data.ptr() [i * cols + j] = data[i][j];
+    }
+    flann_index.reset (new flann::Index<DistType> ( flann_data, flann::KDTreeIndexParams ( 4 ) ) );
+    flann_index->buildIndex ();
+}
+
+template <typename DistType>
+void nearestKSearch ( typename boost::shared_ptr< flann::Index<DistType> > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
+                        flann::Matrix<float> &distances )
+{
+    flann::Matrix<float> p = flann::Matrix<float> ( new float[descr.size()], 1, descr.size() );
+    memcpy ( &p.ptr () [0], &descr[0], p.cols * p.rows * sizeof ( float ) );
+    index->knnSearch ( p, indices, distances, k, flann::SearchParams ( 128 ) );
+    delete[] p.ptr ();
+}
+
+boost::dynamic_bitset<>
+computeMaskFromIndexMap( const Eigen::MatrixXi &image_map, size_t nr_points )
+{
+    boost::dynamic_bitset<> mask (nr_points, 0);
+    for (int i = 0; i < image_map.size(); i++)
+    {
+        int val = *(image_map.data() + i);
+        if ( val>= 0)
+            mask.set(val);
+    }
+
+    return mask;
+}
+
+Eigen::Matrix3f
+computeRotationMatrixToAlignVectors(const Eigen::Vector3f &src, const Eigen::Vector3f &target)
+{
+    Eigen::Vector3f A = src;
+    Eigen::Vector3f B = target;
+
+    A.normalize();
+    B.normalize();
+
+    float c = A.dot(B);
+
+    if( c > 1.f-std::numeric_limits<float>::epsilon() )
+        return Eigen::Matrix3f::Identity();
+
+    if ( c < -1.f+std::numeric_limits<float>::epsilon() )
+    {
+        LOG(ERROR) << "Computing a rotation matrix of two opposite vectors is not supported by this equation. The returned rotation matrix won't be a proper rotation matrix!";
+        return -Eigen::Matrix3f::Identity(); //flip
+    }
+
+    const Eigen::Vector3f v = A.cross(B);
+
+    Eigen::Matrix3f vx;
+    vx << 0, -v(2), v(1),
+          v(2), 0, -v(0),
+         -v(1), v(0), 0;
+
+    return Eigen::Matrix3f::Identity() + vx + vx * vx / ( 1.f + c );
+}
+
+
+template<typename PointT>
+V4R_EXPORTS
+void
+computePointCloudProperties(const pcl::PointCloud<PointT> &cloud, Eigen::Vector4f &centroid, Eigen::Vector3f &elongationsXYZ, Eigen::Matrix4f &covariancePose, const std::vector<int> &indices)
+{
+    EIGEN_ALIGN16 Eigen::Matrix3f covariance_matrix;
+    EIGEN_ALIGN16 Eigen::Vector3f eigenValues;
+    EIGEN_ALIGN16 Eigen::Matrix3f eigenVectors;
+    EIGEN_ALIGN16 Eigen::Matrix3f eigenBasis;
+
+    if(indices.empty())
+        computeMeanAndCovarianceMatrix ( cloud, covariance_matrix, centroid );
+    else
+        computeMeanAndCovarianceMatrix ( cloud, indices, covariance_matrix, centroid );
+
+    pcl::eigen33 (covariance_matrix, eigenVectors, eigenValues);
+
+    // create orthonormal rotation matrix from eigenvectors
+    eigenBasis.col(0) = eigenVectors.col(0).normalized();
+    float dotp12 = eigenVectors.col(1).dot(eigenBasis.col(0));
+    Eigen::Vector3f eig2 = eigenVectors.col(1) - dotp12 * eigenBasis.col(0);
+    eigenBasis.col(1) = eig2.normalized();
+    Eigen::Vector3f eig3 = eigenBasis.col(0).cross ( eigenBasis.col(1) );
+    eigenBasis.col(2) = eig3.normalized();
+
+    // transform cluster into origin and align with eigenvectors
+    Eigen::Matrix4f tf_rot = Eigen::Matrix4f::Identity();
+    tf_rot.block<3,3>(0,0) = eigenBasis.transpose();
+    Eigen::Matrix4f tf_trans = Eigen::Matrix4f::Identity();
+    tf_trans.block<3,1>(0,3) = -centroid.topRows(3);
+
+    covariancePose = tf_rot * tf_trans;
+//    Eigen::Matrix4f tf_rot = tf_rot_inv.inverse();
+
+    // compute max elongations
+    pcl::PointCloud<PointT> eigenvec_aligned;
+
+    if(indices.empty())
+        pcl::copyPointCloud( cloud, eigenvec_aligned);
+    else
+        pcl::copyPointCloud( cloud, indices, eigenvec_aligned);
+
+    pcl::transformPointCloud(eigenvec_aligned, eigenvec_aligned, tf_rot*tf_trans);
+
+    float xmin,ymin,xmax,ymax,zmin,zmax;
+    xmin = ymin = xmax = ymax = zmin = zmax = 0.f;
+    for(size_t pt=0; pt<eigenvec_aligned.points.size(); pt++)
+    {
+        const PointT &p = eigenvec_aligned.points[pt];
+        if(p.x < xmin)
+            xmin = p.x;
+        if(p.x > xmax)
+            xmax = p.x;
+        if(p.y < ymin)
+            ymin = p.y;
+        if(p.y > ymax)
+            ymax = p.y;
+        if(p.z < zmin)
+            zmin = p.z;
+        if(p.z > zmax)
+            zmax = p.z;
+    }
+
+    elongationsXYZ(0) = xmax - xmin;
+    elongationsXYZ(1) = ymax - ymin;
+    elongationsXYZ(2) = zmax - zmin;
+}
+
+#define PCL_INSTANTIATE_computePointCloudProperties(T) template V4R_EXPORTS void computePointCloudProperties<T>(const pcl::PointCloud<T> &, Eigen::Vector4f &, Eigen::Vector3f &, Eigen::Matrix4f &eigenBasis, const std::vector<int> &);
+PCL_INSTANTIATE(computePointCloudProperties, PCL_XYZ_POINT_TYPES )
+
+#define PCL_INSTANTIATE_computeMeshResolution(T) template V4R_EXPORTS float computeMeshResolution<T>(const typename pcl::PointCloud<T>::ConstPtr &);
+PCL_INSTANTIATE(computeMeshResolution, PCL_XYZ_POINT_TYPES )
 
 
 template V4R_EXPORTS void
@@ -224,79 +402,17 @@ getIndicesFromCloud<pcl::PointXYZ, size_t>(const pcl::PointCloud<pcl::PointXYZ>:
 
 template V4R_EXPORTS
 std::vector<size_t>
-createIndicesFromMask(const std::vector<bool> &mask, bool invert);
+createIndicesFromMask(const boost::dynamic_bitset<> &mask, bool invert);
 
 template V4R_EXPORTS
 std::vector<int>
-createIndicesFromMask(const std::vector<bool> &mask, bool invert);
+createIndicesFromMask(const boost::dynamic_bitset<> &mask, bool invert);
 
+template V4R_EXPORTS void convertToFLANN<flann::L1<float> > (const std::vector<std::vector<float> > &, boost::shared_ptr< flann::Index<flann::L1<float> > > &flann_index); // explicit instantiation.
+template V4R_EXPORTS void convertToFLANN<flann::L2<float> > (const std::vector<std::vector<float> > &, boost::shared_ptr< flann::Index<flann::L2<float> > > &flann_index); // explicit instantiation.
+template V4R_EXPORTS void nearestKSearch<flann::L1<float> > ( boost::shared_ptr< flann::Index< flann::L1<float> > > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
+flann::Matrix<float> &distances );
+template void V4R_EXPORTS nearestKSearch<flann::L2<float> > ( boost::shared_ptr< flann::Index< flann::L2<float> > > &index, std::vector<float> descr, int k, flann::Matrix<int> &indices,
+flann::Matrix<float> &distances );
 
 }
-
-
-
-template V4R_EXPORTS  void
-pcl::copyPointCloud<pcl::PointXYZ> (const pcl::PointCloud<pcl::PointXYZ> &cloud_in,
-                const std::vector<size_t> &indices,
-                pcl::PointCloud<pcl::PointXYZ> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB> &cloud_in,
-                const std::vector<size_t> &indices,
-                pcl::PointCloud<pcl::PointXYZRGB> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZRGBNormal> (const pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_in,
-                const std::vector<size_t> &indices,
-                pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZRGBA> (const pcl::PointCloud<pcl::PointXYZRGBA> &cloud_in,
-                const std::vector<size_t> &indices,
-                pcl::PointCloud<pcl::PointXYZRGBA> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::Normal> (const pcl::PointCloud<pcl::Normal> &cloud_in,
-                const std::vector<size_t> &indices,
-                pcl::PointCloud<pcl::Normal> &cloud_out);
-
-
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZ> (const pcl::PointCloud<pcl::PointXYZ> &cloud_in,
-                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
-                pcl::PointCloud<pcl::PointXYZ> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB> &cloud_in,
-                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
-                pcl::PointCloud<pcl::PointXYZRGB> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZRGBNormal> (const pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_in,
-                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
-                pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZRGBA> (const pcl::PointCloud<pcl::PointXYZRGBA> &cloud_in,
-                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
-                pcl::PointCloud<pcl::PointXYZRGBA> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::Normal> (const pcl::PointCloud<pcl::Normal> &cloud_in,
-                const std::vector<size_t, Eigen::aligned_allocator<size_t> > &indices,
-                pcl::PointCloud<pcl::Normal> &cloud_out);
-
-
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZ> (const pcl::PointCloud<pcl::PointXYZ> &cloud_in,
-                const std::vector<bool> &indices,
-                pcl::PointCloud<pcl::PointXYZ> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZRGB> (const pcl::PointCloud<pcl::PointXYZRGB> &cloud_in,
-                const std::vector<bool> &indices,
-                pcl::PointCloud<pcl::PointXYZRGB> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZRGBNormal> (const pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_in,
-                const std::vector<bool> &indices,
-                pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::PointXYZRGBA> (const pcl::PointCloud<pcl::PointXYZRGBA> &cloud_in,
-                const std::vector<bool> &indices,
-                pcl::PointCloud<pcl::PointXYZRGBA> &cloud_out);
-template V4R_EXPORTS void
-pcl::copyPointCloud<pcl::Normal> (const pcl::PointCloud<pcl::Normal> &cloud_in,
-                const std::vector<bool> &indices,
-                pcl::PointCloud<pcl::Normal> &cloud_out);
-

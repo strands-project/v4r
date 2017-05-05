@@ -30,37 +30,35 @@
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
 
+#include <v4r_config.h>
 #include <v4r/common/convertCloud.h>
 #include <v4r/common/convertNormals.h>
 #include <v4r/common/impl/DataMatrix2D.hpp>
-#include <v4r/registration/metrics.h>
 #include <v4r/common/binary_algorithms.h>
 #include <v4r/common/normals.h>
 #include <v4r/common/noise_models.h>
+#include <v4r/common/occlusion_reasoning.h>
+#include <v4r/common/pcl_utils.h>
 #include <v4r/common/pcl_visualization_utils.h>
+#include <v4r/common/zbuffering.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/io/eigen.h>
-#include <v4r/common/zbuffering.h>
+#include <v4r/registration/metrics.h>
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
-#ifdef HAVE_SIFTGPU
-    #include <v4r/features/sift_local_estimator.h>
-#else
-    #include <v4r/features/opencv_sift_local_estimator.h>
-#endif
+#include <v4r/features/sift_local_estimator.h>
 
 namespace v4r
 {
 namespace object_modelling
 {
 
-std::vector<bool>
-IOL::extractEuclideanClustersSmooth (
-        const pcl::PointCloud<PointT>::ConstPtr &cloud,
+boost::dynamic_bitset<>
+IOL::extractEuclideanClustersSmooth (const pcl::PointCloud<PointT>::ConstPtr &cloud,
         const pcl::PointCloud<pcl::Normal> &normals,
-        const std::vector<bool> &initial_mask,
-        const std::vector<bool> &bg_mask) const
+        const boost::dynamic_bitset<> &initial_mask,
+        const boost::dynamic_bitset<> &bg_mask) const
 {
     assert (cloud->points.size () == normals.points.size ());
 
@@ -69,14 +67,14 @@ IOL::extractEuclideanClustersSmooth (
     octree.addPointsFromInputCloud ();
 
     // Create a bool vector of processed point indices, and initialize it to false
-    std::vector<bool> to_grow = initial_mask;
-    std::vector<bool> in_cluster = initial_mask;
+    boost::dynamic_bitset<> to_grow = initial_mask;
+    boost::dynamic_bitset<> in_cluster = initial_mask;
 
     bool stop = false;
     while(!stop)
     {
         stop = true;
-        std::vector<bool> is_new_point (cloud->points.size (), false);  // do as long as there is no new point
+        boost::dynamic_bitset<> is_new_point (cloud->points.size (), 0);  // do as long as there is no new point
         std::vector<int> nn_indices;
         std::vector<float> nn_distances;
 
@@ -116,8 +114,8 @@ IOL::extractEuclideanClustersSmooth (
 void
 IOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & cloud,
                                             pcl::PointCloud<pcl::Normal>::Ptr & normals,
-                                            const std::vector<bool> &obj_mask,
-                                            std::vector<bool> &obj_mask_out,
+                                            const boost::dynamic_bitset<> &obj_mask,
+                                            boost::dynamic_bitset<> &obj_mask_out,
                                             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud,
                                             pcl::PointCloud<pcl::PointXYZRGBA>::Ptr &supervoxel_cloud_organized)
 {
@@ -179,20 +177,20 @@ IOL::updatePointNormalsFromSuperVoxels(const pcl::PointCloud<PointT>::Ptr & clou
 
             const size_t tot_pts_in_supervoxel = it->second->voxels_->points.size();
             if( label_count[label]  > param_.ratio_supervoxel_ * tot_pts_in_supervoxel)
-                obj_mask_out[i] = true;
+                obj_mask_out.set(i);
             else
-                obj_mask_out[i] = false;
+                obj_mask_out.reset(i);
         }
         else
         {
             std::cerr << "Cluster for label does not exist" << std::endl;
-            obj_mask_out[i] = true;
+            obj_mask_out.set(i);
         }
     }
 }
 
 void
-IOL::nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointCloud<PointT>::ConstPtr &search_cloud,  std::vector<bool> &obj_mask)
+IOL::nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointCloud<PointT>::ConstPtr &search_cloud, boost::dynamic_bitset<> &obj_mask)
 {
     pcl::octree::OctreePointCloudSearch<PointT> octree(0.005f);
     octree.setInputCloud ( search_cloud );
@@ -201,7 +199,7 @@ IOL::nnSearch(const pcl::PointCloud<PointT> &object_points, const pcl::PointClou
 }
 
 void
-IOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreePointCloudSearch<PointT> &octree,  std::vector<bool> &obj_mask)
+IOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreePointCloudSearch<PointT> &octree, boost::dynamic_bitset<> &obj_mask)
 {
     //find neighbours from transferred object points
     std::vector<int> pointIdxRadiusSearch;
@@ -217,18 +215,18 @@ IOL::nnSearch(const pcl::PointCloud<PointT> &object_points, pcl::octree::OctreeP
         if ( octree.radiusSearch (object_points.points[i], param_.radius_, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0)
         {
             for( size_t nn_id = 0; nn_id < pointIdxRadiusSearch.size(); nn_id++)
-                obj_mask[ pointIdxRadiusSearch[ nn_id ] ] = true;
+                obj_mask.set( pointIdxRadiusSearch[ nn_id ] );
         }
     }
 }
 
-std::vector<bool>
-IOL::erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<PointT> & cloud)
+boost::dynamic_bitset<>
+IOL::erodeIndices(const boost::dynamic_bitset<> &obj_mask, const pcl::PointCloud<PointT> & cloud)
 {
     assert (obj_mask.size() == cloud.height * cloud.width);
 
     cv::Mat mask = cv::Mat(cloud.height, cloud.width, CV_8UC1);
-    std::vector<bool> mask_out(obj_mask.size());
+    boost::dynamic_bitset<> mask_out( cloud.height * cloud.width );
 
     for(size_t i=0; i < obj_mask.size(); i++)
     {
@@ -261,9 +259,9 @@ IOL::erodeIndices(const std::vector< bool > &obj_mask, const pcl::PointCloud<Poi
             const int idx = r * mask_dst.cols + c;
 
             if (mask_dst.at<unsigned char>(r,c) > 0 && pcl::isFinite( cloud.points[idx] ) && cloud.points[idx].z < param_.chop_z_)
-                mask_out[idx] = true;
+                mask_out.set(idx);
             else
-                mask_out[idx] = false;
+                mask_out.reset(idx);
         }
     }
     return mask_out;
@@ -312,7 +310,7 @@ IOL::save_model (const std::string &models_dir, const std::string &model_name, b
 {
     size_t num_frames = grph_.size();
 
-    std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used (num_frames);
+    std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > normals_used (num_frames);
     keyframes_used_.resize(num_frames);
     cameras_used_.resize(num_frames);
     object_indices_clouds_used_.resize(num_frames);
@@ -342,7 +340,7 @@ IOL::save_model (const std::string &models_dir, const std::string &model_name, b
         //compute noise weights
         for(size_t i=0; i < kept_keyframes; i++)
         {
-            NguyenNoiseModel<PointT>::Parameter nm_param;
+            NguyenNoiseModelParameter nm_param;
             nm_param.use_depth_edges_ = true;
             NguyenNoiseModel<PointT> nm (nm_param);
             nm.setInputCloud(keyframes_used_[i]);
@@ -422,8 +420,8 @@ IOL::merging_planes_reasonable(const modelView::SuperPlane &sp1, const modelView
 
 void
 IOL::computePlaneProperties(const std::vector<ClusterNormalsToPlanes::Plane::Ptr> &planes,
-                                       const std::vector< bool > &object_mask,
-                                       const std::vector< bool > &occlusion_mask,
+                                       const boost::dynamic_bitset<> &object_mask,
+                                       const boost::dynamic_bitset<> &occlusion_mask,
                                        const pcl::PointCloud<PointT>::ConstPtr &cloud,
                                        std::vector<modelView::SuperPlane> &super_planes) const
 {
@@ -502,7 +500,7 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
     if (initial_indices.size())   // for first frame use given initial indices and erode them
     {
-        std::vector<bool> initial_mask = createMaskFromIndices(initial_indices, view.cloud_->points.size());
+        boost::dynamic_bitset<> initial_mask = createMaskFromIndices(initial_indices, view.cloud_->points.size());
         remove_nan_points(*view.cloud_, initial_mask);
         view.obj_mask_step_.push_back( initial_mask );
         view.is_pre_labelled_ = true;
@@ -536,21 +534,21 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
         sor.filter (*cloud_filtered);
         FilteredObjectIndicesPtr = sor.getRemovedIndices();
 
-        const std::vector<bool> obj_mask_initial = createMaskFromIndices(initial_indices_wo_nan, view.cloud_->points.size());
-        const std::vector<bool> outlier_mask = createMaskFromIndices(*FilteredObjectIndicesPtr, view.cloud_->points.size());
-        const std::vector<bool> obj_mask_wo_outlier = binary_operation(obj_mask_initial, outlier_mask, BINARY_OPERATOR::AND_N);
+        const boost::dynamic_bitset<> obj_mask_initial = createMaskFromIndices(initial_indices_wo_nan, view.cloud_->points.size());
+        const boost::dynamic_bitset<> outlier_mask = createMaskFromIndices(*FilteredObjectIndicesPtr, view.cloud_->points.size());
+        const boost::dynamic_bitset<> obj_mask_wo_outlier = binary_operation(obj_mask_initial, outlier_mask, BINARY_OPERATOR::AND_N);
 
         view.obj_mask_step_.push_back( obj_mask_wo_outlier);
 
-        std::vector<bool> obj_mask_eroded = erodeIndices(obj_mask_wo_outlier, *view.cloud_);
+        boost::dynamic_bitset<> obj_mask_eroded = erodeIndices(obj_mask_wo_outlier, *view.cloud_);
         view.obj_mask_step_.push_back( obj_mask_eroded );
         computePlaneProperties(planes, view.obj_mask_step_[0],
-                               std::vector<bool>(view.cloud_->points.size(), false),
+                               boost::dynamic_bitset<>(view.cloud_->points.size(), 0),
                                view.cloud_, view.planes_);
     }
     else
     {
-        std::vector<bool> is_occluded;
+        boost::dynamic_bitset<> is_occluded;
         for (size_t view_id = 0; view_id < grph_.size(); view_id++)
         {
             if( view.id_ != grph_[view_id].id_)
@@ -572,33 +570,35 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
 
                 if (grph_[view_id].is_pre_labelled_)
                 {
-                    std::vector<bool> is_occluded_tmp = computeOccludedPoints(*grph_[view_id].cloud_,
-                                                                                                   *view.cloud_,
-                                                                                                   tf.inverse(),
-                                                                                                        525.f, 0.01f, false);
+                    typename pcl::PointCloud<PointT>::Ptr view_trans (new pcl::PointCloud<PointT>);
+                    Eigen::Matrix4f tf_inv = tf.inverse();
+                    pcl::transformPointCloud(*view.cloud_, *view_trans, tf_inv);
+                    OcclusionReasoner<PointT, PointT> occ_reasoner;
+                    occ_reasoner.setCamera(cam_);
+                    occ_reasoner.setInputCloud( view_trans );
+                    occ_reasoner.setOcclusionCloud( grph_[view_id].cloud_ );
+                    occ_reasoner.setOcclusionThreshold( 0.01f );
+                    boost::dynamic_bitset<> is_occluded_tmp = occ_reasoner.computeVisiblePoints();
+
                     if( is_occluded.size() == is_occluded_tmp.size())
-                    {
-                        is_occluded = binary_operation(is_occluded, is_occluded_tmp, BINARY_OPERATOR::AND); // is this correct?
-                    }
+                        is_occluded &= is_occluded_tmp; // is this correct?
                     else
-                    {
                         is_occluded = is_occluded_tmp;
-                    }
                 }
             }
         }
 
-        std::vector<bool> obj_mask_nn_search (view.cloud_->points.size(), false);
+        boost::dynamic_bitset<> obj_mask_nn_search (view.cloud_->points.size(), 0);
         nnSearch(*view.transferred_cluster_, octree_, obj_mask_nn_search);
         view.obj_mask_step_.push_back( obj_mask_nn_search);
 
         computePlaneProperties(planes, obj_mask_nn_search, is_occluded,
                                view.cloud_, view.planes_);
     }
-    std::vector<bool> pixel_is_object = view.obj_mask_step_.back();
+    boost::dynamic_bitset<> pixel_is_object = view.obj_mask_step_.back();
 
     // filter cloud based on planes not on object and not occluded in first frame
-    std::vector<bool> pixel_is_neglected (view.cloud_->points.size(), false);
+    boost::dynamic_bitset<> pixel_is_neglected (view.cloud_->points.size(), 0);
     for (size_t p_id=0; p_id<view.planes_.size(); p_id++)
     {
         for (size_t view_id = 0; view_id < grph_.size(); view_id++)
@@ -636,7 +636,7 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
     view.obj_mask_step_.push_back( binary_operation(pixel_is_object, pixel_is_neglected, BINARY_OPERATOR::AND_N) );
     pcl::copyPointCloud(*view.normal_, view.scene_points_, *normals_filtered);
 
-    std::vector<bool> obj_mask_enforced_by_supervoxel_consistency;
+    boost::dynamic_bitset<> obj_mask_enforced_by_supervoxel_consistency;
     updatePointNormalsFromSuperVoxels(view.cloud_,
                                       view.normal_,
                                       view.obj_mask_step_.back(),
@@ -645,13 +645,13 @@ IOL::learn_object (const pcl::PointCloud<PointT> &cloud, const Eigen::Matrix4f &
                                       view.supervoxel_cloud_organized_);
     view.obj_mask_step_.push_back( obj_mask_enforced_by_supervoxel_consistency );
 
-    std::vector<bool> obj_mask_grown_by_smooth_surface = extractEuclideanClustersSmooth(view.cloud_,
+    boost::dynamic_bitset<> obj_mask_grown_by_smooth_surface = extractEuclideanClustersSmooth(view.cloud_,
                                                                                            *view.normal_,
                                                                                            obj_mask_enforced_by_supervoxel_consistency,
                                                                                            pixel_is_neglected);
     view.obj_mask_step_.push_back(obj_mask_grown_by_smooth_surface);
 
-    std::vector<bool> obj_mask_eroded = erodeIndices(obj_mask_grown_by_smooth_surface, *view.cloud_);
+    boost::dynamic_bitset<> obj_mask_eroded = erodeIndices(obj_mask_grown_by_smooth_surface, *view.cloud_);
     remove_nan_points(*view.cloud_, obj_mask_eroded);
     view.obj_mask_step_.push_back( obj_mask_eroded );
 

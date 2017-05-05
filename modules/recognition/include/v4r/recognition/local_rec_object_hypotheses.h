@@ -33,34 +33,36 @@ namespace v4r{
 
 /**
  * @brief This class represents object hypotheses coming from local feature correspondences
- * @author Aitor Aldoma, Thomas Faeulhammer
+ * @author Thomas Faeulhammer, Aitor Aldoma
  */
 template<typename PointT>
 class V4R_EXPORTS LocalObjectHypothesis
 {
-  typedef Model<PointT> ModelT;
-  typedef boost::shared_ptr<ModelT> ModelTPtr;
-
   private:
     mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
 
   public:
-    ModelTPtr model_;
+    std::string model_id_; ///< object model identifier
+    pcl::CorrespondencesPtr model_scene_corresp_; ///< indices between model keypoints (index query) and scene cloud (index match)
 
     LocalObjectHypothesis() { }
 
-    pcl::Correspondences model_scene_corresp_; //indices between model keypoints (index query) and scene cloud (index match)
-    std::vector<int> indices_to_flann_models_;
-
-    void visualize(const pcl::PointCloud<pcl::PointXYZRGB> &scene, const pcl::PointCloud<pcl::PointXYZRGB> &scene_kp) const;
-
-    LocalObjectHypothesis & operator=(const LocalObjectHypothesis &rhs)
+    LocalObjectHypothesis( const LocalObjectHypothesis& other )
+        :model_id_(other.model_id_)
     {
-        this->model_scene_corresp_ = rhs.model_scene_corresp_;
-        this->indices_to_flann_models_ = rhs.indices_to_flann_models_;
-        this->model_ = rhs.model_;
+        model_scene_corresp_.reset( new pcl::Correspondences);
+        *model_scene_corresp_ = * other.model_scene_corresp_;
+    }
+
+    LocalObjectHypothesis& operator=(LocalObjectHypothesis other)
+    {
+        model_id_ = other.model_id_;
+        model_scene_corresp_.reset( new pcl::Correspondences);
+        *model_scene_corresp_ = * other.model_scene_corresp_;
         return *this;
     }
+
+    void visualize(const pcl::PointCloud<pcl::PointXYZRGB> &scene, const pcl::PointCloud<pcl::PointXYZRGB> &scene_kp) const;
 
     static bool
     gcGraphCorrespSorter (pcl::Correspondence i, pcl::Correspondence j) { return i.distance < j.distance; }

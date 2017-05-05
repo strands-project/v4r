@@ -1,118 +1,105 @@
 #include <v4r/common/zbuffering.h>
 #include <v4r/common/miscellaneous.h>
+#include <glog/logging.h>
 #include <omp.h>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <pcl/impl/instantiate.hpp>
 
 namespace v4r
 {
 
-///////////////////////////////////////////////////////////////////////////////////////////
 template<typename PointT>
 void
-ZBuffering<PointT>::filter (const typename pcl::PointCloud<PointT> & model, typename pcl::PointCloud<PointT> & filtered)
+ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::PointCloud<PointT> & rendered_view, int subsample)
 {
-    std::vector<int> indices_to_keep;
-    filter(model, indices_to_keep);
-    pcl::copyPointCloud (model, indices_to_keep, filtered);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-template<typename PointT>
-void
-ZBuffering<PointT>::filter (const typename pcl::PointCloud<PointT> & model, std::vector<int> & indices_to_keep)
-{
-    float cx, cy;
-    cx = static_cast<float> (param_.width_) / 2.f - 0.5f;
-    cy = static_cast<float> (param_.height_) / 2.f - 0.5f;
-
-    indices_to_keep.resize (model.points.size ());
-    size_t kept = 0;
-    for (size_t i = 0; i < model.points.size (); i++)
+    if ( param_.use_normals_ && (!cloud_normals_ || cloud_normals_->points.size() != cloud.points.size()) )
     {
-        float x = model.points[i].x;
-        float y = model.points[i].y;
-        float z = model.points[i].z;
-        int u = static_cast<int> (param_.f_ * x / z + cx);
-        int v = static_cast<int> (param_.f_ * y / z + cy);
-
-        if (u >= (param_.width_ - param_.u_margin_) || v >= (param_.height_ - param_.v_margin_) || u < param_.u_margin_ || v < param_.v_margin_)
-            continue;
-
-        //Check if poeint depth (distance to camera) is greater than the (u,v) meaning that the point is not visible
-        if ( pcl_isfinite( depth_[v * param_.width_ + u] ) && (z - param_.inlier_threshold_) > depth_[v * param_.width_ + u])
-            continue;
-
-        indices_to_keep[kept] = static_cast<int> (i);
-        kept++;
+        LOG(WARNING) << "Parameters set to use normals but normals are not set or do not correspond with "
+                        "input cloud! Will ignore normals!!";
+        param_.use_normals_ = false;
     }
 
-    indices_to_keep.resize (kept);
-}
+    float cx = cam_->getCx();
+    float cy = cam_->getCy();
+    float f = cam_->getFocalLength();
+    size_t width = cam_->getWidth();
+    size_t height = cam_->getHeight();
 
-template<typename PointT>
-void
-ZBuffering<PointT>::erode(const Eigen::MatrixXf &input,
-                          Eigen::MatrixXf &output,
-                          int erosion_size,
-                          int erosion_elem)
-{
-    cv::Mat_<float> input_cv;
-    cv::eigen2cv(input, input_cv);
-
-    int erosion_type = cv::MORPH_RECT;
-    if( erosion_elem == 0 ){ erosion_type = cv::MORPH_RECT; }
-    else if( erosion_elem == 1 ){ erosion_type = cv::MORPH_CROSS; }
-    else if( erosion_elem == 2) { erosion_type = cv::MORPH_ELLIPSE; }
-
-    cv::Mat element = cv::getStructuringElement( erosion_type,
-                                         cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
-                                         cv::Point( erosion_size, erosion_size ) );
-    cv::Mat eroded_input;
-    cv::erode( input_cv, eroded_input, element );
-    cv::cv2eigen(eroded_input, output);
-}
-
-template<typename PointT>
-void
-ZBuffering<PointT>::renderPointCloud(const typename pcl::PointCloud<PointT> &cloud, typename pcl::PointCloud<PointT> & rendered_view)
-{
-    float cx = static_cast<float> (param_.width_) / 2.f - 0.5f;
-    float cy = static_cast<float> (param_.height_) / 2.f - 0.5f;
-
-    rendered_view.points.resize( param_.width_ * param_.height_ );
-    rendered_view.width = param_.width_;
-    rendered_view.height = param_.height_;
+    rendered_view.points.resize( width * height );
+    rendered_view.width = width;
+    rendered_view.height = height;
     rendered_view.is_dense = false;
 
-    #pragma omp parallel for
-    for (size_t i=0; i< param_.width_ * param_.height_ ; i++)    // initialize points to infinity
+    index_map_ = -1 * Eigen::MatrixXi::Ones( height, width );
+
+//    Eigen::MatrixXf smoothing_px_dist1st = -1.f * Eigen::MatrixXf::Ones(height, width);
+//    Eigen::MatrixXf smoothing_px_dist2nd (height, width);
+//    smoothing_px_dist2nd.setTo( -1.f );
+//    index_2nd_map =  -1 * Eigen::MatrixXi::Ones( height, width );;
+
+    for (size_t i=0; i< width * height ; i++)    // initialize points to infinity
         rendered_view.points[i].x = rendered_view.points[i].y = rendered_view.points[i].z = std::numeric_limits<float>::quiet_NaN();
 
-    std::vector<omp_lock_t> pt_locks (param_.width_ * param_.height_);
+    std::vector<omp_lock_t> pt_locks (width * height);
     for(size_t i=0; i<pt_locks.size(); i++)
         omp_init_lock(&pt_locks[i]);
 
-    #pragma omp parallel for schedule (dynamic)
-    for (size_t i=0; i<cloud.points.size(); i++)
+#pragma omp parallel for schedule (dynamic)
+    for (int i=0; i< static_cast<int>(cloud.points.size()); i = i + subsample)
     {
         const PointT &pt = cloud.points[i];
-        int u = static_cast<int> (param_.f_ * pt.x / pt.z + cx);
-        int v = static_cast<int> (param_.f_ * pt.y / pt.z + cy);
+        float uf = f * pt.x / pt.z + cx;
+        float vf = f * pt.y / pt.z + cy;
 
-        if (u >= param_.width_ || v >= param_.height_  || u < 0 || v < 0)
+        int u = (int) uf;
+        int v = (int) vf;
+
+        if (u >= (int)width || v >= (int)height  || u < 0 || v < 0)
             continue;
 
-        int idx = v * param_.width_ + u;
+        if(param_.use_normals_)
+        {
+            const Eigen::Vector3f &normal = cloud_normals_->points[i].getNormalVector3fMap();
+            if( normal.dot(pt.getVector3fMap()) > 0.f ) ///NOTE: We do not need to normalize here
+                continue;
+        }
 
+        int idx = v * width + u;
         omp_set_lock(&pt_locks[idx]);
         PointT &r_pt = rendered_view.points[idx];
 
-        if ( !pcl_isfinite( r_pt.z ) || (pt.z < r_pt.z) )
-            r_pt = pt;
+//        Eigen::Vector2f dist (uf - (u + 0.5f), vf - (v + 0.5f));
+//        float dist_norm = dist.norm();
 
+//        if ( smoothing_px_dist1st(v,u)<0.f || (dist_norm < smoothing_px_dist1st(v,u)) || (pt.z < (r_pt.z-param_.inlier_threshold_) ) )
+        if ( !pcl_isfinite(r_pt.z) || (pt.z < r_pt.z ) )
+        {
+//            smoothing_px_dist1st(v,u) = dist_norm;
+            r_pt = pt;
+            index_map_(v,u) = i;
+        }
         omp_unset_lock(&pt_locks[idx]);
+/*
+        for (int uu = (u - param_.smoothing_radius_); uu <= (u + param_.smoothing_radius_); uu++)
+        {
+            for (int vv = (v - param_.smoothing_radius_); vv <= (v + param_.smoothing_radius_); vv++)
+            {
+                if( uu<0 || vv<0 || uu>=(int)width || vv>=(int)height)
+                    continue;
+
+                Eigen::Vector2f dist (uf - (uu + 0.5f), vf - (vv + 0.5f));
+                float dist_norm = dist.norm();
+
+                if(smoothing_px_dist2nd>0.f && dist_norm < smoothing_px_dist2nd)
+                {
+                    smoothing_px_dist2nd = dist_norm;
+                    index_2nd_map = i;
+                }
+            }
+        }
+        */
     }
 
     for(size_t i=0; i<pt_locks.size(); i++)
@@ -123,9 +110,9 @@ ZBuffering<PointT>::renderPointCloud(const typename pcl::PointCloud<PointT> &clo
     {
         pcl::PointCloud<PointT> rendered_view_unsmooth = rendered_view;
 
-        for (int u = param_.smoothing_radius_; u < (param_.width_ - param_.smoothing_radius_); u++)
+        for (int u = param_.smoothing_radius_; u < ((int)width - param_.smoothing_radius_); u++)
         {
-            for (int v = param_.smoothing_radius_; v < (param_.height_ - param_.smoothing_radius_); v++)
+            for (int v = param_.smoothing_radius_; v < ((int)height - param_.smoothing_radius_); v++)
             {
                 float min = std::numeric_limits<float>::max();
                 int min_uu = u, min_vv = v;
@@ -133,11 +120,12 @@ ZBuffering<PointT>::renderPointCloud(const typename pcl::PointCloud<PointT> &clo
                 {
                     for (int vv = (v - param_.smoothing_radius_); vv <= (v + param_.smoothing_radius_); vv++)
                     {
-                        if( uu<0 || vv<0 || uu>=param_.width_ || vv>=param_.height_)    // this shouldn't happen anyway
+                        if( uu<0 || vv<0 || uu>=(int)width || vv>=(int)height)    // this shouldn't happen anyway
                             continue;
 
                         PointT &p = rendered_view_unsmooth.at(uu,vv);
-                        if ( !pcl_isfinite(min) || (pcl::isFinite(p) && ( p.z < min)) ) {
+                        if ( !pcl_isfinite(min) || (pcl::isFinite(p) && ( p.z < min)) )
+                        {
                             min = p.z;
                             min_uu = uu;
                             min_vv = vv;
@@ -146,203 +134,65 @@ ZBuffering<PointT>::renderPointCloud(const typename pcl::PointCloud<PointT> &clo
                 }
 
                 rendered_view.at(u,v) = rendered_view_unsmooth.at(min_uu, min_vv);
+                index_map_(v,u) = index_map_(min_vv, min_uu);   ///NOTE: Be careful, this is maybe not what you want to get!
             }
         }
     }
-}
 
-template<typename PointT>
-void
-ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & cloud, Eigen::MatrixXf &depth_image, std::vector<int> &visible_indices)
-{
-    indices_map_.reset (new std::vector<int>( param_.width_ * param_.height_, -1 ));
-
-    std::vector<omp_lock_t> pt_locks (param_.width_ * param_.height_);
-    for(size_t i=0; i<pt_locks.size(); i++)
-        omp_init_lock(&pt_locks[i]);
-
-    if(!cloud.isOrganized() || param_.force_unorganized_)
+    if (param_.do_noise_filtering_)
     {
-        depth_image = std::numeric_limits<float>::quiet_NaN() * Eigen::MatrixXf::Ones(param_.height_, param_.width_);
+        pcl::PointCloud<PointT> rendered_view_filtered = rendered_view;
 
-        float cx = static_cast<float> (param_.width_) / 2.f - 0.5f;
-        float cy = static_cast<float> (param_.height_) / 2.f - 0.5f;
-#pragma omp parallel for schedule(dynamic)
-        for(size_t i=0; i<cloud.points.size(); i++)
+        for (int u = param_.smoothing_radius_; u < ((int)width - param_.smoothing_radius_); u++)
         {
-            const PointT &pt = cloud.points[i];
-            int u = static_cast<int> (param_.f_ * pt.x / pt.z + cx);
-            int v = static_cast<int> (param_.f_ * pt.y / pt.z + cy);
-
-            if (u >= param_.width_ || v >= param_.height_  || u < 0 || v < 0)
-                continue;
-
-            int idx = v * param_.width_ + u;
-
-            omp_set_lock(&pt_locks[idx]);
-
-            if ( ( pcl_isfinite(pt.z) && !pcl_isfinite( depth_image(v,u) )) ||
-                 (pt.z < depth_image(v,u) ) ) {
-                depth_image(v,u) = pt.z;
-                indices_map_->at(idx) = i;
-            }
-
-            omp_unset_lock(&pt_locks[idx]);
-        }
-    }
-    else {
-        if ( cloud.points.size() != param_.height_ * param_.width_)
-            throw std::runtime_error("Occlusion cloud does not have the same size as provided by the parameters img_height and img_width!");
-
-        depth_image = Eigen::MatrixXf(param_.height_, param_.width_);
-
-#pragma omp parallel for schedule (dynamic)
-        for(size_t u=0; u<cloud.width; u++)
-        {
-            for(size_t v=0; v<cloud.height; v++)
+            for (int v = param_.smoothing_radius_; v < ((int)height - param_.smoothing_radius_); v++)
             {
-                const PointT &pt = cloud.at(u,v);
-                if (pcl_isfinite(pt.z))
+                PointT &p = rendered_view_filtered.at(u,v);
+                bool is_noise = true;
+                for (int uu = (u - param_.smoothing_radius_); uu <= (u + param_.smoothing_radius_) && is_noise; uu++)
                 {
-                    depth_image(v,u) = pt.z;
-                    indices_map_->at(v * param_.width_ + u) = v * param_.width_ + u;
-                }
-            }
-        }
-    }
-
-    for(size_t i=0; i<pt_locks.size(); i++)
-        omp_destroy_lock(&pt_locks[i]);
-
-    visible_indices.resize(indices_map_->size());
-    size_t kept=0;
-    for(size_t i=0; i < param_.height_ * param_.width_; i++)
-    {
-        if(indices_map_->at(i) >= 0)
-        {
-            visible_indices[kept] = indices_map_->at(i);
-            kept++;
-        }
-    }
-    visible_indices.resize(kept);
-}
-
-template<typename PointT>
-void
-ZBuffering<PointT>::computeDepthMap (const typename pcl::PointCloud<PointT> & scene)
-{
-    float cx = static_cast<float> (param_.width_) / 2.f - 0.5f;
-    float cy = static_cast<float> (param_.height_) / 2.f - 0.5f;
-
-    //compute the focal length
-    if (param_.compute_focal_length_)
-    {
-        float max_u, max_v, min_u, min_v;
-        max_u = max_v = std::numeric_limits<float>::max () * -1;
-        min_u = min_v = std::numeric_limits<float>::max ();
-
-        for (size_t i = 0; i < scene.points.size (); i++)
-        {
-            float b_x = scene.points[i].x / scene.points[i].z;
-            if (b_x > max_u)
-                max_u = b_x;
-            if (b_x < min_u)
-                min_u = b_x;
-
-            float b_y = scene.points[i].y / scene.points[i].z;
-            if (b_y > max_v)
-                max_v = b_y;
-            if (b_y < min_v)
-                min_v = b_y;
-        }
-
-        float maxC = std::max (std::max (std::abs (max_u), std::abs (max_v)), std::max (std::abs (min_u), std::abs (min_v)));
-        param_.f_ = (cx) / maxC;
-    }
-
-    depth_.resize(param_.width_ * param_.height_, std::numeric_limits<float>::quiet_NaN());
-    std::vector<omp_lock_t> depth_locks (param_.width_ * param_.height_);
-    for(size_t i=0; i<depth_locks.size(); i++)
-        omp_init_lock(&depth_locks[i]);
-
-    std::vector<int> indices2input (param_.width_ * param_.height_, -1);
-
-    #pragma omp parallel for schedule (dynamic)
-    for (size_t i=0; i<scene.points.size(); i++)
-    {
-        const PointT &pt = scene.points[i];
-        int u = static_cast<int> (param_.f_ * pt.x / pt.z + cx);
-        int v = static_cast<int> (param_.f_ * pt.y / pt.z + cy);
-
-        if (u >= param_.width_ - param_.u_margin_ || v >= param_.height_ - param_.v_margin_ || u < param_.u_margin_ || v < param_.v_margin_)
-            continue;
-
-        int idx = v * param_.width_ + u;
-
-        omp_set_lock(&depth_locks[idx]);
-
-        if ( (pt.z < depth_[idx]) || !pcl_isfinite(depth_[idx]) ) {
-            depth_[idx] = pt.z;
-            indices2input [idx] = i;
-        }
-
-        omp_unset_lock(&depth_locks[idx]);
-    }
-
-    for(size_t i=0; i<depth_locks.size(); i++)
-        omp_destroy_lock(&depth_locks[i]);
-
-    if (param_.do_smoothing_)
-    {
-        //Dilate and smooth the depth map
-        std::vector<float> depth_smooth (param_.width_ * param_.height_, std::numeric_limits<float>::quiet_NaN());
-        std::vector<int> indices2input_smooth = indices2input;
-
-        for (int u = param_.smoothing_radius_; u < (param_.width_ - param_.smoothing_radius_); u++)
-        {
-            for (int v = param_.smoothing_radius_; v < (param_.height_ - param_.smoothing_radius_); v++)
-            {
-                float min = std::numeric_limits<float>::max();
-                int min_idx = v * param_.width_ + u;
-                for (int j = (u - param_.smoothing_radius_); j <= (u + param_.smoothing_radius_); j++)
-                {
-                    for (int i = (v - param_.smoothing_radius_); i <= (v + param_.smoothing_radius_); i++)
+                    for (int vv = (v - param_.smoothing_radius_); vv <= (v + param_.smoothing_radius_); vv++)
                     {
-                        if( j<0 || i<0 || j>=param_.height_ || i>=param_.width_)    // this shouldn't happen anyway
+                        if( uu<0 || vv<0 || uu>=(int)width || vv>=(int)height)    // this shouldn't happen anyway
                             continue;
 
-                        int idx = i * param_.width_ + j;
-                        if (pcl_isfinite(depth_[idx]) && (depth_[idx] < min)) {
-                            min = depth_[idx];
-                            min_idx = idx;
+                        PointT &p_tmp = rendered_view.at(uu,vv);
+                        if ( std::abs(p.z - p_tmp.z) < param_.inlier_threshold_ )
+                        {
+                            is_noise=false;
+                            break;
                         }
                     }
                 }
-
-                if ( min < std::numeric_limits<float>::max() - 0.001 ) {
-                    depth_smooth[v * param_.width_ + u] = min;
-                    indices2input_smooth[v * param_.width_ + u] = indices2input[min_idx];
+                if(is_noise)
+                {
+                    p.x = p.y = p.z = std::numeric_limits<float>::quiet_NaN();
+                    index_map_(v,u) = -1;
                 }
+           }
+        }
+        rendered_view = rendered_view_filtered;
+    }
+
+    boost::dynamic_bitset<> pt_is_kept ( cloud.points.size(), 0);
+
+    for(int v=0; v<index_map_.rows(); v++)
+    {
+        for(int u=0; u<index_map_.cols(); u++)
+        {
+            if(index_map_(v,u)>=0)
+            {
+                pt_is_kept.set(index_map_(v,u));
             }
         }
-        depth_ = depth_smooth;
-        indices2input = indices2input_smooth;
     }
 
-
-    std::vector<bool> pt_is_visible(scene.points.size(), false);
-    for(size_t i=0; i<indices2input.size(); i++)
-    {
-        int input_idx = indices2input[i];
-        if(input_idx>=0)
-            pt_is_visible[input_idx] = true;
-    }
-    kept_indices_ = createIndicesFromMask<int>(pt_is_visible);
+    kept_indices_ = createIndicesFromMask<int>( pt_is_kept );
 }
 
-template class V4R_EXPORTS ZBuffering<pcl::PointXYZ>;
-template class V4R_EXPORTS ZBuffering<pcl::PointXYZRGB>;
-//template class V4R_EXPORTS v4r::ZBuffering<pcl::PointXYZRGBA>;
+
+#define PCL_INSTANTIATE_ZBuffering(T) template class V4R_EXPORTS ZBuffering<T>;
+PCL_INSTANTIATE(ZBuffering, PCL_XYZ_POINT_TYPES )
 }
 
 

@@ -21,8 +21,7 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_KEYPOINTS_ALL_HEADERS__
-#define V4R_KEYPOINTS_ALL_HEADERS__
+#pragma once
 
 #include <v4r/keypoints/types.h>
 
@@ -31,4 +30,50 @@
 #include <v4r/keypoints/narf_keypoint_extractor.h>
 #include <v4r/keypoints/iss_keypoint_extractor.h>
 
-#endif
+namespace v4r
+{
+
+template<typename PointT>
+std::vector<typename KeypointExtractor<PointT>::Ptr>
+initKeypointExtractors(int method, std::vector<std::string> &params)
+{
+    std::vector<typename KeypointExtractor<PointT>::Ptr > keypoint_extractor;
+
+    if(method & KeypointType::UniformSampling)
+    {
+        UniformSamplingExtractorParameter param;
+        params = param.init(params);
+        typename UniformSamplingExtractor<PointT>::Ptr ke (new UniformSamplingExtractor<PointT> (param));
+        keypoint_extractor.push_back( boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke) );
+    }
+    if(method & KeypointType::ISS)
+    {
+        IssKeypointExtractorParameter param;
+        params = param.init(params);
+        typename IssKeypointExtractor<PointT>::Ptr ke (new IssKeypointExtractor<PointT> (param));
+        keypoint_extractor.push_back( boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke) );
+    }
+    if(method & KeypointType::NARF)
+    {
+        NarfKeypointExtractorParameter param;
+        params = param.init(params);
+        typename NarfKeypointExtractor<PointT>::Ptr ke (new NarfKeypointExtractor<PointT> (param));
+        keypoint_extractor.push_back( boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke) );
+    }
+    if(method & KeypointType::HARRIS3D)
+    {
+        Harris3DKeypointExtractorParameter param;
+        params = param.init(params);
+        typename Harris3DKeypointExtractor<PointT>::Ptr ke (new Harris3DKeypointExtractor<PointT> (param));
+        keypoint_extractor.push_back( boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke) );
+    }
+    if( keypoint_extractor.empty() )
+    {
+        std::cerr << "Keypoint extractor method " << method << " is not implemented! " << std::endl;
+    }
+
+    return keypoint_extractor;
+}
+
+
+}

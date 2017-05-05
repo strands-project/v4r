@@ -131,7 +131,7 @@ void RigidTransformationRANSAC::GetInliers(std::vector<float> &dists, std::vecto
 /**
  * Robust estimation of object poses
  */
-void RigidTransformationRANSAC::Ransac(
+int RigidTransformationRANSAC::Ransac(
       const std::vector<Eigen::Vector3f > &srcPts,
       const std::vector<Eigen::Vector3f > &tgtPts,
       Eigen::Matrix4f &transform,
@@ -180,6 +180,7 @@ void RigidTransformationRANSAC::Ransac(
   }
 
   //cout<<"Number of ransac trials: "<<k<<", inl="<<svSig<<"("<<inliers.size()<<")/"<<srcPts.size()<<endl;
+  return k;
 }
 
 
@@ -284,7 +285,7 @@ void RigidTransformationRANSAC::estimateRigidTransformationSVD(
 /**
  * compute
  */
-void RigidTransformationRANSAC::compute(
+int RigidTransformationRANSAC::compute(
       const std::vector<Eigen::Vector3f> &srcPts,
       const std::vector<Eigen::Vector3f> &tgtPts,
       Eigen::Matrix4f &transform,
@@ -293,8 +294,14 @@ void RigidTransformationRANSAC::compute(
   if (srcPts.size()<4 || srcPts.size()!=tgtPts.size())
     throw std::runtime_error("[RigidTransformationRANSAC::estimateRigidTransformationSVD] Invalide points!");
 
-  Ransac(srcPts, tgtPts, transform, inliers);
+  return Ransac(srcPts, tgtPts, transform, inliers);
 }
 
 
 } //-- THE END --
+
+
+
+
+
+

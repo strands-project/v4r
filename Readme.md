@@ -1,3 +1,5 @@
+[![build status](https://rgit.acin.tuwien.ac.at/root/v4r/badges/master/build.svg)](https://rgit.acin.tuwien.ac.at/root/v4r/commits/master)
+
 The library itself is independent of ROS, so it is built outside ROS catkin. There are wrappers for ROS (https://github.com/strands-project/v4r_ros_wrappers), which can then be placed inside the normal catkin workspace.
 
 # Dependencies:  
@@ -15,8 +17,9 @@ simply install `sudo apt-get install ros-indigo-v4r` after enabling the [STRANDS
 ## From Source  
 ```
 cd ~/somewhere
-git clone 'https://github.com/strands-project/v4r'
+git clone 'https://rgit.acin.tuwien.ac.at/root/v4r.git'
 cd v4r
+./setup.sh
 mkdir build
 cd build
 cmake ..

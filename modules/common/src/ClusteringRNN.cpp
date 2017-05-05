@@ -1,17 +1,7 @@
-/**
- * $Id$
- * 
+/*
  * Software License Agreement (GNU General Public License)
  *
- *  Copyright (C) 2015:
- *
- *    Johann Prankl, prankl@acin.tuwien.ac.at
- *    Aitor Aldoma, aldoma@acin.tuwien.ac.at
- *
- *      Automation and Control Institute
- *      Vienna University of Technology
- *      Gusshausstraße 25-29
- *      1170 Vienn, Austria
+ *  Copyright (c) 2014, Johann Prankl, prankl@acin.tuwien.ac.at
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,16 +16,26 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Johann Prankl, Aitor Aldoma
+ * @author Johann Prankl
  *
  */
 
+/**
+ * $Id: ClusteringRNN.cc 51 2014-03-30 12:41:22Z hannes $
+ * Johann Prankl, 2011-11-04
+ * prankl@acin.tuwien.ac.at
+ */
+
+
 #include <v4r/common/ClusteringRNN.h>
+
 
 namespace v4r
 {
 
 using namespace std;
+
+
 
 
 ClusteringRNN::ClusteringRNN(const Parameter &_param, bool _dbg)
@@ -62,16 +62,16 @@ ClusteringRNN::~ClusteringRNN()
 /**
  * find nearest neighbour of CodebookEntries
  */
-int ClusteringRNN::getNearestNeighbour(const Cluster &cluster, const std::vector<Cluster::Ptr> &clusters, float &sim)
+int ClusteringRNN::getNearestNeighbour(const Cluster &cluster, const std::vector<Cluster::Ptr> &_clusters, float &sim)
 {
   sim = -FLT_MAX;
   int idx = INT_MAX;
   float tmp;
 
-  for (unsigned i=0; i<clusters.size(); i++)
+  for (unsigned i=0; i<_clusters.size(); i++)
   {
-    tmp = -( cluster.sqr_sigma + clusters[i]->sqr_sigma + 
-             (cluster.data-clusters[i]->data).squaredNorm() );
+    tmp = -( cluster.sqr_sigma + _clusters[i]->sqr_sigma +
+             (cluster.data-_clusters[i]->data).squaredNorm() );
     if (tmp > sim)
     {
       sim = tmp;
@@ -173,8 +173,20 @@ void ClusteringRNN::cluster(const DataMatrix2Df &samples)
         if (dbg){ printf("."); fflush(stdout); }
       }
     }
+    if (remaining.size()==0)
+    {
+      if (lastsim[last] > sqrThr){
+        agglomerate(*chain[last-1], *chain[last]);
+        remaining.push_back(chain[last]);
+        chain.pop_back();
+        chain.pop_back();
+        lastsim.pop_back();
+        lastsim.pop_back();
+        last-=2;
+      }
+    }
 
-    if (last<0){
+    if (last<0 && remaining.size()>0){
       //init new chain
       last++;
       lastsim.push_back(-FLT_MAX);
@@ -222,6 +234,7 @@ void ClusteringRNN::getCenters(DataMatrix2Df &_centers)
 
 
 }
+
 
 
 

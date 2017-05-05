@@ -15,6 +15,7 @@
 #include <caffe/layer.hpp>
 #include <caffe/layers/memory_data_layer.hpp>
 
+#include <v4r/common/img_utils.h>
 #include <v4r/common/pcl_opencv.h>
 
 using caffe::Blob;
@@ -35,8 +36,9 @@ CNN_Feat_Extractor<PointT, Dtype>::WrapInputLayer(std::vector<cv::Mat>* input_ch
 
     int width = input_layer->width();
     int height = input_layer->height();
-    float* input_data = input_layer->mutable_cpu_data();
-    for (int i = 0; i < input_layer->channels(); ++i) {
+    Dtype* input_data = input_layer->mutable_cpu_data();
+    for (int i = 0; i < input_layer->channels(); ++i)
+    {
         cv::Mat channel(height, width, CV_32FC1, input_data);
         input_channels->push_back(channel);
         input_data += width * height;
@@ -79,7 +81,7 @@ CNN_Feat_Extractor<PointT, Dtype>::Preprocess(const cv::Mat& img, std::vector<cv
    * objects in input_channels. */
     cv::split(sample_normalized, *input_channels);
 
-    CHECK(reinterpret_cast<float*>(input_channels->at(0).data)
+    CHECK(reinterpret_cast<Dtype*>(input_channels->at(0).data)
           == net_->input_blobs()[0]->cpu_data())
             << "Input channels are not wrapping the input layer of the network.";
 }
@@ -124,7 +126,8 @@ template<typename PointT, typename Dtype>
 int
 CNN_Feat_Extractor<PointT, Dtype>::init(){
 
-  if (strcmp(param_.device_name_.c_str(), "GPU") == 0) {
+  if (strcmp(param_.device_name_.c_str(), "GPU") == 0)
+  {
     Caffe::SetDevice(param_.device_id_);
     Caffe::set_mode(Caffe::GPU);
   }
@@ -134,7 +137,7 @@ CNN_Feat_Extractor<PointT, Dtype>::init(){
   net_.reset(new Net<Dtype>(param_.feature_extraction_proto_, caffe::TEST));
   net_->CopyTrainedLayersFrom(param_.pretrained_binary_proto_);
 
-  caffe::Blob<float>* input_layer = net_->input_blobs()[0];
+  caffe::Blob<Dtype>* input_layer = net_->input_blobs()[0];
   num_channels_ = input_layer->channels();
   CHECK(num_channels_ == 3 || num_channels_ == 1) << "Input layer should have 1 or 3 channels.";
   input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
@@ -155,7 +158,7 @@ CNN_Feat_Extractor<PointT, Dtype>::compute (const cv::Mat &img, Eigen::MatrixXf 
         init_ = true;
     }
 
-    Blob<float>* input_layer = net_->input_blobs()[0];
+    Blob<Dtype>* input_layer = net_->input_blobs()[0];
     input_layer->Reshape(1, num_channels_,
                          input_geometry_.height, input_geometry_.width);
     /* Forward dimension change to all layers. */
@@ -170,7 +173,7 @@ CNN_Feat_Extractor<PointT, Dtype>::compute (const cv::Mat &img, Eigen::MatrixXf 
 
     /* Copy the output layer to a std::vector */
 //    Blob<float>* output_layer = net_->output_blobs()[0];
-    boost::shared_ptr<Blob<float> > output_layer = net_->blob_by_name(param_.output_layer_name_);
+    boost::shared_ptr<Blob<Dtype> > output_layer = net_->blob_by_name(param_.output_layer_name_);
     const float* begin = output_layer->cpu_data();
     const float* end = begin + output_layer->channels();
     std::vector<float> sign_f = std::vector<float>(begin, end);
@@ -190,9 +193,18 @@ bool
 CNN_Feat_Extractor<PointT, Dtype>::compute (Eigen::MatrixXf &signature)
 {
     CHECK( cloud_ && cloud_->isOrganized() && !cloud_->points.empty() && !indices_.empty());
-    cv::Mat img = v4r::ConvertPCLCloud2FixedSizeImage(*cloud_, indices_, param_.image_height_,
-                                                      param_.image_width_, 10, cv::Scalar(255,255,255), true);
-    compute(img, signature);
+    PCLOpenCVConverter<PointT> pcl_opencv_converter;
+    pcl_opencv_converter.setInputCloud(cloud_);
+    pcl_opencv_converter.setIndices(indices_);
+    pcl_opencv_converter.setBackgroundColor( param_.background_color_(0), param_.background_color_(1), param_.background_color_(2) );
+    pcl_opencv_converter.setRemoveBackground( param_.remove_background_ );
+    cv::Mat img = pcl_opencv_converter.getRGBImage();
+    cv::Rect roi = pcl_opencv_converter.getROI();
+    cv::Mat img_cropped = cropImage(img, roi, param_.margin_, true);
+
+    std::cerr << "Closing operation not implemented right now!" << std::endl;   ///TODO: re-implement closing operation to avoid sharp transitions from noisy measurements
+
+    compute(img_cropped, signature);
     indices_.clear();
     return true;
 }

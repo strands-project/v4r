@@ -24,7 +24,7 @@
  */
 
 
-#include <v4r/common/eigen.h>
+#include <pcl/common/eigen.h>
 #include <v4r/common/ZAdaptiveNormals.h>
 
 namespace v4r
@@ -136,7 +136,7 @@ float ZAdaptiveNormals::computeNormal(const v4r::DataMatrix2D<Eigen::Vector3f> &
   computeCovarianceMatrix (cloud, indices, mean, cov);
 
   Eigen::Vector3f eigen_values;
-  v4r::eigen33 (cov, eigen_vectors, eigen_values);
+  pcl::eigen33 (cov, eigen_vectors, eigen_values);
   float eigsum = eigen_values.sum();
   if (eigsum != 0)
     return fabs (eigen_values[0] / eigsum );

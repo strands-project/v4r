@@ -57,6 +57,7 @@
 #include <v4r/common/convertCloud.h>
 #include <v4r/keypoints/ClusterNormalsToPlanes.h>
 #include "OctreeVoxelCentroidContainerXYZRGB.hpp"
+#include "OcclusionClustering.hh"
 #endif
 
 
@@ -74,6 +75,29 @@ public:
     Eigen::Vector3f vr;
     CameraLocation() {}
     CameraLocation(int _idx, int _type, const Eigen::Vector3f &_pt, const Eigen::Vector3f &_vr) : idx(_idx), type(_type), pt(_pt), vr(_vr) {}
+  };
+  /**
+   * @brief The Surfel class
+   */
+  class Surfel
+  {
+  public:
+    Eigen::Vector3f pt;
+    Eigen::Vector3f n;
+    float weight;
+    float radius;
+    int r, g, b;
+    Surfel() : weight(0), radius(0) {}
+    Surfel(const pcl::PointXYZRGB &_pt) : pt(_pt.getArray3fMap()), weight(1), radius(0), r(_pt.r), g(_pt.g), b(_pt.b) {
+      if (!std::isnan(pt[0]) && !std::isnan(pt[1]) &&!std::isnan(pt[2])) {
+        n = -pt.normalized();
+      }
+      else
+      {
+        n = Eigen::Vector3f(std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN());
+        weight = 0;
+      }
+    }
   };
 
   Sensor();
@@ -97,7 +121,7 @@ public:
 
   v4r::Object::Ptr &getModel() {return camtracker->getModelPtr(); }
   boost::shared_ptr< std::vector<CameraLocation> > &getTrajectory() {return cam_trajectory;}
-  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &getClouds() { return log_clouds; }
+  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &getClouds() { return log_clouds; }
   boost::shared_ptr< AlignedPointXYZRGBVector > &getAlignedCloud() {return oc_cloud;}
 
 
@@ -136,8 +160,13 @@ private:
   void getBoundingBox(const v4r::DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector<int> &indices, const Eigen::Matrix4f &pose,
                       std::vector<Eigen::Vector3f> &bbox, Eigen::Vector3f &bb_min, Eigen::Vector3f &bb_max);
   void maskCloud(const Eigen::Matrix4f &pose, const Eigen::Vector3f &bb_min, const Eigen::Vector3f &bb_max, v4r::DataMatrix2D<Eigen::Vector3f> &cloud);
+  void filterCloud(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, const Eigen::Matrix4f &_pose, pcl::PointCloud<pcl::PointXYZRGB> &_filt_cloud, const cv::Mat_<unsigned char> &_mask);
+  void initCloud(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, const Eigen::Matrix4f &_pose, v4r::DataMatrix2D<Surfel> &_sf_cloud, Eigen::Matrix4f &_sf_pose);
+  void integrateData(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, const Eigen::Matrix4f &_pose, v4r::DataMatrix2D<Surfel> &_sf_cloud, Eigen::Matrix4f &_filt_pose);
 
   inline bool isNaN(const Eigen::Vector3f &pt);
+  inline double sqr(const double &val);
+
 
 
   // status
@@ -162,7 +191,7 @@ private:
   // data logging
   double cos_min_delta_angle, sqr_min_cam_distance;
   boost::shared_ptr< std::vector<CameraLocation> > cam_trajectory;
-  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > log_clouds;
+  boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > log_clouds;
   std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > cameras;
 
   // preview
@@ -200,6 +229,22 @@ private:
 
   v4r::ClusterNormalsToPlanes::Ptr pest;
   v4r::ZAdaptiveNormals::Ptr nest;
+
+  // filtering
+  v4r::OcclusionClustering occ;
+  v4r::DataMatrix2D<Surfel> sf_cloud;
+  Eigen::Matrix4f sf_pose;
+  cv::Mat_<unsigned char> occ_mask;
+
+  cv::Mat_<float> depth_norm;
+  cv::Mat_<float> depth_weight;
+  cv::Mat_<float> tmp_z;
+  cv::Mat_<float> nan_z;
+
+  std::vector<float> exp_error_lookup;
+  double max_integration_frames;
+  cv::Mat_<double> cam;
+
 };
 
 /**
@@ -213,5 +258,11 @@ inline bool Sensor::isNaN(const Eigen::Vector3f &pt)
     return true;
   return false;
 }
+
+inline double Sensor::sqr(const double &val)
+{
+  return val*val;
+}
+
 
 #endif // _GRAB_PCD_SENSOR_H_

@@ -7,15 +7,15 @@ namespace v4r
 template<typename ModelT>
 void
 HVRecognitionModel<ModelT>::processSilhouette(bool do_smoothing,
-                                              size_t smoothing_radius,
+                                              int smoothing_radius,
                                               bool do_erosion,
-                                              size_t erosion_radius,
-                                              size_t img_width)
+                                              int erosion_radius,
+                                              int img_width)
 {
 
     for(size_t view=0; view<image_mask_.size(); view++)
     {
-        size_t img_height = image_mask_[view].size() / img_width;
+        int img_height = image_mask_[view].size() / img_width;
 //                std::stringstream fn; fn << "/tmp/rendered_image_" << view << ".txt";
 //                std::ofstream f(fn.str().c_str());
 //                for(size_t px=0; px<image_mask_[view].size(); px++)
@@ -23,7 +23,7 @@ HVRecognitionModel<ModelT>::processSilhouette(bool do_smoothing,
 //                f.close();
         if(do_smoothing)
         {
-            std::vector<bool> img_mask_smooth = image_mask_[view];
+            boost::dynamic_bitset<> img_mask_smooth = image_mask_[view];
             for(int u=0; u<img_width; u++)
             {
                 for(int v=0; v <img_height; v++)
@@ -58,7 +58,7 @@ HVRecognitionModel<ModelT>::processSilhouette(bool do_smoothing,
 
         if(do_erosion)
         {
-            std::vector<bool> img_mask_eroded = image_mask_[view];
+            boost::dynamic_bitset<> img_mask_eroded = image_mask_[view];
             for(int u=0; u<img_width; u++)
             {
                 for(int v=0; v <img_height; v++)

@@ -32,7 +32,6 @@
 
 #include <v4r/reconstruction/KeyframeManagementRGBD2.h>
 #include <v4r/keypoints/impl/invPose.hpp>
-#include <v4r/common/impl/ScopeTime.hpp>
 #include <v4r/features/FeatureDetector_K_HARRIS.h>
 
 
@@ -109,30 +108,30 @@ double KeyframeManagementRGBD2::cameraRotationZ(const Eigen::Matrix4f &inv_pose1
 /**
  * getPoints3D
  */
-void KeyframeManagementRGBD2::getPoints3D(const DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector< std::pair<int,cv::Point2f> > &im_pts, std::vector<Eigen::Vector3f> &points)
+void KeyframeManagementRGBD2::getPoints3D(const DataMatrix2D<Eigen::Vector3f> &cloud, const std::vector< std::pair<int,cv::Point2f> > &_im_pts, std::vector<Eigen::Vector3f> &points)
 {
-  points.resize(im_pts.size());
+  points.resize(_im_pts.size());
 
-  for (unsigned i=0; i<im_pts.size(); i++)
+  for (unsigned i=0; i<_im_pts.size(); i++)
   {
-    points[i] = cloud(int(im_pts[i].second.y+.5),int(im_pts[i].second.x+.5));
+    points[i] = cloud(int(_im_pts[i].second.y+.5),int(_im_pts[i].second.x+.5));
   }
 }
 
 /**
  * getGlobalCorrespondences
  */
-int KeyframeManagementRGBD2::getGlobalCorrespondences(const std::vector<unsigned> glob_indices, const std::vector< std::pair<int,cv::Point2f> > &im_pts, std::vector<cv::KeyPoint> &keys, std::vector<unsigned> &points,std::vector<cv::Point2f> &im_points)
+int KeyframeManagementRGBD2::getGlobalCorrespondences(const std::vector<unsigned> glob_indices, const std::vector< std::pair<int,cv::Point2f> > &_im_pts, std::vector<cv::KeyPoint> &keys, std::vector<unsigned> &points,std::vector<cv::Point2f> &im_points)
 {
   int cnt=0, idx=INT_MAX;
   float dist, min_dist;
   im_points.resize(keys.size());
   float sqr_inl_dist = param.inl_dist_px*param.inl_dist_px;
 
-  for (unsigned i=0; i<im_pts.size(); i++)
+  for (unsigned i=0; i<_im_pts.size(); i++)
   {
     min_dist = FLT_MAX;
-    const std::pair<int,cv::Point2f> &im_pt = im_pts[i];
+    const std::pair<int,cv::Point2f> &im_pt = _im_pts[i];
 
     for (unsigned j=0; j<keys.size(); j++)
     {
@@ -164,7 +163,7 @@ int KeyframeManagementRGBD2::getGlobalCorrespondences(const std::vector<unsigned
  */
 bool KeyframeManagementRGBD2::createView(Shm &data, ObjectView::Ptr &view_ptr)
 {
-  ObjectView &view = *view_ptr;
+  ObjectView &_view = *view_ptr;
 
   Eigen::Matrix4f inv_pose;
   std::vector<int> indices;
@@ -178,25 +177,25 @@ bool KeyframeManagementRGBD2::createView(Shm &data, ObjectView::Ptr &view_ptr)
   Eigen::Vector3f t = inv_pose.block<3, 1>(0,3);
 
   // detect keypoints
-  det->detect(data.image, view.keys);
+  det->detect(data.image, _view.keys);
 
   // compute normals
-  for (unsigned i=0; i<view.keys.size(); i++)
+  for (unsigned i=0; i<_view.keys.size(); i++)
   {
-    int x = int(view.keys[i].pt.x+.5);
-    int y = int(view.keys[i].pt.y+.5);
+    int x = int(_view.keys[i].pt.x+.5);
+    int y = int(_view.keys[i].pt.y+.5);
     indices.push_back(y*data.cloud.cols+x);
   }
 
   // look for point tracks
   points.clear();
-  points.resize(view.keys.size(),UINT_MAX);
+  points.resize(_view.keys.size(),UINT_MAX);
   if (data.view_idx!=-1 && model->views.size()>0)
   {
     shm.lock();
     std::vector<unsigned> glob_points = model->views[data.view_idx]->points;
     shm.unlock();
-    /*int cnt=*/getGlobalCorrespondences(glob_points, data.im_pts, view.keys, points, im_points);
+    /*int cnt=*/getGlobalCorrespondences(glob_points, data.im_pts, _view.keys, points, im_points);
     //cout<<"pt/kf tracks: "<<cnt<<endl;
   }
 
@@ -204,10 +203,10 @@ bool KeyframeManagementRGBD2::createView(Shm &data, ObjectView::Ptr &view_ptr)
 
   // assemble model
   unsigned z=0;
-  view.points.clear();
-  view.points.reserve(view.keys.size());
-  view.viewrays.resize(view.keys.size());
-  view.cam_points.resize(view.keys.size());
+  _view.points.clear();
+  _view.points.reserve(_view.keys.size());
+  _view.viewrays.resize(_view.keys.size());
+  _view.cam_points.resize(_view.keys.size());
 
   // count valid points
   int cnt=0;
@@ -223,32 +222,32 @@ bool KeyframeManagementRGBD2::createView(Shm &data, ObjectView::Ptr &view_ptr)
 
   // return model
   shm.lock();
-  for (unsigned i=0; i<view.keys.size(); i++)
+  for (unsigned i=0; i<_view.keys.size(); i++)
   {
     const Eigen::Vector3f &pt = data.cloud.data[indices[i]];
     if (!isnan(normals[i][0]) && !isnan(pt[0]))
     {
-      view.keys[z] = view.keys[i];
+      _view.keys[z] = _view.keys[i];
       if (points[i] != UINT_MAX) {
-        view.keys[z].pt = im_points[i];
-        view.addPt(points[i]);
-      } else view.addPt(R*pt+t, R*normals[i]);
-      view.viewrays[z] = -(R*pt).normalized();
-      view.cam_points[z] = pt;
+        _view.keys[z].pt = im_points[i];
+        _view.addPt(points[i]);
+      } else _view.addPt(R*pt+t, R*normals[i]);
+      _view.viewrays[z] = -(R*pt).normalized();
+      _view.cam_points[z] = pt;
       z++;
     }
   }
   shm.unlock();
 
-  view.keys.resize(z);
-  view.viewrays.resize(z);
-  view.cam_points.resize(z);
-  view.image = data.image;
+  _view.keys.resize(z);
+  _view.viewrays.resize(z);
+  _view.cam_points.resize(z);
+  _view.image = data.image;
   data.image = cv::Mat();
 
-  estDesc->extract(view.image, view.keys, view.descs);   
+  estDesc->extract(_view.image, _view.keys, _view.descs);
 
-  view.computeCenter();
+  _view.computeCenter();
 
   return true;
 }
@@ -262,7 +261,7 @@ bool KeyframeManagementRGBD2::closeLoops()
 
   double conf;
   Eigen::Matrix4f inv, delta_pose[2];
-  std::vector< std::pair<int,cv::Point2f> > im_pts[2];
+  std::vector< std::pair<int,cv::Point2f> > _im_pts[2];
 
   // complete new keyframe
   kpDetector->setModel(model->views[new_view]);
@@ -275,7 +274,7 @@ bool KeyframeManagementRGBD2::closeLoops()
   if (conf < param.min_conf)
     return false; 
 
-  kpTracker->getProjections(im_pts[0]);
+  kpTracker->getProjections(_im_pts[0]);
 
   // complete old keyframe
   kpDetector->setModel(model->views[last_view]);
@@ -288,7 +287,7 @@ bool KeyframeManagementRGBD2::closeLoops()
   if (conf < param.min_conf)
     return false;
 
-  kpTracker->getProjections(im_pts[1]);
+  kpTracker->getProjections(_im_pts[1]);
 
   // test poses
   invPose(last_pose[0], inv);
@@ -300,17 +299,17 @@ bool KeyframeManagementRGBD2::closeLoops()
   //cout<<"dist="<<sqrt(dist)<<" (thr="<<param.dist_err_loop<<")"<<endl;
   if ( dist < sqr_dist_err_loop )
   {
-    std::vector<Eigen::Vector3f> pts30(im_pts[0].size());
-    std::vector<Eigen::Vector3f> pts31(im_pts[1].size());
+    std::vector<Eigen::Vector3f> pts30(_im_pts[0].size());
+    std::vector<Eigen::Vector3f> pts31(_im_pts[1].size());
 
-    for (unsigned i=0; i<im_pts[0].size(); i++)
-      pts30[i] = loop_cloud[0](int(im_pts[0][i].second.y+.5),int(im_pts[0][i].second.x+.5));
-    for (unsigned i=0; i<im_pts[1].size(); i++)
-      pts31[i] = loop_cloud[1](int(im_pts[1][i].second.y+.5),int(im_pts[1][i].second.x+.5));
+    for (unsigned i=0; i<_im_pts[0].size(); i++)
+      pts30[i] = loop_cloud[0](int(_im_pts[0][i].second.y+.5),int(_im_pts[0][i].second.x+.5));
+    for (unsigned i=0; i<_im_pts[1].size(); i++)
+      pts31[i] = loop_cloud[1](int(_im_pts[1][i].second.y+.5),int(_im_pts[1][i].second.x+.5));
 
     shm.lock();
-    model->addProjections(*model->views[new_view], im_pts[0], pts30, cam_ids[0]);
-    model->addProjections(*model->views[last_view], im_pts[1], pts31, cam_ids[1]);
+    model->addProjections(*model->views[new_view], _im_pts[0], pts30, cam_ids[0]);
+    model->addProjections(*model->views[last_view], _im_pts[1], pts31, cam_ids[1]);
     shm.unlock(); 
 
     //cout<<"WE HAVE A LOOP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
@@ -400,9 +399,9 @@ int KeyframeManagementRGBD2::selectGuidedRandom(const Eigen::Matrix4f &pose)
 
   for (unsigned i=0; i<model->views.size(); i++)
   {
-    const ObjectView &view = *model->views[i];
-    invPose(model->cameras[view.camera_id],inv_pose2);
-    angle = viewPointChange(view.center, inv_pose2, inv_pose) +
+    const ObjectView &_view = *model->views[i];
+    invPose(model->cameras[_view.camera_id],inv_pose2);
+    angle = viewPointChange(_view.center, inv_pose2, inv_pose) +
             cameraRotationZ(inv_pose2, inv_pose);
 
     if ( (inv_pose.block<3,1>(0,3)-inv_pose2.block<3,1>(0,3)).squaredNorm() < sqr_max_dist_tracking_view)
@@ -448,7 +447,7 @@ void KeyframeManagementRGBD2::stop()
 /**
  * addKeyframe
  */
-void KeyframeManagementRGBD2::addKeyframe(const cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, const Eigen::Matrix4f &pose, int view_idx, const std::vector< std::pair<int,cv::Point2f> > &im_pts)
+void KeyframeManagementRGBD2::addKeyframe(const cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, const Eigen::Matrix4f &pose, int view_idx, const std::vector< std::pair<int,cv::Point2f> > &_im_pts)
 {
   shm.lock();
   if (!shm.process_view)
@@ -457,7 +456,7 @@ void KeyframeManagementRGBD2::addKeyframe(const cv::Mat &image, const DataMatrix
     shm.cloud = cloud;
     shm.pose = pose;
     shm.view_idx = view_idx;
-    shm.im_pts = im_pts;
+    shm.im_pts = _im_pts;
     shm.nb_add++;
   }
   shm.unlock();
@@ -466,22 +465,22 @@ void KeyframeManagementRGBD2::addKeyframe(const cv::Mat &image, const DataMatrix
 /**
  * addProjections
  */
-int KeyframeManagementRGBD2::addProjections(const DataMatrix2D<Eigen::Vector3f> &cloud, const Eigen::Matrix4f &pose, int view_idx, const std::vector< std::pair<int,cv::Point2f> > &im_pts)
+int KeyframeManagementRGBD2::addProjections(const DataMatrix2D<Eigen::Vector3f> &cloud, const Eigen::Matrix4f &pose, int view_idx, const std::vector< std::pair<int,cv::Point2f> > &_im_pts)
 {
   int cam_id = -1;
-  std::vector<Eigen::Vector3f> pts3(im_pts.size());
+  std::vector<Eigen::Vector3f> pts3(_im_pts.size());
 
   Eigen::Matrix4f inv_pose;
   invPose(pose, inv_pose);
 
   if ((inv_last_add_proj_pose.block<3,1>(0,3)-inv_pose.block<3,1>(0,3)).squaredNorm() > sqr_min_dist_add_proj) 
   {
-    for (unsigned i=0; i<im_pts.size(); i++)
-      pts3[i] = cloud(int(im_pts[i].second.y+.5),int(im_pts[i].second.x+.5));
+    for (unsigned i=0; i<_im_pts.size(); i++)
+      pts3[i] = cloud(int(_im_pts[i].second.y+.5),int(_im_pts[i].second.x+.5));
     
     shm.lock();
     cam_id = model->cameras.size();
-    model->addProjections(*model->views[view_idx], im_pts, pts3, pose);
+    model->addProjections(*model->views[view_idx], _im_pts, pts3, pose);
     shm.unlock();
 
     inv_last_add_proj_pose = inv_pose;
@@ -493,21 +492,21 @@ int KeyframeManagementRGBD2::addProjections(const DataMatrix2D<Eigen::Vector3f> 
 /**
  * addLinkHyp
  */
-int KeyframeManagementRGBD2::addLinkHyp1(const cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, const Eigen::Matrix4f &pose, int last_view_idx, const std::vector< std::pair<int,cv::Point2f> > &im_pts, int new_view_idx)
+int KeyframeManagementRGBD2::addLinkHyp1(const cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, const Eigen::Matrix4f &pose, int last_view_idx, const std::vector< std::pair<int,cv::Point2f> > &_im_pts, int new_view_idx)
 {
   int cam_id = -1;
 
-  std::vector<Eigen::Vector3f> pts3(im_pts.size());
+  std::vector<Eigen::Vector3f> pts3(_im_pts.size());
 
   Eigen::Matrix4f inv_pose;
   invPose(pose, inv_pose);
 
-  for (unsigned i=0; i<im_pts.size(); i++)
-    pts3[i] = cloud(int(im_pts[i].second.y+.5),int(im_pts[i].second.x+.5));
+  for (unsigned i=0; i<_im_pts.size(); i++)
+    pts3[i] = cloud(int(_im_pts[i].second.y+.5),int(_im_pts[i].second.x+.5));
   
   shm.lock();
   cam_id = model->cameras.size();
-  model->addProjections(*model->views[last_view_idx], im_pts, pts3, pose);
+  model->addProjections(*model->views[last_view_idx], _im_pts, pts3, pose);
   shm.unlock();
 
   shm.lock();
@@ -531,20 +530,20 @@ int KeyframeManagementRGBD2::addLinkHyp1(const cv::Mat &image, const DataMatrix2
 /**
  * addLinkHyp
  */
-int KeyframeManagementRGBD2::addLinkHyp2(const cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, const Eigen::Matrix4f &pose, int last_view_idx, int new_view_idx, const std::vector< std::pair<int,cv::Point2f> > &im_pts)
+int KeyframeManagementRGBD2::addLinkHyp2(const cv::Mat &image, const DataMatrix2D<Eigen::Vector3f> &cloud, const Eigen::Matrix4f &pose, int last_view_idx, int new_view_idx, const std::vector< std::pair<int,cv::Point2f> > &_im_pts)
 {
   int cam_id = -1;
-  std::vector<Eigen::Vector3f> pts3(im_pts.size());
+  std::vector<Eigen::Vector3f> pts3(_im_pts.size());
 
   Eigen::Matrix4f inv_pose;
   invPose(pose, inv_pose);
 
-  for (unsigned i=0; i<im_pts.size(); i++)
-    pts3[i] = cloud(int(im_pts[i].second.y+.5),int(im_pts[i].second.x+.5));
+  for (unsigned i=0; i<_im_pts.size(); i++)
+    pts3[i] = cloud(int(_im_pts[i].second.y+.5),int(_im_pts[i].second.x+.5));
   
   shm.lock();
   cam_id = model->cameras.size();
-  model->addProjections(*model->views[new_view_idx], im_pts, pts3, pose);
+  model->addProjections(*model->views[new_view_idx], _im_pts, pts3, pose);
   shm.unlock();
 
   shm.lock();
@@ -566,7 +565,7 @@ int KeyframeManagementRGBD2::addLinkHyp2(const cv::Mat &image, const DataMatrix2
 /**
  * getTrackingModel
  */
-bool KeyframeManagementRGBD2::getTrackingModel(ObjectView &view, Eigen::Matrix4f &view_pose, const Eigen::Matrix4f &current_pose, bool is_reliable_pose)
+bool KeyframeManagementRGBD2::getTrackingModel(ObjectView &_view, Eigen::Matrix4f &view_pose, const Eigen::Matrix4f &current_pose, bool is_reliable_pose)
 {
   bool have_update = false;
   double angle, min_angle=FLT_MAX;
@@ -581,9 +580,9 @@ bool KeyframeManagementRGBD2::getTrackingModel(ObjectView &view, Eigen::Matrix4f
   {
     for (unsigned i=0; i<model->views.size(); i++)
     {
-      const ObjectView &view = *model->views[i];
-      invPose(model->cameras[view.camera_id],inv_pose2);
-      angle = viewPointChange(view.center, inv_pose2, inv_pose1) +
+      const ObjectView &ov = *model->views[i];
+      invPose(model->cameras[ov.camera_id],inv_pose2);
+      angle = viewPointChange(ov.center, inv_pose2, inv_pose1) +
               cameraRotationZ(inv_pose2, inv_pose1);
 
       if ( angle < min_angle && (inv_pose1.block<3,1>(0,3)-inv_pose2.block<3,1>(0,3)).squaredNorm() < sqr_max_dist_tracking_view)
@@ -600,18 +599,18 @@ bool KeyframeManagementRGBD2::getTrackingModel(ObjectView &view, Eigen::Matrix4f
   else cnt_not_reliable_pose = 0;
 
   // random init
-  if (view.idx==-1 && model->views.size()==1) 
+  if (_view.idx==-1 && model->views.size()==1)
     idx = 0;
   else if (cnt_not_reliable_pose > param.min_not_reliable_poses && model->views.size()>0) 
     idx = selectGuidedRandom(last_reliable_pose);
     //idx = rand()%model->views.size()-1;
 
   // return view
-  if (idx>=0 && idx != view.idx)
+  if (idx>=0 && idx != _view.idx)
   {
     have_update = true;
-    model->views[idx]->copyTo(view);
-    view_pose = model->cameras[view.camera_id];
+    model->views[idx]->copyTo(_view);
+    view_pose = model->cameras[_view.camera_id];
   }
 
   shm.unlock();
