@@ -39,6 +39,8 @@
 #include <eigen3/Eigen/Eigen>
 #include <v4r/core/macros.h>
 
+#include <pcl/PolygonMesh.h>
+
 
 
 namespace v4r{
@@ -52,7 +54,7 @@ private:
     struct Vertex;
 
     Vertex *vertices;
-    unsigned int *indices;
+    uint32_t *indices;
     int vertexCount;
     unsigned int indexCount;
 
@@ -85,7 +87,13 @@ public:
      * @brief DepthmapRendererModel loads the geometry data and creates the necessary opengl ressources
      * @param file filename of the geometry file
      */
-    DepthmapRendererModel(const std::string &file);
+    DepthmapRendererModel(const std::string &file,bool shiftToCenter=true,bool rescaleToUnitSphere=true);
+
+    /**
+     * @brief DepthmapRendererModel loads the geometry data into the opengl context
+     * @param pclMesh
+     */
+    DepthmapRendererModel(const pcl::PolygonMesh pclMesh,bool shiftToCenter=true,bool rescaleToUnitSphere=true);
 
 
     ~DepthmapRendererModel();

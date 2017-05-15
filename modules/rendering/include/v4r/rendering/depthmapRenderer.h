@@ -27,7 +27,6 @@
 *      @date November, 2015
 */
 
-
 #ifndef __V4R_DEPTHMAP_RENDERER__
 #define __V4R_DEPTHMAP_RENDERER__
 

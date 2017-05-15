@@ -4,10 +4,17 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
+///TODO: remove every trace of glm
 #include <glm/glm.hpp>
 
 #include <GL/glew.h>
 #include <GL/gl.h>
+
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/Vertices.h>
+#include <pcl/ros/conversions.h>
 
 namespace v4r
 {
@@ -16,7 +23,7 @@ struct DepthmapRendererModel::Vertex{
     glm::u8vec4 rgba;
 };
 
-DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
+DepthmapRendererModel::DepthmapRendererModel(const std::string &file, bool shiftToCenter, bool rescaleToUnitSphere)
 {
     vertexCount=0;
     indexCount=0;
@@ -61,7 +68,7 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
     }
     mean=mean/((double)vertexCount);
     //last: create memory for geometry
-    indices=new unsigned int[indexCount];
+    indices=new uint32_t[indexCount];
     vertices=new Vertex[vertexCount];
     double maxDistToCenter=0.0;
 
@@ -73,7 +80,10 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
             Vertex v;
             v.pos=glm::vec3(scene->mMeshes[i]->mVertices[j].x,
                             scene->mMeshes[i]->mVertices[j].y,
-                            scene->mMeshes[i]->mVertices[j].z)-glm::vec3(mean);
+                            scene->mMeshes[i]->mVertices[j].z);
+            if(shiftToCenter){
+                v.pos=v.pos-glm::vec3(mean);
+            }
             if(scene->mMeshes[i]->HasVertexColors(0)){
                 aiColor4D* colors= scene->mMeshes[i]->mColors[0];
                 v.rgba=glm::u8vec4(colors[j].r*255.0f,colors[j].g*255.0f,colors[j].b*255.0f,colors[j].a*255.0f);
@@ -104,14 +114,82 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
     scale=1.0f/(float)maxDistToCenter;
 
     //scale it:
-    for(int i=0;i<vertexCount;i++){
-        vertices[i].pos=vertices[i].pos*(1.0f/(float)maxDistToCenter);
-        //std::cout << " vertex:" <<vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << std::endl;//Debug
+    if(rescaleToUnitSphere){
+        for(int i=0;i<vertexCount;i++){
+            vertices[i].pos=vertices[i].pos*(1.0f/(float)maxDistToCenter);
+            //std::cout << " vertex:" <<vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << std::endl;//Debug
+        }
+    }
+}
+
+DepthmapRendererModel::DepthmapRendererModel(const pcl::PolygonMesh pclMesh, bool shiftToCenter, bool rescaleToUnitSphere){
+    pcl::PointCloud<pcl::PointXYZ> points;
+    pcl::fromPCLPointCloud2(pclMesh.cloud, points);
+
+
+    color=false;
+    if(points.size()>3){
+        geometry=true;
     }
 
 
 
+    vertices=new Vertex[points.size()];
 
+
+    Eigen::Vector4d center(0,0,0,0);
+    for(int i=0;i<points.size();i++){
+        Vertex vert;
+        pcl::PointXYZ point = points.at(i);
+        vert.pos;
+        vert.rgba;
+
+    }
+    center=center/(double)points.size();
+
+    float maxDistToCenter;
+    for(int i=0;i<points.size();i++){
+
+        float distToCenter;
+        if(distToCenter>maxDistToCenter){
+            maxDistToCenter=distToCenter;
+        }
+    }
+
+
+    unsigned int indexCount;
+    for(unsigned int i=0;i<pclMesh.polygons.size();i++){
+        if(pclMesh.polygons[i].vertices.size()==3){
+            indexCount+=3;
+        }
+    }
+    indices=new uint32_t[indexCount];
+
+    for(unsigned int i=0;i<pclMesh.polygons.size();i++){
+        if(pclMesh.polygons[i].vertices.size()==3){
+            const std::vector<uint32_t> &vs = mesh.polygons[i].vertices;
+            indices[i*3+0]=vs[0];
+            indices[i*3+1]=vs[1];
+            indices[i*3+2]=vs[2];
+        }
+    }
+
+        /*    pcl::PointCloud<pcl::PointXYZ> points;
+     pcl::fromPCLPointCloud2(mesh.cloud, points);
+
+
+     for (unsigned i=0; i<points.size(); i++)
+   _mvs_scene.mesh.vertices.push_back(MVS::Mesh::Vertex(points[i].x,points[i].y,points[i].z));
+
+     for (unsigned i=0; i<mesh.polygons.size(); i++)
+     {
+       if (mesh.polygons[i].vertices.size()==3)
+       {
+         const std::vector<uint32_t> &vs = mesh.polygons[i].vertices;
+   _mvs_scene.mesh.faces.push_back(MVS::Mesh::Face(vs[0],vs[1],vs[2]));
+       }
+     }
+     */
 }
 
 DepthmapRendererModel::~DepthmapRendererModel()

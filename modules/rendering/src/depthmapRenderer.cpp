@@ -1,5 +1,7 @@
 #include <v4r/rendering/depthmapRenderer.h>
 
+
+///TODO: remove every trace of glm
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 #include <GL/gl.h>
