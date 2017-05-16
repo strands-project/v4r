@@ -67,6 +67,7 @@ private:
     //Shader for rendering all that stuff
     GLuint shaderProgram;
     GLuint projectionUniform;
+    GLuint _projectionUniform;
     GLuint poseUniform;
     GLuint viewportResUniform;
     GLuint posAttribute;
@@ -146,7 +147,21 @@ public:
      * @param position
      * @return
      */
-    Eigen::Matrix4f getPoseLookingToCenterFrom(Eigen::Vector3f position);
+    static Eigen::Matrix4f getPoseLookingToCenterFrom(Eigen::Vector3f position);
+
+    /**
+     * @brief lookAt
+     * Function to look at a point from another point.
+     * To define the orientation of the camera you need a vector pointing to the top of the camera.
+     * @param from
+     * camera position
+     * @param to
+     * position the camera is looking at
+     * @param up
+     * show the camera where upwards is
+     * @return
+     */
+    static Eigen::Matrix4f lookAt(Eigen::Vector3f from, Eigen::Vector3f to, Eigen::Vector3f up);
 
     /**
      * @brief setCamPose

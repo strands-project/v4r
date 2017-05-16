@@ -23,8 +23,9 @@ struct DepthmapRendererModel::Vertex{
     glm::u8vec4 rgba;
 };
 
-DepthmapRendererModel::DepthmapRendererModel(const std::string &file, bool shiftToCenter, bool rescaleToUnitSphere)
+DepthmapRendererModel::DepthmapRendererModel(const std::string &file, bool shiftToCenterAndNormalizeScale)
 {
+    std::cout << "debug: called constructor 1"<< std::endl;
     vertexCount=0;
     indexCount=0;
     geometry=false;
@@ -81,7 +82,7 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file, bool shift
             v.pos=glm::vec3(scene->mMeshes[i]->mVertices[j].x,
                             scene->mMeshes[i]->mVertices[j].y,
                             scene->mMeshes[i]->mVertices[j].z);
-            if(shiftToCenter){
+            if(shiftToCenterAndNormalizeScale){
                 v.pos=v.pos-glm::vec3(mean);
             }
             if(scene->mMeshes[i]->HasVertexColors(0)){
@@ -93,6 +94,9 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file, bool shift
             }
             vertices[k]=v;
             float distToCenter=glm::length(vertices[k].pos);
+            if(!shiftToCenterAndNormalizeScale){
+                distToCenter=glm::length(vertices[k].pos-glm::vec3(mean));
+            }
             if(distToCenter>maxDistToCenter){
                 maxDistToCenter=distToCenter;
             }
@@ -114,15 +118,17 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file, bool shift
     scale=1.0f/(float)maxDistToCenter;
 
     //scale it:
-    if(rescaleToUnitSphere){
-        for(int i=0;i<vertexCount;i++){
-            vertices[i].pos=vertices[i].pos*(1.0f/(float)maxDistToCenter);
+    if(shiftToCenterAndNormalizeScale){
+        for(uint32_t i=0;i<vertexCount;i++){
+            vertices[i].pos=vertices[i].pos*scale;
             //std::cout << " vertex:" <<vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << std::endl;//Debug
         }
     }
 }
 
-DepthmapRendererModel::DepthmapRendererModel(const pcl::PolygonMesh pclMesh, bool shiftToCenter, bool rescaleToUnitSphere){
+DepthmapRendererModel::DepthmapRendererModel(const pcl::PolygonMesh& pclMesh, bool shiftToCenterAndNormalizeScale){
+
+    std::cout << "debug: called constructor 2"<< std::endl;
     pcl::PointCloud<pcl::PointXYZ> points;
     pcl::fromPCLPointCloud2(pclMesh.cloud, points);
 
@@ -133,31 +139,37 @@ DepthmapRendererModel::DepthmapRendererModel(const pcl::PolygonMesh pclMesh, boo
     }
 
 
+    vertexCount=points.size();
+    vertices=new Vertex[vertexCount];
 
-    vertices=new Vertex[points.size()];
 
-
-    Eigen::Vector4d center(0,0,0,0);
-    for(int i=0;i<points.size();i++){
+    glm::dvec3 mean(0,0,0);
+    for(uint32_t i=0;i<vertexCount;i++){
         Vertex vert;
         pcl::PointXYZ point = points.at(i);
-        vert.pos;
-        vert.rgba;
+        vert.pos=glm::vec3(point.x,point.y,point.z);
+        vert.rgba=glm::u8vec4(128,128,128,255);
+        vertices[i]=vert;
+        mean+=glm::dvec3(point.x,point.y,point.z);
 
     }
-    center=center/(double)points.size();
+    mean=mean/(double)vertexCount;
 
-    float maxDistToCenter;
-    for(int i=0;i<points.size();i++){
+    float maxDistToCenter=0.0;
+    for(uint32_t i=0;i<vertexCount;i++){
 
-        float distToCenter;
+        float distToCenter=glm::length(vertices[i].pos-glm::vec3(mean));
         if(distToCenter>maxDistToCenter){
             maxDistToCenter=distToCenter;
+        }
+        if(shiftToCenterAndNormalizeScale){
+            vertices[i].pos=vertices[i].pos-glm::vec3(mean);
+
         }
     }
 
 
-    unsigned int indexCount;
+    indexCount=0;
     for(unsigned int i=0;i<pclMesh.polygons.size();i++){
         if(pclMesh.polygons[i].vertices.size()==3){
             indexCount+=3;
@@ -167,36 +179,61 @@ DepthmapRendererModel::DepthmapRendererModel(const pcl::PolygonMesh pclMesh, boo
 
     for(unsigned int i=0;i<pclMesh.polygons.size();i++){
         if(pclMesh.polygons[i].vertices.size()==3){
-            const std::vector<uint32_t> &vs = mesh.polygons[i].vertices;
+            const std::vector<uint32_t> &vs = pclMesh.polygons[i].vertices;
             indices[i*3+0]=vs[0];
             indices[i*3+1]=vs[1];
             indices[i*3+2]=vs[2];
         }
     }
 
-        /*    pcl::PointCloud<pcl::PointXYZ> points;
-     pcl::fromPCLPointCloud2(mesh.cloud, points);
+
+    offset=Eigen::Vector3f(-mean.x,-mean.y,-mean.z);
+
+    scale=1.0f/(float)maxDistToCenter;
+
+    //scale it:
+    if(shiftToCenterAndNormalizeScale){
+        for(uint32_t i=0;i<vertexCount;i++){
+            vertices[i].pos=vertices[i].pos*scale;
+            //std::cout << " vertex:" <<vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << std::endl;//Debug
+        }
+    }
+}
+
+DepthmapRendererModel::DepthmapRendererModel(const DepthmapRendererModel &obj)
+{
+    std::cout << "debug: called copy constructor" << std::endl;
+
+    //simon you so stupid why u no copy and swap
 
 
-     for (unsigned i=0; i<points.size(); i++)
-   _mvs_scene.mesh.vertices.push_back(MVS::Mesh::Vertex(points[i].x,points[i].y,points[i].z));
+    this->color=obj.color;
+    this->geometry=obj.geometry;
+    this->offset=obj.offset;
+    this->scale=obj.scale;
 
-     for (unsigned i=0; i<mesh.polygons.size(); i++)
-     {
-       if (mesh.polygons[i].vertices.size()==3)
-       {
-         const std::vector<uint32_t> &vs = mesh.polygons[i].vertices;
-   _mvs_scene.mesh.faces.push_back(MVS::Mesh::Face(vs[0],vs[1],vs[2]));
-       }
-     }
-     */
+
+    this->indexCount=obj.indexCount;
+    this->indices=new uint32_t[this->indexCount];
+    memcpy(this->indices,obj.indices,this->indexCount*sizeof(uint32_t));
+
+    this->vertexCount=obj.vertexCount;
+    this->vertices=new Vertex[this->vertexCount];
+    memcpy(this->vertices,obj.vertices,this->vertexCount*sizeof(Vertex));
+
 }
 
 DepthmapRendererModel::~DepthmapRendererModel()
 {
+    std::cout << "debug: called destructor"<< std::endl;
 
     delete[] vertices;
     delete[] indices;
+}
+DepthmapRendererModel &DepthmapRendererModel::operator =(const DepthmapRendererModel obj){
+    std::cout << "debug: operator = called" << std::endl;
+    DepthmapRendererModel B(obj);
+    return B;
 }
 
 void DepthmapRendererModel::loadToGPU(GLuint &VBO,GLuint &IBO)

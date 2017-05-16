@@ -224,31 +224,37 @@ DepthmapRenderer::DepthmapRenderer(int resx, int resy)
             layout (triangles) in;//triangles\n\
             layout(triangle_strip,max_vertices=3) out;\n\
             noperspective out float z;\n\
+            out vec4 projectedPos;\n\
             in vec4 colorIn[];\n\
             flat out unsigned int index;\n\
             out vec4 color;\n\
-            uniform vec4 projection;\n\
+            //uniform vec4 projection;\n\
+            uniform mat4 projection;\n\
             uniform mat4 transformation;\n\
             uniform ivec2 viewportRes;\n\
             vec4 project(vec4 pos){\n\
-                return vec4((pos.x*projection.x/pos.z+projection.z)*2.0-1.0,(pos.y*projection.y/pos.z+projection.w)*2.0-1.0,0.1/pos.z,1);//max draw distance is 10 m\n\
+                //return vec4((pos.x*projection.x/pos.z+projection.z)*2.0-1.0,(pos.y*projection.y/pos.z+projection.w)*2.0,0.1/pos.z-1.0,1);//max draw distance is 10 m\n\
+                return projection*pos;\n\
             }\n\
             void main(){\
                 unsigned int ind = atomicCounterIncrement(faceCount);\n\
                 index= ind+1;\n\
                 gl_Position=project(transformation*gl_in[0].gl_Position);\n\
+                projectedPos=gl_Position;\n\
                 vec4 p1=transformation*gl_in[0].gl_Position;\n\
                 vec2 pp1=gl_Position.xy;\n\
                 z=-(transformation*gl_in[0].gl_Position).z;\n\
                 color=colorIn[0];\n\
                 EmitVertex();\n\
                 gl_Position=project(transformation*gl_in[1].gl_Position);\n\
+                projectedPos=gl_Position;\n\
                 vec2 pp2=gl_Position.xy;\n\
                 vec4 p2=transformation*gl_in[1].gl_Position;\n\
                 z=-(transformation*gl_in[1].gl_Position).z;\n\
                 color=colorIn[1];\n\
                 EmitVertex();\n\
                 gl_Position=project(transformation*gl_in[2].gl_Position);\n\
+                projectedPos=gl_Position;\n\
                 vec4 p3=transformation*gl_in[2].gl_Position;\n\
                 vec2 pp3=gl_Position.xy;\n\
                 z=-(transformation*gl_in[2].gl_Position).z;\n\
@@ -267,17 +273,21 @@ DepthmapRenderer::DepthmapRenderer(int resx, int resy)
             noperspective in float z;\n\
             flat in unsigned int index;\n\
             in vec4 color;\n\
+            in vec4 projectedPos;\n\
             out vec4 depthOutput;\n\
             out vec4 colorOutput;\n\
             out unsigned int indexOutput;\n\
             \n\
+            uniform mat4 _projection;\n\
             uniform float zNear;\n\
             uniform float zFar;\n\
             void main(){\n\
             \
+               vec4 unprojectedPos=_projection*projectedPos;\n\
                depthOutput=vec4(z,z,z,1);\n\
-               depthOutput=vec4(vec3(-0.1/((gl_FragCoord.z/gl_FragCoord.w)*2.0-1.0)),1);\n\
-               //depthOutput=vec4(0.1,z,z,1);\n\
+               depthOutput=vec4(vec3(-0.1/((gl_FragCoord.z/gl_FragCoord.w)*2.0-1.0)+1.0),1);\n\
+               depthOutput=vec4(vec3(unprojectedPos.z/unprojectedPos.w),1);\n\
+               //depthOutput=vec4(vec3(1),1);\n\
                indexOutput=index;//uintBitsToFloat(1234);\n\
                colorOutput=color;\n\
             }";
@@ -341,6 +351,7 @@ DepthmapRenderer::DepthmapRenderer(int resx, int resy)
 
     //Get uniform locations:
     projectionUniform=glGetUniformLocation(shaderProgram,"projection");
+    _projectionUniform=glGetUniformLocation(shaderProgram,"_projection");
     poseUniform = glGetUniformLocation(shaderProgram,"transformation");
     viewportResUniform = glGetUniformLocation(shaderProgram,"viewportRes");
 
@@ -521,7 +532,27 @@ Eigen::Matrix4f DepthmapRenderer::getPoseLookingToCenterFrom(Eigen::Vector3f pos
 
     glm::mat4 pose_tmp = glm::lookAt(pos,center,up);
 
+    glm::mat4 rot = glm::mat4();//identity
+    rot = glm::rotate(rot,(float)M_PI,glm::vec3(0,1,0));
+
+    pose_tmp=rot*pose_tmp;
     //transform to Eigen Matrix type
+    Eigen::Matrix4f ePose;
+    for(size_t i=0; i<4; i++){
+        for(size_t j=0; j<4; j++){
+            ePose(i,j) = pose_tmp[j][i];//needed to transpose this
+        }
+    }
+    return ePose;
+}
+
+Eigen::Matrix4f DepthmapRenderer::lookAt(Eigen::Vector3f from, Eigen::Vector3f to, Eigen::Vector3f up){
+    glm::vec3 upwards(up[0],up[1],up[2]);
+    glm::vec3 camera(from[0],from[1],from[2]);
+    glm::vec3 object(to[0],to[1],to[2]);
+
+    glm::mat4 pose_tmp = glm::lookAt(camera,object,upwards);
+    //pose_tmp = glm::rotate(pose_tmp,(float)M_PI,glm::vec3(0,1,0));//This might be a fix for the
     Eigen::Matrix4f ePose;
     for(size_t i=0; i<4; i++){
         for(size_t j=0; j<4; j++){
@@ -543,9 +574,40 @@ cv::Mat DepthmapRenderer::renderDepthmap(float &visible,cv::Mat &color) const
     //load shader:
     glUseProgram(shaderProgram);
 
+
+    using namespace Eigen;
+    //create the projection matrix
+    float fx=fxycxy[0];
+    float fy=fxycxy[1];
+    float cx=fxycxy[2];
+    float cy=fxycxy[3];
+    Matrix4f proj;
+
+    Matrix4f proj1;//one to do what has to be done anyway
+    proj1 << fx, 0,  cx, 0,
+            0,  fy, cy, 0,
+            0,  0,  0,  -1,
+            0,  0, 1,  0;
+
+
+    float w=res[0];
+    float h=res[1];
+    float zmin=0.1f;
+    float zmax=30.0f;
+    float b=2.0f/(1.0f/zmin-1.0f/zmax);
+    float a=b/zmax+1.0f;
+    Matrix4f proj2;//the other one to scale everything to the normalized coordinates
+    proj2 << 2.0f/(w),    0,  0,  -1.0f+1.0f/w,
+             0,     2.0f/(h), 0,  -1.0f+1.0f/h,
+            0,          0,  b,  a,
+            0,          0,  0,  1;
+    proj=proj2*proj1;
+    Matrix4f _proj=proj.inverse();
     //set the uniforms
     glUniformMatrix4fv(poseUniform,1,GL_FALSE,(float*)&pose);//TODO: set this to GL_TRUE (BECAUSE TRANSPOSE !!!! THATS WHY)
-    glUniform4f(projectionUniform,fxycxy[0]/(float)res[0],fxycxy[1]/(float)res[1],fxycxy[2]/(float)res[0],fxycxy[3]/(float)res[1]);
+    glUniformMatrix4fv(projectionUniform,1,GL_FALSE,(float*)&proj);
+    glUniformMatrix4fv(_projectionUniform,1,GL_FALSE,(float*)&_proj);
+    //glUniform4f(projectionUniform,fxycxy[0]/(float)res[0],fxycxy[1]/(float)res[1],fxycxy[2]/(float)res[0],fxycxy[3]/(float)res[1]);
     glUniform2i(viewportResUniform,res[0],res[1]);
 
     //use vertex array object:
@@ -677,7 +739,7 @@ pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visible
 
     cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)).transpose());
     Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3)).transpose()*Eigen::Vector3f(pose(0,3),pose(1,3),pose(2,3));
-    cloud.sensor_origin_ = Eigen::Vector4f(trans(0),trans(1),trans(2),1.0f);
+    cloud.sensor_origin_ = Eigen::Vector4f(-trans(0),-trans(1),-trans(2),1.0f);
 
     cv::Mat color;
     cv::Mat depth=renderDepthmap(visibleSurfaceArea,color);
@@ -718,9 +780,10 @@ pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float 
             ePose(i,j)=pose[i][j];
         }
     }*/
+
     cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)).transpose());
     Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3)).transpose()*Eigen::Vector3f(pose(0,3),pose(1,3),pose(2,3));
-    cloud.sensor_origin_ = Eigen::Vector4f(trans(0),trans(1),trans(2),1.0f);
+    cloud.sensor_origin_ = Eigen::Vector4f(-trans(0),-trans(1),-trans(2),1.0f);
 
     cv::Mat color;
     const cv::Mat depth = renderDepthmap(visibleSurfaceArea,color);
