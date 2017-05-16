@@ -11,13 +11,12 @@ namespace io
 {
 
 std::vector<std::string>
-getFoldersInDirectory (const std::string & dir)
+getFoldersInDirectory (const bf::path & dir)
 {
     std::vector<std::string> relative_paths;
 
-    bf::path dir_bf = dir;
     bf::directory_iterator end_itr;
-    for (bf::directory_iterator itr (dir_bf); itr != end_itr; ++itr)
+    for (bf::directory_iterator itr (dir); itr != end_itr; ++itr)
     {
         if (bf::is_directory (*itr))
             relative_paths.push_back (itr->path ().filename ().string());
@@ -29,7 +28,7 @@ getFoldersInDirectory (const std::string & dir)
 
 
 std::vector<std::string>
-getFilesInDirectory (const std::string &dir,
+getFilesInDirectory (const bf::path &dir,
                      const std::string &regex_pattern,
                      bool recursive)
 {
@@ -77,14 +76,9 @@ getFilesInDirectory (const std::string &dir,
 }
 
 bool
-existsFile ( const std::string &rFile )
+existsFile ( const bf::path &rFile )
 {
-    bf::path dir_path = rFile;
-    if ( bf::exists ( dir_path ) && bf::is_regular_file(dir_path)) {
-        return true;
-    } else {
-        return false;
-    }
+    return ( bf::exists ( rFile ) && bf::is_regular_file(rFile) );
 }
 
 bool
@@ -94,7 +88,7 @@ existsFolder ( const bf::path &dir )
 }
 
 void
-createDirIfNotExist(const std::string & dir)
+createDirIfNotExist(const bf::path & dir)
 {
     if(!bf::exists(dir))
         bf::create_directories(dir);
@@ -102,17 +96,9 @@ createDirIfNotExist(const std::string & dir)
 
 
 void
-createDirForFileIfNotExist(const std::string & filename)
+createDirForFileIfNotExist(const bf::path & filename)
 {
-    if (filename.length())
-    {
-        size_t sep = filename.find_last_of("\\/");
-        if (sep != std::string::npos)
-        {
-            std::string path = filename.substr(0, sep);
-            createDirIfNotExist(path);
-        }
-    }
+    createDirIfNotExist( filename.parent_path() );
 }
 
 

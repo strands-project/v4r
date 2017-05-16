@@ -23,16 +23,18 @@ class V4R_EXPORTS ObjectRecognitionVisualizer
 {
 private:
     typename pcl::PointCloud<PointT>::ConstPtr cloud_; ///< input cloud
+    typename pcl::PointCloud<PointT>::ConstPtr processed_cloud_; ///< input cloud
     typename pcl::PointCloud<pcl::Normal>::ConstPtr normals_; ///< input normals
 
-    std::vector< ObjectHypothesesGroup<PointT> > generated_object_hypotheses_;   ///< generated object hypotheses
-    std::vector< typename ObjectHypothesis<PointT>::Ptr > verified_object_hypotheses_; ///< verified object hypotheses
+    std::vector< ObjectHypothesesGroup > generated_object_hypotheses_;   ///< generated object hypotheses
+//    std::vector< ObjectHypothesesGroup<PointT> > generated_object_hypotheses_refined_;   ///< (ICP refined) generated object hypotheses
+//    std::vector< typename ObjectHypothesis<PointT>::Ptr > verified_object_hypotheses_; ///< verified object hypotheses
     mutable boost::shared_ptr<pcl::visualization::PCLVisualizer> vis_;
-    mutable int vp1_, vp2_, vp3_;
+    mutable int vp1a_, vp2_, vp3_, vp1b_, vp2b_;
     mutable std::vector<std::string> coordinate_axis_ids_;
 
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
-    LocalObjectModelDatabase::ConstPtr lomdb_; ///< pointer to local model database (optional: required if visualization of feature matching is desired)
+    std::map<std::string, typename LocalObjectModel::ConstPtr> model_keypoints_; ///< pointer to local model database (optional: required if visualization of feature matching is desired)
 
     PCLVisualizationParams::ConstPtr vis_param_; ///< visualization parameters
     void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event) const;
@@ -115,7 +117,23 @@ public:
     void
     setCloud ( const typename pcl::PointCloud<PointT>::ConstPtr cloud )
     {
-        cloud_ = cloud;
+        typename pcl::PointCloud<PointT>::Ptr vis_cloud (new pcl::PointCloud<PointT>(*cloud));
+        vis_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+        vis_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+        cloud_ = vis_cloud;
+    }
+
+    /**
+     * @brief setProcessedCloud
+     * @param[in] cloud processed cloud
+     */
+    void
+    setProcessedCloud ( const typename pcl::PointCloud<PointT>::ConstPtr cloud )
+    {
+        typename pcl::PointCloud<PointT>::Ptr vis_cloud (new pcl::PointCloud<PointT>(*cloud));
+        vis_cloud->sensor_orientation_ = Eigen::Quaternionf::Identity();
+        vis_cloud->sensor_origin_ = Eigen::Vector4f::Zero(4);
+        processed_cloud_ = vis_cloud;
     }
 
     /**
@@ -133,29 +151,39 @@ public:
      * @param[in] goh generated hypotheses
      */
     void
-    setGeneratedObjectHypotheses ( const std::vector< ObjectHypothesesGroup<PointT> > &goh )
+    setGeneratedObjectHypotheses ( const std::vector< ObjectHypothesesGroup > &goh )
     {
         generated_object_hypotheses_ = goh;
     }
 
-    /**
-     * @brief setVerifiedObjectHypotheses
-     * @param[in] voh verified hypotheses
-     */
-    void
-    setVerifiedObjectHypotheses ( const std::vector<typename ObjectHypothesis<PointT>::Ptr > &voh )
-    {
-        verified_object_hypotheses_ = voh;
-    }
+//    /**
+//     * @brief setRefinedGeneratedObjectHypotheses
+//     * @param[in] goh (ICP refined) generated hypotheses
+//     */
+//    void
+//    setRefinedGeneratedObjectHypotheses ( const std::vector< ObjectHypothesesGroup<PointT> > &goh )
+//    {
+//        generated_object_hypotheses_refined_ = goh;
+//    }
+
+//    /**
+//     * @brief setVerifiedObjectHypotheses
+//     * @param[in] voh verified hypotheses
+//     */
+//    void
+//    setVerifiedObjectHypotheses ( const std::vector<typename ObjectHypothesis<PointT>::Ptr > &voh )
+//    {
+//        verified_object_hypotheses_ = voh;
+//    }
 
     /**
      * @brief setLocalModelDatabase this function allows to additionally show the keypoint correspondences between scene and model
      * @param lomdb Local ModelDatabase
      */
     void
-    setLocalModelDatabase(LocalObjectModelDatabase::ConstPtr &lomdb)
+    setLocalModelDatabase(const std::map<std::string, typename LocalObjectModel::ConstPtr> &model_keypoints)
     {
-        lomdb_ = lomdb;
+        model_keypoints_ = model_keypoints;
     }
 
 

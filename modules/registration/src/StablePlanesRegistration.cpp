@@ -229,10 +229,10 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
 
         int clouds_session = session_ranges[i].second - session_ranges[i].first + 1;
         std::vector<std::vector<std::vector<float> > > pt_properties (clouds_session);
-        std::vector<typename pcl::PointCloud<PointT>::Ptr> clouds(clouds_session);
+        std::vector<typename pcl::PointCloud<PointT>::ConstPtr> clouds(clouds_session);
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > poses(clouds_session);
         std::vector<std::vector<int> > indices(clouds_session);
-        std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals(clouds_session);
+        std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > normals(clouds_session);
 
         int k=0;
         for(int t=session_ranges[i].first; t <= session_ranges[i].second; t++, k++)
@@ -243,7 +243,7 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
             normals[k] = this->getNormal(t);
             indices[k] = this->getIndices(t);
 
-            v4r::NguyenNoiseModel<PointT> nm;
+            NguyenNoiseModel<PointT> nm;
             nm.setInputCloud(clouds[k]);
             nm.setInputNormals(normals[k]);
             nm.compute();
@@ -252,10 +252,10 @@ v4r::Registration::StablePlanesRegistration<PointT>::initialize(std::vector<std:
 
         typename pcl::PointCloud<PointT>::Ptr octree_cloud(new pcl::PointCloud<PointT>);
         pcl::PointCloud<pcl::Normal>::Ptr big_normals(new pcl::PointCloud<pcl::Normal>);
-        v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter nmparam;
+        NMBasedCloudIntegrationParameter nmparam;
         nmparam.octree_resolution_ = 0.005f;
         nmparam.min_points_per_voxel_ = 1;
-        v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nmparam);
+        NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration (nmparam);
         nmIntegration.setInputClouds(clouds);
         nmIntegration.setTransformations(poses);
         nmIntegration.setInputNormals(normals);

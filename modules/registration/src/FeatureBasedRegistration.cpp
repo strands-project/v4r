@@ -16,11 +16,7 @@
 #include <pcl/octree/impl/octree_base.hpp>
 #include <v4r/common/miscellaneous.h>
 
-#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
-#endif
 
 namespace v4r
 {
@@ -41,11 +37,7 @@ template<class PointT> void
 FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > & session_ranges)
 {
 
-#ifdef HAVE_SIFTGPU
     typename v4r::SIFTLocalEstimation<PointT> estimator;
-#else
-    typename v4r::OpenCVSIFTLocalEstimation<PointT> estimator;
-#endif
 
     //computes features and keypoints for the views of all sessions using appropiate object indices
     size_t total_views = this->getTotalNumberOfClouds();
@@ -72,8 +64,8 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
 
     for(size_t i=0; i < total_views; i++)
     {
-        typename pcl::PointCloud<PointT>::Ptr cloud = this->getCloud(i);
-        pcl::PointCloud<pcl::Normal>::Ptr normals = this->getNormal(i);
+        typename pcl::PointCloud<PointT>::ConstPtr cloud = this->getCloud(i);
+        pcl::PointCloud<pcl::Normal>::ConstPtr normals = this->getNormal(i);
         std::vector<int> & indices = this->getIndices(i);
         Eigen::Matrix4f pose = this->getPose(i);
 
@@ -84,7 +76,9 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
         estimator.setInputCloud(cloud);
         estimator.setIndices(indices);
         estimator.compute(sift_descs);
-        typename pcl::PointCloud< PointT >::Ptr  sift_keys = estimator.getKeypointCloud();
+        typename pcl::PointCloud< PointT >::Ptr sift_keys (new pcl::PointCloud<PointT>);
+        std::vector<int> sift_kp_indices = estimator.getKeypointIndices();
+        pcl::copyPointCloud( *cloud, sift_kp_indices, *sift_keys);
 
         pcl::PointIndices original_indices;
         original_indices.indices = estimator.getKeypointIndices();

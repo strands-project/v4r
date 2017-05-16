@@ -54,9 +54,9 @@ public:
      * @param R (0...255)
      * @param G (0...255)
      * @param B (0...255)
-     * @param L (-50...50)
-     * @param A (0...128)
-     * @param B2 (0...128)
+     * @param L (0...100)
+     * @param A (approx -170...100)
+     * @param B2 (approx -100...150)
      */
     Eigen::VectorXf do_conversion(unsigned char R, unsigned char G, unsigned char B) const;
 

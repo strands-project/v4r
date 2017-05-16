@@ -32,14 +32,25 @@ template<typename PointT>
 class V4R_EXPORTS MultiRecognitionPipeline : public RecognitionPipeline<PointT>
 {
 private:
+    using RecognitionPipeline<PointT>::elapsed_time_;
     using RecognitionPipeline<PointT>::scene_;
     using RecognitionPipeline<PointT>::scene_normals_;
     using RecognitionPipeline<PointT>::m_db_;
+    using RecognitionPipeline<PointT>::normal_estimator_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
+    using RecognitionPipeline<PointT>::table_plane_;
+    using RecognitionPipeline<PointT>::table_plane_set_;
+    using RecognitionPipeline<PointT>::vis_param_;
 
     std::vector<typename RecognitionPipeline<PointT>::Ptr > recognition_pipelines_;
 
     omp_lock_t rec_lock_;
+
+    /**
+     * @brief recognize
+     */
+    void
+    do_recognize();
 
 public:
     MultiRecognitionPipeline() { }
@@ -53,16 +64,11 @@ public:
     void
     initialize(const std::string &trained_dir = "", bool retrain = false);
 
-    /**
-         * @brief recognize
-         */
-    void
-    recognize();
 
     /**
-         * @brief oh_tmp
-         * @param rec recognition pipeline (local or global)
-         */
+     * @brief oh_tmp
+     * @param rec recognition pipeline (local or global)
+     */
     void
     addRecognitionPipeline(typename RecognitionPipeline<PointT>::Ptr & rec)
     {
@@ -86,9 +92,9 @@ public:
     }
 
     /**
-         * @brief getFeatureType
-         * @return
-         */
+     * @brief getFeatureType
+     * @return
+     */
     size_t
     getFeatureType() const
     {
@@ -100,9 +106,9 @@ public:
     }
 
     /**
-         * @brief requiresSegmentation
-         * @return
-         */
+     * @brief requiresSegmentation
+     * @return
+     */
     bool
     requiresSegmentation() const
     {
@@ -111,6 +117,12 @@ public:
             ret_value = recognition_pipelines_[i]->requiresSegmentation();
 
         return ret_value;
+    }
+
+    std::vector<typename RecognitionPipeline<PointT>::Ptr >
+    getRecognitionPipelines() const
+    {
+        return recognition_pipelines_;
     }
 
     typedef boost::shared_ptr< MultiRecognitionPipeline<PointT> > Ptr;

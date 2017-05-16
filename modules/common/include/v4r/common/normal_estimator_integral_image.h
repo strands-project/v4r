@@ -41,17 +41,11 @@ public:
     float max_depth_change_factor_; ///<  depth change threshold for computing object borders
     bool use_depth_depended_smoothing_; ///< use depth depended smoothing
 
-    NormalEstimatorIntegralImageParameter (
-//            int method = pcl::IntegralImageNormalEstimation<PointT>::COVARIANCE_MATRIX ,
-            float smoothing_size = 10.0f,
-            float max_depth_change_factor = 20.0f*0.001f,
-            bool use_depth_depended_smoothing = false
-            )
-        :
+    NormalEstimatorIntegralImageParameter () :
 //          method_ ( method ),
-          smoothing_size_ ( smoothing_size ),
-          max_depth_change_factor_ ( max_depth_change_factor ),
-          use_depth_depended_smoothing_( use_depth_depended_smoothing )
+          smoothing_size_ ( 10.0f ),
+          max_depth_change_factor_ ( 20.0f*0.001f ),
+          use_depth_depended_smoothing_( true )
     {}
 
 

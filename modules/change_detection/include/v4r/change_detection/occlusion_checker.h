@@ -35,12 +35,12 @@ public:
     };
 
     OcclusionChecker() :
-    	viewpoint(Eigen::Vector3f(0.0,0.0,0.0)),
+        viewpoint(Eigen::Vector3f::Zero()),
     	numberOfBins(360),
-    	tolerance(0.001) {
-    }
+        tolerance(0.001f)
+    { }
 
-    void setViewpoint(Eigen::Vector3f origin)
+    void setViewpoint(const Eigen::Vector3f &origin)
     {
         viewpoint = origin;
     }
@@ -48,7 +48,8 @@ public:
 	/**
 	 * Assuming the both points of scene and points of obstacles are already registered.
 	 */
-	occlusion_results checkOcclusions(CloudPtr scene, CloudPtr obstacles) {
+    occlusion_results checkOcclusions(CloudPtr scene, CloudPtr obstacles)
+    {
 		occlusion_results result;
 		result.occluded = CloudPtr(new Cloud());
 		result.nonOccluded = CloudPtr(new Cloud());
@@ -58,8 +59,10 @@ public:
 
 		// init spherical map
 		double thetaphi[numberOfBins][numberOfBins];
-		for (size_t j = 0; j < numberOfBins; j++) {
-			for (size_t k = 0; k < numberOfBins; k++) {
+        for (int j = 0; j < numberOfBins; j++)
+        {
+            for (int k = 0; k < numberOfBins; k++)
+            {
 				thetaphi[j][k] = INFINITY;
 			}
 		}
@@ -100,7 +103,8 @@ public:
 		return result;
 	}
 
-    void rPhiThetaBins(const PointType &pt, double &r, int &phi_bin, int &theta_bin) {
+    void rPhiThetaBins(const PointType &pt, double &r, int &phi_bin, int &theta_bin) const
+    {
         r = sqrt(pow(pt.x,2) + pow(pt.y,2) + pow(pt.z,2));
         double theta = M_PI + acos(pt.z/r);
         double phi = M_PI + atan2(pt.y,pt.x);
@@ -111,11 +115,13 @@ public:
         phi_bin = std::min(std::max(0, phi_bin), numberOfBins-1);
     }
 
-	void setNumberOfBins(int bins) {
+    void setNumberOfBins(int bins)
+    {
 		this->numberOfBins = bins;
 	}
 
-	bool isPointValid(const PointType &pt) {
+    bool isPointValid(const PointType &pt) const
+    {
 		return pcl::isFinite(pt) && !std::isnan(pt.x) && !std::isnan(pt.y) && !std::isnan(pt.z);
 	}
 

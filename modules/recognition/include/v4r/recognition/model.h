@@ -135,7 +135,8 @@ public:
     typedef typename pcl::PointCloud<PointT>::ConstPtr PointTPtrConst;
     std::vector<typename TrainingView<PointT>::ConstPtr> views_;
     std::string class_, id_;
-    PointT minPoint_, maxPoint_;
+    Eigen::Vector4f minPoint_; ///< defines the 3D bounding box of the object model
+    Eigen::Vector4f maxPoint_; ///< defines the 3D bounding box of the object model
     PointTPtr assembled_;
     pcl::PointCloud<pcl::Normal>::Ptr normals_assembled_;
     mutable typename std::map<int, PointTPtrConst> voxelized_assembled_;
@@ -181,8 +182,6 @@ public:
     {
         return views_;
     }
-
-    void computeNormalsAssembledCloud(float radius_normals);
 
     pcl::PointCloud<pcl::PointXYZL>::Ptr getAssembledSmoothFaces (int resolution_mm);
 

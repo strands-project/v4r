@@ -11,6 +11,7 @@
 #include <vector>
 #include <queue>
 #include <set>
+#include <flann/flann.h>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
 #include <v4r/common/plane_model.h>
@@ -19,7 +20,6 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
-#include <flann/flann.h>
 
 namespace v4r
 {

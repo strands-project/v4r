@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2016 Thomas Faeulhammer
+ * Copyright (c) 2017 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,31 +21,41 @@
  *
  ******************************************************************************/
 
-
+#pragma once
 
 #include <v4r/core/macros.h>
-#include <vector>
-#include <Eigen/Core>
-#ifndef V4R_APPEARANCE_HISTOGRAM_EQUALIZATION_H_
-#define V4R_APPEARANCE_HISTOGRAM_EQUALIZATION_H_
+#include <v4r/features/global_estimator.h>
+#include <v4r/features/types.h>
+
+#include <glog/logging.h>
 
 namespace v4r
 {
-
 /**
- * @brief
- * The histogram equalization is an approach to enhance a given image.
- * The approach is to design a transformation T such that the gray values in the output is uniformly distributed in [0, 1].
- * Based on http://www.programming-techniques.com/2013/01/histogram-equalization-using-c-image.html
- * @date July 2016
+ * @brief The SimpleShapeEstimator class implements a simple global description
+ * in terms of elongation of the point cloud along the principal components
  * @author Thomas Faeulhammer
  */
-class V4R_EXPORTS HistogramEqualizer
+template<typename PointT>
+class V4R_EXPORTS SimpleShapeEstimator : public GlobalEstimator<PointT>
 {
 private:
+    using GlobalEstimator<PointT>::indices_;
+    using GlobalEstimator<PointT>::cloud_;
+    using GlobalEstimator<PointT>::descr_name_;
+    using GlobalEstimator<PointT>::descr_type_;
+    using GlobalEstimator<PointT>::feature_dimensions_;
 
 public:
-    void equalize(const Eigen::VectorXf &input, Eigen::VectorXf &output);
+    SimpleShapeEstimator()
+        : GlobalEstimator<PointT>("simple_shape", FeatureType::SIMPLE_SHAPE, 3)
+    {}
+
+    bool compute (Eigen::MatrixXf &signature);
+
+    bool needNormals() const { return false; }
+
+    typedef boost::shared_ptr< SimpleShapeEstimator<PointT> > Ptr;
+    typedef boost::shared_ptr< SimpleShapeEstimator<PointT> const> ConstPtr;
 };
 }
-#endif

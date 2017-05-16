@@ -28,10 +28,15 @@
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <flann/flann.h>
+#include <glog/logging.h>
 #include <pcl/common/common.h>
 
+#include <v4r/common/normals.h>
+#include <v4r/common/pcl_visualization_utils.h>
 #include <v4r/features/local_estimator.h>
+#include <v4r/features/types.h>
 #include <v4r/keypoints/keypoint_extractor.h>
+#include <v4r/io/filesystem.h>
 #include <v4r/recognition/local_rec_object_hypotheses.h>
 #include <v4r/recognition/source.h>
 
@@ -46,7 +51,7 @@ public:
     size_t knn_;  ///< nearest neighbors to search for when checking feature descriptions of the scene
     float max_descriptor_distance_; ///< maximum distance of the descriptor in the respective norm (L1 or L2) to create a correspondence
     float correspondence_distance_weight_; ///< weight factor for correspondences distances. This is done to favour correspondences from different pipelines that are more reliable than other (SIFT and SHOT corr. simultaneously fed into CG)
-    int distance_metric_; ///< defines the norm used for feature matching (1... L1 norm, 2... L2 norm, 3... ChiSquare)
+    int distance_metric_; ///< defines the norm used for feature matching (1... L1 norm, 2... L2 norm, 3... ChiSquare, 4... Hellinger)
     float max_keypoint_distance_z_; ///< maxiumum distance of an extracted keypoint to be accepted
 
     // parameters for plane filter
@@ -57,41 +62,29 @@ public:
     float threshold_planar_; ///< threshold ratio used for deciding if patch is planar. Ratio defined as largest eigenvalue to all others.
 
     // parameters for depth-discontinuity filter
-    bool filter_border_pts_; ///< Filter keypoints at the boundary
+    int filter_border_pts_; ///< Filter keypoints at the boundary (value according to the edge types defined in pcl::OrganizedEdgeBase (EDGELABEL_OCCLUDING  | EDGELABEL_OCCLUDED | EDGELABEL_NAN_BOUNDARY))
     int boundary_width_; ///< Width in pixel of the depth discontinuity
 
     float required_viewpoint_change_deg_; ///< required viewpoint change in degree for a new training view to be used for feature extraction. Training views will be sorted incrementally by their filename and if the camera pose of a training view is close to the camera pose of an already existing training view, it will be discarded for training.
 
-    LocalRecognizerParameter(
-            int kdtree_splits = 512,
-            int kdtree_num_trees = 4,
-            size_t knn = 1,
-            float max_descriptor_distance = std::numeric_limits<float>::max(),
-            float correspondence_distance_weight = 1.f,
-            int distance_metric = 1,
-            float max_keypoint_distance_z = std::numeric_limits<float>::max(),
-            bool filter_planar = false,
-            int min_plane_size = 1000,
-            float planar_support_radius = 0.04f,
-            float threshold_planar = 0.02f,
-            bool filter_border_pts = false,
-            int boundary_width = 5,
-            float required_viewpoint_change_deg = 15.f
-            )
-        : kdtree_splits_ (kdtree_splits),
-          kdtree_num_trees_ (kdtree_num_trees),
-          knn_ ( knn ),
-          max_descriptor_distance_ ( max_descriptor_distance ),
-          correspondence_distance_weight_ ( correspondence_distance_weight ),
-          distance_metric_ (distance_metric),
-          max_keypoint_distance_z_ ( max_keypoint_distance_z ),
-          filter_planar_ (filter_planar),
-          min_plane_size_ (min_plane_size),
-          planar_support_radius_ (planar_support_radius),
-          threshold_planar_ (threshold_planar),
-          filter_border_pts_ (filter_border_pts),
-          boundary_width_ (boundary_width),
-          required_viewpoint_change_deg_ (required_viewpoint_change_deg)
+    bool train_on_individual_views_; ///< if true, extracts features from each view of the object model. Otherwise will use the full 3d cloud
+
+    LocalRecognizerParameter( ) :
+          kdtree_splits_ (512),
+          kdtree_num_trees_ (4),
+          knn_ ( 1 ),
+          max_descriptor_distance_ ( std::numeric_limits<float>::max() ),
+          correspondence_distance_weight_ ( 1.f ),
+          distance_metric_ (1),
+          max_keypoint_distance_z_ ( std::numeric_limits<float>::max() ),
+          filter_planar_ (false),
+          min_plane_size_ (1000),
+          planar_support_radius_ (0.04f),
+          threshold_planar_ (0.02f),
+          filter_border_pts_ (7),
+          boundary_width_ (5),
+          required_viewpoint_change_deg_ (10.f),
+          train_on_individual_views_(true)
     {}
 
     void
@@ -103,8 +96,13 @@ public:
         ofs.close();
     }
 
-    LocalRecognizerParameter(const std::string &filename)
+    void
+    load(const std::string &filename)
     {
+        if( !v4r::io::existsFile(filename) )
+            throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
+        VLOG(1) << "Loading parameters from file " << filename;
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
         ia >> boost::serialization::make_nvp("LocalRecognizerParameter", *this );
@@ -131,6 +129,7 @@ private:
                 & BOOST_SERIALIZATION_NVP(filter_border_pts_)
                 & BOOST_SERIALIZATION_NVP(boundary_width_)
                 & BOOST_SERIALIZATION_NVP(required_viewpoint_change_deg_)
+                & BOOST_SERIALIZATION_NVP(train_on_individual_views_)
                 ;
     }
 };
@@ -143,10 +142,12 @@ class V4R_EXPORTS LocalObjectModel
 {
 public:
     pcl::PointCloud<pcl::PointXYZ>::Ptr keypoints_; ///< all extracted keypoints of the object model
+    pcl::PointCloud<pcl::Normal>::Ptr kp_normals_; ///< normals associated to each extracted keypoints of the object model
 
     LocalObjectModel()
     {
         keypoints_.reset(new pcl::PointCloud<pcl::PointXYZ>);
+        kp_normals_.reset(new pcl::PointCloud<pcl::Normal>);
     }
 
     typedef boost::shared_ptr< LocalObjectModel > Ptr;
@@ -164,6 +165,7 @@ public:
     boost::shared_ptr<flann::Index<flann::L1<float> > > flann_index_l1_;
     boost::shared_ptr<flann::Index<flann::L2<float> > > flann_index_l2_;
     boost::shared_ptr<flann::Index<flann::ChiSquareDistance<float> > > flann_index_chisquare_;
+    boost::shared_ptr<flann::Index<flann::HellingerDistance<float> > > flann_index_hellinger_;
     boost::shared_ptr<flann::Matrix<float> > flann_data_;
 
     /**
@@ -194,38 +196,114 @@ public:
     LocalRecognizerParameter param_; ///< parameters
 
 private:
+    typedef std::vector<float> FeatureDescriptor;
+    typedef int KeypointIndex;
+
     typename pcl::PointCloud<PointT>::ConstPtr scene_; ///< Point cloud to be classified
     std::vector<int> indices_; ///< segmented cloud to be recognized (if empty, all points will be processed)
     pcl::PointCloud<pcl::Normal>::ConstPtr scene_normals_; ///< Point cloud to be classified
     typename Source<PointT>::ConstPtr m_db_;  ///< model data base
+    typename NormalEstimator<PointT>::Ptr normal_estimator_;    ///< normal estimator used for computing surface normals (currently only used at training)
 
-    bool visualize_keypoints_; ///< if true, visualizes the extracted keypoints
-    void extractKeypoints (); ///< extracts keypoints from the scene
-    void featureMatching (); ///< matches all scene keypoints with model signatures
-    void featureEncoding (); ///< describes each keypoint with corresponding feature descriptor
-    void filterKeypoints (bool filter_signatures = false); ///< filters keypoints based on planarity and closeness to depth discontinuity (if according parameters are set)
-    bool computeFeatures(); ///< compute features
-    void visualizeKeypoints() const;
+    bool have_sift_estimator_; ///< indicates if one of the feature estimator contains SIFT. This is required as this is a special case. For SIFT, keypoint detection and feature description happens at the same time. Therefore it is not allowed to mix with other.
 
-private:
     std::string descr_name_; ///< descriptor name
 
-    std::vector<std::vector<float> > scene_signatures_;   ///< signatures extracted from the scene
-    std::vector<int> keypoint_indices_;   ///< scene point indices extracted as keypoints
-    std::vector<int> keypoint_indices_unfiltered_;    ///< only for visualization
+    std::vector<FeatureDescriptor > scene_signatures_;   ///< signatures extracted from the scene
+    std::vector<KeypointIndex> keypoint_indices_;   ///< scene point indices extracted as keypoints
+    std::vector<KeypointIndex> keypoint_indices_unfiltered_;    ///< only for visualization
 
-    LocalObjectModelDatabase::Ptr lomdb_; ///< object model database used for local recognition
+    std::vector<LocalObjectModelDatabase::Ptr > lomdbs_; ///< object model database used for local recognition for each feature estiamtor
     std::map<std::string, LocalObjectHypothesis<PointT> > corrs_; ///< correspondences for each object model (model id, correspondences)
 
-    mutable pcl::visualization::PCLVisualizer::Ptr vis_;
-
-    typename LocalEstimator<PointT>::Ptr estimator_; ///< estimators to compute features/signatures
+    std::vector<typename LocalEstimator<PointT>::Ptr > estimators_; ///< estimators to compute features/signatures
     std::vector<typename KeypointExtractor<PointT>::Ptr > keypoint_extractor_; ///< set of keypoint extractors
+
+    void mergeKeypointsFromMultipleEstimators(); ///< this puts the model keypoints extracted from multiple feature estimators into a common database
+
+    std::map<std::string, typename LocalObjectModel::ConstPtr> model_keypoints_;
+
+    PCLVisualizationParams::ConstPtr vis_param_;
+
+    void
+    validate()
+    {
+        for (const auto &est : estimators_)
+        {
+            if(est->getFeatureType() == FeatureType::SIFT_GPU || est->getFeatureType() == FeatureType::SIFT_OPENCV) // for SIFT we do not need to extract keypoints explicitly
+            {
+                have_sift_estimator_ = true;
+                break;
+            }
+        }
+        CHECK( estimators_.size() <= 1 || !have_sift_estimator_) << "SIFT is not allowed to be mixed with other feature descriptors.";
+
+        CHECK( !have_sift_estimator_ || param_.train_on_individual_views_ ) << "SIFT needs organized point clouds. Therefore training from a full model is not supported! " << std::endl;
+    }
+
+    bool visualize_keypoints_; ///< if true, visualizes the extracted keypoints
+
+    /**
+     * @brief extractKeypoints extracts keypoints from the scene
+     * @param[in] region_of_interest object indices (if empty, keypoints will be extracted over whole cloud)
+     * @return keypoint indices
+     */
+    std::vector<KeypointIndex>
+    extractKeypoints(const std::vector<int> &region_of_interest = std::vector<int>());
+
+    /**
+     * @brief featureMatching matches all scene keypoints with model signatures
+     * @param kp_indices query keypoint indices
+     * @param signatures query feature descriptors
+     * @param lomdb search space
+     */
+    void
+    featureMatching (const std::vector<KeypointIndex> &kp_indices,
+                     const std::vector<FeatureDescriptor> &signatures,
+                     const LocalObjectModelDatabase::ConstPtr &model_keypoints_,
+                     size_t model_keypoint_offset = 0);
+
+    /**
+     * @brief featureEncoding describes each keypoint with corresponding feature descriptor
+     * @param est feature estimator
+     * @param keypoint_indices given keypoint indices
+     * @param filtered_keypoint_indices extracted keypoint indices after removing nan points for instance
+     * @param signatures feature descriptors
+     */
+    void
+    featureEncoding (LocalEstimator<PointT> &est,
+                     const std::vector<KeypointIndex> &keypoint_indices,
+                     std::vector<KeypointIndex> &filtered_keypoint_indices,
+                     std::vector<FeatureDescriptor > &signatures);
+
+
+    /**
+     * @brief filterKeypoints filters keypoints based on planarity and closeness to depth discontinuity (if according parameters are set)
+     * @param[in] input_keypoints keypoints to be filtered
+     * @param[inout] input_signatures optional can also filter associated signatures (e.g. for SIFT, keypoint detection and feature description happens in one step - therefore we can only filter after feature description), this variable will update the signatures
+     * @return filtered keypoints
+     */
+    std::vector<int>
+    getInlier(const std::vector<KeypointIndex> &input_keypoints) const;
+
+    /**
+     * @brief computeFeatures
+     * @param est local feature descriptor
+     * @return
+     */
+    bool
+    computeFeatures(LocalEstimator<PointT> &est);
+
+    void
+    visualizeKeypoints(const std::vector<KeypointIndex> &kp_indices, const std::vector<KeypointIndex> &unfiltered_kp_indices = std::vector<KeypointIndex>()) const;
+
+    std::vector< std::map<std::string, size_t > > model_kp_idx_range_start_; ///< since keypoints are coming from multiple local recognizer, we need to store which range belongs to which recognizer. This variable is the starting parting t
 
 public:
 
     LocalFeatureMatcher (const LocalRecognizerParameter &p = LocalRecognizerParameter()) :
         param_(p),
+        have_sift_estimator_ (false),
         visualize_keypoints_(false)
     { }
 
@@ -236,25 +314,29 @@ public:
     size_t
     getFeatureType() const
     {
-        return estimator_->getFeatureType();
+        size_t type=0;
+        for( const auto &est : estimators_ )
+            type |= est->getFeatureType();
+
+        return type;
     }
 
-    /**
-    * @brief getFeatureName
-    * @return feature name of estimator
-    */
-    std::string
-    getFeatureName() const
-    {
-        return estimator_->getFeatureDescriptorName();
-    }
+//    /**
+//    * @brief getFeatureName
+//    * @return feature name of estimator
+//    */
+//    std::string
+//    getFeatureName() const
+//    {
+//        return estimator_->getFeatureDescriptorName();
+//    }
 
     /**
      * @brief getKeypointIndices
      * @param indices of the point clouds that are keypoints
      */
     void
-    getKeypointIndices(std::vector<int> &indices) const
+    getKeypointIndices(std::vector<KeypointIndex> &indices) const
     {
         indices = keypoint_indices_;
     }
@@ -264,9 +346,9 @@ public:
     * \param estimator feature estimator
     */
     void
-    setFeatureEstimator (const typename LocalEstimator<PointT>::Ptr & feat)
+    addFeatureEstimator (const typename LocalEstimator<PointT>::Ptr & feat)
     {
-        estimator_ = feat;
+        estimators_.push_back(feat);
     }
 
     /**
@@ -295,8 +377,12 @@ public:
     virtual bool
     needNormals() const
     {
-        if (estimator_ && estimator_->needNormals())
-            return true;
+        for( const auto &est : estimators_ )
+        {
+            if (est && est->needNormals())
+                return true;
+        }
+
 
         if (!keypoint_extractor_.empty())
         {
@@ -315,19 +401,17 @@ public:
     void
     recognize ();
 
-    virtual bool requiresSegmentation() const
-    {
-        return false;
-    }
+    virtual bool requiresSegmentation() const { return false; }
 
     /**
     * @brief getLocalObjectModelDatabase
     * @return local object model database
     */
-    typename LocalObjectModelDatabase::ConstPtr
-    getLocalObjectModelDatabase() const
+    typename
+    std::map<std::string, typename LocalObjectModel::ConstPtr>
+    getModelKeypoints() const
     {
-        return lomdb_;
+        return model_keypoints_;
     }
 
     /**
@@ -370,6 +454,39 @@ public:
     {
         m_db_ = m_db;
     }
+
+    /**
+     * @brief setNormalEstimator sets the normal estimator used for computing surface normals (currently only used at training)
+     * @param normal_estimator
+     */
+    void
+    setNormalEstimator(const typename NormalEstimator<PointT>::Ptr &normal_estimator)
+    {
+        normal_estimator_ = normal_estimator;
+    }
+
+    void
+    setVisualizeKeypoints(bool vis=true)
+    {
+        visualize_keypoints_ = vis;
+    }
+
+    /**
+     * @brief setVisualizationParameter sets the PCL visualization parameter (only used if some visualization is enabled)
+     * @param vis_param
+     */
+    void
+    setVisualizationParameter(const PCLVisualizationParams::ConstPtr &vis_param)
+    {
+        vis_param_ = vis_param;
+    }
+
+    size_t
+    getNumEstimators() const
+    {
+        return estimators_.size();
+    }
+
 
     typedef boost::shared_ptr< LocalFeatureMatcher<PointT> > Ptr;
     typedef boost::shared_ptr< LocalFeatureMatcher<PointT> const> ConstPtr;

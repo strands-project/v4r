@@ -2,6 +2,7 @@
 #include <v4r/segmentation/plane_extractor_organized_multiplane.h>
 #include <v4r/segmentation/plane_extractor_sac.h>
 #include <v4r/segmentation/plane_extractor_sac_normals.h>
+#include <v4r/segmentation/plane_extractor_tile.h>
 #include <v4r/segmentation/segmenter_2d_connected_components.h>
 #include <v4r/segmentation/segmenter_euclidean.h>
 #include <v4r/segmentation/segmenter_organized_connected_component.h>
@@ -79,6 +80,13 @@ initPlaneExtractor(int method, std::vector<std::string> &params )
         PlaneExtractorParameter param;
         params = param.init(params);
         typename SACNormalsPlaneExtractor<PointT>::Ptr pe (new SACNormalsPlaneExtractor<PointT> (param));
+        cast_plane_extractor = boost::dynamic_pointer_cast<PlaneExtractor<PointT> > (pe);
+    }
+    else if(method == PlaneExtractionType::Tile)
+    {
+        PlaneExtractorTileParameter param;
+        params = param.init(params);
+        typename PlaneExtractorTile<PointT>::Ptr pe (new PlaneExtractorTile<PointT> (param));
         cast_plane_extractor = boost::dynamic_pointer_cast<PlaneExtractor<PointT> > (pe);
     }
     else

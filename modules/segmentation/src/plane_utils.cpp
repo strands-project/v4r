@@ -102,7 +102,15 @@ visualizePlane(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const Ei
         plane_cloud->points[idx].g = 255.f;
 
     int vp1, vp2;
-    pcl::visualization::PCLVisualizer::Ptr vis ( new pcl::visualization::PCLVisualizer(window_title) );
+
+    static pcl::visualization::PCLVisualizer::Ptr vis;
+
+    if(!vis)
+        vis.reset ( new pcl::visualization::PCLVisualizer );
+
+    vis->setWindowName(window_title);
+    vis->removeAllPointClouds();
+    vis->removeAllShapes();
     vis->createViewPort(0,0,0.5,1,vp1);
     vis->createViewPort(0.5,0,1,1,vp2);
     vis->addPointCloud<PointT>( cloud, "input", vp1 );
@@ -142,7 +150,15 @@ visualizePlanes(const typename pcl::PointCloud<PointT>::ConstPtr &cloud, const s
     }
 
     int vp1, vp2;
-    pcl::visualization::PCLVisualizer::Ptr vis ( new pcl::visualization::PCLVisualizer(window_title) );
+
+    static pcl::visualization::PCLVisualizer::Ptr vis;
+
+    if(!vis)
+        vis.reset ( new pcl::visualization::PCLVisualizer );
+
+    vis->setWindowName(window_title);
+    vis->removeAllPointClouds();
+    vis->removeAllShapes();
     vis->createViewPort(0,0,0.5,1,vp1);
     vis->createViewPort(0.5,0,1,1,vp2);
     vis->addPointCloud<PointT>( cloud, "input", vp1 );

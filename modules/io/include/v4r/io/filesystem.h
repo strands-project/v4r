@@ -21,7 +21,7 @@ namespace io
       * @return relative_paths
       */
 V4R_EXPORTS std::vector<std::string>
-getFoldersInDirectory (const std::string & dir);
+getFoldersInDirectory (const boost::filesystem::path &dir);
 
 
 /** Returns a the name of files in a folder </br>
@@ -33,7 +33,7 @@ getFoldersInDirectory (const std::string & dir);
         */
 V4R_EXPORTS
 std::vector<std::string>
-getFilesInDirectory (const std::string & dir, const std::string & regex_pattern = std::string(""), bool recursive = true);
+getFilesInDirectory (const boost::filesystem::path &dir, const std::string & regex_pattern = std::string(""), bool recursive = true);
 
 
 /** checks if a file exists
@@ -41,7 +41,7 @@ getFilesInDirectory (const std::string & dir, const std::string & regex_pattern 
         * @return true if file exsits
         */
 V4R_EXPORTS bool
-existsFile ( const std::string &rFile );
+existsFile (const boost::filesystem::path &rFile );
 
 /** checks if a folder exists
         * @param rFolder
@@ -54,14 +54,14 @@ existsFolder (const boost::filesystem::path &dir );
           * @param folder_name
           */
 V4R_EXPORTS void
-createDirIfNotExist(const std::string & dir);
+createDirIfNotExist(const boost::filesystem::path &dir);
 
 /** checks if the path for the filename already exists,
          * otherwise creates it
          * @param filename
          */
 V4R_EXPORTS void
-createDirForFileIfNotExist(const std::string & filename);
+createDirForFileIfNotExist(const boost::filesystem::path &filename);
 
 
 /** @brief copies a directory from source to destination

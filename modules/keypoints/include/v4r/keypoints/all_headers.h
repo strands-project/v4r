@@ -34,40 +34,40 @@ namespace v4r
 {
 
 template<typename PointT>
-typename KeypointExtractor<PointT>::Ptr
-initKeypointExtractor(int method, std::vector<std::string> &params)
+std::vector<typename KeypointExtractor<PointT>::Ptr>
+initKeypointExtractors(int method, std::vector<std::string> &params)
 {
-    typename KeypointExtractor<PointT>::Ptr keypoint_extractor;
+    std::vector<typename KeypointExtractor<PointT>::Ptr > keypoint_extractor;
 
-    if(method == KeypointType::UniformSampling)
+    if(method & KeypointType::UniformSampling)
     {
         UniformSamplingExtractorParameter param;
         params = param.init(params);
         typename UniformSamplingExtractor<PointT>::Ptr ke (new UniformSamplingExtractor<PointT> (param));
-        keypoint_extractor = boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke);
+        keypoint_extractor.push_back( boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke) );
     }
-    else if(method == KeypointType::ISS)
+    if(method & KeypointType::ISS)
     {
         IssKeypointExtractorParameter param;
         params = param.init(params);
         typename IssKeypointExtractor<PointT>::Ptr ke (new IssKeypointExtractor<PointT> (param));
-        keypoint_extractor = boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke);
+        keypoint_extractor.push_back( boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke) );
     }
-    else if(method == KeypointType::NARF)
+    if(method & KeypointType::NARF)
     {
         NarfKeypointExtractorParameter param;
         params = param.init(params);
         typename NarfKeypointExtractor<PointT>::Ptr ke (new NarfKeypointExtractor<PointT> (param));
-        keypoint_extractor = boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke);
+        keypoint_extractor.push_back( boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke) );
     }
-    else if(method == KeypointType::HARRIS3D)
+    if(method & KeypointType::HARRIS3D)
     {
         Harris3DKeypointExtractorParameter param;
         params = param.init(params);
         typename Harris3DKeypointExtractor<PointT>::Ptr ke (new Harris3DKeypointExtractor<PointT> (param));
-        keypoint_extractor = boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke);
+        keypoint_extractor.push_back( boost::dynamic_pointer_cast<KeypointExtractor<PointT> > (ke) );
     }
-    else
+    if( keypoint_extractor.empty() )
     {
         std::cerr << "Keypoint extractor method " << method << " is not implemented! " << std::endl;
     }

@@ -15,21 +15,6 @@
 
 namespace v4r
 {
-template<typename PointT>
-void
-Model<PointT>::computeNormalsAssembledCloud(float radius_normals)
-{
-    typename pcl::search::KdTree<PointT>::Ptr normals_tree (new pcl::search::KdTree<PointT>);
-    typedef typename pcl::NormalEstimationOMP<PointT, pcl::Normal> NormalEstimator_;
-    NormalEstimator_ n3d;
-    normals_assembled_.reset (new pcl::PointCloud<pcl::Normal> ());
-    normals_tree->setInputCloud (assembled_);
-    n3d.setRadiusSearch (radius_normals);
-    n3d.setSearchMethod (normals_tree);
-    n3d.setInputCloud (assembled_);
-    n3d.compute (*normals_assembled_);
-}
-
 
 template<typename PointT>
 typename pcl::PointCloud<PointT>::ConstPtr
@@ -250,6 +235,7 @@ Model<PointT>::initialize(const std::string &model_filename)
     pcl::copyPointCloud( * all_assembled, *assembled_);
     pcl::copyPointCloud( * all_assembled, *normals_assembled_);
     pcl::getMinMax3D(*assembled_, minPoint_, maxPoint_);
+    pcl::compute3DCentroid(*assembled_, centroid_);
 }
 
 //template<typename PointT>

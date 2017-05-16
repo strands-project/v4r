@@ -1,6 +1,7 @@
 #include <v4r/segmentation/plane_utils.h>
 #include <v4r/segmentation/segmenter_organized_connected_component.h>
 
+#include <pcl/common/angles.h>
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/segmentation/euclidean_cluster_comparator.h>
 #include <pcl/segmentation/organized_connected_component_segmentation.h>
@@ -27,6 +28,7 @@ OrganizedConnectedComponentSegmenter<PointT>::segment()
     euclidean_cluster_comp->setLabels (labels);
     euclidean_cluster_comp->setExcludeLabels (exclude_labels);
     euclidean_cluster_comp->setDistanceThreshold ( param_.distance_threshold_, true);
+    euclidean_cluster_comp->setAngularThreshold( pcl::deg2rad(param_.angular_threshold_deg_) );
 
     pcl::PointCloud < pcl::Label > euclidean_labels;
     std::vector < pcl::PointIndices > euclidean_label_indices;

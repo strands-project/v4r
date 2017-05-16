@@ -36,6 +36,8 @@ class V4R_EXPORTS KeypointExtractor
 {
 protected:
     typename pcl::PointCloud<PointT>::ConstPtr input_; ///< input cloud
+    pcl::PointCloud<pcl::Normal>::ConstPtr normals_; ///< surface normals for input cloud
+    typename pcl::PointCloud<PointT>::Ptr keypoints_; /// extracted keypoints
     std::vector<int> keypoint_indices_; ///< extracted keypoint indices
     std::vector<int> indices_;  ///< indices of the segmented object (extracted keypoints outside of this will be neglected)
 
@@ -52,11 +54,10 @@ public:
         input_ = input;
     }
 
-    virtual void
+    void
     setNormals (const pcl::PointCloud<pcl::Normal>::ConstPtr & normals)
     {
-        (void)normals;
-        std::cerr << "setNormals is not implemented for this object." << std::endl;
+        normals_ = normals;
     }
 
     virtual bool
@@ -98,7 +99,18 @@ public:
      * @param keypoints
      */
     virtual void
-    compute (pcl::PointCloud<PointT> & keypoints) = 0;
+    compute () = 0;
+
+    /**
+     * @brief getKeypoints
+     * @return extracted keypoints
+     */
+    virtual
+    typename pcl::PointCloud<PointT>::Ptr
+    getKeypoints() const
+    {
+        return keypoints_;
+    }
 
 
     typedef boost::shared_ptr< KeypointExtractor<PointT> > Ptr;

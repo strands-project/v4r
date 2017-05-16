@@ -44,27 +44,19 @@ class V4R_EXPORTS IssKeypointExtractorParameter // see PCL documentation for fur
     int min_neighbors_ ; ///< Set the minimum number of neighbors that has to be found while applying the non maxima suppression algorithm.
     bool with_border_estimation_;
     int threads_;
+    float angle_thresh_deg_;
 
-    IssKeypointExtractorParameter(
-            double salient_radius = 6*0.005f,   // 6 * model resolution (according to http://www.pointclouds.org/blog/gsoc12/gballin/iss.php)
-            double non_max_radius = 4*0.005f,
-            double normal_radius = 4*0.005f,
-            double border_radius = 1*0.005f,
-            double gamma_21 = 0.975,
-            double gamma_32 = 0.975,
-            int min_neighbors = 5,
-            bool with_border_estimation = true,
-            int threads = 0
-            ) :
-        salient_radius_ (salient_radius),
-        non_max_radius_ (non_max_radius),
-        normal_radius_ (normal_radius),
-        border_radius_ (border_radius),
-        gamma_21_ (gamma_21),
-        gamma_32_ (gamma_32),
-        min_neighbors_ (min_neighbors),
-        with_border_estimation_ (with_border_estimation),
-        threads_ (threads)
+    IssKeypointExtractorParameter() :
+        salient_radius_ (0.02f),//(6*0.005f),
+        non_max_radius_ (4*0.005f),
+        normal_radius_ (4*0.005f),
+        border_radius_ (1*0.005f),
+        gamma_21_ (0.8),//(0.975),
+        gamma_32_ (0.8),//(0.975),
+        min_neighbors_ (5),
+        with_border_estimation_ (false),
+        threads_ (4),
+        angle_thresh_deg_(60.f)
     {}
 
 
@@ -100,6 +92,7 @@ class V4R_EXPORTS IssKeypointExtractorParameter // see PCL documentation for fur
                 ("iss_min_neighbors", po::value<int>(&min_neighbors_)->default_value(min_neighbors_), "Set the minimum number of neighbors that has to be found while applying the non maxima suppression algorithm")
                 ("iss_with_border_estimation", po::value<bool>(&with_border_estimation_)->default_value(with_border_estimation_), "")
                 ("iss_threads", po::value<int>(&threads_)->default_value(threads_), "number of threads")
+                ("iss_angle_thresh_deg", po::value<float>(&angle_thresh_deg_)->default_value(angle_thresh_deg_), "Set the decision boundary (angle threshold) that marks points as boundary or regular.")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -118,7 +111,9 @@ class V4R_EXPORTS IssKeypointExtractor : public KeypointExtractor<PointT>
 private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     using KeypointExtractor<PointT>::input_;
+    using KeypointExtractor<PointT>::normals_;
     using KeypointExtractor<PointT>::indices_;
+    using KeypointExtractor<PointT>::keypoints_;
     using KeypointExtractor<PointT>::keypoint_indices_;
 
     IssKeypointExtractorParameter param_;
@@ -130,12 +125,17 @@ public:
     {}
 
     void
-    compute (pcl::PointCloud<PointT> & keypoints);
+    compute ();
+
+    bool
+    needNormals() const
+    {
+        return true;
+    }
 
     int getKeypointExtractorType() const { return KeypointType::ISS; }
 
     std::string getKeypointExtractorName() const { return "iss"; }
-
 
     typedef boost::shared_ptr< IssKeypointExtractor<PointT> > Ptr;
     typedef boost::shared_ptr< IssKeypointExtractor<PointT> const> ConstPtr;

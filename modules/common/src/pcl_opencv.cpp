@@ -156,6 +156,16 @@ PCLOpenCVConverter<PointT>::computeOrganizedCloud()
     ZBuffering<PointT> zbuf (cam_, zBufParams);
     typename pcl::PointCloud<PointT>::Ptr organized_cloud (new pcl::PointCloud<PointT>);
     zbuf.renderPointCloud( *cloud_,  *organized_cloud);
+
+    for(PointT &p:organized_cloud->points)
+    {
+        if (!pcl::isFinite(p))
+        {
+            p.r = background_color_(0);
+            p.g = background_color_(1);
+            p.b = background_color_(2);
+        }
+    }
     index_map_ = zbuf.getIndexMap();
 
     if(!indices_.empty())

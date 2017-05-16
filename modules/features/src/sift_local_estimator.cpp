@@ -4,11 +4,10 @@
 #include <pcl/common/io.h>
 #include <glog/logging.h>
 
-#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
+
+#ifdef HAVE_SIFTGPU
 #include <GL/glut.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
 #endif
 
 namespace v4r
@@ -22,30 +21,14 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
 
     PCLOpenCVConverter<PointT> pcl_opencv_converter;
     pcl_opencv_converter.setInputCloud(cloud_);
-    cv::Mat colorImage = pcl_opencv_converter.getRGBImage();
+    const cv::Mat colorImage = pcl_opencv_converter.getRGBImage();
     Eigen::Matrix2Xf keypoints2d;
     compute(colorImage, keypoints2d, signatures);
-    keypoint_indices_.resize(keypoints2d.cols());
-
-    boost::dynamic_bitset<> obj_mask;
-    if(indices_.empty())
-    {
-        obj_mask.resize(cloud_->width * cloud_->height);
-        obj_mask.set();
-    }
-    else
-        obj_mask = createMaskFromIndices(indices_, cloud_->width * cloud_->height);
 
     size_t kept = 0;
-    for(int i=0; i < keypoints2d.cols(); i++)
+    for(size_t i=0; i < keypoint_indices_.size(); i++)
     {
-        int u = std::max<int>(0, std::min<int>((int)cloud_->width  -1, keypoints2d(0,i) ) );
-        int v = std::max<int>(0, std::min<int>((int)cloud_->height -1, keypoints2d(1,i) ) );
-
-        int idx = v * cloud_->width + u;
-
-        if(!obj_mask[idx]) // keypoint does not belong to given object mask
-            continue;
+        int idx = keypoint_indices_[i];
 
         if( pcl::isFinite(cloud_->points[idx]) && cloud_->points[idx].z < max_distance_)
         {
@@ -58,9 +41,6 @@ SIFTLocalEstimation<PointT>::compute (std::vector<std::vector<float> > &signatur
     signatures.resize(kept);
     keypoint_indices_.resize(kept);
     indices_.clear();
-    keypoints_.reset( new pcl::PointCloud<PointT>);
-    pcl::copyPointCloud(*cloud_, keypoint_indices_, *keypoints_);
-    processed_.reset();
 }
 
 
@@ -71,7 +51,15 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
     cv::Mat grayImage;
     cv::cvtColor (colorImage, grayImage, CV_BGR2GRAY);
 
-    cv::Mat descriptors;
+    boost::dynamic_bitset<> obj_mask;
+    if(indices_.empty())
+    {
+        obj_mask.resize(colorImage.cols * colorImage.rows);
+        obj_mask.set();
+    }
+    else
+        obj_mask = createMaskFromIndices(indices_, colorImage.cols * colorImage.rows);
+
 
 #ifdef HAVE_SIFTGPU
     if (sift_->CreateContextGL () != SiftGPU::SIFTGPU_FULL_SUPPORTED)
@@ -108,31 +96,33 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
         if (num>0)
         {
             std::vector<SiftGPU::SiftKeypoint> ks (num);
-            descriptors = cv::Mat(num,128,CV_32F);
+            cv::Mat descriptors(num,128,CV_32F);
             sift_->GetFeatureVector(&ks[0], descriptors.ptr<float>(0));
             keypoints = Eigen::Matrix2Xf(2, ks.size());
             signatures.resize (ks.size (), std::vector<float>(128));
-
-            boost::dynamic_bitset<> obj_mask;
-            if(indices_.empty())
-            {
-                obj_mask.resize(colorImage.cols * colorImage.rows);
-                obj_mask.set();
-            }
-            else
-                obj_mask = createMaskFromIndices(indices_, colorImage.cols * colorImage.rows);
 
             keypoint_indices_.resize( ks.size() );
             size_t kept = 0;
             for(size_t i=0; i < ks.size(); i++)
             {
                 const SiftGPU::SiftKeypoint &kp = ks[i];
-                int u = std::max<int>(0, std::min<int>((int)colorImage.cols -1, kp.x ) );
-                int v = std::max<int>(0, std::min<int>((int)colorImage.rows -1, kp.y ) );
+                int u = std::min<int>( colorImage.cols -1, kp.x+0.5f );
+                int v = std::min<int>( colorImage.rows -1, kp.y+0.5f );
                 int idx = v * colorImage.cols + u;
 
                 if( obj_mask[idx] ) // keypoint does not belong to given object mask
                 {
+                    if( param_.use_rootSIFT_ )
+                    {
+                        double norm_L1 = cv::norm(descriptors.row(i), cv::NORM_L1);
+
+                        for (size_t k = 0; k < 128; k++)
+                            descriptors.at<float>(i,k) = sqrt( descriptors.at<float>(i,k) / norm_L1 );
+
+//                        double norm_L2 = cv::norm( descriptors.row(i) );
+//                        descriptors.row(i) /= norm_L2;
+                    }
+
                     for (size_t k = 0; k < 128; k++)
                         signatures[kept][k] = descriptors.at<float>(i,k);
 
@@ -148,7 +138,7 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
         }
         else
         {
-            std::cout << "No SIFT features found!" << std::endl;
+            LOG(WARNING) << "No SIFT features found!";
             keypoint_indices_.clear();
         }
     }
@@ -161,24 +151,50 @@ SIFTLocalEstimation<PointT>::compute (const cv::Mat_ < cv::Vec3b > &colorImage, 
     std::vector<cv::KeyPoint> ks;
     sift_->operator ()(grayImage, cv::Mat(), ks, descriptors, false);
 
-    int num = ks.size();
 
-    if(num>0)
+    int num = ks.size();
+    if (num>0)
     {
+        std::vector<SiftGPU::SiftKeypoint> ks (num);
+        cv::Mat descriptors(num,128,CV_32F);
+        sift_->GetFeatureVector(&ks[0], descriptors.ptr<float>(0));
         keypoints = Eigen::Matrix2Xf(2, ks.size());
         signatures.resize (ks.size (), std::vector<float>(128));
 
+        keypoint_indices_.resize( ks.size() );
+        size_t kept = 0;
         for(size_t i=0; i < ks.size(); i++)
         {
-            for (int k = 0; k < 128; k++)
-                signatures[i][k] = descriptors.at<float>(i,k);
+            int u = std::min<int>( colorImage.cols -1, ks[i].pt.x+0.5f );
+            int v = std::min<int>( colorImage.rows -1, ks[i].pt.y+0.5f );
+            int idx = v * colorImage.cols + u;
 
-          keypoints(0,i) = ks[i].pt.x;
-          keypoints(1,i) = ks[i].pt.y;
+            if( obj_mask[idx] ) // keypoint does not belong to given object mask
+            {
+                if( param_.use_rootSIFT_ )
+                {
+                    double norm_L1 = cv::norm(descriptors.row(i), cv::NORM_L1);
+
+                    for (size_t k = 0; k < 128; k++)
+                        descriptors.at<float>(i,k) = sqrt( descriptors.at<float>(i,k) / norm_L1 );
+
+//                        double norm_L2 = cv::norm( descriptors.row(i) );
+//                        descriptors.row(i) /= norm_L2;
+                }
+
+                for (size_t k = 0; k < 128; k++)
+                    signatures[kept][k] = descriptors.at<float>(i,k);
+
+                keypoints(0,kept) = ks[i].pt.x;
+                keypoints(1,kept) = ks[i].pt.y;
+                keypoint_indices_[kept] = idx;
+                kept++;
+            }
         }
+        signatures.resize(kept);
+        keypoints.conservativeResize(2, kept);
+        keypoint_indices_.resize( kept );
     }
-    else
-        std::cout << "No SIFT features found!" << std::endl;
 #endif
 }
 

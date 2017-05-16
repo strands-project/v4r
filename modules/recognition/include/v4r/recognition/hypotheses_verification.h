@@ -89,11 +89,11 @@ class V4R_EXPORTS HypothesisVerification
     friend class HV_CuesVisualizer<ModelT, SceneT>;
     friend class HV_PairwiseVisualizer<ModelT, SceneT>;
 
+    HV_Parameter param_;
+
 public:
     typedef boost::shared_ptr< HypothesisVerification<ModelT, SceneT> > Ptr;
     typedef boost::shared_ptr< HypothesisVerification<ModelT, SceneT> const> ConstPtr;
-
-    HV_Parameter param_;
 
 protected:
 
@@ -146,6 +146,8 @@ protected:
 
     std::vector<std::vector<PtFitness> > scene_pts_explained_solution_;
 
+    static std::vector<std::pair<std::string, float> > elapsed_time_; ///< measurements of computation times for various components
+
     float initial_temp_;
     boost::shared_ptr<GHVCostFunctionLogger<ModelT,SceneT> > cost_logger_;
     Eigen::MatrixXf scene_color_channels_; ///< converted color values where each point corresponds to a row entry
@@ -161,7 +163,9 @@ protected:
 
     boost::function<float (const Eigen::VectorXf&, const Eigen::VectorXf&)> color_dist_f_;
 
-    Eigen::Matrix4f refinePose(HVRecognitionModel<ModelT> &rm) const;
+    void refinePose(HVRecognitionModel<ModelT> &rm) const;
+
+    cv::Mat img_boundary_distance_; ///< saves for each pixel how far it is away from the boundary (taking into account extrinsics of the camera)
 
     /**
      * @brief computeVisiblePoints first renders the model cloud in the given pose onto the image plane and checks via z-buffering
@@ -217,7 +221,14 @@ protected:
      */
     bool isOutlier(HVRecognitionModel<ModelT> &rm) const
     {
-        return ( param_.regularizer_ * rm.visible_pt_is_outlier_.count() > rm.scene_explained_weight_.sum() );
+        float visible_ratio = rm.visible_indices_by_octree_.size() / (float)rm.num_pts_full_model_;
+        float thresh = param_.min_fitness_ + ( param_.min_fitness_ - param_.min_fitness_high_) * ( visible_ratio - 0.5f ) / (0.5f - param_.min_visible_ratio_);
+        float min_fitness_threshold = std::max<float>( param_.min_fitness_, std::min<float>(param_.min_fitness_high_, thresh) );
+
+        bool is_rejected = rm.oh_->confidence_ < min_fitness_threshold;
+
+        VLOG(1) << rm.oh_->class_id_ << " " << rm.oh_->model_id_ << " is rejected? " << is_rejected << " with visible ratio of : " << visible_ratio << " and fitness " << rm.oh_->confidence_ << " (by thresh " << min_fitness_threshold << ")";
+        return is_rejected;
     }
 
 
@@ -252,8 +263,8 @@ protected:
     float
     getFitness( const ModelSceneCorrespondence& c ) const
     {
-        float fit_3d = modelScene3DDistCostTerm (c);
-        float fit_color = modelSceneColorCostTerm (c);
+        float fit_3d = scoreXYZNormalized (c);
+        float fit_color = scoreColorNormalized (c);
         float fit_normal = modelSceneNormalsCostTerm(c);
 
         if ( fit_3d < std::numeric_limits<float>::epsilon() ||
@@ -261,12 +272,25 @@ protected:
              fit_normal < std::numeric_limits<float>::epsilon()  )
             return 0.f;
 
-        float sum_weights = param_.w_3D_ + param_.w_color_ + param_.w_normals_;
-        float weighted_geometric_mean = exp( ( param_.w_3D_      * log(fit_3d) +
+        float sum_weights = param_.w_xyz_ + param_.w_color_ + param_.w_normals_;
+        float weighted_geometric_mean = exp( ( param_.w_xyz_      * log(fit_3d) +
                                                param_.w_color_   * log(fit_color ) +
                                                param_.w_normals_ * log(fit_normal)  )
                                              / sum_weights );
         return weighted_geometric_mean;
+    }
+
+    inline float
+    scoreColor(float dist_color) const
+    {
+        return (1.f-tanh( (dist_color - param_.inlier_threshold_color_) / param_.sigma_color_ ) );
+    }
+
+
+    inline float
+    scoreXYZ(float dist_xyz) const
+    {
+        return (1.f-tanh( (dist_xyz - param_.inlier_threshold_xyz_) / param_.sigma_xyz_ ) );
     }
 
     /**
@@ -275,9 +299,12 @@ protected:
      * @return
      */
     float
-    modelSceneColorCostTerm( const ModelSceneCorrespondence& c ) const
+    scoreColorNormalized( const ModelSceneCorrespondence& c ) const
     {
-        return exp (- c.color_distance_/param_.color_sigma_ab_ );
+//        return exp (- c.color_distance_/param_.color_sigma_ab_ );
+//        std::cout << c.color_distance_ << std::endl;
+//        return std::min(1.f, std::max(0.f, 1.f - c.color_distance_/param_.color_sigma_ab_));
+        return scoreColor(c.color_distance_) * OneOver_distColor0_;
     }
 
     /**
@@ -286,12 +313,18 @@ protected:
      * @return distance in centimeter
      */
     float
-    modelScene3DDistCostTerm( const ModelSceneCorrespondence& c ) const
+    scoreXYZNormalized( const ModelSceneCorrespondence& c ) const
     {
-        if ( c.dist_3D_ < param_.inliers_threshold_ )
-            return 1.f;
-        else
-            return exp( -(c.dist_3D_ - param_.inliers_threshold_) * (c.dist_3D_ - param_.inliers_threshold_) / (param_.inliers_threshold_ * param_.inliers_threshold_) );
+//        if ( c.dist_3D_ < param_.inliers_threshold_ )
+//            return 1.f;
+//        else
+        return scoreXYZ(c.dist_3D_) * OneOver_distXYZ0_;
+    }
+
+    inline float
+    scoreNormals(float dotp) const
+    {
+        return (1.f + tanh( (dotp - param_.inlier_threshold_normals_dotp_) / param_.sigma_normals_ ) );   ///TODO: Speed up with LUT
     }
 
     /**
@@ -299,27 +332,23 @@ protected:
      * @param model scene correspondence
      * @return angle between corresponding surface normals (fliped such that they are pointing into the same direction)
      */
-    float modelSceneNormalsCostTerm( const ModelSceneCorrespondence& c ) const
+    float
+    modelSceneNormalsCostTerm( const ModelSceneCorrespondence& c ) const
     {
-        if ( c.angle_surface_normals_rad_ < param_.inliers_surface_angle_thres_)
-            return 1.f;
 
-        if ( c.angle_surface_normals_rad_ > M_PI/2)
-            return 0.f;
-
-        return 1 - (c.angle_surface_normals_rad_ - param_.inliers_surface_angle_thres_) / (M_PI/2 - param_.inliers_surface_angle_thres_);
+        return scoreNormals(c.normals_dotp_) * OneOver_distNorm0_;
     }
 
-    void
-    computeLOffset( HVRecognitionModel<ModelT> &rm ) const;
+//    void
+//    computeLOffset( HVRecognitionModel<ModelT> &rm ) const;
 
     float
     customColorDistance(const Eigen::VectorXf &color_a, const Eigen::VectorXf &color_b)
     {
         float L_dist  = ( color_a(0) - color_b(0) )*( color_a(0) - color_b(0) );
         CHECK(L_dist >= 0.f && L_dist <= 1.f);
-        L_dist /= param_.color_sigma_l_ ;
-        float AB_dist = ( color_a.tail(2) - color_b.tail(2) ).squaredNorm(); // ( param_.color_sigma_ab_ * param_.color_sigma_ab_ );
+        L_dist /= param_.sigma_color_ ;
+        float AB_dist = ( color_a.tail(2) - color_b.tail(2) ).norm(); // ( param_.color_sigma_ab_ * param_.color_sigma_ab_ );
         CHECK(AB_dist >= 0.f && AB_dist <= 1.f);
         return L_dist + AB_dist ;
     }
@@ -344,11 +373,43 @@ protected:
         return solution_;
     }
 
+    class StopWatch
+    {
+        std::string desc_;
+        boost::posix_time::ptime start_time_;
+
+    public:
+        StopWatch(const std::string &desc)
+            :desc_ (desc), start_time_ (boost::posix_time::microsec_clock::local_time ())
+        {}
+
+        ~StopWatch()
+        {
+            boost::posix_time::ptime end_time = boost::posix_time::microsec_clock::local_time ();
+            float elapsed_time = static_cast<float> (((end_time - start_time_).total_milliseconds ()));
+            VLOG(1) << desc_ << " took " << elapsed_time << " ms.";
+            elapsed_time_.push_back( std::pair<std::string,float>(desc_, elapsed_time) );
+        }
+    };
+
+    // pre-computed variables for speed-up
+    float OneOver_distNorm0_;
+    float OneOver_distColor0_;
+    float OneOver_distXYZ0_;
+    float search_radius_;
+
+
 public:
 
-    HypothesisVerification (const Camera::ConstPtr &cam,
-                            const HV_Parameter &p = HV_Parameter())
-        : param_(p), cam_(cam), initial_temp_(1000)
+    HypothesisVerification (const Camera::ConstPtr &cam, const HV_Parameter &p = HV_Parameter())
+        :
+          param_(p),
+          cam_(cam),
+          initial_temp_(1000),
+          OneOver_distNorm0_ ( 1.f / scoreNormals(1.f) ),
+          OneOver_distColor0_ (1.f / scoreColor(0.f) ),
+          OneOver_distXYZ0_ ( 1.f / scoreXYZ(0.f) ),
+          search_radius_ ( 2. * param_.resolution_mm_ / 1000. )
     {
         colorTransf_.reset(new RGB2CIELAB);
 
@@ -358,7 +419,7 @@ public:
             color_dist_f_ = CIE76; break;
 
         case ColorComparisonMethod::cie94 :
-            color_dist_f_ = CIE76; break;
+            color_dist_f_ = CIE94_DEFAULT; break;
 
         case ColorComparisonMethod::ciede2000 :
             color_dist_f_ = CIEDE2000; break;
@@ -371,27 +432,26 @@ public:
         }
     }
 
-    /**
-     * @brief returns the vector of verified object hypotheses
-     * @return
-     */
-    std::vector<typename ObjectHypothesis<ModelT>::Ptr >
-    getVerifiedHypotheses() const
-    {
-        std::vector<typename ObjectHypothesis<ModelT>::Ptr > verified_hypotheses  (global_hypotheses_.size());
-
-        size_t kept=0;
-        for(size_t i=0; i<global_hypotheses_.size(); i++)
-        {
-            if(solution_[i])
-            {
-                verified_hypotheses[kept] = global_hypotheses_[i];
-                kept++;
-            }
-        }
-        verified_hypotheses.resize(kept);
-        return verified_hypotheses;
-    }
+//    /**
+//     * @brief returns the vector of verified object hypotheses
+//     * @return
+//     */
+//    std::vector<typename ObjectHypothesis<ModelT>::Ptr >
+//    getVerifiedHypotheses() const
+//    {
+//        std::vector<typename ObjectHypothesis<ModelT>::Ptr > verified_hypotheses  (global_hypotheses_.size());
+//        size_t kept=0;
+//        for(size_t i=0; i<global_hypotheses_.size(); i++)
+//        {
+//            if(solution_[i])
+//            {
+//                verified_hypotheses[kept] = global_hypotheses_[i];
+//                kept++;
+//            }
+//        }
+//        verified_hypotheses.resize(kept);
+//        return verified_hypotheses;
+//    }
 
     /**
      * @brief Sets the models (recognition hypotheses)
@@ -455,7 +515,7 @@ public:
      * @param ohs
      */
     void
-    setHypotheses(const std::vector<ObjectHypothesesGroup<ModelT> > &ohs);
+    setHypotheses(std::vector<ObjectHypothesesGroup> &ohs);
 
     /**
      * @brief writeToLog
@@ -517,6 +577,16 @@ public:
      */
     void
     verify();
+
+    /**
+     * @brief getElapsedTimes
+     * @return compuation time measurements for various components
+     */
+    std::vector<std::pair<std::string, float> >
+    getElapsedTimes() const
+    {
+        return elapsed_time_;
+    }
 };
 
 }
