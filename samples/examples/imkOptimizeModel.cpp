@@ -139,9 +139,9 @@ int main(int argc, char *argv[] )
   // init recognizer
   v4r::IMKOptimizeModel::Parameter param;
   param.pnp_param.eta_ransac = 0.01;
-  param.pnp_param.max_rand_trials = 10000;
-  param.pnp_param.inl_dist_px = 2;
-  param.pnp_param.inl_dist_z = 0.02;
+  param.pnp_param.max_rand_trials = 5000;
+  param.pnp_param.inl_dist_px = 1.5;
+  param.pnp_param.inl_dist_z = 0.015;
 
   #ifdef USE_SIFT_GPU
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_SIFTGPU());
@@ -161,7 +161,8 @@ int main(int argc, char *argv[] )
   for (unsigned i=0; i<object_names.size(); i++)
     opti.addObject(object_names[i]);
 
-
+  opti.loadAllObjectViews();
+  opti.optimize();
 
 
   cv::VideoCapture cap;
@@ -220,10 +221,8 @@ void setup(int argc, char **argv)
   {
       std::cout << usage << std::endl;
       std::cout << all;
-      return;
+      exit(0);
   }
-
-  return;
 }
 
 /**

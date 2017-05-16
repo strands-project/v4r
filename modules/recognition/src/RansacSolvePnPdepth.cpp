@@ -254,6 +254,9 @@ void RansacSolvePnPdepth::optimizePoseLM(std::vector<Eigen::Vector3d> &_points3d
  */
 int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &_im_points, Eigen::Matrix4f &pose, std::vector<int> &_inliers, const std::vector<float> &_depth)
 {
+  if (points.size()<4||_im_points.size()!=points.size())
+    return INT_MAX;
+
   int k=0;
   float sig=param.nb_ransac_points, sv_sig=0.;
   float eps = sig/(float)points.size();
@@ -315,6 +318,9 @@ int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &points, const st
  */
 int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &_points0, const std::vector<cv::Point2f> &_im_points1, const std::vector<cv::Point3f> &_points3d1, Eigen::Matrix4f &pose, std::vector<int> &_inliers)
 {
+  if (_points0.size()<4||_im_points1.size()!=_points0.size() || _im_points1.size()!=_points3d1.size())
+    return INT_MAX;
+
   int k=0;
   float sig=param.nb_ransac_points, sv_sig=0.;
   float eps = sig/(float)_points0.size();

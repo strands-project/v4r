@@ -71,6 +71,7 @@ IMKOptimizeModel::IMKOptimizeModel(const Parameter &p,
 {
   if (detector.get()==0) detector = descEstimator;
   pnp.setParameter(p.pnp_param);
+  matcher = new cv::FlannBasedMatcher(new cv::flann::KDTreeIndexParams(16), new cv::flann::SearchParams(150,0,true));
 }
 
 IMKOptimizeModel::~IMKOptimizeModel()
@@ -185,6 +186,7 @@ void IMKOptimizeModel::loadObject(const unsigned &idx)
   std::string pattern =  std::string("cloud_")+std::string(".*.")+std::string("pcd");
   const std::string &name = object_names[idx];
   std::vector<std::string> cloud_files = v4r::io::getFilesInDirectory(base_dir+std::string("/")+name+std::string("/views/"),pattern,false);
+  std::sort(cloud_files.begin(),cloud_files.end());
 
   pcl::PCDReader pcd;
   Eigen::Vector4f origin;
@@ -194,7 +196,6 @@ void IMKOptimizeModel::loadObject(const unsigned &idx)
   pcl::PCLPointCloud2::Ptr cloud2(new pcl::PCLPointCloud2);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   std::vector<Eigen::Matrix4f> poses;
-  Eigen::Vector3d centroid(0.,0.,0.);
 
   for (unsigned i=0; i<cloud_files.size(); i++)
   {
@@ -228,18 +229,143 @@ void IMKOptimizeModel::loadObject(const unsigned &idx)
 
     object_views[idx].push_back(boost::shared_ptr<View>(new View()));
     View &view = *object_views[idx].back();
+    view.idx_part = idx;
+    view.idx_view = i;
     view.name = cloud_files[i];
     view.pose = pose;
     detector->detect(im_channels[0],keys);
     addPoints3d(keys, *cloud, mask, view);
     descEstimator->extract(im_channels[0], view.keys, view.descs);
 
-    cout<<"Load "<<(name+std::string("/")+cloud_files[i])<<": detected "<<" x "<<" keys"<<endl;
+    cout<<"Load "<<(name+std::string("/")+cloud_files[i])<<": detected "<<view.keys.size()<<" keys"<<endl;
 
     poses.push_back(pose);
   }
 }
 
+
+
+/**
+ * @brief IMKOptimizeModel::estimatePose
+ * @param view0
+ * @param view1
+ * @param matches
+ * @param inliers
+ *   std::vector<cv::Point3f> cv_points_3d;
+  std::vector< cv::Point2f > im_points;
+  std::vector<float> depth_values;
+  std::vector< int > _inliers;
+
+ */
+bool IMKOptimizeModel::estimatePose(const View &view0, const View &view1, const std::vector<std::vector< cv::DMatch > > &matches, Eigen::Matrix4f &pose, std::vector<int> &_inliers)
+{
+  cv_points_3d.clear();
+  im_points.clear();
+  depth_values.clear();
+  for (unsigned i=0; i<matches.size(); i++)
+  {
+    if (matches[i].size()<2)
+      return false;
+    const cv::DMatch &m0 = matches[i][0];
+    const cv::DMatch &m1 = matches[i][1];
+    if (m0.distance/m1.distance < param.nnr)
+    {
+      const Eigen::Vector3f &pt3 = view0.points3d[m0.trainIdx];
+      cv_points_3d.push_back(cv::Point3f(pt3[0],pt3[1],pt3[2]));
+      im_points.push_back(view1.keys[m0.queryIdx].pt);
+      depth_values.push_back(view1.points3d[m0.queryIdx][2]);
+    }
+  }
+  if (pnp.ransac(cv_points_3d, im_points, pose, _inliers, depth_values)>=(int)param.pnp_param.max_rand_trials)
+    return false;
+  return true;
+}
+
+/**
+ * @brief IMKOptimizeModel::validatePoseAndAddLinks
+ */
+bool IMKOptimizeModel::validatePoseAndAddLinks(View &view0, View &view1, const std::vector<std::vector< cv::DMatch > > &_matches01, const std::vector<std::vector< cv::DMatch > > &_matches10, const Eigen::Matrix4f &pose01, const Eigen::Matrix4f &pose10, const std::vector<int> &_inliers01, const std::vector<int> &_inliers10)
+{
+  Eigen::Matrix4f inv_pose10;
+  invPose(pose10, inv_pose10);
+
+  if ((pose01.block<3,1>(0,3)-inv_pose10.block<3,1>(0,3)).norm() > param.eq_pose_dist || view0.keys.size()==0 || view1.keys.size()==0)
+    return false;
+
+  view0.links.push_back(Link(view1.idx_part, view1.idx_view, ((double)_matches01.size())/(double)view0.keys.size(), pose01 ));
+  view1.links.push_back(Link(view0.idx_part, view0.idx_view, ((double)_matches10.size())/(double)view1.keys.size(), pose10 ));
+
+  Link &l01 = view0.links.back();
+  for (unsigned i=0; i<_inliers01.size(); i++)
+    l01.matches.push_back(_matches01[_inliers01[i]][0]);
+
+  Link &l10 = view1.links.back();
+  for (unsigned i=0; i<_inliers10.size(); i++)
+    l10.matches.push_back(_matches10[_inliers10[i]][0]);
+
+  return true;
+}
+
+/**
+ * @brief IMKOptimizeModel::matchViews
+ */
+void IMKOptimizeModel::matchViews()
+{
+  Eigen::Matrix4f pose01, pose10;
+  std::vector<int> inliers01, inliers10;
+  for (unsigned i=0; i<object_views.size(); i++)
+  {
+    for (unsigned j=0; j<object_views[i].size(); j++)
+    {
+      View &view0 = *object_views[i][j];
+      if (view0.keys.size()<5)
+        continue;
+      // -- dbg
+      std::string file = view0.name;
+      boost::replace_last (file, "pcd", "jpg");
+      boost::replace_last (file, "cloud_", "image_");
+      cv::Mat im0 = cv::imread(base_dir+std::string("/")+object_names[view0.idx_part]+std::string("/views/")+file, CV_LOAD_IMAGE_COLOR);
+      cv::imshow("im0", im0);
+      // --
+      for (unsigned k=0; k<object_views.size(); k++)
+      {
+        for (unsigned l=0; l<object_views[k].size(); l++)
+        {
+          bool have=false;
+          View &view1 = *object_views[k][l];
+          if (i!=k || j!=l)
+          {
+            if (view1.keys.size()<5)
+              continue;
+            matcher->knnMatch(view1.descs, view0.descs, matches01,2);
+            matcher->knnMatch(view0.descs, view1.descs, matches10,2);
+            bool converged01 = estimatePose(view0, view1, matches01, pose01, inliers01);
+            bool converged10 = estimatePose(view1, view0, matches10, pose10, inliers10);
+            //cout<<" matches: "<<matches01.size()<<", "<<matches10.size()<<" -> "<<inliers01.size()<<", "<<inliers10.size()<<endl;
+            if (converged01 && converged10)
+            {
+              if(validatePoseAndAddLinks(view0, view1, matches01, matches10, pose01, pose10, inliers01, inliers10))
+                have = true;
+            }
+          }
+          // -- dbg --
+          cout<<((int)have)<<" "<<flush;
+          if (have)
+          {
+            std::string file = view1.name;
+            boost::replace_last (file, "pcd", "jpg");
+            boost::replace_last (file, "cloud_", "image_");
+            cv::Mat im1 = cv::imread(base_dir+std::string("/")+object_names[view1.idx_part]+std::string("/views/")+file, CV_LOAD_IMAGE_COLOR);
+            cv::imshow("im1", im1);
+            cv::waitKey(0);
+          }
+          // -- dbg --
+        }
+      }
+      cout<<endl;
+    }
+  }
+}
 
 
 
@@ -284,6 +410,14 @@ void IMKOptimizeModel::loadAllObjectViews()
   {
     loadObject(i);
   }
+}
+
+/**
+ * @brief IMKOptimizeModel::optimize
+ */
+void IMKOptimizeModel::optimize()
+{
+  matchViews();
 }
 
 
