@@ -107,19 +107,12 @@ int main(int argc, const char * argv[]) {
         //get a camera pose looking at the center:
         Eigen::Matrix4f orientation = renderer.getPoseLookingToCenterFrom(point);
 
-        //SIMON SUPERDEBUG
-        Eigen::Matrix4f flip=Eigen::Matrix4f::Identity();
-
-        Eigen::Matrix4f view=flip*orientation;
-        //view=Eigen::Matrix4f::Identity();
-        //view(2,3)=2;
-
-        //WITHOUT SIMON SUPERDEBUG
-        renderer.setCamPose(view);//orientation
+        renderer.setCamPose(orientation);
 
         float visible;
         cv::Mat color;
         cv::Mat depthmap = renderer.renderDepthmap(visible, color);
+
 
         //create and save the according pcd files
         std::stringstream ss; ss << out_dir << "/cloud_" << i << ".pcd";
@@ -134,10 +127,6 @@ int main(int argc, const char * argv[]) {
         else {
             pcl::PointCloud<pcl::PointXYZ> cloud = renderer.renderPointcloud(visible);
             pcl::io::savePCDFileBinary(file, cloud);
-
-            std::stringstream ss; ss << out_dir << "/cloud_" << i << ".png";
-            std::string file = ss.str();
-            cv::imwrite(file,depthmap*40);
         }
 
         LOG(INFO) << "Saved data points to " << file << ".";

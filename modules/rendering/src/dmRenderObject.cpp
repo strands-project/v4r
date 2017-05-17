@@ -25,7 +25,6 @@ struct DepthmapRendererModel::Vertex{
 
 DepthmapRendererModel::DepthmapRendererModel(const std::string &file, bool shiftToCenterAndNormalizeScale)
 {
-    std::cout << "debug: called constructor 1"<< std::endl;
     vertexCount=0;
     indexCount=0;
     geometry=false;
@@ -128,7 +127,6 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file, bool shift
 
 DepthmapRendererModel::DepthmapRendererModel(const pcl::PolygonMesh& pclMesh, bool shiftToCenterAndNormalizeScale){
 
-    std::cout << "debug: called constructor 2"<< std::endl;
     pcl::PointCloud<pcl::PointXYZ> points;
     pcl::fromPCLPointCloud2(pclMesh.cloud, points);
 
@@ -195,18 +193,12 @@ DepthmapRendererModel::DepthmapRendererModel(const pcl::PolygonMesh& pclMesh, bo
     if(shiftToCenterAndNormalizeScale){
         for(uint32_t i=0;i<vertexCount;i++){
             vertices[i].pos=vertices[i].pos*scale;
-            //std::cout << " vertex:" <<vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << std::endl;//Debug
         }
     }
 }
 
 DepthmapRendererModel::DepthmapRendererModel(const DepthmapRendererModel &obj)
 {
-    std::cout << "debug: called copy constructor" << std::endl;
-
-    //simon you so stupid why u no copy and swap
-
-
     this->color=obj.color;
     this->geometry=obj.geometry;
     this->offset=obj.offset;
@@ -225,15 +217,29 @@ DepthmapRendererModel::DepthmapRendererModel(const DepthmapRendererModel &obj)
 
 DepthmapRendererModel::~DepthmapRendererModel()
 {
-    std::cout << "debug: called destructor"<< std::endl;
-
     delete[] vertices;
     delete[] indices;
 }
-DepthmapRendererModel &DepthmapRendererModel::operator =(const DepthmapRendererModel obj){
-    std::cout << "debug: operator = called" << std::endl;
-    DepthmapRendererModel B(obj);
-    return B;
+
+
+///This was simon testing out the copy and swap idiom
+void swap(DepthmapRendererModel& first, DepthmapRendererModel& second){
+    using std::swap;
+    swap(first.color,second.color);
+    swap(first.geometry,second.geometry);
+    swap(first.offset,second.offset);
+    swap(first.scale,second.scale);
+
+    swap(first.indexCount,second.indexCount);
+    swap(first.indices,second.indices);
+
+    swap(first.vertexCount,second.vertexCount);
+    swap(first.vertices,second.vertices);
+}
+
+DepthmapRendererModel &DepthmapRendererModel::operator =(DepthmapRendererModel obj){
+    swap(*this,obj);
+    return *this;
 }
 
 void DepthmapRendererModel::loadToGPU(GLuint &VBO,GLuint &IBO)

@@ -261,10 +261,10 @@ DepthmapRenderer::DepthmapRenderer(int resx, int resy)
                 color=colorIn[2];\n\
                 EmitVertex();\n\
                 //calc triangle surface area\n\
-                float A= length(cross(vec3(p1)/p1.w-vec3(p3)/p3.w,vec3(p2)/p2.w-vec3(p3)/p3.w));//TODO: Change this to correct pixel area calculation\n\
-                vec3 a=vec3((pp2.x-pp1.x)*float(viewportRes.x),(pp2.y-pp1.y)*float(viewportRes.y),0)*0.5;\n\
-                vec3 b=vec3((pp3.x-pp1.x)*float(viewportRes.x),(pp3.y-pp1.y)*float(viewportRes.y),0)*0.5;\n\
-                float Apix=length(cross(a,b))*0.5;\n\
+                float A= length(cross(p1.xyz/p1.w-p3.xyz/p3.w,p2.xyz/p2.w-p3.xyz/p3.w))*0.5;//calculation of the surface area of this triangle\n\
+                vec3 a=vec3((pp2.x-pp1.x)*float(viewportRes.x),(pp2.y-pp1.y)*float(viewportRes.y),0)*0.5;//calculate pixel coordiante vectors for triangle edge\n\
+                vec3 b=vec3((pp3.x-pp1.x)*float(viewportRes.x),(pp3.y-pp1.y)*float(viewportRes.y),0)*0.5;//calculate pixel coordiante vectors for triangle edge\n\
+                float Apix=length(cross(a,b))*0.5;//calculate pixelwise surface area\n\
                 AnPixCnt[ind]=vec2(A,Apix);\n\
             }";
     const char *fragment=
@@ -518,7 +518,6 @@ void DepthmapRenderer::setModel(DepthmapRendererModel *_model)
     glEnableVertexAttribArray(posAttribute);
     glVertexAttribPointer(posAttribute,4,GL_FLOAT,GL_FALSE,sizeof(glm::vec4),0);
     glBindVertexArray(0);
-    //maybe upload it to
 }
 
 Eigen::Matrix4f DepthmapRenderer::getPoseLookingToCenterFrom(Eigen::Vector3f position)
@@ -729,13 +728,6 @@ pcl::PointCloud<pcl::PointXYZ> DepthmapRenderer::renderPointcloud(float &visible
     cloud.is_dense = false;
     cloud.points.resize (cloud.width * cloud.height);
 
-    //set pose inside pcl structure
-    /*Eigen::Matrix4f ePose;
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
-            ePose(i,j)=pose[i][j];
-        }
-    }*/
 
     cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)).transpose());
     Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3)).transpose()*Eigen::Vector3f(pose(0,3),pose(1,3),pose(2,3));
@@ -773,13 +765,6 @@ pcl::PointCloud<pcl::PointXYZRGB> DepthmapRenderer::renderPointcloudColor(float 
     cloud.is_dense = false;
     cloud.points.resize (cloud.width * cloud.height);
 
-    //set pose inside pcl structure
-    /*Eigen::Matrix4f ePose;
-    for(size_t i=0; i<4; i++){
-        for(size_t j=0; j<4; j++){
-            ePose(i,j)=pose[i][j];
-        }
-    }*/
 
     cloud.sensor_orientation_ = Eigen::Quaternionf(Eigen::Matrix3f(pose.block(0,0,3,3)).transpose());
     Eigen::Vector3f trans = Eigen::Matrix3f(pose.block(0,0,3,3)).transpose()*Eigen::Vector3f(pose(0,3),pose(1,3),pose(2,3));

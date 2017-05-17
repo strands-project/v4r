@@ -173,7 +173,7 @@ public:
     /**
      * @brief renderDepthmap
      * @param visibleSurfaceArea: Returns an estimate of how much of the models surface area
-     *        is visible.
+     *        is visible. (Value between 0 and 1)
      * @param color: if the geometry contains color information this cv::Mat will contain
      *        a color image after calling this method. (otherwise it will be plain black)
      * @return a depthmap
