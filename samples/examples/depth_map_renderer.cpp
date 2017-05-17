@@ -20,8 +20,6 @@
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
-//#include <pcl/io/obj_io.h>
-#include <pcl/io/ply_io.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
@@ -33,7 +31,6 @@ namespace po = boost::program_options;
 int main(int argc, const char * argv[]) {
     std::string input, out_dir;
     bool visualize = false;
-    bool pclPolyMesh = false;
     size_t subdivisions = 0, width = 640, height = 480;
     float radius = 3.0, fx = 535.4, fy = 539.2, cx = 320.1, cy = 247.6;
 
@@ -53,7 +50,6 @@ int main(int argc, const char * argv[]) {
             ("cx", po::value<float>(&cx)->default_value(cx, boost::str(boost::format("%.2e") % cx)), "defines the central point of projection in x direction used for rendering")
             ("cy", po::value<float>(&cy)->default_value(cy, boost::str(boost::format("%.2e") % cy)), "defines the central point of projection in y direction used for rendering")
             ("visualize,v", po::bool_switch(&visualize), "visualize the rendered depth and color map")
-            ("pclPolyMesh", po::value<bool>(&pclPolyMesh)->default_value(pclPolyMesh), "use pcl mesh for loading")
     ;
 
     po::variables_map vm;
@@ -80,12 +76,6 @@ int main(int argc, const char * argv[]) {
     renderer.setIntrinsics(fx,fy,cx,cy);
 
     v4r::DepthmapRendererModel model(input);
-    if(pclPolyMesh){
-        pcl::PolygonMesh polygonMesh;
-        pcl::io::loadPLYFile(input,polygonMesh);
-        v4r::DepthmapRendererModel pclModel(polygonMesh);
-        model=pclModel;
-    }
 
     //test if the model has colored elements(note! no textures supported yet.... only colored polygons)
     if(model.hasColor()){
