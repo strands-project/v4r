@@ -234,7 +234,8 @@ MultiviewRecognizer<PointT>::do_recognize()
             }
         }
 
-//        visualize();
+        if(param_.visualize_)
+            visualize();
         correspondenceGrouping();
     }
 
@@ -248,18 +249,17 @@ template<typename PointT>
 void
 MultiviewRecognizer<PointT>::visualize()
 {
-    static pcl::visualization::PCLVisualizer::Ptr vis(new pcl::visualization::PCLVisualizer);
-    int vp1, vp2, vp3;
-    vis->createViewPort(0,0,0.5,1,vp1);
-    vis->createViewPort(0.5,0,1.,1,vp2);
-//    vis->createViewPort(0.8,0,1,1,vp3);
-
-    vis->removeAllPointClouds();
-
     size_t counter = 0;
     typename std::map<std::string, LocalObjectHypothesis<PointT> >::const_iterator it;
     for ( it = local_obj_hypotheses_.begin (); it != local_obj_hypotheses_.end (); ++it )
     {
+        pcl::visualization::PCLVisualizer::Ptr vis(new pcl::visualization::PCLVisualizer);
+        int vp1, vp2, vp3;
+        vis->createViewPort(0,0,0.0,1,vp1);
+        vis->createViewPort(0.0,0,0.0,1,vp2);
+        vis->createViewPort(0.0,0,1,1,vp3);
+        static bool co_init = false;
+
         if( counter++ > 1000 ) // only show first three
             break;
 
@@ -275,8 +275,13 @@ MultiviewRecognizer<PointT>::visualize()
         typename pcl::PointCloud<PointT>::ConstPtr model_cloud = model->getAssembled(3);
         vis->removeAllPointClouds(vp1);
         vis->removeAllPointClouds(vp2);
+        vis->removeAllPointClouds(vp3);
+        vis->removeAllShapes();
+        vis->removeAllShapes(vp1);
+        vis->removeAllShapes(vp2);
+        vis->removeAllShapes(vp3);
         vis->setBackgroundColor(1., 1., 1. );
-        vis->addPointCloud(model_cloud, "model_cloud", vp1);
+        vis->addPointCloud(model_cloud, "model_cloud1", vp1);
         LOG(INFO) << "Visualizing keypoints for " << model_id;
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr scene_cloud_xyz_merged_vis (new pcl::PointCloud<pcl::PointXYZ>(*scene_cloud_xyz_merged_));
@@ -395,11 +400,89 @@ MultiviewRecognizer<PointT>::visualize()
         typename pcl::PointCloud<PointT>::Ptr scene_vis (new pcl::PointCloud<PointT>(*scene_));
         scene_vis->sensor_origin_ = Eigen::Vector4f::Zero();
         scene_vis->sensor_orientation_ = Eigen::Quaternionf::Identity();
-
-        for( pcl::PointXYZRGB &s : scene_vis->points)
-            s.getVector4fMap() -= scene_centroid;
-
         vis->addPointCloud(scene_vis, "scene_current_view", vp2);
+        vis->addPointCloud(scene_vis, "scene_current_view3", vp3);
+
+        Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+
+        if( !corresp_clusters.empty() )
+        {
+            typename pcl::registration::TransformationEstimationSVD < pcl::PointXYZ, pcl::PointXYZ > t_est;
+            t_est.estimateRigidTransformation (*model_keypoints, *scene_cloud_xyz_merged_, corresp_clusters[0], tf);
+        }
+        tf(0,3) -= 0.3f;
+        tf(1,3) -= 0.3f;
+        tf(2,3) -= 0.3f;
+        typename pcl::PointCloud<PointT>::Ptr model_cloud_aligned (new pcl::PointCloud<PointT>);
+        pcl::transformPointCloud(*model_cloud, *model_cloud_aligned, tf);
+        vis->addPointCloud(model_cloud_aligned, "aligned_cloud", vp3);
+
+        size_t unique_id;
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr pts (new pcl::PointCloud<pcl::PointXYZRGB>);
+        for(const pcl::Correspondence &c : *(loh.model_scene_corresp_))
+        {
+            pcl::PointXYZ m = model_keypoints->points[c.index_query];
+            m.getVector4fMap() = tf * m.getVector4fMap();
+
+            pcl::PointXYZ s = scene_cloud_xyz_merged_->points[c.index_match];
+
+            pcl::PointXYZRGB p1, p2;
+            p1.getVector3fMap() = s.getVector3fMap();
+            p2.getVector3fMap() = m.getVector3fMap();
+            p1.r = p2.r = 255.;
+            p1.g = p2.g = 0.;
+            p1.b = p2.b = 0.;
+            pts->points.push_back(p1);
+            pts->points.push_back(p2);
+
+            std::stringstream unique_ss; unique_ss << "Line_" << unique_id++;
+            vis->addLine(m, s, 1., 0., 0., unique_ss.str(), vp3);
+            vis->setShapeRenderingProperties (pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 3, unique_ss.str());
+        }
+
+        unique_id=0;
+        for( const pcl::Correspondences &cs : corresp_clusters )
+        {
+            for(const pcl::Correspondence &c : cs)
+            {
+                pcl::PointXYZ m = model_keypoints->points[c.index_query];
+                m.getVector4fMap() = tf * m.getVector4fMap();
+
+                pcl::PointXYZ s = scene_cloud_xyz_merged_->points[c.index_match];
+
+                pcl::PointXYZRGB p1, p2;
+                p1.getVector3fMap() = s.getVector3fMap();
+                p2.getVector3fMap() = m.getVector3fMap();
+                p1.r = p2.r = 0.;
+                p1.g = p2.g = 0.;
+                p1.b = p2.b = 255.;
+                pts->points.push_back(p1);
+                pts->points.push_back(p2);
+
+                std::stringstream unique_ss; unique_ss << "Line_gc_" << unique_id++;
+                vis->addLine(m, s, 0., 0., 1., unique_ss.str(), vp3);
+                vis->setShapeRenderingProperties (pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 3, unique_ss.str());
+            }
+        }
+        vis->addPointCloud(pts, "colored_pts", vp3);
+        vis->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 5, "colored_pts");
+
+
+        Eigen::Matrix3f rot_tmp  = tf.block<3,3>(0,0);
+        Eigen::Vector3f trans_tmp = tf.block<3,1>(0,3);
+        Eigen::Affine3f affine_trans;
+        affine_trans.fromPositionOrientationScale(trans_tmp, rot_tmp, Eigen::Vector3f::Ones());
+
+//        if(co_init)
+//        {
+//            bool found = vis->updateCoordinateSystemPose("co", affine_trans);
+//            std::cout << "found coordinate system: " << found << std::endl;
+//        }
+//        else
+        {
+            co_init = true;
+            vis->addCoordinateSystem(0.2f, affine_trans, "co", vp3);
+        }
         vis->spin();
     }
 }
