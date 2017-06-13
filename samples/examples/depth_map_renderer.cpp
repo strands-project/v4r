@@ -98,9 +98,11 @@ int main(int argc, const char * argv[]) {
         Eigen::Matrix4f orientation = renderer.getPoseLookingToCenterFrom(point);
 
         renderer.setCamPose(orientation);
+
         float visible;
         cv::Mat color;
         cv::Mat depthmap = renderer.renderDepthmap(visible, color);
+
 
         //create and save the according pcd files
         std::stringstream ss; ss << out_dir << "/cloud_" << i << ".pcd";
