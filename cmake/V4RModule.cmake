@@ -565,6 +565,7 @@ macro(v4r_glob_module_sources)
 
   file(GLOB_RECURSE lib_srcs
        "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp"
+       "${CMAKE_CURRENT_LIST_DIR}/src/*.cc"
   )
   #file(GLOB_RECURSE lib_int_hdrs
        #"${CMAKE_CURRENT_LIST_DIR}/src/*.hpp"
@@ -573,10 +574,12 @@ macro(v4r_glob_module_sources)
   file(GLOB lib_hdrs
        #"${CMAKE_CURRENT_LIST_DIR}/include/v4r/*.hpp"
        "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/*.h"
+       "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/*.hh"
        "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/impl/*.hpp"
   )
   file(GLOB lib_hdrs_detail
        "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/detail/*.h"
+       "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/detail/*.hh"
        "${CMAKE_CURRENT_LIST_DIR}/include/v4r/${name}/detail/*.hpp"
   )
 
