@@ -224,7 +224,7 @@ void TSFGlobalCloudFilteringSimple::getGlobalCloudFiltered(const std::vector< v4
   for (unsigned i=0; i<oc.size(); i++)
       ref.points[i] = oc[i];
   ref.height=1;
-  ref.width=cloud.points.size();
+  ref.width=ref.points.size();
   ref.is_dense = true;
 
   //filter largest custer

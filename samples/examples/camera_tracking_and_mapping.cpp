@@ -60,7 +60,7 @@ cv::Mat_<double> dist_coeffs_opti = cv::Mat::zeros(4, 1, CV_64F);
 cv::Mat_<double> intrinsic_opti = cv::Mat_<double>::eye(3,3);
 
 Eigen::Matrix4f pose;
-float voxel_size = 0.003;
+float voxel_size = 0.005;
 double thr_weight = 10;      //e.g. 10    // surfel threshold for the final model
 double thr_delta_angle = 75; // e.g. 80
 int display = true;
@@ -197,7 +197,7 @@ int main(int argc, char *argv[] )
   pcl::PolygonMesh mesh;
   v4r::TSFGlobalCloudFilteringSimple gfilt;
   v4r::TSFGlobalCloudFilteringSimple::Parameter filt_param;
-  filt_param.filter_largest_cluster = true;
+  filt_param.filter_largest_cluster = false;
   filt_param.voxel_size = voxel_size;
   gfilt.setParameter(filt_param);
 
