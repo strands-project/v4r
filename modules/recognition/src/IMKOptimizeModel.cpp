@@ -270,8 +270,7 @@ bool IMKOptimizeModel::estimatePose(const View &view0, const View &view1, const 
     const cv::DMatch &m1 = matches[i][1];
     if (m0.distance/m1.distance < param.nnr)
     {
-      const Eigen::Vector3f &pt3 = view0.points3d[m0.trainIdx];
-      cv_points_3d.push_back(cv::Point3f(pt3[0],pt3[1],pt3[2]));
+      cv_points_3d.push_back(view0.points3d[m0.trainIdx]);
       im_points.push_back(view1.keys[m0.queryIdx].pt);
       depth_values.push_back(view1.points3d[m0.queryIdx][2]);
     }

@@ -98,7 +98,7 @@ private:
   cv::Mat image;
   cv::Mat_<cv::Vec3b> im_lab;
   std::vector< cv::Mat_<unsigned char> > im_channels;
-  std::vector<cv::Point3f> cv_points_3d;
+  std::vector<Eigen::Vector3f> cv_points_3d;
   std::vector< cv::Point2f > im_points;
   std::vector<float> depth_values;
   std::vector< int > inliers;
