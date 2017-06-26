@@ -22,7 +22,6 @@
  ******************************************************************************/
 
 
-
 #include <v4r/recognition/RansacSolvePnPdepth.h>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
 #include <v4r/reconstruction/impl/ReprojectionError.hpp>
@@ -31,7 +30,7 @@
 #include <ceres/rotation.h>
 
 #if CV_MAJOR_VERSION < 3
-#define HAVE_OCV_2
+#define PNPD_HAVE_OCV_2
 #endif
 
 namespace v4r
@@ -74,7 +73,7 @@ void RansacSolvePnPdepth::getRandIdx(int size, int num, std::vector<int> &idx)
 /**
  * countInliers
  */
-unsigned RansacSolvePnPdepth::countInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &_im_points, const std::vector<float> &_inv_depth, const Eigen::Matrix4f &pose)
+unsigned RansacSolvePnPdepth::countInliers(const std::vector<Eigen::Vector3f> &points, const std::vector<cv::Point2f> &_im_points, const std::vector<float> &_inv_depth, const Eigen::Matrix4f &pose)
 {
   unsigned cnt=0;
 
@@ -87,7 +86,7 @@ unsigned RansacSolvePnPdepth::countInliers(const std::vector<cv::Point3f> &point
 
   for (unsigned i=0; i<points.size(); i++)
   {
-    pt3 = R*Eigen::Map<const Eigen::Vector3f>(&points[i].x) + t;
+    pt3 = R*points[i] + t;
 
     if (have_dist)
       projectPointToImage(&pt3[0], intrinsic.ptr<double>(), dist_coeffs.ptr<double>(), &im_pt[0]);
@@ -106,7 +105,7 @@ unsigned RansacSolvePnPdepth::countInliers(const std::vector<cv::Point3f> &point
 /**
  * getInliers
  */
-void RansacSolvePnPdepth::getInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &_im_points, const std::vector<float> &_inv_depth, const Eigen::Matrix4f &pose, std::vector<int> &_inliers)
+void RansacSolvePnPdepth::getInliers(const std::vector<Eigen::Vector3f> &points, const std::vector<cv::Point2f> &_im_points, const std::vector<float> &_inv_depth, const Eigen::Matrix4f &pose, std::vector<int> &_inliers)
 {
   Eigen::Vector2f im_pt;
   Eigen::Vector3f pt3;
@@ -119,7 +118,7 @@ void RansacSolvePnPdepth::getInliers(const std::vector<cv::Point3f> &points, con
 
   for (unsigned i=0; i<points.size(); i++)
   {
-    pt3 = R*Eigen::Map<const Eigen::Vector3f>(&points[i].x) + t;
+    pt3 = R*points[i] + t;
 
     if (have_dist)
       projectPointToImage(&pt3[0], intrinsic.ptr<double>(), dist_coeffs.ptr<double>(), &im_pt[0]);
@@ -138,14 +137,14 @@ void RansacSolvePnPdepth::getInliers(const std::vector<cv::Point3f> &points, con
  * @param points
  * @param pose
  */
-void RansacSolvePnPdepth::convertToLM(const std::vector<cv::Point3f> &points, Eigen::Matrix4f &pose)
+void RansacSolvePnPdepth::convertToLM(const std::vector<Eigen::Vector3f> &points, Eigen::Matrix4f &pose)
 {
   Eigen::Matrix3d R = pose.topLeftCorner<3, 3>().cast<double>();
   ceres::RotationMatrixToAngleAxis(&R(0,0), &pose_Rt(0));
   pose_Rt.tail<3>() = pose.block<3,1>(0, 3).cast<double>();
   points3d.resize(points.size());
   for (unsigned i=0; i<points.size(); i++)
-    points3d[i] = Eigen::Vector3f::Map(&points[i].x).cast<double>();
+    points3d[i] = points[i].cast<double>();
 }
 
 /**
@@ -252,7 +251,7 @@ void RansacSolvePnPdepth::optimizePoseLM(std::vector<Eigen::Vector3d> &_points3d
 /**
  * ransacSolvePnP
  */
-int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &_im_points, Eigen::Matrix4f &pose, std::vector<int> &_inliers, const std::vector<float> &_depth)
+int RansacSolvePnPdepth::ransac(const std::vector<Eigen::Vector3f> &points, const std::vector<cv::Point2f> &_im_points, Eigen::Matrix4f &pose, std::vector<int> &_inliers, const std::vector<float> &_depth)
 {
   int k=0;
   float sig=param.nb_ransac_points, sv_sig=0.;
@@ -265,6 +264,9 @@ int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &points, const st
   inv_depth.assign(_im_points.size(),std::numeric_limits<float>::quiet_NaN());
   for (unsigned i=0; i<_depth.size(); i++)
     if (!isnan(_depth[i]) && _depth[i]>std::numeric_limits<float>::epsilon()) inv_depth[i] = 1./_depth[i];
+  cv_pts0.resize(points.size());
+  for (unsigned i=0; i<points.size(); i++)
+      cv_pts0[i] = cv::Point3f(points[i][0],points[i][1],points[i][2]);
   _inliers.clear();
 
   while (pow(1. - pow(eps,param.nb_ransac_points), k) >= param.eta_ransac && k < (int)param.max_rand_trials)
@@ -273,7 +275,7 @@ int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &points, const st
 
     for (unsigned i=0; i<indices.size(); i++)
     {
-      model_pts[i] = points[indices[i]];
+      model_pts[i] = cv_pts0[indices[i]];
       query_pts[i] = _im_points[indices[i]];
     }
 
@@ -313,7 +315,7 @@ int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &points, const st
 /**
  * ransacSolvePnP
  */
-int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &_points0, const std::vector<cv::Point2f> &_im_points1, const std::vector<cv::Point3f> &_points3d1, Eigen::Matrix4f &pose, std::vector<int> &_inliers)
+int RansacSolvePnPdepth::ransac(const std::vector<Eigen::Vector3f> &_points0, const std::vector<cv::Point2f> &_im_points1, const std::vector<Eigen::Vector3f> &_points3d1, Eigen::Matrix4f &pose, std::vector<int> &_inliers)
 {
   int k=0;
   float sig=param.nb_ransac_points, sv_sig=0.;
@@ -325,17 +327,16 @@ int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &_points0, const 
   cv::Mat_<double> R(3,3), rvec, tvec;
   inv_depth.assign(_im_points1.size(),std::numeric_limits<float>::quiet_NaN());
   for (unsigned i=0; i<_points3d1.size(); i++)
-    if (!isnan(_points3d1[i].z) && _points3d1[i].z>std::numeric_limits<float>::epsilon()) inv_depth[i] = 1./_points3d1[i].z;
+    if (!isnan(_points3d1[i][2]) && _points3d1[i][2]>std::numeric_limits<float>::epsilon()) inv_depth[i] = 1./_points3d1[i][2];
+  cv_pts0.resize(_points0.size());
+  for (unsigned i=0; i<_points0.size(); i++)
+      cv_pts0[i] = cv::Point3f(_points0[i][0],_points0[i][1],_points0[i][2]);
   _inliers.clear();
 
-  pts3d0.clear();
-  pts3d1.clear();
   ind3d.clear();
   for (unsigned i=0; i<_points3d1.size(); i++)
   {
-    pts3d0.push_back(Eigen::Vector3f::Map(&_points0[i].x));
-    pts3d1.push_back(Eigen::Vector3f::Map(&_points3d1[i].x));
-    if (!isnan(_points3d1[i].x) && !isnan(_points3d1[i].y) && !isnan(_points3d1[i].z))
+    if (!isnan(_points3d1[i][0]) && !isnan(_points3d1[i][1]) && !isnan(_points3d1[i][2]))
       ind3d.push_back(i);
   }
 
@@ -355,7 +356,7 @@ int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &_points0, const 
       getRandIdx(_points0.size(), param.nb_ransac_points, indices);
       for (unsigned i=0; i<indices.size(); i++)
       {
-        model_pts[i] = _points0[indices[i]];
+        model_pts[i] = cv_pts0[indices[i]];
         query_pts[i] = _im_points1[indices[i]];
       }
       cv::solvePnP(cv::Mat(model_pts), cv::Mat(query_pts), intrinsic, dist_coeffs, rvec, tvec, false, param.pnp_method);
@@ -368,7 +369,7 @@ int RansacSolvePnPdepth::ransac(const std::vector<cv::Point3f> &_points0, const 
       getRandIdx(ind3d.size(), param.nb_ransac_points, indices);
       for (unsigned i=0; i<indices.size(); i++)
         indices[i] = ind3d[indices[i]];
-       rt.estimateRigidTransformationSVD(pts3d0,indices,pts3d1,indices, tmp_pose);
+       rt.estimateRigidTransformationSVD(_points0,indices,_points3d1,indices, tmp_pose);
     }
 
     sig = countInliers(_points0, _im_points1, inv_depth, tmp_pose);
@@ -441,7 +442,7 @@ void RansacSolvePnPdepth::setParameter(const Parameter &_p)
   param = _p;
   sqr_inl_dist_px = param.inl_dist_px*param.inl_dist_px;
 
-#ifdef HAVE_OCV_2
+#ifdef PNPD_HAVE_OCV_2
 if (param.pnp_method==INT_MIN) param.pnp_method = cv::P3P;
 #else
 if (param.pnp_method==INT_MIN) param.pnp_method = cv::SOLVEPNP_P3P;

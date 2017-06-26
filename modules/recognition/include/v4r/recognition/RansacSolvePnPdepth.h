@@ -33,9 +33,9 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Dense>
-#include <v4r/core/macros.h>
 #include <boost/random.hpp>
 #include "v4r/keypoints/RigidTransformationRANSAC.h"
+#include <v4r/core/macros.h>
 
 
 
@@ -85,15 +85,15 @@ private:
   std::vector<float> inv_depth;
   std::vector<Eigen::Vector3d> points3d;
   Eigen::Matrix<double, 6, 1> pose_Rt;
-  std::vector<Eigen::Vector3f> pts3d0,pts3d1;
+  std::vector<cv::Point3f> cv_pts0;
   std::vector<int> ind3d;
 
   RigidTransformationRANSAC rt;
 
   void getRandIdx(int size, int num, std::vector<int> &idx);
-  unsigned countInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const std::vector<float> &_inv_depth, const Eigen::Matrix4f &pose);
-  void getInliers(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, const std::vector<float> &_inv_depth, const Eigen::Matrix4f &pose, std::vector<int> &inliers);
-  void convertToLM(const std::vector<cv::Point3f> &points, Eigen::Matrix4f &pose);
+  unsigned countInliers(const std::vector<Eigen::Vector3f> &points, const std::vector<cv::Point2f> &im_points, const std::vector<float> &_inv_depth, const Eigen::Matrix4f &pose);
+  void getInliers(const std::vector<Eigen::Vector3f> &points, const std::vector<cv::Point2f> &im_points, const std::vector<float> &_inv_depth, const Eigen::Matrix4f &pose, std::vector<int> &inliers);
+  void convertToLM(const std::vector<Eigen::Vector3f> &points, Eigen::Matrix4f &pose);
   void convertFromLM(Eigen::Matrix4f &pose);
   void optimizePoseLM(std::vector<Eigen::Vector3d> &_points3d, const std::vector<cv::Point2f> &_im_points, const std::vector<float> &_inv_depth, Eigen::Matrix<double, 6, 1> &_pose_Rt, const std::vector<int> &_inliers);
 
@@ -109,8 +109,8 @@ public:
   RansacSolvePnPdepth(const Parameter &p=Parameter());
   ~RansacSolvePnPdepth();
 
-  int ransac(const std::vector<cv::Point3f> &points, const std::vector<cv::Point2f> &im_points, Eigen::Matrix4f &pose, std::vector<int> &inliers, const std::vector<float> &_depth=std::vector<float>());
-  int ransac(const std::vector<cv::Point3f> &_points0, const std::vector<cv::Point2f> &_im_points1, const std::vector<cv::Point3f> &_points3d1, Eigen::Matrix4f &pose, std::vector<int> &inliers);
+  int ransac(const std::vector<Eigen::Vector3f> &points, const std::vector<cv::Point2f> &im_points, Eigen::Matrix4f &pose, std::vector<int> &inliers, const std::vector<float> &_depth=std::vector<float>());
+  int ransac(const std::vector<Eigen::Vector3f> &_points0, const std::vector<cv::Point2f> &_im_points1, const std::vector<Eigen::Vector3f> &_points3d1, Eigen::Matrix4f &pose, std::vector<int> &inliers);
   void setCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs);
   void setParameter(const Parameter &_p);
 
