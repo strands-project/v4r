@@ -1,6 +1,8 @@
 if(WITH_CAFFE)
   find_package(Caffe)
   if(Caffe_FOUND)
+    find_path(Caffe_INCLUDE_DIRS NAMES caffe/caffe.hpp caffe/common.hpp caffe/net.hpp caffe/proto/caffe.pb.h caffe/util/io.hpp caffe/vision_layers.hpp HINTS ${Caffe_DIR}/include ${Caffe_DIR}/../../include)
+    find_library(Caffe_LIBRARIES NAMES caffe HINTS ${Caffe_DIR}/lib ${Caffe_DIR}/../../lib)
     set(CAFFE_LIBRARIES "${Caffe_LIBRARIES}")
     set(CAFFE_INCLUDE_DIRS "${Caffe_INCLUDE_DIRS}")
     add_definitions(${Caffe_DEFINITIONS})
