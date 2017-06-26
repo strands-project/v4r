@@ -1,9 +1,10 @@
 if(WITH_CAFFE)
   find_package(Caffe)
   if(Caffe_FOUND)
+    get_target_property(CAFFE_INCLUDE_DIRS caffe INTERFACE_INCLUDE_DIRECTORIES)
     set(CAFFE_LIBRARIES "${Caffe_LIBRARIES}")
-    set(CAFFE_INCLUDE_DIRS "${Caffe_INCLUDE_DIRS}")
-    add_definitions(${Caffe_DEFINITIONS})
+    #get_target_property(CAFFE_DEFINITIONS caffe INTERFACE_COMPILE_DEFINITIONS)
+    #add_definitions(${CAFFE_DEFINITIONS}) // Caffe library does not append "-D" for these definitions. Use for_each and prefix "-D" if needed!
     set(HAVE_CAFFE TRUE)
   endif()
 endif()
