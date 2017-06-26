@@ -56,6 +56,8 @@ public:
     float min_dist_; ///< minimum distance two points need to be apart to be counted as redundant
     float max_dotp_; ///< maximum dot-product between the surface normals of two oriented points to be counted redundant
 
+    bool visualize_;
+
     MultiviewRecognizerParameter( ) :
         transfer_only_verified_hypotheses_ (true),
         max_views_(3),
@@ -64,7 +66,8 @@ public:
         merge_close_hypotheses_dist_ (0.02f),
         merge_close_hypotheses_angle_ (10.f),
         min_dist_(0.01f),
-        max_dotp_(0.95f)
+        max_dotp_(0.95f),
+        visualize_ (true)
     {}
 
 
@@ -119,6 +122,7 @@ public:
                 ("mv_rec_merge_close_hypotheses_angle", po::value<float>(&merge_close_hypotheses_angle_)->default_value(merge_close_hypotheses_angle_), "")
                 ("mv_rec_min_dist_", po::value<float>(&min_dist_)->default_value(min_dist_), "")
                 ("mv_rec_max_dotp_", po::value<float>(&max_dotp_)->default_value(max_dotp_), "")
+                ("mv_visualize", po::value<bool>(&visualize_)->default_value(visualize_), "visualize keypoint correspondences")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();

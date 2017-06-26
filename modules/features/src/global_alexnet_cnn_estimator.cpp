@@ -14,6 +14,7 @@
 #include <caffe/util/io.hpp>
 #include <caffe/layer.hpp>
 #include <caffe/layers/memory_data_layer.hpp>
+#include <caffe/net.hpp>
 
 #include <v4r/common/img_utils.h>
 #include <v4r/common/pcl_opencv.h>
