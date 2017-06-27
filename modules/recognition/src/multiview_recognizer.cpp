@@ -481,7 +481,7 @@ MultiviewRecognizer<PointT>::visualize()
 //        else
         {
             co_init = true;
-            vis->addCoordinateSystem(0.2f, affine_trans, "co", vp3);
+//            vis->addCoordinateSystem(0.2f, affine_trans, "co", vp3);
         }
         vis->spin();
     }
