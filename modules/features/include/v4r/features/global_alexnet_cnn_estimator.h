@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <caffe/net.hpp>
 #include <opencv/cv.h>
 #include <v4r/features/global_estimator.h>
 
@@ -31,6 +30,11 @@
 #include <glog/logging.h>
 
 namespace po = boost::program_options;
+
+namespace caffe
+{
+template<typename Dtype> class Net;
+}
 
 namespace v4r
 {
