@@ -412,7 +412,7 @@ LocalFeatureMatcher<PointT>::initialize (const std::string &trained_dir, bool re
 
                             existing_poses.push_back(pose);
                             LOG(INFO) << "Adding " << signatures_view.size() << " " << est->getFeatureDescriptorName() <<
-                                         "with id \"" << est->getUniqueId() << "\" descriptors to the model database. " << std::endl;
+                                         " (with id \"" << est->getUniqueId() << ")\" descriptors to the model database. " << std::endl;
 
                             CHECK(signatures_view.size() == filtered_kp_indices.size());
 

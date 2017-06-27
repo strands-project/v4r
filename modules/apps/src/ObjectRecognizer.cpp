@@ -201,6 +201,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 
         if( !param_.global_feature_types_.empty() )
         {
+            CHECK( param_.global_feature_types_.size() == param_.classification_methods_.size());
+
             typename GlobalRecognitionPipeline<PointT>::Ptr global_recognition_pipeline (new GlobalRecognitionPipeline<PointT>);
             typename v4r::Segmenter<PointT>::Ptr segmenter = v4r::initSegmenter<PointT>( param_.segmentation_method_, to_pass_further);
             global_recognition_pipeline->setSegmentationAlgorithm( segmenter );
