@@ -53,7 +53,10 @@ public:
   float weight;
   float radius;
   int r, g, b;
-  Surfel() : weight(0), radius(0) {}
+  Surfel()
+    : pt(Eigen::Vector3f(std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN())),
+      n(Eigen::Vector3f(std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::quiet_NaN())),
+      weight(0), radius(0) {}
   Surfel(const pcl::PointXYZRGB &_pt) : pt(_pt.getArray3fMap()), weight(1), radius(0), r(_pt.r), g(_pt.g), b(_pt.b) {
     if (!std::isnan(pt[0]) && !std::isnan(pt[1]) &&!std::isnan(pt[2])) {
       n = -pt.normalized();

@@ -24,6 +24,8 @@
 #include "v4r/features/FeatureDetector_KD_FAST_IMGD.h"
 #include "v4r/camera_tracking_and_mapping/TSFGlobalCloudFilteringSimple.h"
 #include "v4r/io/filesystem.h"
+#include "v4r/camera_tracking_and_mapping/TSFOptimizeClouds.h"
+#include "v4r/keypoints/impl/toString.hpp"
 
 
 
@@ -97,7 +99,6 @@ int main(int argc, char *argv[] )
 
   std::vector< std::pair<Eigen::Matrix4f, int> > all_poses; //<pose, kf_index>
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::PointCloud<pcl::PointXYZRGBNormal> filt_cloud;
   Eigen::Matrix4f filt_pose;
   uint64_t timestamp;
@@ -124,6 +125,15 @@ int main(int argc, char *argv[] )
 
   double conf_ransac_iter = 1;
   double conf_tracked_points = 1;
+
+  v4r::TSFOptimizeClouds tsfOpti;
+  v4r::TSFOptimizeClouds::Parameter to_param;
+  tsfOpti.setParameter(to_param);
+  tsfOpti.setCameraParameterTgt(intrinsic, 640, 480);
+  tsfOpti.setCameraParameter(intrinsic);
+  double last_ts=0, ts_batch;
+  pcl::PointCloud<pcl::PointXYZRGBNormal> cloud_batch;
+  Eigen::Matrix4f pose_batch;
 
 
   // start camera tracking 
@@ -153,6 +163,19 @@ int main(int argc, char *argv[] )
       time = t.getTime();
     } //-- overall time --
 
+    // ---- TEST batch filtering ---
+    tsfOpti.addCloud(*cloud, pose, i, have_pose);
+    tsfOpti.getFilteredCloudNormals(cloud_batch, pose_batch, ts_batch);
+
+    if (ts_batch!=last_ts)
+    {
+      if ((int)ts_batch>=0 && (int)ts_batch<cloud_files.size())
+        pcl::io::savePCDFileBinary(std::string("log/")+cloud_files[(int)ts_batch]+std::string("-filt.pcd"), cloud_batch);
+      last_ts = ts_batch;
+    }
+
+    // ---- END batch filtering ---
+
     cout<<"conf (ransac, tracked points): "<<conf_ransac_iter<<", "<<conf_tracked_points<<endl;
     if (!have_pose) cout<<"Lost pose!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
 
@@ -161,6 +184,7 @@ int main(int argc, char *argv[] )
 
     // get filtered frame
     tsf.getFilteredCloudNormals(filt_cloud, filt_pose, timestamp);
+
 
     mean_time += time;
     cnt_time++;
@@ -276,16 +300,16 @@ void setup(int argc, char **argv)
   }
 }
 
-void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image)
+void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, cv::Mat &_image)
 {
-  image = cv::Mat_<cv::Vec3b>(cloud.height, cloud.width);
+  _image = cv::Mat_<cv::Vec3b>(_cloud.height, _cloud.width);
 
-  for (unsigned v = 0; v < cloud.height; v++)
+  for (unsigned v = 0; v < _cloud.height; v++)
   {
-    for (unsigned u = 0; u < cloud.width; u++)
+    for (unsigned u = 0; u < _cloud.width; u++)
     {
-      cv::Vec3b &cv_pt = image.at<cv::Vec3b> (v, u);
-      const pcl::PointXYZRGB &pt = cloud(u,v);
+      cv::Vec3b &cv_pt = _image.at<cv::Vec3b> (v, u);
+      const pcl::PointXYZRGB &pt = _cloud(u,v);
 
       cv_pt[2] = pt.r;
       cv_pt[1] = pt.g;
@@ -296,10 +320,10 @@ void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image
 
 
 
-void drawCoordinateSystem(cv::Mat &im, const Eigen::Matrix4f &pose, const cv::Mat_<double> &intrinsic, const cv::Mat_<double> &dist_coeffs, double size, int thickness)
+void drawCoordinateSystem(cv::Mat &im, const Eigen::Matrix4f &_pose, const cv::Mat_<double> &_intrinsic, const cv::Mat_<double> &dist_coeffs, double size, int thickness)
 {
-  Eigen::Matrix3f R = pose.topLeftCorner<3,3>();
-  Eigen::Vector3f t = pose.block<3, 1>(0,3);
+  Eigen::Matrix3f R = _pose.topLeftCorner<3,3>();
+  Eigen::Vector3f t = _pose.block<3, 1>(0,3);
 
   Eigen::Vector3f pt0 = R * Eigen::Vector3f(0,0,0) + t;
   Eigen::Vector3f pt_x = R * Eigen::Vector3f(size,0,0) + t;
@@ -310,17 +334,17 @@ void drawCoordinateSystem(cv::Mat &im, const Eigen::Matrix4f &pose, const cv::Ma
 
   if (!dist_coeffs.empty())
   {
-    v4r::projectPointToImage(&pt0[0], &intrinsic(0), &dist_coeffs(0), &im_pt0.x);
-    v4r::projectPointToImage(&pt_x[0], &intrinsic(0), &dist_coeffs(0), &im_pt_x.x);
-    v4r::projectPointToImage(&pt_y[0], &intrinsic(0), &dist_coeffs(0), &im_pt_y.x);
-    v4r::projectPointToImage(&pt_z[0], &intrinsic(0), &dist_coeffs(0), &im_pt_z.x);
+    v4r::projectPointToImage(&pt0[0], &_intrinsic(0), &dist_coeffs(0), &im_pt0.x);
+    v4r::projectPointToImage(&pt_x[0], &_intrinsic(0), &dist_coeffs(0), &im_pt_x.x);
+    v4r::projectPointToImage(&pt_y[0], &_intrinsic(0), &dist_coeffs(0), &im_pt_y.x);
+    v4r::projectPointToImage(&pt_z[0], &_intrinsic(0), &dist_coeffs(0), &im_pt_z.x);
   }
   else
   {
-    v4r::projectPointToImage(&pt0[0], &intrinsic(0), &im_pt0.x);
-    v4r::projectPointToImage(&pt_x[0], &intrinsic(0), &im_pt_x.x);
-    v4r::projectPointToImage(&pt_y[0], &intrinsic(0), &im_pt_y.x);
-    v4r::projectPointToImage(&pt_z[0], &intrinsic(0), &im_pt_z.x);
+    v4r::projectPointToImage(&pt0[0], &_intrinsic(0), &im_pt0.x);
+    v4r::projectPointToImage(&pt_x[0], &_intrinsic(0), &im_pt_x.x);
+    v4r::projectPointToImage(&pt_y[0], &_intrinsic(0), &im_pt_y.x);
+    v4r::projectPointToImage(&pt_z[0], &_intrinsic(0), &im_pt_z.x);
   }
 
   cv::line(im, im_pt0, im_pt_x, CV_RGB(255,0,0), thickness);
