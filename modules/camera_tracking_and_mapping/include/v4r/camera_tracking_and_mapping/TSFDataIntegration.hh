@@ -83,6 +83,7 @@ public:
  
 
 private:
+  bool tsf_mapping;
   Parameter param;
 
   double sqr_diff_cam_distance_map;
@@ -143,6 +144,7 @@ public:
 
   void setCameraParameter(const cv::Mat &_intrinsic);
   void setParameter(const Parameter &p);
+  void setSelectMappingFrames(const int &_tsf_mapping) { tsf_mapping = _tsf_mapping; }
 
   typedef boost::shared_ptr< ::v4r::TSFDataIntegration> Ptr;
   typedef boost::shared_ptr< ::v4r::TSFDataIntegration const> ConstPtr;
