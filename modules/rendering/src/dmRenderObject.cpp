@@ -4,10 +4,17 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
+///TODO: remove every trace of glm
 #include <glm/glm.hpp>
 
 #include <GL/glew.h>
 #include <GL/gl.h>
+
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/Vertices.h>
+#include <pcl/ros/conversions.h>
 
 namespace v4r
 {
@@ -16,7 +23,7 @@ struct DepthmapRendererModel::Vertex{
     glm::u8vec4 rgba;
 };
 
-DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
+DepthmapRendererModel::DepthmapRendererModel(const std::string &file, bool shiftToCenterAndNormalizeScale)
 {
     vertexCount=0;
     indexCount=0;
@@ -61,7 +68,7 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
     }
     mean=mean/((double)vertexCount);
     //last: create memory for geometry
-    indices=new unsigned int[indexCount];
+    indices=new uint32_t[indexCount];
     vertices=new Vertex[vertexCount];
     double maxDistToCenter=0.0;
 
@@ -73,7 +80,10 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
             Vertex v;
             v.pos=glm::vec3(scene->mMeshes[i]->mVertices[j].x,
                             scene->mMeshes[i]->mVertices[j].y,
-                            scene->mMeshes[i]->mVertices[j].z)-glm::vec3(mean);
+                            scene->mMeshes[i]->mVertices[j].z);
+            if(shiftToCenterAndNormalizeScale){
+                v.pos=v.pos-glm::vec3(mean);
+            }
             if(scene->mMeshes[i]->HasVertexColors(0)){
                 aiColor4D* colors= scene->mMeshes[i]->mColors[0];
                 v.rgba=glm::u8vec4(colors[j].r*255.0f,colors[j].g*255.0f,colors[j].b*255.0f,colors[j].a*255.0f);
@@ -83,6 +93,9 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
             }
             vertices[k]=v;
             float distToCenter=glm::length(vertices[k].pos);
+            if(!shiftToCenterAndNormalizeScale){
+                distToCenter=glm::length(vertices[k].pos-glm::vec3(mean));
+            }
             if(distToCenter>maxDistToCenter){
                 maxDistToCenter=distToCenter;
             }
@@ -104,21 +117,129 @@ DepthmapRendererModel::DepthmapRendererModel(const std::string &file)
     scale=1.0f/(float)maxDistToCenter;
 
     //scale it:
-    for(int i=0;i<vertexCount;i++){
-        vertices[i].pos=vertices[i].pos*(1.0f/(float)maxDistToCenter);
-        //std::cout << " vertex:" <<vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << std::endl;//Debug
+    if(shiftToCenterAndNormalizeScale){
+        for(uint32_t i=0;i<vertexCount;i++){
+            vertices[i].pos=vertices[i].pos*scale;
+            //std::cout << " vertex:" <<vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << std::endl;//Debug
+        }
+    }
+}
+
+DepthmapRendererModel::DepthmapRendererModel(const pcl::PolygonMesh& pclMesh, bool shiftToCenterAndNormalizeScale){
+
+    pcl::PointCloud<pcl::PointXYZ> points;
+    pcl::fromPCLPointCloud2(pclMesh.cloud, points);
+
+
+    color=false;
+    if(points.size()>3){
+        geometry=true;
     }
 
 
+    vertexCount=points.size();
+    vertices=new Vertex[vertexCount];
 
+
+    glm::dvec3 mean(0,0,0);
+    for(uint32_t i=0;i<vertexCount;i++){
+        Vertex vert;
+        pcl::PointXYZ point = points.at(i);
+        vert.pos=glm::vec3(point.x,point.y,point.z);
+        vert.rgba=glm::u8vec4(128,128,128,255);
+        vertices[i]=vert;
+        mean+=glm::dvec3(point.x,point.y,point.z);
+
+    }
+    mean=mean/(double)vertexCount;
+
+    float maxDistToCenter=0.0;
+    for(uint32_t i=0;i<vertexCount;i++){
+
+        float distToCenter=glm::length(vertices[i].pos-glm::vec3(mean));
+        if(distToCenter>maxDistToCenter){
+            maxDistToCenter=distToCenter;
+        }
+        if(shiftToCenterAndNormalizeScale){
+            vertices[i].pos=vertices[i].pos-glm::vec3(mean);
+
+        }
+    }
+
+
+    indexCount=0;
+    for(unsigned int i=0;i<pclMesh.polygons.size();i++){
+        if(pclMesh.polygons[i].vertices.size()==3){
+            indexCount+=3;
+        }
+    }
+    indices=new uint32_t[indexCount];
+
+    for(unsigned int i=0;i<pclMesh.polygons.size();i++){
+        if(pclMesh.polygons[i].vertices.size()==3){
+            const std::vector<uint32_t> &vs = pclMesh.polygons[i].vertices;
+            indices[i*3+0]=vs[0];
+            indices[i*3+1]=vs[1];
+            indices[i*3+2]=vs[2];
+        }
+    }
+
+
+    offset=Eigen::Vector3f(-mean.x,-mean.y,-mean.z);
+
+    scale=1.0f/(float)maxDistToCenter;
+
+    //scale it:
+    if(shiftToCenterAndNormalizeScale){
+        for(uint32_t i=0;i<vertexCount;i++){
+            vertices[i].pos=vertices[i].pos*scale;
+        }
+    }
+}
+
+DepthmapRendererModel::DepthmapRendererModel(const DepthmapRendererModel &obj)
+{
+    this->color=obj.color;
+    this->geometry=obj.geometry;
+    this->offset=obj.offset;
+    this->scale=obj.scale;
+
+
+    this->indexCount=obj.indexCount;
+    this->indices=new uint32_t[this->indexCount];
+    memcpy(this->indices,obj.indices,this->indexCount*sizeof(uint32_t));
+
+    this->vertexCount=obj.vertexCount;
+    this->vertices=new Vertex[this->vertexCount];
+    memcpy(this->vertices,obj.vertices,this->vertexCount*sizeof(Vertex));
 
 }
 
 DepthmapRendererModel::~DepthmapRendererModel()
 {
-
     delete[] vertices;
     delete[] indices;
+}
+
+
+///This was simon testing out the copy and swap idiom
+void swap(DepthmapRendererModel& first, DepthmapRendererModel& second){
+    using std::swap;
+    swap(first.color,second.color);
+    swap(first.geometry,second.geometry);
+    swap(first.offset,second.offset);
+    swap(first.scale,second.scale);
+
+    swap(first.indexCount,second.indexCount);
+    swap(first.indices,second.indices);
+
+    swap(first.vertexCount,second.vertexCount);
+    swap(first.vertices,second.vertices);
+}
+
+DepthmapRendererModel &DepthmapRendererModel::operator =(DepthmapRendererModel obj){
+    swap(*this,obj);
+    return *this;
 }
 
 void DepthmapRendererModel::loadToGPU(GLuint &VBO,GLuint &IBO)

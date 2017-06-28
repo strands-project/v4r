@@ -38,7 +38,6 @@
 #include <pcl/sample_consensus/sac_model_plane.h>
 #include <pcl/filters/voxel_grid.h>
 #include <v4r/common/noise_models.h>
-#include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <v4r/registration/MvLMIcp.h>
 #include <v4r/registration/MultiSessionModelling.h>
 #include <v4r/registration/FeatureBasedRegistration.h>

@@ -37,11 +37,12 @@
 #include <QObject>
 #include <QThread>
 #include <QMutex>
-#include <opencv2/core/core.hpp>
+#include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <boost/shared_ptr.hpp>
 #include "sensor.h"
+#include <opencv2/core/core.hpp>
 #endif
 
 

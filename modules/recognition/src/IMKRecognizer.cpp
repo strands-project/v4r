@@ -520,7 +520,7 @@ void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > 
   if (_im_channels.size()==0)
     return;
 
-  std::vector<cv::Point3f> points;
+  std::vector<Eigen::Vector3f> points;
   std::vector<cv::Point2f> _im_points;
   std::vector<cv::DMatch> tmp_matches;
   Eigen::Matrix4f pose;
@@ -545,8 +545,7 @@ void IMKRecognizer::poseEstimation(const std::vector< cv::Mat_<unsigned char> > 
       if (m.distance<=std::numeric_limits<float>::epsilon())
         continue;
       _im_points.push_back(_keys[m.queryIdx].pt);
-      const Eigen::Vector3f &pt = views[m.imgIdx].points[m.trainIdx];
-      points.push_back(cv::Point3f(pt[0],pt[1],pt[2]));
+      points.push_back(views[m.imgIdx].points[m.trainIdx]);
       tmp_matches.push_back(m);
     }
 

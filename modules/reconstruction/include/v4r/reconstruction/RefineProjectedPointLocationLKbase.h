@@ -37,6 +37,7 @@
 #include <Eigen/Dense>
 #include <opencv2/core/core.hpp>
 #include <v4r/common/impl/SmartPtr.hpp>
+#include <v4r/core/macros.h>
 
 namespace v4r
 {
@@ -44,7 +45,7 @@ namespace v4r
 /**
  * RefineProjectedPointLocationLKbase
  */
-class RefineProjectedPointLocationLKbase
+class V4R_EXPORTS RefineProjectedPointLocationLKbase
 {
 public:
 

@@ -27,7 +27,6 @@
 *      @date November, 2015
 */
 
-
 #ifndef __V4R_DEPTHMAP_RENDERER__
 #define __V4R_DEPTHMAP_RENDERER__
 
@@ -68,6 +67,7 @@ private:
     //Shader for rendering all that stuff
     GLuint shaderProgram;
     GLuint projectionUniform;
+    GLuint _projectionUniform;
     GLuint poseUniform;
     GLuint viewportResUniform;
     GLuint posAttribute;
@@ -147,7 +147,21 @@ public:
      * @param position
      * @return
      */
-    Eigen::Matrix4f getPoseLookingToCenterFrom(Eigen::Vector3f position);
+    static Eigen::Matrix4f getPoseLookingToCenterFrom(Eigen::Vector3f position);
+
+    /**
+     * @brief lookAt
+     * Function to look at a point from another point.
+     * To define the orientation of the camera you need a vector pointing to the top of the camera.
+     * @param from
+     * camera position
+     * @param to
+     * position the camera is looking at
+     * @param up
+     * show the camera where upwards is
+     * @return
+     */
+    static Eigen::Matrix4f lookAt(Eigen::Vector3f from, Eigen::Vector3f to, Eigen::Vector3f up);
 
     /**
      * @brief setCamPose
@@ -159,7 +173,7 @@ public:
     /**
      * @brief renderDepthmap
      * @param visibleSurfaceArea: Returns an estimate of how much of the models surface area
-     *        is visible.
+     *        is visible. (Value between 0 and 1)
      * @param color: if the geometry contains color information this cv::Mat will contain
      *        a color image after calling this method. (otherwise it will be plain black)
      * @return a depthmap
