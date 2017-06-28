@@ -6,7 +6,7 @@
  */
 
 
-#include <v4r/camera_tracking_and_mapping/TSFOptimizeClouds.h>
+#include <v4r/camera_tracking_and_mapping/TSFilterCloudsXYZRGB.h>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/common/convertImage.h>
 #include <pcl/common/transforms.h>
@@ -22,20 +22,20 @@ namespace v4r
 using namespace std;
 
 
-std::vector<cv::Vec4i> TSFOptimizeClouds::npat = std::vector<cv::Vec4i>();
+std::vector<cv::Vec4i> TSFilterCloudsXYZRGB::npat = std::vector<cv::Vec4i>();
 
 
 
 /************************************************************************************
  * Constructor/Destructor
  */
-TSFOptimizeClouds::TSFOptimizeClouds(const Parameter &p)
+TSFilterCloudsXYZRGB::TSFilterCloudsXYZRGB(const Parameter &p)
  : width(0), height(0), sf_timestamp(0), sf_pose(Eigen::Matrix4f::Identity()), run(false), have_thread(false)
 { 
   setParameter(p);
 }
 
-TSFOptimizeClouds::~TSFOptimizeClouds()
+TSFilterCloudsXYZRGB::~TSFilterCloudsXYZRGB()
 {
   if (have_thread) stop();
 }
@@ -43,14 +43,14 @@ TSFOptimizeClouds::~TSFOptimizeClouds()
 /**
  * operate
  */
-void TSFOptimizeClouds::operate()
+void TSFilterCloudsXYZRGB::operate()
 {
   bool have_todo;
 
   Eigen::Matrix4f inv_pose;
   v4r::DataMatrix2D<Surfel> sf_cloud_local;
   std::list< v4r::triple< pcl::PointCloud<pcl::PointXYZRGB>::Ptr, Eigen::Matrix4f, double > > frames_local;
-  std::list< v4r::triple< pcl::PointCloud<pcl::PointXYZRGB>::Ptr, Eigen::Matrix4f, double > >::iterator it0, it;
+  std::list< v4r::triple< pcl::PointCloud<pcl::PointXYZRGB>::Ptr, Eigen::Matrix4f, double > >::iterator it0, itm, itp;
 
   while(run)
   {
@@ -66,17 +66,27 @@ void TSFOptimizeClouds::operate()
 
     if (have_todo)
     {
-      if (intrinsic.empty() || tgt_intrinsic.empty())
-        throw std::runtime_error("[TSFOptimizeClouds::addCloud] Camera parameter not available");
+      if ( tgt_intrinsic.empty())
+        throw std::runtime_error("[TSFilterCloudsXYZRGB::addCloud] Camera parameter not available");
 
       it0 = std::next(frames_local.begin(), frames_local.size()/2);
       initKeyframe(*it0->first);
 
-      for (it=frames_local.begin(); it!=frames_local.end(); it++)
+      itp=itm=it0; itp++;
+      for (; itm!=frames_local.begin() && itp!=frames_local.end(); itm--, itp++)
       {
-        invPose(it->second, inv_pose);
-        //integrateData(*it->first, it0->second*inv_pose);
-        integrateDataRGB(*it->first, it0->second*inv_pose);
+        if (itm!=frames_local.begin())
+        {
+          invPose(itm->second, inv_pose);
+          //integrateData(*itm->first, it0->second*inv_pose);
+          integrateDataRGB(*itm->first, it0->second*inv_pose);
+        }
+        if (itp!=frames_local.end())
+        {
+          invPose(itp->second, inv_pose);
+          //integrateData(*itp->first, it0->second*inv_pose);
+          integrateDataRGB(*itp->first, it0->second*inv_pose);
+        }
       }
 
       project3D(sf_cloud_local, 0.5);
@@ -95,9 +105,9 @@ void TSFOptimizeClouds::operate()
 }
 
 /**
- * @brief TSFOptimizeClouds::initKeyframe
+ * @brief TSFilterCloudsXYZRGB::initKeyframe
  */
-void TSFOptimizeClouds::initKeyframe(const pcl::PointCloud<pcl::PointXYZRGB> &cloud0)
+void TSFilterCloudsXYZRGB::initKeyframe(const pcl::PointCloud<pcl::PointXYZRGB> &cloud0)
 {
   depth = cv::Mat_<float>::zeros(height, width);
   depth_weight = cv::Mat_<float>::zeros(height, width);
@@ -124,11 +134,11 @@ void TSFOptimizeClouds::initKeyframe(const pcl::PointCloud<pcl::PointXYZRGB> &cl
 
 
 /**
- * @brief TSFOptimizeClouds::integrateData
+ * @brief TSFilterCloudsXYZRGB::integrateData
  * @param cloud in camera coordinates
  * @param pose to transform the cloud from global coordinates to camera coordinates
  */
-void TSFOptimizeClouds::integrateData(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const Eigen::Matrix4f &pose)
+void TSFilterCloudsXYZRGB::integrateData(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const Eigen::Matrix4f &pose)
 {
   int x,y;
   cv::Point2f im_pt;
@@ -176,11 +186,11 @@ void TSFOptimizeClouds::integrateData(const pcl::PointCloud<pcl::PointXYZRGB> &c
 }
 
 /**
- * @brief TSFOptimizeClouds::integrateDataRGB
+ * @brief TSFilterCloudsXYZRGB::integrateDataRGB
  * @param cloud
  * @param pose
  */
-void TSFOptimizeClouds::integrateDataRGB(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const Eigen::Matrix4f &pose)
+void TSFilterCloudsXYZRGB::integrateDataRGB(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const Eigen::Matrix4f &pose)
 {
   int x,y;
   cv::Point2f im_pt;
@@ -238,7 +248,7 @@ void TSFOptimizeClouds::integrateDataRGB(const pcl::PointCloud<pcl::PointXYZRGB>
 }
 
 
-void TSFOptimizeClouds::project3D(v4r::DataMatrix2D<Surfel> &_sf_cloud, const float &px_offs)
+void TSFilterCloudsXYZRGB::project3D(v4r::DataMatrix2D<Surfel> &_sf_cloud, const float &px_offs)
 {
   double *C = &tgt_intrinsic(0,0);
   double invC0 = 1./C[0];
@@ -271,12 +281,12 @@ void TSFOptimizeClouds::project3D(v4r::DataMatrix2D<Surfel> &_sf_cloud, const fl
 
 
 /**
- * @brief TSFOptimizeClouds::selectintegrateDataFrame
+ * @brief TSFilterCloudsXYZRGB::selectintegrateDataFrame
  * @param pose0
  * @param pose1
  * @return
  */
-bool TSFOptimizeClouds::selectFrame(const Eigen::Matrix4f &pose0, const Eigen::Matrix4f &pose1)
+bool TSFilterCloudsXYZRGB::selectFrame(const Eigen::Matrix4f &pose0, const Eigen::Matrix4f &pose1)
 {
   Eigen::Matrix4f inv_pose0, inv_pose1;
   invPose(pose0, inv_pose0);
@@ -293,22 +303,22 @@ bool TSFOptimizeClouds::selectFrame(const Eigen::Matrix4f &pose0, const Eigen::M
 /**
  * start
  */
-void TSFOptimizeClouds::start()
+void TSFilterCloudsXYZRGB::start()
 {
-  if (intrinsic.empty())
-    throw std::runtime_error("[TSFOptimizeClouds::start] No camera parameter available!");
+  if (tgt_intrinsic.empty())
+    throw std::runtime_error("[TSFilterCloudsXYZRGB::start] No camera parameter available!");
 
   if (have_thread) stop();
 
   run = true;
-  th_obectmanagement = boost::thread(&TSFOptimizeClouds::operate, this);
+  th_obectmanagement = boost::thread(&TSFilterCloudsXYZRGB::operate, this);
   have_thread = true;
 }
 
 /**
  * stop
  */
-void TSFOptimizeClouds::stop()
+void TSFilterCloudsXYZRGB::stop()
 {
   run = false;
   th_obectmanagement.join();
@@ -321,7 +331,7 @@ void TSFOptimizeClouds::stop()
 /**
  * reset
  */
-void TSFOptimizeClouds::reset()
+void TSFilterCloudsXYZRGB::reset()
 {
   stop();
 
@@ -333,12 +343,12 @@ void TSFOptimizeClouds::reset()
 
 
 /**
- * @brief TSFOptimizeClouds::addCloud
+ * @brief TSFilterCloudsXYZRGB::addCloud
  * @param cloud
  * @param pose
  * @param have_track
  */
-void TSFOptimizeClouds::addCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const Eigen::Matrix4f &pose, const double &_timestamp, bool have_track)
+void TSFilterCloudsXYZRGB::addCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, const Eigen::Matrix4f &pose, const double &_timestamp, bool have_track)
 {
   if (!isStarted()) start();
 
@@ -361,10 +371,10 @@ void TSFOptimizeClouds::addCloud(const pcl::PointCloud<pcl::PointXYZRGB> &cloud,
 
 
 /**
- * @brief TSFOptimizeClouds::computeRadius
+ * @brief TSFilterCloudsXYZRGB::computeRadius
  * @param sf_cloud
  */
-void TSFOptimizeClouds::computeRadius(v4r::DataMatrix2D<Surfel> &sf_cloud, const cv::Mat_<double> &intrinsic)
+void TSFilterCloudsXYZRGB::computeRadius(v4r::DataMatrix2D<Surfel> &sf_cloud, const cv::Mat_<double> &intrinsic)
 {
   const float norm = 1./sqrt(2)*(2./(intrinsic(0,0)+intrinsic(1,1)));
   for (int v=0; v<sf_cloud.rows; v++)
@@ -383,10 +393,10 @@ void TSFOptimizeClouds::computeRadius(v4r::DataMatrix2D<Surfel> &sf_cloud, const
 }
 
 /**
- * @brief TSFOptimizeClouds::computeNormals
+ * @brief TSFilterCloudsXYZRGB::computeNormals
  * @param sf_cloud
  */
-void TSFOptimizeClouds::computeNormals(v4r::DataMatrix2D<Surfel> &sf_cloud, int nb_dist)
+void TSFilterCloudsXYZRGB::computeNormals(v4r::DataMatrix2D<Surfel> &sf_cloud, int nb_dist)
 {
   {
     npat.resize(4);
@@ -436,7 +446,7 @@ void TSFOptimizeClouds::computeNormals(v4r::DataMatrix2D<Surfel> &sf_cloud, int 
 }
 
 
-void TSFOptimizeClouds::getFilteredCloudNormals(pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud, Eigen::Matrix4f &pose, double &timestamp)
+void TSFilterCloudsXYZRGB::getFilteredCloudNormals(pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud, Eigen::Matrix4f &pose, double &timestamp)
 {
   mtx_shm.lock();
   cloud.resize(sf_cloud.data.size());
@@ -458,7 +468,7 @@ void TSFOptimizeClouds::getFilteredCloudNormals(pcl::PointCloud<pcl::PointXYZRGB
   mtx_shm.unlock();
 }
 
-void TSFOptimizeClouds::getSurfelCloud(v4r::DataMatrix2D<Surfel> &cloud, Eigen::Matrix4f &pose, double &timestamp)
+void TSFilterCloudsXYZRGB::getSurfelCloud(v4r::DataMatrix2D<Surfel> &cloud, Eigen::Matrix4f &pose, double &timestamp)
 {
   mtx_shm.lock();
   cloud = sf_cloud;
@@ -468,30 +478,10 @@ void TSFOptimizeClouds::getSurfelCloud(v4r::DataMatrix2D<Surfel> &cloud, Eigen::
 }
 
 
-
 /**
  * setCameraParameter
  */
-void TSFOptimizeClouds::setCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs)
-{
-  dist_coeffs = cv::Mat_<double>();
-  if (_intrinsic.type() != CV_64F)
-    _intrinsic.convertTo(intrinsic, CV_64F);
-  else intrinsic = _intrinsic;
-  if (!_dist_coeffs.empty())
-  {
-    dist_coeffs = cv::Mat_<double>::zeros(1,8);
-    for (int i=0; i<_dist_coeffs.cols*_dist_coeffs.rows; i++)
-      dist_coeffs(0,i) = _dist_coeffs.at<double>(0,i);
-  }
-
-  reset();
-}
-
-/**
- * setCameraParameter
- */
-void TSFOptimizeClouds::setCameraParameterTgt(const cv::Mat &_intrinsic, int _width, int _height)
+void TSFilterCloudsXYZRGB::setCameraParameterTSF(const cv::Mat &_intrinsic, int _width, int _height)
 {
   width = _width;
   height = _height;
@@ -503,16 +493,16 @@ void TSFOptimizeClouds::setCameraParameterTgt(const cv::Mat &_intrinsic, int _wi
   reset();
 }
 /**
- * @brief TSFOptimizeClouds::setParameter
+ * @brief TSFilterCloudsXYZRGB::setParameter
  * @param p
  */
-void TSFOptimizeClouds::setParameter(const Parameter &p)
+void TSFilterCloudsXYZRGB::setParameter(const Parameter &p)
 {
   param = p;
   sqr_cam_distance_select_frame = param.cam_distance_select_frame*param.cam_distance_select_frame;
   cos_delta_angle_select_frame = cos(param.angle_select_frame*M_PI/180.);
   if (param.batch_size_clouds<3)
-    throw std::runtime_error("[TSFOptimizeClouds::setParameter] batch_size_clouds need to be > 2");
+    throw std::runtime_error("[TSFilterCloudsXYZRGB::setParameter] batch_size_clouds need to be > 2");
 }
 
 

@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef KP_TSF_OPTIMIZE_CLOUD_H
-#define KP_TSF_OPTIMIZE_CLOUD_H
+#ifndef KP_TSFILTER_CLOUDS_XYZRGB_H
+#define KP_TSFILTER_CLOUDS_XYZRGB_H
 
 #include <iostream>
 #include <fstream>
@@ -36,9 +36,9 @@ namespace v4r
 
 
 /**
- * TSFOptimizeClouds
+ * TSFilterCloudsXYZRGB
  */
-class V4R_EXPORTS TSFOptimizeClouds
+class V4R_EXPORTS TSFilterCloudsXYZRGB
 {
 public:
 
@@ -53,7 +53,7 @@ public:
     double angle_select_frame;        //[deg]
     float inv_depth_cut_off;
     Parameter()
-      : batch_size_clouds(11), cam_distance_select_frame(0.001), angle_select_frame(0.1), inv_depth_cut_off(0.01) {}
+      : batch_size_clouds(15), cam_distance_select_frame(0.001), angle_select_frame(0.1), inv_depth_cut_off(0.01) {}
   };
 
  
@@ -66,7 +66,6 @@ private:
 
   static std::vector<cv::Vec4i> npat;
 
-  cv::Mat_<double> intrinsic, dist_coeffs;
   cv::Mat_<double> tgt_intrinsic;
 
   boost::mutex mtx_shm;
@@ -99,8 +98,8 @@ private:
 public:
   cv::Mat dbg;
 
-  TSFOptimizeClouds(const Parameter &p=Parameter());
-  ~TSFOptimizeClouds();
+  TSFilterCloudsXYZRGB(const Parameter &p=Parameter());
+  ~TSFilterCloudsXYZRGB();
 
   void start();
   void stop();
@@ -117,12 +116,11 @@ public:
   void getSurfelCloud(v4r::DataMatrix2D<Surfel> &cloud, Eigen::Matrix4f &pose, double &timestamp);
   void getFilteredCloudNormals(pcl::PointCloud<pcl::PointXYZRGBNormal> &cloud, Eigen::Matrix4f &pose, double &timestamp);
 
-  void setCameraParameter(const cv::Mat &_intrinsic, const cv::Mat &_dist_coeffs=cv::Mat());
-  void setCameraParameterTgt(const cv::Mat &_intrinsic, int _width, int _height);
+  void setCameraParameterTSF(const cv::Mat &_intrinsic, int _width, int _height);
   void setParameter(const Parameter &p);
 
-  typedef boost::shared_ptr< ::v4r::TSFOptimizeClouds> Ptr;
-  typedef boost::shared_ptr< ::v4r::TSFOptimizeClouds const> ConstPtr;
+  typedef boost::shared_ptr< ::v4r::TSFilterCloudsXYZRGB> Ptr;
+  typedef boost::shared_ptr< ::v4r::TSFilterCloudsXYZRGB const> ConstPtr;
 };
 
 

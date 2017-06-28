@@ -22,10 +22,9 @@
 #include "v4r/camera_tracking_and_mapping/TSFData.h"
 #include "v4r/reconstruction/impl/projectPointToImage.hpp"
 #include "v4r/features/FeatureDetector_KD_FAST_IMGD.h"
-#include "v4r/camera_tracking_and_mapping/TSFGlobalCloudFilteringSimple.h"
 #include "v4r/io/filesystem.h"
-
-
+#include "v4r/camera_tracking_and_mapping/TSFilterCloudsXYZRGB.h"
+#include "v4r/keypoints/impl/toString.hpp"
 
 
 
@@ -40,6 +39,7 @@ using namespace std;
 void setup(int argc, char **argv);
 
 void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &cloud, cv::Mat &image);
+void convertImage(const pcl::PointCloud<pcl::PointXYZRGBNormal> &_cloud, cv::Mat &_image);
 void drawCoordinateSystem(cv::Mat &im, const Eigen::Matrix4f &pose, const cv::Mat_<double> &intrinsic, const cv::Mat_<double> &dist_coeffs, double size, int thickness);
 void drawConfidenceBar(cv::Mat &im, const double &conf, int x_start=50, int x_end=200, int y=30);
 
@@ -51,18 +51,16 @@ cv::Mat_<cv::Vec3b> im_draw;
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
 
 std::string in_dir;
-std::string cam_file, filenames, file_mesh, file_cloud;
+std::string out_dir="log";
+std::string cam_file, filenames;
 std::string pattern =  std::string(".*.")+std::string("pcd");
 
 cv::Mat_<double> distCoeffs;// = cv::Mat::zeros(4, 1, CV_64F);
 cv::Mat_<double> intrinsic = cv::Mat_<double>::eye(3,3);
-cv::Mat_<double> dist_coeffs_opti = cv::Mat::zeros(4, 1, CV_64F);
-cv::Mat_<double> intrinsic_opti = cv::Mat_<double>::eye(3,3);
+cv::Mat_<double> intrinsic_tsf = cv::Mat_<double>::eye(3,3);
+
 
 Eigen::Matrix4f pose;
-float voxel_size = 0.005;
-double thr_weight = 10;      //e.g. 10    // surfel threshold for the final model
-double thr_delta_angle = 75; // e.g. 80
 int display = true;
 
 cv::Point track_win[2];
@@ -95,22 +93,15 @@ int main(int argc, char *argv[] )
 
   cv::namedWindow( "image", CV_WINDOW_AUTOSIZE );
 
-  std::vector< std::pair<Eigen::Matrix4f, int> > all_poses; //<pose, kf_index>
-
-  pcl::PointCloud<pcl::PointXYZRGBNormal> filt_cloud;
-  Eigen::Matrix4f filt_pose;
-  uint64_t timestamp;
   bool have_pose;
 
-  // configure camera tracking, temporal smothing and mapping
+  // configure camera tracking
   v4r::TSFVisualSLAM tsf;
   tsf.setCameraParameter(intrinsic);
 
   v4r::TSFVisualSLAM::Parameter param;
-  param.map_param.refine_plk = true;
-  param.map_param.detect_loops = true;
-  param.map_param.ba.optimize_delta_cloud_rgb_pose_global = false;
-  param.map_param.ba.optimize_delta_cloud_rgb_pose = false;
+  param.tsf_filtering = false;
+  param.tsf_mapping = false;
   tsf.setParameter(param);
 
   v4r::FeatureDetector::Ptr detector(new v4r::FeatureDetector_KD_FAST_IMGD());
@@ -123,6 +114,17 @@ int main(int argc, char *argv[] )
 
   double conf_ransac_iter = 1;
   double conf_tracked_points = 1;
+
+  // cloud filtering
+  v4r::TSFilterCloudsXYZRGB tsFilter;
+  v4r::TSFilterCloudsXYZRGB::Parameter tsf_param;
+  tsf_param.batch_size_clouds = 30;
+  tsFilter.setParameter(tsf_param);
+  intrinsic.copyTo(intrinsic_tsf);
+  tsFilter.setCameraParameterTSF(intrinsic_tsf, 640, 480);
+  double ts_last=0, ts_filt;
+  pcl::PointCloud<pcl::PointXYZRGBNormal> cloud_filt;
+  Eigen::Matrix4f pose_filt;
 
 
   // start camera tracking 
@@ -146,28 +148,36 @@ int main(int argc, char *argv[] )
 
     tsf.setDebugImage(im_draw);
 
-    // track
+    // ---------- tracking --------------------
     { pcl::ScopeTime t("overall time");
       have_pose = tsf.track(*cloud, i, pose, conf_ransac_iter, conf_tracked_points);
       time = t.getTime();
     } //-- overall time --
 
-    // ---- END batch filtering ---
+    // ------- batch filtering -----------------
+    tsFilter.addCloud(*cloud, pose, i, have_pose);
+    tsFilter.getFilteredCloudNormals(cloud_filt, pose_filt, ts_filt);
+
+    if (ts_filt != ts_last)
+    {
+      if ((int)ts_filt >= 0 && (int)ts_filt < (int)cloud_files.size())
+      {
+        pcl::io::savePCDFileBinary(out_dir+std::string("/")+cloud_files[(int)ts_filt]+std::string("-filt.pcd"), cloud_filt);
+        convertImage(cloud_filt, image);
+        cv::imwrite(out_dir+std::string("/")+cloud_files[(int)ts_filt]+std::string("-filt.jpg"),image);
+      }
+      ts_last = ts_filt;
+    }
+
+    // ---- END batch filtering ---------------
 
     cout<<"conf (ransac, tracked points): "<<conf_ransac_iter<<", "<<conf_tracked_points<<endl;
     if (!have_pose) cout<<"Lost pose!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
-
-    all_poses.push_back(std::make_pair(pose,-1));
-    v4r::invPose(pose,inv_pose);
-
-    // get filtered frame
-    tsf.getFilteredCloudNormals(filt_cloud, filt_pose, timestamp);
 
 
     mean_time += time;
     cnt_time++;
     cout<<"mean="<<mean_time/double(cnt_time)<<"ms ("<<1000./(mean_time/double(cnt_time))<<"fps)"<<endl;
-    cout<<"timestamp (c/f): "<<i<<"/"<<timestamp<<endl;
 
     // debug out draw
     int key=0;
@@ -185,32 +195,6 @@ int main(int argc, char *argv[] )
     if (((char)key)=='r') sleep=50;
     if (((char)key)=='s') sleep=0;
   }
-
-  // optimize map
-  tsf.stop();
-  tsf.optimizeMap();
-
-  //tsf.getMap();
-  tsf.getCameraParameter(intrinsic_opti, dist_coeffs_opti);
-
-  // create model in global coordinates
-  cout<<"Create pointcloud model..."<<endl;
-  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr glob_cloud(new pcl::PointCloud<pcl::PointXYZRGBNormal>());
-  pcl::PolygonMesh mesh;
-  v4r::TSFGlobalCloudFilteringSimple gfilt;
-  v4r::TSFGlobalCloudFilteringSimple::Parameter filt_param;
-  filt_param.filter_largest_cluster = false;
-  filt_param.voxel_size = voxel_size;
-  gfilt.setParameter(filt_param);
-
-  gfilt.setCameraParameter(intrinsic_opti, dist_coeffs_opti);
-  gfilt.getGlobalCloudFiltered(tsf.getMap(), *glob_cloud);
-  cout<<"Creat mesh..."<<endl;
-  gfilt.getMesh(glob_cloud, mesh);
-
-  // store resulting files
-  if (file_mesh.size()>0) pcl::io::savePLYFile(file_mesh, mesh);
-  if (file_cloud.size()>0) pcl::io::savePCDFileBinary(file_cloud, *glob_cloud);
 
   cout<<"Finished!"<<endl;
 
@@ -238,7 +222,7 @@ void setup(int argc, char **argv)
   int c;
   while(1)
   {
-    c = getopt(argc, argv, "i:p:a:o:m:c:d:h");
+    c = getopt(argc, argv, "i:p:a:o:d:h");
     if(c == -1)
       break;
     switch(c)
@@ -252,11 +236,8 @@ void setup(int argc, char **argv)
     case 'a':
       cam_file = optarg;
       break;
-    case 'm':
-      file_mesh = optarg;
-      break;
-    case 'c':
-      file_cloud = optarg;
+    case 'o':
+      out_dir = optarg;
       break;
     case 'd':
       display = std::atoi(optarg);
@@ -267,8 +248,7 @@ void setup(int argc, char **argv)
              "   -i input directory\n"
              "   -p input file pattern (\".*.pcd\")\n"
              "   -a camera calibration files (opencv format)\n"
-             "   -m mesh file name\n"
-             "   -c point cloud file name\n"
+             "   -o output directory\n"
              "   -d display results [0/1]\n"
              "   -h help\n",  argv[0]);
       exit(1);
@@ -288,6 +268,24 @@ void convertImage(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, cv::Mat &_ima
     {
       cv::Vec3b &cv_pt = _image.at<cv::Vec3b> (v, u);
       const pcl::PointXYZRGB &pt = _cloud(u,v);
+
+      cv_pt[2] = pt.r;
+      cv_pt[1] = pt.g;
+      cv_pt[0] = pt.b;
+    }
+  }
+}
+
+void convertImage(const pcl::PointCloud<pcl::PointXYZRGBNormal> &_cloud, cv::Mat &_image)
+{
+  _image = cv::Mat_<cv::Vec3b>(_cloud.height, _cloud.width);
+
+  for (unsigned v = 0; v < _cloud.height; v++)
+  {
+    for (unsigned u = 0; u < _cloud.width; u++)
+    {
+      cv::Vec3b &cv_pt = _image.at<cv::Vec3b> (v, u);
+      const pcl::PointXYZRGBNormal &pt = _cloud(u,v);
 
       cv_pt[2] = pt.r;
       cv_pt[1] = pt.g;
