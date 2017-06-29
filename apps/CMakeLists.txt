@@ -4,4 +4,4 @@ add_subdirectory(RTMT)
 #add_subdirectory(ObjectGroundTruthAnnotator)
 add_subdirectory(AttentionSegmentation)
 add_subdirectory(ObjectRecognizer)
-
+add_subdirectory(semantic_segmentation)

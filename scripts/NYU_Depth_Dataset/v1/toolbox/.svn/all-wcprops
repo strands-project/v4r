@@ -1,0 +1,113 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/clv/!svn/ver/3020/personal/silberman/kinect/toolbox
+END
+test_eval_seg.m
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/clv/!svn/ver/3494/personal/silberman/kinect/toolbox/test_eval_seg.m
+END
+eval_seg.m
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/clv/!svn/ver/3494/personal/silberman/kinect/toolbox/eval_seg.m
+END
+get_accel_data.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/clv/!svn/ver/3020/personal/silberman/kinect/toolbox/get_accel_data.cpp
+END
+get_train_test_split.m
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/clv/!svn/ver/3031/personal/silberman/kinect/toolbox/get_train_test_split.m
+END
+get_projection_mask.m
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/clv/!svn/ver/3138/personal/silberman/kinect/toolbox/get_projection_mask.m
+END
+confusion_matrix.m
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/clv/!svn/ver/3493/personal/silberman/kinect/toolbox/confusion_matrix.m
+END
+get_scene_counts.m
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/clv/!svn/ver/3031/personal/silberman/kinect/toolbox/get_scene_counts.m
+END
+compile.m
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/clv/!svn/ver/3494/personal/silberman/kinect/toolbox/compile.m
+END
+get_synched_frames.m
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/clv/!svn/ver/3338/personal/silberman/kinect/toolbox/get_synched_frames.m
+END
+demo_get_train_test_split.m
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/clv/!svn/ver/3031/personal/silberman/kinect/toolbox/demo_get_train_test_split.m
+END
+test_get_scene_type_from_scene.m
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/clv/!svn/ver/3032/personal/silberman/kinect/toolbox/test_get_scene_type_from_scene.m
+END
+get_scene_type_from_scene.m
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/clv/!svn/ver/3028/personal/silberman/kinect/toolbox/get_scene_type_from_scene.m
+END
+demo_synched_projected_frames.m
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/clv/!svn/ver/3494/personal/silberman/kinect/toolbox/demo_synched_projected_frames.m
+END
+get_accel_data.m
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/clv/!svn/ver/3022/personal/silberman/kinect/toolbox/get_accel_data.m
+END
+README
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/clv/!svn/ver/3494/personal/silberman/kinect/toolbox/README
+END
+get_projected_depth.m
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/clv/!svn/ver/3494/personal/silberman/kinect/toolbox/get_projected_depth.m
+END
+test_get_scene_counts_as_perc.m
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/clv/!svn/ver/3032/personal/silberman/kinect/toolbox/test_get_scene_counts_as_perc.m
+END
+get_scene_counts_as_perc.m
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/clv/!svn/ver/3031/personal/silberman/kinect/toolbox/get_scene_counts_as_perc.m
+END

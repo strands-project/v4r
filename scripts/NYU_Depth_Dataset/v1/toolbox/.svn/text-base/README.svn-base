@@ -1,0 +1,32 @@
+NYU Depth Dataset Matlab Toolbox
+Authors: Nathan Silberman, Rob Fergus {silberman,fergus}@cs.nyu.edu
+
+***********************************
+SYNCHRONIZING AND PROJECTING FRAMES
+***********************************
+Since the RGB and Raw Depth frames are not produced synchronously, (a) they must
+be aligned in time and (b) the depth must be projected into the RGB image plane.
+The functions get_synched_frames.m and get_projected_depth.m have been provided
+to provide this functionality. 
+
+File demo_synched_projected_frames.m provides a visualization of this process.
+
+*************************
+RETRIEVING THE ACCEL DATA
+*************************
+To compile the get_accel_data function, you must alter compile.m with the
+absolute location of the libFreenect include directory. Once compile,
+get_accel_data.mex* can be called to extract the accelerometer data from the 
+*.a files in each scene dump directory.
+
+*******************
+Running unit tests:
+*******************
+To run the unit tests, you need the matlab xUnit framework on your path. It 
+can be found here: http://www.mathworks.com/matlabcentral/fileexchange/22846
+
+Once xunit is on your path, you can run the tests as follows:
+
+>> cd [TOOLBOX_DIR]
+>> runtests
+

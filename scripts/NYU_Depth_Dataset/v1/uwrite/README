@@ -1,0 +1,44 @@
+UREAD/UWRITE are like FREAD/FWRITE except that they operate on arrays
+in memory.
+
+A=UWRITE(D, PREC) will create a uint8 array A from the double array D.
+The format of the binary data in A is determined by PREC (one of
+uint8, uint16, uint32, int8 int16, int32, float32, float64, or
+double).  The size of A is dependent on the precision PREC.
+
+D=UREAD(A, N, PREC) will read the uint8 array A and return N values
+into D.  The data in A are assumed to be in the format of PREC (see
+UWRITE for supported formats).
+
+Installation:
+
+1. Install the files, creating directory ``uwrite'':
+	gunzip -c uwrite.tar.gz | tar -xvf -
+
+2. Add the directory to your matlab path:
+	path(path, '<directory>/uwrite');
+
+3. Set up the MEX compiler following the instructions supplied by
+   Mathworks:
+	mex -setup
+
+4. Compile the C files:
+	cd <directory>/uwrite
+	mex uread.c
+	mex uwrite.c
+
+Usage:
+
+1. Add the directory to your matlab path:
+	path(path, '<directory>/uwrite');
+
+2. ``help uread'' and ``help uwrite'' will give instructions.  Also
+   look at the source  code in uread.c and uwrite.c
+
+If you find a bug please let me know.  
+
+Thanks,
+Sridhar Anandakrishnan
+sak@essc.psu.edu
+
+
