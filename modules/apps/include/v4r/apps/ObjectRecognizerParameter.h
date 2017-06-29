@@ -116,7 +116,7 @@ public:
           do_sift_ ( true ),
           do_shot_ ( false ),
           segmentation_method_ ( SegmentationType::OrganizedConnectedComponents ),
-          global_feature_types_ ( { FeatureType::ESF | FeatureType::SIMPLE_SHAPE | FeatureType::GLOBAL_COLOR, FeatureType::ALEXNET }  ),
+          global_feature_types_ ( ) , //{ FeatureType::ESF | FeatureType::SIMPLE_SHAPE | FeatureType::GLOBAL_COLOR, FeatureType::ALEXNET }  ),
           classification_methods_ (  { ClassifierType::SVM }  ),
           shot_keypoint_extractor_method_ (  KeypointType::HARRIS3D  ),
           normal_computation_method_ ( NormalEstimatorType::PCL_INTEGRAL_NORMAL ),
