@@ -25,6 +25,9 @@ if(BUILD_EXAMPLES)
   SET(V4R_DEPS v4r_tracking v4r_keypoints v4r_features v4r_camera_tracking_and_mapping v4r_recognition)
   V4R_DEFINE_CPP_EXAMPLE(camera_tracking_and_mapping)
 
+  SET(V4R_DEPS v4r_tracking v4r_keypoints v4r_features v4r_camera_tracking_and_mapping v4r_recognition)
+  V4R_DEFINE_CPP_EXAMPLE(camera_tracking_and_filtering)
+
   SET(V4R_DEPS v4r_tracking v4r_recognition v4r_keypoints v4r_features)
   V4R_DEFINE_CPP_EXAMPLE(imkOptimizeModel)
 

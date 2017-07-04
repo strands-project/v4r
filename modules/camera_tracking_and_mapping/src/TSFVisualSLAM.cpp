@@ -285,6 +285,7 @@ void TSFVisualSLAM::setParameter(const Parameter &p)
   tsfDataIntegration.setParameter(p.di_param);
   tsfPoseTracker.setParameter(p.pt_param);
   tsfMapping.setParameter(p.map_param);
+  tsfDataIntegration.setSelectMappingFrames(p.tsf_mapping);
 }
 
 /**
