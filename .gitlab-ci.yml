@@ -94,6 +94,15 @@ ubuntu-xenial-build-package:
     - apt-get install -qq -y wget sed sudo 
     - sudo ./setup.sh $UBUNTU_DISTRO $CI_ROS_DISTRO 
     - sudo apt-get install -qq -y python-bloom devscripts 
+    # we need a specific version of libceres
+    - apt-get purge libceres-dev ceres-solver-doc libceres1 -y
+    - wget http://ceres-solver.org/ceres-solver-1.11.0.tar.gz
+    - tar xfz ceres-solver-1.11.0.tar.gz
+    - mkdir ceres-build
+    - cd ceres-build
+    - cmake ../ceres-solver-1.11.0 -DBUILD_SHARED_LIBS=ON
+    - make -j8
+    - make install
  
   stage: build 
   script: 

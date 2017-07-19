@@ -4,6 +4,7 @@ Changelog for package v4r
 
 Forthcoming
 -----------
+
 * merge
 * 1.4.5
 * Merge branch 'release' of rgit.acin.tuwien.ac.at:markus-bajones/v4r into release
