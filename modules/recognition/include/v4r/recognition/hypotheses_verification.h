@@ -163,6 +163,8 @@ protected:
 
     Eigen::Matrix4f refinePose(HVRecognitionModel<ModelT> &rm) const;
 
+    cv::Mat img_boundary_distance_; ///< saves for each pixel how far it is away from the boundary (taking into account extrinsics of the camera)
+
     /**
      * @brief computeVisiblePoints first renders the model cloud in the given pose onto the image plane and checks via z-buffering
      * for each model point if it is visible or self-occluded. The visible model cloud is then compared to the scene cloud for occlusion
@@ -217,7 +219,7 @@ protected:
      */
     bool isOutlier(HVRecognitionModel<ModelT> &rm) const
     {
-        return ( param_.regularizer_ * rm.visible_pt_is_outlier_.count() > rm.scene_explained_weight_.sum() );
+        return ( rm.confidence_ < param_.min_fitness_ );
     }
 
 
@@ -277,7 +279,10 @@ protected:
     float
     modelSceneColorCostTerm( const ModelSceneCorrespondence& c ) const
     {
-        return exp (- c.color_distance_/param_.color_sigma_ab_ );
+//        return exp (- c.color_distance_/param_.color_sigma_ab_ );
+//        std::cout << c.color_distance_ << std::endl;
+//        return std::min(1.f, std::max(0.f, 1.f - c.color_distance_/param_.color_sigma_ab_));
+        return 0.5f * (1.f-tanh( (c.color_distance_ - param_.color_sigma_ab_) / param_.color_sigma_l_ ) );
     }
 
     /**
@@ -301,13 +306,12 @@ protected:
      */
     float modelSceneNormalsCostTerm( const ModelSceneCorrespondence& c ) const
     {
-        if ( c.angle_surface_normals_rad_ < param_.inliers_surface_angle_thres_)
-            return 1.f;
-
-        if ( c.angle_surface_normals_rad_ > M_PI/2)
+        if ( c.angle_surface_normals_rad_ < 0.f)
             return 0.f;
 
-        return 1 - (c.angle_surface_normals_rad_ - param_.inliers_surface_angle_thres_) / (M_PI/2 - param_.inliers_surface_angle_thres_);
+        return std::max(0.f, std::min<float>(1.f, 0.5f + 0.5f*tanh( (c.angle_surface_normals_rad_ - param_.inliers_surface_angle_thres_dotp_) / 0.1f ) ) );   ///TODO: Speed up with LUT
+
+//        return 1 - (c.angle_surface_normals_rad_ - param_.inliers_surface_angle_thres_) / (M_PI/2 - param_.inliers_surface_angle_thres_);
     }
 
     void
@@ -319,7 +323,7 @@ protected:
         float L_dist  = ( color_a(0) - color_b(0) )*( color_a(0) - color_b(0) );
         CHECK(L_dist >= 0.f && L_dist <= 1.f);
         L_dist /= param_.color_sigma_l_ ;
-        float AB_dist = ( color_a.tail(2) - color_b.tail(2) ).squaredNorm(); // ( param_.color_sigma_ab_ * param_.color_sigma_ab_ );
+        float AB_dist = ( color_a.tail(2) - color_b.tail(2) ).norm(); // ( param_.color_sigma_ab_ * param_.color_sigma_ab_ );
         CHECK(AB_dist >= 0.f && AB_dist <= 1.f);
         return L_dist + AB_dist ;
     }
@@ -358,7 +362,7 @@ public:
             color_dist_f_ = CIE76; break;
 
         case ColorComparisonMethod::cie94 :
-            color_dist_f_ = CIE76; break;
+            color_dist_f_ = CIE94_DEFAULT; break;
 
         case ColorComparisonMethod::ciede2000 :
             color_dist_f_ = CIEDE2000; break;

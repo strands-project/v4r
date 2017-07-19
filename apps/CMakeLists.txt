@@ -4,5 +4,6 @@ add_subdirectory(RTMT)
 #add_subdirectory(ObjectGroundTruthAnnotator)
 add_subdirectory(AttentionSegmentation)
 add_subdirectory(ObjectRecognizer)
-add_subdirectory(MultiViewObjectRecognizer)
+add_subdirectory(ObjectRecognizerEval)
+#add_subdirectory(MultiViewObjectRecognizer)
 

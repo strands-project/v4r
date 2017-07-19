@@ -84,7 +84,9 @@ FeatureBasedRegistration<PointT>::initialize(std::vector<std::pair<int, int> > &
         estimator.setInputCloud(cloud);
         estimator.setIndices(indices);
         estimator.compute(sift_descs);
-        typename pcl::PointCloud< PointT >::Ptr  sift_keys = estimator.getKeypointCloud();
+        typename pcl::PointCloud< PointT >::Ptr sift_keys (new pcl::PointCloud<PointT>);
+        std::vector<int> sift_kp_indices = estimator.getKeypointIndices();
+        pcl::copyPointCloud( *cloud, sift_kp_indices, *sift_keys);
 
         pcl::PointIndices original_indices;
         original_indices.indices = estimator.getKeypointIndices();

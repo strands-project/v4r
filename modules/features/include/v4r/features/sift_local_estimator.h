@@ -47,10 +47,8 @@ template<typename PointT>
 class V4R_EXPORTS SIFTLocalEstimation : public LocalEstimator<PointT>
 {
     using LocalEstimator<PointT>::keypoint_indices_;
-    using LocalEstimator<PointT>::keypoints_;
     using LocalEstimator<PointT>::cloud_;
     using LocalEstimator<PointT>::indices_;
-    using LocalEstimator<PointT>::processed_;
     using LocalEstimator<PointT>::descr_name_;
     using LocalEstimator<PointT>::descr_type_;
     using LocalEstimator<PointT>::descr_dims_;
@@ -68,19 +66,19 @@ public:
     {
     public:
         bool dense_extraction_;
+        bool use_rootSIFT_; ///< enables RootSIFT as described in Arandjelovic and Zisserman, Three things everyone should know to improve object retrieval (CVPR, 2012)
         int stride_;    ///< is dense_extraction, this will define the stride in pixel for extracting SIFT keypoints
-        Parameter
-        (
-                bool dense_extraction = false,
-                int stride  = 20
-        ):
-            dense_extraction_ ( dense_extraction ),
-            stride_ ( stride )
+        Parameter ( ):
+            dense_extraction_ ( false ),
+            use_rootSIFT_( true ),
+            stride_ ( 20 )
         {}
     }param_;
 
 #ifdef HAVE_SIFTGPU
-    SIFTLocalEstimation (const boost::shared_ptr<SiftGPU> &sift) : sift_(sift)
+    SIFTLocalEstimation (const boost::shared_ptr<SiftGPU> &sift) :
+      max_distance_ (std::numeric_limits<float>::max()),
+      sift_(sift)
     {
         descr_name_ = "sift";
         descr_type_ = FeatureType::SIFT_GPU;
@@ -88,6 +86,7 @@ public:
     }
 
     SIFTLocalEstimation ()
+        : max_distance_ (std::numeric_limits<float>::max())
     {
         descr_name_ = "sift";
         descr_type_ = FeatureType::SIFT_GPU;

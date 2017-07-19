@@ -94,7 +94,7 @@ public:
 
     bool operator < (const ModelSceneCorrespondence& other) const
     {
-        return this->fitness_ < other.fitness_;
+        return this->fitness_ > other.fitness_;
     }
 
     /** \brief Constructor. */

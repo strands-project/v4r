@@ -54,10 +54,10 @@ public:
   IMKRecognizerIO() {};
 
   /** write **/
-  static void write(const std::string &dir, const std::vector<std::string> &object_names, const std::vector<IMKView> &object_models, const CodebookMatcher &cb);
+  static void write(const std::string &dir, const std::vector<std::string> &object_names, const std::vector<IMKView> &object_models, const CodebookMatcher &cb, const std::string &codebookFilename="");
 
   /** read **/
-  static bool read(const std::string &dir, std::vector<std::string> &object_names, std::vector<IMKView> &object_models, CodebookMatcher &cb);
+  static bool read(const std::string &dir, std::vector<std::string> &object_names, std::vector<IMKView> &object_models, CodebookMatcher &cb, const std::string &codebookFilename="");
 };
 
 

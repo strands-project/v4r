@@ -2,11 +2,454 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.4.8 (2017-04-11)
+------------------
+* Merge remote-tracking branch 'upstream/master' into release
+* Merge branch 'update_siftgpu_url' into 'master'
+  update url for siftgpu
+  Closes #24
+  See merge request !186
+* update url for siftgpu
+* Merge branch 'add_eval' into 'master'
+  Add eval
+  See merge request !185
+* up
+* update params
+* just to make sure
+* :lipstick:
+* use inner product for normal comparison
+* up
+* use pcl_version macro
+* update param
+* update z-buffering
+* use dotproduct for normals comparison
+* use dist_l2 enum from opencv 2.4
+* remove highgui include
+* update params
+* use vis params
+* use logarithm
+* :lipstick:
+* use param
+* update pose refinement and visible cloud computation
+* remove color normalization
+* use pcl stopwatch to allow verbosity setting
+* use tanh for color comparison
+* use right color comparison function
+* fix missing header
+* reset viewpoint by default to fix visual
+* small hack to have consistent number of parameters
+* hopefully fixes compile error
+* allow inconsistent xml file and just warn
+* exit when param not okay
+* use planar filter
+* use integer for verbosity
+* initialize depth registration mask
+* add accidentally deleted header declaration
+* improve readability
+* fix wrong sort direction
+* fix some warnings
+* use surface normals for z-buffering
+* rename parameter
+* update hv parameter
+* add verbosity
+* fix
+* fix compile error
+* :lipstick:
+* add confusion matrix computation to evaluate global pipeline
+* reset sensor orientation before segmentation
+* use distance instead of z component for cut-off
+* updae eval to allow setting multitoken elements
+* make remove planes parameter accessible from outside
+* use distance instead of z component for cut-off
+* save parameters to file
+* add initialization
+* use RGB transform histogram for global color estimator and add parameter class
+* make histogram row major
+* use built-in svm cross validation
+* fix compile error
+* update global recognizer (mainly add visualization)
+* update alexnet integration
+* update global recognizer to allow for multiple feature descriptors per cluster
+  + add visualization option
+* add to previous commit
+* use eigen vector instead of PointT type as min max point
+* add ourcvfh as an option for global concat estimator
+* use normal estimator from outside
+* make camera a class variable
+* remove virtual where not neccessary
+* add ourcvfh estimator
+* update global pose estimation and add visualization
+  TODO: check if everything works correctly
+* update desc
+* compute discrepancy between centroids of view and centroid of full object model
+* compute model centroid
+* fix taking wrong norms (should be sqrt)
+* use visualization parameter
+* add parameter for coordinate axis scale
+* add utility function for aligning two vectors
+* Merge remote-tracking branch 'root/master' into add_eval
+* Merge branch 'add-gtest' into 'master'
+  Add GTest
+  See merge request !177
+* add pose refinement to app
+* Merge branch 'add_eval' into 'master'
+  Add eval
+  See merge request !182
+* Merge branch 'fix_iol_runtime_error' into 'master'
+  fix throwing runtime_error
+  See merge request !181
+* Merge branch 'fix_bug' into 'master'
+  change include order to fix opencv bug
+  Closes #23
+  See merge request !180
+* fix throwing runtime_error
+* fix throwing runtime_error
+* update default config (elongation can now be part of the feature vector)
+* update header information
+* :lipstick:
+* awesome global concate descriptor
+* remove parameter remnant
+* :lipstick:
+* fix hist range check
+* add color to concat descriptor
+* fix type
+* add global color descriptor
+* add concatenation of global descriptor
+* :lipstick:
+* add a simple global shape estimator
+* fix visualization bug
+* remove log copy as glog does not support this apparently
+* write function to query boost xml value
+* use glog more frequently
+* remove volatile remnant
+* reset normals
+* :lipstick:
+* make svm param gamma init to 1/num_featurse by default if not otherwise set
+* add unfiltered global results to vis
+* make global rec visualization a parameter
+* fix coordinate system vis issue
+* fix global recognizers plane alignment
+* allow to reurn normals from segmentation
+* update opencv sift
+* use l1 norm
+* output recognition rate
+* revert accidental commit
+* fix wrong endif for rops
+* fix sift
+* fix rops comile error on pcl < 1.7.2
+* allow to visualize keypoints
+* update params
+* allow having multiple keypoint extractor + change default params
+* update xml
+* comment try catch
+* fix bug
+* tmp commit
+* :performance:
+* use organized normal computation by default
+* remove redundant object mask check
+* fix sift opengl issue
+  TODO: use master thread for sift to use openmp
+* allow having multiple support radii
+* :lipstick:
+* remove keypoint cloud and processed cloud from local estimator
+* Merge remote-tracking branch 'root/master' into add_eval
+* Merge branch 'add_rotation_check' into 'master'
+  Add rotation check
+  See merge request !179
+* change include order to fix opencv bug
+* change include order to fix opencv bug
+* remove points not belonging to object during initialization
+* visualize normals in processed cloud
+* add rops as features
+  not tested yet
+* make shot support radius a boost paramater
+* remove nan points before  shot computation
+* remove keypoint indices if the normals are not finite and estimator needs normals
+* use omp
+* fix segfault
+* change default params
+* allow setting boundary type
+* avoid keypoint cloud copy if not neccessary
+* add narf parameters
+* fix bug
+* remove config files as they are copied all the time anyway
+* add parameter for shot and normal estimation
+* increase normal densitiy in visualization
+* remove check
+* change default param
+* :lipstick:
+* add check if file exists when reading xml files
+* use stl vector and :lipstick:
+* :lipstick:
+* :lipstick:
+* :lipstick:
+* make normal computation method a parameter
+* another try with rootsift
+* add missing piece
+* add rootsift as parameter
+* add l2 normalization
+* fix
+* try root sift
+* revert test
+* test
+* fix eval stopping criteria
+* fix compile error
+* fix hash
+* fix compile error on pcl 1.8 (take 2)
+* fix compile error on pcl 1.8 (take 2)
+* fix compile error on pcl 1.8
+* fix compile error on pcl 1.8
+* add eval
+* remove eval
+* add missing executable in cmake
+* add point types include to gcg to hopefully fix compile error on trusty
+* add inidividiual hypotheses check with ground-truth data + :lipstick:
+* Merge branch 'add_param' into 'master'
+  add angular threshold parameter
+  See merge request !176
+* temp commit
+* compute normals when init features
+* allow graph-based correspondence grouping
+* use cv::Vec3b
+* also use stl vectors for thresholds
+* fix not removing already used parameter
+* make gcg input const
+* make retrain a parameter for outside
+* also use 2d stl vector instead of mat for center
+  + fix some warnings
+* use 2d stl vector instead of cv mat to fix memory leak
+* fix compile error
+* Add GTest as a third-party library
+* add angular threshold parameter
+* increase model resolution for visualization
+* make compute recognition rate an apps library
+* remove plane extractor from global and use segmentation app
+* :wrench:
+* :sparkles:
+* add angular threshold parameter
+* Add protection from calling target_include_directories with empty list
+* Remove INSTALL_TESTS option from CMake
+* Install only modules marked as PUBLIC
+* Merge remote-tracking branch 'refs/remotes/root/master'
+  Conflicts:
+  modules/segmentation/src/plane_utils.cpp
+  modules/segmentation/src/segmentation_utils.cpp
+* Merge branch 'fix_pcl_visualization_issue' into 'master'
+  fix opening multiple pcl visualization windows
+  See merge request !173
+* Merge branch 'add_simons_plane_extractor' into 'master'
+  add simons plane extractor
+  See merge request !172
+* Merge branch 'add_hellinger_kernel' into 'master'
+  add hellinger kernel
+  See merge request !171
+* init params
+* add boost parameter
+* remove redundant param init
+* init params
+* init params
+* add boost parameter
+* add boost parameter
+* :lipstick:
+* fix compile error
+* cleanup
+* fix wrong index
+* flip normals always towards viewpoint
+* only vector4f now
+* temp commit
+* temp commit
+* temp commit
+* tmp commit
+* temp commit
+* :lipstick:
+* remove redundancy
+* reduce redundancy
+* reduce redundancy
+* use plane utility functions
+* use global functions
+* use const
+* remove cam
+* add some plane utils
+* :lipstick:
+* fix compile error
+* cleanup
+* fix wrong index
+* flip normals always towards viewpoint
+* only vector4f now
+* temp commit
+* temp commit
+* temp commit
+* tmp commit
+* temp commit
+* :lipstick:
+* remove redundancy
+* reduce redundancy
+* use plane utility functions
+* use global functions
+* rename config variable name
+* use const
+* remove cam
+* add some plane utils
+* add seg params
+* add processed cloud to visualization and use original cloud for hv
+* update cloud segmenter
+* allow title change
+* use boost paths
+* use boost filesystems paths instead of string
+  will be casted anyway
+* remove visualization output
+* extract plane indices and increase performance
+* fix opening multiple pcl visualization windows
+  define visualizer static
+* enable plane removal by default
+* use seperate cloud for processing input
+* fix opening multiple pcl visualization windows
+  define visualizer static
+* extract plane indices and increase performance
+* add hellinger kernel
+* add simons plane extractor
+* update recognizer to use new segmentation with explicit plane extraction
+* add hellinger kernel
+* add simons plane extractor
+* Merged branch master into add_evaluation_for_diss
+* Merge branch 'master' into 'master'
+  ec filter of small clusters - some beautification
+  See merge request !169
+* ec filter of small clusters - some beautification
+* Merge branch 'update_io' into 'master'
+  Update io
+  See merge request !167
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !168
+* RTMT: remove small clusters before storing the global model
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* use random search for hyperparameter
+* prepare for local search
+* fix performance bug
+* put changes in seperate file and automatically add pairwise changes
+* add functionality to set output dir
+* add eval in cmake
+* do not visualize by default
+* fix missing occlusion threshold init
+* fix bug in visualization
+* init commit
+* add xml config for multipipeline
+* :lipstick:
+* add parameter class for multipipeline recognizer
+* add remove folder
+* update folder copy
+* Merge branch 'up_recognition_rate_computation' into 'master'
+  Up recognition rate computation
+  See merge request !164
+* add chi-square
+* add parameter for num trees of kdtree in feature matching
+* use object centroid for translation error computation
+* make eval compatible to new annotation format
+* object models are read directly from folder instead from init source
+* Merge branch 'up_io' into 'master'
+  remove deprecated functions and make paths windows compatible
+  See merge request !165
+* Merge branch 'revert_disabling_apps' into 'master'
+  revert disabling of some apps and examples
+  See merge request !166
+* revert disabling of some apps and examples
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* minor: config/ test ImGD-Descriptor
+* remove deprecated functions and make paths windows compatible
+* Merge branch 'fix_rf_training' into 'master'
+  bug fix in random forest training
+  See merge request !163
+* Merge branch 'rec_eval' into 'master'
+  Rec eval
+  See merge request !162
+* fix pcl version madness
+* avoid not available getkeypointsindices in PCL < 1.7.2
+* remove conditional pcl instantiation
+* lm optimization of the poses (proj. + depth) -- tested
+* allow to skip verification
+* Merged branch master into normal_estimation
+* update keypoint example demo
+* fix bug when indices are empty
+* update default param
+* :lipstick:
+* update normal computations
+* add z adaptive
+* init normal class
+* fix noise model based cloud integration when object mask is not available
+* fix missing init
+* update segmentation
+  - use vector<int> instead of pcl::pointindices
+  - seperate plane extraction and segmentation
+  - rename files
+  - move some definitions into .cpp
+* tmp commit
+* rename variables
+* remove siftgpu dependency
+* remove pcl 1_8 dependency
+* adds example code for keypoint extraction and filtering
+* add dependencies
+* Merge branch 'add_3rd_partry_libraries_as_example_dependencies' into 'master'
+  add dependencies
+  See merge request !159
+* make segment pcd an app
+* fix seg fault when input contains nan points
+* fix wrong if conditions
+* remove siftgpu dependency
+* pnp and/or depth ransac version (not tested)
+* Merge branch 'fix_noise_model_base_integration' into 'master'
+  fix noise model based cloud integration when object mask is not available
+  See merge request !158
+* add dependencies
+* fix noise model based cloud integration when object mask is not available
+* fix redundant typename in keypoint init
+* Merged branch master into rename_params
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* live version (capture with opencv)
+* bug fix in random forest training
+  boost random generator is not thread safe, do not access it from within openmp parallel section
+* update segmentation
+  - use vector<int> instead of pcl::pointindices
+  - seperate plane extraction and segmentation
+  - rename files
+  - move some definitions into .cpp
+* tmp commit
+* Merged branch master into rename_params
+* rename variables
+* :lipstick:
+* Contributors: Daniel Wolf, Johann Prankl, Markus Bajones, Sergey Alexandrov, Thomas Faeulhammer, Thomas Fäulhammer
+
+1.4.7 (2017-02-23)
+------------------
+* Merge branch 'upstream_master' into release
+* Merge branch 'fix_wrong_sift_init' into 'master'
+  fix missing init
+  See merge request !157
+* fix missing init
+* Merge branch 'master' into 'master'
+  added additional parameter for imkRecognizer to specify bin filename
+  See merge request !155
+* changed imkRecognizer example to handle user filename
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* added additional parameter to set file name for imk-bin-file
+* Merge branch 'master' into 'master'
+  param change: more accurate flann configuration
+  See merge request !154
+* param change: more accurate flann
+* Contributors: Edith Langer, Johann Prankl, Markus Bajones, Thomas Faeulhammer
+
+1.4.6 (2017-02-14)
+------------------
+* Merged branch master into release
+* remove auto keyword as this causes undesired behavior on some machines
+* Contributors: Thomas Fäulhammer, Unknown
+
 1.4.5 (2017-02-13)
 ------------------
-* set ros distro
-* update changelog
-* Contributors: bajo
+* Merge branch 'release' into 'release'
+  Release 1.4.4-internal
+  See merge request !152
+* Contributors: Markus Bajones
 
 1.4.4 (2017-02-13)
 ------------------

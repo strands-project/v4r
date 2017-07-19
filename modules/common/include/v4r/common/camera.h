@@ -24,6 +24,7 @@
 #pragma once
 
 #include <v4r/core/macros.h>
+#include <v4r/io/filesystem.h>
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/serialization/serialization.hpp>
@@ -172,6 +173,9 @@ public:
      */
     Camera(const std::string &filename)
     {
+        if( !v4r::io::existsFile(filename) )
+            throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
+
         std::ifstream ifs(filename);
         boost::archive::xml_iarchive ia(ifs);
         ia >> boost::serialization::make_nvp("CameraParameter", *this );

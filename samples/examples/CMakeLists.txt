@@ -19,8 +19,14 @@ if(BUILD_EXAMPLES)
   SET(V4R_DEPS v4r_ml v4r_recognition v4r_rendering v4r_segmentation)
   V4R_DEFINE_CPP_EXAMPLE(esf_object_classifier)
 
+  SET(V4R_DEPS v4r_tracking v4r_recognition v4r_keypoints v4r_features)
+  V4R_DEFINE_CPP_EXAMPLE(imkRecognizeObject-file)
+
   SET(V4R_DEPS v4r_object_modelling)
   V4R_DEFINE_CPP_EXAMPLE(incremental_object_learning)
+
+  SET(V4R_DEPS v4r_io v4r_keypoints v4r_features)
+  V4R_DEFINE_CPP_EXAMPLE(keypoint_extraction)
 
   SET(V4R_DEPS v4r_registration)
   V4R_DEFINE_CPP_EXAMPLE(noise_model_based_cloud_integration)
@@ -31,10 +37,8 @@ if(BUILD_EXAMPLES)
   SET(V4R_DEPS v4r_tracking v4r_reconstruction v4r_keypoints)
   V4R_DEFINE_CPP_EXAMPLE(object_tracker_mono)
 
-  SET(V4R_DEPS v4r_tracking v4r_recognition v4r_keypoints v4r_features)
-  V4R_DEFINE_CPP_EXAMPLE(imkRecognizeObject-file)
 
-  SET(V4R_DEPS v4r_segmentation)
+  SET(V4R_DEPS v4r_segmentation v4r_apps)
   V4R_DEFINE_CPP_EXAMPLE(segment_pcd)
 
   SET(V4R_DEPS v4r_keypoints)

@@ -1,5 +1,6 @@
 /******************************************************************************
- * Copyright (c) 2012 Aitor Aldoma, Thomas Faeulhammer
+ * Copyright (c) 2012 Aitor Aldoma
+ * Copyright (c) 2016 Thomas Faeulhammer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,96 +22,67 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_OURCVFH_ESTIMATOR_H_
-#define V4R_OURCVFH_ESTIMATOR_H_
+#pragma once
 
 #include <v4r/core/macros.h>
 #include <v4r/features/global_estimator.h>
 #include <v4r/features/types.h>
 
-#include <v4r/features/pcl_ourcvfh.h>
-#include <pcl/search/kdtree.h>
-#include <glog/logging.h>
-
 namespace v4r
 {
-    template<typename PointT>
-      class V4R_EXPORTS OURCVFHEstimator : public GlobalEstimator<PointT>
-      {
-      private:
-          using GlobalEstimator<PointT>::indices_;
-          using GlobalEstimator<PointT>::cloud_;
-          using GlobalEstimator<PointT>::normals_;
-          using GlobalEstimator<PointT>::descr_name_;
-          using GlobalEstimator<PointT>::descr_type_;
-          using GlobalEstimator<PointT>::feature_dimensions_;
+class V4R_EXPORTS OURCVFHEstimatorParameter
+{
+public:
+    std::vector<float> eps_angle_threshold_vector_;
+    std::vector<float> curvature_threshold_vector_;
+    std::vector<float> cluster_tolerance_vector_;
+    float refine_factor_;
+    bool normalize_bins_;
+    size_t min_points_;
+    float axis_ratio_;
+    float min_axis_value_;
 
-      public:
-          OURCVFHEstimator()
-          {
-              descr_name_ = "ourcvfh";
-              descr_type_ = FeatureType::OURCVFH;
-              feature_dimensions_ = 308;
-          }
 
-          bool
-          compute (Eigen::MatrixXf &signature)
-          {
-              CHECK(cloud_ && !cloud_->points.empty() && normals_);
-              pcl::PointCloud<pcl::VFHSignature308> descriptors;
+    OURCVFHEstimatorParameter() :
+        eps_angle_threshold_vector_ ( { 10.f*M_PI/180.f } ),
+        curvature_threshold_vector_ ( {0.04} ),
+        cluster_tolerance_vector_ ( {0.02f} ), //3.f, 0.015f
+        refine_factor_ (1.f),
+        normalize_bins_ (false),
+        min_points_(50),
+        axis_ratio_ (0.8f),
+        min_axis_value_(0.925f)
+    {}
+};
 
-              typename pcl::search::KdTree<PointT>::Ptr kdtree (new pcl::search::KdTree<PointT>);
+template<typename PointT>
+class V4R_EXPORTS OURCVFHEstimator : public GlobalEstimator<PointT>
+{
+private:
+    using GlobalEstimator<PointT>::indices_;
+    using GlobalEstimator<PointT>::cloud_;
+    using GlobalEstimator<PointT>::normals_;
+    using GlobalEstimator<PointT>::descr_name_;
+    using GlobalEstimator<PointT>::descr_type_;
+    using GlobalEstimator<PointT>::feature_dimensions_;
+    using GlobalEstimator<PointT>::transforms_;
 
-              v4r::OURCVFHEstimation<PointT, pcl::Normal, pcl::VFHSignature308> ourcvfh;
-              if(!indices_.empty())   /// NOTE: setIndices does not seem to work for ESF
-              {
-                  typename pcl::PointCloud<PointT>::Ptr cloud_roi (new pcl::PointCloud<PointT>);
-                  typename pcl::PointCloud<pcl::Normal>::Ptr normals_roi (new pcl::PointCloud<pcl::Normal>);
-                  pcl::copyPointCloud(*cloud_, indices_, *cloud_roi);
-                  pcl::copyPointCloud(*normals_, indices_, *normals_roi);
-                  ourcvfh.setInputCloud(cloud_roi);
-                  ourcvfh.setInputNormals(normals_roi);
-              }
-              else
-              {
-                  ourcvfh.setInputCloud (cloud_);
-                  ourcvfh.setInputNormals(normals_);
-              }
+    OURCVFHEstimatorParameter param_;
 
-              ourcvfh.setSearchMethod(kdtree);
-              ourcvfh.setEPSAngleThreshold(5.0 / 180.0 * M_PI); // 5 degrees.
-              ourcvfh.setCurvatureThreshold(1.0);
-              ourcvfh.setNormalizeBins(false);
-              // Set the minimum axis ratio between the SGURF axes. At the disambiguation phase,
-              // this will decide if additional Reference Frames need to be created, if ambiguous.
-              ourcvfh.setAxisRatio(0.8);
-              try{
-                  ourcvfh.compute(descriptors);
-              }
-              catch (std::exception &e)
-              {
-                  std::cerr << "Could not compute descriptor. " << e.what() << std::endl;
-                  return false;
-              }
+public:
+    OURCVFHEstimator(const OURCVFHEstimatorParameter &p = OURCVFHEstimatorParameter() )
+        :
+          GlobalEstimator<PointT>("ourcvfh", FeatureType::OURCVFH, 308),
+          param_(p)
+    { }
 
-              signature.resize(descriptors.points.size(), feature_dimensions_);
+    bool
+    compute (Eigen::MatrixXf &signature);
 
-              for(size_t pt=0; pt<descriptors.points.size(); pt++)
-              {
-                  for(size_t i=0; i<feature_dimensions_; i++)
-                    signature(pt, i) = descriptors.points[pt].histogram[i];
-              }
-
-              indices_.clear();
-              return true;
-          }
-
-          bool
-          needNormals() const
-          {
-              return true;
-          }
-      };
+    bool
+    needNormals() const
+    {
+        return true;
+    }
+};
 }
-
-#endif

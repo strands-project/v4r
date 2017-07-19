@@ -21,14 +21,12 @@
  *
  ******************************************************************************/
 
-#ifndef V4R_ESF_ESTIMATOR_H_
-#define V4R_ESF_ESTIMATOR_H_
+#pragma once
 
 #include <v4r/core/macros.h>
 #include <v4r/features/global_estimator.h>
 #include <v4r/features/types.h>
 
-#include <pcl/features/esf.h>
 #include <glog/logging.h>
 
 namespace v4r
@@ -44,10 +42,8 @@ private:
     using GlobalEstimator<PointT>::feature_dimensions_;
 
 public:
-    ESFEstimation(const std::string &descr_name = "esf",
-                  size_t descr_type = FeatureType::ESF,
-                  size_t feature_dimensions = 640)
-        : GlobalEstimator<PointT>(descr_name, descr_type, feature_dimensions)
+    ESFEstimation()
+        : GlobalEstimator<PointT>("esf", FeatureType::ESF, 640)
     {}
 
     bool compute (Eigen::MatrixXf &signature);
@@ -59,4 +55,3 @@ public:
 };
 }
 
-#endif

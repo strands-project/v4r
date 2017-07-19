@@ -23,11 +23,8 @@
 
 #pragma once
 
-#include <v4r/segmentation/dominant_plane_segmenter.h>
-#include <v4r/segmentation/euclidean_segmenter.h>
-#include <v4r/segmentation/multiplane_segmenter.h>
-#include <v4r/segmentation/organized_multiplane_segmenter.h>
-#include <v4r/segmentation/smooth_Euclidean_segmenter.h>
+#include <v4r/segmentation/plane_extractor.h>
+#include <v4r/segmentation/segmenter.h>
 #include <v4r/segmentation/types.h>
 
 namespace v4r
@@ -40,68 +37,16 @@ namespace v4r
  */
 template<typename PointT>
 typename Segmenter<PointT>::Ptr
-initSegmenter(int method = SegmentationType::DominantPlane, const std::string &config_file = std::string())
-{
-    (void)method;
-    (void)config_file;
-    typename Segmenter<PointT>::Ptr cast_segmenter;
-    std::cerr << "Currently not implemented" << std::endl;
-    return cast_segmenter;
-}
-
+initSegmenter(int method, std::vector<std::string> &params );
 
 /**
- * @brief initSegmenter set up a segmentation object
- * @param method segmentation method as stated in segmentation/types.h
+ * @brief initPlaneExtractor set up a plane extraction object
+ * @param method plane extraction method as stated in segmentation/types.h
  * @param params boost parameters for segmentation object
- * @return segmenter
+ * @return plane_extractor
  */
 template<typename PointT>
-typename Segmenter<PointT>::Ptr
-initSegmenter(int method, std::vector<std::string> &params )
-{
-    typename Segmenter<PointT>::Ptr cast_segmenter;
-    if(method == SegmentationType::DominantPlane)
-    {
-        DominantPlaneSegmenterParameter param;
-        params = param.init(params);
-        typename DominantPlaneSegmenter<PointT>::Ptr seg (new DominantPlaneSegmenter<PointT> (param));
-        cast_segmenter = boost::dynamic_pointer_cast<Segmenter<PointT> > (seg);
-    }
-    else if(method == SegmentationType::MultiPlane)
-    {
-        MultiplaneSegmenterParameter param;
-        params = param.init(params);
-        typename MultiplaneSegmenter<PointT>::Ptr seg (new MultiplaneSegmenter<PointT> (param));
-        cast_segmenter = boost::dynamic_pointer_cast<Segmenter<PointT> > (seg);
-    }
-    else if(method == SegmentationType::EuclideanSegmentation)
-    {
-        EuclideanSegmenterParameter param;
-        params = param.init(params);
-        typename EuclideanSegmenter<PointT>::Ptr seg (new EuclideanSegmenter<PointT> (param));
-        cast_segmenter = boost::dynamic_pointer_cast<Segmenter<PointT> > (seg);
-    }
-    else if(method == SegmentationType::SmoothEuclideanClustering)
-    {
-        SmoothEuclideanSegmenterParameter param;
-        params = param.init(params);
-        typename SmoothEuclideanSegmenter<PointT>::Ptr seg (new SmoothEuclideanSegmenter<PointT> (param));
-        cast_segmenter = boost::dynamic_pointer_cast<Segmenter<PointT> > (seg);
-    }
-    else if(method == SegmentationType::OrganizedMultiplaneSegmentation)
-    {
-        OrganizedMultiplaneSegmenterParameter param;
-        params = param.init(params);
-        typename OrganizedMultiplaneSegmenter<PointT>::Ptr seg (new OrganizedMultiplaneSegmenter<PointT> (param));
-        cast_segmenter = boost::dynamic_pointer_cast<Segmenter<PointT> > (seg);
-    }
-    else
-    {
-        std::cerr << "Segmentation method " << method << " not implemented!" << std::endl;
-    }
-
-    return cast_segmenter;
-}
+typename PlaneExtractor<PointT>::Ptr
+initPlaneExtractor(int method, std::vector<std::string> &params );
 
 }

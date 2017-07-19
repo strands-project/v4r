@@ -250,6 +250,7 @@ Model<PointT>::initialize(const std::string &model_filename)
     pcl::copyPointCloud( * all_assembled, *assembled_);
     pcl::copyPointCloud( * all_assembled, *normals_assembled_);
     pcl::getMinMax3D(*assembled_, minPoint_, maxPoint_);
+    pcl::compute3DCentroid(*assembled_, centroid_);
 }
 
 //template<typename PointT>

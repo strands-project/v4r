@@ -34,10 +34,24 @@
 #define KP_REPROJECTION_ERROR_HPP
 
 #include <ceres/rotation.h>
-#include <v4r/common/impl/Vector.hpp>
+#include "v4r/common/impl/Vector.hpp"
+#include "v4r/keypoints/impl/invPose.hpp"
 
 namespace v4r
 {
+
+//template<class T>
+//inline void print_values(const std::string &txt, const T &val1, const T &val2, const T &val3, const T &val4)
+//{
+//    //Do nothing
+//}
+
+//template<>
+//inline void print_values<double>(const std::string &txt, const double &val1, const double &val2, const double &val3, const double &val4)
+//{
+//  std::cout<<txt<<" "<<val1<<" "<<val2<<" "<<val3<<" "<<val4<<std::endl;
+//}
+
 
 
 // Apply camera intrinsics to the normalized point to get image coordinates.
@@ -202,8 +216,8 @@ struct NoDistortionReprojectionError {
 
 // This functor uses a radial distortion model.
 struct RadialDistortionReprojectionAndDepthError {
-  RadialDistortionReprojectionAndDepthError(const double &_observed_x, const double &_observed_y, const double &_depth, const double &_depth_err_weight)
-      : observed_x(_observed_x), observed_y(_observed_y), depth(_depth),
+  RadialDistortionReprojectionAndDepthError(const double &_observed_x, const double &_observed_y, const double &_inv_depth, const double &_depth_err_weight)
+      : observed_x(_observed_x), observed_y(_observed_y), inv_depth(_inv_depth),
         depth_err_weight(_depth_err_weight) {}
 
   template <typename T>
@@ -251,14 +265,14 @@ struct RadialDistortionReprojectionAndDepthError {
     // The error is the difference between the predicted and observed position.
     residuals[0] = predicted_x - T(observed_x);
     residuals[1] = predicted_y - T(observed_y);
-    residuals[2] = T(depth_err_weight)*(x[2] - T(depth));
+    residuals[2] = T(depth_err_weight)*(T(1.)/x[2] - T(inv_depth));
 
     return true;
   }
 
   const double observed_x;
   const double observed_y;
-  const double depth;
+  const double inv_depth;
   const double depth_err_weight;
 };
 
@@ -267,9 +281,9 @@ struct RadialDistortionReprojectionAndDepthError {
 // on camera defined by angle-axis rotation and it's translation
 // (which are in the same block due to optimization reasons).
 struct NoDistortionReprojectionAndDepthError {
-  NoDistortionReprojectionAndDepthError(const double &_observed_x, const double &_observed_y, const double &_depth, 
+  NoDistortionReprojectionAndDepthError(const double &_observed_x, const double &_observed_y, const double &_inv_depth,
         const double &_depth_err_weight)
-      : observed_x(_observed_x), observed_y(_observed_y), depth(_depth),
+      : observed_x(_observed_x), observed_y(_observed_y), inv_depth(_inv_depth),
         depth_err_weight(_depth_err_weight) {}
 
   template <typename T>
@@ -305,34 +319,34 @@ struct NoDistortionReprojectionAndDepthError {
     // The error is the difference between the predicted and observed position.
     residuals[0] = predicted_x - T(observed_x);
     residuals[1] = predicted_y - T(observed_y);
-    residuals[2] = T(depth_err_weight)*(x[2] - T(depth));
+    residuals[2] = T(depth_err_weight)*(T(1.)/x[2] - T(inv_depth));
+
+//    print_values("dx,dy,dd: ",residuals[0],residuals[1],residuals[2],T(0));
 
     return true;
   }
 
   const double observed_x;
   const double observed_y;
-  const double depth;
+  const double inv_depth;
   const double depth_err_weight;
 };
+
 
 // Cost functor which computes reprojection and a RGBD-depth error of 3D point X
 // on camera defined by angle-axis rotation and it's translation
 // (which are in the same block due to optimization reasons).
-struct NoDistortionReprojectionAndPointPlaneError {
-  NoDistortionReprojectionAndPointPlaneError(const double &_observed_x, const double &_observed_y, 
-        const double &_pt_x, const double &_pt_y, const double &_pt_z, 
-        const double &_n_x, const double &_n_y, const double &_n_z, const double &_pp_err_weight)
-      : observed_x(_observed_x), observed_y(_observed_y),
-        pt_x(_pt_x), pt_y(_pt_y), pt_z(_pt_z),
-        n_x(_n_x), n_y(_n_y), n_z(_n_z), pp_err_weight(_pp_err_weight) {}
+struct NoDistortionReprojectionAndDepthErrorGlobalPose {
+  NoDistortionReprojectionAndDepthErrorGlobalPose(const double &_observed_x, const double &_observed_y, const double &_inv_depth,
+        const double &_depth_err_weight)
+      : observed_x(_observed_x), observed_y(_observed_y), inv_depth(_inv_depth),
+        depth_err_weight(_depth_err_weight) {}
 
   template <typename T>
   bool operator()(const T* const intrinsics,
-                  const T* const R_t,  // Rotation denoted by angle axis
-                                       // followed with translation
-                  const T* const delta_Rt,
-                  const T* const X,    // Point coordinates 3x1.
+                  const T* const Rt0,  // Rotation denoted by angle axis followed with translation (...to keyframe)
+                  const T* const Rt1,  // ..to proj. frame
+                  const T* const X,    // Point coordinates 3x1. (in keyframe coordinates)
                   T* residuals) const {
     // Unpack the intrinsics.
     const T& focal_length_x    = intrinsics[0];
@@ -340,13 +354,22 @@ struct NoDistortionReprojectionAndPointPlaneError {
     const T& principal_point_x = intrinsics[2];
     const T& principal_point_y = intrinsics[3];
 
+    // transform point to global coordinates
+    T xg[3];
+    T invRt0[6];
+    v4r::invPose6(Rt0, &Rt0[3], invRt0, &invRt0[3]);
+    ceres::AngleAxisRotatePoint(invRt0, X, xg);
+    xg[0] += invRt0[3];
+    xg[1] += invRt0[4];
+    xg[2] += invRt0[5];
+
     // Compute projective coordinates: x = RX + t.
     T x[3];
 
-    ceres::AngleAxisRotatePoint(R_t, X, x);
-    x[0] += R_t[3];
-    x[1] += R_t[4];
-    x[2] += R_t[5];
+    ceres::AngleAxisRotatePoint(Rt1, xg, x);
+    x[0] += Rt1[3];
+    x[1] += Rt1[4];
+    x[2] += Rt1[5];
 
     // Compute normalized coordinates: x /= x[2].
     T xn = x[0] / x[2];
@@ -361,39 +384,91 @@ struct NoDistortionReprojectionAndPointPlaneError {
     // The error is the difference between the predicted and observed position.
     residuals[0] = predicted_x - T(observed_x);
     residuals[1] = predicted_y - T(observed_y);
+    residuals[2] = T(depth_err_weight)*(T(1.)/x[2] - T(inv_depth));
 
-    T pt[3], n[3], n0[3], diff[3], pt_rgb[3];
-
-    pt[0] = T(pt_x);
-    pt[1] = T(pt_y);
-    pt[2] = T(pt_z);
-    n0[0] = T(n_x);
-    n0[1] = T(n_y);
-    n0[2] = T(n_z);
-
-    ceres::AngleAxisRotatePoint(delta_Rt, pt, pt_rgb);
-    pt_rgb[0] += delta_Rt[3];
-    pt_rgb[1] += delta_Rt[4];
-    pt_rgb[2] += delta_Rt[5];
-    
-    ceres::AngleAxisRotatePoint(R_t, n0, n);
-    //(pt_dist-pt).dot(n)    
-    sub3(pt_rgb,x,diff);
-    residuals[2] = T(pp_err_weight)*dot3(diff,n);
-//    residuals[2] = T(pp_err_weight)*(pt_rgb[0]-x[0]);
-//    residuals[3] = T(pp_err_weight)*(pt_rgb[1]-x[1]);
-//    residuals[4] = T(pp_err_weight)*(pt_rgb[2]-x[2]);
-    //residuals[2] = T(pp_err_weight)*(norm3(x) - norm3(pt_rgb));
+//    print_values("dx,dy,dd: ",residuals[0],residuals[1],residuals[2],T(0));
 
     return true;
   }
 
   const double observed_x;
   const double observed_y;
-  const double pt_x, pt_y, pt_z;
-  const double n_x, n_y, n_z;
-  const double pp_err_weight;
+  const double inv_depth;
+  const double depth_err_weight;
 };
+
+// This functor uses a radial distortion model.
+struct RadialDistortionReprojectionAndDepthErrorGlobalPose {
+  RadialDistortionReprojectionAndDepthErrorGlobalPose(const double &_observed_x, const double &_observed_y, const double &_inv_depth, const double &_depth_err_weight)
+      : observed_x(_observed_x), observed_y(_observed_y), inv_depth(_inv_depth),
+        depth_err_weight(_depth_err_weight) {}
+
+  template <typename T>
+  bool operator()(const T* const intrinsics,
+                  const T* const Rt0,  // Rotation denoted by angle axis followed with translation (...to keyframe)
+                  const T* const Rt1,  // ..to proj. frame
+                  const T* const X,    // Point coordinates 3x1.
+                  T* residuals) const {
+    // Unpack the intrinsics.
+    const T& focal_length_x    = intrinsics[0];
+    const T& focal_length_y    = intrinsics[1];
+    const T& principal_point_x = intrinsics[2];
+    const T& principal_point_y = intrinsics[3];
+    const T& k1                = intrinsics[4];
+    const T& k2                = intrinsics[5];
+    const T& k3                = intrinsics[6];
+    const T& p1                = intrinsics[7];
+    const T& p2                = intrinsics[8];
+
+    // transform point to global coordinates
+    T xg[3];
+    T invRt0[6];
+    v4r::invPose6(Rt0,&Rt0[3], invRt0,&invRt0[3]);
+    ceres::AngleAxisRotatePoint(invRt0, X, xg);
+    xg[0] += invRt0[3];
+    xg[1] += invRt0[4];
+    xg[2] += invRt0[5];
+
+    // Compute projective coordinates: x = RX + t.
+    T x[3];
+
+    ceres::AngleAxisRotatePoint(Rt1, xg, x);
+    x[0] += Rt1[3];
+    x[1] += Rt1[4];
+    x[2] += Rt1[5];
+
+    // Compute normalized coordinates: x /= x[2].
+    T xn = x[0] / x[2];
+    T yn = x[1] / x[2];
+
+    T predicted_x, predicted_y;
+
+    // Apply distortion to the normalized points to get (xd, yd).
+    applyRadialDistortionCameraIntrinsics(focal_length_x,
+                                          focal_length_y,
+                                          principal_point_x,
+                                          principal_point_y,
+                                          k1, k2, k3,
+                                          p1, p2,
+                                          xn, yn,
+                                          &predicted_x,
+                                          &predicted_y);
+
+    // The error is the difference between the predicted and observed position.
+    residuals[0] = predicted_x - T(observed_x);
+    residuals[1] = predicted_y - T(observed_y);
+    residuals[2] = T(depth_err_weight)*(T(1.)/x[2] - T(inv_depth));
+
+    return true;
+  }
+
+  const double observed_x;
+  const double observed_y;
+  const double inv_depth;
+  const double depth_err_weight;
+};
+
+
 
 }
 

@@ -6,7 +6,7 @@ namespace v4r
 
 template<typename PointT>
 void
-UniformSamplingExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
+UniformSamplingExtractor<PointT>::compute ()
 {
     pcl_1_8::UniformSampling<PointT> us;
     us.setRadiusSearch ( param_.sampling_density_ );
@@ -23,8 +23,6 @@ UniformSamplingExtractor<PointT>::compute (pcl::PointCloud<PointT> & keypoints)
     keypoint_indices_.resize (keypoints_idxes.points.size ());
     for(size_t i=0; i < keypoints_idxes.points.size(); i++)
         keypoint_indices_[i] = keypoints_idxes.points[i];
-
-    pcl::copyPointCloud (*input_, keypoint_indices_, keypoints);
 
     indices_.clear();
 }

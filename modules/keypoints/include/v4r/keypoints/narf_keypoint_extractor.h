@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <pcl/common/io.h>
 #include <v4r/common/camera.h>
 #include <v4r/keypoints/keypoint_extractor.h>
 #include <boost/program_options.hpp>
@@ -39,13 +40,22 @@ class V4R_EXPORTS NarfKeypointExtractorParameter
     v4r::Camera::ConstPtr cam_;
     float noise_level_;
     float minimum_range_;
+    float support_size_;
+    float min_distance_between_interest_points_;
+    float optimal_distance_to_high_surface_change_;
+    float min_interest_value_;
+    float min_surface_change_score_;
+    int optimal_range_image_patch_size_;
 
-    NarfKeypointExtractorParameter(
-            float noise_level = 0.f,
-            float minimum_range = 0.f
-            ) :
-        noise_level_ (noise_level),
-        minimum_range_ (minimum_range)
+    NarfKeypointExtractorParameter( ) :
+        noise_level_ (0.f),
+        minimum_range_ (0.f),
+        support_size_ (0.2f),
+        min_distance_between_interest_points_(0.25f),
+        optimal_distance_to_high_surface_change_(0.25f),
+        min_interest_value_(0.45),
+        min_surface_change_score_(0.2f),
+        optimal_range_image_patch_size_(10)
     {
         cam_.reset( new v4r::Camera () );
     }
@@ -74,8 +84,14 @@ class V4R_EXPORTS NarfKeypointExtractorParameter
         po::options_description desc("NARF Keypoint Extractor Parameter\n=====================\n");
         desc.add_options()
                 ("help,h", "produce help message")
-                ("narf_noise_level", po::value<float>(&noise_level_)->default_value(noise_level_), "noise level")
-                ("narf_minimum_range", po::value<float>(&minimum_range_)->default_value(minimum_range_), "minimum range")
+                ("kp_narf_noise_level", po::value<float>(&noise_level_)->default_value(noise_level_), "noise level")
+                ("kp_narf_minimum_range", po::value<float>(&minimum_range_)->default_value(minimum_range_), "minimum range")
+                ("kp_support_size", po::value<float>(&support_size_)->default_value(support_size_), "support_size_")
+                ("kp_min_distance_between_interest_points", po::value<float>(&min_distance_between_interest_points_)->default_value(min_distance_between_interest_points_), "min_distance_between_interest_points_")
+                ("kp_optimal_distance_to_high_surface_change", po::value<float>(&optimal_distance_to_high_surface_change_)->default_value(optimal_distance_to_high_surface_change_), "optimal_distance_to_high_surface_change_")
+                ("kp_min_interest_value", po::value<float>(&min_interest_value_)->default_value(min_interest_value_), "min_interest_value_")
+                ("kp_min_surface_change_score", po::value<float>(&min_surface_change_score_)->default_value(min_surface_change_score_), "min_surface_change_score_")
+                ("kp_optimal_range_image_patch_size", po::value<int>(&optimal_range_image_patch_size_)->default_value(optimal_range_image_patch_size_), "min_surface_change_score_")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -105,6 +121,7 @@ private:
     typedef typename pcl::PointCloud<PointT>::Ptr PointInTPtr;
     using KeypointExtractor<PointT>::input_;
     using KeypointExtractor<PointT>::indices_;
+    using KeypointExtractor<PointT>::keypoints_;
     using KeypointExtractor<PointT>::keypoint_indices_;
 
     NarfKeypointExtractorParameter param_;
@@ -115,10 +132,19 @@ public:
     {}
 
     void
-    compute (pcl::PointCloud<PointT> & keypoints);
+    compute ();
 
     int getKeypointExtractorType() const { return KeypointType::NARF; }
     std::string getKeypointExtractorName() const { return "narf"; }
+
+
+    typename pcl::PointCloud<PointT>::Ptr
+    getKeypoints()
+    {
+        keypoints_.reset(new pcl::PointCloud<PointT>);
+        pcl::copyPointCloud(*input_, keypoint_indices_, *keypoints_);
+        return keypoints_;
+    }
 
     typedef boost::shared_ptr< NarfKeypointExtractor<PointT> > Ptr;
     typedef boost::shared_ptr< NarfKeypointExtractor<PointT> const> ConstPtr;
