@@ -121,5 +121,5 @@ ubuntu-xenial-build-package:
   # The files which are to be made available in GitLab 
   artifacts: 
     paths: 
-      - build/* 
+    - build/* 
     - make -j8
