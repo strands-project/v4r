@@ -103,6 +103,8 @@ ubuntu-xenial-build-package:
     - cmake ../ceres-solver-1.11.0 -DBUILD_SHARED_LIBS=ON
     - make -j8
     - make install
+    - cd ..
+    - rm -rf ceres-build
  
   stage: build 
   script: 
