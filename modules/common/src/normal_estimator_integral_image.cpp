@@ -27,6 +27,15 @@ NormalEstimatorIntegralImage<PointT>::compute()
     ne.setInputCloud( input_ );
     ne.compute( *normal_) ;
 
+    for(pcl::Normal &n : normal_->points)
+    {
+        auto normal = n.getNormalVector3fMap();
+        if ( normal.dot(Eigen::Vector3f::UnitZ()) > 0 ) //flip normal towards viewpoint
+            normal = -normal;
+
+        normal.normalize();
+    }
+
     return normal_;
 }
 

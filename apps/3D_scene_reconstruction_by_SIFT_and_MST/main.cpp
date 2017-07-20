@@ -19,11 +19,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
-#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
-#endif
 
 struct CamConnect
 {

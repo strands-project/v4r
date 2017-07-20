@@ -41,10 +41,13 @@ class V4R_EXPORTS SVMParameter
 public:
     int do_cross_validation_; /// if greater 1, performs k-fold cross validation with k equal set by this variable
     int knn_;   ///< return the knn most probably classes when parameter probability is set to true
+    bool do_scaling_; ///< scale each attribute to [0 1]
     ::svm_parameter svm_;
 
     std::vector<double> cross_validation_range_C_; ///< cross validation range for parameter C (first element minimum, second element maximum, third element step size as a multiplier)
     std::vector<double> cross_validation_range_gamma_; ///< cross validation range for parameter gamma (first element minimum, second element maximum, third element step size as a multiplier)
+
+    std::string filename_; ///< filename from where to load svm file (if path exists, will skip training and use this model instead)
 
     SVMParameter(
             int svm_type = ::C_SVC,
@@ -68,8 +71,10 @@ public:
         :
           do_cross_validation_ ( 0 ),
           knn_ (3),
-          cross_validation_range_C_( {exp2(-6), exp2(6), 2} ),
-          cross_validation_range_gamma_( {exp2(-5), exp2(5), 2} )
+          do_scaling_ (false),
+          cross_validation_range_C_( {exp2(-5), exp2(15), 2} ),
+          cross_validation_range_gamma_( {exp2(-15), exp2(3), 4} ),
+          filename_("")
     {
         svm_.svm_type = svm_type;
         svm_.kernel_type = kernel_type;
@@ -114,6 +119,7 @@ public:
                 ("help,h", "produce help message")
                 ("svm_do_cross_validation", po::value<int>(&do_cross_validation_)->default_value(do_cross_validation_), "if greater 1, performs k-fold cross validation with k equal set by this variable")
                 ("svm_knn", po::value<int>(&knn_)->default_value(knn_), "return the knn most probably classes when parameter probability is set to true")
+                ("svm_do_scaling", po::value<bool>(&do_scaling_)->default_value(do_scaling_), "scale each attribute to [0 1]")
                 ("svm_type", po::value<int>(&svm_.svm_type)->default_value(svm_.svm_type), "according to LIBSVM")
                 ("svm_kernel_type", po::value<int>(&svm_.kernel_type)->default_value(svm_.kernel_type), "according to LIBSVM")
                 ("svm_gamma", po::value<double>(&svm_.gamma)->default_value(svm_.gamma), "for poly/rbf/sigmoid")
@@ -125,6 +131,7 @@ public:
                 ("svm_probability", po::value<int>(&svm_.probability)->default_value(svm_.probability), "do probability estimates")
                 ("svm_cross_validation_range_C", po::value<std::vector<double> >(&cross_validation_range_C_)->multitoken(), "cross validation range for parameter C (first element minimum, second element maximum, third element step size as a multiplier)")
                 ("svm_cross_validation_range_gamma", po::value<std::vector<double> >(&cross_validation_range_gamma_)->multitoken(), "cross validation range for parameter gamma (first element minimum, second element maximum, third element step size as a multiplier)")
+                ("svm_filename", po::value< std::string >(&filename_)->default_value(filename_), "filename from where to load svm file (if path exists, will skip training and use this model instead)")
                 ;
         po::variables_map vm;
         po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
@@ -144,18 +151,8 @@ private:
     SVMParameter param_;
     ::svm_model *svm_mod_;
 
-    void
-    dokFoldCrossValidation(
-            const Eigen::MatrixXf &data_train,
-            const Eigen::VectorXi &target_train,
-            size_t k = 5,
-            double model_para_C_min = exp2(-6),
-            double model_para_C_max = exp2(6),
-            double step_multiplicator_C = 2,
-            double model_para_gamma_min = exp(-5),
-            double model_para_gamma_max = exp(5),
-            double step_multiplicator_gamma = 2);
-
+    Eigen::VectorXf scale_; ///< scale for each attribute (only if scaling is enabled)
+//    Eigen::VectorXf offset_; ///< scale offset for each attribute (only if scaling is enabled)
 public:
     svmClassifier(const SVMParameter &p = SVMParameter()) : param_(p)
     { }

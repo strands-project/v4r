@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <boost/program_options.hpp>
 #include <v4r/common/graph_geometric_consistency.h>
 #include <v4r/io/filesystem.h>
 #include <v4r/recognition/local_feature_matching.h>
@@ -30,6 +31,8 @@
 
 #include <pcl/recognition/cg/correspondence_grouping.h>
 #include <omp.h>
+
+namespace po = boost::program_options;
 
 
 namespace v4r
@@ -39,17 +42,18 @@ class V4R_EXPORTS LocalRecognitionPipelineParameter
 {
 public:
     bool merge_close_hypotheses_; ///< if true, close correspondence clusters (object hypotheses) of the same object model are merged together and this big cluster is refined
-    double merge_close_hypotheses_dist_; ///< defines the maximum distance of the centroids in meter for clusters to be merged together
-    double merge_close_hypotheses_angle_; ///< defines the maximum angle in degrees for clusters to be merged together
+    float merge_close_hypotheses_dist_; ///< defines the maximum distance of the centroids in meter for clusters to be merged together
+    float merge_close_hypotheses_angle_; ///< defines the maximum angle in degrees for clusters to be merged together
 
-    LocalRecognitionPipelineParameter(
-            bool merge_close_hypotheses = true,
-            double merge_close_hypotheses_dist = 0.02f,
-            double merge_close_hypotheses_angle = 10.f
-            )
-        : merge_close_hypotheses_ (merge_close_hypotheses),
-          merge_close_hypotheses_dist_ (merge_close_hypotheses_dist),
-          merge_close_hypotheses_angle_ (merge_close_hypotheses_angle)
+    float min_dist_; ///< minimum distance two points need to be apart to be counted as redundant
+    float max_dotp_; ///< maximum dot-product between the surface normals of two oriented points to be counted redundant
+
+    LocalRecognitionPipelineParameter( ) :
+        merge_close_hypotheses_ (true),
+        merge_close_hypotheses_dist_ (0.02f),
+        merge_close_hypotheses_angle_ (10.f),
+        min_dist_(0.005f),
+        max_dotp_(0.95f)
     {}
 
 
@@ -62,7 +66,8 @@ public:
         ofs.close();
     }
 
-    LocalRecognitionPipelineParameter(const std::string &filename)
+    void
+    load(const std::string &filename)
     {
         if( !v4r::io::existsFile(filename) )
             throw std::runtime_error("Given config file " + filename + " does not exist! Current working directory is " + boost::filesystem::current_path().string() + ".");
@@ -71,6 +76,46 @@ public:
         boost::archive::xml_iarchive ia(ifs);
         ia >> BOOST_SERIALIZATION_NVP( *this );
         ifs.close();
+    }
+
+
+    /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+    std::vector<std::string>
+    init(int argc, char **argv)
+    {
+        std::vector<std::string> arguments(argv + 1, argv + argc);
+        return init(arguments);
+    }
+
+    /**
+         * @brief init parameters
+         * @param command_line_arguments (according to Boost program options library)
+         * @return unused parameters (given parameters that were not used in this initialization call)
+         */
+    std::vector<std::string>
+    init(const std::vector<std::string> &command_line_arguments)
+    {
+        po::options_description desc("Local Recognition Pipeline Parameters\n=====================");
+        desc.add_options()
+                ("help,h", "produce help message")
+                ("local_rec_merge_close_hypotheses", po::value<bool>(&merge_close_hypotheses_)->default_value(merge_close_hypotheses_), "")
+                ("local_rec_merge_close_hypotheses_dist", po::value<float>(&merge_close_hypotheses_dist_)->default_value(merge_close_hypotheses_dist_), "")
+                ("local_rec_merge_close_hypotheses_angle", po::value<float>(&merge_close_hypotheses_angle_)->default_value(merge_close_hypotheses_angle_), "")
+                ("local_rec_min_dist_", po::value<float>(&min_dist_)->default_value(min_dist_), "")
+                ("local_rec_max_dotp_", po::value<float>(&max_dotp_)->default_value(max_dotp_), "")
+                ;
+        po::variables_map vm;
+        po::parsed_options parsed = po::command_line_parser(command_line_arguments).options(desc).allow_unregistered().run();
+        std::vector<std::string> to_pass_further = po::collect_unrecognized(parsed.options, po::include_positional);
+        po::store(parsed, vm);
+        if (vm.count("help")) { std::cout << desc << std::endl; to_pass_further.push_back("-h"); }
+        try { po::notify(vm); }
+        catch(std::exception& e) {  std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl; }
+        return to_pass_further;
     }
 
 private:
@@ -94,6 +139,7 @@ template<typename PointT>
 class V4R_EXPORTS LocalRecognitionPipeline : public RecognitionPipeline<PointT>
 {
 private:
+    using RecognitionPipeline<PointT>::elapsed_time_;
     using RecognitionPipeline<PointT>::m_db_;
     using RecognitionPipeline<PointT>::normal_estimator_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
@@ -116,9 +162,18 @@ private:
     void
     correspondenceGrouping();
 
+    /**
+     * @brief recognize
+     */
+    void
+    do_recognize();
+
+    bool generate_hypotheses_; ///< if true, cluster correspondences with respect to geometeric consistency and estimates pose by SVD
+
 public:
     LocalRecognitionPipeline (const LocalRecognitionPipelineParameter &p = LocalRecognitionPipelineParameter() )
-     : param_(p)
+     : param_(p),
+       generate_hypotheses_ (true)
     { }
 
     /**
@@ -133,11 +188,6 @@ public:
 
     void initialize(const std::string &trained_dir, bool force_retrain = false);
 
-    /**
-     * @brief recognize
-     */
-    void
-    recognize();
 
     /**
      * @brief addRecognizer
@@ -201,6 +251,25 @@ public:
     getLocalObjectModelDatabase() const
     {
         return model_keypoints_;
+    }
+
+    /**
+     * @brief disableHypothesesGeneration does not run geometric consistency grouping and only finds keypoint correspondences (e.g. when correspondence grouping is done outsided)
+     */
+    void
+    disableHypothesesGeneration()
+    {
+        generate_hypotheses_ = false;
+    }
+
+    /**
+     * @brief getKeypointCorrespondences get feature matches for all objects in the model database
+     * @return
+     */
+    std::map<std::string, LocalObjectHypothesis<PointT> >
+    getKeypointCorrespondences() const
+    {
+        return local_obj_hypotheses_;
     }
 
     typedef boost::shared_ptr< LocalRecognitionPipeline<PointT> > Ptr;

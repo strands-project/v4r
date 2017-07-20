@@ -376,7 +376,7 @@ void ObjectSegmentation::segment_image(int x, int y)
   if (image_idx<0 || image_idx>=int(clouds->size()) || labels.size()!=clouds->size())
     return;
 
-  pcl::PointCloud<pcl::PointXYZRGB> &c_cloud = *(*clouds)[image_idx].second;
+  const pcl::PointCloud<pcl::PointXYZRGB> &c_cloud = *(*clouds)[image_idx].second;
   const Eigen::Matrix4f &glob_pose = cameras[(*clouds)[image_idx].first];
 
   // init masks
@@ -475,7 +475,7 @@ void ObjectSegmentation::segment_image(int x, int y)
  * @param _cameras
  * @param _clouds
  */
-void ObjectSegmentation::setData(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras, const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > > &_clouds)
+void ObjectSegmentation::setData(const std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > &_cameras, const boost::shared_ptr< std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > > &_clouds)
 {
   cameras = _cameras;
   clouds = _clouds;
@@ -494,7 +494,7 @@ void ObjectSegmentation::setData(const std::vector<Eigen::Matrix4f, Eigen::align
 
   for (unsigned i=0; i<clouds->size(); i++)
   {
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr &c = (*clouds)[i].second;
+    pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &c = (*clouds)[i].second;
     cv::Mat_<int> &ls = labels[i];
     ls = cv::Mat_<int>::ones(c->height, c->width)*INT_MAX-1;
 
@@ -507,8 +507,9 @@ void ObjectSegmentation::setData(const std::vector<Eigen::Matrix4f, Eigen::align
     nest->compute(*kp_cloud, *kp_normals);
     pest->compute(*kp_cloud, *kp_normals, planes[i]);
 
-    normals[i].reset(new pcl::PointCloud<pcl::Normal>());
-    v4r::convertNormals(*kp_normals, *normals[i]);
+    pcl::PointCloud<pcl::Normal>::Ptr normal (new pcl::PointCloud<pcl::Normal>);
+    v4r::convertNormals(*kp_normals, *normal);
+    normals[i] = normal;
 
 //cv::Mat_<cv::Vec3b> tmp_labels(cv::Mat_<cv::Vec3b>::zeros(c->height, c->width));
 
@@ -750,7 +751,7 @@ void ObjectSegmentation::createObjectCloud()
   if (clouds->size()==0 || masks.size()!=clouds->size())
     return;
 
-  std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > &ref_clouds = *clouds;
+  std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > &ref_clouds = *clouds;
 
   if (ref_clouds.size()>0)
   {
@@ -782,12 +783,11 @@ void ObjectSegmentation::createObjectCloudFiltered()
   if (clouds->size()==0 || masks.size()!=clouds->size())
     return;
 
-  v4r::NguyenNoiseModel<pcl::PointXYZRGB>::Parameter nmparam;
-  nmparam.edge_radius_ = om_params.edge_radius_px;
+  v4r::NguyenNoiseModelParameter nmparam;
   v4r::NguyenNoiseModel<pcl::PointXYZRGB> nm(nmparam);
-  std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> > &ref_clouds = *clouds;
+  std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> > &ref_clouds = *clouds;
   std::vector< std::vector<std::vector<float> > > pt_properties (ref_clouds.size());
-  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > ptr_clouds(ref_clouds.size());
+  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr > ptr_clouds(ref_clouds.size());
   inv_poses.clear();
   indices.clear();
   inv_poses.resize(ref_clouds.size());
@@ -812,9 +812,9 @@ void ObjectSegmentation::createObjectCloudFiltered()
           indices[i].push_back(j);
     }
 
-    v4r::NMBasedCloudIntegration<pcl::PointXYZRGB>::Parameter _nmparam;
+    v4r::NMBasedCloudIntegrationParameter _nmparam;
     _nmparam.octree_resolution_ = om_params.vx_size_object;
-    _nmparam.edge_radius_px_ = om_params.edge_radius_px;
+    _nmparam.min_px_distance_to_depth_discontinuity_ = om_params.edge_radius_px;
     _nmparam.min_points_per_voxel_ = 1;
     octree_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
     v4r::NMBasedCloudIntegration<pcl::PointXYZRGB> nmIntegration(_nmparam);
@@ -1015,7 +1015,7 @@ void ObjectSegmentation::detectCoordinateSystem(Eigen::Matrix4f &pose)
 
   for (unsigned i=0; i<clouds->size(); i++)
   {
-    pcl::PointCloud<pcl::PointXYZRGB> &cloud = *clouds->at(i).second;
+    const pcl::PointCloud<pcl::PointXYZRGB> &cloud = *clouds->at(i).second;
     cv::Mat_<unsigned char> &mask = masks[i];
     Eigen::Matrix4f &_pose = cameras[clouds->at(i).first];
     Eigen::Matrix4f inv_pose;

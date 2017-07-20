@@ -22,10 +22,8 @@ MultiRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, boo
 
 template<typename PointT>
 void
-MultiRecognitionPipeline<PointT>::recognize()
+MultiRecognitionPipeline<PointT>::do_recognize()
 {
-    CHECK (scene_) << "Scene is not set!";
-    obj_hypotheses_.clear();
     omp_init_lock(&rec_lock_);
 
 //#pragma omp parallel for schedule(dynamic)
@@ -40,10 +38,13 @@ MultiRecognitionPipeline<PointT>::recognize()
 
         r->recognize();
 
-        std::vector<ObjectHypothesesGroup<PointT> > oh_tmp = r->getObjectHypothesis();
+        std::vector<ObjectHypothesesGroup> oh_tmp = r->getObjectHypothesis();
         omp_set_lock(&rec_lock_);
         obj_hypotheses_.insert( obj_hypotheses_.end(), oh_tmp.begin(), oh_tmp.end() );
         omp_unset_lock(&rec_lock_);
+
+        std::vector< std::pair<std::string,float> > elapsed_times_tmp = r->getElapsedTimes();
+        elapsed_time_.insert( elapsed_time_.end(), elapsed_times_tmp.begin(), elapsed_times_tmp.end() );
     }
 
     omp_destroy_lock(&rec_lock_);

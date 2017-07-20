@@ -30,7 +30,6 @@
  *
  */
 
-
 #include <v4r/reconstruction/RefineProjectedPointLocationLK.h>
 #include <v4r/keypoints/impl/invPose.hpp>
 #include <v4r/reconstruction/impl/projectPointToImage.hpp>
@@ -38,11 +37,10 @@
 #include <v4r/common/impl/Vector.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#ifdef _OPENMP
 #include <omp.h>
-#endif
 
-namespace v4r
+
+namespace v4r 
 {
 
 using namespace std;
@@ -52,7 +50,7 @@ using namespace std;
  * Constructor/Destructor
  */
 RefineProjectedPointLocationLK::RefineProjectedPointLocationLK(const Parameter &p)
- : param(p)
+ : param(p), num_threads(-1), use_initial_flow(0)
 {
 }
 
@@ -217,6 +215,11 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
   converged.resize(pts.size());
   residuals.resize(pts.size());
 
+  if (num_threads>0)
+  {
+    omp_set_num_threads(num_threads);
+  }
+
   #pragma omp parallel for private(d, pt3, n, T, H, gxx, gxy, gyy, roi_dx, roi_dy, roi_patch, patch1, patch2, patch_dx, patch_dy, diff, sum_dx, sum_dy, patch, delta, err)
   for (unsigned i=0; i<pts.size(); i++)
   {
@@ -230,9 +233,12 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
 
     cv::Point2f &pt_im = im_pts_tgt[i];
 
-    if (have_dist)
-      v4r::projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), tgt_dist_coeffs.ptr<double>(), &pt_im.x);
-    else v4r::projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), &pt_im.x);
+    if (use_initial_flow==0)
+    {
+      if (have_dist)
+        v4r::projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), tgt_dist_coeffs.ptr<double>(), &pt_im.x);
+      else v4r::projectPointToImage(&pt3[0], tgt_intrinsic.ptr<double>(), &pt_im.x);
+    }
 
     T(0,2) = pt_im.x - (int)patch.cols/2;
     T(1,2) = pt_im.y - (int)patch.rows/2;
@@ -242,7 +248,6 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
 
     bool isok = warpPatchHomography( (const unsigned char*)im_src.ptr(), im_src.rows, im_src.cols,
                          (float*)H.data(), (unsigned char*)patch.ptr(), patch.rows, patch.cols);
-
     if (!isok)
     {
       converged[i] = -1;
@@ -318,12 +323,13 @@ void RefineProjectedPointLocationLK::refineImagePoints(const std::vector<Eigen::
   }
 }
 
+
 /**
  * setSourceImage
  */
 void RefineProjectedPointLocationLK::setSourceImage(const cv::Mat_<unsigned char> &_im_src, const Eigen::Matrix4f &_pose_src)
 {
-  im_src = _im_src;
+  _im_src.copyTo(im_src);
   pose_src = _pose_src;
 }
 
@@ -392,6 +398,15 @@ void RefineProjectedPointLocationLK::setTargetCameraParameter(const cv::Mat &_in
   tgt_C(1,1) = tgt_intrinsic(1,1);
   tgt_C(0,2) = tgt_intrinsic(0,2);
   tgt_C(1,2) = tgt_intrinsic(1,2);
+}
+
+/**
+ * @brief RefineProjectedPointLocationLK::setParameter
+ * @param p
+ */
+void RefineProjectedPointLocationLK::setParameter(const Parameter &p)
+{
+  param = p;
 }
 
 
