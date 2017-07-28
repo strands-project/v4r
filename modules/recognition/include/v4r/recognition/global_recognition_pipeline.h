@@ -41,6 +41,7 @@ template<typename PointT>
 class V4R_EXPORTS GlobalRecognitionPipeline : public RecognitionPipeline<PointT>
 {
 private:
+    using RecognitionPipeline<PointT>::elapsed_time_;
     using RecognitionPipeline<PointT>::scene_;
     using RecognitionPipeline<PointT>::scene_normals_;
     using RecognitionPipeline<PointT>::obj_hypotheses_;
@@ -61,9 +62,15 @@ private:
     std::vector< Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > planes_;  ///< extracted planes
 
     std::vector<typename GlobalRecognizer<PointT>::Ptr > global_recognizers_; ///< set of Global recognizer generating keypoint correspondences
-    std::vector<ObjectHypothesesGroup<PointT> > obj_hypotheses_wo_elongation_check_; ///< just for visualization (to see effect of elongation check)
+    std::vector<ObjectHypothesesGroup > obj_hypotheses_wo_elongation_check_; ///< just for visualization (to see effect of elongation check)
 
     void visualize();
+
+    /**
+     * @brief recognize
+     */
+    void
+    do_recognize();
 
 public:
     GlobalRecognitionPipeline ( ):
@@ -72,11 +79,6 @@ public:
 
     void initialize(const std::string &trained_dir, bool force_retrain = false);
 
-    /**
-     * @brief recognize
-     */
-    void
-    recognize();
 
     /**
      * @brief addRecognizer

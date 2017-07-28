@@ -40,7 +40,7 @@ NMBasedCloudIntegration<PointT>::collectInfo ()
   size_t total_point_count = 0;
   for(size_t i = 0; i < input_clouds_.size(); i++)
     total_point_count += (indices_.empty() || indices_[i].empty()) ? input_clouds_[i]->size() : indices_[i].size();
-  std::cout << "Allocating memory for point information of " << total_point_count << "points." << std::endl;
+  VLOG(1) << "Allocating memory for point information of " << total_point_count << "points. ";
   big_cloud_info_.resize(total_point_count);
 
 
@@ -80,7 +80,7 @@ NMBasedCloudIntegration<PointT>::collectInfo ()
     }
     else
     {
-      for(const auto idx : indices_[i])
+      for(int idx : indices_[i])
       {
         if ( !pcl::isFinite(cloud_aligned.points[idx]) || !pcl::isFinite(normals_aligned.points[idx]) )
            continue;
@@ -158,8 +158,6 @@ NMBasedCloudIntegration<PointT>::reasonAboutPts ()
             int u = static_cast<int> (param_.focal_length_ * x / z + cx);
             int v = static_cast<int> (param_.focal_length_ * y / z + cy);
 
-            std::cout << "u: " <<u << ", v: " << v << std::endl;
-
             PointT ptt_aligned;
             ptt_aligned.x = x;
             ptt_aligned.y = y;
@@ -191,10 +189,11 @@ NMBasedCloudIntegration<PointT>::reasonAboutPts ()
 
 template<typename PointT>
 void
-NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
+NMBasedCloudIntegration<PointT>::compute (typename pcl::PointCloud<PointT>::Ptr & output)
 {
-    if(input_clouds_.empty()) {
-        std::cerr << "No input clouds set for cloud integration!" << std::endl;
+    if(input_clouds_.empty())
+    {
+        LOG(ERROR) << "No input clouds set for cloud integration!";
         return;
     }
 
@@ -206,7 +205,7 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         reasonAboutPts();
 
     pcl::octree::OctreePointCloudPointVector<PointT> octree( param_.octree_resolution_ );
-    PointTPtr big_cloud ( new pcl::PointCloud<PointT>());
+    typename pcl::PointCloud<PointT>::Ptr big_cloud ( new pcl::PointCloud<PointT>());
     big_cloud->width = big_cloud_info_.size();
     big_cloud->height = 1;
     big_cloud->points.resize( big_cloud_info_.size() );
@@ -246,14 +245,14 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         {
             for(const PointInfo &pt_tmp : voxel_pts)
             {
-                if (pt_tmp.distance_to_depth_discontinuity > param_.edge_radius_px_)
+                if (pt_tmp.distance_to_depth_discontinuity > param_.min_px_distance_to_depth_discontinuity_)
                 {
                     p.moving_average( pt_tmp );
                     num_good_pts++;
                 }
             }
 
-            if( !num_good_pts || num_good_pts < param_.min_points_per_voxel_ )
+            if(  num_good_pts < param_.min_points_per_voxel_ )
                 continue;
 
             total_used += num_good_pts;
@@ -262,7 +261,7 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         {
             for(const PointInfo &pt_tmp : voxel_pts)
             {
-                if ( pt_tmp.distance_to_depth_discontinuity > param_.edge_radius_px_)
+                if ( pt_tmp.distance_to_depth_discontinuity > param_.min_px_distance_to_depth_discontinuity_)
                 {
                     num_good_pts++;
                     if ( pt_tmp.weight < p.weight || num_good_pts == 1)
@@ -270,7 +269,7 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
                 }
             }
 
-            if( !num_good_pts || num_good_pts < param_.min_points_per_voxel_ )
+            if( num_good_pts < param_.min_points_per_voxel_ )
                 continue;
 
             total_used++;
@@ -278,7 +277,7 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         filtered_cloud_info[kept++] = p;
     }
 
-    std::cout << "Number of points in final model:" << kept << " used:" << total_used << std::endl;
+    LOG(INFO) << "Number of points in final noise model based integrated cloud: " << kept << " used: " << total_used << std::endl;
 
 
     if(!output)
@@ -297,6 +296,7 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
     PointT na;
     na.x = na.y = na.z = std::numeric_limits<float>::quiet_NaN();
 
+
     input_clouds_used_.resize( input_clouds_.size() );
     for(size_t i=0; i<input_clouds_used_.size(); i++) {
         input_clouds_used_[i].reset( new pcl::PointCloud<PointT> );
@@ -305,7 +305,8 @@ NMBasedCloudIntegration<PointT>::compute (PointTPtr & output)
         input_clouds_used_[i]->height =  input_clouds_[i]->height;
     }
 
-    for(size_t i=0; i<kept; i++) {
+    for(size_t i=0; i<filtered_cloud_info.size(); i++)
+    {
         output->points[i] = filtered_cloud_info[i].pt;
         output_normals_->points[i] = filtered_cloud_info[i].normal;
         int origin = filtered_cloud_info[i].origin;

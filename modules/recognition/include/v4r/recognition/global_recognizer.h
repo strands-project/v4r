@@ -308,8 +308,8 @@ private:
 
     std::vector<std::string> id_to_model_name_; ///< which target label (target id = vector element id) of the classifier corresponds to which object model
 
-    std::vector<typename ObjectHypothesis<PointT>::Ptr> obj_hyps_filtered_; ///<  extracted object hypotheses after running through (potential) filter
-    std::vector<typename ObjectHypothesis<PointT>::Ptr> all_obj_hyps_; ///< all extracted object hypotheses
+    std::vector<typename ObjectHypothesis::Ptr> obj_hyps_filtered_; ///<  extracted object hypotheses after running through (potential) filter
+    std::vector<typename ObjectHypothesis::Ptr> all_obj_hyps_; ///< all extracted object hypotheses
 
     std::vector<std::string> categories_;   ///< classification results
     std::vector<float> confidences_;   ///< confidences associated to the classification results (normalized to 0...1)
@@ -370,7 +370,7 @@ public:
      * @brief getHypotheses
      * @return generated object hypotheses
      */
-    std::vector<typename ObjectHypothesis<PointT>::Ptr >
+    std::vector<typename ObjectHypothesis::Ptr >
     getHypotheses()
     {
         return obj_hyps_filtered_;
@@ -415,7 +415,7 @@ public:
      * @brief getObjectHypothesis
      * @return generated (potentiallly filtered) object hypothesis
      */
-    std::vector<typename ObjectHypothesis<PointT>::Ptr >
+    std::vector<typename ObjectHypothesis::Ptr >
     getFilteredHypotheses() const
     {
         return obj_hyps_filtered_;
@@ -425,7 +425,7 @@ public:
      * @brief getObjectHypothesis
      * @return generated object hypothesis
      */
-    std::vector<typename ObjectHypothesis<PointT>::Ptr >
+    std::vector<typename ObjectHypothesis::Ptr >
     getAllHypotheses() const
     {
         return all_obj_hyps_;

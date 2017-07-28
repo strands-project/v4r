@@ -99,7 +99,7 @@ Sensor::Sensor() :
   tmp_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
   tmp_cloud2.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
   cam_trajectory.reset(new std::vector<CameraLocation>() );
-  log_clouds.reset( new std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> >() );
+  log_clouds.reset( new std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> >() );
 
   cos_min_delta_angle = cos(20*M_PI/180.);
   sqr_min_cam_distance = 1.*1.;
@@ -270,7 +270,7 @@ void Sensor::cam_params_changed(const RGBDCameraParameter &_cam_params)
   tmp_cloud.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
   tmp_cloud2.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
   cam_trajectory.reset(new std::vector<CameraLocation>() );
-  log_clouds.reset( new std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> >() );
+  log_clouds.reset( new std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> >() );
 
   cos_min_delta_angle = cos(20*M_PI/180.);
   sqr_min_cam_distance = 1.*1.;
@@ -340,7 +340,7 @@ void Sensor::reset()
   stopTracker();
 
   cam_trajectory.reset(new std::vector<CameraLocation>());
-  log_clouds.reset(new std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> >());
+  log_clouds.reset(new std::vector<std::pair<int, pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr> >());
   cameras.clear();
 
   octree.reset(new pcl::octree::OctreePointCloudVoxelCentroid<pcl::PointXYZRGB,pcl::octree::OctreeVoxelCentroidContainerXYZRGB<pcl::PointXYZRGB> >(cam_tracker_params.prev_voxegrid_size));
@@ -842,8 +842,9 @@ int Sensor::selectFrames(const pcl::PointCloud<pcl::PointXYZRGB> &_cloud, int _c
     {
       type = 2;
       cameras.push_back(inv_pose);
-      log_clouds->push_back(make_pair(_cam_id, pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>())));
-      pcl::copyPointCloud(_cloud,*log_clouds->back().second);
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr log_cloud (new pcl::PointCloud<pcl::PointXYZRGB>());
+      pcl::copyPointCloud(_cloud, *log_cloud);
+      log_clouds->push_back(make_pair(_cam_id, log_cloud) );
 
       //create preview modelclouds[i].first
       if (cam_tracker_params.create_prev_cloud)

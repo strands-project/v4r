@@ -27,18 +27,19 @@ GlobalRecognitionPipeline<PointT>::initialize(const std::string &trained_dir, bo
 
 template<typename PointT>
 void
-GlobalRecognitionPipeline<PointT>::recognize()
+GlobalRecognitionPipeline<PointT>::do_recognize()
 {
     CHECK(seg_);
     planes_.clear();
     clusters_.clear();
 
-    obj_hypotheses_.clear();
-
-    seg_->setInputCloud(scene_);
-    seg_->setNormalsCloud(scene_normals_);
-    seg_->segment();
-    seg_->getSegmentIndices(clusters_);
+    {
+        typename RecognitionPipeline<PointT>::StopWatch t("Segmentation");
+        seg_->setInputCloud(scene_);
+        seg_->setNormalsCloud(scene_normals_);
+        seg_->segment();
+        seg_->getSegmentIndices(clusters_);
+    }
 
     obj_hypotheses_.resize(clusters_.size()); // each cluster builds a hypothesis group
 
@@ -48,10 +49,11 @@ GlobalRecognitionPipeline<PointT>::recognize()
         obj_hypotheses_wo_elongation_check_.resize(clusters_.size() );
     }
 
+    typename RecognitionPipeline<PointT>::StopWatch t("Global recognition");
     size_t kept=0;
     for(size_t i=0; i<clusters_.size(); i++)
     {
-        ObjectHypothesesGroup<PointT> &ohg = obj_hypotheses_[kept];
+        ObjectHypothesesGroup &ohg = obj_hypotheses_[kept];
         ohg.ohs_.clear();
         ohg.global_hypotheses_ = true;
 
@@ -68,12 +70,12 @@ GlobalRecognitionPipeline<PointT>::recognize()
             r->setSceneNormals( scene_normals_ );
             r->setCluster( cluster );
             r->recognize();
-            std::vector<typename ObjectHypothesis<PointT>::Ptr > ohs = r->getFilteredHypotheses();
+            std::vector<typename ObjectHypothesis::Ptr > ohs = r->getFilteredHypotheses();
             ohg.ohs_.insert( ohg.ohs_.end(), ohs.begin(), ohs.end() );
 
             if(visualize_clusters_)
             {
-                std::vector<typename ObjectHypothesis<PointT>::Ptr > ohs_unfiltered = r->getAllHypotheses();
+                std::vector<typename ObjectHypothesis::Ptr > ohs_unfiltered = r->getAllHypotheses();
                 obj_hypotheses_wo_elongation_check_[i].ohs_.insert( obj_hypotheses_wo_elongation_check_[i].ohs_.end(), ohs_unfiltered.begin(), ohs_unfiltered.end() );
                 obj_hypotheses_wo_elongation_check_[i].global_hypotheses_ = true;
             }
@@ -180,7 +182,7 @@ GlobalRecognitionPipeline<PointT>::visualize()
 
     for(size_t i=0; i < obj_hypotheses_wo_elongation_check_.size(); i++)
     {
-        const ObjectHypothesesGroup<PointT> &ohs = obj_hypotheses_wo_elongation_check_[i];
+        const ObjectHypothesesGroup &ohs = obj_hypotheses_wo_elongation_check_[i];
         for(size_t k=0; k<ohs.ohs_.size(); k++)
         {
             bool found_model;
@@ -214,7 +216,7 @@ GlobalRecognitionPipeline<PointT>::visualize()
     size_t disp_id=0;
     for(size_t i=0; i < obj_hypotheses_.size(); i++)
     {
-        const ObjectHypothesesGroup<PointT> &ohs = obj_hypotheses_[i];
+        const ObjectHypothesesGroup &ohs = obj_hypotheses_[i];
         for(size_t k=0; k<ohs.ohs_.size(); k++)
         {
             bool found_model;

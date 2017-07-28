@@ -166,9 +166,9 @@ int main(int argc, char** argv)
                 rec.setInputCloud( cloudXYZ );
                 rec.setCluster( cluster );
                 rec.recognize();
-                std::vector<typename ObjectHypothesis<PointT>::Ptr > ohs = rec.getHypotheses();
+                std::vector<typename ObjectHypothesis::Ptr > ohs = rec.getHypotheses();
 
-                for(typename ObjectHypothesis<PointT>::Ptr oh : ohs)
+                for(typename ObjectHypothesis::Ptr oh : ohs)
                     std::cout << oh->model_id_ << " " << oh->class_id_ << "(" << oh->confidence_ << ")" << std::endl;
 
 //                of << categories[i][0] << " " << confidences[i][0] << " ";

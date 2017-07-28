@@ -4,11 +4,10 @@
 #include <pcl/common/io.h>
 #include <glog/logging.h>
 
-#ifdef HAVE_SIFTGPU
 #include <v4r/features/sift_local_estimator.h>
+
+#ifdef HAVE_SIFTGPU
 #include <GL/glut.h>
-#else
-#include <v4r/features/opencv_sift_local_estimator.h>
 #endif
 
 namespace v4r

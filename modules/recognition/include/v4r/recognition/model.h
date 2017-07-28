@@ -183,8 +183,6 @@ public:
         return views_;
     }
 
-    void computeNormalsAssembledCloud(float radius_normals);
-
     pcl::PointCloud<pcl::PointXYZL>::Ptr getAssembledSmoothFaces (int resolution_mm);
 
     typename pcl::PointCloud<PointT>::ConstPtr getAssembled(int resolution_mm) const;

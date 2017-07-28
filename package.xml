@@ -2,7 +2,7 @@
 <package>
   <name>v4r</name>
   <version>1.4.8</version>
-  <description>The Vision for Robotics Library of ACIN TUW (open source STRANDS version)</description>
+  <description>The Vision for Robotics Library of ACIN TUW</description>
 
   <maintainer email="faeulhammer@acin.tuwien.ac.at">Thomas Faeulhammer</maintainer>
   <maintainer email="alexandrov@acin.tuwien.ac.at">Sergey Alexandrov</maintainer>
@@ -18,7 +18,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <url type="website">https://github.com/strands-project/v4r</url> 
+  <url type="website">https://rgit.acin.tuwien.ac.at/root/v4r</url> 
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
@@ -34,7 +34,6 @@
   <build_depend>libopenni-dev</build_depend>
   <build_depend>libopenni2-dev</build_depend>
 <!--  <build_depend>libopenni-sensor-primesense-dev</build_depend> -->
-  <build_depend>libceres-dev</build_depend>
   <build_depend>boost</build_depend>
   <build_depend>libopencv-dev</build_depend>
   <build_depend>libglew-dev</build_depend>
@@ -56,7 +55,6 @@
   <run_depend>libopenni-dev</run_depend>
   <run_depend>libopenni2-dev</run_depend>
  <!-- <run_depend>libopenni-sensor-primesense-dev</run_depend> -->
-  <run_depend>libceres-dev</run_depend>
   <run_depend>libopencv-dev</run_depend>
   <run_depend>libglew-dev</run_depend>
   <run_depend>glut</run_depend>

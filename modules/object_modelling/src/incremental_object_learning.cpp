@@ -47,11 +47,7 @@
 
 #include <boost/graph/kruskal_min_spanning_tree.hpp>
 
-#ifdef HAVE_SIFTGPU
-    #include <v4r/features/sift_local_estimator.h>
-#else
-    #include <v4r/features/opencv_sift_local_estimator.h>
-#endif
+#include <v4r/features/sift_local_estimator.h>
 
 namespace v4r
 {
@@ -314,7 +310,7 @@ IOL::save_model (const std::string &models_dir, const std::string &model_name, b
 {
     size_t num_frames = grph_.size();
 
-    std::vector< pcl::PointCloud<pcl::Normal>::Ptr > normals_used (num_frames);
+    std::vector< pcl::PointCloud<pcl::Normal>::ConstPtr > normals_used (num_frames);
     keyframes_used_.resize(num_frames);
     cameras_used_.resize(num_frames);
     object_indices_clouds_used_.resize(num_frames);
@@ -344,7 +340,7 @@ IOL::save_model (const std::string &models_dir, const std::string &model_name, b
         //compute noise weights
         for(size_t i=0; i < kept_keyframes; i++)
         {
-            NguyenNoiseModel<PointT>::Parameter nm_param;
+            NguyenNoiseModelParameter nm_param;
             nm_param.use_depth_edges_ = true;
             NguyenNoiseModel<PointT> nm (nm_param);
             nm.setInputCloud(keyframes_used_[i]);

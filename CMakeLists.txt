@@ -120,6 +120,7 @@ V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
 V4R_OPTION(BUILD_GTEST              "Download and build Google Test from source" ON)
 V4R_OPTION(BUILD_METSLIB            "Download and build METSlib from source" ON)
 V4R_OPTION(BUILD_LIBSVM             "Download and build LIBSVM from source" OFF)
+V4R_OPTION(BUILD_CERES              "Download and build Ceres from source" ON)
 
 # V4R installation options
 # ===================================================
@@ -189,7 +190,7 @@ else()
   set(V4R_CONFIG_INSTALL_PATH share/V4R)
 endif()
 
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${V4R_LIB_INSTALL_PATH}")
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${V4R_LIB_INSTALL_PATH};${CMAKE_INSTALL_PREFIX}/${V4R_3P_LIB_INSTALL_PATH}")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 if(INSTALL_TO_MANGLED_PATHS)

@@ -2,17 +2,6 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
-
-* merge
-* 1.4.5
-* Merge branch 'release' of rgit.acin.tuwien.ac.at:markus-bajones/v4r into release
-* update changelog
-* set ros distro
-* update changelog
-* Contributors: Markus Bajones, bajo
-
 1.4.8 (2017-04-11)
 ------------------
 * Merge remote-tracking branch 'upstream/master' into release
