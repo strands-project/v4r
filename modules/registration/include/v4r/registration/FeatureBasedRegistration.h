@@ -1,11 +1,8 @@
 #ifndef V4R_REGISTRATION_FBR
 #define V4R_REGISTRATION_FBR
 
-#define PCL_NO_PRECOMPILE
-//#include <pcl/point_types.h>
-//#include <pcl/point_cloud.h>
 #include <pcl/common/common.h>
-#include <pcl/search/kdtree.h>
+
 #include "PartialModelRegistrationBase.h"
 
 #include <flann/flann.h>
@@ -88,5 +85,5 @@ namespace v4r
         };
     }
 }
-#undef PCL_NO_PRECOMPILE
+
 #endif
