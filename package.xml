@@ -34,7 +34,6 @@
   <build_depend>libopenni-dev</build_depend>
   <build_depend>libopenni2-dev</build_depend>
 <!--  <build_depend>libopenni-sensor-primesense-dev</build_depend> -->
-  <build_depend>libceres-dev</build_depend>
   <build_depend>boost</build_depend>
   <build_depend>libopencv-dev</build_depend>
   <build_depend>libglew-dev</build_depend>
@@ -56,7 +55,6 @@
   <run_depend>libopenni-dev</run_depend>
   <run_depend>libopenni2-dev</run_depend>
  <!-- <run_depend>libopenni-sensor-primesense-dev</run_depend> -->
-  <run_depend>libceres-dev</run_depend>
   <run_depend>libopencv-dev</run_depend>
   <run_depend>libglew-dev</run_depend>
   <run_depend>glut</run_depend>

@@ -6,6 +6,8 @@ cfg/*
 data/
 lib
 *~
+debian/
+obj-x86_64-linux-gnu/
 
 # git backups
 *.orig
