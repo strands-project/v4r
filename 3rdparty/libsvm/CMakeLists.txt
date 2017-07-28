@@ -33,6 +33,7 @@ set_target_properties(${LIBSVM_LIBRARY}
 
 # Setup a rule to install header files
 install(FILES "${SOURCE_DIR}/svm.h" DESTINATION "${V4R_3P_INCLUDE_INSTALL_PATH}/libsvm")
+install(FILES "${SOURCE_DIR}/libsvm.so.2" DESTINATION ${V4R_3P_LIB_INSTALL_PATH})
 
 if(NOT BUILD_SHARED_LIBS)
   message(WARNING "LIBSVM support is enabled, but it can only be built as as shared library.")
