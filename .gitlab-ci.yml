@@ -39,7 +39,7 @@ ubuntu-trusty-build-package:
     - sed -i 's?v4r\//usr\/lib\/?v4r/usr/lib/:$(CURDIR)/debian/v4r/usr/share/V4R/3rdparty/lib/?' debian/rules
     - debuild -rfakeroot -us -uc -b -j8
     - mkdir build
-    - mv ../ros-*.deb build
+    - mv ../*.deb build
 
   # This stage is only executed for new tags
   only:
