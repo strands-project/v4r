@@ -120,6 +120,7 @@ V4R_OPTION(BUILD_SIFTGPU            "Download and build SiftGPU from source" ON)
 V4R_OPTION(BUILD_GTEST              "Download and build Google Test from source" ON)
 V4R_OPTION(BUILD_METSLIB            "Download and build METSlib from source" ON)
 V4R_OPTION(BUILD_LIBSVM             "Download and build LIBSVM from source" OFF)
+V4R_OPTION(BUILD_CERES              "Download and build Ceres from source" ON)
 
 # V4R installation options
 # ===================================================
