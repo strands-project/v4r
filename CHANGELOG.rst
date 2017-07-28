@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.9 (2017-07-28)
+------------------
 * merge master into release
 * fix changelog, package.xml
 * Merge branch 'fix-rpath-libsvm' into 'master'
