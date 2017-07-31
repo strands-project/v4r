@@ -108,7 +108,7 @@ ubuntu-xenial-build-package:
   # This stage is only executed for new tags 
   only: 
     - tags 
-    - release@markus-bajones/v4r 
+    - release@root/v4r
  
   # The files which are to be made available in GitLab 
   artifacts: 
