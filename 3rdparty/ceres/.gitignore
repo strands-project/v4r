@@ -1,0 +1,7 @@
+# These paths will be created and populated by the `ExternalProject_Add`
+# command when the "ceres" target is built.
+include/
+lib/
+share/
+src/
+tmp/

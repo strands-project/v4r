@@ -1,0 +1,10 @@
+--- include/ceres/internal/numeric_diff.h	2016-12-05 16:45:15.000000000 +0100
++++ include/ceres/internal/numeric_diff_fixed.h	2017-07-21 11:00:02.604489566 +0200
+@@ -38,7 +38,6 @@
+ #include <cstring>
+ 
+ #include "Eigen/Dense"
+-#include "Eigen/StdVector"
+ #include "ceres/cost_function.h"
+ #include "ceres/internal/fixed_array.h"
+ #include "ceres/internal/scoped_ptr.h"

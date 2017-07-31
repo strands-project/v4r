@@ -21,11 +21,14 @@ fi
 echo "Installing Dependencies for V4R (Ubuntu ${ubuntu_version_name} using ROS ${ros_version})..."
 echo "If you want to change this you can pass in the codename of the Ubuntu release. Eg. $0 xenial kinetic for 16.04 with ROS kinetic"
 
-sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu '${ubuntu_version_name}' main" > /etc/apt/sources.list.d/ros-latest.list'
-wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-sudo apt-get update -qq
-sudo apt-get install -qq -y python-rosdep build-essential cmake
-sudo rosdep init
+if [ ! -f /etc/apt/sources.list.d/ros-latest.list ]; then
+    sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu '${ubuntu_version_name}' main" > /etc/apt/sources.list.d/ros-latest.list'
+fi
 
-rosdep update
-rosdep install --from-paths . -i -y -r --rosdistro ${ros_version} 
+wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+sudo apt-get update -qq > /dev/null
+sudo apt-get install -qq -y python-rosdep build-essential cmake > /dev/null
+sudo rosdep init > /dev/null
+
+rosdep update > /dev/null
+rosdep install -q --from-paths . -i -y -r --rosdistro ${ros_version} > /dev/null

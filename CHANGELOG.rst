@@ -2,16 +2,262 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
-
+1.4.9 (2017-07-28)
+------------------
+* merge master into release
+* fix changelog, package.xml
+* Merge branch 'fix-rpath-libsvm' into 'master'
+  Fix installation of 3rd party shared libs
+  Closes #29
+  See merge request !202
+* Merge branch 'ceres_3rd_party' into 'master'
+  Include and install Ceres as 3rd party
+  See merge request !201
+* Add CMake command to install libsvm.so
+* Add 3rd party library directory to the CMAKE_INSTALL_RPATH
+* fixed old naming issue
+* install ceres as 3rd party library
+  Because of Ubuntu not fixing a bug in their ceres package [1]  we need to add it as a 3rd party lib.
+  [1] https://bugs.launchpad.net/ubuntu/+source/ceres-solver/+bug/1596296
+* Merge branch 'remove-include' into 'master'
+  Remove useless include
+  See merge request !200
+* Remove useless include
+* Update .gitlab-ci.yml
+* Update .gitlab-ci.yml
+* update changelog
+* Test: Enable deb generation on Ubuntu 16.04
 * merge
+* Merge branch 'master' into 'master'
+  RGB-D cloud filtering using a sequence of clouds, (batch version, average of depth and colour)
+  See merge request !197
+* Merge branch 'add_semantic_segmentation' into 'master'
+  add semantic segmentation module + apps and scripts for NYU Datasets
+  See merge request !198
+* add semantic segmentation module + apps and scripts for NYU Datasets
+  bugfix: renamed one function
+  adapted command line arguments
+  adapted scripts, moved some files from git to repo server
+  Update Readme.md
+  Update Readme.md
+  removed unused include files (esp. openni2_grabber.h)
+  add readme file for semantic segmentation apps
+  update scripts and readme
+  add matlab scripts for nyu depth dataset conversion
+  add apps for semantic_segmentation
+  add module semantic_segmentation
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* changed name of tsf and added example
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:hannes-prankl/v4r
+* tsf batch filtering
+* Merge branch 'fix_global_pipeline_param_bug' into 'master'
+  Fix global pipeline param bug
+  See merge request !196
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* Merge branch 'forward_declare_caffe_net' into 'master'
+  Forward declare caffe net
+  See merge request !195
+* fix bug when global pipeline parameters are not completely defined
+* Merge branch 'fix_caffe' into 'master'
+  Fix caffe
+  Closes #25
+  See merge request !194
+* comment pcl conflict
+* Merge branch 'forward_declare_caffe_net' of rgit.acin.tuwien.ac.at:t-faeulhammer/v4r
+* comment definitions
+* forward declare caffe net
+  avoid caffe include
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* fix missing include paths
+* Merge branch 'opencv_fix' into 'master'
+  Fix OpenCV Bug for unordered sets
+  See merge request !192
+* Add Caffe Path hints
+* Fix OpenCV Bug for unordered sets
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* bug fix: turn off mapping -> tsf-filtering still collected frames
+* Merge branch 'master' into 'master'
+  Master
+  See merge request !190
+* bug fix:
+  - TSFGlobalCloudFilteringSimple: set width of the point cloud (if not ec-filtered)
+  - example: parameter setting: do not ec-filter
+* added modul: camera tracking and mapping (using s temporal smoothing flter - TSF)
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* add multiview keypoint correspondence visualization
+* Merge branch 'pcl_mesh_renderer' into 'master'
+  Pcl mesh renderer
+  See merge request !189
+* removed loading of pcl files with pcl::io::loadPLYFile. This method 1. tends to fail and 2. does not exist on the continous integration system.
+* Cleanup of the changes. Finally got rid of the flipped coordinate system bug.
+* Added a lot of debug code but principially found the bugs causing the projection to be inverted. TODO: remove debug code!!
+* Merge branch 'master' of rgit.acin.tuwien.ac.at:root/v4r
+* no idea (must be minor)
+* Added new constructor accepting pcl meshes.
+* update doc
+* update doc
+* Merge branch 'add_change_detection' into 'master'
+  Add change detection
+  See merge request !188
+* update doc
+* update CMakeLists
+* remove Eval app
+* fix error when reading floating point occlusion values
+* avoid running into pcl bug because corr_rejector ransac is not reset
+* remove unused method
+* make aligned
+* :lipstick:
+* read training data despite loading model from file
+* add more verbosity
+* allow to load SVM model from file
+* update default param
+* update default svm parameter range
+* fix seg fault when saving model
+* save trained svm to current working directory
+* add svm scaling
+* allow setting kp_transfer
+* allow to sub-sample views to speed up evaluations
+* allow to set knn from command line
+* allow to do icp outside HV
+* write refined pose
+* remove condition
+* remove opencv sift as it is integrated in sift local estimator
+* weight feature vector so they approximately scale to 1
+* add some boost program options
+* remove unused icp parameter
+* update min dist for cluster factor default parameter value
+* remove debug
+* update parameter
+* temp debug info
+* remove debugging information again
+* remove exit
+* bf
+* add more debug info
+* temporary for debugging
+* update
+* more info
+* :lipstick:
+* fix compile error
+* up
+* temporary verbose logging
+* :lipstick:
+* up
+* update visualization
+* update params
+* use openmp for zbuffering
+* fix min_dist_for_cluster parameter for gc
+* add multiview visualization for kp transfer
+* avoid redundant recognition rate computations
+* use full model for z-buffering in HV
+* add timing and do some common pre-checks
+* update author order
+* :lipstick:
+* pre-compute search radius
+* set rendering default background-color to white
+* add missing pieces for remove non-upright objects
+* serialize hypotheses
+* add option to remove hypotheses not standing upright on a suppport plane
+* do not output confusion matrix twice
+* allow subsampling during rendering
+* remove unused normal computation for model
+  should be done outside
+* Merge branch 'fix_normals' into 'master'
+  fix nasty bug in normals computation (flip always towards viewpoint)
+  See merge request !187
+* use auto
+* use auto
+* revert normal referencing
+* add missing declarations
+* revert normal referencing
+* fix visualization bug when skip verification is on
+* use reference
+* use reference
+* fix nasty bug in normals computation (flip always towards viewpoint)
+* fix doxygen comments
+* visualize curvature information
+* fix background color bug
+* allow to save images to disk
+* remove leftover for visualiization
+* add option in xml
+* just to make sure
+* add ICRA version of multi-view classifier
+* add missing piece for param gc grouping
+* get recognition pipelines
+* allow to disable correspondence clustering
+* make deep copy
+* fix bug when views are empty
+* add try catch
+* :lipstick:
+* update params
+* add keypoint redundancy check
+* use tanh function for xyz score and re-name parameter
+* temporarily add some hack to avoid running into bug for outlier cloud visualization
+* add some more information for timing
+* fix some timing measurement bug
+* make shuffle views a parameter
+* add reading of computation time
+* :lipstick:
+* fix bug in recognition rate compuation when dot product becomes 1+eps
+* add multiview evaluation
+* fix nasty bug in normals computation (flip always towards viewpoint)
+* add normals visualization
+* fix multiview and icp stuff, add max views parameter
+* backup of some old code
+* remove some deprecated stuff
+* partially fix multi-view registration
+* remove unused template parameter
+* add xtion depth mask
+* add some logs
+* add global config
+* update params
+* :lipstick:
+* update rec error computation and visualize errors
+* fix visualization
+* fix recognition rate bug
+* add missing files
+* update dependency list
+* update color and normals comparison
+* make HV param private
+* add dependencies
+* fix bug when hypothesis does not explain any scene point
+* :lipstick:
+* remove empty appearance module
+* adapt L channel
+* make fitness threshold dependend on visibility
+* :lipstick:
+* put params in seperate file
+* :lipstick:
+* Merge remote-tracking branch 'root/master' into add_change_detection
+* :lipstick:
+* update url for siftgpu
+* update timings log
+* re-arrangechecks to hopefully speed-up a bit
+* fix rec file output and add timings
+* fix visualization
+* reset mv
+* improve performance and brevity of noise model based cloud integration
+* add copyrights
+* integrate change detection again
+* add param for mutliview hv
+* use seperate parameter class for noise model based registration + fix remaining const madness
+* add noise model based cloud integration
+  not quite working yet
+* :lipstick:
+* const madness
+* update multiview
+  save verification status intrinsically
+  correctly transfer hypotheses across views
+* add verified member
+* make objectrecognizer mv compatible
+* update param
+* allow online mv rec
+* opti model - structure (no impl)
 * 1.4.5
 * Merge branch 'release' of rgit.acin.tuwien.ac.at:markus-bajones/v4r into release
 * update changelog
 * set ros distro
 * update changelog
-* Contributors: Markus Bajones, bajo
+* Contributors: Daniel Wolf, Johann Prankl, Markus Bajones, Sergey Alexandrov, Simon Schreiberhuber, Thomas Faeulhammer, Thomas Fäulhammer, bajo
 
 1.4.8 (2017-04-11)
 ------------------
