@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
   <name>v4r</name>
-  <version>1.4.3</version>
-  <description>The Vision for Robotics Library of ACIN TUW (open source STRANDS version)</description>
+  <version>1.4.9</version>
+  <description>The Vision for Robotics Library of ACIN TUW</description>
 
   <maintainer email="faeulhammer@acin.tuwien.ac.at">Thomas Faeulhammer</maintainer>
   <maintainer email="alexandrov@acin.tuwien.ac.at">Sergey Alexandrov</maintainer>
@@ -18,7 +18,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <url type="website">https://github.com/strands-project/v4r</url> 
+  <url type="website">https://rgit.acin.tuwien.ac.at/root/v4r</url> 
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
