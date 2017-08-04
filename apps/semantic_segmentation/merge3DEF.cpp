@@ -29,7 +29,6 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/contrib/contrib.hpp>
 
 #include <v4r/semantic_segmentation/entangled_data.h>
 #include <v4r/semantic_segmentation/entangled_forest.h>
