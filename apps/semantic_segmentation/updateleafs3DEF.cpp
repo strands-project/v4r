@@ -25,7 +25,6 @@
 #include <ctime>
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/contrib/contrib.hpp>
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/program_options.hpp>
