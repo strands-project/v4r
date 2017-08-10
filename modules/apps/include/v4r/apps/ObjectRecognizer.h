@@ -91,10 +91,9 @@ private:
 
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    ObjectRecognizer(const ObjectRecognizerParameter &p = ObjectRecognizerParameter() ) :
+    ObjectRecognizer() :
         visualize_ (false),
-        skip_verification_(false),
-        param_(p)
+        skip_verification_(false)
     {}
 
     /**
@@ -112,7 +111,7 @@ public:
      * @brief initialize initialize Object recognizer (sets up model database, recognition pipeline and hypotheses verification)
      * @param arguments
      */
-    void initialize(const std::vector<std::string> &command_line_arguments);
+    void initialize(std::vector<std::string> &command_line_arguments, const boost::filesystem::path &config_folder = bf::path("cfg"));
 
     /**
      * @brief recognize recognize objects in point cloud
@@ -157,6 +156,16 @@ public:
     getElapsedTimes() const
     {
         return elapsed_time_;
+    }
+
+    /**
+     * @brief getParam get recognition parameter
+     * @return parameter
+     */
+    ObjectRecognizerParameter
+    getParam() const
+    {
+        return param_;
     }
 
     /**
