@@ -71,5 +71,5 @@ INSTALL(TARGETS ObjectRecognizer MVObjectRecognizerEval compute_recognition_rate
 )
 
 INSTALL(DIRECTORY cfg
-DESTINATION share/V4R
+DESTINATION $ENV{HOME}/.v4r/apps/ObjectRecognizer/
 )
