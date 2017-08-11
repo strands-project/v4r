@@ -169,6 +169,16 @@ public:
     }
 
     /**
+     * @brief getCamera get pointer to camera parameters
+     * @return camera parameter
+     */
+    Camera::ConstPtr
+    getCamera() const
+    {
+        return camera_;
+    }
+
+    /**
      * @brief resetMultiView resets all state variables of the multi-view and initializes a new multi-view sequence
      */
     void
