@@ -69,3 +69,7 @@ INSTALL(TARGETS ObjectRecognizer MVObjectRecognizerEval compute_recognition_rate
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
+
+INSTALL(DIRECTORY cfg
+DESTINATION share/V4R/apps/ObjectRecognizer/
+)

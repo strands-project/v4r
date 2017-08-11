@@ -1,4 +1,25 @@
-#include <v4r/apps/ObjectRecognizer.h>
+/******************************************************************************
+ * Copyright (c) 2017 Thomas Faeulhammer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
 #include <iostream>
 #include <sstream>
@@ -6,7 +27,6 @@
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
-
 #include <pcl/common/time.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/filters/passthrough.h>
@@ -14,6 +34,7 @@
 #include <pcl/recognition/cg/geometric_consistency.h>
 #include <pcl/registration/icp.h>
 
+#include <v4r/apps/ObjectRecognizer.h>
 #include <v4r/change_detection/miscellaneous.h>
 #include <v4r/change_detection/change_detection.h>
 #include <v4r/common/camera.h>
@@ -36,8 +57,6 @@
 #include <v4r/recognition/multiview_recognizer.h>
 #include <v4r/registration/noise_model_based_cloud_integration.h>
 #include <v4r/segmentation/all_headers.h>
-
-
 #include <v4r/segmentation/plane_utils.h>
 #include <v4r/segmentation/segmentation_utils.h>
 #include <pcl/segmentation/organized_multi_plane_segmentation.h>
@@ -56,7 +75,7 @@ namespace apps
 {
 
 template<typename PointT>
-void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &command_line_arguments)
+void ObjectRecognizer<PointT>::initialize(std::vector<std::string> &command_line_arguments, const bf::path &config_folder)
 {
     bool visualize_hv_go_cues = false;
     bool visualize_hv_model_cues = false;
@@ -65,7 +84,20 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     bool visualize_global_results = false;
     bool retrain = false;
 
-    po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
+    const bf::path multipipeline_config_xml_basenemae = "multipipeline_config.xml";
+    const bf::path sift_config_xml_basename = "sift_config.xml";
+    const bf::path shot_config_xml_basename = "shot_config.xml";
+    const bf::path depth_image_mask_xml_basename = "xtion_depth_mask.png";
+    const bf::path camera_config_xml_basename = "camera.xml";
+    const bf::path global_config_xml_basename = "global_config.xml";
+    const bf::path hv_config_xml_basename = "hv_config.xml";
+
+    bf::path multipipeline_config_fn = config_folder / multipipeline_config_xml_basenemae;
+    param_.load( multipipeline_config_fn.string() );
+    command_line_arguments = param_.init(command_line_arguments);
+    param_.output();
+
+    po::options_description desc("Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
             ("model_dir,m", po::value<std::string>(&models_dir_)->required(), "Models directory")
@@ -88,9 +120,13 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl << std::endl << desc << std::endl;  }
 
     // ====== DEFINE CAMERA =======
-    camera_.reset (new Camera(param_.camera_config_xml_) );
+    bf::path camera_config_xml = config_folder / camera_config_xml_basename;
+    CHECK(v4r::io::existsFile( camera_config_xml));
 
-    cv::Mat_<uchar> img_mask = cv::imread(param_.depth_img_mask_, CV_LOAD_IMAGE_GRAYSCALE);
+    camera_.reset ( new Camera(camera_config_xml.string() ) );
+
+    bf::path depth_image_mask_fn = config_folder / depth_image_mask_xml_basename;
+    cv::Mat_<uchar> img_mask = cv::imread(depth_image_mask_fn.string(), CV_LOAD_IMAGE_GRAYSCALE);
     if( img_mask.data )
         camera_->setCameraDepthRegistrationMask( img_mask );
     else
@@ -105,12 +141,10 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     vis_param->fontsize_ = 12;
     vis_param->coordinate_axis_scale_ = 0.2f;
 
-
-    // ==== Fill object model database ==== ( assumes each object is in a seperate folder named after the object and contains and "views" folder with the training views of the object)
+    // ==== FILL OBJECT MODEL DATABASE ==== ( assumes each object is in a seperate folder named after the object and contains and "views" folder with the training views of the object)
     model_database_.reset ( new Source<PointT> (models_dir_) );
 
     normal_estimator_ = v4r::initNormalEstimator<PointT> ( param_.normal_computation_method_, to_pass_further );
-
 
     // ====== SETUP MULTI PIPELINE RECOGNIZER ======
     typename v4r::MultiRecognitionPipeline<PointT>::Ptr multipipeline (new v4r::MultiRecognitionPipeline<PointT> );
@@ -149,7 +183,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             if(param_.do_sift_)
             {
                 LocalRecognizerParameter sift_param;
-                sift_param.load(param_.sift_config_xml_);
+                bf::path sift_config_xml = config_folder / sift_config_xml_basename;
+                sift_param.load( sift_config_xml.string() );
 
                 if(param_.sift_knn_)
                     sift_param.knn_ = param_.sift_knn_;
@@ -162,12 +197,12 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
             }
             if(param_.do_shot_)
             {
-
                 LocalRecognizerParameter shot_pipeline_param;
-                shot_pipeline_param.load(param_.shot_config_xml_);
+                bf::path shot_config_xml = config_folder / shot_config_xml_basename;
+                shot_pipeline_param.load( shot_config_xml.string() );
 
                 if(param_.shot_knn_)
-                    shot_pipeline_param.knn_ = param_.sift_knn_;
+                    shot_pipeline_param.knn_ = param_.shot_knn_;
 
                 typename LocalFeatureMatcher<PointT>::Ptr shot_rec (new LocalFeatureMatcher<PointT>(shot_pipeline_param));
                 std::vector<typename v4r::KeypointExtractor<PointT>::Ptr > keypoint_extractor = initKeypointExtractors<PointT>( param_.shot_keypoint_extractor_method_, to_pass_further );
@@ -185,7 +220,6 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     //                ROPSLocalEstimationParameter rops_param;
     //                rops_param.init( to_pass_further );
     //                typename ROPSLocalEstimation<PointT>::Ptr rops_est (new ROPSLocalEstimation<PointT> (rops_param) );
-
 
                     shot_rec->addFeatureEstimator( shot_est );
                 }
@@ -216,7 +250,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
 //                    typename OURCVFHEstimator<PointT>::Ptr ourcvfh_estimator (new OURCVFHEstimator<PointT>);
                     Classifier::Ptr classifier = initClassifier( param_.classification_methods_[global_pipeline_id], to_pass_further);
 
-                    GlobalRecognizerParameter global_rec_param ( param_.global_recognition_pipeline_config_[global_pipeline_id] );
+                    bf::path global_rec_config_fn = config_folder / global_config_xml_basename;
+                    GlobalRecognizerParameter global_rec_param ( global_rec_config_fn.string() );
                     typename GlobalRecognizer<PointT>::Ptr global_r (new GlobalRecognizer<PointT>( global_rec_param ));
                     global_r->setFeatureEstimator( global_concat_estimator );
                     global_r->setClassifier( classifier );
@@ -233,7 +268,6 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
         multipipeline->setNormalEstimator( normal_estimator_ );
         multipipeline->setVisualizationParameter(vis_param);
     }
-
 
 
     if( param_.use_multiview_ )
@@ -279,7 +313,8 @@ void ObjectRecognizer<PointT>::initialize(const std::vector<std::string> &comman
     {
         // ====== SETUP HYPOTHESES VERIFICATION =====
         HV_Parameter paramHV;
-        paramHV.load (param_.hv_config_xml_);
+        bf::path hv_config_path = config_folder / hv_config_xml_basename;
+        paramHV.load ( hv_config_path.string() );
         hv_.reset (new HypothesisVerification<PointT, PointT> (camera_, paramHV) );
 
         if( visualize_hv_go_cues )

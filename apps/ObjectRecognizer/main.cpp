@@ -1,13 +1,34 @@
+/******************************************************************************
+ * Copyright (c) 2017 Thomas Faeulhammer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
 #include <boost/serialization/vector.hpp>
 #include <glog/logging.h>
-
-#include <v4r/apps/ObjectRecognizer.h>
-
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
+
+#include <v4r/apps/ObjectRecognizer.h>
 #include <v4r/io/filesystem.h>
 
 namespace po = boost::program_options;
@@ -17,19 +38,17 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PT;
 
-    std::string test_dir;
-    std::string out_dir = "/tmp/object_recognition_results/";
-    std::string debug_dir = "";
-    std::string recognizer_config = "cfg/multipipeline_config.xml";
+    bf::path test_dir;
+    bf::path out_dir = "/tmp/object_recognition_results/";
+    bf::path recognizer_config_dir = "cfg";
     int verbosity = -1;
 
-    po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
+    po::options_description desc("Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
-            ("test_dir,t", po::value<std::string>(&test_dir)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
-            ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
-            ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
-            ("recognizer_config", po::value<std::string>(&recognizer_config)->default_value(recognizer_config), "Config XML of the multi-pipeline recognizer")
+            ("test_dir,t", po::value<bf::path>(&test_dir)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
+            ("out_dir,o", po::value<bf::path>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
+            ("cfg", po::value<bf::path>(&recognizer_config_dir)->default_value(recognizer_config_dir), "Path to config directory containing the xml config files for the various recognition pipelines and parameters.")
             ("verbosity", po::value<int>(&verbosity)->default_value(verbosity), "set verbosity level for output (<0 minimal output)")
             ;
     po::variables_map vm;
@@ -48,12 +67,8 @@ main (int argc, char ** argv)
     }
     google::InitGoogleLogging(argv[0]);
 
-    v4r::apps::ObjectRecognizerParameter param;
-    param.load( recognizer_config );
-    to_pass_further = param.init(to_pass_further);
-    param.output();
-    v4r::apps::ObjectRecognizer<PT> recognizer (param);
-    recognizer.initialize(to_pass_further);
+    v4r::apps::ObjectRecognizer<PT> recognizer;
+    recognizer.initialize(to_pass_further, recognizer_config_dir);
 
     std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir );
     if(sub_folder_names.empty()) sub_folder_names.push_back("");
@@ -61,13 +76,10 @@ main (int argc, char ** argv)
     for (const std::string &sub_folder_name : sub_folder_names)
     {
         recognizer.resetMultiView();
-        std::vector< std::string > views = v4r::io::getFilesInDirectory( test_dir+"/"+sub_folder_name, ".*.pcd", false );
+        std::vector< std::string > views = v4r::io::getFilesInDirectory( test_dir / sub_folder_name, ".*.pcd", false );
         for (size_t v_id=0; v_id<views.size(); v_id++)
         {
-            bf::path test_path = test_dir;
-            test_path /= sub_folder_name;
-            test_path /= views[v_id];
-
+            bf::path test_path = test_dir / sub_folder_name / views[v_id];
 
             LOG(INFO) << "Recognizing file " << test_path.string();
             pcl::PointCloud<PT>::Ptr cloud(new pcl::PointCloud<PT>());
@@ -84,9 +96,7 @@ main (int argc, char ** argv)
             {
                 std::string out_basename = views[v_id];
                 boost::replace_last(out_basename, ".pcd", ".anno");
-                bf::path out_path = out_dir;
-                out_path /= sub_folder_name;
-                out_path /= out_basename;
+                bf::path out_path = out_dir / sub_folder_name / out_basename;
 
                 std::string out_path_generated_hypotheses = out_path.string();
                 boost::replace_last(out_path_generated_hypotheses, ".anno", ".generated_hyps");
@@ -94,7 +104,7 @@ main (int argc, char ** argv)
                 std::string out_path_generated_hypotheses_serialized = out_path.string();
                 boost::replace_last(out_path_generated_hypotheses_serialized, ".anno", ".generated_hyps_serialized");
 
-                v4r::io::createDirForFileIfNotExist(out_path.string());
+                v4r::io::createDirForFileIfNotExist( out_path );
 
                 // save hypotheses
                 std::ofstream f_generated ( out_path_generated_hypotheses.c_str() );

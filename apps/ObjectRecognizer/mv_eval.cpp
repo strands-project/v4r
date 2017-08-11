@@ -19,10 +19,9 @@ main (int argc, char ** argv)
 {
     typedef pcl::PointXYZRGB PT;
 
-    std::string test_dir;
-    std::string out_dir = "/tmp/object_recognition_results/";
-    std::string debug_dir = "";
-    std::string recognizer_config = "cfg/multipipeline_config.xml";
+    bf::path test_dir;
+    bf::path out_dir = "/tmp/object_recognition_results/";
+    bf::path recognizer_config_dir = "cfg";
     int verbosity = -1;
     bool shuffle_views = true;
     size_t view_sample_size = 1;
@@ -33,10 +32,9 @@ main (int argc, char ** argv)
     po::options_description desc("Single-View Object Instance Recognizer\n======================================\n**Allowed options");
     desc.add_options()
             ("help,h", "produce help message")
-            ("test_dir,t", po::value<std::string>(&test_dir)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
-            ("out_dir,o", po::value<std::string>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
-            ("dbg_dir", po::value<std::string>(&debug_dir)->default_value(debug_dir), "Output directory where debug information (generated object hypotheses) will be stored (skipped if empty)")
-            ("recognizer_config", po::value<std::string>(&recognizer_config)->default_value(recognizer_config), "Config XML of the multi-pipeline recognizer")
+            ("test_dir,t", po::value<bf::path>(&test_dir)->required(), "Directory with test scenes stored as point clouds (.pcd). The camera pose is taken directly from the pcd header fields \"sensor_orientation_\" and \"sensor_origin_\" (if the test directory contains subdirectories, each subdirectory is considered as seperate sequence for multiview recognition)")
+            ("out_dir,o", po::value<bf::path>(&out_dir)->default_value(out_dir), "Output directory where recognition results will be stored.")
+            ("cfg", po::value<bf::path>(&recognizer_config_dir)->default_value(recognizer_config_dir), "Path to config directory containing the xml config files for the various recognition pipelines and parameters.")
             ("verbosity", po::value<int>(&verbosity)->default_value(verbosity), "set verbosity level for output (<0 minimal output)")
             ("shuffle_views", po::value<bool>(&shuffle_views)->default_value(shuffle_views), "if true, randomly selects viewpoints. Otherwise in the sequence given by the filenames.")
             ("view_sample_size", po::value<size_t>(&view_sample_size)->default_value(view_sample_size), "view sample size. Only every n-th view will be recognized to speed up evaluation.")
@@ -57,12 +55,8 @@ main (int argc, char ** argv)
     }
     google::InitGoogleLogging(argv[0]);
 
-    v4r::apps::ObjectRecognizerParameter param;
-    param.load( recognizer_config );
-    to_pass_further = param.init(to_pass_further);
-    param.output();
-    v4r::apps::ObjectRecognizer<PT> recognizer (param);
-    recognizer.initialize(to_pass_further);
+    v4r::apps::ObjectRecognizer<PT> recognizer;
+    recognizer.initialize(to_pass_further, recognizer_config_dir);
 
     std::vector< std::string> sub_folder_names = v4r::io::getFoldersInDirectory( test_dir );
     if(sub_folder_names.empty()) sub_folder_names.push_back("");
@@ -70,7 +64,7 @@ main (int argc, char ** argv)
     for (const std::string &sub_folder_name : sub_folder_names)
     {
         recognizer.resetMultiView();
-        std::vector< std::string > views = v4r::io::getFilesInDirectory( test_dir+"/"+sub_folder_name, ".*.pcd", false );
+        std::vector< std::string > views = v4r::io::getFilesInDirectory( test_dir / sub_folder_name, ".*.pcd", false );
         size_t kept=0;
         for(size_t i=0; i<views.size(); i = i+view_sample_size)
             views[kept++] = views[i];
@@ -78,6 +72,7 @@ main (int argc, char ** argv)
         views.resize(kept);
 
 
+        const v4r::apps::ObjectRecognizerParameter &param = recognizer.getParam();
         if( views.size() < param.max_views_)
         {
             LOG(WARNING) << "There are not enough views (" << views.size() << ") within this sequence to evaluate on " << param.max_views_ << " views! Skipping sequence.";
@@ -107,9 +102,7 @@ main (int argc, char ** argv)
             if( view_is_evaluated[v_id] ) //everything evaluated
                 break;
 
-            bf::path test_path = test_dir;
-            test_path /= sub_folder_name;
-            test_path /= views[v_id];
+            bf::path test_path = test_dir / sub_folder_name / views[v_id];
 
             LOG(INFO) << "Recognizing file " << test_path.string();
             pcl::PointCloud<PT>::Ptr cloud(new pcl::PointCloud<PT>());
@@ -127,9 +120,7 @@ main (int argc, char ** argv)
                 view_is_evaluated.set(v_id);
                 std::string out_basename = views[v_id];
                 boost::replace_last(out_basename, ".pcd", ".anno");
-                bf::path out_path = out_dir;
-                out_path /= sub_folder_name;
-                out_path /= out_basename;
+                bf::path out_path = out_dir / sub_folder_name / out_basename;
 
                 std::string out_path_generated_hypotheses = out_path.string();
                 boost::replace_last(out_path_generated_hypotheses, ".anno", ".generated_hyps");
