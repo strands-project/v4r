@@ -26,3 +26,14 @@ cmake ..
 make
 sudo make install (optional)
 ```
+
+## Notes
+### Caffe
+If you want to use CNN feature extraction, you need to install the Caffe library. We recommend to use CMake-based installation for Caffe and provide the install folder to V4R's cmake call as
+```
+cmake .. -DCaffe_DIR=/your_caffe_ws/build/install/share/Caffe
+```
+
+
+### Ceres
+To avoid issues with Ceres when building shared libraries, we recommend to build and install Ceres from source.
