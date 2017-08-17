@@ -123,15 +123,15 @@ void ObjectRecognizer<PointT>::initialize(std::vector<std::string> &command_line
     bf::path camera_config_xml = config_folder / camera_config_xml_basename;
     CHECK(v4r::io::existsFile( camera_config_xml));
 
-    camera_.reset ( new Camera(camera_config_xml.string() ) );
-
+    v4r::Camera::Ptr cam ( new Camera(camera_config_xml.string() ) );
     bf::path depth_image_mask_fn = config_folder / depth_image_mask_xml_basename;
     cv::Mat_<uchar> img_mask = cv::imread(depth_image_mask_fn.string(), CV_LOAD_IMAGE_GRAYSCALE);
     if( img_mask.data )
-        camera_->setCameraDepthRegistrationMask( img_mask );
+        cam->setCameraDepthRegistrationMask( img_mask );
     else
         LOG(WARNING) << "No camera depth registration mask provided. Assuming all pixels have valid depth.";
 
+    camera_ = cam;
 
     // ====== DEFINE VISUALIZATION PARAMETER =======
     PCLVisualizationParams::Ptr vis_param (new PCLVisualizationParams);

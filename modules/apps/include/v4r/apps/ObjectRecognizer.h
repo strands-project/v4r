@@ -58,7 +58,7 @@ private:
 
     ObjectRecognizerParameter param_;
 
-    Camera::Ptr camera_;
+    Camera::ConstPtr camera_;
 
     typename Source<PointT>::Ptr model_database_;
 
@@ -176,6 +176,21 @@ public:
     getCamera() const
     {
         return camera_;
+    }
+
+    /**
+     * @brief setCamera set the camera used for z-buffering
+     * @param cam camera parameters
+     */
+    void
+    setCamera(const Camera::ConstPtr &cam)
+    {
+        camera_ = cam;
+
+        if (hv_)
+        {
+            hv_->setCamera(camera_);
+        }
     }
 
     /**
