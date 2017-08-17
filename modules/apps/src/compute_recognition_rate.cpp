@@ -634,7 +634,7 @@ RecognitionEvaluator::compute_recognition_rate (size_t &total_tp, size_t &total_
                 continue;
 
             const std::string img_output_dir = "/tmp/recognition_output_images/";
-            v4r::Camera::Ptr kinect (new v4r::Camera(525.f, 640, 480, 319.5, 239.5));
+            v4r::Camera::Ptr kinect (new v4r::Camera(525.f, 525.f, 640, 480, 319.5, 239.5));
 
             std::string scene_name (anno_file);
             boost::replace_last( scene_name, ".anno", ".pcd");

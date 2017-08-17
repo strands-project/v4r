@@ -16,7 +16,7 @@ NarfKeypointExtractor<PointT>::compute ()
             * Eigen::Affine3f(input_->sensor_orientation_);
     pcl::RangeImagePlanar rangeImage;
     rangeImage.createFromPointCloudWithFixedSize(*input_, param_.cam_->getWidth(), param_.cam_->getHeight(),
-            param_.cam_->getCx(), param_.cam_->getCy(), param_.cam_->getFocalLength(), param_.cam_->getFocalLength(),
+            param_.cam_->getCx(), param_.cam_->getCy(), param_.cam_->getFocalLengthX(), param_.cam_->getFocalLengthY(),
             sensorPose, pcl::RangeImage::CAMERA_FRAME, param_.noise_level_, param_.minimum_range_);
 
     pcl::RangeImageBorderExtractor borderExtractor;

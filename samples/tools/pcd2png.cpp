@@ -97,7 +97,7 @@ int main(int argc, char** argv)
             img_conv.setInputCloud(cloud);
             if(!cloud->isOrganized())
             {
-                v4r::Camera::Ptr kinect (  new v4r::Camera(525.f,640,480,319.5f,239.5f) );
+                v4r::Camera::Ptr kinect (  new v4r::Camera(525.f,525.f,640,480,319.5f,239.5f) );
                 img_conv.setCamera( kinect );
             }
 
