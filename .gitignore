@@ -3,6 +3,7 @@
 build*/
 bin
 cfg/*
+cmake-build*
 data/
 lib
 *~
@@ -23,6 +24,9 @@ install_manifest.txt
 # Qt cache
 CMakeLists.txt.user
 CMakeLists.txt.user.*
+
+#CLion
+.idea/*
 
 # Precompiled Headers
 *.gch
