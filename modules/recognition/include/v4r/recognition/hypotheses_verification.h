@@ -587,6 +587,16 @@ public:
     {
         return elapsed_time_;
     }
+
+    /**
+     * @brief setCamera set the camera used for z-buffering
+     * @param cam camera parameters
+     */
+    void
+    setCamera(const Camera::ConstPtr &cam)
+    {
+        cam_ = cam;
+    }
 };
 
 }

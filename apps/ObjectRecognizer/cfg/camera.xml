@@ -4,7 +4,8 @@
 <CameraParameter class_id="0" tracking_level="0" version="0">
 	<width_>640</width_>
 	<height_>480</height_>
-	<focal_length_>5.250000000e+02</focal_length_>
+	<fx_>525</fx_>
+	<fy_>525</fy_>
 	<cx_>3.195000000e+02</cx_>
 	<cy_>2.395000000e+02</cy_>
 	<horizontal_fov_deg_>5.800000000e+01</horizontal_fov_deg_>

@@ -45,7 +45,8 @@ class V4R_EXPORTS Camera
 protected:
     size_t width_; /// image width in pixel
     size_t height_; /// image height in pixel
-    float focal_length_;   ///< focal length
+    float fx_;   ///< focal length in x
+    float fy_;   ///< focal length in y
     float cx_;  ///< central point of projection in x
     float cy_; ///< central point of projection in y
     float horizontal_fov_deg_; ///< camera's horizontal field of view in degree
@@ -58,7 +59,8 @@ protected:
         (void) version;
         ar      & BOOST_SERIALIZATION_NVP(width_)
                 & BOOST_SERIALIZATION_NVP(height_)
-                & BOOST_SERIALIZATION_NVP(focal_length_)
+                & BOOST_SERIALIZATION_NVP(fx_)
+                & BOOST_SERIALIZATION_NVP(fy_)
                 & BOOST_SERIALIZATION_NVP(cx_)
                 & BOOST_SERIALIZATION_NVP(cy_)
                 & BOOST_SERIALIZATION_NVP(horizontal_fov_deg_)
@@ -71,7 +73,8 @@ public:
     typedef boost::shared_ptr< Camera const> ConstPtr;
 
     Camera(
-            float focal_length = 525.f,
+            float fx = 525.f,
+            float fy = 525.f,
             size_t width = 640,
             size_t height = 480,
             float cx = 319.5f,
@@ -81,7 +84,8 @@ public:
         :
           width_ (width),
           height_(height),
-          focal_length_(focal_length),
+          fx_(fx),
+          fy_(fy),
           cx_(cx),
           cy_ (cy),
           horizontal_fov_deg_ (horizontal_fov_deg)
@@ -103,10 +107,16 @@ public:
     size_t getHeight() const { return height_; }
 
     /**
-     * @brief getFocalLength
-     * @return
+     * @brief getFocalLength get focal length in x
+     * @return focal length in x
      */
-    float getFocalLength() const { return focal_length_; }
+    float getFocalLengthX() const { return fx_; }
+
+    /**
+     * @brief getFocalLength get focal length along y direction
+     * @return focal length in y
+     */
+    float getFocalLengthY() const { return fy_; }
 
     /**
      * @brief getCx

@@ -23,7 +23,8 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
 
     float cx = cam_->getCx();
     float cy = cam_->getCy();
-    float f = cam_->getFocalLength();
+    float fx = cam_->getFocalLengthX();
+    float fy = cam_->getFocalLengthY();
     size_t width = cam_->getWidth();
     size_t height = cam_->getHeight();
 
@@ -50,8 +51,8 @@ ZBuffering<PointT>::renderPointCloud(const pcl::PointCloud<PointT> &cloud, pcl::
     for (int i=0; i< static_cast<int>(cloud.points.size()); i = i + subsample)
     {
         const PointT &pt = cloud.points[i];
-        float uf = f * pt.x / pt.z + cx;
-        float vf = f * pt.y / pt.z + cy;
+        float uf = fx * pt.x / pt.z + cx;
+        float vf = fy * pt.y / pt.z + cy;
 
         int u = (int) uf;
         int v = (int) vf;
