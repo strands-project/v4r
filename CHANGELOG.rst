@@ -2,8 +2,8 @@
 Changelog for package v4r
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.4 (2018-11-19)
+------------------
 * remove remaining readme stuff
 * redirect to rgit
 * Merge pull request `#75 <https://github.com/strands-project/v4r/issues/75>`_ from ToMadoRe/v4r_update2
